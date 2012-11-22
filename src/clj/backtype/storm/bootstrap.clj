@@ -8,10 +8,11 @@
      (import (quote [backtype.storm.utils Utils LocalState Time TimeCacheMap
                      TimeCacheMap$ExpiredCallback
                      RotatingMap RotatingMap$ExpiredCallback
-                     BufferFileInputStream
+                     BufferFileInputStream ZookeeperServerCnxnFactory
                      RegisteredGlobalState ThriftTopologyUtils DisruptorQueue
                      MutableObject MutableLong]))
      (import (quote [backtype.storm.serialization KryoTupleSerializer KryoTupleDeserializer]))
+     (import (quote [backtype.storm.security.auth ThriftServer ThriftClient ReqContext ReqContext$OperationType]))
      (import (quote [backtype.storm.spout ISpout SpoutOutputCollector ISpoutOutputCollector ShellSpout]))
      (import (quote [backtype.storm.tuple Tuple TupleImpl Fields MessageId]))
      (import (quote [backtype.storm.task IBolt IOutputCollector
@@ -29,14 +30,15 @@
      (require (quote [clojure.set :as set]))
      (require (quote [backtype.storm [stats :as stats] [disruptor :as disruptor]]))
      (import (quote [org.apache.log4j PropertyConfigurator Logger]))
-
+     
      (import (quote [backtype.storm.generated Nimbus Nimbus$Processor
                      Nimbus$Iface StormTopology ShellComponent
                      NotAliveException AlreadyAliveException GlobalStreamId
                      InvalidTopologyException ClusterSummary TopologyInfo
                      TopologySummary ExecutorSummary ExecutorStats ExecutorSpecificStats
                      SpoutStats BoltStats ErrorInfo SupervisorSummary ExecutorInfo
-                     KillOptions RebalanceOptions JavaObject JavaObjectArg]))
+                     KillOptions RebalanceOptions JavaObject JavaObjectArg
+                     NotAuthorizedException]))
      (import (quote [backtype.storm.daemon.common StormBase Assignment
                      SupervisorInfo WorkerHeartbeat]))
      (import (quote [backtype.storm.grouping CustomStreamGrouping]))

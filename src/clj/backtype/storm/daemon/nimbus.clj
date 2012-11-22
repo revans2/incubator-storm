@@ -5,6 +5,7 @@
   (:import [org.apache.thrift7.transport TNonblockingServerTransport TNonblockingServerSocket])
   (:import [java.nio ByteBuffer])
   (:import [java.nio.channels Channels WritableByteChannel])
+  (:import [backtype.storm.security.auth ThriftServer ReqContext ReqContext$OperationType])
   (:use [backtype.storm.scheduler.DefaultScheduler])
   (:import [backtype.storm.scheduler INimbus SupervisorDetails WorkerSlot TopologyDetails
             Cluster Topologies SchedulerAssignment SchedulerAssignmentImpl DefaultScheduler ExecutorDetails])
@@ -25,10 +26,23 @@
                   ))
    ))
 
+(defn mk-authorization-handler [conf]
+  (let [klassname (conf NIMBUS-AUTHORIZATION-CLASSNAME) 
+        aznClass (if klassname (try-cause (Class/forName klassname) 
+                                          (catch ClassNotFoundException e1 (log-warn-error e1 "Class " klassname " not available"))))
+        aznHandler (if aznClass (try-cause (.newInstance aznClass)
+                                           (catch Exception e2 (log-warn-error e2 "Failed to construct an object of " klassname))))] 
+    (log-debug "authorization class name:" klassname
+                 " class:" aznClass
+                 " handler:" aznHandler)
+    aznHandler
+  ))
+                     
 (defn nimbus-data [conf inimbus]
   (let [forced-scheduler (.getForcedScheduler inimbus)]
     {:conf conf
      :inimbus inimbus
+     :authorization-handler (mk-authorization-handler conf)
      :submitted-count (atom 0)
      :storm-cluster-state (cluster/mk-storm-cluster-state conf)
      :submit-lock (Object.)
@@ -291,6 +305,7 @@
 
 (defn- setup-storm-code [conf storm-id tmp-jar-location storm-conf topology]
   (let [stormroot (master-stormdist-root conf storm-id)]
+   (log-message "nimbus file location:" stormroot)
    (FileUtils/forceMkdir (File. stormroot))
    (FileUtils/cleanDirectory (File. stormroot))
    (setup-jar conf tmp-jar-location stormroot)
@@ -720,6 +735,24 @@
       (throw (AlreadyAliveException. (str storm-name " is already active"))))
     ))
 
+(defn update-req-context! [nimbus storm-name storm-conf operation]
+  (let [req (ReqContext/context)]
+    (.setOperation req operation)
+    (if storm-conf (.setTopologyConf req storm-conf) 
+      (let [storm-id  (get-storm-id (:storm-cluster-state nimbus) storm-name)
+            topologyConf (read-storm-conf (:conf nimbus) storm-id)]
+        (.setTopologyConf req topologyConf)))
+    req))
+
+(defn check-authorization! [nimbus storm-name storm-conf operation]
+ (let [aclHandler (:authorization-handler nimbus)]
+   (log-debug "check-authorization with handler: " aclHandler)
+   (if aclHandler
+       (let [req (update-req-context! nimbus storm-name storm-conf operation)]
+        (if-not (.permit aclHandler req)
+          (throw (NotAuthorizedException. (str operation " on topology " storm-name " is not authorized")))
+          )))))
+
 (defn code-ids [conf]
   (-> conf
       master-stormdist-root
@@ -874,19 +907,23 @@
         (check-storm-active! nimbus storm-name false)
         (swap! (:submitted-count nimbus) inc)
         (let [storm-id (str storm-name "-" @(:submitted-count nimbus) "-" (current-time-secs))
-              storm-conf (normalize-conf
+              storm-conf-submitted (normalize-conf
                           conf
                           (-> serializedConf
                               from-json
                               (assoc STORM-ID storm-id)
                               (assoc TOPOLOGY-NAME storm-name))
                           topology)
+              req (ReqContext/context)
+              submitter-principal (.toString (.principal req))
+              storm-conf (if submitter-principal (assoc storm-conf-submitted TOPOLOGY-SUBMITTER-PRINCIPAL submitter-principal)  storm-conf-submitted)
               total-storm-conf (merge conf storm-conf)
               topology (normalize-topology total-storm-conf topology)
               topology (if (total-storm-conf TOPOLOGY-OPTIMIZE)
                          (optimize-topology topology)
                          topology)
               storm-cluster-state (:storm-cluster-state nimbus)]
+          (check-authorization! nimbus storm-name storm-conf (ReqContext$OperationType/SUBMIT_TOPOLOGY))
           (system-topology! total-storm-conf topology) ;; this validates the structure of the topology
           (log-message "Received topology submission for " storm-name " with conf " storm-conf)
           ;; lock protects against multiple topologies being submitted at once and
@@ -899,10 +936,11 @@
           ))
       
       (^void killTopology [this ^String name]
-        (.killTopologyWithOpts this name (KillOptions.)))
+         (.killTopologyWithOpts this name (KillOptions.)))
 
       (^void killTopologyWithOpts [this ^String storm-name ^KillOptions options]
         (check-storm-active! nimbus storm-name true)
+        (check-authorization! nimbus storm-name nil (ReqContext$OperationType/KILL_TOPOLOGY))
         (let [wait-amt (if (.is_set_wait_secs options)
                          (.get_wait_secs options)                         
                          )]
@@ -911,6 +949,7 @@
 
       (^void rebalance [this ^String storm-name ^RebalanceOptions options]
         (check-storm-active! nimbus storm-name true)
+        (check-authorization! nimbus storm-name nil (ReqContext$OperationType/REBALANCE_TOPOLOGY))
         (let [wait-amt (if (.is_set_wait_secs options)
                          (.get_wait_secs options))
               num-workers (if (.is_set_num_workers options)
@@ -926,10 +965,12 @@
           ))
 
       (activate [this storm-name]
+        (check-authorization! nimbus storm-name nil (ReqContext$OperationType/ACTIVATE_TOPOLOGY))
         (transition-name! nimbus storm-name :activate true)
         )
 
       (deactivate [this storm-name]
+        (check-authorization! nimbus storm-name nil (ReqContext$OperationType/DEACTIVATE_TOPOLOGY))
         (transition-name! nimbus storm-name :inactivate true))
 
       (beginFileUpload [this]
@@ -1080,13 +1121,7 @@
 (defn launch-server! [conf nimbus]
   (validate-distributed-mode! conf)
   (let [service-handler (service-handler conf nimbus)
-        options (-> (TNonblockingServerSocket. (int (conf NIMBUS-THRIFT-PORT)))
-                    (THsHaServer$Args.)
-                    (.workerThreads 64)
-                    (.protocolFactory (TBinaryProtocol$Factory.))
-                    (.processor (Nimbus$Processor. service-handler))
-                    )
-       server (THsHaServer. options)]
+        server (ThriftServer. (Nimbus$Processor. service-handler) (int (conf NIMBUS-THRIFT-PORT)))]
     (.addShutdownHook (Runtime/getRuntime) (Thread. (fn [] (.shutdown service-handler) (.stop server))))
     (log-message "Starting Nimbus server...")
     (.serve server)))

@@ -193,6 +193,11 @@ public class Config extends HashMap<String, Object> {
     public static String NIMBUS_FILE_COPY_EXPIRATION_SECS = "nimbus.file.copy.expiration.secs";
 
     /**
+     * Class name for authorization plugin for Nimbus
+     */
+    public static String NIMBUS_AUTHORIZATION_CLASSNAME = "nimbus.authorization.classname";
+    
+    /**
      * Storm UI binds to this port.
      */
     public static String UI_PORT = "ui.port";
@@ -507,6 +512,11 @@ public class Config extends HashMap<String, Object> {
     public static String TOPOLOGY_NAME="topology.name";  
     
     /**
+     * The principal who submitted a topology
+     */
+    public static String TOPOLOGY_SUBMITTER_PRINCIPAL = "topology.submitter.principal";
+    
+     /**
      * The root directory in ZooKeeper for metadata about TransactionalSpouts.
      */
     public static String TRANSACTIONAL_ZOOKEEPER_ROOT="transactional.zookeeper.root";
