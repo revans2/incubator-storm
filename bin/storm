@@ -125,12 +125,17 @@ def jar(jarfile, klass, *args):
     (http://nathanmarz.github.com/storm/doc/backtype/storm/StormSubmitter.html)
     will upload the jar at topology-jar-path when the topology is submitted.
     """
+    jvmopts = [
+        "-Dstorm.jar=" + jarfile,
+        "-Dlogfile.name=nimbus.log",
+        "-Dlog4j.configuration=storm.log.properties",
+    ]
     exec_storm_class(
         klass,
         jvmtype="-client",
-        extrajars=[jarfile, CONF_DIR, STORM_DIR + "/bin"],
+        extrajars=[jarfile, CONF_DIR, STORM_DIR + "/bin", STORM_DIR + "/log4j"],
         args=args,
-        jvmopts=["-Dstorm.jar=" + jarfile])
+        jvmopts=jvmopts)
 
 def kill(*args):
     """Syntax: [storm kill topology-name [-w wait-time-secs]]
