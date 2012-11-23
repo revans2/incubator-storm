@@ -127,7 +127,7 @@ def jar(jarfile, klass, *args):
     """
     jvmopts = [
         "-Dstorm.jar=" + jarfile,
-        "-Dlogfile.name=nimbus.log",
+        "-Dlogfile.name=jar.log",
         "-Dlog4j.configuration=storm.log.properties",
     ]
     exec_storm_class(
