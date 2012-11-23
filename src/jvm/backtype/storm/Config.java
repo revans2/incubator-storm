@@ -64,6 +64,12 @@ public class Config extends HashMap<String, Object> {
     public static String STORM_LOCAL_HOSTNAME = "storm.local.hostname";
 
     /**
+     * The serializer class for ListDelegate (tuple payload). 
+     * The default serializer will be ListDelegateSerializer
+     */
+    public static String TOPOLOGY_TUPLE_SERIALIZER = "topology.tuple.serializer";
+
+    /**
      * Whether or not to use ZeroMQ for messaging in local mode. If this is set 
      * to false, then Storm will use a pure-Java messaging system. The purpose 
      * of this flag is to make it easy to run Storm in local mode by eliminating 
