@@ -4,6 +4,9 @@ import java.util.Map;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.log4j.Logger;
 
+import javax.crypto.KeyGenerator;
+import javax.crypto.SecretKey;
+
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
@@ -12,11 +15,15 @@ import com.esotericsoftware.kryo.serializers.BlowfishSerializer;
 
 import backtype.storm.serialization.types.ListDelegateSerializer;
 import backtype.storm.utils.ListDelegate;
+import backtype.storm.Config;
 
+/**
+ * Apply Blowfish encrption for tuple communication to bolts
+ */
 public class BlowfishTupleSerializer extends Serializer<ListDelegate> {
     /**
      * The secret key (if any) for data encryption by blowfish payload serialization factory (BlowfishSerializationFactory). 
-     * You should use in via "storm jar" parameter:
+     * You should use in via "storm -c topology.tuple.serializer.blowfish.key=YOURKEY -c topology.tuple.serializer=backtype.storm.security.serialization.BlowfishTupleSerializer jar ...".
      */
     public static String SECRET_KEY = "topology.tuple.serializer.blowfish.key";
     private static final Logger LOG = Logger.getLogger(BlowfishSerializer.class);
@@ -48,4 +55,20 @@ public class BlowfishTupleSerializer extends Serializer<ListDelegate> {
     public ListDelegate read(Kryo kryo, Input input, Class<ListDelegate> type) {
 	return (ListDelegate)_serializer.read(kryo, input, type);
     }
+
+    /**
+     * Produce a blowfish key to be used in "Storm jar" command
+     */
+    public static void main(String[] args) {
+	try{
+	    KeyGenerator kgen = KeyGenerator.getInstance("Blowfish");
+	    SecretKey skey = kgen.generateKey();
+	    byte[] raw = skey.getEncoded();
+	    String keyString = new String(Hex.encodeHex(raw));
+	    System.out.println("storm -c "+SECRET_KEY+"="+keyString+" -c "+Config.TOPOLOGY_TUPLE_SERIALIZER+"="+BlowfishTupleSerializer.class.getName() + " ..." );
+	} catch (Exception ex) {
+	    LOG.error(ex.getMessage());
+	    ex.printStackTrace();
+	}
+    }    
 }
