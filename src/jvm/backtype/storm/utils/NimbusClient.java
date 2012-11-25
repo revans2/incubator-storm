@@ -20,7 +20,7 @@ public class NimbusClient extends ThriftClient {
 	}
 
 	public NimbusClient(String host, int port) {
-		super(host, port);
+	    super(host, port, "nimbus_server");
 		_client = new Nimbus.Client(_protocol);
 	}
 

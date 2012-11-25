@@ -35,7 +35,7 @@ public class ThriftClient {
 		java.security.Security.addProvider(new AnonymousAuthenticationProvider());
 	}
 
-	public ThriftClient(String host, int port) {
+    public ThriftClient(String host, int port, String default_service_name) {
 		try {
 			if(host==null) {
 				throw new IllegalArgumentException("host is not set");
@@ -83,10 +83,10 @@ public class ThriftClient {
 							underlyingTransport);
 					_transport.open();
 				} else { //GSSAPI
-					String servicePrincipal = AuthUtils.get(auth_conf, AuthUtils.LoginContextClient, "servicePrincipal"); 
-					KerberosName serviceKerberosName = new KerberosName(servicePrincipal);
-					String serviceName = serviceKerberosName.getServiceName();
-					String hostName = serviceKerberosName.getHostName();
+					String serviceName = AuthUtils.get(auth_conf, AuthUtils.LoginContextClient, "serviceName");
+					if (serviceName == null) {
+					    serviceName = default_service_name; 
+					}
 					Map<String, String> props = new TreeMap<String,String>();
 					props.put(Sasl.QOP, "auth");
 					props.put(Sasl.SERVER_AUTH, "false");
@@ -94,7 +94,7 @@ public class ThriftClient {
 					_transport = new TSaslClientTransport(AuthUtils.KERBEROS, 
 							principal, 
 							serviceName, 
-							hostName,
+							host,
 							props,
 							null, 
 							underlyingTransport);
