@@ -28,10 +28,8 @@
 
 (defn mk-authorization-handler [conf]
   (let [klassname (conf NIMBUS-AUTHORIZATION-CLASSNAME) 
-        aznClass (if klassname (try-cause (Class/forName klassname) 
-                                          (catch ClassNotFoundException e1 (log-warn-error e1 "Class " klassname " not available"))))
-        aznHandler (if aznClass (try-cause (.newInstance aznClass)
-                                           (catch Exception e2 (log-warn-error e2 "Failed to construct an object of " klassname))))] 
+        aznClass (if klassname (Class/forName klassname))
+        aznHandler (if aznClass (.newInstance aznClass))] 
     (log-debug "authorization class name:" klassname
                  " class:" aznClass
                  " handler:" aznHandler)

@@ -62,6 +62,7 @@ public class ThriftClient {
 						underlyingTransport);
 				_transport.open();
 			} else {
+				LOG.debug("Use jaas login config:"+loginConfigurationFile);
 				System.setProperty("java.security.auth.login.config", loginConfigurationFile);
 				Configuration auth_conf = Configuration.getConfiguration();
 
@@ -70,8 +71,6 @@ public class ThriftClient {
 				Login login = new Login(AuthUtils.LoginContextClient, callback_handler);
 
 				final Subject subject = login.getSubject();
-				final String principal = AuthUtils.get(auth_conf, AuthUtils.LoginContextClient, "principal"); 
-
 				if (subject.getPrivateCredentials(KerberosTicket.class).isEmpty()) { //DIGEST-MD5
 					LOG.debug("SASL DIGEST-MD5 client transport is being established");
 					_transport = new TSaslClientTransport(AuthUtils.DIGEST, 
@@ -83,6 +82,7 @@ public class ThriftClient {
 							underlyingTransport);
 					_transport.open();
 				} else { //GSSAPI
+					final String principal = getPrincipal(subject); 
 					String serviceName = AuthUtils.get(auth_conf, AuthUtils.LoginContextClient, "serviceName");
 					if (serviceName == null) {
 					    serviceName = default_service_name; 
@@ -105,8 +105,7 @@ public class ThriftClient {
 								new PrivilegedExceptionAction<Void>() {
 							public Void run() {
 								try {
-									Set<Principal> principals = (Set<Principal>)subject.getPrincipals();
-									LOG.info("do as:"+ ((Principal)(principals.toArray()[0])).getName());
+									LOG.debug("do as:"+ principal);
 									_transport.open();
 								}
 								catch (Exception e) {
@@ -133,6 +132,15 @@ public class ThriftClient {
 			_protocol = new  TBinaryProtocol(_transport);
 	}
 
+    private String getPrincipal(Subject subject) {
+    	Set<Principal> principals = (Set<Principal>)subject.getPrincipals();
+		if (principals==null || principals.size()<1) {
+			LOG.info("No principal found in login subject");
+			return null;
+		}
+		return ((Principal)(principals.toArray()[0])).getName();
+    }
+    
 	public TTransport transport() {
 		return _transport;
 	}

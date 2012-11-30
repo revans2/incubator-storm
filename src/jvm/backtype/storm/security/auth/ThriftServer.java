@@ -50,22 +50,18 @@ public class ThriftServer implements Runnable {
 	private String _loginConfigurationFile;
 	
 	public ThriftServer(TProcessor processor, int port) {
-		try {
-			_processor = processor;
-			_port = port;
-			
-			_loginConfigurationFile = System.getProperty("java.security.auth.login.config");
-			if ((_loginConfigurationFile==null) || (_loginConfigurationFile.length()==0)) {
-				//apply Storm configuration for JAAS login 
-				Map conf = Utils.readStormConfig();
-				_loginConfigurationFile = (String)conf.get("java.security.auth.login.config");
-				if ((_loginConfigurationFile!=null) && (_loginConfigurationFile.length()>0)) {
-					System.setProperty("java.security.auth.login.config", _loginConfigurationFile);
-				}
-			}
-		} catch (Exception x) {
-			x.printStackTrace();
+	    _processor = processor;
+	    _port = port;
+	    
+	    _loginConfigurationFile = System.getProperty("java.security.auth.login.config");
+	    if ((_loginConfigurationFile==null) || (_loginConfigurationFile.length()==0)) {
+		//apply Storm configuration for JAAS login 
+		Map conf = Utils.readStormConfig();
+		_loginConfigurationFile = (String)conf.get("java.security.auth.login.config");
+		if ((_loginConfigurationFile!=null) && (_loginConfigurationFile.length()>0)) {
+		    System.setProperty("java.security.auth.login.config", _loginConfigurationFile);
 		}
+	    }
 	}
 	
 	public void serve() {
@@ -89,7 +85,7 @@ public class ThriftServer implements Runnable {
 			serverTransport = new TServerSocket(_port);
 
 			if ((_loginConfigurationFile==null) || (_loginConfigurationFile.length()==0)) { //ANONYMOUS
-				factory.addServerDefinition(AuthUtils.ANONYMOUS, AuthUtils.SERVICE, "localhost", null, null);			
+			    factory.addServerDefinition(AuthUtils.ANONYMOUS, AuthUtils.SERVICE, "localhost", null, null);			
 
 				LOG.info("Starting SASL ANONYMOUS server at port:" + _port);
 				_server = new TThreadPoolServer(new TThreadPoolServer.Args(serverTransport).

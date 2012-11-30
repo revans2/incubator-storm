@@ -40,9 +40,10 @@ public class SaslClientCallbackHandler implements CallbackHandler {
 		if (configuration == null) return;
 		AppConfigurationEntry configurationEntries[] = configuration.getAppConfigurationEntry(AuthUtils.LoginContextClient);
 		if (configurationEntries == null) {
-			String errorMessage = "Could not find a 'Client' entry in this configuration: Client cannot start.";
-			LOG.error(errorMessage);
-			throw new IOException(errorMessage);
+		    String errorMessage = "Could not find a '"+AuthUtils.LoginContextClient
+			+ "' entry in this configuration: Client cannot start.";
+		    LOG.error(errorMessage);
+		    throw new IOException(errorMessage);
 		}
 
 		for(AppConfigurationEntry entry: configurationEntries) {

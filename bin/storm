@@ -127,13 +127,11 @@ def jar(jarfile, klass, *args):
     """
     jvmopts = [
         "-Dstorm.jar=" + jarfile,
-        "-Dlogfile.name=jar.log",
-        "-Dlog4j.configuration=storm.log.properties",
     ]
     exec_storm_class(
         klass,
         jvmtype="-client",
-        extrajars=[jarfile, CONF_DIR, STORM_DIR + "/bin", STORM_DIR + "/log4j"],
+        extrajars=[jarfile, CONF_DIR, STORM_DIR + "/bin"],
         args=args,
         jvmopts=jvmopts)
 
