@@ -9,7 +9,7 @@
   :dependencies [[org.clojure/clojure "1.4.0"]
                  [commons-io "1.4"]
                  [org.apache.commons/commons-exec "1.1"]
-		 [org.apache.zookeeper/zookeeper "3.4.4"]
+		 [org.apache.zookeeper/zookeeper "3.4.5"]
                  [storm/libthrift7 "0.7.0"]
                  [clj-time "0.4.1"]
                  [log4j/log4j "1.2.16"]

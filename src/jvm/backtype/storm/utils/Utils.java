@@ -29,11 +29,13 @@ import java.util.Map;
 import java.util.TreeMap;
 import java.util.UUID;
 import org.apache.commons.lang.StringUtils;
+import org.apache.log4j.Logger;
 import org.apache.thrift7.TException;
 import org.json.simple.JSONValue;
 import org.yaml.snakeyaml.Yaml;
 
 public class Utils {
+    public static final Logger LOG = Logger.getLogger(Utils.class);
     public static final String DEFAULT_STREAM_ID = "default";
 
     public static byte[] serialize(Object obj) {
@@ -103,7 +105,7 @@ public class Utils {
                 else return new HashMap();
             }
             if(resources.size() > 1) {
-                throw new RuntimeException("Found multiple " + name + " resources. You're probably bundling the Storm jars with your topology jar.");
+                LOG.warn("Found multiple " + name + " resources. You're probably bundling the Storm jars with your topology jar. "+resources);
             }
             URL resource = resources.get(0);
             Yaml yaml = new Yaml();
