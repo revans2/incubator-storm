@@ -219,11 +219,11 @@ service Nimbus {
   
   // stats functions
   ClusterSummary getClusterInfo();
-  TopologyInfo getTopologyInfo(1: string id) throws (1: NotAliveException e, 2: NotAuthorizedException aze);
+  TopologyInfo getTopologyInfo(1: string id) throws (1: NotAliveException e);
   //returns json
-  string getTopologyConf(1: string id) throws (1: NotAliveException e, 2: NotAuthorizedException aze);
-  StormTopology getTopology(1: string id) throws (1: NotAliveException e, 2: NotAuthorizedException aze);
-  StormTopology getUserTopology(1: string id) throws (1: NotAliveException e, 2: NotAuthorizedException aze);
+  string getTopologyConf(1: string id) throws (1: NotAliveException e);
+  StormTopology getTopology(1: string id) throws (1: NotAliveException e);
+  StormTopology getUserTopology(1: string id) throws (1: NotAliveException e);
 }
 
 struct DRPCRequest {
