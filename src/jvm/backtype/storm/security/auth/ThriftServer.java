@@ -156,8 +156,8 @@ public class ThriftServer implements Runnable {
 
 		public boolean process(final TProtocol inProt, final TProtocol outProt) throws TException {
 			TTransport trans = inProt.getTransport();
-			if (!(trans instanceof TSaslServerTransport)) {
-				throw new TException("Unexpected non-SASL transport " + trans.getClass());
+			if ((trans==null) || !(trans instanceof TSaslServerTransport)) {
+			    throw new TException("Unexpected non-SASL transport " + ((trans!=null)? trans.getClass() : ""));
 			}
 			TSaslServerTransport saslTrans = (TSaslServerTransport)trans;
 			
