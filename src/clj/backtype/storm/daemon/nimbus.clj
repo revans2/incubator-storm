@@ -4,6 +4,7 @@
   (:import [org.apache.thrift7 TException])
   (:import [org.apache.thrift7.transport TNonblockingServerTransport TNonblockingServerSocket])
   (:import [java.nio ByteBuffer])
+  (:import [java.io FileNotFoundException])
   (:import [java.nio.channels Channels WritableByteChannel])
   (:import [backtype.storm.security.auth ThriftServer ReqContext ReqContext$OperationType])
   (:use [backtype.storm.scheduler.DefaultScheduler])
@@ -875,6 +876,22 @@
     (throw (InvalidTopologyException.
       (str "Topology name cannot contain any of the following: " (pr-str DISALLOWED-TOPOLOGY-NAME-STRS))))))
 
+(defn- try-read-storm-conf [conf storm-id]
+  (try-cause
+    (read-storm-conf conf storm-id)
+    (catch FileNotFoundException e
+       (throw (NotAliveException. storm-id)))
+  )
+)
+
+(defn- try-read-storm-topology [conf storm-id]
+  (try-cause
+    (read-storm-topology conf storm-id)
+    (catch FileNotFoundException e
+       (throw (NotAliveException. storm-id)))
+  )
+)
+
 (defserverfn service-handler [conf inimbus]
   (.prepare inimbus conf (master-inimbus-dir conf))
   (log-message "Starting Nimbus with conf " conf)
@@ -1023,22 +1040,13 @@
             )))
 
       (^String getTopologyConf [this ^String id]
-        (let [storm-cluster-state (:storm-cluster-state nimbus)
-              base (.storm-base storm-cluster-state id nil)]
-	  (when-not base (throw (NotAliveException. id)))
-	  (to-json (read-storm-conf conf id))))
+        (to-json (try-read-storm-conf conf id)))
 
       (^StormTopology getTopology [this ^String id]
-        (let [storm-cluster-state (:storm-cluster-state nimbus)
-              base (.storm-base storm-cluster-state id nil)]
-	  (when-not base (throw (NotAliveException. id)))
-	  (system-topology! (read-storm-conf conf id) (read-storm-topology conf id))))
+	(system-topology! (try-read-storm-conf conf id) (try-read-storm-topology conf id)))
 
       (^StormTopology getUserTopology [this ^String id]
-        (let [storm-cluster-state (:storm-cluster-state nimbus)
-              base (.storm-base storm-cluster-state id nil)]
-	  (when-not base (throw (NotAliveException. id)))
-	  (read-storm-topology conf id)))
+        (try-read-storm-topology conf id))
 
       (^ClusterSummary getClusterInfo [this]
         (let [storm-cluster-state (:storm-cluster-state nimbus)
@@ -1084,7 +1092,7 @@
               base (.storm-base storm-cluster-state storm-id nil)
 	      storm-name (if base (:storm-name base) (throw (NotAliveException. storm-id)))
 	      launch-time-secs (if base (:launch-time-secs base) (throw (NotAliveException. storm-id)))
-              task->component (storm-task-info (read-storm-topology conf storm-id) (read-storm-conf conf storm-id))
+              task->component (storm-task-info (try-read-storm-topology conf storm-id) (try-read-storm-conf conf storm-id))
               assignment (.assignment-info storm-cluster-state storm-id nil)
               beats (.executor-beats storm-cluster-state storm-id (:executor->node+port assignment))
               all-components (-> task->component reverse-map keys)
