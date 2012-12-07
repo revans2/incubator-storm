@@ -50,18 +50,22 @@ public class ThriftServer implements Runnable {
 	private String _loginConfigurationFile;
 	
 	public ThriftServer(TProcessor processor, int port) {
-	    _processor = processor;
-	    _port = port;
-	    
-	    _loginConfigurationFile = System.getProperty("java.security.auth.login.config");
-	    if ((_loginConfigurationFile==null) || (_loginConfigurationFile.length()==0)) {
-		//apply Storm configuration for JAAS login 
-		Map conf = Utils.readStormConfig();
-		_loginConfigurationFile = (String)conf.get("java.security.auth.login.config");
-		if ((_loginConfigurationFile!=null) && (_loginConfigurationFile.length()>0)) {
-		    System.setProperty("java.security.auth.login.config", _loginConfigurationFile);
+		try {
+			_processor = processor;
+			_port = port;
+			
+			_loginConfigurationFile = System.getProperty("java.security.auth.login.config");
+			if ((_loginConfigurationFile==null) || (_loginConfigurationFile.length()==0)) {
+				//apply Storm configuration for JAAS login 
+				Map conf = Utils.readStormConfig();
+				_loginConfigurationFile = (String)conf.get("java.security.auth.login.config");
+				if ((_loginConfigurationFile!=null) && (_loginConfigurationFile.length()>0)) {
+					System.setProperty("java.security.auth.login.config", _loginConfigurationFile);
+				}
+			}
+		} catch (Exception x) {
+			x.printStackTrace();
 		}
-	    }
 	}
 	
 	public void serve() {
@@ -85,14 +89,14 @@ public class ThriftServer implements Runnable {
 			serverTransport = new TServerSocket(_port);
 
 			if ((_loginConfigurationFile==null) || (_loginConfigurationFile.length()==0)) { //ANONYMOUS
-			    factory.addServerDefinition(AuthUtils.ANONYMOUS, AuthUtils.SERVICE, "localhost", null, null);			
+				factory.addServerDefinition(AuthUtils.ANONYMOUS, AuthUtils.SERVICE, "localhost", null, null);			
 
 				LOG.info("Starting SASL ANONYMOUS server at port:" + _port);
 				_server = new TThreadPoolServer(new TThreadPoolServer.Args(serverTransport).
-						processor(_processor).
-						transportFactory(factory).
-						maxWorkerThreads(64).
-						protocolFactory(new TBinaryProtocol.Factory()));
+								processor(new SaslProcessor(_processor)).
+								transportFactory(factory).
+								maxWorkerThreads(64).
+								protocolFactory(new TBinaryProtocol.Factory()));
 			} else {	
 				//retrieve authentication configuration from java.security.auth.login.config
 				Configuration auth_conf =  Configuration.getConfiguration();
@@ -100,10 +104,7 @@ public class ThriftServer implements Runnable {
 				//login our user
 				CallbackHandler auth_callback_handler = new SaslServerCallbackHandler(auth_conf);
 				Login login = new Login(AuthUtils.LoginContextServer, auth_callback_handler);
-
-				//create a wrap transport factory so that we could apply user credential during connections
 				Subject subject = login.getSubject();
-				final TUGIAssumingTransportFactory wrapFactory = new TUGIAssumingTransportFactory(factory, subject); 
 
 				if (!subject.getPrivateCredentials(KerberosTicket.class).isEmpty()) { //KERBEROS
 					String principal = AuthUtils.get(auth_conf, AuthUtils.LoginContextServer, "principal"); 
@@ -116,8 +117,10 @@ public class ThriftServer implements Runnable {
 					props.put(Sasl.SERVER_AUTH, "false");
 					factory.addServerDefinition(AuthUtils.KERBEROS, serviceName, hostName, props, auth_callback_handler);
 					LOG.info("Starting KERBEROS server at port:" + _port);
+					//create a wrap transport factory so that we could apply user credential during connections
+					TUGIAssumingTransportFactory wrapFactory = new TUGIAssumingTransportFactory(factory, subject); 
 					_server = new TThreadPoolServer(new TThreadPoolServer.Args(serverTransport).
-							processor(new TUGIAssumingProcessor(_processor)).
+							processor(new SaslProcessor(_processor)).
 							maxWorkerThreads(64).
 							transportFactory(wrapFactory).
 							protocolFactory(new TBinaryProtocol.Factory()));
@@ -125,7 +128,7 @@ public class ThriftServer implements Runnable {
 					factory.addServerDefinition(AuthUtils.DIGEST, AuthUtils.SERVICE, "localhost", null, auth_callback_handler);
 					LOG.info("Starting DIGEST server at port:" + _port);
 					_server = new TThreadPoolServer(new TThreadPoolServer.Args(serverTransport).
-							processor(new TUGIAssumingProcessor(_processor)).
+							processor(new SaslProcessor(_processor)).
 							maxWorkerThreads(64).
 							transportFactory(factory).
 							protocolFactory(new TBinaryProtocol.Factory()));
@@ -147,17 +150,17 @@ public class ThriftServer implements Runnable {
 	 *                                                                                                                                                                              
 	 * This is used on the server side to set the UGI for each specific call.                                                                                                       
 	 */
-	private class TUGIAssumingProcessor implements TProcessor {
+	private class SaslProcessor implements TProcessor {
 		final TProcessor wrapped;
 
-		TUGIAssumingProcessor(TProcessor wrapped) {
-			this.wrapped = wrapped;
-		}
+	    SaslProcessor(TProcessor wrapped) {
+		this.wrapped = wrapped;
+	    }
 
 		public boolean process(final TProtocol inProt, final TProtocol outProt) throws TException {
 			TTransport trans = inProt.getTransport();
-			if ((trans==null) || !(trans instanceof TSaslServerTransport)) {
-			    throw new TException("Unexpected non-SASL transport " + ((trans!=null)? trans.getClass() : ""));
+			if (!(trans instanceof TSaslServerTransport)) {
+				throw new TException("Unexpected non-SASL transport " + trans.getClass());
 			}
 			TSaslServerTransport saslTrans = (TSaslServerTransport)trans;
 			
