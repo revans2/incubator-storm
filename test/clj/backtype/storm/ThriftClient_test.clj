@@ -5,7 +5,7 @@
 ;  (:import [backtype.storm.testing TestWordCounter TestWordSpout TestGlobalCount TestAggregatesCounter])
 ;  (:use [backtype.storm bootstrap testing])
 ;  (:use [backtype.storm.daemon common])
-  )
+)
 
 ;(bootstrap)
 

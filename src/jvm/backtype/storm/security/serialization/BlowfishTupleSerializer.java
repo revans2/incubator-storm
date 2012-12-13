@@ -30,7 +30,7 @@ public class BlowfishTupleSerializer extends Serializer<ListDelegate> {
     private BlowfishSerializer _serializer;
 
     public BlowfishTupleSerializer(Kryo kryo, Map storm_conf) {
-	String encryption_key = "undefined";
+	String encryption_key = null;
 	try {
 	    encryption_key = (String)storm_conf.get(SECRET_KEY);
 	    LOG.debug("Blowfish serializer being constructed ...");
@@ -41,7 +41,6 @@ public class BlowfishTupleSerializer extends Serializer<ListDelegate> {
 	    byte[] bytes =  Hex.decodeHex(encryption_key.toCharArray());
 	    _serializer = new BlowfishSerializer(new ListDelegateSerializer(), bytes);
 	} catch (org.apache.commons.codec.DecoderException ex) {
-	    LOG.error("Invalid encryption key:"+encryption_key);
 	    throw new RuntimeException("Blowfish encryption key invalid");
 	}
     }
