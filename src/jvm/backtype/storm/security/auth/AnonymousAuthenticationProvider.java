@@ -18,7 +18,6 @@ public class AnonymousAuthenticationProvider  extends java.security.Provider {
 	}
 
 	public static class SaslAnonymousFactory implements SaslClientFactory, SaslServerFactory {
-		public void foo (int i) {}
 
 		public SaslClient createSaslClient(
 				String[] mechanisms, String authorizationId, String protocol,
