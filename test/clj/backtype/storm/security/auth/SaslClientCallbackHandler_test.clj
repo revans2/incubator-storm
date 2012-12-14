@@ -4,55 +4,98 @@
            [javax.security.auth.login Configuration AppConfigurationEntry]
            [javax.security.auth.login AppConfigurationEntry$LoginModuleControlFlag]
            [javax.security.auth.callback NameCallback PasswordCallback]
+           [javax.security.sasl AuthorizeCallback RealmCallback]
   )
 )
 
-; Exceptions are getting wrapped in RuntimeException.  This might be due to
-; CLJ-855.
-(defn- unpack-runtime-exception [expression]
-  (try (eval expression)
-    nil
-    (catch java.lang.RuntimeException gripe
-      (throw (.getCause gripe)))
+(defn- mk-configuration-with-appconfig-mapping [mapping]
+  ; The following defines a subclass of Configuration
+  (proxy [Configuration] []
+    (getAppConfigurationEntry [^String nam]
+      (into-array [(new AppConfigurationEntry "bogusLoginModuleName"
+         AppConfigurationEntry$LoginModuleControlFlag/REQUIRED
+         mapping
+      )])
+    )
   )
 )
 
-(defn- handles-namecallback [config handler expected]
+(defn- mk-configuration-with-null-appconfig []
+  ; The following defines a subclass of Configuration
+  (proxy [Configuration] []
+    (getAppConfigurationEntry [^String nam] nil)
+  )
+)
+
+(defn- handles-namecallback [handler expected]
   (let [callback (new NameCallback "bogus prompt" "not right")]
-    (do
-      (-> handler (.handle (into-array [callback]))) ; side-effects on callback
-      (is (= expected (.getName callback)))
-    )
+    (-> handler (.handle (into-array [callback]))) ; side-effects on callback
+    (is (= expected (.getName callback))
+      "Sets correct name")
   )
 )
 
-(defn- handles-passwordcallback [config handler expected]
+(defn- handles-passwordcallback [handler expected]
   (let [callback (new PasswordCallback "bogus prompt" false)]
-    (do
-      (-> handler (.handle (into-array [callback]))) ; side-effects on callback
-      (is (= expected (new String (.getPassword callback))))
-    )
+    (-> handler (.handle (into-array [callback]))) ; side-effects on callback
+    (is (= expected (new String (.getPassword callback)))
+      "Sets correct password when user credentials are present.")
   )
 )
 
+(defn- handles-authorized-callback [handler]
+  (let [
+         id "an ID"
+         callback
+           (new AuthorizeCallback id id)
+         another-id "bogus authorization ID"
+         callback2
+           (new AuthorizeCallback id another-id)
+       ]
+    (-> handler (.handle (into-array [callback]))) ; side-effects on callback
+    (is (.isAuthorized callback))
+    (is (= id (.getAuthorizedID callback)))
 
-(deftest handle-sets-correct-name-in-cb
+    (-> handler (.handle (into-array [callback2]))) ; side-effects on callback
+    (not (.isAuthorized callback))
+    (not (= another-id (.getAuthorizedID callback)))
+  )
+)
+
+(defn- handles-realm-callback [handler]
+  (let [
+        expected-default-text "the default text"
+        callback (new RealmCallback "bogus prompt" expected-default-text)
+       ]
+    (-> handler (.handle (into-array [callback]))) ; side-effects on callback
+    (is (= expected-default-text (.getText callback)))
+  )
+)
+
+(deftest handle-sets-callback-fields-properly
   (let [
         expected-username "Test User"
         expected-password "a really lame password"
-        config 
-          (proxy [Configuration] []
-            (getAppConfigurationEntry [^String nam]
-              (into-array [(new AppConfigurationEntry "bogusLoginModuleName" 
-                 AppConfigurationEntry$LoginModuleControlFlag/REQUIRED
+        config (mk-configuration-with-appconfig-mapping
                  {"username" expected-username
-                  "password" expected-password}
-              )])
-            )
-          )
+                  "password" expected-password})
+        noname-config (mk-configuration-with-appconfig-mapping
+                        {"password" expected-password})
         handler (new SaslClientCallbackHandler config)
+        noname-handler (new SaslClientCallbackHandler noname-config)
        ]
-    (handles-namecallback config handler expected-username)
-    (handles-passwordcallback config handler expected-password)
+    (handles-namecallback handler expected-username)
+    (handles-passwordcallback handler expected-password)
+    (handles-authorized-callback handler)
+    (handles-realm-callback handler)
+  )
+)
+
+(deftest throws-on-null-appconfig
+  (let [conf (mk-configuration-with-null-appconfig)]
+    (is (thrown? java.io.IOException
+      (new SaslClientCallbackHandler conf))
+      "Throws IOException when no AppConfiguration is given"
+    )
   )
 )
