@@ -23,6 +23,7 @@
     (is (thrown? java.lang.RuntimeException
       (unpack-runtime-exception 
         '(new BlowfishTupleSerializer nil conf)))
+      "Throws RuntimeException when no encryption key is given."
     )
   )
 )
@@ -47,7 +48,8 @@
         kryo (new Kryo)
         arbitrary-key "7dd6fb3203878381b08f9c89d25ed105"
         storm_conf {"topology.tuple.serializer.blowfish.key" arbitrary-key}
-        bts (new BlowfishTupleSerializer kryo storm_conf)
+        writer-bts (new BlowfishTupleSerializer kryo storm_conf)
+        reader-bts (new BlowfishTupleSerializer kryo storm_conf)
         buf-size 1024
         output (new Output buf-size buf-size)
         input (new Input buf-size)
@@ -55,14 +57,16 @@
         delegate (new ListDelegate)
        ]
     (-> delegate (.addAll strlist))
-    (-> bts (.write kryo output delegate))
+    (-> writer-bts (.write kryo output delegate))
     (-> input (.setBuffer (-> output (.getBuffer))))
-    (is (=
-      test-text
-      (join " " (map (fn [e] (str e)) 
-        (-> bts (.read kryo input ListDelegate) (.toArray))))
-    ))
-    
+    (is 
+      (=
+        test-text
+        (join " " (map (fn [e] (str e)) 
+          (-> reader-bts (.read kryo input ListDelegate) (.toArray))))
+      )
+      "Reads a string encrypted by another instance with a shared key"
+    )
   )
 )
 
