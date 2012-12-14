@@ -138,8 +138,9 @@ public class ThriftServer implements Runnable {
 
 			_server.serve();
 		} catch (Exception ex) {
-			ex.printStackTrace();
-			if (serverTransport!=null) serverTransport.close();
+		    LOG.error("TheiftServer is being stopped due to: " + ex.getMessage());
+		    ex.printStackTrace();
+		    if (_server != null) _server.stop();
 		}
 	}
 
