@@ -79,10 +79,7 @@
         config (mk-configuration-with-appconfig-mapping
                  {"username" expected-username
                   "password" expected-password})
-        noname-config (mk-configuration-with-appconfig-mapping
-                        {"password" expected-password})
         handler (new SaslClientCallbackHandler config)
-        noname-handler (new SaslClientCallbackHandler noname-config)
        ]
     (handles-namecallback handler expected-username)
     (handles-passwordcallback handler expected-password)
