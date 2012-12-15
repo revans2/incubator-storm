@@ -32,7 +32,6 @@
     (-> handler (.handle (into-array [callback]))) ; side-effects on callback
     (is (= (.getDefaultName callback) (.getName callback))
       "Sets default name")
-    (println (str "userName" ":" (.userName handler)))
   )
 )
 
@@ -94,6 +93,29 @@
 ;    (does-not-set-passwd-if-noname noname-handler)
 ;    (handles-authorized-callback handler)
 ;    (handles-realm-callback handler)
+  )
+)
+
+(deftest handles-password-callback-for-super
+  (let [
+        username "super"
+        expected-password "not a wise choice"
+        mapping {(str "user_" username) expected-password}
+        config (mk-configuration-with-appconfig-mapping mapping)
+        handler (new SaslServerCallbackHandler config)
+        name-callback (new NameCallback "bogus prompt" username)
+        pass-callback (new PasswordCallback "bogus prompt" false)
+       ]
+    (java.lang.System/setProperty
+      "storm.SASLAuthenticationProvider.superPassword" expected-password)
+    (-> handler (.handle (into-array [name-callback]))) ; side-effects on name-callback
+    (-> handler (.handle (into-array [pass-callback]))) ; side-effects on pass-callback
+    (is (= expected-password (new String (.getPassword pass-callback)))
+      "Sets correct password when user credentials are present.")
+
+    ; Clean-up
+    (java.lang.System/setProperty
+      "storm.SASLAuthenticationProvider.superPassword" "")
   )
 )
 
