@@ -70,15 +70,15 @@
 ;  )
 ;)
 
-;(defn- handles-realm-callback [handler]
-;  (let [
-;        expected-default-text "the default text"
-;        callback (new RealmCallback "bogus prompt" expected-default-text)
-;       ]
-;    (-> handler (.handle (into-array [callback]))) ; side-effects on callback
-;    (is (= expected-default-text (.getText callback)))
-;  )
-;)
+(defn- handles-realm-callback [handler]
+  (let [
+        expected-default-text "the default text"
+        callback (new RealmCallback "bogus prompt" expected-default-text)
+       ]
+    (-> handler (.handle (into-array [callback]))) ; side-effects on callback
+    (is (= expected-default-text (.getText callback)))
+  )
+)
 
 (deftest handle-sets-callback-fields-properly
   (let [
@@ -90,9 +90,9 @@
        ]
     (handles-namecallback handler username)
     (handles-passwordcallback handler expected-password)
+    (handles-realm-callback handler)
 ;    (does-not-set-passwd-if-noname noname-handler)
 ;    (handles-authorized-callback handler)
-;    (handles-realm-callback handler)
   )
 )
 
