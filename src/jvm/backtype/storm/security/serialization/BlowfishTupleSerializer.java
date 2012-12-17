@@ -41,6 +41,7 @@ public class BlowfishTupleSerializer extends Serializer<ListDelegate> {
 	    byte[] bytes =  Hex.decodeHex(encryption_key.toCharArray());
 	    _serializer = new BlowfishSerializer(new ListDelegateSerializer(), bytes);
 	} catch (org.apache.commons.codec.DecoderException ex) {
+	    LOG.error("Invalid encryption key");
 	    throw new RuntimeException("Blowfish encryption key invalid");
 	}
     }
