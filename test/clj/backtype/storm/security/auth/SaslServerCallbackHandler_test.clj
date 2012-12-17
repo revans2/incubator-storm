@@ -54,24 +54,63 @@
   )
 )
 
-;(defn- handles-authorized-callback [handler]
-;  (let [
-;         id "an ID"
-;         callback
-;           (new AuthorizeCallback id id)
-;         another-id "bogus authorization ID"
-;         callback2
-;           (new AuthorizeCallback id another-id)
-;       ]
-;    (-> handler (.handle (into-array [callback]))) ; side-effects on callback
-;    (is (.isAuthorized callback))
-;    (is (= id (.getAuthorizedID callback)))
-;
-;    (-> handler (.handle (into-array [callback2]))) ; side-effects on callback
-;    (not (.isAuthorized callback))
-;    (not (= another-id (.getAuthorizedID callback)))
-;  )
-;)
+(defn- handle-authorize-callback []
+  (let [
+        username "arbitraryUserName"
+        password "arbitraryPassword"
+        hostname "arbitraryHost"
+        domain   "arbitraryDomain"
+        id (str username "/" hostname "@" domain)
+        callback (new AuthorizeCallback id id)
+        callbackAry (into-array [callback])
+        mapping {(str "user_" username) password}
+        config (mk-configuration-with-appconfig-mapping mapping)
+        handler (new SaslServerCallbackHandler config)
+       ]
+
+    ; Translate FOO/BAR@KAU -> FOO
+    ; https://ccp.cloudera.com/display/CDH4DOC/Appendix+C+-+Configuring+the+Mapping+from+Kerberos+Principals+to+Short+Names
+    (java.lang.System/setProperty
+      "zookeeper.security.auth_to_local" "RULE:[2:$1]")
+
+    ; Test kerberose short name case
+    (java.lang.System/setProperty
+      "storm.kerberos.removeHostFromPrincipal" "true")
+    (java.lang.System/setProperty
+      "storm.kerberos.removeRealmFromPrincipal" "true")
+    (-> handler (.handle (into-array [callback]))) ; side-effects
+    (is (.isAuthorized callback))
+    (is (= username (.getAuthorizedID callback)))
+
+    ; Let the host remain
+    (java.lang.System/setProperty
+      "storm.kerberos.removeHostFromPrincipal" "false")
+    (-> callback (.setAuthorized false))
+    (-> handler (.handle (into-array [callback]))) ; side-effects
+    (is (.isAuthorized callback))
+    (is (= (str username "/" hostname) (.getAuthorizedID callback)))
+
+    ; Let the domain remain
+    (java.lang.System/setProperty
+      "storm.kerberos.removeHostFromPrincipal" "true")
+    (java.lang.System/setProperty
+      "storm.kerberos.removeRealmFromPrincipal" "false")
+    (-> callback (.setAuthorized false))
+    (-> handler (.handle (into-array [callback]))) ; side-effects
+    (is (.isAuthorized callback))
+    (is (= (str username "@" domain) (.getAuthorizedID callback)))
+
+    ; Let both the host and domain remain
+    (java.lang.System/setProperty
+      "storm.kerberos.removeHostFromPrincipal" "false")
+    (java.lang.System/setProperty
+      "storm.kerberos.removeHostFromPrincipal" "false")
+    (-> callback (.setAuthorized false))
+    (-> handler (.handle (into-array [callback]))) ; side-effects
+    (is (.isAuthorized callback))
+    (is (= (str username "/" hostname "@" domain) (.getAuthorizedID callback)))
+  )
+)
 
 (defn- handles-realm-callback [handler]
   (let [
@@ -95,7 +134,7 @@
     (handles-passwordcallback handler expected-password)
     (handles-realm-callback handler)
     (does-not-set-passwd-if-noname)
-;    (handles-authorized-callback handler)
+    (handle-authorize-callback)
   )
 )
 
@@ -122,11 +161,11 @@
   )
 )
 
-;(deftest throws-on-null-appconfig
-;  (let [conf (mk-configuration-with-null-appconfig)]
-;    (is (thrown? java.io.IOException
-;      (new SaslServerCallbackHandler conf))
-;      "Throws IOException when no AppConfiguration is given"
-;    )
-;  )
-;)
+(deftest throws-on-null-appconfig
+  (let [conf (mk-configuration-with-null-appconfig)]
+    (is (thrown? java.io.IOException
+      (new SaslServerCallbackHandler conf))
+      "Throws IOException when no AppConfiguration is given"
+    )
+  )
+)
