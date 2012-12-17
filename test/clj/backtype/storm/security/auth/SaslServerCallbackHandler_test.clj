@@ -43,13 +43,16 @@
   )
 )
 
-;(defn- does-not-set-passwd-if-noname [handler]
-;  (let [callback (new PasswordCallback "bogus prompt" false)]
-;    (-> handler (.handle (into-array [callback]))) ; side-effects on callback
-;    (is (= "" (new String (.getPassword callback)))
-;      "Does not set password if no user name is set")
-;  )
-;)
+(defn- does-not-set-passwd-if-noname []
+  (let [
+        config (mk-configuration-with-appconfig-mapping {})
+        handler (new SaslServerCallbackHandler config)
+        callback (new PasswordCallback "bogus prompt" false)]
+    (-> handler (.handle (into-array [callback]))) ; side-effects on callback
+    (is (nil? (.getPassword callback))
+      "Does not set password if no user name is set")
+  )
+)
 
 ;(defn- handles-authorized-callback [handler]
 ;  (let [
@@ -91,7 +94,7 @@
     (handles-namecallback handler username)
     (handles-passwordcallback handler expected-password)
     (handles-realm-callback handler)
-;    (does-not-set-passwd-if-noname noname-handler)
+    (does-not-set-passwd-if-noname)
 ;    (handles-authorized-callback handler)
   )
 )
