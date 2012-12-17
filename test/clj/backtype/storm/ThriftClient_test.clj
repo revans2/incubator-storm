@@ -1,13 +1,7 @@
 (ns backtype.storm.ThriftClient-test
   (:use [clojure test])
   (:import [backtype.storm.security.auth ThriftClient])
-
-;  (:import [backtype.storm.testing TestWordCounter TestWordSpout TestGlobalCount TestAggregatesCounter])
-;  (:use [backtype.storm bootstrap testing])
-;  (:use [backtype.storm.daemon common])
 )
-
-;(bootstrap)
 
 ; Exceptions are getting wrapped in RuntimeException.  This might be due to
 ; CLJ-855.
@@ -18,10 +12,6 @@
       (throw (.getCause gripe)))
   )
 )
-
-;(deftest test-ctor-works
-;  (not (nil? (ThriftClient. "localhost" 4242 "Fake Service Name")))
-;)
 
 (deftest test-ctor-throws-if-port-invalid
   (is (thrown? java.lang.IllegalArgumentException
