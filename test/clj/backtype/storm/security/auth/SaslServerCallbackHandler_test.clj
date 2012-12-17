@@ -59,8 +59,8 @@
         username "arbitraryUserName"
         password "arbitraryPassword"
         hostname "arbitraryHost"
-        domain   "arbitraryDomain"
-        id (str username "/" hostname "@" domain)
+        realm   "arbitraryDomain"
+        id (str username "/" hostname "@" realm)
         callback (new AuthorizeCallback id id)
         callbackAry (into-array [callback])
         mapping {(str "user_" username) password}
@@ -70,6 +70,7 @@
 
     ; Translate FOO/BAR@KAU -> FOO
     ; https://ccp.cloudera.com/display/CDH4DOC/Appendix+C+-+Configuring+the+Mapping+from+Kerberos+Principals+to+Short+Names
+    ; This is so that KerberoseName member methods work, i.e. getShortName.
     (java.lang.System/setProperty
       "zookeeper.security.auth_to_local" "RULE:[2:$1]")
 
@@ -79,36 +80,40 @@
     (java.lang.System/setProperty
       "storm.kerberos.removeRealmFromPrincipal" "true")
     (-> handler (.handle (into-array [callback]))) ; side-effects
-    (is (.isAuthorized callback))
-    (is (= username (.getAuthorizedID callback)))
+    (is (.isAuthorized callback) "Returns true for isAuthorized")
+    (is (= username (.getAuthorizedID callback))
+        "Shortname is returned when removing host and realm")
 
     ; Let the host remain
     (java.lang.System/setProperty
       "storm.kerberos.removeHostFromPrincipal" "false")
     (-> callback (.setAuthorized false))
     (-> handler (.handle (into-array [callback]))) ; side-effects
-    (is (.isAuthorized callback))
-    (is (= (str username "/" hostname) (.getAuthorizedID callback)))
+    (is (.isAuthorized callback) "Returns true for isAuthorized")
+    (is (= (str username "/" hostname) (.getAuthorizedID callback))
+        "Returns shortname / host when removing realm" )
 
-    ; Let the domain remain
+    ; Let the realm remain
     (java.lang.System/setProperty
       "storm.kerberos.removeHostFromPrincipal" "true")
     (java.lang.System/setProperty
       "storm.kerberos.removeRealmFromPrincipal" "false")
     (-> callback (.setAuthorized false))
     (-> handler (.handle (into-array [callback]))) ; side-effects
-    (is (.isAuthorized callback))
-    (is (= (str username "@" domain) (.getAuthorizedID callback)))
+    (is (.isAuthorized callback) "Returns true for isAuthorized")
+    (is (= (str username "@" realm) (.getAuthorizedID callback))
+        "Returns shortname @ realm when removing host" )
 
-    ; Let both the host and domain remain
+    ; Let both the host and realm remain
     (java.lang.System/setProperty
       "storm.kerberos.removeHostFromPrincipal" "false")
     (java.lang.System/setProperty
       "storm.kerberos.removeHostFromPrincipal" "false")
     (-> callback (.setAuthorized false))
     (-> handler (.handle (into-array [callback]))) ; side-effects
-    (is (.isAuthorized callback))
-    (is (= (str username "/" hostname "@" domain) (.getAuthorizedID callback)))
+    (is (.isAuthorized callback) "sets isAuthorized")
+    (is (= (str username "/" hostname "@" realm) (.getAuthorizedID callback))
+        "Returns shortname @ host / realm when not removing host or realm")
   )
 )
 
@@ -118,14 +123,14 @@
         callback (new RealmCallback "bogus prompt" expected-default-text)
        ]
     (-> handler (.handle (into-array [callback]))) ; side-effects on callback
-    (is (= expected-default-text (.getText callback)))
+    (is (= expected-default-text (.getText callback)) "Sets default realm")
   )
 )
 
 (deftest handle-sets-callback-fields-properly
   (let [
         username "Test User"
-        expected-password "a really lame password"
+        expected-password "bogus password"
         mapping {(str "user_" username) expected-password}
         config (mk-configuration-with-appconfig-mapping mapping)
         handler (new SaslServerCallbackHandler config)
@@ -141,7 +146,7 @@
 (deftest handles-password-callback-for-super
   (let [
         username "super"
-        expected-password "not a wise choice"
+        expected-password "bogus password for super"
         mapping {(str "user_" username) expected-password}
         config (mk-configuration-with-appconfig-mapping mapping)
         handler (new SaslServerCallbackHandler config)

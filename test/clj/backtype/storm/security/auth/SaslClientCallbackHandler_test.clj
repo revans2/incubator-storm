@@ -53,12 +53,12 @@
            (new AuthorizeCallback id another-id)
        ]
     (-> handler (.handle (into-array [callback]))) ; side-effects on callback
-    (is (.isAuthorized callback))
-    (is (= id (.getAuthorizedID callback)))
+    (is (.isAuthorized callback) "isAuthorized is true for valid IDs")
+    (is (= id (.getAuthorizedID callback)) "Authorized ID properly set")
 
     (-> handler (.handle (into-array [callback2]))) ; side-effects on callback
-    (not (.isAuthorized callback))
-    (not (= another-id (.getAuthorizedID callback)))
+    (not (.isAuthorized callback) "isAuthorized is false for differing IDs")
+    (not (= another-id (.getAuthorizedID callback)) "Authorized ID properly set")
   )
 )
 
@@ -68,7 +68,8 @@
         callback (new RealmCallback "bogus prompt" expected-default-text)
        ]
     (-> handler (.handle (into-array [callback]))) ; side-effects on callback
-    (is (= expected-default-text (.getText callback)))
+    (is (= expected-default-text (.getText callback))
+        "Returns expected default realm text")
   )
 )
 

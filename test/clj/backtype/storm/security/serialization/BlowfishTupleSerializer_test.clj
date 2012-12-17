@@ -32,19 +32,18 @@
 (deftest test-encrypts-and-decrypts-message
 
   (let [
-        test-text (join " " 
-'(
+        test-text (str
 "Tetraodontidae is a family of primarily marine and estuarine fish of the order"
-"Tetraodontiformes. The family includes many familiar species, which are"
-"variously called pufferfish, puffers, balloonfish, blowfish, bubblefish,"
-"globefish, swellfish, toadfish, toadies, honey toads, sugar toads, and sea"
-"squab.[1] They are morphologically similar to the closely related"
-"porcupinefish, which have large external spines (unlike the thinner, hidden"
-"spines of Tetraodontidae, which are only visible when the fish has puffed up)."
-"The scientific name refers to the four large teeth, fused into an upper and"
-"lower plate, which are used for crushing the shells of crustaceans and"
-"mollusks, their natural prey."
-))
+" Tetraodontiformes. The family includes many familiar species, which are"
+" variously called pufferfish, puffers, balloonfish, blowfish, bubblefish,"
+" globefish, swellfish, toadfish, toadies, honey toads, sugar toads, and sea"
+" squab.[1] They are morphologically similar to the closely related"
+" porcupinefish, which have large external spines (unlike the thinner, hidden"
+" spines of Tetraodontidae, which are only visible when the fish has puffed up)."
+" The scientific name refers to the four large teeth, fused into an upper and"
+" lower plate, which are used for crushing the shells of crustaceans and"
+" mollusks, their natural prey."
+)
         kryo (new Kryo)
         arbitrary-key "7dd6fb3203878381b08f9c89d25ed105"
         storm_conf {"topology.tuple.serializer.blowfish.key" arbitrary-key}
