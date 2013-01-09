@@ -1,6 +1,6 @@
 yinst.yinst_version: 4.225
 yinst.generated_by: statecc 1.0.1; yinst_lib 1.0.6111
-yinst.timestamp: 1357761288
+yinst.timestamp: 1357767642
 yinst.command: /home/y/bin/statecc --branch test --no-validate ./rhel4_build.yml 
 yinst.package: yahoo/buildyblocks-1.76.10.877(0)
 yinst.package: yahoo/buildyblocks_assemble-1.3.5.877(0)
@@ -184,7 +184,6 @@ yinst.package: yahoo/stagecoach-1.22(0)
 yinst.package: yahoo/statecc-1.0.1(0)
 yinst.package: yahoo/statesman_client-1.0.17(0)
 yinst.package: yahoo/statesman_common-1.0.13(0)
-yinst.package: yahoo/svnlite-1.6.11_4(0)
 yinst.package: yahoo/svnzip-1.0.4(0)
 yinst.package: yahoo/tps_libevent-1.4.3_2(0)
 yinst.package: yahoo/tps_openssl-0.9.8o_2(0)
