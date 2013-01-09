@@ -10,4 +10,7 @@ add yinst pkg git                       1.7.12    1.9999
 
 # Native Build Dependencies
 add yinst pkg ystorm_jzmq               2.1.0     2.1.9999
-#add yinst pkg ystorm_build_deps        1.7.1     1.9999.9999
+add yinst pkg ystorm_build_deps        1.7.1     1.9999.9999
+
+# we only support 64 bit builds :)
+add yinst setting yjava_jdk.platform=x86_64-rhel4-gcc3
