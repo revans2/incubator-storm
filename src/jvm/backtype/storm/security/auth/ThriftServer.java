@@ -138,7 +138,7 @@ public class ThriftServer implements Runnable {
 
 	    _server.serve();
         } catch (Exception ex) {
-	    LOG.error("ThriftServer is being stopped due to: " + ex.getMessage(), ex);
+	    LOG.error("ThriftServer is being stopped due to: " + ex, ex);
 	    if (_server != null) _server.stop();
 	}
     }
@@ -250,15 +250,13 @@ public class ThriftServer implements Runnable {
 						return wrapped.getTransport(trans);
 					    }
 					    catch (Exception e) {
-						LOG.error("Storm server failed to open transport to interact with a client during session initiation: " + e);
-						e.printStackTrace();
+						LOG.error("Storm server failed to open transport to interact with a client during session initiation: " + e, e);
 						return null;
 					    }
 					}
 				    });
 	    } catch (PrivilegedActionException e) {
-		LOG.error("Storm server experienced a PrivilegedActionException exception while creating a transport using a JAAS principal context:" + e);
-		e.printStackTrace();
+		LOG.error("Storm server experienced a PrivilegedActionException exception while creating a transport using a JAAS principal context:" + e, e);
 		return null;
 	    }
 	}
