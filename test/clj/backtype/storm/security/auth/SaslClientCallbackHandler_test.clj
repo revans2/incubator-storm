@@ -57,8 +57,8 @@
     (is (= id (.getAuthorizedID callback)) "Authorized ID properly set")
 
     (-> handler (.handle (into-array [callback2]))) ; side-effects on callback
-    (not (.isAuthorized callback))
-    (not (= another-id (.getAuthorizedID callback)))
+    (is (not (.isAuthorized callback2)) "isAuthorized is false for differing IDs")
+    (is (not (= another-id (.getAuthorizedID callback2))) "Authorized ID properly set")
   )
 )
 
