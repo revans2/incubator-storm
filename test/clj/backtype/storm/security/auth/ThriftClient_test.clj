@@ -1,4 +1,4 @@
-(ns backtype.storm.ThriftClient-test
+(ns backtype.storm.security.auth.ThriftClient-test
   (:use [clojure test])
   (:import [backtype.storm.security.auth ThriftClient])
 )
