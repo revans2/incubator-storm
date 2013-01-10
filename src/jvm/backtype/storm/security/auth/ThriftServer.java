@@ -140,6 +140,8 @@ public class ThriftServer implements Runnable {
         } catch (Exception ex) {
 	    LOG.error("ThriftServer is being stopped due to: " + ex, ex);
 	    if (_server != null) _server.stop();
+	    //hack: we bring down nimbus for now
+	    System.exit(1); 
 	}
     }
 
