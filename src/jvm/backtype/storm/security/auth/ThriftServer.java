@@ -38,7 +38,7 @@ import org.slf4j.LoggerFactory;
 import backtype.storm.security.auth.*;
 import backtype.storm.utils.Utils;
 
-public class ThriftServer implements Runnable {
+public class ThriftServer {
     static {
 	java.security.Security.addProvider(new AnonymousAuthenticationProvider());
     }
@@ -68,20 +68,12 @@ public class ThriftServer implements Runnable {
 	}
     }
 	
-    public void serve() {
-	try {
-	    new Thread(this).start();
-	} catch (Exception e) {
-	    e.printStackTrace();
-	}
-    }
-
     public void stop() {
 	if (_server != null)
 	    _server.stop();
     }
 
-    public void run()  {
+    public void serve()  {
 	TServerTransport serverTransport = null;
 
 	try {
@@ -140,8 +132,7 @@ public class ThriftServer implements Runnable {
         } catch (Exception ex) {
 	    LOG.error("ThriftServer is being stopped due to: " + ex, ex);
 	    if (_server != null) _server.stop();
-	    //hack: we bring down nimbus for now
-	    System.exit(1); 
+	    System.exit(1); //shutdown server process since we could not handle Thrift requests any more
 	}
     }
 
