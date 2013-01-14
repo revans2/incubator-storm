@@ -14,5 +14,8 @@ add yinst pkg ystorm_build_deps         1.7.1     1.9999.9999
 add yinst pkg yruby                     1.9       1.9999
 add yinst pkg ypython                   2.7.0     2.7.9999
 
+# Needed to force the version to match what is outside the yroot
+add yinst pkg ylock_kern                1.95.4
+
 # we only support 64 bit builds :)
 add yinst setting yjava_jdk.platform=x86_64-rhel4-gcc3
