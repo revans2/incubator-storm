@@ -20,6 +20,19 @@ provision_x86_64_rhel_statefile: ./rhel4_build.state
 # Yinst Version to install in yroot
 provision_yinst_version: yinst7stable
 
-#TODO need to add these in
-#dist_push_pkg_globs: ystorm*.tgz
-#dist_key_file: /home/y/var/yjava/javaplat-identity
+#Dist Push stuff
+dist_push_pkg_globs: ystorm*.tgz
+dist_key_file: /home/y/var/yhudson/keys/hadoopqa/id_rsa
+
+assemble_yinst_branch: quarantine
+assemble_commit_user: hadoopqa
+assemble_commit_key_file: /home/y/var/yhudson/keys/hadoopqa/id_rsa
+assemble_os_arch: x86_64
+
+yroot_mount_paths:
+	/home/y/var/yhudson/keys/hadoopqa
+
+yroot_copy_files:
+	/home/y/conf/keydb/hadoopqa.keydb
+	/home/y/conf/clover/clover.license
+	/home/y/conf/coverity/license.dat
