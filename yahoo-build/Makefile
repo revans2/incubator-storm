@@ -44,8 +44,19 @@ clean:
 BB_RULES=/home/y/share/yahoo_cfg/buildyblocks/Make.rules
 include $(BB_RULES)
 
+#COMMIT
 COMMIT_BIM=./commit.bim
 commit: BB_Provision build test
 commit: BB_BIM_FILE=$(COMMIT_BIM)
 
 commit_clean: clean
+
+#COMPONENT
+COMPONENT_BIM=./component.bim
+component: BB_Provision build test package
+component: BB_BIM_FILE=$(COMPONENT_BIM)
+
+component-dist-push:: BB_BIM_FILE=./component.bim
+component-dist-push:: component BB_Dist_Push
+
+component_clean: clean
