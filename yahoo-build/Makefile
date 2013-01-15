@@ -57,7 +57,8 @@ component: BB_Provision build test package
 component: BB_BIM_FILE=$(COMPONENT_BIM)
 
 component-dist-push:: BB_BIM_FILE=./component.bim
-component-dist-push:: component BB_Dist_Push
+#component-dist-push:: component BB_Dist_Push
+component-dist-push:: component
 	/home/y/bin/dist_install ystorm-*.tgz -batch -branch quarantine -group hadoopqa -identity /home/y/var/yhudson/keys/hadoopqa/id_rsa -tag 0.8.1-security
 
 component_clean: clean
