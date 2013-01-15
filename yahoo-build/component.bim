@@ -22,12 +22,13 @@ provision_yinst_version: yinst7stable
 
 #Dist Push stuff
 dist_push_pkg_globs: ystorm*.tgz
-dist_key_file: /home/y/var/yhudson/keys/hadoopqa/id_rsa
+dist_key_file: /home/y/var/yhudson/keys/hadoopqa/id_dsa
 dist_group: hadoopqa
+dist_tag: 0.8.1-security
 
 assemble_yinst_branch: quarantine
 assemble_commit_user: hadoopqa
-assemble_commit_key_file: /home/y/var/yhudson/keys/hadoopqa/id_rsa
+assemble_commit_key_file: /home/y/var/yhudson/keys/hadoopqa/id_dsa
 assemble_os_arch: x86_64
 
 yroot_mount_paths:
