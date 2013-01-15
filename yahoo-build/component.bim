@@ -21,7 +21,10 @@ provision_x86_64_rhel_statefile: ./rhel4_build.state
 provision_yinst_version: yinst7stable
 
 #Dist Push stuff
-dist_push_pkg_globs: ystorm*.tgz
+#Disabling dis pus for a while because for some reason hadoopqa does not have permission to push to group hadoopqa??
+# Push will be handled directly in the Makefile
+#dist_push_pkg_globs: ystorm*.tgz
+dist_push_pkg_globs:
 dist_key_file: /home/y/var/yhudson/keys/hadoopqa/id_dsa
 dist_group: hadoopqa
 dist_tag: 0.8.1-security
