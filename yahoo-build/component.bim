@@ -23,6 +23,7 @@ provision_yinst_version: yinst7stable
 #Dist Push stuff
 dist_push_pkg_globs: ystorm*.tgz
 dist_key_file: /home/y/var/yhudson/keys/hadoopqa/id_rsa
+dist_group: hadoopqa
 
 assemble_yinst_branch: quarantine
 assemble_commit_user: hadoopqa
