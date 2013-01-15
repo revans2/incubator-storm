@@ -27,7 +27,7 @@ provision_yinst_version: yinst7stable
 dist_push_pkg_globs:
 dist_key_file: /home/y/var/yhudson/keys/hadoopqa/id_dsa
 dist_group: hadoopqa
-dist_tag: 0.8.1_security
+dist_tag: ystorm_0_8_1_security
 
 assemble_yinst_branch: quarantine
 assemble_commit_user: hadoopqa
