@@ -2,73 +2,59 @@ package backtype.storm.drpc;
 
 import backtype.storm.generated.DRPCRequest;
 import backtype.storm.generated.DistributedRPCInvocations;
+import backtype.storm.security.auth.ThriftClient;
+
+import org.apache.log4j.Logger;
 import org.apache.thrift7.TException;
-import org.apache.thrift7.protocol.TBinaryProtocol;
-import org.apache.thrift7.transport.TFramedTransport;
-import org.apache.thrift7.transport.TSocket;
-import org.apache.thrift7.transport.TTransport;
 
-public class DRPCInvocationsClient implements DistributedRPCInvocations.Iface {
-    private TTransport conn;
-    private DistributedRPCInvocations.Client client;
-    private String host;
-    private int port;    
+public class DRPCInvocationsClient extends ThriftClient implements DistributedRPCInvocations.Iface {
+    public static final Logger LOG = Logger.getLogger(DRPCInvocationsClient.class);
+	private DistributedRPCInvocations.Client _client;
+	private String _host;
+	private int _port;    
 
-    public DRPCInvocationsClient(String host, int port) {
-        try {
-            this.host = host;
-            this.port = port;
-            connect();
-        } catch(TException e) {
-            throw new RuntimeException(e);
-        }
-    }
-    
-    private void connect() throws TException {
-        conn = new TFramedTransport(new TSocket(host, port));
-        client = new DistributedRPCInvocations.Client(new TBinaryProtocol(conn));
-        conn.open();
-    }
-    
-    public String getHost() {
-        return host;
-    }
-    
-    public int getPort() {
-        return port;
-    }       
+	public DRPCInvocationsClient(String host, int port) {
+		super(host, port, "drpc_server", null);
+		_host = host;
+		_port = port;
+		_client = new DistributedRPCInvocations.Client(_protocol);
+	}
 
-    public void result(String id, String result) throws TException {
-        try {
-            if(client==null) connect();
-            client.result(id, result);
-        } catch(TException e) {
-            client = null;
-            throw e;
-        }
-    }
+	public String getHost() {
+		return _host;
+	}
 
-    public DRPCRequest fetchRequest(String func) throws TException {
-        try {
-            if(client==null) connect();
-            return client.fetchRequest(func);
-        } catch(TException e) {
-            client = null;
-            throw e;
-        }
-    }    
+	public int getPort() {
+		return _port;
+	}       
 
-    public void failRequest(String id) throws TException {
-        try {
-            if(client==null) connect();
-            client.failRequest(id);
-        } catch(TException e) {
-            client = null;
-            throw e;
-        }
-    }
+	public void result(String id, String result) throws TException {
+		try {
+			//if(_client==null) connect();
+			_client.result(id, result);
+		} catch(TException e) {
+			LOG.error("result() exception "+e, e);
+			throw e;
+		}
+	}
 
-    public void close() {
-        conn.close();
-    }
+	public DRPCRequest fetchRequest(String func) throws TException {
+		try {
+			//if(_client==null) connect();
+			return _client.fetchRequest(func);
+		} catch(TException e) {
+			LOG.error("fetchRequest() exception "+e, e);
+			throw e;
+		}
+	}    
+
+	public void failRequest(String id) throws TException {
+		try {
+			//if(_client==null) connect();
+			_client.failRequest(id);
+		} catch(TException e) {
+			LOG.error("failRequest() exception "+e, e);
+			throw e;
+		}
+	}
 }

@@ -1,8 +1,6 @@
 (ns backtype.storm.daemon.drpc
-  (:import [org.apache.thrift7.server THsHaServer THsHaServer$Args])
-  (:import [org.apache.thrift7.protocol TBinaryProtocol TBinaryProtocol$Factory])
+  (:import [backtype.storm.security.auth ThriftServer])
   (:import [org.apache.thrift7 TException])
-  (:import [org.apache.thrift7.transport TNonblockingServerTransport TNonblockingServerSocket])
   (:import [backtype.storm.generated DistributedRPC DistributedRPC$Iface DistributedRPC$Processor
             DRPCRequest DRPCExecutionException DistributedRPCInvocations DistributedRPCInvocations$Iface
             DistributedRPCInvocations$Processor])
@@ -105,18 +103,8 @@
           ;; "execute" don't unblock until other thrift methods are called. So if 
           ;; 64 threads are calling execute, the server won't accept the result
           ;; invocations that will unblock those threads
-          handler-server (THsHaServer. (-> (TNonblockingServerSocket. (int (conf DRPC-PORT)))
-                                             (THsHaServer$Args.)
-                                             (.workerThreads 64)
-                                             (.protocolFactory (TBinaryProtocol$Factory.))
-                                             (.processor (DistributedRPC$Processor. service-handler))
-                                             ))
-          invoke-server (THsHaServer. (-> (TNonblockingServerSocket. (int (conf DRPC-INVOCATIONS-PORT)))
-                                             (THsHaServer$Args.)
-                                             (.workerThreads 64)
-                                             (.protocolFactory (TBinaryProtocol$Factory.))
-                                             (.processor (DistributedRPCInvocations$Processor. service-handler))
-                                             ))]
+          handler-server (ThriftServer. (DistributedRPC$Processor. service-handler) (int (conf DRPC-PORT)))
+          invoke-server (ThriftServer. (DistributedRPCInvocations$Processor. service-handler) (int (conf DRPC-INVOCATIONS-PORT)))]
       
       (.addShutdownHook (Runtime/getRuntime) (Thread. (fn [] (.stop handler-server) (.stop invoke-server))))
       (log-message "Starting Distributed RPC servers...")
