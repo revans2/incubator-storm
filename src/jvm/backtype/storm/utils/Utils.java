@@ -8,7 +8,7 @@ import clojure.lang.IFn;
 import clojure.lang.RT;
 import com.netflix.curator.framework.CuratorFramework;
 import com.netflix.curator.framework.CuratorFrameworkFactory;
-import com.netflix.curator.retry.RetryNTimes;
+import com.netflix.curator.retry.ExponentialBackoffRetry;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.FileOutputStream;
@@ -29,11 +29,13 @@ import java.util.Map;
 import java.util.TreeMap;
 import java.util.UUID;
 import org.apache.commons.lang.StringUtils;
+import org.apache.log4j.Logger;
 import org.apache.thrift7.TException;
 import org.json.simple.JSONValue;
 import org.yaml.snakeyaml.Yaml;
 
 public class Utils {
+    public static final Logger LOG = Logger.getLogger(Utils.class);
     public static final String DEFAULT_STREAM_ID = "default";
 
     public static Object newInstance(String klass) {
@@ -112,7 +114,7 @@ public class Utils {
                 else return new HashMap();
             }
             if(resources.size() > 1) {
-                throw new RuntimeException("Found multiple " + name + " resources. You're probably bundling the Storm jars with your topology jar.");
+                LOG.warn("Found multiple " + name + " resources. You're probably bundling the Storm jars with your topology jar. "+resources);
             }
             URL resource = resources.get(0);
             Yaml yaml = new Yaml();
@@ -299,7 +301,7 @@ public class Utils {
                     .connectString(zkStr)
                     .connectionTimeoutMs(Utils.getInt(conf.get(Config.STORM_ZOOKEEPER_CONNECTION_TIMEOUT)))
                     .sessionTimeoutMs(Utils.getInt(conf.get(Config.STORM_ZOOKEEPER_SESSION_TIMEOUT)))
-                    .retryPolicy(new RetryNTimes(Utils.getInt(conf.get(Config.STORM_ZOOKEEPER_RETRY_TIMES)), Utils.getInt(conf.get(Config.STORM_ZOOKEEPER_RETRY_INTERVAL))));
+                    .retryPolicy(new ExponentialBackoffRetry(Utils.getInt(conf.get(Config.STORM_ZOOKEEPER_RETRY_TIMES)), Utils.getInt(conf.get(Config.STORM_ZOOKEEPER_RETRY_INTERVAL))));
             if(auth!=null && auth.scheme!=null) {
                 builder = builder.authorization(auth.scheme, auth.payload);
             }            

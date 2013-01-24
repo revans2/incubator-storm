@@ -1,0 +1,50 @@
+PRODUCT_NAME = ystorm
+PLATFORMS = x86_64-rhel4-gcc3
+
+VERSION = `cat RELEASE`
+BASE_VERSION = `cat BASE_VERSION`
+
+SHORT_DESC = "Nathan Marz's distributed computation system."
+LONG_DESC = `cat README.yahoo; cat ../README.markdown`
+
+CUSTODIAN = storm-team@yahoo-inc.com https://github.com/nathanmarz/storm
+YINST bug-product Low Latency
+YINST bug-component General
+
+YINST requires pkg ystorm_jzmq 2.1.0 *
+YINST requires pkg ypython 2.6.0_2 2.6.9999
+YINST requires pkg ypython26 2.6.6 2.6.9999
+YINST requires pkg yjava_jdk 1.6.0_37.105 1.6.999999
+
+YINST set storm_local_dir        /home/y/var/storm
+
+PERM = 0444
+OWNER = root
+GROUP = users
+
+dir 777 - - lib/storm/$(BASE_VERSION)/logs
+find 755 - - lib/storm/$(BASE_VERSION)/bin/ ../bin/ -type f -and -not -path "*/.svn/*"
+file 755 - - lib/storm/$(BASE_VERSION)/bin/storm_print_cmd ./bin/storm_print_cmd
+find - - - lib/storm/$(BASE_VERSION)/lib/ ../lib/ -type f -and -not -path "*/.svn/*"
+
+file 444 - - lib/storm/$(BASE_VERSION)/RELEASE ./RELEASE
+file 444 - - lib/storm/$(BASE_VERSION)/CHANGELOG.md ../CHANGELOG.md
+file 444 - - lib/storm/$(BASE_VERSION)/LICENSE.html ../LICENSE.html
+file 444 - - lib/storm/$(BASE_VERSION)/storm-$(BASE_VERSION).jar ../storm-$(BASE_VERSION).jar
+file 444 - - lib/storm/$(BASE_VERSION)/README.markdown ../README.markdown
+file 444 - - lib/storm/$(BASE_VERSION)/README.yahoo ./README.yahoo
+
+file 755 - - lib/storm/$(BASE_VERSION)/log4j/storm.log.properties ../log4j/storm.log.properties
+
+file 444 - - lib/storm/$(BASE_VERSION)/public/css/bootstrap-1.1.0.css ../src/ui/public/css/bootstrap-1.1.0.css
+file 444 - - lib/storm/$(BASE_VERSION)/public/js/jquery-1.6.2.min.js ../src/ui/public/js/jquery-1.6.2.min.js
+file 444 - - lib/storm/$(BASE_VERSION)/public/js/jquery.cookies.2.2.0.min.js ../src/ui/public/js/jquery.cookies.2.2.0.min.js
+file 444 - - lib/storm/$(BASE_VERSION)/public/js/jquery.tablesorter.min.js ../src/ui/public/js/jquery.tablesorter.min.js
+
+configfile 644 - - lib/storm/$(BASE_VERSION)/conf/storm.yaml ./conf/config.py template overwrite
+
+symlink - - - lib/storm/current $(BASE_VERSION)
+symlink - - - bin/storm /home/y/lib/storm/current/bin/storm
+
+dir 777 - - logs/storm
+dir 777 - - var/storm

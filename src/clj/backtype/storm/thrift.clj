@@ -3,7 +3,7 @@
   (:import [backtype.storm.generated JavaObject Grouping Nimbus StormTopology StormTopology$_Fields 
     Bolt Nimbus$Client Nimbus$Iface ComponentCommon Grouping$_Fields SpoutSpec NullStruct StreamInfo
     GlobalStreamId ComponentObject ComponentObject$_Fields ShellComponent])
-  (:import [backtype.storm.utils Utils])
+  (:import [backtype.storm.utils Utils NimbusClient])
   (:import [backtype.storm Constants])
   (:import [backtype.storm.grouping CustomStreamGrouping])
   (:import [backtype.storm.topology TopologyBuilder])
@@ -50,10 +50,9 @@
 
 (defn nimbus-client-and-conn [host port]
   (log-message "Connecting to Nimbus at " host ":" port)
-  (let [transport (TFramedTransport. (TSocket. host port))
-        prot (TBinaryProtocol. transport)
-        client (Nimbus$Client. prot)]
-        (.open transport)
+  (let [nimbusClient (NimbusClient. host port)
+        client (.getClient nimbusClient)
+        transport (.transport nimbusClient)]
         [client transport] ))
 
 (defmacro with-nimbus-connection [[client-sym host port] & body]

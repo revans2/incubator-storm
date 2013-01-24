@@ -14,6 +14,7 @@
   :dependencies [[org.clojure/clojure "1.4.0"]
                  [commons-io "1.4"]
                  [org.apache.commons/commons-exec "1.1"]
+		 [org.apache.zookeeper/zookeeper "3.4.5"]
                  [storm/libthrift7 "0.7.0"]
                  [clj-time "0.4.1"]
                  [log4j/log4j "1.2.16"]
@@ -25,7 +26,7 @@
                  [ring/ring-jetty-adapter "0.3.11"]
                  [org.clojure/tools.logging "0.2.3"]
                  [org.clojure/math.numeric-tower "0.0.1"]
-                 [org.slf4j/slf4j-log4j12 "1.5.8"]
+                 [org.slf4j/slf4j-log4j12 "1.6.1"]
                  [storm/carbonite "1.5.0"]
                  [org.yaml/snakeyaml "1.9"]
                  [org.apache.httpcomponents/httpclient "4.1.1"]
@@ -37,7 +38,7 @@
   :dev-dependencies [
                      [swank-clojure "1.4.0-SNAPSHOT" :exclusions [org.clojure/clojure]]
                     ]
-  :jvm-opts ["-Djava.library.path=/usr/local/lib:/opt/local/lib:/usr/lib"]
+  :jvm-opts ["-Djava.library.path=/usr/local/lib:/opt/local/lib:/usr/lib:/home/y/lib64"]
   :extra-classpath-dirs ["src/ui"]
   :aot :all
 )
