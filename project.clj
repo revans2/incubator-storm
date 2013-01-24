@@ -1,7 +1,8 @@
 (defproject storm "0.8.1"
   :source-path "src/clj"
   :test-path "test/clj"
-  :java-source-path "src/jvm"
+  :java-source-paths ["src/jvm" "test/jvm"]
+  :junit ["test/jvm"]
   :javac-options {:debug "true" :fork "true"}
   :resources-path "conf"
   :dev-resources-path "src/dev"
@@ -9,7 +10,7 @@
   :dependencies [[org.clojure/clojure "1.4.0"]
                  [commons-io "1.4"]
                  [org.apache.commons/commons-exec "1.1"]
-		 [org.apache.zookeeper/zookeeper "3.4.5"]
+                 [org.apache.zookeeper/zookeeper "3.4.5"]
                  [storm/libthrift7 "0.7.0"]
                  [clj-time "0.4.1"]
                  [log4j/log4j "1.2.16"]
@@ -30,8 +31,14 @@
                  [storm/jgrapht "0.8.3"]
                  [com.google.guava/guava "13.0"]
                  ]
+  :plugins [
+            [lein-junit "1.0.3"]
+           ]
+  :hooks [leiningen.hooks.junit]
+
   :dev-dependencies [
                      [swank-clojure "1.4.0-SNAPSHOT" :exclusions [org.clojure/clojure]]
+                     [junit/junit "4.10"]
                     ]
   :jvm-opts ["-Djava.library.path=/usr/local/lib:/opt/local/lib:/usr/lib:/home/y/lib64"]
   :extra-classpath-dirs ["src/ui"]
