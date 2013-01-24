@@ -420,6 +420,7 @@
           command (str "java -server " childopts
                        " -Djava.library.path=" (conf JAVA-LIBRARY-PATH)
                        " -Dlogfile.name=" logfilename
+                       " -Djava.security.auth.login.config=" (conf "java.security.auth.login.config")
                        " -Dstorm.home=" (System/getProperty "storm.home")
                        " -Dlog4j.configuration=storm.log.properties"
                        " -cp " classpath " backtype.storm.daemon.worker "

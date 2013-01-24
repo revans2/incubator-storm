@@ -35,7 +35,11 @@ public class ThriftClient {
 		java.security.Security.addProvider(new AnonymousAuthenticationProvider());
 	}
 
-    public ThriftClient(String host, int port, String default_service_name) {
+	public ThriftClient(String host, int port, String default_service_name) {
+		this(host, port, default_service_name, null);
+	}
+
+	public ThriftClient(String host, int port, String default_service_name, Integer timeout) {
 		try {
 			if(host==null) {
 				throw new IllegalArgumentException("host is not set");
@@ -44,7 +48,12 @@ public class ThriftClient {
 				throw new IllegalArgumentException("invalid port: "+port);
 			}
 
-			final TTransport underlyingTransport = new TSocket(host, port);
+			TSocket socket = new TSocket(host, port);
+			if(timeout!=null) {
+				socket.setTimeout(timeout);
+			}
+			final TTransport underlyingTransport = socket;
+
 			String loginConfigurationFile = System.getProperty("java.security.auth.login.config");
 			if ((loginConfigurationFile==null) || (loginConfigurationFile.length()==0)) {
 				//apply Storm configuration for JAAS login 
@@ -85,7 +94,7 @@ public class ThriftClient {
 					final String principal = getPrincipal(subject); 
 					String serviceName = AuthUtils.get(auth_conf, AuthUtils.LoginContextClient, "serviceName");
 					if (serviceName == null) {
-					    serviceName = default_service_name; 
+						serviceName = default_service_name; 
 					}
 					Map<String, String> props = new TreeMap<String,String>();
 					props.put(Sasl.QOP, "auth");
@@ -132,15 +141,15 @@ public class ThriftClient {
 			_protocol = new  TBinaryProtocol(_transport);
 	}
 
-    private String getPrincipal(Subject subject) {
-    	Set<Principal> principals = (Set<Principal>)subject.getPrincipals();
+	private String getPrincipal(Subject subject) {
+		Set<Principal> principals = (Set<Principal>)subject.getPrincipals();
 		if (principals==null || principals.size()<1) {
 			LOG.info("No principal found in login subject");
 			return null;
 		}
 		return ((Principal)(principals.toArray()[0])).getName();
-    }
-    
+	}
+
 	public TTransport transport() {
 		return _transport;
 	}
