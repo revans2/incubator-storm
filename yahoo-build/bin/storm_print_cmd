@@ -26,6 +26,7 @@ USER_CONF_DIR = os.path.expanduser("~/.storm")
 STORM_DIR = "/".join(os.path.realpath( __file__ ).split("/")[:-2])
 STORM_CONF_DIR = STORM_DIR + "/conf"
 CONFIG_OPTS = []
+CONFFILE = ""
 
 def get_config_opts():
     global CONFIG_OPTS
@@ -53,8 +54,9 @@ def get_classpath(extrajars):
     return normclasspath(":".join(ret))
 
 def confvalue(name, extrapaths):
+    global CONFFILE
     command = [
-        "java", "-client", get_config_opts(), "-cp", get_classpath(extrapaths), "backtype.storm.command.config_value", name
+        "java", "-client", get_config_opts(), "-Dstorm.conf.file=" + CONFFILE, "-cp", get_classpath(extrapaths), "backtype.storm.command.config_value", name
     ]
     p = sub.Popen(command, stdout=sub.PIPE)
     output, errors = p.communicate()
@@ -105,10 +107,12 @@ def parse_args(string):
     return [re.compile(r'\\(.)').sub('\\1', x) for x in args]
 
 def exec_storm_class(klass, jvmtype="-server", jvmopts=[], extrajars=[], args=[], fork=False):
+    global CONFFILE
     all_args = [
         "java", jvmtype, get_config_opts(),
         "-Dstorm.home=" + STORM_DIR, 
         "-Djava.library.path=" + confvalue("java.library.path", extrajars),
+        "-Dstorm.conf.file=" + CONFFILE,
         "-cp", get_classpath(extrajars),
     ] + jvmopts + [klass] + list(args)
     cmd_to_print = " " + " ".join(all_args)
@@ -383,6 +387,9 @@ def parse_config_opts(args):
     token = curr.pop()
     if token == "-c":
       config_list.append(curr.pop())
+    elif token == "--config":
+      global CONFFILE
+      CONFFILE = curr.pop()
     else:
       args_list.append(token)
   
@@ -397,7 +404,7 @@ def main():
     parse_config(config_list)
     COMMAND = args[0]
     ARGS = args[1:]
-    (COMMANDS.get(COMMAND, "help"))(*ARGS)
+    (COMMANDS.get(COMMAND, unknown_command))(*ARGS)
     
 if __name__ == "__main__":
     main()
