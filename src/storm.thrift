@@ -104,6 +104,10 @@ exception NotAliveException {
   1: required string msg;
 }
 
+exception NotAuthorizedException {
+  1: required string msg;
+}
+
 exception InvalidTopologyException {
   1: required string msg;
 }
@@ -206,13 +210,13 @@ struct SubmitOptions {
 }
 
 service Nimbus {
-  void submitTopology(1: string name, 2: string uploadedJarLocation, 3: string jsonConf, 4: StormTopology topology) throws (1: AlreadyAliveException e, 2: InvalidTopologyException ite);
-  void submitTopologyWithOpts(1: string name, 2: string uploadedJarLocation, 3: string jsonConf, 4: StormTopology topology, 5: SubmitOptions options) throws (1: AlreadyAliveException e, 2: InvalidTopologyException ite);
-  void killTopology(1: string name) throws (1: NotAliveException e);
-  void killTopologyWithOpts(1: string name, 2: KillOptions options) throws (1: NotAliveException e);
-  void activate(1: string name) throws (1: NotAliveException e);
-  void deactivate(1: string name) throws (1: NotAliveException e);
-  void rebalance(1: string name, 2: RebalanceOptions options) throws (1: NotAliveException e, 2: InvalidTopologyException ite);
+  void submitTopology(1: string name, 2: string uploadedJarLocation, 3: string jsonConf, 4: StormTopology topology) throws (1: AlreadyAliveException e, 2: InvalidTopologyException ite, 3: NotAuthorizedException aze);
+  void submitTopologyWithOpts(1: string name, 2: string uploadedJarLocation, 3: string jsonConf, 4: StormTopology topology, 5: SubmitOptions options) throws (1: AlreadyAliveException e, 2: InvalidTopologyException ite, 3: NotAuthorizedException aze);
+  void killTopology(1: string name) throws (1: NotAliveException e, 2: NotAuthorizedException aze);
+  void killTopologyWithOpts(1: string name, 2: KillOptions options) throws (1: NotAliveException e, 2: NotAuthorizedException aze);
+  void activate(1: string name) throws (1: NotAliveException e, 2: NotAuthorizedException aze);
+  void deactivate(1: string name) throws (1: NotAliveException e, 2: NotAuthorizedException aze);
+  void rebalance(1: string name, 2: RebalanceOptions options) throws (1: NotAliveException e, 2: InvalidTopologyException ite, 3: NotAuthorizedException aze);
 
   // need to add functions for asking about status of storms, what nodes they're running on, looking at task logs
 

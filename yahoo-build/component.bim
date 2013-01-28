@@ -1,0 +1,43 @@
+# used by buildyblocks_yroot_create
+
+# Name of yroot to create ( It can contain variables )
+yroot: ystorm-rhel4-component-0-8-2
+
+# Image to use for RHEL x86_64
+yroot_x86_64_rhel_image: 4.9-20110216
+
+# Remove the yroot after completing 
+yroot_remove: true
+
+# Used by buildyblocks_yroot_create (on yroot creation) and
+# buildyblocks_provision (every build).  Note that while
+# we can use different statefiles per OS and per architecture,
+# here we are only using different statefiles per OS.
+
+# Statefile for yroot on RHEL x86_64
+provision_x86_64_rhel_statefile: ./rhel4_build.state
+
+# Yinst Version to install in yroot
+provision_yinst_version: yinst7stable
+
+#Dist Push stuff
+#Disabling dis pus for a while because for some reason hadoopqa does not have permission to push to group hadoopqa??
+# Push will be handled directly in the Makefile
+#dist_push_pkg_globs: ystorm*.tgz
+dist_push_pkg_globs:
+dist_key_file: /home/y/var/yhudson/keys/hadoopqa/id_dsa
+dist_group: hadoopqa
+dist_tag: ystorm_0_8_2_security
+
+assemble_yinst_branch: quarantine
+assemble_commit_user: hadoopqa
+assemble_commit_key_file: /home/y/var/yhudson/keys/hadoopqa/id_dsa
+assemble_os_arch: x86_64
+
+yroot_mount_paths:
+	/home/y/var/yhudson/keys/hadoopqa
+
+yroot_copy_files:
+	/home/y/conf/keydb/hadoopqa.keydb
+	/home/y/conf/clover/clover.license
+	/home/y/conf/coverity/license.dat

@@ -1,0 +1,21 @@
+This package is a wrapper around the open source storm pacakge.
+
+It is intended to provide a simple way to run a storm grid.  The storm.yaml 
+config file is modified through yinst settings.  Any yinst setting on the 
+ystorm package will be translated into entires in storm.yaml replaceing 
+'_' characters with '.' characters.
+
+For example
+
+yinst set ystorm.nimbus_host host.corp.yahoo.com
+
+whould add the following line to storm.yaml
+
+nimbus.host: host.corp.yahoo.com
+
+NOTE:
+This package is intended to be used by the cloud services storm team to support
+a hosted storm service.  If anyone else wants to use this go ahead, but we are
+not going to be able to officially support you for a while :) so good luck.
+-------------------------------------------------------------------------------
+

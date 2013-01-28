@@ -36,8 +36,9 @@ public class StormSubmitter {
      * @param topology the processing to execute.
      * @throws AlreadyAliveException if a topology with this name is already running
      * @throws InvalidTopologyException if an invalid topology was submitted
+     * @throws NotAuthorizedException if the user is not authorized to submit a topology 
      */
-    public static void submitTopology(String name, Map stormConf, StormTopology topology) throws AlreadyAliveException, InvalidTopologyException {
+    public static void submitTopology(String name, Map stormConf, StormTopology topology) throws AlreadyAliveException, InvalidTopologyException, NotAuthorizedException {
         submitTopology(name, stormConf, topology, null);
     }    
     
@@ -52,8 +53,9 @@ public class StormSubmitter {
      * @param options to manipulate the starting of the topology
      * @throws AlreadyAliveException if a topology with this name is already running
      * @throws InvalidTopologyException if an invalid topology was submitted
+     * @throws NotAuthorizedException if the user is not authorized to submit a topology 
      */
-    public static void submitTopology(String name, Map stormConf, StormTopology topology, SubmitOptions opts) throws AlreadyAliveException, InvalidTopologyException {
+    public static void submitTopology(String name, Map stormConf, StormTopology topology, SubmitOptions opts) throws AlreadyAliveException, InvalidTopologyException, NotAuthorizedException {
         if(!Utils.isValidConf(stormConf)) {
             throw new IllegalArgumentException("Storm conf is not valid. Must be json-serializable");
         }

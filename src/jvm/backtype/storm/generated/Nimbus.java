@@ -25,19 +25,19 @@ public class Nimbus {
 
   public interface Iface {
 
-    public void submitTopology(String name, String uploadedJarLocation, String jsonConf, StormTopology topology) throws AlreadyAliveException, InvalidTopologyException, org.apache.thrift7.TException;
+    public void submitTopology(String name, String uploadedJarLocation, String jsonConf, StormTopology topology) throws AlreadyAliveException, InvalidTopologyException, NotAuthorizedException, org.apache.thrift7.TException;
 
-    public void submitTopologyWithOpts(String name, String uploadedJarLocation, String jsonConf, StormTopology topology, SubmitOptions options) throws AlreadyAliveException, InvalidTopologyException, org.apache.thrift7.TException;
+    public void submitTopologyWithOpts(String name, String uploadedJarLocation, String jsonConf, StormTopology topology, SubmitOptions options) throws AlreadyAliveException, InvalidTopologyException, NotAuthorizedException, org.apache.thrift7.TException;
 
-    public void killTopology(String name) throws NotAliveException, org.apache.thrift7.TException;
+    public void killTopology(String name) throws NotAliveException, NotAuthorizedException, org.apache.thrift7.TException;
 
-    public void killTopologyWithOpts(String name, KillOptions options) throws NotAliveException, org.apache.thrift7.TException;
+    public void killTopologyWithOpts(String name, KillOptions options) throws NotAliveException, NotAuthorizedException, org.apache.thrift7.TException;
 
-    public void activate(String name) throws NotAliveException, org.apache.thrift7.TException;
+    public void activate(String name) throws NotAliveException, NotAuthorizedException, org.apache.thrift7.TException;
 
-    public void deactivate(String name) throws NotAliveException, org.apache.thrift7.TException;
+    public void deactivate(String name) throws NotAliveException, NotAuthorizedException, org.apache.thrift7.TException;
 
-    public void rebalance(String name, RebalanceOptions options) throws NotAliveException, InvalidTopologyException, org.apache.thrift7.TException;
+    public void rebalance(String name, RebalanceOptions options) throws NotAliveException, InvalidTopologyException, NotAuthorizedException, org.apache.thrift7.TException;
 
     public String beginFileUpload() throws org.apache.thrift7.TException;
 
@@ -123,7 +123,7 @@ public class Nimbus {
       super(iprot, oprot);
     }
 
-    public void submitTopology(String name, String uploadedJarLocation, String jsonConf, StormTopology topology) throws AlreadyAliveException, InvalidTopologyException, org.apache.thrift7.TException
+    public void submitTopology(String name, String uploadedJarLocation, String jsonConf, StormTopology topology) throws AlreadyAliveException, InvalidTopologyException, NotAuthorizedException, org.apache.thrift7.TException
     {
       send_submitTopology(name, uploadedJarLocation, jsonConf, topology);
       recv_submitTopology();
@@ -139,7 +139,7 @@ public class Nimbus {
       sendBase("submitTopology", args);
     }
 
-    public void recv_submitTopology() throws AlreadyAliveException, InvalidTopologyException, org.apache.thrift7.TException
+    public void recv_submitTopology() throws AlreadyAliveException, InvalidTopologyException, NotAuthorizedException, org.apache.thrift7.TException
     {
       submitTopology_result result = new submitTopology_result();
       receiveBase(result, "submitTopology");
@@ -149,10 +149,13 @@ public class Nimbus {
       if (result.ite != null) {
         throw result.ite;
       }
+      if (result.aze != null) {
+        throw result.aze;
+      }
       return;
     }
 
-    public void submitTopologyWithOpts(String name, String uploadedJarLocation, String jsonConf, StormTopology topology, SubmitOptions options) throws AlreadyAliveException, InvalidTopologyException, org.apache.thrift7.TException
+    public void submitTopologyWithOpts(String name, String uploadedJarLocation, String jsonConf, StormTopology topology, SubmitOptions options) throws AlreadyAliveException, InvalidTopologyException, NotAuthorizedException, org.apache.thrift7.TException
     {
       send_submitTopologyWithOpts(name, uploadedJarLocation, jsonConf, topology, options);
       recv_submitTopologyWithOpts();
@@ -169,7 +172,7 @@ public class Nimbus {
       sendBase("submitTopologyWithOpts", args);
     }
 
-    public void recv_submitTopologyWithOpts() throws AlreadyAliveException, InvalidTopologyException, org.apache.thrift7.TException
+    public void recv_submitTopologyWithOpts() throws AlreadyAliveException, InvalidTopologyException, NotAuthorizedException, org.apache.thrift7.TException
     {
       submitTopologyWithOpts_result result = new submitTopologyWithOpts_result();
       receiveBase(result, "submitTopologyWithOpts");
@@ -179,10 +182,13 @@ public class Nimbus {
       if (result.ite != null) {
         throw result.ite;
       }
+      if (result.aze != null) {
+        throw result.aze;
+      }
       return;
     }
 
-    public void killTopology(String name) throws NotAliveException, org.apache.thrift7.TException
+    public void killTopology(String name) throws NotAliveException, NotAuthorizedException, org.apache.thrift7.TException
     {
       send_killTopology(name);
       recv_killTopology();
@@ -195,17 +201,20 @@ public class Nimbus {
       sendBase("killTopology", args);
     }
 
-    public void recv_killTopology() throws NotAliveException, org.apache.thrift7.TException
+    public void recv_killTopology() throws NotAliveException, NotAuthorizedException, org.apache.thrift7.TException
     {
       killTopology_result result = new killTopology_result();
       receiveBase(result, "killTopology");
       if (result.e != null) {
         throw result.e;
       }
+      if (result.aze != null) {
+        throw result.aze;
+      }
       return;
     }
 
-    public void killTopologyWithOpts(String name, KillOptions options) throws NotAliveException, org.apache.thrift7.TException
+    public void killTopologyWithOpts(String name, KillOptions options) throws NotAliveException, NotAuthorizedException, org.apache.thrift7.TException
     {
       send_killTopologyWithOpts(name, options);
       recv_killTopologyWithOpts();
@@ -219,17 +228,20 @@ public class Nimbus {
       sendBase("killTopologyWithOpts", args);
     }
 
-    public void recv_killTopologyWithOpts() throws NotAliveException, org.apache.thrift7.TException
+    public void recv_killTopologyWithOpts() throws NotAliveException, NotAuthorizedException, org.apache.thrift7.TException
     {
       killTopologyWithOpts_result result = new killTopologyWithOpts_result();
       receiveBase(result, "killTopologyWithOpts");
       if (result.e != null) {
         throw result.e;
       }
+      if (result.aze != null) {
+        throw result.aze;
+      }
       return;
     }
 
-    public void activate(String name) throws NotAliveException, org.apache.thrift7.TException
+    public void activate(String name) throws NotAliveException, NotAuthorizedException, org.apache.thrift7.TException
     {
       send_activate(name);
       recv_activate();
@@ -242,17 +254,20 @@ public class Nimbus {
       sendBase("activate", args);
     }
 
-    public void recv_activate() throws NotAliveException, org.apache.thrift7.TException
+    public void recv_activate() throws NotAliveException, NotAuthorizedException, org.apache.thrift7.TException
     {
       activate_result result = new activate_result();
       receiveBase(result, "activate");
       if (result.e != null) {
         throw result.e;
       }
+      if (result.aze != null) {
+        throw result.aze;
+      }
       return;
     }
 
-    public void deactivate(String name) throws NotAliveException, org.apache.thrift7.TException
+    public void deactivate(String name) throws NotAliveException, NotAuthorizedException, org.apache.thrift7.TException
     {
       send_deactivate(name);
       recv_deactivate();
@@ -265,17 +280,20 @@ public class Nimbus {
       sendBase("deactivate", args);
     }
 
-    public void recv_deactivate() throws NotAliveException, org.apache.thrift7.TException
+    public void recv_deactivate() throws NotAliveException, NotAuthorizedException, org.apache.thrift7.TException
     {
       deactivate_result result = new deactivate_result();
       receiveBase(result, "deactivate");
       if (result.e != null) {
         throw result.e;
       }
+      if (result.aze != null) {
+        throw result.aze;
+      }
       return;
     }
 
-    public void rebalance(String name, RebalanceOptions options) throws NotAliveException, InvalidTopologyException, org.apache.thrift7.TException
+    public void rebalance(String name, RebalanceOptions options) throws NotAliveException, InvalidTopologyException, NotAuthorizedException, org.apache.thrift7.TException
     {
       send_rebalance(name, options);
       recv_rebalance();
@@ -289,7 +307,7 @@ public class Nimbus {
       sendBase("rebalance", args);
     }
 
-    public void recv_rebalance() throws NotAliveException, InvalidTopologyException, org.apache.thrift7.TException
+    public void recv_rebalance() throws NotAliveException, InvalidTopologyException, NotAuthorizedException, org.apache.thrift7.TException
     {
       rebalance_result result = new rebalance_result();
       receiveBase(result, "rebalance");
@@ -298,6 +316,9 @@ public class Nimbus {
       }
       if (result.ite != null) {
         throw result.ite;
+      }
+      if (result.aze != null) {
+        throw result.aze;
       }
       return;
     }
@@ -608,7 +629,7 @@ public class Nimbus {
         prot.writeMessageEnd();
       }
 
-      public void getResult() throws AlreadyAliveException, InvalidTopologyException, org.apache.thrift7.TException {
+      public void getResult() throws AlreadyAliveException, InvalidTopologyException, NotAuthorizedException, org.apache.thrift7.TException {
         if (getState() != org.apache.thrift7.async.TAsyncMethodCall.State.RESPONSE_READ) {
           throw new IllegalStateException("Method call not finished!");
         }
@@ -652,7 +673,7 @@ public class Nimbus {
         prot.writeMessageEnd();
       }
 
-      public void getResult() throws AlreadyAliveException, InvalidTopologyException, org.apache.thrift7.TException {
+      public void getResult() throws AlreadyAliveException, InvalidTopologyException, NotAuthorizedException, org.apache.thrift7.TException {
         if (getState() != org.apache.thrift7.async.TAsyncMethodCall.State.RESPONSE_READ) {
           throw new IllegalStateException("Method call not finished!");
         }
@@ -684,7 +705,7 @@ public class Nimbus {
         prot.writeMessageEnd();
       }
 
-      public void getResult() throws NotAliveException, org.apache.thrift7.TException {
+      public void getResult() throws NotAliveException, NotAuthorizedException, org.apache.thrift7.TException {
         if (getState() != org.apache.thrift7.async.TAsyncMethodCall.State.RESPONSE_READ) {
           throw new IllegalStateException("Method call not finished!");
         }
@@ -719,7 +740,7 @@ public class Nimbus {
         prot.writeMessageEnd();
       }
 
-      public void getResult() throws NotAliveException, org.apache.thrift7.TException {
+      public void getResult() throws NotAliveException, NotAuthorizedException, org.apache.thrift7.TException {
         if (getState() != org.apache.thrift7.async.TAsyncMethodCall.State.RESPONSE_READ) {
           throw new IllegalStateException("Method call not finished!");
         }
@@ -751,7 +772,7 @@ public class Nimbus {
         prot.writeMessageEnd();
       }
 
-      public void getResult() throws NotAliveException, org.apache.thrift7.TException {
+      public void getResult() throws NotAliveException, NotAuthorizedException, org.apache.thrift7.TException {
         if (getState() != org.apache.thrift7.async.TAsyncMethodCall.State.RESPONSE_READ) {
           throw new IllegalStateException("Method call not finished!");
         }
@@ -783,7 +804,7 @@ public class Nimbus {
         prot.writeMessageEnd();
       }
 
-      public void getResult() throws NotAliveException, org.apache.thrift7.TException {
+      public void getResult() throws NotAliveException, NotAuthorizedException, org.apache.thrift7.TException {
         if (getState() != org.apache.thrift7.async.TAsyncMethodCall.State.RESPONSE_READ) {
           throw new IllegalStateException("Method call not finished!");
         }
@@ -818,7 +839,7 @@ public class Nimbus {
         prot.writeMessageEnd();
       }
 
-      public void getResult() throws NotAliveException, InvalidTopologyException, org.apache.thrift7.TException {
+      public void getResult() throws NotAliveException, InvalidTopologyException, NotAuthorizedException, org.apache.thrift7.TException {
         if (getState() != org.apache.thrift7.async.TAsyncMethodCall.State.RESPONSE_READ) {
           throw new IllegalStateException("Method call not finished!");
         }
@@ -1225,6 +1246,8 @@ public class Nimbus {
           result.e = e;
         } catch (InvalidTopologyException ite) {
           result.ite = ite;
+        } catch (NotAuthorizedException aze) {
+          result.aze = aze;
         }
         return result;
       }
@@ -1247,6 +1270,8 @@ public class Nimbus {
           result.e = e;
         } catch (InvalidTopologyException ite) {
           result.ite = ite;
+        } catch (NotAuthorizedException aze) {
+          result.aze = aze;
         }
         return result;
       }
@@ -1267,6 +1292,8 @@ public class Nimbus {
           iface.killTopology(args.name);
         } catch (NotAliveException e) {
           result.e = e;
+        } catch (NotAuthorizedException aze) {
+          result.aze = aze;
         }
         return result;
       }
@@ -1287,6 +1314,8 @@ public class Nimbus {
           iface.killTopologyWithOpts(args.name, args.options);
         } catch (NotAliveException e) {
           result.e = e;
+        } catch (NotAuthorizedException aze) {
+          result.aze = aze;
         }
         return result;
       }
@@ -1307,6 +1336,8 @@ public class Nimbus {
           iface.activate(args.name);
         } catch (NotAliveException e) {
           result.e = e;
+        } catch (NotAuthorizedException aze) {
+          result.aze = aze;
         }
         return result;
       }
@@ -1327,6 +1358,8 @@ public class Nimbus {
           iface.deactivate(args.name);
         } catch (NotAliveException e) {
           result.e = e;
+        } catch (NotAuthorizedException aze) {
+          result.aze = aze;
         }
         return result;
       }
@@ -1349,6 +1382,8 @@ public class Nimbus {
           result.e = e;
         } catch (InvalidTopologyException ite) {
           result.ite = ite;
+        } catch (NotAuthorizedException aze) {
+          result.aze = aze;
         }
         return result;
       }
@@ -2134,14 +2169,17 @@ public class Nimbus {
 
     private static final org.apache.thrift7.protocol.TField E_FIELD_DESC = new org.apache.thrift7.protocol.TField("e", org.apache.thrift7.protocol.TType.STRUCT, (short)1);
     private static final org.apache.thrift7.protocol.TField ITE_FIELD_DESC = new org.apache.thrift7.protocol.TField("ite", org.apache.thrift7.protocol.TType.STRUCT, (short)2);
+    private static final org.apache.thrift7.protocol.TField AZE_FIELD_DESC = new org.apache.thrift7.protocol.TField("aze", org.apache.thrift7.protocol.TType.STRUCT, (short)3);
 
     private AlreadyAliveException e; // required
     private InvalidTopologyException ite; // required
+    private NotAuthorizedException aze; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements org.apache.thrift7.TFieldIdEnum {
       E((short)1, "e"),
-      ITE((short)2, "ite");
+      ITE((short)2, "ite"),
+      AZE((short)3, "aze");
 
       private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
 
@@ -2160,6 +2198,8 @@ public class Nimbus {
             return E;
           case 2: // ITE
             return ITE;
+          case 3: // AZE
+            return AZE;
           default:
             return null;
         }
@@ -2208,6 +2248,8 @@ public class Nimbus {
           new org.apache.thrift7.meta_data.FieldValueMetaData(org.apache.thrift7.protocol.TType.STRUCT)));
       tmpMap.put(_Fields.ITE, new org.apache.thrift7.meta_data.FieldMetaData("ite", org.apache.thrift7.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift7.meta_data.FieldValueMetaData(org.apache.thrift7.protocol.TType.STRUCT)));
+      tmpMap.put(_Fields.AZE, new org.apache.thrift7.meta_data.FieldMetaData("aze", org.apache.thrift7.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift7.meta_data.FieldValueMetaData(org.apache.thrift7.protocol.TType.STRUCT)));
       metaDataMap = Collections.unmodifiableMap(tmpMap);
       org.apache.thrift7.meta_data.FieldMetaData.addStructMetaDataMap(submitTopology_result.class, metaDataMap);
     }
@@ -2217,11 +2259,13 @@ public class Nimbus {
 
     public submitTopology_result(
       AlreadyAliveException e,
-      InvalidTopologyException ite)
+      InvalidTopologyException ite,
+      NotAuthorizedException aze)
     {
       this();
       this.e = e;
       this.ite = ite;
+      this.aze = aze;
     }
 
     /**
@@ -2234,6 +2278,9 @@ public class Nimbus {
       if (other.is_set_ite()) {
         this.ite = new InvalidTopologyException(other.ite);
       }
+      if (other.is_set_aze()) {
+        this.aze = new NotAuthorizedException(other.aze);
+      }
     }
 
     public submitTopology_result deepCopy() {
@@ -2244,6 +2291,7 @@ public class Nimbus {
     public void clear() {
       this.e = null;
       this.ite = null;
+      this.aze = null;
     }
 
     public AlreadyAliveException get_e() {
@@ -2292,6 +2340,29 @@ public class Nimbus {
       }
     }
 
+    public NotAuthorizedException get_aze() {
+      return this.aze;
+    }
+
+    public void set_aze(NotAuthorizedException aze) {
+      this.aze = aze;
+    }
+
+    public void unset_aze() {
+      this.aze = null;
+    }
+
+    /** Returns true if field aze is set (has been assigned a value) and false otherwise */
+    public boolean is_set_aze() {
+      return this.aze != null;
+    }
+
+    public void set_aze_isSet(boolean value) {
+      if (!value) {
+        this.aze = null;
+      }
+    }
+
     public void setFieldValue(_Fields field, Object value) {
       switch (field) {
       case E:
@@ -2310,6 +2381,14 @@ public class Nimbus {
         }
         break;
 
+      case AZE:
+        if (value == null) {
+          unset_aze();
+        } else {
+          set_aze((NotAuthorizedException)value);
+        }
+        break;
+
       }
     }
 
@@ -2320,6 +2399,9 @@ public class Nimbus {
 
       case ITE:
         return get_ite();
+
+      case AZE:
+        return get_aze();
 
       }
       throw new IllegalStateException();
@@ -2336,6 +2418,8 @@ public class Nimbus {
         return is_set_e();
       case ITE:
         return is_set_ite();
+      case AZE:
+        return is_set_aze();
       }
       throw new IllegalStateException();
     }
@@ -2371,6 +2455,15 @@ public class Nimbus {
           return false;
       }
 
+      boolean this_present_aze = true && this.is_set_aze();
+      boolean that_present_aze = true && that.is_set_aze();
+      if (this_present_aze || that_present_aze) {
+        if (!(this_present_aze && that_present_aze))
+          return false;
+        if (!this.aze.equals(that.aze))
+          return false;
+      }
+
       return true;
     }
 
@@ -2387,6 +2480,11 @@ public class Nimbus {
       builder.append(present_ite);
       if (present_ite)
         builder.append(ite);
+
+      boolean present_aze = true && (is_set_aze());
+      builder.append(present_aze);
+      if (present_aze)
+        builder.append(aze);
 
       return builder.toHashCode();
     }
@@ -2415,6 +2513,16 @@ public class Nimbus {
       }
       if (is_set_ite()) {
         lastComparison = org.apache.thrift7.TBaseHelper.compareTo(this.ite, typedOther.ite);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      lastComparison = Boolean.valueOf(is_set_aze()).compareTo(typedOther.is_set_aze());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (is_set_aze()) {
+        lastComparison = org.apache.thrift7.TBaseHelper.compareTo(this.aze, typedOther.aze);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -2452,6 +2560,14 @@ public class Nimbus {
               org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
             }
             break;
+          case 3: // AZE
+            if (field.type == org.apache.thrift7.protocol.TType.STRUCT) {
+              this.aze = new NotAuthorizedException();
+              this.aze.read(iprot);
+            } else { 
+              org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
+            }
+            break;
           default:
             org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
         }
@@ -2471,6 +2587,10 @@ public class Nimbus {
       } else if (this.is_set_ite()) {
         oprot.writeFieldBegin(ITE_FIELD_DESC);
         this.ite.write(oprot);
+        oprot.writeFieldEnd();
+      } else if (this.is_set_aze()) {
+        oprot.writeFieldBegin(AZE_FIELD_DESC);
+        this.aze.write(oprot);
         oprot.writeFieldEnd();
       }
       oprot.writeFieldStop();
@@ -2495,6 +2615,14 @@ public class Nimbus {
         sb.append("null");
       } else {
         sb.append(this.ite);
+      }
+      first = false;
+      if (!first) sb.append(", ");
+      sb.append("aze:");
+      if (this.aze == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.aze);
       }
       first = false;
       sb.append(")");
@@ -3203,14 +3331,17 @@ public class Nimbus {
 
     private static final org.apache.thrift7.protocol.TField E_FIELD_DESC = new org.apache.thrift7.protocol.TField("e", org.apache.thrift7.protocol.TType.STRUCT, (short)1);
     private static final org.apache.thrift7.protocol.TField ITE_FIELD_DESC = new org.apache.thrift7.protocol.TField("ite", org.apache.thrift7.protocol.TType.STRUCT, (short)2);
+    private static final org.apache.thrift7.protocol.TField AZE_FIELD_DESC = new org.apache.thrift7.protocol.TField("aze", org.apache.thrift7.protocol.TType.STRUCT, (short)3);
 
     private AlreadyAliveException e; // required
     private InvalidTopologyException ite; // required
+    private NotAuthorizedException aze; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements org.apache.thrift7.TFieldIdEnum {
       E((short)1, "e"),
-      ITE((short)2, "ite");
+      ITE((short)2, "ite"),
+      AZE((short)3, "aze");
 
       private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
 
@@ -3229,6 +3360,8 @@ public class Nimbus {
             return E;
           case 2: // ITE
             return ITE;
+          case 3: // AZE
+            return AZE;
           default:
             return null;
         }
@@ -3277,6 +3410,8 @@ public class Nimbus {
           new org.apache.thrift7.meta_data.FieldValueMetaData(org.apache.thrift7.protocol.TType.STRUCT)));
       tmpMap.put(_Fields.ITE, new org.apache.thrift7.meta_data.FieldMetaData("ite", org.apache.thrift7.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift7.meta_data.FieldValueMetaData(org.apache.thrift7.protocol.TType.STRUCT)));
+      tmpMap.put(_Fields.AZE, new org.apache.thrift7.meta_data.FieldMetaData("aze", org.apache.thrift7.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift7.meta_data.FieldValueMetaData(org.apache.thrift7.protocol.TType.STRUCT)));
       metaDataMap = Collections.unmodifiableMap(tmpMap);
       org.apache.thrift7.meta_data.FieldMetaData.addStructMetaDataMap(submitTopologyWithOpts_result.class, metaDataMap);
     }
@@ -3286,11 +3421,13 @@ public class Nimbus {
 
     public submitTopologyWithOpts_result(
       AlreadyAliveException e,
-      InvalidTopologyException ite)
+      InvalidTopologyException ite,
+      NotAuthorizedException aze)
     {
       this();
       this.e = e;
       this.ite = ite;
+      this.aze = aze;
     }
 
     /**
@@ -3303,6 +3440,9 @@ public class Nimbus {
       if (other.is_set_ite()) {
         this.ite = new InvalidTopologyException(other.ite);
       }
+      if (other.is_set_aze()) {
+        this.aze = new NotAuthorizedException(other.aze);
+      }
     }
 
     public submitTopologyWithOpts_result deepCopy() {
@@ -3313,6 +3453,7 @@ public class Nimbus {
     public void clear() {
       this.e = null;
       this.ite = null;
+      this.aze = null;
     }
 
     public AlreadyAliveException get_e() {
@@ -3361,6 +3502,29 @@ public class Nimbus {
       }
     }
 
+    public NotAuthorizedException get_aze() {
+      return this.aze;
+    }
+
+    public void set_aze(NotAuthorizedException aze) {
+      this.aze = aze;
+    }
+
+    public void unset_aze() {
+      this.aze = null;
+    }
+
+    /** Returns true if field aze is set (has been assigned a value) and false otherwise */
+    public boolean is_set_aze() {
+      return this.aze != null;
+    }
+
+    public void set_aze_isSet(boolean value) {
+      if (!value) {
+        this.aze = null;
+      }
+    }
+
     public void setFieldValue(_Fields field, Object value) {
       switch (field) {
       case E:
@@ -3379,6 +3543,14 @@ public class Nimbus {
         }
         break;
 
+      case AZE:
+        if (value == null) {
+          unset_aze();
+        } else {
+          set_aze((NotAuthorizedException)value);
+        }
+        break;
+
       }
     }
 
@@ -3389,6 +3561,9 @@ public class Nimbus {
 
       case ITE:
         return get_ite();
+
+      case AZE:
+        return get_aze();
 
       }
       throw new IllegalStateException();
@@ -3405,6 +3580,8 @@ public class Nimbus {
         return is_set_e();
       case ITE:
         return is_set_ite();
+      case AZE:
+        return is_set_aze();
       }
       throw new IllegalStateException();
     }
@@ -3440,6 +3617,15 @@ public class Nimbus {
           return false;
       }
 
+      boolean this_present_aze = true && this.is_set_aze();
+      boolean that_present_aze = true && that.is_set_aze();
+      if (this_present_aze || that_present_aze) {
+        if (!(this_present_aze && that_present_aze))
+          return false;
+        if (!this.aze.equals(that.aze))
+          return false;
+      }
+
       return true;
     }
 
@@ -3456,6 +3642,11 @@ public class Nimbus {
       builder.append(present_ite);
       if (present_ite)
         builder.append(ite);
+
+      boolean present_aze = true && (is_set_aze());
+      builder.append(present_aze);
+      if (present_aze)
+        builder.append(aze);
 
       return builder.toHashCode();
     }
@@ -3484,6 +3675,16 @@ public class Nimbus {
       }
       if (is_set_ite()) {
         lastComparison = org.apache.thrift7.TBaseHelper.compareTo(this.ite, typedOther.ite);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      lastComparison = Boolean.valueOf(is_set_aze()).compareTo(typedOther.is_set_aze());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (is_set_aze()) {
+        lastComparison = org.apache.thrift7.TBaseHelper.compareTo(this.aze, typedOther.aze);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -3521,6 +3722,14 @@ public class Nimbus {
               org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
             }
             break;
+          case 3: // AZE
+            if (field.type == org.apache.thrift7.protocol.TType.STRUCT) {
+              this.aze = new NotAuthorizedException();
+              this.aze.read(iprot);
+            } else { 
+              org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
+            }
+            break;
           default:
             org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
         }
@@ -3540,6 +3749,10 @@ public class Nimbus {
       } else if (this.is_set_ite()) {
         oprot.writeFieldBegin(ITE_FIELD_DESC);
         this.ite.write(oprot);
+        oprot.writeFieldEnd();
+      } else if (this.is_set_aze()) {
+        oprot.writeFieldBegin(AZE_FIELD_DESC);
+        this.aze.write(oprot);
         oprot.writeFieldEnd();
       }
       oprot.writeFieldStop();
@@ -3564,6 +3777,14 @@ public class Nimbus {
         sb.append("null");
       } else {
         sb.append(this.ite);
+      }
+      first = false;
+      if (!first) sb.append(", ");
+      sb.append("aze:");
+      if (this.aze == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.aze);
       }
       first = false;
       sb.append(")");
@@ -3897,12 +4118,15 @@ public class Nimbus {
     private static final org.apache.thrift7.protocol.TStruct STRUCT_DESC = new org.apache.thrift7.protocol.TStruct("killTopology_result");
 
     private static final org.apache.thrift7.protocol.TField E_FIELD_DESC = new org.apache.thrift7.protocol.TField("e", org.apache.thrift7.protocol.TType.STRUCT, (short)1);
+    private static final org.apache.thrift7.protocol.TField AZE_FIELD_DESC = new org.apache.thrift7.protocol.TField("aze", org.apache.thrift7.protocol.TType.STRUCT, (short)2);
 
     private NotAliveException e; // required
+    private NotAuthorizedException aze; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements org.apache.thrift7.TFieldIdEnum {
-      E((short)1, "e");
+      E((short)1, "e"),
+      AZE((short)2, "aze");
 
       private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
 
@@ -3919,6 +4143,8 @@ public class Nimbus {
         switch(fieldId) {
           case 1: // E
             return E;
+          case 2: // AZE
+            return AZE;
           default:
             return null;
         }
@@ -3965,6 +4191,8 @@ public class Nimbus {
       Map<_Fields, org.apache.thrift7.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift7.meta_data.FieldMetaData>(_Fields.class);
       tmpMap.put(_Fields.E, new org.apache.thrift7.meta_data.FieldMetaData("e", org.apache.thrift7.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift7.meta_data.FieldValueMetaData(org.apache.thrift7.protocol.TType.STRUCT)));
+      tmpMap.put(_Fields.AZE, new org.apache.thrift7.meta_data.FieldMetaData("aze", org.apache.thrift7.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift7.meta_data.FieldValueMetaData(org.apache.thrift7.protocol.TType.STRUCT)));
       metaDataMap = Collections.unmodifiableMap(tmpMap);
       org.apache.thrift7.meta_data.FieldMetaData.addStructMetaDataMap(killTopology_result.class, metaDataMap);
     }
@@ -3973,10 +4201,12 @@ public class Nimbus {
     }
 
     public killTopology_result(
-      NotAliveException e)
+      NotAliveException e,
+      NotAuthorizedException aze)
     {
       this();
       this.e = e;
+      this.aze = aze;
     }
 
     /**
@@ -3985,6 +4215,9 @@ public class Nimbus {
     public killTopology_result(killTopology_result other) {
       if (other.is_set_e()) {
         this.e = new NotAliveException(other.e);
+      }
+      if (other.is_set_aze()) {
+        this.aze = new NotAuthorizedException(other.aze);
       }
     }
 
@@ -3995,6 +4228,7 @@ public class Nimbus {
     @Override
     public void clear() {
       this.e = null;
+      this.aze = null;
     }
 
     public NotAliveException get_e() {
@@ -4020,6 +4254,29 @@ public class Nimbus {
       }
     }
 
+    public NotAuthorizedException get_aze() {
+      return this.aze;
+    }
+
+    public void set_aze(NotAuthorizedException aze) {
+      this.aze = aze;
+    }
+
+    public void unset_aze() {
+      this.aze = null;
+    }
+
+    /** Returns true if field aze is set (has been assigned a value) and false otherwise */
+    public boolean is_set_aze() {
+      return this.aze != null;
+    }
+
+    public void set_aze_isSet(boolean value) {
+      if (!value) {
+        this.aze = null;
+      }
+    }
+
     public void setFieldValue(_Fields field, Object value) {
       switch (field) {
       case E:
@@ -4030,6 +4287,14 @@ public class Nimbus {
         }
         break;
 
+      case AZE:
+        if (value == null) {
+          unset_aze();
+        } else {
+          set_aze((NotAuthorizedException)value);
+        }
+        break;
+
       }
     }
 
@@ -4037,6 +4302,9 @@ public class Nimbus {
       switch (field) {
       case E:
         return get_e();
+
+      case AZE:
+        return get_aze();
 
       }
       throw new IllegalStateException();
@@ -4051,6 +4319,8 @@ public class Nimbus {
       switch (field) {
       case E:
         return is_set_e();
+      case AZE:
+        return is_set_aze();
       }
       throw new IllegalStateException();
     }
@@ -4077,6 +4347,15 @@ public class Nimbus {
           return false;
       }
 
+      boolean this_present_aze = true && this.is_set_aze();
+      boolean that_present_aze = true && that.is_set_aze();
+      if (this_present_aze || that_present_aze) {
+        if (!(this_present_aze && that_present_aze))
+          return false;
+        if (!this.aze.equals(that.aze))
+          return false;
+      }
+
       return true;
     }
 
@@ -4088,6 +4367,11 @@ public class Nimbus {
       builder.append(present_e);
       if (present_e)
         builder.append(e);
+
+      boolean present_aze = true && (is_set_aze());
+      builder.append(present_aze);
+      if (present_aze)
+        builder.append(aze);
 
       return builder.toHashCode();
     }
@@ -4106,6 +4390,16 @@ public class Nimbus {
       }
       if (is_set_e()) {
         lastComparison = org.apache.thrift7.TBaseHelper.compareTo(this.e, typedOther.e);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      lastComparison = Boolean.valueOf(is_set_aze()).compareTo(typedOther.is_set_aze());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (is_set_aze()) {
+        lastComparison = org.apache.thrift7.TBaseHelper.compareTo(this.aze, typedOther.aze);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -4135,6 +4429,14 @@ public class Nimbus {
               org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
             }
             break;
+          case 2: // AZE
+            if (field.type == org.apache.thrift7.protocol.TType.STRUCT) {
+              this.aze = new NotAuthorizedException();
+              this.aze.read(iprot);
+            } else { 
+              org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
+            }
+            break;
           default:
             org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
         }
@@ -4151,6 +4453,10 @@ public class Nimbus {
         oprot.writeFieldBegin(E_FIELD_DESC);
         this.e.write(oprot);
         oprot.writeFieldEnd();
+      } else if (this.is_set_aze()) {
+        oprot.writeFieldBegin(AZE_FIELD_DESC);
+        this.aze.write(oprot);
+        oprot.writeFieldEnd();
       }
       oprot.writeFieldStop();
       oprot.writeStructEnd();
@@ -4166,6 +4472,14 @@ public class Nimbus {
         sb.append("null");
       } else {
         sb.append(this.e);
+      }
+      first = false;
+      if (!first) sb.append(", ");
+      sb.append("aze:");
+      if (this.aze == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.aze);
       }
       first = false;
       sb.append(")");
@@ -4593,12 +4907,15 @@ public class Nimbus {
     private static final org.apache.thrift7.protocol.TStruct STRUCT_DESC = new org.apache.thrift7.protocol.TStruct("killTopologyWithOpts_result");
 
     private static final org.apache.thrift7.protocol.TField E_FIELD_DESC = new org.apache.thrift7.protocol.TField("e", org.apache.thrift7.protocol.TType.STRUCT, (short)1);
+    private static final org.apache.thrift7.protocol.TField AZE_FIELD_DESC = new org.apache.thrift7.protocol.TField("aze", org.apache.thrift7.protocol.TType.STRUCT, (short)2);
 
     private NotAliveException e; // required
+    private NotAuthorizedException aze; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements org.apache.thrift7.TFieldIdEnum {
-      E((short)1, "e");
+      E((short)1, "e"),
+      AZE((short)2, "aze");
 
       private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
 
@@ -4615,6 +4932,8 @@ public class Nimbus {
         switch(fieldId) {
           case 1: // E
             return E;
+          case 2: // AZE
+            return AZE;
           default:
             return null;
         }
@@ -4661,6 +4980,8 @@ public class Nimbus {
       Map<_Fields, org.apache.thrift7.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift7.meta_data.FieldMetaData>(_Fields.class);
       tmpMap.put(_Fields.E, new org.apache.thrift7.meta_data.FieldMetaData("e", org.apache.thrift7.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift7.meta_data.FieldValueMetaData(org.apache.thrift7.protocol.TType.STRUCT)));
+      tmpMap.put(_Fields.AZE, new org.apache.thrift7.meta_data.FieldMetaData("aze", org.apache.thrift7.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift7.meta_data.FieldValueMetaData(org.apache.thrift7.protocol.TType.STRUCT)));
       metaDataMap = Collections.unmodifiableMap(tmpMap);
       org.apache.thrift7.meta_data.FieldMetaData.addStructMetaDataMap(killTopologyWithOpts_result.class, metaDataMap);
     }
@@ -4669,10 +4990,12 @@ public class Nimbus {
     }
 
     public killTopologyWithOpts_result(
-      NotAliveException e)
+      NotAliveException e,
+      NotAuthorizedException aze)
     {
       this();
       this.e = e;
+      this.aze = aze;
     }
 
     /**
@@ -4681,6 +5004,9 @@ public class Nimbus {
     public killTopologyWithOpts_result(killTopologyWithOpts_result other) {
       if (other.is_set_e()) {
         this.e = new NotAliveException(other.e);
+      }
+      if (other.is_set_aze()) {
+        this.aze = new NotAuthorizedException(other.aze);
       }
     }
 
@@ -4691,6 +5017,7 @@ public class Nimbus {
     @Override
     public void clear() {
       this.e = null;
+      this.aze = null;
     }
 
     public NotAliveException get_e() {
@@ -4716,6 +5043,29 @@ public class Nimbus {
       }
     }
 
+    public NotAuthorizedException get_aze() {
+      return this.aze;
+    }
+
+    public void set_aze(NotAuthorizedException aze) {
+      this.aze = aze;
+    }
+
+    public void unset_aze() {
+      this.aze = null;
+    }
+
+    /** Returns true if field aze is set (has been assigned a value) and false otherwise */
+    public boolean is_set_aze() {
+      return this.aze != null;
+    }
+
+    public void set_aze_isSet(boolean value) {
+      if (!value) {
+        this.aze = null;
+      }
+    }
+
     public void setFieldValue(_Fields field, Object value) {
       switch (field) {
       case E:
@@ -4726,6 +5076,14 @@ public class Nimbus {
         }
         break;
 
+      case AZE:
+        if (value == null) {
+          unset_aze();
+        } else {
+          set_aze((NotAuthorizedException)value);
+        }
+        break;
+
       }
     }
 
@@ -4733,6 +5091,9 @@ public class Nimbus {
       switch (field) {
       case E:
         return get_e();
+
+      case AZE:
+        return get_aze();
 
       }
       throw new IllegalStateException();
@@ -4747,6 +5108,8 @@ public class Nimbus {
       switch (field) {
       case E:
         return is_set_e();
+      case AZE:
+        return is_set_aze();
       }
       throw new IllegalStateException();
     }
@@ -4773,6 +5136,15 @@ public class Nimbus {
           return false;
       }
 
+      boolean this_present_aze = true && this.is_set_aze();
+      boolean that_present_aze = true && that.is_set_aze();
+      if (this_present_aze || that_present_aze) {
+        if (!(this_present_aze && that_present_aze))
+          return false;
+        if (!this.aze.equals(that.aze))
+          return false;
+      }
+
       return true;
     }
 
@@ -4784,6 +5156,11 @@ public class Nimbus {
       builder.append(present_e);
       if (present_e)
         builder.append(e);
+
+      boolean present_aze = true && (is_set_aze());
+      builder.append(present_aze);
+      if (present_aze)
+        builder.append(aze);
 
       return builder.toHashCode();
     }
@@ -4802,6 +5179,16 @@ public class Nimbus {
       }
       if (is_set_e()) {
         lastComparison = org.apache.thrift7.TBaseHelper.compareTo(this.e, typedOther.e);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      lastComparison = Boolean.valueOf(is_set_aze()).compareTo(typedOther.is_set_aze());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (is_set_aze()) {
+        lastComparison = org.apache.thrift7.TBaseHelper.compareTo(this.aze, typedOther.aze);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -4831,6 +5218,14 @@ public class Nimbus {
               org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
             }
             break;
+          case 2: // AZE
+            if (field.type == org.apache.thrift7.protocol.TType.STRUCT) {
+              this.aze = new NotAuthorizedException();
+              this.aze.read(iprot);
+            } else { 
+              org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
+            }
+            break;
           default:
             org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
         }
@@ -4847,6 +5242,10 @@ public class Nimbus {
         oprot.writeFieldBegin(E_FIELD_DESC);
         this.e.write(oprot);
         oprot.writeFieldEnd();
+      } else if (this.is_set_aze()) {
+        oprot.writeFieldBegin(AZE_FIELD_DESC);
+        this.aze.write(oprot);
+        oprot.writeFieldEnd();
       }
       oprot.writeFieldStop();
       oprot.writeStructEnd();
@@ -4862,6 +5261,14 @@ public class Nimbus {
         sb.append("null");
       } else {
         sb.append(this.e);
+      }
+      first = false;
+      if (!first) sb.append(", ");
+      sb.append("aze:");
+      if (this.aze == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.aze);
       }
       first = false;
       sb.append(")");
@@ -5195,12 +5602,15 @@ public class Nimbus {
     private static final org.apache.thrift7.protocol.TStruct STRUCT_DESC = new org.apache.thrift7.protocol.TStruct("activate_result");
 
     private static final org.apache.thrift7.protocol.TField E_FIELD_DESC = new org.apache.thrift7.protocol.TField("e", org.apache.thrift7.protocol.TType.STRUCT, (short)1);
+    private static final org.apache.thrift7.protocol.TField AZE_FIELD_DESC = new org.apache.thrift7.protocol.TField("aze", org.apache.thrift7.protocol.TType.STRUCT, (short)2);
 
     private NotAliveException e; // required
+    private NotAuthorizedException aze; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements org.apache.thrift7.TFieldIdEnum {
-      E((short)1, "e");
+      E((short)1, "e"),
+      AZE((short)2, "aze");
 
       private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
 
@@ -5217,6 +5627,8 @@ public class Nimbus {
         switch(fieldId) {
           case 1: // E
             return E;
+          case 2: // AZE
+            return AZE;
           default:
             return null;
         }
@@ -5263,6 +5675,8 @@ public class Nimbus {
       Map<_Fields, org.apache.thrift7.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift7.meta_data.FieldMetaData>(_Fields.class);
       tmpMap.put(_Fields.E, new org.apache.thrift7.meta_data.FieldMetaData("e", org.apache.thrift7.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift7.meta_data.FieldValueMetaData(org.apache.thrift7.protocol.TType.STRUCT)));
+      tmpMap.put(_Fields.AZE, new org.apache.thrift7.meta_data.FieldMetaData("aze", org.apache.thrift7.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift7.meta_data.FieldValueMetaData(org.apache.thrift7.protocol.TType.STRUCT)));
       metaDataMap = Collections.unmodifiableMap(tmpMap);
       org.apache.thrift7.meta_data.FieldMetaData.addStructMetaDataMap(activate_result.class, metaDataMap);
     }
@@ -5271,10 +5685,12 @@ public class Nimbus {
     }
 
     public activate_result(
-      NotAliveException e)
+      NotAliveException e,
+      NotAuthorizedException aze)
     {
       this();
       this.e = e;
+      this.aze = aze;
     }
 
     /**
@@ -5283,6 +5699,9 @@ public class Nimbus {
     public activate_result(activate_result other) {
       if (other.is_set_e()) {
         this.e = new NotAliveException(other.e);
+      }
+      if (other.is_set_aze()) {
+        this.aze = new NotAuthorizedException(other.aze);
       }
     }
 
@@ -5293,6 +5712,7 @@ public class Nimbus {
     @Override
     public void clear() {
       this.e = null;
+      this.aze = null;
     }
 
     public NotAliveException get_e() {
@@ -5318,6 +5738,29 @@ public class Nimbus {
       }
     }
 
+    public NotAuthorizedException get_aze() {
+      return this.aze;
+    }
+
+    public void set_aze(NotAuthorizedException aze) {
+      this.aze = aze;
+    }
+
+    public void unset_aze() {
+      this.aze = null;
+    }
+
+    /** Returns true if field aze is set (has been assigned a value) and false otherwise */
+    public boolean is_set_aze() {
+      return this.aze != null;
+    }
+
+    public void set_aze_isSet(boolean value) {
+      if (!value) {
+        this.aze = null;
+      }
+    }
+
     public void setFieldValue(_Fields field, Object value) {
       switch (field) {
       case E:
@@ -5328,6 +5771,14 @@ public class Nimbus {
         }
         break;
 
+      case AZE:
+        if (value == null) {
+          unset_aze();
+        } else {
+          set_aze((NotAuthorizedException)value);
+        }
+        break;
+
       }
     }
 
@@ -5335,6 +5786,9 @@ public class Nimbus {
       switch (field) {
       case E:
         return get_e();
+
+      case AZE:
+        return get_aze();
 
       }
       throw new IllegalStateException();
@@ -5349,6 +5803,8 @@ public class Nimbus {
       switch (field) {
       case E:
         return is_set_e();
+      case AZE:
+        return is_set_aze();
       }
       throw new IllegalStateException();
     }
@@ -5375,6 +5831,15 @@ public class Nimbus {
           return false;
       }
 
+      boolean this_present_aze = true && this.is_set_aze();
+      boolean that_present_aze = true && that.is_set_aze();
+      if (this_present_aze || that_present_aze) {
+        if (!(this_present_aze && that_present_aze))
+          return false;
+        if (!this.aze.equals(that.aze))
+          return false;
+      }
+
       return true;
     }
 
@@ -5386,6 +5851,11 @@ public class Nimbus {
       builder.append(present_e);
       if (present_e)
         builder.append(e);
+
+      boolean present_aze = true && (is_set_aze());
+      builder.append(present_aze);
+      if (present_aze)
+        builder.append(aze);
 
       return builder.toHashCode();
     }
@@ -5404,6 +5874,16 @@ public class Nimbus {
       }
       if (is_set_e()) {
         lastComparison = org.apache.thrift7.TBaseHelper.compareTo(this.e, typedOther.e);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      lastComparison = Boolean.valueOf(is_set_aze()).compareTo(typedOther.is_set_aze());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (is_set_aze()) {
+        lastComparison = org.apache.thrift7.TBaseHelper.compareTo(this.aze, typedOther.aze);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -5433,6 +5913,14 @@ public class Nimbus {
               org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
             }
             break;
+          case 2: // AZE
+            if (field.type == org.apache.thrift7.protocol.TType.STRUCT) {
+              this.aze = new NotAuthorizedException();
+              this.aze.read(iprot);
+            } else { 
+              org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
+            }
+            break;
           default:
             org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
         }
@@ -5449,6 +5937,10 @@ public class Nimbus {
         oprot.writeFieldBegin(E_FIELD_DESC);
         this.e.write(oprot);
         oprot.writeFieldEnd();
+      } else if (this.is_set_aze()) {
+        oprot.writeFieldBegin(AZE_FIELD_DESC);
+        this.aze.write(oprot);
+        oprot.writeFieldEnd();
       }
       oprot.writeFieldStop();
       oprot.writeStructEnd();
@@ -5464,6 +5956,14 @@ public class Nimbus {
         sb.append("null");
       } else {
         sb.append(this.e);
+      }
+      first = false;
+      if (!first) sb.append(", ");
+      sb.append("aze:");
+      if (this.aze == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.aze);
       }
       first = false;
       sb.append(")");
@@ -5797,12 +6297,15 @@ public class Nimbus {
     private static final org.apache.thrift7.protocol.TStruct STRUCT_DESC = new org.apache.thrift7.protocol.TStruct("deactivate_result");
 
     private static final org.apache.thrift7.protocol.TField E_FIELD_DESC = new org.apache.thrift7.protocol.TField("e", org.apache.thrift7.protocol.TType.STRUCT, (short)1);
+    private static final org.apache.thrift7.protocol.TField AZE_FIELD_DESC = new org.apache.thrift7.protocol.TField("aze", org.apache.thrift7.protocol.TType.STRUCT, (short)2);
 
     private NotAliveException e; // required
+    private NotAuthorizedException aze; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements org.apache.thrift7.TFieldIdEnum {
-      E((short)1, "e");
+      E((short)1, "e"),
+      AZE((short)2, "aze");
 
       private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
 
@@ -5819,6 +6322,8 @@ public class Nimbus {
         switch(fieldId) {
           case 1: // E
             return E;
+          case 2: // AZE
+            return AZE;
           default:
             return null;
         }
@@ -5865,6 +6370,8 @@ public class Nimbus {
       Map<_Fields, org.apache.thrift7.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift7.meta_data.FieldMetaData>(_Fields.class);
       tmpMap.put(_Fields.E, new org.apache.thrift7.meta_data.FieldMetaData("e", org.apache.thrift7.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift7.meta_data.FieldValueMetaData(org.apache.thrift7.protocol.TType.STRUCT)));
+      tmpMap.put(_Fields.AZE, new org.apache.thrift7.meta_data.FieldMetaData("aze", org.apache.thrift7.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift7.meta_data.FieldValueMetaData(org.apache.thrift7.protocol.TType.STRUCT)));
       metaDataMap = Collections.unmodifiableMap(tmpMap);
       org.apache.thrift7.meta_data.FieldMetaData.addStructMetaDataMap(deactivate_result.class, metaDataMap);
     }
@@ -5873,10 +6380,12 @@ public class Nimbus {
     }
 
     public deactivate_result(
-      NotAliveException e)
+      NotAliveException e,
+      NotAuthorizedException aze)
     {
       this();
       this.e = e;
+      this.aze = aze;
     }
 
     /**
@@ -5885,6 +6394,9 @@ public class Nimbus {
     public deactivate_result(deactivate_result other) {
       if (other.is_set_e()) {
         this.e = new NotAliveException(other.e);
+      }
+      if (other.is_set_aze()) {
+        this.aze = new NotAuthorizedException(other.aze);
       }
     }
 
@@ -5895,6 +6407,7 @@ public class Nimbus {
     @Override
     public void clear() {
       this.e = null;
+      this.aze = null;
     }
 
     public NotAliveException get_e() {
@@ -5920,6 +6433,29 @@ public class Nimbus {
       }
     }
 
+    public NotAuthorizedException get_aze() {
+      return this.aze;
+    }
+
+    public void set_aze(NotAuthorizedException aze) {
+      this.aze = aze;
+    }
+
+    public void unset_aze() {
+      this.aze = null;
+    }
+
+    /** Returns true if field aze is set (has been assigned a value) and false otherwise */
+    public boolean is_set_aze() {
+      return this.aze != null;
+    }
+
+    public void set_aze_isSet(boolean value) {
+      if (!value) {
+        this.aze = null;
+      }
+    }
+
     public void setFieldValue(_Fields field, Object value) {
       switch (field) {
       case E:
@@ -5930,6 +6466,14 @@ public class Nimbus {
         }
         break;
 
+      case AZE:
+        if (value == null) {
+          unset_aze();
+        } else {
+          set_aze((NotAuthorizedException)value);
+        }
+        break;
+
       }
     }
 
@@ -5937,6 +6481,9 @@ public class Nimbus {
       switch (field) {
       case E:
         return get_e();
+
+      case AZE:
+        return get_aze();
 
       }
       throw new IllegalStateException();
@@ -5951,6 +6498,8 @@ public class Nimbus {
       switch (field) {
       case E:
         return is_set_e();
+      case AZE:
+        return is_set_aze();
       }
       throw new IllegalStateException();
     }
@@ -5977,6 +6526,15 @@ public class Nimbus {
           return false;
       }
 
+      boolean this_present_aze = true && this.is_set_aze();
+      boolean that_present_aze = true && that.is_set_aze();
+      if (this_present_aze || that_present_aze) {
+        if (!(this_present_aze && that_present_aze))
+          return false;
+        if (!this.aze.equals(that.aze))
+          return false;
+      }
+
       return true;
     }
 
@@ -5988,6 +6546,11 @@ public class Nimbus {
       builder.append(present_e);
       if (present_e)
         builder.append(e);
+
+      boolean present_aze = true && (is_set_aze());
+      builder.append(present_aze);
+      if (present_aze)
+        builder.append(aze);
 
       return builder.toHashCode();
     }
@@ -6006,6 +6569,16 @@ public class Nimbus {
       }
       if (is_set_e()) {
         lastComparison = org.apache.thrift7.TBaseHelper.compareTo(this.e, typedOther.e);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      lastComparison = Boolean.valueOf(is_set_aze()).compareTo(typedOther.is_set_aze());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (is_set_aze()) {
+        lastComparison = org.apache.thrift7.TBaseHelper.compareTo(this.aze, typedOther.aze);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -6035,6 +6608,14 @@ public class Nimbus {
               org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
             }
             break;
+          case 2: // AZE
+            if (field.type == org.apache.thrift7.protocol.TType.STRUCT) {
+              this.aze = new NotAuthorizedException();
+              this.aze.read(iprot);
+            } else { 
+              org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
+            }
+            break;
           default:
             org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
         }
@@ -6051,6 +6632,10 @@ public class Nimbus {
         oprot.writeFieldBegin(E_FIELD_DESC);
         this.e.write(oprot);
         oprot.writeFieldEnd();
+      } else if (this.is_set_aze()) {
+        oprot.writeFieldBegin(AZE_FIELD_DESC);
+        this.aze.write(oprot);
+        oprot.writeFieldEnd();
       }
       oprot.writeFieldStop();
       oprot.writeStructEnd();
@@ -6066,6 +6651,14 @@ public class Nimbus {
         sb.append("null");
       } else {
         sb.append(this.e);
+      }
+      first = false;
+      if (!first) sb.append(", ");
+      sb.append("aze:");
+      if (this.aze == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.aze);
       }
       first = false;
       sb.append(")");
@@ -6494,14 +7087,17 @@ public class Nimbus {
 
     private static final org.apache.thrift7.protocol.TField E_FIELD_DESC = new org.apache.thrift7.protocol.TField("e", org.apache.thrift7.protocol.TType.STRUCT, (short)1);
     private static final org.apache.thrift7.protocol.TField ITE_FIELD_DESC = new org.apache.thrift7.protocol.TField("ite", org.apache.thrift7.protocol.TType.STRUCT, (short)2);
+    private static final org.apache.thrift7.protocol.TField AZE_FIELD_DESC = new org.apache.thrift7.protocol.TField("aze", org.apache.thrift7.protocol.TType.STRUCT, (short)3);
 
     private NotAliveException e; // required
     private InvalidTopologyException ite; // required
+    private NotAuthorizedException aze; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements org.apache.thrift7.TFieldIdEnum {
       E((short)1, "e"),
-      ITE((short)2, "ite");
+      ITE((short)2, "ite"),
+      AZE((short)3, "aze");
 
       private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
 
@@ -6520,6 +7116,8 @@ public class Nimbus {
             return E;
           case 2: // ITE
             return ITE;
+          case 3: // AZE
+            return AZE;
           default:
             return null;
         }
@@ -6568,6 +7166,8 @@ public class Nimbus {
           new org.apache.thrift7.meta_data.FieldValueMetaData(org.apache.thrift7.protocol.TType.STRUCT)));
       tmpMap.put(_Fields.ITE, new org.apache.thrift7.meta_data.FieldMetaData("ite", org.apache.thrift7.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift7.meta_data.FieldValueMetaData(org.apache.thrift7.protocol.TType.STRUCT)));
+      tmpMap.put(_Fields.AZE, new org.apache.thrift7.meta_data.FieldMetaData("aze", org.apache.thrift7.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift7.meta_data.FieldValueMetaData(org.apache.thrift7.protocol.TType.STRUCT)));
       metaDataMap = Collections.unmodifiableMap(tmpMap);
       org.apache.thrift7.meta_data.FieldMetaData.addStructMetaDataMap(rebalance_result.class, metaDataMap);
     }
@@ -6577,11 +7177,13 @@ public class Nimbus {
 
     public rebalance_result(
       NotAliveException e,
-      InvalidTopologyException ite)
+      InvalidTopologyException ite,
+      NotAuthorizedException aze)
     {
       this();
       this.e = e;
       this.ite = ite;
+      this.aze = aze;
     }
 
     /**
@@ -6594,6 +7196,9 @@ public class Nimbus {
       if (other.is_set_ite()) {
         this.ite = new InvalidTopologyException(other.ite);
       }
+      if (other.is_set_aze()) {
+        this.aze = new NotAuthorizedException(other.aze);
+      }
     }
 
     public rebalance_result deepCopy() {
@@ -6604,6 +7209,7 @@ public class Nimbus {
     public void clear() {
       this.e = null;
       this.ite = null;
+      this.aze = null;
     }
 
     public NotAliveException get_e() {
@@ -6652,6 +7258,29 @@ public class Nimbus {
       }
     }
 
+    public NotAuthorizedException get_aze() {
+      return this.aze;
+    }
+
+    public void set_aze(NotAuthorizedException aze) {
+      this.aze = aze;
+    }
+
+    public void unset_aze() {
+      this.aze = null;
+    }
+
+    /** Returns true if field aze is set (has been assigned a value) and false otherwise */
+    public boolean is_set_aze() {
+      return this.aze != null;
+    }
+
+    public void set_aze_isSet(boolean value) {
+      if (!value) {
+        this.aze = null;
+      }
+    }
+
     public void setFieldValue(_Fields field, Object value) {
       switch (field) {
       case E:
@@ -6670,6 +7299,14 @@ public class Nimbus {
         }
         break;
 
+      case AZE:
+        if (value == null) {
+          unset_aze();
+        } else {
+          set_aze((NotAuthorizedException)value);
+        }
+        break;
+
       }
     }
 
@@ -6680,6 +7317,9 @@ public class Nimbus {
 
       case ITE:
         return get_ite();
+
+      case AZE:
+        return get_aze();
 
       }
       throw new IllegalStateException();
@@ -6696,6 +7336,8 @@ public class Nimbus {
         return is_set_e();
       case ITE:
         return is_set_ite();
+      case AZE:
+        return is_set_aze();
       }
       throw new IllegalStateException();
     }
@@ -6731,6 +7373,15 @@ public class Nimbus {
           return false;
       }
 
+      boolean this_present_aze = true && this.is_set_aze();
+      boolean that_present_aze = true && that.is_set_aze();
+      if (this_present_aze || that_present_aze) {
+        if (!(this_present_aze && that_present_aze))
+          return false;
+        if (!this.aze.equals(that.aze))
+          return false;
+      }
+
       return true;
     }
 
@@ -6747,6 +7398,11 @@ public class Nimbus {
       builder.append(present_ite);
       if (present_ite)
         builder.append(ite);
+
+      boolean present_aze = true && (is_set_aze());
+      builder.append(present_aze);
+      if (present_aze)
+        builder.append(aze);
 
       return builder.toHashCode();
     }
@@ -6775,6 +7431,16 @@ public class Nimbus {
       }
       if (is_set_ite()) {
         lastComparison = org.apache.thrift7.TBaseHelper.compareTo(this.ite, typedOther.ite);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      lastComparison = Boolean.valueOf(is_set_aze()).compareTo(typedOther.is_set_aze());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (is_set_aze()) {
+        lastComparison = org.apache.thrift7.TBaseHelper.compareTo(this.aze, typedOther.aze);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -6812,6 +7478,14 @@ public class Nimbus {
               org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
             }
             break;
+          case 3: // AZE
+            if (field.type == org.apache.thrift7.protocol.TType.STRUCT) {
+              this.aze = new NotAuthorizedException();
+              this.aze.read(iprot);
+            } else { 
+              org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
+            }
+            break;
           default:
             org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
         }
@@ -6831,6 +7505,10 @@ public class Nimbus {
       } else if (this.is_set_ite()) {
         oprot.writeFieldBegin(ITE_FIELD_DESC);
         this.ite.write(oprot);
+        oprot.writeFieldEnd();
+      } else if (this.is_set_aze()) {
+        oprot.writeFieldBegin(AZE_FIELD_DESC);
+        this.aze.write(oprot);
         oprot.writeFieldEnd();
       }
       oprot.writeFieldStop();
@@ -6855,6 +7533,14 @@ public class Nimbus {
         sb.append("null");
       } else {
         sb.append(this.ite);
+      }
+      first = false;
+      if (!first) sb.append(", ");
+      sb.append("aze:");
+      if (this.aze == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.aze);
       }
       first = false;
       sb.append(")");

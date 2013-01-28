@@ -5,6 +5,7 @@
   :dependencies [[org.clojure/clojure "1.4.0"]
                  [commons-io "1.4"]
                  [org.apache.commons/commons-exec "1.1"]
+		 [org.apache.zookeeper/zookeeper "3.4.5"]
                  [storm/libthrift7 "0.7.0"
                   :exclusions [org.slf4j/slf4j-api]]
                  [clj-time "0.4.1"]
@@ -44,7 +45,7 @@
                  "http://oss.sonatype.org/content/groups/public/"}
 
   :javac-options {:debug true}
-  :jvm-opts ["-Djava.library.path=/usr/local/lib:/opt/local/lib:/usr/lib"]
+  :jvm-opts ["-Djava.library.path=/usr/local/lib:/opt/local/lib:/usr/lib:/home/y/lib64"]
 
   :aot :all
   :min-lein-version "2.0.0")

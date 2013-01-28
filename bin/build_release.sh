@@ -33,6 +33,8 @@ cp -R logback/cluster.xml $DIR/logback/cluster.xml
 
 mkdir $DIR/conf
 cp conf/storm.yaml.example $DIR/conf/storm.yaml
+cp conf/jaas_digest.conf $DIR/conf/
+cp conf/jaas_kerberos.conf $DIR/conf/
 
 cp -R src/ui/public $DIR/
 

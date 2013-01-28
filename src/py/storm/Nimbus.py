@@ -184,6 +184,8 @@ class Client(Iface):
       raise result.e
     if result.ite is not None:
       raise result.ite
+    if result.aze is not None:
+      raise result.aze
     return
 
   def submitTopologyWithOpts(self, name, uploadedJarLocation, jsonConf, topology, options):
@@ -224,6 +226,8 @@ class Client(Iface):
       raise result.e
     if result.ite is not None:
       raise result.ite
+    if result.aze is not None:
+      raise result.aze
     return
 
   def killTopology(self, name):
@@ -254,6 +258,8 @@ class Client(Iface):
     self._iprot.readMessageEnd()
     if result.e is not None:
       raise result.e
+    if result.aze is not None:
+      raise result.aze
     return
 
   def killTopologyWithOpts(self, name, options):
@@ -286,6 +292,8 @@ class Client(Iface):
     self._iprot.readMessageEnd()
     if result.e is not None:
       raise result.e
+    if result.aze is not None:
+      raise result.aze
     return
 
   def activate(self, name):
@@ -316,6 +324,8 @@ class Client(Iface):
     self._iprot.readMessageEnd()
     if result.e is not None:
       raise result.e
+    if result.aze is not None:
+      raise result.aze
     return
 
   def deactivate(self, name):
@@ -346,6 +356,8 @@ class Client(Iface):
     self._iprot.readMessageEnd()
     if result.e is not None:
       raise result.e
+    if result.aze is not None:
+      raise result.aze
     return
 
   def rebalance(self, name, options):
@@ -380,6 +392,8 @@ class Client(Iface):
       raise result.e
     if result.ite is not None:
       raise result.ite
+    if result.aze is not None:
+      raise result.aze
     return
 
   def beginFileUpload(self, ):
@@ -753,6 +767,8 @@ class Processor(Iface, TProcessor):
       result.e = e
     except InvalidTopologyException, ite:
       result.ite = ite
+    except NotAuthorizedException, aze:
+      result.aze = aze
     oprot.writeMessageBegin("submitTopology", TMessageType.REPLY, seqid)
     result.write(oprot)
     oprot.writeMessageEnd()
@@ -769,6 +785,8 @@ class Processor(Iface, TProcessor):
       result.e = e
     except InvalidTopologyException, ite:
       result.ite = ite
+    except NotAuthorizedException, aze:
+      result.aze = aze
     oprot.writeMessageBegin("submitTopologyWithOpts", TMessageType.REPLY, seqid)
     result.write(oprot)
     oprot.writeMessageEnd()
@@ -783,6 +801,8 @@ class Processor(Iface, TProcessor):
       self._handler.killTopology(args.name)
     except NotAliveException, e:
       result.e = e
+    except NotAuthorizedException, aze:
+      result.aze = aze
     oprot.writeMessageBegin("killTopology", TMessageType.REPLY, seqid)
     result.write(oprot)
     oprot.writeMessageEnd()
@@ -797,6 +817,8 @@ class Processor(Iface, TProcessor):
       self._handler.killTopologyWithOpts(args.name, args.options)
     except NotAliveException, e:
       result.e = e
+    except NotAuthorizedException, aze:
+      result.aze = aze
     oprot.writeMessageBegin("killTopologyWithOpts", TMessageType.REPLY, seqid)
     result.write(oprot)
     oprot.writeMessageEnd()
@@ -811,6 +833,8 @@ class Processor(Iface, TProcessor):
       self._handler.activate(args.name)
     except NotAliveException, e:
       result.e = e
+    except NotAuthorizedException, aze:
+      result.aze = aze
     oprot.writeMessageBegin("activate", TMessageType.REPLY, seqid)
     result.write(oprot)
     oprot.writeMessageEnd()
@@ -825,6 +849,8 @@ class Processor(Iface, TProcessor):
       self._handler.deactivate(args.name)
     except NotAliveException, e:
       result.e = e
+    except NotAuthorizedException, aze:
+      result.aze = aze
     oprot.writeMessageBegin("deactivate", TMessageType.REPLY, seqid)
     result.write(oprot)
     oprot.writeMessageEnd()
@@ -841,6 +867,8 @@ class Processor(Iface, TProcessor):
       result.e = e
     except InvalidTopologyException, ite:
       result.ite = ite
+    except NotAuthorizedException, aze:
+      result.aze = aze
     oprot.writeMessageBegin("rebalance", TMessageType.REPLY, seqid)
     result.write(oprot)
     oprot.writeMessageEnd()
@@ -1087,20 +1115,23 @@ class submitTopology_result:
   Attributes:
    - e
    - ite
+   - aze
   """
 
   thrift_spec = (
     None, # 0
     (1, TType.STRUCT, 'e', (AlreadyAliveException, AlreadyAliveException.thrift_spec), None, ), # 1
     (2, TType.STRUCT, 'ite', (InvalidTopologyException, InvalidTopologyException.thrift_spec), None, ), # 2
+    (3, TType.STRUCT, 'aze', (NotAuthorizedException, NotAuthorizedException.thrift_spec), None, ), # 3
   )
 
   def __hash__(self):
-    return 0 + hash(self.e) + hash(self.ite)
+    return 0 + hash(self.e) + hash(self.ite) + hash(self.aze)
 
-  def __init__(self, e=None, ite=None,):
+  def __init__(self, e=None, ite=None, aze=None,):
     self.e = e
     self.ite = ite
+    self.aze = aze
 
   def read(self, iprot):
     if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
@@ -1123,6 +1154,12 @@ class submitTopology_result:
           self.ite.read(iprot)
         else:
           iprot.skip(ftype)
+      elif fid == 3:
+        if ftype == TType.STRUCT:
+          self.aze = NotAuthorizedException()
+          self.aze.read(iprot)
+        else:
+          iprot.skip(ftype)
       else:
         iprot.skip(ftype)
       iprot.readFieldEnd()
@@ -1140,6 +1177,10 @@ class submitTopology_result:
     if self.ite is not None:
       oprot.writeFieldBegin('ite', TType.STRUCT, 2)
       self.ite.write(oprot)
+      oprot.writeFieldEnd()
+    if self.aze is not None:
+      oprot.writeFieldBegin('aze', TType.STRUCT, 3)
+      self.aze.write(oprot)
       oprot.writeFieldEnd()
     oprot.writeFieldStop()
     oprot.writeStructEnd()
@@ -1277,20 +1318,23 @@ class submitTopologyWithOpts_result:
   Attributes:
    - e
    - ite
+   - aze
   """
 
   thrift_spec = (
     None, # 0
     (1, TType.STRUCT, 'e', (AlreadyAliveException, AlreadyAliveException.thrift_spec), None, ), # 1
     (2, TType.STRUCT, 'ite', (InvalidTopologyException, InvalidTopologyException.thrift_spec), None, ), # 2
+    (3, TType.STRUCT, 'aze', (NotAuthorizedException, NotAuthorizedException.thrift_spec), None, ), # 3
   )
 
   def __hash__(self):
-    return 0 + hash(self.e) + hash(self.ite)
+    return 0 + hash(self.e) + hash(self.ite) + hash(self.aze)
 
-  def __init__(self, e=None, ite=None,):
+  def __init__(self, e=None, ite=None, aze=None,):
     self.e = e
     self.ite = ite
+    self.aze = aze
 
   def read(self, iprot):
     if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
@@ -1313,6 +1357,12 @@ class submitTopologyWithOpts_result:
           self.ite.read(iprot)
         else:
           iprot.skip(ftype)
+      elif fid == 3:
+        if ftype == TType.STRUCT:
+          self.aze = NotAuthorizedException()
+          self.aze.read(iprot)
+        else:
+          iprot.skip(ftype)
       else:
         iprot.skip(ftype)
       iprot.readFieldEnd()
@@ -1330,6 +1380,10 @@ class submitTopologyWithOpts_result:
     if self.ite is not None:
       oprot.writeFieldBegin('ite', TType.STRUCT, 2)
       self.ite.write(oprot)
+      oprot.writeFieldEnd()
+    if self.aze is not None:
+      oprot.writeFieldBegin('aze', TType.STRUCT, 3)
+      self.aze.write(oprot)
       oprot.writeFieldEnd()
     oprot.writeFieldStop()
     oprot.writeStructEnd()
@@ -1416,18 +1470,21 @@ class killTopology_result:
   """
   Attributes:
    - e
+   - aze
   """
 
   thrift_spec = (
     None, # 0
     (1, TType.STRUCT, 'e', (NotAliveException, NotAliveException.thrift_spec), None, ), # 1
+    (2, TType.STRUCT, 'aze', (NotAuthorizedException, NotAuthorizedException.thrift_spec), None, ), # 2
   )
 
   def __hash__(self):
-    return 0 + hash(self.e)
+    return 0 + hash(self.e) + hash(self.aze)
 
-  def __init__(self, e=None,):
+  def __init__(self, e=None, aze=None,):
     self.e = e
+    self.aze = aze
 
   def read(self, iprot):
     if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
@@ -1444,6 +1501,12 @@ class killTopology_result:
           self.e.read(iprot)
         else:
           iprot.skip(ftype)
+      elif fid == 2:
+        if ftype == TType.STRUCT:
+          self.aze = NotAuthorizedException()
+          self.aze.read(iprot)
+        else:
+          iprot.skip(ftype)
       else:
         iprot.skip(ftype)
       iprot.readFieldEnd()
@@ -1457,6 +1520,10 @@ class killTopology_result:
     if self.e is not None:
       oprot.writeFieldBegin('e', TType.STRUCT, 1)
       self.e.write(oprot)
+      oprot.writeFieldEnd()
+    if self.aze is not None:
+      oprot.writeFieldBegin('aze', TType.STRUCT, 2)
+      self.aze.write(oprot)
       oprot.writeFieldEnd()
     oprot.writeFieldStop()
     oprot.writeStructEnd()
@@ -1556,18 +1623,21 @@ class killTopologyWithOpts_result:
   """
   Attributes:
    - e
+   - aze
   """
 
   thrift_spec = (
     None, # 0
     (1, TType.STRUCT, 'e', (NotAliveException, NotAliveException.thrift_spec), None, ), # 1
+    (2, TType.STRUCT, 'aze', (NotAuthorizedException, NotAuthorizedException.thrift_spec), None, ), # 2
   )
 
   def __hash__(self):
-    return 0 + hash(self.e)
+    return 0 + hash(self.e) + hash(self.aze)
 
-  def __init__(self, e=None,):
+  def __init__(self, e=None, aze=None,):
     self.e = e
+    self.aze = aze
 
   def read(self, iprot):
     if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
@@ -1584,6 +1654,12 @@ class killTopologyWithOpts_result:
           self.e.read(iprot)
         else:
           iprot.skip(ftype)
+      elif fid == 2:
+        if ftype == TType.STRUCT:
+          self.aze = NotAuthorizedException()
+          self.aze.read(iprot)
+        else:
+          iprot.skip(ftype)
       else:
         iprot.skip(ftype)
       iprot.readFieldEnd()
@@ -1597,6 +1673,10 @@ class killTopologyWithOpts_result:
     if self.e is not None:
       oprot.writeFieldBegin('e', TType.STRUCT, 1)
       self.e.write(oprot)
+      oprot.writeFieldEnd()
+    if self.aze is not None:
+      oprot.writeFieldBegin('aze', TType.STRUCT, 2)
+      self.aze.write(oprot)
       oprot.writeFieldEnd()
     oprot.writeFieldStop()
     oprot.writeStructEnd()
@@ -1683,18 +1763,21 @@ class activate_result:
   """
   Attributes:
    - e
+   - aze
   """
 
   thrift_spec = (
     None, # 0
     (1, TType.STRUCT, 'e', (NotAliveException, NotAliveException.thrift_spec), None, ), # 1
+    (2, TType.STRUCT, 'aze', (NotAuthorizedException, NotAuthorizedException.thrift_spec), None, ), # 2
   )
 
   def __hash__(self):
-    return 0 + hash(self.e)
+    return 0 + hash(self.e) + hash(self.aze)
 
-  def __init__(self, e=None,):
+  def __init__(self, e=None, aze=None,):
     self.e = e
+    self.aze = aze
 
   def read(self, iprot):
     if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
@@ -1711,6 +1794,12 @@ class activate_result:
           self.e.read(iprot)
         else:
           iprot.skip(ftype)
+      elif fid == 2:
+        if ftype == TType.STRUCT:
+          self.aze = NotAuthorizedException()
+          self.aze.read(iprot)
+        else:
+          iprot.skip(ftype)
       else:
         iprot.skip(ftype)
       iprot.readFieldEnd()
@@ -1724,6 +1813,10 @@ class activate_result:
     if self.e is not None:
       oprot.writeFieldBegin('e', TType.STRUCT, 1)
       self.e.write(oprot)
+      oprot.writeFieldEnd()
+    if self.aze is not None:
+      oprot.writeFieldBegin('aze', TType.STRUCT, 2)
+      self.aze.write(oprot)
       oprot.writeFieldEnd()
     oprot.writeFieldStop()
     oprot.writeStructEnd()
@@ -1810,18 +1903,21 @@ class deactivate_result:
   """
   Attributes:
    - e
+   - aze
   """
 
   thrift_spec = (
     None, # 0
     (1, TType.STRUCT, 'e', (NotAliveException, NotAliveException.thrift_spec), None, ), # 1
+    (2, TType.STRUCT, 'aze', (NotAuthorizedException, NotAuthorizedException.thrift_spec), None, ), # 2
   )
 
   def __hash__(self):
-    return 0 + hash(self.e)
+    return 0 + hash(self.e) + hash(self.aze)
 
-  def __init__(self, e=None,):
+  def __init__(self, e=None, aze=None,):
     self.e = e
+    self.aze = aze
 
   def read(self, iprot):
     if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
@@ -1838,6 +1934,12 @@ class deactivate_result:
           self.e.read(iprot)
         else:
           iprot.skip(ftype)
+      elif fid == 2:
+        if ftype == TType.STRUCT:
+          self.aze = NotAuthorizedException()
+          self.aze.read(iprot)
+        else:
+          iprot.skip(ftype)
       else:
         iprot.skip(ftype)
       iprot.readFieldEnd()
@@ -1851,6 +1953,10 @@ class deactivate_result:
     if self.e is not None:
       oprot.writeFieldBegin('e', TType.STRUCT, 1)
       self.e.write(oprot)
+      oprot.writeFieldEnd()
+    if self.aze is not None:
+      oprot.writeFieldBegin('aze', TType.STRUCT, 2)
+      self.aze.write(oprot)
       oprot.writeFieldEnd()
     oprot.writeFieldStop()
     oprot.writeStructEnd()
@@ -1951,20 +2057,23 @@ class rebalance_result:
   Attributes:
    - e
    - ite
+   - aze
   """
 
   thrift_spec = (
     None, # 0
     (1, TType.STRUCT, 'e', (NotAliveException, NotAliveException.thrift_spec), None, ), # 1
     (2, TType.STRUCT, 'ite', (InvalidTopologyException, InvalidTopologyException.thrift_spec), None, ), # 2
+    (3, TType.STRUCT, 'aze', (NotAuthorizedException, NotAuthorizedException.thrift_spec), None, ), # 3
   )
 
   def __hash__(self):
-    return 0 + hash(self.e) + hash(self.ite)
+    return 0 + hash(self.e) + hash(self.ite) + hash(self.aze)
 
-  def __init__(self, e=None, ite=None,):
+  def __init__(self, e=None, ite=None, aze=None,):
     self.e = e
     self.ite = ite
+    self.aze = aze
 
   def read(self, iprot):
     if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
@@ -1987,6 +2096,12 @@ class rebalance_result:
           self.ite.read(iprot)
         else:
           iprot.skip(ftype)
+      elif fid == 3:
+        if ftype == TType.STRUCT:
+          self.aze = NotAuthorizedException()
+          self.aze.read(iprot)
+        else:
+          iprot.skip(ftype)
       else:
         iprot.skip(ftype)
       iprot.readFieldEnd()
@@ -2004,6 +2119,10 @@ class rebalance_result:
     if self.ite is not None:
       oprot.writeFieldBegin('ite', TType.STRUCT, 2)
       self.ite.write(oprot)
+      oprot.writeFieldEnd()
+    if self.aze is not None:
+      oprot.writeFieldBegin('aze', TType.STRUCT, 3)
+      self.aze.write(oprot)
       oprot.writeFieldEnd()
     oprot.writeFieldStop()
     oprot.writeStructEnd()
