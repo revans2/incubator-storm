@@ -28,27 +28,9 @@ import org.apache.log4j.Logger;
 public class SerializationFactory {
     public static final Logger LOG = Logger.getLogger(SerializationFactory.class);
     
-    public static class KryoSerializableDefault extends Kryo {
-        boolean _override = false;
-        
-        public void overrideDefault(boolean value) {
-            _override = value;
-        }                
-        
-        @Override
-        public Serializer getDefaultSerializer(Class type) {
-            if(_override) {
-                return new SerializableSerializer();
-            } else {
-                return super.getDefaultSerializer(type);
-            }
-        }        
-    }
-    
     public static Kryo getKryo(Map conf) {
-        KryoSerializableDefault k = new KryoSerializableDefault();
-        k.setRegistrationRequired(!((Boolean) conf.get(Config.TOPOLOGY_FALL_BACK_ON_JAVA_SERIALIZATION)));
-        k.setReferences(false);
+        IKryoFactory kryoFactory = (IKryoFactory) Utils.newInstance((String) conf.get(Config.TOPOLOGY_KRYO_FACTORY));
+        Kryo k = kryoFactory.getKryo(conf);        
         k.register(byte[].class);
 
 	/* tuple payload serializer could be specified via configuration */
@@ -85,6 +67,8 @@ public class SerializationFactory {
         
         Map<String, String> registrations = normalizeKryoRegister(conf);
 
+        kryoFactory.preRegister(k, conf);        
+        
         boolean skipMissing = (Boolean) conf.get(Config.TOPOLOGY_SKIP_MISSING_KRYO_REGISTRATIONS);
         for(String klassName: registrations.keySet()) {
             String serializerClassName = registrations.get(klassName);
@@ -106,7 +90,8 @@ public class SerializationFactory {
                 }
             }
         }
-        k.overrideDefault(true);
+
+        kryoFactory.postRegister(k, conf);        
 
         if (conf.get(Config.TOPOLOGY_KRYO_DECORATORS) != null) {
             for(String klassName : (List<String>)conf.get(Config.TOPOLOGY_KRYO_DECORATORS)) {
@@ -127,6 +112,8 @@ public class SerializationFactory {
                 } 
             }
         }
+
+        kryoFactory.postDecorate(k, conf);        
         
         return k;   
     }

@@ -1,7 +1,7 @@
 (ns backtype.storm.integration-test
   (:use [clojure test])
   (:import [backtype.storm.topology TopologyBuilder])
-  (:import [backtype.storm.generated InvalidTopologyException])
+  (:import [backtype.storm.generated InvalidTopologyException SubmitOptions TopologyInitialStatus])
   (:import [backtype.storm.testing TestWordCounter TestWordSpout TestGlobalCount
               TestAggregatesCounter TestConfBolt AckFailMapTracker])
   (:use [backtype.storm bootstrap testing])
@@ -276,6 +276,49 @@
   (emit-bolt! collector [1] :anchor [tuple tuple])
   (ack! collector tuple))
 
+(def bolt-prepared? (atom false))
+(defbolt prepare-tracked-bolt [] {:prepare true}
+  [conf context collector]  
+  (reset! bolt-prepared? true)
+  (bolt
+   (execute [tuple]
+            (ack! collector tuple))))
+
+(def spout-opened? (atom false))
+(defspout open-tracked-spout ["val"]
+  [conf context collector]
+  (reset! spout-opened? true)
+  (spout
+   (nextTuple [])))
+
+(deftest test-submit-inactive-topology
+  (with-simulated-time-local-cluster [cluster :daemon-conf {TOPOLOGY-ENABLE-MESSAGE-TIMEOUTS true}]
+    (let [feeder (feeder-spout ["field1"])
+          tracker (AckFailMapTracker.)
+          _ (.setAckFailDelegate feeder tracker)
+          topology (thrift/mk-topology
+                    {"1" (thrift/mk-spout-spec feeder)
+                     "2" (thrift/mk-spout-spec open-tracked-spout)}
+                    {"3" (thrift/mk-bolt-spec {"1" :global} prepare-tracked-bolt)})]
+      (reset! bolt-prepared? false)
+      (reset! spout-opened? false)      
+      
+      (submit-local-topology-with-opts (:nimbus cluster)
+        "test"
+        {TOPOLOGY-MESSAGE-TIMEOUT-SECS 10}
+        topology
+        (SubmitOptions. TopologyInitialStatus/INACTIVE))
+      (.feed feeder ["a"] 1)
+      (advance-cluster-time cluster 9)
+      (is (not @bolt-prepared?))
+      (is (not @spout-opened?))        
+      (.activate (:nimbus cluster) "test")              
+      
+      (advance-cluster-time cluster 12)
+      (assert-acked tracker 1)
+      (is @bolt-prepared?)
+      (is @spout-opened?))))
+
 (deftest test-acking-self-anchor
   (with-tracked-cluster [cluster]
     (let [[feeder checker] (ack-tracking-feeder ["num"])
@@ -442,10 +485,11 @@
             ))
      )))
 
-(defbolt hooks-bolt ["emit" "ack" "fail"] {:prepare true}
+(defbolt hooks-bolt ["emit" "ack" "fail" "executed"] {:prepare true}
   [conf context collector]
   (let [acked (atom 0)
         failed (atom 0)
+        executed (atom 0)
         emitted (atom 0)]
     (.addTaskHook context
                   (reify backtype.storm.hooks.ITaskHook
@@ -458,10 +502,13 @@
                     (boltAck [this info]
                       (swap! acked inc))
                     (boltFail [this info]
-                      (swap! failed inc))))
+                      (swap! failed inc))
+                    (boltExecute [this info]
+                      (swap! executed inc))
+                      ))
     (bolt
      (execute [tuple]
-        (emit-bolt! collector [@emitted @acked @failed])
+        (emit-bolt! collector [@emitted @acked @failed @executed])
         (if (= 0 (- @acked @failed))
           (ack! collector tuple)
           (fail! collector tuple))
@@ -481,12 +528,60 @@
                                                          [1]
                                                          [1]
                                                          ]})]
-      (is (= [[0 0 0]
-              [2 1 0]
-              [4 1 1]
-              [6 2 1]]
+      (is (= [[0 0 0 0]
+              [2 1 0 1]
+              [4 1 1 2]
+              [6 2 1 3]]
              (read-tuples results "2")
              )))))
+
+(defbolt report-errors-bolt {}
+  [tuple collector]
+  (doseq [i (range (.getValue tuple 0))]
+    (report-error! collector (RuntimeException.)))
+  (ack! collector tuple))
+
+(deftest test-throttled-errors
+  (with-simulated-time
+    (with-tracked-cluster [cluster]
+      (let [state (:storm-cluster-state cluster)
+            [feeder checker] (ack-tracking-feeder ["num"])
+            tracked (mk-tracked-topology
+                     cluster
+                     (topology
+                       {"1" (spout-spec feeder)}
+                       {"2" (bolt-spec {"1" :shuffle} report-errors-bolt)}))
+            _       (submit-local-topology (:nimbus cluster)
+                                             "test-errors"
+                                             {TOPOLOGY-ERROR-THROTTLE-INTERVAL-SECS 10
+                                              TOPOLOGY-MAX-ERROR-REPORT-PER-INTERVAL 4
+                                              TOPOLOGY-DEBUG true
+                                              }
+                                             (:topology tracked))
+            storm-id (get-storm-id state "test-errors")
+            errors-count (fn [] (count (.errors state storm-id "2")))]
+        ;; so it launches the topology
+        (advance-cluster-time cluster 2)
+        (.feed feeder [6])
+        (tracked-wait tracked 1)
+        (is (= 4 (errors-count)))
+        
+        (advance-time-secs! 5)
+        (.feed feeder [2])
+        (tracked-wait tracked 1)
+        (is (= 4 (errors-count)))
+        
+        (advance-time-secs! 6)
+        (.feed feeder [2])
+        (tracked-wait tracked 1)
+        (is (= 6 (errors-count)))
+        
+        (advance-time-secs! 6)
+        (.feed feeder [3])
+        (tracked-wait tracked 1)
+        (is (= 8 (errors-count)))
+        
+        ))))
 
 (deftest test-acking-branching-complex
   ;; test acking with branching in the topology

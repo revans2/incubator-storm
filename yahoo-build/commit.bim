@@ -1,7 +1,7 @@
 # used by buildyblocks_yroot_create
 
 # Name of yroot to create ( It can contain variables )
-yroot: ystorm-rhel4-commit
+yroot: ystorm-rhel4-commit-0-8-2
 
 # Image to use for RHEL x86_64
 yroot_x86_64_rhel_image: 4.9-20110216

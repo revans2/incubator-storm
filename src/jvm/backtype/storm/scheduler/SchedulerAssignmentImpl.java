@@ -3,10 +3,12 @@ package backtype.storm.scheduler;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+//TODO: improve this by maintaining slot -> executors as well for more efficient operations
 public class SchedulerAssignmentImpl implements SchedulerAssignment {
     /**
      * topology-id this assignment is for.
@@ -24,6 +26,11 @@ public class SchedulerAssignmentImpl implements SchedulerAssignment {
             this.executorToSlot.putAll(executorToSlots);
         }
     }
+
+    @Override
+    public Set<WorkerSlot> getSlots() {
+        return new HashSet(executorToSlot.values());
+    }    
     
     /**
      * Assign the slot to executors.

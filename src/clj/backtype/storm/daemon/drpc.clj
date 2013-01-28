@@ -4,7 +4,7 @@
   (:import [backtype.storm.generated DistributedRPC DistributedRPC$Iface DistributedRPC$Processor
             DRPCRequest DRPCExecutionException DistributedRPCInvocations DistributedRPCInvocations$Iface
             DistributedRPCInvocations$Processor])
-  (:import [java.util.concurrent Semaphore ConcurrentLinkedQueue])
+  (:import [java.util.concurrent Semaphore ConcurrentLinkedQueue ThreadPoolExecutor ArrayBlockingQueue TimeUnit])
   (:import [backtype.storm.daemon Shutdownable])
   (:import [java.net InetAddress])
   (:use [backtype.storm bootstrap config log])
@@ -98,6 +98,8 @@
 (defn launch-server!
   ([]
     (let [conf (read-storm-config)
+          worker-threads (int (conf DRPC-WORKER-THREADS))
+          queue-size (int (conf DRPC-QUEUE-SIZE))
           service-handler (service-handler)
           ;; requests and returns need to be on separate thread pools, since calls to
           ;; "execute" don't unblock until other thrift methods are called. So if 

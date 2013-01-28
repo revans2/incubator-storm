@@ -1,8 +1,13 @@
-(defproject storm/storm "0.8.1" 
+(def lein-version (System/getenv "LEIN_VERSION"))
+(if-not (re-find #"^2\..*$" lein-version)
+  (do (println (str "ERROR: requires Leiningen 2.x but you are using " lein-version))
+    (System/exit 1)))
+
+(defproject storm/storm "0.8.2"
   :source-paths ["src/clj" "src/clj/backtype/storm/"]
   :test-paths ["test/clj"]
   :java-source-paths ["src/jvm" "test/jvm"]
-  :javac-options {:debug true}
+  :javac-options {:debug "true"}
   :resource-paths ["conf"]
   :repositories {"sonatype"
                  "http://oss.sonatype.org/content/groups/public/"}
@@ -16,7 +21,7 @@
                  [com.netflix.curator/curator-framework "1.0.1"]
                  [backtype/jzmq "2.1.0"]
                  [com.googlecode.json-simple/json-simple "1.1"]
-                 [compojure "0.6.4"]
+                 [compojure "1.1.3"]
                  [hiccup "0.3.6"]
                  [ring/ring-jetty-adapter "0.3.11"]
                  [org.clojure/tools.logging "0.2.3"]
