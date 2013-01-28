@@ -11,10 +11,10 @@ CUSTODIAN = storm-team@yahoo-inc.com https://github.com/nathanmarz/storm
 YINST bug-product Low Latency
 YINST bug-component General
 
-YINST requires pkg ystorm_jzmq 2.1.0 *
+YINST requires pkg ystorm_jzmq 2.1.0.6 *
 YINST requires pkg ypython 2.6.0_2 2.6.9999
 YINST requires pkg ypython26 2.6.6 2.6.9999
-YINST requires pkg yjava_jdk 1.6.0_37.105 1.6.999999
+YINST requires pkg yjava_jdk 1.6.0_38.107 1.7.999999
 
 YINST set storm_local_dir        /home/y/var/storm
 
