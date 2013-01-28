@@ -14,6 +14,9 @@ add yinst pkg ystorm_build_deps         1.7.1     1.9999.9999
 add yinst pkg yruby                     1.9       1.9999
 add yinst pkg ypython                   2.7.0     2.7.9999
 
+#JDK7 is not supported on RHEL4 so we need to build with JDK6, and test with JDK7 on a different branch
+add yinst pkg yjava_jdk                 1.6.0_38.107 1.6.9999999
+
 # Needed to force the version to match what is outside the yroot
 add yinst pkg ylock_kern                1.95.4
 
