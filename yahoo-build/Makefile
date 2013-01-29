@@ -2,6 +2,7 @@ BASE_VERSION:=`head -1 project.clj | awk '{print $3}' | sed -e 's/\"//' | sed -e
 BUILD_NUMBER?=0
 FULL_VERSION="$(BASE_VERSION).$(BUILD_NUMBER)"
 LEIN=LD_LIBRARY_PATH=/home/y/lib64 /home/y/bin/lein
+MVN=LD_LIBRARY_PATH=/home/y/lib64 /home/y/bin/mvn
 
 all: build
 
@@ -12,7 +13,7 @@ build:
 	cd .. && $(LEIN) with-profile release deps
 	cd .. && $(LEIN) with-profile release jar
 	cd .. && $(LEIN) with-profile release pom
-	cd .. && mvn dependency:copy-dependencies
+	cd .. && $(MVN) dependency:copy-dependencies
 
 #TODO need a good way to see if these values would have changed and update only then
 BASE_VERSION: ../project.clj
