@@ -40,7 +40,7 @@ rhel4_build.state: rhel4_build.yidf  rhel4_build.yml
 
 clean:
 	rm -rf rhel4_build.ruleset ystorm*.tgz ../*.jar ../lib ../classes BASE_VERSION RELEASE
-	cd .. && $(LEIN) with-profile release clean
+	cd .. && $(LEIN) clean
 
 
 #BuildyBlocks targets
