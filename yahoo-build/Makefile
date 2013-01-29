@@ -1,4 +1,4 @@
-BASE_VERSION:=`cat ../project.clj | sed '6q;d' | awk '{print $$3}' | sed -e 's/\"//' | sed -e 's/\"//'`
+BASE_VERSION:=`head -1 project.clj | awk '{print $3}' | sed -e 's/\"//' | sed -e 's/\"//'`
 BUILD_NUMBER?=0
 FULL_VERSION="$(BASE_VERSION).$(BUILD_NUMBER)"
 LEIN=LD_LIBRARY_PATH=/home/y/lib64 /home/y/bin/lein
@@ -6,11 +6,13 @@ LEIN=LD_LIBRARY_PATH=/home/y/lib64 /home/y/bin/lein
 all: build
 
 test: build
-	cd .. && $(LEIN) test
+	cd .. && $(LEIN) with-profile release test
 
 build:
-	cd .. && $(LEIN) deps
-	cd .. && $(LEIN) jar
+	cd .. && $(LEIN) with-profile release deps
+	cd .. && $(LEIN) with-profile release jar
+	cd .. && $(LEIN) with-profile release pom
+	cd .. && mvn dependency:copy-dependencies
 
 #TODO need a good way to see if these values would have changed and update only then
 BASE_VERSION: ../project.clj
@@ -37,7 +39,7 @@ rhel4_build.state: rhel4_build.yidf  rhel4_build.yml
 
 clean:
 	rm -rf rhel4_build.ruleset ystorm*.tgz ../*.jar ../lib ../classes BASE_VERSION RELEASE
-	cd .. && $(LEIN) clean
+	cd .. && $(LEIN) with-profile release clean
 
 
 #BuildyBlocks targets
