@@ -87,6 +87,7 @@ public class ThriftServer {
 		_server = new TThreadPoolServer(new TThreadPoolServer.Args(serverTransport).
 						processor(new SaslProcessor(_processor)).
 						transportFactory(factory).
+						minWorkerThreads(64).
 						maxWorkerThreads(64).
 						protocolFactory(new TBinaryProtocol.Factory()));
 	    } else {	
@@ -113,6 +114,7 @@ public class ThriftServer {
 		    TUGIAssumingTransportFactory wrapFactory = new TUGIAssumingTransportFactory(factory, subject); 
 		    _server = new TThreadPoolServer(new TThreadPoolServer.Args(serverTransport).
 						    processor(new SaslProcessor(_processor)).
+						    minWorkerThreads(64).
 						    maxWorkerThreads(64).
 						    transportFactory(wrapFactory).
 						    protocolFactory(new TBinaryProtocol.Factory()));
@@ -121,6 +123,7 @@ public class ThriftServer {
 		    LOG.info("Starting DIGEST server at port:" + _port);
 		    _server = new TThreadPoolServer(new TThreadPoolServer.Args(serverTransport).
 						    processor(new SaslProcessor(_processor)).
+						    minWorkerThreads(64).
 						    maxWorkerThreads(64).
 						    transportFactory(factory).
 						    protocolFactory(new TBinaryProtocol.Factory()));
