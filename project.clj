@@ -30,17 +30,24 @@
                  [org.slf4j/log4j-over-slf4j "1.6.6"]
                  ]
 
-  :source-paths ["src/clj"]
-  :java-source-paths ["src/jvm"]
+  :source-paths ["src/clj" "src/clj/backtype/storm/"]
+  :java-source-paths ["src/jvm" "test/jvm"]
   :test-paths ["test/clj"]
   :resource-paths ["conf"]
 
-  :profiles {:dev {:resource-paths ["src/dev"]}
+  :profiles {:dev {:resource-paths ["src/ui" "src/dev"]
+                   :dependencies [[junit/junit "4.10"]]
+                  }
              :release {}
              :lib {}
              }
 
-  :plugins [[lein-swank "1.4.4"]]
+  :plugins [
+            [lein-swank "1.4.4"]
+            [lein-junit "1.0.3"]
+           ]
+  :junit ["test/jvm"]
+ 
 
   :repositories {"sonatype"
                  "http://oss.sonatype.org/content/groups/public/"}
