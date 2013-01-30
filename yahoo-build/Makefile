@@ -2,15 +2,19 @@ BASE_VERSION:=`cat ../project.clj | sed '6q;d' | awk '{print $$3}' | sed -e 's/\
 BUILD_NUMBER?=0
 FULL_VERSION="$(BASE_VERSION).$(BUILD_NUMBER)"
 LEIN=LD_LIBRARY_PATH=/home/y/lib64 /home/y/bin/lein
+MVN=LD_LIBRARY_PATH=/home/y/lib64 /home/y/bin/mvn
 
 all: build
 
 test: build
-	cd .. && $(LEIN) test
+	cd .. && $(LEIN) with-profile dev test
+	cd .. && $(LEIN) with-profile dev junit
 
 build:
-	cd .. && $(LEIN) deps
-	cd .. && $(LEIN) jar
+	cd .. && $(LEIN) with-profile dev deps
+	cd .. && $(LEIN) with-profile dev jar
+	cd .. && $(LEIN) pom
+	cd .. && $(MVN) dependency:copy-dependencies
 
 #TODO need a good way to see if these values would have changed and update only then
 BASE_VERSION: ../project.clj
@@ -36,7 +40,7 @@ rhel4_build.state: rhel4_build.yidf  rhel4_build.yml
 	statecc-validate-state rhel4_build.state
 
 clean:
-	rm -rf rhel4_build.ruleset ystorm*.tgz ../*.jar ../lib ../classes BASE_VERSION RELEASE
+	rm -rf rhel4_build.ruleset ystorm*.tgz BASE_VERSION RELEASE
 	cd .. && $(LEIN) clean
 
 

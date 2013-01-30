@@ -25,12 +25,12 @@ GROUP = users
 dir 777 - - lib/storm/$(BASE_VERSION)/logs
 find 755 - - lib/storm/$(BASE_VERSION)/bin/ ../bin/ -type f -and -not -path "*/.svn/*"
 file 755 - - lib/storm/$(BASE_VERSION)/bin/storm_print_cmd ./bin/storm_print_cmd
-find - - - lib/storm/$(BASE_VERSION)/lib/ ../lib/ -type f -and -not -path "*/.svn/*"
+find - - - lib/storm/$(BASE_VERSION)/lib/ ../target/dependency/ -type f -and -not -path "*/.svn/*"
 
 file 444 - - lib/storm/$(BASE_VERSION)/RELEASE ./RELEASE
 file 444 - - lib/storm/$(BASE_VERSION)/CHANGELOG.md ../CHANGELOG.md
 file 444 - - lib/storm/$(BASE_VERSION)/LICENSE.html ../LICENSE.html
-file 444 - - lib/storm/$(BASE_VERSION)/storm-$(BASE_VERSION).jar ../storm-$(BASE_VERSION).jar
+file 444 - - lib/storm/$(BASE_VERSION)/storm-$(BASE_VERSION).jar ../target/storm-$(BASE_VERSION).jar
 file 444 - - lib/storm/$(BASE_VERSION)/README.markdown ../README.markdown
 file 444 - - lib/storm/$(BASE_VERSION)/README.yahoo ./README.yahoo
 
