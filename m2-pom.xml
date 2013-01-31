@@ -225,7 +225,6 @@
             </goals>
           </execution>
         </executions>
-
       </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
@@ -235,38 +234,6 @@
           <target>1.6</target>
         </configuration>
       </plugin>
-<!--
-      <plugin>
-        <groupId>org.codehaus.mojo</groupId>
-        <artifactId>build-helper-maven-plugin</artifactId>
-        <version>1.7</version>
-        <executions>
-          <execution>
-            <id>add-source</id>
-            <phase>generate-sources</phase>
-            <goals>
-              <goal>add-source</goal>
-            </goals>
-            <configuration>
-              <sources>
-                <source>src/clj/backtype/storm</source>
-                <source>src/jvm</source>
-                <source>test/jvm</source>
-              </sources>
-            </configuration>
-          </execution>
-          <execution>
-            <id>add-test-source</id>
-            <phase>generate-test-sources</phase>
-            <goals>
-              <goal>add-test-source</goal>
-            </goals>
-            <configuration>
-              <sources/>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>-->
     </plugins>
   </build>
 </project>
