@@ -1,7 +1,7 @@
 PRODUCT_NAME = ystorm
 PLATFORMS = x86_64-rhel4-gcc3
 
-VERSION = `cat RELEASE`
+VERSION = `cat RELEASE | sed -e 's|-|_|g'`
 BASE_VERSION = `cat BASE_VERSION`
 
 SHORT_DESC = "Nathan Marz's distributed computation system."
@@ -34,7 +34,7 @@ file 444 - - lib/storm/$(BASE_VERSION)/storm-$(BASE_VERSION).jar ../target/storm
 file 444 - - lib/storm/$(BASE_VERSION)/README.markdown ../README.markdown
 file 444 - - lib/storm/$(BASE_VERSION)/README.yahoo ./README.yahoo
 
-file 755 - - lib/storm/$(BASE_VERSION)/log4j/storm.log.properties ../log4j/storm.log.properties
+file 755 - - lib/storm/$(BASE_VERSION)/logback/cluster.xml ../logback/cluster.xml
 
 file 444 - - lib/storm/$(BASE_VERSION)/public/css/bootstrap-1.1.0.css ../src/ui/public/css/bootstrap-1.1.0.css
 file 444 - - lib/storm/$(BASE_VERSION)/public/js/jquery-1.6.2.min.js ../src/ui/public/js/jquery-1.6.2.min.js

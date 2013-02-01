@@ -1,4 +1,4 @@
-BASE_VERSION:=`cat ../project.clj | sed '6q;d' | awk '{print $$3}' | sed -e 's/\"//' | sed -e 's/\"//'`
+BASE_VERSION:=`head -1 ../project.clj | awk '{print $$3}' | sed -e 's/\"//' | sed -e 's/\"//'`
 BUILD_NUMBER?=0
 FULL_VERSION="$(BASE_VERSION).$(BUILD_NUMBER)"
 LEIN=LD_LIBRARY_PATH=/home/y/lib64 /home/y/bin/lein
@@ -60,6 +60,6 @@ component: BB_BIM_FILE=$(COMPONENT_BIM)
 component-dist-push:: BB_BIM_FILE=./component.bim
 #component-dist-push:: component BB_Dist_Push
 component-dist-push:: component
-	/home/y/bin/dist_install ystorm-*.tgz -batch -branch quarantine -group hadoopqa -identity /home/y/var/yhudson/keys/hadoopqa/id_rsa -tag ystorm_0_8_2_security
+	/home/y/bin/dist_install ystorm-*.tgz -batch -branch none -group hadoopqa -identity /home/y/var/yhudson/keys/hadoopqa/id_rsa -tag ystorm_master_security
 
 component_clean: clean

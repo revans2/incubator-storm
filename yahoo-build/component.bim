@@ -1,7 +1,7 @@
 # used by buildyblocks_yroot_create
 
 # Name of yroot to create ( It can contain variables )
-yroot: ystorm-rhel4-component-0-8-2
+yroot: ystorm-rhel4-component-master
 
 # Image to use for RHEL x86_64
 yroot_x86_64_rhel_image: 4.9-20110216
@@ -27,7 +27,7 @@ provision_yinst_version: yinst7stable
 dist_push_pkg_globs:
 dist_key_file: /home/y/var/yhudson/keys/hadoopqa/id_dsa
 dist_group: hadoopqa
-dist_tag: ystorm_0_8_2_security
+dist_tag: ystorm_master_security
 
 assemble_yinst_branch: quarantine
 assemble_commit_user: hadoopqa
