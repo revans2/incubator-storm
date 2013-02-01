@@ -41,7 +41,10 @@
            ]
   :junit ["test/jvm"]
   :profiles {:dev {:resource-paths ["src/ui" "src/dev"]
-                   :dependencies [[junit/junit "4.10"]]
+                   :dependencies [
+                                  [junit/junit "4.10"]
+                                  [org.clojars.runa/conjure "2.1.1"]
+                                 ]
                   }}
   :jvm-opts ["-Djava.library.path=/usr/local/lib:/opt/local/lib:/usr/lib:/home/y/lib64"]
   :aot :all

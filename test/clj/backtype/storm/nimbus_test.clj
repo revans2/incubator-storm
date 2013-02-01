@@ -6,6 +6,8 @@
   (:import [backtype.storm.scheduler INimbus])
   (:use [backtype.storm bootstrap testing])
   (:use [backtype.storm.daemon common])
+  (:require [conjure.core])
+  (:use [conjure core])
   )
 
 (bootstrap)
@@ -699,13 +701,13 @@
        (.disconnect cluster-state)
        ))))
 
-(deftest test-no-overlapping-slots
-  ;; test that same node+port never appears across 2 assignments
-  )
+;(deftest test-no-overlapping-slots
+;  ;; test that same node+port never appears across 2 assignments
+;  )
 
-(deftest test-stateless
-  ;; test that nimbus can die and restart without any problems
-  )
+;(deftest test-stateless
+;  ;; test that nimbus can die and restart without any problems
+;  )
 
 (deftest test-clean-inbox
   "Tests that the inbox correctly cleans jar files."
@@ -739,3 +741,131 @@
        (nimbus/clean-inbox dir-location 10)
        (assert-files-in-dir [])
        ))))
+
+(deftest test-nimbus-iface-submitTopologyWithOpts-checks-authorization
+  (with-local-cluster [cluster 
+                       :daemon-conf {NIMBUS-AUTHORIZATION-CLASSNAME 
+                          "backtype.storm.security.auth.DenyAuthorizer"}]
+    (let [
+          nimbus (:nimbus cluster)
+          topology (thrift/mk-topology {} {})
+         ]
+      (is (thrown? NotAuthorizedException
+          (submit-local-topology-with-opts nimbus "mystorm" {} topology 
+            (SubmitOptions. TopologyInitialStatus/INACTIVE))
+        ))
+    )
+  )
+)
+
+(deftest test-nimbus-iface-methods-check-authorization
+  (with-local-cluster [cluster 
+                       :daemon-conf {NIMBUS-AUTHORIZATION-CLASSNAME 
+                          "backtype.storm.security.auth.DenyAuthorizer"}]
+    (let [
+          nimbus (:nimbus cluster)
+          topology (thrift/mk-topology {} {})
+         ]
+      ; Fake good authorization as part of setup.
+      (mocking [nimbus/check-authorization!]
+          (submit-local-topology-with-opts nimbus "test" {} topology 
+              (SubmitOptions. TopologyInitialStatus/INACTIVE))
+      )
+      (stubbing [nimbus/storm-active? true]
+        (is (thrown? NotAuthorizedException
+          (.rebalance nimbus "test" (RebalanceOptions.))
+          ))
+      )
+      (is (thrown? NotAuthorizedException
+        (.activate nimbus "test")
+        ))
+      (is (thrown? NotAuthorizedException
+        (.deactivate nimbus "test")
+        ))
+    )
+  )
+)
+
+(deftest test-nimbus-iface-getTopology-methods-throw-correctly
+  (with-local-cluster [cluster]
+    (let [
+          nimbus (:nimbus cluster)
+          id "bogus ID"
+         ]
+      (is (thrown? NotAliveException (.getTopology nimbus id)))
+      (try
+        (.getTopology nimbus id)
+        (catch NotAliveException e
+           (is (= id (.get_msg e)))
+        )
+      )
+
+      (is (thrown? NotAliveException (.getTopologyConf nimbus id)))
+      (try (.getTopologyConf nimbus id)
+        (catch NotAliveException e
+           (is (= id (.get_msg e)))
+        )
+      )
+
+      (is (thrown? NotAliveException (.getTopologyInfo nimbus id)))
+      (try (.getTopologyInfo nimbus id)
+        (catch NotAliveException e
+           (is (= id (.get_msg e)))
+        )
+      )
+
+      (is (thrown? NotAliveException (.getUserTopology nimbus id)))
+      (try (.getUserTopology nimbus id)
+        (catch NotAliveException e
+           (is (= id (.get_msg e)))
+        )
+      )
+    )
+  )
+)
+
+(deftest test-nimbus-iface-getClusterInfo-filters-topos-without-bases
+  (with-local-cluster [cluster]
+    (let [
+          nimbus (:nimbus cluster)
+          bogus-secs 42
+          bogus-type "bogusType"
+          bogus-bases {
+                 "1" nil
+                 "2" {:launch-time-secs bogus-secs
+                        :storm-name "id2-name"
+                        :status {:type bogus-type}}
+                 "3" nil
+                 "4" {:launch-time-secs bogus-secs
+                        :storm-name "id4-name"
+                        :status {:type bogus-type}}
+                }
+        ]
+      (stubbing [topology-bases bogus-bases]
+        (let [topos (.get_topologies (.getClusterInfo nimbus))]
+          ; The number of topologies in the summary is correct.
+          (is (= (count 
+            (filter (fn [b] (second b)) bogus-bases)) (count topos)))
+          ; Each topology present has a valid name.
+          (is (empty?
+            (filter (fn [t] (or (nil? t) (nil? (.get_name t)))) topos)))
+          ; The topologies are those with valid bases.
+          (is (empty?
+            (filter (fn [t] 
+              (or 
+                (nil? t) 
+                (not (number? (read-string (.get_id t))))
+                (odd? (read-string (.get_id t)))
+              )) topos)))
+        )
+      )
+    )
+  )
+)
+
+(deftest test-defserverfn-numbus-iface-instance
+  (test-nimbus-iface-submitTopologyWithOpts-checks-authorization)
+  (test-nimbus-iface-methods-check-authorization)
+  (test-nimbus-iface-getTopology-methods-throw-correctly)
+  (test-nimbus-iface-getClusterInfo-filters-topos-without-bases)
+)

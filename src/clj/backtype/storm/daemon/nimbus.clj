@@ -1096,8 +1096,7 @@
                                             ))
               nimbus-uptime ((:uptime nimbus))
               bases (topology-bases storm-cluster-state)
-              topology-summaries (dofor [[id base] bases]
-					(if base
+              topology-summaries (dofor [[id base] bases :when base]
 	                                  (let [assignment (.assignment-info storm-cluster-state id nil)]
                                            (TopologySummary. id
                                                             (:storm-name base)
@@ -1114,7 +1113,7 @@
                                                                  count)
                                                             (time-delta (:launch-time-secs base))
                                                             (extract-status-str base))
-                                          )))]
+                                          ))]
           (ClusterSummary. supervisor-summaries
                            nimbus-uptime
                            topology-summaries)
