@@ -59,6 +59,6 @@ component: BB_BIM_FILE=$(COMPONENT_BIM)
 component-dist-push:: BB_BIM_FILE=./component.bim
 #component-dist-push:: component BB_Dist_Push
 component-dist-push:: component
-	/home/y/bin/dist_install ystorm-*.tgz -batch -branch none -group hadoopqa -identity /home/y/var/yhudson/keys/hadoopqa/id_rsa -tag ystorm_master_security
+	/home/y/bin/dist_install ystorm-*.tgz -batch -branch quarantine -group hadoopqa -identity /home/y/var/yhudson/keys/hadoopqa/id_rsa -tag ystorm_master_security
 
 component_clean: clean
