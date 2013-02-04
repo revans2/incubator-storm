@@ -11,7 +11,6 @@ test: build
 
 build:
 	cd .. && $(MVN) -f m2-pom.xml package -DskipTests
-	cd .. && $(MVN) -f m2-pom.xml dependency:copy-dependencies
 
 #TODO need a good way to see if these values would have changed and update only then
 BASE_VERSION: ../project.clj
