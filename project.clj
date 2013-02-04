@@ -36,7 +36,10 @@
   :resource-paths ["conf"]
 
   :profiles {:dev {:resource-paths ["src/ui" "src/dev"]
-                   :dependencies [[junit/junit "4.10"]]
+                   :dependencies [
+                                  [junit/junit "4.10"]
+                                  [org.clojars.runa/conjure "2.1.1"]
+                                 ]
                   }
              :release {}
              :lib {}
