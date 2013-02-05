@@ -34,25 +34,24 @@ public class SerializationFactory {
         Kryo k = kryoFactory.getKryo(conf);        
         k.register(byte[].class);
 
-	/* tuple payload serializer could be specified via configuration */
-	String payloadSerializerName = (String)conf.get(Config.TOPOLOGY_TUPLE_SERIALIZER);
-	if (payloadSerializerName==null) 
-	    k.register(ListDelegate.class, new ListDelegateSerializer()); //use default payload serializer
-	else {
-	    try {
-		Class serializerClass  = Class.forName(payloadSerializerName);
-		Serializer serializer = resolveSerializerInstance(k, ListDelegate.class, serializerClass, conf);
-		if (serializer == null)
-		    k.register(ListDelegate.class, new ListDelegateSerializer());
-		else 
-		    k.register(ListDelegate.class, serializer);
-	    } catch (ClassNotFoundException ex ){
-		LOG.error(ex + " Could not load class in class path: " + payloadSerializerName);
-		k.register(ListDelegate.class, new ListDelegateSerializer());
-	    } 
-	}
+        /* tuple payload serializer could be specified via configuration */
+        String payloadSerializerName = (String)conf.get(Config.TOPOLOGY_TUPLE_SERIALIZER);
+        if (payloadSerializerName==null) 
+            k.register(ListDelegate.class, new ListDelegateSerializer()); //use default payload serializer
+        else {
+            try {
+                Class serializerClass  = Class.forName(payloadSerializerName);
+                Serializer serializer = resolveSerializerInstance(k, ListDelegate.class, serializerClass, conf);
+                if (serializer == null)
+                    k.register(ListDelegate.class, new ListDelegateSerializer());
+                else 
+                    k.register(ListDelegate.class, serializer);
+            } catch (ClassNotFoundException ex ){
+                LOG.error(ex + " Could not load class in class path: " + payloadSerializerName);
+                k.register(ListDelegate.class, new ListDelegateSerializer());
+            } 
+        }
 
-        k.register(ListDelegate.class);
         k.register(ArrayList.class, new ArrayListSerializer());
         k.register(HashMap.class, new HashMapSerializer());
         k.register(HashSet.class, new HashSetSerializer());
@@ -159,32 +158,32 @@ public class SerializationFactory {
     }
     
     private static Serializer resolveSerializerInstance(Kryo k, Class superClass, Class<? extends Serializer> serializerClass, Map conf) {
-	try {
-	    try {
-		return serializerClass.getConstructor(Kryo.class, Class.class, Map.class).newInstance(k, superClass, conf);
-	    } catch (Exception ex1) {
-		try {
-		    return serializerClass.getConstructor(Kryo.class, Class.class).newInstance(k, superClass);
-		} catch (Exception ex2) {
-		    try {
-			return serializerClass.getConstructor(Kryo.class, Map.class).newInstance(k, conf);
-		    } catch (Exception ex3) {
-			try {
-			    return serializerClass.getConstructor(Kryo.class).newInstance(k);
-			} catch (Exception ex4) {
-			    try {
-				return serializerClass.getConstructor(Class.class, Map.class).newInstance(superClass, conf);
-			    } catch (Exception ex5) {
-				try {
-				    return serializerClass.getConstructor(Class.class).newInstance(superClass);
-				} catch (Exception ex6) {
-				    return serializerClass.newInstance();
-				}
-			    }
-			}
-		    }
-		}
-	    }
+        try {
+            try {
+                return serializerClass.getConstructor(Kryo.class, Class.class, Map.class).newInstance(k, superClass, conf);
+            } catch (Exception ex1) {
+                try {
+                    return serializerClass.getConstructor(Kryo.class, Class.class).newInstance(k, superClass);
+                } catch (Exception ex2) {
+                    try {
+                        return serializerClass.getConstructor(Kryo.class, Map.class).newInstance(k, conf);
+                    } catch (Exception ex3) {
+                        try {
+                            return serializerClass.getConstructor(Kryo.class).newInstance(k);
+                        } catch (Exception ex4) {
+                            try {
+                                return serializerClass.getConstructor(Class.class, Map.class).newInstance(superClass, conf);
+                            } catch (Exception ex5) {
+                                try {
+                                    return serializerClass.getConstructor(Class.class).newInstance(superClass);
+                                } catch (Exception ex6) {
+                                    return serializerClass.newInstance();
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         } catch (Exception ex) {
             throw new IllegalArgumentException("Unable to create serializer \""
                                                + serializerClass.getName()

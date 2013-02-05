@@ -201,6 +201,12 @@
       <version>2.1.1</version>
       <scope>test</scope>
     </dependency>
+    <dependency>
+        <groupId>org.mockito</groupId>
+        <artifactId>mockito-all</artifactId>
+        <version>1.9.5</version>
+        <scope>test</scope>
+    </dependency>
   </dependencies>
 
   <build>
@@ -292,6 +298,17 @@
       </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <version>2.13</version>
+        <dependencies>
+          <dependency>
+            <groupId>org.apache.maven.surefire</groupId>
+            <artifactId>surefire-junit47</artifactId>
+            <version>2.13</version>
+          </dependency>
+        </dependencies>
+      </plugin>
+      <plugin>
         <artifactId>maven-dependency-plugin</artifactId>
         <version>2.6</version>
         <executions>
@@ -341,6 +358,10 @@
             </goals>
             <configuration>
               <append>true</append>
+              <excludes>
+                <exclude>backtype/storm/metric/api/IMetricsConsumer$DataPointFieldAccess</exclude>
+                <exclude>backtype/storm/metric/api/IMetricsConsumer$TaskInfoFieldAccess</exclude>
+              </excludes>
             </configuration>
           </execution>
           <execution>

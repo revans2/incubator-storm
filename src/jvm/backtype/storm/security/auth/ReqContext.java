@@ -1,5 +1,6 @@
 package backtype.storm.security.auth;
 
+import com.google.common.annotations.VisibleForTesting;
 import java.security.AccessControlContext;
 import java.security.AccessController;
 import java.security.Principal;
@@ -13,11 +14,10 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.net.InetAddress;
 
 /**
- * contrext request context includes info about 
+ * context request context includes info about 
  *      		   (1) remote address/subject, 
  *                 (2) operation
  *                 (3) configuration of targeted topology 
- * @author afeng
  */
 public class ReqContext {
     private static final AtomicInteger uniqueId = new AtomicInteger(0);
@@ -47,7 +47,8 @@ public class ReqContext {
     };
 
     //private constructor
-    private ReqContext(AccessControlContext acl_ctxt) {
+	@VisibleForTesting
+    ReqContext(AccessControlContext acl_ctxt) {
 		_subject = Subject.getSubject(acl_ctxt);
 		_reqID = uniqueId.incrementAndGet();
     }
