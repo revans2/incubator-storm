@@ -23,9 +23,8 @@ OWNER = root
 GROUP = users
 
 dir 777 - - lib/storm/$(BASE_VERSION)/logs
-find 755 - - lib/storm/$(BASE_VERSION)/bin/ ../bin/ -type f -and -not -path "*/.svn/*"
-file 755 - - lib/storm/$(BASE_VERSION)/bin/storm_print_cmd ./bin/storm_print_cmd
-find - - - lib/storm/$(BASE_VERSION)/lib/ ../target/dependency/ -type f -and -not -path "*/.svn/*"
+find 755 - - lib/storm/$(BASE_VERSION)/bin/ ../bin/ -type f
+find - - - lib/storm/$(BASE_VERSION)/lib/ ../target/dependency/ -type f
 
 file 444 - - lib/storm/$(BASE_VERSION)/RELEASE ./RELEASE
 file 444 - - lib/storm/$(BASE_VERSION)/CHANGELOG.md ../CHANGELOG.md
