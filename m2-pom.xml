@@ -227,9 +227,6 @@
       <testResource>
         <directory>src/dev</directory>
       </testResource>
-      <testResource>
-        <directory>conf</directory>
-      </testResource>
     </testResources>
     <directory>target</directory>
     <outputDirectory>target/classes</outputDirectory>

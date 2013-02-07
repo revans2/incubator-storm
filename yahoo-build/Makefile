@@ -7,10 +7,10 @@ MVN=LD_LIBRARY_PATH=/home/y/lib64 /home/y/bin/mvn
 all: build
 
 test: build
-	cd .. && $(MVN) -f m2-pom.xml test
+	cd .. && $(MVN) -f m2-pom.xml test ${MVN_MAKE_OPTS}
 
 build:
-	cd .. && $(MVN) -f m2-pom.xml package -DskipTests
+	cd .. && $(MVN) -f m2-pom.xml package -DskipTests ${MVN_MAKE_OPTS}
 
 #TODO need a good way to see if these values would have changed and update only then
 BASE_VERSION: ../project.clj
@@ -37,7 +37,7 @@ rhel4_build.state: rhel4_build.yidf  rhel4_build.yml
 
 clean:
 	rm -rf rhel4_build.ruleset ystorm*.tgz BASE_VERSION RELEASE
-	cd .. && $(MVN) -f m2-pom.xml clean
+	cd .. && $(MVN) -f m2-pom.xml clean ${MVN_MAKE_OPTS}
 
 
 #BuildyBlocks targets
