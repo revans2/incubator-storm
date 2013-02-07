@@ -25,7 +25,7 @@ else:
 STORM_DIR = "/".join(os.path.realpath( __file__ ).split("/")[:-2])
 USER_CONF_DIR = os.path.expanduser("~/.storm")
 CLUSTER_CONF_DIR = STORM_DIR + "/conf"
-if !os.path.isfile(USER_CONF_DIR + "/storm.yaml"):
+if (not os.path.isfile(USER_CONF_DIR + "/storm.yaml")):
     USER_CONF_DIR = CLUSTER_CONF_DIR
 CONFIG_OPTS = []
 CONFFILE = ""
