@@ -10,6 +10,8 @@ import javax.security.sasl.SaslServerFactory;
 import javax.security.sasl.SaslException;
 import javax.security.sasl.SaslServer;
 
+import com.google.common.annotations.VisibleForTesting;
+
 public class AnonymousAuthenticationProvider  extends java.security.Provider {
 	public AnonymousAuthenticationProvider() {
 		super("ThriftSaslAnonymous", 1.0, "Thrift Anonymous SASL provider");
@@ -19,6 +21,7 @@ public class AnonymousAuthenticationProvider  extends java.security.Provider {
 
 	public static class SaslAnonymousFactory implements SaslClientFactory, SaslServerFactory {
 
+		@Override
 		public SaslClient createSaslClient(
 				String[] mechanisms, String authorizationId, String protocol,
 				String serverName, Map<String,?> props, CallbackHandler cbh)
@@ -31,6 +34,7 @@ public class AnonymousAuthenticationProvider  extends java.security.Provider {
 			return null;
 		}
 
+		@Override
 		public SaslServer createSaslServer(
 				String mechanism, String protocol, String serverName, Map<String,?> props, CallbackHandler cbh)
 		{
@@ -47,7 +51,8 @@ public class AnonymousAuthenticationProvider  extends java.security.Provider {
 
 
 class AnonymousClient implements SaslClient {
-	private final String username;
+	@VisibleForTesting
+	final String username;
 	private boolean hasProvidedInitialResponse;
 
 	public AnonymousClient(String username) {
