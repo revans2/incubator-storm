@@ -22,10 +22,13 @@ if sys.platform == "cygwin":
 else:
     normclasspath = identity
 
-CONF_DIR = os.path.expanduser("~/.storm")
 STORM_DIR = "/".join(os.path.realpath( __file__ ).split("/")[:-2])
+CONF_DIR = os.path.expanduser("~/.storm")
+if !os.path.isfile(CONF_DIR + "/storm.yaml"):
+    CONF_DIR = STORM_DIR + "/conf"
 CONFIG_OPTS = []
 CONFFILE = ""
+
 
 def get_config_opts():
     global CONFIG_OPTS
