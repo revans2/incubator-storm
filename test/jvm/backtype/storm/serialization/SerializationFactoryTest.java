@@ -30,35 +30,21 @@ public class SerializationFactoryTest {
   }
 
   @Test
-  public void testRegistersDefaultSerializerWhenNoConf() {
-    this.conf.remove(Config.TOPOLOGY_TUPLE_SERIALIZER);
+  public void testRegistersDefaultSerializerWhenNotSpecifiedinStormConf()
+      throws ClassNotFoundException {
+    String configuredClassName
+        = (String) this.conf.get(Config.TOPOLOGY_TUPLE_SERIALIZER);
+    Class configuredClass = Class.forName(configuredClassName);
+
+    // Do not read the stormConfig, just go with defaults.
     Kryo k = SerializationFactory.getKryo(this.conf);
-
-    // Disable overriding the default class, so that we can get the default was
-    // used before it was overridden.
-    ((DefaultKryoFactory.KryoSerializableDefault)k).overrideDefault(false);
-    Class originalDefault = k.getDefaultSerializer(ListDelegate.class).getClass();
-    assertThat(k.getSerializer(ListDelegate.class), instanceOf(originalDefault));
-
-    // Test the same with override on, just in case.
-    ((DefaultKryoFactory.KryoSerializableDefault)k).overrideDefault(true);
-    assertThat(k.getSerializer(ListDelegate.class), instanceOf(originalDefault));
+    assertThat(k.getSerializer(ListDelegate.class), is(configuredClass));
   }
 
-  @Test
-  public void testRegistersDefaultSerializerWhenNoSuchClass() {
+  @Test(expected=RuntimeException.class)
+  public void testThrowsRuntimeExceptionWhenNoSuchClass() {
     conf.put(Config.TOPOLOGY_TUPLE_SERIALIZER, "null.this.class.does.not.exist");
     Kryo k = SerializationFactory.getKryo(this.conf);
-
-    // Disable overriding the default class, so that we can get the default was
-    // used before it was overridden.
-    ((DefaultKryoFactory.KryoSerializableDefault)k).overrideDefault(false);
-    Class originalDefault = k.getDefaultSerializer(ListDelegate.class).getClass();
-    assertThat(k.getSerializer(ListDelegate.class), instanceOf(originalDefault));
-
-    // Test the same with override on, just in case.
-    ((DefaultKryoFactory.KryoSerializableDefault)k).overrideDefault(true);
-    assertThat(k.getSerializer(ListDelegate.class), instanceOf(originalDefault));
   }
 
   @Test
