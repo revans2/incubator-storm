@@ -48,7 +48,7 @@
 
   :plugins [
             [lein-swank "1.4.4"]
-            [lein-junit "1.0.3"]
+            [lein-junit "1.1.2"]
            ]
   :junit ["test/jvm"]
  
