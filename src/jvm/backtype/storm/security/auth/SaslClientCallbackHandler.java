@@ -2,7 +2,6 @@ package backtype.storm.security.auth;
 
 import java.io.IOException;
 import java.util.Map;
-
 import javax.security.auth.callback.Callback;
 import javax.security.auth.callback.CallbackHandler;
 import javax.security.auth.callback.NameCallback;
@@ -12,14 +11,11 @@ import javax.security.sasl.AuthorizeCallback;
 import javax.security.sasl.RealmCallback;
 import javax.security.auth.login.AppConfigurationEntry;
 import javax.security.auth.login.Configuration;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
  * SASL client side callback handler.
- * @author afeng
- *
  */
 public class SaslClientCallbackHandler implements CallbackHandler {
 	private static final String USERNAME = "username";
@@ -40,10 +36,10 @@ public class SaslClientCallbackHandler implements CallbackHandler {
 		if (configuration == null) return;
 		AppConfigurationEntry configurationEntries[] = configuration.getAppConfigurationEntry(AuthUtils.LoginContextClient);
 		if (configurationEntries == null) {
-		    String errorMessage = "Could not find a '"+AuthUtils.LoginContextClient
-			+ "' entry in this configuration: Client cannot start.";
-		    LOG.error(errorMessage);
-		    throw new IOException(errorMessage);
+			String errorMessage = "Could not find a '"+AuthUtils.LoginContextClient
+					+ "' entry in this configuration: Client cannot start.";
+			LOG.error(errorMessage);
+			throw new IOException(errorMessage);
 		}
 
 		for(AppConfigurationEntry entry: configurationEntries) {
@@ -67,7 +63,7 @@ public class SaslClientCallbackHandler implements CallbackHandler {
 				NameCallback nc = (NameCallback) c;
 				nc.setName(_username);
 			} else if (c instanceof PasswordCallback) {
-				LOG.debug("pwd callback");
+				LOG.debug("password callback");
 				PasswordCallback pc = (PasswordCallback)c;
 				if (_password != null) {
 					pc.setPassword(_password.toCharArray());

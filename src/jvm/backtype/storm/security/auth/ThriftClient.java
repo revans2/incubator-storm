@@ -1,30 +1,24 @@
 package backtype.storm.security.auth;
 
-import backtype.storm.utils.Utils;
-
 import java.security.Principal;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
-
 import javax.security.auth.Subject;
 import javax.security.auth.kerberos.KerberosTicket;
 import javax.security.auth.login.Configuration;
 import javax.security.sasl.Sasl;
-
 import org.apache.thrift7.protocol.TBinaryProtocol;
 import org.apache.thrift7.protocol.TProtocol;
 import org.apache.thrift7.transport.TSocket;
 import org.apache.thrift7.transport.TTransport;
 import org.apache.thrift7.transport.TSaslClientTransport;
 import org.apache.zookeeper.Login;
-import org.apache.zookeeper.server.auth.KerberosName;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
+import backtype.storm.utils.Utils;
 
 public class ThriftClient {	
 	private static final Logger LOG = LoggerFactory.getLogger(ThriftClient.class);
@@ -61,7 +55,7 @@ public class ThriftClient {
 				loginConfigurationFile = (String)conf.get("java.security.auth.login.config");
 			}
 			if ((loginConfigurationFile==null) || (loginConfigurationFile.length()==0)) { //ANONYMOUS
-				LOG.debug("SASL ANONYMOUS client transport is being established");
+				LOG.info("SASL ANONYMOUS client transport is being established");
 				_transport = new TSaslClientTransport(AuthUtils.ANONYMOUS, 
 						null, 
 						AuthUtils.SERVICE,
@@ -71,9 +65,8 @@ public class ThriftClient {
 						underlyingTransport);
 				_transport.open();
 			} else {
-				LOG.debug("Use jaas login config:"+loginConfigurationFile);
-				System.setProperty("java.security.auth.login.config", loginConfigurationFile);
-				Configuration auth_conf = Configuration.getConfiguration();
+				//retrieve authentication configuration from java.security.auth.login.config
+				Configuration auth_conf = AuthUtils.getConfiguration(loginConfigurationFile);
 
 				//login our user
 				SaslClientCallbackHandler callback_handler = new SaslClientCallbackHandler(auth_conf);
@@ -118,14 +111,14 @@ public class ThriftClient {
 									_transport.open();
 								}
 								catch (Exception e) {
-									LOG.error("Nimbus client failed to open SaslClientTransport to interact with a server during session initiation: " + e);
+									LOG.error("Nimbus client failed to open SaslClientTransport to interact with a server during session initiation: " + e, e);
 									e.printStackTrace();
 								}
 								return null;
 							}
 						});
 					} catch (PrivilegedActionException e) {
-						LOG.error("Nimbus client experienced a PrivilegedActionException exception while creating a TSaslClientTransport using a JAAS principal context:" + e);
+						LOG.error("Nimbus client experienced a PrivilegedActionException exception while creating a TSaslClientTransport using a JAAS principal context:" + e, e);
 						e.printStackTrace();
 					}
 				} 

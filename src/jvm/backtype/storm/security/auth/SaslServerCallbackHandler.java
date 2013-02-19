@@ -3,7 +3,6 @@ package backtype.storm.security.auth;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import javax.security.auth.callback.Callback;
@@ -15,14 +14,10 @@ import javax.security.auth.login.AppConfigurationEntry;
 import javax.security.auth.login.Configuration;
 import javax.security.sasl.AuthorizeCallback;
 import javax.security.sasl.RealmCallback;
-
 import org.apache.zookeeper.server.auth.KerberosName;
 
 /**
  * SASL server side collback handler
- * 
- * @author afeng
- *
  */
 public class SaslServerCallbackHandler implements CallbackHandler {
 	private static final String USER_PREFIX = "user_";
