@@ -7,7 +7,7 @@ MVN=LD_LIBRARY_PATH=/home/y/lib64 /home/y/bin/mvn
 all: build
 
 test: build
-	cd .. && $(MVN) -f m2-pom.xml test ${MVN_MAKE_OPTS}
+	cd .. && $(MVN) -f m2-pom.xml package ${MVN_MAKE_OPTS}
 
 build:
 	cd .. && $(MVN) -f m2-pom.xml package -DskipTests ${MVN_MAKE_OPTS}
