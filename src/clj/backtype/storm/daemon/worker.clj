@@ -428,6 +428,8 @@
   (fn [] (halt-process! 1 "Worker died")))
 
 (defn -main [storm-id assignment-id port-str worker-id]  
-  (let [conf (read-storm-config)]
+  (let [conf1 (read-storm-config)
+        login_conf_file (System/getProperty "java.security.auth.login.config")
+        conf (if login_conf_file (merge conf1 {"java.security.auth.login.config" login_conf_file}) conf1)]
     (validate-distributed-mode! conf)
     (mk-worker conf nil (java.net.URLDecoder/decode storm-id) assignment-id (Integer/parseInt port-str) worker-id)))

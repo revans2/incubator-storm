@@ -45,7 +45,7 @@
     ))
 
 (defn mk-authorization-handler [conf]
-  (let [klassname (conf NIMBUS-AUTHORIZATION-CLASSNAME) 
+  (let [klassname (conf NIMBUS-AUTHORIZER) 
         aznClass (if klassname (Class/forName klassname))
         aznHandler (if aznClass (.newInstance aznClass))] 
     (log-debug "authorization class name:" klassname
@@ -1171,7 +1171,7 @@
 (defn launch-server! [conf nimbus]
   (validate-distributed-mode! conf)
   (let [service-handler (service-handler conf nimbus)
-        server (ThriftServer. (Nimbus$Processor. service-handler) (int (conf NIMBUS-THRIFT-PORT)))]
+        server (ThriftServer. conf (Nimbus$Processor. service-handler) (int (conf NIMBUS-THRIFT-PORT)))]
     (.addShutdownHook (Runtime/getRuntime) (Thread. (fn [] (.shutdown service-handler) (.stop server))))
     (log-message "Starting Nimbus server...")
     (.serve server)))

@@ -418,10 +418,11 @@
                                  "%ID%"
                                  (str port))
           logfilename (str "worker-" port ".log")
+          login_config (conf "java.security.auth.login.config")
           command (str "java -server " childopts
                        " -Djava.library.path=" (conf JAVA-LIBRARY-PATH)
                        " -Dlogfile.name=" logfilename
-                       " -Djava.security.auth.login.config=" (conf "java.security.auth.login.config")
+                       (if login_config (str " -Djava.security.auth.login.config=" login_config))
                        " -Dstorm.home=" storm-home
                        " -Dlogback.configurationFile=" storm-home "/logback/cluster.xml"
                        " -cp " classpath " backtype.storm.daemon.worker "

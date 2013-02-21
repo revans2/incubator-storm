@@ -24,7 +24,7 @@ import java.util.Map;
  * Spouts. .</p>
  */
 public class Config extends HashMap<String, Object> {
-    
+
     /**
      * A list of hosts of ZooKeeper servers used to manage the cluster.
      */
@@ -65,6 +65,11 @@ public class Config extends HashMap<String, Object> {
     public static String STORM_LOCAL_HOSTNAME = "storm.local.hostname";
 
     /**
+     * The transport plug-in for Thrift client/server communication
+     */
+    public static String STORM_THRIFT_TRANSPORT_PLUGIN = "storm.thrift.transport";
+
+    /**
      * The serializer class for ListDelegate (tuple payload). 
      * The default serializer will be ListDelegateSerializer
      */
@@ -94,13 +99,13 @@ public class Config extends HashMap<String, Object> {
      * The connection timeout for clients to ZooKeeper.
      */
     public static String STORM_ZOOKEEPER_CONNECTION_TIMEOUT = "storm.zookeeper.connection.timeout";
-    
-    
+
+
     /**
      * The number of times to retry a Zookeeper operation.
      */
     public static String STORM_ZOOKEEPER_RETRY_TIMES="storm.zookeeper.retry.times";
-    
+
     /**
      * The interval between retries of a Zookeeper operation.
      */
@@ -110,17 +115,17 @@ public class Config extends HashMap<String, Object> {
      * The Zookeeper authentication scheme to use, e.g. "digest". Defaults to no authentication.
      */
     public static String STORM_ZOOKEEPER_AUTH_SCHEME="storm.zookeeper.auth.scheme";
-    
+
     /**
      * A string representing the payload for Zookeeper authentication. It gets serialized using UTF-8 encoding during authentication.
      */
     public static String STORM_ZOOKEEPER_AUTH_PAYLOAD="storm.zookeeper.auth.payload";
-    
+
     /**
      * The id assigned to a running topology. The id is the storm name with a unique nonce appended.
      */
     public static String STORM_ID = "storm.id";
-    
+
     /**
      * The host that the master server is running on.
      */
@@ -205,12 +210,12 @@ public class Config extends HashMap<String, Object> {
      * whether topologies are allowed to run or not.
      */
     public static String NIMBUS_TOPOLOGY_VALIDATOR = "nimbus.topology.validator";
-    
+
     /**
      * Class name for authorization plugin for Nimbus
      */
-    public static String NIMBUS_AUTHORIZATION_CLASSNAME = "nimbus.authorization.classname";
-    
+    public static String NIMBUS_AUTHORIZER = "nimbus.authorizer";
+
     /**
      * Storm UI binds to this port.
      */
@@ -220,8 +225,8 @@ public class Config extends HashMap<String, Object> {
      * Childopts for Storm UI Java process.
      */
     public static String UI_CHILDOPTS = "ui.childopts";
-    
-    
+
+
     /**
      * List of DRPC servers so that the DRPCSpout knows who to talk to.
      */
@@ -231,7 +236,7 @@ public class Config extends HashMap<String, Object> {
      * This port is used by Storm DRPC for receiving DPRC requests from clients.
      */
     public static String DRPC_PORT = "drpc.port";
-    
+
     /**
      * DRPC thrift server worker threads 
      */
@@ -241,19 +246,19 @@ public class Config extends HashMap<String, Object> {
      * DRPC thrift server queue size 
      */
     public static String DRPC_QUEUE_SIZE = "drpc.queue.size";
-    
+
     /**
      * This port on Storm DRPC is used by DRPC topologies to receive function invocations and send results back. 
      */
     public static String DRPC_INVOCATIONS_PORT = "drpc.invocations.port";  
-    
+
     /**
      * The timeout on DRPC requests within the DRPC server. Defaults to 10 minutes. Note that requests can also
      * timeout based on the socket timeout on the DRPC client, and separately based on the topology message
      * timeout for the topology implementing the DRPC function.
      */
     public static String DRPC_REQUEST_TIMEOUT_SECS  = "drpc.request.timeout.secs";  
-    
+
     /**
      * the metadata configed on the supervisor
      */    
@@ -309,7 +314,7 @@ public class Config extends HashMap<String, Object> {
      * need to be restarted.
      */
     public static String SUPERVISOR_MONITOR_FREQUENCY_SECS = "supervisor.monitor.frequency.secs";
-    
+
     /**
      * The jvm opts provided to workers launched by this supervisor. All "%ID%" substrings are replaced
      * with an identifier for this worker.
@@ -337,14 +342,14 @@ public class Config extends HashMap<String, Object> {
      */
     public static String TASK_REFRESH_POLL_SECS = "task.refresh.poll.secs";
 
-    
-    
+
+
     /**
      * True if Storm should timeout messages or not. Defaults to true. This is meant to be used
      * in unit tests to prevent tuples from being accidentally timed out during the test.
      */
     public static String TOPOLOGY_ENABLE_MESSAGE_TIMEOUTS = "topology.enable.message.timeouts";
-    
+
     /**
      * When set to true, Storm will log every message that's emitted.
      */
@@ -417,7 +422,7 @@ public class Config extends HashMap<String, Object> {
      */
     public static String TOPOLOGY_KRYO_FACTORY = "topology.kryo.factory";
 
-    
+
     /**
      * Whether or not Storm should skip the loading of kryo registrations for which it
      * does not know the class or have the serializer implementation. Otherwise, the task will
@@ -454,7 +459,7 @@ public class Config extends HashMap<String, Object> {
      * their tuples with a message id.
      */
     public static String TOPOLOGY_MAX_SPOUT_PENDING="topology.max.spout.pending"; 
-    
+
     /**
      * A class that implements a strategy for what to do when a spout needs to wait. Waiting is
      * triggered in one of two conditions:
@@ -468,7 +473,7 @@ public class Config extends HashMap<String, Object> {
      * The amount of milliseconds the SleepEmptyEmitStrategy should sleep for.
      */
     public static String TOPOLOGY_SLEEP_SPOUT_WAIT_STRATEGY_TIME_MS="topology.sleep.spout.wait.strategy.time.ms";     
-    
+
     /**
      * The maximum amount of time a component gives a source of state to synchronize before it requests
      * synchronization again.
@@ -501,7 +506,7 @@ public class Config extends HashMap<String, Object> {
      * topology in Zookeeper.
      */
     public static String TOPOLOGY_TRANSACTIONAL_ID="topology.transactional.id";
-    
+
     /**
      * A list of task hooks that are automatically added to every spout and bolt in the topology. An example
      * of when you'd do this is to add a hook that integrates with your internal 
@@ -535,54 +540,54 @@ public class Config extends HashMap<String, Object> {
      * How often a tick tuple from the "__system" component and "__tick" stream should be sent
      * to tasks. Meant to be used as a component-specific configuration.
      */
-     public static String TOPOLOGY_TICK_TUPLE_FREQ_SECS="topology.tick.tuple.freq.secs";
+    public static String TOPOLOGY_TICK_TUPLE_FREQ_SECS="topology.tick.tuple.freq.secs";
 
 
     /**
      * Configure the wait strategy used for internal queuing. Can be used to tradeoff latency
      * vs. throughput
      */
-     public static String TOPOLOGY_DISRUPTOR_WAIT_STRATEGY="topology.disruptor.wait.strategy";
-    
+    public static String TOPOLOGY_DISRUPTOR_WAIT_STRATEGY="topology.disruptor.wait.strategy";
+
     /**
      * The size of the shared thread pool for worker tasks to make use of. The thread pool can be accessed 
      * via the TopologyContext.
      */
-     public static String TOPOLOGY_WORKER_SHARED_THREAD_POOL_SIZE="topology.worker.shared.thread.pool.size";
+    public static String TOPOLOGY_WORKER_SHARED_THREAD_POOL_SIZE="topology.worker.shared.thread.pool.size";
 
-     /**
-      * The interval in seconds to use for determining whether to throttle error reported to Zookeeper. For example, 
-      * an interval of 10 seconds with topology.max.error.report.per.interval set to 5 will only allow 5 errors to be
-      * reported to Zookeeper per task for every 10 second interval of time.
-      */
-     public static String TOPOLOGY_ERROR_THROTTLE_INTERVAL_SECS="topology.error.throttle.interval.secs";
+    /**
+     * The interval in seconds to use for determining whether to throttle error reported to Zookeeper. For example, 
+     * an interval of 10 seconds with topology.max.error.report.per.interval set to 5 will only allow 5 errors to be
+     * reported to Zookeeper per task for every 10 second interval of time.
+     */
+    public static String TOPOLOGY_ERROR_THROTTLE_INTERVAL_SECS="topology.error.throttle.interval.secs";
 
-     /**
-      * See doc for TOPOLOGY_ERROR_THROTTLE_INTERVAL_SECS
-      */
-     public static String TOPOLOGY_MAX_ERROR_REPORT_PER_INTERVAL="topology.max.error.report.per.interval";
+    /**
+     * See doc for TOPOLOGY_ERROR_THROTTLE_INTERVAL_SECS
+     */
+    public static String TOPOLOGY_MAX_ERROR_REPORT_PER_INTERVAL="topology.max.error.report.per.interval";
 
 
-     /**
-      * How often a batch can be emitted in a Trident topology.
-      */
-     public static String TOPOLOGY_TRIDENT_BATCH_EMIT_INTERVAL_MILLIS="topology.trident.batch.emit.interval.millis";
+    /**
+     * How often a batch can be emitted in a Trident topology.
+     */
+    public static String TOPOLOGY_TRIDENT_BATCH_EMIT_INTERVAL_MILLIS="topology.trident.batch.emit.interval.millis";
 
     /**
      * Name of the topology. This config is automatically set by Storm when the topology is submitted.
      */
     public static String TOPOLOGY_NAME="topology.name";  
-    
+
     /**
      * The principal who submitted a topology
      */
     public static String TOPOLOGY_SUBMITTER_PRINCIPAL = "topology.submitter.principal";
-    
-     /**
+
+    /**
      * The root directory in ZooKeeper for metadata about TransactionalSpouts.
      */
     public static String TRANSACTIONAL_ZOOKEEPER_ROOT="transactional.zookeeper.root";
-    
+
     /**
      * The list of zookeeper servers in which to keep the transactional state. If null (which is default),
      * will use storm.zookeeper.servers
@@ -594,7 +599,7 @@ public class Config extends HashMap<String, Object> {
      * will use storm.zookeeper.port
      */
     public static String TRANSACTIONAL_ZOOKEEPER_PORT="transactional.zookeeper.port";
-    
+
     /**
      * The number of threads that should be used by the zeromq context in each worker process.
      */
@@ -612,7 +617,7 @@ public class Config extends HashMap<String, Object> {
      * on the networking layer.
      */
     public static String ZMQ_HWM = "zmq.hwm";
-        
+
     /**
      * This value is passed to spawned JVMs (e.g., Nimbus, Supervisor, and Workers)
      * for the java.library.path value. java.library.path tells the JVM where 
@@ -620,20 +625,20 @@ public class Config extends HashMap<String, Object> {
      * Storm uses the ZeroMQ and JZMQ native libs. 
      */
     public static String JAVA_LIBRARY_PATH = "java.library.path";
-    
+
     /**
      * The path to use as the zookeeper dir when running a zookeeper server via
      * "storm dev-zookeeper". This zookeeper instance is only intended for development;
      * it is not a production grade zookeeper setup.
      */
     public static String DEV_ZOOKEEPER_PATH = "dev.zookeeper.path";
-    
+
     /**
      * A map from topology name to the number of machines that should be dedicated for that topology. Set storm.scheduler
      * to backtype.storm.scheduler.IsolationScheduler to make use of the isolation scheduler.
      */
     public static String ISOLATION_SCHEDULER_MACHINES = "isolation.scheduler.machines";
-        
+
     public static void setDebug(Map conf, boolean isOn) {
         conf.put(Config.TOPOLOGY_DEBUG, isOn);
     } 
@@ -641,12 +646,12 @@ public class Config extends HashMap<String, Object> {
     public void setDebug(boolean isOn) {
         setDebug(this, isOn);
     }
-    
+
     @Deprecated
     public void setOptimize(boolean isOn) {
         put(Config.TOPOLOGY_OPTIMIZE, isOn);
     } 
-    
+
     public static void setNumWorkers(Map conf, int workers) {
         conf.put(Config.TOPOLOGY_WORKERS, workers);
     }
@@ -662,7 +667,7 @@ public class Config extends HashMap<String, Object> {
     public void setNumAckers(int numExecutors) {
         setNumAckers(this, numExecutors);
     }
-    
+
     public static void setMessageTimeoutSecs(Map conf, int secs) {
         conf.put(Config.TOPOLOGY_MESSAGE_TIMEOUT_SECS, secs);
     }
@@ -670,7 +675,7 @@ public class Config extends HashMap<String, Object> {
     public void setMessageTimeoutSecs(int secs) {
         setMessageTimeoutSecs(this, secs);
     }
-    
+
     public static void registerSerialization(Map conf, Class klass) {
         getRegisteredSerializations(conf).add(klass.getName());
     }
@@ -678,7 +683,7 @@ public class Config extends HashMap<String, Object> {
     public void registerSerialization(Class klass) {
         registerSerialization(this, klass);
     }
-    
+
     public static void registerSerialization(Map conf, Class klass, Class<? extends Serializer> serializerClass) {
         Map<String, String> register = new HashMap<String, String>();
         register.put(klass.getName(), serializerClass.getName());
@@ -688,7 +693,7 @@ public class Config extends HashMap<String, Object> {
     public void registerSerialization(Class klass, Class<? extends Serializer> serializerClass) {
         registerSerialization(this, klass, serializerClass);
     }
-    
+
     public void registerMetricsConsumer(Class klass, Object argument, long parallelismHint) {
         HashMap m = new HashMap();
         m.put("class", klass.getCanonicalName());
@@ -716,7 +721,7 @@ public class Config extends HashMap<String, Object> {
     public void registerDecorator(Class<? extends IKryoDecorator> klass) {
         registerDecorator(this, klass);
     }
-    
+
     public static void setKryoFactory(Map conf, Class<? extends IKryoFactory> klass) {
         conf.put(Config.TOPOLOGY_KRYO_FACTORY, klass.getName());
     }
@@ -730,9 +735,9 @@ public class Config extends HashMap<String, Object> {
     }
 
     public void setSkipMissingKryoRegistrations(boolean skip) {
-       setSkipMissingKryoRegistrations(this, skip);
+        setSkipMissingKryoRegistrations(this, skip);
     }
-    
+
     public static void setMaxTaskParallelism(Map conf, int max) {
         conf.put(Config.TOPOLOGY_MAX_TASK_PARALLELISM, max);
     }
@@ -740,7 +745,7 @@ public class Config extends HashMap<String, Object> {
     public void setMaxTaskParallelism(int max) {
         setMaxTaskParallelism(this, max);
     }
-    
+
     public static void setMaxSpoutPending(Map conf, int max) {
         conf.put(Config.TOPOLOGY_MAX_SPOUT_PENDING, max);
     }
@@ -748,7 +753,7 @@ public class Config extends HashMap<String, Object> {
     public void setMaxSpoutPending(int max) {
         setMaxSpoutPending(this, max);
     }
-    
+
     public static void setStatsSampleRate(Map conf, double rate) {
         conf.put(Config.TOPOLOGY_STATS_SAMPLE_RATE, rate);
     }    
@@ -764,7 +769,7 @@ public class Config extends HashMap<String, Object> {
     public void setFallBackOnJavaSerialization(boolean fallback) {
         setFallBackOnJavaSerialization(this, fallback);
     }    
-    
+
     private static List getRegisteredSerializations(Map conf) {
         List ret;
         if(!conf.containsKey(Config.TOPOLOGY_KRYO_REGISTER)) {
@@ -775,7 +780,7 @@ public class Config extends HashMap<String, Object> {
         conf.put(Config.TOPOLOGY_KRYO_REGISTER, ret);
         return ret;
     }
-    
+
     private static List getRegisteredDecorators(Map conf) {
         List ret;
         if(!conf.containsKey(Config.TOPOLOGY_KRYO_DECORATORS)) {

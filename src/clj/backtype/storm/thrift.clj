@@ -50,7 +50,8 @@
 
 (defn nimbus-client-and-conn [host port]
   (log-message "Connecting to Nimbus at " host ":" port)
-  (let [nimbusClient (NimbusClient. host port)
+  (let [conf (read-storm-config)
+        nimbusClient (NimbusClient. conf host port nil)
         client (.getClient nimbusClient)
         transport (.transport nimbusClient)]
         [client transport] ))

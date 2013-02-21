@@ -19,27 +19,28 @@ import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.thrift7.TException;
+import org.apache.thrift7.transport.TTransportException;
 import org.json.simple.JSONValue;
 
 public class DRPCSpout extends BaseRichSpout {
     public static Logger LOG = LoggerFactory.getLogger(DRPCSpout.class);
-    
+
     SpoutOutputCollector _collector;
     List<DRPCInvocationsClient> _clients = new ArrayList<DRPCInvocationsClient>();
     String _function;
     String _local_drpc_id = null;
-    
+
     private static class DRPCMessageId {
         String id;
         int index;
-        
+
         public DRPCMessageId(String id, int index) {
             this.id = id;
             this.index = index;
         }
     }
-    
-    
+
+
     public DRPCSpout(String function) {
         _function = function;
     }
@@ -48,7 +49,7 @@ public class DRPCSpout extends BaseRichSpout {
         _function = function;
         _local_drpc_id = drpc.getServiceId();
     }
-    
+
     @Override
     public void open(Map conf, TopologyContext context, SpoutOutputCollector collector) {
         _collector = collector;
@@ -61,16 +62,21 @@ public class DRPCSpout extends BaseRichSpout {
             if(servers == null || servers.isEmpty()) {
                 throw new RuntimeException("No DRPC servers configured for topology");   
             }
-            if(numTasks < servers.size()) {
-                for(String s: servers) {
-                    _clients.add(new DRPCInvocationsClient(s, port));
+
+            try {
+                if(numTasks < servers.size()) {
+                    for(String s: servers) {
+                        _clients.add(new DRPCInvocationsClient(conf, s, port));
+                    }
+                } else {
+                    int i = index % servers.size();
+                    _clients.add(new DRPCInvocationsClient(conf, servers.get(i), port));
                 }
-            } else {
-                int i = index % servers.size();
-                _clients.add(new DRPCInvocationsClient(servers.get(i), port));
+            } catch (TTransportException ex) {
+                throw new RuntimeException("DRPCInvocationsClient failed to be constructed"+ex); 
             }
         }
-        
+
     }
 
     @Override
@@ -132,7 +138,7 @@ public class DRPCSpout extends BaseRichSpout {
     public void fail(Object msgId) {
         DRPCMessageId did = (DRPCMessageId) msgId;
         DistributedRPCInvocations.Iface client;
-        
+
         if(_local_drpc_id == null) {
             client = _clients.get(did.index);
         } else {

@@ -30,13 +30,15 @@ public class ReturnResultsReducer implements MultiReducer<ReturnResultsState> {
         }
     }
     boolean local;
+    Map conf;
 
     Map<List, DRPCInvocationsClient> _clients = new HashMap<List, DRPCInvocationsClient>();
-    
-    
+
+
     @Override
     public void prepare(Map conf, TridentMultiReducerContext context) {
         local = conf.get(Config.STORM_CLUSTER_MODE).equals("local");
+        this.conf = conf;
     }
 
     @Override
@@ -63,21 +65,21 @@ public class ReturnResultsReducer implements MultiReducer<ReturnResultsState> {
             final int port = Utils.getInt(retMap.get("port"));
             String id = (String) retMap.get("id");
             DistributedRPCInvocations.Iface client;
-            if(local) {
-                client = (DistributedRPCInvocations.Iface) ServiceRegistry.getService(host);
-            } else {
-                List server = new ArrayList() {{
-                    add(host);
-                    add(port);
-                }};
-
-                if(!_clients.containsKey(server)) {
-                    _clients.put(server, new DRPCInvocationsClient(host, port));
-                }
-                client = _clients.get(server);
-            }
 
             try {
+                if(local) {
+                    client = (DistributedRPCInvocations.Iface) ServiceRegistry.getService(host);
+                } else {
+                    List server = new ArrayList() {{
+                        add(host);
+                        add(port);
+                    }};
+
+                    if(!_clients.containsKey(server)) {
+                        _clients.put(server, new DRPCInvocationsClient(conf, host, port));
+                    }
+                    client = _clients.get(server);
+                }
                 client.result(id, result);
             } catch(TException e) {
                 collector.reportError(e);
@@ -91,5 +93,5 @@ public class ReturnResultsReducer implements MultiReducer<ReturnResultsState> {
             c.close();
         }
     }
-    
+
 }

@@ -1,13 +1,16 @@
-package backtype.storm.security.auth;
+package backtype.storm.security.auth.authorizer;
 
 import backtype.storm.Config;
+import backtype.storm.security.auth.IAuthorizer;
+import backtype.storm.security.auth.ReqContext;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
  * A no-op authorization implementation that illustrate info available for authorization decisions.
  */
-public class NoopAuthorizer implements IAuthorization {
+public class NoopAuthorizer implements IAuthorizer {
     private static final Logger LOG = LoggerFactory.getLogger(NoopAuthorizer.class);
 
     /**
@@ -19,13 +22,11 @@ public class NoopAuthorizer implements IAuthorization {
      * @return true if the request is authorized, false if reject
      */
     public boolean permit(ReqContext context) {
-	LOG.info("Access "
-		 + " from: " + context.remoteAddress() == null
-		 ? "null" : context.remoteAddress().toString()
-		 + " principal:"+context.principal() == null
-		 ? "null" : context.principal()
-		 +" op:"+context.operation()
-		 + " topoology:"+ context.topologyConf().get(Config.TOPOLOGY_NAME));
-	return true;
+        LOG.info("Access "
+                + " from: " + (context.remoteAddress() == null? "null" : context.remoteAddress().toString())
+                + " principal:"+(context.principal() == null? "null" : context.principal()) 
+                +" op:"+context.operation()
+                + " topoology:"+ context.topologyConf().get(Config.TOPOLOGY_NAME));
+        return true;
     }
 }

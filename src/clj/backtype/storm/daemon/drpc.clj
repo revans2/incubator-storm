@@ -105,8 +105,8 @@
           ;; "execute" don't unblock until other thrift methods are called. So if 
           ;; 64 threads are calling execute, the server won't accept the result
           ;; invocations that will unblock those threads
-          handler-server (ThriftServer. (DistributedRPC$Processor. service-handler) (int (conf DRPC-PORT)))
-          invoke-server (ThriftServer. (DistributedRPCInvocations$Processor. service-handler) (int (conf DRPC-INVOCATIONS-PORT)))]
+          handler-server (ThriftServer. conf (DistributedRPC$Processor. service-handler) (int (conf DRPC-PORT)))
+          invoke-server (ThriftServer. conf (DistributedRPCInvocations$Processor. service-handler) (int (conf DRPC-INVOCATIONS-PORT)))]
       
       (.addShutdownHook (Runtime/getRuntime) (Thread. (fn [] (.stop handler-server) (.stop invoke-server))))
       (log-message "Starting Distributed RPC servers...")

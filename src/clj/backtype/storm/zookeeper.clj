@@ -9,7 +9,7 @@
   (:import [org.apache.zookeeper.server ZooKeeperServer NIOServerCnxnFactory])
   (:import [java.net InetSocketAddress BindException])
   (:import [java.io File])
-  (:import [backtype.storm.utils Utils ZookeeperAuthInfo ZookeeperServerCnxnFactory])
+  (:import [backtype.storm.utils Utils ZookeeperAuthInfo])
   (:use [backtype.storm util log config]))
 
 (def zk-keeper-states
@@ -131,10 +131,13 @@
 (defnk mk-inprocess-zookeeper [localdir :port nil]
   (let [localfile (File. localdir)
         zk (ZooKeeperServer. localfile localfile 2000)
-        input_port (if port port 0)
-        cnxnFactory (ZookeeperServerCnxnFactory. input_port 10)
-        factory (.factory cnxnFactory) 
-        retport (.port cnxnFactory) ]
+        [retport factory] (loop [retport (if port port 2000)]
+                            (if-let [factory-tmp (try-cause (doto (NIOServerCnxnFactory.) (.configure (InetSocketAddress. retport) 0))
+                                              (catch BindException e
+                                                (when (> (inc retport) (if port port 65535))
+                                                  (throw (RuntimeException. "No port is available to launch an inprocess zookeeper.")))))]
+                              [retport factory-tmp]
+                              (recur (inc retport))))]
     (log-message "Starting inprocess zookeeper at port " retport " and dir " localdir)    
     (.startup factory zk)
     [retport factory]

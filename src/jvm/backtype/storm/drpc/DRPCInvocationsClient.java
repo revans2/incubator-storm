@@ -1,11 +1,14 @@
 package backtype.storm.drpc;
 
+import java.util.Map;
+
 import backtype.storm.generated.DRPCRequest;
 import backtype.storm.generated.DistributedRPCInvocations;
 import backtype.storm.security.auth.ThriftClient;
 
 import org.apache.log4j.Logger;
 import org.apache.thrift7.TException;
+import org.apache.thrift7.transport.TTransportException;
 
 public class DRPCInvocationsClient extends ThriftClient implements DistributedRPCInvocations.Iface {
     public static final Logger LOG = Logger.getLogger(DRPCInvocationsClient.class);
@@ -13,8 +16,8 @@ public class DRPCInvocationsClient extends ThriftClient implements DistributedRP
 	private String _host;
 	private int _port;    
 
-	public DRPCInvocationsClient(String host, int port) {
-		super(host, port, "drpc_server", null);
+	public DRPCInvocationsClient(Map conf, String host, int port)  throws TTransportException {
+		super(conf, host, port, null);
 		_host = host;
 		_port = port;
 		_client = new DistributedRPCInvocations.Client(_protocol);

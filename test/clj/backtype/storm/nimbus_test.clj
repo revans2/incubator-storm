@@ -146,16 +146,6 @@
       (is (not-nil? ((:executor->start-time-secs assignment) e))))
     ))
 
-(deftest test-bogusId
-  (with-local-cluster [cluster :supervisors 4 :ports-per-supervisor 3 :daemon-conf {SUPERVISOR-ENABLE false TOPOLOGY-ACKER-EXECUTORS 0}]
-    (let [state (:storm-cluster-state cluster)
-          nimbus (:nimbus cluster)]
-       (is (thrown? NotAliveException (.getTopologyConf nimbus "bogus-id")))
-       (is (thrown? NotAliveException (.getTopology nimbus "bogus-id")))
-       (is (thrown? NotAliveException (.getUserTopology nimbus "bogus-id")))
-       (is (thrown? NotAliveException (.getTopologyInfo nimbus "bogus-id")))
-      )))
-
 (deftest test-assignment
   (with-local-cluster [cluster :supervisors 4 :ports-per-supervisor 3 :daemon-conf {SUPERVISOR-ENABLE false TOPOLOGY-ACKER-EXECUTORS 0}]
     (let [state (:storm-cluster-state cluster)
@@ -779,7 +769,7 @@
 
 (deftest test-nimbus-iface-submitTopologyWithOpts-checks-authorization
   (with-local-cluster [cluster 
-                       :daemon-conf {NIMBUS-AUTHORIZATION-CLASSNAME 
+                       :daemon-conf {NIMBUS-AUTHORIZER 
                           "backtype.storm.security.auth.DenyAuthorizer"}]
     (let [
           nimbus (:nimbus cluster)
@@ -795,7 +785,7 @@
 
 (deftest test-nimbus-iface-methods-check-authorization
   (with-local-cluster [cluster 
-                       :daemon-conf {NIMBUS-AUTHORIZATION-CLASSNAME 
+                       :daemon-conf {NIMBUS-AUTHORIZER 
                           "backtype.storm.security.auth.DenyAuthorizer"}]
     (let [
           nimbus (:nimbus cluster)

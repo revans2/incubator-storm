@@ -23,6 +23,7 @@ public class ReturnResults extends BaseRichBolt {
     public static final Logger LOG = LoggerFactory.getLogger(ReturnResults.class);
     OutputCollector _collector;
     boolean local;
+    Map _stormConf;
 
     Map<List, DRPCInvocationsClient> _clients = new HashMap<List, DRPCInvocationsClient>();
 
@@ -42,21 +43,20 @@ public class ReturnResults extends BaseRichBolt {
             final int port = Utils.getInt(retMap.get("port"));
             String id = (String) retMap.get("id");
             DistributedRPCInvocations.Iface client;
-            if(local) {
-                client = (DistributedRPCInvocations.Iface) ServiceRegistry.getService(host);
-            } else {
-                List server = new ArrayList() {{
-                    add(host);
-                    add(port);
-                }};
-            
-                if(!_clients.containsKey(server)) {
-                    _clients.put(server, new DRPCInvocationsClient(host, port));
-                }
-                client = _clients.get(server);
-            }
-                
             try {
+                if(local) {
+                    client = (DistributedRPCInvocations.Iface) ServiceRegistry.getService(host);
+                } else {
+                    List server = new ArrayList() {{
+                        add(host);
+                        add(port);
+                    }};
+
+                    if(!_clients.containsKey(server)) {
+                        _clients.put(server, new DRPCInvocationsClient(_stormConf, host, port));
+                    }
+                    client = _clients.get(server);
+                }
                 client.result(id, result);
                 _collector.ack(input);
             } catch(TException e) {
