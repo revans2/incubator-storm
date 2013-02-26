@@ -17,7 +17,7 @@ public class ZookeeperServerCnxnFactoryTest {
 
   @Test
   public void testFactoryHasCorrectMaxNumClients() {
-    int arbitraryPort = 2000;
+    int arbitraryPort = 65535;
     int arbitraryMaxClients = 42;
     ZookeeperServerCnxnFactory zkcf =
       new ZookeeperServerCnxnFactory(arbitraryPort, arbitraryMaxClients);

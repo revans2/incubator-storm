@@ -770,7 +770,7 @@
 (deftest test-nimbus-iface-submitTopologyWithOpts-checks-authorization
   (with-local-cluster [cluster 
                        :daemon-conf {NIMBUS-AUTHORIZER 
-                          "backtype.storm.security.auth.DenyAuthorizer"}]
+                          "backtype.storm.security.auth.authorizer.DenyAuthorizer"}]
     (let [
           nimbus (:nimbus cluster)
           topology (thrift/mk-topology {} {})
@@ -786,7 +786,7 @@
 (deftest test-nimbus-iface-methods-check-authorization
   (with-local-cluster [cluster 
                        :daemon-conf {NIMBUS-AUTHORIZER 
-                          "backtype.storm.security.auth.DenyAuthorizer"}]
+                          "backtype.storm.security.auth.authorizer.DenyAuthorizer"}]
     (let [
           nimbus (:nimbus cluster)
           topology (thrift/mk-topology {} {})
