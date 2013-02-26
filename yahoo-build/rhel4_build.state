@@ -1,6 +1,6 @@
 yinst.yinst_version: 4.225
 yinst.generated_by: statecc 1.0.1; yinst_lib 1.0.6111
-yinst.timestamp: 1359666281
+yinst.timestamp: 1361918827
 yinst.command: /home/y/bin/statecc --branch test --no-validate ./rhel4_build.yml 
 yinst.package: yahoo/buildyblocks-1.76.10.877(0)
 yinst.package: yahoo/buildyblocks_assemble-1.3.5.877(0)
@@ -40,7 +40,7 @@ yinst.package: ypan/perl-Class-Accessor-0.33_01(0)
 yinst.package: ypan/perl-Class-Data-Inheritable-0.08_02(0)
 yinst.package: ypan/perl-Class-Load-0.19_04(0)
 yinst.package: ypan/perl-Compress-Raw-Bzip2-2.031_05(0)
-yinst.package: ypan/perl-Compress-Raw-Zlib-2.030_04(0)
+yinst.package: ypan/perl-Compress-Raw-Zlib-2.049_02(0)
 yinst.package: ypan/perl-Crypt-OpenSSL-RSA-0.26_01(0)
 yinst.package: ypan/perl-Crypt-OpenSSL-Random-0.04_02(0)
 yinst.package: ypan/perl-Crypt-OpenSSL-X509-0.7_01(0)
@@ -106,7 +106,7 @@ yinst.package: ypan/perl-Module-Implementation-0.06_03(0)
 yinst.package: ypan/perl-Module-Runtime-0.013_03(0)
 yinst.package: ypan/perl-Mozilla-CA-20120309_02(0)
 yinst.package: ypan/perl-NTLM-1.05_01(0)
-yinst.package: ypan/perl-Net-HTTP-6.03_04(0)
+yinst.package: ypan/perl-Net-HTTP-6.05_04(0)
 yinst.package: ypan/perl-Net-SSLeay-1.36_02(0)
 yinst.package: ypan/perl-Number-Compare-0.01_02(0)
 yinst.package: ypan/perl-Package-DeprecationManager-0.10_01(0)
@@ -179,8 +179,8 @@ yinst.package: yahoo/perl_ysecure-2.3.1(0)
 yinst.package: yahoo/perlbase-2.0.1_02(0)
 yinst.package: yahoo/pogo_certs-3.0.3(0)
 yinst.package: yahoo/pogo_client-3.0.51(0)
-yinst.package: ports/protobuf-2.0.3-2(0)
-yinst.package: ports/protobuf-c-0.11-3(0)
+yinst.package: ports/protobuf-2.3.0-1(0)
+yinst.package: ports/protobuf-c-0.15-1_02(0)
 yinst.package: yahoo/roles_client-0.19.137(0)
 yinst.package: yahoo/rootboy-0.9.4(0)
 yinst.package: yahoo/srczip-1.2.1157(0)
@@ -205,9 +205,9 @@ yinst.package: yahoo/yiv-0.2.252(0)
 yinst.package: yahoo/yjava_jdk-1.6.0_38.107(0)
 yinst.package: yahoo/yjava_maven-2.2.1_16(0)
 yinst.package: yahoo/yjava_vmwrapper-2.1.5(0)
-yinst.package: yahoo/ykeydb-1.0.8.0(0)
-yinst.package: yahoo/ykeykey-1.9.1.6(0)
-yinst.package: yahoo/ykeykeyshared-1.9.1.1(0)
+yinst.package: yahoo/ykeydb-2.0.0.19(0)
+yinst.package: yahoo/ykeykey-2.0.2.62(0)
+yinst.package: yahoo/ykeykeyshared-2.2.0.111(0)
 yinst.package: yahoo/ylock-1.3.0.11(0)
 yinst.package: yahoo/ylock_kern-1.95.4(0)
 yinst.package: yahoo/ypython-2.7.0(0)
@@ -217,7 +217,7 @@ yinst.package: yahoo/yrobot_conf-2.1.7.128(0)
 yinst.package: yahoo/yroot-1.6.68(0)
 yinst.package: yahoo/yrop-0.29.147(0)
 yinst.package: yahoo/yruby-1.9_3(0)
-yinst.package: yahoo/yruby19-1.9.3_p327_3(0)
+yinst.package: yahoo/yruby19-1.9.3_p374_2(0)
 yinst.package: yahoo/ysecure-2.12.62(0)
 yinst.package: yahoo/ystorm_jzmq-2.1.0.6(0)
 yinst.package: yahoo/ystorm_zeromq-2.1.7.5(0)
@@ -314,8 +314,10 @@ yinst.package: yahoo/ysys-2.30.40(0)
 +use_thread_locks enable
 --- /dev/null
 +++ var/yinst/settings/ykeykey
-@@ -0,0 +1,3 @@
+@@ -0,0 +1,5 @@
++cache_disabled false
 +log_level log_error
++negative_caching enable
 +read_timeout 5000
 +reconn_timeout 3000
 --- /dev/null
