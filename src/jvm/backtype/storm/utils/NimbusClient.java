@@ -16,7 +16,7 @@ public class NimbusClient extends ThriftClient {
         try {
             String nimbusHost = (String) conf.get(Config.NIMBUS_HOST);
             int nimbusPort = Utils.getInt(conf.get(Config.NIMBUS_THRIFT_PORT));
-            String timeoutStr = (String) conf.get(Config.NIMBUS_TASK_TIMEOUT_SECS);
+            String timeoutStr = Utils.getInt(Config.NIMBUS_TASK_TIMEOUT_SECS).toString();
             Integer timeout = new Integer(timeoutStr);
             return new NimbusClient(conf, nimbusHost, nimbusPort, timeout);
         } catch (TTransportException ex) {
