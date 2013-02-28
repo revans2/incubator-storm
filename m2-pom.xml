@@ -367,6 +367,7 @@
                   <excludes>
                     <exclude>backtype/storm/metric/api/IMetricsConsumer$DataPointFieldAccess</exclude>
                     <exclude>backtype/storm/metric/api/IMetricsConsumer$TaskInfoFieldAccess</exclude>
+                    <exclude>backtype/storm/testing/TestSerObjectFieldAccess</exclude>
                   </excludes>
                 </configuration>
               </execution>

@@ -25,7 +25,7 @@ public class ThriftServer {
             //retrieve authentication configuration 
             _login_conf = AuthUtils.GetConfiguration(_storm_conf);
         } catch (Exception x) {
-            x.printStackTrace();
+            LOG.error(x.getMessage(), x);
         }
     }
 

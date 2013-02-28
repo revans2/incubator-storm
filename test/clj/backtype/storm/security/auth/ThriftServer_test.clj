@@ -11,4 +11,4 @@
 
 (deftest test-ctor-catches-exceptions
   (let [conf {"java.security.auth.login.config" "!!!this is a bad file name!!!"}]
-    (ThriftServer. conf nil 12345)))
+    (.stop (ThriftServer. conf nil 12345))))
