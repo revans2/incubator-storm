@@ -13,7 +13,7 @@ public class ThriftServer {
     private Map _storm_conf; //storm configuration
     private TProcessor _processor = null;
     private int _port = 0;
-    private TServer _server;
+    private TServer _server = null;
     private Configuration _login_conf;
     
     public ThriftServer(Map storm_conf, TProcessor processor, int port) {

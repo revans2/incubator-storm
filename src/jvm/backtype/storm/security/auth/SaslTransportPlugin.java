@@ -102,7 +102,7 @@ public abstract class SaslTransportPlugin implements ITransportPlugin {
         }
     }
 
-    static class User implements Principal {
+    public static class User implements Principal {
         private final String name;
 
         public User(String name) {
@@ -134,7 +134,7 @@ public abstract class SaslTransportPlugin implements ITransportPlugin {
 
         @Override
         public String toString() {
-            return name;
+            return this.getName();
         }
     }
 }

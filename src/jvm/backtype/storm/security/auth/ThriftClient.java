@@ -12,14 +12,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import backtype.storm.utils.Utils;
 
-public class ThriftClient {	
+public class ThriftClient {
     private static final Logger LOG = LoggerFactory.getLogger(ThriftClient.class);
     private TTransport _transport;
     protected TProtocol _protocol;
-
-    public ThriftClient(Map storm_conf, String host, int port) throws TTransportException {
-        this(storm_conf, host, port, null);
-    }
 
     public ThriftClient(Map storm_conf, String host, int port, Integer timeout) throws TTransportException {
         try {

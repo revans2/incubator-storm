@@ -21,14 +21,6 @@ import static org.mockito.Mockito.mock;
 public class ReqContextTest {
 
   @Test
-  public void testContextReturnsContextWithCorrectSubject() {
-    ReqContext rc = ReqContext.context();
-    Subject expected = Subject.getSubject(AccessController.getContext());
-    Subject actual = rc.subject();
-    assertEquals(expected, actual);
-  }
-
-  @Test
   public void testSubject() {
     ReqContext rc = ReqContext.context();
     Subject expected = new Subject();
