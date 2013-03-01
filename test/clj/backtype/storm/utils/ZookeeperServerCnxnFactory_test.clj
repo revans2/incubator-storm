@@ -7,13 +7,14 @@
   (is (thrown? RuntimeException (ZookeeperServerCnxnFactory. 65536 42)))
 )
 
-(deftest test-factory-has-correct-max-num-clients
-  (let [arbitrary-max-clients 42
-        factory (ZookeeperServerCnxnFactory. 65535 arbitrary-max-clients)]
-    (is (= (-> factory .factory .getMaxClientCnxnsPerHost) arbitrary-max-clients))
+(deftest test-factory
+  (let [zkcf-negative (ZookeeperServerCnxnFactory. -42 42)
+        next-port (+ (.port zkcf-negative) 1)
+        arbitrary-max-clients 42
+        zkcf-next (ZookeeperServerCnxnFactory. next-port arbitrary-max-clients)]
+    ; Test handling negative port
+    (is (not (nil? zkcf-negative)))
+    ; Test max-clients is correctly set.
+    (is (= (-> zkcf-next .factory .getMaxClientCnxnsPerHost) arbitrary-max-clients))
   )
-)
-
-(deftest test-constructor-handles-negative-port
-  (is (not (nil? (ZookeeperServerCnxnFactory. -42 42))))
 )
