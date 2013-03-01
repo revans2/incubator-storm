@@ -28,11 +28,9 @@
   (let [storm-conf (merge (read-storm-config)
                      {STORM-THRIFT-TRANSPORT-PLUGIN
                        "backtype.storm.security.auth.SimpleTransportPlugin"
-                      Config/NIMBUS_HOST "localhost"
+                      Config/NIMBUS_HOST ""
                       Config/NIMBUS_THRIFT_PORT 65535
                      })]
-    ; This configuration should fail to connect since we have not launched a
-    ; server.
     (is (thrown? RuntimeException
       (NimbusClient/getConfiguredClient storm-conf)))
   )
@@ -40,10 +38,8 @@
 
 (deftest test-getConfiguredClient-throws-RunTimeException-on-bad-args
   (let [storm-conf (read-storm-config)]
-    ; This configuration should fail to connect since we have not launched a
-    ; server.
     (is (thrown? TTransportException
-      (NimbusClient. storm-conf "localhost" 65535)
+      (NimbusClient. storm-conf "" 65535)
     ))
   )
 )
