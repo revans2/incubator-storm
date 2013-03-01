@@ -8,7 +8,3 @@
 (deftest test-stop-checks-for-null
   (let [server (ThriftServer. (read-default-config) nil 12345)]
     (.stop server)))
-
-(deftest test-ctor-catches-exceptions
-  (let [conf {"java.security.auth.login.config" "!!!this is a bad file name!!!"}]
-    (.stop (ThriftServer. conf nil 12345))))

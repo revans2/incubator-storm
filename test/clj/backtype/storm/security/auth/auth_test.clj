@@ -138,7 +138,6 @@
   (let [storm-conf (merge (read-storm-config)
                           {STORM-THRIFT-TRANSPORT-PLUGIN "backtype.storm.security.auth.digest.DigestSaslTransportPlugin"
                            "java.security.auth.login.config" "test/clj/backtype/storm/security/auth/jaas_digest.conf"})]
-    ; brittle
     (is (= "java.net.SocketTimeoutException: Read timed out" 
            (try (NimbusClient. storm-conf "localhost" 6627 nimbus-timeout)
              nil
@@ -179,7 +178,6 @@
                         "backtype.storm.security.auth.digest.DigestSaslTransportPlugin")
   (log-message "(Positive authentication) valid digest authentication")
   (let [storm-conf (merge (read-storm-config)
-
                            {STORM-THRIFT-TRANSPORT-PLUGIN "backtype.storm.security.auth.digest.DigestSaslTransportPlugin"
                             "java.security.auth.login.config" "test/clj/backtype/storm/security/auth/jaas_digest.conf"})
         client (NimbusClient. storm-conf "localhost" 6630 nimbus-timeout)
