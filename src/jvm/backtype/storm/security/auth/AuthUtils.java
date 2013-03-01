@@ -71,7 +71,6 @@ public class AuthUtils {
         AppConfigurationEntry configurationEntries[] = configuration.getAppConfigurationEntry(section);
         if (configurationEntries == null) {
             String errorMessage = "Could not find a '"+ section + "' entry in this configuration.";
-            LOG.error(errorMessage);
             throw new IOException(errorMessage);
         }
 

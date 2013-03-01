@@ -31,13 +31,12 @@
                  ]
 
   :source-paths ["src/clj" "src/clj/backtype/storm/"]
-  :java-source-paths ["src/jvm" "test/jvm"]
+  :java-source-paths ["src/jvm"]
   :test-paths ["test/clj"]
   :resource-paths ["conf"]
 
   :profiles {:dev {:resource-paths ["src/ui" "src/dev"]
                    :dependencies [
-                                  [junit/junit "4.10"]
                                   [org.clojars.runa/conjure "2.1.1"]
                                   [org.mockito/mockito-all "1.9.5"]
                                  ]
@@ -46,11 +45,7 @@
              :lib {}
              }
 
-  :plugins [
-            [lein-swank "1.4.4"]
-            [lein-junit "1.1.2"]
-           ]
-  :junit ["test/jvm"]
+  :plugins [[lein-swank "1.4.4"]]
  
 
   :repositories {"sonatype"
