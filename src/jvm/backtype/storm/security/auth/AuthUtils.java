@@ -20,6 +20,11 @@ public class AuthUtils {
     private static final Logger LOG = LoggerFactory.getLogger(AuthUtils.class);
 
     /**
+     * Private constructor to prevent instantiation
+     */
+    private AuthUtils() {}
+
+    /**
      * Construct a JAAS configuration object per storm configuration file
      * @param storm_conf Storm configuration 
      * @return

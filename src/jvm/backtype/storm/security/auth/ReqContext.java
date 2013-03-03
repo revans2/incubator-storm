@@ -4,7 +4,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.net.InetAddress;
-import com.google.common.annotations.VisibleForTesting;
 import java.security.AccessControlContext;
 import java.security.AccessController;
 import java.security.Principal;
@@ -43,7 +42,6 @@ public class ReqContext {
     };
 
     //private constructor
-    @VisibleForTesting
     ReqContext(AccessControlContext acl_ctxt) {
         _subject = Subject.getSubject(acl_ctxt);
         _reqID = uniqueId.incrementAndGet();
