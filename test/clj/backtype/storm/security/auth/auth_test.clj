@@ -130,7 +130,7 @@
   (log-message "(Positive authentication) Server and Client with simple transport, no authentication")
   (let [storm-conf (merge (read-storm-config)
                           {STORM-THRIFT-TRANSPORT-PLUGIN "backtype.storm.security.auth.SimpleTransportPlugin"})
-        client (NimbusClient. storm-conf "localhost" 6627)
+        client (NimbusClient. storm-conf "localhost" 6627 nimbus-timeout)
         nimbus_client (.getClient client)]
     (.activate nimbus_client "security_auth_test_topology")
     (.close client))
@@ -154,7 +154,7 @@
         nimbus_client (.getClient client)]
     (log-message "(Positive authorization) Authorization plugin should accept client request")
     (.activate nimbus_client "security_auth_test_topology")
-    (.close (.transport client))))
+    (.close client)))
 
 (deftest deny-authorization-test 
   (launch-server-w-wait 6629 1000 nil
@@ -218,7 +218,7 @@
                           {STORM-THRIFT-TRANSPORT-PLUGIN "backtype.storm.security.auth.digest.DigestSaslTransportPlugin"
                            "java.security.auth.login.config" "test/clj/backtype/storm/security/auth/jaas_digest_missing_client.conf"})]
     (is (thrown? RuntimeException
-           (NimbusClient. storm-conf "localhost" 6627 nimbus-timeout))))
+           (NimbusClient. storm-conf "localhost" 6630 nimbus-timeout))))
 
 (deftest test-GetTransportPlugin-throws-RuntimeException
   (let [conf (merge (read-storm-config)
