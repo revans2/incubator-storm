@@ -1,6 +1,8 @@
 (ns backtype.storm.security.serialization.BlowfishTupleSerializer-test
-  (:use [
-         clojure test])
+  (:use [clojure test]
+        [backtype.storm.util :only (exception-cause?)]
+        [clojure.string :only (join split)]
+  )
   (:import [backtype.storm.security.serialization BlowfishTupleSerializer]
            [backtype.storm.utils ListDelegate]
            [com.esotericsoftware.kryo Kryo]
@@ -8,29 +10,20 @@
   )
 )
 
-; Exceptions are getting wrapped in RuntimeException.  This might be due to
-; CLJ-855.
-(defn- unpack-runtime-exception [expression]
-  (try (eval expression)
-    nil
-    (catch java.lang.RuntimeException gripe
-      (throw (.getCause gripe)))
-  )
-)
-
 (deftest test-constructor-throws-on-null-key
-  (let [conf {}]
-    (is (thrown? java.lang.RuntimeException
-      (unpack-runtime-exception 
-        '(new BlowfishTupleSerializer nil conf)))
-      "Throws RuntimeException when no encryption key is given."
-    )
+  (is (thrown? RuntimeException (new BlowfishTupleSerializer nil {}))
+      "Throws RuntimeException when no encryption key is given.")
+)
+
+(deftest test-constructor-throws-on-invalid-key
+  ; The encryption key must be hexadecimal.
+  (let [conf {BlowfishTupleSerializer/SECRET_KEY "0123456789abcdefg"}]
+    (is (thrown? RuntimeException (new BlowfishTupleSerializer nil conf))
+        "Throws RuntimeException when an invalid encryption key is given.")
   )
 )
 
-(use '[clojure.string :only (join split)])
 (deftest test-encrypts-and-decrypts-message
-
   (let [
         test-text (str
 "Tetraodontidae is a family of primarily marine and estuarine fish of the order"
@@ -46,7 +39,7 @@
 )
         kryo (new Kryo)
         arbitrary-key "7dd6fb3203878381b08f9c89d25ed105"
-        storm_conf {"topology.tuple.serializer.blowfish.key" arbitrary-key}
+        storm_conf {BlowfishTupleSerializer/SECRET_KEY arbitrary-key}
         writer-bts (new BlowfishTupleSerializer kryo storm_conf)
         reader-bts (new BlowfishTupleSerializer kryo storm_conf)
         buf-size 1024
@@ -57,7 +50,7 @@
        ]
     (-> delegate (.addAll strlist))
     (-> writer-bts (.write kryo output delegate))
-    (-> input (.setBuffer (-> output (.getBuffer))))
+    (.setBuffer input (.getBuffer output))
     (is 
       (=
         test-text
@@ -68,4 +61,3 @@
     )
   )
 )
-
