@@ -4,8 +4,10 @@
   (:import [org.apache.thrift7 TException])
   (:import [org.apache.thrift7.transport TTransportException])
   (:import [java.nio ByteBuffer])
+  (:import [backtype.storm Config])
   (:import [backtype.storm.utils NimbusClient])
-  (:import [backtype.storm.security.auth ThriftServer ThriftClient ReqContext ReqContext$OperationType])
+  (:import [backtype.storm.security.auth AuthUtils ThriftServer ThriftClient 
+                                         ReqContext ReqContext$OperationType])
   (:use [backtype.storm bootstrap util])
   (:use [backtype.storm.daemon common])
   (:use [backtype.storm bootstrap testing])
@@ -16,21 +18,22 @@
 
 (def nimbus-timeout (Integer. 30))
 
-(defn mk-authorization-handler [conf]
-  (let [klassname (conf NIMBUS-AUTHORIZER) 
+(defn mk-authorization-handler [storm-conf]
+  (let [klassname (storm-conf NIMBUS-AUTHORIZER) 
         aznClass (if klassname (Class/forName klassname))
         aznHandler (if aznClass (.newInstance aznClass))] 
+    (if aznHandler (.prepare aznHandler storm-conf))
     (log-debug "authorization class name:" klassname
                " class:" aznClass
                " handler:" aznHandler)
     aznHandler
     ))
 
-(defn nimbus-data [conf inimbus]
+(defn nimbus-data [storm-conf inimbus]
   (let [forced-scheduler (.getForcedScheduler inimbus)]
-    {:conf conf
+    {:conf storm-conf
      :inimbus inimbus
-     :authorization-handler (mk-authorization-handler conf)
+     :authorization-handler (mk-authorization-handler storm-conf)
      :submitted-count (atom 0)
      :storm-cluster-state nil
      :submit-lock (Object.)
@@ -158,8 +161,11 @@
                         "backtype.storm.security.auth.authorizer.DenyAuthorizer" 
                         "backtype.storm.security.auth.SimpleTransportPlugin")
   (let [storm-conf (merge (read-storm-config)
-                           {STORM-THRIFT-TRANSPORT-PLUGIN "backtype.storm.security.auth.SimpleTransportPlugin"})
-        client (NimbusClient. storm-conf "localhost" 6629 nimbus-timeout)
+                           {STORM-THRIFT-TRANSPORT-PLUGIN "backtype.storm.security.auth.SimpleTransportPlugin"
+                           Config/NIMBUS_HOST "localhost"
+                           Config/NIMBUS_THRIFT_PORT 6629
+                           Config/NIMBUS_TASK_TIMEOUT_SECS nimbus-timeout})
+        client (NimbusClient/getConfiguredClient storm-conf)
         nimbus_client (.getClient client)]
     (log-message "(Negative authorization) Authorization plugin should reject client request")
     (is (thrown? TTransportException
@@ -207,3 +213,14 @@
            nil
            (catch TTransportException ex (.getMessage ex)))))))
 
+  (log-message "(Negative authentication) IOException")
+  (let [storm-conf (merge (read-storm-config)
+                          {STORM-THRIFT-TRANSPORT-PLUGIN "backtype.storm.security.auth.digest.DigestSaslTransportPlugin"
+                           "java.security.auth.login.config" "test/clj/backtype/storm/security/auth/jaas_digest_missing_client.conf"})]
+    (is (thrown? RuntimeException
+           (NimbusClient. storm-conf "localhost" 6630 nimbus-timeout))))
+
+(deftest test-GetTransportPlugin-throws-RuntimeException
+  (let [conf (merge (read-storm-config)
+                    {Config/STORM_THRIFT_TRANSPORT_PLUGIN "null.invalid"})]
+    (is (thrown? RuntimeException (AuthUtils/GetTransportPlugin conf nil)))))

@@ -20,6 +20,11 @@ public class AuthUtils {
     private static final Logger LOG = LoggerFactory.getLogger(AuthUtils.class);
 
     /**
+     * Private constructor to prevent instantiation
+     */
+    private AuthUtils() {}
+
+    /**
      * Construct a JAAS configuration object per storm configuration file
      * @param storm_conf Storm configuration 
      * @return
@@ -55,7 +60,8 @@ public class AuthUtils {
         try {
             String transport_plugin_klassName = (String) storm_conf.get(Config.STORM_THRIFT_TRANSPORT_PLUGIN);
             Class klass = Class.forName(transport_plugin_klassName);
-            transportPlugin = (ITransportPlugin)klass.getConstructor(Configuration.class).newInstance(login_conf);
+            transportPlugin = (ITransportPlugin)klass.newInstance();
+            transportPlugin.prepare(storm_conf, login_conf);
         } catch(Exception e) {
             throw new RuntimeException(e);
         } 
@@ -66,7 +72,6 @@ public class AuthUtils {
         AppConfigurationEntry configurationEntries[] = configuration.getAppConfigurationEntry(section);
         if (configurationEntries == null) {
             String errorMessage = "Could not find a '"+ section + "' entry in this configuration.";
-            LOG.error(errorMessage);
             throw new IOException(errorMessage);
         }
 

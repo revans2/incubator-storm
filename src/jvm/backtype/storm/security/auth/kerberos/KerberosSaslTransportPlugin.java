@@ -30,10 +30,6 @@ public class KerberosSaslTransportPlugin extends SaslTransportPlugin {
     public static final String KERBEROS = "GSSAPI"; 
     private static final Logger LOG = LoggerFactory.getLogger(KerberosSaslTransportPlugin.class);
 
-    public KerberosSaslTransportPlugin(Configuration login_conf) {
-        super(login_conf);
-    }
-
     public TTransportFactory getServerTransportFactory() throws IOException {
         //create an authentication callback handler
         CallbackHandler server_callback_handler = new ServerCallbackHandler(login_conf);

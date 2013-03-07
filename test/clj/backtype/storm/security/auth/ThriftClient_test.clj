@@ -1,35 +1,26 @@
 (ns backtype.storm.security.auth.ThriftClient-test
+  (:use [backtype.storm config])
   (:use [clojure test])
   (:import [backtype.storm.security.auth ThriftClient])
-)
-
-; Exceptions are getting wrapped in RuntimeException.  This might be due to
-; CLJ-855.
-(defn- unpack-runtime-exception [expression]
-  (try (eval expression)
-    nil
-    (catch java.lang.RuntimeException gripe
-      (throw (.getCause gripe)))
-  )
+  (:import [org.apache.thrift7.transport TTransportException])
 )
 
 (deftest test-ctor-throws-if-port-invalid
-  (is (thrown? java.lang.IllegalArgumentException
-    (unpack-runtime-exception 
-      '(ThriftClient. "bogushost" -1 "Fake Service Name"))))
-  (is
-    (thrown? java.lang.IllegalArgumentException
-      (unpack-runtime-exception
-        '(ThriftClient. "bogushost" 0 "Fake Service Name"))))
+  (let [conf (read-default-config)
+        timeout (Integer. 30)]
+    (is (thrown? java.lang.IllegalArgumentException
+      (ThriftClient. conf "bogushost" -1 timeout)))
+    (is (thrown? java.lang.IllegalArgumentException
+        (ThriftClient. conf "bogushost" 0 timeout)))
+  )
 )
 
 (deftest test-ctor-throws-if-host-not-set
-  (is
-    (thrown? IllegalArgumentException
-      (unpack-runtime-exception
-        '(ThriftClient. "" 4242 "Fake Service Name"))))
-  (is
-    (thrown? IllegalArgumentException
-      (unpack-runtime-exception
-        '(ThriftClient. nil 4242 "Fake Service Name"))))
+  (let [conf (read-default-config)
+        timeout (Integer. 60)]
+    (is (thrown? TTransportException
+         (ThriftClient. conf "" 4242 timeout)))
+    (is (thrown? IllegalArgumentException
+        (ThriftClient. conf nil 4242 timeout)))
+  )
 )

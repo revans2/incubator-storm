@@ -8,7 +8,7 @@ import org.apache.thrift7.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class NimbusClient extends ThriftClient {	
+public class NimbusClient extends ThriftClient {
     private Nimbus.Client _client;
     private static final Logger LOG = LoggerFactory.getLogger(NimbusClient.class);
 
@@ -16,13 +16,15 @@ public class NimbusClient extends ThriftClient {
         try {
             String nimbusHost = (String) conf.get(Config.NIMBUS_HOST);
             int nimbusPort = Utils.getInt(conf.get(Config.NIMBUS_THRIFT_PORT));
-            String timeoutStr = (String) conf.get(Config.NIMBUS_TASK_TIMEOUT_SECS);
-            Integer timeout = new Integer(timeoutStr);
+            Integer timeout = Utils.getInt(conf.get(Config.NIMBUS_TASK_TIMEOUT_SECS));
             return new NimbusClient(conf, nimbusHost, nimbusPort, timeout);
         } catch (TTransportException ex) {
-            LOG.info(ex.getMessage(), ex);
             throw new RuntimeException(ex);
         }
+    }
+
+    public NimbusClient(Map conf, String host, int port) throws TTransportException {
+        this(conf, host, port, null);
     }
 
     public NimbusClient(Map conf, String host, int port, Integer timeout) throws TTransportException {

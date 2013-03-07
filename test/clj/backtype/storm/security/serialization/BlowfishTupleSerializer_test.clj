@@ -39,7 +39,7 @@
 )
         kryo (new Kryo)
         arbitrary-key "7dd6fb3203878381b08f9c89d25ed105"
-        storm_conf {"topology.tuple.serializer.blowfish.key" arbitrary-key}
+        storm_conf {BlowfishTupleSerializer/SECRET_KEY arbitrary-key}
         writer-bts (new BlowfishTupleSerializer kryo storm_conf)
         reader-bts (new BlowfishTupleSerializer kryo storm_conf)
         buf-size 1024
@@ -50,7 +50,7 @@
        ]
     (-> delegate (.addAll strlist))
     (-> writer-bts (.write kryo output delegate))
-    (-> input (.setBuffer (-> output (.getBuffer))))
+    (.setBuffer input (.getBuffer output))
     (is 
       (=
         test-text
@@ -61,5 +61,3 @@
     )
   )
 )
-
-
