@@ -19,11 +19,34 @@ BASE_VERSION: ../project.clj
 RELEASE:
 	echo $(FULL_VERSION) > RELEASE
 
-testpkg: RELEASE BASE_VERSION build
+testpkg: RELEASE BASE_VERSION build storm.zip
 	yinst_create --buildtype test ystorm.yicf
 	
-package: RELEASE BASE_VERSION build
+package: RELEASE BASE_VERSION build storm.zip
 	yinst_create --buildtype release ystorm.yicf
+	
+storm.zip: _release
+	rm -f storm.zip
+	cd _release && zip -r ../storm.zip *
+
+_release: RELEASE build
+	rm -rf _release
+	mkdir -p _release/storm/lib
+	cp ../target/storm-*.jar _release/storm/storm.jar
+	cp ../target/dependency/*.jar _release/storm/lib
+	cp ../CHANGELOG.md _release/storm/
+	cp RELEASE _release/storm/
+	cp -r ../logback _release/storm/
+	mkdir -p _release/storm/logs
+	mkdir _release/storm/conf
+	cp ../conf/storm.yaml.example _release/storm/conf/storm.yaml
+	cp ../conf/jaas_digest.conf _release/storm/conf/
+	cp ../conf/jaas_kerberos.conf _release/storm/conf/
+	cp -R ../src/ui/public _release/storm/
+	cp -R ../bin _release/storm/
+	cp ../README.markdown _release/storm/
+	cp ../LICENSE.html _release/storm/
+	
 	
 
 #Ugly hack to remove svnlite from the state file because statcc cannot deal
@@ -36,7 +59,7 @@ rhel4_build.state: rhel4_build.yidf  rhel4_build.yml
 	statecc-validate-state rhel4_build.state
 
 clean:
-	rm -rf rhel4_build.ruleset ystorm*.tgz BASE_VERSION RELEASE
+	rm -rf rhel4_build.ruleset ystorm*.tgz BASE_VERSION RELEASE _release storm.zip
 	cd .. && $(MVN) -f m2-pom.xml clean ${MVN_MAKE_OPTS}
 
 
