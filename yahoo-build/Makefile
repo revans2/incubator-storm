@@ -6,11 +6,14 @@ MVN=LD_LIBRARY_PATH=/home/y/lib64 /home/y/bin/mvn
 
 all: build
 
-test: build
+test:
 	cd .. && $(MVN) -f m2-pom.xml package ${MVN_MAKE_OPTS}
 
 build:
 	cd .. && $(MVN) -f m2-pom.xml package -DskipTests ${MVN_MAKE_OPTS}
+
+install:
+	cd .. && $(MVN) -f m2-pom.xml install -DskipTests ${MVN_MAKE_OPTS}
 
 #TODO need a good way to see if these values would have changed and update only then
 BASE_VERSION: ../project.clj
@@ -24,7 +27,7 @@ testpkg: RELEASE BASE_VERSION build storm.zip
 	
 package: RELEASE BASE_VERSION build storm.zip
 	yinst_create --buildtype release ystorm.yicf
-	
+
 storm.zip: _release
 	rm -f storm.zip
 	cd _release && zip -r ../storm.zip *
