@@ -1,5 +1,5 @@
 (ns backtype.storm.security.auth.ReqContext-test
-  (:import [backtype.storm.security.auth ReqContext ReqContext$OperationType])
+  (:import [backtype.storm.security.auth ReqContext])
   (:import [java.net InetAddress])
   (:import [java.security AccessControlContext Principal])
   (:import [javax.security.auth Subject])
@@ -53,17 +53,5 @@
     (.setSubject rc s)
     (is (not (nil? (.principal rc))))
     (is (= (-> rc .principal .getName) principal-name))
-  )
-)
-
-(deftest test-operation
-  (let [rc (ReqContext/context)
-        expected (ReqContext$OperationType/SUBMIT_TOPOLOGY)
-        expected2 (ReqContext$OperationType/DEACTIVATE_TOPOLOGY)
-        ]
-    (.setOperation rc expected)
-    (is (= (.operation rc) expected))
-    (.setOperation rc expected2)
-    (is (= (.operation rc) expected2))
   )
 )

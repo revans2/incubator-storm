@@ -1,52 +1,47 @@
 package backtype.storm.security.auth;
 
+import backtype.storm.Config;
 import javax.security.auth.login.Configuration;
 import javax.security.auth.login.AppConfigurationEntry;
+import java.security.NoSuchAlgorithmException;
+import java.security.URIParameter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import backtype.storm.Config;
-import backtype.storm.utils.Utils;
-
+import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.net.URL;
-import java.net.URLClassLoader;
+import java.net.URI;
 import java.util.Map;
 
 public class AuthUtils {
+    private static final Logger LOG = LoggerFactory.getLogger(AuthUtils.class);
     public static final String LOGIN_CONTEXT_SERVER = "StormServer"; 
     public static final String LOGIN_CONTEXT_CLIENT = "StormClient"; 
     public static final String SERVICE = "storm_thrift_server";
-    private static final Logger LOG = LoggerFactory.getLogger(AuthUtils.class);
 
     /**
-     * Private constructor to prevent instantiation
-     */
-    private AuthUtils() {}
-
-    /**
-     * Construct a JAAS configuration object per storm configuration file
+     * Construct a JAAS configuration object per storm configuration file 
      * @param storm_conf Storm configuration 
-     * @return
+     * @return JAAS configuration object
      */
-    public static synchronized Configuration GetConfiguration(Map storm_conf) {
-        Configuration.setConfiguration(null);
-
-        //exam system property first
-        String orig_loginConfigurationFile = System.getProperty("java.security.auth.login.config");
-
-        //try to find login file from Storm configuration  
-        String loginConfigurationFile = (String)storm_conf.get("java.security.auth.login.config");
-        if (loginConfigurationFile==null)
-            loginConfigurationFile = orig_loginConfigurationFile;
-
+    public static Configuration GetConfiguration(Map storm_conf) {
         Configuration login_conf = null;
+
+        //find login file configuration from Storm configuration  
+        String loginConfigurationFile = (String)storm_conf.get("java.security.auth.login.config");
         if ((loginConfigurationFile != null) && (loginConfigurationFile.length()>0)) { 
-            System.setProperty("java.security.auth.login.config", loginConfigurationFile);
-            login_conf =  Configuration.getConfiguration();
-            if (orig_loginConfigurationFile!=null)
-                System.setProperty("java.security.auth.login.config", orig_loginConfigurationFile);
+            try {
+                URI config_uri = new File(loginConfigurationFile).toURI();
+                login_conf = Configuration.getInstance("JavaLoginConfig", new URIParameter(config_uri));
+            } catch (NoSuchAlgorithmException ex1) {
+                if (ex1.getCause() instanceof FileNotFoundException)
+                    throw new RuntimeException("configuration file "+loginConfigurationFile+" could not be found");
+                else throw new RuntimeException(ex1);
+            } catch (Exception ex2) {
+                throw new RuntimeException(ex2);
+            }
         }
+        
         return login_conf;
     }
 

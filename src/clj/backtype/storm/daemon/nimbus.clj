@@ -6,7 +6,7 @@
   (:import [java.nio ByteBuffer])
   (:import [java.io FileNotFoundException])
   (:import [java.nio.channels Channels WritableByteChannel])
-  (:import [backtype.storm.security.auth ThriftServer ReqContext ReqContext$OperationType])
+  (:import [backtype.storm.security.auth ThriftServer ReqContext])
   (:use [backtype.storm.scheduler.DefaultScheduler])
   (:import [backtype.storm.scheduler INimbus SupervisorDetails WorkerSlot TopologyDetails
             Cluster Topologies SchedulerAssignment SchedulerAssignmentImpl DefaultScheduler ExecutorDetails])
@@ -746,23 +746,16 @@
       (throw (AlreadyAliveException. (str storm-name " is already active"))))
     ))
 
-(defn update-req-context! [nimbus storm-name storm-conf operation]
-  (let [req (ReqContext/context)]
-    (.setOperation req operation)
-    (if storm-conf (.setTopologyConf req storm-conf) 
-      (let [storm-id  (get-storm-id (:storm-cluster-state nimbus) storm-name)
-            topologyConf (read-storm-conf (:conf nimbus) storm-id)]
-        (.setTopologyConf req topologyConf)))
-    req))
-
 (defn check-authorization! [nimbus storm-name storm-conf operation]
- (let [aclHandler (:authorization-handler nimbus)]
-   (log-debug "check-authorization with handler: " aclHandler)
-   (if aclHandler
-       (let [req (update-req-context! nimbus storm-name storm-conf operation)]
-        (if-not (.permit aclHandler req)
-          (throw (NotAuthorizedException. (str operation " on topology " storm-name " is not authorized")))
-          )))))
+  (let [aclHandler (:authorization-handler nimbus)]
+    (log-debug "check-authorization with handler: " aclHandler)
+    (if aclHandler
+        (if-not (.permit aclHandler 
+                  (ReqContext/context) 
+                  operation 
+                  (if storm-conf storm-conf {TOPOLOGY-NAME storm-name}))
+          (throw (RuntimeException. (str operation " on topology " storm-name " is not authorized")))
+          ))))
 
 (defn code-ids [conf]
   (-> conf
@@ -959,7 +952,7 @@
                            (optimize-topology topology)
                            topology)
                 storm-cluster-state (:storm-cluster-state nimbus)]
-            (check-authorization! nimbus storm-name storm-conf (ReqContext$OperationType/SUBMIT_TOPOLOGY))
+            (check-authorization! nimbus storm-name storm-conf "submitTopology")
             (system-topology! total-storm-conf topology) ;; this validates the structure of the topology
             (log-message "Received topology submission for " storm-name " with conf " storm-conf)
             ;; lock protects against multiple topologies being submitted at once and
@@ -985,7 +978,7 @@
 
       (^void killTopologyWithOpts [this ^String storm-name ^KillOptions options]
         (check-storm-active! nimbus storm-name true)
-        (check-authorization! nimbus storm-name nil (ReqContext$OperationType/KILL_TOPOLOGY))
+        (check-authorization! nimbus storm-name nil "killTopology")
         (let [wait-amt (if (.is_set_wait_secs options)
                          (.get_wait_secs options)                         
                          )]
@@ -994,7 +987,7 @@
 
       (^void rebalance [this ^String storm-name ^RebalanceOptions options]
         (check-storm-active! nimbus storm-name true)
-        (check-authorization! nimbus storm-name nil (ReqContext$OperationType/REBALANCE_TOPOLOGY))
+        (check-authorization! nimbus storm-name nil "rebalance")
         (let [wait-amt (if (.is_set_wait_secs options)
                          (.get_wait_secs options))
               num-workers (if (.is_set_num_workers options)
@@ -1010,12 +1003,12 @@
           ))
 
       (activate [this storm-name]
-        (check-authorization! nimbus storm-name nil (ReqContext$OperationType/ACTIVATE_TOPOLOGY))
+        (check-authorization! nimbus storm-name nil "activate")
         (transition-name! nimbus storm-name :activate true)
         )
 
       (deactivate [this storm-name]
-        (check-authorization! nimbus storm-name nil (ReqContext$OperationType/DEACTIVATE_TOPOLOGY))
+        (check-authorization! nimbus storm-name nil "deactivate")
         (transition-name! nimbus storm-name :inactivate true))
 
       (beginFileUpload [this]
@@ -1122,8 +1115,8 @@
       (^TopologyInfo getTopologyInfo [this ^String storm-id]
         (let [storm-cluster-state (:storm-cluster-state nimbus)
               base (.storm-base storm-cluster-state storm-id nil)
-	      storm-name (if base (:storm-name base) (throw (NotAliveException. storm-id)))
-	      launch-time-secs (if base (:launch-time-secs base) (throw (NotAliveException. storm-id)))
+              storm-name (if base (:storm-name base) (throw (NotAliveException. storm-id)))
+              launch-time-secs (if base (:launch-time-secs base) (throw (NotAliveException. storm-id)))
               task->component (storm-task-info (try-read-storm-topology conf storm-id) (try-read-storm-conf conf storm-id))
               assignment (.assignment-info storm-cluster-state storm-id nil)
               beats (.executor-beats storm-cluster-state storm-id (:executor->node+port assignment))
