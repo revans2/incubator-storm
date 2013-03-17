@@ -21,8 +21,8 @@ import java.util.Arrays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class NotAuthorizedException extends Exception implements org.apache.thrift7.TBase<NotAuthorizedException, NotAuthorizedException._Fields>, java.io.Serializable, Cloneable {
-  private static final org.apache.thrift7.protocol.TStruct STRUCT_DESC = new org.apache.thrift7.protocol.TStruct("NotAuthorizedException");
+public class AuthorizationException extends Exception implements org.apache.thrift7.TBase<AuthorizationException, AuthorizationException._Fields>, java.io.Serializable, Cloneable {
+  private static final org.apache.thrift7.protocol.TStruct STRUCT_DESC = new org.apache.thrift7.protocol.TStruct("AuthorizationException");
 
   private static final org.apache.thrift7.protocol.TField MSG_FIELD_DESC = new org.apache.thrift7.protocol.TField("msg", org.apache.thrift7.protocol.TType.STRING, (short)1);
 
@@ -94,13 +94,13 @@ public class NotAuthorizedException extends Exception implements org.apache.thri
     tmpMap.put(_Fields.MSG, new org.apache.thrift7.meta_data.FieldMetaData("msg", org.apache.thrift7.TFieldRequirementType.REQUIRED, 
         new org.apache.thrift7.meta_data.FieldValueMetaData(org.apache.thrift7.protocol.TType.STRING)));
     metaDataMap = Collections.unmodifiableMap(tmpMap);
-    org.apache.thrift7.meta_data.FieldMetaData.addStructMetaDataMap(NotAuthorizedException.class, metaDataMap);
+    org.apache.thrift7.meta_data.FieldMetaData.addStructMetaDataMap(AuthorizationException.class, metaDataMap);
   }
 
-  public NotAuthorizedException() {
+  public AuthorizationException() {
   }
 
-  public NotAuthorizedException(
+  public AuthorizationException(
     String msg)
   {
     this();
@@ -110,14 +110,14 @@ public class NotAuthorizedException extends Exception implements org.apache.thri
   /**
    * Performs a deep copy on <i>other</i>.
    */
-  public NotAuthorizedException(NotAuthorizedException other) {
+  public AuthorizationException(AuthorizationException other) {
     if (other.is_set_msg()) {
       this.msg = other.msg;
     }
   }
 
-  public NotAuthorizedException deepCopy() {
-    return new NotAuthorizedException(this);
+  public AuthorizationException deepCopy() {
+    return new AuthorizationException(this);
   }
 
   @Override
@@ -187,12 +187,12 @@ public class NotAuthorizedException extends Exception implements org.apache.thri
   public boolean equals(Object that) {
     if (that == null)
       return false;
-    if (that instanceof NotAuthorizedException)
-      return this.equals((NotAuthorizedException)that);
+    if (that instanceof AuthorizationException)
+      return this.equals((AuthorizationException)that);
     return false;
   }
 
-  public boolean equals(NotAuthorizedException that) {
+  public boolean equals(AuthorizationException that) {
     if (that == null)
       return false;
 
@@ -220,13 +220,13 @@ public class NotAuthorizedException extends Exception implements org.apache.thri
     return builder.toHashCode();
   }
 
-  public int compareTo(NotAuthorizedException other) {
+  public int compareTo(AuthorizationException other) {
     if (!getClass().equals(other.getClass())) {
       return getClass().getName().compareTo(other.getClass().getName());
     }
 
     int lastComparison = 0;
-    NotAuthorizedException typedOther = (NotAuthorizedException)other;
+    AuthorizationException typedOther = (AuthorizationException)other;
 
     lastComparison = Boolean.valueOf(is_set_msg()).compareTo(typedOther.is_set_msg());
     if (lastComparison != 0) {
@@ -286,7 +286,7 @@ public class NotAuthorizedException extends Exception implements org.apache.thri
 
   @Override
   public String toString() {
-    StringBuilder sb = new StringBuilder("NotAuthorizedException(");
+    StringBuilder sb = new StringBuilder("AuthorizationException(");
     boolean first = true;
 
     sb.append("msg:");
