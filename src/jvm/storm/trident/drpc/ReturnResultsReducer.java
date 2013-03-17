@@ -3,6 +3,7 @@ package storm.trident.drpc;
 import backtype.storm.Config;
 import backtype.storm.drpc.DRPCInvocationsClient;
 import backtype.storm.generated.DistributedRPCInvocations;
+import backtype.storm.generated.AuthorizationException;
 import backtype.storm.utils.ServiceRegistry;
 import backtype.storm.utils.Utils;
 import java.util.ArrayList;
@@ -11,6 +12,7 @@ import java.util.List;
 import java.util.Map;
 import org.apache.commons.lang.builder.ToStringBuilder;
 import org.apache.thrift7.TException;
+import org.apache.thrift7.transport.TTransportException;
 import org.json.simple.JSONValue;
 import storm.trident.drpc.ReturnResultsReducer.ReturnResultsState;
 import storm.trident.operation.MultiReducer;
@@ -31,14 +33,13 @@ public class ReturnResultsReducer implements MultiReducer<ReturnResultsState> {
     }
     boolean local;
     Map conf;
-
     Map<List, DRPCInvocationsClient> _clients = new HashMap<List, DRPCInvocationsClient>();
-
-
+    
+    
     @Override
     public void prepare(Map conf, TridentMultiReducerContext context) {
-        local = conf.get(Config.STORM_CLUSTER_MODE).equals("local");
         this.conf = conf;
+        local = conf.get(Config.STORM_CLUSTER_MODE).equals("local");
     }
 
     @Override
@@ -65,24 +66,30 @@ public class ReturnResultsReducer implements MultiReducer<ReturnResultsState> {
             final int port = Utils.getInt(retMap.get("port"));
             String id = (String) retMap.get("id");
             DistributedRPCInvocations.Iface client;
+            if(local) {
+                client = (DistributedRPCInvocations.Iface) ServiceRegistry.getService(host);
+            } else {
+                List server = new ArrayList() {{
+                    add(host);
+                    add(port);
+                }};
+
+                if(!_clients.containsKey(server)) {
+                    try {
+                        _clients.put(server, new DRPCInvocationsClient(conf, host, port));
+                    } catch (TTransportException ex) {
+                        throw new RuntimeException(ex);
+                    }
+                }
+                client = _clients.get(server);
+            }
 
             try {
-                if(local) {
-                    client = (DistributedRPCInvocations.Iface) ServiceRegistry.getService(host);
-                } else {
-                    List server = new ArrayList() {{
-                        add(host);
-                        add(port);
-                    }};
-
-                    if(!_clients.containsKey(server)) {
-                        _clients.put(server, new DRPCInvocationsClient(conf, host, port));
-                    }
-                    client = _clients.get(server);
-                }
                 client.result(id, result);
             } catch(TException e) {
                 collector.reportError(e);
+            } catch (AuthorizationException aze) {
+                collector.reportError(aze);                
             }
         }
     }
@@ -93,5 +100,5 @@ public class ReturnResultsReducer implements MultiReducer<ReturnResultsState> {
             c.close();
         }
     }
-
+    
 }

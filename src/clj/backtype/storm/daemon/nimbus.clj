@@ -754,7 +754,7 @@
                   (ReqContext/context) 
                   operation 
                   (if storm-conf storm-conf {TOPOLOGY-NAME storm-name}))
-          (throw (RuntimeException. (str operation " on topology " storm-name " is not authorized")))
+          (throw (AuthorizationException. (str operation " on topology " storm-name " is not authorized")))
           ))))
 
 (defn code-ids [conf]
@@ -977,8 +977,8 @@
          (.killTopologyWithOpts this name (KillOptions.)))
 
       (^void killTopologyWithOpts [this ^String storm-name ^KillOptions options]
-        (check-storm-active! nimbus storm-name true)
         (check-authorization! nimbus storm-name nil "killTopology")
+        (check-storm-active! nimbus storm-name true)
         (let [wait-amt (if (.is_set_wait_secs options)
                          (.get_wait_secs options)                         
                          )]
@@ -986,8 +986,8 @@
           ))
 
       (^void rebalance [this ^String storm-name ^RebalanceOptions options]
-        (check-storm-active! nimbus storm-name true)
         (check-authorization! nimbus storm-name nil "rebalance")
+        (check-storm-active! nimbus storm-name true)
         (let [wait-amt (if (.is_set_wait_secs options)
                          (.get_wait_secs options))
               num-workers (if (.is_set_num_workers options)

@@ -787,7 +787,7 @@
           nimbus (:nimbus cluster)
           topology (thrift/mk-topology {} {})
          ]
-      (is (thrown? NotAuthorizedException
+      (is (thrown? AuthorizationException
           (submit-local-topology-with-opts nimbus "mystorm" {} topology 
             (SubmitOptions. TopologyInitialStatus/INACTIVE))
         ))
@@ -809,14 +809,14 @@
               (SubmitOptions. TopologyInitialStatus/INACTIVE))
       )
       (stubbing [nimbus/storm-active? true]
-        (is (thrown? NotAuthorizedException
+        (is (thrown? AuthorizationException
           (.rebalance nimbus "test" (RebalanceOptions.))
           ))
       )
-      (is (thrown? NotAuthorizedException
+      (is (thrown? AuthorizationException
         (.activate nimbus "test")
         ))
-      (is (thrown? NotAuthorizedException
+      (is (thrown? AuthorizationException
         (.deactivate nimbus "test")
         ))
     )

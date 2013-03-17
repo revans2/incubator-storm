@@ -4,6 +4,7 @@ import backtype.storm.Config;
 import backtype.storm.ILocalDRPC;
 import backtype.storm.generated.DRPCRequest;
 import backtype.storm.generated.DistributedRPCInvocations;
+import backtype.storm.generated.AuthorizationException;
 import backtype.storm.spout.SpoutOutputCollector;
 import backtype.storm.task.TopologyContext;
 import backtype.storm.topology.OutputFieldsDeclarer;
@@ -24,23 +25,23 @@ import org.json.simple.JSONValue;
 
 public class DRPCSpout extends BaseRichSpout {
     public static Logger LOG = LoggerFactory.getLogger(DRPCSpout.class);
-
+    
     SpoutOutputCollector _collector;
     List<DRPCInvocationsClient> _clients = new ArrayList<DRPCInvocationsClient>();
     String _function;
     String _local_drpc_id = null;
-
+    
     private static class DRPCMessageId {
         String id;
         int index;
-
+        
         public DRPCMessageId(String id, int index) {
             this.id = id;
             this.index = index;
         }
     }
-
-
+    
+    
     public DRPCSpout(String function) {
         _function = function;
     }
@@ -49,7 +50,7 @@ public class DRPCSpout extends BaseRichSpout {
         _function = function;
         _local_drpc_id = drpc.getServiceId();
     }
-
+    
     @Override
     public void open(Map conf, TopologyContext context, SpoutOutputCollector collector) {
         _collector = collector;
@@ -62,21 +63,21 @@ public class DRPCSpout extends BaseRichSpout {
             if(servers == null || servers.isEmpty()) {
                 throw new RuntimeException("No DRPC servers configured for topology");   
             }
-
+            
             try {
                 if(numTasks < servers.size()) {
                     for(String s: servers) {
                         _clients.add(new DRPCInvocationsClient(conf, s, port));
-                    }
-                } else {
+                    }   
+                } else {        
                     int i = index % servers.size();
                     _clients.add(new DRPCInvocationsClient(conf, servers.get(i), port));
                 }
             } catch (TTransportException ex) {
-                throw new RuntimeException("DRPCInvocationsClient failed to be constructed"+ex); 
+                throw new RuntimeException(ex); 
             }
         }
-
+        
     }
 
     @Override
@@ -105,6 +106,8 @@ public class DRPCSpout extends BaseRichSpout {
                     }
                 } catch (TException e) {
                     LOG.error("Failed to fetch DRPC result from DRPC server", e);
+                } catch (AuthorizationException aze) {
+                    LOG.error("Not authorized to fetch DRPC result from DRPC server", aze);
                 }
             }
         } else {
@@ -122,6 +125,8 @@ public class DRPCSpout extends BaseRichSpout {
                     }
                 } catch (TException e) {
                     throw new RuntimeException(e);
+                } catch (AuthorizationException aze) {
+                    throw new RuntimeException(aze);
                 }
             }
         }
@@ -138,7 +143,7 @@ public class DRPCSpout extends BaseRichSpout {
     public void fail(Object msgId) {
         DRPCMessageId did = (DRPCMessageId) msgId;
         DistributedRPCInvocations.Iface client;
-
+        
         if(_local_drpc_id == null) {
             client = _clients.get(did.index);
         } else {
@@ -148,6 +153,8 @@ public class DRPCSpout extends BaseRichSpout {
             client.failRequest(did.id);
         } catch (TException e) {
             LOG.error("Failed to fail request", e);
+        } catch (AuthorizationException aze) {
+            LOG.error("Not authorized to failREquest from DRPC server", aze);
         }
     }
 
