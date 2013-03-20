@@ -927,6 +927,7 @@
         (try
           (assert (not-nil? submitOptions))
           (validate-topology-name! storm-name)
+          (check-authorization! nimbus storm-name nil "submitTopology")
           (check-storm-active! nimbus storm-name false)
           (.validate ^backtype.storm.nimbus.ITopologyValidator (:validator nimbus)
                      storm-name
@@ -952,7 +953,6 @@
                            (optimize-topology topology)
                            topology)
                 storm-cluster-state (:storm-cluster-state nimbus)]
-            (check-authorization! nimbus storm-name storm-conf "submitTopology")
             (system-topology! total-storm-conf topology) ;; this validates the structure of the topology
             (log-message "Received topology submission for " storm-name " with conf " storm-conf)
             ;; lock protects against multiple topologies being submitted at once and
