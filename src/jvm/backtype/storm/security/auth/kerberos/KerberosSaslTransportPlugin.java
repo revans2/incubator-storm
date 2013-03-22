@@ -10,6 +10,7 @@ import java.util.TreeMap;
 import javax.security.auth.Subject;
 import javax.security.auth.callback.CallbackHandler;
 import javax.security.auth.kerberos.KerberosTicket;
+import javax.security.auth.login.AppConfigurationEntry;
 import javax.security.auth.login.Configuration;
 import javax.security.auth.login.LoginException;
 import javax.security.sasl.Sasl;
@@ -34,6 +35,11 @@ public class KerberosSaslTransportPlugin extends SaslTransportPlugin {
         //create an authentication callback handler
         CallbackHandler server_callback_handler = new ServerCallbackHandler(login_conf);
 
+        //debug
+        AppConfigurationEntry[] entries = login_conf.getAppConfigurationEntry(AuthUtils.LOGIN_CONTEXT_SERVER);
+        for (int i=0; i<entries.length; i++)
+            LOG.debug(AuthUtils.LOGIN_CONTEXT_SERVER+"["+i+"]: "+entries[i]);
+        
         //login our principal
         Subject subject = null;
         try {
@@ -46,10 +52,8 @@ public class KerberosSaslTransportPlugin extends SaslTransportPlugin {
 
         //check the credential of our principal
         if (subject.getPrivateCredentials(KerberosTicket.class).isEmpty()) { 
-            RuntimeException ex = new RuntimeException("Fail to verify user principal with section \""
+            throw new RuntimeException("Fail to verify user principal with section \""
                     +AuthUtils.LOGIN_CONTEXT_SERVER+"\" in login configuration file "+ login_conf);
-            LOG.error(ex.getMessage(), ex);
-            throw ex;
         }
 
         String principal = AuthUtils.get(login_conf, AuthUtils.LOGIN_CONTEXT_SERVER, "principal"); 
@@ -76,6 +80,11 @@ public class KerberosSaslTransportPlugin extends SaslTransportPlugin {
         //create an authentication callback handler
         ClientCallbackHandler client_callback_handler = new ClientCallbackHandler(login_conf);
 
+      //debug
+        AppConfigurationEntry[] entries = login_conf.getAppConfigurationEntry(AuthUtils.LOGIN_CONTEXT_CLIENT);
+        for (int i=0; i<entries.length; i++)
+            LOG.debug(AuthUtils.LOGIN_CONTEXT_CLIENT+"["+i+"]: "+entries[i]);
+        
         //login our user
         Login login = null;
         try { 
@@ -87,10 +96,8 @@ public class KerberosSaslTransportPlugin extends SaslTransportPlugin {
 
         final Subject subject = login.getSubject();
         if (subject.getPrivateCredentials(KerberosTicket.class).isEmpty()) { //error
-            RuntimeException ex = new RuntimeException("Fail to verify user principal with section \""
-                    +AuthUtils.LOGIN_CONTEXT_CLIENT+"\" in login configuration file "+ login_conf);
-            LOG.error(ex.getMessage(), ex);
-            throw ex;
+            throw new RuntimeException("Fail to verify user principal with section \""
+                        +AuthUtils.LOGIN_CONTEXT_CLIENT+"\" in login configuration file "+ login_conf);
         }
 
         final String principal = getPrincipal(subject); 
@@ -122,13 +129,11 @@ public class KerberosSaslTransportPlugin extends SaslTransportPlugin {
                     }
                     catch (Exception e) {
                         LOG.error("Client failed to open SaslClientTransport to interact with a server during session initiation: " + e, e);
-                        e.printStackTrace();
                     }
                     return null;
                 }
             });
         } catch (PrivilegedActionException e) {
-            LOG.error("Client experienced a PrivilegedActionException exception while creating a TSaslClientTransport using a JAAS principal context:" + e, e);
             throw new RuntimeException(e);
         }
 
