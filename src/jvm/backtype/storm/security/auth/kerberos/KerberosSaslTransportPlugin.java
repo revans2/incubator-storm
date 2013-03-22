@@ -44,6 +44,9 @@ public class KerberosSaslTransportPlugin extends SaslTransportPlugin {
         //login our principal
         Subject subject = null;
         try {
+            //specify a configuration object to be used
+            Configuration.setConfiguration(login_conf); 
+            //now login
             Login login = new Login(AuthUtils.LOGIN_CONTEXT_SERVER, server_callback_handler);
             subject = login.getSubject();
         } catch (LoginException ex) {
@@ -90,6 +93,9 @@ public class KerberosSaslTransportPlugin extends SaslTransportPlugin {
         //login our user
         Login login = null;
         try { 
+            //specify a configuration object to be used
+            Configuration.setConfiguration(login_conf); 
+            //now login
             login  = new Login(AuthUtils.LOGIN_CONTEXT_CLIENT, client_callback_handler);
         } catch (LoginException ex) {
             LOG.error("Server failed to login in principal:" + ex, ex);
