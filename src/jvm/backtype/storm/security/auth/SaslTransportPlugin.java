@@ -27,7 +27,7 @@ import org.slf4j.LoggerFactory;
  * Base class for SASL authentication plugin.
  */
 public abstract class SaslTransportPlugin implements ITransportPlugin {
-    protected Configuration login_conf;
+    protected volatile Configuration login_conf;
     private static final Logger LOG = LoggerFactory.getLogger(SaslTransportPlugin.class);
 
     /**

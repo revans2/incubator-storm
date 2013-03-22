@@ -37,6 +37,7 @@ public class KerberosSaslTransportPlugin extends SaslTransportPlugin {
 
         //debug
         AppConfigurationEntry[] entries = login_conf.getAppConfigurationEntry(AuthUtils.LOGIN_CONTEXT_SERVER);
+        LOG.debug(AuthUtils.LOGIN_CONTEXT_SERVER+ "entries #:"+entries.length);
         for (int i=0; i<entries.length; i++)
             LOG.debug(AuthUtils.LOGIN_CONTEXT_SERVER+"["+i+"]: "+entries[i]);
         
@@ -82,6 +83,7 @@ public class KerberosSaslTransportPlugin extends SaslTransportPlugin {
 
       //debug
         AppConfigurationEntry[] entries = login_conf.getAppConfigurationEntry(AuthUtils.LOGIN_CONTEXT_CLIENT);
+        LOG.debug(AuthUtils.LOGIN_CONTEXT_CLIENT+ "entries #:"+entries.length);
         for (int i=0; i<entries.length; i++)
             LOG.debug(AuthUtils.LOGIN_CONTEXT_CLIENT+"["+i+"]: "+entries[i]);
         
