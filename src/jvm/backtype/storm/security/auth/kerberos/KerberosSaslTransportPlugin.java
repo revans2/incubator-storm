@@ -34,12 +34,6 @@ public class KerberosSaslTransportPlugin extends SaslTransportPlugin {
     public TTransportFactory getServerTransportFactory() throws IOException {
         //create an authentication callback handler
         CallbackHandler server_callback_handler = new ServerCallbackHandler(login_conf);
-
-        //debug
-        AppConfigurationEntry[] entries = login_conf.getAppConfigurationEntry(AuthUtils.LOGIN_CONTEXT_SERVER);
-        LOG.debug(AuthUtils.LOGIN_CONTEXT_SERVER+ "entries #:"+entries.length);
-        for (int i=0; i<entries.length; i++)
-            LOG.debug(AuthUtils.LOGIN_CONTEXT_SERVER+"["+i+"]: "+entries[i]);
         
         //login our principal
         Subject subject = null;
@@ -83,12 +77,6 @@ public class KerberosSaslTransportPlugin extends SaslTransportPlugin {
     public TTransport connect(TTransport transport, String serverHost) throws TTransportException, IOException {
         //create an authentication callback handler
         ClientCallbackHandler client_callback_handler = new ClientCallbackHandler(login_conf);
-
-      //debug
-        AppConfigurationEntry[] entries = login_conf.getAppConfigurationEntry(AuthUtils.LOGIN_CONTEXT_CLIENT);
-        LOG.debug(AuthUtils.LOGIN_CONTEXT_CLIENT+ "entries #:"+entries.length);
-        for (int i=0; i<entries.length; i++)
-            LOG.debug(AuthUtils.LOGIN_CONTEXT_CLIENT+"["+i+"]: "+entries[i]);
         
         //login our user
         Login login = null;
