@@ -131,6 +131,11 @@
     </dependency>
     <dependency>
       <groupId>ring</groupId>
+      <artifactId>ring-devel</artifactId>
+      <version>0.3.11</version>
+    </dependency>
+    <dependency>
+      <groupId>ring</groupId>
       <artifactId>ring-jetty-adapter</artifactId>
       <version>0.3.11</version>
     </dependency>
