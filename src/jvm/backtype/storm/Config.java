@@ -68,7 +68,7 @@ public class Config extends HashMap<String, Object> {
      * The transport plug-in for Thrift client/server communication
      */
     public static String STORM_THRIFT_TRANSPORT_PLUGIN = "storm.thrift.transport";
-
+    
     /**
      * The serializer class for ListDelegate (tuple payload). 
      * The default serializer will be ListDelegateSerializer
@@ -220,7 +220,7 @@ public class Config extends HashMap<String, Object> {
      * Class name for authorization plugin for Nimbus
      */
     public static String NIMBUS_AUTHORIZER = "nimbus.authorizer";
-
+    
     /**
      * Storm UI binds to this port.
      */
@@ -243,6 +243,11 @@ public class Config extends HashMap<String, Object> {
     public static String DRPC_PORT = "drpc.port";
     
     /**
+     * Class name for authorization plugin for DRPC client
+     */
+    public static String DRPC_AUTHORIZER = "drpc.authorizer";
+
+    /**
      * DRPC thrift server worker threads 
      */
     public static String DRPC_WORKER_THREADS = "drpc.worker.threads";
@@ -257,6 +262,11 @@ public class Config extends HashMap<String, Object> {
      */
     public static String DRPC_INVOCATIONS_PORT = "drpc.invocations.port";  
     
+    /**
+     * Class name for authorization plugin for DRPC Invocations client
+     */
+    public static String DRPC_INVOCATIONS_AUTHORIZER = "drpc.invocations.authorizer";
+
     /**
      * The timeout on DRPC requests within the DRPC server. Defaults to 10 minutes. Note that requests can also
      * timeout based on the socket timeout on the DRPC client, and separately based on the topology message

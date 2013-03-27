@@ -2,7 +2,7 @@ package backtype.storm.security.auth;
 
 import java.io.IOException;
 import java.util.Map;
-
+import java.util.concurrent.ExecutorService;
 import javax.security.auth.login.Configuration;
 
 import org.apache.thrift7.TProcessor;
@@ -18,8 +18,9 @@ public interface ITransportPlugin {
      * Invoked once immediately after construction
      * @param storm_conf Storm configuration 
      * @param login_conf login configuration
+     * @param executor_service executor service for server
      */
-    void prepare(Map storm_conf, Configuration login_conf);
+    void prepare(Map storm_conf, Configuration login_conf, ExecutorService executor_service);
     
     /**
      * Create a server associated with a given port and service handler
