@@ -1,4 +1,4 @@
-#!/home/y/bin/python
+#!/bin/env /python
 
 import os
 import re
