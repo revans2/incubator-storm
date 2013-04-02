@@ -7,7 +7,7 @@
 )
 
 (deftest test-throws-on-missing-section
-  (is (thrown? IOException 
+  (is (thrown? IOException
     (AuthUtils/get (Mockito/mock Configuration) "bogus-section" "")))
 )
 
@@ -23,7 +23,7 @@
         entries (into-array (.getClass entry) [entry])
         section "bogus-section"
         conf (Mockito/mock Configuration)]
-    (. (Mockito/when (. conf getAppConfigurationEntry section )) 
+    (. (Mockito/when (. conf getAppConfigurationEntry section ))
        thenReturn entries)
     (is (nil? (AuthUtils/get conf section "nonexistent-key")))
   )

@@ -30,7 +30,7 @@
         (String. "backtype.storm.security.serialization.BlowfishTupleSerializer")
         serializer-class (Class/forName arbitrary-class-name)
         arbitrary-key "0123456789abcdef"
-        conf (merge (read-default-config) 
+        conf (merge (read-default-config)
           {Config/TOPOLOGY_TUPLE_SERIALIZER arbitrary-class-name
            BlowfishTupleSerializer/SECRET_KEY arbitrary-key})
         kryo (SerializationFactory/getKryo conf)]
