@@ -57,12 +57,12 @@
       (.close client))))
   
 (deftest test-noop-authorization-w-simple-transport 
-  (with-test-cluster [6627 nil 
+  (with-test-cluster [6628 nil 
                 "backtype.storm.security.auth.authorizer.NoopAuthorizer" 
                 "backtype.storm.security.auth.SimpleTransportPlugin"]
     (let [storm-conf (merge (read-storm-config)
                              {STORM-THRIFT-TRANSPORT-PLUGIN "backtype.storm.security.auth.SimpleTransportPlugin"})
-          client (NimbusClient. storm-conf "localhost" 6627 nimbus-timeout)
+          client (NimbusClient. storm-conf "localhost" 6628 nimbus-timeout)
           nimbus_client (.getClient client)]
       (testing "(Positive authorization) Authorization plugin should accept client request"
                (is (thrown? NotAliveException
@@ -70,13 +70,13 @@
       (.close client))))
 
 (deftest test-deny-authorization-w-simple-transport 
-  (with-test-cluster [6627 nil
+  (with-test-cluster [6629 nil
                 "backtype.storm.security.auth.authorizer.DenyAuthorizer" 
                 "backtype.storm.security.auth.SimpleTransportPlugin"]
     (let [storm-conf (merge (read-storm-config)
                              {STORM-THRIFT-TRANSPORT-PLUGIN "backtype.storm.security.auth.SimpleTransportPlugin"
                              Config/NIMBUS_HOST "localhost"
-                             Config/NIMBUS_THRIFT_PORT 6627})
+                             Config/NIMBUS_THRIFT_PORT 6629})
           client (NimbusClient/getConfiguredClient storm-conf)
           nimbus_client (.getClient client)
           topologyInitialStatus (TopologyInitialStatus/findByValue 2)
@@ -102,7 +102,7 @@
       (.close client))))
 
 (deftest test-noop-authorization-w-sasl-digest 
-  (with-test-cluster [6627 
+  (with-test-cluster [6630
                 "test/clj/backtype/storm/security/auth/jaas_digest.conf" 
                 "backtype.storm.security.auth.authorizer.NoopAuthorizer" 
                 "backtype.storm.security.auth.digest.DigestSaslTransportPlugin"]
@@ -110,7 +110,7 @@
                             {STORM-THRIFT-TRANSPORT-PLUGIN "backtype.storm.security.auth.digest.DigestSaslTransportPlugin"
                              "java.security.auth.login.config" "test/clj/backtype/storm/security/auth/jaas_digest.conf"
                              Config/NIMBUS_HOST "localhost"
-                             Config/NIMBUS_THRIFT_PORT 6627})
+                             Config/NIMBUS_THRIFT_PORT 6630})
           client (NimbusClient/getConfiguredClient storm-conf)
           nimbus_client (.getClient client)]
       (testing "(Positive authorization) Authorization plugin should accept client request"
@@ -119,7 +119,7 @@
       (.close client))))
 
 (deftest test-deny-authorization-w-sasl-digest 
-  (with-test-cluster [6627 
+  (with-test-cluster [6631
                 "test/clj/backtype/storm/security/auth/jaas_digest.conf" 
                 "backtype.storm.security.auth.authorizer.DenyAuthorizer" 
                 "backtype.storm.security.auth.digest.DigestSaslTransportPlugin"]
@@ -127,7 +127,7 @@
                             {STORM-THRIFT-TRANSPORT-PLUGIN "backtype.storm.security.auth.digest.DigestSaslTransportPlugin"
                              "java.security.auth.login.config" "test/clj/backtype/storm/security/auth/jaas_digest.conf"
                              Config/NIMBUS_HOST "localhost"
-                             Config/NIMBUS_THRIFT_PORT 6627})
+                             Config/NIMBUS_THRIFT_PORT 6631})
           client (NimbusClient/getConfiguredClient storm-conf)
           nimbus_client (.getClient client)
           topologyInitialStatus (TopologyInitialStatus/findByValue 2)
