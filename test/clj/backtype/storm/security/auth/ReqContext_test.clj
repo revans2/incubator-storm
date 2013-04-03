@@ -38,11 +38,11 @@
 (def principal-name "Test Principal")
 
 (defn TestPrincipal []
-  (reify Principal 
+  (reify Principal
     (^String getName [this]
       principal-name)
   )
-) 
+)
 
 (deftest test-principal
   (let [p (TestPrincipal)

@@ -5,7 +5,7 @@
   :dependencies [[org.clojure/clojure "1.4.0"]
                  [commons-io "1.4"]
                  [org.apache.commons/commons-exec "1.1"]
-		 [org.apache.zookeeper/zookeeper "3.4.5"
+                 [org.apache.zookeeper/zookeeper "3.4.5"
                   :exclusions [com.sun.jmx/jmxri com.sun.jdmk/jmxtools javax.jms/jms org.slf4j/slf4j-log4j12]]
                  [storm/libthrift7 "0.7.0"
                   :exclusions [org.slf4j/slf4j-api]]
@@ -31,12 +31,12 @@
                  [org.slf4j/log4j-over-slf4j "1.6.6"]
                  ]
 
-  :source-paths ["src/clj" "src/clj/backtype/storm/"]
+  :source-paths ["src/clj"]
   :java-source-paths ["src/jvm"]
   :test-paths ["test/clj"]
   :resource-paths ["conf"]
 
-  :profiles {:dev {:resource-paths ["src/ui" "src/dev"]
+  :profiles {:dev {:resource-paths ["src/dev"]
                    :dependencies [
                                   [org.clojars.runa/conjure "2.1.1"]
                                   [org.mockito/mockito-all "1.9.5"]
@@ -47,12 +47,11 @@
              }
 
   :plugins [[lein-swank "1.4.4"]]
- 
 
   :repositories {"sonatype"
                  "http://oss.sonatype.org/content/groups/public/"}
 
-  :javac-options {:debug true}
+  :javac-options ["-g"]
   :jvm-opts ["-Djava.library.path=/usr/local/lib:/opt/local/lib:/usr/lib:/home/y/lib64"]
 
   :aot :all
