@@ -61,8 +61,14 @@ rhel4_build.state: rhel4_build.yidf  rhel4_build.yml
 	mv -f rhel4_build.state.tmp rhel4_build.state
 	statecc-validate-state rhel4_build.state
 
+#Ugly hack to remove svnlite from the state file because statcc cannot deal
+# with y_subversion replacing svnlite
+rhel6_build.state: rhel6_build.yidf  rhel6_build.yml
+	rm -f rhel6_build.state rhel6_build.state.tmp rhel6_build.ruleset
+	statecc --branch test ./rhel6_build.yml
+
 clean:
-	rm -rf rhel4_build.ruleset ystorm*.tgz BASE_VERSION RELEASE _release storm.zip
+	rm -rf *_build.ruleset ystorm*.tgz BASE_VERSION RELEASE _release storm.zip
 	cd .. && $(MVN) -f m2-pom.xml clean ${MVN_MAKE_OPTS}
 
 

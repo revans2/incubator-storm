@@ -1,10 +1,11 @@
 # used by buildyblocks_yroot_create
 
 # Name of yroot to create ( It can contain variables )
-yroot: ystorm-rhel4-component-master
+yroot: ystorm-component-master
 
-# Image to use for RHEL x86_64
+# Image to use
 yroot_x86_64_rhel_image: 4.9-20110216
+yroot_x86_64_rhel6_image: 6.3-20120918
 
 # Remove the yroot after completing 
 yroot_remove: true
@@ -16,6 +17,7 @@ yroot_remove: true
 
 # Statefile for yroot on RHEL x86_64
 provision_x86_64_rhel_statefile: ./rhel4_build.state
+provision_x86_64_rhel6_statefile: ./rhel6_build.state
 
 # Yinst Version to install in yroot
 provision_yinst_version: yinst7stable
