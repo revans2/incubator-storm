@@ -1,6 +1,6 @@
 yinst.generated_by: statecc 1.0.7; yinst_lib 1.1.6297
 yinst.yinst_version: 4.225
-yinst.timestamp: 1365194786
+yinst.timestamp: 1365195395
 yinst.command: /home/y/bin/statecc --branch test ./rhel6_build.yml 
 yinst.package: yahoo/buildyblocks-1.77.15.918(1361406595)
 yinst.package: yahoo/buildyblocks_assemble-1.4.1.918(1361406571)
@@ -192,7 +192,7 @@ yinst.package: yahoo/ykeydb-2.0.1.39(1360715084)
 yinst.package: yahoo/ykeykey-2.0.2.62(1354735883)
 yinst.package: yahoo/ykeykeyshared-2.2.0.111(1356063481)
 yinst.package: yahoo/ylock-1.4.1.22(1341945205)
-yinst.package: yahoo/ylock_kern-1.95.4(1271399438)
+yinst.package: yahoo/ylock_kern-1.98.0.16(1328735501)
 yinst.package: yahoo/ypython-2.7.2_2(1355944391)
 yinst.package: yahoo/ypython27-2.7.2_2(1355943199)
 yinst.package: yahoo/yroot-1.6.68(1344418549)

@@ -17,4 +17,4 @@ add yinst pkg yjava_jdk                 1.7.0_13.66 1.7.9999999
 add yinst pkg yjava_maven               2.2.1_16     3.99999.99999
 
 # Needed to force the version to match what is outside the yroot
-add yinst pkg ylock_kern                1.95.4
+add yinst pkg ylock_kern                1.98.0.16
