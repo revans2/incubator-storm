@@ -24,6 +24,9 @@ import org.apache.thrift7.transport.TTransportFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import backtype.storm.Config;
+import backtype.storm.utils.Utils;
+
 /**
  * Base class for SASL authentication plugin.
  */
@@ -49,10 +52,12 @@ public abstract class SaslTransportPlugin implements ITransportPlugin {
         TTransportFactory serverTransportFactory = getServerTransportFactory();
 
         TServerSocket serverTransport = new TServerSocket(port);
+        int numWorkerThreads =
+                Utils.getInt(this.storm_conf.get(Config.DRPC_WORKER_THREADS));
         TThreadPoolServer.Args server_args = new TThreadPoolServer.Args(serverTransport).
                 processor(new TUGIWrapProcessor(processor)).
-                minWorkerThreads(64).
-                maxWorkerThreads(64).
+                minWorkerThreads(numWorkerThreads).
+                maxWorkerThreads(numWorkerThreads).
                 protocolFactory(new TBinaryProtocol.Factory());            
         if (serverTransportFactory != null) 
             server_args =  server_args.transportFactory(serverTransportFactory);
