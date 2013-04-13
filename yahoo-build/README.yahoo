@@ -1,8 +1,8 @@
-This package is a wrapper around the open source storm pacakge.
+This package is a wrapper around the open source storm package.
 
 It is intended to provide a simple way to run a storm grid.  The storm.yaml 
 config file is modified through yinst settings.  Any yinst setting on the 
-ystorm package will be translated into entires in storm.yaml replaceing 
+ystorm package will be translated into entires in storm.yaml replacing 
 '_' characters with '.' characters.
 
 For example
@@ -13,9 +13,22 @@ whould add the following line to storm.yaml
 
 nimbus.host: host.corp.yahoo.com
 
+
+Remote Logging
+--------------
+
+To enable logging to a remote HOST on PORT output to PATH:
+
+1. Install ystorm on all nodes, including HOST
+2. On all hosts:
+    1. yinst set ystorm.logger_host=$HOST
+    2. yinst set ystorm.logger_port=$PORT
+    3. yinst set ystorm.logging_logfile_path=$PATH
+    4. yinst set ystorm.remote_logging=true
+
+
 NOTE:
+----
 This package is intended to be used by the cloud services storm team to support
 a hosted storm service.  If anyone else wants to use this go ahead, but we are
 not going to be able to officially support you for a while :) so good luck.
--------------------------------------------------------------------------------
-
