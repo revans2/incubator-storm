@@ -5,6 +5,7 @@
   (:import [org.apache.thrift7.transport TTransportException])
   (:import [java.nio ByteBuffer])
   (:import [backtype.storm Config])
+  (:import [backtype.storm.generated AuthorizationException])
   (:import [backtype.storm.utils NimbusClient])
   (:import [backtype.storm.security.auth.authorizer SimpleWhitelistAuthorizer])
   (:import [backtype.storm.security.auth AuthUtils ThriftServer ThriftClient 
@@ -138,7 +139,7 @@
           client (NimbusClient. storm-conf "localhost" 6633 nimbus-timeout)
           nimbus_client (.getClient client)]
       (testing "(Negative authorization) Authorization plugin should reject client request"
-               (is (thrown? TTransportException
+               (is (thrown-cause? AuthorizationException
                             (.activate nimbus_client "security_auth_test_topology"))))
                (.close client))))
 
