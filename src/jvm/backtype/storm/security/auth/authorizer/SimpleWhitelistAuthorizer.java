@@ -25,6 +25,7 @@ public class SimpleWhitelistAuthorizer implements IAuthorizer {
      * Invoked once immediately after construction
      * @param conf Storm configuration 
      */
+    @Override
     public void prepare(Map conf) {
       users = new HashSet<String>();
       if (conf.containsKey(WHITELIST_USERS_CONF)) {
@@ -39,6 +40,7 @@ public class SimpleWhitelistAuthorizer implements IAuthorizer {
      * @param topology_storm configuration of targeted topology 
      * @return true if the request is authorized, false if reject
      */
+    @Override
     public boolean permit(ReqContext context, String operation, Map topology_conf) {
         LOG.info("[req "+ context.requestID()+ "] Access "
                 + " from: " + (context.remoteAddress() == null? "null" : context.remoteAddress().toString())

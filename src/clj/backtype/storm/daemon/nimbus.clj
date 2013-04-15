@@ -46,7 +46,7 @@
   (let [forced-scheduler (.getForcedScheduler inimbus)]
     {:conf conf
      :inimbus inimbus
-     :authorization-handler (mk-authorization-handler (conf NIMBUS-AUTHORIZER))
+     :authorization-handler (mk-authorization-handler (conf NIMBUS-AUTHORIZER) conf)
      :submitted-count (atom 0)
      :storm-cluster-state (cluster/mk-storm-cluster-state conf)
      :submit-lock (Object.)

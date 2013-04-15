@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.concurrent.ExecutorService;
 
 import javax.security.auth.login.Configuration;
+import javax.security.auth.Subject;
 import org.apache.thrift7.TException;
 import org.apache.thrift7.TProcessor;
 import org.apache.thrift7.protocol.TBinaryProtocol;
@@ -76,6 +77,13 @@ public class SimpleTransportPlugin implements ITransportPlugin {
         return conn;
     }
 
+    /**
+     * @return the subject that will be used for all connections
+     */  
+    protected Subject getDefaultSubject() {
+        return null;
+    }
+
     /**                                                                                                                                                                             
      * Processor that populate simple transport info into ReqContext, and then invoke a service handler                                                                              
      */
@@ -105,7 +113,7 @@ public class SimpleTransportPlugin implements ITransportPlugin {
             } 
 
             //anonymous user
-            req_context.setSubject(null);
+            req_context.setSubject(getDefaultSubject());
 
             //invoke service handler
             return wrapped.process(inProt, outProt);
