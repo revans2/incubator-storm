@@ -5,9 +5,11 @@
   (:import [org.apache.thrift7.transport TTransportException])
   (:import [java.nio ByteBuffer])
   (:import [backtype.storm Config])
+  (:import [backtype.storm.generated AuthorizationException])
   (:import [backtype.storm.utils NimbusClient])
+  (:import [backtype.storm.security.auth.authorizer SimpleWhitelistAuthorizer])
   (:import [backtype.storm.security.auth AuthUtils ThriftServer ThriftClient 
-                                         ReqContext])
+                                         ReqContext SimpleTransportPlugin])
   (:use [backtype.storm bootstrap util])
   (:use [backtype.storm.daemon common])
   (:use [backtype.storm bootstrap testing])
@@ -22,7 +24,7 @@
   (let [forced-scheduler (.getForcedScheduler inimbus)]
     {:conf storm-conf
      :inimbus inimbus
-     :authorization-handler (mk-authorization-handler (storm-conf NIMBUS-AUTHORIZER))
+     :authorization-handler (mk-authorization-handler (storm-conf NIMBUS-AUTHORIZER) storm-conf)
      :submitted-count (atom 0)
      :storm-cluster-state nil
      :submit-lock (Object.)
@@ -35,38 +37,27 @@
      :scheduler nil
      }))
 
-(defn check-authorization! [nimbus storm-name storm-conf operation]
-  (let [aclHandler (:authorization-handler nimbus)]
-    (log-debug "check-authorization with handler: " aclHandler)
-    (if aclHandler
-        (if-not (.permit aclHandler 
-                  (ReqContext/context) 
-                  operation 
-                  (if storm-conf storm-conf {TOPOLOGY-NAME storm-name}))
-          (throw (RuntimeException. (str operation " on topology " storm-name " is not authorized")))
-          ))))
-
 (defn dummy-service-handler [conf inimbus]
-  (let [nimbus (nimbus-data conf inimbus)]
+  (let [nimbus-d (nimbus-data conf inimbus)]
     (reify Nimbus$Iface
       (^void submitTopologyWithOpts [this ^String storm-name ^String uploadedJarLocation ^String serializedConf ^StormTopology topology
                                      ^SubmitOptions submitOptions]
-        (check-authorization! nimbus storm-name nil "submitTopology"))
+        (nimbus/check-authorization! nimbus-d storm-name nil "submitTopology"))
       
       (^void killTopology [this ^String storm-name]
-        (check-authorization! nimbus storm-name nil "killTopology"))
+        (nimbus/check-authorization! nimbus-d storm-name nil "killTopology"))
       
       (^void killTopologyWithOpts [this ^String storm-name ^KillOptions options]
-        (check-authorization! nimbus storm-name nil "killTopology"))
+        (nimbus/check-authorization! nimbus-d storm-name nil "killTopology"))
 
       (^void rebalance [this ^String storm-name ^RebalanceOptions options]
-        (check-authorization! nimbus storm-name nil "rebalance"))
+        (nimbus/check-authorization! nimbus-d storm-name nil "rebalance"))
 
       (activate [this storm-name]
-        (check-authorization! nimbus storm-name nil "activate"))
+        (nimbus/check-authorization! nimbus-d storm-name nil "activate"))
 
       (deactivate [this storm-name]
-        (check-authorization! nimbus storm-name nil "deactivate"))
+        (nimbus/check-authorization! nimbus-d storm-name nil "deactivate"))
 
       (beginFileUpload [this])
 
@@ -90,13 +81,14 @@
       
       (^TopologyInfo getTopologyInfo [this ^String storm-id]))))
 
-(defn launch-server [server-port login-cfg aznClass transportPluginClass] 
+(defn launch-server [server-port login-cfg aznClass transportPluginClass serverConf] 
   (let [conf1 (merge (read-storm-config)
                     {NIMBUS-AUTHORIZER aznClass 
                      NIMBUS-HOST "localhost"
                      NIMBUS-THRIFT-PORT server-port
                      STORM-THRIFT-TRANSPORT-PLUGIN transportPluginClass})
-        conf (if login-cfg (merge conf1 {"java.security.auth.login.config" login-cfg}) conf1)
+        conf2 (if login-cfg (merge conf1 {"java.security.auth.login.config" login-cfg}) conf1)
+        conf (if serverConf (merge conf2 serverConf) conf2)
         nimbus (nimbus/standalone-nimbus)
         service-handler (dummy-service-handler conf nimbus)
         server (ThriftServer. conf (Nimbus$Processor. service-handler) (int (conf NIMBUS-THRIFT-PORT)))]
@@ -112,7 +104,7 @@
       ))
 
 (deftest Simple-authentication-test 
-  (with-server [6632 nil nil "backtype.storm.security.auth.SimpleTransportPlugin"]
+  (with-server [6632 nil nil "backtype.storm.security.auth.SimpleTransportPlugin" nil]
     (let [storm-conf (merge (read-storm-config)
                             {STORM-THRIFT-TRANSPORT-PLUGIN "backtype.storm.security.auth.SimpleTransportPlugin"})
           client (NimbusClient. storm-conf "localhost" 6632 nimbus-timeout)
@@ -126,44 +118,71 @@
       (testing "(Negative authentication) Server: Simple vs. Client: Digest"
                (is (thrown-cause?  java.net.SocketTimeoutException
                              (NimbusClient. storm-conf "localhost" 6632 nimbus-timeout)))))))
+
+(deftest negative-whitelist-authorization-test 
+  (with-server [6633 nil
+                "backtype.storm.security.auth.authorizer.SimpleWhitelistAuthorizer" 
+                "backtype.storm.testing.SingleUserSimpleTransport" nil]
+    (let [storm-conf (merge (read-storm-config)
+                             {STORM-THRIFT-TRANSPORT-PLUGIN "backtype.storm.testing.SingleUserSimpleTransport"})
+          client (NimbusClient. storm-conf "localhost" 6633 nimbus-timeout)
+          nimbus_client (.getClient client)]
+      (testing "(Negative authorization) Authorization plugin should reject client request"
+               (is (thrown-cause? AuthorizationException
+                            (.activate nimbus_client "security_auth_test_topology"))))
+               (.close client))))
+
+(deftest positive-whitelist-authorization-test 
+  (with-server [6634 nil
+                "backtype.storm.security.auth.authorizer.SimpleWhitelistAuthorizer" 
+                "backtype.storm.testing.SingleUserSimpleTransport" {SimpleWhitelistAuthorizer/WHITELIST_USERS_CONF ["user"]}]
+    (let [storm-conf (merge (read-storm-config)
+                             {STORM-THRIFT-TRANSPORT-PLUGIN "backtype.storm.testing.SingleUserSimpleTransport"})
+          client (NimbusClient. storm-conf "localhost" 6634 nimbus-timeout)
+          nimbus_client (.getClient client)]
+      (testing "(Positive authorization) Authorization plugin should accept client request"
+               (.activate nimbus_client "security_auth_test_topology"))
+      (.close client))))
+
+
   
 (deftest positive-authorization-test 
-  (with-server [6633 nil 
+  (with-server [6635 nil
                 "backtype.storm.security.auth.authorizer.NoopAuthorizer" 
-                "backtype.storm.security.auth.SimpleTransportPlugin"]
+                "backtype.storm.security.auth.SimpleTransportPlugin" nil]
     (let [storm-conf (merge (read-storm-config)
                              {STORM-THRIFT-TRANSPORT-PLUGIN "backtype.storm.security.auth.SimpleTransportPlugin"})
-          client (NimbusClient. storm-conf "localhost" 6633 nimbus-timeout)
+          client (NimbusClient. storm-conf "localhost" 6635 nimbus-timeout)
           nimbus_client (.getClient client)]
       (testing "(Positive authorization) Authorization plugin should accept client request"
                (.activate nimbus_client "security_auth_test_topology"))
       (.close client))))
 
 (deftest deny-authorization-test 
-  (with-server [6634 nil
+  (with-server [6636 nil
                 "backtype.storm.security.auth.authorizer.DenyAuthorizer" 
-                "backtype.storm.security.auth.SimpleTransportPlugin"]
+                "backtype.storm.security.auth.SimpleTransportPlugin" nil]
     (let [storm-conf (merge (read-storm-config)
                              {STORM-THRIFT-TRANSPORT-PLUGIN "backtype.storm.security.auth.SimpleTransportPlugin"
                              Config/NIMBUS_HOST "localhost"
-                             Config/NIMBUS_THRIFT_PORT 6634
+                             Config/NIMBUS_THRIFT_PORT 6636
                              Config/NIMBUS_TASK_TIMEOUT_SECS nimbus-timeout})
           client (NimbusClient/getConfiguredClient storm-conf)
           nimbus_client (.getClient client)]
       (testing "(Negative authorization) Authorization plugin should reject client request"
-               (is (thrown? TTransportException
+               (is (thrown-cause? AuthorizationException
                             (.activate nimbus_client "security_auth_test_topology"))))
                (.close client))))
 
 (deftest digest-authentication-test
-  (with-server [6635  
+  (with-server [6637
                 "test/clj/backtype/storm/security/auth/jaas_digest.conf" 
                 nil
-                "backtype.storm.security.auth.digest.DigestSaslTransportPlugin"]
+                "backtype.storm.security.auth.digest.DigestSaslTransportPlugin" nil]
     (let [storm-conf (merge (read-storm-config)
                              {STORM-THRIFT-TRANSPORT-PLUGIN "backtype.storm.security.auth.digest.DigestSaslTransportPlugin"
                               "java.security.auth.login.config" "test/clj/backtype/storm/security/auth/jaas_digest.conf"})
-          client (NimbusClient. storm-conf "localhost" 6635 nimbus-timeout)
+          client (NimbusClient. storm-conf "localhost" 6637 nimbus-timeout)
           nimbus_client (.getClient client)]
       (testing "(Positive authentication) valid digest authentication"
                (.activate nimbus_client "security_auth_test_topology"))
@@ -171,7 +190,7 @@
     
     (let [storm-conf (merge (read-storm-config)
                              {STORM-THRIFT-TRANSPORT-PLUGIN "backtype.storm.security.auth.SimpleTransportPlugin"})
-          client (NimbusClient. storm-conf "localhost" 6635 nimbus-timeout)
+          client (NimbusClient. storm-conf "localhost" 6637 nimbus-timeout)
           nimbus_client (.getClient client)]
       (testing "(Negative authentication) Server: Digest vs. Client: Simple"
                (is (thrown-cause? java.net.SocketTimeoutException
@@ -183,28 +202,28 @@
                              "java.security.auth.login.config" "test/clj/backtype/storm/security/auth/jaas_digest_bad_password.conf"})]
       (testing "(Negative authentication) Invalid  password"
                (is (thrown? TTransportException
-                            (NimbusClient. storm-conf "localhost" 6635 nimbus-timeout)))))
+                            (NimbusClient. storm-conf "localhost" 6637 nimbus-timeout)))))
       
     (let [storm-conf (merge (read-storm-config)
                              {STORM-THRIFT-TRANSPORT-PLUGIN "backtype.storm.security.auth.digest.DigestSaslTransportPlugin"
                               "java.security.auth.login.config" "test/clj/backtype/storm/security/auth/jaas_digest_unknown_user.conf"})]
       (testing "(Negative authentication) Unknown user"
                (is (thrown? TTransportException 
-                            (NimbusClient. storm-conf "localhost" 6635 nimbus-timeout)))))
+                            (NimbusClient. storm-conf "localhost" 6637 nimbus-timeout)))))
 
     (let [storm-conf (merge (read-storm-config)
                              {STORM-THRIFT-TRANSPORT-PLUGIN "backtype.storm.security.auth.digest.DigestSaslTransportPlugin"
                               "java.security.auth.login.config" "test/clj/backtype/storm/security/auth/nonexistent.conf"})]
       (testing "(Negative authentication) nonexistent configuration file"
                (is (thrown? RuntimeException 
-                            (NimbusClient. storm-conf "localhost" 6635 nimbus-timeout)))))
+                            (NimbusClient. storm-conf "localhost" 6637 nimbus-timeout)))))
     
     (let [storm-conf (merge (read-storm-config)
                             {STORM-THRIFT-TRANSPORT-PLUGIN "backtype.storm.security.auth.digest.DigestSaslTransportPlugin"
                              "java.security.auth.login.config" "test/clj/backtype/storm/security/auth/jaas_digest_missing_client.conf"})]
       (testing "(Negative authentication) Missing client"
                (is (thrown-cause? java.io.IOException
-                                  (NimbusClient. storm-conf "localhost" 6635 nimbus-timeout)))))))
+                                  (NimbusClient. storm-conf "localhost" 6637 nimbus-timeout)))))))
         
 (deftest test-GetTransportPlugin-throws-RuntimeException
   (let [conf (merge (read-storm-config)
