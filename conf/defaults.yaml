@@ -58,7 +58,7 @@ supervisor.childopts: "-Xmx256m"
 #how long supervisor will wait to ensure that a worker process is started
 supervisor.worker.start.timeout.secs: 120
 #how long between heartbeats until supervisor considers that worker dead and tries to restart it
-supervisor.worker.timeout.secs: 5
+supervisor.worker.timeout.secs: 30
 #how frequently the supervisor checks on the status of the processes it's monitoring and restarts if necessary
 supervisor.monitor.frequency.secs: 3
 #how frequently the supervisor heartbeats to the cluster state (for nimbus)
