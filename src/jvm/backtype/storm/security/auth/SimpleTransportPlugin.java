@@ -23,12 +23,16 @@ import org.apache.thrift7.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import backtype.storm.Config;
+import backtype.storm.utils.Utils;
+
 /**
  * Simple transport for Thrift plugin.
  * 
  * This plugin is designed to be backward compatible with existing Storm code.
  */
 public class SimpleTransportPlugin implements ITransportPlugin {
+    protected Map storm_conf;
     protected Configuration login_conf;
     protected ExecutorService executor_service;
     private static final Logger LOG = LoggerFactory.getLogger(SimpleTransportPlugin.class);
@@ -40,6 +44,7 @@ public class SimpleTransportPlugin implements ITransportPlugin {
      * @param executor_service executor service for server
      */
     public void prepare(Map storm_conf, Configuration login_conf, ExecutorService executor_service) {        
+        this.storm_conf = storm_conf;
         this.login_conf = login_conf;
         this.executor_service = executor_service;
     }
@@ -49,9 +54,11 @@ public class SimpleTransportPlugin implements ITransportPlugin {
      */
     public TServer getServer(int port, TProcessor processor) throws IOException, TTransportException {
         TNonblockingServerSocket serverTransport = new TNonblockingServerSocket(port);
+        int numWorkerThreads =
+                Utils.getInt(this.storm_conf.get(Config.DRPC_WORKER_THREADS));
         THsHaServer.Args server_args = new THsHaServer.Args(serverTransport).
                 processor(new SimpleWrapProcessor(processor)).
-                workerThreads(64).
+                workerThreads(numWorkerThreads).
                 protocolFactory(new TBinaryProtocol.Factory());            
 
         if (executor_service!=null)
