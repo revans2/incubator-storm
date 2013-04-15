@@ -1,0 +1,32 @@
+#!/bin/env python
+
+from os import path
+from subprocess import call
+from sys import exit
+from sys import stderr
+import yaml
+
+pkg_path = path.normpath(path.join(path.dirname(path.realpath(__file__)), ".."))
+
+storm_conf_path = path.join(pkg_path, "conf", "storm.yaml")
+storm_conf = yaml.load(open(storm_conf_path, 'r'))
+
+for key in ("logger.port", "logger.logfile.path"):
+    if not storm_conf.has_key(key):
+        stderr.write("%s is not configured.\n")%key
+        exit(1)
+
+jars = ("slf4j-api-1.6.5.jar", "logback-classic-1.0.6.jar", \
+        "logback-core-1.0.6.jar")
+
+logger_conf_path = path.join(pkg_path, "logback", "storm-logger.xml")
+classpath = \
+        ":".join([path.realpath(path.join(pkg_path,"lib",jar)) for jar in jars])
+
+args = ["java", "-cp", classpath, \
+        "-Dlogger.logfile.path=" + storm_conf["logger.logfile.path"], \
+        "-Dstorm.home=" + pkg_path, \
+        "ch.qos.logback.classic.net.SimpleSocketServer", \
+        str(storm_conf["logger.port"]), logger_conf_path]
+
+call(args)
