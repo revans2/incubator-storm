@@ -23,6 +23,7 @@ YINST set logger_host              localhost
 YINST set logger_port              -1
 YINST set logger_logfile_path      /home/y/lib/storm/current/logs/storm-logger.log
 YINST set logger_includecallerdata false
+YINST set ui_actions_enabled       false
 
 PERM = 0444
 OWNER = root
