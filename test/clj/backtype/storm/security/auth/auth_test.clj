@@ -37,38 +37,27 @@
      :scheduler nil
      }))
 
-(defn check-authorization! [nimbus storm-name storm-conf operation]
-  (let [aclHandler (:authorization-handler nimbus)]
-    (log-debug "check-authorization with handler: " aclHandler)
-    (if aclHandler
-        (if-not (.permit aclHandler 
-                  (ReqContext/context) 
-                  operation 
-                  (if storm-conf storm-conf {TOPOLOGY-NAME storm-name}))
-          (throw (RuntimeException. (str operation " on topology " storm-name " is not authorized")))
-          ))))
-
 (defn dummy-service-handler [conf inimbus]
-  (let [nimbus (nimbus-data conf inimbus)]
+  (let [nimbus-d (nimbus-data conf inimbus)]
     (reify Nimbus$Iface
       (^void submitTopologyWithOpts [this ^String storm-name ^String uploadedJarLocation ^String serializedConf ^StormTopology topology
                                      ^SubmitOptions submitOptions]
-        (check-authorization! nimbus storm-name nil "submitTopology"))
+        (nimbus/check-authorization! nimbus-d storm-name nil "submitTopology"))
       
       (^void killTopology [this ^String storm-name]
-        (check-authorization! nimbus storm-name nil "killTopology"))
+        (nimbus/check-authorization! nimbus-d storm-name nil "killTopology"))
       
       (^void killTopologyWithOpts [this ^String storm-name ^KillOptions options]
-        (check-authorization! nimbus storm-name nil "killTopology"))
+        (nimbus/check-authorization! nimbus-d storm-name nil "killTopology"))
 
       (^void rebalance [this ^String storm-name ^RebalanceOptions options]
-        (check-authorization! nimbus storm-name nil "rebalance"))
+        (nimbus/check-authorization! nimbus-d storm-name nil "rebalance"))
 
       (activate [this storm-name]
-        (check-authorization! nimbus storm-name nil "activate"))
+        (nimbus/check-authorization! nimbus-d storm-name nil "activate"))
 
       (deactivate [this storm-name]
-        (check-authorization! nimbus storm-name nil "deactivate"))
+        (nimbus/check-authorization! nimbus-d storm-name nil "deactivate"))
 
       (beginFileUpload [this])
 
@@ -146,7 +135,7 @@
 (deftest positive-whitelist-authorization-test 
   (with-server [6633 nil 
                 "backtype.storm.security.auth.authorizer.SimpleWhitelistAuthorizer" 
-                "backtype.storm.testing.SingleUserSimpleTransport" {SimpleWhitelistAuthorizer/WHITELIST_USERS_CONF "user"}]
+                "backtype.storm.testing.SingleUserSimpleTransport" {SimpleWhitelistAuthorizer/WHITELIST_USERS_CONF ["user"]}]
     (let [storm-conf (merge (read-storm-config)
                              {STORM-THRIFT-TRANSPORT-PLUGIN "backtype.storm.testing.SingleUserSimpleTransport"})
           client (NimbusClient. storm-conf "localhost" 6633 nimbus-timeout)
@@ -181,7 +170,7 @@
           client (NimbusClient/getConfiguredClient storm-conf)
           nimbus_client (.getClient client)]
       (testing "(Negative authorization) Authorization plugin should reject client request"
-               (is (thrown? TTransportException
+               (is (thrown-cause? AuthorizationException
                             (.activate nimbus_client "security_auth_test_topology"))))
                (.close client))))
 
