@@ -470,7 +470,8 @@
                          (StringEscapeUtils/escapeJavaScript name) "', '"
                          command "', " is-wait ", " default-wait ")")}])
 
-(defn- topology-actions [id status msg-timeout]
+(defn- topology-actions [id name status msg-timeout]
+  (log-message (str "ui.actions.enabled is " (*STORM-CONF* UI-ACTIONS-ENABLED)))
   (if (*STORM-CONF* UI-ACTIONS-ENABLED)
     (concat
        [[:h2 {:class "js-only"} "Topology actions"]]
@@ -500,7 +501,7 @@
       (concat
        [[:h2 "Topology summary"]]
        [(topology-summary-table summ)]
-       (topology-actions id status msg-timeout)
+       (topology-actions id name status msg-timeout)
        [[:h2 "Topology stats"]]
        (topology-stats-table id window (total-aggregate-stats spout-summs bolt-summs include-sys?))
        [[:h2 "Spouts (" window-hint ")"]]
