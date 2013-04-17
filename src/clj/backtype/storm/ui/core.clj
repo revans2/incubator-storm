@@ -6,7 +6,7 @@
   (:use [backtype.storm.ui helpers])
   (:use [backtype.storm.daemon [common :only [ACKER-COMPONENT-ID system-id?]]])
   (:use [ring.adapter.jetty :only [run-jetty]])
-  (:use [clojure.string :only [trim]])
+  (:use [clojure.string :only [lower-case trim]])
   (:import [backtype.storm.generated ExecutorSpecificStats
             ExecutorStats ExecutorSummary TopologyInfo SpoutStats BoltStats
             ErrorInfo ClusterSummary SupervisorSummary TopologySummary
@@ -470,6 +470,21 @@
                          (StringEscapeUtils/escapeJavaScript name) "', '"
                          command "', " is-wait ", " default-wait ")")}])
 
+(defn- ui-actions-enabled? []
+  (= "true" (lower-case (*STORM-CONF* UI-ACTIONS-ENABLED))))
+
+(defn- topology-actions [id name status msg-timeout]
+  (if (ui-actions-enabled?)
+    (concat
+       [[:h2 {:class "js-only"} "Topology actions"]]
+       [[:p {:class "js-only"} (concat
+         [(topology-action-button id name "Activate" "activate" false 0 (= "INACTIVE" status))]
+         [(topology-action-button id name "Deactivate" "deactivate" false 0 (= "ACTIVE" status))]
+         [(topology-action-button id name "Rebalance" "rebalance" true msg-timeout (or (= "ACTIVE" status) (= "INACTIVE" status)))]
+         [(topology-action-button id name "Kill" "kill" true msg-timeout (not= "KILLED" status))]
+       )]] )
+    []))
+
 (defn topology-page [id window include-sys?]
   (with-nimbus nimbus
     (let [window (if window window ":all-time")
@@ -489,13 +504,7 @@
       (concat
        [[:h2 "Topology summary"]]
        [(topology-summary-table summ)]
-       [[:h2 {:class "js-only"} "Topology actions"]]
-       [[:p {:class "js-only"} (concat
-         [(topology-action-button id name "Activate" "activate" false 0 (= "INACTIVE" status))]
-         [(topology-action-button id name "Deactivate" "deactivate" false 0 (= "ACTIVE" status))]
-         [(topology-action-button id name "Rebalance" "rebalance" true msg-timeout (or (= "ACTIVE" status) (= "INACTIVE" status)))]
-         [(topology-action-button id name "Kill" "kill" true msg-timeout (not= "KILLED" status))]
-       )]]
+       (topology-actions id name status msg-timeout)
        [[:h2 "Topology stats"]]
        (topology-stats-table id window (total-aggregate-stats spout-summs bolt-summs include-sys?))
        [[:h2 "Spouts (" window-hint ")"]]
@@ -732,54 +741,74 @@
         sys? (if (or (nil? sys?) (= "false" (:value sys?))) false true)]
     sys?))
 
-(defroutes main-routes
-  (GET "/" [:as {cookies :cookies}]
-       (-> (main-page)
-           ui-template))
-  (GET "/topology/:id" [:as {cookies :cookies} id & m]
-       (let [include-sys? (get-include-sys? cookies)]
-         (-> (topology-page id (:window m) include-sys?)
-             (concat [(mk-system-toggle-button include-sys?)])
-             ui-template)))
-  (GET "/topology/:id/component/:component" [:as {cookies :cookies} id component & m]
-       (let [include-sys? (get-include-sys? cookies)]
-         (-> (component-page id component (:window m) include-sys?)
-             (concat [(mk-system-toggle-button include-sys?)])
-             ui-template)))
-  (POST "/topology/:id/activate" [id]
-    (with-nimbus nimbus
-      (let [tplg (.getTopologyInfo ^Nimbus$Client nimbus id)
-            name (.get_name tplg)]
-        (.activate nimbus name)
-        (log-message "Activating topology '" name "'")))
-    (resp/redirect (str "/topology/" id)))
-  (POST "/topology/:id/deactivate" [id]
-    (with-nimbus nimbus
-      (let [tplg (.getTopologyInfo ^Nimbus$Client nimbus id)
-            name (.get_name tplg)]
-        (.deactivate nimbus name)
-        (log-message "Deactivating topology '" name "'")))
-    (resp/redirect (str "/topology/" id)))
-  (POST "/topology/:id/rebalance/:wait-time" [id wait-time]
-    (with-nimbus nimbus
-      (let [tplg (.getTopologyInfo ^Nimbus$Client nimbus id)
-            name (.get_name tplg)
-            options (RebalanceOptions.)]
-        (.set_wait_secs options (Integer/parseInt wait-time))
-        (.rebalance nimbus name options)
-        (log-message "Rebalancing topology '" name "' with wait time: " wait-time " secs")))
-    (resp/redirect (str "/topology/" id)))
-  (POST "/topology/:id/kill/:wait-time" [id wait-time]
-    (with-nimbus nimbus
-      (let [tplg (.getTopologyInfo ^Nimbus$Client nimbus id)
-            name (.get_name tplg)
-            options (KillOptions.)]
-        (.set_wait_secs options (Integer/parseInt wait-time))
-        (.killTopologyWithOpts nimbus name options)
-        (log-message "Killing topology '" name "' with wait time: " wait-time " secs")))
-    (resp/redirect (str "/topology/" id)))
-  (route/resources "/")
-  (route/not-found "Page not found"))
+
+(if (ui-actions-enabled?)
+  (defroutes main-routes
+    (GET "/" [:as {cookies :cookies}]
+         (-> (main-page)
+             ui-template))
+    (GET "/topology/:id" [:as {cookies :cookies} id & m]
+         (let [include-sys? (get-include-sys? cookies)]
+           (-> (topology-page id (:window m) include-sys?)
+               (concat [(mk-system-toggle-button include-sys?)])
+               ui-template)))
+    (GET "/topology/:id/component/:component" [:as {cookies :cookies} id component & m]
+         (let [include-sys? (get-include-sys? cookies)]
+           (-> (component-page id component (:window m) include-sys?)
+               (concat [(mk-system-toggle-button include-sys?)])
+               ui-template)))
+    (POST "/topology/:id/activate" [id]
+      (with-nimbus nimbus
+        (let [tplg (.getTopologyInfo ^Nimbus$Client nimbus id)
+              name (.get_name tplg)]
+          (.activate nimbus name)
+          (log-message "Activating topology '" name "'")))
+      (resp/redirect (str "/topology/" id)))
+    (POST "/topology/:id/deactivate" [id]
+      (with-nimbus nimbus
+        (let [tplg (.getTopologyInfo ^Nimbus$Client nimbus id)
+              name (.get_name tplg)]
+          (.deactivate nimbus name)
+          (log-message "Deactivating topology '" name "'")))
+      (resp/redirect (str "/topology/" id)))
+    (POST "/topology/:id/rebalance/:wait-time" [id wait-time]
+      (with-nimbus nimbus
+        (let [tplg (.getTopologyInfo ^Nimbus$Client nimbus id)
+              name (.get_name tplg)
+              options (RebalanceOptions.)]
+          (.set_wait_secs options (Integer/parseInt wait-time))
+          (.rebalance nimbus name options)
+          (log-message "Rebalancing topology '" name "' with wait time: " wait-time " secs")))
+      (resp/redirect (str "/topology/" id)))
+    (POST "/topology/:id/kill/:wait-time" [id wait-time]
+      (with-nimbus nimbus
+        (let [tplg (.getTopologyInfo ^Nimbus$Client nimbus id)
+              name (.get_name tplg)
+              options (KillOptions.)]
+          (.set_wait_secs options (Integer/parseInt wait-time))
+          (.killTopologyWithOpts nimbus name options)
+          (log-message "Killing topology '" name "' with wait time: " wait-time " secs")))
+      (resp/redirect (str "/topology/" id)))
+    (route/resources "/")
+    (route/not-found "Page not found"))
+
+  (defroutes main-routes
+    (GET "/" [:as {cookies :cookies}]
+         (-> (main-page)
+             ui-template))
+    (GET "/topology/:id" [:as {cookies :cookies} id & m]
+         (let [include-sys? (get-include-sys? cookies)]
+           (-> (topology-page id (:window m) include-sys?)
+               (concat [(mk-system-toggle-button include-sys?)])
+               ui-template)))
+    (GET "/topology/:id/component/:component" [:as {cookies :cookies} id component & m]
+         (let [include-sys? (get-include-sys? cookies)]
+           (-> (component-page id component (:window m) include-sys?)
+               (concat [(mk-system-toggle-button include-sys?)])
+               ui-template)))
+    (route/resources "/")
+    (route/not-found "Page not found"))
+)
 
 (defn exception->html [ex]
   (concat

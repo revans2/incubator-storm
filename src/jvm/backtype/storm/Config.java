@@ -230,6 +230,14 @@ public class Config extends HashMap<String, Object> {
      * Childopts for Storm UI Java process.
      */
     public static String UI_CHILDOPTS = "ui.childopts";
+
+    /**
+     * Whether or not actions should be enabled.  When disabled, requests to
+     * modify the state of topologies via HTTP will not be honored.
+     *
+     * Defaults to true.
+     */
+     public static String UI_ACTIONS_ENABLED = "ui.actions.enabled";
     
     
     /**
