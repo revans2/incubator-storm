@@ -419,7 +419,10 @@
                        " -Dlogfile.name=" logfilename
                        (if login_config (str " -Djava.security.auth.login.config=" login_config))
                        " -Dstorm.home=" storm-home
-                       " -Dlogback.configurationFile=" storm-home "/logback/cluster.xml"
+                       " -Dlogback.configurationFile=" storm-home "/logback/worker.xml"
+                       " -Dstorm.id=" storm-id
+                       " -Dworker.id=" worker-id
+                       " -Dworker.port=" port
                        " -cp " classpath " backtype.storm.daemon.worker "
                        (java.net.URLEncoder/encode storm-id) " " (:assignment-id supervisor)
                        " " port " " worker-id)]
