@@ -3,23 +3,6 @@
 # Error on anything that goes wrong.
 set -e
 
-if [[ "${ystorm__remote_logging}" == [Tt][Rr][Uu][Ee] ]]
-then
-  SOCKET_APPENDER_REF_ELEM='<appender-ref ref="SOCKET"/>'
-  SOCKET_APPENDER_DEFINITION="
-  <appender name="SOCKET" class="ch.qos.logback.classic.net.SocketAppender">
-    <remoteHost>${logger_host}</remoteHost>
-    <port>${logger_port}</port>
-    <reconnectionDelay>10000</reconnectionDelay>
-    <includeCallerData>${logger_includecallerdata}</includeCallerData>
-  </appender>
-"
-else
-  SOCKET_APPENDER_REF_ELEM='<!-- Use yinst set ystorm.remote_logging=true to enable remote logging. -->'
-  SOCKET_APPENDER_DEFINITION=''
-fi
-
-
 cat <<XML
 <?xml version="1.0" encoding="UTF-8"?>
 
@@ -40,7 +23,7 @@ cat <<XML
       <pattern>%d{yyyy-MM-dd HH:mm:ss} %c{1} [%p] %m%n</pattern>
     </encoder>
   </appender> 
-$SOCKET_APPENDER_DEFINITION
+
   <appender name="ACCESS" class="ch.qos.logback.core.rolling.RollingFileAppender">
     <file>\${storm.home}/logs/access.log</file>
     <rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
@@ -58,9 +41,15 @@ $SOCKET_APPENDER_DEFINITION
     </encoder>
   </appender> 
 
+  <appender name="SYSLOG" class="ch.qos.logback.classic.net.SyslogAppender">
+    <syslogHost>${syslog_host}</syslogHost>
+    <facility>${syslog_facility}</facility>
+    <suffixPattern>[%p] %m%n</suffixPattern>
+  </appender>
+
   <root level="INFO">
    <appender-ref ref="A1"/>
-   $SOCKET_APPENDER_REF_ELEM
+   <appender-ref ref="SYSLOG"/>
   </root>
 
   <logger name="backtype.storm.security.auth.authorizer" additivity="false">
