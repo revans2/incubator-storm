@@ -18,4 +18,4 @@ yroot_remove: false
 provision_x86_64_rhel_statefile: ./rhel4_build.state
 
 # Yinst Version to install in yroot
-provision_yinst_version: yinst7stable
+provision_yinst_version: rhel6stable

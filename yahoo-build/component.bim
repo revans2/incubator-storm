@@ -20,7 +20,7 @@ provision_x86_64_rhel_statefile: ./rhel4_build.state
 provision_x86_64_rhel6_statefile: ./rhel6_build.state
 
 # Yinst Version to install in yroot
-provision_yinst_version: yinst7stable
+provision_yinst_version: rhel6stable
 
 #Dist Push stuff
 #Disabling dis pus for a while because for some reason hadoopqa does not have permission to push to group hadoopqa??
