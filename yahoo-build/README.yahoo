@@ -13,20 +13,6 @@ whould add the following line to storm.yaml
 
 nimbus.host: host.corp.yahoo.com
 
-
-Remote Logging
---------------
-
-To enable logging to a remote HOST on PORT output to PATH:
-
-1. Install ystorm on all nodes, including HOST
-2. On all hosts:
-    1. yinst set ystorm.logger_host=$HOST
-    2. yinst set ystorm.logger_port=$PORT
-    3. yinst set ystorm.logging_logfile_path=$PATH
-    4. yinst set ystorm.remote_logging=true
-
-
 NOTE:
 ----
 This package is intended to be used by the cloud services storm team to support
