@@ -30,6 +30,8 @@ dir 777 - - lib/storm/$(BASE_VERSION)/logs
 find 755 - - lib/storm/$(BASE_VERSION)/bin/ ../bin/ -type f
 find - - - lib/storm/$(BASE_VERSION)/lib/ ../target/dependency/ -type f
 
+file 444 - - lib/jars/storm.jar ../target/storm-$(BASE_VERSION).jar
+file 444 - - lib/jars/storm.pom ../m2-pom.xml
 file 444 - - lib/storm/$(BASE_VERSION)/RELEASE ./RELEASE
 file 444 - - lib/storm/$(BASE_VERSION)/CHANGELOG.md ../CHANGELOG.md
 file 444 - - lib/storm/$(BASE_VERSION)/LICENSE.html ../LICENSE.html
