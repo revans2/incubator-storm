@@ -88,9 +88,13 @@ COMPONENT_BIM=./component.bim
 component: BB_Provision build test package
 component: BB_BIM_FILE=$(COMPONENT_BIM)
 
+git-tag:
+	git tag -f -a $(FULL_VERSION) -m "yahoo version $(FULL_VERSION)"
+	git push --tags
+
 component-dist-push:: BB_BIM_FILE=./component.bim
 #component-dist-push:: component BB_Dist_Push
-component-dist-push:: component
+component-dist-push:: component git-tag
 	/home/y/bin/dist_install ystorm-*.tgz -batch -branch quarantine -group hadoopqa -identity /home/y/var/yhudson/keys/hadoopqa/id_rsa -tag ystorm_master_security
 
 component_clean: clean
