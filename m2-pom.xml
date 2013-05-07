@@ -12,8 +12,8 @@
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <container-executor.conf.dir>/etc/storm</container-executor.conf.dir>
-    <container-executor.additional_cflags></container-executor.additional_cflags>
+    <worker-launcher.conf.dir>/etc/storm</worker-launcher.conf.dir>
+    <worker-launcher.additional_cflags></worker-launcher.additional_cflags>
   </properties>
 
   <repositories>
@@ -451,7 +451,7 @@
             </executions>
             <configuration>
               <!-- autoreconf settings -->
-              <workDir>${project.build.directory}/native/container-executor</workDir>
+              <workDir>${project.build.directory}/native/worker-launcher</workDir>
               <arguments>
                 <argument>-i</argument>
               </arguments>
@@ -460,10 +460,10 @@
               <configureEnvironment>
                 <property>
                   <name>CFLAGS</name>
-                  <value>-DHADOOP_CONF_DIR=${container-executor.conf.dir} ${container-executor.additional_cflags}</value>
+                  <value>-DHADOOP_CONF_DIR=${worker-launcher.conf.dir} ${worker-launcher.additional_cflags}</value>
                 </property>
               </configureEnvironment>
-              <configureWorkDir>${project.build.directory}/native/container-executor</configureWorkDir>
+              <configureWorkDir>${project.build.directory}/native/worker-launcher</configureWorkDir>
               <prefix>/usr/local</prefix>
 
               <!-- configure & make settings -->

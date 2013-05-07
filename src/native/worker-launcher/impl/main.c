@@ -17,7 +17,7 @@
  */
 
 #include "configuration.h"
-#include "container-executor.h"
+#include "worker-launcher.h"
 
 #include <errno.h>
 #include <grp.h>
@@ -31,7 +31,7 @@
 
 #define _STRINGIFY(X) #X
 #define STRINGIFY(X) _STRINGIFY(X)
-#define CONF_FILENAME "container-executor.cfg"
+#define CONF_FILENAME "worker-launcher.cfg"
 
 #ifndef HADOOP_CONF_DIR
   #error HADOOP_CONF_DIR must be defined
@@ -39,9 +39,9 @@
 
 void display_usage(FILE *stream) {
   fprintf(stream,
-          "Usage: container-executor --checksetup\n");
+          "Usage: worker-launcher --checksetup\n");
   fprintf(stream,
-      "Usage: container-executor user command command-args\n");
+      "Usage: worker-launcher user command command-args\n");
   fprintf(stream, "Commands:\n");
   fprintf(stream, "   initialize container: %2d appid tokens " \
    "nm-local-dirs nm-log-dirs cmd app...\n", INITIALIZE_CONTAINER);
@@ -63,7 +63,7 @@ int main(int argc, char **argv) {
   ERRORFILE = stderr;
 
   // Minimum number of arguments required to run 
-  // the std. container-executor commands is 4
+  // the std. worker-launcher commands is 4
   // 4 args not needed for checksetup option
   if (argc < 4) {
     invalid_args = 1;
@@ -129,7 +129,7 @@ int main(int argc, char **argv) {
   setgid(group_info->gr_gid);
 
   if (check_executor_permissions(executable_file) != 0) {
-    fprintf(ERRORFILE, "Invalid permissions on container-executor binary.\n");
+    fprintf(ERRORFILE, "Invalid permissions on worker-launcher binary.\n");
     return INVALID_CONTAINER_EXEC_PERMISSIONS;
   }
 

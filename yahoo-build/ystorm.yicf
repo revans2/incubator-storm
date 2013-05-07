@@ -28,9 +28,9 @@ GROUP = users
 dir 777 - - lib64/storm/$(BASE_VERSION)/logs
 find 755 - - lib64/storm/$(BASE_VERSION)/bin/ ../bin/ -type f
 find - - - lib64/storm/$(BASE_VERSION)/lib/ ../target/dependency/ -type f
-#file 6550 root hadoop lib64/storm/$(BASE_VERSION)/bin/container-executor ../target/native/target/usr/local/bin/container-executor
+#file 6550 root hadoop lib64/storm/$(BASE_VERSION)/bin/worker-launcher ../target/native/target/usr/local/bin/worker-launcher
 #TODO set this to the proper group
-file 6550 root users lib64/storm/$(BASE_VERSION)/bin/container-executor ../target/native/target/usr/local/bin/container-executor
+file 6550 root users lib64/storm/$(BASE_VERSION)/bin/worker-launcher ../target/native/target/usr/local/bin/worker-launcher
 
 file 444 - - lib64/jars/storm.jar ../target/storm-$(BASE_VERSION).jar
 file 444 - - lib64/jars/storm.pom ../m2-pom.xml

@@ -56,7 +56,7 @@ enum errorcodes {
   WRITE_PIDFILE_FAILED = 26
 };
 
-#define NM_GROUP_KEY "yarn.nodemanager.linux-container-executor.group"
+#define NM_GROUP_KEY "yarn.nodemanager.linux-worker-launcher.group"
 #define USER_DIR_PATTERN "%s/usercache/%s"
 #define NM_APP_DIR_PATTERN USER_DIR_PATTERN "/appcache/%s"
 #define CONTAINER_DIR_PATTERN NM_APP_DIR_PATTERN "/%s"
@@ -78,8 +78,8 @@ extern FILE *ERRORFILE;
 char* get_executable();
 
 /**
- * Check the permissions on the container-executor to make sure that security is
- * permissible. For this, we need container-executor binary to
+ * Check the permissions on the worker-launcher to make sure that security is
+ * permissible. For this, we need worker-launcher binary to
  *    * be user-owned by root
  *    * be group-owned by a configured special group.
  *    * others do not have any permissions

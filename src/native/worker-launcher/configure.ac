@@ -13,20 +13,38 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+#
+#                                               -*- Autoconf -*-
+# Process this file with autoconf to produce a configure script.
 
-AM_CFLAGS=-I$(srcdir)/impl -Wall -g -Werror
+AC_PREREQ(2.59)
+AC_INIT(worker-launcher, 1.0.0, storm-user@googlegroups.com)
+AC_GNU_SOURCE
 
-# Define the programs that need to be built
-bin_PROGRAMS = container-executor
-check_PROGRAMS = test-container-executor
+AM_INIT_AUTOMAKE([subdir-objects foreign no-dist])
 
-TESTS = test-container-executor
+AC_CONFIG_SRCDIR([impl/worker-launcher.c])
+AC_CONFIG_FILES([Makefile])
 
-# Define the sources for the common files
-common_SOURCES = impl/configuration.c impl/container-executor.c
+AC_PREFIX_DEFAULT(`pwd`/../install)
 
-# Define the sources for the real executable
-container_executor_SOURCES = $(common_SOURCES) impl/main.c
+# Checks for programs.
+AC_PROG_CC
+AM_PROG_CC_C_O
 
-# Define the sources for the test executable
-test_container_executor_SOURCES = $(common_SOURCES) test/test-container-executor.c
+# Checks for libraries.
+
+# Checks for header files.
+AC_LANG(C)
+AC_CHECK_HEADERS([unistd.h])
+
+# Checks for typedefs, structures, and compiler characteristics.
+AC_HEADER_STDBOOL
+AC_C_CONST
+AC_TYPE_OFF_T
+AC_TYPE_SIZE_T
+AC_FUNC_STRERROR_R
+
+# Checks for library functions.
+AC_CHECK_FUNCS([mkdir uname])
+AC_OUTPUT
