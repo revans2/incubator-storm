@@ -12,6 +12,8 @@
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <container-executor.conf.dir>/etc/storm</container-executor.conf.dir>
+    <container-executor.additional_cflags></container-executor.additional_cflags>
   </properties>
 
   <repositories>
@@ -404,5 +406,77 @@
         </plugins>
       </build>
     </profile>
+    <profile>
+      <id>native</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.codehaus.mojo</groupId>
+            <artifactId>exec-maven-plugin</artifactId>
+            <version>1.2.1</version>
+            <executions>
+              <execution>
+                <phase>generate-sources</phase>
+                <goals><goal>exec</goal></goals>
+              </execution>
+            </executions>
+            <configuration>
+              <executable>sh</executable>
+              <arguments>
+                <argument>-c</argument>
+                <argument>mkdir -p ${project.build.directory}/; cp -rufv ${basedir}/src/native/ ${project.build.directory}/</argument>
+              </arguments>
+            </configuration>
+          </plugin>
+          <plugin>
+            <groupId>org.codehaus.mojo</groupId>
+            <artifactId>make-maven-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>compile</id>
+                <phase>compile</phase>
+                <goals>
+                  <goal>autoreconf</goal>
+                  <goal>configure</goal>
+                  <goal>make-install</goal>
+                </goals>
+              </execution>
+              <execution>
+                <id>test</id>
+                <phase>test</phase>
+                <goals>
+                  <goal>test</goal>
+                </goals>
+              </execution>
+            </executions>
+            <configuration>
+              <!-- autoreconf settings -->
+              <workDir>${project.build.directory}/native/container-executor</workDir>
+              <arguments>
+                <argument>-i</argument>
+              </arguments>
+
+              <!-- configure settings -->
+              <configureEnvironment>
+                <property>
+                  <name>CFLAGS</name>
+                  <value>-DHADOOP_CONF_DIR=${container-executor.conf.dir} ${container-executor.additional_cflags}</value>
+                </property>
+              </configureEnvironment>
+              <configureWorkDir>${project.build.directory}/native/container-executor</configureWorkDir>
+              <prefix>/usr/local</prefix>
+
+              <!-- configure & make settings -->
+              <destDir>${project.build.directory}/native/target</destDir>
+
+            </configuration>
+          </plugin>
+        </plugins>
+      </build>
+      <activation>
+        <activeByDefault>false</activeByDefault>
+      </activation>
+    </profile>
+
   </profiles>
 </project>

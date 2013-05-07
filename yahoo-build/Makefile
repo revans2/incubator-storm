@@ -3,17 +3,18 @@ BUILD_NUMBER?=0
 FULL_VERSION="$(BASE_VERSION).$(BUILD_NUMBER)"
 LEIN=LD_LIBRARY_PATH=/home/y/lib64 /home/y/bin/lein
 MVN=LD_LIBRARY_PATH=/home/y/lib64 /home/y/bin/mvn
+EXEC_CONF_DIR?=/home/y/conf/storm/
 
 all: build
 
 test:
-	cd .. && $(MVN) -f m2-pom.xml package ${MVN_MAKE_OPTS}
+	cd .. && $(MVN) -f m2-pom.xml -Pnative -Dcontainer-executor.conf.dir=${EXEC_CONF_DIR} package ${MVN_MAKE_OPTS}
 
 build:
-	cd .. && $(MVN) -f m2-pom.xml package -DskipTests ${MVN_MAKE_OPTS}
+	cd .. && $(MVN) -f m2-pom.xml -Pnative -Dcontainer-executor.conf.dir=${EXEC_CONF_DIR} package -DskipTests ${MVN_MAKE_OPTS}
 
 install:
-	cd .. && $(MVN) -f m2-pom.xml install -DskipTests ${MVN_MAKE_OPTS}
+	cd .. && $(MVN) -f m2-pom.xml -Pnative -Dcontainer-executor.conf.dir=${EXEC_CONF_DIR} install -DskipTests ${MVN_MAKE_OPTS}
 
 #TODO need a good way to see if these values would have changed and update only then
 BASE_VERSION: ../project.clj
