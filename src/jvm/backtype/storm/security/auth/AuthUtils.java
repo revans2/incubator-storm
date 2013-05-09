@@ -47,6 +47,24 @@ public class AuthUtils {
     }
 
     /**
+     * Construct a principal to local plugin
+     * @param conf storm configuration
+     * @return the plugin
+     */
+    public static IPrincipalToLocal GetPrincipalToLocalPlugin(Map storm_conf) {
+        IPrincipalToLocal ptol = null;
+        try {
+          String ptol_klassName = (String) storm_conf.get(Config.STORM_PRINCIPAL_TO_LOCAL_PLUGIN);
+          Class klass = Class.forName(ptol_klassName);
+          ptol = (IPrincipalToLocal)klass.newInstance();
+          ptol.prepare(storm_conf);
+        } catch (Exception e) {
+          throw new RuntimeException(e);
+        }
+        return ptol;
+    }
+
+    /**
      * Construct a transport plugin per storm configuration
      * @param conf storm configuration
      * @return

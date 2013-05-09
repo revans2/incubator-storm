@@ -47,6 +47,6 @@ public class SimpleWhitelistAuthorizer implements IAuthorizer {
                 + (context.principal() == null? "" : (" principal:"+ context.principal()))
                 +" op:"+operation
                 + (topology_conf == null? "" : (" topoology:"+topology_conf.get(Config.TOPOLOGY_NAME))));
-        return context.principal() != null ? users.contains(context.principal().getName()) : false;
+        return context.principal() != null && users.contains(context.principal().getName());
     }
 }

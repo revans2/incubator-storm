@@ -404,6 +404,7 @@
 (defmethod launch-worker
     :distributed [supervisor storm-id port worker-id]
     (let [conf (:conf supervisor)
+          run-worker-as-user (conf SUPERVISOR-RUN-WORKER-AS-USER)
           storm-home (System/getProperty "storm.home")
           stormroot (supervisor-stormdist-root conf storm-id)
           stormjar (supervisor-stormjar-path stormroot)
@@ -412,12 +413,11 @@
           childopts (.replaceAll (str (conf WORKER-CHILDOPTS) " " (storm-conf TOPOLOGY-WORKER-CHILDOPTS))
                                  "%ID%"
                                  (str port))
-          logfilename (str "worker-" port ".log")
-          login_config (conf "java.security.auth.login.config")
+          user (storm-conf TOPOLOGY-SUBMITTER-USER)
+          logfilename (str user "-worker-" port ".log")
           command (str "java -server " childopts
                        " -Djava.library.path=" (conf JAVA-LIBRARY-PATH)
                        " -Dlogfile.name=" logfilename
-                       (if login_config (str " -Djava.security.auth.login.config=" login_config))
                        " -Dstorm.home=" storm-home
                        " -Dlogback.configurationFile=" storm-home "/logback/worker.xml"
                        " -Dstorm.id=" storm-id
@@ -426,9 +426,18 @@
                        " -cp " classpath " backtype.storm.daemon.worker "
                        (java.net.URLEncoder/encode storm-id) " " (:assignment-id supervisor)
                        " " port " " worker-id)]
-      (log-message "Launching worker with command: " command)
-      (launch-process command :environment {"LD_LIBRARY_PATH" (conf JAVA-LIBRARY-PATH)})
-      ))
+      (if run-worker-as-user
+        (let [worker-dir (worker-root conf worker-id)
+              worker-launcher-initial (conf SUPERVISOR-WORKER-LAUNCHER)
+              worker-launcher (if worker-launcher-initial 
+                                  worker-launcher-initial
+                                  (str storm-home "/bin/worker-launcher"))
+              full-command (str worker-launcher " " user " worker " worker-dir " " command)
+              - (log-message "Launching worker as " user " with command: " full-command)]
+          (launch-process full-command :environment {"LD_LIBRARY_PATH" (conf JAVA-LIBRARY-PATH)}))
+        (let [- (log-message "Launching worker with command: " command)]
+          (launch-process command :environment {"LD_LIBRARY_PATH" (conf JAVA-LIBRARY-PATH)}))
+      )))
 
 ;; local implementation
 

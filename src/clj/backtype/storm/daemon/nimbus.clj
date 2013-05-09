@@ -3,7 +3,7 @@
   (:import [java.nio ByteBuffer])
   (:import [java.io FileNotFoundException])
   (:import [java.nio.channels Channels WritableByteChannel])
-  (:import [backtype.storm.security.auth ThriftServer ReqContext])
+  (:import [backtype.storm.security.auth ThriftServer ReqContext AuthUtils])
   (:use [backtype.storm.scheduler.DefaultScheduler])
   (:import [backtype.storm.scheduler INimbus SupervisorDetails WorkerSlot TopologyDetails
             Cluster Topologies SchedulerAssignment SchedulerAssignmentImpl DefaultScheduler ExecutorDetails])
@@ -899,7 +899,8 @@
 (defserverfn service-handler [conf inimbus]
   (.prepare inimbus conf (master-inimbus-dir conf))
   (log-message "Starting Nimbus with conf " conf)
-  (let [nimbus (nimbus-data conf inimbus)]
+  (let [nimbus (nimbus-data conf inimbus)
+       principal-to-local (AuthUtils/GetPrincipalToLocalPlugin conf)]
     (cleanup-corrupt-topologies! nimbus)
     (doseq [storm-id (.active-storms (:storm-cluster-state nimbus))]
       (transition! nimbus storm-id :startup))
@@ -944,7 +945,9 @@
                 req (ReqContext/context)
                 principal (.principal req)
                 submitter-principal (if principal (.toString principal))
-                storm-conf (if submitter-principal (assoc storm-conf-submitted TOPOLOGY-SUBMITTER-PRINCIPAL submitter-principal)  storm-conf-submitted)
+                submitter-user (.toLocal principal-to-local principal)
+                storm-conf-p (if submitter-principal (assoc storm-conf-submitted TOPOLOGY-SUBMITTER-PRINCIPAL submitter-principal)  storm-conf-submitted)
+                storm-conf (assoc storm-conf-p TOPOLOGY-SUBMITTER-USER (if submitter-user submitter-user "")) ;Don't let the user set who we launch as
 
                 total-storm-conf (merge conf storm-conf)
                 topology (normalize-topology total-storm-conf topology)
@@ -952,6 +955,8 @@
                            (optimize-topology topology)
                            topology)
                 storm-cluster-state (:storm-cluster-state nimbus)]
+            (if (and (conf SUPERVISOR-RUN-WORKER-AS-USER) (or (nil? submitter-user) (.isEmpty (.trim submitter-user)))) 
+              (throw (AuthorizationException. "Could not determine the user to run this topology as.")))
             (system-topology! total-storm-conf topology) ;; this validates the structure of the topology
             (log-message "Received topology submission for " storm-name " with conf " storm-conf)
             ;; lock protects against multiple topologies being submitted at once and

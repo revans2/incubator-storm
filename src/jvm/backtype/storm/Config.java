@@ -68,7 +68,12 @@ public class Config extends HashMap<String, Object> {
      * The transport plug-in for Thrift client/server communication
      */
     public static String STORM_THRIFT_TRANSPORT_PLUGIN = "storm.thrift.transport";
-    
+   
+    /**
+     * The plugin that will convert a principal to a local user.
+     */
+    public static String STORM_PRINCIPAL_TO_LOCAL_PLUGIN = "storm.principal.tolocal";
+ 
     /**
      * The serializer class for ListDelegate (tuple payload). 
      * The default serializer will be ListDelegateSerializer
@@ -339,6 +344,17 @@ public class Config extends HashMap<String, Object> {
     public static String SUPERVISOR_MONITOR_FREQUENCY_SECS = "supervisor.monitor.frequency.secs";
     
     /**
+     * Should the supervior try to run the worker as the lauching user or not.  Defaults to false. 
+     */
+    public static String SUPERVISOR_RUN_WORKER_AS_USER = "supervisor.run.worker.as.user";
+
+    /**
+     * Full path to the worker-laucher executable that will be used to lauch workers when 
+     * SUPERVISOR_RUN_WORKER_AS_USER is set to true.
+     */ 
+    public static String SUPERVISOR_WORKER_LAUNCHER = "supervisor.worker.launcher";
+
+    /**
      * The jvm opts provided to workers launched by this supervisor. All "%ID%" substrings are replaced
      * with an identifier for this worker.
      */
@@ -365,8 +381,6 @@ public class Config extends HashMap<String, Object> {
      */
     public static String TASK_REFRESH_POLL_SECS = "task.refresh.poll.secs";
 
-    
-    
     /**
      * True if Storm should timeout messages or not. Defaults to true. This is meant to be used
      * in unit tests to prevent tuples from being accidentally timed out during the test.
@@ -605,6 +619,11 @@ public class Config extends HashMap<String, Object> {
      * The principal who submitted a topology
      */
     public static String TOPOLOGY_SUBMITTER_PRINCIPAL = "topology.submitter.principal";
+
+    /**
+     * The local user name of the user who submitted a topology.
+     */
+    public static String TOPOLOGY_SUBMITTER_USER = "topology.submitter.user";
 
     /**
      * The root directory in ZooKeeper for metadata about TransactionalSpouts.
