@@ -144,6 +144,23 @@
     (Utils/deserialize (FileUtils/readFileToByteArray (File. topology-path)))
     ))
 
+(defn worker-user-root [conf]
+  (str (conf STORM-LOCAL-DIR) "/workers-users"))
+
+(defn worker-user-file [conf worker-id]
+  (str (worker-user-root conf) "/" worker-id))
+
+(defn get-worker-user [conf worker-id]
+  (slurp (worker-user-file conf worker-id)))
+  
+(defn set-worker-user [conf worker-id user]
+  (let [file (worker-user-file conf worker-id)]
+    (.mkdirs (.getParentFile (File. file)))
+    (spit (worker-user-file conf worker-id) user)))
+
+(defn remove-worker-user [conf worker-id]
+  (.delete (File. (worker-user-file conf worker-id))))
+
 (defn worker-root
   ([conf]
      (str (conf STORM-LOCAL-DIR) "/workers"))
