@@ -150,14 +150,6 @@ public class Config extends HashMap<String, Object> {
      * The ceiling of the interval between retries of a client connect to Nimbus operation.
      */
     public static String STORM_NIMBUS_RETRY_INTERVAL_CEILING="storm.nimbus.retry.intervalceiling.millis";
-    
-    /**
-     * The time range around a retry tick within which each retry will fall.
-     * Used so that supervisors won't all send retries at exactly the same time.
-     * Taken to mean the maximum distance in time from the actual tick (before OR after).
-     */
-    public static String STORM_NIMBUS_RETRY_RANDOM_RANGE="storm.nimbus.retry.randomrange.millis";
-
 
     /**
      * The host that the master server is running on.
