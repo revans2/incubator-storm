@@ -144,7 +144,7 @@ public class Config extends HashMap<String, Object> {
     /**
      * The starting interval between exponential backoff retries of a Nimbus operation.
      */
-    public static String STORM_NIMBUS_RETRY_INTERVAL="storm.nimbus.retry.interval";
+    public static String STORM_NIMBUS_RETRY_INTERVAL="storm.nimbus.retry.interval.millis";
 
     /**
      * The ceiling of the interval between retries of a client connect to Nimbus operation.
