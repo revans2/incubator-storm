@@ -2,7 +2,6 @@ package backtype.storm.security.auth;
 
 import java.io.IOException;
 import java.util.Map;
-import java.util.Random;
 import javax.security.auth.login.Configuration;
 import org.apache.thrift7.protocol.TBinaryProtocol;
 import org.apache.thrift7.protocol.TProtocol;
@@ -45,16 +44,16 @@ public class ThriftClient {
             final TTransport underlyingTransport = socket;
 
             //establish client-server transport via plugin
-	    //do retries if the connect fails
-	    TBackoffConnect connectionRetry 
-		= new TBackoffConnect(
-				      Utils.getInt(storm_conf.get(Config.STORM_NIMBUS_RETRY_TIMES)),
-				      Utils.getInt(storm_conf.get(Config.STORM_NIMBUS_RETRY_INTERVAL)),
-				      Utils.getInt(storm_conf.get(Config.STORM_NIMBUS_RETRY_INTERVAL_CEILING)),
-				      Utils.getInt(storm_conf.get(Config.STORM_NIMBUS_RETRY_RANDOM_RANGE)));
-	    _transport = connectionRetry.doConnectWithRetry(transportPlugin, underlyingTransport, host);
+            //do retries if the connect fails
+            TBackoffConnect connectionRetry 
+                = new TBackoffConnect(
+                                      Utils.getInt(storm_conf.get(Config.STORM_NIMBUS_RETRY_TIMES)),
+                                      Utils.getInt(storm_conf.get(Config.STORM_NIMBUS_RETRY_INTERVAL)),
+                                      Utils.getInt(storm_conf.get(Config.STORM_NIMBUS_RETRY_INTERVAL_CEILING)),
+                                      Utils.getInt(storm_conf.get(Config.STORM_NIMBUS_RETRY_RANDOM_RANGE)));
+            _transport = connectionRetry.doConnectWithRetry(transportPlugin, underlyingTransport, host);
 
-	} catch (IOException ex) {
+        } catch (IOException ex) {
             throw new RuntimeException(ex);
         }
         _protocol = null;
