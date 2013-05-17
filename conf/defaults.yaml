@@ -19,6 +19,10 @@ storm.cluster.mode: "distributed" # can be distributed or local
 storm.local.mode.zmq: false
 storm.thrift.transport: "backtype.storm.security.auth.SimpleTransportPlugin"
 storm.messaging.transport: "backtype.storm.messaging.zmq"
+storm.nimbus.retry.times: 5
+storm.nimbus.retry.interval: 2000
+storm.nimbus.retry.intervalceiling.millis: 60000
+storm.nimbus.retry.randomrange.millis: 5000
 
 ### nimbus.* configs are for the master
 nimbus.host: "localhost"
