@@ -137,6 +137,21 @@ public class Config extends HashMap<String, Object> {
     public static String STORM_ID = "storm.id";
     
     /**
+     * The number of times to retry a Nimbus operation.
+     */
+    public static String STORM_NIMBUS_RETRY_TIMES="storm.nimbus.retry.times";
+    
+    /**
+     * The starting interval between exponential backoff retries of a Nimbus operation.
+     */
+    public static String STORM_NIMBUS_RETRY_INTERVAL="storm.nimbus.retry.interval.millis";
+
+    /**
+     * The ceiling of the interval between retries of a client connect to Nimbus operation.
+     */
+    public static String STORM_NIMBUS_RETRY_INTERVAL_CEILING="storm.nimbus.retry.intervalceiling.millis";
+
+    /**
      * The host that the master server is running on.
      */
     public static String NIMBUS_HOST = "nimbus.host";
