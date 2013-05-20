@@ -17,7 +17,7 @@ public class TBackoffConnect {
     public TBackoffConnect(int retryTimes, int retryInterval, int retryIntervalCeiling) {
 
         _retryTimes = retryTimes;
-	waitGrabber = new BoundedExponentialBackoffRetry(retryInterval,
+        waitGrabber = new BoundedExponentialBackoffRetry(retryInterval,
                                                          retryTimes,
                                                          retryIntervalCeiling);
     }
@@ -47,8 +47,8 @@ public class TBackoffConnect {
 
             Thread.sleep(sleeptime);
         } catch (InterruptedException e) {
-	    LOG.info("Nimbus connection retry interrupted.");
-	}
+            LOG.info("Nimbus connection retry interrupted.");
+        }
 
         _completedRetries++;
     }
