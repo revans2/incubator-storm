@@ -1,8 +1,6 @@
 (ns backtype.storm.security.auth.drpc-auth-test
   (:use [clojure test])
   (:require [backtype.storm.daemon [drpc :as drpc]])
-  (:import [org.apache.thrift7 TException])
-  (:import [org.apache.thrift7.transport TTransportException])
   (:import [backtype.storm.generated AuthorizationException])
   (:import [backtype.storm Config])
   (:import [backtype.storm.security.auth ThriftServer]) 
