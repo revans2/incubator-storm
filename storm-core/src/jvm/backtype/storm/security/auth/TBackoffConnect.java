@@ -16,8 +16,8 @@ public class TBackoffConnect {
 
     public TBackoffConnect(int retryTimes, int retryInterval, int retryIntervalCeiling) {
 
-        _retryTimes = retryTimes; 
-        waitGrabber = new BoundedExponentialBackoffRetry(retryInterval,
+        _retryTimes = retryTimes;
+	waitGrabber = new BoundedExponentialBackoffRetry(retryInterval,
                                                          retryTimes,
                                                          retryIntervalCeiling);
     }
