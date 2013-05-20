@@ -114,7 +114,8 @@
 
     (let [storm-conf (merge (read-storm-config)
                             {STORM-THRIFT-TRANSPORT-PLUGIN "backtype.storm.security.auth.digest.DigestSaslTransportPlugin"
-                             "java.security.auth.login.config" "test/clj/backtype/storm/security/auth/jaas_digest.conf"})]
+                             "java.security.auth.login.config" "test/clj/backtype/storm/security/auth/jaas_digest.conf"
+                             STORM-NIMBUS-RETRY-TIMES 0})]
       (testing "(Negative authentication) Server: Simple vs. Client: Digest"
                (is (thrown-cause?  java.net.SocketTimeoutException
                              (NimbusClient. storm-conf "localhost" 6632 nimbus-timeout)))))))
@@ -181,7 +182,8 @@
                 "backtype.storm.security.auth.digest.DigestSaslTransportPlugin" nil]
     (let [storm-conf (merge (read-storm-config)
                              {STORM-THRIFT-TRANSPORT-PLUGIN "backtype.storm.security.auth.digest.DigestSaslTransportPlugin"
-                              "java.security.auth.login.config" "test/clj/backtype/storm/security/auth/jaas_digest.conf"})
+                              "java.security.auth.login.config" "test/clj/backtype/storm/security/auth/jaas_digest.conf"
+                              STORM-NIMBUS-RETRY-TIMES 0})
           client (NimbusClient. storm-conf "localhost" 6637 nimbus-timeout)
           nimbus_client (.getClient client)]
       (testing "(Positive authentication) valid digest authentication"
@@ -189,7 +191,8 @@
       (.close client))
     
     (let [storm-conf (merge (read-storm-config)
-                             {STORM-THRIFT-TRANSPORT-PLUGIN "backtype.storm.security.auth.SimpleTransportPlugin"})
+                             {STORM-THRIFT-TRANSPORT-PLUGIN "backtype.storm.security.auth.SimpleTransportPlugin"
+                             STORM-NIMBUS-RETRY-TIMES 0})
           client (NimbusClient. storm-conf "localhost" 6637 nimbus-timeout)
           nimbus_client (.getClient client)]
       (testing "(Negative authentication) Server: Digest vs. Client: Simple"
