@@ -48,12 +48,20 @@ public abstract class SaslTransportPlugin implements ITransportPlugin {
         this.executor_service = executor_service;
     }
 
-    public TServer getServer(int port, TProcessor processor) throws IOException, TTransportException {
+    /** Construct a Thrift server for the given parameters.  The minimum and
+     * maximum worker threads are set to a single value defined by the server's
+     * purpose.
+     * @ port the port number
+     * @ processor the prosessor 
+     * @ purpose the purpose for which this server is created.
+     */
+    public TServer getServer(int port, TProcessor processor,
+            Config.ThriftServerPurpose purpose) throws IOException,
+            TTransportException {
         TTransportFactory serverTransportFactory = getServerTransportFactory();
 
         TServerSocket serverTransport = new TServerSocket(port);
-        int numWorkerThreads =
-                Utils.getInt(this.storm_conf.get(Config.DRPC_WORKER_THREADS));
+        int numWorkerThreads = purpose.getNumThreads(this.storm_conf);
         TThreadPoolServer.Args server_args = new TThreadPoolServer.Args(serverTransport).
                 processor(new TUGIWrapProcessor(processor)).
                 minWorkerThreads(numWorkerThreads).

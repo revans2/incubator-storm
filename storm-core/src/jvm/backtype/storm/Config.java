@@ -2,6 +2,7 @@ package backtype.storm;
 
 import backtype.storm.serialization.IKryoDecorator;
 import backtype.storm.serialization.IKryoFactory;
+import backtype.storm.utils.Utils;
 import com.esotericsoftware.kryo.Serializer;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -162,6 +163,28 @@ public class Config extends HashMap<String, Object> {
      */
     public static String NIMBUS_THRIFT_PORT = "nimbus.thrift.port";
 
+    /**
+     * The number of threads that should be used by the nimbus thrift server.
+     */
+    public static String NIMBUS_THRIFT_THREADS = "nimbus.thrift.threads";
+
+    /**
+     * The purpose for which the Thrift server is created.
+     */
+    public enum ThriftServerPurpose {
+        NIMBUS("nimbus.thrift"),
+        DRPC("drpc.thrift");
+
+        private final String configPrefix;
+
+        ThriftServerPurpose(String pfx) {
+            this.configPrefix = pfx;
+        }
+
+        public int getNumThreads(Map conf) { 
+            return Utils.getInt(this.configPrefix + ".threads");
+        }
+    }
 
     /**
      * This parameter is used by the storm-deploy project to configure the
@@ -278,7 +301,7 @@ public class Config extends HashMap<String, Object> {
     /**
      * DRPC thrift server worker threads 
      */
-    public static String DRPC_WORKER_THREADS = "drpc.worker.threads";
+    public static String DRPC_THRIFT_THREADS = "drpc.thrift.threads";
 
     /**
      * DRPC thrift server queue size 

@@ -53,10 +53,11 @@ public class SimpleTransportPlugin implements ITransportPlugin {
     /**
      * We will let Thrift to apply default transport factory
      */
-    public TServer getServer(int port, TProcessor processor) throws IOException, TTransportException {
+    public TServer getServer(int port, TProcessor processor,
+            Config.ThriftServerPurpose purpose) 
+            throws IOException, TTransportException {
         TNonblockingServerSocket serverTransport = new TNonblockingServerSocket(port);
-        int numWorkerThreads =
-                Utils.getInt(this.storm_conf.get(Config.DRPC_WORKER_THREADS));
+        int numWorkerThreads = purpose.getNumThreads(this.storm_conf);
         THsHaServer.Args server_args = new THsHaServer.Args(serverTransport).
                 processor(new SimpleWrapProcessor(processor)).
                 workerThreads(numWorkerThreads).
