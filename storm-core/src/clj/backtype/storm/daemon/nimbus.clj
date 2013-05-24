@@ -1185,8 +1185,7 @@
   (let [service-handler (service-handler conf nimbus)
         server (ThriftServer. conf (Nimbus$Processor. service-handler) 
                               (int (conf NIMBUS-THRIFT-PORT)) 
-                              backtype.storm.Config$ThriftServerPurpose/DRPC
-                              )]
+                              backtype.storm.Config$ThriftServerPurpose/DRPC)]
     (.addShutdownHook (Runtime/getRuntime) (Thread. (fn [] (.shutdown service-handler) (.stop server))))
     (log-message "Starting Nimbus server...")
     (.serve server)

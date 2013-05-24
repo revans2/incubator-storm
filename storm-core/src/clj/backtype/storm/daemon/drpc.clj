@@ -124,8 +124,7 @@
                                         (int (conf DRPC-PORT))
                                         backtype.storm.Config$ThriftServerPurpose/DRPC
                                         (ThreadPoolExecutor. worker-threads worker-threads 
-                                                             60 TimeUnit/SECONDS 
-                                                             (ArrayBlockingQueue. queue-size)))
+                                                             60 TimeUnit/SECONDS (ArrayBlockingQueue. queue-size)))
           invoke-server (ThriftServer. conf 
                                        (DistributedRPCInvocations$Processor. service-handler) 
                                        (int (conf DRPC-INVOCATIONS-PORT))
