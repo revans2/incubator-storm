@@ -173,7 +173,7 @@ public class Config extends HashMap<String, Object> {
      */
     public enum ThriftServerPurpose {
         NIMBUS("nimbus.thrift"),
-        DRPC("drpc.thrift");
+        DRPC("drpc.worker");
 
         private final String configPrefix;
 
@@ -301,7 +301,7 @@ public class Config extends HashMap<String, Object> {
     /**
      * DRPC thrift server worker threads 
      */
-    public static String DRPC_THRIFT_THREADS = "drpc.thrift.threads";
+    public static String DRPC_WORKER_THREADS = "drpc.worker.threads";
 
     /**
      * DRPC thrift server queue size 

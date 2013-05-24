@@ -112,7 +112,7 @@
 (defn launch-server!
   ([]
     (let [conf (read-storm-config)
-          worker-threads (int (conf DRPC-THRIFT-THREADS))
+          worker-threads (int (conf DRPC-WORKER-THREADS))
           queue-size (int (conf DRPC-QUEUE-SIZE))
           service-handler (service-handler conf)
           ;; requests and returns need to be on separate thread pools, since calls to
