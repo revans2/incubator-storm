@@ -122,11 +122,13 @@
           handler-server (ThriftServer. conf 
                                         (DistributedRPC$Processor. service-handler) 
                                         (int (conf DRPC-PORT))
+                                        backtype.storm.Config$ThriftServerPurpose/DRPC
                                         (ThreadPoolExecutor. worker-threads worker-threads 
                                                              60 TimeUnit/SECONDS (ArrayBlockingQueue. queue-size)))
           invoke-server (ThriftServer. conf 
                                        (DistributedRPCInvocations$Processor. service-handler) 
-                                       (int (conf DRPC-INVOCATIONS-PORT)))]      
+                                       (int (conf DRPC-INVOCATIONS-PORT))
+                                       backtype.storm.Config$ThriftServerPurpose/DRPC)]      
       (.addShutdownHook (Runtime/getRuntime) (Thread. (fn [] (.stop handler-server) (.stop invoke-server))))
       (log-message "Starting Distributed RPC servers...")
       (future (.serve invoke-server))
