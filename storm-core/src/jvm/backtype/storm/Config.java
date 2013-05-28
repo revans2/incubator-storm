@@ -182,7 +182,7 @@ public class Config extends HashMap<String, Object> {
         }
 
         public int getNumThreads(Map conf) { 
-            return Utils.getInt(this.configPrefix + ".threads");
+            return Utils.getInt(conf.get(this.configPrefix + ".threads"));
         }
     }
 
