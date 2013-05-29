@@ -91,7 +91,11 @@
         conf (if serverConf (merge conf2 serverConf) conf2)
         nimbus (nimbus/standalone-nimbus)
         service-handler (dummy-service-handler conf nimbus)
-        server (ThriftServer. conf (Nimbus$Processor. service-handler) (int (conf NIMBUS-THRIFT-PORT)))]
+        server (ThriftServer. 
+                 conf 
+                 (Nimbus$Processor. service-handler) 
+                 (int (conf NIMBUS-THRIFT-PORT))
+                 backtype.storm.Config$ThriftServerPurpose/NIMBUS)]
     (.addShutdownHook (Runtime/getRuntime) (Thread. (fn [] (.stop server))))
     (.start (Thread. #(.serve server)))
     (wait-for-condition #(.isServing server))

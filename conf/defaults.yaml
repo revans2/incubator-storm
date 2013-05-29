@@ -28,6 +28,7 @@ storm.auth.simple-white-list.users.commands: "submitTopology"
 ### nimbus.* configs are for the master
 nimbus.host: "localhost"
 nimbus.thrift.port: 6627
+nimbus.thrift.threads: 64
 nimbus.childopts: "-Xmx1024m"
 nimbus.task.timeout.secs: 30
 nimbus.supervisor.timeout.secs: 60
