@@ -7,14 +7,13 @@
   (:import [backtype.storm Config])
   (:import [backtype.storm.generated AuthorizationException])
   (:import [backtype.storm.utils NimbusClient])
-  (:import [backtype.storm.security.auth.authorizer SimpleWhitelistAuthorizer])
+  (:import [backtype.storm.security.auth.authorizer SimpleWhitelistAuthorizer SimpleACLAuthorizer])
   (:import [backtype.storm.security.auth AuthUtils ThriftServer ThriftClient 
                                          ReqContext SimpleTransportPlugin])
   (:use [backtype.storm bootstrap util])
   (:use [backtype.storm.daemon common])
   (:use [backtype.storm bootstrap testing])
-  (:import [backtype.storm.generated Nimbus Nimbus$Client])
-  )
+  (:import [backtype.storm.generated Nimbus Nimbus$Client]))
 
 (bootstrap)
 
@@ -149,7 +148,32 @@
                (.activate nimbus_client "security_auth_test_topology"))
       (.close client))))
 
+(deftest negative-acl-authorization-test
+  (with-server [6633 nil
+                "backtype.storm.security.auth.authorizer.SimpleACLAuthorizer"
+                "backtype.storm.testing.SingleUserSimpleTransport" {"storm.auth.simple-white-list.users" ["user"]}]
+    (let [storm-conf (merge (read-storm-config)
+                            {STORM-THRIFT-TRANSPORT-PLUGIN "backtype.storm.testing.SingleUserSimpleTransport"})
+          client (NimbusClient. storm-conf "localhost" 6633 nimbus-timeout)
+          nimbus_client (.getClient client)]
+      (testing "(Negative authorization) Authorization plugin should reject client request"
+               (is (thrown-cause? AuthorizationException
+                            (.activate nimbus_client "security_auth_test_topology"))))
+               (.close client))))
 
+(deftest negative-acl-authorization-privelege-test
+  (with-server [6633 nil
+                "backtype.storm.security.auth.authorizer.SimpleACLAuthorizer"
+                "backtype.storm.testing.SingleUserSimpleTransport" {"storm.auth.simple-white-list.users" ["user"]}]
+    (let [storm-conf (merge (read-storm-config)
+                            {STORM-THRIFT-TRANSPORT-PLUGIN "backtype.storm.testing.SingleUserSimpleTransport"})
+          client (NimbusClient. storm-conf "localhost" 6633 nimbus-timeout)
+          nimbus_client (.getClient client)]
+      (log-message (str storm-conf))
+      (testing "(Negative authorization) Authorization plugin should reject client request"
+        (is (thrown-cause? AuthorizationException
+                           (.activate nimbus_client "security_auth_test_topology"))))
+      (.close client))))
   
 (deftest positive-authorization-test 
   (with-server [6635 nil
