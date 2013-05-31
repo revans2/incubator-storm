@@ -19,10 +19,11 @@ import org.slf4j.LoggerFactory;
  */
 public class SimpleACLAuthorizer extends SimpleWhitelistAuthorizer implements IAuthorizer {
     private static final Logger LOG = LoggerFactory.getLogger(SimpleACLAuthorizer.class);
-    public static String WHITELIST_USERS_COMMANDS_CONF = "storm.auth.simple-white-list.users.commands";
-    public static String WHITELIST_SUPERVISORS_CONF = "supervisor.supervisors";
-    public static String WHITELIST_SUPERVISORS_COMMANDS_CONF = "supervisor.supervisors.commands";
-    public static String WHITELIST_ADMINS_CONF = "storm.auth.simple-white-list.admins";
+    public static String ACL_USERS_CONF = "storm.auth.simple-acl.users";
+    public static String ACL_USERS_COMMANDS_CONF = "storm.auth.simple-acl.users.commands";
+    public static String ACL_SUPERVISORS_CONF = "supervisor.supervisors";
+    public static String ACL_SUPERVISORS_COMMANDS_CONF = "supervisor.supervisors.commands";
+    public static String ACL_ADMINS_CONF = "storm.auth.simple-acl.admins";
     protected Set<String> userCommands;
     protected Set<String> admins;
     protected Set<String> supervisors;
@@ -35,35 +36,27 @@ public class SimpleACLAuthorizer extends SimpleWhitelistAuthorizer implements IA
     @Override
     public void prepare(Map conf) {
         try {
-            LOG.debug("Preparing SimpleACLAuthorizer ACL lists.");
             users = new HashSet<String>();
             userCommands = new HashSet<String>();
             admins = new HashSet<String>();
             supervisors = new HashSet<String>();
             supervisorCommands = new HashSet<String>();
 
-            LOG.debug(WHITELIST_USERS_CONF);
-            if (conf.containsKey(WHITELIST_USERS_CONF)) {
-                LOG.debug("Adding users." + conf.get(WHITELIST_USERS_CONF));
-                users.addAll((Collection<String>)conf.get(WHITELIST_USERS_CONF));
+            LOG.debug(ACL_USERS_CONF);
+            if (conf.containsKey(ACL_USERS_CONF)) {
+                users.addAll((Collection<String>)conf.get(ACL_USERS_CONF));
             }
-            else
-                LOG.debug(conf.toString());
-            if (conf.containsKey(WHITELIST_USERS_COMMANDS_CONF)) {
-                LOG.debug("Adding user commands." + conf.get(WHITELIST_USERS_COMMANDS_CONF));
-                userCommands.addAll((Collection<String>)conf.get(WHITELIST_USERS_COMMANDS_CONF));
+            if (conf.containsKey(ACL_USERS_COMMANDS_CONF)) {
+                userCommands.addAll((Collection<String>)conf.get(ACL_USERS_COMMANDS_CONF));
             }
-            if (conf.containsKey(WHITELIST_SUPERVISORS_CONF)) {
-                LOG.debug("Adding supervisors." + conf.get(WHITELIST_SUPERVISORS_CONF));
-                supervisors.addAll((Collection<String>)conf.get(WHITELIST_SUPERVISORS_CONF));
+            if (conf.containsKey(ACL_SUPERVISORS_CONF)) {
+                supervisors.addAll((Collection<String>)conf.get(ACL_SUPERVISORS_CONF));
             }
-            if (conf.containsKey(WHITELIST_SUPERVISORS_COMMANDS_CONF)) {
-                LOG.debug("Adding supervisor commands." + conf.get(WHITELIST_SUPERVISORS_COMMANDS_CONF));
-                supervisorCommands.addAll((Collection<String>)conf.get(WHITELIST_SUPERVISORS_COMMANDS_CONF));
+            if (conf.containsKey(ACL_SUPERVISORS_COMMANDS_CONF)) {
+                supervisorCommands.addAll((Collection<String>)conf.get(ACL_SUPERVISORS_COMMANDS_CONF));
             }
-            if (conf.containsKey(WHITELIST_ADMINS_CONF)) {
-                LOG.debug("Adding admins." + conf.get(WHITELIST_ADMINS_CONF));
-                admins.addAll((Collection<String>)conf.get(WHITELIST_ADMINS_CONF));
+            if (conf.containsKey(ACL_ADMINS_CONF)) {
+                admins.addAll((Collection<String>)conf.get(ACL_ADMINS_CONF));
             }
         } catch (Exception e) {
             LOG.debug("Couldn't get all sets.", e);
@@ -79,6 +72,12 @@ public class SimpleACLAuthorizer extends SimpleWhitelistAuthorizer implements IA
      */
     @Override
     public boolean permit(ReqContext context, String operation, Map topology_conf) {
+        LOG.debug("Users: " + users.toString()
+                  +"\nAdmins: " + admins.toString()
+                  +"\nSupervisors: " + supervisors.toString()
+                  +"\nUserCommands: " + userCommands.toString()
+                  +"\nSupervisorCommands: " + supervisorCommands.toString());
+
         LOG.info("[req "+ context.requestID()+ "] Access "
                 + " from: " + (context.remoteAddress() == null? "null" : context.remoteAddress().toString())
                 + (context.principal() == null? "" : (" principal:"+ context.principal()))
@@ -88,15 +87,7 @@ public class SimpleACLAuthorizer extends SimpleWhitelistAuthorizer implements IA
            || (supervisors.contains(context.principal().getName()) && supervisorCommands.contains(operation))
            || admins.contains(context.principal().getName()))
             return true;
-        
-        LOG.info("[req "+ context.requestID()+ "] Access Denied."
-                 + "\nUser: " + context.principal().getName()
-                 + "\nOperation: " + operation
-                 + "\nAdmins: " + admins.toString()
-                 + "\nUsers: " + users.toString()
-                 + "\nSupervisors: " + supervisors.toString()
-                 + "\nUser Commands: " + userCommands.toString()
-                 + "\nSupervisor Commands: " + supervisorCommands.toString());
+       
         return false;
     }
 }
