@@ -72,18 +72,28 @@ public class SimpleACLAuthorizer extends SimpleWhitelistAuthorizer implements IA
      */
     @Override
     public boolean permit(ReqContext context, String operation, Map topology_conf) {
-        LOG.debug("Users: " + users.toString()
-                  +"\nAdmins: " + admins.toString()
-                  +"\nSupervisors: " + supervisors.toString()
-                  +"\nUserCommands: " + userCommands.toString()
-                  +"\nSupervisorCommands: " + supervisorCommands.toString());
 
         LOG.info("[req "+ context.requestID()+ "] Access "
-                + " from: " + (context.remoteAddress() == null? "null" : context.remoteAddress().toString())
-                + (context.principal() == null? "" : (" principal:"+ context.principal()))
-                +" op:"+operation
-                + (topology_conf == null? "" : (" topoology:"+topology_conf.get(Config.TOPOLOGY_NAME))));
-        if((users.contains(context.principal().getName()) && userCommands.contains(operation))
+                 + " from: " + (context.remoteAddress() == null? "null" : context.remoteAddress().toString())
+                 + (context.principal() == null? "" : (" principal:"+ context.principal()))
+                 +" op:"+operation
+                 + (topology_conf == null? "" : (" topoology:"+topology_conf.get(Config.TOPOLOGY_NAME))));
+        
+        Set topoUsers = new HashSet<String>();
+        Set topoUserCommands = new HashSet<String>();
+        
+        if(topology_conf != null) {
+            if(topology_conf.containsKey(ACL_USERS_CONF))
+                topoUsers.addAll((Collection<String>)topology_conf.get(ACL_USERS_CONF));
+            if(topology_conf.containsKey(ACL_USERS_COMMANDS_CONF))
+                topoUserCommands.addAll((Collection<String>)topology_conf.get(ACL_USERS_COMMANDS_CONF));
+        }
+        
+        //Make sure global config allows user to submit topology, and users aren't giving themselves permission.
+        topoUserCommands.remove("submitTopology");
+        
+        if((topoUsers.contains(context.principal().getName()) && topoUserCommands.contains(operation))
+           || (users.contains(context.principal().getName()) && userCommands.contains(operation))
            || (supervisors.contains(context.principal().getName()) && supervisorCommands.contains(operation))
            || admins.contains(context.principal().getName()))
             return true;

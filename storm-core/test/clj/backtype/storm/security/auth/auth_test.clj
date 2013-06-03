@@ -37,26 +37,28 @@
      }))
 
 (defn dummy-service-handler [conf inimbus]
-  (let [nimbus-d (nimbus-data conf inimbus)]
+  (let [nimbus-d (nimbus-data conf inimbus)
+        topo-conf (atom nil)]
     (reify Nimbus$Iface
       (^void submitTopologyWithOpts [this ^String storm-name ^String uploadedJarLocation ^String serializedConf ^StormTopology topology
                                      ^SubmitOptions submitOptions]
-        (nimbus/check-authorization! nimbus-d storm-name nil "submitTopology"))
+        (if (not (nil? serializedConf)) (swap! topo-conf (fn [prev new] new) (from-json serializedConf)))
+        (nimbus/check-authorization! nimbus-d storm-name @topo-conf "submitTopology"))
       
       (^void killTopology [this ^String storm-name]
-        (nimbus/check-authorization! nimbus-d storm-name nil "killTopology"))
+        (nimbus/check-authorization! nimbus-d storm-name @topo-conf "killTopology"))
       
       (^void killTopologyWithOpts [this ^String storm-name ^KillOptions options]
-        (nimbus/check-authorization! nimbus-d storm-name nil "killTopology"))
+        (nimbus/check-authorization! nimbus-d storm-name @topo-conf "killTopology"))
 
       (^void rebalance [this ^String storm-name ^RebalanceOptions options]
-        (nimbus/check-authorization! nimbus-d storm-name nil "rebalance"))
+        (nimbus/check-authorization! nimbus-d storm-name @topo-conf "rebalance"))
 
       (activate [this storm-name]
-        (nimbus/check-authorization! nimbus-d storm-name nil "activate"))
+        (nimbus/check-authorization! nimbus-d storm-name @topo-conf "activate"))
 
       (deactivate [this storm-name]
-        (nimbus/check-authorization! nimbus-d storm-name nil "deactivate"))
+        (nimbus/check-authorization! nimbus-d storm-name @topo-conf "deactivate"))
 
       (beginFileUpload [this])
 
@@ -65,7 +67,7 @@
       (^void finishFileUpload [this ^String location])
 
       (^String beginFileDownload [this ^String file]
-        (nimbus/check-authorization! nimbus-d nil nil "fileDownload")
+        (nimbus/check-authorization! nimbus-d nil @topo-conf "fileDownload")
         "Done!")
 
       (^ByteBuffer downloadChunk [this ^String id])
@@ -151,16 +153,20 @@
       (.close client))))
 
 (deftest negative-acl-authorization-test
-  (with-server [6634 nil
+  (with-server [6633 nil
                 "backtype.storm.security.auth.authorizer.SimpleACLAuthorizer"
                 "backtype.storm.testing.SingleUserSimpleTransport" nil]
     (let [storm-conf (merge (read-storm-config)
                             {STORM-THRIFT-TRANSPORT-PLUGIN "backtype.storm.testing.SingleUserSimpleTransport"})
-          client (NimbusClient. storm-conf "localhost" 6634 nimbus-timeout)
+          client (NimbusClient. storm-conf "localhost" 6633 nimbus-timeout)
           nimbus_client (.getClient client)]
- (testing "(Negative authorization) Authorization plugin should reject client request"
+      (testing "(Negative authorization) Authorization plugin should reject client request"
         (is (thrown-cause? AuthorizationException
-                           (.submitTopologyWithOpts nimbus_client "security_auth_test_topology" nil nil nil nil))))
+                           (.submitTopologyWithOpts nimbus_client "security_auth_test_topology" nil 
+                                                    (to-json
+                                                     {"storm.auth.simple-acl.users" ["user"]
+                                                      "storm.auth.simple-acl.users.commands" ["submitTopology"]}) 
+                                                    nil nil))))
       (.close client))))
 
 (deftest negative-acl-authorization-user-privilege-test
@@ -173,7 +179,30 @@
           nimbus_client (.getClient client)]
       (testing "(Negative authorization user privilege) Authorization plugin should reject client request"
         (is (thrown-cause? AuthorizationException
-                           (.submitTopologyWithOpts nimbus_client "security_auth_test_topology" nil nil nil nil))))
+                           (.submitTopologyWithOpts nimbus_client "security_auth_test_topology" nil 
+                                                    (to-json
+                                                     {"storm.auth.simple-acl.users" ["user"]
+                                                      "storm.auth.simple-acl.users.commands" ["submitTopology"]})
+                                                    nil nil))))
+      (.close client))))
+
+(deftest negative-acl-authorization-user-topo-privilege-test
+  (with-server [6634 nil
+                "backtype.storm.security.auth.authorizer.SimpleACLAuthorizer"
+                "backtype.storm.testing.SingleUserSimpleTransport" {"storm.auth.simple-acl.users" ["user"]
+                                                                    "storm.auth.simple-acl.users.commands" ["submitTopology"]}]
+    (let [storm-conf (merge (read-storm-config)
+                            {STORM-THRIFT-TRANSPORT-PLUGIN "backtype.storm.testing.SingleUserSimpleTransport"})
+          client (NimbusClient. storm-conf "localhost" 6634 nimbus-timeout)
+          nimbus_client (.getClient client)]
+      (testing "(Negative authorization user privilege) Authorization plugin should reject client request"
+        (.submitTopologyWithOpts nimbus_client "security_auth_test_topology" nil 
+                                 (to-json
+                                  {"storm.auth.simple-acl.users" ["user"]
+                                   "storm.auth.simple-acl.users.commands" ["submitTopology"]})
+                                 nil nil)
+        (is (thrown-cause? AuthorizationException
+                           (.activate nimbus_client "security_auth_test_topology"))))
       (.close client))))
 
 (deftest negative-acl-authorization-supervisor-privilege-test
@@ -219,6 +248,24 @@
         (.submitTopologyWithOpts nimbus_client "security_auth_test_topology" nil nil nil nil))
       (.close client))))
 
+(deftest positive-acl-authorization-user-topo
+  (with-server [6642 nil
+                "backtype.storm.security.auth.authorizer.SimpleACLAuthorizer"
+                "backtype.storm.testing.SingleUserSimpleTransport" {"storm.auth.simple-acl.users" ["user"]
+                                                                    "storm.auth.simple-acl.users.commands" ["submitTopology"]}]
+    (let [storm-conf (merge (read-storm-config)
+                            {STORM-THRIFT-TRANSPORT-PLUGIN "backtype.storm.testing.SingleUserSimpleTransport"})
+          client (NimbusClient. storm-conf "localhost" 6642 nimbus-timeout)
+          nimbus_client (.getClient client)]
+      (testing "(Positive authorization admin) Authorization plugin should accept client request"
+        (.submitTopologyWithOpts nimbus_client "security_auth_test_topology" nil 
+                                 (to-json
+                                  {"storm.auth.simple-acl.users" ["user"]
+                                   "storm.auth.simple-acl.users.commands" ["activate"]})
+                                 nil nil)
+        (.activate nimbus_client "security_auth_test_topology"))
+      (.close client))))
+
 (deftest positive-acl-authorization-supervisor
   (with-server [6638 nil
                 "backtype.storm.security.auth.authorizer.SimpleACLAuthorizer"
@@ -230,7 +277,6 @@
                             {STORM-THRIFT-TRANSPORT-PLUGIN "backtype.storm.testing.SingleUserSimpleTransport"})
           client (NimbusClient. storm-conf "localhost" 6638 nimbus-timeout)
           nimbus_client (.getClient client)]
-      (log-message (str storm-conf))
       (testing "(Positive authorization admin) Authorization plugin should accept client request"
         (.submitTopologyWithOpts nimbus_client "security_auth_test_topology" nil nil nil nil)
         (.beginFileDownload nimbus_client nil))
