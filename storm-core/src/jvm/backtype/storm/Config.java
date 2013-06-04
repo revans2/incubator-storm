@@ -171,7 +171,7 @@ public class Config extends HashMap<String, Object> {
     /**
      * The purpose for which the Thrift server is created.
      */
-    public enum ThriftServerPurpose {
+    public static enum ThriftServerPurpose {
         NIMBUS("nimbus.thrift"),
         DRPC("drpc.worker");
 
