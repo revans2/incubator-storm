@@ -427,8 +427,12 @@
                        (java.net.URLEncoder/encode storm-id) " " (:assignment-id supervisor)
                        " " port " " worker-id)]
       (log-message "Launching worker with command: " command)
-      (launch-process command :environment {"LD_LIBRARY_PATH" (conf JAVA-LIBRARY-PATH)})
-      ))
+      (let [process (launch-process command :environment {"LD_LIBRARY_PATH" (conf JAVA-LIBRARY-PATH)})]
+        (log-message (str process))
+        (async-loop
+         (fn []
+           (read-and-log-stream "Worker Process" (.getInputStream process))))
+        process)))
 
 ;; local implementation
 

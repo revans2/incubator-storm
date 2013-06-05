@@ -9,7 +9,8 @@
   (:import [java.util.zip ZipFile])
   (:import [java.util.concurrent.locks ReentrantReadWriteLock])
   (:import [java.util.concurrent Semaphore])
-  (:import [java.io File RandomAccessFile StringWriter PrintWriter])
+  (:import [java.io File RandomAccessFile StringWriter PrintWriter BufferedReader 
+            InputStreamReader IOException])
   (:import [java.lang.management ManagementFactory])
   (:import [org.apache.commons.exec DefaultExecutor CommandLine])
   (:import [org.apache.commons.io FileUtils])
@@ -351,10 +352,21 @@
                      (filter (complement empty?)))
         builder (ProcessBuilder. command)
         process-env (.environment builder)]
+    (.redirectErrorStream builder true)
     (doseq [[k v] environment]
       (.put process-env k v))
-    (.start builder)
-    ))
+    (.start builder)))
+
+(defn read-and-log-stream [prefix stream]
+  (try
+    (let [reader (BufferedReader. (InputStreamReader. stream))]
+      (loop []
+        (if-let [line (.readLine reader)]
+                (do
+                  (log-warn (str prefix ":" line))
+                  (recur)))))
+    (catch IOException e
+      (log-warn "Error while trying to log stream" e))))
 
 (defn sleep-secs [secs]
   (when (pos? secs)
