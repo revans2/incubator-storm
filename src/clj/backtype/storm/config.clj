@@ -1,10 +1,11 @@
 (ns backtype.storm.config
-  (:import [java.io FileReader File])
+  (:import [java.io FileReader File IOException])
   (:import [backtype.storm Config])
   (:import [backtype.storm.utils Utils LocalState])
   (:import [org.apache.commons.io FileUtils])
   (:require [clojure [string :as str]])
   (:use [backtype.storm util])
+  (:use [backtype.storm log])
   )
 
 (def RESOURCES-SUBDIR "resources")
@@ -151,14 +152,23 @@
   (str (worker-user-root conf) "/" worker-id))
 
 (defn get-worker-user [conf worker-id]
-  (slurp (worker-user-file conf worker-id)))
+  (log-message "GET worker-user " worker-id)
+  (try
+    (slurp (worker-user-file conf worker-id))
+  (catch IOException e
+    (log-warn-error e "Failed to get worker user for " worker-id ".")
+    nil
+    )))
+
   
 (defn set-worker-user [conf worker-id user]
+  (log-message "SET worker-user " worker-id " " user)
   (let [file (worker-user-file conf worker-id)]
     (.mkdirs (.getParentFile (File. file)))
     (spit (worker-user-file conf worker-id) user)))
 
 (defn remove-worker-user [conf worker-id]
+  (log-message "REMOVE worker-user " worker-id)
   (.delete (File. (worker-user-file conf worker-id))))
 
 (defn worker-root

@@ -346,16 +346,6 @@
     (log-message "Error when trying to kill " pid ". Process is probably already dead."))
     ))
 
-(defnk launch-process [command :environment {}]
-  (let [command (->> (seq (.split command " "))
-                     (filter (complement empty?)))
-        builder (ProcessBuilder. command)
-        process-env (.environment builder)]
-    (doseq [[k v] environment]
-      (.put process-env k v))
-    (.start builder)
-    ))
-
 (defn sleep-secs [secs]
   (when (pos? secs)
     (Time/sleep (* (long secs) 1000))))
@@ -414,8 +404,32 @@
         ))
       ))
 
+(defnk write-script [dir command :environment {}]
+  (let [script-src (str "#!/bin/bash\n" (clojure.string/join "" (map (fn [[k v]] (str "export '" k "=" v "';\n")) environment)) "\nexec " command ";")
+        script-path (str dir "/storm-worker-script.sh")
+        - (spit script-path script-src)]
+    script-path
+  ))
+
+(defnk launch-process [command :environment {}]
+  (let [- (log-message " Command: " command " env: " environment)
+        command (->> (seq (.split command " "))
+                     (filter (complement empty?)))
+        builder (ProcessBuilder. command)
+        - (.redirectErrorStream builder true)
+        process-env (.environment builder)]
+    (doseq [[k v] environment]
+      (.put process-env k v))
+    (let [process (.start builder)
+         - (async-loop 
+              (fn []
+                 (Utils/readAndLogStream "external process: " (.getInputStream process))))]
+      process
+    )))
+
 (defn exists-file? [path]
-  (.exists (File. path)))
+
+      (.exists (File. path)))
 
 (defn rmr [path]
   (log-debug "Rmr path " path)

@@ -27,6 +27,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <strings.h>
 #include <sys/stat.h>
 
 #define _STRINGIFY(X) #X
@@ -43,16 +44,17 @@ void display_usage(FILE *stream) {
   fprintf(stream,
       "Usage: worker-launcher user command command-args\n");
   fprintf(stream, "Commands:\n");
-  fprintf(stream, "   initialize container: %2d appid tokens " \
-   "nm-local-dirs nm-log-dirs cmd app...\n", INITIALIZE_CONTAINER);
-  fprintf(stream,
-      "   launch container:    %2d appid containerid workdir "\
-      "container-script tokens pidfile nm-local-dirs nm-log-dirs\n",
-	  LAUNCH_CONTAINER);
-  fprintf(stream, "   signal container:    %2d container-pid signal\n",
-	  SIGNAL_CONTAINER);
-  fprintf(stream, "   delete as user: %2d relative-path\n",
-	  DELETE_AS_USER);
+  fprintf(stream, "   initialize stormdist dir: code-dir code-directory\n");
+//  fprintf(stream, "   initialize container: %2d appid tokens " 
+//   "nm-local-dirs nm-log-dirs cmd app...\n", INITIALIZE_CONTAINER);
+//  fprintf(stream,
+//      "   launch container:    %2d appid containerid workdir "
+//      "container-script tokens pidfile nm-local-dirs nm-log-dirs\n",
+//	  LAUNCH_CONTAINER);
+//  fprintf(stream, "   signal container:    %2d container-pid signal\n",
+//	  SIGNAL_CONTAINER);
+//  fprintf(stream, "   delete as user: %2d relative-path\n",
+//	  DELETE_AS_USER);
 }
 
 int main(int argc, char **argv) {
@@ -63,16 +65,16 @@ int main(int argc, char **argv) {
   ERRORFILE = stderr;
 
   // Minimum number of arguments required to run 
-  // the std. worker-launcher commands is 4
-  // 4 args not needed for checksetup option
-  if (argc < 4) {
+  // the std. worker-launcher commands is 3
+  // 3 args not needed for checksetup option
+  if (argc < 3) {
     invalid_args = 1;
     if (argc == 2) {
       const char *arg1 = argv[1];
       if (strcmp("--checksetup", arg1) == 0) {
         invalid_args = 0;
         do_check_setup = 1;        
-      }      
+      }
     }
   }
   
@@ -81,23 +83,24 @@ int main(int argc, char **argv) {
     return INVALID_ARGUMENT_NUMBER;
   }
 
-  int command;
-  const char * app_id = NULL;
-  const char * container_id = NULL;
-  const char * cred_file = NULL;
-  const char * script_file = NULL;
-  const char * current_dir = NULL;
-  const char * pid_file = NULL;
+  const char * command = NULL;
+  const char * working_dir = NULL;
+  //const char * app_id = NULL;
+  //const char * container_id = NULL;
+  //const char * cred_file = NULL;
+  //const char * script_file = NULL;
+  //const char * current_dir = NULL;
+  //const char * pid_file = NULL;
 
   int exit_code = 0;
 
-  char * dir_to_be_deleted = NULL;
+  //char * dir_to_be_deleted = NULL;
 
   char *executable_file = get_executable();
 
   char *orig_conf_file = STRINGIFY(HADOOP_CONF_DIR) "/" CONF_FILENAME;
   char *conf_file = realpath(orig_conf_file, NULL);
-  char *local_dirs, *log_dirs;
+  //char *local_dirs, *log_dirs;
 
   if (conf_file == NULL) {
     fprintf(ERRORFILE, "Configuration file %s not found.\n", orig_conf_file);
@@ -122,6 +125,7 @@ int main(int argc, char **argv) {
     fflush(LOGFILE);
     exit(INVALID_CONFIG_FILE);
   }
+
   set_nm_uid(getuid(), group_info->gr_gid);
   // if we are running from a setuid executable, make the real uid root
   setuid(0);
@@ -152,12 +156,70 @@ int main(int argc, char **argv) {
   }
  
   optind = optind + 1;
-  command = atoi(argv[optind++]);
+  command = argv[optind++];
 
-  fprintf(LOGFILE, "main : command provided %d\n",command);
+  fprintf(LOGFILE, "main : command provided %s\n",command);
   fprintf(LOGFILE, "main : user is %s\n", user_detail->pw_name);
   fflush(LOGFILE);
 
+  if (strcasecmp("code-dir", command) == 0) {
+    if (argc != 4) {
+      fprintf(ERRORFILE, "Incorrect number of arguments (%d vs 4) for code-dir\n",
+	      argc);
+      fflush(ERRORFILE);
+      return INVALID_ARGUMENT_NUMBER;
+    }
+    exit_code = setup_stormdist_dir(argv[optind]);
+  } else if (strcasecmp("rmr", command) == 0) {
+    if (argc != 4) {
+      fprintf(ERRORFILE, "Incorrect number of arguments (%d vs 4) for rmr\n",
+	      argc);
+      fflush(ERRORFILE);
+      return INVALID_ARGUMENT_NUMBER;
+    }
+    exit_code= delete_as_user(user_detail->pw_name, argv[optind],
+                              NULL);
+  } else if (strcasecmp("worker", command) == 0) {
+    if (argc != 5) {
+      fprintf(ERRORFILE, "Incorrect number of arguments (%d vs 5) for worker\n",
+	      argc);
+      fflush(ERRORFILE);
+      return INVALID_ARGUMENT_NUMBER;
+    }
+    working_dir = argv[optind++];
+    exit_code = setup_stormdist_dir(working_dir);
+    if (exit_code == 0) {
+      exit_code = exec_as_user(working_dir, argv[optind]);
+    }
+  } else if (strcasecmp("signal", command) == 0) {
+    if (argc != 5) {
+      fprintf(ERRORFILE, "Incorrect number of arguments (%d vs 5) for signal\n",
+	      argc);
+      fflush(ERRORFILE);
+      return INVALID_ARGUMENT_NUMBER;
+    }
+    char* end_ptr = NULL;
+    char* option = argv[optind++];
+    int container_pid = strtol(option, &end_ptr, 10);
+    if (option == end_ptr || *end_ptr != '\0') {
+      fprintf(ERRORFILE, "Illegal argument for container pid %s\n", option);
+      fflush(ERRORFILE);
+      return INVALID_ARGUMENT_NUMBER;
+    }
+    option = argv[optind++];
+    int signal = strtol(option, &end_ptr, 10);
+    if (option == end_ptr || *end_ptr != '\0') {
+      fprintf(ERRORFILE, "Illegal argument for signal %s\n", option);
+      fflush(ERRORFILE);
+      return INVALID_ARGUMENT_NUMBER;
+    }
+    exit_code = signal_container_as_user(user_detail->pw_name, container_pid, signal);
+  } else {
+    fprintf(ERRORFILE, "Invalid command %s not supported.",command);
+    fflush(ERRORFILE);
+    exit_code = INVALID_COMMAND_PROVIDED;
+  }
+/*
   switch (command) {
   case INITIALIZE_CONTAINER:
     if (argc < 8) {
@@ -229,6 +291,7 @@ int main(int argc, char **argv) {
     fflush(ERRORFILE);
     exit_code = INVALID_COMMAND_PROVIDED;
   }
+  */
   fclose(LOGFILE);
   fclose(ERRORFILE);
   return exit_code;

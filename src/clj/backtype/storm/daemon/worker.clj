@@ -44,7 +44,7 @@
              (:executors worker)
              (:port worker))
         state (worker-state conf (:worker-id worker))]
-    (log-debug "Doing heartbeat " (pr-str hb))
+    (log-message "Doing heartbeat " (pr-str hb))
     ;; do the local-file-system heartbeat.
     (.put state
         LS-WORKER-HEARTBEAT
@@ -435,7 +435,8 @@
   (fn [] (halt-process! 1 "Worker died")))
 
 (defn -main [storm-id assignment-id port-str worker-id]  
-  (let [conf1 (read-storm-config)
+  (let [- (log-message "Environment: " (System/getenv))
+        conf1 (read-storm-config)
         login_conf_file (System/getProperty "java.security.auth.login.config")
         conf (if login_conf_file (merge conf1 {"java.security.auth.login.config" login_conf_file}) conf1)]
     (validate-distributed-mode! conf)

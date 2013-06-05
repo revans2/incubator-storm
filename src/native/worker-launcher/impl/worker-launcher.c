@@ -131,7 +131,7 @@ int check_executor_permissions(char *executable_file) {
  * Change the effective user id to limit damage.
  */
 static int change_effective_user(uid_t user, gid_t group) {
-  if (geteuid() == user) {
+  if (geteuid() == user && getegid() == group) {
     return 0;
   }
   if (seteuid(0) != 0) {
@@ -696,6 +696,106 @@ int initialize_user(const char *user, char* const* local_dirs) {
   return failed ? INITIALIZE_USER_FAILED : 0;
 }
 
+
+int setup_stormdist(FTSENT* entry, uid_t euser) {
+  if (lchown(entry->fts_path, euser, nm_gid) != 0) {
+    fprintf(ERRORFILE, "Failure to exec app initialization process - %s\n",
+      strerror(errno));
+     return -1;
+  }
+  mode_t mode = entry->fts_statp->st_mode;
+  mode_t new_mode = (mode & (S_IRWXU)) | S_IRGRP | S_IWGRP;
+  if ((mode & S_IXUSR) == S_IXUSR) {
+    new_mode = new_mode | S_IXGRP;
+  }
+  if ((mode & S_IFDIR) == S_IFDIR) {
+    new_mode = new_mode | S_ISGID;
+  }
+  if (chmod(entry->fts_path, new_mode) != 0) {
+    fprintf(ERRORFILE, "Failure to exec app initialization process - %s\n",
+      strerror(errno));
+    return -1;
+  }
+  return 0;
+}
+
+int setup_stormdist_dir(const char* local_dir) {
+  //This is the same as
+  //> chmod g+rwX -R $local_dir
+  //> chown -no-dereference -R $user:$supervisor-group $local_dir 
+
+  int exit_code = 0;
+  uid_t euser = geteuid();
+
+  if (local_dir == NULL) {
+    fprintf(ERRORFILE, "Path is null\n");
+    exit_code = UNABLE_TO_BUILD_PATH; // may be malloc failed
+  } else {
+    char *(paths[]) = {strdup(local_dir), 0};
+    if (paths[0] == NULL) {
+      fprintf(ERRORFILE, "Malloc failed in setup_stormdist_dir\n");
+      return -1;
+    }
+    // check to make sure the directory exists
+    if (access(local_dir, F_OK) != 0) {
+      if (errno == ENOENT) {
+        fprintf(ERRORFILE, "Path does not exist %s\n", local_dir);
+        free(paths[0]);
+        return UNABLE_TO_BUILD_PATH;
+      }
+    }
+    FTS* tree = fts_open(paths, FTS_PHYSICAL | FTS_XDEV, NULL);
+    FTSENT* entry = NULL;
+    int ret = 0;
+
+    if (tree == NULL) {
+      fprintf(ERRORFILE,
+              "Cannot open file traversal structure for the path %s:%s.\n", 
+              local_dir, strerror(errno));
+      free(paths[0]);
+      return -1;
+    }
+
+    if (seteuid(0) != 0) {
+      fprintf(ERRORFILE, "Could not become root\n");
+      return -1;
+    }
+
+    while (((entry = fts_read(tree)) != NULL) && exit_code == 0) {
+      switch (entry->fts_info) {
+
+      case FTS_DP:        // A directory being visited in post-order
+      case FTS_DOT:       // A dot directory
+        //NOOP
+        fprintf(LOGFILE, "NOOP: %s\n", entry->fts_path); break;
+      case FTS_D:         // A directory in pre-order
+      case FTS_F:         // A regular file
+      case FTS_SL:        // A symbolic link
+      case FTS_SLNONE:    // A broken symbolic link
+        //TODO it would be good to validate that the file is owned by the correct user first.
+        fprintf(LOGFILE, "visiting: %s\n", entry->fts_path);
+        if (setup_stormdist(entry, euser) != 0) {
+          exit_code = -1;
+        }
+        break;
+      case FTS_DEFAULT:   // Unknown type of file
+      case FTS_DNR:       // Unreadable directory
+      case FTS_NS:        // A file with no stat(2) information
+      case FTS_DC:        // A directory that causes a cycle
+      case FTS_NSOK:      // No stat information requested
+      case FTS_ERR:       // Error return
+      default:
+        fprintf(LOGFILE, "Unexpected...\n"); break;
+        exit_code = -1;
+        break;
+      }
+    }
+    ret = fts_close(tree);
+    free(paths[0]);
+  }
+  return exit_code;
+}
+
 /**
  * Function to prepare the application directories for the container.
  */
@@ -1073,6 +1173,48 @@ static int delete_path(const char *full_path,
   return exit_code;
 }
 
+int exec_as_user(const char * working_dir, const char * script_file) {
+  char *script_file_dest = NULL;
+  script_file_dest = get_container_launcher_file(working_dir);
+  if (script_file_dest == NULL) {
+    return OUT_OF_MEMORY;
+  }
+
+  // open launch script
+  int script_file_source = open_file_as_nm(script_file);
+  if (script_file_source == -1) {
+    return -1;
+  }
+
+  setsid();
+
+  // give up root privs
+  if (change_user(user_detail->pw_uid, user_detail->pw_gid) != 0) {
+    return SETUID_OPER_FAILED;
+  }
+
+  if (copy_file(script_file_source, script_file, script_file_dest, S_IRWXU) != 0) {
+    return -1;
+  }
+
+  fcloseall();
+  umask(0027);
+  if (chdir(working_dir) != 0) {
+    fprintf(LOGFILE, "Can't change directory to %s -%s\n", working_dir,
+	    strerror(errno));
+    return -1;
+  }
+
+  if (execlp(script_file_dest, script_file_dest, NULL) != 0) {
+    fprintf(LOGFILE, "Couldn't execute the container launch file %s - %s", 
+            script_file_dest, strerror(errno));
+    return UNABLE_TO_EXECUTE_CONTAINER_SCRIPT;
+  }
+ 
+  //Unreachable
+  return -1;
+}
+
 /**
  * Delete the given directory as the user from each of the directories
  * user: the user doing the delete
@@ -1089,7 +1231,7 @@ int delete_as_user(const char *user,
 
   // TODO: No switching user? !!!!
   if (baseDirs == NULL || *baseDirs == NULL) {
-    return delete_path(subdir, strlen(subdir) == 0);
+    return delete_path(subdir, 1);
   }
   // do the delete
   for(ptr = (char**)baseDirs; *ptr != NULL; ++ptr) {

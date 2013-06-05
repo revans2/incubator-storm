@@ -147,14 +147,17 @@
 
 (defn try-cleanup-worker [conf id user]
   (try
-    (if (conf SUPERVISOR-RUN-WORKER-AS-USER)
-        (worker-launcher conf user (str " rmr " (worker-root conf id)))
-      (let []
-        (rmr (worker-heartbeats-root conf id))
-        ;; this avoids a race condition with worker or subprocess writing pid around same time
-        (rmpath (worker-pids-root conf id))
-        (rmpath (worker-root conf id))))
-    (remove-worker-user conf id)
+    (if (.exists (File. (worker-root conf id)))
+      (do
+        (if (conf SUPERVISOR-RUN-WORKER-AS-USER)
+            (worker-launcher conf user (str " rmr " (worker-root conf id)))
+          (let []
+            (rmr (worker-heartbeats-root conf id))
+            ;; this avoids a race condition with worker or subprocess writing pid around same time
+            (rmpath (worker-pids-root conf id))
+            (rmpath (worker-root conf id))))
+        (remove-worker-user conf id)
+      ))
   (catch RuntimeException e
     (log-warn-error e "Failed to cleanup worker " id ". Will retry later")
     )))
@@ -165,12 +168,13 @@
         pids (read-dir-contents (worker-pids-root conf id))
         thread-pid (@(:worker-thread-pids-atom supervisor) id)
         as-user (conf SUPERVISOR-RUN-WORKER-AS-USER)
+        ;;TODO look at using JDK7 java.nio.file.attribute.FileOwnerAttributeView to get the owner of the directory.
         user (get-worker-user conf id)]
     (when thread-pid
       (psim/kill-process thread-pid))
     (doseq [pid pids]
       (if as-user
-        (worker-launcher conf user (str " signal 15 " pid))
+        (worker-launcher conf user (str " signal " pid " 9"))
         (ensure-process-killed! pid))
       (if as-user
         (worker-launcher conf user (str " rmr " (worker-pid-path conf id pid)))
@@ -239,7 +243,8 @@
         (shutdown-worker supervisor id)
         ))
     (doseq [id (vals new-worker-ids)]
-      (local-mkdirs (worker-pids-root conf id)))
+      (local-mkdirs (worker-pids-root conf id))
+      (local-mkdirs (worker-heartbeats-root conf id)))
     (.put local-state LS-APPROVED-WORKERS
           (merge
            (select-keys (.get local-state LS-APPROVED-WORKERS)
@@ -455,9 +460,8 @@
       (log-message "Launching worker with command: " command)
       (set-worker-user conf worker-id user)
       (if run-worker-as-user
-        (let [worker-dir (worker-root conf worker-id)
-              args (str " worker " worker-dir " " command)]
-          (worker-launcher conf user args :environment {"LD_LIBRARY_PATH" (conf JAVA-LIBRARY-PATH)}))
+        (let [worker-dir (worker-root conf worker-id)]
+          (worker-launcher conf user (str "worker " worker-dir " " (write-script worker-dir command :environment {"LD_LIBRARY_PATH" (conf JAVA-LIBRARY-PATH)}))))
         (launch-process command :environment {"LD_LIBRARY_PATH" (conf JAVA-LIBRARY-PATH)})
       )))
 

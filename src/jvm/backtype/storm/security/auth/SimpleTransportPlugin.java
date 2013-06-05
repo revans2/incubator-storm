@@ -126,8 +126,8 @@ public class SimpleTransportPlugin implements ITransportPlugin {
             if (s == null) {
               HashSet<Principal> principals = new HashSet<Principal>();
               principals.add(new Principal() {
-                public String getName() { return "evans"; }
-                public String toString() { return "evans"; }
+                public String getName() { return "nobody"; }
+                public String toString() { return "nobody"; }
               });
 	      s = new Subject(true, principals, new HashSet<Object>(), new HashSet<Object>());
             }

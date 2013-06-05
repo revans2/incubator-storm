@@ -10,9 +10,11 @@ import clojure.lang.RT;
 import com.netflix.curator.framework.CuratorFramework;
 import com.netflix.curator.framework.CuratorFrameworkFactory;
 import com.netflix.curator.retry.ExponentialBackoffRetry;
+import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.FileOutputStream;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.IOException;
 import java.io.ObjectInputStream;
@@ -32,9 +34,12 @@ import java.util.UUID;
 import org.apache.commons.lang.StringUtils;
 import org.apache.thrift7.TException;
 import org.json.simple.JSONValue;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.yaml.snakeyaml.Yaml;
 
 public class Utils {
+    public static Logger LOG = LoggerFactory.getLogger(Utils.class);    
     public static final String DEFAULT_STREAM_ID = "default";
 
     public static Object newInstance(String klass) {
@@ -384,4 +389,16 @@ public class Utils {
         buffer.get(ret, 0, ret.length);
         return ret;
     }
+
+   public static void readAndLogStream(String prefix, InputStream in) {
+        try {
+            BufferedReader r = new BufferedReader(new InputStreamReader(in));
+            String line = null;
+            while ((line = r.readLine())!= null) {
+                LOG.info("{}:{}", prefix, line);
+            }
+        } catch (IOException e) {
+            LOG.warn("Error whiel trying to log stream", e);
+        }
+   }
 }

@@ -94,6 +94,10 @@ int initialize_app(const char *user, const char *app_id,
                    const char *credentials, char* const* local_dirs,
                    char* const* log_dirs, char* const* args);
 
+int setup_stormdist_dir(const char* local_dir);
+
+int exec_as_user(const char * working_dir, const char * args);
+
 /*
  * Function used to launch a container as the provided user. It does the following :
  * 1) Creates container work dir and log dir to be accessible by the child
