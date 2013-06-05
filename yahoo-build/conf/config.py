@@ -46,9 +46,9 @@ def normalize(value):
 
 def printJavaLibPath(platform):
     if platform.startswith("x86_64"):
-        print "java.library.path: \"/home/y/lib64:/usr/local/lib64:/usr/lib64:/lib64: -cp /home/y/lib/jars/yjava_ysecure.jar:/home/y/lib/jars/yjava_ysecure_native.jar\""
+        print "java.library.path: \"/home/y/lib64:/usr/local/lib64:/usr/lib64:/lib64:\""
     else:
-        print "java.library.path: \"/home/y/lib:/usr/local/lib:/usr/lib:/lib: -cp /home/y/lib/jars/yjava_ysecure.jar:/home/y/lib/jars/yjava_ysecure_native.jar\""
+        print "java.library.path: \"/home/y/lib:/usr/local/lib:/usr/lib:/lib:\""
 
 
 for k, v in config.items():
