@@ -120,62 +120,16 @@ void create_nm_roots(char ** nm_roots) {
   }
 }
 
-void test_get_user_directory() {
-  char *user_dir = get_user_directory("/tmp", "user");
-  char *expected = "/tmp/usercache/user";
-  if (strcmp(user_dir, expected) != 0) {
-    printf("test_get_user_directory expected %s got %s\n", expected, user_dir);
-    exit(1);
-  }
-  free(user_dir);
-}
-
-void test_get_app_directory() {
-  char *expected = "/tmp/usercache/user/appcache/app_200906101234_0001";
-  char *app_dir = (char *) get_app_directory("/tmp", "user",
-      "app_200906101234_0001");
-  if (strcmp(app_dir, expected) != 0) {
-    printf("test_get_app_directory expected %s got %s\n", expected, app_dir);
-    exit(1);
-  }
-  free(app_dir);
-}
-
-void test_get_container_directory() {
-  char *container_dir = get_container_work_directory("/tmp", "owen", "app_1",
-						 "container_1");
-  char *expected = "/tmp/usercache/owen/appcache/app_1/container_1";
-  if (strcmp(container_dir, expected) != 0) {
-    printf("Fail get_container_work_directory got %s expected %s\n",
-	   container_dir, expected);
-    exit(1);
-  }
-  free(container_dir);
-}
-
 void test_get_container_launcher_file() {
-  char *expected_file = ("/tmp/usercache/user/appcache/app_200906101234_0001"
-			 "/launch_container.sh");
-  char *app_dir = get_app_directory("/tmp", "user",
-                                    "app_200906101234_0001");
+  char *expected_file = ("/tmp/launch_container.sh");
+  char *app_dir = "/tmp";
   char *container_file =  get_container_launcher_file(app_dir);
   if (strcmp(container_file, expected_file) != 0) {
     printf("failure to match expected container file %s vs %s\n", container_file,
            expected_file);
     exit(1);
   }
-  free(app_dir);
   free(container_file);
-}
-
-void test_get_app_log_dir() {
-  char *expected = TEST_ROOT "/logs/userlogs/app_200906101234_0001";
-  char *logdir = get_app_log_directory(TEST_ROOT "/logs/userlogs","app_200906101234_0001");
-  if (strcmp(logdir, expected) != 0) {
-    printf("Fail get_app_log_dir got %s expected %s\n", logdir, expected);
-    exit(1);
-  }
-  free(logdir);
 }
 
 void test_check_user() {
@@ -206,156 +160,6 @@ void test_check_configuration_permissions() {
     printf("FAIL: failed permission check on %s\n", TEST_ROOT);
     exit(1);
   }
-}
-
-void test_delete_container() {
-  if (initialize_user(username, extract_values(local_dirs))) {
-    printf("FAIL: failed to initialize user %s\n", username);
-    exit(1);
-  }
-  char* app_dir = get_app_directory(TEST_ROOT "/local-2", username, "app_1");
-  char* dont_touch = get_app_directory(TEST_ROOT "/local-2", username, 
-                                       DONT_TOUCH_FILE);
-  char* container_dir = get_container_work_directory(TEST_ROOT "/local-2", 
-					      username, "app_1", "container_1");
-  char buffer[100000];
-  sprintf(buffer, "mkdir -p %s/who/let/the/dogs/out/who/who", container_dir);
-  run(buffer);
-  sprintf(buffer, "touch %s", dont_touch);
-  run(buffer);
-
-  // soft link to the canary file from the container directory
-  sprintf(buffer, "ln -s %s %s/who/softlink", dont_touch, container_dir);
-  run(buffer);
-  // hard link to the canary file from the container directory
-  sprintf(buffer, "ln %s %s/who/hardlink", dont_touch, container_dir);
-  run(buffer);
-  // create a dot file in the container directory
-  sprintf(buffer, "touch %s/who/let/.dotfile", container_dir);
-  run(buffer);
-  // create a no permission file
-  sprintf(buffer, "touch %s/who/let/protect", container_dir);
-  run(buffer);
-  sprintf(buffer, "chmod 000 %s/who/let/protect", container_dir);
-  run(buffer);
-  // create a no permission directory
-  sprintf(buffer, "chmod 000 %s/who/let", container_dir);
-  run(buffer);
-
-  // delete container directory
-  char * dirs[] = {app_dir, 0};
-  int ret = delete_as_user(username, "container_1" , dirs);
-  if (ret != 0) {
-    printf("FAIL: return code from delete_as_user is %d\n", ret);
-    exit(1);
-  }
-
-  // check to make sure the container directory is gone
-  if (access(container_dir, R_OK) == 0) {
-    printf("FAIL: failed to delete the directory - %s\n", container_dir);
-    exit(1);
-  }
-  // check to make sure the app directory is not gone
-  if (access(app_dir, R_OK) != 0) {
-    printf("FAIL: accidently deleted the directory - %s\n", app_dir);
-    exit(1);
-  }
-  // but that the canary is not gone
-  if (access(dont_touch, R_OK) != 0) {
-    printf("FAIL: accidently deleted file %s\n", dont_touch);
-    exit(1);
-  }
-  sprintf(buffer, "chmod -R 700 %s", app_dir);
-  run(buffer);
-  sprintf(buffer, "rm -fr %s", app_dir);
-  run(buffer);
-  free(app_dir);
-  free(container_dir);
-  free(dont_touch);
-}
-
-void test_delete_app() {
-  char* app_dir = get_app_directory(TEST_ROOT "/local-2", username, "app_2");
-  char* dont_touch = get_app_directory(TEST_ROOT "/local-2", username, 
-                                       DONT_TOUCH_FILE);
-  char* container_dir = get_container_work_directory(TEST_ROOT "/local-2", 
-					      username, "app_2", "container_1");
-  char buffer[100000];
-  sprintf(buffer, "mkdir -p %s/who/let/the/dogs/out/who/who", container_dir);
-  run(buffer);
-  sprintf(buffer, "touch %s", dont_touch);
-  run(buffer);
-
-  // soft link to the canary file from the container directory
-  sprintf(buffer, "ln -s %s %s/who/softlink", dont_touch, container_dir);
-  run(buffer);
-  // hard link to the canary file from the container directory
-  sprintf(buffer, "ln %s %s/who/hardlink", dont_touch, container_dir);
-  run(buffer);
-  // create a dot file in the container directory
-  sprintf(buffer, "touch %s/who/let/.dotfile", container_dir);
-  run(buffer);
-  // create a no permission file
-  sprintf(buffer, "touch %s/who/let/protect", container_dir);
-  run(buffer);
-  sprintf(buffer, "chmod 000 %s/who/let/protect", container_dir);
-  run(buffer);
-  // create a no permission directory
-  sprintf(buffer, "chmod 000 %s/who/let", container_dir);
-  run(buffer);
-
-  // delete container directory
-  int ret = delete_as_user(username, app_dir, NULL);
-  if (ret != 0) {
-    printf("FAIL: return code from delete_as_user is %d\n", ret);
-    exit(1);
-  }
-
-  // check to make sure the container directory is gone
-  if (access(container_dir, R_OK) == 0) {
-    printf("FAIL: failed to delete the directory - %s\n", container_dir);
-    exit(1);
-  }
-  // check to make sure the app directory is gone
-  if (access(app_dir, R_OK) == 0) {
-    printf("FAIL: didn't delete the directory - %s\n", app_dir);
-    exit(1);
-  }
-  // but that the canary is not gone
-  if (access(dont_touch, R_OK) != 0) {
-    printf("FAIL: accidently deleted file %s\n", dont_touch);
-    exit(1);
-  }
-  free(app_dir);
-  free(container_dir);
-  free(dont_touch);
-}
-
-
-void test_delete_user() {
-  printf("\nTesting delete_user\n");
-  char* app_dir = get_app_directory(TEST_ROOT "/local-1", username, "app_3");
-  if (mkdirs(app_dir, 0700) != 0) {
-    exit(1);
-  }
-  char buffer[100000];
-  sprintf(buffer, "%s/local-1/usercache/%s", TEST_ROOT, username);
-  if (access(buffer, R_OK) != 0) {
-    printf("FAIL: directory missing before test\n");
-    exit(1);
-  }
-  if (delete_as_user(username, buffer, NULL) != 0) {
-    exit(1);
-  }
-  if (access(buffer, R_OK) == 0) {
-    printf("FAIL: directory not deleted\n");
-    exit(1);
-  }
-  if (access(TEST_ROOT "/local-1", R_OK) != 0) {
-    printf("FAIL: local-1 directory does not exist\n");
-    exit(1);
-  }
-  free(app_dir);
 }
 
 void run_test_in_child(const char* test_name, void (*func)()) {
@@ -459,207 +263,42 @@ void test_signal_container_group() {
   }
 }
 
-void test_init_app() {
-  printf("\nTesting init app\n");
-  if (seteuid(0) != 0) {
-    printf("FAIL: seteuid to root failed - %s\n", strerror(errno));
-    exit(1);
+/**
+ * Ensure that the given path and all of the parent directories are created
+ * with the desired permissions.
+ */
+int mkdirs(const char* path, mode_t perm) {
+  char *buffer = strdup(path);
+  char *token;
+  int cwd = open("/", O_RDONLY);
+  if (cwd == -1) {
+    fprintf(LOGFILE, "Can't open / in %s - %s\n", path, strerror(errno));
+    free(buffer);
+    return -1;
   }
-  FILE* creds = fopen(TEST_ROOT "/creds.txt", "w");
-  if (creds == NULL) {
-    printf("FAIL: failed to create credentials file - %s\n", strerror(errno));
-    exit(1);
-  }
-  if (fprintf(creds, "secret key\n") < 0) {
-    printf("FAIL: fprintf failed - %s\n", strerror(errno));
-    exit(1);
-  }
-  if (fclose(creds) != 0) {
-    printf("FAIL: fclose failed - %s\n", strerror(errno));
-    exit(1);
-  }
-  FILE* job_xml = fopen(TEST_ROOT "/job.xml", "w");
-  if (job_xml == NULL) {
-    printf("FAIL: failed to create job file - %s\n", strerror(errno));
-    exit(1);
-  }
-  if (fprintf(job_xml, "<jobconf/>\n") < 0) {
-    printf("FAIL: fprintf failed - %s\n", strerror(errno));
-    exit(1);
-  }
-  if (fclose(job_xml) != 0) {
-    printf("FAIL: fclose failed - %s\n", strerror(errno));
-    exit(1);
-  }
-  if (seteuid(user_detail->pw_uid) != 0) {
-    printf("FAIL: failed to seteuid back to user - %s\n", strerror(errno));
-    exit(1);
-  }
-  fflush(stdout);
-  fflush(stderr);
-  pid_t child = fork();
-  if (child == -1) {
-    printf("FAIL: failed to fork process for init_app - %s\n", 
-	   strerror(errno));
-    exit(1);
-  } else if (child == 0) {
-    char *final_pgm[] = {"touch", "my-touch-file", 0};
-    if (initialize_app(username, "app_4", TEST_ROOT "/creds.txt", final_pgm,
-        extract_values(local_dirs), extract_values(log_dirs)) != 0) {
-      printf("FAIL: failed in child\n");
-      exit(42);
+  for(token = strtok(buffer, "/"); token != NULL; token = strtok(NULL, "/")) {
+    if (mkdirat(cwd, token, perm) != 0) {
+      if (errno != EEXIST) {
+        fprintf(LOGFILE, "Can't create directory %s in %s - %s\n", 
+                token, path, strerror(errno));
+        close(cwd);
+        free(buffer);
+        return -1;
+      }
     }
-    // should never return
-    exit(1);
-  }
-  int status = 0;
-  if (waitpid(child, &status, 0) <= 0) {
-    printf("FAIL: failed waiting for process %d - %s\n", child, 
-	   strerror(errno));
-    exit(1);
-  }
-  if (access(TEST_ROOT "/logs/userlogs/app_4", R_OK) != 0) {
-    printf("FAIL: failed to create app log directory\n");
-    exit(1);
-  }
-  char* app_dir = get_app_directory(TEST_ROOT "/local-1", username, "app_4");
-  if (access(app_dir, R_OK) != 0) {
-    printf("FAIL: failed to create app directory %s\n", app_dir);
-    exit(1);
-  }
-  char buffer[100000];
-  sprintf(buffer, "%s/jobToken", app_dir);
-  if (access(buffer, R_OK) != 0) {
-    printf("FAIL: failed to create credentials %s\n", buffer);
-    exit(1);
-  }
-  sprintf(buffer, "%s/my-touch-file", app_dir);
-  if (access(buffer, R_OK) != 0) {
-    printf("FAIL: failed to create touch file %s\n", buffer);
-    exit(1);
-  }
-  free(app_dir);
-  app_dir = get_app_log_directory("logs","app_4");
-  if (access(app_dir, R_OK) != 0) {
-    printf("FAIL: failed to create app log directory %s\n", app_dir);
-    exit(1);
-  }
-  free(app_dir);
-}
-
-void test_run_container() {
-  printf("\nTesting run container\n");
-  if (seteuid(0) != 0) {
-    printf("FAIL: seteuid to root failed - %s\n", strerror(errno));
-    exit(1);
-  }
-  FILE* creds = fopen(TEST_ROOT "/creds.txt", "w");
-  if (creds == NULL) {
-    printf("FAIL: failed to create credentials file - %s\n", strerror(errno));
-    exit(1);
-  }
-  if (fprintf(creds, "secret key\n") < 0) {
-    printf("FAIL: fprintf failed - %s\n", strerror(errno));
-    exit(1);
-  }
-  if (fclose(creds) != 0) {
-    printf("FAIL: fclose failed - %s\n", strerror(errno));
-    exit(1);
-  }
-
-  const char* script_name = TEST_ROOT "/container-script";
-  FILE* script = fopen(script_name, "w");
-  if (script == NULL) {
-    printf("FAIL: failed to create script file - %s\n", strerror(errno));
-    exit(1);
-  }
-  if (seteuid(user_detail->pw_uid) != 0) {
-    printf("FAIL: failed to seteuid back to user - %s\n", strerror(errno));
-    exit(1);
-  }
-  if (fprintf(script, "#!/bin/bash\n"
-                     "touch foobar\n"
-                     "exit 0") < 0) {
-    printf("FAIL: fprintf failed - %s\n", strerror(errno));
-    exit(1);
-  }
-  if (fclose(script) != 0) {
-    printf("FAIL: fclose failed - %s\n", strerror(errno));
-    exit(1);
-  }
-  fflush(stdout);
-  fflush(stderr);
-  char* container_dir = get_container_work_directory(TEST_ROOT "/local-1", 
-					      username, "app_4", "container_1");
-  const char * pid_file = TEST_ROOT "/pid.txt";
-  pid_t child = fork();
-  if (child == -1) {
-    printf("FAIL: failed to fork process for init_app - %s\n", 
-	   strerror(errno));
-    exit(1);
-  } else if (child == 0) {
-    if (launch_container_as_user(username, "app_4", "container_1", 
-          container_dir, script_name, TEST_ROOT "/creds.txt", pid_file,
-          extract_values(local_dirs), extract_values(log_dirs)) != 0) {
-      printf("FAIL: failed in child\n");
-      exit(42);
+    int new_dir = openat(cwd, token, O_RDONLY);
+    close(cwd);
+    cwd = new_dir;
+    if (cwd == -1) {
+      fprintf(LOGFILE, "Can't open %s in %s - %s\n", token, path, 
+              strerror(errno));
+      free(buffer);
+      return -1;
     }
-    // should never return
-    exit(1);
   }
-  int status = 0;
-  if (waitpid(child, &status, 0) <= 0) {
-    printf("FAIL: failed waiting for process %d - %s\n", child, 
-	   strerror(errno));
-    exit(1);
-  }
-  if (access(TEST_ROOT "/logs/userlogs/app_4/container_1", R_OK) != 0) {
-    printf("FAIL: failed to create container log directory\n");
-    exit(1);
-  }
-  if (access(container_dir, R_OK) != 0) {
-    printf("FAIL: failed to create container directory %s\n", container_dir);
-    exit(1);
-  }
-  char buffer[100000];
-  sprintf(buffer, "%s/foobar", container_dir);
-  if (access(buffer, R_OK) != 0) {
-    printf("FAIL: failed to create touch file %s\n", buffer);
-    exit(1);
-  }
-  free(container_dir);
-  container_dir = get_app_log_directory("logs", "app_4/container_1");
-  if (access(container_dir, R_OK) != 0) {
-    printf("FAIL: failed to create app log directory %s\n", container_dir);
-    exit(1);
-  }
-  free(container_dir);
-
-  if(access(pid_file, R_OK) != 0) {
-    printf("FAIL: failed to create pid file %s\n", pid_file);
-    exit(1);
-  }
-  int pidfd = open(pid_file, O_RDONLY);
-  if (pidfd == -1) {
-    printf("FAIL: failed to open pid file %s - %s\n", pid_file, strerror(errno));
-    exit(1);
-  }
-
-  char pidBuf[100];
-  ssize_t bytes = read(pidfd, pidBuf, 100);
-  if (bytes == -1) {
-    printf("FAIL: failed to read from pid file %s - %s\n", pid_file, strerror(errno));
-    exit(1);
-  }
-
-  pid_t mypid = child;
-  char myPidBuf[33];
-  snprintf(myPidBuf, 33, "%d", mypid);
-  if (strncmp(pidBuf, myPidBuf, strlen(myPidBuf)) != 0) {
-    printf("FAIL: failed to find matching pid in pid file\n");
-    printf("FAIL: Expected pid %d : Got %.*s", mypid, (int)bytes, pidBuf);
-    exit(1);
-  }
+  free(buffer);
+  close(cwd);
+  return 0;
 }
 
 int main(int argc, char **argv) {
@@ -692,7 +331,7 @@ int main(int argc, char **argv) {
     username = strdup(getpwuid(getuid())->pw_name);
     my_username = 1;
   }
-  set_nm_uid(geteuid(), getegid());
+  set_launcher_uid(geteuid(), getegid());
 
   if (set_user(username)) {
     exit(1);
@@ -700,45 +339,19 @@ int main(int argc, char **argv) {
 
   printf("\nStarting tests\n");
 
-  printf("\nTesting get_user_directory()\n");
-  test_get_user_directory();
-
-  printf("\nTesting get_app_directory()\n");
-  test_get_app_directory();
-
-  printf("\nTesting get_container_directory()\n");
-  test_get_container_directory();
-
   printf("\nTesting get_container_launcher_file()\n");
   test_get_container_launcher_file();
 
-  printf("\nTesting get_app_log_dir()\n");
-  test_get_app_log_dir();
-
+  printf("\nTesting check_configuration_permissions()\n");
   test_check_configuration_permissions();
 
-  printf("\nTesting delete_container()\n");
-  test_delete_container();
-
-  printf("\nTesting delete_app()\n");
-  test_delete_app();
-
-  test_delete_user();
-
+  printf("\nTesting check_user()\n");
   test_check_user();
 
   // the tests that change user need to be run in a subshell, so that
   // when they change user they don't give up our privs
   run_test_in_child("test_signal_container", test_signal_container);
   run_test_in_child("test_signal_container_group", test_signal_container_group);
-
-  // init app and run container can't be run if you aren't testing as root
-  if (getuid() == 0) {
-    // these tests do internal forks so that the change_owner and execs
-    // don't mess up our process.
-    test_init_app();
-    test_run_container();
-  }
 
   seteuid(0);
   run("rm -fr " TEST_ROOT);

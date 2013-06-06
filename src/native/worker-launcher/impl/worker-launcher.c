@@ -34,7 +34,7 @@
 
 static const int DEFAULT_MIN_USERID = 1000;
 
-static const char* DEFAULT_BANNED_USERS[] = {"mapred", "hdfs", "bin", 0};
+static const char* DEFAULT_BANNED_USERS[] = {"bin", 0};
 
 //struct to store the user details
 struct passwd *user_detail = NULL;
@@ -42,15 +42,15 @@ struct passwd *user_detail = NULL;
 FILE* LOGFILE = NULL;
 FILE* ERRORFILE = NULL;
 
-static uid_t nm_uid = -1;
-static gid_t nm_gid = -1;
+static uid_t launcher_uid = -1;
+static gid_t launcher_gid = -1;
 
 char *concatenate(char *concat_pattern, char *return_path_name,
    int numArgs, ...);
 
-void set_nm_uid(uid_t user, gid_t group) {
-  nm_uid = user;
-  nm_gid = group;
+void set_launcher_uid(uid_t user, gid_t group) {
+  launcher_uid = user;
+  launcher_gid = group;
 }
 
 /**
@@ -75,7 +75,6 @@ char* get_executable() {
 }
 
 int check_executor_permissions(char *executable_file) {
-
   errno = 0;
   char * resolved_path = realpath(executable_file, NULL);
   if (resolved_path == NULL) {
@@ -151,60 +150,6 @@ static int change_effective_user(uid_t user, gid_t group) {
 }
 
 /**
- * Write the pid of the current process into the pid file.
- * pid_file: Path to pid file where pid needs to be written to
- */
-static int write_pid_to_file_as_nm(const char* pid_file, pid_t pid) {
-  uid_t user = geteuid();
-  gid_t group = getegid();
-  if (change_effective_user(nm_uid, nm_gid) != 0) {
-    return -1;
-  }
-
-  char *temp_pid_file = concatenate("%s.tmp", "pid_file_path", 1, pid_file);
-
-  // create with 700
-  int pid_fd = open(temp_pid_file, O_WRONLY|O_CREAT|O_EXCL, S_IRWXU);
-  if (pid_fd == -1) {
-    fprintf(LOGFILE, "Can't open file %s as node manager - %s\n", temp_pid_file,
-           strerror(errno));
-    free(temp_pid_file);
-    return -1;
-  }
-
-  // write pid to temp file
-  char pid_buf[21];
-  snprintf(pid_buf, 21, "%d", pid);
-  ssize_t written = write(pid_fd, pid_buf, strlen(pid_buf));
-  close(pid_fd);
-  if (written == -1) {
-    fprintf(LOGFILE, "Failed to write pid to file %s as node manager - %s\n",
-       temp_pid_file, strerror(errno));
-    free(temp_pid_file);
-    return -1;
-  }
-
-  // rename temp file to actual pid file
-  // use rename as atomic
-  if (rename(temp_pid_file, pid_file)) {
-    fprintf(LOGFILE, "Can't move pid file from %s to %s as node manager - %s\n",
-        temp_pid_file, pid_file, strerror(errno));
-    unlink(temp_pid_file);
-    free(temp_pid_file);
-    return -1;
-  }
-
-  // Revert back to the calling user.
-  if (change_effective_user(user, group)) {
-	free(temp_pid_file);
-    return -1;
-  }
-
-  free(temp_pid_file);
-  return 0;
-}
-
-/**
  * Change the real and effective user and group to abandon the super user
  * priviledges.
  */
@@ -272,46 +217,8 @@ char *concatenate(char *concat_pattern, char *return_path_name,
   return return_path;
 }
 
-/**
- * Get the app-directory path from nm_root, user name and app-id
- */
-char *get_app_directory(const char * nm_root, const char *user,
-                        const char *app_id) {
-  return concatenate(NM_APP_DIR_PATTERN, "app_dir_path", 3, nm_root, user,
-      app_id);
-}
-
-/**
- * Get the user directory of a particular user
- */
-char *get_user_directory(const char *nm_root, const char *user) {
-  return concatenate(USER_DIR_PATTERN, "user_dir_path", 2, nm_root, user);
-}
-
-/**
- * Get the container directory for the given container_id
- */
-char *get_container_work_directory(const char *nm_root, const char *user,
-				 const char *app_id, const char *container_id) {
-  return concatenate(CONTAINER_DIR_PATTERN, "container_dir_path", 4,
-                     nm_root, user, app_id, container_id);
-}
-
 char *get_container_launcher_file(const char* work_dir) {
   return concatenate("%s/%s", "container launcher", 2, work_dir, CONTAINER_SCRIPT);
-}
-
-char *get_container_credentials_file(const char* work_dir) {
-  return concatenate("%s/%s", "container credentials", 2, work_dir,
-      CREDENTIALS_FILENAME);
-}
-
-/**
- * Get the app log directory under the given log_root
- */
-char* get_app_log_directory(const char *log_root, const char* app_id) {
-  return concatenate("%s/%s", "app log dir", 2, log_root,
-                             app_id);
 }
 
 /**
@@ -319,121 +226,6 @@ char* get_app_log_directory(const char *log_root, const char* app_id) {
  */
 char *get_tmp_directory(const char *work_dir) {
   return concatenate("%s/%s", "tmp dir", 2, work_dir, TMP_DIR);
-}
-
-/**
- * Ensure that the given path and all of the parent directories are created
- * with the desired permissions.
- */
-int mkdirs(const char* path, mode_t perm) {
-  char *buffer = strdup(path);
-  char *token;
-  int cwd = open("/", O_RDONLY);
-  if (cwd == -1) {
-    fprintf(LOGFILE, "Can't open / in %s - %s\n", path, strerror(errno));
-    free(buffer);
-    return -1;
-  }
-  for(token = strtok(buffer, "/"); token != NULL; token = strtok(NULL, "/")) {
-    if (mkdirat(cwd, token, perm) != 0) {
-      if (errno != EEXIST) {
-        fprintf(LOGFILE, "Can't create directory %s in %s - %s\n", 
-                token, path, strerror(errno));
-        close(cwd);
-        free(buffer);
-        return -1;
-      }
-    }
-    int new_dir = openat(cwd, token, O_RDONLY);
-    close(cwd);
-    cwd = new_dir;
-    if (cwd == -1) {
-      fprintf(LOGFILE, "Can't open %s in %s - %s\n", token, path, 
-              strerror(errno));
-      free(buffer);
-      return -1;
-    }
-  }
-  free(buffer);
-  close(cwd);
-  return 0;
-}
-
-/**
- * Function to prepare the container directories.
- * It creates the container work and log directories.
- */
-static int create_container_directories(const char* user, const char *app_id, 
-    const char *container_id, char* const* local_dir, char* const* log_dir, const char *work_dir) {
-  // create dirs as 0750
-  const mode_t perms = S_IRWXU | S_IRGRP | S_IXGRP;
-  if (app_id == NULL || container_id == NULL || user == NULL) {
-    fprintf(LOGFILE, 
-            "Either app_id, container_id or the user passed is null.\n");
-    return -1;
-  }
-
-  int result = -1;
-  char* const* local_dir_ptr;
-  for(local_dir_ptr = local_dir; *local_dir_ptr != NULL; ++local_dir_ptr) {
-    char *container_dir = get_container_work_directory(*local_dir_ptr, user, app_id, 
-                                                container_id);
-    if (container_dir == NULL) {
-      return -1;
-    }
-    if (mkdirs(container_dir, perms) == 0) {
-      result = 0;
-    }
-    // continue on to create other work directories
-    free(container_dir);
-
-  }
-  if (result != 0) {
-    return result;
-  }
-
-  result = -1;
-  // also make the directory for the container logs
-  char *combined_name = malloc(strlen(app_id) + strlen(container_id) + 2);
-  if (combined_name == NULL) {
-    fprintf(LOGFILE, "Malloc of combined name failed\n");
-    result = -1;
-  } else {
-    sprintf(combined_name, "%s/%s", app_id, container_id);
-
-    char* const* log_dir_ptr;
-    for(log_dir_ptr = log_dir; *log_dir_ptr != NULL; ++log_dir_ptr) {
-      char *container_log_dir = get_app_log_directory(*log_dir_ptr, combined_name);
-      if (container_log_dir == NULL) {
-        free(combined_name);
-        return -1;
-      } else if (mkdirs(container_log_dir, perms) != 0) {
-    	free(container_log_dir);
-      } else {
-    	result = 0;
-    	free(container_log_dir);
-      }
-    }
-    free(combined_name);
-  }
-
-  if (result != 0) {
-    return result;
-  }
-
-  result = -1;
-  // also make the tmp directory
-  char *tmp_dir = get_tmp_directory(work_dir);
-
-  if (tmp_dir == NULL) {
-    return -1;
-  }
-  if (mkdirs(tmp_dir, perms) == 0) {
-    result = 0;
-  }
-  free(tmp_dir);
-
-  return result;
 }
 
 /**
@@ -541,79 +333,13 @@ int set_user(const char *user) {
 }
 
 /**
- * Change the ownership of the given file or directory to the new user.
- */
-static int change_owner(const char* path, uid_t user, gid_t group) {
-  if (geteuid() == user && getegid() == group) {
-    return 0;
-  } else {
-    uid_t old_user = geteuid();
-    gid_t old_group = getegid();
-    if (change_effective_user(0, group) != 0) {
-      return -1;
-    }
-    if (chown(path, user, group) != 0) {
-      fprintf(LOGFILE, "Can't chown %s to %d:%d - %s\n", path, user, group,
-	      strerror(errno));
-      return -1;
-    }
-    return change_effective_user(old_user, old_group);
-  }
-}
-
-/**
- * Create a top level directory for the user.
- * It assumes that the parent directory is *not* writable by the user.
- * It creates directories with 02750 permissions owned by the user
- * and with the group set to the node manager group.
- * return non-0 on failure
- */
-int create_directory_for_user(const char* path) {
-  // set 2750 permissions and group sticky bit
-  mode_t permissions = S_IRWXU | S_IRGRP | S_IXGRP | S_ISGID;
-  uid_t user = geteuid();
-  gid_t group = getegid();
-  uid_t root = 0;
-  int ret = 0;
-
-  if(getuid() == root) {
-    ret = change_effective_user(root, nm_gid);
-  }
-
-  if (ret == 0) {
-    if (0 == mkdir(path, permissions) || EEXIST == errno) {
-      // need to reassert the group sticky bit
-      if (chmod(path, permissions) != 0) {
-        fprintf(LOGFILE, "Can't chmod %s to add the sticky bit - %s\n",
-                path, strerror(errno));
-        ret = -1;
-      } else if (change_owner(path, user, nm_gid) != 0) {
-        fprintf(LOGFILE, "Failed to chown %s to %d:%d: %s\n", path, user, nm_gid,
-            strerror(errno));
-        ret = -1;
-      }
-    } else {
-      fprintf(LOGFILE, "Failed to create directory %s - %s\n", path,
-              strerror(errno));
-      ret = -1;
-    }
-  }
-  if (change_effective_user(user, group) != 0) {
-    fprintf(LOGFILE, "Failed to change user to %i - %i\n", user, group);
- 
-    ret = -1;
-  }
-  return ret;
-}
-
-/**
  * Open a file as the node manager and return a file descriptor for it.
  * Returns -1 on error
  */
 static int open_file_as_nm(const char* filename) {
   uid_t user = geteuid();
   gid_t group = getegid();
-  if (change_effective_user(nm_uid, nm_gid) != 0) {
+  if (change_effective_user(launcher_uid, launcher_gid) != 0) {
     return -1;
   }
   int result = open(filename, O_RDONLY);
@@ -673,32 +399,8 @@ static int copy_file(int input, const char* in_filename,
   return 0;
 }
 
-/**
- * Function to initialize the user directories of a user.
- */
-int initialize_user(const char *user, char* const* local_dirs) {
-
-  char *user_dir;
-  char* const* local_dir_ptr;
-  int failed = 0;
-  for(local_dir_ptr = local_dirs; *local_dir_ptr != 0; ++local_dir_ptr) {
-    user_dir = get_user_directory(*local_dir_ptr, user);
-    if (user_dir == NULL) {
-      fprintf(LOGFILE, "Couldn't get userdir directory for %s.\n", user);
-      failed = 1;
-      break;
-    }
-    if (create_directory_for_user(user_dir) != 0) {
-      failed = 1;
-    }
-    free(user_dir);
-  }
-  return failed ? INITIALIZE_USER_FAILED : 0;
-}
-
-
 int setup_stormdist(FTSENT* entry, uid_t euser) {
-  if (lchown(entry->fts_path, euser, nm_gid) != 0) {
+  if (lchown(entry->fts_path, euser, launcher_gid) != 0) {
     fprintf(ERRORFILE, "Failure to exec app initialization process - %s\n",
       strerror(errno));
      return -1;
@@ -796,204 +498,6 @@ int setup_stormdist_dir(const char* local_dir) {
   return exit_code;
 }
 
-/**
- * Function to prepare the application directories for the container.
- */
-int initialize_app(const char *user, const char *app_id,
-                   const char* nmPrivate_credentials_file,
-                   char* const* local_dirs, char* const* log_roots,
-                   char* const* args) {
-  if (app_id == NULL || user == NULL) {
-    fprintf(LOGFILE, "Either app_id is null or the user passed is null.\n");
-    return INVALID_ARGUMENT_NUMBER;
-  }
-
-  // create the user directory on all disks
-  int result = initialize_user(user, local_dirs);
-  if (result != 0) {
-    return result;
-  }
-
-  ////////////// create the log directories for the app on all disks
-  char* const* log_root;
-  char *any_one_app_log_dir = NULL;
-  for(log_root=log_roots; *log_root != NULL; ++log_root) {
-    char *app_log_dir = get_app_log_directory(*log_root, app_id);
-    if (app_log_dir == NULL) {
-      // try the next one
-    } else if (create_directory_for_user(app_log_dir) != 0) {
-      free(app_log_dir);
-      return -1;
-    } else if (any_one_app_log_dir == NULL) {
-      any_one_app_log_dir = app_log_dir;
-    } else {
-      free(app_log_dir);
-    }
-  }
-
-  if (any_one_app_log_dir == NULL) {
-    fprintf(LOGFILE, "Did not create any app-log directories\n");
-    return -1;
-  }
-  free(any_one_app_log_dir);
-  ////////////// End of creating the log directories for the app on all disks
-
-  // open up the credentials file
-  int cred_file = open_file_as_nm(nmPrivate_credentials_file);
-  if (cred_file == -1) {
-    return -1;
-  }
-
-  // give up root privs
-  if (change_user(user_detail->pw_uid, user_detail->pw_gid) != 0) {
-    return -1;
-  }
-
-  // 750
-  mode_t permissions = S_IRWXU | S_IRGRP | S_IXGRP;
-  char* const* nm_root;
-  char *primary_app_dir = NULL;
-  for(nm_root=local_dirs; *nm_root != NULL; ++nm_root) {
-    char *app_dir = get_app_directory(*nm_root, user, app_id);
-    if (app_dir == NULL) {
-      // try the next one
-    } else if (mkdirs(app_dir, permissions) != 0) {
-      free(app_dir);
-    } else if (primary_app_dir == NULL) {
-      primary_app_dir = app_dir;
-    } else {
-      free(app_dir);
-    }
-  }
-
-  if (primary_app_dir == NULL) {
-    fprintf(LOGFILE, "Did not create any app directories\n");
-    return -1;
-  }
-
-  char *nmPrivate_credentials_file_copy = strdup(nmPrivate_credentials_file);
-  // TODO: FIXME. The user's copy of creds should go to a path selected by
-  // localDirAllocatoir
-  char *cred_file_name = concatenate("%s/%s", "cred file", 2,
-				   primary_app_dir, basename(nmPrivate_credentials_file_copy));
-  if (cred_file_name == NULL) {
-	free(nmPrivate_credentials_file_copy);
-    return -1;
-  }
-  if (copy_file(cred_file, nmPrivate_credentials_file,
-		  cred_file_name, S_IRUSR|S_IWUSR) != 0){
-	free(nmPrivate_credentials_file_copy);
-    return -1;
-  }
-
-  free(nmPrivate_credentials_file_copy);
-
-  fclose(stdin);
-  fflush(LOGFILE);
-  if (LOGFILE != stdout) {
-    fclose(stdout);
-  }
-  if (ERRORFILE != stderr) {
-    fclose(stderr);
-  }
-  if (chdir(primary_app_dir) != 0) {
-    fprintf(LOGFILE, "Failed to chdir to app dir - %s\n", strerror(errno));
-    return -1;
-  }
-  execvp(args[0], args);
-  fprintf(ERRORFILE, "Failure to exec app initialization process - %s\n",
-	  strerror(errno));
-  return -1;
-}
-
-int launch_container_as_user(const char *user, const char *app_id, 
-                   const char *container_id, const char *work_dir,
-                   const char *script_name, const char *cred_file,
-                   const char* pid_file, char* const* local_dirs,
-                   char* const* log_dirs) {
-  int exit_code = -1;
-  char *script_file_dest = NULL;
-  char *cred_file_dest = NULL;
-  script_file_dest = get_container_launcher_file(work_dir);
-  if (script_file_dest == NULL) {
-    exit_code = OUT_OF_MEMORY;
-    goto cleanup;
-  }
-  cred_file_dest = get_container_credentials_file(work_dir);
-  if (NULL == cred_file_dest) {
-    exit_code = OUT_OF_MEMORY;
-    goto cleanup;
-  }
-
-  // open launch script
-  int container_file_source = open_file_as_nm(script_name);
-  if (container_file_source == -1) {
-    goto cleanup;
-  }
-
-  // open credentials
-  int cred_file_source = open_file_as_nm(cred_file);
-  if (cred_file_source == -1) {
-    goto cleanup;
-  }
-
-  // setsid 
-  pid_t pid = setsid();
-  if (pid == -1) {
-    exit_code = SETSID_OPER_FAILED;
-    goto cleanup;
-  }
-
-  // write pid to pidfile
-  if (pid_file == NULL
-      || write_pid_to_file_as_nm(pid_file, pid) != 0) {
-    exit_code = WRITE_PIDFILE_FAILED;
-    goto cleanup;
-  }  
-
-  // give up root privs
-  if (change_user(user_detail->pw_uid, user_detail->pw_gid) != 0) {
-    exit_code = SETUID_OPER_FAILED;
-    goto cleanup;
-  }
-
-  if (create_container_directories(user, app_id, container_id, local_dirs,
-                                   log_dirs, work_dir) != 0) {
-    fprintf(LOGFILE, "Could not create container dirs");
-    goto cleanup;
-  }
-
-  // 700
-  if (copy_file(container_file_source, script_name, script_file_dest,S_IRWXU) != 0) {
-    goto cleanup;
-  }
-
-  // 600
-  if (copy_file(cred_file_source, cred_file, cred_file_dest,
-        S_IRUSR | S_IWUSR) != 0) {
-    goto cleanup;
-  }
-
-  fcloseall();
-  umask(0027);
-  if (chdir(work_dir) != 0) {
-    fprintf(LOGFILE, "Can't change directory to %s -%s\n", work_dir,
-	    strerror(errno));
-    goto cleanup;
-  }
-  if (execlp(script_file_dest, script_file_dest, NULL) != 0) {
-    fprintf(LOGFILE, "Couldn't execute the container launch file %s - %s", 
-            script_file_dest, strerror(errno));
-    exit_code = UNABLE_TO_EXECUTE_CONTAINER_SCRIPT;
-    goto cleanup;
-  }
-  exit_code = 0;
-
- cleanup:
-  free(script_file_dest);
-  free(cred_file_dest);
-  return exit_code;
-}
 
 int signal_container_as_user(const char *user, int pid, int sig) {
   if(pid <= 0) {
@@ -1044,7 +548,7 @@ int signal_container_as_user(const char *user, int pid, int sig) {
 static int rmdir_as_nm(const char* path) {
   int user_uid = geteuid();
   int user_gid = getegid();
-  int ret = change_effective_user(nm_uid, nm_gid);
+  int ret = change_effective_user(launcher_uid, launcher_gid);
   if (ret == 0) {
     if (rmdir(path) != 0) {
       fprintf(LOGFILE, "rmdir of %s failed - %s\n", path, strerror(errno));
