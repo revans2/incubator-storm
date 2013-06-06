@@ -51,6 +51,9 @@ def printJavaLibPath(platform):
     else:
         print "java.library.path: \"/home/y/lib:/usr/local/lib:/usr/lib:/lib: -cp /home/y/lib/jars/yjava_ysecure.jar:/home/y/lib/jars/yjava_ysecure_native.jar\""
 
+def splitListValue(v):
+    return re.split("[,\s]", v)
+
 def handleListKey(k,v):
     if k == "supervisor.slots.ports":
 #        print "in elif 1"
@@ -69,12 +72,12 @@ def handleListKey(k,v):
     else:
 #        print "in else"
         print k + ":"
-        for item in re.split("[,\s]", v):
+        for item in splitListValue(v):
             print "    -", normalize(item)
 
 def handleMapKey(k,v):
     print k + ":"
-    items = re.split("[,\s]", v)
+    items = splitListValue(v)
     for host,nodes in zip(items[0::2],items[1::2]):
         print "    %s: %s" % (normalize(host),normalize(nodes))
 
