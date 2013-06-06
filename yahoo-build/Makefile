@@ -1,4 +1,4 @@
-BASE_VERSION:=`head -1 ../project.clj | awk '{print $$3}' | sed -e 's/\"//' | sed -e 's/\"//'`
+BASE_VERSION:=`cat ../VERSION`
 BUILD_NUMBER?=0
 FULL_VERSION="$(BASE_VERSION).$(BUILD_NUMBER)"
 LEIN=LD_LIBRARY_PATH=/home/y/lib64 /home/y/bin/lein
@@ -36,8 +36,8 @@ storm.zip: _release
 _release: RELEASE build
 	rm -rf _release
 	mkdir -p _release/storm/lib
-	cp ../target/storm-*.jar _release/storm/storm.jar
-	cp ../target/dependency/*.jar _release/storm/lib
+	cp ../storm-core-mvn/target/storm-core*.jar _release/storm/storm.jar
+	cp ../storm-core-mvn/target/dependency/*.jar _release/storm/lib
 	cp ../CHANGELOG.md _release/storm/
 	cp RELEASE _release/storm/
 	cp -r ../logback _release/storm/
@@ -46,7 +46,7 @@ _release: RELEASE build
 	cp ../conf/storm.yaml.example _release/storm/conf/storm.yaml
 	cp ../conf/jaas_digest.conf _release/storm/conf/
 	cp ../conf/jaas_kerberos.conf _release/storm/conf/
-	cp -R ../src/ui/public _release/storm/
+	cp -R ../storm-core/src/ui/public _release/storm/
 	cp -R ../bin _release/storm/
 	cp ../README.markdown _release/storm/
 	cp ../LICENSE.html _release/storm/
