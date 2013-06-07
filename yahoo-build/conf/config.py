@@ -78,8 +78,8 @@ def handleListKey(k,v):
 def handleMapKey(k,v):
     print k + ":"
     items = splitListValue(v)
-    for host,nodes in zip(items[0::2],items[1::2]):
-        print "    %s: %s" % (normalize(host),normalize(nodes))
+    for subkey,subval in zip(items[0::2],items[1::2]):
+        print "    %s: %s" % (normalize(subkey),normalize(subval))
 
 
 for k, v in config.items():
