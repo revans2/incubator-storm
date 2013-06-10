@@ -32,6 +32,7 @@ print """
 """
 
 listKeys = set(["storm.auth.simple-white-list.users", "supervisor.slots.ports", "storm.zookeeper.servers", "topology.kryo.register", "drpc.servers", "worker.childopts"])
+mapKeys = set(["isolation.scheduler.machines"])
 
 config = dict((k[8:].replace("_", "."), v) for k, v in os.environ.items() if k.startswith("ystorm__"))
 
@@ -50,14 +51,11 @@ def printJavaLibPath(platform):
     else:
         print "java.library.path: \"/home/y/lib:/usr/local/lib:/usr/lib:/lib: -cp /home/y/lib/jars/yjava_ysecure.jar:/home/y/lib/jars/yjava_ysecure_native.jar\""
 
+def splitListValue(v):
+    return re.split("[,\s]", v)
 
-for k, v in config.items():
-#    print "___________Processing: ", k,v
-    if k not in listKeys:
-#        print "k not in listkeys"
-        print k + ":", normalize(v)
-
-    elif k == "supervisor.slots.ports":
+def handleListKey(k,v):
+    if k == "supervisor.slots.ports":
 #        print "in elif 1"
         print k + ":"
         numPorts = os.environ["ystorm__supervisor_slots_ports"]
@@ -74,8 +72,25 @@ for k, v in config.items():
     else:
 #        print "in else"
         print k + ":"
-        for item in re.split("[,\s]", v):
+        for item in splitListValue(v):
             print "    -", normalize(item)
+
+def handleMapKey(k,v):
+    print k + ":"
+    items = splitListValue(v)
+    for subkey,subval in zip(items[0::2],items[1::2]):
+        print "    %s: %s" % (normalize(subkey),normalize(subval))
+
+
+for k, v in config.items():
+#    print "___________Processing: ", k,v
+    if k not in listKeys and k not in mapKeys:
+#        print "k not in listkeys"
+        print k + ":", normalize(v)
+    if k in listKeys:
+        handleListKey(k,v)
+    elif k in mapKeys:
+        handleMapKey(k,v)
 
 if "java.library.path" not in config:
     if "root__platform" in os.environ:
