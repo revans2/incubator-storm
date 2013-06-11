@@ -347,16 +347,6 @@
     (log-message "Error when trying to kill " pid ". Process is probably already dead."))
     ))
 
-(defnk launch-process [command :environment {}]
-  (let [command (->> (seq (.split command " "))
-                     (filter (complement empty?)))
-        builder (ProcessBuilder. command)
-        process-env (.environment builder)]
-    (.redirectErrorStream builder true)
-    (doseq [[k v] environment]
-      (.put process-env k v))
-    (.start builder)))
-
 (defn read-and-log-stream [prefix stream]
   (try
     (let [reader (BufferedReader. (InputStreamReader. stream))]
@@ -425,6 +415,29 @@
         (Time/isThreadWaiting thread)
         ))
       ))
+
+(defnk launch-process [command :environment {} :log-prefix nil :exit-code-callback nil]
+  (let [command (->> (seq (.split command " "))
+                     (filter (complement empty?)))
+        builder (ProcessBuilder. command)
+        process-env (.environment builder)]
+    (.redirectErrorStream builder true)
+    (doseq [[k v] environment]
+      (.put process-env k v))
+    (let [process (.start builder)]
+      (if log-prefix
+        (async-loop
+         (fn []
+           (read-and-log-stream log-prefix (.getInputStream process))
+           (when exit-code-callback           
+             (try
+               (.waitFor process)
+               (catch InterruptedException e
+                 (log-message log-prefix " interrupted.")))
+             (exit-code-callback (.exitValue process)))
+           nil)))                    
+      process)))
+          
 
 (defn exists-file? [path]
   (.exists (File. path)))
