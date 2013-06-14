@@ -9,7 +9,8 @@
   (:import [java.util.zip ZipFile])
   (:import [java.util.concurrent.locks ReentrantReadWriteLock])
   (:import [java.util.concurrent Semaphore])
-  (:import [java.io File RandomAccessFile StringWriter PrintWriter])
+  (:import [java.io File RandomAccessFile StringWriter PrintWriter BufferedReader 
+            InputStreamReader IOException])
   (:import [java.lang.management ManagementFactory])
   (:import [org.apache.commons.exec DefaultExecutor CommandLine])
   (:import [org.apache.commons.io FileUtils])
@@ -346,15 +347,16 @@
     (log-message "Error when trying to kill " pid ". Process is probably already dead."))
     ))
 
-(defnk launch-process [command :environment {}]
-  (let [command (->> (seq (.split command " "))
-                     (filter (complement empty?)))
-        builder (ProcessBuilder. command)
-        process-env (.environment builder)]
-    (doseq [[k v] environment]
-      (.put process-env k v))
-    (.start builder)
-    ))
+(defn read-and-log-stream [prefix stream]
+  (try
+    (let [reader (BufferedReader. (InputStreamReader. stream))]
+      (loop []
+        (if-let [line (.readLine reader)]
+                (do
+                  (log-warn (str prefix ":" line))
+                  (recur)))))
+    (catch IOException e
+      (log-warn "Error while trying to log stream" e))))
 
 (defn sleep-secs [secs]
   (when (pos? secs)
@@ -413,6 +415,29 @@
         (Time/isThreadWaiting thread)
         ))
       ))
+
+(defnk launch-process [command :environment {} :log-prefix nil :exit-code-callback nil]
+  (let [command (->> (seq (.split command " "))
+                     (filter (complement empty?)))
+        builder (ProcessBuilder. command)
+        process-env (.environment builder)]
+    (.redirectErrorStream builder true)
+    (doseq [[k v] environment]
+      (.put process-env k v))
+    (let [process (.start builder)]
+      (if log-prefix
+        (async-loop
+         (fn []
+           (read-and-log-stream log-prefix (.getInputStream process))
+           (when exit-code-callback           
+             (try
+               (.waitFor process)
+               (catch InterruptedException e
+                 (log-message log-prefix " interrupted.")))
+             (exit-code-callback (.exitValue process)))
+           nil)))                    
+      process)))
+          
 
 (defn exists-file? [path]
   (.exists (File. path)))
