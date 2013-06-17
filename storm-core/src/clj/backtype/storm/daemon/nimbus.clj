@@ -932,6 +932,11 @@
                      storm-name
                      (from-json serializedConf)
                      topology)
+          (log-message "Checking Topology conf: " (from-json serializedConf) " against nimbus conf: " conf)
+          (if (> (get (from-json serializedConf) TOPOLOGY-WORKERS)
+                 (get conf NIMBUS-SLOTS-PER-TOPOLOGY))
+            (throw 
+             (InvalidTopologyException. (str "Failed to submit topology. Topology requests more than " (get conf NIMBUS-SLOTS-PER-TOPOLOGY) " workers."))))
           (swap! (:submitted-count nimbus) inc)
           (let [storm-id (str storm-name "-" @(:submitted-count nimbus) "-" (current-time-secs))
                 storm-conf-submitted (normalize-conf
