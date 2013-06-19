@@ -343,6 +343,11 @@ public class Config extends HashMap<String, Object> {
     public static String NIMBUS_SLOTS_PER_TOPOLOGY = "nimbus.slots.perTopology";
 
     /**
+     * A number representing the maximum number of executors any single topology can acquire.
+     */
+    public static String NIMBUS_EXECUTORS_PER_TOPOLOGY = "nimbus.executors.perTopology";
+
+    /**
      * This parameter is used by the storm-deploy project to configure the
      * jvm options for the supervisor daemon.
      */
