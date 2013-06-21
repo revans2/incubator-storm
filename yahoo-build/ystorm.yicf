@@ -7,7 +7,7 @@ BASE_VERSION = `cat BASE_VERSION`
 SHORT_DESC = "Nathan Marz's distributed computation system."
 LONG_DESC = `cat README.yahoo; cat ../README.markdown`
 
-CUSTODIAN = yahoo-storm-team@yahoo-inc.com https://github.com/nathanmarz/storm
+CUSTODIAN = yahoo-storm-team@yahoo-inc.com http://twiki.corp.yahoo.com/view/Grid/StormDocumentation
 YINST bug-product Low Latency
 YINST bug-component General
 
