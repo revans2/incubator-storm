@@ -18,3 +18,8 @@ NOTE:
 This package is intended to be used by the cloud services storm team to support
 a hosted storm service.  If anyone else wants to use this go ahead, but we are
 not going to be able to officially support you for a while :) so good luck.
+
+ystorm documentation: http://twiki.corp.yahoo.com/view/Grid/StormDocumentation 
+
+
+================================================================
