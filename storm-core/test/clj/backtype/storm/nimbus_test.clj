@@ -716,7 +716,9 @@
 (deftest test-submit-invalid
   (with-simulated-time-local-cluster [cluster
     :daemon-conf {SUPERVISOR-ENABLE false
-                  TOPOLOGY-ACKER-EXECUTORS 0}]
+                  TOPOLOGY-ACKER-EXECUTORS 0
+                  NIMBUS-EXECUTORS-PER-TOPOLOGY 8
+                  NIMBUS-SLOTS-PER-TOPOLOGY 8}]
     (letlocals
       (bind topology (thrift/mk-topology
                         {"1" (thrift/mk-spout-spec (TestPlannerSpout. true) :parallelism-hint 0 :conf {TOPOLOGY-TASKS 1})}
@@ -736,7 +738,31 @@
                                "test/aaa"
                                {}
                                topology)))
-      )))
+      (bind topology (thrift/mk-topology
+                      {"1" (thrift/mk-spout-spec (TestPlannerSpout. true)
+                                                 :parallelism-hint 16
+                                                 :conf {TOPOLOGY-TASKS 16})}
+                      {}))
+      (bind state (:storm-cluster-state cluster))
+      (is (thrown? InvalidTopologyException
+                   (submit-local-topology (:nimbus cluster)
+                                          "test"
+                                          {TOPOLOGY-WORKERS 3} 
+                                          topology)))
+      (bind topology (thrift/mk-topology
+                      {"1" (thrift/mk-spout-spec (TestPlannerSpout. true)
+                                                 :parallelism-hint 5
+                                                 :conf {TOPOLOGY-TASKS 5})}
+                      {}))
+      (is (thrown? InvalidTopologyException
+                   (submit-local-topology (:nimbus cluster)
+                                          "test"
+                                          {TOPOLOGY-WORKERS 16}
+                                          topology)))
+      (is (nil? (submit-local-topology (:nimbus cluster)
+                                       "test"
+                                       {TOPOLOGY-WORKERS 8}
+                                       topology))))))
 
 (deftest test-cleans-corrupt
   (with-inprocess-zookeeper zk-port
