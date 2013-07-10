@@ -175,7 +175,7 @@
     (merge spout-inputs bolt-inputs)))
 
 (defn add-acker! [storm-conf ^StormTopology ret]
-  (let [num-executors (storm-conf TOPOLOGY-ACKER-EXECUTORS)
+  (let [num-executors (if (nil? (storm-conf TOPOLOGY-ACKER-EXECUTORS)) (storm-conf TOPOLOGY-WORKERS) (storm-conf TOPOLOGY-ACKER-EXECUTORS))
         acker-bolt (thrift/mk-bolt-spec* (acker-inputs ret)
                                          (new backtype.storm.daemon.acker)
                                          {ACKER-ACK-STREAM-ID (thrift/direct-output-fields ["id"])
@@ -290,7 +290,8 @@
     ))
 
 (defn has-ackers? [storm-conf]
-  (> (storm-conf TOPOLOGY-ACKER-EXECUTORS) 0))
+  (or (nil? (storm-conf TOPOLOGY-ACKER-EXECUTORS)) (> (storm-conf TOPOLOGY-ACKER-EXECUTORS) 0)))
+
 
 (defn num-start-executors [component]
   (thrift/parallelism-hint (.get_common component)))

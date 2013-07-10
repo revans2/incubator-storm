@@ -178,6 +178,9 @@
 (defn current-time-secs []
   (Time/currentTimeSecs))
 
+(defn current-time-millis []
+  (Time/currentTimeMillis))
+
 (defn clojurify-structure [s]
   (prewalk (fn [x]
               (cond (instance? Map x) (into {} x)
