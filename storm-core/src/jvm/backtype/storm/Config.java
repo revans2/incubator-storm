@@ -329,14 +329,23 @@ public class Config extends HashMap<String, Object> {
      * the metadata configed on the supervisor
      */    
     public static String SUPERVISOR_SCHEDULER_META = "supervisor.scheduler.meta";
+    
     /**
      * A list of ports that can run workers on this supervisor. Each worker uses one port, and
      * the supervisor will only run one worker per port. Use this configuration to tune
      * how many workers run on each machine.
      */
     public static String SUPERVISOR_SLOTS_PORTS = "supervisor.slots.ports";
+    
+    /**
+     * A number representing the maximum number of workers any single topology can acquire.
+     */
+    public static String NIMBUS_SLOTS_PER_TOPOLOGY = "nimbus.slots.perTopology";
 
-
+    /**
+     * A number representing the maximum number of executors any single topology can acquire.
+     */
+    public static String NIMBUS_EXECUTORS_PER_TOPOLOGY = "nimbus.executors.perTopology";
 
     /**
      * This parameter is used by the storm-deploy project to configure the
