@@ -16,6 +16,7 @@
 
   <modules>
     <module>storm-core-mvn</module>
+    <module>storm-netty-mvn</module>
   </modules>
 
 </project>
