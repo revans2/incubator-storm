@@ -31,16 +31,24 @@ print """
 
 """
 
+remappedKeys = {"storm.messaging.netty.buffer.size":"storm.messaging.netty.buffer_size",
+                "storm.messaging.netty.max.retries":"storm.messaging.netty.max_retries",
+                "storm.messaging.netty.min.wait.ms":"storm.messaging.netty.min_wait_ms",
+                "storm.messaging.netty.max.wait.ms":"storm.messaging.netty.max_wait_ms"}
+
 listKeys = set(["storm.auth.simple-white-list.users", "supervisor.slots.ports", "storm.zookeeper.servers", "topology.kryo.register", "drpc.servers", "worker.childopts"])
 mapKeys = set(["isolation.scheduler.machines"])
 
 config = dict((k[8:].replace("_", "."), v) for k, v in os.environ.items() if k.startswith("ystorm__"))
 
 numeric = re.compile("^[0-9\.]+$")
+bool_re = re.compile("^(true)|(false)$",re.I)
 
 def normalize(value):
     str = value.strip()
     if numeric.search(str):
+        return str
+    elif bool_re.search(str):
         return str
     else:
         return "\"" + str + "\""
@@ -84,6 +92,9 @@ def handleMapKey(k,v):
 
 for k, v in config.items():
 #    print "___________Processing: ", k,v
+    if k in remappedKeys:
+        k = remappedKeys[k]
+
     if k not in listKeys and k not in mapKeys:
 #        print "k not in listkeys"
         print k + ":", normalize(v)
