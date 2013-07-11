@@ -741,8 +741,8 @@
         (if-not (.permit aclHandler 
                   (ReqContext/context) 
                   operation 
-                  (if storm-conf storm-conf {TOPOLOGY-NAME storm-name}))
-          (throw (AuthorizationException. (str operation " on topology " storm-name " is not authorized")))
+                  (if storm-conf storm-conf (if storm-name {TOPOLOGY-NAME storm-name})))
+          (throw (AuthorizationException. (str operation (if storm-name (str " on topology " storm-name)) " is not authorized")))
           ))))
 
 (defn code-ids [conf]
@@ -884,6 +884,7 @@
        (throw (NotAliveException. storm-id)))
   )
 )
+
 
 (defn validate-topology-size [topo-conf nimbus-conf topology]
   (let [workers-count (get topo-conf TOPOLOGY-WORKERS)
