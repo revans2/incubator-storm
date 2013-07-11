@@ -24,11 +24,13 @@ public class SimpleACLAuthorizer extends SimpleWhitelistAuthorizer implements IA
     public static String ACL_SUPERVISORS_CONF = "supervisor.supervisors";
     public static String ACL_SUPERVISORS_COMMANDS_CONF = "supervisor.supervisors.commands";
     public static String ACL_ADMINS_CONF = "storm.auth.simple-acl.admins";
+    public static String ACL_TOPOUSERS_WHITELIST_CONF = "storm.auth.simple-acl.topousers.commands";
+
     protected Set<String> userCommands;
     protected Set<String> admins;
     protected Set<String> supervisors;
     protected Set<String> supervisorCommands;
-
+    protected Set<String> topoUserWhitelist;
     /**
      * Invoked once immediately after construction
      * @param conf Storm configuration 
@@ -41,6 +43,7 @@ public class SimpleACLAuthorizer extends SimpleWhitelistAuthorizer implements IA
             admins = new HashSet<String>();
             supervisors = new HashSet<String>();
             supervisorCommands = new HashSet<String>();
+            topoUserWhitelist = new HashSet<String>();
 
             LOG.debug(ACL_USERS_CONF);
             if (conf.containsKey(ACL_USERS_CONF)) {
@@ -57,6 +60,9 @@ public class SimpleACLAuthorizer extends SimpleWhitelistAuthorizer implements IA
             }
             if (conf.containsKey(ACL_ADMINS_CONF)) {
                 admins.addAll((Collection<String>)conf.get(ACL_ADMINS_CONF));
+            }
+            if (conf.containsKey(ACL_TOPOUSERS_WHITELIST_CONF)) {
+                topoUserWhitelist.addAll((Collection<String>)conf.get(ACL_TOPOUSERS_WHITELIST_CONF));
             }
         } catch (Exception e) {
             LOG.debug("Couldn't get all sets.", e);
@@ -89,10 +95,7 @@ public class SimpleACLAuthorizer extends SimpleWhitelistAuthorizer implements IA
                 topoUserCommands.addAll((Collection<String>)topology_conf.get(ACL_USERS_COMMANDS_CONF));
         }
         
-        //Make sure global config allows user to submit topology, and users aren't giving themselves permission.
-        topoUserCommands.remove("submitTopology");
-        
-        if((topoUsers.contains(context.principal().getName()) && topoUserCommands.contains(operation))
+        if((topoUsers.contains(context.principal().getName()) && topoUserCommands.contains(operation) && topoUserWhitelist.contains(operation))
            || (users.contains(context.principal().getName()) && userCommands.contains(operation))
            || (supervisors.contains(context.principal().getName()) && supervisorCommands.contains(operation))
            || admins.contains(context.principal().getName()))

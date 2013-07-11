@@ -196,7 +196,8 @@
     (with-server [a-port nil
                   "backtype.storm.security.auth.authorizer.SimpleACLAuthorizer"
                   "backtype.storm.testing.SingleUserSimpleTransport" {"storm.auth.simple-acl.users" ["user"]
-                                                                      "storm.auth.simple-acl.users.commands" ["submitTopology"]}]
+                                                                      "storm.auth.simple-acl.users.commands" ["submitTopology"]
+                                                                      "storm.auth.simple-acl.topousers.commands" ["activate"]}]
       (let [storm-conf (merge (read-storm-config)
                               {STORM-THRIFT-TRANSPORT-PLUGIN "backtype.storm.testing.SingleUserSimpleTransport"})
             client (NimbusClient. storm-conf "localhost" a-port nimbus-timeout)
@@ -205,10 +206,12 @@
           (.submitTopologyWithOpts nimbus_client "security_auth_test_topology" nil 
                                    (to-json
                                     {"storm.auth.simple-acl.users" ["user"]
-                                     "storm.auth.simple-acl.users.commands" ["submitTopology"]})
+                                     "storm.auth.simple-acl.users.commands" ["submitTopology" "rebalance"]})
                                    nil nil)
           (is (thrown-cause? AuthorizationException
-                             (.activate nimbus_client "security_auth_test_topology"))))
+                             (.activate nimbus_client "security_auth_test_topology")))
+          (is (thrown-cause? AuthorizationException
+                             (.rebalance nimbus_client "security_auth_test_topology" nil))))
         (.close client)))))
 
 (deftest negative-acl-authorization-supervisor-privilege-test
@@ -262,7 +265,8 @@
     (with-server [a-port nil
                   "backtype.storm.security.auth.authorizer.SimpleACLAuthorizer"
                   "backtype.storm.testing.SingleUserSimpleTransport" {"storm.auth.simple-acl.users" ["user"]
-                                                                      "storm.auth.simple-acl.users.commands" ["submitTopology"]}]
+                                                                      "storm.auth.simple-acl.users.commands" ["submitTopology"]
+                                                                      "storm.auth.simple-acl.topousers.commands" ["activate"]}]
       (let [storm-conf (merge (read-storm-config)
                               {STORM-THRIFT-TRANSPORT-PLUGIN "backtype.storm.testing.SingleUserSimpleTransport"})
             client (NimbusClient. storm-conf "localhost" a-port nimbus-timeout)
