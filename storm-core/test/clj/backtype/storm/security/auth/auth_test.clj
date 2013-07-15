@@ -220,7 +220,9 @@
                   "backtype.storm.security.auth.authorizer.SimpleACLAuthorizer"
                   "backtype.storm.testing.SingleUserSimpleTransport" {"storm.auth.simple-acl.users" ["user"]
                                                                       "storm.auth.simple-acl.users.commands" ["submitTopology"]
-                                                                      "supervisor.supervisors" ["user"]}]
+                                                                      "supervisor.supervisors" ["user"]
+                                                                      "storm.auth.simple-acl.admins" ["hugo"]
+                                                                      "storm.auth.simple-acl.topousers.commands" ["beginFileDownload"]}]
       (let [storm-conf (merge (read-storm-config)
                               {STORM-THRIFT-TRANSPORT-PLUGIN "backtype.storm.testing.SingleUserSimpleTransport"})
             client (NimbusClient. storm-conf "localhost" a-port nimbus-timeout)
@@ -229,7 +231,24 @@
           (.submitTopologyWithOpts nimbus_client "security_auth_test_topology" nil nil nil nil)
           (is (thrown-cause? AuthorizationException
                              (.beginFileDownload nimbus_client nil))))
+        (.close client))))
+  (let [a-port (available-port)]
+    (with-server [a-port nil
+                  "backtype.storm.security.auth.authorizer.SimpleACLAuthorizer"
+                  "backtype.storm.testing.SingleUserSimpleTransport" {"storm.auth.simple-acl.users" ["user"]
+                                                                      "storm.auth.simple-acl.users.commands" ["submitTopology"]
+                                                                      "supervisor.supervisors" ["user"]}]
+      (let [storm-conf (merge (read-storm-config)
+                              {STORM-THRIFT-TRANSPORT-PLUGIN "backtype.storm.testing.SingleUserSimpleTransport"
+                               "storm.auth.simple-acl.topousers.commands" ["beginFileDownload"]})
+            client (NimbusClient. storm-conf "localhost" a-port nimbus-timeout)
+            nimbus_client (.getClient client)]
+        (testing "(Negative authorization supervisor privilege) Authorization plugin should reject client request"
+          (.submitTopologyWithOpts nimbus_client "security_auth_test_topology" nil nil nil nil)
+          (is (thrown-cause? AuthorizationException
+                             (.beginFileDownload nimbus_client nil))))
         (.close client)))))
+    
   
 (deftest positive-acl-authorization-admin
   (let [a-port (available-port)]
@@ -245,7 +264,7 @@
           (.killTopology nimbus_client "security_auth_test_topology")
           (.activate nimbus_client "security_auth_test_topology"))
         (.close client)))))
-  
+
 (deftest positive-acl-authorization-user
   (let [a-port (available-port)]
     (with-server [a-port nil
