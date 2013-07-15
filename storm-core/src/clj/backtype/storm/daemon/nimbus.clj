@@ -885,16 +885,19 @@
   )
 )
 
-(defn check-authorization! [nimbus storm-name storm-conf operation]
-  (let [aclHandler (:authorization-handler nimbus)]
-    (log-debug "check-authorization with handler: " aclHandler)
-    (if aclHandler
-        (if-not (.permit aclHandler 
-                  (ReqContext/context) 
-                  operation 
-                  (if storm-conf storm-conf (if storm-name {TOPOLOGY-NAME storm-name})))
-          (throw (AuthorizationException. (str operation (if storm-name (str " on topology " storm-name)) " is not authorized")))
-          ))))
+(defn check-authorization! 
+  ([nimbus storm-name storm-conf operation context]
+     (let [aclHandler (:authorization-handler nimbus)]
+       (log-debug "check-authorization with handler: " aclHandler)
+       (if aclHandler
+         (if-not (.permit aclHandler 
+                          (or context (ReqContext/context))
+                          operation 
+                          (if storm-conf storm-conf (if storm-name {TOPOLOGY-NAME storm-name})))
+           (throw (AuthorizationException. (str operation (if storm-name (str " on topology " storm-name)) " is not authorized")))
+           ))))
+  ([nimbus storm-name storm-conf operation]
+     (check-authorization! nimbus storm-name storm-conf operation (ReqContext/context))))
 
 (defn validate-topology-size [topo-conf nimbus-conf topology]
   (let [workers-count (get topo-conf TOPOLOGY-WORKERS)
