@@ -19,7 +19,7 @@ import org.slf4j.LoggerFactory;
 public class SimpleWhitelistAuthorizer implements IAuthorizer {
     private static final Logger LOG = LoggerFactory.getLogger(SimpleWhitelistAuthorizer.class);
     public static String WHITELIST_USERS_CONF = "storm.auth.simple-white-list.users";
-    private Set<String> users;
+    protected Set<String> users;
 
     /**
      * Invoked once immediately after construction
@@ -27,10 +27,10 @@ public class SimpleWhitelistAuthorizer implements IAuthorizer {
      */
     @Override
     public void prepare(Map conf) {
-      users = new HashSet<String>();
-      if (conf.containsKey(WHITELIST_USERS_CONF)) {
-        users.addAll((Collection<String>)conf.get(WHITELIST_USERS_CONF));
-      }
+        users = new HashSet<String>();
+        if (conf.containsKey(WHITELIST_USERS_CONF)) {
+            users.addAll((Collection<String>)conf.get(WHITELIST_USERS_CONF));
+        }
     }
 
     /**
@@ -43,10 +43,10 @@ public class SimpleWhitelistAuthorizer implements IAuthorizer {
     @Override
     public boolean permit(ReqContext context, String operation, Map topology_conf) {
         LOG.info("[req "+ context.requestID()+ "] Access "
-                + " from: " + (context.remoteAddress() == null? "null" : context.remoteAddress().toString())
-                + (context.principal() == null? "" : (" principal:"+ context.principal()))
-                +" op:"+operation
-                + (topology_conf == null? "" : (" topoology:"+topology_conf.get(Config.TOPOLOGY_NAME))));
+                 + " from: " + (context.remoteAddress() == null? "null" : context.remoteAddress().toString())
+                 + (context.principal() == null? "" : (" principal:"+ context.principal()))
+                 +" op:"+operation
+                 + (topology_conf == null? "" : (" topoology:"+topology_conf.get(Config.TOPOLOGY_NAME))));
         return context.principal() != null ? users.contains(context.principal().getName()) : false;
     }
 }
