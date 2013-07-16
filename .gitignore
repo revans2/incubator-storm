@@ -7,7 +7,7 @@ deploy/logs
 *.jar
 bin/jzmq
 .DS_Store
-pom.xml
+/pom.xml
 deploy/classes
 *.fyc
 *.rbc
