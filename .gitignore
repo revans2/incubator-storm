@@ -7,7 +7,7 @@ deploy/logs
 *.jar
 bin/jzmq
 .DS_Store
-pom.xml
+/pom.xml
 deploy/classes
 *.fyc
 *.rbc
@@ -22,8 +22,7 @@ _release
 *.zip
 .lein-deps-sum
 *.iml
-/target
-/storm-core/target
+target
 /.project/
 /.lein-plugins/
 *.ipr
