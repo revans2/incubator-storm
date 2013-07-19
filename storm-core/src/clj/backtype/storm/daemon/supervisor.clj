@@ -83,6 +83,14 @@
          (= (disj (set (:executors worker-heartbeat)) Constants/SYSTEM_EXECUTOR_ID)
             (set (:executors local-assignment))))))
 
+(let [dead-workers (atom #{})]
+  (defn get-dead-workers []
+    @dead-workers)
+  (defn add-dead-worker [worker]
+    (swap! dead-workers conj worker))
+  (defn remove-dead-worker [worker]
+    (swap! dead-workers disj worker)))
+
 (defn read-allocated-workers
   "Returns map from worker id to worker heartbeat. if the heartbeat is nil, then the worker is dead (timed out or never wrote heartbeat)"
   [supervisor assigned-executors now]
@@ -99,8 +107,12 @@
                            :disallowed
                          (not hb)
                            :not-started
-                         (> (- now (:time-secs hb))
-                            (conf SUPERVISOR-WORKER-TIMEOUT-SECS))
+                         (or 
+                          (when (get (get-dead-workers) id)
+                            (log-message "Worker Process " id " has died!")
+                            true)
+                          (> (- now (:time-secs hb))
+                             (conf SUPERVISOR-WORKER-TIMEOUT-SECS)))
                            :timed-out
                          true
                            :valid)]
@@ -157,6 +169,7 @@
             (rmpath (worker-pids-root conf id))
             (rmpath (worker-root conf id))))
         (remove-worker-user conf id)
+        (remove-dead-worker id)
       ))
   (catch RuntimeException e
     (log-warn-error e "Failed to cleanup worker " id ". Will retry later")
@@ -459,11 +472,17 @@
                        " " port " " worker-id)]
       (log-message "Launching worker with command: " command)
       (set-worker-user conf worker-id user)
-      (if run-worker-as-user
-        (let [worker-dir (worker-root conf worker-id)]
-          (worker-launcher conf user (str "worker " worker-dir " " (write-script worker-dir command :environment {"LD_LIBRARY_PATH" (conf JAVA-LIBRARY-PATH)}))))
-        (launch-process command :environment {"LD_LIBRARY_PATH" (conf JAVA-LIBRARY-PATH)})
-      )))
+      (let [log-prefix (str "Worker Process " worker-id)]
+        (remove-dead-worker worker-id) 
+        (if run-worker-as-user
+          (let [worker-dir (worker-root conf worker-id)]
+            ;;TODO need the log prefix and the callback
+            (worker-launcher conf user (str "worker " worker-dir " " (write-script worker-dir command :environment {"LD_LIBRARY_PATH" (conf JAVA-LIBRARY-PATH)}))))
+          (launch-process command :environment {"LD_LIBRARY_PATH" (conf JAVA-LIBRARY-PATH)} :log-prefix log-prefix :exit-code-callback
+                      (fn [exit-code] 
+                        (log-message log-prefix " exited with code: " exit-code)
+                        (add-dead-worker worker-id)))
+      ))))
 
 ;; local implementation
 

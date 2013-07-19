@@ -38,6 +38,8 @@ _release: RELEASE build
 	mkdir -p _release/storm/lib
 	cp ../storm-core-mvn/target/storm-core*.jar _release/storm/storm.jar
 	cp ../storm-core-mvn/target/dependency/*.jar _release/storm/lib
+	cp ../storm-netty-mvn/target/storm-netty*.jar _release/storm/storm-netty.jar
+	cp ../storm-netty-mvn/target/dependency/*.jar _release/storm/lib
 	cp ../CHANGELOG.md _release/storm/
 	cp RELEASE _release/storm/
 	cp -r ../logback _release/storm/

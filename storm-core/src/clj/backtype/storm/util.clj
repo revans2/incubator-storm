@@ -9,7 +9,8 @@
   (:import [java.util.zip ZipFile])
   (:import [java.util.concurrent.locks ReentrantReadWriteLock])
   (:import [java.util.concurrent Semaphore])
-  (:import [java.io File RandomAccessFile StringWriter PrintWriter])
+  (:import [java.io File RandomAccessFile StringWriter PrintWriter BufferedReader 
+            InputStreamReader IOException])
   (:import [java.lang.management ManagementFactory])
   (:import [org.apache.commons.exec DefaultExecutor CommandLine])
   (:import [org.apache.commons.io FileUtils])
@@ -134,6 +135,14 @@
     (catch Throwable t#
       (exception-cause? ~klass t#))))
 
+(defmacro thrown-cause-with-msg? [klass re & body]
+  `(try
+    ~@body
+    false
+    (catch Throwable t#
+      (and (re-matches ~re (.getMessage t#))
+        (exception-cause? ~klass t#)))))
+
 (defmacro forcat [[args aseq] & body]
   `(mapcat (fn [~args]
              ~@body)
@@ -176,6 +185,9 @@
 
 (defn current-time-secs []
   (Time/currentTimeSecs))
+
+(defn current-time-millis []
+  (Time/currentTimeMillis))
 
 (defn clojurify-structure [s]
   (prewalk (fn [x]
@@ -346,6 +358,17 @@
     (log-message "Error when trying to kill " pid ". Process is probably already dead."))
     ))
 
+(defn read-and-log-stream [prefix stream]
+  (try
+    (let [reader (BufferedReader. (InputStreamReader. stream))]
+      (loop []
+        (if-let [line (.readLine reader)]
+                (do
+                  (log-warn (str prefix ":" line))
+                  (recur)))))
+    (catch IOException e
+      (log-warn "Error while trying to log stream" e))))
+
 (defn sleep-secs [secs]
   (when (pos? secs)
     (Time/sleep (* (long secs) 1000))))
@@ -411,24 +434,29 @@
     script-path
   ))
 
-(defnk launch-process [command :environment {}]
-  (let [- (log-message " Command: " command " env: " environment)
-        command (->> (seq (.split command " "))
+(defnk launch-process [command :environment {} :log-prefix nil :exit-code-callback nil]
+  (let [command (->> (seq (.split command " "))
                      (filter (complement empty?)))
         builder (ProcessBuilder. command)
-        - (.redirectErrorStream builder true)
         process-env (.environment builder)]
+    (.redirectErrorStream builder true)
     (doseq [[k v] environment]
       (.put process-env k v))
-    (let [process (.start builder)
-         - (async-loop 
-              (fn []
-                 (Utils/readAndLogStream "external process: " (.getInputStream process))))]
-      process
-    )))
-
+    (let [process (.start builder)]
+      (if log-prefix
+        (async-loop
+         (fn []
+           (read-and-log-stream log-prefix (.getInputStream process))
+           (when exit-code-callback           
+             (try
+               (.waitFor process)
+               (catch InterruptedException e
+                 (log-message log-prefix " interrupted.")))
+             (exit-code-callback (.exitValue process)))
+           nil)))                    
+      process)))
+          
 (defn exists-file? [path]
-
       (.exists (File. path)))
 
 (defn rmr [path]

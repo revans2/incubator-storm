@@ -42,7 +42,7 @@ public class ReqContext {
 
     //private constructor
     @VisibleForTesting
-    ReqContext(AccessControlContext acl_ctxt) {
+    public ReqContext(AccessControlContext acl_ctxt) {
         _subject = Subject.getSubject(acl_ctxt);
         _reqID = uniqueId.incrementAndGet();
     }

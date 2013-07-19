@@ -6,7 +6,7 @@ BASE_VERSION = `cat BASE_VERSION`
 SHORT_DESC = "Nathan Marz's distributed computation system."
 LONG_DESC = `cat README.yahoo; cat ../README.markdown`
 
-CUSTODIAN = yahoo-storm-team@yahoo-inc.com https://github.com/nathanmarz/storm
+CUSTODIAN = yahoo-storm-team@yahoo-inc.com http://twiki.corp.yahoo.com/view/Grid/StormDocumentation
 YINST bug-product Low Latency
 YINST bug-component General
 
@@ -31,16 +31,19 @@ GROUP = users
 
 dir 777 - - lib64/storm/$(BASE_VERSION)/logs
 find 755 - - lib64/storm/$(BASE_VERSION)/bin/ ../bin/ -type f
-find - - - lib64/storm/$(BASE_VERSION)/lib/ ../storm-core-mvn/target/dependency/ -type f
+find - - - lib64/storm/$(BASE_VERSION)/lib/ ../storm-core-mvn/target/dependency/ ../storm-netty-mvn/target/dependency/ -type f
 #The actual group of the executable will be set by a pre-activate script
 file 6550 root root lib64/storm/$(BASE_VERSION)/bin/worker-launcher ../storm-core-mvn/target/native/target/usr/local/bin/worker-launcher
 
 file 444 - - lib64/jars/storm.jar ../storm-core-mvn/target/storm-core-$(BASE_VERSION).jar
 file 444 - - lib64/jars/storm.pom ../storm-core-mvn/pom.xml
+file 444 - - lib64/jars/storm-netty.jar ../storm-netty-mvn/target/storm-netty-$(BASE_VERSION).jar
+file 444 - - lib64/jars/storm-netty.pom ../storm-netty-mvn/pom.xml
 file 444 - - lib64/storm/$(BASE_VERSION)/RELEASE ./RELEASE
 file 444 - - lib64/storm/$(BASE_VERSION)/CHANGELOG.md ../CHANGELOG.md
 file 444 - - lib64/storm/$(BASE_VERSION)/LICENSE.html ../LICENSE.html
 file 444 - - lib64/storm/$(BASE_VERSION)/storm-core-$(BASE_VERSION).jar ../storm-core-mvn/target/storm-core-$(BASE_VERSION).jar
+file 444 - - lib64/storm/$(BASE_VERSION)/storm-netty-$(BASE_VERSION).jar ../storm-netty-mvn/target/storm-netty-$(BASE_VERSION).jar
 file 444 - - lib64/storm/$(BASE_VERSION)/README.markdown ../README.markdown
 file 444 - - lib64/storm/$(BASE_VERSION)/README.yahoo ./README.yahoo
 

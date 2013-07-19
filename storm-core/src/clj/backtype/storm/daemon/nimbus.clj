@@ -734,16 +734,19 @@
       (throw (AlreadyAliveException. (str storm-name " is already active"))))
     ))
 
-(defn check-authorization! [nimbus storm-name storm-conf operation]
-  (let [aclHandler (:authorization-handler nimbus)]
-    (log-debug "check-authorization with handler: " aclHandler)
-    (if aclHandler
-        (if-not (.permit aclHandler 
-                  (ReqContext/context) 
-                  operation 
-                  (if storm-conf storm-conf {TOPOLOGY-NAME storm-name}))
-          (throw (AuthorizationException. (str operation " on topology " storm-name " is not authorized")))
-          ))))
+(defn check-authorization! 
+  ([nimbus storm-name storm-conf operation context]
+     (let [aclHandler (:authorization-handler nimbus)]
+       (log-debug "check-authorization with handler: " aclHandler)
+       (if aclHandler
+         (if-not (.permit aclHandler 
+                          (or context (ReqContext/context))
+                          operation 
+                          (if storm-conf storm-conf (if storm-name {TOPOLOGY-NAME storm-name})))
+           (throw (AuthorizationException. (str operation (if storm-name (str " on topology " storm-name)) " is not authorized")))
+           ))))
+  ([nimbus storm-name storm-conf operation]
+     (check-authorization! nimbus storm-name storm-conf operation (ReqContext/context))))
 
 (defn code-ids [conf]
   (-> conf
@@ -885,16 +888,24 @@
   )
 )
 
-(defn check-authorization! [nimbus storm-name storm-conf operation]
-  (let [aclHandler (:authorization-handler nimbus)]
-    (log-debug "check-authorization with handler: " aclHandler)
-    (if aclHandler
-        (if-not (.permit aclHandler 
-                  (ReqContext/context) 
-                  operation 
-                  (if storm-conf storm-conf (if storm-name {TOPOLOGY-NAME storm-name})))
-          (throw (AuthorizationException. (str operation (if storm-name (str " on topology " storm-name)) " is not authorized")))
-          ))))
+(defn validate-topology-size [topo-conf nimbus-conf topology]
+  (let [workers-count (get topo-conf TOPOLOGY-WORKERS)
+        workers-allowed (get nimbus-conf NIMBUS-SLOTS-PER-TOPOLOGY)
+        num-executors (->> (all-components topology) (map-val num-start-executors))
+        executors-count (reduce + (vals num-executors))
+        executors-allowed (get nimbus-conf NIMBUS-EXECUTORS-PER-TOPOLOGY)]
+    (when (and 
+           (not (nil? executors-allowed))
+           (> executors-count executors-allowed))
+      (throw 
+       (InvalidTopologyException. 
+        (str "Failed to submit topology. Topology requests more than " executors-allowed " executors."))))
+    (when (and
+           (not (nil? workers-allowed))
+           (> workers-count workers-allowed))
+      (throw 
+       (InvalidTopologyException. 
+        (str "Failed to submit topology. Topology requests more than " workers-allowed " workers."))))))
 
 (defserverfn service-handler [conf inimbus]
   (.prepare inimbus conf (master-inimbus-dir conf))
@@ -958,6 +969,7 @@
             (if (and (conf SUPERVISOR-RUN-WORKER-AS-USER) (or (nil? submitter-user) (.isEmpty (.trim submitter-user)))) 
               (throw (AuthorizationException. "Could not determine the user to run this topology as.")))
             (system-topology! total-storm-conf topology) ;; this validates the structure of the topology
+            (validate-topology-size (from-json serializedConf) conf topology)
             (log-message "Received topology submission for " storm-name " with conf " storm-conf)
             ;; lock protects against multiple topologies being submitted at once and
             ;; cleanup thread killing topology in b/w assignment and starting the topology
