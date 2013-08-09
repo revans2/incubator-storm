@@ -443,11 +443,12 @@
     (doseq [[k v] environment]
       (.put process-env k v))
     (let [process (.start builder)]
-      (if log-prefix
+      (if (or log-prefix exit-code-callback)
         (async-loop
          (fn []
-           (read-and-log-stream log-prefix (.getInputStream process))
-           (when exit-code-callback           
+           (if log-prefix
+             (read-and-log-stream log-prefix (.getInputStream process)))
+           (when exit-code-callback
              (try
                (.waitFor process)
                (catch InterruptedException e

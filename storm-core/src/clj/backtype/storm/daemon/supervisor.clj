@@ -148,21 +148,31 @@
 (defn generate-supervisor-id []
   (uuid))
 
-(defnk worker-launcher [conf user args :environment {}]
+(defnk worker-launcher [conf user args :environment {} :log-prefix nil :exit-code-callback nil]
   (let [wl-initial (conf SUPERVISOR-WORKER-LAUNCHER)
         storm-home (System/getProperty "storm.home")
         wl (if wl-initial wl-initial (str storm-home "/bin/worker-launcher"))
         command (str wl " " user " " args)]
     (log-message "Running as user:" user " command:" command)
-    (launch-process command :environment environment)
+    (launch-process command :environment environment :log-prefix log-prefix :exit-code-callback exit-code-callback)
   ))
+
+(defnk worker-launcher-and-wait [conf user args :environment {} :log-prefix nil]
+  (let [process (worker-launcher conf user args :environment environment)]
+    (if log-prefix
+      (read-and-log-stream log-prefix (.getInputStream process)))
+      (try
+        (.waitFor process)
+      (catch InterruptedException e
+        (log-message log-prefix " interrupted.")))
+      (.exitValue process)))
 
 (defn try-cleanup-worker [conf id user]
   (try
     (if (.exists (File. (worker-root conf id)))
       (do
         (if (conf SUPERVISOR-RUN-WORKER-AS-USER)
-            (worker-launcher conf user (str " rmr " (worker-root conf id)))
+          (worker-launcher-and-wait conf user (str " rmr " (worker-root conf id)) :log-prefix (str "rmr " id) )
           (let []
             (rmr (worker-heartbeats-root conf id))
             ;; this avoids a race condition with worker or subprocess writing pid around same time
@@ -187,10 +197,10 @@
       (psim/kill-process thread-pid))
     (doseq [pid pids]
       (if as-user
-        (worker-launcher conf user (str " signal " pid " 9"))
+        (worker-launcher-and-wait conf user (str " signal " pid " 9") :log-prefix (str "kill -9 " pid))
         (ensure-process-killed! pid))
       (if as-user
-        (worker-launcher conf user (str " rmr " (worker-pid-path conf id pid)))
+        (worker-launcher-and-wait conf user (str " rmr " (worker-pid-path conf id pid)) :log-prefix (str "rmr for " pid))
         (rmpath (worker-pid-path conf id pid)))
       )
     (try-cleanup-worker conf id user))
@@ -424,9 +434,7 @@
 
 (defn setup-storm-code-dir [conf storm-conf dir]
  (if (conf SUPERVISOR-RUN-WORKER-AS-USER)
-  ;;TODO do we want to check the return code??
-  (.waitFor (worker-launcher conf (storm-conf TOPOLOGY-SUBMITTER-USER) (str " code-dir " dir)))
- ))
+  (worker-launcher-and-wait conf (storm-conf TOPOLOGY-SUBMITTER-USER) (str " code-dir " dir) :log-prefix (str "setup conf for " dir))))
 
 ;; distributed implementation
 (defmethod download-storm-code
@@ -472,16 +480,15 @@
                        " " port " " worker-id)]
       (log-message "Launching worker with command: " command)
       (set-worker-user conf worker-id user)
-      (let [log-prefix (str "Worker Process " worker-id)]
+      (let [log-prefix (str "Worker Process " worker-id)
+           callback (fn [exit-code] 
+                          (log-message log-prefix " exited with code: " exit-code)
+                          (add-dead-worker worker-id))]
         (remove-dead-worker worker-id) 
         (if run-worker-as-user
           (let [worker-dir (worker-root conf worker-id)]
-            ;;TODO need the log prefix and the callback
-            (worker-launcher conf user (str "worker " worker-dir " " (write-script worker-dir command :environment {"LD_LIBRARY_PATH" (conf JAVA-LIBRARY-PATH)}))))
-          (launch-process command :environment {"LD_LIBRARY_PATH" (conf JAVA-LIBRARY-PATH)} :log-prefix log-prefix :exit-code-callback
-                      (fn [exit-code] 
-                        (log-message log-prefix " exited with code: " exit-code)
-                        (add-dead-worker worker-id)))
+            (worker-launcher conf user (str "worker " worker-dir " " (write-script worker-dir command :environment {"LD_LIBRARY_PATH" (conf JAVA-LIBRARY-PATH)})) :log-prefix log-prefix :exit-code-callback callback))
+          (launch-process command :environment {"LD_LIBRARY_PATH" (conf JAVA-LIBRARY-PATH)} :log-prefix log-prefix :exit-code-callback callback)
       ))))
 
 ;; local implementation
