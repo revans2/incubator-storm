@@ -50,11 +50,6 @@
   )
 )
 
-; Checking whether zk auth is configured is a matter of checking that the
-; scheme is defined.
-; Checking whether zk auth is configured properly requires validation.
-; - For digest, we need a payload with a user name and a password.
-; - For sasl, we need a payload with a properly formatted krb principal.
 (deftest test-isZkAuthenticationConfigured
   (testing "Returns false on null config"
     (is (not (Utils/isZkAuthenticationConfigured nil))))
