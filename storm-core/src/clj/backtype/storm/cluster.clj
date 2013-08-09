@@ -1,6 +1,6 @@
 (ns backtype.storm.cluster
-  (:import [org.apache.zookeeper.data Stat])
-  (:import [org.apache.zookeeper KeeperException KeeperException$NoNodeException])
+  (:import [org.apache.zookeeper.data Stat ACL])
+  (:import [org.apache.zookeeper KeeperException KeeperException$NoNodeException ZooDefs ZooDefs$Ids])
   (:import [backtype.storm.utils Utils])
   (:use [backtype.storm util log config])
   (:require [backtype.storm [zookeeper :as zk]])
@@ -9,28 +9,28 @@
   )
 
 (defprotocol ClusterState
-  (set-ephemeral-node [this path data])
+  (set-ephemeral-node [this path data acls])
   (delete-node [this path])
-  (create-sequential [this path data])
-  (set-data [this path data])  ;; if node does not exist, create persistent with this data 
+  (create-sequential [this path data acls])
+  (set-data [this path data acls])  ;; if node does not exist, create persistent with this data 
   (get-data [this path watch?])
   (get-children [this path watch?])
-  (mkdirs [this path])
+  (mkdirs [this path acls])
   (close [this])
   (register [this callback])
   (unregister [this id])
   )
 
-(defn mk-distributed-cluster-state [conf]
-  (let [zk (zk/mk-client conf (conf STORM-ZOOKEEPER-SERVERS) (conf STORM-ZOOKEEPER-PORT) :auth-conf conf)]
-    (zk/mkdirs zk (conf STORM-ZOOKEEPER-ROOT))
+(defnk mk-distributed-cluster-state [conf :auth-conf nil :acls nil]
+  (let [zk (zk/mk-client conf (conf STORM-ZOOKEEPER-SERVERS) (conf STORM-ZOOKEEPER-PORT) :auth-conf auth-conf)]
+    (zk/mkdirs zk (conf STORM-ZOOKEEPER-ROOT) acls)
     (.close zk))
   (let [callbacks (atom {})
         active (atom true)
         zk (zk/mk-client conf
                          (conf STORM-ZOOKEEPER-SERVERS)
                          (conf STORM-ZOOKEEPER-PORT)
-                         :auth-conf conf
+                         :auth-conf auth-conf
                          :root (conf STORM-ZOOKEEPER-ROOT)
                          :watcher (fn [state type path]
                                      (when @active
@@ -50,28 +50,28 @@
      (unregister [this id]
                  (swap! callbacks dissoc id))
 
-     (set-ephemeral-node [this path data]
-                         (zk/mkdirs zk (parent-path path))
+     (set-ephemeral-node [this path data acls]
+                         (zk/mkdirs zk (parent-path path) acls)
                          (if (zk/exists zk path false)
                            (try-cause
                              (zk/set-data zk path data) ; should verify that it's ephemeral
                              (catch KeeperException$NoNodeException e
                                (log-warn-error e "Ephemeral node disappeared between checking for existing and setting data")
-                               (zk/create-node zk path data :ephemeral)
+                               (zk/create-node zk path data :ephemeral acls)
                                ))
-                           (zk/create-node zk path data :ephemeral)
+                           (zk/create-node zk path data :ephemeral acls)
                            ))
      
-     (create-sequential [this path data]
-       (zk/create-node zk path data :sequential))
+     (create-sequential [this path data acls]
+       (zk/create-node zk path data :sequential acls))
      
-     (set-data [this path data]
+     (set-data [this path data acls]
                ;; note: this does not turn off any existing watches
                (if (zk/exists zk path false)
                  (zk/set-data zk path data)
                  (do
-                   (zk/mkdirs zk (parent-path path))
-                   (zk/create-node zk path data :persistent)
+                   (zk/mkdirs zk (parent-path path) acls)
+                   (zk/create-node zk path data :persistent acls)
                    )))
      
      (delete-node [this path]
@@ -85,8 +85,8 @@
      (get-children [this path watch?]
                    (zk/get-children zk path watch?))
      
-     (mkdirs [this path]
-             (zk/mkdirs zk path))
+     (mkdirs [this path acls]
+             (zk/mkdirs zk path acls))
      
      (close [this]
             (reset! active false)
@@ -195,10 +195,10 @@
       (into {}))))
 
 ;; Watches should be used for optimization. When ZK is reconnecting, they're not guaranteed to be called.
-(defn mk-storm-cluster-state [cluster-state-spec]
+(defnk mk-storm-cluster-state [cluster-state-spec :acls nil]
   (let [[solo? cluster-state] (if (satisfies? ClusterState cluster-state-spec)
                                 [false cluster-state-spec]
-                                [true (mk-distributed-cluster-state cluster-state-spec)])
+                                [true (mk-distributed-cluster-state cluster-state-spec :auth-conf cluster-state-spec :acls acls)])
         assignment-info-callback (atom {})
         supervisors-callback (atom nil)
         assignments-callback (atom nil)
@@ -218,7 +218,7 @@
                           )
                       )))]
     (doseq [p [ASSIGNMENTS-SUBTREE STORMS-SUBTREE SUPERVISORS-SUBTREE WORKERBEATS-SUBTREE ERRORS-SUBTREE]]
-      (mkdirs cluster-state p))
+      (mkdirs cluster-state p acls))
     (reify
      StormClusterState
      
@@ -273,14 +273,14 @@
         )
 
       (worker-heartbeat! [this storm-id node port info]
-        (set-data cluster-state (workerbeat-path storm-id node port) (Utils/serialize info)))
+        (set-data cluster-state (workerbeat-path storm-id node port) (Utils/serialize info) acls))
 
       (remove-worker-heartbeat! [this storm-id node port]
         (delete-node cluster-state (workerbeat-path storm-id node port))
         )
 
       (setup-heartbeats! [this storm-id]
-        (mkdirs cluster-state (workerbeat-storm-root storm-id)))
+        (mkdirs cluster-state (workerbeat-storm-root storm-id) acls))
 
       (teardown-heartbeats! [this storm-id]
         (try-cause
@@ -297,11 +297,11 @@
            )))
 
       (supervisor-heartbeat! [this supervisor-id info]
-        (set-ephemeral-node cluster-state (supervisor-path supervisor-id) (Utils/serialize info))
+        (set-ephemeral-node cluster-state (supervisor-path supervisor-id) (Utils/serialize info) acls)
         )
 
       (activate-storm! [this storm-id storm-base]
-        (set-data cluster-state (storm-path storm-id) (Utils/serialize storm-base))
+        (set-data cluster-state (storm-path storm-id) (Utils/serialize storm-base) acls)
         )
 
       (update-storm! [this storm-id new-elems]
@@ -311,7 +311,8 @@
           (set-data cluster-state (storm-path storm-id)
                                   (-> base
                                       (merge new-elems)
-                                      Utils/serialize))))
+                                      Utils/serialize)
+                                  acls)))
 
       (storm-base [this storm-id callback]
         (when callback
@@ -324,7 +325,7 @@
         )
 
       (set-assignment! [this storm-id info]
-        (set-data cluster-state (assignment-path storm-id) (Utils/serialize info))
+        (set-data cluster-state (assignment-path storm-id) (Utils/serialize info) acls)
         )
 
       (remove-storm! [this storm-id]
@@ -334,8 +335,8 @@
       (report-error [this storm-id component-id error]                
          (let [path (error-path storm-id component-id)
                data {:time-secs (current-time-secs) :error (stringify-error error)}
-               _ (mkdirs cluster-state path)
-               _ (create-sequential cluster-state (str path "/e") (Utils/serialize data))
+               _ (mkdirs cluster-state path acls)
+               _ (create-sequential cluster-state (str path "/e") (Utils/serialize data) acls)
                to-kill (->> (get-children cluster-state path false)
                             (sort-by parse-error-path)
                             reverse
@@ -345,7 +346,7 @@
 
       (errors [this storm-id component-id]
          (let [path (error-path storm-id component-id)
-               _ (mkdirs cluster-state path)
+               _ (mkdirs cluster-state path acls)
                children (get-children cluster-state path false)
                errors (dofor [c children]
                              (let [data (-> (get-data cluster-state (str path "/" c) false)

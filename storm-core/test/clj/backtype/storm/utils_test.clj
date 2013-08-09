@@ -17,7 +17,7 @@
            Config/STORM_ZOOKEEPER_RETRY_INTERVAL_CEILING expected_ceiling})
         servers ["bogus_server"]
         arbitrary_port 42
-        curator (Utils/newCurator conf servers arbitrary_port)
+        curator (Utils/newCurator conf servers arbitrary_port nil)
         retry (-> curator .getZookeeperClient .getRetryPolicy)
        ]
     (is (.isAssignableFrom ExponentialBackoffRetry (.getClass retry)))
@@ -49,3 +49,31 @@
     ))
   )
 )
+
+; Checking whether zk auth is configured is a matter of checking that the
+; scheme is defined.
+; Checking whether zk auth is configured properly requires validation.
+; - For digest, we need a payload with a user name and a password.
+; - For sasl, we need a payload with a properly formatted krb principal.
+(deftest test-isZkAuthenticationConfigured
+  (testing "Returns false on null config"
+    (is (not (Utils/isZkAuthenticationConfigured nil))))
+  (testing "Returns false on either key missing"
+    (is (not (or
+      (Utils/isZkAuthenticationConfigured
+        {STORM-ZOOKEEPER-AUTH-SCHEME nil})
+      (Utils/isZkAuthenticationConfigured
+        {STORM-ZOOKEEPER-AUTH-PAYLOAD nil})))))
+  (testing "Returns false on either value null"
+    (is (not (or
+      (Utils/isZkAuthenticationConfigured
+        {STORM-ZOOKEEPER-AUTH-SCHEME nil
+         STORM-ZOOKEEPER-AUTH-PAYLOAD "foobar"})
+      (Utils/isZkAuthenticationConfigured
+        {STORM-ZOOKEEPER-AUTH-SCHEME "foobar"
+         STORM-ZOOKEEPER-AUTH-PAYLOAD nil})))))
+  (testing "Returns true when both set to strings"
+    (is
+      (Utils/isZkAuthenticationConfigured
+        {STORM-ZOOKEEPER-AUTH-SCHEME "foobar"
+         STORM-ZOOKEEPER-AUTH-PAYLOAD "kauaux"}))))

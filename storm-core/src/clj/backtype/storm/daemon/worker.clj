@@ -5,6 +5,7 @@
   (:import [java.util.concurrent Executors])
   (:import [backtype.storm.messaging TransportFactory])
   (:import [backtype.storm.messaging IContext IConnection])
+  (:import [org.apache.zookeeper data.ACL data.Id ZooDefs$Ids ZooDefs$Perms])
   (:gen-class))
 
 (bootstrap)
@@ -149,21 +150,17 @@
                        (halt-process! 20 "Error when processing an event")
                        )))
 
-(defn worker-data [conf mq-context storm-id assignment-id port worker-id]
-  (let [cluster-state (cluster/mk-distributed-cluster-state conf)
-        storm-cluster-state (cluster/mk-storm-cluster-state cluster-state)
-        storm-conf (read-supervisor-storm-conf conf storm-id)
-        executors (set (read-worker-executors storm-conf storm-cluster-state storm-id assignment-id port))
-        transfer-queue (disruptor/disruptor-queue (storm-conf TOPOLOGY-TRANSFER-BUFFER-SIZE)
-                                                  :wait-strategy (storm-conf TOPOLOGY-DISRUPTOR-WAIT-STRATEGY))
-        executor-receive-queue-map (mk-receive-queue-map storm-conf executors)
-        
-        receive-queue-map (->> executor-receive-queue-map
-                               (mapcat (fn [[e queue]] (for [t (executor-id->tasks e)] [t queue])))
-                               (into {}))
-
-        topology (read-supervisor-topology conf storm-id)]
-    (recursive-map
+(defn recursive-map-worker-data [conf mq-context storm-id assignment-id port
+                                  storm-conf
+                                  worker-id 
+                                  cluster-state 
+                                  storm-cluster-state
+                                  executors 
+                                  transfer-queue
+                                  executor-receive-queue-map 
+                                  receive-queue-map
+                                  topology]
+  (recursive-map
       :conf conf
       :mq-context (if mq-context
                       mq-context
@@ -204,7 +201,35 @@
       :user-shared-resources (mk-user-resources <>)
       :transfer-local-fn (mk-transfer-local-fn <>)
       :transfer-fn (mk-transfer-fn <>)
-      )))
+      ))
+
+(defn worker-data [conf mq-context storm-id assignment-id port worker-id]
+  (let [storm-conf (read-supervisor-storm-conf conf storm-id)
+        acls (when (Utils/isZkAuthenticationConfigured conf) ZooDefs$Ids/CREATOR_ALL_ACL)
+        cluster-state (cluster/mk-distributed-cluster-state conf :auth-conf storm-conf :acls acls)
+        storm-cluster-state (cluster/mk-storm-cluster-state cluster-state :acls acls)
+        executors (set (read-worker-executors storm-conf storm-cluster-state storm-id assignment-id port))
+        transfer-queue (disruptor/disruptor-queue (storm-conf TOPOLOGY-TRANSFER-BUFFER-SIZE)
+                                                  :wait-strategy (storm-conf TOPOLOGY-DISRUPTOR-WAIT-STRATEGY))
+        executor-receive-queue-map (mk-receive-queue-map storm-conf executors)
+        
+        receive-queue-map (->> executor-receive-queue-map
+                               (mapcat (fn [[e queue]] (for [t (executor-id->tasks e)] [t queue])))
+                               (into {}))
+
+        topology (read-supervisor-topology conf storm-id)]
+        (recursive-map-worker-data 
+          conf mq-context storm-id assignment-id port
+          storm-conf
+          worker-id 
+          cluster-state 
+          storm-cluster-state
+          executors 
+          transfer-queue
+          executor-receive-queue-map 
+          receive-queue-map
+          topology)
+  ))
 
 (defn- endpoint->string [[node port]]
   (str port "/" node))
@@ -433,7 +458,7 @@
   :distributed [conf]
   (fn [] (halt-process! 1 "Worker died")))
 
-(defn -main [storm-id assignment-id port-str worker-id]  
+(defn -main [storm-id assignment-id port-str worker-id]
   (let [conf1 (read-storm-config)
         login_conf_file (System/getProperty "java.security.auth.login.config")
         conf (if login_conf_file (merge conf1 {"java.security.auth.login.config" login_conf_file}) conf1)]

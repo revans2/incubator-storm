@@ -1,6 +1,9 @@
 (ns backtype.storm.supervisor-test
   (:use [clojure test])
+  (:require [conjure.core])
+  (:use [conjure core])
   (:import [backtype.storm.testing TestWordCounter TestWordSpout TestGlobalCount TestAggregatesCounter])
+  (:import [backtype.storm.scheduler ISupervisor])
   (:use [backtype.storm bootstrap testing])
   (:use [backtype.storm.daemon common])
   (:require [backtype.storm.daemon [worker :as worker] [supervisor :as supervisor]])
@@ -240,3 +243,22 @@
   ;; TODO just do reassign, and check that cleans up worker states after killing but doesn't get rid of downloaded code
   )
 
+(deftest test-supervisor-data-acls
+  (testing "supervisor-data uses correct ACLs"
+    (let [scheme "digest"
+          digest "storm:thisisapoorpassword"
+          auth-conf {STORM-ZOOKEEPER-AUTH-SCHEME scheme
+                     STORM-ZOOKEEPER-AUTH-PAYLOAD digest}
+          expected-acls supervisor/SUPERVISOR-ZK-ACLS
+          fake-isupervisor (reify ISupervisor
+                             (getSupervisorId [this] nil)
+                             (getAssignmentId [this] nil))]
+      (stubbing [uptime-computer nil
+                 cluster/mk-storm-cluster-state nil
+                 supervisor-state nil
+                 local-hostname nil
+                 mk-timer nil]
+        (supervisor/supervisor-data auth-conf nil fake-isupervisor)
+        (verify-call-times-for cluster/mk-storm-cluster-state 1)
+        (verify-first-call-args-for-indices cluster/mk-storm-cluster-state [2]
+                                            expected-acls)))))
