@@ -163,9 +163,11 @@
         ))))
 
 ;; in its own function so that it can be mocked out by tracked topologies
-(defn mk-executor-transfer-fn [batch-transfer->worker]
+(defn mk-executor-transfer-fn [batch-transfer->worker storm-conf]
   (fn this
     ([task tuple block? ^List overflow-buffer]
+      (when (= true (storm-conf TOPOLOGY-DEBUG))
+        (log-message "TRANSFERING tuple TASK: " task " TUPLE: " tuple))
       (if (and overflow-buffer (not (.isEmpty overflow-buffer)))
         (.add overflow-buffer [task tuple])
         (try-cause
@@ -206,7 +208,7 @@
      :shared-executor-data (HashMap.)
      :storm-active-atom (:storm-active-atom worker)
      :batch-transfer-queue batch-transfer->worker
-     :transfer-fn (mk-executor-transfer-fn batch-transfer->worker)
+     :transfer-fn (mk-executor-transfer-fn batch-transfer->worker storm-conf)
      :suicide-fn (:suicide-fn worker)
      :storm-cluster-state (cluster/mk-storm-cluster-state (:cluster-state worker))
      :type executor-type
@@ -344,23 +346,25 @@
         (log-message "Shut down executor " component-id ":" (pr-str executor-id)))
         )))
 
-(defn- fail-spout-msg [executor-data task-data msg-id tuple-info time-delta]
+(defn- fail-spout-msg [executor-data task-data msg-id tuple-info time-delta reason id]
   (let [^ISpout spout (:object task-data)
+        storm-conf (:storm-conf executor-data)
         task-id (:task-id task-data)]
     ;;TODO: need to throttle these when there's lots of failures
-    (log-debug "Failing message " msg-id ": " tuple-info)
+    (when (= true (storm-conf TOPOLOGY-DEBUG))
+      (log-message "SPOUT Failing " id ": " tuple-info " REASON: " reason " MSG-ID: " msg-id))
     (.fail spout msg-id)
     (task/apply-hooks (:user-context task-data) .spoutFail (SpoutFailInfo. msg-id task-id time-delta))
     (when time-delta
       (builtin-metrics/spout-failed-tuple! (:builtin-metrics task-data) (:stats executor-data) (:stream tuple-info))      
       (stats/spout-failed-tuple! (:stats executor-data) (:stream tuple-info) time-delta))))
 
-(defn- ack-spout-msg [executor-data task-data msg-id tuple-info time-delta]
+(defn- ack-spout-msg [executor-data task-data msg-id tuple-info time-delta id]
   (let [storm-conf (:storm-conf executor-data)
         ^ISpout spout (:object task-data)
         task-id (:task-id task-data)]
     (when (= true (storm-conf TOPOLOGY-DEBUG))
-      (log-message "Acking message " msg-id))
+      (log-message "SPOUT Acking message " id " " msg-id))
     (.ack spout msg-id)
     (task/apply-hooks (:user-context task-data) .spoutAck (SpoutAckInfo. msg-id task-id time-delta))
     (when time-delta
@@ -376,7 +380,7 @@
       (fn [tuple-batch sequence-id end-of-batch?]
         (fast-list-iter [[task-id msg] tuple-batch]
           (let [^TupleImpl tuple (if (instance? Tuple msg) msg (.deserialize deserializer msg))]
-            (when debug? (log-message "Processing received message " tuple))
+            (when debug? (log-message "Processing received message FOR " task-id " TUPLE: " tuple))
             (if task-id
               (tuple-action-fn task-id tuple)
               ;; null task ids are broadcast tuples
@@ -407,9 +411,9 @@
         pending (RotatingMap.
                  2 ;; microoptimize for performance of .size method
                  (reify RotatingMap$ExpiredCallback
-                   (expire [this msg-id [task-id spout-id tuple-info start-time-ms]]
+                   (expire [this id [task-id spout-id tuple-info start-time-ms]]
                      (let [time-delta (if start-time-ms (time-delta-ms start-time-ms))]
-                       (fail-spout-msg executor-data (get task-datas task-id) spout-id tuple-info time-delta)
+                       (fail-spout-msg executor-data (get task-datas task-id) spout-id tuple-info time-delta "TIMEOUT" id)
                        ))))
         tuple-action-fn (fn [task-id ^TupleImpl tuple]
                           (let [stream-id (.getSourceStreamId tuple)]
@@ -424,9 +428,9 @@
                                   (let [time-delta (if start-time-ms (time-delta-ms start-time-ms))]
                                     (condp = stream-id
                                       ACKER-ACK-STREAM-ID (ack-spout-msg executor-data (get task-datas task-id)
-                                                                         spout-id tuple-finished-info time-delta)
+                                                                         spout-id tuple-finished-info time-delta id)
                                       ACKER-FAIL-STREAM-ID (fail-spout-msg executor-data (get task-datas task-id)
-                                                                           spout-id tuple-finished-info time-delta)
+                                                                           spout-id tuple-finished-info time-delta "FAIL-STREAM" id)
                                       )))
                                 ;; TODO: on failure, emit tuple to failure stream
                                 ))))
@@ -489,7 +493,7 @@
                                            (when message-id
                                              (ack-spout-msg executor-data task-data message-id
                                                             {:stream out-stream-id :values values}
-                                                            (if (sampler) 0))))
+                                                            (if (sampler) 0) "0:")))
                                          (or out-tasks [])
                                          ))]]
           (builtin-metrics/register-all (:builtin-metrics task-data) storm-conf (:user-context task-data))
@@ -571,7 +575,8 @@
     (.put pending key (bit-xor curr id))))
 
 (defmethod mk-threads :bolt [executor-data task-datas]
-  (let [execute-sampler (mk-stats-sampler (:storm-conf executor-data))
+  (let [storm-conf (:storm-conf executor-data)
+        execute-sampler (mk-stats-sampler storm-conf)
         executor-stats (:stats executor-data)
         {:keys [storm-conf component-id worker-context transfer-fn report-error sampler
                 open-or-prepare-was-called?]} executor-data
@@ -590,10 +595,9 @@
                           ;; TODO: for state sync, need to check if tuple comes from state spout. if so, update state
                           ;; TODO: how to handle incremental updates as well as synchronizations at same time
                           ;; TODO: need to version tuples somehow
-                          
- 
-                          ;;(log-debug "Received tuple " tuple " at task " task-id)
-                          ;; need to do it this way to avoid reflection
+                          (when (= true (storm-conf TOPOLOGY-DEBUG))
+                            (log-message "Received tuple " tuple " at task " task-id))
+
                           (let [stream-id (.getSourceStreamId tuple)]
                             (condp = stream-id
                               Constants/METRICS_TICK_STREAM_ID (metrics-tick executor-data task-datas tuple)
@@ -609,6 +613,9 @@
                                   (.setExecuteSampleStartTime tuple now))
                                 (.execute bolt-obj tuple)
                                 (let [delta (tuple-execute-time-delta! tuple)]
+                                  (when (= true (storm-conf TOPOLOGY-DEBUG))
+                                    (log-message "Execute done TUPLE " tuple " TASK: " task-id " DELTA: " delta))
+ 
                                   (task/apply-hooks user-context .boltExecute (BoltExecuteInfo. tuple task-id delta))
                                   (when delta
                                     (builtin-metrics/bolt-execute-tuple! (:builtin-metrics task-data)
@@ -673,7 +680,10 @@
                                                                 ACKER-ACK-STREAM-ID
                                                                 [root (bit-xor id ack-val)])
                                           ))
-                         (let [delta (tuple-time-delta! tuple)]
+                         (let [delta (tuple-time-delta! tuple)
+                               debug? (= true (storm-conf TOPOLOGY-DEBUG))]
+                           (when debug? 
+                             (log-message "BOLT ack TASK: " task-id " TIME: " delta " TUPLE: " tuple))
                            (task/apply-hooks user-context .boltAck (BoltAckInfo. tuple task-id delta))
                            (when delta
                              (builtin-metrics/bolt-acked-tuple! (:builtin-metrics task-data)
@@ -690,7 +700,10 @@
                                          (task/send-unanchored task-data
                                                                ACKER-FAIL-STREAM-ID
                                                                [root]))
-                         (let [delta (tuple-time-delta! tuple)]
+                         (let [delta (tuple-time-delta! tuple)
+                               debug? (= true (storm-conf TOPOLOGY-DEBUG))]
+                           (when debug? 
+                             (log-message "BOLT fail TASK: " task-id " TIME: " delta " TUPLE: " tuple))
                            (task/apply-hooks user-context .boltFail (BoltFailInfo. tuple task-id delta))
                            (when delta
                              (builtin-metrics/bolt-failed-tuple! (:builtin-metrics task-data)
