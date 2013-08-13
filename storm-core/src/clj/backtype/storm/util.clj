@@ -458,7 +458,7 @@
       process)))
           
 (defn exists-file? [path]
-      (.exists (File. path)))
+  (.exists (File. path)))
 
 (defn rmr [path]
   (log-debug "Rmr path " path)

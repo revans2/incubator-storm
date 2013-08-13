@@ -191,7 +191,6 @@
         pids (read-dir-contents (worker-pids-root conf id))
         thread-pid (@(:worker-thread-pids-atom supervisor) id)
         as-user (conf SUPERVISOR-RUN-WORKER-AS-USER)
-        ;;TODO look at using JDK7 java.nio.file.attribute.FileOwnerAttributeView to get the owner of the directory.
         user (get-worker-user conf id)]
     (when thread-pid
       (psim/kill-process thread-pid))
