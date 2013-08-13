@@ -34,8 +34,8 @@
 #define STRINGIFY(X) _STRINGIFY(X)
 #define CONF_FILENAME "worker-launcher.cfg"
 
-#ifndef HADOOP_CONF_DIR
-  #error HADOOP_CONF_DIR must be defined
+#ifndef EXEC_CONF_DIR
+  #error EXEC_CONF_DIR must be defined
 #endif
 
 void display_usage(FILE *stream) {
@@ -83,7 +83,7 @@ int main(int argc, char **argv) {
 
   char *executable_file = get_executable();
 
-  char *orig_conf_file = STRINGIFY(HADOOP_CONF_DIR) "/" CONF_FILENAME;
+  char *orig_conf_file = STRINGIFY(EXEC_CONF_DIR) "/" CONF_FILENAME;
   char *conf_file = realpath(orig_conf_file, NULL);
 
   if (conf_file == NULL) {

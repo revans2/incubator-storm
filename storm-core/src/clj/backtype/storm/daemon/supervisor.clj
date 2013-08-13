@@ -172,13 +172,13 @@
     (if (.exists (File. (worker-root conf id)))
       (do
         (if (conf SUPERVISOR-RUN-WORKER-AS-USER)
-          (worker-launcher-and-wait conf user (str " rmr " (worker-root conf id)) :log-prefix (str "rmr " id) )
-          (let []
+          (worker-launcher-and-wait conf user (str "rmr " (worker-root conf id)) :log-prefix (str "rmr " id) )
+          (do
             (rmr (worker-heartbeats-root conf id))
             ;; this avoids a race condition with worker or subprocess writing pid around same time
             (rmpath (worker-pids-root conf id))
             (rmpath (worker-root conf id))))
-        (remove-worker-user conf id)
+        (remove-worker-user! conf id)
         (remove-dead-worker id)
       ))
   (catch RuntimeException e
@@ -197,10 +197,10 @@
       (psim/kill-process thread-pid))
     (doseq [pid pids]
       (if as-user
-        (worker-launcher-and-wait conf user (str " signal " pid " 9") :log-prefix (str "kill -9 " pid))
+        (worker-launcher-and-wait conf user (str "signal " pid " 9") :log-prefix (str "kill -9 " pid))
         (ensure-process-killed! pid))
       (if as-user
-        (worker-launcher-and-wait conf user (str " rmr " (worker-pid-path conf id pid)) :log-prefix (str "rmr for " pid))
+        (worker-launcher-and-wait conf user (str "rmr " (worker-pid-path conf id pid)) :log-prefix (str "rmr for " pid))
         (rmpath (worker-pid-path conf id pid)))
       )
     (try-cleanup-worker conf id user))
@@ -359,7 +359,6 @@
         (when-not (assigned-storm-ids storm-id)
           (log-message "Removing code for storm id "
                        storm-id)
-          ;;TODO should we delete the other directories here too?
           (rmr (supervisor-stormdist-root conf storm-id))
           ))
       (.add processes-event-manager sync-processes)
@@ -434,7 +433,7 @@
 
 (defn setup-storm-code-dir [conf storm-conf dir]
  (if (conf SUPERVISOR-RUN-WORKER-AS-USER)
-  (worker-launcher-and-wait conf (storm-conf TOPOLOGY-SUBMITTER-USER) (str " code-dir " dir) :log-prefix (str "setup conf for " dir))))
+  (worker-launcher-and-wait conf (storm-conf TOPOLOGY-SUBMITTER-USER) (str "code-dir " dir) :log-prefix (str "setup conf for " dir))))
 
 ;; distributed implementation
 (defmethod download-storm-code
@@ -479,7 +478,7 @@
                        (java.net.URLEncoder/encode storm-id) " " (:assignment-id supervisor)
                        " " port " " worker-id)]
       (log-message "Launching worker with command: " command)
-      (set-worker-user conf worker-id user)
+      (set-worker-user! conf worker-id user)
       (let [log-prefix (str "Worker Process " worker-id)
            callback (fn [exit-code] 
                           (log-message log-prefix " exited with code: " exit-code)
@@ -529,7 +528,7 @@
                                    (:assignment-id supervisor)
                                    port
                                    worker-id)]
-      (set-worker-user conf worker-id "")
+      (set-worker-user! conf worker-id "")
       (psim/register-process pid worker)
       (swap! (:worker-thread-pids-atom supervisor) assoc worker-id pid)
       ))

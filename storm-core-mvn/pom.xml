@@ -460,7 +460,7 @@
               <configureEnvironment>
                 <property>
                   <name>CFLAGS</name>
-                  <value>-DHADOOP_CONF_DIR=${worker-launcher.conf.dir} ${worker-launcher.additional_cflags}</value>
+                  <value>-DEXEC_CONF_DIR=${worker-launcher.conf.dir} ${worker-launcher.additional_cflags}</value>
                 </property>
               </configureEnvironment>
               <configureWorkDir>${project.build.directory}/native/worker-launcher</configureWorkDir>
