@@ -5,7 +5,7 @@
   (:import [java.util.concurrent Executors])
   (:import [backtype.storm.messaging TransportFactory])
   (:import [backtype.storm.messaging IContext IConnection])
-  (:import [org.apache.zookeeper data.ACL data.Id ZooDefs$Ids ZooDefs$Perms])
+  (:import [org.apache.zookeeper data.ACL data.Id ZooDefs$Ids])
   (:gen-class))
 
 (bootstrap)

@@ -284,7 +284,6 @@ public class Utils {
         return UUID.randomUUID().getLeastSignificantBits();
     }
     
-    
     public static CuratorFramework newCurator(Map conf, List<String> servers, Object port, String root) {
         return newCurator(conf, servers, port, root, null);
     }
@@ -406,10 +405,7 @@ public class Utils {
     public static boolean isZkAuthenticationConfigured(Map conf) {
         return conf != null
             && conf.containsKey(Config.STORM_ZOOKEEPER_AUTH_SCHEME)
-            && conf.containsKey(Config.STORM_ZOOKEEPER_AUTH_PAYLOAD)
             && conf.get(Config.STORM_ZOOKEEPER_AUTH_SCHEME) != null
-            && conf.get(Config.STORM_ZOOKEEPER_AUTH_PAYLOAD) != null
-            && ! ((String)conf.get(Config.STORM_ZOOKEEPER_AUTH_SCHEME)).isEmpty()
-            && ! ((String)conf.get(Config.STORM_ZOOKEEPER_AUTH_PAYLOAD)).isEmpty();
+            && ! ((String)conf.get(Config.STORM_ZOOKEEPER_AUTH_SCHEME)).isEmpty();
     }
 }

@@ -820,16 +820,11 @@
     ;; topology level serialization registrations take priority
     ;; that way, if there's a conflict, a user can force which serialization to use
     ;; append component conf to storm-conf
-    (let [normalized (merge storm-conf
-                            {TOPOLOGY-KRYO-DECORATORS (get-merged-conf-val TOPOLOGY-KRYO-DECORATORS distinct)
-                             TOPOLOGY-KRYO-REGISTER (get-merged-conf-val TOPOLOGY-KRYO-REGISTER mapify-serializations)
-                             TOPOLOGY-ACKER-EXECUTORS (total-conf TOPOLOGY-ACKER-EXECUTORS)
-                             TOPOLOGY-MAX-TASK-PARALLELISM (total-conf TOPOLOGY-MAX-TASK-PARALLELISM)})]
-      (merge
-       (if (and (= (conf STORM-ZOOKEEPER-AUTH-SCHEME) "digest") 
-                (not (storm-conf STORM-ZOOKEEPER-AUTH-PAYLOAD)))
-         (merge normalized {STORM-ZOOKEEPER-AUTH-PAYLOAD (str (uuid) ":" (Utils/secureRandomLong))})
-         normalized)))))
+    (merge storm-conf
+           {TOPOLOGY-KRYO-DECORATORS (get-merged-conf-val TOPOLOGY-KRYO-DECORATORS distinct)
+            TOPOLOGY-KRYO-REGISTER (get-merged-conf-val TOPOLOGY-KRYO-REGISTER mapify-serializations)
+            TOPOLOGY-ACKER-EXECUTORS (total-conf TOPOLOGY-ACKER-EXECUTORS)
+            TOPOLOGY-MAX-TASK-PARALLELISM (total-conf TOPOLOGY-MAX-TASK-PARALLELISM)})))
 
 (defn do-cleanup [nimbus]
   (let [storm-cluster-state (:storm-cluster-state nimbus)
@@ -1249,7 +1244,10 @@
   )
 
 (defn -launch [nimbus]
-  (launch-server! (read-storm-config) nimbus))
+  (let [conf (merge
+               (read-storm-config)
+               (read-yaml-config "storm-cluster-auth.yaml" false))]
+  (launch-server! conf nimbus)))
 
 (defn standalone-nimbus []
   (reify INimbus

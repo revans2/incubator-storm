@@ -163,16 +163,34 @@ public class Config extends HashMap<String, Object> {
     public static final Object STORM_ZOOKEEPER_RETRY_INTERVAL_CEILING_SCHEMA = Number.class;
 
     /**
-     * The Zookeeper authentication scheme to use, e.g. "digest". Defaults to no authentication.
+     * The cluster Zookeeper authentication scheme to use, e.g. "digest". Defaults to no authentication.
      */
     public static final String STORM_ZOOKEEPER_AUTH_SCHEME="storm.zookeeper.auth.scheme";
     public static final Object STORM_ZOOKEEPER_AUTH_SCHEME_SCHEMA = String.class;
 
     /**
-     * A string representing the payload for Zookeeper authentication. It gets serialized using UTF-8 encoding during authentication.
+     * A string representing the payload for cluster Zookeeper authentication.
+     * It gets serialized using UTF-8 encoding during authentication.
+     * Note that if this is set to something with a secret (as when using
+     * digest authentication) then it should only be set in the
+     * storm-cluster-auth.yaml file.
+     * This file storm-cluster-auth.yaml should then be protected with
+     * appropriate permissions that deny access from workers.
      */
     public static final String STORM_ZOOKEEPER_AUTH_PAYLOAD="storm.zookeeper.auth.payload";
     public static final Object STORM_ZOOKEEPER_AUTH_PAYLOAD_SCHEMA = String.class;
+
+    /**
+     * The topology Zookeeper authentication scheme to use, e.g. "digest". Defaults to no authentication.
+     */
+    public static final String STORM_ZOOKEEPER_TOPOLOGY_AUTH_SCHEME="storm.zookeeper.topology.auth.scheme";
+    public static final Object STORM_ZOOKEEPER_TOPOLOGY_AUTH_SCHEME_SCHEMA = String.class;
+
+    /**
+     * A string representing the payload for topology Zookeeper authentication. It gets serialized using UTF-8 encoding during authentication.
+     */
+    public static final String STORM_ZOOKEEPER_TOPOLOGY_AUTH_PAYLOAD="storm.zookeeper.topology.auth.payload";
+    public static final Object STORM_ZOOKEEPER_TOPOLOGY_AUTH_PAYLOAD_SCHEMA = String.class;
 
     /**
      * The id assigned to a running topology. The id is the storm name with a unique nonce appended.

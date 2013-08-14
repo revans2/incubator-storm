@@ -26,6 +26,35 @@ public class StormSubmitter {
         StormSubmitter.localNimbus = localNimbusHandler;
     }
 
+    private static String generateZookeeperDigestSecretPayload() {
+        return Utils.secureRandomLong() + ":" + Utils.secureRandomLong();
+    }
+
+    @SuppressWarnings("unchecked")
+    protected static Map prepareZookeeperAuthentication(Map conf) {
+        Map toRet = new HashMap();
+
+        // Is ZooKeeper authentication configured for the cluster?
+        if (conf.containsKey(Config.STORM_ZOOKEEPER_AUTH_SCHEME) &&
+                conf.get(Config.STORM_ZOOKEEPER_AUTH_SCHEME) != null &&
+                ! ((String) conf.get(Config.STORM_ZOOKEEPER_AUTH_SCHEME))
+                        .isEmpty()) {
+
+            // Is the topology ZooKeeper authentication configuration unset?
+            if (! conf.containsKey(Config.STORM_ZOOKEEPER_TOPOLOGY_AUTH_PAYLOAD) ||
+                conf.get(Config.STORM_ZOOKEEPER_TOPOLOGY_AUTH_PAYLOAD) == null ||
+                ((String) conf.get(Config.STORM_ZOOKEEPER_TOPOLOGY_AUTH_PAYLOAD))
+                        .isEmpty()) {
+
+                toRet.put(Config.STORM_ZOOKEEPER_TOPOLOGY_AUTH_SCHEME, "digest");
+                toRet.put(Config.STORM_ZOOKEEPER_TOPOLOGY_AUTH_PAYLOAD,
+                        generateZookeeperDigestSecretPayload());
+            }
+        }
+
+        return toRet;
+    }
+
     /**
      * Submits a topology to run on the cluster. A topology runs forever or until 
      * explicitly killed.
@@ -56,6 +85,7 @@ public class StormSubmitter {
      * @throws InvalidTopologyException if an invalid topology was submitted
      * @throws AuthorizationException if authorization is failed
      */
+    @SuppressWarnings("unchecked")
     public static void submitTopology(String name, Map stormConf, StormTopology topology, SubmitOptions opts) 
             throws AlreadyAliveException, InvalidTopologyException, AuthorizationException {
         if(!Utils.isValidConf(stormConf)) {
@@ -65,6 +95,7 @@ public class StormSubmitter {
         stormConf.putAll(Utils.readCommandLineOpts());
         Map conf = Utils.readStormConfig();
         conf.putAll(stormConf);
+        conf.putAll(prepareZookeeperAuthentication(conf));
         try {
             String serConf = JSONValue.toJSONString(stormConf);
             if(localNimbus!=null) {
