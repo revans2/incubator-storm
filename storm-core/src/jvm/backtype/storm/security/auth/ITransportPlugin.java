@@ -1,6 +1,7 @@
 package backtype.storm.security.auth;
 
 import java.io.IOException;
+import java.security.Principal;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import javax.security.auth.login.Configuration;

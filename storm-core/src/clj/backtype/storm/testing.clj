@@ -252,7 +252,9 @@
 (defn mk-capture-launch-fn [capture-atom]
   (fn [supervisor storm-id port worker-id]
     (let [supervisor-id (:supervisor-id supervisor)
+          conf (:conf supervisor)
           existing (get @capture-atom [supervisor-id port] [])]
+      (set-worker-user! conf worker-id "")
       (swap! capture-atom assoc [supervisor-id port] (conj existing storm-id))
       )))
 

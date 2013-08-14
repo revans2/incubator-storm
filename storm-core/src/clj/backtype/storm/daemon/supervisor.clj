@@ -148,13 +148,39 @@
 (defn generate-supervisor-id []
   (uuid))
 
-(defn try-cleanup-worker [conf id]
+(defnk worker-launcher [conf user args :environment {} :log-prefix nil :exit-code-callback nil]
+  (let [wl-initial (conf SUPERVISOR-WORKER-LAUNCHER)
+        storm-home (System/getProperty "storm.home")
+        wl (if wl-initial wl-initial (str storm-home "/bin/worker-launcher"))
+        command (str wl " " user " " args)]
+    (log-message "Running as user:" user " command:" command)
+    (launch-process command :environment environment :log-prefix log-prefix :exit-code-callback exit-code-callback)
+  ))
+
+(defnk worker-launcher-and-wait [conf user args :environment {} :log-prefix nil]
+  (let [process (worker-launcher conf user args :environment environment)]
+    (if log-prefix
+      (read-and-log-stream log-prefix (.getInputStream process)))
+      (try
+        (.waitFor process)
+      (catch InterruptedException e
+        (log-message log-prefix " interrupted.")))
+      (.exitValue process)))
+
+(defn try-cleanup-worker [conf id user]
   (try
-    (rmr (worker-heartbeats-root conf id))
-    ;; this avoids a race condition with worker or subprocess writing pid around same time
-    (rmpath (worker-pids-root conf id))
-    (rmpath (worker-root conf id))
-    (remove-dead-worker id)
+    (if (.exists (File. (worker-root conf id)))
+      (do
+        (if (conf SUPERVISOR-RUN-WORKER-AS-USER)
+          (worker-launcher-and-wait conf user (str "rmr " (worker-root conf id)) :log-prefix (str "rmr " id) )
+          (do
+            (rmr (worker-heartbeats-root conf id))
+            ;; this avoids a race condition with worker or subprocess writing pid around same time
+            (rmpath (worker-pids-root conf id))
+            (rmpath (worker-root conf id))))
+        (remove-worker-user! conf id)
+        (remove-dead-worker id)
+      ))
   (catch RuntimeException e
     (log-warn-error e "Failed to cleanup worker " id ". Will retry later")
     )))
@@ -163,14 +189,20 @@
   (log-message "Shutting down " (:supervisor-id supervisor) ":" id)
   (let [conf (:conf supervisor)
         pids (read-dir-contents (worker-pids-root conf id))
-        thread-pid (@(:worker-thread-pids-atom supervisor) id)]
+        thread-pid (@(:worker-thread-pids-atom supervisor) id)
+        as-user (conf SUPERVISOR-RUN-WORKER-AS-USER)
+        user (get-worker-user conf id)]
     (when thread-pid
       (psim/kill-process thread-pid))
     (doseq [pid pids]
-      (ensure-process-killed! pid)
-      (rmpath (worker-pid-path conf id pid))
+      (if as-user
+        (worker-launcher-and-wait conf user (str "signal " pid " 9") :log-prefix (str "kill -9 " pid))
+        (ensure-process-killed! pid))
+      (if as-user
+        (worker-launcher-and-wait conf user (str "rmr " (worker-pid-path conf id pid)) :log-prefix (str "rmr for " pid))
+        (rmpath (worker-pid-path conf id pid)))
       )
-    (try-cleanup-worker conf id))
+    (try-cleanup-worker conf id user))
   (log-message "Shut down " (:supervisor-id supervisor) ":" id))
 
 (defn supervisor-data [conf shared-context ^ISupervisor isupervisor]
@@ -233,7 +265,8 @@
         (shutdown-worker supervisor id)
         ))
     (doseq [id (vals new-worker-ids)]
-      (local-mkdirs (worker-pids-root conf id)))
+      (local-mkdirs (worker-pids-root conf id))
+      (local-mkdirs (worker-heartbeats-root conf id)))
     (.put local-state LS-APPROVED-WORKERS
           (merge
            (select-keys (.get local-state LS-APPROVED-WORKERS)
@@ -397,8 +430,11 @@
   (.shutdown supervisor)
   )
 
-;; distributed implementation
+(defn setup-storm-code-dir [conf storm-conf dir]
+ (if (conf SUPERVISOR-RUN-WORKER-AS-USER)
+  (worker-launcher-and-wait conf (storm-conf TOPOLOGY-SUBMITTER-USER) (str "code-dir " dir) :log-prefix (str "setup conf for " dir))))
 
+;; distributed implementation
 (defmethod download-storm-code
     :distributed [conf storm-id master-code-dir]
     ;; Downloading to permanent location is atomic
@@ -411,12 +447,14 @@
       (Utils/downloadFromMaster conf (master-stormconf-path master-code-dir) (supervisor-stormconf-path tmproot))
       (extract-dir-from-jar (supervisor-stormjar-path tmproot) RESOURCES-SUBDIR tmproot)
       (FileUtils/moveDirectory (File. tmproot) (File. stormroot))
-      ))
+      (setup-storm-code-dir conf (read-supervisor-storm-conf conf storm-id) stormroot)      
+    ))
 
 
 (defmethod launch-worker
     :distributed [supervisor storm-id port worker-id]
     (let [conf (:conf supervisor)
+          run-worker-as-user (conf SUPERVISOR-RUN-WORKER-AS-USER)
           storm-home (System/getProperty "storm.home")
           stormroot (supervisor-stormdist-root conf storm-id)
           stormjar (supervisor-stormjar-path stormroot)
@@ -425,12 +463,11 @@
           childopts (.replaceAll (str (conf WORKER-CHILDOPTS) " " (storm-conf TOPOLOGY-WORKER-CHILDOPTS))
                                  "%ID%"
                                  (str port))
-          logfilename (str "worker-" port ".log")
-          login_config (conf "java.security.auth.login.config")
+          user (storm-conf TOPOLOGY-SUBMITTER-USER)
+          logfilename (str (if user (str user "-")) "worker-" port ".log")
           command (str "java -server " childopts
                        " -Djava.library.path=" (conf JAVA-LIBRARY-PATH)
                        " -Dlogfile.name=" logfilename
-                       (if login_config (str " -Djava.security.auth.login.config=" login_config))
                        " -Dstorm.home=" storm-home
                        " -Dlogback.configurationFile=" storm-home "/logback/worker.xml"
                        " -Dstorm.id=" storm-id
@@ -440,12 +477,17 @@
                        (java.net.URLEncoder/encode storm-id) " " (:assignment-id supervisor)
                        " " port " " worker-id)]
       (log-message "Launching worker with command: " command)
-      (let [log-prefix (str "Worker Process " worker-id)]
-        (remove-dead-worker worker-id)
-        (launch-process command :environment {"LD_LIBRARY_PATH" (conf JAVA-LIBRARY-PATH)} :log-prefix log-prefix :exit-code-callback
-                      (fn [exit-code] 
-                        (log-message log-prefix " exited with code: " exit-code)
-                        (add-dead-worker worker-id))))))
+      (set-worker-user! conf worker-id user)
+      (let [log-prefix (str "Worker Process " worker-id)
+           callback (fn [exit-code] 
+                          (log-message log-prefix " exited with code: " exit-code)
+                          (add-dead-worker worker-id))]
+        (remove-dead-worker worker-id) 
+        (if run-worker-as-user
+          (let [worker-dir (worker-root conf worker-id)]
+            (worker-launcher conf user (str "worker " worker-dir " " (write-script worker-dir command :environment {"LD_LIBRARY_PATH" (conf JAVA-LIBRARY-PATH)})) :log-prefix log-prefix :exit-code-callback callback))
+          (launch-process command :environment {"LD_LIBRARY_PATH" (conf JAVA-LIBRARY-PATH)} :log-prefix log-prefix :exit-code-callback callback)
+      ))))
 
 ;; local implementation
 
@@ -485,6 +527,7 @@
                                    (:assignment-id supervisor)
                                    port
                                    worker-id)]
+      (set-worker-user! conf worker-id "")
       (psim/register-process pid worker)
       (swap! (:worker-thread-pids-atom supervisor) assoc worker-id pid)
       ))

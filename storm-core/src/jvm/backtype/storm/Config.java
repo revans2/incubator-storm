@@ -103,6 +103,12 @@ public class Config extends HashMap<String, Object> {
     public static final Object STORM_LOCAL_HOSTNAME_SCHEMA = String.class;
 
     /**
+     * The plugin that will convert a principal to a local user.
+     */
+    public static final String STORM_PRINCIPAL_TO_LOCAL_PLUGIN = "storm.principal.tolocal";
+    public static final Object STORM_PRINCIPAL_TO_LOCAL_PLUGIN_SCHEMA = String.class;
+
+    /**
      * The transport plug-in for Thrift client/server communication
      */
     public static final String STORM_THRIFT_TRANSPORT_PLUGIN = "storm.thrift.transport";
@@ -484,6 +490,19 @@ public class Config extends HashMap<String, Object> {
     public static final Object SUPERVISOR_MONITOR_FREQUENCY_SECS_SCHEMA = Number.class;
 
     /**
+     * Should the supervior try to run the worker as the lauching user or not.  Defaults to false. 
+     */
+    public static final String SUPERVISOR_RUN_WORKER_AS_USER = "supervisor.run.worker.as.user";
+    public static final Object SUPERVISOR_RUN_WORKER_AS_USER_SCHEMA = Boolean.class;
+
+    /**
+     * Full path to the worker-laucher executable that will be used to lauch workers when 
+     * SUPERVISOR_RUN_WORKER_AS_USER is set to true.
+     */ 
+    public static final String SUPERVISOR_WORKER_LAUNCHER = "supervisor.worker.launcher";
+    public static final Object SUPERVISOR_WORKER_LAUNCHER_SCHEMA = String.class;
+
+    /**
      * The jvm opts provided to workers launched by this supervisor. All "%ID%" substrings are replaced
      * with an identifier for this worker.
      */
@@ -789,6 +808,12 @@ public class Config extends HashMap<String, Object> {
      */
     public final static String TOPOLOGY_SUBMITTER_PRINCIPAL = "topology.submitter.principal";
     public static final Object TOPOLOGY_SUBMITTER_PRINCIPAL_SCHEMA = String.class;
+
+    /**
+     * The local user name of the user who submitted a topology.
+     */
+    public static final String TOPOLOGY_SUBMITTER_USER = "topology.submitter.user";
+    public static final Object TOPOLOGY_SUBMITTER_USER_SCHEMA = String.class;
 
     /**
      * The root directory in ZooKeeper for metadata about TransactionalSpouts.

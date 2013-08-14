@@ -1,10 +1,12 @@
 package backtype.storm.security.auth;
 
 import java.io.IOException;
+import java.security.Principal;
 import java.net.InetAddress;
 import java.net.Socket;
 import java.net.UnknownHostException;
 import java.util.Map;
+import java.util.HashSet;
 import java.util.concurrent.ExecutorService;
 
 import javax.security.auth.login.Configuration;
@@ -121,7 +123,19 @@ public class SimpleTransportPlugin implements ITransportPlugin {
             } 
 
             //anonymous user
-            req_context.setSubject(getDefaultSubject());
+            Subject s = getDefaultSubject();
+            if (s == null) {
+              final String user = (String)storm_conf.get("debug.simple.transport.user");
+              if (user != null) {
+                HashSet<Principal> principals = new HashSet<Principal>();
+                principals.add(new Principal() {
+                  public String getName() { return user; }
+                  public String toString() { return user; }
+                });
+                s = new Subject(true, principals, new HashSet<Object>(), new HashSet<Object>());
+              }
+            }
+            req_context.setSubject(s);
 
             //invoke service handler
             return wrapped.process(inProt, outProt);

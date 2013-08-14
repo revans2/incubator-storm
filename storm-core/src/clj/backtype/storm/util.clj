@@ -427,6 +427,13 @@
         ))
       ))
 
+(defnk write-script [dir command :environment {}]
+  (let [script-src (str "#!/bin/bash\n" (clojure.string/join "" (map (fn [[k v]] (str "export '" k "=" v "';\n")) environment)) "\nexec " command ";")
+        script-path (str dir "/storm-worker-script.sh")
+        - (spit script-path script-src)]
+    script-path
+  ))
+
 (defnk launch-process [command :environment {} :log-prefix nil :exit-code-callback nil]
   (let [command (->> (seq (.split command " "))
                      (filter (complement empty?)))
@@ -436,11 +443,12 @@
     (doseq [[k v] environment]
       (.put process-env k v))
     (let [process (.start builder)]
-      (if log-prefix
+      (if (or log-prefix exit-code-callback)
         (async-loop
          (fn []
-           (read-and-log-stream log-prefix (.getInputStream process))
-           (when exit-code-callback           
+           (if log-prefix
+             (read-and-log-stream log-prefix (.getInputStream process)))
+           (when exit-code-callback
              (try
                (.waitFor process)
                (catch InterruptedException e
@@ -449,7 +457,6 @@
            nil)))                    
       process)))
           
-
 (defn exists-file? [path]
   (.exists (File. path)))
 
