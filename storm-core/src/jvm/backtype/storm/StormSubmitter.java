@@ -47,8 +47,9 @@ public class StormSubmitter {
                         .isEmpty()) {
 
                 toRet.put(Config.STORM_ZOOKEEPER_TOPOLOGY_AUTH_SCHEME, "digest");
-                toRet.put(Config.STORM_ZOOKEEPER_TOPOLOGY_AUTH_PAYLOAD,
-                        generateZookeeperDigestSecretPayload());
+                String secretPayload = generateZookeeperDigestSecretPayload();
+                toRet.put(Config.STORM_ZOOKEEPER_TOPOLOGY_AUTH_PAYLOAD, secretPayload);
+                LOG.info("Generated ZooKeeper secret payload for MD5-digest: " + secretPayload);
             }
         }
 
