@@ -1213,7 +1213,7 @@
         service-handler (service-handler extended-conf inimbus)
         server (ThriftServer. conf (Nimbus$Processor. service-handler)
                  nimbus-port
-                 backtype.storm.Config$ThriftServerPurpose/DRPC)]
+                 backtype.storm.Config$ThriftServerPurpose/NIMBUS)]
     (.addShutdownHook (Runtime/getRuntime) (Thread. (fn [] (.shutdown service-handler) (.stop server))))
     (log-message "Starting Nimbus server with port " nimbus-port)
     (announce-nimbus-info nimbus (extended-conf NIMBUS-HOST) nimbus-port)
