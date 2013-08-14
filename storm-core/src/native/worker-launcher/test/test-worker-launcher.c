@@ -268,37 +268,12 @@ void test_signal_container_group() {
  * with the desired permissions.
  */
 int mkdirs(const char* path, mode_t perm) {
-  char *buffer = strdup(path);
-  char *token;
-  int cwd = open("/", O_RDONLY);
-  if (cwd == -1) {
-    fprintf(LOGFILE, "Can't open / in %s - %s\n", path, strerror(errno));
-    free(buffer);
-    return -1;
-  }
-  for(token = strtok(buffer, "/"); token != NULL; token = strtok(NULL, "/")) {
-    if (mkdirat(cwd, token, perm) != 0) {
-      if (errno != EEXIST) {
-        fprintf(LOGFILE, "Can't create directory %s in %s - %s\n", 
-                token, path, strerror(errno));
-        close(cwd);
-        free(buffer);
-        return -1;
-      }
-    }
-    int new_dir = openat(cwd, token, O_RDONLY);
-    close(cwd);
-    cwd = new_dir;
-    if (cwd == -1) {
-      fprintf(LOGFILE, "Can't open %s in %s - %s\n", token, path, 
-              strerror(errno));
-      free(buffer);
-      return -1;
-    }
-  }
-  free(buffer);
-  close(cwd);
-  return 0;
+  char *cmd = malloc(10 + strlen(path));
+  int ret = 0;
+  sprintf(cmd, "mkdir -p %s", path);
+  ret = system(cmd);
+  free(cmd);
+  return ret;
 }
 
 int main(int argc, char **argv) {
