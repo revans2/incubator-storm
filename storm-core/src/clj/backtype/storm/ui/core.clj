@@ -7,6 +7,7 @@
   (:use [backtype.storm.daemon [common :only [ACKER-COMPONENT-ID system-id?]]])
   (:use [ring.adapter.jetty :only [run-jetty]])
   (:use [clojure.string :only [lower-case trim]])
+  (:use [backtype.storm bootstrap])
   (:import [backtype.storm.generated ExecutorSpecificStats
             ExecutorStats ExecutorSummary TopologyInfo SpoutStats BoltStats
             ErrorInfo ClusterSummary SupervisorSummary TopologySummary
@@ -16,16 +17,18 @@
   (:require [compojure.route :as route]
             [compojure.handler :as handler]
             [ring.util.response :as resp]
-            [backtype.storm [thrift :as thrift]])
+            [backtype.storm [thrift :as thrift] [cluster :as cluster]])
   (:import [org.apache.commons.lang StringEscapeUtils])
   (:gen-class))
 
 (def ^:dynamic *STORM-CONF* (read-storm-config))
 
-(defmacro with-nimbus [nimbus-sym & body]
-  `(thrift/with-nimbus-connection [~nimbus-sym (*STORM-CONF* NIMBUS-HOST) (*STORM-CONF* NIMBUS-THRIFT-PORT)]
-     ~@body
-     ))
+(defmacro with-nimbus [conf-sym nimbus-sym & body]
+  `(let [state# (cluster/mk-storm-cluster-state ~conf-sym)
+         hostPort# (.nimbus-info state#)]
+     (thrift/with-nimbus-connection [~nimbus-sym (:host hostPort#) (Integer. (:port hostPort#))]
+       ~@body
+       )))
 
 (defn get-filled-stats [summs]
   (->> summs
@@ -122,19 +125,20 @@
   (sorted-table ["Key" "Value"]
     (map #(vector (key %) (str (val %))) conf)))
 
-(defn main-page []
-  (with-nimbus nimbus
-    (let [summ (.getClusterInfo ^Nimbus$Client nimbus)]
-      (concat
-       [[:h2 "Cluster Summary"]]
-       [(cluster-summary-table summ)]
-       [[:h2 "Topology summary"]]
-       (main-topology-summary-table (.get_topologies summ))
-       [[:h2 "Supervisor summary"]]
-       (supervisor-summary-table (.get_supervisors summ))
-       [[:h2 "Nimbus Configuration"]]
-       (configuration-table (from-json (.getNimbusConf ^Nimbus$Client nimbus)))
-       ))))
+(defn main-page [conf]
+  (log-message "UI main page being constructed ...")
+  (with-nimbus conf nimbus
+  (let [summ (.getClusterInfo ^Nimbus$Client nimbus)]
+    (concat
+      [[:h2 "Cluster Summary"]]
+      [(cluster-summary-table summ)]
+      [[:h2 "Topology summary"]]
+      (main-topology-summary-table (.get_topologies summ))
+      [[:h2 "Supervisor summary"]]
+      (supervisor-summary-table (.get_supervisors summ))
+      [[:h2 "Nimbus Configuration"]]
+      (configuration-table (from-json (.getNimbusConf ^Nimbus$Client nimbus)))
+      ))))
 
 (defn component-type [^StormTopology topology id]
   (let [bolts (.get_bolts topology)
@@ -380,7 +384,7 @@
 (defn component-link [storm-id id]
   (link-to (url-format "/topology/%s/component/%s" storm-id id) (escape-html id)))
 
-(defn worker-log-link [host port]
+(defn worker-log-link [conf host port]
   (link-to (url-format "http://%s:%s/log?file=worker-%s.log"
               host (*STORM-CONF* LOGVIEWER-PORT) port) (str port)))
 
@@ -477,7 +481,7 @@
 (defn- ui-actions-enabled? []
   (= "true" (lower-case (*STORM-CONF* UI-ACTIONS-ENABLED))))
 
-(defn- topology-actions [id name status msg-timeout]
+(defn- topology-actions [conf id name status msg-timeout]
   (if (ui-actions-enabled?)
     (concat
        [[:h2 {:class "js-only"} "Topology actions"]]
@@ -489,8 +493,8 @@
        )]] )
     []))
 
-(defn topology-page [id window include-sys?]
-  (with-nimbus nimbus
+(defn topology-page [conf id window include-sys?]
+  (with-nimbus conf nimbus
     (let [window (if window window ":all-time")
           window-hint (window-hint window)
           summ (.getTopologyInfo ^Nimbus$Client nimbus id)
@@ -718,15 +722,15 @@
      :sort-list "[[0,1]]"
      )))
 
-(defn component-page [topology-id component window include-sys?]
-  (with-nimbus nimbus
+(defn component-page [conf topology-id component window include-sys?]
+  (with-nimbus conf nimbus
     (let [window (if window window ":all-time")
           summ (.getTopologyInfo ^Nimbus$Client nimbus topology-id)
           topology (.getTopology ^Nimbus$Client nimbus topology-id)
           type (component-type topology component)
           summs (component-task-summs summ topology component)
           spec (cond (= type :spout) (spout-page window summ component summs include-sys?)
-                     (= type :bolt) (bolt-page window summ component summs include-sys?))]
+                     (= type :bolt) (bolt-page conf window summ component summs include-sys?))]
       (concat
        [[:h2 "Component summary"]
         (table ["Id" "Topology" "Executors" "Tasks"]
@@ -746,37 +750,38 @@
     sys?))
 
 
-(if (ui-actions-enabled?)
-  (defroutes main-routes
+ (defn main-routes [conf]
+    (if (ui-actions-enabled?)
+    (routes
     (GET "/" [:as {cookies :cookies}]
-         (-> (main-page)
+         (-> (main-page conf)
              ui-template))
     (GET "/topology/:id" [:as {cookies :cookies} id & m]
          (let [include-sys? (get-include-sys? cookies)]
-           (-> (topology-page id (:window m) include-sys?)
+           (-> (topology-page conf id (:window m) include-sys?)
                (concat [(mk-system-toggle-button include-sys?)])
                ui-template)))
     (GET "/topology/:id/component/:component" [:as {cookies :cookies} id component & m]
          (let [include-sys? (get-include-sys? cookies)]
-           (-> (component-page id component (:window m) include-sys?)
+           (-> (component-page conf id component (:window m) include-sys?)
                (concat [(mk-system-toggle-button include-sys?)])
                ui-template)))
     (POST "/topology/:id/activate" [id]
-      (with-nimbus nimbus
+      (with-nimbus conf nimbus
         (let [tplg (.getTopologyInfo ^Nimbus$Client nimbus id)
               name (.get_name tplg)]
           (.activate nimbus name)
           (log-message "Activating topology '" name "'")))
       (resp/redirect (str "/topology/" id)))
     (POST "/topology/:id/deactivate" [id]
-      (with-nimbus nimbus
+      (with-nimbus conf nimbus
         (let [tplg (.getTopologyInfo ^Nimbus$Client nimbus id)
               name (.get_name tplg)]
           (.deactivate nimbus name)
           (log-message "Deactivating topology '" name "'")))
       (resp/redirect (str "/topology/" id)))
     (POST "/topology/:id/rebalance/:wait-time" [id wait-time]
-      (with-nimbus nimbus
+      (with-nimbus conf nimbus
         (let [tplg (.getTopologyInfo ^Nimbus$Client nimbus id)
               name (.get_name tplg)
               options (RebalanceOptions.)]
@@ -785,7 +790,7 @@
           (log-message "Rebalancing topology '" name "' with wait time: " wait-time " secs")))
       (resp/redirect (str "/topology/" id)))
     (POST "/topology/:id/kill/:wait-time" [id wait-time]
-      (with-nimbus nimbus
+      (with-nimbus conf nimbus
         (let [tplg (.getTopologyInfo ^Nimbus$Client nimbus id)
               name (.get_name tplg)
               options (KillOptions.)]
@@ -796,22 +801,22 @@
     (route/resources "/")
     (route/not-found "Page not found"))
 
-  (defroutes main-routes
+    (routes
     (GET "/" [:as {cookies :cookies}]
-         (-> (main-page)
+         (-> (main-page conf)
              ui-template))
     (GET "/topology/:id" [:as {cookies :cookies} id & m]
          (let [include-sys? (get-include-sys? cookies)]
-           (-> (topology-page id (:window m) include-sys?)
+           (-> (topology-page conf id (:window m) include-sys?)
                (concat [(mk-system-toggle-button include-sys?)])
                ui-template)))
     (GET "/topology/:id/component/:component" [:as {cookies :cookies} id component & m]
          (let [include-sys? (get-include-sys? cookies)]
-           (-> (component-page id component (:window m) include-sys?)
+           (-> (component-page conf id component (:window m) include-sys?)
                (concat [(mk-system-toggle-button include-sys?)])
                ui-template)))
     (route/resources "/")
-    (route/not-found "Page not found"))
+    (route/not-found "Page not found")))
 )
 
 (defn exception->html [ex]
@@ -831,12 +836,14 @@
           (resp/content-type "text/html"))
         ))))
 
-(def app
-  (-> #'main-routes
+(defn app [conf]
+  (-> conf
+      main-routes
       (wrap-reload '[backtype.storm.ui.core])
       catch-errors))
 
-(defn start-server! [] (run-jetty app {:port (Integer. (*STORM-CONF* UI-PORT))
-                                       :join? false}))
+(defn start-server! [conf] (run-jetty (app conf)
+                             {:port (Integer. (conf UI-PORT))
+                              :join? false}))
 
-(defn -main [] (start-server!))
+(defn -main [] (start-server! (read-storm-config)))
