@@ -24,11 +24,9 @@
 (def ^:dynamic *STORM-CONF* (read-storm-config))
 
 (defmacro with-nimbus [conf-sym nimbus-sym & body]
-  `(let [state# (cluster/mk-storm-cluster-state ~conf-sym)
-         hostPort# (.nimbus-info state#)]
-     (thrift/with-nimbus-connection [~nimbus-sym (.host hostPort#) (.port hostPort#)]
-       ~@body
-       )))
+  `(thrift/with-nimbus-connection [~nimbus-sym (~conf-sym NIMBUS-HOST) (~conf-sym NIMBUS-THRIFT-PORT)]
+     ~@body
+     ))
 
 (defn get-filled-stats [summs]
   (->> summs
@@ -842,8 +840,21 @@
       (wrap-reload '[backtype.storm.ui.core])
       catch-errors))
 
-(defn start-server! [conf] (run-jetty (app conf)
-                             {:port (Integer. (conf UI-PORT))
-                              :join? false}))
+(defn config-with-ui-port-assigned [conf]
+  (let [port-in-conf (.intValue (Integer. (conf UI-PORT)))
+        ui-port (assign-server-port port-in-conf)]
+    (assoc conf UI-PORT (Integer. ui-port))))
+
+(defn announce-ui-port [conf]
+  (let [state (cluster/mk-storm-cluster-state conf)
+        ui-port (conf UI-PORT)]
+    (.set-ui-port! state ui-port)))
+
+(defn start-server! [conf]
+  (let [nimbusHostPort (.nimbus-info (cluster/mk-storm-cluster-state conf))
+        conf (assoc (assoc conf NIMBUS-HOST (.host nimbusHostPort)) NIMBUS-THRIFT-PORT (.port nimbusHostPort))
+        conf (config-with-ui-port-assigned conf)]
+    (announce-ui-port conf)
+    (run-jetty (app conf) {:port (conf UI-PORT) :join? false})))
 
 (defn -main [] (start-server! (read-storm-config)))
