@@ -231,13 +231,13 @@
         (maybe-deserialize (get-data cluster-state NIMBUS-SUBTREE false)))
 
       (set-nimbus! [this info]
-        (set-data cluster-state NIMBUS-SUBTREE (Utils/serialize info)))
+        (set-data cluster-state NIMBUS-SUBTREE (Utils/serialize info) acls))
 
       (ui-port [this]
         (maybe-deserialize (get-data cluster-state UI-SUBTREE false)))
 
       (set-ui-port! [this info]
-        (set-data cluster-state UI-SUBTREE (Utils/serialize info)))
+        (set-data cluster-state UI-SUBTREE (Utils/serialize info) acls))
 
       (assignments [this callback]
         (when callback
