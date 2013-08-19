@@ -17,7 +17,7 @@
            Config/STORM_ZOOKEEPER_RETRY_INTERVAL_CEILING expected_ceiling})
         servers ["bogus_server"]
         arbitrary_port 42
-        curator (Utils/newCurator conf servers arbitrary_port)
+        curator (Utils/newCurator conf servers arbitrary_port nil)
         retry (-> curator .getZookeeperClient .getRetryPolicy)
        ]
     (is (.isAssignableFrom ExponentialBackoffRetry (.getClass retry)))
@@ -49,3 +49,18 @@
     ))
   )
 )
+
+(deftest test-isZkAuthenticationConfigured
+  (testing "Returns false on null config"
+    (is (not (Utils/isZkAuthenticationConfigured nil))))
+  (testing "Returns false on scheme key missing"
+    (is (not (Utils/isZkAuthenticationConfigured
+        {STORM-ZOOKEEPER-AUTH-SCHEME nil}))))
+  (testing "Returns false on scheme value null"
+    (is (not
+      (Utils/isZkAuthenticationConfigured
+        {STORM-ZOOKEEPER-AUTH-SCHEME nil}))))
+  (testing "Returns true when scheme set to string"
+    (is
+      (Utils/isZkAuthenticationConfigured
+        {STORM-ZOOKEEPER-AUTH-SCHEME "foobar"}))))

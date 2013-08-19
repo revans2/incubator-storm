@@ -289,7 +289,6 @@ public class Utils {
         return UUID.randomUUID().getLeastSignificantBits();
     }
     
-    
     public static CuratorFramework newCurator(Map conf, List<String> servers, Object port, String root) {
         return newCurator(conf, servers, port, root, null);
     }
@@ -323,21 +322,28 @@ public class Utils {
             serverPorts.add(zkServer + ":" + Utils.getInt(port));
         }
         String zkStr = StringUtils.join(serverPorts, ",") + root;
+        CuratorFrameworkFactory.Builder builder = CuratorFrameworkFactory.builder();
+
+        setupBuilder(builder, zkStr, conf, auth);
+        
         try {
-            CuratorFrameworkFactory.Builder builder = CuratorFrameworkFactory.builder()
-                    .connectString(zkStr)
-                    .connectionTimeoutMs(Utils.getInt(conf.get(Config.STORM_ZOOKEEPER_CONNECTION_TIMEOUT)))
-                    .sessionTimeoutMs(Utils.getInt(conf.get(Config.STORM_ZOOKEEPER_SESSION_TIMEOUT)))
-                    .retryPolicy(new BoundedExponentialBackoffRetry(
-                                Utils.getInt(conf.get(Config.STORM_ZOOKEEPER_RETRY_INTERVAL)),
-                                Utils.getInt(conf.get(Config.STORM_ZOOKEEPER_RETRY_TIMES)),
-                                Utils.getInt(conf.get(Config.STORM_ZOOKEEPER_RETRY_INTERVAL_CEILING))));
-            if(auth!=null && auth.scheme!=null) {
-                builder = builder.authorization(auth.scheme, auth.payload);
-            }
             return builder.build();
         } catch (IOException e) {
-           throw new RuntimeException(e);
+            throw new RuntimeException(e);
+        }
+    }
+
+    protected static void setupBuilder(CuratorFrameworkFactory.Builder builder, String zkStr, Map conf, ZookeeperAuthInfo auth)
+    {
+        builder.connectString(zkStr)
+            .connectionTimeoutMs(Utils.getInt(conf.get(Config.STORM_ZOOKEEPER_CONNECTION_TIMEOUT)))
+            .sessionTimeoutMs(Utils.getInt(conf.get(Config.STORM_ZOOKEEPER_SESSION_TIMEOUT)))
+            .retryPolicy(new BoundedExponentialBackoffRetry(
+                            Utils.getInt(conf.get(Config.STORM_ZOOKEEPER_RETRY_INTERVAL)),
+                            Utils.getInt(conf.get(Config.STORM_ZOOKEEPER_RETRY_TIMES)),
+                            Utils.getInt(conf.get(Config.STORM_ZOOKEEPER_RETRY_INTERVAL_CEILING))));
+        if(auth!=null && auth.scheme!=null && auth.payload!=null) {
+            builder = builder.authorization(auth.scheme, auth.payload);
         }
     }
 
@@ -411,5 +417,12 @@ public class Utils {
             t = t.getCause();
         }
         return false;
+    }
+
+    public static boolean isZkAuthenticationConfigured(Map conf) {
+        return conf != null
+            && conf.containsKey(Config.STORM_ZOOKEEPER_AUTH_SCHEME)
+            && conf.get(Config.STORM_ZOOKEEPER_AUTH_SCHEME) != null
+            && ! ((String)conf.get(Config.STORM_ZOOKEEPER_AUTH_SCHEME)).isEmpty();
     }
 }

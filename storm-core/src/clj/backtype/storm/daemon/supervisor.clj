@@ -1,8 +1,10 @@
 (ns backtype.storm.daemon.supervisor
+  (:import [java.io OutputStreamWriter BufferedWriter])
   (:import [backtype.storm.scheduler ISupervisor])
   (:use [backtype.storm bootstrap])
   (:use [backtype.storm.daemon common])
   (:require [backtype.storm.daemon [worker :as worker]])
+  (:import [org.apache.zookeeper data.ACL ZooDefs$Ids ZooDefs$Perms])
   (:gen-class
     :methods [^{:static true} [launch [backtype.storm.scheduler.ISupervisor] void]]))
 
@@ -205,6 +207,10 @@
     (try-cleanup-worker conf id user))
   (log-message "Shut down " (:supervisor-id supervisor) ":" id))
 
+(def SUPERVISOR-ZK-ACLS
+  [(first ZooDefs$Ids/CREATOR_ALL_ACL) 
+   (ACL. (bit-or ZooDefs$Perms/READ ZooDefs$Perms/CREATE) ZooDefs$Ids/ANYONE_ID_UNSAFE)])
+
 (defn supervisor-data [conf shared-context ^ISupervisor isupervisor]
   {:conf conf
    :shared-context shared-context
@@ -212,7 +218,10 @@
    :active (atom true)
    :uptime (uptime-computer)
    :worker-thread-pids-atom (atom {})
-   :storm-cluster-state (cluster/mk-storm-cluster-state conf)
+   :storm-cluster-state (cluster/mk-storm-cluster-state conf :acls (when
+                                                                     (Utils/isZkAuthenticationConfigured
+                                                                       conf)
+                                                                     SUPERVISOR-ZK-ACLS))
    :local-state (supervisor-state conf)
    :supervisor-id (.getSupervisorId isupervisor)
    :assignment-id (.getAssignmentId isupervisor)

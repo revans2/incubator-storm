@@ -102,10 +102,13 @@
     (validate-configs-with-schemas conf)
     conf))
 
-(defn read-yaml-config [name]
-  (let [conf (clojurify-structure (Utils/findAndReadConfigFile name true))]
-    (validate-configs-with-schemas conf)
-    conf))
+(defn read-yaml-config
+  ([name must-exist]
+     (let [conf (clojurify-structure (Utils/findAndReadConfigFile name must-exist))]
+       (validate-configs-with-schemas conf)
+       conf))
+  ([name]
+     (read-yaml-config true)))
 
 (defn master-local-dir [conf]
   (let [ret (str (conf STORM-LOCAL-DIR) "/nimbus")]

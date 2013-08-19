@@ -958,3 +958,41 @@
   (test-nimbus-iface-getTopology-methods-throw-correctly)
   (test-nimbus-iface-getClusterInfo-filters-topos-without-bases)
 )
+
+(deftest test-nimbus-data-acls
+  (testing "nimbus-data uses correct ACLs"
+    (let [scheme "digest"
+          digest "storm:thisisapoorpassword"
+          auth-conf {STORM-ZOOKEEPER-AUTH-SCHEME scheme
+                     STORM-ZOOKEEPER-AUTH-PAYLOAD digest}
+          expected-acls nimbus/NIMBUS-ZK-ACLS
+          fake-inimbus (reify INimbus (getForcedScheduler [this] nil))]
+      (stubbing [mk-authorization-handler nil
+                 cluster/mk-storm-cluster-state nil
+                 nimbus/file-cache-map nil
+                 uptime-computer nil
+                 new-instance nil
+                 mk-timer nil
+                 nimbus/mk-scheduler nil]
+        (nimbus/nimbus-data auth-conf fake-inimbus)
+        (verify-call-times-for cluster/mk-storm-cluster-state 1)
+        (verify-first-call-args-for-indices cluster/mk-storm-cluster-state [2]
+                                            expected-acls)))))
+
+(deftest test-validate-topology-zk-auth
+  (testing "Topology ZK Auth validation"
+    (let [no-auth-conf {}
+          yes-auth-conf {STORM-ZOOKEEPER-AUTH-SCHEME "anyscheme"
+                        STORM-ZOOKEEPER-AUTH-PAYLOAD "anypayload"}]
+      (testing "Validation fails when the cluster config does not have zk"
+               " authentication configured when the topology does."
+        (is (thrown-cause? IllegalArgumentException
+          (nimbus/validate-topology-zk-auth no-auth-conf yes-auth-conf)))
+        (is (thrown-cause? IllegalArgumentException
+          (nimbus/validate-topology-zk-auth yes-auth-conf no-auth-conf))))
+      (testing "Validation succeeds when the cluster config does has zk"
+               " authentication configured when the topology does."
+        (is (not (thrown-cause? IllegalArgumentException
+          (nimbus/validate-topology-zk-auth no-auth-conf no-auth-conf))))
+        (is (not (thrown-cause? IllegalArgumentException
+          (nimbus/validate-topology-zk-auth yes-auth-conf yes-auth-conf))))))))

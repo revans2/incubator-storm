@@ -10,6 +10,7 @@
   (:import [backtype.storm.generated AuthorizationException])
   (:use [backtype.storm bootstrap util])
   (:use [backtype.storm.daemon common])
+  (:import [org.apache.zookeeper data.ACL ZooDefs$Ids ZooDefs$Perms])
   (:gen-class
     :methods [^{:static true} [launch [backtype.storm.scheduler.INimbus] void]]))
 
@@ -42,13 +43,20 @@
     scheduler
     ))
 
+(def NIMBUS-ZK-ACLS
+  [(first ZooDefs$Ids/CREATOR_ALL_ACL) 
+   (ACL. (bit-or ZooDefs$Perms/READ ZooDefs$Perms/CREATE) ZooDefs$Ids/ANYONE_ID_UNSAFE)])
+
 (defn nimbus-data [conf inimbus]
   (let [forced-scheduler (.getForcedScheduler inimbus)]
     {:conf conf
      :inimbus inimbus
      :authorization-handler (mk-authorization-handler (conf NIMBUS-AUTHORIZER) conf)
      :submitted-count (atom 0)
-     :storm-cluster-state (cluster/mk-storm-cluster-state conf)
+     :storm-cluster-state (cluster/mk-storm-cluster-state conf :acls (when
+                                                                       (Utils/isZkAuthenticationConfigured
+                                                                         conf)
+                                                                       NIMBUS-ZK-ACLS))
      :submit-lock (Object.)
      :heartbeats-cache (atom {})
      :downloaders (file-cache-map conf)
@@ -907,6 +915,19 @@
        (InvalidTopologyException. 
         (str "Failed to submit topology. Topology requests more than " workers-allowed " workers."))))))
 
+(defn validate-topology-zk-auth [topo-conf nimbus-conf]
+  (let [topo-zk-auth-enabled? (Utils/isZkAuthenticationConfigured topo-conf)
+        nimbus-zk-auth-enabled? (Utils/isZkAuthenticationConfigured nimbus-conf)]
+    (cond
+      (and topo-zk-auth-enabled? (not nimbus-zk-auth-enabled?))
+      (throw (IllegalArgumentException. 
+               "This cluster is not configured for ZooKeeper authentication."))
+
+      (and nimbus-zk-auth-enabled? (not topo-zk-auth-enabled?))
+      (throw (IllegalArgumentException. 
+               "Topology configuration must include ZooKeeper authentication."))
+      :else nil)))
+
 (defserverfn service-handler [conf inimbus]
   (.prepare inimbus conf (master-inimbus-dir conf))
   (log-message "Starting Nimbus with conf " conf)
@@ -946,11 +967,11 @@
                      topology)
           (swap! (:submitted-count nimbus) inc)
           (let [storm-id (str storm-name "-" @(:submitted-count nimbus) "-" (current-time-secs))
+                topo-conf (from-json serializedConf)
                 storm-conf-submitted (normalize-conf
                             conf
-                            (-> serializedConf
-                                from-json
-                                (assoc STORM-ID storm-id)
+                            (-> topo-conf
+                              (assoc STORM-ID storm-id)
                               (assoc TOPOLOGY-NAME storm-name))
                             topology)
                 req (ReqContext/context)
@@ -969,7 +990,8 @@
             (if (and (conf SUPERVISOR-RUN-WORKER-AS-USER) (or (nil? submitter-user) (.isEmpty (.trim submitter-user)))) 
               (throw (AuthorizationException. "Could not determine the user to run this topology as.")))
             (system-topology! total-storm-conf topology) ;; this validates the structure of the topology
-            (validate-topology-size (from-json serializedConf) conf topology)
+            (validate-topology-size topo-conf conf topology)
+            (validate-topology-zk-auth topo-conf conf)
             (log-message "Received topology submission for " storm-name " with conf " storm-conf)
             ;; lock protects against multiple topologies being submitted at once and
             ;; cleanup thread killing topology in b/w assignment and starting the topology
@@ -1227,7 +1249,10 @@
   )
 
 (defn -launch [nimbus]
-  (launch-server! (read-storm-config) nimbus))
+  (let [conf (merge
+               (read-storm-config)
+               (read-yaml-config "storm-cluster-auth.yaml" false))]
+  (launch-server! conf nimbus)))
 
 (defn standalone-nimbus []
   (reify INimbus

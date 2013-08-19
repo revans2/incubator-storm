@@ -3,10 +3,16 @@
   (:import [backtype.storm.topology TopologyBuilder])
   (:import [backtype.storm.transactional TransactionalSpoutCoordinator ITransactionalSpout ITransactionalSpout$Coordinator TransactionAttempt
             TransactionalTopologyBuilder])
-  (:import [backtype.storm.transactional.state TransactionalState RotatingTransactionalState RotatingTransactionalState$StateInitializer])
+  (:import [backtype.storm.transactional.state TransactionalState TestTransactionalState RotatingTransactionalState RotatingTransactionalState$StateInitializer])
   (:import [backtype.storm.testing CountingBatchBolt MemoryTransactionalSpout
             KeyedCountingBatchBolt KeyedCountingCommitterBolt KeyedSummingBatchBolt
             IdentityBolt CountingCommitBolt OpaqueMemoryTransactionalSpout])
+  (:import [backtype.storm.utils ZookeeperAuthInfo])
+  (:import [com.netflix.curator.framework CuratorFramework])
+  (:import [com.netflix.curator.framework.api CreateBuilder ACLCreateModePathAndBytesable])
+  (:import [org.apache.zookeeper CreateMode ZooDefs ZooDefs$Ids])
+  (:import [org.mockito Matchers Mockito])
+  (:import [org.mockito.exceptions.base MockitoAssertionError])
   (:use [backtype.storm bootstrap testing])
   (:use [backtype.storm.daemon common])  
   )
@@ -687,3 +693,20 @@
                           [2 "dog" 1]]})
 
        ))))
+
+(deftest test-create-node-acl
+  (testing "Creates ZooKeeper nodes with the correct ACLs"
+    (let [curator (Mockito/mock CuratorFramework)
+          builder0 (Mockito/mock CreateBuilder)
+          builder1 (Mockito/mock ACLCreateModePathAndBytesable)
+          expectedAcls ZooDefs$Ids/CREATOR_ALL_ACL]
+      (. (Mockito/when (.create curator)) (thenReturn builder0))
+      (. (Mockito/when (.creatingParentsIfNeeded builder0)) (thenReturn builder1))
+      (. (Mockito/when (.withMode builder1 (Matchers/isA CreateMode))) (thenReturn builder1))
+      (. (Mockito/when (.withACL builder1 (Mockito/anyList))) (thenReturn builder1))
+      (TestTransactionalState/createNode curator "" (byte-array 0) expectedAcls nil)
+      (is (nil?
+        (try
+          (. (Mockito/verify builder1) (withACL expectedAcls))
+        (catch MockitoAssertionError e
+          e)))))))
