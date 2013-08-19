@@ -53,22 +53,14 @@
 (deftest test-isZkAuthenticationConfigured
   (testing "Returns false on null config"
     (is (not (Utils/isZkAuthenticationConfigured nil))))
-  (testing "Returns false on either key missing"
-    (is (not (or
+  (testing "Returns false on scheme key missing"
+    (is (not (Utils/isZkAuthenticationConfigured
+        {STORM-ZOOKEEPER-AUTH-SCHEME nil}))))
+  (testing "Returns false on scheme value null"
+    (is (not
       (Utils/isZkAuthenticationConfigured
-        {STORM-ZOOKEEPER-AUTH-SCHEME nil})
-      (Utils/isZkAuthenticationConfigured
-        {STORM-ZOOKEEPER-AUTH-PAYLOAD nil})))))
-  (testing "Returns false on either value null"
-    (is (not (or
-      (Utils/isZkAuthenticationConfigured
-        {STORM-ZOOKEEPER-AUTH-SCHEME nil
-         STORM-ZOOKEEPER-AUTH-PAYLOAD "foobar"})
-      (Utils/isZkAuthenticationConfigured
-        {STORM-ZOOKEEPER-AUTH-SCHEME "foobar"
-         STORM-ZOOKEEPER-AUTH-PAYLOAD nil})))))
-  (testing "Returns true when both set to strings"
+        {STORM-ZOOKEEPER-AUTH-SCHEME nil}))))
+  (testing "Returns true when scheme set to string"
     (is
       (Utils/isZkAuthenticationConfigured
-        {STORM-ZOOKEEPER-AUTH-SCHEME "foobar"
-         STORM-ZOOKEEPER-AUTH-PAYLOAD "kauaux"}))))
+        {STORM-ZOOKEEPER-AUTH-SCHEME "foobar"}))))
