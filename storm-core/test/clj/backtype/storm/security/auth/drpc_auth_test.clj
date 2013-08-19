@@ -24,10 +24,10 @@
         service-handler (drpc/service-handler conf)
         handler-server (ThriftServer. conf 
                                       (DistributedRPC$Processor. service-handler) 
-                                      (int (conf DRPC-PORT)))
+                                      (int (conf DRPC-PORT)) backtype.storm.Config$ThriftServerPurpose/DRPC)
         invoke-server (ThriftServer. conf 
                                      (DistributedRPCInvocations$Processor. service-handler) 
-                                     (int (conf DRPC-INVOCATIONS-PORT)))]      
+                                     (int (conf DRPC-INVOCATIONS-PORT)) backtype.storm.Config$ThriftServerPurpose/DRPC)]      
     (.addShutdownHook (Runtime/getRuntime) (Thread. (fn [] (.stop handler-server) (.stop invoke-server))))
     (log-message "storm conf:" conf)
     (log-message "Starting DRPC invocation server ...")
