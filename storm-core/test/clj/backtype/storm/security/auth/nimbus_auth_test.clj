@@ -3,8 +3,6 @@
   (:require [backtype.storm [testing :as testing]])
   (:require [backtype.storm.daemon [nimbus :as nimbus]])
   (:require [backtype.storm [zookeeper :as zk]])
-  (:import [org.apache.thrift7 TException])
-  (:import [org.apache.thrift7.transport TTransportException])
   (:import [java.nio ByteBuffer])
   (:import [backtype.storm Config])
   (:import [backtype.storm.utils NimbusClient])
@@ -48,11 +46,12 @@
 (deftest Simple-authentication-test 
   (with-test-cluster [6627 nil nil "backtype.storm.security.auth.SimpleTransportPlugin"]
     (let [storm-conf (merge (read-storm-config)
-                            {STORM-THRIFT-TRANSPORT-PLUGIN "backtype.storm.security.auth.SimpleTransportPlugin"})
+                            {STORM-THRIFT-TRANSPORT-PLUGIN "backtype.storm.security.auth.SimpleTransportPlugin"
+                             STORM-NIMBUS-RETRY-TIMES 0})
           client (NimbusClient. storm-conf "localhost" 6627 nimbus-timeout)
           nimbus_client (.getClient client)]
       (testing "(Positive authorization) Simple protocol w/o authentication/authorization enforcement"
-               (is (thrown? NotAliveException
+               (is (thrown-cause? NotAliveException
                             (.activate nimbus_client "nimbus_auth_topology"))))
       (.close client))))
   
@@ -61,11 +60,12 @@
                 "backtype.storm.security.auth.authorizer.NoopAuthorizer" 
                 "backtype.storm.security.auth.SimpleTransportPlugin"]
     (let [storm-conf (merge (read-storm-config)
-                             {STORM-THRIFT-TRANSPORT-PLUGIN "backtype.storm.security.auth.SimpleTransportPlugin"})
+                             {STORM-THRIFT-TRANSPORT-PLUGIN "backtype.storm.security.auth.SimpleTransportPlugin"
+                              STORM-NIMBUS-RETRY-TIMES 0})
           client (NimbusClient. storm-conf "localhost" 6628 nimbus-timeout)
           nimbus_client (.getClient client)]
       (testing "(Positive authorization) Authorization plugin should accept client request"
-               (is (thrown? NotAliveException
+               (is (thrown-cause? NotAliveException
                             (.activate nimbus_client "nimbus_auth_topology"))))
       (.close client))))
 
@@ -76,29 +76,30 @@
     (let [storm-conf (merge (read-storm-config)
                              {STORM-THRIFT-TRANSPORT-PLUGIN "backtype.storm.security.auth.SimpleTransportPlugin"
                              Config/NIMBUS_HOST "localhost"
-                             Config/NIMBUS_THRIFT_PORT 6629})
+                             Config/NIMBUS_THRIFT_PORT 6629
+                             STORM-NIMBUS-RETRY-TIMES 0})
           client (NimbusClient/getConfiguredClient storm-conf)
           nimbus_client (.getClient client)
           topologyInitialStatus (TopologyInitialStatus/findByValue 2)
           submitOptions (SubmitOptions. topologyInitialStatus)]
-      (is (thrown? AuthorizationException (.submitTopology nimbus_client  "nimbus_auth_topology" nil nil nil))) 
-      (is (thrown? AuthorizationException (.submitTopologyWithOpts nimbus_client  "nimbus_auth_topology" nil nil nil submitOptions)))
-      (is (thrown? AuthorizationException (.killTopology nimbus_client "nimbus_auth_topology")))
-      (is (thrown? AuthorizationException (.killTopologyWithOpts nimbus_client "nimbus_auth_topology" (KillOptions.))))
-      (is (thrown? AuthorizationException (.activate nimbus_client "nimbus_auth_topology")))
-      (is (thrown? AuthorizationException (.deactivate nimbus_client "nimbus_auth_topology")))
-      (is (thrown? AuthorizationException (.rebalance nimbus_client "nimbus_auth_topology" nil)))
-      (is (thrown? AuthorizationException (.beginFileUpload nimbus_client)))
-      (is (thrown? AuthorizationException (.uploadChunk nimbus_client nil nil)))
-      (is (thrown? AuthorizationException (.finishFileUpload nimbus_client nil)))
-      (is (thrown? AuthorizationException (.beginFileDownload nimbus_client nil)))
-      (is (thrown? AuthorizationException (.downloadChunk nimbus_client nil)))
-      (is (thrown? AuthorizationException (.getNimbusConf nimbus_client)))
-      (is (thrown? AuthorizationException (.getClusterInfo nimbus_client)))
-      (is (thrown? AuthorizationException (.getTopologyInfo nimbus_client "nimbus_auth_topology")))
-      (is (thrown? AuthorizationException (.getTopologyConf nimbus_client "nimbus_auth_topology")))
-      (is (thrown? AuthorizationException (.getTopology nimbus_client "nimbus_auth_topology")))
-      (is (thrown? AuthorizationException (.getUserTopology nimbus_client "nimbus_auth_topology")))
+      (is (thrown-cause? AuthorizationException (.submitTopology nimbus_client  "nimbus_auth_topology" nil nil nil))) 
+      (is (thrown-cause? AuthorizationException (.submitTopologyWithOpts nimbus_client  "nimbus_auth_topology" nil nil nil submitOptions)))
+      (is (thrown-cause? AuthorizationException (.killTopology nimbus_client "nimbus_auth_topology")))
+      (is (thrown-cause? AuthorizationException (.killTopologyWithOpts nimbus_client "nimbus_auth_topology" (KillOptions.))))
+      (is (thrown-cause? AuthorizationException (.activate nimbus_client "nimbus_auth_topology")))
+      (is (thrown-cause? AuthorizationException (.deactivate nimbus_client "nimbus_auth_topology")))
+      (is (thrown-cause? AuthorizationException (.rebalance nimbus_client "nimbus_auth_topology" nil)))
+      (is (thrown-cause? AuthorizationException (.beginFileUpload nimbus_client)))
+      (is (thrown-cause? AuthorizationException (.uploadChunk nimbus_client nil nil)))
+      (is (thrown-cause? AuthorizationException (.finishFileUpload nimbus_client nil)))
+      (is (thrown-cause? AuthorizationException (.beginFileDownload nimbus_client nil)))
+      (is (thrown-cause? AuthorizationException (.downloadChunk nimbus_client nil)))
+      (is (thrown-cause? AuthorizationException (.getNimbusConf nimbus_client)))
+      (is (thrown-cause? AuthorizationException (.getClusterInfo nimbus_client)))
+      (is (thrown-cause? AuthorizationException (.getTopologyInfo nimbus_client "nimbus_auth_topology")))
+      (is (thrown-cause? AuthorizationException (.getTopologyConf nimbus_client "nimbus_auth_topology")))
+      (is (thrown-cause? AuthorizationException (.getTopology nimbus_client "nimbus_auth_topology")))
+      (is (thrown-cause? AuthorizationException (.getUserTopology nimbus_client "nimbus_auth_topology")))
       (.close client))))
 
 (deftest test-noop-authorization-w-sasl-digest 
@@ -110,11 +111,12 @@
                             {STORM-THRIFT-TRANSPORT-PLUGIN "backtype.storm.security.auth.digest.DigestSaslTransportPlugin"
                              "java.security.auth.login.config" "test/clj/backtype/storm/security/auth/jaas_digest.conf"
                              Config/NIMBUS_HOST "localhost"
-                             Config/NIMBUS_THRIFT_PORT 6630})
+                             Config/NIMBUS_THRIFT_PORT 6630
+                             STORM-NIMBUS-RETRY-TIMES 0})
           client (NimbusClient/getConfiguredClient storm-conf)
           nimbus_client (.getClient client)]
       (testing "(Positive authorization) Authorization plugin should accept client request"
-               (is (thrown? NotAliveException
+               (is (thrown-cause? NotAliveException
                             (.activate nimbus_client "nimbus_auth_topology"))))
       (.close client))))
 
@@ -127,28 +129,29 @@
                             {STORM-THRIFT-TRANSPORT-PLUGIN "backtype.storm.security.auth.digest.DigestSaslTransportPlugin"
                              "java.security.auth.login.config" "test/clj/backtype/storm/security/auth/jaas_digest.conf"
                              Config/NIMBUS_HOST "localhost"
-                             Config/NIMBUS_THRIFT_PORT 6631})
+                             Config/NIMBUS_THRIFT_PORT 6631
+                             STORM-NIMBUS-RETRY-TIMES 0})
           client (NimbusClient/getConfiguredClient storm-conf)
           nimbus_client (.getClient client)
           topologyInitialStatus (TopologyInitialStatus/findByValue 2)
           submitOptions (SubmitOptions. topologyInitialStatus)]
-      (is (thrown? AuthorizationException (.submitTopology nimbus_client  "nimbus_auth_topology" nil nil nil))) 
-      (is (thrown? AuthorizationException (.submitTopologyWithOpts nimbus_client  "nimbus_auth_topology" nil nil nil submitOptions)))
-      (is (thrown? AuthorizationException (.killTopology nimbus_client "nimbus_auth_topology")))
-      (is (thrown? AuthorizationException (.killTopologyWithOpts nimbus_client "nimbus_auth_topology" (KillOptions.))))
-      (is (thrown? AuthorizationException (.activate nimbus_client "nimbus_auth_topology")))
-      (is (thrown? AuthorizationException (.deactivate nimbus_client "nimbus_auth_topology")))
-      (is (thrown? AuthorizationException (.rebalance nimbus_client "nimbus_auth_topology" nil)))
-      (is (thrown? AuthorizationException (.beginFileUpload nimbus_client)))
-      (is (thrown? AuthorizationException (.uploadChunk nimbus_client nil nil)))
-      (is (thrown? AuthorizationException (.finishFileUpload nimbus_client nil)))
-      (is (thrown? AuthorizationException (.beginFileDownload nimbus_client nil)))
-      (is (thrown? AuthorizationException (.downloadChunk nimbus_client nil)))
-      (is (thrown? AuthorizationException (.getNimbusConf nimbus_client)))
-      (is (thrown? AuthorizationException (.getClusterInfo nimbus_client)))
-      (is (thrown? AuthorizationException (.getTopologyInfo nimbus_client "nimbus_auth_topology")))
-      (is (thrown? AuthorizationException (.getTopologyConf nimbus_client "nimbus_auth_topology")))
-      (is (thrown? AuthorizationException (.getTopology nimbus_client "nimbus_auth_topology")))
-      (is (thrown? AuthorizationException (.getUserTopology nimbus_client "nimbus_auth_topology")))
+      (is (thrown-cause? AuthorizationException (.submitTopology nimbus_client  "nimbus_auth_topology" nil nil nil))) 
+      (is (thrown-cause? AuthorizationException (.submitTopologyWithOpts nimbus_client  "nimbus_auth_topology" nil nil nil submitOptions)))
+      (is (thrown-cause? AuthorizationException (.killTopology nimbus_client "nimbus_auth_topology")))
+      (is (thrown-cause? AuthorizationException (.killTopologyWithOpts nimbus_client "nimbus_auth_topology" (KillOptions.))))
+      (is (thrown-cause? AuthorizationException (.activate nimbus_client "nimbus_auth_topology")))
+      (is (thrown-cause? AuthorizationException (.deactivate nimbus_client "nimbus_auth_topology")))
+      (is (thrown-cause? AuthorizationException (.rebalance nimbus_client "nimbus_auth_topology" nil)))
+      (is (thrown-cause? AuthorizationException (.beginFileUpload nimbus_client)))
+      (is (thrown-cause? AuthorizationException (.uploadChunk nimbus_client nil nil)))
+      (is (thrown-cause? AuthorizationException (.finishFileUpload nimbus_client nil)))
+      (is (thrown-cause? AuthorizationException (.beginFileDownload nimbus_client nil)))
+      (is (thrown-cause? AuthorizationException (.downloadChunk nimbus_client nil)))
+      (is (thrown-cause? AuthorizationException (.getNimbusConf nimbus_client)))
+      (is (thrown-cause? AuthorizationException (.getClusterInfo nimbus_client)))
+      (is (thrown-cause? AuthorizationException (.getTopologyInfo nimbus_client "nimbus_auth_topology")))
+      (is (thrown-cause? AuthorizationException (.getTopologyConf nimbus_client "nimbus_auth_topology")))
+      (is (thrown-cause? AuthorizationException (.getTopology nimbus_client "nimbus_auth_topology")))
+      (is (thrown-cause? AuthorizationException (.getUserTopology nimbus_client "nimbus_auth_topology")))
       (.close client))))
 
