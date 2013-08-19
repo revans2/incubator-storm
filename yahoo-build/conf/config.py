@@ -37,7 +37,7 @@ remappedKeys = {"storm.messaging.netty.buffer.size":"storm.messaging.netty.buffe
                 "storm.messaging.netty.max.wait.ms":"storm.messaging.netty.max_wait_ms"}
 
 listKeys = set(["storm.auth.simple-white-list.users", "supervisor.slots.ports", "storm.zookeeper.servers", "topology.kryo.register", "drpc.servers", "worker.childopts"])
-mapKeys = set(["isolation.scheduler.machines"])
+mapKeys = set(["isolation.scheduler.machines","multitenant.scheduler.user.pools"])
 
 config = dict((k[8:].replace("_", "."), v) for k, v in os.environ.items() if k.startswith("ystorm__"))
 
