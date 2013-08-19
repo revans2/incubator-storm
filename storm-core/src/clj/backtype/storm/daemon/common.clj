@@ -48,8 +48,6 @@
 (def LS-LOCAL-ASSIGNMENTS "local-assignments")
 (def LS-APPROVED-WORKERS "approved-workers")
 
-
-
 (defrecord WorkerHeartbeat [time-secs storm-id executors port])
 
 (defrecord ExecutorStats [^long processed
@@ -342,5 +340,4 @@
                  " class:" aznClass
                  " handler:" aznHandler)
     aznHandler
-  )) 
-
+  ))
