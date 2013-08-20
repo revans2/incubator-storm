@@ -1,7 +1,7 @@
 (ns backtype.storm.nimbus-test
   (:use [clojure test])
+  (:require [backtype.storm [util :as util]])
   (:require [backtype.storm.daemon [nimbus :as nimbus]])
-  
   (:import [backtype.storm.testing TestWordCounter TestWordSpout TestGlobalCount TestAggregatesCounter])
   (:import [backtype.storm.scheduler INimbus])
   (:use [backtype.storm bootstrap testing])
@@ -892,26 +892,32 @@
         (testing "getTopologyConf calls check-authorization! with the correct parameters."
           (let [expected-operation "getTopologyConf"]
             (stubbing [nimbus/check-authorization! nil
-                       nimbus/try-read-storm-conf expected-conf]
+                       nimbus/try-read-storm-conf expected-conf
+                       util/to-json nil]
               (try
                 (.getTopologyConf nimbus "fake-id")
                 (catch NotAliveException e)
                 (finally
                   (verify-first-call-args-for-indices
-                    nimbus/check-authorization! 
-                      [1 2 3] expected-name expected-conf expected-operation))))))
+                    nimbus/check-authorization!
+                      [1 2 3] expected-name expected-conf expected-operation)
+                  (verify-first-call-args-for util/to-json expected-conf))))))
 
         (testing "getTopology calls check-authorization! with the correct parameters."
           (let [expected-operation "getTopology"]
             (stubbing [nimbus/check-authorization! nil
-                       nimbus/try-read-storm-conf expected-conf]
+                       nimbus/try-read-storm-conf expected-conf
+                       nimbus/try-read-storm-topology nil
+                       system-topology! nil]
               (try
                 (.getTopology nimbus "fake-id")
                 (catch NotAliveException e)
                 (finally
                   (verify-first-call-args-for-indices
-                    nimbus/check-authorization! 
-                      [1 2 3] expected-name expected-conf expected-operation))))))
+                    nimbus/check-authorization!
+                      [1 2 3] expected-name expected-conf expected-operation)
+                  (verify-first-call-args-for-indices
+                    system-topology! [0] expected-conf))))))
 
         (testing "getUserTopology calls check-authorization with the correct parameters."
           (let [expected-operation "getUserTopology"]
@@ -923,8 +929,10 @@
                 (catch NotAliveException e)
                 (finally
                   (verify-first-call-args-for-indices
-                    nimbus/check-authorization! 
-                      [1 2 3] expected-name expected-conf expected-operation))))))))))
+                    nimbus/check-authorization!
+                      [1 2 3] expected-name expected-conf expected-operation)
+                  (verify-first-call-args-for-indices
+                    nimbus/try-read-storm-topology [0] expected-conf))))))))))
 
 (deftest test-nimbus-iface-getTopology-methods-throw-correctly
   (with-local-cluster [cluster]
