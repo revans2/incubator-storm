@@ -14,6 +14,8 @@
   (:use [backtype.storm bootstrap])
   (:import [backtype.storm.generated Nimbus Nimbus$Client 
             AuthorizationException SubmitOptions TopologyInitialStatus KillOptions])
+  (:require [conjure.core])
+  (:use [conjure core])
   )
 
 (bootstrap)
@@ -97,9 +99,10 @@
       (is (thrown-cause? AuthorizationException (.getNimbusConf nimbus_client)))
       (is (thrown-cause? AuthorizationException (.getClusterInfo nimbus_client)))
       (is (thrown-cause? AuthorizationException (.getTopologyInfo nimbus_client "nimbus_auth_topology")))
-      (is (thrown-cause? AuthorizationException (.getTopologyConf nimbus_client "nimbus_auth_topology")))
-      (is (thrown-cause? AuthorizationException (.getTopology nimbus_client "nimbus_auth_topology")))
-      (is (thrown-cause? AuthorizationException (.getUserTopology nimbus_client "nimbus_auth_topology")))
+      (stubbing [nimbus/try-read-storm-conf {}]
+        (is (thrown-cause? AuthorizationException (.getTopologyConf nimbus_client "nimbus_auth_topology")))
+        (is (thrown-cause? AuthorizationException (.getTopology nimbus_client "nimbus_auth_topology")))
+        (is (thrown-cause? AuthorizationException (.getUserTopology nimbus_client "nimbus_auth_topology"))))
       (.close client))))
 
 (deftest test-noop-authorization-w-sasl-digest 
@@ -150,8 +153,9 @@
       (is (thrown-cause? AuthorizationException (.getNimbusConf nimbus_client)))
       (is (thrown-cause? AuthorizationException (.getClusterInfo nimbus_client)))
       (is (thrown-cause? AuthorizationException (.getTopologyInfo nimbus_client "nimbus_auth_topology")))
-      (is (thrown-cause? AuthorizationException (.getTopologyConf nimbus_client "nimbus_auth_topology")))
-      (is (thrown-cause? AuthorizationException (.getTopology nimbus_client "nimbus_auth_topology")))
-      (is (thrown-cause? AuthorizationException (.getUserTopology nimbus_client "nimbus_auth_topology")))
+      (stubbing [nimbus/try-read-storm-conf {}]
+        (is (thrown-cause? AuthorizationException (.getTopologyConf nimbus_client "nimbus_auth_topology")))
+        (is (thrown-cause? AuthorizationException (.getTopology nimbus_client "nimbus_auth_topology")))
+        (is (thrown-cause? AuthorizationException (.getUserTopology nimbus_client "nimbus_auth_topology"))))
       (.close client))))
 
