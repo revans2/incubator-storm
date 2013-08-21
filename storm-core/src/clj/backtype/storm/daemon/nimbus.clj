@@ -881,15 +881,13 @@
     (throw (InvalidTopologyException.
             (str "Topology name cannot contain any of the following: " (pr-str DISALLOWED-TOPOLOGY-NAME-STRS))))))
 
-(defn check-file-location! [conf file-path]
-  (log-debug "check file location:" file-path)
-  (if (clojure.string/blank? file-path)
-    (throw (AuthorizationException. (str "Invalid file path:" file-path))))
+(defn check-file-access! [conf file-path]
+  (log-debug "check file access:" file-path)
   (let [stormdist-dir (str (master-stormdist-root conf) "/")
         stormdist-dir-len (.length stormdist-dir)
-        file-path-len (.length file-path)
+        file-path-len (if (clojure.string/blank? file-path) 0 (.length file-path))
         file-path-prefix (if (> file-path-len stormdist-dir-len) (.substring file-path 0 stormdist-dir-len))]
-    (if (not= (compare stormdist-dir file-path-prefix) 0)
+    (if (compare stormdist-dir file-path-prefix)
       (throw (AuthorizationException. (str "Invalid file path:" file-path))))))
 
 (defn- try-read-storm-conf [conf storm-id]
@@ -1095,7 +1093,7 @@
           ))
 
       (^String beginFileDownload [this ^String file]
-        (check-file-location! (:conf nimbus) file)
+        (check-file-access! (:conf nimbus) file)
         (check-authorization! nimbus nil nil "fileDownload")
         (let [is (BufferFileInputStream. file)
               id (uuid)]
