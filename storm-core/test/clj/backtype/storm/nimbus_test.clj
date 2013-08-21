@@ -881,10 +881,10 @@
     (let [nimbus (:nimbus cluster)
           topology-name "test-nimbus-check-autho-params"
           topology (thrift/mk-topology {} {})]
-      ; Fake good authorization as part of setup.
-      (mocking [nimbus/check-authorization!]
-          (submit-local-topology-with-opts nimbus topology-name {} topology
-              (SubmitOptions. TopologyInitialStatus/INACTIVE)))
+
+      (submit-local-topology-with-opts nimbus topology-name {} topology
+          (SubmitOptions. TopologyInitialStatus/INACTIVE))
+
       (let [expected-name topology-name
             expected-conf {TOPOLOGY-NAME expected-name
                            :foo :bar}]
