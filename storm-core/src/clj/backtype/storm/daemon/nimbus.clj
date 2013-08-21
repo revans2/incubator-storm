@@ -1096,8 +1096,8 @@
           ))
 
       (^String beginFileDownload [this ^String file]
-        (check-file-access (:conf nimbus) file)
         (check-authorization! nimbus nil nil "fileDownload")
+        (check-file-access (:conf nimbus) file)
         (let [is (BufferFileInputStream. file)
               id (uuid)]
           (.put (:downloaders nimbus) id is)
