@@ -881,13 +881,16 @@
     (throw (InvalidTopologyException.
             (str "Topology name cannot contain any of the following: " (pr-str DISALLOWED-TOPOLOGY-NAME-STRS))))))
 
+;; We will only file at <Storm dist root>/<Topology ID>/<File>
+;; to be accessed via Thrift
+;; ex., storm-local/nimbus/stormdist/aa-1-1377104853/stormjar.jar
 (defn check-file-access! [conf file-path]
   (log-debug "check file access:" file-path)
-  (let [stormdist-dir (str (master-stormdist-root conf) "/")
-        stormdist-dir-len (.length stormdist-dir)
-        file-path-len (if (clojure.string/blank? file-path) 0 (.length file-path))
-        file-path-prefix (if (> file-path-len stormdist-dir-len) (.substring file-path 0 stormdist-dir-len))]
-    (if (compare stormdist-dir file-path-prefix)
+  (try
+    (if (not= (File. (master-stormdist-root conf))
+            (-> (File. file-path) .getCanonicalFile .getParentFile .getParentFile))
+        (throw (AuthorizationException. (str "Invalid file path:" file-path))))
+    (catch Exception e
       (throw (AuthorizationException. (str "Invalid file path:" file-path))))))
 
 (defn- try-read-storm-conf [conf storm-id]
