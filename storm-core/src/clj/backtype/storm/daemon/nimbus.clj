@@ -884,9 +884,9 @@
 ;; We will only file at <Storm dist root>/<Topology ID>/<File>
 ;; to be accessed via Thrift
 ;; ex., storm-local/nimbus/stormdist/aa-1-1377104853/stormjar.jar
-(defn check-file-access! [conf file-path]
+(defn check-file-access [conf file-path]
   (log-debug "check file access:" file-path)
-  (try-cause
+  (try
     (if (not= (File. (master-stormdist-root conf))
           (-> (File. file-path) .getCanonicalFile .getParentFile .getParentFile))
       (throw (AuthorizationException. (str "Invalid file path:" file-path))))
@@ -1096,7 +1096,7 @@
           ))
 
       (^String beginFileDownload [this ^String file]
-        (check-file-access! (:conf nimbus) file)
+        (check-file-access (:conf nimbus) file)
         (check-authorization! nimbus nil nil "fileDownload")
         (let [is (BufferFileInputStream. file)
               id (uuid)]
