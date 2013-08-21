@@ -888,8 +888,8 @@
   (log-debug "check file access:" file-path)
   (try-cause
     (if (not= (File. (master-stormdist-root conf))
-            (-> (File. file-path) .getCanonicalFile .getParentFile .getParentFile))
-        (throw (AuthorizationException. (str "Invalid file path:" file-path))))
+          (-> (File. file-path) .getCanonicalFile .getParentFile .getParentFile))
+      (throw (AuthorizationException. (str "Invalid file path:" file-path))))
     (catch Exception e
       (throw (AuthorizationException. (str "Invalid file path:" file-path))))))
 
