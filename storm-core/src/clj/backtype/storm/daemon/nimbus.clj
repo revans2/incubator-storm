@@ -886,14 +886,14 @@
 ;; ex., storm-local/nimbus/stormdist/aa-1-1377104853/stormjar.jar
 (defn check-file-access! [conf file-path]
   (log-debug "check file access:" file-path)
-  (try
+  (try-cause
     (if (not= (File. (master-stormdist-root conf))
             (-> (File. file-path) .getCanonicalFile .getParentFile .getParentFile))
         (throw (AuthorizationException. (str "Invalid file path:" file-path))))
     (catch Exception e
       (throw (AuthorizationException. (str "Invalid file path:" file-path))))))
 
-(defn- try-read-storm-conf [conf storm-id]
+(defn try-read-storm-conf [conf storm-id]
   (try-cause
     (read-storm-conf conf storm-id)
     (catch FileNotFoundException e
@@ -901,7 +901,7 @@
   )
 )
 
-(defn- try-read-storm-topology [conf storm-id]
+(defn try-read-storm-topology [conf storm-id]
   (try-cause
     (read-storm-topology conf storm-id)
     (catch FileNotFoundException e
@@ -1123,22 +1123,22 @@
         (to-json (:conf nimbus)))
 
       (^String getTopologyConf [this ^String id]
-        (check-authorization! nimbus nil nil "getTopologyConf")
         (let [topology-conf (try-read-storm-conf conf id)
               storm-name (topology-conf TOPOLOGY-NAME)]
-              (to-json conf)))
+              (check-authorization! nimbus storm-name topology-conf "getTopologyConf")
+              (to-json topology-conf)))
 
       (^StormTopology getTopology [this ^String id]
-        (check-authorization! nimbus nil nil "getTopology")
         (let [topology-conf (try-read-storm-conf conf id)
               storm-name (topology-conf TOPOLOGY-NAME)]
-              (system-topology! conf (try-read-storm-topology conf id))))
+              (check-authorization! nimbus storm-name topology-conf "getTopology")
+              (system-topology! topology-conf (try-read-storm-topology conf id))))
 
       (^StormTopology getUserTopology [this ^String id]
-        (check-authorization! nimbus nil nil "getUserTopology")
         (let [topology-conf (try-read-storm-conf conf id)
               storm-name (topology-conf TOPOLOGY-NAME)]
-              (try-read-storm-topology conf id)))
+              (check-authorization! nimbus storm-name topology-conf "getUserTopology")
+              (try-read-storm-topology topology-conf id)))
 
       (^ClusterSummary getClusterInfo [this]
         (check-authorization! nimbus nil nil "getClusterInfo")
