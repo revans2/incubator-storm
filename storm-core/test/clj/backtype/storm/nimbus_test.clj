@@ -1056,10 +1056,10 @@
         (is (not (thrown-cause? IllegalArgumentException
           (nimbus/validate-topology-zk-auth yes-auth-conf yes-auth-conf))))))))
 
-(deftest test-file-bogus-bogus-download
+(deftest test-file-bogus-download
   (with-local-cluster [cluster :daemon-conf {SUPERVISOR-ENABLE false TOPOLOGY-ACKER-EXECUTORS 0}]
     (let [nimbus (:nimbus cluster)]
-      (is (thrown? AuthorizationException (.beginFileDownload nimbus nil)))
-      (is (thrown? AuthorizationException (.beginFileDownload nimbus "")))
-      (is (thrown? AuthorizationException (.beginFileDownload nimbus "/bogus-path/foo")))
+      (is (thrown-cause? AuthorizationException (.beginFileDownload nimbus nil)))
+      (is (thrown-cause? AuthorizationException (.beginFileDownload nimbus "")))
+      (is (thrown-cause? AuthorizationException (.beginFileDownload nimbus "/bogus-path/foo")))
       )))
