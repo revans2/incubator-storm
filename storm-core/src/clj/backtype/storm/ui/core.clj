@@ -467,7 +467,6 @@
       ]
      )))
 
-
 (defn window-hint [window]
   (if (= window ":all-time")
     "All time"
