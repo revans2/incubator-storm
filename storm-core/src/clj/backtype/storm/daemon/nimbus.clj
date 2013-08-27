@@ -82,8 +82,6 @@
              (File. (master-stormconf-path stormroot))
              )))))
 
-
-
 (defn set-topology-status! [nimbus storm-id status]
   (let [storm-cluster-state (:storm-cluster-state nimbus)]
    (.update-storm! storm-cluster-state
