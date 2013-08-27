@@ -75,12 +75,14 @@
   (master-inbox (:conf nimbus)))
 
 (defn- read-storm-conf [conf storm-id]
-  (let [stormroot (master-stormdist-root conf storm-id)]
+  (let [stormroot (master-stormdist-root conf storm-id)
+        topoconf (Utils/deserialize
+                  (FileUtils/readFileToByteArray
+                   (File. (master-stormconf-path stormroot))))]
     (merge conf
-           (Utils/deserialize
-            (FileUtils/readFileToByteArray
-             (File. (master-stormconf-path stormroot))
-             )))))
+           topoconf)))
+
+
 
 (defn set-topology-status! [nimbus storm-id status]
   (let [storm-cluster-state (:storm-cluster-state nimbus)]

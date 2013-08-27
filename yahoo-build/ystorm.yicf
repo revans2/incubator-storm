@@ -10,11 +10,12 @@ CUSTODIAN = yahoo-storm-team@yahoo-inc.com http://twiki.corp.yahoo.com/view/Grid
 YINST bug-product Low Latency
 YINST bug-component General
 
-YINST requires pkg ystorm_jzmq      2.1.0.6     *
-YINST requires pkg ypython          2.6.0_2     2.6.9999
-YINST requires pkg ypython26        2.6.6       2.6.9999
-YINST requires pkg ypython26_pyyaml 3.10_1      3.999999
-YINST requires pkg yjava_jdk        1.7.0_11.64 1.7.999999
+YINST requires pkg ystorm_jzmq           2.1.0.6     *
+YINST requires pkg ypython               2.6.0_2     2.6.9999
+YINST requires pkg ypython26             2.6.6       2.6.9999
+YINST requires pkg ypython26_pyyaml      3.10_1      3.999999
+YINST requires pkg yjava_jdk             1.7.0_11.64 1.7.999999
+YINST requires pkg yjava_servlet_filters 0.22.495    *
 
 YINST set storm_local_dir          /home/y/var/storm
 YINST set syslog_facility          LOCAL5
@@ -22,6 +23,10 @@ YINST set syslog_host              localhost
 YINST set ui_actions_enabled       false
 YINST set worker_launcher_group    nobody
 YINST set min_user_id              500
+YINST set ui_filter                yjava.servlet.filter.BouncerFilter
+
+# Bouncer UI Filter Configuration
+YINST set ui_filter_params bouncer_cookie_timeout,480,bouncer_url,https://by.bouncer.login.yahoo.com/login/
 
 YINST post-activate chown root:${worker_launcher_group} ${ROOT}/lib64/storm/$(BASE_VERSION)/bin/worker-launcher; chmod 6550  ${ROOT}/lib64/storm/$(BASE_VERSION)/bin/worker-launcher;
 
@@ -32,6 +37,14 @@ GROUP = users
 dir 777 - - lib64/storm/$(BASE_VERSION)/logs
 find 755 - - lib64/storm/$(BASE_VERSION)/bin/ ../bin/ -type f
 find - - - lib64/storm/$(BASE_VERSION)/lib/ ../storm-core-mvn/target/dependency/ ../storm-netty-mvn/target/dependency/ -type f
+
+# Bouncer UI Filter
+symlink - - - lib64/storm/$(BASE_VERSION)/lib/yjava_servlet_filters.jar /home/y/lib/jars/yjava_servlet_filters.jar
+symlink - - - lib64/storm/$(BASE_VERSION)/lib/yjava_filter_logic.jar    /home/y/lib/jars/yjava_filter_logic.jar
+symlink - - - lib64/storm/$(BASE_VERSION)/lib/yjava_servlet.jar         /home/y/lib/jars/yjava_servlet.jar
+symlink - - - lib64/storm/$(BASE_VERSION)/lib/yjava_byauth.jar          /home/y/lib/jars/yjava_byauth.jar
+symlink - - - lib64/storm/$(BASE_VERSION)/lib/bouncer_auth_java.jar     /home/y/lib/jars/bouncer_auth_java.jar
+
 #The actual group of the executable will be set by a pre-activate script
 file 6550 root root lib64/storm/$(BASE_VERSION)/bin/worker-launcher ../storm-core-mvn/target/native/target/usr/local/bin/worker-launcher
 
@@ -49,6 +62,7 @@ file 444 - - lib64/storm/$(BASE_VERSION)/README.yahoo ./README.yahoo
 
 
 file 444 - - lib64/storm/$(BASE_VERSION)/public/css/bootstrap-1.1.0.css ../storm-core/src/ui/public/css/bootstrap-1.1.0.css
+file 444 - - lib64/storm/$(BASE_VERSION)/public/css/style.css ../storm-core/src/ui/public/css/style.css
 file 444 - - lib64/storm/$(BASE_VERSION)/public/js/jquery-1.6.2.min.js ../storm-core/src/ui/public/js/jquery-1.6.2.min.js
 file 444 - - lib64/storm/$(BASE_VERSION)/public/js/jquery.cookies.2.2.0.min.js ../storm-core/src/ui/public/js/jquery.cookies.2.2.0.min.js
 file 444 - - lib64/storm/$(BASE_VERSION)/public/js/jquery.tablesorter.min.js ../storm-core/src/ui/public/js/jquery.tablesorter.min.js

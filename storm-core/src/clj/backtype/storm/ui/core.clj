@@ -6,14 +6,15 @@
   (:use [backtype.storm.ui helpers])
   (:use [backtype.storm.daemon [common :only [ACKER-COMPONENT-ID system-id?]]])
   (:use [ring.adapter.jetty :only [run-jetty]])
-  (:use [clojure.string :only [lower-case trim]])
+  (:use [clojure.string :only [blank? lower-case trim]])
   (:use [backtype.storm bootstrap])
   (:import [backtype.storm.generated ExecutorSpecificStats
             ExecutorStats ExecutorSummary TopologyInfo SpoutStats BoltStats
             ErrorInfo ClusterSummary SupervisorSummary TopologySummary
             Nimbus$Client StormTopology GlobalStreamId RebalanceOptions
             KillOptions])
-  (:import [java.io File])
+  (:import [java.io File PrintWriter StringWriter])
+  (:import [org.mortbay.jetty.servlet Context])
   (:require [compojure.route :as route]
             [compojure.handler :as handler]
             [ring.util.response :as resp]
@@ -39,21 +40,25 @@
              :value (str (if include-sys? "Hide" "Show") " System Stats")
              :onclick "toggleSys()"}]])
 
-(defn ui-template [body]
-  (html
-   [:head
-    [:title "Storm UI"]
-    (include-css "/css/bootstrap-1.1.0.css")
-    (include-css "/css/style.css")
-    (include-js "/js/jquery-1.6.2.min.js")
-    (include-js "/js/jquery.tablesorter.min.js")
-    (include-js "/js/jquery.cookies.2.2.0.min.js")
-    (include-js "/js/script.js")
-    ]
-   [:body
-    [:h1 (link-to "/" "Storm UI")]
-    (seq body)
-    ]))
+(defn ui-template
+  ([body] (ui-template body nil))
+  ([body user]
+    (html
+     [:head
+      [:title "Storm UI"]
+      (include-css "/css/bootstrap-1.1.0.css")
+      (include-css "/css/style.css")
+      (include-js "/js/jquery-1.6.2.min.js")
+      (include-js "/js/jquery.tablesorter.min.js")
+      (include-js "/js/jquery.cookies.2.2.0.min.js")
+      (include-js "/js/script.js")
+      ]
+     [:body
+      (concat
+        (when (not (blank? user)) [[:div.ui-user [:p "User: " user]]])
+        [[:h1 (link-to "/" "Storm UI")]]
+        (seq body))
+      ])))
 
 (defn read-storm-version []
   (let [storm-home (System/getProperty "storm.home")
@@ -462,6 +467,13 @@
       ]
      )))
 
+;(defn logs-table [topology-conf]
+;  (let [id (topology-conf STORM-ID)]
+;    (map 
+;     (fn [log] [:p (link-to (url-format "/topology/%s/%s" id (.getName log)) (escape-html (.getName log)))])
+;     (find-topology-logs topology-conf *STORM-CONF*))))
+;  "")
+
 (defn window-hint [window]
   (if (= window ":all-time")
     "All time"
@@ -491,7 +503,16 @@
        )]] )
     []))
 
-(defn topology-page [conf id window include-sys?]
+(defn authorized-ui-user? [user conf]
+  (let [ui-users (concat (*STORM-CONF* UI-USERS) (conf UI-USERS))]
+    (log-message "Cluster users (" (*STORM-CONF* UI-USERS) ")  Topo Users (" (conf UI-USERS) ")")
+    (and (not (blank? user))
+         (some #(= % user) ui-users))))
+
+(defn unauthorized-user-html [user]
+  [[:h2 "User '" (escape-html user) "' is not authorized."]])
+
+(defn topology-page [conf id window include-sys? user]
   (with-nimbus conf nimbus
     (let [window (if window window ":all-time")
           window-hint (window-hint window)
@@ -507,19 +528,25 @@
           status (.get_status summ)
           msg-timeout (topology-conf TOPOLOGY-MESSAGE-TIMEOUT-SECS)
           ]
-      (concat
-       [[:h2 "Topology summary"]]
-       [(topology-summary-table summ)]
-       (topology-actions id name status msg-timeout)
-       [[:h2 "Topology stats"]]
-       (topology-stats-table id window (total-aggregate-stats spout-summs bolt-summs include-sys?))
-       [[:h2 "Spouts (" window-hint ")"]]
-       (spout-comp-table id spout-comp-summs (.get_errors summ) window include-sys?)
-       [[:h2 "Bolts (" window-hint ")"]]
-       (bolt-comp-table id bolt-comp-summs (.get_errors summ) window include-sys?)
-       [[:h2 "Topology Configuration"]]
-       (configuration-table topology-conf)
-       ))))
+      (if (or (blank? (*STORM-CONF* UI-FILTER))
+              (authorized-ui-user? user topology-conf))
+        (concat
+          [[:h2 "Topology summary"]]
+          [(topology-summary-table summ)]
+          (topology-actions id name status msg-timeout)
+          [[:h2 "Topology stats"]]
+          (topology-stats-table id window (total-aggregate-stats spout-summs bolt-summs include-sys?))
+          [[:h2 "Spouts (" window-hint ")"]]
+          (spout-comp-table id spout-comp-summs (.get_errors summ) window include-sys?)
+          [[:h2 "Bolts (" window-hint ")"]]
+          (bolt-comp-table id bolt-comp-summs (.get_errors summ) window include-sys?)
+          [[:h2 "Topology Configuration"]]
+          (configuration-table topology-conf)
+;          [[:h2 "Topology Logs"]]
+;          (logs-table (merge topology-conf {STORM-ID id}))
+        )
+
+        (unauthorized-user-html user)))))
 
 (defn component-task-summs [^TopologyInfo summ topology id]
   (let [spout-summs (filter (partial spout-summary? topology) (.get_executors summ))
@@ -720,7 +747,7 @@
      :sort-list "[[0,1]]"
      )))
 
-(defn component-page [conf topology-id component window include-sys?]
+(defn component-page [conf topology-id component window include-sys? user]
   (with-nimbus conf nimbus
     (let [window (if window window ":all-time")
           summ (.getTopologyInfo ^Nimbus$Client nimbus topology-id)
@@ -728,42 +755,54 @@
           type (component-type topology component)
           summs (component-task-summs summ topology component)
           spec (cond (= type :spout) (spout-page window summ component summs include-sys?)
-                     (= type :bolt) (bolt-page conf window summ component summs include-sys?))]
-      (concat
-       [[:h2 "Component summary"]
-        (table ["Id" "Topology" "Executors" "Tasks"]
-               [[(escape-html component)
-                 (topology-link (.get_id summ) (.get_name summ))
-                 (count summs)
-                 (sum-tasks summs)
-                 ]])]
-       spec
-       [[:h2 "Errors"]
-        (errors-table (get (.get_errors summ) component))]
-       ))))
+                     (= type :bolt) (bolt-page conf window summ component summs include-sys?))
+          topology-conf (from-json (.getTopologyConf ^Nimbus$Client nimbus topology-id))
+          ui-users (concat (*STORM-CONF* UI-USERS) (topology-conf UI-USERS))]
+      (if (or (blank? (*STORM-CONF* UI-FILTER))
+              (authorized-ui-user? user topology-conf))
+        (concat
+          [[:h2 "Component summary"]
+           (table ["Id" "Topology" "Executors" "Tasks"]
+                  [[(escape-html component)
+                    (topology-link (.get_id summ) (.get_name summ))
+                    (count summs)
+                    (sum-tasks summs)
+                    ]])]
+          spec
+          [[:h2 "Errors"]
+           (errors-table (get (.get_errors summ) component))])
+
+        (unauthorized-user-html user)))))
 
 (defn get-include-sys? [cookies]
   (let [sys? (get cookies "sys")
         sys? (if (or (nil? sys?) (= "false" (:value sys?))) false true)]
     sys?))
 
+(defn get-ui-user [servlet-request]
+  (when servlet-request (.. servlet-request getUserPrincipal getName)))
 
- (defn main-routes [conf]
-    (if (ui-actions-enabled?)
+
+(defn main-routes [conf]
+  (if (ui-actions-enabled?)
     (routes
-    (GET "/" [:as {cookies :cookies}]
-         (-> (main-page conf)
-             ui-template))
-    (GET "/topology/:id" [:as {cookies :cookies} id & m]
-         (let [include-sys? (get-include-sys? cookies)]
-           (-> (topology-page conf id (:window m) include-sys?)
-               (concat [(mk-system-toggle-button include-sys?)])
-               ui-template)))
-    (GET "/topology/:id/component/:component" [:as {cookies :cookies} id component & m]
-         (let [include-sys? (get-include-sys? cookies)]
-           (-> (component-page conf id component (:window m) include-sys?)
-               (concat [(mk-system-toggle-button include-sys?)])
-               ui-template)))
+    (GET "/" [:as {servlet-request :servlet-request}]
+         (ui-template (main-page conf) (get-ui-user servlet-request)))
+    (GET "/topology/:id" [:as {cookies :cookies servlet-request :servlet-request} id & m]
+         (let [include-sys? (get-include-sys? cookies)
+               user (get-ui-user servlet-request)]
+           (ui-template (concat
+                          (topology-page conf id (:window m) include-sys? user)
+                          [(mk-system-toggle-button include-sys?)])
+                        user)))
+    (GET "/topology/:id/component/:component" [:as {:keys [cookies servlet-request]}
+                                               id component & m]
+         (let [include-sys? (get-include-sys? cookies)
+               user (get-ui-user servlet-request)]
+           (ui-template (concat
+                          (component-page conf id component (:window m) include-sys? user)
+                          [(mk-system-toggle-button include-sys?)])
+                        user)))
     (POST "/topology/:id/activate" [id]
       (with-nimbus conf nimbus
         (let [tplg (.getTopologyInfo ^Nimbus$Client nimbus id)
@@ -800,19 +839,23 @@
     (route/not-found "Page not found"))
 
     (routes
-    (GET "/" [:as {cookies :cookies}]
-         (-> (main-page conf)
-             ui-template))
-    (GET "/topology/:id" [:as {cookies :cookies} id & m]
-         (let [include-sys? (get-include-sys? cookies)]
-           (-> (topology-page conf id (:window m) include-sys?)
-               (concat [(mk-system-toggle-button include-sys?)])
-               ui-template)))
-    (GET "/topology/:id/component/:component" [:as {cookies :cookies} id component & m]
-         (let [include-sys? (get-include-sys? cookies)]
-           (-> (component-page conf id component (:window m) include-sys?)
-               (concat [(mk-system-toggle-button include-sys?)])
-               ui-template)))
+    (GET "/" [:as {servlet-request :servlet-request}]
+         (ui-template (main-page conf) (get-ui-user servlet-request)))
+    (GET "/topology/:id" [:as {cookies :cookies servlet-request :servlet-request} id & m]
+         (let [include-sys? (get-include-sys? cookies)
+               user (get-ui-user servlet-request)]
+           (ui-template (concat
+                          (topology-page conf id (:window m) include-sys? user)
+                          [(mk-system-toggle-button include-sys?)])
+                        user)))
+    (GET "/topology/:id/component/:component" [:as {:keys [cookies servlet-request]}
+                                               id component & m]
+         (let [include-sys? (get-include-sys? cookies)
+               user (get-ui-user servlet-request)]
+           (ui-template (concat
+                          (component-page conf id component (:window m) include-sys? user)
+                          [(mk-system-toggle-button include-sys?)])
+                        user)))
     (route/resources "/")
     (route/not-found "Page not found")))
 )
@@ -830,9 +873,26 @@
       (handler request)
       (catch Exception ex
         (-> (resp/response (ui-template (exception->html ex)))
-          (resp/status 500)
-          (resp/content-type "text/html"))
+            (resp/status 500)
+            (resp/content-type "text/html"))
+        (log-message ex (let [sw (java.io.StringWriter.)]
+                          (.printStackTrace ex (java.io.PrintWriter. sw))
+                          (.toString sw)))
         ))))
+
+(defn- config-filter [server handler conf]
+  (if-let [filter-class (conf UI-FILTER)]
+    (let [filter (doto (org.mortbay.jetty.servlet.FilterHolder.)
+                   (.setName "springSecurityFilterChain")
+                   (.setClassName filter-class)
+                   (.setInitParameters (conf UI-FILTER-PARAMS)))
+          servlet (doto (org.mortbay.jetty.servlet.ServletHolder. (ring.util.servlet/servlet handler))
+                    (.setName "default"))
+          context (doto (org.mortbay.jetty.servlet.Context. server "/")
+                    (.addFilter filter "/*" 0)
+                    (.addServlet servlet "/"))]
+      (.addHandler server context))))
+
 
 (defn app [conf]
   (-> conf
@@ -850,11 +910,19 @@
         ui-port (conf UI-PORT)]
     (.set-ui-port! state ui-port)))
 
-(defn start-server! [conf]
+(defn start-server! [conf] (try
   (let [nimbusHostPort (.nimbus-info (cluster/mk-storm-cluster-state conf))
         conf (assoc (assoc conf NIMBUS-HOST (.host nimbusHostPort)) NIMBUS-THRIFT-PORT (.port nimbusHostPort))
         conf (config-with-ui-port-assigned conf)]
     (announce-ui-port conf)
-    (run-jetty (app conf) {:port (conf UI-PORT) :join? false})))
+    (run-jetty (app conf) {:port (conf UI-PORT)
+                    :join? false
+                    :configurator (fn [server]
+                                    (config-filter server app conf))}))
+                         (catch Exception ex
+                           (log-message ex)
+                           (let [sw (StringWriter.)]
+                             (.printStackTrace ex (PrintWriter. sw))
+                             (log-message (.toString sw))))))
 
 (defn -main [] (start-server! (read-storm-config)))
