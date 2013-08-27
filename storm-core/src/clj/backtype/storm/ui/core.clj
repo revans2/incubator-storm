@@ -505,12 +505,8 @@
 
 (defn authorized-ui-user? [user conf]
   (let [ui-users (concat (*STORM-CONF* UI-USERS) (conf UI-USERS))]
-    (log-message "Cluster users (" (*STORM-CONF* UI-USERS) ")  Topo Users (" (conf UI-USERS) ")")
     (and (not (blank? user))
          (some #(= % user) ui-users))))
-
-(defn unauthorized-user-html [user]
-  [[:h2 "User '" (escape-html user) "' is not authorized."]])
 
 (defn topology-page [conf id window include-sys? user]
   (with-nimbus conf nimbus
@@ -779,18 +775,14 @@
         sys? (if (or (nil? sys?) (= "false" (:value sys?))) false true)]
     sys?))
 
-(defn get-ui-user [servlet-request]
-  (when servlet-request (.. servlet-request getUserPrincipal getName)))
-
-
 (defn main-routes [conf]
   (if (ui-actions-enabled?)
     (routes
     (GET "/" [:as {servlet-request :servlet-request}]
-         (ui-template (main-page conf) (get-ui-user servlet-request)))
+         (ui-template (main-page conf) (get-servlet-user servlet-request)))
     (GET "/topology/:id" [:as {cookies :cookies servlet-request :servlet-request} id & m]
          (let [include-sys? (get-include-sys? cookies)
-               user (get-ui-user servlet-request)]
+               user (get-servlet-user servlet-request)]
            (ui-template (concat
                           (topology-page conf id (:window m) include-sys? user)
                           [(mk-system-toggle-button include-sys?)])
@@ -798,7 +790,7 @@
     (GET "/topology/:id/component/:component" [:as {:keys [cookies servlet-request]}
                                                id component & m]
          (let [include-sys? (get-include-sys? cookies)
-               user (get-ui-user servlet-request)]
+               user (get-servlet-user servlet-request)]
            (ui-template (concat
                           (component-page conf id component (:window m) include-sys? user)
                           [(mk-system-toggle-button include-sys?)])
@@ -840,10 +832,10 @@
 
     (routes
     (GET "/" [:as {servlet-request :servlet-request}]
-         (ui-template (main-page conf) (get-ui-user servlet-request)))
+         (ui-template (main-page conf) (get-servlet-user servlet-request)))
     (GET "/topology/:id" [:as {cookies :cookies servlet-request :servlet-request} id & m]
          (let [include-sys? (get-include-sys? cookies)
-               user (get-ui-user servlet-request)]
+               user (get-servlet-user servlet-request)]
            (ui-template (concat
                           (topology-page conf id (:window m) include-sys? user)
                           [(mk-system-toggle-button include-sys?)])
@@ -851,7 +843,7 @@
     (GET "/topology/:id/component/:component" [:as {:keys [cookies servlet-request]}
                                                id component & m]
          (let [include-sys? (get-include-sys? cookies)
-               user (get-ui-user servlet-request)]
+               user (get-servlet-user servlet-request)]
            (ui-template (concat
                           (component-page conf id component (:window m) include-sys? user)
                           [(mk-system-toggle-button include-sys?)])
@@ -875,9 +867,7 @@
         (-> (resp/response (ui-template (exception->html ex)))
             (resp/status 500)
             (resp/content-type "text/html"))
-        (log-message ex (let [sw (java.io.StringWriter.)]
-                          (.printStackTrace ex (java.io.PrintWriter. sw))
-                          (.toString sw)))
+        (log-error ex)
         ))))
 
 (defn- config-filter [server handler conf]
@@ -920,9 +910,6 @@
                     :configurator (fn [server]
                                     (config-filter server app conf))}))
                          (catch Exception ex
-                           (log-message ex)
-                           (let [sw (StringWriter.)]
-                             (.printStackTrace ex (PrintWriter. sw))
-                             (log-message (.toString sw))))))
+                           (log-error ex))))
 
 (defn -main [] (start-server! (read-storm-config)))

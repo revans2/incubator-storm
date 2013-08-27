@@ -24,6 +24,7 @@ YINST set ui_actions_enabled       false
 YINST set worker_launcher_group    nobody
 YINST set min_user_id              500
 YINST set ui_filter                yjava.servlet.filter.BouncerFilter
+YINST set ui_users_whitelist_path  /home/y/lib/storm/current/logs-whitelists
 
 # Bouncer UI Filter Configuration
 YINST set ui_filter_params bouncer_cookie_timeout,480,bouncer_url,https://by.bouncer.login.yahoo.com/login/

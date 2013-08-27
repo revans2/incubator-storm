@@ -1,7 +1,7 @@
 (ns backtype.storm.ui.helpers
   (:use compojure.core)
   (:use [hiccup core page-helpers])
-  (:use [clojure [string :only [join]]])
+  (:use [clojure [string :only [blank? join]]])
   (:use [backtype.storm.util :only [uuid defnk]])
   (:use [clj-time coerce format])
   (:import [backtype.storm.generated ExecutorInfo ExecutorSummary])
@@ -131,3 +131,9 @@ $(\"table#%s\").each(function(i) { $(this).tablesorter({ sortList: %s, headers: 
 
 (defn pretty-executor-info [^ExecutorInfo e]
   (str "[" (.get_task_start e) "-" (.get_task_end e) "]"))
+
+(defn get-servlet-user [servlet-request]
+  (when servlet-request (.. servlet-request getUserPrincipal getName)))
+
+(defn unauthorized-user-html [user]
+  [[:h2 "User '" (escape-html user) "' is not authorized."]])
