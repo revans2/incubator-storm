@@ -42,7 +42,7 @@ public class IsolatedPool extends NodePool {
   
   @Override
   public void init(Cluster cluster, Map<String, Node> nodeIdToNode) {
-    LOG.info("Isolated pool initializing... max nodes: {}", _maxNodes);
+    LOG.debug("Isolated pool initializing... max nodes: {}", _maxNodes);
     _cluster = cluster;
     _nodeIdToNode = nodeIdToNode;
   }
@@ -50,7 +50,7 @@ public class IsolatedPool extends NodePool {
   @Override
   public void addTopology(TopologyDetails td) {
     String topId = td.getId();
-    LOG.info("Adding in Topology {}", topId);
+    LOG.debug("Adding in Topology {}", topId);
     SchedulerAssignment assignment = _cluster.getAssignmentById(topId);
     Set<Node> assignedNodes = new HashSet<Node>();
     if (assignment != null) {
@@ -87,12 +87,12 @@ public class IsolatedPool extends NodePool {
     for (String topId : _topologyIdToNodes.keySet()) {
       TopologyDetails td = _tds.get(topId);
       if (_cluster.needsScheduling(td)) {
-        LOG.info("Scheduling topology {}",topId);
+        LOG.debug("Scheduling topology {}",topId);
         Set<Node> allNodes = _topologyIdToNodes.get(topId);
         Number nodesRequested = (Number) td.getConf().get(Config.TOPOLOGY_ISOLATED_MACHINES);
         int slotsToUse = 0;
         if (nodesRequested == null) {
-          LOG.info("Topology {} is not isolated",topId);
+          LOG.debug("Topology {} is not isolated",topId);
           int slotsRequested = td.getNumWorkers();
           int slotsUsed = Node.countSlotsUsed(topId, allNodes);
           int slotsFree = Node.countFreeSlotsAlive(allNodes);
@@ -102,22 +102,20 @@ public class IsolatedPool extends NodePool {
             slotsAvailable = NodePool.slotsAvailable(lesserPools);
           }
           slotsToUse = Math.min(slotsRequested - slotsUsed, slotsFree + slotsAvailable);
-          LOG.info("Slots... requested {} used {} free {} available {} to be used {}", 
+          LOG.debug("Slots... requested {} used {} free {} available {} to be used {}", 
               new Object[] {slotsRequested, slotsUsed, slotsFree, slotsAvailable, slotsToUse});
           if (slotsToUse <= 0) {
             LOG.warn("The cluster appears to be full no slots left to schedule {}", topId);
-            //TODO it would be good to tag this topology some how
             continue;
           }
           int slotsNeeded = slotsToUse - slotsFree;
           int numNewNodes = NodePool.getNodeCountIfSlotsWereTaken(slotsNeeded, lesserPools);
-          LOG.info("Nodes... new {} used {} max {}",
+          LOG.debug("Nodes... new {} used {} max {}",
               new Object[]{numNewNodes, _usedNodes, _maxNodes});
           if ((numNewNodes + _usedNodes) > _maxNodes) {
             LOG.warn("Unable to schedule topology {} because it needs {} " +
                 "more nodes which would exced the limit of {}",
                 new Object[] {topId, numNewNodes, _maxNodes});
-            //TODO set an error of some sort on the topology
             continue;
           }
           
@@ -125,13 +123,13 @@ public class IsolatedPool extends NodePool {
           _usedNodes += found.size();
           allNodes.addAll(found);
         } else {
-          LOG.info("Topology {} is isolated", topId);
+          LOG.debug("Topology {} is isolated", topId);
           int nodesFromUsAvailable = nodesAvailable();
           int nodesFromOthersAvailable = NodePool.nodesAvailable(lesserPools);
           
           int nodesUsed = _topologyIdToNodes.get(topId).size();
           int nodesNeeded = nodesRequested.intValue() - nodesUsed;
-          LOG.info("Nodes... requested {} used {} available from us {} " +
+          LOG.debug("Nodes... requested {} used {} available from us {} " +
           		"avail from other {} needed {}", new Object[] {nodesRequested, 
               nodesUsed, nodesFromUsAvailable, nodesFromOthersAvailable,
               nodesNeeded});
@@ -139,7 +137,6 @@ public class IsolatedPool extends NodePool {
             LOG.warn("Unable to schedule topology {} because it needs {} " +
             		"more nodes which would exced the limit of {}",
             		new Object[] {topId, nodesNeeded - nodesFromUsAvailable, _maxNodes});
-            //TODO set an error of some sort on the topology
             continue;
           }
           
@@ -149,12 +146,11 @@ public class IsolatedPool extends NodePool {
           int nodesNeededFromOthers = Math.min(Math.min(_maxNodes - _usedNodes, 
               nodesFromOthersAvailable), nodesNeeded);
           int nodesNeededFromUs = nodesNeeded - nodesNeededFromOthers; 
-          LOG.info("Nodes... needed from us {} needed from others {}", 
+          LOG.debug("Nodes... needed from us {} needed from others {}", 
               nodesNeededFromUs, nodesNeededFromOthers);
           
           if (nodesNeededFromUs > nodesFromUsAvailable) {
             LOG.warn("There are not engough free nodes to schedule {}", topId);
-            //TODO set an error of some sort on the topology
             continue;
           }
                     
@@ -171,9 +167,6 @@ public class IsolatedPool extends NodePool {
           int slotsFree = Node.countFreeSlotsAlive(allNodes);
           slotsToUse = Math.min(slotsRequested - slotsUsed, slotsFree);
           if (slotsToUse <= 0) {
-            //TODO we really need some more state about how long a supervisor 
-            // has been gone for so we can better determine what to do.  Grab a
-            // new node, or wait a little longer. 
             LOG.warn("An Isolated topology {} has had both a supervisor and" +
             		" a worker crash, but not all workers. lets hope it comes " +
             		"back up soon.", topId);
@@ -214,13 +207,13 @@ public class IsolatedPool extends NodePool {
 
         int at = 0;
         for (Entry<String, List<ExecutorDetails>> entry: _cluster.getNeedsSchedulingComponentToExecutors(td).entrySet()) {
-          LOG.info("Scheduling for {}", entry.getKey());
+          LOG.debug("Scheduling for {}", entry.getKey());
           if (spreadToSchedule.containsKey(entry.getKey())) {
-            LOG.info("Saving {} for spread...",entry.getKey());
+            LOG.debug("Saving {} for spread...",entry.getKey());
             spreadToSchedule.get(entry.getKey()).addAll(entry.getValue());
           } else {
             for (ExecutorDetails ed: entry.getValue()) {
-              LOG.info("Assigning {} {} to slot {}", new Object[]{entry.getKey(), ed, at});
+              LOG.debug("Assigning {} {} to slot {}", new Object[]{entry.getKey(), ed, at});
               slots.get(at).add(ed);
               at++;
               if (at >= slots.size()) {
@@ -232,14 +225,12 @@ public class IsolatedPool extends NodePool {
 
         Set<ExecutorDetails> lastSlot = slots.get(slots.size() - 1);
         LinkedList<Node> sortedNodes = new LinkedList<Node>(allNodes);
-        Collections.sort(sortedNodes, Node.FREE_NODE_COMPARATOR);
-        Collections.reverse(sortedNodes);
+        Collections.sort(sortedNodes, Node.FREE_NODE_COMPARATOR_DEC);
 
-        LOG.info("Nodes sorted by free space {}", sortedNodes);
+        LOG.debug("Nodes sorted by free space {}", sortedNodes);
         
         for (Set<ExecutorDetails> slot: slots) {
           Node n = sortedNodes.remove();
-          LOG.info("Adding slot to node {} with {} free slots",n,n.totalSlotsFree());
           if (slot == lastSlot) {
             //The last slot fill it up
             for (Entry<String, List<ExecutorDetails>> entry: spreadToSchedule.entrySet()) {
@@ -266,19 +257,14 @@ public class IsolatedPool extends NodePool {
           }
           n.assign(topId, slot, _cluster);
           int freeSlots = n.totalSlotsFree();
-          LOG.info("Node {} now has {} free slots",n,n.totalSlotsFree());
-          //TODO really should do a binary search but it should be small
           for (int i = 0; i < sortedNodes.size(); i++) {
-            LOG.info("Should I put it in at {} with {} free slots",i,sortedNodes.get(i).totalSlotsFree());
             if (freeSlots >= sortedNodes.get(i).totalSlotsFree()) {
-              LOG.info("Yes...");
               sortedNodes.add(i, n);
               n = null;
               break;
             }
           }
           if (n != null) {
-            LOG.info("Adding {} in at the end of the list", n);
             sortedNodes.add(n);
           }
         }
@@ -288,7 +274,7 @@ public class IsolatedPool extends NodePool {
 
   @Override
   public Collection<Node> takeNodes(int nodesNeeded) {
-    LOG.info("Taking {} from {}", nodesNeeded, this);
+    LOG.debug("Taking {} from {}", nodesNeeded, this);
     HashSet<Node> ret = new HashSet<Node>();
     for (Entry<String, Set<Node>> entry: _topologyIdToNodes.entrySet()) {
       if (!_isolated.contains(entry.getKey())) {

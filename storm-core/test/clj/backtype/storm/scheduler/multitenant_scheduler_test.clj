@@ -437,7 +437,6 @@
 ))
 
 (deftest test-multitenant-scheduler
-  (log-message "\n\n\t\tSTARTING test-multitenant-scheduler\n\n")
   (let [supers (gen-supervisors 10)
        topology1 (TopologyDetails. "topology1" 
                    {TOPOLOGY-NAME "topology-name-1"

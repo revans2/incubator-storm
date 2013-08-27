@@ -24,7 +24,7 @@ public class MultitenantScheduler implements IScheduler {
   
   @Override
   public void schedule(Topologies topologies, Cluster cluster) {
-    LOG.info("Rerunning scheduling...");
+    LOG.debug("Rerunning scheduling...");
     Map<String, Node> nodeIdToNode = Node.getAllNodesFrom(cluster);
     
     //TODO get this from someplace else so it is loaded dynamically.
@@ -48,7 +48,7 @@ public class MultitenantScheduler implements IScheduler {
     
     for (TopologyDetails td: topologies.getTopologies()) {
       String user = (String)td.getConf().get(Config.TOPOLOGY_SUBMITTER_USER);
-      LOG.info("Found top {} run by user {}",td.getId(), user);
+      LOG.debug("Found top {} run by user {}",td.getId(), user);
       NodePool pool = userPools.get(user);
       if (pool == null || !pool.canAdd(td)) {
         pool = defaultPool;
@@ -61,6 +61,6 @@ public class MultitenantScheduler implements IScheduler {
       pool.scheduleAsNeeded(freePool, defaultPool);
     }
     defaultPool.scheduleAsNeeded(freePool);
-    LOG.info("Scheduling done...");
+    LOG.debug("Scheduling done...");
   }
 }

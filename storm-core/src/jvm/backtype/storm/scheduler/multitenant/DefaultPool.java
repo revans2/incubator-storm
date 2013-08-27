@@ -33,7 +33,6 @@ public class DefaultPool extends NodePool {
 
   @Override
   public void init(Cluster cluster, Map<String, Node> nodeIdToNode) {
-    LOG.info("Default pool initializing...");
     _cluster = cluster;
     _nodeIdToNode = nodeIdToNode;
   }
@@ -41,13 +40,12 @@ public class DefaultPool extends NodePool {
   @Override
   public void addTopology(TopologyDetails td) {
     String topId = td.getId();
-    LOG.info("Adding in Topology {}", topId);
+    LOG.debug("Adding in Topology {}", topId);
     _tds.put(topId, td);
     SchedulerAssignment assignment = _cluster.getAssignmentById(topId);
     if (assignment != null) {
       for (WorkerSlot ws: assignment.getSlots()) {
         Node n = _nodeIdToNode.get(ws.getNodeId());
-        LOG.info("Found node {} for slot {}", n, ws);
         _nodes.add(n);
       }
     }
@@ -62,7 +60,7 @@ public class DefaultPool extends NodePool {
   public Collection<Node> takeNodes(int nodesNeeded) {
     HashSet<Node> ret = new HashSet<Node>();
     LinkedList<Node> sortedNodes = new LinkedList<Node>(_nodes);
-    Collections.sort(sortedNodes, Node.FREE_NODE_COMPARATOR);
+    Collections.sort(sortedNodes, Node.FREE_NODE_COMPARATOR_DEC);
     for (Node n: sortedNodes) {
       if (nodesNeeded <= ret.size()) {
         break;
@@ -95,7 +93,7 @@ public class DefaultPool extends NodePool {
     int nodesFound = 0;
     int slotsFound = 0;
     LinkedList<Node> sortedNodes = new LinkedList<Node>(_nodes);
-    Collections.sort(sortedNodes, Node.FREE_NODE_COMPARATOR);
+    Collections.sort(sortedNodes, Node.FREE_NODE_COMPARATOR_DEC);
     for (Node n: sortedNodes) {
       if (slotsNeeded <= 0) {
         break;
@@ -114,7 +112,7 @@ public class DefaultPool extends NodePool {
   public Collection<Node> takeNodesBySlots(int slotsNeeded) {
     HashSet<Node> ret = new HashSet<Node>();
     LinkedList<Node> sortedNodes = new LinkedList<Node>(_nodes);
-    Collections.sort(sortedNodes, Node.FREE_NODE_COMPARATOR);
+    Collections.sort(sortedNodes, Node.FREE_NODE_COMPARATOR_DEC);
     for (Node n: sortedNodes) {
       if (slotsNeeded <= 0) {
         break;
@@ -133,9 +131,8 @@ public class DefaultPool extends NodePool {
   public void scheduleAsNeeded(NodePool... lesserPools) {
     for (TopologyDetails td : _tds.values()) {
       if (_cluster.needsScheduling(td)) {
-        //TODO need to check for rescheduled workers on dead nodes
         String topId = td.getId();
-        LOG.info("Scheduling topology {}",topId);
+        LOG.debug("Scheduling topology {}",topId);
         int slotsRequested = td.getNumWorkers();
         int slotsUsed = Node.countSlotsUsed(topId, _nodes);
         int slotsFree = Node.countFreeSlotsAlive(_nodes);
@@ -145,11 +142,10 @@ public class DefaultPool extends NodePool {
           slotsAvailable = NodePool.slotsAvailable(lesserPools);
         }
         int slotsToUse = Math.min(slotsRequested - slotsUsed, slotsFree + slotsAvailable);
-        LOG.info("Slots... requested {} used {} free {} available {} to be used {}", 
+        LOG.debug("Slots... requested {} used {} free {} available {} to be used {}", 
             new Object[] {slotsRequested, slotsUsed, slotsFree, slotsAvailable, slotsToUse});
         if (slotsToUse <= 0) {
           LOG.warn("The cluster appears to be full no slots left to schedule {}", topId);
-          //TODO it would be good to tag this topology some how
           continue;
         }
 
@@ -200,13 +196,12 @@ public class DefaultPool extends NodePool {
 
         int at = 0;
         for (Entry<String, List<ExecutorDetails>> entry: _cluster.getNeedsSchedulingComponentToExecutors(td).entrySet()) {
-          LOG.info("Scheduling for {}", entry.getKey());
           if (spreadToSchedule.containsKey(entry.getKey())) {
-            LOG.info("Saving {} for spread...",entry.getKey());
+            LOG.debug("Saving {} for spread...",entry.getKey());
             spreadToSchedule.get(entry.getKey()).addAll(entry.getValue());
           } else {
             for (ExecutorDetails ed: entry.getValue()) {
-              LOG.info("Assigning {} {} to {}", new Object[]{entry.getKey(), ed, at});
+              LOG.debug("Assigning {} {} to {}", new Object[]{entry.getKey(), ed, at});
               slots.get(at).add(ed);
               at++;
               if (at >= slots.size()) {

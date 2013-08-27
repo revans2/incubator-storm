@@ -102,13 +102,13 @@ public abstract class NodePool {
   }
   
   public static Collection<Node> takeNodesBySlot(int slotsNeeded,NodePool[] pools) {
-    LOG.info("Trying to grab {} free slots from {}",slotsNeeded, pools);
+    LOG.debug("Trying to grab {} free slots from {}",slotsNeeded, pools);
     HashSet<Node> ret = new HashSet<Node>();
     for (NodePool pool: pools) {
       Collection<Node> got = pool.takeNodesBySlots(slotsNeeded);
       ret.addAll(got);
       slotsNeeded -= Node.countFreeSlotsAlive(got);
-      LOG.info("Got {} nodes so far need {} more slots",ret.size(),slotsNeeded);
+      LOG.debug("Got {} nodes so far need {} more slots",ret.size(),slotsNeeded);
       if (slotsNeeded <= 0) {
         break;
       }
@@ -117,13 +117,13 @@ public abstract class NodePool {
   }
   
   public static Collection<Node> takeNodes(int nodesNeeded,NodePool[] pools) {
-    LOG.info("Trying to grab {} free nodes from {}",nodesNeeded, pools);
+    LOG.debug("Trying to grab {} free nodes from {}",nodesNeeded, pools);
     HashSet<Node> ret = new HashSet<Node>();
     for (NodePool pool: pools) {
       Collection<Node> got = pool.takeNodes(nodesNeeded);
       ret.addAll(got);
       nodesNeeded -= got.size();
-      LOG.info("Got {} nodes so far need {} more nodes", ret.size(), nodesNeeded);
+      LOG.debug("Got {} nodes so far need {} more nodes", ret.size(), nodesNeeded);
       if (nodesNeeded <= 0) {
         break;
       }
@@ -132,13 +132,13 @@ public abstract class NodePool {
   }
 
   public static int getNodeCountIfSlotsWereTaken(int slots,NodePool[] pools) {
-    LOG.info("How many nodes to get {} slots from {}",slots, pools);
+    LOG.debug("How many nodes to get {} slots from {}",slots, pools);
     int total = 0;
     for (NodePool pool: pools) {
       NodeAndSlotCounts ns = pool.getNodeAndSlotCountIfSlotsWereTaken(slots);
       total += ns._nodes;
       slots -= ns._slots;
-      LOG.info("Found {} nodes so far {} more slots needed", total, slots);
+      LOG.debug("Found {} nodes so far {} more slots needed", total, slots);
       if (slots <= 0) {
         break;
       }

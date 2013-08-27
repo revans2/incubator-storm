@@ -221,7 +221,7 @@ public class Node {
       //Node ID and supervisor ID are the same.
       String id = sup.getId();
       boolean isAlive = !cluster.isBlackListed(id);
-      LOG.info("Found a {} Node {} {}", 
+      LOG.debug("Found a {} Node {} {}", 
           new Object[] {isAlive? "living":"dead", id, sup.getAllPorts()});
       nodeIdToNode.put(id, new Node(id, sup.getAllPorts(), isAlive));
     }
@@ -232,7 +232,7 @@ public class Node {
         String id = ws.getNodeId();
         Node node = nodeIdToNode.get(id);
         if (node == null) {
-          LOG.warn("Found an assigned slot on a dead supervisor {}", ws);
+          LOG.debug("Found an assigned slot on a dead supervisor {}", ws);
           node = new Node(id, null, false);
           nodeIdToNode.put(id, node);
         }
@@ -243,10 +243,14 @@ public class Node {
     return nodeIdToNode;
   }
   
-  public static Comparator<Node> FREE_NODE_COMPARATOR = new Comparator<Node>() {
+  /**
+   * Used to sort a list of nodes so the node with the most free slots comes
+   * first.
+   */
+  public static final Comparator<Node> FREE_NODE_COMPARATOR_DEC = new Comparator<Node>() {
     @Override
     public int compare(Node o1, Node o2) {
-      return o1.totalSlotsFree() - o2.totalSlotsFree();
+      return o2.totalSlotsFree() - o1.totalSlotsFree();
     }
   };
 }

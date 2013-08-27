@@ -22,14 +22,13 @@ public class FreePool extends NodePool {
 
   @Override
   public void init(Cluster cluster, Map<String, Node> nodeIdToNode) {
-    LOG.info("initializing free pool");
     for (Node n: nodeIdToNode.values()) {
       if(n.isTotallyFree() && n.isAlive()) {
         _nodes.add(n);
         _totalSlots += n.totalSlotsFree();
       }
     }
-    LOG.info("Found {} nodes with {} slots", _nodes.size(), _totalSlots);
+    LOG.debug("Found {} nodes with {} slots", _nodes.size(), _totalSlots);
   }
   
   @Override
