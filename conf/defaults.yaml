@@ -50,6 +50,9 @@ nimbus.topology.validator: "backtype.storm.nimbus.DefaultTopologyValidator"
 ui.port: 8080
 ui.childopts: "-Xmx768m"
 ui.actions.enabled: true
+ui.filter: null
+ui.filter.params: null
+ui.users: null
 
 logviewer.port: 8000
 logviewer.childopts: "-Xmx128m"

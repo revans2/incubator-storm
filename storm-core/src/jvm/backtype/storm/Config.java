@@ -373,6 +373,24 @@ public class Config extends HashMap<String, Object> {
     public static final Object UI_CHILDOPTS_SCHEMA = String.class;
 
     /**
+     * A class implementing javax.servlet.Filter for authenticating/filtering UI requests
+     */
+    public static final String UI_FILTER = "ui.filter";
+    public static final Object UI_FILTER_SCHEMA = String.class;
+
+    /**
+     * Initialization parameters for the javax.servlet.Filter
+     */
+    public static final String UI_FILTER_PARAMS = "ui.filter.params";
+    public static final Object UI_FILTER_PARAMS_SCHEMA = Map.class;
+
+    /**
+     * A list of users allowed to access your topology via the UI
+     */
+    public static final String UI_USERS = "ui.users";
+    public static final Object UI_USERS_SCHEMA = ConfigValidation.StringsValidator;
+
+    /**
      * Whether or not actions should be enabled.  When disabled, requests to
      * modify the state of topologies via HTTP will not be honored.
      *

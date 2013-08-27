@@ -36,13 +36,21 @@ remappedKeys = {"storm.messaging.netty.buffer.size":"storm.messaging.netty.buffe
                 "storm.messaging.netty.min.wait.ms":"storm.messaging.netty.min_wait_ms",
                 "storm.messaging.netty.max.wait.ms":"storm.messaging.netty.max_wait_ms"}
 
-listKeys = set(["storm.auth.simple-white-list.users", "supervisor.slots.ports", "storm.zookeeper.servers", "topology.kryo.register", "drpc.servers", "worker.childopts"])
-mapKeys = set(["isolation.scheduler.machines","multitenant.scheduler.user.pools"])
+listKeys = set(["storm.auth.simple-white-list.users", "supervisor.slots.ports", "storm.zookeeper.servers", "topology.kryo.register", "drpc.servers", "worker.childopts", "ui.users"])
+mapKeys = set(["isolation.scheduler.machines", "multitenant.scheduler.user.pools", "ui.filter.params"])
+
+allStringKeys = set(["ui.filter.params"])
 
 config = dict((k[8:].replace("_", "."), v) for k, v in os.environ.items() if k.startswith("ystorm__"))
 
+qq_string = re.compile("^\".*\"$")
 numeric = re.compile("^[0-9\.]+$")
 bool_re = re.compile("^(true)|(false)$",re.I)
+
+def double_quote_if_needed(str):
+    if qq_string.search(str):
+        return str
+    return "\"" + str + "\""
 
 def normalize(value):
     str = value.strip()
@@ -51,7 +59,7 @@ def normalize(value):
     elif bool_re.search(str):
         return str
     else:
-        return "\"" + str + "\""
+        return double_quote_if_needed(str)
 
 def printJavaLibPath(platform):
     if platform.startswith("x86_64"):
@@ -62,7 +70,7 @@ def printJavaLibPath(platform):
 def splitListValue(v):
     return re.split("[,\s]", v)
 
-def handleListKey(k,v):
+def handleListKey(k,v,norm_fn):
     if k == "supervisor.slots.ports":
 #        print "in elif 1"
         print k + ":"
@@ -74,20 +82,20 @@ def handleListKey(k,v):
 
     elif k == "worker.childopts":
 #        print "in elif 2"
-        v_without_quotes = normalize(v)
+        v_without_quotes = norm_fn(v)
         print k + ":", "\"", v, "\""
 
     else:
 #        print "in else"
         print k + ":"
         for item in splitListValue(v):
-            print "    -", normalize(item)
+            print "    -", norm_fn(item)
 
-def handleMapKey(k,v):
+def handleMapKey(k,v,norm_fn):
     print k + ":"
     items = splitListValue(v)
     for subkey,subval in zip(items[0::2],items[1::2]):
-        print "    %s: %s" % (normalize(subkey),normalize(subval))
+        print "    %s: %s" % (norm_fn(subkey),norm_fn(subval))
 
 
 for k, v in config.items():
@@ -95,13 +103,14 @@ for k, v in config.items():
     if k in remappedKeys:
         k = remappedKeys[k]
 
+    my_normalize = double_quote_if_needed if (k in allStringKeys) else normalize
     if k not in listKeys and k not in mapKeys:
 #        print "k not in listkeys"
-        print k + ":", normalize(v)
+        print k + ":", my_normalize(v)
     if k in listKeys:
-        handleListKey(k,v)
+        handleListKey(k,v,my_normalize)
     elif k in mapKeys:
-        handleMapKey(k,v)
+        handleMapKey(k,v, my_normalize)
 
 if "java.library.path" not in config:
     if "root__platform" in os.environ:
