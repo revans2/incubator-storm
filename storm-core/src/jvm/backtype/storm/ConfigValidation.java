@@ -40,9 +40,9 @@ public class ConfigValidation {
     }
 
     /**
-     * Returns a new FieldValidator for a given class.
+     * Returns a new NestableFieldValidator for a given class.
      * @param cls the Class the field should be a type of
-     * @return a FieldValidator for that class
+     * @return a NestableFieldValidator for that class
      */
     public static NestableFieldValidator fv(final Class cls) {
         return new NestableFieldValidator() {
@@ -62,14 +62,19 @@ public class ConfigValidation {
     }
     
     /**
-     * Returns a new FieldValidator for a List of the given Class.
+     * Returns a new NestableFieldValidator for a List of the given Class.
      * @param cls the Class of elements composing the list
-     * @return a FieldValidator for a list of the given class
+     * @return a NestableFieldValidator for a list of the given class
      */
     public static NestableFieldValidator listFv(Class cls) {
       return listFv(fv(cls));
     }
     
+    /**
+     * Returns a new NestableFieldValidator for a List where each item is validated by validator.
+     * @param validator used to validate each item in the list
+     * @return a NestableFieldValidator for a list with each item validated by a different validator.
+     */
     public static NestableFieldValidator listFv(final NestableFieldValidator validator) {
         return new NestableFieldValidator() {
             @Override
@@ -86,21 +91,27 @@ public class ConfigValidation {
                     return;
                 }
                 throw new IllegalArgumentException(
-                        "Field " + name + " must be an Iterable" + field.getClass());
+                        "Field " + name + " must be an Iterable " + field.getClass());
             }
         };
     }
 
     /**
-     * Returns a new FieldValidator for a Map of key to val.
+     * Returns a new NestableFieldValidator for a Map of key to val.
      * @param key the Class of keys in the map
      * @param val the Class of values in the map
-     * @return a FieldValidator for a Map of key to val
+     * @return a NestableFieldValidator for a Map of key to val
      */
     public static NestableFieldValidator mapFv(final Class key, final Class val) {
         return mapFv(fv(key), fv(val));
     }
-    
+ 
+    /**
+     * Returns a new NestableFieldValidator for a Map.
+     * @param key a validator for the keys in the map
+     * @param val a validator for the values in the map
+     * @return a NestableFieldValidator for a Map
+     */   
     public static NestableFieldValidator mapFv(final NestableFieldValidator key, final NestableFieldValidator val) {
         return new NestableFieldValidator() {
             @SuppressWarnings("unchecked")

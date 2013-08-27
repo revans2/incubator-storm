@@ -930,7 +930,7 @@ public class Config extends HashMap<String, Object> {
     public static final Object MULTITENANT_SCHEDULER_USER_POOLS_SCHEMA = ConfigValidation.MapOfStringToNumberValidator;
 
     /**
-     * The number of machine that should be used by this topology to isolate it from all others. Set storm.scheduler
+     * The number of machines that should be used by this topology to isolate it from all others. Set storm.scheduler
      * to backtype.storm.scheduler.multitenant.MultitenantScheduler
      */
     public static final String TOPOLOGY_ISOLATED_MACHINES = "topolgy.isolate.machines";
