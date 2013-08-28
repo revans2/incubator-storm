@@ -34,14 +34,15 @@
     ))
 
 (defn get-log-whitelist-file [fname]
-  (if-let [prefix (second (re-matches #"(.*-\d+-\d+-worker-\d+).log" fname))]
-    (clojure.java.io/file LOG-DIR "metadata" (str prefix ".yaml"))))
+  (if-let [[_ id port] (re-matches #"(.*-\d+-\d+)-worker-(\d+).log" fname)]
+    (clojure.java.io/file LOG-DIR "metadata" (logs-metadata-filename id port))))
 
 (defn get-log-user-whitelist [fname]
   (try
     (let [wl-file (get-log-whitelist-file fname)
-          m (.load (Yaml. (SafeConstructor.)) (java.io.FileReader. wl-file))]
-      (if-let [whitelist (m LOGS-USERS)] whitelist []))
+          obj (.load (Yaml. (SafeConstructor.)) (java.io.FileReader. wl-file))
+          m (clojurify-structure obj)]
+      (if-let [whitelist (.get m LOGS-USERS)] whitelist []))
     (catch Exception ex
       (log-error ex))))
 
@@ -71,8 +72,7 @@
           (unauthorized-user-html user)))
 
       (-> (resp/response "Page not found")
-          (resp/status 404)
-          (resp/content-type "text/html")))))
+          (resp/status 404)))))
 
 (defn log-level-page [name level]
   (let [log (LogFactory/getLog name)]
@@ -84,7 +84,7 @@
 (defn log-template
   ([body] (log-template body nil))
   ([body user]
-    (html
+    (html4
      [:head
       [:title "Storm log viewer"]
       (include-css "/css/bootstrap-1.1.0.css")
@@ -116,7 +116,7 @@
 
 (defn start-logviewer! [conf]
   (try
-    (run-jetty logapp {:port (int (conf UI-PORT))
+    (run-jetty logapp {:port (int (conf LOGVIEWER-PORT))
                        :join? false
                        :configurator (fn [server]
                                        (config-filter server logapp conf))})

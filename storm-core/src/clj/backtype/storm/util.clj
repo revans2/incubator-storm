@@ -896,5 +896,5 @@
 (defn logs-filename [storm-id port]
   (str (logs-rootname storm-id port) ".log"))
 
-(defn logs-metadataname [storm-id port]
+(defn logs-metadata-filename [storm-id port]
   (str (logs-rootname storm-id port) ".yaml"))
