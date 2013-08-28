@@ -11,6 +11,7 @@ import backtype.storm.scheduler.Cluster;
 import backtype.storm.scheduler.IScheduler;
 import backtype.storm.scheduler.Topologies;
 import backtype.storm.scheduler.TopologyDetails;
+import backtype.storm.utils.Utils;
 
 public class MultitenantScheduler implements IScheduler {
   private static final Logger LOG = LoggerFactory.getLogger(MultitenantScheduler.class);
@@ -21,17 +22,30 @@ public class MultitenantScheduler implements IScheduler {
   public void prepare(@SuppressWarnings("rawtypes") Map conf) {
     _conf = conf;
   }
-  
+ 
+  private Map<String, Number> getUserConf() {
+    Map<String, Number> ret = (Map<String, Number>)_conf.get(Config.MULTITENANT_SCHEDULER_USER_POOLS);
+    if (ret == null) {
+      ret = new HashMap<String, Number>();
+    } else {
+      ret = new HashMap<String, Number>(ret); 
+    }
+
+    Map fromFile = Utils.findAndReadConfigFile("multitenant-scheduler.yaml", false);
+    Map<String, Number> tmp = (Map<String, Number>)fromFile.get(Config.MULTITENANT_SCHEDULER_USER_POOLS);
+    if (tmp != null) {
+      ret.putAll(tmp);
+    }
+    return ret;
+  }
+
+ 
   @Override
   public void schedule(Topologies topologies, Cluster cluster) {
     LOG.debug("Rerunning scheduling...");
     Map<String, Node> nodeIdToNode = Node.getAllNodesFrom(cluster);
     
-    //TODO get this from someplace else so it is loaded dynamically.
-    Map<String, Number> userConf = (Map<String, Number>)_conf.get(Config.MULTITENANT_SCHEDULER_USER_POOLS);
-    if (userConf == null) {
-      userConf = new HashMap<String, Number>();
-    }
+    Map<String, Number> userConf = getUserConf();
     
     Map<String, IsolatedPool> userPools = new HashMap<String, IsolatedPool>();
     for (Map.Entry<String, Number> entry : userConf.entrySet()) {
