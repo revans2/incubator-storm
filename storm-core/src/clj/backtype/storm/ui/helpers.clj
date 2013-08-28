@@ -135,10 +135,7 @@ $(\"table#%s\").each(function(i) { $(this).tablesorter({ sortList: %s, headers: 
   (str "[" (.get_task_start e) "-" (.get_task_end e) "]"))
 
 (defn get-servlet-user [servlet-request]
-  (when servlet-request 
-    (let [user (.. servlet-request getUserPrincipal getName)]
-(log-message "%%%%%%%%%%%%%%% User was found to be " user)
-      user)))
+  (when servlet-request (.. servlet-request getUserPrincipal getName)))
 
 (defn unauthorized-user-html [user]
   [[:h2 "User '" (escape-html user) "' is not authorized."]])
