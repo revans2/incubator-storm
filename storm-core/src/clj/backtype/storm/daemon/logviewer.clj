@@ -16,6 +16,8 @@
 
 (def ^:dynamic *STORM-CONF* (read-storm-config))
 
+(def LOGS-DIR (get-logdir-path))
+
 (defn tail-file [path tail]
   (let [flen (.length (clojure.java.io/file path))
         skip (- flen tail)]
@@ -31,33 +33,33 @@
       (.toString output))
     ))
 
-(defn get-log-whitelist-file [file]
-  (if-let [prefix (second (re-matches #"(.*-\d+-\d+-worker-\d+).log" file))]
-    (clojure.java.io/file (*STORM-CONF* LOGS-USERS-WHITELISTS-DIR) (str prefix ".yaml"))))
+(defn get-log-whitelist-file [fname]
+  (if-let [prefix (second (re-matches #"(.*-\d+-\d+-worker-\d+).log" fname))]
+    (clojure.java.io/file LOGS-DIR "metadata" (str prefix ".yaml"))))
 
-(defn get-log-user-whitelist [file]
+(defn get-log-user-whitelist [fname]
   (try
-    (let [wl-file (get-log-whitelist-file file)
+    (let [wl-file (get-log-whitelist-file fname)
           m (.load (Yaml. (SafeConstructor.)) (java.io.FileReader. wl-file))]
       (if-let [whitelist (m LOGS-USERS)] whitelist []))
     (catch Exception ex
       (log-error ex))))
 
-(defn authorized-log-user? [user file]
-  (if (or (blank? user) (blank? file)) 
+(defn authorized-log-user? [user fname]
+  (if (or (blank? user) (blank? fname)) 
     nil
-    (let [whitelist (get-log-user-whitelist file)
+    (let [whitelist (get-log-user-whitelist fname)
           logs-users (concat (*STORM-CONF* LOGS-USERS) whitelist)]
        (some #(= % user) logs-users))))
 
-(defn log-page [file tail grep user]
-  (let [path (str (System/getProperty "storm.home") "/logs/" file)
+(defn log-page [fname tail grep user]
+  (let [path (str LOGS-DIR "/" fname)
         tail (if tail
                (min 10485760 (Integer/parseInt tail))
                10240)
         tail-string (tail-file path tail)]
     (if (or (blank? (*STORM-CONF* UI-FILTER))
-            (authorized-log-user? user file))
+            (authorized-log-user? user fname))
       (if grep
          (clojure.string/join "\n<br>"
            (filter #(.contains % grep) (.split tail-string "\n")))

@@ -2,6 +2,7 @@
   (:use compojure.core)
   (:use [hiccup core page-helpers])
   (:use [clojure [string :only [blank? join]]])
+  (:use [backtype.storm config])
   (:use [backtype.storm.util :only [uuid defnk]])
   (:use [clj-time coerce format])
   (:import [backtype.storm.generated ExecutorInfo ExecutorSummary])
@@ -137,3 +138,12 @@ $(\"table#%s\").each(function(i) { $(this).tablesorter({ sortList: %s, headers: 
 
 (defn unauthorized-user-html [user]
   [[:h2 "User '" (escape-html user) "' is not authorized."]])
+
+(defn get-logdir-path  []
+  (.getCanonicalPath 
+                (clojure.java.io/file (System/getProperty "storm.home") "logs")))
+
+(defn find-topology-logs [topo-conf storm-conf]
+  (let [id (topo-conf STORM-ID)]
+    (filter #((re-matches #"(.*-\d+-\d+-worker-\d+).log") %)
+            (file-seq (clojure.java.io/file (get-logdir-path))))))

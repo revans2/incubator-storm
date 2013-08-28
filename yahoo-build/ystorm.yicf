@@ -17,14 +17,13 @@ YINST requires pkg ypython26_pyyaml      3.10_1      3.999999
 YINST requires pkg yjava_jdk             1.7.0_11.64 1.7.999999
 YINST requires pkg yjava_servlet_filters 0.22.495    *
 
-YINST set storm_local_dir          /home/y/var/storm
-YINST set syslog_facility          LOCAL5
-YINST set syslog_host              localhost
-YINST set ui_actions_enabled       false
-YINST set worker_launcher_group    nobody
-YINST set min_user_id              500
-YINST set ui_filter                yjava.servlet.filter.BouncerFilter
-YINST set ui_users_whitelist_path  /home/y/lib/storm/current/logs-whitelists
+YINST set storm_local_dir           /home/y/var/storm
+YINST set syslog_facility           LOCAL5
+YINST set syslog_host               localhost
+YINST set ui_actions_enabled        false
+YINST set worker_launcher_group     nobody
+YINST set min_user_id               500
+YINST set ui_filter                 yjava.servlet.filter.BouncerFilter
 
 # Bouncer UI Filter Configuration
 YINST set ui_filter_params bouncer_cookie_timeout,480,bouncer_url,https://by.bouncer.login.yahoo.com/login/
@@ -35,8 +34,7 @@ PERM = 0444
 OWNER = root
 GROUP = users
 
-dir 777 - - lib64/storm/$(BASE_VERSION)/logs
-dir 1777 - - lib64/storm/$(BASE_VERSION)/logs-whitelists
+dir 3777 - - lib64/storm/$(BASE_VERSION)/logs
 find 755 - - lib64/storm/$(BASE_VERSION)/bin/ ../bin/ -type f
 find - - - lib64/storm/$(BASE_VERSION)/lib/ ../storm-core-mvn/target/dependency/ ../storm-netty-mvn/target/dependency/ -type f
 
@@ -78,5 +76,5 @@ symlink - - - lib64/storm/current $(BASE_VERSION)
 symlink - - - lib/storm/current ../../lib64/storm/$(BASE_VERSION)
 symlink - - - bin/storm /home/y/lib64/storm/current/bin/storm
 
-dir 777 - - logs/storm
-dir 777 - - var/storm
+dir 775 - - logs/storm
+dir 775 - - var/storm

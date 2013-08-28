@@ -367,6 +367,12 @@ public class Config extends HashMap<String, Object> {
     public static final Object LOGVIEWER_CHILDOPTS_SCHEMA = String.class;
 
     /**
+     * A list of users allowed to view logs via the Log Viewer 
+     */
+    public static final String LOGS_USERS = "logs.users";
+    public static final Object LOGS_USERS_SCHEMA = ConfigValidation.StringsValidator;
+
+    /**
      * Childopts for Storm UI Java process.
      */
     public static final String UI_CHILDOPTS = "ui.childopts";
@@ -389,20 +395,6 @@ public class Config extends HashMap<String, Object> {
      */
     public static final String UI_USERS = "ui.users";
     public static final Object UI_USERS_SCHEMA = ConfigValidation.StringsValidator;
-
-    /**
-     * A list of users allowed to view logs via the Log Viewer 
-     */
-    public static final String LOGS_USERS = "logs.users";
-    public static final Object LOGS_USERS_SCHEMA = ConfigValidation.StringsValidator;
-
-    /**
-     * The file system path for log file whitelists.  When UI_FILTER has been
-     * configured, the logviewer references these whitelists to authorize
-     * access.
-     */
-    public static final String LOGS_USERS_WHITELISTS_DIR = "logs.users.whitelists.dir";
-    public static final Object LOGS_USERS_WHITELISTS_DIR_SCHEMA = String.class;
 
     /**
      * Whether or not actions should be enabled.  When disabled, requests to

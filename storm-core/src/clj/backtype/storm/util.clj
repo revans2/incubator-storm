@@ -885,3 +885,7 @@
       (.close serverSocket)
       (log-message "Grabbed port number " port_assigned " instead of the configured port " port)
       port_assigned)))
+
+(def LOG-DIR
+  (.getCanonicalPath 
+                (clojure.java.io/file (System/getProperty "storm.home") "logs")))

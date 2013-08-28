@@ -467,6 +467,12 @@
       ]
      )))
 
+(defn logs-table [topology-conf]
+  (let [id (topology-conf STORM-ID)]
+    (map
+     (fn [log] [:p (link-to (url-format "/topology/%s/%s" id (.getName log)) (escape-html (.getName log)))])
+     (find-topology-logs topology-conf *STORM-CONF*))))
+
 (defn window-hint [window]
   (if (= window ":all-time")
     "All time"
@@ -531,6 +537,8 @@
           (bolt-comp-table id bolt-comp-summs (.get_errors summ) window include-sys?)
           [[:h2 "Topology Configuration"]]
           (configuration-table topology-conf)
+          [[:h2 "Topology Logs"]]
+          (logs-table (merge topology-conf {STORM-ID id}))
         )
 
         (unauthorized-user-html user)))))
