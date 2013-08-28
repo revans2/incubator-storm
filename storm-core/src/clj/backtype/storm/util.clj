@@ -889,3 +889,12 @@
 (def LOG-DIR
   (.getCanonicalPath 
                 (clojure.java.io/file (System/getProperty "storm.home") "logs")))
+
+(defn- logs-rootname [storm-id port]
+  (str storm-id "-worker-" port))
+
+(defn logs-filename [storm-id port]
+  (str (logs-rootname storm-id port) ".log"))
+
+(defn logs-metadataname [storm-id port]
+  (str (logs-rootname storm-id port) ".yaml"))
