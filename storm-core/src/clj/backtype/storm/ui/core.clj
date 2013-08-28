@@ -387,7 +387,7 @@
 (defn component-link [storm-id id]
   (link-to (url-format "/topology/%s/component/%s" storm-id id) (escape-html id)))
 
-(defn worker-log-link [conf host port topology-id]
+(defn worker-log-link [host port topology-id]
   (let [fname (logs-filename topology-id port)]
     (link-to (url-format (str "http://%s:%s/log?file=" fname)
                 host (*STORM-CONF* LOGVIEWER-PORT)) (str port))))
@@ -485,7 +485,7 @@
 (defn- ui-actions-enabled? []
   (= "true" (lower-case (*STORM-CONF* UI-ACTIONS-ENABLED))))
 
-(defn- topology-actions [conf id name status msg-timeout]
+(defn- topology-actions [id name status msg-timeout]
   (if (ui-actions-enabled?)
     (concat
        [[:h2 {:class "js-only"} "Topology actions"]]
@@ -862,20 +862,6 @@
         (log-error ex)
         ))))
 
-(defn- config-filter [server handler conf]
-  (if-let [filter-class (conf UI-FILTER)]
-    (let [filter (doto (org.mortbay.jetty.servlet.FilterHolder.)
-                   (.setName "springSecurityFilterChain")
-                   (.setClassName filter-class)
-                   (.setInitParameters (conf UI-FILTER-PARAMS)))
-          servlet (doto (org.mortbay.jetty.servlet.ServletHolder. (ring.util.servlet/servlet handler))
-                    (.setName "default"))
-          context (doto (org.mortbay.jetty.servlet.Context. server "/")
-                    (.addFilter filter "/*" 0)
-                    (.addServlet servlet "/"))]
-      (.addHandler server context))))
-
-
 (defn app [conf]
   (-> conf
       main-routes
@@ -892,16 +878,18 @@
         ui-port (conf UI-PORT)]
     (.set-ui-port! state ui-port)))
 
-(defn start-server! [conf] (try
-  (let [nimbusHostPort (.nimbus-info (cluster/mk-storm-cluster-state conf))
-        conf (assoc (assoc conf NIMBUS-HOST (.host nimbusHostPort)) NIMBUS-THRIFT-PORT (.port nimbusHostPort))
-        conf (config-with-ui-port-assigned conf)]
-    (announce-ui-port conf)
-    (run-jetty (app conf) {:port (conf UI-PORT)
-                    :join? false
-                    :configurator (fn [server]
-                                    (config-filter server app conf))}))
-                         (catch Exception ex
-                           (log-error ex))))
+(defn start-server! [conf]
+  (try
+    (let [nimbusHostPort (.nimbus-info (cluster/mk-storm-cluster-state conf))
+          conf (assoc (assoc conf NIMBUS-HOST (.host nimbusHostPort)) NIMBUS-THRIFT-PORT (.port nimbusHostPort))
+          conf (config-with-ui-port-assigned conf)]
+      (announce-ui-port conf)
+      (let [handler (app conf)]
+        (run-jetty handler {:port (conf UI-PORT)
+                            :join? false
+                            :configurator (fn [server]
+                                            (config-filter server handler conf))})))
+   (catch Exception ex
+     (log-error ex))))
 
 (defn -main [] (start-server! (read-storm-config)))

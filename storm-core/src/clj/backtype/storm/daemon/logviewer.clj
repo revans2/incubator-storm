@@ -12,7 +12,8 @@
   (:import [org.yaml.snakeyaml Yaml]
            [org.yaml.snakeyaml.constructor SafeConstructor])
   (:require [compojure.route :as route]
-            [compojure.handler :as handler])
+            [compojure.handler :as handler]
+            [ring.util.response :as resp])
   (:gen-class))
 
 (def ^:dynamic *STORM-CONF* (read-storm-config))
@@ -52,9 +53,10 @@
        (some #(= % user) logs-users))))
 
 (defn log-page [fname tail grep user]
-  (let [path (File. LOG-DIR fname)]
+  (let [file (-> (File. LOG-DIR fname) .getCanonicalFile)
+        path (.getCanonicalPath file)]
     (if (= (File. LOG-DIR)
-           (-> path File. .getCanonicalPath .getParent))
+           (.getParentFile file))
       (let [tail (if tail
                    (min 10485760 (Integer/parseInt tail))
                    10240)
@@ -68,8 +70,9 @@
 
           (unauthorized-user-html user)))
 
-      (ring.util.response/not-found "Page not found"))))
-
+      (-> (resp/response "Page not found")
+          (resp/status 404)
+          (resp/content-type "text/html")))))
 
 (defn log-level-page [name level]
   (let [log (LogFactory/getLog name)]
@@ -111,9 +114,14 @@
   (handler/site log-routes)
  )
 
-(defn start-logviewer [port]
-  (run-jetty logapp {:port port}))
+(defn start-logviewer! [conf]
+  (try
+    (run-jetty logapp {:port (int (conf UI-PORT))
+                       :join? false
+                       :configurator (fn [server]
+                                       (config-filter server logapp conf))})
+  (catch Exception ex
+    (log-error ex))))
 
 (defn -main []
-  (let [conf (read-storm-config)]
-    (start-logviewer (int (conf LOGVIEWER-PORT)))))
+  (start-logviewer! (read-storm-config)))
