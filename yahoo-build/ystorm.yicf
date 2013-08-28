@@ -17,13 +17,13 @@ YINST requires pkg ypython26_pyyaml      3.10_1      3.999999
 YINST requires pkg yjava_jdk             1.7.0_11.64 1.7.999999
 YINST requires pkg yjava_servlet_filters 0.22.495    *
 
-YINST set storm_local_dir           /home/y/var/storm
-YINST set syslog_facility           LOCAL5
-YINST set syslog_host               localhost
-YINST set ui_actions_enabled        false
-YINST set worker_launcher_group     nobody
-YINST set min_user_id               500
-YINST set ui_filter                 yjava.servlet.filter.BouncerFilter
+YINST set storm_local_dir          /home/y/var/storm
+YINST set syslog_facility          LOCAL5
+YINST set syslog_host              localhost
+YINST set ui_actions_enabled       false
+YINST set worker_launcher_group    nobody
+YINST set min_user_id              500
+YINST set ui_filter                yjava.servlet.filter.BouncerFilter
 
 # Bouncer UI Filter Configuration
 YINST set ui_filter_params bouncer_cookie_timeout,480,bouncer_url,https://by.bouncer.login.yahoo.com/login/
