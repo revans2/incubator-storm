@@ -16,8 +16,6 @@
 
 (def ^:dynamic *STORM-CONF* (read-storm-config))
 
-(def LOGS-DIR (get-logdir-path))
-
 (defn tail-file [path tail]
   (let [flen (.length (clojure.java.io/file path))
         skip (- flen tail)]
@@ -35,7 +33,7 @@
 
 (defn get-log-whitelist-file [fname]
   (if-let [prefix (second (re-matches #"(.*-\d+-\d+-worker-\d+).log" fname))]
-    (clojure.java.io/file LOGS-DIR "metadata" (str prefix ".yaml"))))
+    (clojure.java.io/file LOG-DIR "metadata" (str prefix ".yaml"))))
 
 (defn get-log-user-whitelist [fname]
   (try
@@ -53,7 +51,7 @@
        (some #(= % user) logs-users))))
 
 (defn log-page [fname tail grep user]
-  (let [path (str LOGS-DIR "/" fname)
+  (let [path (str LOG-DIR "/" fname)
         tail (if tail
                (min 10485760 (Integer/parseInt tail))
                10240)
