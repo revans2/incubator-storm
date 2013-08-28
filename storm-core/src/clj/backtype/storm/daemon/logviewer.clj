@@ -5,6 +5,7 @@
   (:use [backtype.storm config util log])
   (:use [backtype.storm.ui helpers])
   (:use [ring.adapter.jetty :only [run-jetty]])
+  (:import [java.io File])
   (:import [org.apache.commons.logging LogFactory])
   (:import [org.apache.commons.logging.impl Log4JLogger])
   (:import [org.apache.log4j Level])
@@ -51,19 +52,23 @@
        (some #(= % user) logs-users))))
 
 (defn log-page [fname tail grep user]
-  (let [path (str LOG-DIR "/" fname)
-        tail (if tail
-               (min 10485760 (Integer/parseInt tail))
-               10240)
-        tail-string (tail-file path tail)]
-    (if (or (blank? (*STORM-CONF* UI-FILTER))
-            (authorized-log-user? user fname))
-      (if grep
-         (clojure.string/join "\n<br>"
-           (filter #(.contains % grep) (.split tail-string "\n")))
-         (.replaceAll tail-string "\n" "\n<br>"))
+  (let [path (File. LOG-DIR fname)]
+    (if (= (File. LOG-DIR)
+           (-> path File. .getCanonicalPath .getParent))
+      (let [tail (if tail
+                   (min 10485760 (Integer/parseInt tail))
+                   10240)
+            tail-string (tail-file path tail)]
+        (if (or (blank? (*STORM-CONF* UI-FILTER))
+                (authorized-log-user? user fname))
+          (if grep
+             (clojure.string/join "\n<br>"
+               (filter #(.contains % grep) (.split tail-string "\n")))
+             (.replaceAll tail-string "\n" "\n<br>"))
 
-      (unauthorized-user-html user))))
+          (unauthorized-user-html user)))
+
+      (ring.util.response/not-found "Page not found"))))
 
 
 (defn log-level-page [name level]
