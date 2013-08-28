@@ -401,8 +401,8 @@ public class Config extends HashMap<String, Object> {
      * configured, the logviewer references these whitelists to authorize
      * access.
      */
-    public static final String LOGS_USERS_WHITELISTS_PATH = "logs.users.whitelists.path";
-    public static final Object LOGS_USERS_WHITELISTS_PATH_SCHEMA = String.class;
+    public static final String LOGS_USERS_WHITELISTS_DIR = "logs.users.whitelists.dir";
+    public static final Object LOGS_USERS_WHITELISTS_DIR_SCHEMA = String.class;
 
     /**
      * Whether or not actions should be enabled.  When disabled, requests to

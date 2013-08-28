@@ -5,6 +5,8 @@
   (:use [backtype.storm.daemon common])
   (:require [backtype.storm.daemon [worker :as worker]])
   (:import [org.apache.zookeeper data.ACL ZooDefs$Ids ZooDefs$Perms])
+  (:import [org.yaml.snakeyaml Yaml]
+           [org.yaml.snakeyaml.constructor SafeConstructor])
   (:gen-class
     :methods [^{:static true} [launch [backtype.storm.scheduler.ISupervisor] void]]))
 
@@ -467,6 +469,17 @@
       (setup-storm-code-dir conf (read-supervisor-storm-conf conf storm-id) stormroot)      
     ))
 
+(defn logs-filename [storm-id port suffix]
+  (str storm-id "-worker-" port suffix))
+
+(defn write-log-whitelist-file [conf storm-conf storm-id port]
+  (let [dir (conf LOGS-USERS-WHITELISTS-DIR)
+        filename (logs-filename storm-id port ".yaml")
+        file (clojure.java.io/file dir filename)
+        writer (java.io.FileWriter. file)
+        data {LOGS-USERS (storm-conf LOGS-USERS)}]
+    (.dump (Yaml.) data writer)
+    (.close writer)))
 
 (defmethod launch-worker
     :distributed [supervisor storm-id port worker-id]
@@ -481,7 +494,8 @@
                                  "%ID%"
                                  (str port))
           user (storm-conf TOPOLOGY-SUBMITTER-USER)
-          logfilename (str (if user (str user "-")) "worker-" port ".log")
+          logfilename (logs-filename storm-id port ".log")
+          log-whitelist (storm-conf LOGS-USERS)
           command (str "java -server " childopts
                        " -Djava.library.path=" (conf JAVA-LIBRARY-PATH)
                        " -Dlogfile.name=" logfilename
@@ -493,6 +507,7 @@
                        " -cp " classpath " backtype.storm.daemon.worker "
                        (java.net.URLEncoder/encode storm-id) " " (:assignment-id supervisor)
                        " " port " " worker-id)]
+      (write-log-whitelist-file conf storm-conf storm-id port)
       (log-message "Launching worker with command: " command)
       (set-worker-user! conf worker-id user)
       (let [log-prefix (str "Worker Process " worker-id)

@@ -32,8 +32,8 @@
     ))
 
 (defn get-log-whitelist-file [file]
-  (if-let [prefix (second (re-matches #"(.*-\\d+-\\d+).log" file))]
-    (clojure.java.io/file (*STORM-CONF* LOGS-USERS-WHITELISTS-PATH) prefix)))
+  (if-let [prefix (second (re-matches #"(.*-\d+-\d+-worker-\d+).log" file))]
+    (clojure.java.io/file (*STORM-CONF* LOGS-USERS-WHITELISTS-DIR) (str prefix ".yaml"))))
 
 (defn get-log-user-whitelist [file]
   (try
