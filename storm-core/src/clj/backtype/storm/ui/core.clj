@@ -43,7 +43,7 @@
 (defn ui-template
   ([body] (ui-template body nil))
   ([body user]
-    (html
+    (html4
      [:head
       [:title "Storm UI"]
       (include-css "/css/bootstrap-1.1.0.css")
@@ -743,7 +743,7 @@
           type (component-type topology component)
           summs (component-task-summs summ topology component)
           spec (cond (= type :spout) (spout-page window summ component summs include-sys?)
-                     (= type :bolt) (bolt-page conf window summ component summs include-sys?))
+                     (= type :bolt) (bolt-page window summ component summs include-sys?))
           topology-conf (from-json (.getTopologyConf ^Nimbus$Client nimbus topology-id))
           ui-users (concat (*STORM-CONF* UI-USERS) (topology-conf UI-USERS))]
       (if (or (blank? (*STORM-CONF* UI-FILTER))
@@ -862,7 +862,7 @@
         (log-error ex)
         ))))
 
-(defn app [conf]
+(defn mk-app [conf]
   (-> conf
       main-routes
       (wrap-reload '[backtype.storm.ui.core])
@@ -884,11 +884,11 @@
           conf (assoc (assoc conf NIMBUS-HOST (.host nimbusHostPort)) NIMBUS-THRIFT-PORT (.port nimbusHostPort))
           conf (config-with-ui-port-assigned conf)]
       (announce-ui-port conf)
-      (let [handler (app conf)]
-        (run-jetty handler {:port (conf UI-PORT)
+      (let [app (mk-app conf)]
+        (run-jetty app {:port (conf UI-PORT)
                             :join? false
                             :configurator (fn [server]
-                                            (config-filter server handler conf))})))
+                                            (config-filter server app conf))})))
    (catch Exception ex
      (log-error ex))))
 
