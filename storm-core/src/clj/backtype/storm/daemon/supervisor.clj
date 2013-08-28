@@ -469,15 +469,11 @@
       (setup-storm-code-dir conf (read-supervisor-storm-conf conf storm-id) stormroot)      
     ))
 
-(defn logs-filename [storm-id port suffix]
-  (str storm-id "-worker-" port suffix))
-
 (defn write-log-whitelist-file [conf storm-conf storm-id port]
   (let [filename (logs-filename storm-id port ".yaml")
         file (clojure.java.io/file LOG-DIR "metadata" filename)
         writer (java.io.FileWriter. file)
         data {LOGS-USERS (storm-conf LOGS-USERS)}]
-(log-message "%%%%%%%%%%%%%%% Dumping the log users white-list to " LOG-DIR "/" filename " as " data)
     (.dump (Yaml.) data writer)
     (.close writer)))
 
