@@ -58,8 +58,6 @@ logviewer.port: 8000
 logviewer.childopts: "-Xmx128m"
 
 logs.users: null
-logs.users.path: null
-
 
 drpc.port: 3772
 drpc.worker.threads: 64
