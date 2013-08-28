@@ -387,9 +387,10 @@
 (defn component-link [storm-id id]
   (link-to (url-format "/topology/%s/component/%s" storm-id id) (escape-html id)))
 
-(defn worker-log-link [conf host port]
-  (link-to (url-format "http://%s:%s/log?file=worker-%s.log"
-              host (*STORM-CONF* LOGVIEWER-PORT) port) (str port)))
+(defn worker-log-link [conf host port topology-id]
+  (let [fname (logs-filename topology-id port)]
+    (link-to (url-format (str "http://%s:%s/log?file=" fname)
+                host (*STORM-CONF* LOGVIEWER-PORT)) (str port))))
 
 (defn render-capacity [capacity]
   (let [capacity (nil-to-zero capacity)]
@@ -467,12 +468,6 @@
       ]
      )))
 
-(defn logs-table [topology-conf]
-  (let [id (topology-conf STORM-ID)]
-    (map
-     (fn [log] [:p (link-to (url-format "/topology/%s/%s" id (.getName log)) (escape-html (.getName log)))])
-     (find-topology-logs topology-conf *STORM-CONF*))))
-
 (defn window-hint [window]
   (if (= window ":all-time")
     "All time"
@@ -537,8 +532,6 @@
           (bolt-comp-table id bolt-comp-summs (.get_errors summ) window include-sys?)
           [[:h2 "Topology Configuration"]]
           (configuration-table topology-conf)
-          [[:h2 "Topology Logs"]]
-          (logs-table (merge topology-conf {STORM-ID id}))
         )
 
         (unauthorized-user-html user)))))
@@ -601,7 +594,7 @@
      [(pretty-executor-info (.get_executor_info e))
       (pretty-uptime-sec (.get_uptime_secs e))
       (.get_host e)
-      (worker-log-link (.get_host e) (.get_port e))
+      (worker-log-link (.get_host e) (.get_port e) topology-id)
       (nil-to-zero (:emitted stats))
       (nil-to-zero (:transferred stats))
       (float-str (:complete-latencies stats))
@@ -676,7 +669,7 @@
      [(pretty-executor-info (.get_executor_info e))
       (pretty-uptime-sec (.get_uptime_secs e))
       (.get_host e)
-      (worker-log-link (.get_host e) (.get_port e))
+      (worker-log-link (.get_host e) (.get_port e) topology-id)
       (nil-to-zero (:emitted stats))
       (nil-to-zero (:transferred stats))
       (render-capacity (compute-executor-capacity e))
