@@ -36,6 +36,7 @@ OWNER = root
 GROUP = users
 
 dir 777 - - lib64/storm/$(BASE_VERSION)/logs
+dir 1777 - - lib64/storm/$(BASE_VERSION)/logs-whitelists
 find 755 - - lib64/storm/$(BASE_VERSION)/bin/ ../bin/ -type f
 find - - - lib64/storm/$(BASE_VERSION)/lib/ ../storm-core-mvn/target/dependency/ ../storm-netty-mvn/target/dependency/ -type f
 
