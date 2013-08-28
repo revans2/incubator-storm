@@ -68,7 +68,7 @@
       (unauthorized-user-html user))))
 
 
-(defn log-level-page [name level user]
+(defn log-level-page [name level]
   (let [log (LogFactory/getLog name)]
     (if level
       (if (instance? Log4JLogger log)
