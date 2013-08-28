@@ -484,7 +484,7 @@
 (defn- ui-actions-enabled? []
   (= "true" (lower-case (*STORM-CONF* UI-ACTIONS-ENABLED))))
 
-(defn- topology-actions [conf id name status msg-timeout]
+(defn- topology-actions [id name status msg-timeout]
   (if (ui-actions-enabled?)
     (concat
        [[:h2 {:class "js-only"} "Topology actions"]]
