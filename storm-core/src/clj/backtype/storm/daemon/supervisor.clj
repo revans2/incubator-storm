@@ -470,7 +470,7 @@
     ))
 
 (defn write-log-whitelist-file [conf storm-conf storm-id port]
-  (let [filename (logs-filename storm-id port ".yaml")
+  (let [filename (logs-metadata-filename storm-id port)
         file (clojure.java.io/file LOG-DIR "metadata" filename)
         writer (java.io.FileWriter. file)
         data {LOGS-USERS (storm-conf LOGS-USERS)}]
@@ -490,7 +490,7 @@
                                  "%ID%"
                                  (str port))
           user (storm-conf TOPOLOGY-SUBMITTER-USER)
-          logfilename (logs-filename storm-id port ".log")
+          logfilename (logs-filename storm-id port)
           log-whitelist (storm-conf LOGS-USERS)
           command (str "java -server " childopts
                        " -Djava.library.path=" (conf JAVA-LIBRARY-PATH)
