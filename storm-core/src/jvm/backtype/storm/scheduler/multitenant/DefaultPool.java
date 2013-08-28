@@ -1,22 +1,15 @@
 package backtype.storm.scheduler.multitenant;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import backtype.storm.Config;
-import backtype.storm.scheduler.Cluster;
-import backtype.storm.scheduler.ExecutorDetails;
 import backtype.storm.scheduler.SchedulerAssignment;
 import backtype.storm.scheduler.TopologyDetails;
 import backtype.storm.scheduler.WorkerSlot;
@@ -28,14 +21,6 @@ public class DefaultPool extends NodePool {
   private static final Logger LOG = LoggerFactory.getLogger(DefaultPool.class);
   private Set<Node> _nodes = new HashSet<Node>();
   private HashMap<String, TopologyDetails> _tds = new HashMap<String, TopologyDetails>();
-  private Cluster _cluster;
-  private Map<String, Node> _nodeIdToNode;
-
-  @Override
-  public void init(Cluster cluster, Map<String, Node> nodeIdToNode) {
-    _cluster = cluster;
-    _nodeIdToNode = nodeIdToNode;
-  }
   
   @Override
   public void addTopology(TopologyDetails td) {
@@ -152,68 +137,11 @@ public class DefaultPool extends NodePool {
         int slotsNeeded = slotsToUse - slotsFree;
         _nodes.addAll(NodePool.takeNodesBySlot(slotsNeeded, lesserPools));
         
-        ArrayList<Set<ExecutorDetails>> slots = new ArrayList<Set<ExecutorDetails>>(slotsToUse);
-        for (int i = 0; i < slotsToUse; i++) {
-          slots.add(new HashSet<ExecutorDetails>());
-        }
+        RoundRobinSlotScheduler slotSched = 
+          new RoundRobinSlotScheduler(td, slotsToUse, _cluster);
         
-        Map<ExecutorDetails, String> execToComp = td.getExecutorToComponent();
-        SchedulerAssignment assignment = _cluster.getAssignmentById(topId);
-        Map<String,Set<String>> nodeToComps = new HashMap<String, Set<String>>();
-
-        if (assignment != null) {
-          HashSet<WorkerSlot> slotsChecked = new HashSet<WorkerSlot>();
-          Map<ExecutorDetails, WorkerSlot> execToSlot = assignment.getExecutorToSlot(); 
-          for (Entry<ExecutorDetails, WorkerSlot> entry: execToSlot.entrySet()) {
-            //the nodeToComps mapping will not be correct if we free a worker
-            // on a dead node, but because the node is dead we will not schedule
-            // anything new on it so it does not matter. 
-            WorkerSlot ws = entry.getValue();
-            String nodeId = ws.getNodeId();
-            if (!slotsChecked.contains(ws)) {
-              slotsChecked.add(ws);
-              Node n = _nodeIdToNode.get(nodeId);
-              if (!n.isAlive()) {
-                n.free(ws, _cluster);
-              }
-            }
-            Set<String> comps = nodeToComps.get(nodeId);
-            if (comps == null) {
-              comps = new HashSet<String>();
-              nodeToComps.put(nodeId, comps);
-            }
-            comps.add(execToComp.get(entry.getKey()));
-          }
-        }
-        
-        HashMap<String, List<ExecutorDetails>> spreadToSchedule = new HashMap<String, List<ExecutorDetails>>();
-        List<String> spreadComps = (List<String>)td.getConf().get(Config.TOPOLOGY_SPREAD_COMPONENTS);
-        if (spreadComps != null) {
-          for (String comp: spreadComps) {
-            spreadToSchedule.put(comp, new ArrayList<ExecutorDetails>());
-          }
-        }
-
-        int at = 0;
-        for (Entry<String, List<ExecutorDetails>> entry: _cluster.getNeedsSchedulingComponentToExecutors(td).entrySet()) {
-          if (spreadToSchedule.containsKey(entry.getKey())) {
-            LOG.debug("Saving {} for spread...",entry.getKey());
-            spreadToSchedule.get(entry.getKey()).addAll(entry.getValue());
-          } else {
-            for (ExecutorDetails ed: entry.getValue()) {
-              LOG.debug("Assigning {} {} to {}", new Object[]{entry.getKey(), ed, at});
-              slots.get(at).add(ed);
-              at++;
-              if (at >= slots.size()) {
-                at = 0;
-              }
-            }
-          }
-        }
-        
-        Set<ExecutorDetails> lastSlot = slots.get(slots.size() - 1);
         LinkedList<Node> nodes = new LinkedList<Node>(_nodes);
-        for (Set<ExecutorDetails> slot: slots) {
+        while (true) {
           Node n = null;
           do {
             if (nodes.isEmpty()) {
@@ -226,31 +154,9 @@ public class DefaultPool extends NodePool {
               n = null;
             }
           } while (n == null);
-          if (slot == lastSlot) {
-            //The last slot fill it up
-            for (Entry<String, List<ExecutorDetails>> entry: spreadToSchedule.entrySet()) {
-              if (entry.getValue().size() > 0) {
-                slot.addAll(entry.getValue());
-              }
-            }
-          } else {
-            String nodeId = n.getId();
-            Set<String> nodeComps = nodeToComps.get(nodeId);
-            if (nodeComps == null) {
-              nodeComps = new HashSet<String>();
-              nodeToComps.put(nodeId, nodeComps);
-            }
-            for (Entry<String, List<ExecutorDetails>> entry: spreadToSchedule.entrySet()) {
-              if (entry.getValue().size() > 0) {
-                String comp = entry.getKey();
-                if (!nodeComps.contains(comp)) {
-                  nodeComps.add(comp);
-                  slot.add(entry.getValue().remove(0));
-                }
-              }
-            }
+          if (!slotSched.assignSlotTo(n)) {
+            break;
           }
-          n.assign(topId, slot, _cluster);
         }
       }
     }
