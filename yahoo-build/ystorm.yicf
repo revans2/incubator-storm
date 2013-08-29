@@ -28,13 +28,16 @@ YINST set ui_filter                yjava.servlet.filter.BouncerFilter
 # Bouncer UI Filter Configuration
 YINST set ui_filter_params bouncer_cookie_timeout,480,bouncer_url,https://by.bouncer.login.yahoo.com/login/
 
+YINST post-activate chown root:${worker_launcher_group} ${ROOT}/lib64/storm/$(BASE_VERSION)/logs; chmod 3777  ${ROOT}/lib64/storm/$(BASE_VERSION)/logs;
+YINST post-activate chown root:${worker_launcher_group} ${ROOT}/lib64/storm/$(BASE_VERSION)/logs/metadata; chmod 3777  ${ROOT}/lib64/storm/$(BASE_VERSION)/logs/metadata;
 YINST post-activate chown root:${worker_launcher_group} ${ROOT}/lib64/storm/$(BASE_VERSION)/bin/worker-launcher; chmod 6550  ${ROOT}/lib64/storm/$(BASE_VERSION)/bin/worker-launcher;
 
 PERM = 0444
 OWNER = root
 GROUP = users
 
-dir 777 - - lib64/storm/$(BASE_VERSION)/logs
+dir 3777 - - lib64/storm/$(BASE_VERSION)/logs
+dir 3777 - - lib64/storm/$(BASE_VERSION)/logs/metadata
 find 755 - - lib64/storm/$(BASE_VERSION)/bin/ ../bin/ -type f
 find - - - lib64/storm/$(BASE_VERSION)/lib/ ../storm-core-mvn/target/dependency/ ../storm-netty-mvn/target/dependency/ -type f
 

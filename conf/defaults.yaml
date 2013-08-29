@@ -57,6 +57,7 @@ ui.users: null
 logviewer.port: 8000
 logviewer.childopts: "-Xmx128m"
 
+logs.users: null
 
 drpc.port: 3772
 drpc.worker.threads: 64

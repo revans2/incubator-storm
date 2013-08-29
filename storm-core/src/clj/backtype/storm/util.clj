@@ -885,3 +885,16 @@
       (.close serverSocket)
       (log-message "Grabbed port number " port_assigned " instead of the configured port " port)
       port_assigned)))
+
+(def LOG-DIR
+  (.getCanonicalPath 
+                (clojure.java.io/file (System/getProperty "storm.home") "logs")))
+
+(defn- logs-rootname [storm-id port]
+  (str storm-id "-worker-" port))
+
+(defn logs-filename [storm-id port]
+  (str (logs-rootname storm-id port) ".log"))
+
+(defn logs-metadata-filename [storm-id port]
+  (str (logs-rootname storm-id port) ".yaml"))
