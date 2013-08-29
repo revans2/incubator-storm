@@ -79,7 +79,7 @@
                               NIMBUS-THRIFT-PORT -1
                               UI-PORT -2}]
     (let [conf (:daemon-conf cluster)
-          ui-server-app (ui/app conf)
+          ui-server-app (ui/mk-app conf)
           req {:uri "/" :request-method :get}
           resp (ui-server-app req)]
       (is (pos? (Integer. (conf NIMBUS-THRIFT-PORT))))
