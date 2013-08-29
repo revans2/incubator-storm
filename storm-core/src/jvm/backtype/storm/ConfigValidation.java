@@ -42,15 +42,15 @@ public class ConfigValidation {
     /**
      * Returns a new NestableFieldValidator for a given class.
      * @param cls the Class the field should be a type of
+     * @param nullAllowed whether or not a value of null is valid
      * @return a NestableFieldValidator for that class
      */
-    public static NestableFieldValidator fv(final Class cls) {
+    public static NestableFieldValidator fv(final Class cls, final boolean nullAllowed) {
         return new NestableFieldValidator() {
             @Override
             public void validateField(String pd, String name, Object field)
                     throws IllegalArgumentException {
-                if (field == null) {
-                    // A null value is acceptable.
+                if (nullAllowed && field == null) {
                     return;
                 }
                 if (! cls.isInstance(field)) {
@@ -64,24 +64,26 @@ public class ConfigValidation {
     /**
      * Returns a new NestableFieldValidator for a List of the given Class.
      * @param cls the Class of elements composing the list
+     * @param nullAllowed whether or not a value of null is valid
      * @return a NestableFieldValidator for a list of the given class
      */
-    public static NestableFieldValidator listFv(Class cls) {
-      return listFv(fv(cls));
+    public static NestableFieldValidator listFv(Class cls, boolean nullAllowed) {
+      return listFv(fv(cls, false), nullAllowed);
     }
     
     /**
      * Returns a new NestableFieldValidator for a List where each item is validated by validator.
      * @param validator used to validate each item in the list
+     * @param nullAllowed whether or not a value of null is valid
      * @return a NestableFieldValidator for a list with each item validated by a different validator.
      */
-    public static NestableFieldValidator listFv(final NestableFieldValidator validator) {
+    public static NestableFieldValidator listFv(final NestableFieldValidator validator, 
+            final boolean nullAllowed) {
         return new NestableFieldValidator() {
             @Override
             public void validateField(String pd, String name, Object field)
                     throws IllegalArgumentException {
-                if (field == null) {
-                    // A null value is acceptable.
+                if (nullAllowed && field == null) {
                     return;
                 }
                 if (field instanceof Iterable) {
@@ -91,7 +93,8 @@ public class ConfigValidation {
                     return;
                 }
                 throw new IllegalArgumentException(
-                        "Field " + name + " must be an Iterable " + field.getClass());
+                        "Field " + name + " must be an Iterable but was " +
+                        ((field == null) ? "null" :  ("a " + field.getClass())));
             }
         };
     }
@@ -100,26 +103,29 @@ public class ConfigValidation {
      * Returns a new NestableFieldValidator for a Map of key to val.
      * @param key the Class of keys in the map
      * @param val the Class of values in the map
+     * @param nullAllowed whether or not a value of null is valid
      * @return a NestableFieldValidator for a Map of key to val
      */
-    public static NestableFieldValidator mapFv(final Class key, final Class val) {
-        return mapFv(fv(key), fv(val));
+    public static NestableFieldValidator mapFv(Class key, Class val, 
+            boolean nullAllowed) {
+        return mapFv(fv(key, false), fv(val, false), nullAllowed);
     }
  
     /**
      * Returns a new NestableFieldValidator for a Map.
      * @param key a validator for the keys in the map
      * @param val a validator for the values in the map
+     * @param nullAllowed whether or not a value of null is valid
      * @return a NestableFieldValidator for a Map
      */   
-    public static NestableFieldValidator mapFv(final NestableFieldValidator key, final NestableFieldValidator val) {
+    public static NestableFieldValidator mapFv(final NestableFieldValidator key, 
+            final NestableFieldValidator val, final boolean nullAllowed) {
         return new NestableFieldValidator() {
             @SuppressWarnings("unchecked")
             @Override
             public void validateField(String pd, String name, Object field)
                     throws IllegalArgumentException {
-                if (field == null) {
-                    // A null value is acceptable.
+                if (nullAllowed && field == null) {
                     return;
                 }
                 if (field instanceof Map) {
@@ -138,17 +144,17 @@ public class ConfigValidation {
     /**
      * Validates a list of Numbers.
      */
-    public static Object NumbersValidator = listFv(Number.class);
+    public static Object NumbersValidator = listFv(Number.class, true);
 
     /**
      * Validates a list of Strings.
      */
-    public static Object StringsValidator = listFv(String.class);
+    public static Object StringsValidator = listFv(String.class, true);
     
     /**
      * Validates a map of Strings to Numbers.
      */
-    public static Object MapOfStringToNumberValidator = mapFv(String.class, Number.class);
+    public static Object MapOfStringToNumberValidator = mapFv(String.class, Number.class, true);
 
     /**
      * Validates a power of 2.
