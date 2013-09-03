@@ -47,6 +47,14 @@ public class ReqContext {
         _reqID = uniqueId.incrementAndGet();
     }
 
+    //private constructor
+    @VisibleForTesting
+    public ReqContext(Subject sub) {
+        _subject = sub;
+        _reqID = uniqueId.incrementAndGet();
+    }
+
+
     /**
      * client address
      */

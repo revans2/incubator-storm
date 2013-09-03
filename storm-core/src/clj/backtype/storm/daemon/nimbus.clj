@@ -901,6 +901,11 @@
   )
 )
 
+(defn try-read-storm-conf-from-name [conf storm-name nimbus]
+  (let [storm-cluster-state (:storm-cluster-state nimbus)
+        id (get-storm-id storm-cluster-state storm-name)]
+   (try-read-storm-conf conf id)))
+
 (defn try-read-storm-topology [conf storm-id]
   (try-cause
     (read-storm-topology conf storm-id)
@@ -991,9 +996,11 @@
                 principal (.principal req)
                 submitter-principal (if principal (.toString principal))
                 submitter-user (.toLocal principal-to-local principal)
-                storm-conf-p (if submitter-principal (assoc storm-conf-submitted TOPOLOGY-SUBMITTER-PRINCIPAL submitter-principal)  storm-conf-submitted)
-                storm-conf (assoc storm-conf-p TOPOLOGY-SUBMITTER-USER (if submitter-user submitter-user "")) ;Don't let the user set who we launch as
-
+                topo-acl (conj (set (.get storm-conf-submitted TOPOLOGY-USERS)) #{submitter-principal, submitter-user})
+                storm-conf (-> storm-conf-submitted
+                               (assoc TOPOLOGY-SUBMITTER-PRINCIPAL (if submitter-principal submitter-principal ""))
+                               (assoc TOPOLOGY-SUBMITTER-USER (if submitter-user submitter-user "")) ;Don't let the user set who we launch as
+                               (assoc TOPOLOGY-USERS topo-acl))
                 total-storm-conf (merge conf storm-conf)
                 topology (normalize-topology total-storm-conf topology)
                 topology (if (total-storm-conf TOPOLOGY-OPTIMIZE)
@@ -1028,8 +1035,9 @@
          (.killTopologyWithOpts this name (KillOptions.)))
 
       (^void killTopologyWithOpts [this ^String storm-name ^KillOptions options]
-        (check-authorization! nimbus storm-name nil "killTopology")
         (check-storm-active! nimbus storm-name true)
+        (let [topology-conf (try-read-storm-conf-from-name conf storm-name nimbus)]
+          (check-authorization! nimbus storm-name topology-conf "killTopology"))
         (let [wait-amt (if (.is_set_wait_secs options)
                          (.get_wait_secs options)                         
                          )]
@@ -1037,8 +1045,9 @@
           ))
 
       (^void rebalance [this ^String storm-name ^RebalanceOptions options]
-        (check-authorization! nimbus storm-name nil "rebalance")
         (check-storm-active! nimbus storm-name true)
+        (let [topology-conf (try-read-storm-conf-from-name conf storm-name nimbus)]
+          (check-authorization! nimbus storm-name topology-conf "rebalance"))
         (let [wait-amt (if (.is_set_wait_secs options)
                          (.get_wait_secs options))
               num-workers (if (.is_set_num_workers options)
@@ -1054,12 +1063,14 @@
           ))
 
       (activate [this storm-name]
-        (check-authorization! nimbus storm-name nil "activate")
+        (let [topology-conf (try-read-storm-conf-from-name conf storm-name nimbus)]
+          (check-authorization! nimbus storm-name topology-conf "activate"))
         (transition-name! nimbus storm-name :activate true)
         )
 
       (deactivate [this storm-name]
-        (check-authorization! nimbus storm-name nil "deactivate")
+        (let [topology-conf (try-read-storm-conf-from-name conf storm-name nimbus)]
+          (check-authorization! nimbus storm-name topology-conf "deactivate"))
         (transition-name! nimbus storm-name :inactivate true))
 
       (beginFileUpload [this]
@@ -1181,15 +1192,15 @@
           ))
       
       (^TopologyInfo getTopologyInfo [this ^String storm-id]
-        (check-authorization! nimbus nil nil "getTopologyInfo")
         (let [storm-cluster-state (:storm-cluster-state nimbus)
               topology-conf (try-read-storm-conf conf storm-id)
               storm-name (topology-conf TOPOLOGY-NAME)
+              _ (check-authorization! nimbus storm-name topology-conf "getTopologyInfo")
               task->component (storm-task-info (try-read-storm-topology conf storm-id) topology-conf)
               base (.storm-base storm-cluster-state storm-id nil)
               storm-name (if base (:storm-name base) (throw (NotAliveException. storm-id)))
               launch-time-secs (if base (:launch-time-secs base) (throw (NotAliveException. storm-id)))
-              task->component (storm-task-info (try-read-storm-topology conf storm-id) (try-read-storm-conf conf storm-id))
+              task->component (storm-task-info (try-read-storm-topology conf storm-id) topology-conf)
               assignment (.assignment-info storm-cluster-state storm-id nil)
               beats (.executor-beats storm-cluster-state storm-id (:executor->node+port assignment))
               all-components (-> task->component reverse-map keys)
