@@ -242,6 +242,21 @@ public class Config extends HashMap<String, Object> {
     public static final Object NIMBUS_THRIFT_THREADS_SCHEMA = Number.class;
 
     /**
+     * A list of users that are cluster admins and can run any command.  To use this set
+     * nimbus.authorizer to backtype.storm.security.auth.authorizer.SimpleACLAuthorizer  
+     */
+    public static final String NIMBUS_ADMINS = "nimbus.admins";
+    public static final Object NIMBUS_ADMINS_SCHEMA = ConfigValidation.StringsValidator;
+
+    /**
+     * A list of users that run the supervisors and should be authorized to interact with 
+     * nimbus as a supervisor would.  To use this set
+     * nimbus.authorizer to backtype.storm.security.auth.authorizer.SimpleACLAuthorizer  
+     */
+    public static final String NIMBUS_SUPERVISOR_USERS = "nimbus.supervisor.users";
+    public static final Object NIMBUS_SUPERVISOR_USERS_SCHEMA = ConfigValidation.StringsValidator;
+
+    /**
      * The purpose for which the Thrift server is created.
      */
     public static enum ThriftServerPurpose {
@@ -576,6 +591,12 @@ public class Config extends HashMap<String, Object> {
     public static final Object TASK_REFRESH_POLL_SECS_SCHEMA = Number.class;
 
 
+    /**
+     * A list of users that are allowed to interact with the topology.  To use this set
+     * nimbus.authorizer to backtype.storm.security.auth.authorizer.SimpleACLAuthorizer  
+     */
+    public static final String TOPOLOGY_USERS = "topology.users";
+    public static final Object TOPOLOGY_USERS_SCHEMA = ConfigValidation.StringsValidator;
 
     /**
      * True if Storm should timeout messages or not. Defaults to true. This is meant to be used

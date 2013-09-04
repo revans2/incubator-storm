@@ -475,7 +475,7 @@
   (let [filename (logs-metadata-filename storm-id port)
         file (clojure.java.io/file LOG-DIR "metadata" filename)
         writer (java.io.FileWriter. file)
-        data {LOGS-USERS (storm-conf LOGS-USERS)}]
+        data {LOGS-USERS (concat (storm-conf LOGS-USERS) (storm-conf TOPOLOGY-USERS))}]
     (.dump (Yaml.) data writer)
     (.close writer)))
 
@@ -493,7 +493,6 @@
                                  (str port))
           user (storm-conf TOPOLOGY-SUBMITTER-USER)
           logfilename (logs-filename storm-id port)
-          log-whitelist (storm-conf LOGS-USERS)
           command (str "java -server " childopts
                        " -Djava.library.path=" (conf JAVA-LIBRARY-PATH)
                        " -Dlogfile.name=" logfilename

@@ -36,7 +36,10 @@ remappedKeys = {"storm.messaging.netty.buffer.size":"storm.messaging.netty.buffe
                 "storm.messaging.netty.min.wait.ms":"storm.messaging.netty.min_wait_ms",
                 "storm.messaging.netty.max.wait.ms":"storm.messaging.netty.max_wait_ms"}
 
-listKeys = set(["storm.auth.simple-white-list.users", "supervisor.slots.ports", "storm.zookeeper.servers", "topology.kryo.register", "drpc.servers", "worker.childopts", "ui.users"])
+listKeys = set(["storm.auth.simple-white-list.users", "supervisor.slots.ports",
+ "storm.zookeeper.servers", "topology.kryo.register", "drpc.servers",
+ "worker.childopts", "ui.users", "nimbus.supervisor.users", "nimbus.admins",
+ "topology.users"])
 mapKeys = set(["isolation.scheduler.machines", "multitenant.scheduler.user.pools", "ui.filter.params"])
 
 allStringKeys = set(["ui.filter.params"])
