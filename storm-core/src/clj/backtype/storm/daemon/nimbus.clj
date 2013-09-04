@@ -996,7 +996,7 @@
                 principal (.principal req)
                 submitter-principal (if principal (.toString principal))
                 submitter-user (.toLocal principal-to-local principal)
-                topo-acl (conj (set (.get storm-conf-submitted TOPOLOGY-USERS)) #{submitter-principal, submitter-user})
+                topo-acl (set (remove nil? (conj (.get storm-conf-submitted TOPOLOGY-USERS) submitter-principal, submitter-user)))
                 storm-conf (-> storm-conf-submitted
                                (assoc TOPOLOGY-SUBMITTER-PRINCIPAL (if submitter-principal submitter-principal ""))
                                (assoc TOPOLOGY-SUBMITTER-USER (if submitter-user submitter-user "")) ;Don't let the user set who we launch as
