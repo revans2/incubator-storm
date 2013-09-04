@@ -41,6 +41,8 @@ mapKeys = set(["isolation.scheduler.machines", "multitenant.scheduler.user.pools
 
 allStringKeys = set(["ui.filter.params"])
 
+ignoredKeys = set(["min.user.pid", "storm.zookeeper.auth.payload", "storm.cluster.user", "worker.launcher.group"])
+
 config = dict((k[8:].replace("_", "."), v) for k, v in os.environ.items() if k.startswith("ystorm__"))
 
 qq_string = re.compile("^\".*\"$")
@@ -100,6 +102,9 @@ def handleMapKey(k,v,norm_fn):
 
 for k, v in config.items():
 #    print "___________Processing: ", k,v
+    if k in ignoredKeys:
+        continue
+
     if k in remappedKeys:
         k = remappedKeys[k]
 
