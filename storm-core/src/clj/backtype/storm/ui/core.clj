@@ -498,7 +498,7 @@
     []))
 
 (defn authorized-ui-user? [user conf]
-  (let [ui-users (concat (*STORM-CONF* UI-USERS) (conf UI-USERS))]
+  (let [ui-users (concat (*STORM-CONF* UI-USERS) (conf UI-USERS) (conf TOPOLOGY-USERS))]
     (and (not (blank? user))
          (some #(= % user) ui-users))))
 

@@ -22,18 +22,13 @@ import org.slf4j.LoggerFactory;
 public class SimpleACLAuthorizer implements IAuthorizer {
     private static final Logger LOG = LoggerFactory.getLogger(SimpleACLAuthorizer.class);
 
-    public static final String NIMBUS_ADMINS = "nimbus.admins";
-    public static final String NIMBUS_SUPERVISOR_USERS = "nimbus.supervisor.users";
-    public static final String TOPOLOGY_USERS = "topology.users";
-    public static final String STORM_PRINCIPAL_TO_LOCAL_PLUGIN = "storm.principal.tolocal";
+    protected Set<String> _userCommands = new HashSet<String>(Arrays.asList("submitTopology", "fileUpload", "getNimbusConf", "getClusterInfo"));
+    protected Set<String> _supervisorCommands = new HashSet<String>(Arrays.asList("fileDownload"));
+    protected Set<String> _topoCommands = new HashSet<String>(Arrays.asList("killTopology","rebalance","activate","deactivate","getTopologyConf","getTopology","getUserTopology","getTopologyInfo"));
 
-    protected Set<String> userCommands = new HashSet<String>(Arrays.asList("submitTopology", "fileUpload", "getNimbusConf", "getClusterInfo"));
-    protected Set<String> supervisorCommands = new HashSet<String>(Arrays.asList("fileDownload"));
-    protected Set<String> topoCommands = new HashSet<String>(Arrays.asList("killTopology","rebalance","activate","deactivate","getTopologyConf","getTopology","getUserTopology","getTopologyInfo"));
-
-    protected Set<String> admins;
-    protected Set<String> supervisors;
-    protected IPrincipalToLocal ptol;
+    protected Set<String> _admins;
+    protected Set<String> _supervisors;
+    protected IPrincipalToLocal _ptol;
 
     /**
      * Invoked once immediately after construction
@@ -41,16 +36,16 @@ public class SimpleACLAuthorizer implements IAuthorizer {
      */
     @Override
     public void prepare(Map conf) {
-        admins = new HashSet<String>();
-        supervisors = new HashSet<String>();
+        _admins = new HashSet<String>();
+        _supervisors = new HashSet<String>();
 
         if (conf.containsKey(Config.NIMBUS_ADMINS)) {
-            admins.addAll((Collection<String>)conf.get(Config.NIMBUS_ADMINS));
+            _admins.addAll((Collection<String>)conf.get(Config.NIMBUS_ADMINS));
         }
         if (conf.containsKey(Config.NIMBUS_SUPERVISOR_USERS)) {
-            supervisors.addAll((Collection<String>)conf.get(Config.NIMBUS_SUPERVISOR_USERS));
+            _supervisors.addAll((Collection<String>)conf.get(Config.NIMBUS_SUPERVISOR_USERS));
         }
-        ptol = AuthUtils.GetPrincipalToLocalPlugin(conf);
+        _ptol = AuthUtils.GetPrincipalToLocalPlugin(conf);
     }
 
     /**
@@ -69,18 +64,22 @@ public class SimpleACLAuthorizer implements IAuthorizer {
                  +" op:"+operation
                  + (topology_conf == null? "" : (" topoology:"+topology_conf.get(Config.TOPOLOGY_NAME))));
        
-        if (userCommands.contains(operation)) {
-            return true;
-        }
-
         String principal = context.principal().getName();
-        String user = ptol.toLocal(context.principal());
+        String user = _ptol.toLocal(context.principal());
 
-        if (admins.contains(principal) || admins.contains(user)) {
+        if (_admins.contains(principal) || _admins.contains(user)) {
             return true;
         }
 
-        if (topoCommands.contains(operation)) {
+        if (_supervisors.contains(principal) || _supervisors.contains(user)) {
+            return _supervisorCommands.contains(operation);
+        }
+
+        if (_userCommands.contains(operation)) {
+            return true;
+        }
+
+        if (_topoCommands.contains(operation)) {
             Set topoUsers = new HashSet<String>();
             if (topology_conf.containsKey(Config.TOPOLOGY_USERS)) {
                 topoUsers.addAll((Collection<String>)topology_conf.get(Config.TOPOLOGY_USERS));
@@ -90,13 +89,7 @@ public class SimpleACLAuthorizer implements IAuthorizer {
                 return true;
             }
         }
-        
-        if (supervisorCommands.contains(operation)) {
-            if (supervisors.contains(principal) || supervisors.contains(user)) {
-                return true;
-            }
-        }
-      
+         
         return false;
     }
 }

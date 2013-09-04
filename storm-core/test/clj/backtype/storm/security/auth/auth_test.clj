@@ -20,7 +20,7 @@
 
 (bootstrap)
 
-(defn principal [name]
+(defn mk-principal [name]
   (reify Principal
     (equals [this other]
       (= name (.getName other)))
@@ -28,8 +28,8 @@
     (toString [this] name)
     (hashCode [this] (.hashCode name))))
 
-(defn subject [name]
-  (Subject. true #{(principal name)} #{} #{}))
+(defn mk-subject [name]
+  (Subject. true #{(mk-principal name)} #{} #{}))
 
 (def nimbus-timeout (Integer. 30))
 
@@ -178,30 +178,30 @@
                        {NIMBUS-ADMINS ["admin"]
                         NIMBUS-SUPERVISOR-USERS ["supervisor"]})
         authorizer (SimpleACLAuthorizer. )
-        admin-user (subject "admin")
-        supervisor-user (subject "supervisor")
-        user-a (subject "user-a")
-        user-b (subject "user-b")]
+        admin-user (mk-subject "admin")
+        supervisor-user (mk-subject "supervisor")
+        user-a (mk-subject "user-a")
+        user-b (mk-subject "user-b")]
   (.prepare authorizer cluster-conf) 
   (is (= true (.permit authorizer (ReqContext. user-a) "submitTopology" {})))
   (is (= true (.permit authorizer (ReqContext. user-b) "submitTopology" {})))
   (is (= true (.permit authorizer (ReqContext. admin-user) "submitTopology" {})))
-  (is (= true (.permit authorizer (ReqContext. supervisor-user) "submitTopology" {})))
+  (is (= false (.permit authorizer (ReqContext. supervisor-user) "submitTopology" {})))
 
   (is (= true (.permit authorizer (ReqContext. user-a) "fileUpload" nil)))
   (is (= true (.permit authorizer (ReqContext. user-b) "fileUpload" nil)))
   (is (= true (.permit authorizer (ReqContext. admin-user) "fileUpload" nil)))
-  (is (= true (.permit authorizer (ReqContext. supervisor-user) "fileUpload" nil)))
+  (is (= false (.permit authorizer (ReqContext. supervisor-user) "fileUpload" nil)))
 
   (is (= true (.permit authorizer (ReqContext. user-a) "getNimbusConf" nil)))
   (is (= true (.permit authorizer (ReqContext. user-b) "getNimbusConf" nil)))
   (is (= true (.permit authorizer (ReqContext. admin-user) "getNimbusConf" nil)))
-  (is (= true (.permit authorizer (ReqContext. supervisor-user) "getNimbusConf" nil)))
+  (is (= false (.permit authorizer (ReqContext. supervisor-user) "getNimbusConf" nil)))
 
   (is (= true (.permit authorizer (ReqContext. user-a) "getClusterInfo" nil)))
   (is (= true (.permit authorizer (ReqContext. user-b) "getClusterInfo" nil)))
   (is (= true (.permit authorizer (ReqContext. admin-user) "getClusterInfo" nil)))
-  (is (= true (.permit authorizer (ReqContext. supervisor-user) "getClusterInfo" nil)))
+  (is (= false (.permit authorizer (ReqContext. supervisor-user) "getClusterInfo" nil)))
 
   (is (= false (.permit authorizer (ReqContext. user-a) "fileDownload" nil)))
   (is (= false (.permit authorizer (ReqContext. user-b) "fileDownload" nil)))
@@ -248,6 +248,29 @@
   (is (= true (.permit authorizer (ReqContext. admin-user) "getTopologyInfo" {TOPOLOGY-USERS ["user-a"]})))
   (is (= false (.permit authorizer (ReqContext. supervisor-user) "getTopologyInfo" {TOPOLOGY-USERS ["user-a"]})))
 ))
+
+(deftest simple-acl-same-user-auth-test
+  (let [cluster-conf (merge (read-storm-config)
+                       {NIMBUS-ADMINS ["admin"]
+                        NIMBUS-SUPERVISOR-USERS ["admin"]})
+        authorizer (SimpleACLAuthorizer. )
+        admin-user (mk-subject "admin")]
+  (.prepare authorizer cluster-conf) 
+  (is (= true (.permit authorizer (ReqContext. admin-user) "submitTopology" {})))
+  (is (= true (.permit authorizer (ReqContext. admin-user) "fileUpload" nil)))
+  (is (= true (.permit authorizer (ReqContext. admin-user) "getNimbusConf" nil)))
+  (is (= true (.permit authorizer (ReqContext. admin-user) "getClusterInfo" nil)))
+  (is (= true (.permit authorizer (ReqContext. admin-user) "fileDownload" nil)))
+  (is (= true (.permit authorizer (ReqContext. admin-user) "killTopology" {TOPOLOGY-USERS ["user-a"]})))
+  (is (= true (.permit authorizer (ReqContext. admin-user) "rebalance" {TOPOLOGY-USERS ["user-a"]})))
+  (is (= true (.permit authorizer (ReqContext. admin-user) "activate" {TOPOLOGY-USERS ["user-a"]})))
+  (is (= true (.permit authorizer (ReqContext. admin-user) "deactivate" {TOPOLOGY-USERS ["user-a"]})))
+  (is (= true (.permit authorizer (ReqContext. admin-user) "getTopologyConf" {TOPOLOGY-USERS ["user-a"]})))
+  (is (= true (.permit authorizer (ReqContext. admin-user) "getTopology" {TOPOLOGY-USERS ["user-a"]})))
+  (is (= true (.permit authorizer (ReqContext. admin-user) "getUserTopology" {TOPOLOGY-USERS ["user-a"]})))
+  (is (= true (.permit authorizer (ReqContext. admin-user) "getTopologyInfo" {TOPOLOGY-USERS ["user-a"]})))
+))
+
 
 (deftest positive-authorization-test 
   (let [a-port (available-port)]
