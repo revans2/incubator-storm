@@ -12,7 +12,7 @@
   (:import [backtype.storm.utils NimbusClient])
   (:import [backtype.storm.security.auth.authorizer SimpleWhitelistAuthorizer SimpleACLAuthorizer])
   (:import [backtype.storm.security.auth AuthUtils ThriftServer ThriftClient 
-            ReqContext SimpleTransportPlugin])
+            ReqContext SimpleTransportPlugin KerberosPrincipalToLocal])
   (:use [backtype.storm bootstrap util])
   (:use [backtype.storm.daemon common])
   (:use [backtype.storm bootstrap testing])
@@ -127,6 +127,13 @@
      ~@body
      (.stop server#)
      ))
+
+(deftest kerb-to-local-test
+  (let [kptol (KerberosPrincipalToLocal. )]
+    (.prepare kptol {})
+    (is (= "me" (.toLocal kptol (mk-principal "me@realm"))))
+    (is (= "simple" (.toLocal kptol (mk-principal "simple"))))
+    (is (= "someone" (.toLocal kptol (mk-principal "someone/host@realm"))))))
 
 (deftest Simple-authentication-test
   (let [a-port (available-port)]
