@@ -3,7 +3,7 @@
   <groupId>storm</groupId>
   <artifactId>storm-netty</artifactId>
   <packaging>jar</packaging>
-  <version>0.9.0-wip19</version>
+  <version>0.9.0-wip21</version>
   <name>storm-netty</name>
   <description/>
 
@@ -246,7 +246,7 @@
     <dependency>
       <groupId>storm</groupId>
       <artifactId>storm-core</artifactId>
-      <version>0.9.0-wip19</version>
+      <version>0.9.0-wip21</version>
     </dependency>
     <dependency>
       <groupId>io.netty</groupId>
