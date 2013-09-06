@@ -960,7 +960,7 @@ public class Config extends HashMap<String, Object> {
      * The number of machines that should be used by this topology to isolate it from all others. Set storm.scheduler
      * to backtype.storm.scheduler.multitenant.MultitenantScheduler
      */
-    public static final String TOPOLOGY_ISOLATED_MACHINES = "topolgy.isolate.machines";
+    public static final String TOPOLOGY_ISOLATED_MACHINES = "topology.isolate.machines";
     public static final Object TOPOLOGY_ISOLATED_MACHINES_SCHEMA = Number.class;
     
     public static void setDebug(Map conf, boolean isOn) {
