@@ -18,7 +18,7 @@ public class LocalState {
     private VersionedStore _vs;
     
     public LocalState(String backingDir) throws IOException {
-        LOG.info("New Local State for {}", backingDir);
+        LOG.debug("New Local State for {}", backingDir);
         _vs = new VersionedStore(backingDir);
     }
     
@@ -26,7 +26,6 @@ public class LocalState {
         int attempts = 0;
         while(true) {
             String latestPath = _vs.mostRecentVersionPath();
-            //LOG.info("Taking Snapshot of the state {}", latestPath);
             if(latestPath==null) return new HashMap<Object, Object>();
             try {
                 return (Map<Object, Object>) Utils.deserialize(FileUtils.readFileToByteArray(new File(latestPath)));
@@ -40,7 +39,6 @@ public class LocalState {
     }
     
     public Object get(Object key) throws IOException {
-        //LOG.info("get of {}", key);
         return snapshot().get(key);
     }
     
@@ -49,7 +47,6 @@ public class LocalState {
     }
 
     public synchronized void put(Object key, Object val, boolean cleanup) throws IOException {
-        //LOG.info("put of {} = {}", key, val);
         Map<Object, Object> curr = snapshot();
         curr.put(key, val);
         persist(curr, cleanup);
@@ -60,7 +57,6 @@ public class LocalState {
     }
 
     public synchronized void remove(Object key, boolean cleanup) throws IOException {
-        //LOG.info("remove of {}", key);
         Map<Object, Object> curr = snapshot();
         curr.remove(key);
         persist(curr, cleanup);
@@ -73,7 +69,6 @@ public class LocalState {
     private void persist(Map<Object, Object> val, boolean cleanup) throws IOException {
         byte[] toWrite = Utils.serialize(val);
         String newPath = _vs.createVersion();
-        //LOG.info("Writing data to {}", newPath);
         FileUtils.writeByteArrayToFile(new File(newPath), toWrite);
         _vs.succeedVersion(newPath);
         if(cleanup) _vs.cleanup(4);

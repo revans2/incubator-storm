@@ -900,7 +900,7 @@
   (try-cause
     (read-storm-conf conf storm-id)
     (catch FileNotFoundException e
-       (throw (NotAliveException. storm-id)))
+       (throw (NotAliveException. (str storm-id))))
   )
 )
 
@@ -913,7 +913,7 @@
   (try-cause
     (read-storm-topology conf storm-id)
     (catch FileNotFoundException e
-       (throw (NotAliveException. storm-id)))
+       (throw (NotAliveException. (str storm-id))))
   )
 )
 
@@ -1202,8 +1202,8 @@
               _ (check-authorization! nimbus storm-name topology-conf "getTopologyInfo")
               task->component (storm-task-info (try-read-storm-topology conf storm-id) topology-conf)
               base (.storm-base storm-cluster-state storm-id nil)
-              storm-name (if base (:storm-name base) (throw (NotAliveException. storm-id)))
-              launch-time-secs (if base (:launch-time-secs base) (throw (NotAliveException. storm-id)))
+              storm-name (if base (:storm-name base) (throw (NotAliveException. (str storm-id))))
+              launch-time-secs (if base (:launch-time-secs base) (throw (NotAliveException. (str storm-id))))
               task->component (storm-task-info (try-read-storm-topology conf storm-id) topology-conf)
               assignment (.assignment-info storm-cluster-state storm-id nil)
               beats (.executor-beats storm-cluster-state storm-id (:executor->node+port assignment))
