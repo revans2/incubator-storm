@@ -86,11 +86,6 @@
           submitOptions (SubmitOptions. topologyInitialStatus)]
       (is (thrown-cause? AuthorizationException (.submitTopology nimbus_client  "nimbus_auth_topology" nil nil nil))) 
       (is (thrown-cause? AuthorizationException (.submitTopologyWithOpts nimbus_client  "nimbus_auth_topology" nil nil nil submitOptions)))
-      (is (thrown-cause? AuthorizationException (.killTopology nimbus_client "nimbus_auth_topology")))
-      (is (thrown-cause? AuthorizationException (.killTopologyWithOpts nimbus_client "nimbus_auth_topology" (KillOptions.))))
-      (is (thrown-cause? AuthorizationException (.activate nimbus_client "nimbus_auth_topology")))
-      (is (thrown-cause? AuthorizationException (.deactivate nimbus_client "nimbus_auth_topology")))
-      (is (thrown-cause? AuthorizationException (.rebalance nimbus_client "nimbus_auth_topology" nil)))
       (is (thrown-cause? AuthorizationException (.beginFileUpload nimbus_client)))
       (is (thrown-cause? AuthorizationException (.uploadChunk nimbus_client nil nil)))
       (is (thrown-cause? AuthorizationException (.finishFileUpload nimbus_client nil)))
@@ -98,11 +93,19 @@
       (is (thrown-cause? AuthorizationException (.downloadChunk nimbus_client nil)))
       (is (thrown-cause? AuthorizationException (.getNimbusConf nimbus_client)))
       (is (thrown-cause? AuthorizationException (.getClusterInfo nimbus_client)))
-      (is (thrown-cause? AuthorizationException (.getTopologyInfo nimbus_client "nimbus_auth_topology")))
+      (stubbing [nimbus/check-storm-active! nil
+                 nimbus/try-read-storm-conf-from-name {}]
+        (is (thrown-cause? AuthorizationException (.killTopology nimbus_client "nimbus_auth_topology")))
+        (is (thrown-cause? AuthorizationException (.killTopologyWithOpts nimbus_client "nimbus_auth_topology" (KillOptions.))))
+        (is (thrown-cause? AuthorizationException (.activate nimbus_client "nimbus_auth_topology")))
+        (is (thrown-cause? AuthorizationException (.deactivate nimbus_client "nimbus_auth_topology")))
+        (is (thrown-cause? AuthorizationException (.rebalance nimbus_client "nimbus_auth_topology" nil)))
+      )
       (stubbing [nimbus/try-read-storm-conf {}]
         (is (thrown-cause? AuthorizationException (.getTopologyConf nimbus_client "nimbus_auth_topology")))
         (is (thrown-cause? AuthorizationException (.getTopology nimbus_client "nimbus_auth_topology")))
-        (is (thrown-cause? AuthorizationException (.getUserTopology nimbus_client "nimbus_auth_topology"))))
+        (is (thrown-cause? AuthorizationException (.getUserTopology nimbus_client "nimbus_auth_topology")))
+        (is (thrown-cause? AuthorizationException (.getTopologyInfo nimbus_client "nimbus_auth_topology"))))
       (.close client))))
 
 (deftest test-noop-authorization-w-sasl-digest 
@@ -138,13 +141,15 @@
           nimbus_client (.getClient client)
           topologyInitialStatus (TopologyInitialStatus/findByValue 2)
           submitOptions (SubmitOptions. topologyInitialStatus)]
+      (stubbing [nimbus/check-storm-active! nil
+                 nimbus/try-read-storm-conf-from-name {}]
+        (is (thrown-cause? AuthorizationException (.killTopology nimbus_client "nimbus_auth_topology")))
+        (is (thrown-cause? AuthorizationException (.killTopologyWithOpts nimbus_client "nimbus_auth_topology" (KillOptions.))))
+        (is (thrown-cause? AuthorizationException (.activate nimbus_client "nimbus_auth_topology")))
+        (is (thrown-cause? AuthorizationException (.deactivate nimbus_client "nimbus_auth_topology")))
+        (is (thrown-cause? AuthorizationException (.rebalance nimbus_client "nimbus_auth_topology" nil))))
       (is (thrown-cause? AuthorizationException (.submitTopology nimbus_client  "nimbus_auth_topology" nil nil nil))) 
       (is (thrown-cause? AuthorizationException (.submitTopologyWithOpts nimbus_client  "nimbus_auth_topology" nil nil nil submitOptions)))
-      (is (thrown-cause? AuthorizationException (.killTopology nimbus_client "nimbus_auth_topology")))
-      (is (thrown-cause? AuthorizationException (.killTopologyWithOpts nimbus_client "nimbus_auth_topology" (KillOptions.))))
-      (is (thrown-cause? AuthorizationException (.activate nimbus_client "nimbus_auth_topology")))
-      (is (thrown-cause? AuthorizationException (.deactivate nimbus_client "nimbus_auth_topology")))
-      (is (thrown-cause? AuthorizationException (.rebalance nimbus_client "nimbus_auth_topology" nil)))
       (is (thrown-cause? AuthorizationException (.beginFileUpload nimbus_client)))
       (is (thrown-cause? AuthorizationException (.uploadChunk nimbus_client nil nil)))
       (is (thrown-cause? AuthorizationException (.finishFileUpload nimbus_client nil)))
@@ -152,10 +157,10 @@
       (is (thrown-cause? AuthorizationException (.downloadChunk nimbus_client nil)))
       (is (thrown-cause? AuthorizationException (.getNimbusConf nimbus_client)))
       (is (thrown-cause? AuthorizationException (.getClusterInfo nimbus_client)))
-      (is (thrown-cause? AuthorizationException (.getTopologyInfo nimbus_client "nimbus_auth_topology")))
       (stubbing [nimbus/try-read-storm-conf {}]
         (is (thrown-cause? AuthorizationException (.getTopologyConf nimbus_client "nimbus_auth_topology")))
         (is (thrown-cause? AuthorizationException (.getTopology nimbus_client "nimbus_auth_topology")))
-        (is (thrown-cause? AuthorizationException (.getUserTopology nimbus_client "nimbus_auth_topology"))))
+        (is (thrown-cause? AuthorizationException (.getUserTopology nimbus_client "nimbus_auth_topology")))
+        (is (thrown-cause? AuthorizationException (.getTopologyInfo nimbus_client "nimbus_auth_topology"))))
       (.close client))))
 
