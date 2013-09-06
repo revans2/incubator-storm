@@ -1,4 +1,5 @@
 package backtype.storm;
+import java.util.Map;
 
 import java.util.Map;
 
@@ -155,6 +156,11 @@ public class ConfigValidation {
      * Validates a map of Strings to Numbers.
      */
     public static Object MapOfStringToNumberValidator = mapFv(String.class, Number.class, true);
+
+    /**
+     * Validates is a list of Maps.
+     */
+    public static Object MapsValidator = listFv(Map.class, true);
 
     /**
      * Validates a power of 2.

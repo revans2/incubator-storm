@@ -35,6 +35,7 @@
   :java-source-paths ["src/jvm"]
   :test-paths ["test/clj"]
   :resource-paths ["../conf"]
+  :target-path "target"
 
   :profiles {:dev {:resource-paths ["src/dev"]
                    :dependencies [
