@@ -406,6 +406,12 @@ public class Config extends HashMap<String, Object> {
     public static final Object UI_FILTER_PARAMS_SCHEMA = Map.class;
 
     /**
+     * The size of the header buffer for the UI in bytes
+     */
+    public static final String UI_HEADER_BUFFER_BYTES = "ui.header.buffer.bytes";
+    public static final Object UI_HEADER_BUFFER_BYTES_SCHEMA = Number.class;
+
+    /**
      * A list of users allowed to view topologies via the UI
      */
     public static final String UI_USERS = "ui.users";

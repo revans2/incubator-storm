@@ -884,10 +884,13 @@
           conf (assoc (assoc conf NIMBUS-HOST (.host nimbusHostPort)) NIMBUS-THRIFT-PORT (.port nimbusHostPort))
           conf (config-with-ui-port-assigned conf)]
       (announce-ui-port conf)
-      (let [app (mk-app conf)]
+      (let [app (mk-app conf)
+            header-buffer-size (int (.get conf UI-HEADER-BUFFER-BYTES))]
         (run-jetty app {:port (conf UI-PORT)
                             :join? false
                             :configurator (fn [server]
+                                            (doseq [connector (.getConnectors server)]
+                                              (.setHeaderBufferSize connector header-buffer-size))
                                             (config-filter server app conf))})))
    (catch Exception ex
      (log-error ex))))

@@ -53,6 +53,7 @@ ui.actions.enabled: true
 ui.filter: null
 ui.filter.params: null
 ui.users: null
+ui.header.buffer.bytes: 4096
 
 logviewer.port: 8000
 logviewer.childopts: "-Xmx128m"
