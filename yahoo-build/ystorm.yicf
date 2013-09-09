@@ -21,6 +21,7 @@ YINST set storm_local_dir          /home/y/var/storm
 YINST set syslog_facility          LOCAL5
 YINST set syslog_host              localhost
 YINST set ui_actions_enabled       false
+YINST set ui_header_buffer_bytes   8192
 YINST set storm_cluster_user       nobody
 YINST set worker_launcher_group    nobody
 YINST set min_user_id              500
