@@ -21,10 +21,10 @@ YINST set storm_local_dir          /home/y/var/storm
 YINST set syslog_facility          LOCAL5
 YINST set syslog_host              localhost
 YINST set ui_actions_enabled       false
-YINST set storm_cluster_user       nobody
-YINST set worker_launcher_group    nobody
+YINST set storm_cluster_user       yahoo
+YINST set worker_launcher_group    yahoo
 YINST set min_user_id              500
-YINST set ui_filter                yjava.servlet.filter.BouncerFilter
+#YINST set ui_filter                yjava.servlet.filter.BouncerFilter
 
 # Bouncer UI Filter Configuration
 YINST set ui_filter_params bouncer_cookie_timeout,480,bouncer_url,https://by.bouncer.login.yahoo.com/login/
