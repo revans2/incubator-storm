@@ -31,15 +31,16 @@ public class AuthUtils {
         //find login file configuration from Storm configuration  
         String loginConfigurationFile = (String)storm_conf.get("java.security.auth.login.config");
         if ((loginConfigurationFile != null) && (loginConfigurationFile.length()>0)) { 
+            File config_file = new File(loginConfigurationFile);
+            if (! config_file.canRead()) {
+                throw new RuntimeException("File " + loginConfigurationFile +
+                        " cannot be read.");
+            }
             try {
-                URI config_uri = new File(loginConfigurationFile).toURI();
+                URI config_uri = config_file.toURI();
                 login_conf = Configuration.getInstance("JavaLoginConfig", new URIParameter(config_uri));
-            } catch (NoSuchAlgorithmException ex1) {
-                if (ex1.getCause() instanceof FileNotFoundException)
-                    throw new RuntimeException("configuration file "+loginConfigurationFile+" could not be found");
-                else throw new RuntimeException(ex1);
-            } catch (Exception ex2) {
-                throw new RuntimeException(ex2);
+            } catch (Exception ex) {
+                throw new RuntimeException(ex);
             }
         }
         
