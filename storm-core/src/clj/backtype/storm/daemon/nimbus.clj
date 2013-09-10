@@ -1,6 +1,5 @@
 (ns backtype.storm.daemon.nimbus
   (:import [org.apache.thrift7 TException])
-  (:import [java.net InetAddress])
   (:import [java.nio ByteBuffer])
   (:import [java.io FileNotFoundException])
   (:import [java.nio.channels Channels WritableByteChannel])
@@ -1248,30 +1247,14 @@
       (waiting? [this]
         (timer-waiting? (:timer nimbus))))))
 
-(defn announce-nimbus-info [nimbus host port]
-  (let [storm-cluster-state (:storm-cluster-state nimbus)
-        nimbus-host-port (HostPort. host port)]
-    (.set-nimbus! storm-cluster-state nimbus-host-port)))
-
-(defn config-with-nimbus-port-assigned [conf]
-  (let [port_in_conf (.intValue (Integer. (conf NIMBUS-THRIFT-PORT)))
-        nimbus_port (assign-server-port port_in_conf)]
-    (assoc (assoc conf
-             NIMBUS-THRIFT-PORT (Integer. nimbus_port))
-      NIMBUS-HOST (.getCanonicalHostName (InetAddress/getLocalHost)))))
-
-(defn launch-server! [conf inimbus]
+(defn launch-server! [conf nimbus]
   (validate-distributed-mode! conf)
-  (let [extended-conf (config-with-nimbus-port-assigned conf)
-        nimbus-port (extended-conf NIMBUS-THRIFT-PORT)
-        nimbus (nimbus-data extended-conf inimbus)
-        service-handler (service-handler extended-conf inimbus)
-        server (ThriftServer. conf (Nimbus$Processor. service-handler)
-                 nimbus-port
-                 backtype.storm.Config$ThriftServerPurpose/NIMBUS)]
+  (let [service-handler (service-handler conf nimbus)
+        server (ThriftServer. conf (Nimbus$Processor. service-handler) 
+                              (int (conf NIMBUS-THRIFT-PORT)) 
+                              backtype.storm.Config$ThriftServerPurpose/NIMBUS)]
     (.addShutdownHook (Runtime/getRuntime) (Thread. (fn [] (.shutdown service-handler) (.stop server))))
-    (log-message "Starting Nimbus server with port " nimbus-port)
-    (announce-nimbus-info nimbus (extended-conf NIMBUS-HOST) nimbus-port)
+    (log-message "Starting Nimbus server...")
     (.serve server)
     service-handler))
 
