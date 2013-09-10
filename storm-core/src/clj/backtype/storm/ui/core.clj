@@ -765,7 +765,7 @@
         sys? (if (or (nil? sys?) (= "false" (:value sys?))) false true)]
     sys?))
 
-(defn main-routes []
+(defn main-routes [conf]
   (if (ui-actions-enabled?)
     (routes
     (GET "/" [:as {servlet-request :servlet-request}]
