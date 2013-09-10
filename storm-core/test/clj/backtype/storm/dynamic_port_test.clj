@@ -39,10 +39,9 @@
            (catch Throwable t1#))))
      ))
 
-(deftest test-dynamic-ports-for-nimbus-n-supervisors
+(deftest test-dynamic-nimbus-port
   (with-server [cluster
                 :supervisors 4
-                :ports-per-supervisor [ 0 0 ]
                 :daemon-conf {STORM-LOCAL-MODE-ZMQ true
                               NIMBUS-THRIFT-PORT 0}]
       (let [conf (:daemon-conf cluster)
