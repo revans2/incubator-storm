@@ -33,8 +33,8 @@
          )
        (finally
          (try
-           (.stop server#)
            (kill-local-storm-cluster ~cluster-sym)
+           (.stop server#)
            (catch Throwable t1#))))
      ))
 
