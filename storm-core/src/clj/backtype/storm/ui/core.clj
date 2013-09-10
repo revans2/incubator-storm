@@ -27,7 +27,7 @@
 (defmacro with-nimbus [conf-sym nimbus-sym & body]
   `(let [state# (cluster/mk-storm-cluster-state ~conf-sym)
          hostPort# (.nimbus-info state#)]
-     (thrift/with-nimbus-connection [~nimbus-sym (.host hostPort#) (.port hostPort#)]
+     (thrift/with-nimbus-connection [~nimbus-sym (:host hostPort#) (Integer. (:port hostPort#))]
        ~@body
        )))
 

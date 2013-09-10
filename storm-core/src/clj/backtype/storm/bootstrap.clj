@@ -40,9 +40,8 @@
                      KillOptions SubmitOptions RebalanceOptions JavaObject JavaObjectArg
                      TopologyInitialStatus AuthorizationException]))
      (import (quote [backtype.storm.daemon.common StormBase Assignment
-                     SupervisorInfo WorkerHeartbeat]))
+                     SupervisorInfo WorkerHeartbeat HostPort]))
      (import (quote [backtype.storm.grouping CustomStreamGrouping]))
-     (import (quote [backtype.storm.utils HostPort]))
      (import (quote [java.io File FileOutputStream FileInputStream]))
      (import (quote [java.util Collection List Random Map HashMap Collections ArrayList LinkedList]))
      (import (quote [org.apache.commons.io FileUtils]))
