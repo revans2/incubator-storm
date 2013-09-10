@@ -7,7 +7,7 @@
   (:use [backtype.storm.daemon [common :only [ACKER-COMPONENT-ID system-id?]]])
   (:use [ring.adapter.jetty :only [run-jetty]])
   (:use [clojure.string :only [blank? lower-case trim]])
-  (:use [backtype.storm bootstrap])
+  (:use [clojure.string :only [lower-case trim]])
   (:import [backtype.storm.generated ExecutorSpecificStats
             ExecutorStats ExecutorSummary TopologyInfo SpoutStats BoltStats
             ErrorInfo ClusterSummary SupervisorSummary TopologySummary
@@ -18,18 +18,16 @@
   (:require [compojure.route :as route]
             [compojure.handler :as handler]
             [ring.util.response :as resp]
-            [backtype.storm [thrift :as thrift] [cluster :as cluster]])
+            [backtype.storm [thrift :as thrift]])
   (:import [org.apache.commons.lang StringEscapeUtils])
   (:gen-class))
 
 (def ^:dynamic *STORM-CONF* (read-storm-config))
 
-(defmacro with-nimbus [conf-sym nimbus-sym & body]
-  `(let [state# (cluster/mk-storm-cluster-state ~conf-sym)
-         hostPort# (.nimbus-info state#)]
-     (thrift/with-nimbus-connection [~nimbus-sym (:host hostPort#) (Integer. (:port hostPort#))]
-       ~@body
-       )))
+(defmacro with-nimbus [nimbus-sym & body]
+  `(thrift/with-nimbus-connection [~nimbus-sym (*STORM-CONF* NIMBUS-HOST) (*STORM-CONF* NIMBUS-THRIFT-PORT)]
+     ~@body
+     ))
 
 (defn get-filled-stats [summs]
   (->> summs
@@ -130,20 +128,19 @@
   (sorted-table ["Key" "Value"]
     (map #(vector (key %) (str (val %))) conf)))
 
-(defn main-page [conf]
-  (log-message "UI main page being constructed ...")
-  (with-nimbus conf nimbus
-  (let [summ (.getClusterInfo ^Nimbus$Client nimbus)]
-    (concat
-      [[:h2 "Cluster Summary"]]
-      [(cluster-summary-table summ)]
-      [[:h2 "Topology summary"]]
-      (main-topology-summary-table (.get_topologies summ))
-      [[:h2 "Supervisor summary"]]
-      (supervisor-summary-table (.get_supervisors summ))
-      [[:h2 "Nimbus Configuration"]]
-      (configuration-table (from-json (.getNimbusConf ^Nimbus$Client nimbus)))
-      ))))
+(defn main-page []
+  (with-nimbus nimbus
+    (let [summ (.getClusterInfo ^Nimbus$Client nimbus)]
+      (concat
+       [[:h2 "Cluster Summary"]]
+       [(cluster-summary-table summ)]
+       [[:h2 "Topology summary"]]
+       (main-topology-summary-table (.get_topologies summ))
+       [[:h2 "Supervisor summary"]]
+       (supervisor-summary-table (.get_supervisors summ))
+       [[:h2 "Nimbus Configuration"]]
+       (configuration-table (from-json (.getNimbusConf ^Nimbus$Client nimbus)))
+       ))))
 
 (defn component-type [^StormTopology topology id]
   (let [bolts (.get_bolts topology)
@@ -504,8 +501,8 @@
     (and (not (blank? user))
          (some #(= % user) ui-users))))
 
-(defn topology-page [conf id window include-sys? user]
-  (with-nimbus conf nimbus
+(defn topology-page [id window include-sys? user]
+  (with-nimbus nimbus
     (let [window (if window window ":all-time")
           window-hint (window-hint window)
           summ (.getTopologyInfo ^Nimbus$Client nimbus id)
@@ -737,8 +734,8 @@
      :sort-list "[[0,1]]"
      )))
 
-(defn component-page [conf topology-id component window include-sys? user]
-  (with-nimbus conf nimbus
+(defn component-page [topology-id component window include-sys? user]
+  (with-nimbus nimbus
     (let [window (if window window ":all-time")
           summ (.getTopologyInfo ^Nimbus$Client nimbus topology-id)
           topology (.getTopology ^Nimbus$Client nimbus topology-id)
@@ -769,16 +766,16 @@
         sys? (if (or (nil? sys?) (= "false" (:value sys?))) false true)]
     sys?))
 
-(defn main-routes [conf]
+(defn main-routes []
   (if (ui-actions-enabled?)
     (routes
     (GET "/" [:as {servlet-request :servlet-request}]
-         (ui-template (main-page conf) (get-servlet-user servlet-request)))
+         (ui-template (main-page) (get-servlet-user servlet-request)))
     (GET "/topology/:id" [:as {cookies :cookies servlet-request :servlet-request} id & m]
          (let [include-sys? (get-include-sys? cookies)
                user (get-servlet-user servlet-request)]
            (ui-template (concat
-                          (topology-page conf id (:window m) include-sys? user)
+                          (topology-page id (:window m) include-sys? user)
                           [(mk-system-toggle-button include-sys?)])
                         user)))
     (GET "/topology/:id/component/:component" [:as {:keys [cookies servlet-request]}
@@ -786,25 +783,25 @@
          (let [include-sys? (get-include-sys? cookies)
                user (get-servlet-user servlet-request)]
            (ui-template (concat
-                          (component-page conf id component (:window m) include-sys? user)
+                          (component-page id component (:window m) include-sys? user)
                           [(mk-system-toggle-button include-sys?)])
                         user)))
     (POST "/topology/:id/activate" [id]
-      (with-nimbus conf nimbus
+      (with-nimbus nimbus
         (let [tplg (.getTopologyInfo ^Nimbus$Client nimbus id)
               name (.get_name tplg)]
           (.activate nimbus name)
           (log-message "Activating topology '" name "'")))
       (resp/redirect (str "/topology/" id)))
     (POST "/topology/:id/deactivate" [id]
-      (with-nimbus conf nimbus
+      (with-nimbus nimbus
         (let [tplg (.getTopologyInfo ^Nimbus$Client nimbus id)
               name (.get_name tplg)]
           (.deactivate nimbus name)
           (log-message "Deactivating topology '" name "'")))
       (resp/redirect (str "/topology/" id)))
     (POST "/topology/:id/rebalance/:wait-time" [id wait-time]
-      (with-nimbus conf nimbus
+      (with-nimbus nimbus
         (let [tplg (.getTopologyInfo ^Nimbus$Client nimbus id)
               name (.get_name tplg)
               options (RebalanceOptions.)]
@@ -813,7 +810,7 @@
           (log-message "Rebalancing topology '" name "' with wait time: " wait-time " secs")))
       (resp/redirect (str "/topology/" id)))
     (POST "/topology/:id/kill/:wait-time" [id wait-time]
-      (with-nimbus conf nimbus
+      (with-nimbus nimbus
         (let [tplg (.getTopologyInfo ^Nimbus$Client nimbus id)
               name (.get_name tplg)
               options (KillOptions.)]
@@ -826,12 +823,12 @@
 
     (routes
     (GET "/" [:as {servlet-request :servlet-request}]
-         (ui-template (main-page conf) (get-servlet-user servlet-request)))
+         (ui-template (main-page) (get-servlet-user servlet-request)))
     (GET "/topology/:id" [:as {cookies :cookies servlet-request :servlet-request} id & m]
          (let [include-sys? (get-include-sys? cookies)
                user (get-servlet-user servlet-request)]
            (ui-template (concat
-                          (topology-page conf id (:window m) include-sys? user)
+                          (topology-page id (:window m) include-sys? user)
                           [(mk-system-toggle-button include-sys?)])
                         user)))
     (GET "/topology/:id/component/:component" [:as {:keys [cookies servlet-request]}
@@ -839,12 +836,12 @@
          (let [include-sys? (get-include-sys? cookies)
                user (get-servlet-user servlet-request)]
            (ui-template (concat
-                          (component-page conf id component (:window m) include-sys? user)
+                          (component-page id component (:window m) include-sys? user)
                           [(mk-system-toggle-button include-sys?)])
                         user)))
     (route/resources "/")
-    (route/not-found "Page not found")))
-)
+    (route/not-found "Page not found"))
+))
 
 (defn exception->html [ex]
   (concat
@@ -870,9 +867,10 @@
       (wrap-reload '[backtype.storm.ui.core])
       catch-errors))
 
-(defn start-server! [conf]
+(defn start-server! []
   (try
-    (let [app (mk-app conf)
+    (let [conf *STORM-CONF*
+          app (mk-app conf)
           header-buffer-size (int (.get conf UI-HEADER-BUFFER-BYTES))]
       (run-jetty app {:port (conf UI-PORT)
                           :join? false
@@ -883,4 +881,4 @@
    (catch Exception ex
      (log-error ex))))
 
-(defn -main [] (start-server! (read-storm-config)))
+(defn -main [] (start-server!))
