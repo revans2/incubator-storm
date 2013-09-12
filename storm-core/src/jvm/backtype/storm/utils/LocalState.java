@@ -73,8 +73,8 @@ public class LocalState {
         FileUtils.writeByteArrayToFile(file, toWrite);
         if (toWrite.length != file.length()) {
             throw new IOException("Tried to serialize " + toWrite.length + 
-                    " bytes to a file, but " + file.length() + 
-                    " bytes were written.");
+                    " bytes to " + file.getCanonicalPath() + ", but " +
+                    file.length() + " bytes were written.");
         }
         _vs.succeedVersion(newPath);
         if(cleanup) _vs.cleanup(4);
