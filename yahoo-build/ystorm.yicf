@@ -69,6 +69,7 @@ file 444 - - lib64/storm/$(BASE_VERSION)/README.yahoo ./README.yahoo
 
 file 444 - - lib64/storm/$(BASE_VERSION)/public/css/bootstrap-1.1.0.css ../storm-core/src/ui/public/css/bootstrap-1.1.0.css
 file 444 - - lib64/storm/$(BASE_VERSION)/public/css/style.css ../storm-core/src/ui/public/css/style.css
+file 444 - - lib64/storm/$(BASE_VERSION)/public/js/script.js ../storm-core/src/ui/public/js/script.js
 file 444 - - lib64/storm/$(BASE_VERSION)/public/js/jquery-1.6.2.min.js ../storm-core/src/ui/public/js/jquery-1.6.2.min.js
 file 444 - - lib64/storm/$(BASE_VERSION)/public/js/jquery.cookies.2.2.0.min.js ../storm-core/src/ui/public/js/jquery.cookies.2.2.0.min.js
 file 444 - - lib64/storm/$(BASE_VERSION)/public/js/jquery.tablesorter.min.js ../storm-core/src/ui/public/js/jquery.tablesorter.min.js
