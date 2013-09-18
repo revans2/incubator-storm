@@ -111,7 +111,10 @@ for k, v in config.items():
     if k in remappedKeys:
         k = remappedKeys[k]
 
-    my_normalize = double_quote_if_needed if (k in allStringKeys) else normalize
+    my_normalize = normalize
+    if k in allStringKeys:
+        my_normalize = double_quote_if_needed
+
     if k not in listKeys and k not in mapKeys:
 #        print "k not in listkeys"
         print k + ":", my_normalize(v)
