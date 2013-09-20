@@ -3,7 +3,7 @@
 
 (eval `(defproject storm/storm-netty ~VERSION
   :dependencies [[storm/storm-core ~VERSION]
-                 [io.netty/netty "3.6.3.Final"]]
+                 [io.netty/netty "3.6.6.Final"]]
   :java-source-paths ["src/jvm"]
   :test-paths ["test/clj"]
   :profiles {:release {}}
