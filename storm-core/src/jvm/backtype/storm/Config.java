@@ -64,7 +64,7 @@ public class Config extends HashMap<String, Object> {
     public static final Object STORM_MESSAGING_NETTY_SERVER_WORKER_THREADS_SCHEMA = Number.class;
 
     /**
-     * Netty based messaging: The # of worker threads for the client. Setting this to -1, returns it to thenetty default.
+     * Netty based messaging: The # of worker threads for the client. Setting this to -1, returns it to the netty default.
      */
     public static final String STORM_MESSAGING_NETTY_CLIENT_WORKER_THREADS = "storm.messaging.netty.client_worker_threads"; 
     public static final Object STORM_MESSAGING_NETTY_CLIENT_WORKER_THREADS_SCHEMA = Number.class;
