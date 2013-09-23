@@ -142,7 +142,8 @@
 
 (defprotocol RunningExecutor
   (render-stats [this])
-  (get-executor-id [this]))
+  (get-executor-id [this])
+  (credentials-changed [this creds]))
 
 (defn throttled-report-error-fn [executor]
   (let [storm-conf (:storm-conf executor)
@@ -327,6 +328,13 @@
         (stats/render-stats! (:stats executor-data)))
       (get-executor-id [this]
         executor-id )
+      (credentials-changed [this creds]
+        (let [receive-queue (:receive-queue executor-data)
+              context (:worker-context executor-data)]
+          (disruptor/publish
+            receive-queue
+            [[nil (TupleImpl. context [creds] Constants/SYSTEM_TASK_ID Constants/CREDENTIALS_CHANGED_STREAM_ID)]]
+              )))
       Shutdownable
       (shutdown
         [this]
@@ -426,7 +434,7 @@
                                       spout-obj (:object task-data)]
                                   (log-message "TODO the credentials have changed" (pr-str tuple))
                                   (when (instance? ICredentialsListener spout-obj)
-                                    (.credentialsHaveChanged spout-obj (.getValue tuple 0))))
+                                    (.setCredentials spout-obj (.getValue tuple 0))))
                               (let [id (.getValue tuple 0)
                                     [stored-task-id spout-id tuple-finished-info start-time-ms] (.remove pending id)]
                                 (when spout-id
@@ -612,7 +620,7 @@
                                       bolt-obj (:object task-data)]
                                   (log-message "TODO the credentials have changed" (pr-str tuple))
                                   (when (instance? ICredentialsListener bolt-obj)
-                                    (.credentialsHaveChanged bolt-obj (.getValue tuple 0))))
+                                    (.setCredentials bolt-obj (.getValue tuple 0))))
                               Constants/METRICS_TICK_STREAM_ID (metrics-tick executor-data task-datas tuple)
                               (let [task-data (get task-datas task-id)
                                     ^IBolt bolt-obj (:object task-data)

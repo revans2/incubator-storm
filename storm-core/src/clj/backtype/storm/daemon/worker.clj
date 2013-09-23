@@ -383,6 +383,7 @@
         _ (refresh-storm-active worker nil)
  
         _ (reset! executors (dofor [e (:executors worker)] (executor/mk-executor worker e)))
+       
         receive-thread-shutdown (launch-receive-thread worker)
         
         transfer-tuples (mk-transfer-tuples-handler worker)
@@ -440,8 +441,17 @@
                  (timer-waiting? (:executor-heartbeat-timer worker))
                  (timer-waiting? (:user-timer worker))
                  ))
-             )]
-    
+             )
+        credentials (atom "bogus") ;;Force the function to be called the first time
+        check-credentials-changed (fn []
+                                    (let [new-creds (:credentials (.credentials (:storm-cluster-state worker) storm-id nil))]
+                                      (when-not (= new-creds @credentials)
+                                        (log-message "CREDS CHANGED " (pr-str new-creds)) ;;TODO don't log secrets
+                                        (dofor [e @executors] (.credentials-changed e new-creds))
+                                        (swap! credentials (fn [_] new-creds)))))
+      ]
+    (.credentials (:storm-cluster-state worker) storm-id (fn [args] (log-message "Should Check Creds " (pr-str args)) (check-credentials-changed)))
+    (schedule-recurring (:refresh-connections-timer worker) 0 100 check-credentials-changed) ;;TODO need a better timer
     (schedule-recurring (:refresh-connections-timer worker) 0 (conf TASK-REFRESH-POLL-SECS) refresh-connections)
     (schedule-recurring (:refresh-active-timer worker) 0 (conf TASK-REFRESH-POLL-SECS) (partial refresh-storm-active worker))
 
