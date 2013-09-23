@@ -120,6 +120,8 @@
   (remove-storm! [this storm-id])
   (report-error [this storm-id task-id error])
   (errors [this storm-id task-id])
+  (set-credentials [this storm-id creds])
+  (credentials [this storm-id callback])
 
   (disconnect [this])
   )
@@ -131,12 +133,14 @@
 (def SUPERVISORS-ROOT "supervisors")
 (def WORKERBEATS-ROOT "workerbeats")
 (def ERRORS-ROOT "errors")
+(def CREDENTIALS-ROOT "credentials")
 
 (def ASSIGNMENTS-SUBTREE (str "/" ASSIGNMENTS-ROOT))
 (def STORMS-SUBTREE (str "/" STORMS-ROOT))
 (def SUPERVISORS-SUBTREE (str "/" SUPERVISORS-ROOT))
 (def WORKERBEATS-SUBTREE (str "/" WORKERBEATS-ROOT))
 (def ERRORS-SUBTREE (str "/" ERRORS-ROOT))
+(def CREDENTIALS-SUBTREE (str "/" CREDENTIALS-ROOT))
 
 (defn supervisor-path [id]
   (str SUPERVISORS-SUBTREE "/" id))
@@ -158,6 +162,9 @@
 
 (defn error-path [storm-id component-id]
   (str (error-storm-root storm-id) "/" (url-encode component-id)))
+
+(defn credentials-path [storm-id]
+  (str CREDENTIALS-SUBTREE "/" storm-id))
 
 (defn- issue-callback! [cb-atom]
   (let [cb @cb-atom]
@@ -203,6 +210,7 @@
         supervisors-callback (atom nil)
         assignments-callback (atom nil)
         storm-base-callback (atom {})
+        credentials-callback (atom {})
         state-id (register
                   cluster-state
                   (fn [type path]
@@ -213,6 +221,7 @@
                                              (issue-map-callback! assignment-info-callback (first args)))
                           SUPERVISORS-ROOT (issue-callback! supervisors-callback)
                           STORMS-ROOT (issue-map-callback! storm-base-callback (first args))
+                          CREDENTIALS-ROOT (issue-map-callback! credentials-callback (first args))
                           ;; this should never happen
                           (halt-process! 30 "Unknown callback for subtree " subtree args)
                           )
@@ -330,7 +339,20 @@
 
       (remove-storm! [this storm-id]
         (delete-node cluster-state (assignment-path storm-id))
+        (delete-node cluster-state (credentials-path storm-id))
         (remove-storm-base! this storm-id))
+
+      (set-credentials [this storm-id creds]
+         (let [path (credentials-path storm-id)
+               credentials (if (nil? creds) nil (.get_creds creds))
+               data {:credentials credentials}]
+           (log-message "Writeing credentials " (pr-str data) " into ZK at " path) ;;TODO don't write out secret data!!!
+           (set-data cluster-state path (Utils/serialize data) acls))) ;;TODO we need correct ACLs so only this topo can see it
+
+      (credentials [this storm-id callback]
+        (when callback
+          (swap! credentials-callback assoc storm-id callback))
+        (maybe-deserialize (get-data cluster-state (credentials-path storm-id) (not-nil? callback))))
 
       (report-error [this storm-id component-id error]                
          (let [path (error-path storm-id component-id)
