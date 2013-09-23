@@ -21,23 +21,16 @@ import java.util.Arrays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class SubmitOptions implements org.apache.thrift7.TBase<SubmitOptions, SubmitOptions._Fields>, java.io.Serializable, Cloneable {
-  private static final org.apache.thrift7.protocol.TStruct STRUCT_DESC = new org.apache.thrift7.protocol.TStruct("SubmitOptions");
+public class Credentials implements org.apache.thrift7.TBase<Credentials, Credentials._Fields>, java.io.Serializable, Cloneable {
+  private static final org.apache.thrift7.protocol.TStruct STRUCT_DESC = new org.apache.thrift7.protocol.TStruct("Credentials");
 
-  private static final org.apache.thrift7.protocol.TField INITIAL_STATUS_FIELD_DESC = new org.apache.thrift7.protocol.TField("initial_status", org.apache.thrift7.protocol.TType.I32, (short)1);
-  private static final org.apache.thrift7.protocol.TField CREDS_FIELD_DESC = new org.apache.thrift7.protocol.TField("creds", org.apache.thrift7.protocol.TType.STRUCT, (short)2);
+  private static final org.apache.thrift7.protocol.TField CREDS_FIELD_DESC = new org.apache.thrift7.protocol.TField("creds", org.apache.thrift7.protocol.TType.MAP, (short)1);
 
-  private TopologyInitialStatus initial_status; // required
-  private Credentials creds; // required
+  private Map<String,String> creds; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift7.TFieldIdEnum {
-    /**
-     * 
-     * @see TopologyInitialStatus
-     */
-    INITIAL_STATUS((short)1, "initial_status"),
-    CREDS((short)2, "creds");
+    CREDS((short)1, "creds");
 
     private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
 
@@ -52,9 +45,7 @@ public class SubmitOptions implements org.apache.thrift7.TBase<SubmitOptions, Su
      */
     public static _Fields findByThriftId(int fieldId) {
       switch(fieldId) {
-        case 1: // INITIAL_STATUS
-          return INITIAL_STATUS;
-        case 2: // CREDS
+        case 1: // CREDS
           return CREDS;
         default:
           return null;
@@ -100,82 +91,70 @@ public class SubmitOptions implements org.apache.thrift7.TBase<SubmitOptions, Su
   public static final Map<_Fields, org.apache.thrift7.meta_data.FieldMetaData> metaDataMap;
   static {
     Map<_Fields, org.apache.thrift7.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift7.meta_data.FieldMetaData>(_Fields.class);
-    tmpMap.put(_Fields.INITIAL_STATUS, new org.apache.thrift7.meta_data.FieldMetaData("initial_status", org.apache.thrift7.TFieldRequirementType.REQUIRED, 
-        new org.apache.thrift7.meta_data.EnumMetaData(org.apache.thrift7.protocol.TType.ENUM, TopologyInitialStatus.class)));
-    tmpMap.put(_Fields.CREDS, new org.apache.thrift7.meta_data.FieldMetaData("creds", org.apache.thrift7.TFieldRequirementType.OPTIONAL, 
-        new org.apache.thrift7.meta_data.StructMetaData(org.apache.thrift7.protocol.TType.STRUCT, Credentials.class)));
+    tmpMap.put(_Fields.CREDS, new org.apache.thrift7.meta_data.FieldMetaData("creds", org.apache.thrift7.TFieldRequirementType.REQUIRED, 
+        new org.apache.thrift7.meta_data.MapMetaData(org.apache.thrift7.protocol.TType.MAP, 
+            new org.apache.thrift7.meta_data.FieldValueMetaData(org.apache.thrift7.protocol.TType.STRING), 
+            new org.apache.thrift7.meta_data.FieldValueMetaData(org.apache.thrift7.protocol.TType.STRING))));
     metaDataMap = Collections.unmodifiableMap(tmpMap);
-    org.apache.thrift7.meta_data.FieldMetaData.addStructMetaDataMap(SubmitOptions.class, metaDataMap);
+    org.apache.thrift7.meta_data.FieldMetaData.addStructMetaDataMap(Credentials.class, metaDataMap);
   }
 
-  public SubmitOptions() {
+  public Credentials() {
   }
 
-  public SubmitOptions(
-    TopologyInitialStatus initial_status)
+  public Credentials(
+    Map<String,String> creds)
   {
     this();
-    this.initial_status = initial_status;
+    this.creds = creds;
   }
 
   /**
    * Performs a deep copy on <i>other</i>.
    */
-  public SubmitOptions(SubmitOptions other) {
-    if (other.is_set_initial_status()) {
-      this.initial_status = other.initial_status;
-    }
+  public Credentials(Credentials other) {
     if (other.is_set_creds()) {
-      this.creds = new Credentials(other.creds);
+      Map<String,String> __this__creds = new HashMap<String,String>();
+      for (Map.Entry<String, String> other_element : other.creds.entrySet()) {
+
+        String other_element_key = other_element.getKey();
+        String other_element_value = other_element.getValue();
+
+        String __this__creds_copy_key = other_element_key;
+
+        String __this__creds_copy_value = other_element_value;
+
+        __this__creds.put(__this__creds_copy_key, __this__creds_copy_value);
+      }
+      this.creds = __this__creds;
     }
   }
 
-  public SubmitOptions deepCopy() {
-    return new SubmitOptions(this);
+  public Credentials deepCopy() {
+    return new Credentials(this);
   }
 
   @Override
   public void clear() {
-    this.initial_status = null;
     this.creds = null;
   }
 
-  /**
-   * 
-   * @see TopologyInitialStatus
-   */
-  public TopologyInitialStatus get_initial_status() {
-    return this.initial_status;
+  public int get_creds_size() {
+    return (this.creds == null) ? 0 : this.creds.size();
   }
 
-  /**
-   * 
-   * @see TopologyInitialStatus
-   */
-  public void set_initial_status(TopologyInitialStatus initial_status) {
-    this.initial_status = initial_status;
-  }
-
-  public void unset_initial_status() {
-    this.initial_status = null;
-  }
-
-  /** Returns true if field initial_status is set (has been assigned a value) and false otherwise */
-  public boolean is_set_initial_status() {
-    return this.initial_status != null;
-  }
-
-  public void set_initial_status_isSet(boolean value) {
-    if (!value) {
-      this.initial_status = null;
+  public void put_to_creds(String key, String val) {
+    if (this.creds == null) {
+      this.creds = new HashMap<String,String>();
     }
+    this.creds.put(key, val);
   }
 
-  public Credentials get_creds() {
+  public Map<String,String> get_creds() {
     return this.creds;
   }
 
-  public void set_creds(Credentials creds) {
+  public void set_creds(Map<String,String> creds) {
     this.creds = creds;
   }
 
@@ -196,19 +175,11 @@ public class SubmitOptions implements org.apache.thrift7.TBase<SubmitOptions, Su
 
   public void setFieldValue(_Fields field, Object value) {
     switch (field) {
-    case INITIAL_STATUS:
-      if (value == null) {
-        unset_initial_status();
-      } else {
-        set_initial_status((TopologyInitialStatus)value);
-      }
-      break;
-
     case CREDS:
       if (value == null) {
         unset_creds();
       } else {
-        set_creds((Credentials)value);
+        set_creds((Map<String,String>)value);
       }
       break;
 
@@ -217,9 +188,6 @@ public class SubmitOptions implements org.apache.thrift7.TBase<SubmitOptions, Su
 
   public Object getFieldValue(_Fields field) {
     switch (field) {
-    case INITIAL_STATUS:
-      return get_initial_status();
-
     case CREDS:
       return get_creds();
 
@@ -234,8 +202,6 @@ public class SubmitOptions implements org.apache.thrift7.TBase<SubmitOptions, Su
     }
 
     switch (field) {
-    case INITIAL_STATUS:
-      return is_set_initial_status();
     case CREDS:
       return is_set_creds();
     }
@@ -246,23 +212,14 @@ public class SubmitOptions implements org.apache.thrift7.TBase<SubmitOptions, Su
   public boolean equals(Object that) {
     if (that == null)
       return false;
-    if (that instanceof SubmitOptions)
-      return this.equals((SubmitOptions)that);
+    if (that instanceof Credentials)
+      return this.equals((Credentials)that);
     return false;
   }
 
-  public boolean equals(SubmitOptions that) {
+  public boolean equals(Credentials that) {
     if (that == null)
       return false;
-
-    boolean this_present_initial_status = true && this.is_set_initial_status();
-    boolean that_present_initial_status = true && that.is_set_initial_status();
-    if (this_present_initial_status || that_present_initial_status) {
-      if (!(this_present_initial_status && that_present_initial_status))
-        return false;
-      if (!this.initial_status.equals(that.initial_status))
-        return false;
-    }
 
     boolean this_present_creds = true && this.is_set_creds();
     boolean that_present_creds = true && that.is_set_creds();
@@ -280,11 +237,6 @@ public class SubmitOptions implements org.apache.thrift7.TBase<SubmitOptions, Su
   public int hashCode() {
     HashCodeBuilder builder = new HashCodeBuilder();
 
-    boolean present_initial_status = true && (is_set_initial_status());
-    builder.append(present_initial_status);
-    if (present_initial_status)
-      builder.append(initial_status.getValue());
-
     boolean present_creds = true && (is_set_creds());
     builder.append(present_creds);
     if (present_creds)
@@ -293,24 +245,14 @@ public class SubmitOptions implements org.apache.thrift7.TBase<SubmitOptions, Su
     return builder.toHashCode();
   }
 
-  public int compareTo(SubmitOptions other) {
+  public int compareTo(Credentials other) {
     if (!getClass().equals(other.getClass())) {
       return getClass().getName().compareTo(other.getClass().getName());
     }
 
     int lastComparison = 0;
-    SubmitOptions typedOther = (SubmitOptions)other;
+    Credentials typedOther = (Credentials)other;
 
-    lastComparison = Boolean.valueOf(is_set_initial_status()).compareTo(typedOther.is_set_initial_status());
-    if (lastComparison != 0) {
-      return lastComparison;
-    }
-    if (is_set_initial_status()) {
-      lastComparison = org.apache.thrift7.TBaseHelper.compareTo(this.initial_status, typedOther.initial_status);
-      if (lastComparison != 0) {
-        return lastComparison;
-      }
-    }
     lastComparison = Boolean.valueOf(is_set_creds()).compareTo(typedOther.is_set_creds());
     if (lastComparison != 0) {
       return lastComparison;
@@ -338,17 +280,21 @@ public class SubmitOptions implements org.apache.thrift7.TBase<SubmitOptions, Su
         break;
       }
       switch (field.id) {
-        case 1: // INITIAL_STATUS
-          if (field.type == org.apache.thrift7.protocol.TType.I32) {
-            this.initial_status = TopologyInitialStatus.findByValue(iprot.readI32());
-          } else { 
-            org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
-          }
-          break;
-        case 2: // CREDS
-          if (field.type == org.apache.thrift7.protocol.TType.STRUCT) {
-            this.creds = new Credentials();
-            this.creds.read(iprot);
+        case 1: // CREDS
+          if (field.type == org.apache.thrift7.protocol.TType.MAP) {
+            {
+              org.apache.thrift7.protocol.TMap _map163 = iprot.readMapBegin();
+              this.creds = new HashMap<String,String>(2*_map163.size);
+              for (int _i164 = 0; _i164 < _map163.size; ++_i164)
+              {
+                String _key165; // required
+                String _val166; // required
+                _key165 = iprot.readString();
+                _val166 = iprot.readString();
+                this.creds.put(_key165, _val166);
+              }
+              iprot.readMapEnd();
+            }
           } else { 
             org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
           }
@@ -366,17 +312,18 @@ public class SubmitOptions implements org.apache.thrift7.TBase<SubmitOptions, Su
     validate();
 
     oprot.writeStructBegin(STRUCT_DESC);
-    if (this.initial_status != null) {
-      oprot.writeFieldBegin(INITIAL_STATUS_FIELD_DESC);
-      oprot.writeI32(this.initial_status.getValue());
-      oprot.writeFieldEnd();
-    }
     if (this.creds != null) {
-      if (is_set_creds()) {
-        oprot.writeFieldBegin(CREDS_FIELD_DESC);
-        this.creds.write(oprot);
-        oprot.writeFieldEnd();
+      oprot.writeFieldBegin(CREDS_FIELD_DESC);
+      {
+        oprot.writeMapBegin(new org.apache.thrift7.protocol.TMap(org.apache.thrift7.protocol.TType.STRING, org.apache.thrift7.protocol.TType.STRING, this.creds.size()));
+        for (Map.Entry<String, String> _iter167 : this.creds.entrySet())
+        {
+          oprot.writeString(_iter167.getKey());
+          oprot.writeString(_iter167.getValue());
+        }
+        oprot.writeMapEnd();
       }
+      oprot.writeFieldEnd();
     }
     oprot.writeFieldStop();
     oprot.writeStructEnd();
@@ -384,34 +331,24 @@ public class SubmitOptions implements org.apache.thrift7.TBase<SubmitOptions, Su
 
   @Override
   public String toString() {
-    StringBuilder sb = new StringBuilder("SubmitOptions(");
+    StringBuilder sb = new StringBuilder("Credentials(");
     boolean first = true;
 
-    sb.append("initial_status:");
-    if (this.initial_status == null) {
+    sb.append("creds:");
+    if (this.creds == null) {
       sb.append("null");
     } else {
-      sb.append(this.initial_status);
+      sb.append(this.creds);
     }
     first = false;
-    if (is_set_creds()) {
-      if (!first) sb.append(", ");
-      sb.append("creds:");
-      if (this.creds == null) {
-        sb.append("null");
-      } else {
-        sb.append(this.creds);
-      }
-      first = false;
-    }
     sb.append(")");
     return sb.toString();
   }
 
   public void validate() throws org.apache.thrift7.TException {
     // check for required fields
-    if (!is_set_initial_status()) {
-      throw new org.apache.thrift7.protocol.TProtocolException("Required field 'initial_status' is unset! Struct:" + toString());
+    if (!is_set_creds()) {
+      throw new org.apache.thrift7.protocol.TProtocolException("Required field 'creds' is unset! Struct:" + toString());
     }
 
   }
