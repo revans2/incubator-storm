@@ -1,6 +1,7 @@
 (ns backtype.storm.daemon.executor
   (:use [backtype.storm.daemon common])
   (:use [backtype.storm bootstrap])
+  (:import [backtype.storm ICredentialsListener])
   (:import [backtype.storm.hooks ITaskHook])
   (:import [backtype.storm.tuple Tuple])
   (:import [backtype.storm.spout ISpoutWaitStrategy])
@@ -420,6 +421,12 @@
                             (condp = stream-id
                               Constants/SYSTEM_TICK_STREAM_ID (.rotate pending)
                               Constants/METRICS_TICK_STREAM_ID (metrics-tick executor-data task-datas tuple)
+                              Constants/CREDENTIALS_CHANGED_STREAM_ID 
+                                (let [task-data (get task-datas task-id)
+                                      spout-obj (:object task-data)]
+                                  (log-message "TODO the credentials have changed" (pr-str tuple))
+                                  (when (instance? ICredentialsListener spout-obj)
+                                    (.credentialsHaveChanged spout-obj (.getValue tuple 0))))
                               (let [id (.getValue tuple 0)
                                     [stored-task-id spout-id tuple-finished-info start-time-ms] (.remove pending id)]
                                 (when spout-id
@@ -600,6 +607,12 @@
 
                           (let [stream-id (.getSourceStreamId tuple)]
                             (condp = stream-id
+                              Constants/CREDENTIALS_CHANGED_STREAM_ID 
+                                (let [task-data (get task-datas task-id)
+                                      bolt-obj (:object task-data)]
+                                  (log-message "TODO the credentials have changed" (pr-str tuple))
+                                  (when (instance? ICredentialsListener bolt-obj)
+                                    (.credentialsHaveChanged bolt-obj (.getValue tuple 0))))
                               Constants/METRICS_TICK_STREAM_ID (metrics-tick executor-data task-datas tuple)
                               (let [task-data (get task-datas task-id)
                                     ^IBolt bolt-obj (:object task-data)
