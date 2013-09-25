@@ -15,6 +15,7 @@
                     STORM-MESSAGING-NETTY-MAX-RETRIES 10
                     STORM-MESSAGING-NETTY-MIN-SLEEP-MS 1000 
                     STORM-MESSAGING-NETTY-MAX-SLEEP-MS 5000
+                    STORM-MESSAGING-NETTY-CLIENT-WORKER-THREADS 1
                     STORM-MESSAGING-NETTY-SERVER-WORKER-THREADS 1}
         context (TransportFactory/makeContext storm-conf)
         server (.bind context nil port)
@@ -34,6 +35,7 @@
                     STORM-MESSAGING-NETTY-MAX-RETRIES 10
                     STORM-MESSAGING-NETTY-MIN-SLEEP-MS 1000 
                     STORM-MESSAGING-NETTY-MAX-SLEEP-MS 5000
+                    STORM-MESSAGING-NETTY-CLIENT-WORKER-THREADS 1
                     STORM-MESSAGING-NETTY-SERVER-WORKER-THREADS 1}
         context (TransportFactory/makeContext storm-conf)
         server (.bind context nil port)
@@ -53,6 +55,7 @@
                     STORM-MESSAGING-NETTY-MAX-RETRIES 10
                     STORM-MESSAGING-NETTY-MIN-SLEEP-MS 1000 
                     STORM-MESSAGING-NETTY-MAX-SLEEP-MS 5000
+                    STORM-MESSAGING-NETTY-CLIENT-WORKER-THREADS 1
                     STORM-MESSAGING-NETTY-SERVER-WORKER-THREADS 1}
         context (TransportFactory/makeContext storm-conf)
         client (.connect context nil "localhost" port)
@@ -72,6 +75,7 @@
                     STORM-MESSAGING-NETTY-MAX-RETRIES 10
                     STORM-MESSAGING-NETTY-MIN-SLEEP-MS 1000 
                     STORM-MESSAGING-NETTY-MAX-SLEEP-MS 5000
+                    STORM-MESSAGING-NETTY-CLIENT-WORKER-THREADS 1
                     STORM-MESSAGING-NETTY-SERVER-WORKER-THREADS 1}
         context (TransportFactory/makeContext storm-conf)
         server (.bind context nil port)
