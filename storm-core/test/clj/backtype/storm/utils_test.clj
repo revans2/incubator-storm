@@ -52,27 +52,29 @@
 
 (deftest test-isZkAuthenticationConfigured
   (let [k "java.security.auth.login.config"
-        oldprop (System/getProperty k)
-        _ (.remove (System/getProperties) k)]
-    (testing "Returns false on null config"
-      (is (not (Utils/isZkAuthenticationConfigured nil))))
-    (testing "Returns false on scheme key missing"
-      (is (not (Utils/isZkAuthenticationConfigured
-          {STORM-ZOOKEEPER-AUTH-SCHEME nil}))))
-    (testing "Returns false on scheme value null"
-      (is (not
-        (Utils/isZkAuthenticationConfigured
-          {STORM-ZOOKEEPER-AUTH-SCHEME nil}))))
-    (testing "Returns true when scheme set to string"
-      (is
-        (Utils/isZkAuthenticationConfigured
-          {STORM-ZOOKEEPER-AUTH-SCHEME "foobar"})))
-    (testing "Returns true when java.security.auth.login.config is set"
-      (do
-        (System/setProperty k "anything")
-        (is (Utils/isZkAuthenticationConfigured {}))))
-    (testing "Returns false when java.security.auth.login.config is set"
-      (do
-        (System/setProperty k "anything")
-        (is (Utils/isZkAuthenticationConfigured {}))))
-    (when (not-nil? oldprop) (System/setProperty k oldprop))))
+        oldprop (System/getProperty k)]
+    (try
+      (.remove (System/getProperties) k)
+      (testing "Returns false on null config"
+        (is (not (Utils/isZkAuthenticationConfigured nil))))
+      (testing "Returns false on scheme key missing"
+        (is (not (Utils/isZkAuthenticationConfigured
+            {STORM-ZOOKEEPER-AUTH-SCHEME nil}))))
+      (testing "Returns false on scheme value null"
+        (is (not
+          (Utils/isZkAuthenticationConfigured
+            {STORM-ZOOKEEPER-AUTH-SCHEME nil}))))
+      (testing "Returns true when scheme set to string"
+        (is
+          (Utils/isZkAuthenticationConfigured
+            {STORM-ZOOKEEPER-AUTH-SCHEME "foobar"})))
+      (testing "Returns true when java.security.auth.login.config is set"
+        (do
+          (System/setProperty k "anything")
+          (is (Utils/isZkAuthenticationConfigured {}))))
+      (testing "Returns false when java.security.auth.login.config is set"
+        (do
+          (System/setProperty k "anything")
+          (is (Utils/isZkAuthenticationConfigured {}))))
+    (finally 
+      (when (not-nil? oldprop) (System/setProperty k oldprop))))))
