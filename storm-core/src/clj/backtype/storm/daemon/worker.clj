@@ -444,7 +444,7 @@
              )
         credentials (atom "bogus") ;;Force the function to be called the first time
         check-credentials-changed (fn []
-                                    (let [new-creds (:credentials (.credentials (:storm-cluster-state worker) storm-id nil))]
+                                    (let [new-creds (.credentials (:storm-cluster-state worker) storm-id nil)]
                                       (when-not (= new-creds @credentials)
                                         (log-message "CREDS CHANGED " (pr-str new-creds)) ;;TODO don't log secrets
                                         (dofor [e @executors] (.credentials-changed e new-creds))

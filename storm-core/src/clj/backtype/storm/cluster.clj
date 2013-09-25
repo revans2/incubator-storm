@@ -1,11 +1,12 @@
 (ns backtype.storm.cluster
-  (:import [org.apache.zookeeper.data Stat ACL])
-  (:import [org.apache.zookeeper KeeperException KeeperException$NoNodeException ZooDefs ZooDefs$Ids])
+  (:import [org.apache.zookeeper.data Stat ACL Id])
+  (:import [org.apache.zookeeper KeeperException KeeperException$NoNodeException ZooDefs ZooDefs$Ids ZooDefs$Perms])
   (:import [backtype.storm.utils Utils])
+  (:import [java.security MessageDigest])
   (:use [backtype.storm util log config])
   (:require [backtype.storm [zookeeper :as zk]])
   (:require [backtype.storm.daemon [common :as common]])
-  
+  (:require [clojure.data.codec [base64 :as base64]])
   )
 
 (defprotocol ClusterState
@@ -20,6 +21,18 @@
   (register [this callback])
   (unregister [this id])
   )
+
+
+(defn- gen-zk-credentials [payload]
+ (let [username (first (clojure.string/split payload ":"))]
+   (str username ":" (String. (base64/encode (.digest (MessageDigest/getInstance "SHA1") (.getBytes payload)))))))
+
+(defn mk-topo-only-acls [topo-conf storm-conf]
+  (let [payload (.get topo-conf STORM-ZOOKEEPER-TOPOLOGY-AUTH-PAYLOAD)]
+    (when (and (Utils/isZkAuthenticationConfigured storm-conf)
+               (not (clojure.string/blank? payload)))
+      [(first ZooDefs$Ids/CREATOR_ALL_ACL)
+       (ACL. ZooDefs$Perms/READ (Id. "digest" (gen-zk-credentials payload)))])))
 
 (defnk mk-distributed-cluster-state [conf :auth-conf nil :acls nil]
   (let [zk (zk/mk-client conf (conf STORM-ZOOKEEPER-SERVERS) (conf STORM-ZOOKEEPER-PORT) :auth-conf auth-conf)]
@@ -120,7 +133,7 @@
   (remove-storm! [this storm-id])
   (report-error [this storm-id task-id error])
   (errors [this storm-id task-id])
-  (set-credentials [this storm-id creds])
+  (set-credentials! [this storm-id creds topo-conf storm-conf])
   (credentials [this storm-id callback])
 
   (disconnect [this])
@@ -342,12 +355,10 @@
         (delete-node cluster-state (credentials-path storm-id))
         (remove-storm-base! this storm-id))
 
-      (set-credentials [this storm-id creds]
-         (let [path (credentials-path storm-id)
-               credentials (if (nil? creds) nil (.get_creds creds))
-               data {:credentials credentials}]
-           (log-message "Writeing credentials " (pr-str data) " into ZK at " path) ;;TODO don't write out secret data!!!
-           (set-data cluster-state path (Utils/serialize data) acls))) ;;TODO we need correct ACLs so only this topo can see it
+      (set-credentials! [this storm-id creds topo-conf storm-conf]
+         (let [topo-acls (mk-topo-only-acls topo-conf storm-conf)
+               path (credentials-path storm-id)]
+           (set-data cluster-state path (Utils/serialize creds) topo-acls)))
 
       (credentials [this storm-id callback]
         (when callback
