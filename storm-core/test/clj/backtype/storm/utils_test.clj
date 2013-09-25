@@ -77,4 +77,6 @@
           (System/setProperty k "anything")
           (is (Utils/isZkAuthenticationConfigured {}))))
     (finally 
-      (when (not-nil? oldprop) (System/setProperty k oldprop))))))
+      (if (not-nil? oldprop) 
+        (System/setProperty k oldprop)
+        (.remove (System/getProperties) k))))))
