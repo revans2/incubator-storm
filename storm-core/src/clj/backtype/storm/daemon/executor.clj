@@ -432,7 +432,6 @@
                               Constants/CREDENTIALS_CHANGED_STREAM_ID 
                                 (let [task-data (get task-datas task-id)
                                       spout-obj (:object task-data)]
-                                  (log-message "TODO the credentials have changed" (pr-str tuple))
                                   (when (instance? ICredentialsListener spout-obj)
                                     (.setCredentials spout-obj (.getValue tuple 0))))
                               (let [id (.getValue tuple 0)
@@ -618,7 +617,6 @@
                               Constants/CREDENTIALS_CHANGED_STREAM_ID 
                                 (let [task-data (get task-datas task-id)
                                       bolt-obj (:object task-data)]
-                                  (log-message "TODO the credentials have changed" (pr-str tuple))
                                   (when (instance? ICredentialsListener bolt-obj)
                                     (.setCredentials bolt-obj (.getValue tuple 0))))
                               Constants/METRICS_TICK_STREAM_ID (metrics-tick executor-data task-datas tuple)

@@ -99,6 +99,7 @@ worker.heartbeat.frequency.secs: 1
 
 task.heartbeat.frequency.secs: 3
 task.refresh.poll.secs: 10
+task.credentials.poll.secs: 30
 
 zmq.threads: 1
 zmq.linger.millis: 5000

@@ -610,6 +610,14 @@ public class Config extends HashMap<String, Object> {
 
 
     /**
+     * How often a task should sync credentials, worst case.
+     */
+    public static final String TASK_CREDENTIALS_POLL_SECS = "task.credentials.poll.secs";
+    public static final Object TASK_CREDENTIALS_POLL_SECS_SCHEMA = Number.class;
+
+
+
+    /**
      * A list of users that are allowed to interact with the topology.  To use this set
      * nimbus.authorizer to backtype.storm.security.auth.authorizer.SimpleACLAuthorizer  
      */
