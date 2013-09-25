@@ -424,9 +424,10 @@ public class Utils {
     }
 
     public static boolean isZkAuthenticationConfigured(Map conf) {
-        return conf != null
-            && conf.containsKey(Config.STORM_ZOOKEEPER_AUTH_SCHEME)
-            && conf.get(Config.STORM_ZOOKEEPER_AUTH_SCHEME) != null
-            && ! ((String)conf.get(Config.STORM_ZOOKEEPER_AUTH_SCHEME)).isEmpty();
+        return null != System.getProperty("java.security.auth.login.config")
+            || (conf != null
+                && conf.containsKey(Config.STORM_ZOOKEEPER_AUTH_SCHEME)
+                && conf.get(Config.STORM_ZOOKEEPER_AUTH_SCHEME) != null
+                && ! ((String)conf.get(Config.STORM_ZOOKEEPER_AUTH_SCHEME)).isEmpty());
     }
 }
