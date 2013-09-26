@@ -177,7 +177,8 @@
                   workers) ; because a worker may already be dead
         ]
     (while (not (every? (memfn waiting?) daemons))      
-      (Thread/sleep 10)
+      ;; Uses a larger prime to increase the chance of finding all daemons at rest.
+      (Thread/sleep 251)
 ;;      (doseq [d daemons]
 ;;        (if-not ((memfn waiting?) d)
 ;;          (println d)))
