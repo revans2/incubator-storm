@@ -299,7 +299,7 @@
               [[nil (TupleImpl. context [tick-time-secs] Constants/SYSTEM_TASK_ID Constants/SYSTEM_TICK_STREAM_ID)]]
               )))))))
 
-(defn mk-executor [worker executor-id]
+(defn mk-executor [worker executor-id initial-credentials]
   (let [executor-data (mk-executor-data worker executor-id)
         _ (log-message "Loading executor " (:component-id executor-data) ":" (pr-str executor-id))
         task-datas (->> executor-data
@@ -316,7 +316,7 @@
         ;; trick isn't thread-safe)
         system-threads [(start-batch-transfer->worker-handler! worker executor-data)]
         handlers (with-error-reaction report-error-and-die
-                   (mk-threads executor-data task-datas))
+                   (mk-threads executor-data task-datas initial-credentials))
         threads (concat handlers system-threads)]    
     (setup-ticks! worker executor-data)
 
@@ -408,7 +408,7 @@
     ret
     ))
 
-(defmethod mk-threads :spout [executor-data task-datas]
+(defmethod mk-threads :spout [executor-data task-datas initial-credentials]
   (let [{:keys [storm-conf component-id worker-context transfer-fn report-error sampler open-or-prepare-was-called?]} executor-data
         ^ISpoutWaitStrategy spout-wait-strategy (init-spout-wait-strategy storm-conf)
         max-spout-pending (executor-max-spout-pending storm-conf (count task-datas))
@@ -472,8 +472,8 @@
         (log-message "Opening spout " component-id ":" (keys task-datas))
         (doseq [[task-id task-data] task-datas
                 :let [^ISpout spout-obj (:object task-data)
-                      tasks-fn (:tasks-fn task-data)
-                      send-spout-msg (fn [out-stream-id values message-id out-task-id]
+                     tasks-fn (:tasks-fn task-data)
+                     send-spout-msg (fn [out-stream-id values message-id out-task-id]
                                        (.increment emitted-count)
                                        (let [out-tasks (if out-task-id
                                                          (tasks-fn out-task-id out-stream-id values)
@@ -511,6 +511,7 @@
                                          (or out-tasks [])
                                          ))]]
           (builtin-metrics/register-all (:builtin-metrics task-data) storm-conf (:user-context task-data))
+          (when (instance? ICredentialsListener spout-obj) (.setCredentials spout-obj initial-credentials)) 
           (.open spout-obj
                  storm-conf
                  (:user-context task-data)
@@ -588,7 +589,7 @@
   (let [curr (or (.get pending key) (long 0))]
     (.put pending key (bit-xor curr id))))
 
-(defmethod mk-threads :bolt [executor-data task-datas]
+(defmethod mk-threads :bolt [executor-data task-datas initial-credentials]
   (let [storm-conf (:storm-conf executor-data)
         execute-sampler (mk-stats-sampler storm-conf)
         executor-stats (:stats executor-data)
@@ -682,6 +683,7 @@
                                                                                (MessageId/makeId anchors-to-ids)))))
                                     (or out-tasks [])))]]
           (builtin-metrics/register-all (:builtin-metrics task-data) storm-conf user-context)
+          (when (instance? ICredentialsListener bolt-obj) (.setCredentials bolt-obj initial-credentials)) 
           (.prepare bolt-obj
                     storm-conf
                     user-context

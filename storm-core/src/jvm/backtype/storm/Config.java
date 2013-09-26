@@ -616,7 +616,6 @@ public class Config extends HashMap<String, Object> {
     public static final Object TASK_CREDENTIALS_POLL_SECS_SCHEMA = Number.class;
 
 
-
     /**
      * A list of users that are allowed to interact with the topology.  To use this set
      * nimbus.authorizer to backtype.storm.security.auth.authorizer.SimpleACLAuthorizer  

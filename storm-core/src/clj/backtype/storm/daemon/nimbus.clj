@@ -990,7 +990,7 @@
           (swap! (:submitted-count nimbus) inc)
           (let [storm-id (str storm-name "-" @(:submitted-count nimbus) "-" (current-time-secs))
                 credentials (.get_creds submitOptions)
-                credentials (when-not (nil? credentials) (.get_creds credentials))
+                credentials (when credentials (.get_creds credentials))
                 topo-conf (from-json serializedConf)
                 storm-conf-submitted (normalize-conf
                             conf
@@ -1084,7 +1084,7 @@
         (let [storm-cluster-state (:storm-cluster-state nimbus)
               storm-id (get-storm-id storm-cluster-state storm-name)
               topology-conf (try-read-storm-conf conf storm-id)
-              creds (when-not (nil? credentials) (.get_creds credentials))]
+              creds (when credentials (.get_creds credentials))]
           (check-authorization! nimbus storm-name topology-conf "uploadNewCredentials")
           (.set-credentials! storm-cluster-state storm-id creds topology-conf conf)))
 

@@ -377,14 +377,13 @@
         _ (schedule-recurring (:heartbeat-timer worker) 0 (conf WORKER-HEARTBEAT-FREQUENCY-SECS) heartbeat-fn)
         _ (schedule-recurring (:executor-heartbeat-timer worker) 0 (conf TASK-HEARTBEAT-FREQUENCY-SECS) #(do-executor-heartbeats worker :executors @executors))
 
-        
+        initial-credentials (.credentials (:storm-cluster-state worker) storm-id nil)
         refresh-connections (mk-refresh-connections worker)
 
         _ (refresh-connections nil)
         _ (refresh-storm-active worker nil)
  
-        _ (reset! executors (dofor [e (:executors worker)] (executor/mk-executor worker e)))
-       
+        _ (reset! executors (dofor [e (:executors worker)] (executor/mk-executor worker e initial-credentials)))
         receive-thread-shutdown (launch-receive-thread worker)
         
         transfer-tuples (mk-transfer-tuples-handler worker)
@@ -445,14 +444,14 @@
                  (timer-waiting? (:user-timer worker))
                  ))
              )
-        credentials (atom "bogus") ;;Force the function to be called the first time
+        credentials (atom initial-credentials)
         check-credentials-changed (fn []
                                     (let [new-creds (.credentials (:storm-cluster-state worker) storm-id nil)]
                                       (when-not (= new-creds @credentials) ;;This does not have to be atomic, worst case we update when one is not needed
                                         (dofor [e @executors] (.credentials-changed e new-creds))
-                                        (swap! credentials (fn [_] new-creds)))))
+                                          (reset! credentials new-creds))))
       ]
-    (.credentials (:storm-cluster-state worker) storm-id (fn [args] (log-message "Should Check Creds " (pr-str args)) (check-credentials-changed)))
+    (.credentials (:storm-cluster-state worker) storm-id (fn [args] (check-credentials-changed)))
     (schedule-recurring (:refresh-credentials-timer worker) 0 (conf TASK-CREDENTIALS-POLL-SECS) check-credentials-changed)
     (schedule-recurring (:refresh-connections-timer worker) 0 (conf TASK-REFRESH-POLL-SECS) refresh-connections)
     (schedule-recurring (:refresh-active-timer worker) 0 (conf TASK-REFRESH-POLL-SECS) (partial refresh-storm-active worker))
