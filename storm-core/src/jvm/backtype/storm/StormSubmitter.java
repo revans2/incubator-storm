@@ -96,7 +96,7 @@ public class StormSubmitter {
         stormConf.putAll(Utils.readCommandLineOpts());
         Map conf = Utils.readStormConfig();
         conf.putAll(stormConf);
-        conf.putAll(prepareZookeeperAuthentication(conf));
+        stormConf.putAll(prepareZookeeperAuthentication(conf));
         try {
             String serConf = JSONValue.toJSONString(stormConf);
             if(localNimbus!=null) {
