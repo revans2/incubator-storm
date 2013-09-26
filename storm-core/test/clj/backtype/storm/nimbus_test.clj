@@ -4,6 +4,7 @@
   (:require [backtype.storm.daemon [nimbus :as nimbus]])
   (:import [backtype.storm.testing TestWordCounter TestWordSpout TestGlobalCount TestAggregatesCounter])
   (:import [backtype.storm.scheduler INimbus])
+  (:import [backtype.storm.generated Credentials])
   (:use [backtype.storm bootstrap testing])
   (:use [backtype.storm.daemon common])
   (:require [conjure.core])
@@ -156,6 +157,7 @@
        (is (thrown? NotAliveException (.getTopology nimbus "bogus-id")))
        (is (thrown? NotAliveException (.getUserTopology nimbus "bogus-id")))
        (is (thrown? NotAliveException (.getTopologyInfo nimbus "bogus-id")))
+       (is (thrown? NotAliveException (.uploadNewCredentials nimbus "bogus-id" (Credentials.))))
       )))
 
 (deftest test-assignment

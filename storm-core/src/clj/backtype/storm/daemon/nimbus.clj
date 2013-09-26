@@ -989,6 +989,8 @@
                      topology)
           (swap! (:submitted-count nimbus) inc)
           (let [storm-id (str storm-name "-" @(:submitted-count nimbus) "-" (current-time-secs))
+                credentials (.get_creds submitOptions)
+                credentials (when credentials (.get_creds credentials))
                 topo-conf (from-json serializedConf)
                 storm-conf-submitted (normalize-conf
                             conf
@@ -1020,6 +1022,7 @@
             ;; lock protects against multiple topologies being submitted at once and
             ;; cleanup thread killing topology in b/w assignment and starting the topology
             (locking (:submit-lock nimbus)
+              (.set-credentials! storm-cluster-state storm-id credentials storm-conf conf)
               (setup-storm-code conf storm-id uploadedJarLocation storm-conf topology)
               (.setup-heartbeats! storm-cluster-state storm-id)
               (let [thrift-status->kw-status {TopologyInitialStatus/INACTIVE :inactive
@@ -1076,6 +1079,14 @@
         (let [topology-conf (try-read-storm-conf-from-name conf storm-name nimbus)]
           (check-authorization! nimbus storm-name topology-conf "deactivate"))
         (transition-name! nimbus storm-name :inactivate true))
+
+      (uploadNewCredentials [this storm-name credentials]
+        (let [storm-cluster-state (:storm-cluster-state nimbus)
+              storm-id (get-storm-id storm-cluster-state storm-name)
+              topology-conf (try-read-storm-conf conf storm-id)
+              creds (when credentials (.get_creds credentials))]
+          (check-authorization! nimbus storm-name topology-conf "uploadNewCredentials")
+          (.set-credentials! storm-cluster-state storm-id creds topology-conf conf)))
 
       (beginFileUpload [this]
         (check-authorization! nimbus nil nil "fileUpload")

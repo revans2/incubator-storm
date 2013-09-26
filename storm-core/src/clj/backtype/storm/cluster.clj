@@ -1,11 +1,12 @@
 (ns backtype.storm.cluster
-  (:import [org.apache.zookeeper.data Stat ACL])
-  (:import [org.apache.zookeeper KeeperException KeeperException$NoNodeException ZooDefs ZooDefs$Ids])
+  (:import [org.apache.zookeeper.data Stat ACL Id])
+  (:import [org.apache.zookeeper KeeperException KeeperException$NoNodeException ZooDefs ZooDefs$Ids ZooDefs$Perms])
   (:import [backtype.storm.utils Utils])
+  (:import [java.security MessageDigest])
   (:use [backtype.storm util log config])
   (:require [backtype.storm [zookeeper :as zk]])
   (:require [backtype.storm.daemon [common :as common]])
-  
+  (:require [clojure.data.codec [base64 :as base64]])
   )
 
 (defprotocol ClusterState
@@ -20,6 +21,18 @@
   (register [this callback])
   (unregister [this id])
   )
+
+
+(defn- gen-zk-credentials [payload]
+ (let [username (first (clojure.string/split payload ":"))]
+   (str username ":" (String. (base64/encode (.digest (MessageDigest/getInstance "SHA1") (.getBytes payload)))))))
+
+(defn mk-topo-only-acls [topo-conf storm-conf]
+  (let [payload (.get topo-conf STORM-ZOOKEEPER-TOPOLOGY-AUTH-PAYLOAD)]
+    (when (and (Utils/isZkAuthenticationConfigured storm-conf)
+               (not (clojure.string/blank? payload)))
+      [(first ZooDefs$Ids/CREATOR_ALL_ACL)
+       (ACL. ZooDefs$Perms/READ (Id. "digest" (gen-zk-credentials payload)))])))
 
 (defnk mk-distributed-cluster-state [conf :auth-conf nil :acls nil]
   (let [zk (zk/mk-client conf (conf STORM-ZOOKEEPER-SERVERS) (conf STORM-ZOOKEEPER-PORT) :auth-conf auth-conf)]
@@ -120,6 +133,8 @@
   (remove-storm! [this storm-id])
   (report-error [this storm-id task-id error])
   (errors [this storm-id task-id])
+  (set-credentials! [this storm-id creds topo-conf storm-conf])
+  (credentials [this storm-id callback])
 
   (disconnect [this])
   )
@@ -131,12 +146,14 @@
 (def SUPERVISORS-ROOT "supervisors")
 (def WORKERBEATS-ROOT "workerbeats")
 (def ERRORS-ROOT "errors")
+(def CREDENTIALS-ROOT "credentials")
 
 (def ASSIGNMENTS-SUBTREE (str "/" ASSIGNMENTS-ROOT))
 (def STORMS-SUBTREE (str "/" STORMS-ROOT))
 (def SUPERVISORS-SUBTREE (str "/" SUPERVISORS-ROOT))
 (def WORKERBEATS-SUBTREE (str "/" WORKERBEATS-ROOT))
 (def ERRORS-SUBTREE (str "/" ERRORS-ROOT))
+(def CREDENTIALS-SUBTREE (str "/" CREDENTIALS-ROOT))
 
 (defn supervisor-path [id]
   (str SUPERVISORS-SUBTREE "/" id))
@@ -158,6 +175,9 @@
 
 (defn error-path [storm-id component-id]
   (str (error-storm-root storm-id) "/" (url-encode component-id)))
+
+(defn credentials-path [storm-id]
+  (str CREDENTIALS-SUBTREE "/" storm-id))
 
 (defn- issue-callback! [cb-atom]
   (let [cb @cb-atom]
@@ -203,6 +223,7 @@
         supervisors-callback (atom nil)
         assignments-callback (atom nil)
         storm-base-callback (atom {})
+        credentials-callback (atom {})
         state-id (register
                   cluster-state
                   (fn [type path]
@@ -213,6 +234,7 @@
                                              (issue-map-callback! assignment-info-callback (first args)))
                           SUPERVISORS-ROOT (issue-callback! supervisors-callback)
                           STORMS-ROOT (issue-map-callback! storm-base-callback (first args))
+                          CREDENTIALS-ROOT (issue-map-callback! credentials-callback (first args))
                           ;; this should never happen
                           (halt-process! 30 "Unknown callback for subtree " subtree args)
                           )
@@ -330,7 +352,18 @@
 
       (remove-storm! [this storm-id]
         (delete-node cluster-state (assignment-path storm-id))
+        (delete-node cluster-state (credentials-path storm-id))
         (remove-storm-base! this storm-id))
+
+      (set-credentials! [this storm-id creds topo-conf storm-conf]
+         (let [topo-acls (mk-topo-only-acls topo-conf storm-conf)
+               path (credentials-path storm-id)]
+           (set-data cluster-state path (Utils/serialize creds) topo-acls)))
+
+      (credentials [this storm-id callback]
+        (when callback
+          (swap! credentials-callback assoc storm-id callback))
+        (maybe-deserialize (get-data cluster-state (credentials-path storm-id) (not-nil? callback))))
 
       (report-error [this storm-id component-id error]                
          (let [path (error-path storm-id component-id)

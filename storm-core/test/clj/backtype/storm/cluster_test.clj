@@ -180,6 +180,11 @@
       (is (= base2 (.storm-base state "storm2" nil)))
       (is (= #{"storm2"} (set (.active-storms state))))
 
+      (is (nil? (.credentials state "storm1" nil)))
+      (.set-credentials! state "storm1" {"a" "a"} {} {})
+      (is (= {"a" "a"} (.credentials state "storm1" nil)))
+      (.set-credentials! state "storm1" {"b" "b"} {} {})
+      (is (= {"b" "b"} (.credentials state "storm1" nil)))
 
       ;; TODO add tests for task info and task heartbeat setting and getting
       (.disconnect state)
