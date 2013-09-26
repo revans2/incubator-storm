@@ -167,7 +167,7 @@
 
 (defn wait-until-cluster-waiting
   "Wait until the cluster is idle. Should be used with time simulation."
-  [cluster-map]
+  ([cluster-map]
   ;; wait until all workers, supervisors, and nimbus is waiting
   (let [supervisors @(:supervisors cluster-map)
         workers (filter (partial satisfies? common/DaemonCommon) (psim/all-processes))
@@ -176,12 +176,16 @@
                   supervisors
                   workers) ; because a worker may already be dead
         ]
-    (while (not (every? (memfn waiting?) daemons))      
-      (Thread/sleep 10)
+    (wait-until-cluster-waiting 0 daemons)))
+  ([wait-counter daemons]
+    {:pre [(< wait-counter 20)]}
+    ;; Uses a prime to increase the chance of finding all daemons at rest
+    (Thread/sleep 251)
+    (when (not (every? (memfn waiting?) daemons))
 ;;      (doseq [d daemons]
 ;;        (if-not ((memfn waiting?) d)
 ;;          (println d)))
-      )))
+      (recur (inc wait-counter) daemons))))
 
 (defn advance-cluster-time
   ([cluster-map secs increment-secs]

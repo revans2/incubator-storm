@@ -330,11 +330,7 @@ public class Utils {
 
         setupBuilder(builder, zkStr, conf, auth);
         
-        try {
-            return builder.build();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+        return builder.build();
     }
 
     protected static void setupBuilder(CuratorFrameworkFactory.Builder builder, String zkStr, Map conf, ZookeeperAuthInfo auth)

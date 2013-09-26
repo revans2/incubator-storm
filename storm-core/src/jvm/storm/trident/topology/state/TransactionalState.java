@@ -5,7 +5,7 @@ import backtype.storm.Config;
 import backtype.storm.utils.Utils;
 import backtype.storm.utils.ZookeeperAuthInfo;
 import com.netflix.curator.framework.CuratorFramework;
-import com.netflix.curator.framework.api.ACLCreateModePathAndBytesable;
+import com.netflix.curator.framework.api.ProtectACLCreateModePathAndBytesable;
 import com.netflix.curator.framework.api.PathAndBytesable;
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
@@ -63,7 +63,7 @@ public class TransactionalState {
 
     protected static void createNode(CuratorFramework curator, String path,
             byte[] data, List<ACL> acls, CreateMode mode) throws Exception {
-        ACLCreateModePathAndBytesable<String> builder =
+        ProtectACLCreateModePathAndBytesable<String> builder =
             curator.create().creatingParentsIfNeeded();
     
         if (acls == null) {
