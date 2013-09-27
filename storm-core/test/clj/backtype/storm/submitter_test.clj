@@ -1,41 +1,60 @@
 (ns backtype.storm.submitter-test
   (:use [clojure test])
-  (:use [conjure core])
   (:use [backtype.storm config testing])
-  (:import [backtype.storm TestStormSubmitter])
+  (:import [backtype.storm StormSubmitter])
   )
 
 (deftest test-md5-digest-secret-generation
-  (testing "StormSubmitter does not generate a payload with secret when unnecessary."
-    (testing "No payload is generated when ZK auth is not configured on the cluster."
-      (let [expected nil
-            conf {STORM-ZOOKEEPER-TOPOLOGY-AUTH-PAYLOAD expected}
-            result (TestStormSubmitter/prepareZookeeperAuthentication conf)
-            actual (.get result STORM-ZOOKEEPER-TOPOLOGY-AUTH-PAYLOAD)]
-        (is (nil? actual)))
-      (let [result (TestStormSubmitter/prepareZookeeperAuthentication {})]
-        (is (nil? (.get result STORM-ZOOKEEPER-TOPOLOGY-AUTH-PAYLOAD)))))
+  (testing "No payload or scheme are generated when already present"
+    (let [conf {STORM-ZOOKEEPER-TOPOLOGY-AUTH-PAYLOAD "foobar:12345"
+                STORM-ZOOKEEPER-AUTH-SCHEME "anything"}
+          result (StormSubmitter/prepareZookeeperAuthentication conf)
+          actual-payload (.get result STORM-ZOOKEEPER-TOPOLOGY-AUTH-PAYLOAD)
+          actual-scheme (.get result STORM-ZOOKEEPER-TOPOLOGY-AUTH-SCHEME)]
+      (is (nil? actual-payload))
+      (is (= "digest" actual-scheme))))
 
-    (testing "No payload is generated when one is already present and ZK is configured on the cluster."
-      (let [conf {STORM-ZOOKEEPER-TOPOLOGY-AUTH-PAYLOAD "foobar:12345"
-                  STORM-ZOOKEEPER-AUTH-SCHEME "anything"}
-            result (TestStormSubmitter/prepareZookeeperAuthentication conf)
-            actual (.get result STORM-ZOOKEEPER-TOPOLOGY-AUTH-PAYLOAD)]
-        (is (nil? actual))))
+  (testing "Scheme is set to digest if not already."
+    (let [conf {STORM-ZOOKEEPER-TOPOLOGY-AUTH-PAYLOAD "foobar:12345"}
+          result (StormSubmitter/prepareZookeeperAuthentication conf)
+          actual-payload (.get result STORM-ZOOKEEPER-TOPOLOGY-AUTH-PAYLOAD)
+          actual-scheme (.get result STORM-ZOOKEEPER-TOPOLOGY-AUTH-SCHEME)]
+      (is (nil? actual-payload))
+      (is (= "digest" actual-scheme))))
 
-    (testing "No payload is generated when one is already present with and ZK auth is not configured on the cluster."
-      (let [conf {STORM-ZOOKEEPER-TOPOLOGY-AUTH-PAYLOAD "foobar:12345"}
-            result (TestStormSubmitter/prepareZookeeperAuthentication conf)
-            actual (.get result STORM-ZOOKEEPER-TOPOLOGY-AUTH-PAYLOAD)]
-        (is (nil? actual)))))
+  (testing "A payload is generated when no payload is present."
+    (let [conf {STORM-ZOOKEEPER-AUTH-SCHEME "anything"}
+          result (StormSubmitter/prepareZookeeperAuthentication conf)
+          actual-payload (.get result STORM-ZOOKEEPER-TOPOLOGY-AUTH-PAYLOAD)
+          actual-scheme (.get result STORM-ZOOKEEPER-TOPOLOGY-AUTH-SCHEME)]
+      (is (not (clojure.string/blank? actual-payload)))
+      (is (= "digest" actual-scheme))))
 
-  (testing "StormSubmitter generates a payload with secret when necessary."
-    (testing "A payload is generated no payload is present and ZK auth is configured on the cluster."
-      (let [conf {STORM-ZOOKEEPER-TOPOLOGY-AUTH-PAYLOAD nil
-                  STORM-ZOOKEEPER-AUTH-SCHEME "anything"}
-            result (TestStormSubmitter/prepareZookeeperAuthentication conf)
-            actual-payload (.get result STORM-ZOOKEEPER-TOPOLOGY-AUTH-PAYLOAD)
-            actual-scheme (.get result STORM-ZOOKEEPER-TOPOLOGY-AUTH-SCHEME)]
-        (is (not (nil? actual-payload)))
-        (is (not (= "" actual-payload)))
-        (is (= "digest" actual-scheme))))))
+  (testing "A payload is generated when payload is not correctly formatted."
+    (let [bogus-payload "not-a-valid-payload"
+          conf {STORM-ZOOKEEPER-TOPOLOGY-AUTH-PAYLOAD bogus-payload
+                STORM-ZOOKEEPER-AUTH-SCHEME "anything"}
+          result (StormSubmitter/prepareZookeeperAuthentication conf)
+          actual-payload (.get result STORM-ZOOKEEPER-TOPOLOGY-AUTH-PAYLOAD)
+          actual-scheme (.get result STORM-ZOOKEEPER-TOPOLOGY-AUTH-SCHEME)]
+      (is (not (StormSubmitter/validateZKDigestPayload bogus-payload))) ; Is this test correct?
+      (is (not (clojure.string/blank? actual-payload)))
+      (is (= "digest" actual-scheme))))
+
+  (testing "A payload is generated when payload is null."
+    (let [conf {STORM-ZOOKEEPER-TOPOLOGY-AUTH-PAYLOAD nil
+                STORM-ZOOKEEPER-AUTH-SCHEME "anything"}
+          result (StormSubmitter/prepareZookeeperAuthentication conf)
+          actual-payload (.get result STORM-ZOOKEEPER-TOPOLOGY-AUTH-PAYLOAD)
+          actual-scheme (.get result STORM-ZOOKEEPER-TOPOLOGY-AUTH-SCHEME)]
+      (is (not (clojure.string/blank? actual-payload)))
+      (is (= "digest" actual-scheme))))
+
+  (testing "A payload is generated when payload is blank."
+    (let [conf {STORM-ZOOKEEPER-TOPOLOGY-AUTH-PAYLOAD ""
+                STORM-ZOOKEEPER-AUTH-SCHEME "anything"}
+          result (StormSubmitter/prepareZookeeperAuthentication conf)
+          actual-payload (.get result STORM-ZOOKEEPER-TOPOLOGY-AUTH-PAYLOAD)
+          actual-scheme (.get result STORM-ZOOKEEPER-TOPOLOGY-AUTH-SCHEME)]
+      (is (not (clojure.string/blank? actual-payload)))
+      (is (= "digest" actual-scheme)))))

@@ -5,6 +5,8 @@ import backtype.storm.utils.BufferFileInputStream;
 import backtype.storm.utils.NimbusClient;
 import backtype.storm.utils.Utils;
 import java.nio.ByteBuffer;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.HashMap;
 import java.util.Map;
 import org.slf4j.Logger;
@@ -30,28 +32,33 @@ public class StormSubmitter {
         return Utils.secureRandomLong() + ":" + Utils.secureRandomLong();
     }
 
+    public static final Pattern zkDigestPattern = Pattern.compile("\\S+:\\S+");
+
+    public static boolean validateZKDigestPayload(String payload) {
+        if (payload != null) {
+            Matcher m = zkDigestPattern.matcher(payload);
+            return m.matches();
+        }
+        return false;
+    }
+
     @SuppressWarnings("unchecked")
-    protected static Map prepareZookeeperAuthentication(Map conf) {
+    public static Map prepareZookeeperAuthentication(Map conf) {
         Map toRet = new HashMap();
 
-        // Is ZooKeeper authentication configured for the cluster?
-        if (conf.containsKey(Config.STORM_ZOOKEEPER_AUTH_SCHEME) &&
-                conf.get(Config.STORM_ZOOKEEPER_AUTH_SCHEME) != null &&
-                ! ((String) conf.get(Config.STORM_ZOOKEEPER_AUTH_SCHEME))
-                        .isEmpty()) {
+        // Is the topology ZooKeeper authentication configuration unset?
+        if (! conf.containsKey(Config.STORM_ZOOKEEPER_TOPOLOGY_AUTH_PAYLOAD) ||
+                conf.get(Config.STORM_ZOOKEEPER_TOPOLOGY_AUTH_PAYLOAD) == null || 
+                !  validateZKDigestPayload((String)
+                    conf.get(Config.STORM_ZOOKEEPER_TOPOLOGY_AUTH_PAYLOAD))) {
 
-            // Is the topology ZooKeeper authentication configuration unset?
-            if (! conf.containsKey(Config.STORM_ZOOKEEPER_TOPOLOGY_AUTH_PAYLOAD) ||
-                conf.get(Config.STORM_ZOOKEEPER_TOPOLOGY_AUTH_PAYLOAD) == null ||
-                ((String) conf.get(Config.STORM_ZOOKEEPER_TOPOLOGY_AUTH_PAYLOAD))
-                        .isEmpty()) {
-
-                toRet.put(Config.STORM_ZOOKEEPER_TOPOLOGY_AUTH_SCHEME, "digest");
-                String secretPayload = generateZookeeperDigestSecretPayload();
-                toRet.put(Config.STORM_ZOOKEEPER_TOPOLOGY_AUTH_PAYLOAD, secretPayload);
-                LOG.info("Generated ZooKeeper secret payload for MD5-digest: " + secretPayload);
-            }
+            String secretPayload = generateZookeeperDigestSecretPayload();
+            toRet.put(Config.STORM_ZOOKEEPER_TOPOLOGY_AUTH_PAYLOAD, secretPayload);
+            LOG.info("Generated ZooKeeper secret payload for MD5-digest: " + secretPayload);
         }
+        
+        // This should always be set to digest.
+        toRet.put(Config.STORM_ZOOKEEPER_TOPOLOGY_AUTH_SCHEME, "digest");
 
         return toRet;
     }
