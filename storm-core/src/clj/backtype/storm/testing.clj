@@ -164,10 +164,18 @@
     (rmr t)
     ))
 
+(def TEST-TIMEOUT-MS 5000)
+
+(defmacro while-timeout [timeout-ms condition & body]
+  `(let [end-time# (+ (System/currentTimeMillis) ~timeout-ms)]
+    (while ~condition
+      (when (> (System/currentTimeMillis) end-time#)
+        (throw (AssertionError. (str "Test timed out (" ~timeout-ms "ms)"))))
+      ~@body)))
 
 (defn wait-until-cluster-waiting
   "Wait until the cluster is idle. Should be used with time simulation."
-  ([cluster-map]
+  [cluster-map]
   ;; wait until all workers, supervisors, and nimbus is waiting
   (let [supervisors @(:supervisors cluster-map)
         workers (filter (partial satisfies? common/DaemonCommon) (psim/all-processes))
@@ -176,16 +184,12 @@
                   supervisors
                   workers) ; because a worker may already be dead
         ]
-    (wait-until-cluster-waiting 0 daemons)))
-  ([wait-counter daemons]
-    {:pre [(< wait-counter 20)]}
-    ;; Uses a prime to increase the chance of finding all daemons at rest
-    (Thread/sleep 251)
-    (when (not (every? (memfn waiting?) daemons))
+    (while-timeout TEST-TIMEOUT-MS (not (every? (memfn waiting?) daemons))      
+      (Thread/sleep (rand-int 20))
 ;;      (doseq [d daemons]
 ;;        (if-not ((memfn waiting?) d)
 ;;          (println d)))
-      (recur (inc wait-counter) daemons))))
+      )))
 
 (defn advance-cluster-time
   ([cluster-map secs increment-secs]
@@ -449,11 +453,11 @@
     
     
     (let [storm-id (common/get-storm-id state storm-name)]
-      (while (not (every? exhausted? (spout-objects spouts)))
+      (while-timeout TEST-TIMEOUT-MS (not (every? exhausted? (spout-objects spouts)))
         (simulate-wait cluster-map))
 
       (.killTopologyWithOpts (:nimbus cluster-map) storm-name (doto (KillOptions.) (.set_wait_secs 0)))
-      (while (.assignment-info state storm-id nil)
+      (while-timeout TEST-TIMEOUT-MS (.assignment-info state storm-id nil)
         (simulate-wait cluster-map))
       (when cleanup-state
         (doseq [spout (spout-objects spouts)]
@@ -560,11 +564,11 @@
                            (not= (global-amt track-id "transferred")                                 
                                  (global-amt track-id "processed"))
                            ))]
-        (while (waiting?)
+        (while-timeout TEST-TIMEOUT-MS (waiting?)
           ;; (println "Spout emitted: " (global-amt track-id "spout-emitted"))
           ;; (println "Processed: " (global-amt track-id "processed"))
           ;; (println "Transferred: " (global-amt track-id "transferred"))
-          (Thread/sleep 500))
+          (Thread/sleep (rand-int 2000)))
         (reset! (:last-spout-emit tracked-topology) target)
         )))
 
