@@ -3,10 +3,10 @@
   (:import [org.apache.zookeeper KeeperException KeeperException$NoNodeException ZooDefs ZooDefs$Ids ZooDefs$Perms])
   (:import [backtype.storm.utils Utils])
   (:import [java.security MessageDigest])
+  (:import [org.apache.zookeeper.server.auth DigestAuthenticationProvider])
   (:use [backtype.storm util log config])
   (:require [backtype.storm [zookeeper :as zk]])
   (:require [backtype.storm.daemon [common :as common]])
-  (:require [clojure.data.codec [base64 :as base64]])
   )
 
 (defprotocol ClusterState
@@ -22,17 +22,12 @@
   (unregister [this id])
   )
 
-
-(defn- gen-zk-credentials [payload]
- (let [username (first (clojure.string/split payload ":"))]
-   (str username ":" (String. (base64/encode (.digest (MessageDigest/getInstance "SHA1") (.getBytes payload)))))))
-
 (defn mk-topo-only-acls [topo-conf storm-conf]
   (let [payload (.get topo-conf STORM-ZOOKEEPER-TOPOLOGY-AUTH-PAYLOAD)]
     (when (and (Utils/isZkAuthenticationConfigured storm-conf)
                (not (clojure.string/blank? payload)))
       [(first ZooDefs$Ids/CREATOR_ALL_ACL)
-       (ACL. ZooDefs$Perms/READ (Id. "digest" (gen-zk-credentials payload)))])))
+       (ACL. ZooDefs$Perms/READ (Id. "digest" (DigestAuthenticationProvider/generateDigest payload)))])))
 
 (defnk mk-distributed-cluster-state [conf :auth-conf nil :acls nil]
   (let [zk (zk/mk-client conf (conf STORM-ZOOKEEPER-SERVERS) (conf STORM-ZOOKEEPER-PORT) :auth-conf auth-conf)]
