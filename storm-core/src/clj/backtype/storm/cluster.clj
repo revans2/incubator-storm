@@ -7,7 +7,6 @@
   (:use [backtype.storm util log config])
   (:require [backtype.storm [zookeeper :as zk]])
   (:require [backtype.storm.daemon [common :as common]])
-  (:require [clojure.data.codec [base64 :as base64]])
   )
 
 (defprotocol ClusterState
