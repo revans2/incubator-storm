@@ -420,7 +420,8 @@ public class Utils {
     }
 
     /**
-     * is Zookeeper configured to be secure.  This only works when called from Nimbus or a Supervisor.
+     * Is the cluster configured to interact with ZooKeeper in a secure way?
+     * This only works when called from within Nimbus or a Supervisor process.
      * @param conf the storm configuration, not the topology configuration
      * @return true if it is configured else false.
      */
@@ -432,7 +433,7 @@ public class Utils {
     }
 
     /**
-     * Is the topology configured to have Zookeeper authentication.
+     * Is the topology configured to have ZooKeeper authentication.
      * @param conf the topology configuration
      * @return true if ZK is configured else false
      */

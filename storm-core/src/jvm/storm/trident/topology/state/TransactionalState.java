@@ -17,12 +17,9 @@ import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.ZooDefs;
 import org.apache.zookeeper.data.ACL;
 import org.apache.zookeeper.data.Id;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.json.simple.JSONValue;
 
 public class TransactionalState {
-    public static Logger LOG = LoggerFactory.getLogger(TransactionalState.class);
     CuratorFramework _curator;
     List<ACL> _zkAcls = null;
     
