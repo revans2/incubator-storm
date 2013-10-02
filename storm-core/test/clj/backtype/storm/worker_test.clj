@@ -16,8 +16,11 @@
           digest "storm:thisisapoorpassword"
           auth-conf {STORM-ZOOKEEPER-AUTH-SCHEME scheme
                      STORM-ZOOKEEPER-AUTH-PAYLOAD digest}
-          expected-acls ZooDefs$Ids/CREATOR_ALL_ACL]
-      (stubbing [read-supervisor-storm-conf {}
+          topo-conf {STORM-ZOOKEEPER-TOPOLOGY-AUTH-SCHEME scheme
+                     STORM-ZOOKEEPER-TOPOLOGY-AUTH-PAYLOAD digest}
+ 
+          expected-acls (concat [(ACL. ZooDefs$Perms/READ (Id. "sasl" "@"))] ZooDefs$Ids/CREATOR_ALL_ACL)]
+      (stubbing [read-supervisor-storm-conf topo-conf
                  worker/read-worker-executors #{}
                  cluster/mk-distributed-cluster-state nil
                  cluster/mk-storm-cluster-state nil
