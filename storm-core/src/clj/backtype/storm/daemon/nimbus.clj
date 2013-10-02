@@ -54,7 +54,7 @@
      :authorization-handler (mk-authorization-handler (conf NIMBUS-AUTHORIZER) conf)
      :submitted-count (atom 0)
      :storm-cluster-state (cluster/mk-storm-cluster-state conf :acls (when
-                                                                       (Utils/isZkAuthenticationConfigured
+                                                                       (Utils/isZkAuthenticationConfiguredStormServer
                                                                          conf)
                                                                        NIMBUS-ZK-ACLS))
      :submit-lock (Object.)
@@ -936,19 +936,6 @@
        (InvalidTopologyException. 
         (str "Failed to submit topology. Topology requests more than " workers-allowed " workers."))))))
 
-(defn validate-topology-zk-auth [topo-conf nimbus-conf]
-  (let [topo-zk-auth-enabled? (Utils/isZkAuthenticationConfigured topo-conf)
-        nimbus-zk-auth-enabled? (Utils/isZkAuthenticationConfigured nimbus-conf)]
-    (cond
-      (and topo-zk-auth-enabled? (not nimbus-zk-auth-enabled?))
-      (throw (IllegalArgumentException. 
-               "This cluster is not configured for ZooKeeper authentication."))
-
-      (and nimbus-zk-auth-enabled? (not topo-zk-auth-enabled?))
-      (throw (IllegalArgumentException. 
-               "Topology configuration must include ZooKeeper authentication."))
-      :else nil)))
-
 (defserverfn service-handler [conf inimbus]
   (.prepare inimbus conf (master-inimbus-dir conf))
   (log-message "Starting Nimbus with conf " conf)
@@ -1007,6 +994,9 @@
                                (assoc TOPOLOGY-SUBMITTER-PRINCIPAL (if submitter-principal submitter-principal ""))
                                (assoc TOPOLOGY-SUBMITTER-USER (if submitter-user submitter-user "")) ;Don't let the user set who we launch as
                                (assoc TOPOLOGY-USERS topo-acl))
+                storm-conf (if (Utils/isZkAuthenticationConfiguredStormServer conf)
+                                storm-conf
+                                (dissoc storm-conf STORM-ZOOKEEPER-TOPOLOGY-AUTH-SCHEME STORM-ZOOKEEPER-TOPOLOGY-AUTH-PAYLOAD))
                 total-storm-conf (merge conf storm-conf)
                 topology (normalize-topology total-storm-conf topology)
                 topology (if (total-storm-conf TOPOLOGY-OPTIMIZE)
@@ -1017,12 +1007,14 @@
               (throw (AuthorizationException. "Could not determine the user to run this topology as.")))
             (system-topology! total-storm-conf topology) ;; this validates the structure of the topology
             (validate-topology-size topo-conf conf topology)
-            (validate-topology-zk-auth topo-conf conf)
+            (when (and (Utils/isZkAuthenticationConfiguredStormServer conf)
+                       (not (Utils/isZkAuthenticationConfiguredTopology storm-conf)))
+                (throw (IllegalArgumentException. "The cluster is configured for zookeeper authentication, but no payload was provided.")))
             (log-message "Received topology submission for " storm-name " with conf " storm-conf)
             ;; lock protects against multiple topologies being submitted at once and
             ;; cleanup thread killing topology in b/w assignment and starting the topology
             (locking (:submit-lock nimbus)
-              (.set-credentials! storm-cluster-state storm-id credentials storm-conf conf)
+              (.set-credentials! storm-cluster-state storm-id credentials storm-conf)
               (setup-storm-code conf storm-id uploadedJarLocation storm-conf topology)
               (.setup-heartbeats! storm-cluster-state storm-id)
               (let [thrift-status->kw-status {TopologyInitialStatus/INACTIVE :inactive
@@ -1086,7 +1078,7 @@
               topology-conf (try-read-storm-conf conf storm-id)
               creds (when credentials (.get_creds credentials))]
           (check-authorization! nimbus storm-name topology-conf "uploadNewCredentials")
-          (.set-credentials! storm-cluster-state storm-id creds topology-conf conf)))
+          (.set-credentials! storm-cluster-state storm-id creds topology-conf)))
 
       (beginFileUpload [this]
         (check-authorization! nimbus nil nil "fileUpload")

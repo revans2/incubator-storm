@@ -16,6 +16,7 @@ import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.ZooDefs;
 import org.apache.zookeeper.data.ACL;
+import org.apache.zookeeper.data.Id;
 
 public class TransactionalState {
     CuratorFramework _curator;
@@ -44,8 +45,10 @@ public class TransactionalState {
             List<String> servers = (List<String>) getWithBackup(conf, Config.TRANSACTIONAL_ZOOKEEPER_SERVERS, Config.STORM_ZOOKEEPER_SERVERS);
             Object port = getWithBackup(conf, Config.TRANSACTIONAL_ZOOKEEPER_PORT, Config.STORM_ZOOKEEPER_PORT);
             CuratorFramework initter = Utils.newCuratorStarted(conf, servers, port);
-            if (Utils.isZkAuthenticationConfigured(conf)) {
-                _zkAcls = ZooDefs.Ids.CREATOR_ALL_ACL;
+            if (Utils.isZkAuthenticationConfiguredTopology(conf)) {
+                _zkAcls = new ArrayList<ACL>(ZooDefs.Ids.CREATOR_ALL_ACL);
+                //This is an ugly hack to work around an issue with ZK where a sasl super user is not super unless the ACL has a sasl ID in it.
+                _zkAcls.add(new ACL(ZooDefs.Perms.READ, new Id("sasl", "@")));
             }
 
             try {

@@ -50,32 +50,48 @@
   )
 )
 
-(deftest test-isZkAuthenticationConfigured
+
+(deftest test-isZkAuthenticationConfiguredTopology
+    (testing "Returns false on null config"
+      (is (not (Utils/isZkAuthenticationConfiguredTopology nil))))
+    (testing "Returns false on scheme key missing"
+      (is (not (Utils/isZkAuthenticationConfiguredTopology
+          {STORM-ZOOKEEPER-TOPOLOGY-AUTH-SCHEME nil}))))
+    (testing "Returns false on scheme value null"
+      (is (not
+        (Utils/isZkAuthenticationConfiguredTopology
+          {STORM-ZOOKEEPER-TOPOLOGY-AUTH-SCHEME nil}))))
+    (testing "Returns true when scheme set to string"
+      (is
+        (Utils/isZkAuthenticationConfiguredTopology
+          {STORM-ZOOKEEPER-TOPOLOGY-AUTH-SCHEME "foobar"}))))
+
+(deftest test-isZkAuthenticationConfiguredStormServer
   (let [k "java.security.auth.login.config"
         oldprop (System/getProperty k)]
     (try
       (.remove (System/getProperties) k)
       (testing "Returns false on null config"
-        (is (not (Utils/isZkAuthenticationConfigured nil))))
+        (is (not (Utils/isZkAuthenticationConfiguredStormServer nil))))
       (testing "Returns false on scheme key missing"
-        (is (not (Utils/isZkAuthenticationConfigured
+        (is (not (Utils/isZkAuthenticationConfiguredStormServer
             {STORM-ZOOKEEPER-AUTH-SCHEME nil}))))
       (testing "Returns false on scheme value null"
         (is (not
-          (Utils/isZkAuthenticationConfigured
+          (Utils/isZkAuthenticationConfiguredStormServer
             {STORM-ZOOKEEPER-AUTH-SCHEME nil}))))
       (testing "Returns true when scheme set to string"
         (is
-          (Utils/isZkAuthenticationConfigured
+          (Utils/isZkAuthenticationConfiguredStormServer
             {STORM-ZOOKEEPER-AUTH-SCHEME "foobar"})))
       (testing "Returns true when java.security.auth.login.config is set"
         (do
           (System/setProperty k "anything")
-          (is (Utils/isZkAuthenticationConfigured {}))))
+          (is (Utils/isZkAuthenticationConfiguredStormServer {}))))
       (testing "Returns false when java.security.auth.login.config is set"
         (do
           (System/setProperty k "anything")
-          (is (Utils/isZkAuthenticationConfigured {}))))
+          (is (Utils/isZkAuthenticationConfiguredStormServer {}))))
     (finally 
       (if (not-nil? oldprop) 
         (System/setProperty k oldprop)

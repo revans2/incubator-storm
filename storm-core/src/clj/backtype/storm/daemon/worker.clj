@@ -5,7 +5,7 @@
   (:import [java.util.concurrent Executors])
   (:import [backtype.storm.messaging TransportFactory])
   (:import [backtype.storm.messaging IContext IConnection])
-  (:import [org.apache.zookeeper data.ACL data.Id ZooDefs$Ids])
+  (:import [org.apache.zookeeper data.ACL data.Id ZooDefs$Ids ZooDefs$Perms])
   (:gen-class))
 
 (bootstrap)
@@ -206,7 +206,8 @@
 
 (defn worker-data [conf mq-context storm-id assignment-id port worker-id]
   (let [storm-conf (read-supervisor-storm-conf conf storm-id)
-        acls (when (Utils/isZkAuthenticationConfigured conf) ZooDefs$Ids/CREATOR_ALL_ACL)
+        ;;This is an ugly hack to work around an issue with ZK where a sasl super user is not super unless the ACL has a sasl ID in it.
+        acls (when (Utils/isZkAuthenticationConfiguredTopology storm-conf) (concat [(ACL. ZooDefs$Perms/READ (Id. "sasl" "@"))] ZooDefs$Ids/CREATOR_ALL_ACL))
         cluster-state (cluster/mk-distributed-cluster-state conf :auth-conf storm-conf :acls acls)
         storm-cluster-state (cluster/mk-storm-cluster-state cluster-state :acls acls)
         executors (set (read-worker-executors storm-conf storm-cluster-state storm-id assignment-id port))

@@ -14,10 +14,12 @@
   (testing "worker-data uses correct ACLs"
     (let [scheme "digest"
           digest "storm:thisisapoorpassword"
-          auth-conf {STORM-ZOOKEEPER-AUTH-SCHEME scheme
-                     STORM-ZOOKEEPER-AUTH-PAYLOAD digest}
-          expected-acls ZooDefs$Ids/CREATOR_ALL_ACL]
-      (stubbing [read-supervisor-storm-conf {}
+          cluster-conf {}
+          topo-conf {STORM-ZOOKEEPER-TOPOLOGY-AUTH-SCHEME scheme
+                     STORM-ZOOKEEPER-TOPOLOGY-AUTH-PAYLOAD digest}
+ 
+          expected-acls (concat [(ACL. ZooDefs$Perms/READ (Id. "sasl" "@"))] ZooDefs$Ids/CREATOR_ALL_ACL)]
+      (stubbing [read-supervisor-storm-conf topo-conf
                  worker/read-worker-executors #{}
                  cluster/mk-distributed-cluster-state nil
                  cluster/mk-storm-cluster-state nil
@@ -25,7 +27,7 @@
                  read-supervisor-topology nil
                  worker/recursive-map-worker-data nil
                  ]
-        (worker/worker-data auth-conf true nil nil nil nil)
+        (worker/worker-data cluster-conf true nil nil nil nil)
         (verify-call-times-for cluster/mk-distributed-cluster-state 1)
         (verify-first-call-args-for-indices
           cluster/mk-distributed-cluster-state [4] expected-acls)
