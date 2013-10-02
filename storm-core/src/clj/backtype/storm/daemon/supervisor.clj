@@ -223,7 +223,7 @@
    :uptime (uptime-computer)
    :worker-thread-pids-atom (atom {})
    :storm-cluster-state (cluster/mk-storm-cluster-state conf :acls (when
-                                                                     (Utils/isZkAuthenticationConfigured
+                                                                     (Utils/isZkAuthenticationConfiguredStormServer
                                                                        conf)
                                                                      SUPERVISOR-ZK-ACLS))
    :local-state (supervisor-state conf)

@@ -44,7 +44,7 @@ public class TransactionalState {
             List<String> servers = (List<String>) getWithBackup(conf, Config.TRANSACTIONAL_ZOOKEEPER_SERVERS, Config.STORM_ZOOKEEPER_SERVERS);
             Object port = getWithBackup(conf, Config.TRANSACTIONAL_ZOOKEEPER_PORT, Config.STORM_ZOOKEEPER_PORT);
             CuratorFramework initter = Utils.newCuratorStarted(conf, servers, port);
-            if (Utils.isZkAuthenticationConfigured(conf)) {
+            if (Utils.isZkAuthenticationConfiguredTopology(conf)) {
                 _zkAcls = ZooDefs.Ids.CREATOR_ALL_ACL;
             }
 

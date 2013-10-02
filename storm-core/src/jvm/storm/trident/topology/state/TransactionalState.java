@@ -16,9 +16,12 @@ import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.ZooDefs;
 import org.apache.zookeeper.data.ACL;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.json.simple.JSONValue;
 
 public class TransactionalState {
+    public static Logger LOG = LoggerFactory.getLogger(TransactionalState.class);
     CuratorFramework _curator;
     List<ACL> _zkAcls = null;
     
@@ -37,10 +40,9 @@ public class TransactionalState {
             List<String> servers = (List<String>) getWithBackup(conf, Config.TRANSACTIONAL_ZOOKEEPER_SERVERS, Config.STORM_ZOOKEEPER_SERVERS);
             Object port = getWithBackup(conf, Config.TRANSACTIONAL_ZOOKEEPER_PORT, Config.STORM_ZOOKEEPER_PORT);
             CuratorFramework initter = Utils.newCuratorStarted(conf, servers, port);
-            if (Utils.isZkAuthenticationConfigured(conf)) {
+            if (Utils.isZkAuthenticationConfiguredTopology(conf)) {
                 _zkAcls = ZooDefs.Ids.CREATOR_ALL_ACL;
             }
-
             try {
                 TransactionalState.createNode(initter, rootDir, null, _zkAcls, null);
             } catch (KeeperException.NodeExistsException e) {

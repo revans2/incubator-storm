@@ -22,10 +22,9 @@
   (unregister [this id])
   )
 
-(defn mk-topo-only-acls [topo-conf storm-conf]
+(defn mk-topo-only-acls [topo-conf]
   (let [payload (.get topo-conf STORM-ZOOKEEPER-TOPOLOGY-AUTH-PAYLOAD)]
-    (when (and (Utils/isZkAuthenticationConfigured storm-conf)
-               (not (clojure.string/blank? payload)))
+    (when (Utils/isZkAuthenticationConfiguredTopology topo-conf)
       [(first ZooDefs$Ids/CREATOR_ALL_ACL)
        (ACL. ZooDefs$Perms/READ (Id. "digest" (DigestAuthenticationProvider/generateDigest payload)))])))
 
@@ -128,7 +127,7 @@
   (remove-storm! [this storm-id])
   (report-error [this storm-id task-id error])
   (errors [this storm-id task-id])
-  (set-credentials! [this storm-id creds topo-conf storm-conf])
+  (set-credentials! [this storm-id creds topo-conf])
   (credentials [this storm-id callback])
 
   (disconnect [this])
@@ -350,8 +349,8 @@
         (delete-node cluster-state (credentials-path storm-id))
         (remove-storm-base! this storm-id))
 
-      (set-credentials! [this storm-id creds topo-conf storm-conf]
-         (let [topo-acls (mk-topo-only-acls topo-conf storm-conf)
+      (set-credentials! [this storm-id creds topo-conf]
+         (let [topo-acls (mk-topo-only-acls topo-conf)
                path (credentials-path storm-id)]
            (set-data cluster-state path (Utils/serialize creds) topo-acls)))
 

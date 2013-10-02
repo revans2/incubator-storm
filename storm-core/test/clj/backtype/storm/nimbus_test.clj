@@ -1105,24 +1105,6 @@
         (verify-first-call-args-for-indices cluster/mk-storm-cluster-state [2]
                                             expected-acls)))))
 
-(deftest test-validate-topology-zk-auth
-  (testing "Topology ZK Auth validation"
-    (let [no-auth-conf {}
-          yes-auth-conf {STORM-ZOOKEEPER-AUTH-SCHEME "anyscheme"
-                        STORM-ZOOKEEPER-AUTH-PAYLOAD "anypayload"}]
-      (testing "Validation fails when the cluster config does not have zk"
-               " authentication configured when the topology does."
-        (is (thrown-cause? IllegalArgumentException
-          (nimbus/validate-topology-zk-auth no-auth-conf yes-auth-conf)))
-        (is (thrown-cause? IllegalArgumentException
-          (nimbus/validate-topology-zk-auth yes-auth-conf no-auth-conf))))
-      (testing "Validation succeeds when the cluster config does has zk"
-               " authentication configured when the topology does."
-        (is (not (thrown-cause? IllegalArgumentException
-          (nimbus/validate-topology-zk-auth no-auth-conf no-auth-conf))))
-        (is (not (thrown-cause? IllegalArgumentException
-          (nimbus/validate-topology-zk-auth yes-auth-conf yes-auth-conf))))))))
-
 (deftest test-file-bogus-download
   (with-local-cluster [cluster :daemon-conf {SUPERVISOR-ENABLE false TOPOLOGY-ACKER-EXECUTORS 0}]
     (let [nimbus (:nimbus cluster)]

@@ -206,7 +206,7 @@
 
 (defn worker-data [conf mq-context storm-id assignment-id port worker-id]
   (let [storm-conf (read-supervisor-storm-conf conf storm-id)
-        acls (when (Utils/isZkAuthenticationConfigured conf) ZooDefs$Ids/CREATOR_ALL_ACL)
+        acls (when (Utils/isZkAuthenticationConfiguredTopology storm-conf) ZooDefs$Ids/CREATOR_ALL_ACL)
         cluster-state (cluster/mk-distributed-cluster-state conf :auth-conf storm-conf :acls acls)
         storm-cluster-state (cluster/mk-storm-cluster-state cluster-state :acls acls)
         executors (set (read-worker-executors storm-conf storm-cluster-state storm-id assignment-id port))

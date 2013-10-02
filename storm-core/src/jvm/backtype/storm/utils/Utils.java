@@ -419,11 +419,27 @@ public class Utils {
         return false;
     }
 
-    public static boolean isZkAuthenticationConfigured(Map conf) {
+    /**
+     * is Zookeeper configured to be secure.  This only works when called from Nimbus or a Supervisor.
+     * @param conf the storm configuration, not the topology configuration
+     * @return true if it is configured else false.
+     */
+    public static boolean isZkAuthenticationConfiguredStormServer(Map conf) {
         return null != System.getProperty("java.security.auth.login.config")
             || (conf != null
-                && conf.containsKey(Config.STORM_ZOOKEEPER_AUTH_SCHEME)
                 && conf.get(Config.STORM_ZOOKEEPER_AUTH_SCHEME) != null
                 && ! ((String)conf.get(Config.STORM_ZOOKEEPER_AUTH_SCHEME)).isEmpty());
     }
+
+    /**
+     * Is the topology configured to have Zookeeper authentication.
+     * @param conf the topology configuration
+     * @return true if ZK is configured else false
+     */
+    public static boolean isZkAuthenticationConfiguredTopology(Map conf) {
+        return (conf != null
+                && conf.get(Config.STORM_ZOOKEEPER_TOPOLOGY_AUTH_SCHEME) != null
+                && ! ((String)conf.get(Config.STORM_ZOOKEEPER_TOPOLOGY_AUTH_SCHEME)).isEmpty());
+    }
+
 }
