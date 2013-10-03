@@ -28,6 +28,13 @@ import java.util.Map;
  */
 public class Config extends HashMap<String, Object> {
     /**
+     * This is part of a temporary workaround to a ZK bug, it is the 'scheme:acl' for
+     * the user Nimbus and Supervisors use to authenticate with ZK.
+     */
+    public static final String STORM_ZOOKEEPER_SUPERACL = "storm.zookeeper.superACL";
+    public static final Object STORM_ZOOKEEPER_SUPERACL_SCHEMA = String.class;
+
+    /**
      * The transporter for communication among Storm tasks
      */
     public static final String STORM_MESSAGING_TRANSPORT = "storm.messaging.transport";

@@ -39,6 +39,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.constructor.SafeConstructor;
+import org.apache.zookeeper.ZooDefs;
+import org.apache.zookeeper.data.ACL;
+import org.apache.zookeeper.data.Id;
+
 
 public class Utils {
     public static Logger LOG = LoggerFactory.getLogger(Utils.class);    
@@ -293,10 +297,6 @@ public class Utils {
         return UUID.randomUUID().getLeastSignificantBits();
     }
     
-    public static CuratorFramework newCurator(Map conf, List<String> servers, Object port, String root) {
-        return newCurator(conf, servers, port, root, null);
-    }
-
     public static class BoundedExponentialBackoffRetry extends ExponentialBackoffRetry {
 
         protected final int maxRetryInterval;
@@ -347,18 +347,18 @@ public class Utils {
         }
     }
 
-    public static CuratorFramework newCurator(Map conf, List<String> servers, Object port) {
-        return newCurator(conf, servers, port, "");
+    public static CuratorFramework newCurator(Map conf, List<String> servers, Object port, ZookeeperAuthInfo auth) {
+        return newCurator(conf, servers, port, "", auth);
     }
 
-    public static CuratorFramework newCuratorStarted(Map conf, List<String> servers, Object port, String root) {
-        CuratorFramework ret = newCurator(conf, servers, port, root);
+    public static CuratorFramework newCuratorStarted(Map conf, List<String> servers, Object port, String root, ZookeeperAuthInfo auth) {
+        CuratorFramework ret = newCurator(conf, servers, port, root, auth);
         ret.start();
         return ret;
     }
 
-    public static CuratorFramework newCuratorStarted(Map conf, List<String> servers, Object port) {
-        CuratorFramework ret = newCurator(conf, servers, port);
+    public static CuratorFramework newCuratorStarted(Map conf, List<String> servers, Object port, ZookeeperAuthInfo auth) {
+        CuratorFramework ret = newCurator(conf, servers, port, auth);
         ret.start();
         return ret;
     }    
@@ -441,6 +441,24 @@ public class Utils {
         return (conf != null
                 && conf.get(Config.STORM_ZOOKEEPER_TOPOLOGY_AUTH_SCHEME) != null
                 && ! ((String)conf.get(Config.STORM_ZOOKEEPER_TOPOLOGY_AUTH_SCHEME)).isEmpty());
+    }
+
+    public static List<ACL> getWorkerACL(Map conf) {
+        //This is a work around to an issue with ZK where a sasl super user is not super unless there is an open SASL ACL so we are trying to give the correct perms
+        if (!isZkAuthenticationConfiguredTopology(conf)) {
+            return null;
+        }
+        String stormZKUser = (String)conf.get(Config.STORM_ZOOKEEPER_SUPERACL);
+        if (stormZKUser == null) {
+           throw new IllegalArgumentException("Authentication is enabled but "+Config.STORM_ZOOKEEPER_SUPERACL+" is not set");
+        }
+        String[] split = stormZKUser.split(":",2);
+        if (split.length != 2) {
+          throw new IllegalArgumentException(Config.STORM_ZOOKEEPER_SUPERACL+" does not appear to be in the form scheme:acl, i.e. sasl:storm-user");
+        }
+        ArrayList<ACL> ret = new ArrayList<ACL>(ZooDefs.Ids.CREATOR_ALL_ACL);
+        ret.add(new ACL(ZooDefs.Perms.ALL, new Id(split[0], split[1])));
+        return ret;
     }
 
 }
