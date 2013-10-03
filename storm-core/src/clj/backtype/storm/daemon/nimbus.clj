@@ -993,7 +993,8 @@
                 storm-conf (-> storm-conf-submitted
                                (assoc TOPOLOGY-SUBMITTER-PRINCIPAL (if submitter-principal submitter-principal ""))
                                (assoc TOPOLOGY-SUBMITTER-USER (if submitter-user submitter-user "")) ;Don't let the user set who we launch as
-                               (assoc TOPOLOGY-USERS topo-acl))
+                               (assoc TOPOLOGY-USERS topo-acl)
+                               (assoc STORM-ZOOKEEPER-SUPERACL (.get conf STORM-ZOOKEEPER-SUPERACL)))
                 storm-conf (if (Utils/isZkAuthenticationConfiguredStormServer conf)
                                 storm-conf
                                 (dissoc storm-conf STORM-ZOOKEEPER-TOPOLOGY-AUTH-SCHEME STORM-ZOOKEEPER-TOPOLOGY-AUTH-PAYLOAD))
