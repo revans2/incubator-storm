@@ -471,12 +471,20 @@
     (.dump (Yaml.) data writer)
     (.close writer)))
 
+(defn jlp [stormroot conf]
+  (let [resource-root (str stormroot "/" RESOURCES-SUBDIR)
+        os (clojure.string/replace (System/getProperty "os.name") #"\s+" "_")
+        arch (System/getProperty "os.arch")
+        arch-resource-root (str resource-root "/" os "-" arch)]
+    (str arch-resource-root ":" resource-root ":" (conf JAVA-LIBRARY-PATH))))
+
 (defmethod launch-worker
     :distributed [supervisor storm-id port worker-id]
     (let [conf (:conf supervisor)
           run-worker-as-user (conf SUPERVISOR-RUN-WORKER-AS-USER)
           storm-home (System/getProperty "storm.home")
           stormroot (supervisor-stormdist-root conf storm-id)
+          jlp (jlp stormroot conf)
           stormjar (supervisor-stormjar-path stormroot)
           storm-conf (read-supervisor-storm-conf conf storm-id)
           classpath (add-to-classpath (current-classpath) [stormjar])
@@ -486,7 +494,7 @@
           user (storm-conf TOPOLOGY-SUBMITTER-USER)
           logfilename (logs-filename storm-id port)
           command (str "java -server " childopts
-                       " -Djava.library.path=" (conf JAVA-LIBRARY-PATH)
+                       " -Djava.library.path=" jlp
                        " -Dlogfile.name=" logfilename
                        " -Dstorm.home=" storm-home
                        " -Dlogback.configurationFile=" storm-home "/logback/worker.xml"
@@ -506,8 +514,8 @@
         (remove-dead-worker worker-id) 
         (if run-worker-as-user
           (let [worker-dir (worker-root conf worker-id)]
-            (worker-launcher conf user (str "worker " worker-dir " " (write-script worker-dir command :environment {"LD_LIBRARY_PATH" (conf JAVA-LIBRARY-PATH)})) :log-prefix log-prefix :exit-code-callback callback))
-          (launch-process command :environment {"LD_LIBRARY_PATH" (conf JAVA-LIBRARY-PATH)} :log-prefix log-prefix :exit-code-callback callback)
+            (worker-launcher conf user (str "worker " worker-dir " " (write-script worker-dir command :environment {"LD_LIBRARY_PATH" jlp})) :log-prefix log-prefix :exit-code-callback callback))
+          (launch-process command :environment {"LD_LIBRARY_PATH" jlp} :log-prefix log-prefix :exit-code-callback callback)
       ))))
 
 ;; local implementation
