@@ -765,12 +765,11 @@
         sys? (if (or (nil? sys?) (= "false" (:value sys?))) false true)]
     sys?))
 
-(defn main-routes [conf]
-  (if (ui-actions-enabled?)
-    (routes
+(if (ui-actions-enabled?)
+  (defroutes main-routes
     (GET "/" [:as {servlet-request :servlet-request}]
          (ui-template (main-page) (get-servlet-user servlet-request)))
-    (GET "/topology/:id" [:as {cookies :cookies servlet-request :servlet-request} id & m]
+    (GET "/topology/:id" [:as {:keys [cookies servlet-request]} id & m]
          (let [include-sys? (get-include-sys? cookies)
                user (get-servlet-user servlet-request)]
            (ui-template (concat
@@ -820,10 +819,10 @@
     (route/resources "/")
     (route/not-found "Page not found"))
 
-    (routes
+  (defroutes main-routes
     (GET "/" [:as {servlet-request :servlet-request}]
          (ui-template (main-page) (get-servlet-user servlet-request)))
-    (GET "/topology/:id" [:as {cookies :cookies servlet-request :servlet-request} id & m]
+    (GET "/topology/:id" [:as {:keys [cookies servlet-request]} id & m]
          (let [include-sys? (get-include-sys? cookies)
                user (get-servlet-user servlet-request)]
            (ui-template (concat
@@ -839,8 +838,7 @@
                           [(mk-system-toggle-button include-sys?)])
                         user)))
     (route/resources "/")
-    (route/not-found "Page not found"))
-))
+    (route/not-found "Page not found")))
 
 (defn exception->html [ex]
   (concat
@@ -860,16 +858,14 @@
         (log-error ex)
         ))))
 
-(defn mk-app [conf]
-  (-> conf
-      main-routes
-      (wrap-reload '[backtype.storm.ui.core])
-      catch-errors))
+(def app
+  (handler/site (-> main-routes
+                    (wrap-reload '[backtype.storm.ui.core])
+                    catch-errors)))
 
 (defn start-server! []
   (try
     (let [conf *STORM-CONF*
-          app (mk-app conf)
           header-buffer-size (int (.get conf UI-HEADER-BUFFER-BYTES))]
       (run-jetty app {:port (conf UI-PORT)
                           :join? false
