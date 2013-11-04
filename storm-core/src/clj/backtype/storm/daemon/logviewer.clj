@@ -33,13 +33,9 @@
       (.toString output))
     ))
 
-(defn get-log-whitelist-file [fname]
-  (if-let [[_ id port] (re-matches #"(.*-\d+-\d+)-worker-(\d+).log" fname)]
-    (clojure.java.io/file LOG-DIR "metadata" (logs-metadata-filename id port))))
-
 (defn get-log-user-whitelist [fname]
   (try
-    (let [wl-file (get-log-whitelist-file fname)
+    (let [wl-file (get-log-metadata-file fname)
           obj (.load (Yaml. (SafeConstructor.)) (java.io.FileReader. wl-file))
           m (clojurify-structure obj)]
       (if-let [whitelist (.get m LOGS-USERS)] whitelist []))

@@ -890,3 +890,9 @@
 (defn logs-metadata-filename [storm-id port]
   (str (logs-rootname storm-id port) ".yaml"))
 
+(defn get-log-metadata-file
+  ([fname]
+    (if-let [[_ id port] (re-matches #"(.*-\d+-\d+)-worker-(\d+).log" fname)]
+      (get-log-metadata-file id port)))
+  ([id port]
+    (clojure.java.io/file LOG-DIR "metadata" (logs-metadata-filename id port))))

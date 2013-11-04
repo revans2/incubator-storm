@@ -463,8 +463,8 @@
       (setup-storm-code-dir conf (read-supervisor-storm-conf conf storm-id) stormroot)      
     ))
 
-(defn write-log-metadata-to-yaml-file! [filename data]
-  (let [file (clojure.java.io/file LOG-DIR "metadata" filename)
+(defn write-log-metadata-to-yaml-file! [storm-id port data]
+  (let [file (get-log-metadata-file storm-id port)
         writer (java.io.FileWriter file)
         yaml (Yaml.)]
     (try
@@ -473,11 +473,10 @@
         (.close writer)))))
 
 (defn write-log-metadata! [conf storm-conf storm-id port]
-  (let [filename (logs-metadata-filename storm-id port)
-        data {STORM-ID storm-id
+  (let [data {STORM-ID storm-id
               "port" port
               LOGS-USERS (set (concat (conf LOGS-USERS) (storm-conf TOPOLOGY-USERS)))}]
-    (write-log-metadata-to-yaml-file! filename data)))
+    (write-log-metadata-to-yaml-file! storm-id port data)))
 
 (defn jlp [stormroot conf]
   (let [resource-root (str stormroot "/" RESOURCES-SUBDIR)

@@ -277,5 +277,4 @@
       (mocking [supervisor/write-log-metadata-to-yaml-file!]
         (supervisor/write-log-metadata! conf storm-conf exp-storm-id exp-port)
         (verify-called-once-with-args supervisor/write-log-metadata-to-yaml-file!
-                                      (logs-metadata-filename exp-storm-id exp-port)
-                                      exp-data)))))
+                                      exp-storm-id exp-port exp-data)))))
