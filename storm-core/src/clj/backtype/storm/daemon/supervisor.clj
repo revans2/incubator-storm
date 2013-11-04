@@ -467,7 +467,7 @@
   (let [filename (logs-metadata-filename storm-id port)
         file (clojure.java.io/file LOG-DIR "metadata" filename)
         writer (java.io.FileWriter. file)
-        data {LOGS-USERS (concat (storm-conf LOGS-USERS) (storm-conf TOPOLOGY-USERS))}]
+        data {LOGS-USERS (set (concat (storm-conf LOGS-USERS) (storm-conf TOPOLOGY-USERS)))}]
     (.dump (Yaml.) data writer)
     (.close writer)))
 

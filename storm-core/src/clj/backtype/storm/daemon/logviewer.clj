@@ -50,7 +50,7 @@
   (if (or (blank? user) (blank? fname)) 
     nil
     (let [whitelist (get-log-user-whitelist fname)
-          logs-users (concat (*STORM-CONF* LOGS-USERS) whitelist)]
+          logs-users (set (concat (*STORM-CONF* LOGS-USERS) whitelist))]
        (some #(= % user) logs-users))))
 
 (defn log-page [fname tail grep user]
