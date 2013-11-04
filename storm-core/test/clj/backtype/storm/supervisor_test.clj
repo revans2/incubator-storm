@@ -262,3 +262,20 @@
         (verify-call-times-for cluster/mk-storm-cluster-state 1)
         (verify-first-call-args-for-indices cluster/mk-storm-cluster-state [2]
                                             expected-acls)))))
+
+(deftest test-write-log-metadata
+  (testing "supervisor writes correct data to logs metadata file"
+    (let [exp-storm-id "0123456789"
+          exp-port 4242
+          exp-logs-users #{"alice" "bob" "charlie"}
+          conf {STORM-ID exp-storm-id
+                LOGS-USERS ["bob" "alice"]}
+          storm-conf {TOPOLOGY-USERS ["charlie" "bob"]}
+          exp-data {STORM-ID exp-storm-id
+                    "port" exp-port
+                    LOGS-USERS exp-logs-users}]
+      (mocking [supervisor/write-log-metadata-to-yaml-file!]
+        (supervisor/write-log-metadata! conf storm-conf exp-storm-id exp-port)
+        (verify-called-once-with-args supervisor/write-log-metadata-to-yaml-file!
+                                      (logs-metadata-filename exp-storm-id exp-port)
+                                      exp-data)))))

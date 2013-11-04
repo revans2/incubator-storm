@@ -463,13 +463,21 @@
       (setup-storm-code-dir conf (read-supervisor-storm-conf conf storm-id) stormroot)      
     ))
 
-(defn write-log-whitelist-file [conf storm-conf storm-id port]
+(defn write-log-metadata-to-yaml-file! [filename data]
+  (let [file (clojure.java.io/file LOG-DIR "metadata" filename)
+        writer (java.io.FileWriter file)
+        yaml (Yaml.)]
+    (try
+      (.dump yaml data writer)
+      (finally
+        (.close writer)))))
+
+(defn write-log-metadata! [conf storm-conf storm-id port]
   (let [filename (logs-metadata-filename storm-id port)
-        file (clojure.java.io/file LOG-DIR "metadata" filename)
-        writer (java.io.FileWriter. file)
-        data {LOGS-USERS (set (concat (storm-conf LOGS-USERS) (storm-conf TOPOLOGY-USERS)))}]
-    (.dump (Yaml.) data writer)
-    (.close writer)))
+        data {STORM-ID storm-id
+              "port" port
+              LOGS-USERS (set (concat (conf LOGS-USERS) (storm-conf TOPOLOGY-USERS)))}]
+    (write-log-metadata-to-yaml-file! filename data)))
 
 (defn jlp [stormroot conf]
   (let [resource-root (str stormroot "/" RESOURCES-SUBDIR)
@@ -504,7 +512,7 @@
                        " -cp " classpath " backtype.storm.daemon.worker "
                        (java.net.URLEncoder/encode storm-id) " " (:assignment-id supervisor)
                        " " port " " worker-id)]
-      (write-log-whitelist-file conf storm-conf storm-id port)
+      (write-log-metadata! conf storm-conf storm-id port)
       (log-message "Launching worker with command: " command)
       (set-worker-user! conf worker-id user)
       (let [log-prefix (str "Worker Process " worker-id)
