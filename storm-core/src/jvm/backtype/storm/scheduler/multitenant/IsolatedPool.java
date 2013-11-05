@@ -115,6 +115,9 @@ public class IsolatedPool extends NodePool {
           }
         }
       }
+      Set<Node> found = _topologyIdToNodes.get(topId);
+      int nc = found == null ? 0 : found.size();
+      _cluster.setStatus(topId,"Scheduled Isolated on "+nc+" Nodes");
     }
   }
   
@@ -141,9 +144,6 @@ public class IsolatedPool extends NodePool {
         nodesNeeded});
     if ((nodesNeeded - nodesFromUsAvailable) > (_maxNodes - _usedNodes)) {
       _cluster.setStatus(topId,"Max Nodes("+_maxNodes+") for this user would be exceeded. "+((_maxNodes - _usedNodes) - (nodesNeeded - nodesFromUsAvailable))+" more nodes needed to run topology.");
-      LOG.warn("Unable to schedule topology {} because it needs {} " +
-          "more nodes which would exced the limit of {}",
-          new Object[] {topId, nodesNeeded - nodesFromUsAvailable, _maxNodes});
       return 0;
     }
 
@@ -157,8 +157,7 @@ public class IsolatedPool extends NodePool {
         nodesNeededFromUs, nodesNeededFromOthers);
 
     if (nodesNeededFromUs > nodesFromUsAvailable) {
-      _cluster.setStatus(topId, "There are not enough free nodes for this user to run this topology.");
-      LOG.warn("There are not enough free nodes to schedule {}", topId);
+      _cluster.setStatus(topId, "Not Enough Nodes Available to Schedule Topology");
       return 0;
     }
 
@@ -175,10 +174,7 @@ public class IsolatedPool extends NodePool {
     int slotsFree = Node.countFreeSlotsAlive(allNodes);
     int slotsToUse = Math.min(slotsRequested - slotsUsed, slotsFree);
     if (slotsToUse <= 0) {
-      _cluster.setStatus(topId, "Both a supervisor and a worker have crashed, if this situation persists, please rebalance the topology.");
-      LOG.warn("An Isolated topology {} has had both a supervisor and" +
-          " a worker crash, but not all workers. Let's hope it comes " +
-          "back up soon.", topId);
+      _cluster.setStatus(topId, "Node has partially crashed, if this situation persists rebalance the topology.");
     }
     return slotsToUse;
   }
@@ -207,8 +203,7 @@ public class IsolatedPool extends NodePool {
     LOG.debug("Slots... requested {} used {} free {} available {} to be used {}", 
         new Object[] {slotsRequested, slotsUsed, slotsFree, slotsAvailable, slotsToUse});
     if (slotsToUse <= 0) {
-      _cluster.setStatus(topId, "The cluster appears to be full no slots left to schedule topology");
-      LOG.warn("The cluster appears to be full no slots left to schedule {}", topId);
+      _cluster.setStatus(topId, "Not Enough Slots Available to Schedule Topology");
       return 0;
     }
     int slotsNeeded = slotsToUse - slotsFree;
@@ -217,9 +212,6 @@ public class IsolatedPool extends NodePool {
         new Object[]{numNewNodes, _usedNodes, _maxNodes});
     if ((numNewNodes + _usedNodes) > _maxNodes) {
       _cluster.setStatus(topId,"Max Nodes("+_maxNodes+") for this user would be exceeded. "+((_maxNodes - _usedNodes) - numNewNodes)+" more nodes needed to run topology.");
-      LOG.warn("Unable to schedule topology {} because it needs {} " +
-          "more nodes which exceed the limit of {}",
-          new Object[] {topId, numNewNodes, _maxNodes});
       return 0;
     }
     
