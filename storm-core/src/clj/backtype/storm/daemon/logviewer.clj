@@ -2,7 +2,7 @@
   (:use compojure.core)
   (:use [clojure.string :only [blank?]])
   (:use [hiccup core page-helpers])
-  (:use [backtype.storm config util log])
+  (:use [backtype.storm config util log timer])
   (:use [backtype.storm.ui helpers])
   (:use [ring.adapter.jetty :only [run-jetty]])
   (:import [java.io File])
@@ -17,6 +17,23 @@
   (:gen-class))
 
 (def ^:dynamic *STORM-CONF* (read-storm-config))
+
+(defn cleanup-fn []
+  (throw (UnsupportedOperationException. "Not implemented"))
+  )
+
+(defn start-log-cleaner! [conf]
+  ;; TODO
+  ;; - start a thread that
+  (schedule-recurring (mk-timer)
+                      0 ;; No delay
+                      (conf LOGVIEWER-CLEANUP-INTERVAL-SECS)
+                      cleanup-fn)
+  ;; - loops through log files and metadata files
+  ;; - finds all log files and metadata files older than N minutes
+  ;; - Checks local filesystem HBs to see if "expired" log files belong to workers that are actually still alive.
+  ;; - purge the log files that remain, along with their corresponding metadata files.
+  )
 
 (defn tail-file [path tail]
   (let [flen (.length (clojure.java.io/file path))
@@ -120,4 +137,6 @@
     (log-error ex))))
 
 (defn -main []
-  (start-logviewer! (read-storm-config)))
+  (let [conf (read-storm-config)]
+    (start-log-cleaner! conf)
+    (start-logviewer! (read-storm-config))))
