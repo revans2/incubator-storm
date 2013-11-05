@@ -238,7 +238,7 @@ public class Cluster {
         if (assignment != null) {
             Set<ExecutorDetails> assignedExecutors = assignment.getExecutors();
             ret.removeAll(assignedExecutors);
-        } 
+        }
         
         return ret;
     }
