@@ -120,6 +120,8 @@ struct TopologySummary {
   5: required i32 num_workers;
   6: required i32 uptime_secs;
   7: required string status;
+513: optional string sched_status;
+514: optional string owner;
 }
 
 struct SupervisorSummary {
@@ -189,6 +191,8 @@ struct TopologyInfo {
   4: required list<ExecutorSummary> executors;
   5: required string status;
   6: required map<string, list<ErrorInfo>> errors;
+513: optional string sched_status;
+514: optional string owner;
 }
 
 struct KillOptions {

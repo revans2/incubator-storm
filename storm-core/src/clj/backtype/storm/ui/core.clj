@@ -98,15 +98,17 @@
   ;; make the id clickable
   ;; make the table sortable
   (sorted-table
-   ["Name" "Id" "Status" "Uptime" "Num workers" "Num executors" "Num tasks"]
+   ["Name" "Id" "Owner" "Status" "Uptime" "Num workers" "Num executors" "Num tasks" "Scheduler Info"]
    (for [^TopologySummary t summs]
      [(topology-link (.get_id t) (.get_name t))
       (escape-html (.get_id t))
+      (escape-html (.get_owner t))
       (.get_status t)
       (pretty-uptime-sec (.get_uptime_secs t))
       (.get_num_workers t)
       (.get_num_executors t)
       (.get_num_tasks t)
+      (.get_sched_status t)
       ])
    :time-cols [3]
    :sort-list "[[0,0]]"
@@ -307,14 +309,16 @@
 (defn topology-summary-table [^TopologyInfo summ]
   (let [executors (.get_executors summ)
         workers (set (for [^ExecutorSummary e executors] [(.get_host e) (.get_port e)]))]
-    (table ["Name" "Id" "Status" "Uptime" "Num workers" "Num executors" "Num tasks"]
+    (table ["Name" "Id" "Owner" "Status" "Uptime" "Num workers" "Num executors" "Num tasks" "Scheduler Info"]
            [[(escape-html (.get_name summ))
              (escape-html (.get_id summ))
+             (escape-html (.get_owner summ))
              (.get_status summ)
              (pretty-uptime-sec (.get_uptime_secs summ))
              (count workers)
              (count executors)
              (sum-tasks executors)
+             (.get_sched_status summ)
              ]]
            )))
 

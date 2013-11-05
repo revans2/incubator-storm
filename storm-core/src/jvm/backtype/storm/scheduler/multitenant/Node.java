@@ -140,7 +140,25 @@ public class Node {
     throw new IllegalArgumentException("Tried to free a slot that was not" +
     		" part of this node " + _nodeId);
   }
-  
+   
+  /**
+   * Frees all the slots for a topology.
+   * @param topId the topology to free slots for
+   * @param cluster the cluster to update
+   */
+  public void freeTopology(String topId, Cluster cluster) {
+    Set<WorkerSlot> slots = _topIdToUsedSlots.get(topId);
+    if (slots == null || slots.isEmpty()) return;
+    LOG.warn("Freeing "+slots.size()+" slots on "+ _nodeId+" for top "+topId);
+    for (WorkerSlot ws : slots) {
+      cluster.freeSlot(ws);
+      if (_isAlive) {
+        _freeSlots.add(ws);
+      }
+    }
+    _topIdToUsedSlots.remove(topId);
+  }
+ 
   /**
    * Assign a free slot on the node to the following topology and executors.
    * This will update the cluster too.
@@ -156,9 +174,14 @@ public class Node {
     if (_freeSlots.isEmpty()) {
       throw new IllegalStateException("Trying to assign to a full node " + _nodeId);
     }
-    WorkerSlot slot = _freeSlots.iterator().next();
-    cluster.assign(slot, topId, executors);
-    assignInternal(slot, topId);
+    if (executors.size() == 0) {
+      LOG.warn("Trying to assign nothing from " + topId + " to " + _nodeId + " (Ignored)");
+    } else {
+      WorkerSlot slot = _freeSlots.iterator().next();
+      LOG.warn("assigning "+slot+" to "+topId);
+      cluster.assign(slot, topId, executors);
+      assignInternal(slot, topId);
+    }
   }
   
   @Override
