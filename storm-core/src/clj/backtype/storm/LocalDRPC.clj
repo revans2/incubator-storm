@@ -9,7 +9,7 @@
    :state state ))
 
 (defn -init []
-  (let [handler (drpc/service-handler (read-storm-config))
+  (let [handler drpc/service-handler
         id (ServiceRegistry/registerService handler)
         ]
     [[] {:service-id id :handler handler}]
