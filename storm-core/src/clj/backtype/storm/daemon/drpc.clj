@@ -37,9 +37,8 @@
           )))
 
 ;; TODO: change this to use TimeCacheMap
-(def service-handler
-  (let [conf (read-storm-config)
-        drpc-acl-handler (mk-authorization-handler (conf DRPC-AUTHORIZER) conf)
+(defn service-handler [conf]
+  (let [drpc-acl-handler (mk-authorization-handler (conf DRPC-AUTHORIZER) conf)
         invocations-acl-handler (mk-authorization-handler (conf DRPC-INVOCATIONS-AUTHORIZER) conf)
         ctr (atom 0)
         id->sem (atom {})
@@ -114,26 +113,21 @@
         (.interrupt clear-thread))
       )))
 
-(defroutes main-routes
-  (GET "/drpc/:func/:args" [:as {cookies :cookies} func args & m]
-    (.execute service-handler func args))
-  (GET "/drpc/:func" [:as {cookies :cookies} func & m]
-    (.execute service-handler func "")))
-
-(defn catch-errors [handler]
+(defn handle-request [handler]
   (fn [request]
-    (try
-      (handler request)
-      (catch Exception ex
-        (-> (str "DRPC Server Error")
-          (resp/status 500)
-          (resp/content-type "text/text"))
-        ))))
+    (handler request)))
 
-(def webapp
-  (-> #'main-routes
+(defn webapp [handler]
+  (->(def http-routes
+       (routes
+         (GET "/drpc/:func/:args" [:as {cookies :cookies} func args & m]
+           (.execute handler func args))
+         (GET "/drpc/:func/" [:as {cookies :cookies} func & m]
+           (.execute handler func ""))
+         (GET "/drpc/:func" [:as {cookies :cookies} func & m]
+           (.execute handler func ""))))
     (wrap-reload '[backtype.storm.daemon.drpc])
-    catch-errors))
+    handle-request))
 
 (defn launch-server!
   ([]
@@ -142,19 +136,20 @@
           queue-size (int (conf DRPC-QUEUE-SIZE))
           drpc-http-port (int (conf DRPC-HTTP-PORT))
           drpc-port (int (conf DRPC-PORT))
+          drpc-service-handler (service-handler conf)
           ;; requests and returns need to be on separate thread pools, since calls to
           ;; "execute" don't unblock until other thrift methods are called. So if 
           ;; 64 threads are calling execute, the server won't accept the result
           ;; invocations that will unblock those threads
           handler-server (if (> drpc-port 0)
                            (ThriftServer. conf
-                             (DistributedRPC$Processor. service-handler)
+                             (DistributedRPC$Processor. drpc-service-handler)
                              drpc-port
                              backtype.storm.Config$ThriftServerPurpose/DRPC
                              (ThreadPoolExecutor. worker-threads worker-threads
                                60 TimeUnit/SECONDS (ArrayBlockingQueue. queue-size))))
           invoke-server (ThriftServer. conf
-                          (DistributedRPCInvocations$Processor. service-handler)
+                          (DistributedRPCInvocations$Processor. drpc-service-handler)
                           (int (conf DRPC-INVOCATIONS-PORT))
                           backtype.storm.Config$ThriftServerPurpose/DRPC)]
       (.addShutdownHook (Runtime/getRuntime) (Thread. (fn []
@@ -163,7 +158,8 @@
       (log-message "Starting Distributed RPC servers...")
       (future (.serve invoke-server))
       (if (> drpc-http-port 0)
-        (run-jetty webapp {:port drpc-http-port :join? false})
+        (run-jetty (webapp drpc-service-handler)
+          {:port drpc-http-port :join? false})
         )
       (if handler-server
         (.serve handler-server)))))
