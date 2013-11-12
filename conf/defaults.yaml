@@ -57,6 +57,7 @@ ui.header.buffer.bytes: 4096
 
 logviewer.port: 8000
 logviewer.childopts: "-Xmx128m"
+logviewer.cleanup.age.mins: 10080
 
 logs.users: null
 
