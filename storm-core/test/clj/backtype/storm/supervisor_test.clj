@@ -274,7 +274,7 @@
           storm-conf {TOPOLOGY-USERS ["charlie" "bob"]}
           exp-data {"worker-id" exp-worker-id
                     LOGS-USERS exp-logs-users}]
-      (stubbing [supervisor/write-log-metadata-to-yaml-file!]
+      (mocking [supervisor/write-log-metadata-to-yaml-file!]
         (supervisor/write-log-metadata! conf storm-conf exp-worker-id exp-storm-id exp-port)
         (verify-called-once-with-args supervisor/write-log-metadata-to-yaml-file!
                                       exp-storm-id exp-port exp-data)))))
