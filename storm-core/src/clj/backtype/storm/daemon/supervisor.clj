@@ -95,6 +95,10 @@
   (defn remove-dead-worker [worker]
     (swap! dead-workers disj worker)))
 
+(defn is-worker-hb-timed-out? [now hb conf]
+  (> (- now (:time-secs hb))
+     (conf SUPERVISOR-WORKER-TIMEOUT-SECS)))
+
 (defn read-allocated-workers
   "Returns map from worker id to worker heartbeat. if the heartbeat is nil, then the worker is dead (timed out or never wrote heartbeat)"
   [supervisor assigned-executors now]
@@ -115,8 +119,7 @@
                           (when (get (get-dead-workers) id)
                             (log-message "Worker Process " id " has died!")
                             true)
-                          (> (- now (:time-secs hb))
-                             (conf SUPERVISOR-WORKER-TIMEOUT-SECS)))
+                          (is-worker-hb-timed-out? now hb conf))
                            :timed-out
                          true
                            :valid)]
@@ -463,13 +466,19 @@
       (setup-storm-code-dir conf (read-supervisor-storm-conf conf storm-id) stormroot)      
     ))
 
-(defn write-log-whitelist-file [conf storm-conf storm-id port]
-  (let [filename (logs-metadata-filename storm-id port)
-        file (clojure.java.io/file LOG-DIR "metadata" filename)
+(defn write-log-metadata-to-yaml-file! [storm-id port data]
+  (let [file (get-log-metadata-file storm-id port)
         writer (java.io.FileWriter. file)
-        data {LOGS-USERS (concat (storm-conf LOGS-USERS) (storm-conf TOPOLOGY-USERS))}]
-    (.dump (Yaml.) data writer)
-    (.close writer)))
+        yaml (Yaml.)]
+    (try
+      (.dump yaml data writer)
+      (finally
+        (.close writer)))))
+
+(defn write-log-metadata! [conf storm-conf worker-id storm-id port]
+  (let [data {"worker-id" worker-id
+              LOGS-USERS (set (concat (conf LOGS-USERS) (storm-conf TOPOLOGY-USERS)))}]
+    (write-log-metadata-to-yaml-file! storm-id port data)))
 
 (defn jlp [stormroot conf]
   (let [resource-root (str stormroot "/" RESOURCES-SUBDIR)
@@ -504,7 +513,7 @@
                        " -cp " classpath " backtype.storm.daemon.worker "
                        (java.net.URLEncoder/encode storm-id) " " (:assignment-id supervisor)
                        " " port " " worker-id)]
-      (write-log-whitelist-file conf storm-conf storm-id port)
+      (write-log-metadata! conf storm-conf worker-id storm-id port)
       (log-message "Launching worker with command: " command)
       (set-worker-user! conf worker-id user)
       (let [log-prefix (str "Worker Process " worker-id)

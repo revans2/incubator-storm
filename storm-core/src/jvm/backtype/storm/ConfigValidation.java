@@ -184,4 +184,58 @@ public class ConfigValidation {
             throw new IllegalArgumentException("Field " + name + " must be a power of 2.");
         }
     };
+
+    /**
+     * Validates a positive integer.
+     */
+    public static Object PositiveIntegerValidator = new FieldValidator() {
+        @Override
+        public void validateField(String name, Object o) throws IllegalArgumentException {
+            if (o == null) {
+                // A null value is acceptable.
+                return;
+            }
+            final long i;
+            if (o instanceof Number &&
+                    (i = ((Number)o).longValue()) == ((Number)o).doubleValue())
+            {
+                if (i > 0) {
+                    return;
+                }
+            }
+            throw new IllegalArgumentException("Field " + name + " must be a positive integer.");
+        }
+    };
+
+    /**
+     * Validates Kryo Registration
+     */
+    public static Object KryoRegValidator = new FieldValidator() {
+        @Override
+        public void validateField(String name, Object o) throws IllegalArgumentException {
+            if (o == null) {
+                // A null value is acceptable.
+                return;
+            }
+            if (o instanceof Iterable) {
+                for (Object e : (Iterable)o) {
+                    if (e instanceof Map) {
+                        for (Map.Entry<Object,Object> entry: ((Map<Object,Object>)e).entrySet()) {
+                            if (!(entry.getKey() instanceof String) ||
+                                !(entry.getValue() instanceof String)) {
+                                throw new IllegalArgumentException(
+                                    "Each element of the list " + name + " must be a String or a Map of Strings");
+                            }
+                        }
+                    } else if (!(e instanceof String)) {
+                        throw new IllegalArgumentException(
+                                "Each element of the list " + name + " must be a String or a Map of Strings");
+                    }
+                }
+                return;
+            }
+            throw new IllegalArgumentException(
+                    "Field " + name + " must be an Iterable containing only Strings or Maps of Strings");
+        }
+    };
 }

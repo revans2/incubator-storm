@@ -401,6 +401,18 @@ public class Config extends HashMap<String, Object> {
     public static final Object LOGVIEWER_CHILDOPTS_SCHEMA = String.class;
 
     /**
+     * How often to clean up old log files
+     */
+    public static final String LOGVIEWER_CLEANUP_INTERVAL_SECS = "logviewer.cleanup.interval.secs";
+    public static final Object LOGVIEWER_CLEANUP_INTERVAL_SECS_SCHEMA = ConfigValidation.PositiveIntegerValidator;
+
+    /**
+     * How many minutes since a log was last modified for the log to be considered for clean-up
+     */
+    public static final String LOGVIEWER_CLEANUP_AGE_MINS = "logviewer.cleanup.age.mins";
+    public static final Object LOGVIEWER_CLEANUP_AGE_MINS_SCHEMA = ConfigValidation.PositiveIntegerValidator;
+
+    /**
      * A list of users allowed to view logs via the Log Viewer 
      */
     public static final String LOGS_USERS = "logs.users";
@@ -699,7 +711,7 @@ public class Config extends HashMap<String, Object> {
      * See Kryo's documentation for more information about writing custom serializers.
      */
     public static final String TOPOLOGY_KRYO_REGISTER = "topology.kryo.register";
-    public static final Object TOPOLOGY_KRYO_REGISTER_SCHEMA = ConfigValidation.StringsValidator;
+    public static final Object TOPOLOGY_KRYO_REGISTER_SCHEMA = ConfigValidation.KryoRegValidator;
 
     /**
      * A list of classes that customize storm's kryo instance during start-up.

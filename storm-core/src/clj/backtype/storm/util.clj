@@ -16,6 +16,8 @@
   (:import [org.apache.commons.io FileUtils])
   (:import [org.apache.commons.exec ExecuteException])
   (:import [org.json.simple JSONValue])
+  (:import [org.yaml.snakeyaml Yaml]
+           [org.yaml.snakeyaml.constructor SafeConstructor])
   (:require [clojure [string :as str]])
   (:import [clojure.lang RT])
   (:require [clojure [set :as set]])
@@ -890,3 +892,18 @@
 (defn logs-metadata-filename [storm-id port]
   (str (logs-rootname storm-id port) ".yaml"))
 
+(def worker-log-filename-pattern #"((.*-\d+-\d+)-worker-(\d+)).log")
+
+(defn get-log-metadata-file
+  ([fname]
+    (if-let [[_ _ id port] (re-matches worker-log-filename-pattern fname)]
+      (get-log-metadata-file id port)))
+  ([id port]
+    (clojure.java.io/file LOG-DIR "metadata" (logs-metadata-filename id port))))
+
+(defn clojure-from-yaml-file [yamlFile]
+  (try
+    (let [obj (.load (Yaml. (SafeConstructor.)) (java.io.FileReader. yamlFile))]
+      (clojurify-structure obj))
+    (catch Exception ex
+      (log-error ex))))
