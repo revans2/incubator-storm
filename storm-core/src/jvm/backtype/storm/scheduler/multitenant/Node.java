@@ -149,7 +149,6 @@ public class Node {
   public void freeTopology(String topId, Cluster cluster) {
     Set<WorkerSlot> slots = _topIdToUsedSlots.get(topId);
     if (slots == null || slots.isEmpty()) return;
-    LOG.warn("Freeing "+slots.size()+" slots on "+ _nodeId+" for top "+topId);
     for (WorkerSlot ws : slots) {
       cluster.freeSlot(ws);
       if (_isAlive) {
@@ -178,7 +177,6 @@ public class Node {
       LOG.warn("Trying to assign nothing from " + topId + " to " + _nodeId + " (Ignored)");
     } else {
       WorkerSlot slot = _freeSlots.iterator().next();
-      LOG.warn("assigning "+slot+" to "+topId);
       cluster.assign(slot, topId, executors);
       assignInternal(slot, topId);
     }

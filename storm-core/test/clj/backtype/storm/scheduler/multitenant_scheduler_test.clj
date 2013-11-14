@@ -146,6 +146,49 @@
     (is (= 2 (.size (.getSlots (.getAssignmentById cluster "topology1")))))
 ))
 
+(deftest test-default-pool-full
+  (let [supers (gen-supervisors 2) ;;make 2 supervisors but only schedule with one of them
+       single-super {(ffirst supers) (second (first supers))}
+       single-cluster (Cluster. (nimbus/standalone-nimbus) single-super {})
+       executor1 (ed 1)
+       executor2 (ed 2)
+       executor3 (ed 3)
+       executor4 (ed 4)
+       executor5 (ed 5)
+       topology1 (TopologyDetails. "topology1" 
+                   {TOPOLOGY-NAME "topology-name-1"}
+                   (StormTopology.)
+                   5
+                   {executor1 "spout1"
+                    executor2 "bolt1"
+                    executor3 "bolt2"
+                    executor4 "bolt3"
+                    executor5 "bolt4"})]
+    (let [node-map (Node/getAllNodesFrom single-cluster)
+         free-pool (FreePool. )
+         default-pool (DefaultPool. )]
+      (.init free-pool single-cluster node-map)
+      (.init default-pool single-cluster node-map)
+      (.addTopology default-pool topology1)
+      (.scheduleAsNeeded default-pool (into-array NodePool [free-pool]))
+      ;; The cluster should be full and have 4 slots used, but the topology would like 1 more
+      (is (= 4 (.size (.getUsedSlots single-cluster))))
+    )
+
+    (let [cluster (Cluster. (nimbus/standalone-nimbus) supers (.getAssignments single-cluster))
+         node-map (Node/getAllNodesFrom cluster)
+         free-pool (FreePool. )
+         default-pool (DefaultPool. )]
+      (.init free-pool cluster node-map)
+      (.init default-pool cluster node-map)
+      (.addTopology default-pool topology1)
+      (.scheduleAsNeeded default-pool (into-array NodePool [free-pool]))
+      ;; The cluster should now have 5 slots used
+      (is (= 5 (.size (.getUsedSlots cluster))))
+    )
+))
+
+
 (deftest test-default-pool-complex
   (let [supers (gen-supervisors 5)
        cluster (Cluster. (nimbus/standalone-nimbus) supers {})

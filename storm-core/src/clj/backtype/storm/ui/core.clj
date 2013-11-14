@@ -110,7 +110,7 @@
       (.get_num_tasks t)
       (.get_sched_status t)
       ])
-   :time-cols [3]
+   :time-cols [4]
    :sort-list "[[0,0]]"
    ))
 

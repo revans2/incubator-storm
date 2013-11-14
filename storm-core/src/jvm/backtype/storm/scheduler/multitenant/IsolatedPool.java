@@ -143,7 +143,9 @@ public class IsolatedPool extends NodePool {
         nodesUsed, nodesFromUsAvailable, nodesFromOthersAvailable,
         nodesNeeded});
     if ((nodesNeeded - nodesFromUsAvailable) > (_maxNodes - _usedNodes)) {
-      _cluster.setStatus(topId,"Max Nodes("+_maxNodes+") for this user would be exceeded. "+((_maxNodes - _usedNodes) - (nodesNeeded - nodesFromUsAvailable))+" more nodes needed to run topology.");
+      _cluster.setStatus(topId,"Max Nodes("+_maxNodes+") for this user would be exceeded. "
+        + ((nodesNeeded - nodesFromUsAvailable) - (_maxNodes - _usedNodes)) 
+        + " more nodes needed to run topology.");
       return 0;
     }
 
@@ -211,7 +213,8 @@ public class IsolatedPool extends NodePool {
     LOG.debug("Nodes... new {} used {} max {}",
         new Object[]{numNewNodes, _usedNodes, _maxNodes});
     if ((numNewNodes + _usedNodes) > _maxNodes) {
-      _cluster.setStatus(topId,"Max Nodes("+_maxNodes+") for this user would be exceeded. "+((_maxNodes - _usedNodes) - numNewNodes)+" more nodes needed to run topology.");
+      _cluster.setStatus(topId,"Max Nodes("+_maxNodes+") for this user would be exceeded. " +
+      (numNewNodes - (_maxNodes - _usedNodes)) + " more nodes needed to run topology.");
       return 0;
     }
     
