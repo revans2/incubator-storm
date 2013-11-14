@@ -115,8 +115,8 @@ public class DefaultPool extends NodePool {
   @Override
   public void scheduleAsNeeded(NodePool... lesserPools) {
     for (TopologyDetails td : _tds.values()) {
+      String topId = td.getId();
       if (_cluster.needsScheduling(td)) {
-        String topId = td.getId();
         LOG.debug("Scheduling topology {}",topId);
         int slotsRequested = td.getNumWorkers();
         int slotsUsed = Node.countSlotsUsed(topId, _nodes);
@@ -129,13 +129,27 @@ public class DefaultPool extends NodePool {
         int slotsToUse = Math.min(slotsRequested - slotsUsed, slotsFree + slotsAvailable);
         LOG.debug("Slots... requested {} used {} free {} available {} to be used {}", 
             new Object[] {slotsRequested, slotsUsed, slotsFree, slotsAvailable, slotsToUse});
+        int executorsNotRunning = _cluster.getUnassignedExecutors(td).size();
         if (slotsToUse <= 0) {
-          LOG.warn("The cluster appears to be full no slots left to schedule {}", topId);
+          if (executorsNotRunning > 0) {
+            _cluster.setStatus(topId,"Not fully scheduled (No free slots in default pool) "+executorsNotRunning+" executors not scheduled");
+          } else {
+            _cluster.setStatus(topId,"Running with fewer slots than requested ("+slotsUsed+"/"+slotsRequested+")");
+          }
           continue;
         }
 
         int slotsNeeded = slotsToUse - slotsFree;
         _nodes.addAll(NodePool.takeNodesBySlot(slotsNeeded, lesserPools));
+
+        if (executorsNotRunning <= 0) {
+          //There are free slots that we can take advantage of now.
+          for (Node n: _nodes) {
+            n.freeTopology(topId, _cluster); 
+          }
+          slotsFree = Node.countFreeSlotsAlive(_nodes);
+          slotsToUse = Math.min(slotsRequested, slotsFree);
+        }
         
         RoundRobinSlotScheduler slotSched = 
           new RoundRobinSlotScheduler(td, slotsToUse, _cluster);
@@ -158,6 +172,14 @@ public class DefaultPool extends NodePool {
             break;
           }
         }
+        int afterSchedSlotsUsed = Node.countSlotsUsed(topId, _nodes);
+        if (afterSchedSlotsUsed < slotsRequested) {
+          _cluster.setStatus(topId,"Running with fewer slots than requested ("+afterSchedSlotsUsed+"/"+slotsRequested+")");
+        } else {
+          _cluster.setStatus(topId,"Fully Scheduled");
+        }
+      } else {
+        _cluster.setStatus(topId,"Fully Scheduled");
       }
     }
   }

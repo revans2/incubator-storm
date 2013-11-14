@@ -68,6 +68,7 @@
                                  (halt-process! 20 "Error when processing an event")
                                  ))
      :scheduler (mk-scheduler conf inimbus)
+     :id->sched-status (atom {})
      }))
 
 (defn inbox [nimbus]
@@ -589,6 +590,7 @@
         new-scheduler-assignments (.getAssignments cluster)
         ;; add more information to convert SchedulerAssignment to Assignment
         new-topology->executor->node+port (compute-topology->executor->node+port new-scheduler-assignments)]
+    (reset! (:id->sched-status nimbus) (.getStatusMap cluster))
     ;; print some useful information.
     (doseq [[topology-id executor->node+port] new-topology->executor->node+port
             :let [old-executor->node+port (-> topology-id
@@ -725,7 +727,8 @@
                                   (current-time-secs)
                                   {:type topology-initial-status}
                                   (storm-conf TOPOLOGY-WORKERS)
-                                  num-executors))))
+                                  num-executors
+                                  (storm-conf TOPOLOGY-SUBMITTER-USER)))))
 
 ;; Master:
 ;; job submit:
@@ -1179,8 +1182,8 @@
               nimbus-uptime ((:uptime nimbus))
               bases (topology-bases storm-cluster-state)
               topology-summaries (dofor [[id base] bases :when base]
-	                                  (let [assignment (.assignment-info storm-cluster-state id nil)]
-                                           (TopologySummary. id
+	                                  (let [assignment (.assignment-info storm-cluster-state id nil)
+                                                topo-summ (TopologySummary. id
                                                             (:storm-name base)
                                                             (->> (:executor->node+port assignment)
                                                                  keys
@@ -1194,7 +1197,10 @@
                                                                  set
                                                                  count)
                                                             (time-delta (:launch-time-secs base))
-                                                            (extract-status-str base))
+                                                            (extract-status-str base))]
+                                               (when-let [owner (:owner base)] (.set_owner topo-summ owner))
+                                               (when-let [sched-status (.get @(:id->sched-status nimbus) id)] (.set_sched_status topo-summ sched-status))
+                                               topo-summ
                                           ))]
           (ClusterSummary. supervisor-summaries
                            nimbus-uptime
@@ -1231,14 +1237,16 @@
                                                                 (nil-to-zero (:uptime heartbeat)))
                                             (.set_stats stats))
                                           ))
-              ]
-          (TopologyInfo. storm-id
-                         storm-name
-                         (time-delta launch-time-secs)
-                         executor-summaries
-                         (extract-status-str base)
-                         errors
-                         )
+              topo-info  (TopologyInfo. storm-id
+                           storm-name
+                           (time-delta launch-time-secs)
+                           executor-summaries
+                           (extract-status-str base)
+                           errors
+                           )]
+            (when-let [owner (:owner base)] (.set_owner topo-info owner))
+            (when-let [sched-status (.get @(:id->sched-status nimbus) storm-id)] (.set_sched_status topo-info sched-status))
+            topo-info
           ))
       
       Shutdownable
