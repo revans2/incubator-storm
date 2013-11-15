@@ -156,7 +156,10 @@
   (uuid))
 
 (defnk worker-launcher [conf user args :environment {} :log-prefix nil :exit-code-callback nil]
-  (let [wl-initial (conf SUPERVISOR-WORKER-LAUNCHER)
+  (let [_ (when (clojure.string/blank? user)
+            (throw (java.lang.IllegalArgumentException.
+                     "User cannot be blank when calling worker-launcher.")))
+        wl-initial (conf SUPERVISOR-WORKER-LAUNCHER)
         storm-home (System/getProperty "storm.home")
         wl (if wl-initial wl-initial (str storm-home "/bin/worker-launcher"))
         command (str wl " " user " " args)]

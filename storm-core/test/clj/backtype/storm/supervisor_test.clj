@@ -278,3 +278,10 @@
         (supervisor/write-log-metadata! conf storm-conf exp-worker-id exp-storm-id exp-port)
         (verify-called-once-with-args supervisor/write-log-metadata-to-yaml-file!
                                       exp-storm-id exp-port exp-data)))))
+
+(deftest test-worker-launcher-requires-user
+  (testing "worker-launcher throws on blank user"
+    (mocking [launch-process]
+      (is (thrown-cause-with-msg? java.lang.IllegalArgumentException
+                                  #"(?i).*user cannot be blank.*"
+                                  (supervisor/worker-launcher {} nil ""))))))
