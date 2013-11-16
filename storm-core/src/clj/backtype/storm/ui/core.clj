@@ -499,11 +499,11 @@
        )]] )
     []))
 
-(defn authorized-ui-user? [user conf]
-  (let [ui-users (concat (*STORM-CONF* UI-USERS)
-                         (*STORM-CONF* NIMBUS-ADMINS)
-                         (conf UI-USERS)
-                         (conf TOPOLOGY-USERS))]
+(defn authorized-ui-user? [user conf topology-conf]
+  (let [ui-users (concat (conf UI-USERS)
+                         (conf NIMBUS-ADMINS)
+                         (topology-conf UI-USERS)
+                         (topology-conf TOPOLOGY-USERS))]
     (and (not (blank? user))
          (some #(= % user) ui-users))))
 
@@ -524,7 +524,7 @@
           msg-timeout (topology-conf TOPOLOGY-MESSAGE-TIMEOUT-SECS)
           ]
       (if (or (blank? (*STORM-CONF* UI-FILTER))
-              (authorized-ui-user? user topology-conf))
+              (authorized-ui-user? user *STORM-CONF* topology-conf))
         (concat
           [[:h2 "Topology summary"]]
           [(topology-summary-table summ)]
@@ -749,8 +749,7 @@
           summs (component-task-summs summ topology component)
           spec (cond (= type :spout) (spout-page window summ component summs include-sys?)
                      (= type :bolt) (bolt-page window summ component summs include-sys?))
-          topology-conf (from-json (.getTopologyConf ^Nimbus$Client nimbus topology-id))
-          ui-users (concat (*STORM-CONF* UI-USERS) (topology-conf UI-USERS))]
+          topology-conf (from-json (.getTopologyConf ^Nimbus$Client nimbus topology-id))]
       (if (or (blank? (*STORM-CONF* UI-FILTER))
               (authorized-ui-user? user topology-conf))
         (concat
