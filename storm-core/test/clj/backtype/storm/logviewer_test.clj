@@ -110,3 +110,27 @@
                  supervisor/read-worker-heartbeats id->hb]
         (is (= '(:expected-file)
                (logviewer/get-files-of-dead-workers conf now-secs log-files)))))))
+
+(deftest test-authorized-log-user
+  (testing "allow cluster admin"
+    (let [conf {NIMBUS-ADMINS ["alice"]}]
+      (stubbing [logviewer/get-log-user-whitelist []]
+        (is (logviewer/authorized-log-user? "alice" "non-blank-fname" conf)))))
+
+  (testing "ignore any cluster-set topology.users"
+    (let [conf {TOPOLOGY-USERS ["alice"]}]
+      (stubbing [logviewer/get-log-user-whitelist []]
+        (is (not (logviewer/authorized-log-user? "alice" "non-blank-fname" conf))))))
+
+  (testing "allow cluster logs user"
+    (let [conf {LOGS-USERS ["alice"]}]
+      (stubbing [logviewer/get-log-user-whitelist []]
+        (is (logviewer/authorized-log-user? "alice" "non-blank-fname" conf)))))
+
+  (testing "allow whitelisted topology user"
+    (stubbing [logviewer/get-log-user-whitelist ["alice"]]
+      (is (logviewer/authorized-log-user? "alice" "non-blank-fname" {}))))
+
+  (testing "disallow user not in nimbus admin, topo user, logs user, or whitelist"
+    (stubbing [logviewer/get-log-user-whitelist []]
+      (is (not (logviewer/authorized-log-user? "alice" "non-blank-fname" {}))))))

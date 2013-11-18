@@ -478,9 +478,12 @@
       (finally
         (.close writer)))))
 
-(defn write-log-metadata! [conf storm-conf worker-id storm-id port]
+(defn write-log-metadata! [storm-conf worker-id storm-id port]
   (let [data {"worker-id" worker-id
-              LOGS-USERS (set (concat (conf LOGS-USERS) (storm-conf TOPOLOGY-USERS)))}]
+              LOGS-USERS (sort (distinct (remove nil?
+                                           (concat
+                                             (storm-conf LOGS-USERS)
+                                             (storm-conf TOPOLOGY-USERS)))))}]
     (write-log-metadata-to-yaml-file! storm-id port data)))
 
 (defn jlp [stormroot conf]
@@ -516,7 +519,7 @@
                        " -cp " classpath " backtype.storm.daemon.worker "
                        (java.net.URLEncoder/encode storm-id) " " (:assignment-id supervisor)
                        " " port " " worker-id)]
-      (write-log-metadata! conf storm-conf worker-id storm-id port)
+      (write-log-metadata! storm-conf worker-id storm-id port)
       (log-message "Launching worker with command: " command)
       (set-worker-user! conf worker-id user)
       (let [log-prefix (str "Worker Process " worker-id)

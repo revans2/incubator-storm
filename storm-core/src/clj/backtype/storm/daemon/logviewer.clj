@@ -133,12 +133,12 @@
         m (clojure-from-yaml-file wl-file)]
     (if-let [whitelist (.get m LOGS-USERS)] whitelist [])))
 
-(defn authorized-log-user? [user fname]
+(defn authorized-log-user? [user fname conf]
   (if (or (blank? user) (blank? fname))
     nil
     (let [whitelist (get-log-user-whitelist fname)
-          logs-users (concat (*STORM-CONF* LOGS-USERS)
-                             (*STORM-CONF* NIMBUS-ADMINS)
+          logs-users (concat (conf LOGS-USERS)
+                             (conf NIMBUS-ADMINS)
                              whitelist)]
        (some #(= % user) logs-users))))
 
@@ -152,7 +152,7 @@
                    10240)
             tail-string (tail-file path tail)]
         (if (or (blank? (*STORM-CONF* UI-FILTER))
-                (authorized-log-user? user fname))
+                (authorized-log-user? user fname *STORM-CONF*))
           (if grep
              (clojure.string/join "\n<br>"
                (filter #(.contains % grep) (.split tail-string "\n")))
