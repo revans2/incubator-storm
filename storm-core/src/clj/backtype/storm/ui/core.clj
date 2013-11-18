@@ -751,7 +751,7 @@
                      (= type :bolt) (bolt-page window summ component summs include-sys?))
           topology-conf (from-json (.getTopologyConf ^Nimbus$Client nimbus topology-id))]
       (if (or (blank? (*STORM-CONF* UI-FILTER))
-              (authorized-ui-user? user topology-conf))
+              (authorized-ui-user? user *STORM-CONF* topology-conf))
         (concat
           [[:h2 "Component summary"]
            (table ["Id" "Topology" "Executors" "Tasks"]
