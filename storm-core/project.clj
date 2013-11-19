@@ -39,7 +39,7 @@
 
   :profiles {:dev {:resource-paths ["src/dev"]
                    :dependencies [
-                                  [org.clojars.runa/conjure "2.1.1"]
+                                  [org.clojars.runa/conjure "2.1.3"]
                                   [org.mockito/mockito-all "1.9.5"]
                                  ]
                   }
