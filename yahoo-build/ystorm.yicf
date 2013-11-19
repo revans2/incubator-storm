@@ -12,9 +12,7 @@ YINST bug-product Low Latency
 YINST bug-component General
 
 YINST requires pkg ystorm_jzmq           2.1.0.6     *
-YINST requires pkg ypython               2.6.0_2     2.6.9999
-YINST requires pkg ypython26             2.6.6       2.6.9999
-YINST requires pkg ypython26_pyyaml      3.10_1      3.999999
+YINST requires pkg ypython               2.6.0_2     2.7.9999
 YINST requires pkg yjava_jdk             1.7.0_11.64 1.7.999999
 YINST requires pkg yjava_servlet_filters 0.22.495    *
 
