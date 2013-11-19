@@ -91,24 +91,24 @@
                             #(or (not (val %))
                                  (supervisor/is-worker-hb-timed-out? now-secs (val %) conf))
                             id->heartbeat))
-          id->files (identify-worker-log-files log-files)]
-      (for [[id files] id->files :when (not (contains? (set alive-ids) id))
-            file files]
-        {TOPOLOGY-SUBMITTER-USER (get-topo-owner-from-metadata-file file)
-         :file file}))))
+          id->entries (identify-worker-log-files log-files)]
+      (for [[id {:keys [owner files]}] id->entries
+            :when (not (contains? (set alive-ids) id))]
+        {:owner owner
+         :files files}))))
 
 (defn cleanup-fn! []
   (let [now-secs (current-time-secs)
         old-log-files (select-files-for-cleanup *STORM-CONF* (* now-secs 1000))
         dead-worker-files (get-files-of-dead-workers *STORM-CONF*
                                                      now-secs old-log-files)]
-    (dofor [{:keys [owner file]} dead-worker-files]
+    (dofor [{:keys [owner files]} dead-worker-files
+            file files]
       (let [path (.getCanonicalPath file)]
         (log-message "Cleaning up: Removing " path)
         (try
           (if-not (blank? owner)
-            (supervisor/worker-launcher *STORM-CONF* owner
-                                        (str "/bin/rm \"" path "\""))
+            (supervisor/worker-launcher *STORM-CONF* owner (str "rmr " path))
             (rmr path))
           (catch Exception ex
             (log-error ex)))))))

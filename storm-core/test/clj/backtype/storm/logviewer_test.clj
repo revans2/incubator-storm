@@ -113,11 +113,13 @@
           now-secs 2
           log-files #{:expected-file :unexpected-file}
           exp-owner "alice"]
-      (stubbing [logviewer/identify-worker-log-files {"42" [:unexpected-file]
-                                                      "007" [:expected-file]}
+      (stubbing [logviewer/identify-worker-log-files {"42" {:owner exp-owner
+                                                            :files #{:unexpected-file}}
+                                                      "007" {:owner exp-owner
+                                                             :files #{:expected-file}}}
                  logviewer/get-topo-owner-from-metadata-file "alice"
                  supervisor/read-worker-heartbeats id->hb]
-        (is (= [{TOPOLOGY-SUBMITTER-USER exp-owner :file :expected-file}]
+        (is (= [{TOPOLOGY-SUBMITTER-USER exp-owner :files #{:expected-file}}]
                (logviewer/get-files-of-dead-workers conf now-secs log-files)))))))
 
 (deftest test-cleanup-fn
@@ -126,14 +128,13 @@
           mockfile1 (mk-mock-File {:name "file1" :type :file})
           mockfile2 (mk-mock-File {:name "file2" :type :file})
           mockfile3 (mk-mock-File {:name "file3" :type :file})
-          exp-cmd (str "/bin/rm \"/mock/canonical/path/to/"
-                       (.getName mockfile3) "\"")]
+          exp-cmd (str "rmr /mock/canonical/path/to/" (.getName mockfile3))]
       (stubbing [logviewer/select-files-for-cleanup
                    [(mk-mock-File {:name "throwaway" :type :file})]
                  logviewer/get-files-of-dead-workers
-                   [{:owner nil :file mockfile1}
-                    {:file mockfile2}
-                    {:owner exp-user :file mockfile3}]
+                   [{:owner nil :files #{mockfile1}}
+                    {:files #{mockfile2}}
+                    {:owner exp-user :files #{mockfile3}}]
                  supervisor/worker-launcher nil
                  rmr nil]
         (logviewer/cleanup-fn!)

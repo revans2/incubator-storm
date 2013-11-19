@@ -902,6 +902,7 @@
     (clojure.java.io/file LOG-DIR "metadata" (logs-metadata-filename id port))))
 
 (defn clojure-from-yaml-file [yamlFile]
+  {:pre [(not (nil? yamlFile))]}
   (try
     (let [obj (.load (Yaml. (SafeConstructor.)) (java.io.FileReader. yamlFile))]
       (clojurify-structure obj))
