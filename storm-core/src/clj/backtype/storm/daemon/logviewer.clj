@@ -48,6 +48,9 @@
 (defn get-worker-id-from-metadata-file [metaFile]
   (get (clojure-from-yaml-file metaFile) "worker-id"))
 
+(defn get-topo-owner-from-metadata-file [metaFile]
+  (get (clojure-from-yaml-file metaFile) TOPOLOGY-SUBMITTER-USER))
+
 (defn get-log-root->files-map [log-files]
   "Returns a map of \"root name\" to a the set of files in log-files having the
   root name.  The \"root name\" of a log file is the part of the name preceding
@@ -71,12 +74,14 @@
              {(get-worker-id-from-metadata-file metaFile)
               ;; Delete the metadata file also if each log for this root name
               ;; is to be deleted.
-              (if (empty? (difference
-                                (set (filter #(re-find (re-pattern log-root) %)
-                                             (read-dir-contents LOG-DIR)))
-                                (set (map #(.getName %) files))))
-                (conj files metaFile)
-                files)})))
+              {:owner (get-topo-owner-from-metadata-file metaFile)
+               :files
+                 (if (empty? (difference
+                                  (set (filter #(re-find (re-pattern log-root) %)
+                                               (read-dir-contents LOG-DIR)))
+                                  (set (map #(.getName %) files))))
+                  (conj files metaFile)
+                  files)}})))
 
 (defn get-files-of-dead-workers [conf now-secs log-files]
   (if (empty? log-files)
@@ -87,20 +92,24 @@
                                  (supervisor/is-worker-hb-timed-out? now-secs (val %) conf))
                             id->heartbeat))
           id->files (identify-worker-log-files log-files)]
-      (mapcat #(when-not (contains? (set alive-ids) (first %)) (second %)) id->files))))
+      (for [[id files] id->files :when (not (contains? (set alive-ids) id))
+            file files]
+        {TOPOLOGY-SUBMITTER-USER (get-topo-owner-from-metadata-file file)
+         :file file}))))
 
 (defn cleanup-fn! []
   (let [now-secs (current-time-secs)
         old-log-files (select-files-for-cleanup *STORM-CONF* (* now-secs 1000))
-        dead-worker-files (get-files-of-dead-workers *STORM-CONF* now-secs old-log-files)]
-    (log-debug "log cleanup: now(" now-secs
-               ") old log files (" (seq (map #(.getName %) old-log-files))
-               ") dead worker files (" (seq (map #(.getName %) dead-worker-files)) ")")
-    (dofor [file dead-worker-files]
+        dead-worker-files (get-files-of-dead-workers *STORM-CONF*
+                                                     now-secs old-log-files)]
+    (dofor [{:keys [owner file]} dead-worker-files]
       (let [path (.getCanonicalPath file)]
         (log-message "Cleaning up: Removing " path)
         (try
-          (rmr path)
+          (if-not (blank? owner)
+            (supervisor/worker-launcher *STORM-CONF* owner
+                                        (str "/bin/rm \"" path "\""))
+            (rmr path))
           (catch Exception ex
             (log-error ex)))))))
 

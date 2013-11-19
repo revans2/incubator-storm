@@ -265,16 +265,20 @@
 
 (deftest test-write-log-metadata
   (testing "supervisor writes correct data to logs metadata file"
-    (let [exp-worker-id "42"
+    (let [exp-owner "alice"
+          exp-worker-id "42"
           exp-storm-id "0123456789"
           exp-port 4242
           exp-logs-users ["bob" "charlie" "daryl"]
-          storm-conf {TOPOLOGY-USERS ["charlie" "bob"]
+          storm-conf {TOPOLOGY-SUBMITTER-USER "alice"
+                      TOPOLOGY-USERS ["charlie" "bob"]
                       LOGS-USERS ["daryl"]}
-          exp-data {"worker-id" exp-worker-id
+          exp-data {TOPOLOGY-SUBMITTER-USER exp-owner
+                    "worker-id" exp-worker-id
                     LOGS-USERS exp-logs-users}]
       (mocking [supervisor/write-log-metadata-to-yaml-file!]
-        (supervisor/write-log-metadata! storm-conf exp-worker-id exp-storm-id exp-port)
+        (supervisor/write-log-metadata! storm-conf exp-owner exp-worker-id
+                                        exp-storm-id exp-port)
         (verify-called-once-with-args supervisor/write-log-metadata-to-yaml-file!
                                       exp-storm-id exp-port exp-data)))))
 

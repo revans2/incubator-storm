@@ -1,5 +1,5 @@
 (ns backtype.storm.logviewer-test
-  (:use [backtype.storm config util])
+  (:use [backtype.storm config log util])
   (:require [backtype.storm.daemon [logviewer :as logviewer]
                                    [supervisor :as supervisor]])
   (:require [conjure.core])
@@ -9,14 +9,18 @@
 
 (defmulti mk-mock-File #(:type %))
 
-(defmethod mk-mock-File :file [{file-name :name mtime :mtime}]
+(defmethod mk-mock-File :file [{file-name :name mtime :mtime
+                                :or {file-name "afile" mtime 1}}]
   (let [mockFile (Mockito/mock java.io.File)]
     (. (Mockito/when (.getName mockFile)) thenReturn file-name)
     (. (Mockito/when (.lastModified mockFile)) thenReturn mtime)
     (. (Mockito/when (.isFile mockFile)) thenReturn true)
+    (. (Mockito/when (.getCanonicalPath mockFile))
+       thenReturn (str "/mock/canonical/path/to/" file-name))
     mockFile))
 
-(defmethod mk-mock-File :directory [{dir-name :name mtime :mtime}]
+(defmethod mk-mock-File :directory [{dir-name :name mtime :mtime
+                                     :or {dir-name "adir" mtime 1}}]
   (let [mockDir (Mockito/mock java.io.File)]
     (. (Mockito/when (.getName mockDir)) thenReturn dir-name)
     (. (Mockito/when (.lastModified mockDir)) thenReturn mtime)
@@ -92,11 +96,14 @@
                                      :type :file
                                      :mtime (+ cutoff-millis 1000)})
           exp-id "id12345"
-          expected {exp-id #{old-logFile}}]
+          exp-user "alice"
+          expected {exp-id {:owner exp-user
+                            :files #{old-logFile}}}]
       (stubbing [supervisor/read-worker-heartbeats nil
                 logviewer/get-metadata-file-for-log-root-name mock-metaFile
                 read-dir-contents [(.getName old-logFile) (.getName new-logFile)]
-                logviewer/get-worker-id-from-metadata-file exp-id]
+                logviewer/get-worker-id-from-metadata-file exp-id
+                logviewer/get-topo-owner-from-metadata-file exp-user]
         (is (= expected (logviewer/identify-worker-log-files [old-logFile])))))))
 
 (deftest test-get-files-of-dead-workers
@@ -104,12 +111,38 @@
     (let [conf {SUPERVISOR-WORKER-TIMEOUT-SECS 5}
           id->hb {"42" {:time-secs 1}}
           now-secs 2
-          log-files #{:expected-file :unexpected-file}]
+          log-files #{:expected-file :unexpected-file}
+          exp-owner "alice"]
       (stubbing [logviewer/identify-worker-log-files {"42" [:unexpected-file]
                                                       "007" [:expected-file]}
+                 logviewer/get-topo-owner-from-metadata-file "alice"
                  supervisor/read-worker-heartbeats id->hb]
-        (is (= '(:expected-file)
+        (is (= [{TOPOLOGY-SUBMITTER-USER exp-owner :file :expected-file}]
                (logviewer/get-files-of-dead-workers conf now-secs log-files)))))))
+
+(deftest test-cleanup-fn
+  (testing "cleanup function removes file as user when one is specified"
+    (let [exp-user "mock-user"
+          mockfile1 (mk-mock-File {:name "file1" :type :file})
+          mockfile2 (mk-mock-File {:name "file2" :type :file})
+          mockfile3 (mk-mock-File {:name "file3" :type :file})
+          exp-cmd (str "/bin/rm \"/mock/canonical/path/to/"
+                       (.getName mockfile3) "\"")]
+      (stubbing [logviewer/select-files-for-cleanup
+                   [(mk-mock-File {:name "throwaway" :type :file})]
+                 logviewer/get-files-of-dead-workers
+                   [{:owner nil :file mockfile1}
+                    {:file mockfile2}
+                    {:owner exp-user :file mockfile3}]
+                 supervisor/worker-launcher nil
+                 rmr nil]
+        (logviewer/cleanup-fn!)
+        (verify-call-times-for supervisor/worker-launcher 1)
+        (verify-first-call-args-for-indices supervisor/worker-launcher
+                                            [1 2] exp-user exp-cmd)
+        (verify-call-times-for rmr 2)
+        (verify-nth-call-args-for 1 rmr (.getCanonicalPath mockfile1))
+        (verify-nth-call-args-for 2 rmr (.getCanonicalPath mockfile2))))))
 
 (deftest test-authorized-log-user
   (testing "allow cluster admin"
