@@ -100,8 +100,10 @@
 (defn cleanup-fn! []
   (let [now-secs (current-time-secs)
         old-log-files (select-files-for-cleanup *STORM-CONF* (* now-secs 1000))
-        dead-worker-files (get-files-of-dead-workers *STORM-CONF*
-                                                     now-secs old-log-files)]
+        dead-worker-files (get-files-of-dead-workers *STORM-CONF* now-secs old-log-files)]
+    (log-debug "log cleanup: now(" now-secs
+               ") old log files (" (seq (map #(.getName %) old-log-files))
+               ") dead worker files (" (seq (map #(.getName %) dead-worker-files)) ")")
     (dofor [{:keys [owner files]} dead-worker-files
             file files]
       (let [path (.getCanonicalPath file)]
