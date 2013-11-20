@@ -1,5 +1,5 @@
 (ns backtype.storm.logviewer-test
-  (:use [backtype.storm config log util])
+  (:use [backtype.storm config util])
   (:require [backtype.storm.daemon [logviewer :as logviewer]
                                    [supervisor :as supervisor]])
   (:require [conjure.core])
