@@ -119,7 +119,7 @@
                                                              :files #{:expected-file}}}
                  logviewer/get-topo-owner-from-metadata-file "alice"
                  supervisor/read-worker-heartbeats id->hb]
-        (is (= [{TOPOLOGY-SUBMITTER-USER exp-owner :files #{:expected-file}}]
+        (is (= [{:owner exp-owner :files #{:expected-file}}]
                (logviewer/get-files-of-dead-workers conf now-secs log-files)))))))
 
 (deftest test-cleanup-fn
