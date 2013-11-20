@@ -72,15 +72,16 @@
                        files (val log-root-entry)]
                  :when metaFile]
              {(get-worker-id-from-metadata-file metaFile)
-              ;; Delete the metadata file also if each log for this root name
-              ;; is to be deleted.
               {:owner (get-topo-owner-from-metadata-file metaFile)
                :files
+                 ;; If each log for this root name is to be deleted, then
+                 ;; include the metadata file also.
                  (if (empty? (difference
                                   (set (filter #(re-find (re-pattern log-root) %)
                                                (read-dir-contents LOG-DIR)))
                                   (set (map #(.getName %) files))))
                   (conj files metaFile)
+                  ;; Otherwise, keep the list of files as it is.
                   files)}})))
 
 (defn get-dead-worker-files-and-owners [conf now-secs log-files]
@@ -110,6 +111,9 @@
         (log-message "Cleaning up: Removing " path)
         (try
           (if-not (blank? owner)
+            ;; worker-launcher does not actually launch a worker process.  It
+            ;; merely executes one of a prescribed set of commands.  In this case, we ask it
+            ;; to delete a file as the owner of that file.
             (supervisor/worker-launcher *STORM-CONF* owner (str "rmr " path))
             (rmr path))
           (catch Exception ex
