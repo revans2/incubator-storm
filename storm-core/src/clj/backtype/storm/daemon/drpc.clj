@@ -141,7 +141,7 @@
           ;; "execute" don't unblock until other thrift methods are called. So if 
           ;; 64 threads are calling execute, the server won't accept the result
           ;; invocations that will unblock those threads
-          handler-server (if (> drpc-port 0)
+          handler-server (when (> drpc-port 0)
                            (ThriftServer. conf
                              (DistributedRPC$Processor. drpc-service-handler)
                              drpc-port
@@ -157,11 +157,11 @@
                                                         (.stop invoke-server))))
       (log-message "Starting Distributed RPC servers...")
       (future (.serve invoke-server))
-      (if (> drpc-http-port 0)
+      (when (> drpc-http-port 0)
         (run-jetty (webapp drpc-service-handler)
           {:port drpc-http-port :join? false})
         )
-      (if handler-server
+      (when handler-server
         (.serve handler-server)))))
 
 (defn -main []
