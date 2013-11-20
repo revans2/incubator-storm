@@ -83,7 +83,7 @@
                   (conj files metaFile)
                   files)}})))
 
-(defn get-files-of-dead-workers [conf now-secs log-files]
+(defn get-dead-worker-files-and-owners [conf now-secs log-files]
   (if (empty? log-files)
     {}
     (let [id->heartbeat (supervisor/read-worker-heartbeats conf)
@@ -100,7 +100,7 @@
 (defn cleanup-fn! []
   (let [now-secs (current-time-secs)
         old-log-files (select-files-for-cleanup *STORM-CONF* (* now-secs 1000))
-        dead-worker-files (get-files-of-dead-workers *STORM-CONF* now-secs old-log-files)]
+        dead-worker-files (get-dead-worker-files-and-owners *STORM-CONF* now-secs old-log-files)]
     (log-debug "log cleanup: now(" now-secs
                ") old log files (" (seq (map #(.getName %) old-log-files))
                ") dead worker files (" (seq (map #(.getName %) dead-worker-files)) ")")

@@ -106,7 +106,7 @@
                 logviewer/get-topo-owner-from-metadata-file exp-user]
         (is (= expected (logviewer/identify-worker-log-files [old-logFile])))))))
 
-(deftest test-get-files-of-dead-workers
+(deftest test-get-dead-worker-files-and-owners
   (testing "removes any files of workers that are still alive"
     (let [conf {SUPERVISOR-WORKER-TIMEOUT-SECS 5}
           id->hb {"42" {:time-secs 1}}
@@ -120,7 +120,7 @@
                  logviewer/get-topo-owner-from-metadata-file "alice"
                  supervisor/read-worker-heartbeats id->hb]
         (is (= [{:owner exp-owner :files #{:expected-file}}]
-               (logviewer/get-files-of-dead-workers conf now-secs log-files)))))))
+               (logviewer/get-dead-worker-files-and-owners conf now-secs log-files)))))))
 
 (deftest test-cleanup-fn
   (testing "cleanup function removes file as user when one is specified"
@@ -131,7 +131,7 @@
           exp-cmd (str "rmr /mock/canonical/path/to/" (.getName mockfile3))]
       (stubbing [logviewer/select-files-for-cleanup
                    [(mk-mock-File {:name "throwaway" :type :file})]
-                 logviewer/get-files-of-dead-workers
+                 logviewer/get-dead-worker-files-and-owners
                    [{:owner nil :files #{mockfile1}}
                     {:files #{mockfile2}}
                     {:owner exp-user :files #{mockfile3}}]
