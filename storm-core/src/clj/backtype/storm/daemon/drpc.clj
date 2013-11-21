@@ -10,6 +10,9 @@
   (:import [backtype.storm.generated AuthorizationException])
   (:use [backtype.storm bootstrap config log])
   (:use [backtype.storm.daemon common])
+  (:use compojure.core)
+  (:use ring.middleware.reload)
+  (:use [ring.adapter.jetty :only [run-jetty]])
   (:gen-class))
 
 (bootstrap)
@@ -109,30 +112,56 @@
         (.interrupt clear-thread))
       )))
 
+(defn handle-request [handler]
+  (fn [request]
+    (handler request)))
+
+(defn webapp [handler]
+  (->(def http-routes
+       (routes
+         (GET "/drpc/:func/:args" [func args & m]
+           (.execute handler func args))
+         (GET "/drpc/:func/" [func & m]
+           (.execute handler func ""))
+         (GET "/drpc/:func" [func & m]
+           (.execute handler func ""))))
+    (wrap-reload '[backtype.storm.daemon.drpc])
+    handle-request))
+
 (defn launch-server!
   ([]
     (let [conf (read-storm-config)
           worker-threads (int (conf DRPC-WORKER-THREADS))
           queue-size (int (conf DRPC-QUEUE-SIZE))
-          service-handler (service-handler conf)
+          drpc-http-port (int (conf DRPC-HTTP-PORT))
+          drpc-port (int (conf DRPC-PORT))
+          drpc-service-handler (service-handler conf)
           ;; requests and returns need to be on separate thread pools, since calls to
           ;; "execute" don't unblock until other thrift methods are called. So if 
           ;; 64 threads are calling execute, the server won't accept the result
           ;; invocations that will unblock those threads
-          handler-server (ThriftServer. conf 
-                                        (DistributedRPC$Processor. service-handler) 
-                                        (int (conf DRPC-PORT))
-                                        backtype.storm.Config$ThriftServerPurpose/DRPC
-                                        (ThreadPoolExecutor. worker-threads worker-threads 
-                                                             60 TimeUnit/SECONDS (ArrayBlockingQueue. queue-size)))
-          invoke-server (ThriftServer. conf 
-                                       (DistributedRPCInvocations$Processor. service-handler) 
-                                       (int (conf DRPC-INVOCATIONS-PORT))
-                                       backtype.storm.Config$ThriftServerPurpose/DRPC)]      
-      (.addShutdownHook (Runtime/getRuntime) (Thread. (fn [] (.stop handler-server) (.stop invoke-server))))
+          handler-server (when (> drpc-port 0)
+                           (ThriftServer. conf
+                             (DistributedRPC$Processor. drpc-service-handler)
+                             drpc-port
+                             backtype.storm.Config$ThriftServerPurpose/DRPC
+                             (ThreadPoolExecutor. worker-threads worker-threads
+                               60 TimeUnit/SECONDS (ArrayBlockingQueue. queue-size))))
+          invoke-server (ThriftServer. conf
+                          (DistributedRPCInvocations$Processor. drpc-service-handler)
+                          (int (conf DRPC-INVOCATIONS-PORT))
+                          backtype.storm.Config$ThriftServerPurpose/DRPC)]
+      (.addShutdownHook (Runtime/getRuntime) (Thread. (fn []
+                                                        (if handler-server (.stop handler-server))
+                                                        (.stop invoke-server))))
       (log-message "Starting Distributed RPC servers...")
       (future (.serve invoke-server))
-      (.serve handler-server))))
+      (when (> drpc-http-port 0)
+        (run-jetty (webapp drpc-service-handler)
+          {:port drpc-http-port :join? false})
+        )
+      (when handler-server
+        (.serve handler-server)))))
 
 (defn -main []
   (launch-server!))
