@@ -13,7 +13,6 @@
   (:use compojure.core)
   (:use ring.middleware.reload)
   (:use [ring.adapter.jetty :only [run-jetty]])
-  (:require [ring.util.response :as resp])
   (:gen-class))
 
 (bootstrap)
@@ -120,11 +119,11 @@
 (defn webapp [handler]
   (->(def http-routes
        (routes
-         (GET "/drpc/:func/:args" [:as {cookies :cookies} func args & m]
+         (GET "/drpc/:func/:args" [func args & m]
            (.execute handler func args))
-         (GET "/drpc/:func/" [:as {cookies :cookies} func & m]
+         (GET "/drpc/:func/" [func & m]
            (.execute handler func ""))
-         (GET "/drpc/:func" [:as {cookies :cookies} func & m]
+         (GET "/drpc/:func" [func & m]
            (.execute handler func ""))))
     (wrap-reload '[backtype.storm.daemon.drpc])
     handle-request))
