@@ -48,6 +48,9 @@
 (defn get-worker-id-from-metadata-file [metaFile]
   (get (clojure-from-yaml-file metaFile) "worker-id"))
 
+(defn get-topo-owner-from-metadata-file [metaFile]
+  (get (clojure-from-yaml-file metaFile) TOPOLOGY-SUBMITTER-USER))
+
 (defn get-log-root->files-map [log-files]
   "Returns a map of \"root name\" to a the set of files in log-files having the
   root name.  The \"root name\" of a log file is the part of the name preceding
@@ -69,16 +72,19 @@
                        files (val log-root-entry)]
                  :when metaFile]
              {(get-worker-id-from-metadata-file metaFile)
-              ;; Delete the metadata file also if each log for this root name
-              ;; is to be deleted.
-              (if (empty? (difference
-                                (set (filter #(re-find (re-pattern log-root) %)
-                                             (read-dir-contents LOG-DIR)))
-                                (set (map #(.getName %) files))))
-                (conj files metaFile)
-                files)})))
+              {:owner (get-topo-owner-from-metadata-file metaFile)
+               :files
+                 ;; If each log for this root name is to be deleted, then
+                 ;; include the metadata file also.
+                 (if (empty? (difference
+                                  (set (filter #(re-find (re-pattern log-root) %)
+                                               (read-dir-contents LOG-DIR)))
+                                  (set (map #(.getName %) files))))
+                  (conj files metaFile)
+                  ;; Otherwise, keep the list of files as it is.
+                  files)}})))
 
-(defn get-files-of-dead-workers [conf now-secs log-files]
+(defn get-dead-worker-files-and-owners [conf now-secs log-files]
   (if (empty? log-files)
     {}
     (let [id->heartbeat (supervisor/read-worker-heartbeats conf)
@@ -86,21 +92,30 @@
                             #(or (not (val %))
                                  (supervisor/is-worker-hb-timed-out? now-secs (val %) conf))
                             id->heartbeat))
-          id->files (identify-worker-log-files log-files)]
-      (mapcat #(when-not (contains? (set alive-ids) (first %)) (second %)) id->files))))
+          id->entries (identify-worker-log-files log-files)]
+      (for [[id {:keys [owner files]}] id->entries
+            :when (not (contains? (set alive-ids) id))]
+        {:owner owner
+         :files files}))))
 
 (defn cleanup-fn! []
   (let [now-secs (current-time-secs)
         old-log-files (select-files-for-cleanup *STORM-CONF* (* now-secs 1000))
-        dead-worker-files (get-files-of-dead-workers *STORM-CONF* now-secs old-log-files)]
+        dead-worker-files (get-dead-worker-files-and-owners *STORM-CONF* now-secs old-log-files)]
     (log-debug "log cleanup: now(" now-secs
                ") old log files (" (seq (map #(.getName %) old-log-files))
                ") dead worker files (" (seq (map #(.getName %) dead-worker-files)) ")")
-    (dofor [file dead-worker-files]
+    (dofor [{:keys [owner files]} dead-worker-files
+            file files]
       (let [path (.getCanonicalPath file)]
         (log-message "Cleaning up: Removing " path)
         (try
-          (rmr path)
+          (if-not (blank? owner)
+            ;; worker-launcher does not actually launch a worker process.  It
+            ;; merely executes one of a prescribed set of commands.  In this case, we ask it
+            ;; to delete a file as the owner of that file.
+            (supervisor/worker-launcher *STORM-CONF* owner (str "rmr " path))
+            (rmr path))
           (catch Exception ex
             (log-error ex)))))))
 
