@@ -60,6 +60,10 @@ char* get_executable() {
   char buffer[PATH_MAX];
   snprintf(buffer, PATH_MAX, "/proc/%u/exe", getpid());
   char *filename = malloc(PATH_MAX);
+  if (NULL == filename) {
+    fprintf(ERRORFILE, "malloc failed in get_executable\n");
+    exit(-1);
+  }
   ssize_t len = readlink(buffer, filename, PATH_MAX);
   if (len == -1) {
     fprintf(ERRORFILE, "Can't get executable name from %s - %s\n", buffer,
@@ -234,6 +238,10 @@ char *get_tmp_directory(const char *work_dir) {
 static struct passwd* get_user_info(const char* user) {
   int string_size = sysconf(_SC_GETPW_R_SIZE_MAX);
   void* buffer = malloc(string_size + sizeof(struct passwd));
+  if (buffer == NULL) {
+    fprintf(LOGFILE, "Malloc failed in get_user_info\n");
+    return NULL;
+  }
   struct passwd *result = NULL;
   if (getpwnam_r(user, buffer, buffer + sizeof(struct passwd), string_size,
 		 &result) != 0) {
