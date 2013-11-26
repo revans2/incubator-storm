@@ -95,6 +95,7 @@ int main(int argc, char **argv) {
   }
   read_config(conf_file);
   free(conf_file);
+  conf_file = NULL;
 
   // look up the node manager group in the config file
   char *nm_group = get_value(LAUNCHER_GROUP_KEY);

@@ -60,6 +60,10 @@ char* get_executable() {
   char buffer[PATH_MAX];
   snprintf(buffer, PATH_MAX, "/proc/%u/exe", getpid());
   char *filename = malloc(PATH_MAX);
+  if (NULL == filename) {
+    fprintf(ERRORFILE, "malloc failed in get_executable\n");
+    exit(-1);
+  }
   ssize_t len = readlink(buffer, filename, PATH_MAX);
   if (len == -1) {
     fprintf(ERRORFILE, "Can't get executable name from %s - %s\n", buffer,
@@ -234,10 +238,15 @@ char *get_tmp_directory(const char *work_dir) {
 static struct passwd* get_user_info(const char* user) {
   int string_size = sysconf(_SC_GETPW_R_SIZE_MAX);
   void* buffer = malloc(string_size + sizeof(struct passwd));
+  if (buffer == NULL) {
+    fprintf(LOGFILE, "Malloc failed in get_user_info\n");
+    return NULL;
+  }
   struct passwd *result = NULL;
   if (getpwnam_r(user, buffer, buffer + sizeof(struct passwd), string_size,
 		 &result) != 0) {
     free(buffer);
+    buffer = NULL;
     fprintf(LOGFILE, "Can't get user information %s - %s\n", user,
 	    strerror(errno));
     return NULL;
@@ -269,9 +278,11 @@ struct passwd* check_user(const char *user) {
 	      min_uid_str, MIN_USERID_KEY);
       fflush(LOGFILE);
       free(min_uid_str);
+      min_uid_str = NULL;
       return NULL;
     }
     free(min_uid_str);
+    min_uid_str = NULL;
   }
   struct passwd *user_info = get_user_info(user);
   if (NULL == user_info) {
@@ -284,6 +295,7 @@ struct passwd* check_user(const char *user) {
 	    "minimum allowed %d\n", user, user_info->pw_uid, min_uid);
     fflush(LOGFILE);
     free(user_info);
+    user_info = NULL;
     return NULL;
   }
   char **banned_users = get_values(BANNED_USERS_KEY);
@@ -292,8 +304,10 @@ struct passwd* check_user(const char *user) {
   for(; *banned_user; ++banned_user) {
     if (strcmp(*banned_user, user) == 0) {
       free(user_info);
+      user_info = NULL;
       if (banned_users != (char**)DEFAULT_BANNED_USERS) {
         free_values(banned_users);
+        banned_users = NULL;
       }
       fprintf(LOGFILE, "Requested user %s is banned\n", user);
       return NULL;
@@ -301,6 +315,7 @@ struct passwd* check_user(const char *user) {
   }
   if (banned_users != NULL && banned_users != (char**)DEFAULT_BANNED_USERS) {
     free_values(banned_users);
+    banned_users = NULL;
   }
   return user_info;
 }
@@ -433,7 +448,7 @@ int setup_stormdist_dir(const char* local_dir) {
     fprintf(ERRORFILE, "Path is null\n");
     exit_code = UNABLE_TO_BUILD_PATH; // may be malloc failed
   } else {
-    char *(paths[]) = {strdup(local_dir), 0};
+    char *(paths[]) = {strndup(local_dir,PATH_MAX), 0};
     if (paths[0] == NULL) {
       fprintf(ERRORFILE, "Malloc failed in setup_stormdist_dir\n");
       return -1;
@@ -443,6 +458,7 @@ int setup_stormdist_dir(const char* local_dir) {
       if (errno == ENOENT) {
         fprintf(ERRORFILE, "Path does not exist %s\n", local_dir);
         free(paths[0]);
+        paths[0] = NULL;
         return UNABLE_TO_BUILD_PATH;
       }
     }
@@ -455,6 +471,7 @@ int setup_stormdist_dir(const char* local_dir) {
               "Cannot open file traversal structure for the path %s:%s.\n", 
               local_dir, strerror(errno));
       free(paths[0]);
+      paths[0] = NULL;
       return -1;
     }
 
@@ -494,6 +511,7 @@ int setup_stormdist_dir(const char* local_dir) {
     }
     ret = fts_close(tree);
     free(paths[0]);
+    paths[0] = NULL;
   }
   return exit_code;
 }
@@ -575,7 +593,7 @@ static int delete_path(const char *full_path,
     fprintf(LOGFILE, "Path is null\n");
     exit_code = UNABLE_TO_BUILD_PATH; // may be malloc failed
   } else {
-    char *(paths[]) = {strdup(full_path), 0};
+    char *(paths[]) = {strndup(full_path,PATH_MAX), 0};
     if (paths[0] == NULL) {
       fprintf(LOGFILE, "Malloc failed in delete_path\n");
       return -1;
@@ -584,6 +602,7 @@ static int delete_path(const char *full_path,
     if (access(full_path, F_OK) != 0) {
       if (errno == ENOENT) {
         free(paths[0]);
+        paths[0] = NULL;
         return 0;
       }
     }
@@ -596,6 +615,7 @@ static int delete_path(const char *full_path,
               "Cannot open file traversal structure for the path %s:%s.\n", 
               full_path, strerror(errno));
       free(paths[0]);
+      paths[0] = NULL;
       return -1;
     }
     while (((entry = fts_read(tree)) != NULL) && exit_code == 0) {
@@ -673,6 +693,7 @@ static int delete_path(const char *full_path,
       exit_code = rmdir_as_nm(full_path);
     }
     free(paths[0]);
+    paths[0] = NULL;
   }
   return exit_code;
 }
@@ -746,6 +767,7 @@ int delete_as_user(const char *user,
     }
     int this_ret = delete_path(full_path, strlen(subdir) == 0);
     free(full_path);
+    full_path = NULL;
     // delete as much as we can, but remember the error
     if (this_ret != 0) {
       ret = this_ret;
