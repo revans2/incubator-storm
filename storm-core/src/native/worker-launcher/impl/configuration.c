@@ -51,11 +51,11 @@ void free_configurations() {
   for (i = 0; i < config.size; i++) {
     if (config.confdetails[i]->key != NULL) {
       free((void *)config.confdetails[i]->key);
-      (void *)config.confdetails[i]->key = NULL;
+      config.confdetails[i]->key = NULL;
     }
     if (config.confdetails[i]->value != NULL) {
       free((void *)config.confdetails[i]->value);
-      (void *)config.confdetails[i]->value = NULL;
+      config.confdetails[i]->value = NULL;
     }
     free(config.confdetails[i]);
     config.confdetails[i] = NULL;
@@ -135,6 +135,10 @@ void read_config(const char* file_name) {
   //allocate space for ten configuration items.
   config.confdetails = (struct confentry **) malloc(sizeof(struct confentry *)
       * MAX_SIZE);
+  if (config.confdetails == NULL) {
+      fprintf(ERRORFILE, "malloc failed while reading configuration file.\n");
+      exit(OUT_OF_MEMORY);
+  }
   config.size = 0;
   conf_file = fopen(file_name, "r");
   if (conf_file == NULL) {
@@ -193,9 +197,16 @@ void read_config(const char* file_name) {
     #endif
 
     memset(config.confdetails[config.size], 0, sizeof(struct confentry));
+    const size_t key_tok_len = strlen(equaltok);
     config.confdetails[config.size]->key = (char *) malloc(
-            sizeof(char) * (strlen(equaltok)+1));
-    strcpy((char *)config.confdetails[config.size]->key, equaltok);
+            sizeof(char) * (key_tok_len+1));
+    if (config.confdetails[config.size]->key == NULL) {
+      fprintf(LOGFILE,
+          "Failed allocating memory for single configuration item\n");
+      goto cleanup;
+    }
+    memset((void*)config.confdetails[config.size]->key, '\0', key_tok_len+1);
+    strncpy((char *)config.confdetails[config.size]->key, equaltok, key_tok_len);
     equaltok = strtok_r(NULL, "=", &temp_equaltok);
     if (equaltok == NULL) {
       fprintf(LOGFILE, "configuration tokenization failed \n");
@@ -206,7 +217,7 @@ void read_config(const char* file_name) {
       free(line);
       line = NULL;
       free((void *)config.confdetails[config.size]->key);
-      (void *)config.confdetails[config.size]->key = NULL;
+      config.confdetails[config.size]->key = NULL;
       free(config.confdetails[config.size]);
       config.confdetails[config.size] = NULL;
       continue;
@@ -216,9 +227,16 @@ void read_config(const char* file_name) {
       fprintf(LOGFILE, "read_config : Adding conf value : %s \n", equaltok);
     #endif
 
+    const size_t val_tok_len = strlen(equaltok);
     config.confdetails[config.size]->value = (char *) malloc(
-            sizeof(char) * (strlen(equaltok)+1));
-    strcpy((char *)config.confdetails[config.size]->value, equaltok);
+            sizeof(char) * (val_tok_len+1));
+    if (config.confdetails[config.size]->value == NULL) {
+      fprintf(LOGFILE,
+          "Failed allocating memory for single configuration item\n");
+      goto cleanup;
+    }
+    memset((void *)config.confdetails[config.size]->value, '\0', val_tok_len+1);
+    strncpy((char *)config.confdetails[config.size]->value, equaltok, val_tok_len);
     if((config.size + 1) % MAX_SIZE  == 0) {
       config.confdetails = (struct confentry **) realloc(config.confdetails,
           sizeof(struct confentry **) * (MAX_SIZE + config.size));
