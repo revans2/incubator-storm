@@ -50,14 +50,18 @@ void free_configurations() {
   for (i = 0; i < config.size; i++) {
     if (config.confdetails[i]->key != NULL) {
       free((void *)config.confdetails[i]->key);
+      (void *)config.confdetails[i]->key = NULL;
     }
     if (config.confdetails[i]->value != NULL) {
       free((void *)config.confdetails[i]->value);
+      (void *)config.confdetails[i]->value = NULL;
     }
     free(config.confdetails[i]);
+    config.confdetails[i] = NULL;
   }
   if (config.size > 0) {
     free(config.confdetails);
+    config.confdetails = NULL;
   }
   config.size = 0;
 }
@@ -99,11 +103,13 @@ int check_configuration_permissions(const char* file_name) {
   do {
     if (!is_only_root_writable(dir)) {
       free(buffer);
+      buffer = NULL;
       return -1;
     }
     dir = dirname(dir);
   } while (strcmp(dir, "/") != 0);
   free(buffer);
+  buffer = NULL;
   return 0;
 }
 
@@ -147,6 +153,7 @@ void read_config(const char* file_name) {
     //if size_read returns negative check for eof condition
     if (size_read == -1) {
       free(line);
+      line = NULL;
       if(!feof(conf_file)){
         exit(INVALID_CONFIG_FILE);
       } else {
@@ -161,6 +168,7 @@ void read_config(const char* file_name) {
     //comment line
     if(line[0] == '#') {
       free(line);
+      line = NULL;
       continue;
     }
     //tokenize first to get key and list of values.
@@ -168,6 +176,7 @@ void read_config(const char* file_name) {
     equaltok = strtok_r(line, "=", &temp_equaltok);
     if(equaltok == NULL) {
       free(line);
+      line = NULL;
       continue;
     }
     config.confdetails[config.size] = (struct confentry *) malloc(
@@ -194,8 +203,11 @@ void read_config(const char* file_name) {
     //means value is commented so don't store the key
     if(equaltok[0] == '#') {
       free(line);
+      line = NULL;
       free((void *)config.confdetails[config.size]->key);
+      (void *)config.confdetails[config.size]->key = NULL;
       free(config.confdetails[config.size]);
+      config.confdetails[config.size] = NULL;
       continue;
     }
 
@@ -218,6 +230,7 @@ void read_config(const char* file_name) {
     if(config.confdetails[config.size] )
     config.size++;
     free(line);
+    line = NULL;
   }
  
   //close the file
@@ -234,6 +247,7 @@ void read_config(const char* file_name) {
   cleanup:
   if (line != NULL) {
     free(line);
+    line = NULL;
   }
   fclose(conf_file);
   free_configurations();
@@ -298,8 +312,10 @@ char ** extract_values(char *value) {
 void free_values(char** values) {
   if (*values != NULL) {
     free(*values);
+    *values = NULL;
   }
   if (values != NULL) {
     free(values);
+    values = NULL;
   }
 }
