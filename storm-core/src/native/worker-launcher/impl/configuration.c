@@ -23,6 +23,7 @@
 #include "worker-launcher.h"
 
 #include <errno.h>
+#include <limits.h>
 #include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -98,7 +99,7 @@ static int is_only_root_writable(const char *file) {
  */
 int check_configuration_permissions(const char* file_name) {
   // copy the input so that we can modify it with dirname
-  char* dir = strdup(file_name);
+  char* dir = strndup(file_name, PATH_MAX);
   char* buffer = dir;
   do {
     if (!is_only_root_writable(dir)) {
