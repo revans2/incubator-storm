@@ -56,10 +56,13 @@ symlink - - - lib64/storm/$(BASE_VERSION)/lib/bouncer_auth_java.jar     /home/y/
 file 6550 root root lib64/storm/$(BASE_VERSION)/bin/worker-launcher ../storm-core-mvn/target/native/target/usr/local/bin/worker-launcher
 
 file 444 - - lib64/jars/storm.jar ../storm-core-mvn/target/storm-core-$(BASE_VERSION).jar
+file 444 - - lib64/jars/storm-sources.jar ../storm-core-mvn/target/storm-core-$(BASE_VERSION)-sources.jar
 file 444 - - lib64/jars/storm.pom ../storm-core-mvn/pom.xml
 file 444 - - lib64/jars/storm-core.jar ../storm-core-mvn/target/storm-core-$(BASE_VERSION).jar
+file 444 - - lib64/jars/storm-core-sources.jar ../storm-core-mvn/target/storm-core-$(BASE_VERSION)-sources.jar
 file 444 - - lib64/jars/storm-core.pom ../storm-core-mvn/pom.xml
 file 444 - - lib64/jars/storm-netty.jar ../storm-netty-mvn/target/storm-netty-$(BASE_VERSION).jar
+file 444 - - lib64/jars/storm-netty-sources.jar ../storm-netty-mvn/target/storm-netty-$(BASE_VERSION)-sources.jar
 file 444 - - lib64/jars/storm-netty.pom ../storm-netty-mvn/pom.xml
 file 444 - - lib64/storm/$(BASE_VERSION)/RELEASE ./RELEASE
 file 444 - - lib64/storm/$(BASE_VERSION)/CHANGELOG.md ../CHANGELOG.md
