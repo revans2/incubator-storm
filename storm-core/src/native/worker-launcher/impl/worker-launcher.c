@@ -448,10 +448,12 @@ int setup_stormdist_dir(const char* local_dir) {
     fprintf(ERRORFILE, "Path is null\n");
     exit_code = UNABLE_TO_BUILD_PATH; // may be malloc failed
   } else {
-    char *(paths[]) = {strdup(local_dir), 0};
+    char *(paths[]) = {strndup(local_dir,PATH_MAX), 0};
     if (paths[0] == NULL) {
       fprintf(ERRORFILE, "Malloc failed in setup_stormdist_dir\n");
       return -1;
+    } else {
+      paths[0][PATH_MAX] = '\0';
     }
     // check to make sure the directory exists
     if (access(local_dir, F_OK) != 0) {
@@ -593,10 +595,12 @@ static int delete_path(const char *full_path,
     fprintf(LOGFILE, "Path is null\n");
     exit_code = UNABLE_TO_BUILD_PATH; // may be malloc failed
   } else {
-    char *(paths[]) = {strdup(full_path), 0};
+    char *(paths[]) = {strndup(full_path,PATH_MAX), 0};
     if (paths[0] == NULL) {
       fprintf(LOGFILE, "Malloc failed in delete_path\n");
       return -1;
+    } else {
+      paths[0][PATH_MAX] = '\0';
     }
     // check to make sure the directory exists
     if (access(full_path, F_OK) != 0) {
