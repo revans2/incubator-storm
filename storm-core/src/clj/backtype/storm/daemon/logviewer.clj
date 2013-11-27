@@ -110,12 +110,12 @@
       (let [path (.getCanonicalPath file)]
         (log-message "Cleaning up: Removing " path)
         (try
-          (if-not (blank? owner)
+          (if (or (blank? owner) (re-matches #".*\.yaml$" path))
+            (rmr path)
             ;; worker-launcher does not actually launch a worker process.  It
             ;; merely executes one of a prescribed set of commands.  In this case, we ask it
             ;; to delete a file as the owner of that file.
-            (supervisor/worker-launcher *STORM-CONF* owner (str "rmr " path))
-            (rmr path))
+            (supervisor/worker-launcher *STORM-CONF* owner (str "rmr " path)))
           (catch Exception ex
             (log-error ex)))))))
 
