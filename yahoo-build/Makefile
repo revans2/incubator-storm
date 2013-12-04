@@ -8,7 +8,7 @@ EXEC_CONF_DIR?=/home/y/conf/storm/
 all: build
 
 test:
-	cd .. && $(MVN) -f m2-pom.xml -Pnative -Dworker-launcher.conf.dir=${EXEC_CONF_DIR} package ${MVN_MAKE_OPTS}
+	cd .. && $(MVN) -f m2-pom.xml -Pnative -Pcoverage -Dworker-launcher.conf.dir=${EXEC_CONF_DIR} package ${MVN_MAKE_OPTS}
 
 build:
 	cd .. && $(MVN) -f m2-pom.xml -Pnative -Dworker-launcher.conf.dir=${EXEC_CONF_DIR} package -DskipTests ${MVN_MAKE_OPTS}
