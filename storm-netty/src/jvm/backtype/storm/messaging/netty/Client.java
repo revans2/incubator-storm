@@ -3,7 +3,6 @@ package backtype.storm.messaging.netty;
 import java.net.InetSocketAddress;
 import java.util.Map;
 import java.util.Random;
-import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -12,7 +11,6 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.jboss.netty.bootstrap.ClientBootstrap;
 import org.jboss.netty.channel.Channel;
 import org.jboss.netty.channel.ChannelFactory;
-import org.jboss.netty.channel.socket.nio.NioClientSocketChannelFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,8 +35,9 @@ class Client implements IConnection {
     private final AtomicBoolean being_closed;
 
     @SuppressWarnings("rawtypes")
-    Client(Map storm_conf, String host, int port) {
-        message_queue = new LinkedBlockingQueue<Object>(); 
+    Client(Map storm_conf, ChannelFactory factory, String host, int port) {
+        this.factory = factory;
+        message_queue = new LinkedBlockingQueue<Object>();
         retries = new AtomicInteger(0);
         channelRef = new AtomicReference<Channel>(null);
         being_closed = new AtomicBoolean(false);
@@ -48,13 +47,7 @@ class Client implements IConnection {
         max_retries = Utils.getInt(storm_conf.get(Config.STORM_MESSAGING_NETTY_MAX_RETRIES));
         base_sleep_ms = Utils.getInt(storm_conf.get(Config.STORM_MESSAGING_NETTY_MIN_SLEEP_MS));
         max_sleep_ms = Utils.getInt(storm_conf.get(Config.STORM_MESSAGING_NETTY_MAX_SLEEP_MS));
-        int maxWorkers = Utils.getInt(storm_conf.get(Config.STORM_MESSAGING_NETTY_CLIENT_WORKER_THREADS));
 
-        if (maxWorkers > 0) {
-            factory = new NioClientSocketChannelFactory(Executors.newCachedThreadPool(), Executors.newCachedThreadPool(), maxWorkers);
-        } else {
-            factory = new NioClientSocketChannelFactory(Executors.newCachedThreadPool(), Executors.newCachedThreadPool());
-        }
         bootstrap = new ClientBootstrap(factory);
         bootstrap.setOption("tcpNoDelay", true);
         bootstrap.setOption("sendBufferSize", buffer_size);
@@ -177,13 +170,6 @@ class Client implements IConnection {
     void  close_n_release() {
         if (channelRef.get() != null) 
             channelRef.get().close().awaitUninterruptibly();
-
-        //we need to release resources 
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                factory.releaseExternalResources();
-            }}).start();
     }
 
     public TaskMessage recv(int flags) {
