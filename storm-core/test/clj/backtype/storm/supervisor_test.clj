@@ -293,7 +293,7 @@
 (defn found? [sub-str input-str] (
                                 contrib-str/substring? sub-str (str input-str)
                                 ))
-(defn notfound? [sub-str input-str]
+(defn not-found? [sub-str input-str]
     (complement (found? sub-str input-str)))
 
 (deftest test-replace-childopts-tags-by-ids-happy-path
@@ -304,13 +304,13 @@
            childopts "-Xloggc:/home/y/lib/storm/current/logs/gc.worker-%ID%-%STORM-ID%-%WORKER-ID%-%WORKER-PORT%.log"
            ]
       (def childopts-with-ids (supervisor/replace-childopts-tags-by-ids childopts worker-id storm-id port))
-      (is (notfound? "%WORKER-ID%" childopts-with-ids))
+      (is (not-found? "%WORKER-ID%" childopts-with-ids))
       (is (found? "w-01" childopts-with-ids))
-      (is (notfound? "%STORM-ID%" childopts-with-ids))
+      (is (not-found? "%STORM-ID%" childopts-with-ids))
       (is (found? "s-01" childopts-with-ids))
-      (is (notfound? "%WORKER-PORT%" childopts-with-ids))
+      (is (not-found? "%WORKER-PORT%" childopts-with-ids))
       (is (found? "-9999." childopts-with-ids))
-      (is (notfound? "%ID%" childopts-with-ids))
+      (is (not-found? "%ID%" childopts-with-ids))
       (is (found? "worker-9999" childopts-with-ids) (str childopts-with-ids))
     )))
 
@@ -321,14 +321,14 @@
            port 9999
            childopts "-Xloggc:/home/y/lib/storm/current/logs/gc.worker-%STORM-ID%.log"]
            (def childopts-with-ids (supervisor/replace-childopts-tags-by-ids childopts worker-id storm-id port))
-           (is (notfound? "%WORKER-ID%" childopts-with-ids))
-           (is (notfound? "w-01" childopts-with-ids))
-           (is (notfound? "%STORM-ID%" childopts-with-ids))
+           (is (not-found? "%WORKER-ID%" childopts-with-ids))
+           (is (not-found? "w-01" childopts-with-ids))
+           (is (not-found? "%STORM-ID%" childopts-with-ids))
            (is (found? "s-01" childopts-with-ids))
-           (is (notfound? "%WORKER-PORT%" childopts-with-ids))
-           (is (notfound? "-9999." childopts-with-ids))
-           (is (notfound? "%ID%" childopts-with-ids))
-           (is (notfound? "worker-9999" childopts-with-ids) (str childopts-with-ids))     )))
+           (is (not-found? "%WORKER-PORT%" childopts-with-ids))
+           (is (not-found? "-9999." childopts-with-ids))
+           (is (not-found? "%ID%" childopts-with-ids))
+           (is (not-found? "worker-9999" childopts-with-ids) (str childopts-with-ids))     )))
 
 (deftest test-replace-childopts-tags-by-ids-no-keys
   (testing "worker-launcher has no ids to replace in childopts"
@@ -337,14 +337,14 @@
            port 9999
            childopts "-Xloggc:/home/y/lib/storm/current/logs/gc.worker.log"]
            (def childopts-with-ids (supervisor/replace-childopts-tags-by-ids childopts worker-id storm-id port))
-           (is (notfound? "%WORKER-ID%" childopts-with-ids))
-           (is (notfound? "w-01" childopts-with-ids))
-           (is (notfound? "%STORM-ID%" childopts-with-ids))
-           (is (notfound? "s-01" childopts-with-ids))
-           (is (notfound? "%WORKER-PORT%" childopts-with-ids))
-           (is (notfound? "-9999." childopts-with-ids))
-           (is (notfound? "%ID%" childopts-with-ids))
-           (is (notfound? "worker-9999" childopts-with-ids) (str childopts-with-ids))    )))
+           (is (not-found? "%WORKER-ID%" childopts-with-ids))
+           (is (not-found? "w-01" childopts-with-ids))
+           (is (not-found? "%STORM-ID%" childopts-with-ids))
+           (is (not-found? "s-01" childopts-with-ids))
+           (is (not-found? "%WORKER-PORT%" childopts-with-ids))
+           (is (not-found? "-9999." childopts-with-ids))
+           (is (not-found? "%ID%" childopts-with-ids))
+           (is (not-found? "worker-9999" childopts-with-ids) (str childopts-with-ids))    )))
 
 (deftest test-replace-childopts-tags-by-ids-nil-childopts
   (testing "worker-launcher has nil childopts"
@@ -353,14 +353,14 @@
            port 9999
            childopts nil]
            (def childopts-with-ids (supervisor/replace-childopts-tags-by-ids childopts worker-id storm-id port))
-           (is (notfound? "%WORKER-ID%" childopts-with-ids))
-           (is (notfound? "w-01" childopts-with-ids))
-           (is (notfound? "%STORM-ID%" childopts-with-ids))
-           (is (notfound? "s-01" childopts-with-ids))
-           (is (notfound? "%WORKER-PORT%" childopts-with-ids))
-           (is (notfound? "-9999." childopts-with-ids))
-           (is (notfound? "%ID%" childopts-with-ids))
-           (is (notfound? "worker-9999" childopts-with-ids) (str childopts-with-ids))
+           (is (not-found? "%WORKER-ID%" childopts-with-ids))
+           (is (not-found? "w-01" childopts-with-ids))
+           (is (not-found? "%STORM-ID%" childopts-with-ids))
+           (is (not-found? "s-01" childopts-with-ids))
+           (is (not-found? "%WORKER-PORT%" childopts-with-ids))
+           (is (not-found? "-9999." childopts-with-ids))
+           (is (not-found? "%ID%" childopts-with-ids))
+           (is (not-found? "worker-9999" childopts-with-ids) (str childopts-with-ids))
     )))
 
 (deftest test-replace-childopts-tags-by-ids-nil-ids
@@ -370,13 +370,13 @@
            port 9999
            childopts "-Xloggc:/home/y/lib/storm/current/logs/gc.worker-%ID%-%STORM-ID%-%WORKER-ID%-%WORKER-PORT%.log"]
       (def childopts-with-ids (supervisor/replace-childopts-tags-by-ids childopts worker-id storm-id port))
-      (is (notfound? "%WORKER-ID%" childopts-with-ids))
-      (is (notfound? "w-01" childopts-with-ids))
-      (is (notfound? "%STORM-ID%" childopts-with-ids))
+      (is (not-found? "%WORKER-ID%" childopts-with-ids))
+      (is (not-found? "w-01" childopts-with-ids))
+      (is (not-found? "%STORM-ID%" childopts-with-ids))
       (is (found? "s-01" childopts-with-ids))
-      (is (notfound? "%WORKER-PORT%" childopts-with-ids))
+      (is (not-found? "%WORKER-PORT%" childopts-with-ids))
       (is (found? "-9999." childopts-with-ids))
-      (is (notfound? "%ID%" childopts-with-ids))
+      (is (not-found? "%ID%" childopts-with-ids))
       (is (found? "worker-9999" childopts-with-ids) (str childopts-with-ids))
       )))
 
