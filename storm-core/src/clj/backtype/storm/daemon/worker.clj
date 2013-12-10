@@ -364,10 +364,10 @@
         heartbeat-fn #(do-heartbeat worker)
         ;; do this here so that the worker process dies if this fails
         ;; it's important that worker heartbeat to supervisor ASAP when launching so that the supervisor knows it's running (and can move on)
-        _ (heartbeat-fn)
+        ;;Commented out because overloaded ZK can slow down subsiquent calls, and zupervisor kills worker _ (heartbeat-fn)
         
         ;; heartbeat immediately to nimbus so that it knows that the worker has been started
-        _ (do-executor-heartbeats worker)
+        ;;Commented out to avoid issues when ZK is overloaded _ (do-executor-heartbeats worker)
         
         
         executors (atom nil)
