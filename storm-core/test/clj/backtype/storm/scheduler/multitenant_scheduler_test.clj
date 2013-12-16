@@ -146,6 +146,43 @@
     (is (= 2 (.size (.getSlots (.getAssignmentById cluster "topology1")))))
 ))
 
+(deftest test-default-pool-big-request
+  (let [supers (gen-supervisors 5)
+       cluster (Cluster. (nimbus/standalone-nimbus) supers {})
+       node-map (Node/getAllNodesFrom cluster)
+       free-pool (FreePool. )
+       default-pool (DefaultPool. )
+       executor1 (ed 1)
+       executor2 (ed 2)
+       executor3 (ed 3)
+       topology1 (TopologyDetails. "topology1" 
+                   {TOPOLOGY-NAME "topology-name-1"}
+                   (StormTopology.)
+                   5
+                   {executor1 "spout1"
+                    executor2 "bolt1"
+                    executor3 "bolt2"})]
+    ;; assign one node so it is not in the pool
+    (.assign (.get node-map "super0") "topology1" (list executor1) cluster)
+    (.init free-pool cluster node-map)
+    (.init default-pool cluster node-map)
+    (is (= true (.canAdd default-pool topology1)))
+    (.addTopology default-pool topology1)
+    ;;Only 1 node is in the default-pool because only one nodes was scheduled already
+    (is (= 4 (.slotsAvailable default-pool)))
+    (is (= 1 (.nodesAvailable default-pool)))
+    (is (= (* 4 4) (.slotsAvailable free-pool)))
+    (is (= 4 (.nodesAvailable free-pool)))
+    (is (= 1 (.size (.getSlots (.getAssignmentById cluster "topology1")))))
+    (.scheduleAsNeeded default-pool (into-array NodePool [free-pool]))
+    (is (= 4 (.slotsAvailable default-pool)))
+    (is (= 1 (.nodesAvailable default-pool)))
+    (is (= (* 4 4) (.slotsAvailable free-pool)))
+    (is (= 4 (.nodesAvailable free-pool)))
+    (is (= 3 (.size (.getSlots (.getAssignmentById cluster "topology1")))))
+))
+
+
 (deftest test-default-pool-full
   (let [supers (gen-supervisors 2) ;;make 2 supervisors but only schedule with one of them
        single-super {(ffirst supers) (second (first supers))}
@@ -311,6 +348,47 @@
       (is (= 4 (.size (into #{} (for [slot assigned-slots] (.getNodeId slot))))))
     )))
 
+(deftest test-isolated-pool-big-ask
+  (let [supers (gen-supervisors 5)
+       cluster (Cluster. (nimbus/standalone-nimbus) supers {})
+       node-map (Node/getAllNodesFrom cluster)
+       free-pool (FreePool. )
+       isolated-pool (IsolatedPool. 5)
+       executor1 (ed 1)
+       executor2 (ed 2)
+       executor3 (ed 3)
+       executor4 (ed 4)
+       topology1 (TopologyDetails. "topology1" 
+                   {TOPOLOGY-NAME "topology-name-1"
+                    TOPOLOGY-ISOLATED-MACHINES 4}
+                   (StormTopology.)
+                   10
+                   {executor1 "spout1"
+                    executor2 "bolt1"
+                    executor3 "bolt2"
+                    executor4 "bolt4"})]
+    ;; assign one node so it is not in the pool
+    (.assign (.get node-map "super0") "topology1" (list executor1) cluster)
+    (.init free-pool cluster node-map)
+    (.init isolated-pool cluster node-map)
+    (is (= true (.canAdd isolated-pool topology1)))
+    (.addTopology isolated-pool topology1)
+    ;;Isolated topologies cannot have their resources stolen
+    (is (= 0 (.slotsAvailable isolated-pool)))
+    (is (= 0 (.nodesAvailable isolated-pool)))
+    (is (= (* 4 4) (.slotsAvailable free-pool)))
+    (is (= 4 (.nodesAvailable free-pool)))
+    (is (= 1 (.size (.getSlots (.getAssignmentById cluster "topology1")))))
+    (.scheduleAsNeeded isolated-pool (into-array NodePool [free-pool]))
+    (is (= 0 (.slotsAvailable isolated-pool)))
+    (is (= 0 (.nodesAvailable isolated-pool)))
+    (is (= (* 1 4) (.slotsAvailable free-pool)))
+    (is (= 1 (.nodesAvailable free-pool)))
+    (let [assigned-slots (.getSlots (.getAssignmentById cluster "topology1"))]
+      ;; 4 slots on 4 machines
+      (is (= 4 (.size assigned-slots)))
+      (is (= 4 (.size (into #{} (for [slot assigned-slots] (.getNodeId slot))))))
+    )))
 
 (deftest test-isolated-pool-complex
   (let [supers (gen-supervisors 5)
