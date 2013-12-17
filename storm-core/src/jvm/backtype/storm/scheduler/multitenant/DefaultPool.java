@@ -136,7 +136,7 @@ public class DefaultPool extends NodePool {
           if (executorsNotRunning > 0) {
             _cluster.setStatus(topId,"Not fully scheduled (No free slots in default pool) "+executorsNotRunning+" executors not scheduled");
           } else if (executorsNotRunning == 0) {
-            _cluster.setStatus(topId,"Fully Scheduled (requested more slots than needed "+origRequest+" needed "+totalTasks+")");
+            _cluster.setStatus(topId,"Fully Scheduled (requested "+origRequest+" slots, but could only use "+totalTasks+")");
           } else {
             _cluster.setStatus(topId,"Running with fewer slots than requested ("+slotsUsed+"/"+slotsRequested+")");
           }
@@ -182,7 +182,7 @@ public class DefaultPool extends NodePool {
         if (afterSchedSlotsUsed < slotsRequested) {
           _cluster.setStatus(topId,"Running with fewer slots than requested ("+afterSchedSlotsUsed+"/"+slotsRequested+")");
         } else if (origRequest > totalTasks) {
-          _cluster.setStatus(topId,"Fully Scheduled (requested more slots than needed "+origRequest+" needed "+totalTasks+")");
+          _cluster.setStatus(topId,"Fully Scheduled (requested "+origRequest+" slots, but could only use "+totalTasks+")");
         } else {
           _cluster.setStatus(topId,"Fully Scheduled");
         }
