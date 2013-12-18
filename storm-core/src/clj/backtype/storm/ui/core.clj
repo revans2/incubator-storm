@@ -222,7 +222,7 @@
                          :title (:sup-uptime tips)}}
     {:text "Slots" :attr {:class "tip above"
                           :title (:num-slots tips)}}
-    {:text "Used slots" :attr {:class "tip above"
+    {:text "Used slots" :attr {:class "tip left"
                                :title (:num-slots tips)}}]
    (for [^SupervisorSummary s summs]
      [(.get_supervisor_id s)
@@ -484,7 +484,7 @@
                                             :title (:complete-lat tips)}}
       {:text "Acked" :attr {:class "tip above"
                             :title (:spout-acked tips)}}
-      {:text "Failed" :attr {:class "tip above"
+      {:text "Failed" :attr {:class "tip left"
                             :title (:spout-failed tips)}}]
      (for [k (concat times [":all-time"])
            :let [disp ((display-map k) k)]]
