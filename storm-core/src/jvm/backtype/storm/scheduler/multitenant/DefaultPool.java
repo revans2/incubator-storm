@@ -118,7 +118,9 @@ public class DefaultPool extends NodePool {
       String topId = td.getId();
       if (_cluster.needsScheduling(td)) {
         LOG.debug("Scheduling topology {}",topId);
-        int slotsRequested = td.getNumWorkers();
+        int totalTasks = td.getExecutors().size();
+        int origRequest = td.getNumWorkers();
+        int slotsRequested = Math.min(totalTasks, origRequest);
         int slotsUsed = Node.countSlotsUsed(topId, _nodes);
         int slotsFree = Node.countFreeSlotsAlive(_nodes);
         //Check to see if we have enough slots before trying to get them
@@ -127,12 +129,14 @@ public class DefaultPool extends NodePool {
           slotsAvailable = NodePool.slotsAvailable(lesserPools);
         }
         int slotsToUse = Math.min(slotsRequested - slotsUsed, slotsFree + slotsAvailable);
-        LOG.debug("Slots... requested {} used {} free {} available {} to be used {}", 
-            new Object[] {slotsRequested, slotsUsed, slotsFree, slotsAvailable, slotsToUse});
         int executorsNotRunning = _cluster.getUnassignedExecutors(td).size();
+        LOG.debug("Slots... requested {} used {} free {} available {} to be used {}, executors not running {}", 
+            new Object[] {slotsRequested, slotsUsed, slotsFree, slotsAvailable, slotsToUse, executorsNotRunning}); 
         if (slotsToUse <= 0) {
           if (executorsNotRunning > 0) {
             _cluster.setStatus(topId,"Not fully scheduled (No free slots in default pool) "+executorsNotRunning+" executors not scheduled");
+          } else if (executorsNotRunning == 0) {
+            _cluster.setStatus(topId,"Fully Scheduled (requested "+origRequest+" slots, but could only use "+totalTasks+")");
           } else {
             _cluster.setStatus(topId,"Running with fewer slots than requested ("+slotsUsed+"/"+slotsRequested+")");
           }
@@ -140,7 +144,9 @@ public class DefaultPool extends NodePool {
         }
 
         int slotsNeeded = slotsToUse - slotsFree;
-        _nodes.addAll(NodePool.takeNodesBySlot(slotsNeeded, lesserPools));
+        if (slotsNeeded > 0) {
+          _nodes.addAll(NodePool.takeNodesBySlot(slotsNeeded, lesserPools));
+        }
 
         if (executorsNotRunning <= 0) {
           //There are free slots that we can take advantage of now.
@@ -175,6 +181,8 @@ public class DefaultPool extends NodePool {
         int afterSchedSlotsUsed = Node.countSlotsUsed(topId, _nodes);
         if (afterSchedSlotsUsed < slotsRequested) {
           _cluster.setStatus(topId,"Running with fewer slots than requested ("+afterSchedSlotsUsed+"/"+slotsRequested+")");
+        } else if (origRequest > totalTasks) {
+          _cluster.setStatus(topId,"Fully Scheduled (requested "+origRequest+" slots, but could only use "+totalTasks+")");
         } else {
           _cluster.setStatus(topId,"Fully Scheduled");
         }
