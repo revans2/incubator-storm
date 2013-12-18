@@ -38,15 +38,17 @@
 (def tips
   {:sys-stats "Use this to toggle inclusion of storm system components."
    :user "This should be you."
-   :version "The version of storm installed on Nimbus."
+   :version (str "The version of storm installed on the UI node. (Hopefully, "
+                 "this is the same on all storm nodes!)")
    :nimbus-uptime (str "The duration the current Nimbus instance has been "
                        "running. (Note that the storm cluster may have been "
                        "deployed and available for a much longer period than "
                        "the current Nimbus process has been running.)")
-   :num-supervisors "The number of available nodes in the cluster."
+   :num-supervisors "The number of nodes in the cluster currently."
    :num-slots "Slots are Workers (processes)."
    :num-execs "Executors are threads in a Worker process."
-   :num-tasks "The number of Tasks is almost always equal to the number of Executors."
+   :num-tasks (str "A Task is an instance of a Bolt or Spout. The number of "
+                   "Tasks is almost always equal to the number of Executors.")
    :name "The name given to the topology by when it was submitted."
    :name-link "Click the name to view the Topology's information."
    :topo-id "The unique ID given to a Topology each time it is launched."
@@ -61,7 +63,7 @@
                 "cluster.")
    :sup-host (str "The hostname reported by the remote host. (Note that this "
                   "hostname is not the result of a reverse lookup at the "
-                  "Nimbus node.")
+                  "Nimbus node.)")
    :sup-uptime (str "The length of time a Supervisor has been registered to the "
                     "cluster.")
    :window (str "The past period of time for which the statistics apply. "
@@ -73,21 +75,23 @@
                       "if no acking is done.")
    :spout-acked (str "The number of Tuple \"trees\" successfully processed. A "
                      "value of 0 is expected if no acking is done.")
-   :spout-failed (str "The number of Tuple \"trees\" that timed out when acking is "
-                      "done. The timeout is configurable by setting "
-                      "topology.message.timeout.secs.")
+   :spout-failed (str "The number of Tuple \"trees\" that were explicitly "
+                      "failed or timed out before acking was completed. A value "
+                      "of 0 is expected if no acking is done.")
    :comp-id "The ID assigned to a the Component by the Topology."
    :comp-id-link "Click on the name to view the Component's page."
    :capacity (str "If this is greater than 1, the corresponding Bolt is falling "
-                  "behind, and you should increase the Bolt's parallelism.")
-   :exec-lat "The average time a between receiving and emitting a Tuple."
+                  "behind, and you may want to increase the Bolt's parallelism. "
+                  "This is (number executed * average latency) / measurement "
+                  "time.")
+   :exec-lat "The average time between receiving and emitting a Tuple."
    :num-executed "The number of incoming Tuples processed."
    :proc-lat "The average time spent processing the Tuple in user code."
    :bolt-acked "The number of Tuples acknowledged by this Bolt."
-   :bolt-failed "The number of tuples Failed at this Bolt."
+   :bolt-failed "The number of tuples Failed by this Bolt."
    :stream (str "The name of the Tuple stream given in the Topolgy, or \""
                 Utils/DEFAULT_STREAM_ID "\" if none was given.")
-   :exec-id "The compound ID of [Executor-Task]"
+   :exec-id "The unique executor ID."
    :exec-uptime "The length of time an Executor (thread) has been alive."
    :port (str "The port number used by the Worker to which an Executor is "
               "assigned. Click on the port number to open the logviewer page "
