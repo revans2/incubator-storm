@@ -6,3 +6,25 @@
     float: right;
     padding: 0.5em;
 }
+
+body {
+  color: #808080;
+}
+
+table {
+  border-collapse: separate;
+}
+
+table th, table td {
+  line-height: 13.5px;
+  border-bottom: 1px solid #ddd;
+  border-top-style: none;
+}
+
+table th {
+  border-bottom-width: 2px;
+}
+
+.twipsy-inner {
+  font-size: 13px;
+}
