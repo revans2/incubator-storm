@@ -81,7 +81,7 @@ public class ServerCallbackHandler implements CallbackHandler {
             LOG.debug("Setting authorizedID: " + userNameBuilder);
             ac.setAuthorizedID(userNameBuilder.toString());
         } catch (IOException e) {
-            LOG.error("Failed to set name based on Kerberos authentication rules.");
+            LOG.error("Failed to set name based on Kerberos authentication rules.", e);
         }
     }
 
