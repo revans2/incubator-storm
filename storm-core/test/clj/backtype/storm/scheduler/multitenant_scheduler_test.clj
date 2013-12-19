@@ -144,6 +144,7 @@
     (is (= (* 4 4) (.slotsAvailable free-pool)))
     (is (= 4 (.nodesAvailable free-pool)))
     (is (= 2 (.size (.getSlots (.getAssignmentById cluster "topology1")))))
+    (is (= "Fully Scheduled" (.get (.getStatusMap cluster) "topology1")))
 ))
 
 (deftest test-default-pool-big-request
@@ -180,8 +181,49 @@
     (is (= (* 4 4) (.slotsAvailable free-pool)))
     (is (= 4 (.nodesAvailable free-pool)))
     (is (= 3 (.size (.getSlots (.getAssignmentById cluster "topology1")))))
+    (is (= "Fully Scheduled (requested 5 slots, but could only use 3)" (.get (.getStatusMap cluster) "topology1")))
 ))
 
+(deftest test-default-pool-big-request-2
+  (let [supers (gen-supervisors 1)
+       cluster (Cluster. (nimbus/standalone-nimbus) supers {})
+       node-map (Node/getAllNodesFrom cluster)
+       free-pool (FreePool. )
+       default-pool (DefaultPool. )
+       executor1 (ed 1)
+       executor2 (ed 2)
+       executor3 (ed 3)
+       executor4 (ed 4)
+       executor5 (ed 5)
+       topology1 (TopologyDetails. "topology1" 
+                   {TOPOLOGY-NAME "topology-name-1"}
+                   (StormTopology.)
+                   5
+                   {executor1 "spout1"
+                    executor2 "bolt1"
+                    executor3 "bolt1"
+                    executor4 "bolt1"
+                    executor5 "bolt2"})]
+    ;; assign one node so it is not in the pool
+    (.assign (.get node-map "super0") "topology1" (list executor1) cluster)
+    (.init free-pool cluster node-map)
+    (.init default-pool cluster node-map)
+    (is (= true (.canAdd default-pool topology1)))
+    (.addTopology default-pool topology1)
+    ;;Only 1 node is in the default-pool because only one nodes was scheduled already
+    (is (= 4 (.slotsAvailable default-pool)))
+    (is (= 1 (.nodesAvailable default-pool)))
+    (is (= 0 (.slotsAvailable free-pool)))
+    (is (= 0 (.nodesAvailable free-pool)))
+    (is (= 1 (.size (.getSlots (.getAssignmentById cluster "topology1")))))
+    (.scheduleAsNeeded default-pool (into-array NodePool [free-pool]))
+    (is (= 4 (.slotsAvailable default-pool)))
+    (is (= 1 (.nodesAvailable default-pool)))
+    (is (= 0 (.slotsAvailable free-pool)))
+    (is (= 0 (.nodesAvailable free-pool)))
+    (is (= 4 (.size (.getSlots (.getAssignmentById cluster "topology1")))))
+    (is (= "Running with fewer slots than requested (4/5)" (.get (.getStatusMap cluster) "topology1")))
+))
 
 (deftest test-default-pool-full
   (let [supers (gen-supervisors 2) ;;make 2 supervisors but only schedule with one of them
@@ -210,6 +252,7 @@
       (.scheduleAsNeeded default-pool (into-array NodePool [free-pool]))
       ;; The cluster should be full and have 4 slots used, but the topology would like 1 more
       (is (= 4 (.size (.getUsedSlots single-cluster))))
+      (is (= "Running with fewer slots than requested (4/5)" (.get (.getStatusMap single-cluster) "topology1")))
     )
 
     (let [cluster (Cluster. (nimbus/standalone-nimbus) supers (.getAssignments single-cluster))
@@ -222,6 +265,7 @@
       (.scheduleAsNeeded default-pool (into-array NodePool [free-pool]))
       ;; The cluster should now have 5 slots used
       (is (= 5 (.size (.getUsedSlots cluster))))
+      (is (= "Fully Scheduled" (.get (.getStatusMap cluster) "topology1")))
     )
 ))
 
@@ -304,6 +348,8 @@
       (is (= 0 (.nodesAvailable default-pool)))
       (is (= 0 (.slotsAvailable default-pool)))
     )
+    (is (= "Fully Scheduled" (.get (.getStatusMap cluster) "topology1")))
+    (is (= "Fully Scheduled" (.get (.getStatusMap cluster) "topology2")))
 ))
 
 (deftest test-isolated-pool-simple
@@ -346,7 +392,9 @@
       ;; 4 slots on 4 machines
       (is (= 4 (.size assigned-slots)))
       (is (= 4 (.size (into #{} (for [slot assigned-slots] (.getNodeId slot))))))
-    )))
+    )
+    (is (= "Scheduled Isolated on 4 Nodes" (.get (.getStatusMap cluster) "topology1")))
+))
 
 (deftest test-isolated-pool-big-ask
   (let [supers (gen-supervisors 5)
@@ -388,7 +436,9 @@
       ;; 4 slots on 4 machines
       (is (= 4 (.size assigned-slots)))
       (is (= 4 (.size (into #{} (for [slot assigned-slots] (.getNodeId slot))))))
-    )))
+    )
+    (is (= "Scheduled Isolated on 4 Nodes" (.get (.getStatusMap cluster) "topology1")))
+))
 
 (deftest test-isolated-pool-complex
   (let [supers (gen-supervisors 5)
@@ -490,6 +540,8 @@
       (is (= 0 (.nodesAvailable isolated-pool)))
       (is (= 0 (.slotsAvailable isolated-pool)))
     )
+    (is (= "Scheduled Isolated on 1 Nodes" (.get (.getStatusMap cluster) "topology1")))
+    (is (= "Scheduled Isolated on 2 Nodes" (.get (.getStatusMap cluster) "topology2")))
 ))
 
 (deftest test-isolated-pool-complex-2
@@ -555,6 +607,8 @@
       (is (= 4 (.size assigned-slots)))
       (is (= 2 (.size (into #{} (for [slot assigned-slots] (.getNodeId slot))))))
     )
+    (is (= "Max Nodes(2) for this user would be exceeded. 1 more nodes needed to run topology." (.get (.getStatusMap cluster) "topology1")))
+    (is (= "Scheduled Isolated on 2 Nodes" (.get (.getStatusMap cluster) "topology2")))
 ))
 
 (deftest test-multitenant-scheduler
@@ -605,5 +659,8 @@
       (is (= 1 (.size (into #{} (for [slot assigned-slots] (.getNodeId slot))))))
       (is (= 20 (.size executors)))
     )
+    (is (= "Fully Scheduled" (.get (.getStatusMap cluster) "topology1")))
+    (is (= "Scheduled Isolated on 2 Nodes" (.get (.getStatusMap cluster) "topology2")))
+    (is (= "Scheduled Isolated on 5 Nodes" (.get (.getStatusMap cluster) "topology3")))
 ))
 
