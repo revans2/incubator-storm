@@ -401,11 +401,19 @@
       ))
 
 
+(defn jlp [stormroot conf]
+  (let [resource-root (str stormroot "/" RESOURCES-SUBDIR)
+        os (clojure.string/replace (System/getProperty "os.name") #"\s+" "_")
+        arch (System/getProperty "os.arch")
+        arch-resource-root (str resource-root "/" os "-" arch)]
+    (str arch-resource-root ":" resource-root ":" (conf JAVA-LIBRARY-PATH))))
+
 (defmethod launch-worker
     :distributed [supervisor storm-id port worker-id]
     (let [conf (:conf supervisor)
           storm-home (System/getProperty "storm.home")
           stormroot (supervisor-stormdist-root conf storm-id)
+          jlp (jlp stormroot conf)
           stormjar (supervisor-stormjar-path stormroot)
           storm-conf (read-supervisor-storm-conf conf storm-id)
           classpath (add-to-classpath (current-classpath) [stormjar])
@@ -415,7 +423,7 @@
           logfilename (str "worker-" port ".log")
           login_config (conf "java.security.auth.login.config")
           command (str "java -server " childopts
-                       " -Djava.library.path=" (conf JAVA-LIBRARY-PATH)
+                       " -Djava.library.path=" jlp
                        " -Dlogfile.name=" logfilename
                        (if login_config (str " -Djava.security.auth.login.config=" login_config))
                        " -Dstorm.home=" storm-home
@@ -427,7 +435,7 @@
                        (java.net.URLEncoder/encode storm-id) " " (:assignment-id supervisor)
                        " " port " " worker-id)]
       (log-message "Launching worker with command: " command)
-      (launch-process command :environment {"LD_LIBRARY_PATH" (conf JAVA-LIBRARY-PATH)})
+      (launch-process command :environment {"LD_LIBRARY_PATH" jlp})
       ))
 
 ;; local implementation
