@@ -135,10 +135,12 @@ public class DefaultPool extends NodePool {
         if (slotsToUse <= 0) {
           if (executorsNotRunning > 0) {
             _cluster.setStatus(topId,"Not fully scheduled (No free slots in default pool) "+executorsNotRunning+" executors not scheduled");
-          } else if (executorsNotRunning == 0) {
-            _cluster.setStatus(topId,"Fully Scheduled (requested "+origRequest+" slots, but could only use "+totalTasks+")");
           } else {
-            _cluster.setStatus(topId,"Running with fewer slots than requested ("+slotsUsed+"/"+slotsRequested+")");
+            if (slotsUsed < slotsRequested) {
+              _cluster.setStatus(topId,"Running with fewer slots than requested ("+slotsUsed+"/"+origRequest+")");
+            } else { //slotsUsed < origRequest
+              _cluster.setStatus(topId,"Fully Scheduled (requested "+origRequest+" slots, but could only use "+slotsUsed+")");
+            }
           }
           continue;
         }
@@ -180,9 +182,9 @@ public class DefaultPool extends NodePool {
         }
         int afterSchedSlotsUsed = Node.countSlotsUsed(topId, _nodes);
         if (afterSchedSlotsUsed < slotsRequested) {
-          _cluster.setStatus(topId,"Running with fewer slots than requested ("+afterSchedSlotsUsed+"/"+slotsRequested+")");
-        } else if (origRequest > totalTasks) {
-          _cluster.setStatus(topId,"Fully Scheduled (requested "+origRequest+" slots, but could only use "+totalTasks+")");
+          _cluster.setStatus(topId,"Running with fewer slots than requested ("+afterSchedSlotsUsed+"/"+origRequest+")");
+        } else if (afterSchedSlotsUsed < origRequest) {
+          _cluster.setStatus(topId,"Fully Scheduled (requested "+origRequest+" slots, but could only use "+afterSchedSlotsUsed+")");
         } else {
           _cluster.setStatus(topId,"Fully Scheduled");
         }
