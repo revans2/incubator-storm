@@ -276,10 +276,17 @@
 (defn get-total-num-slots [nimbus ]
   (let [storm-cluster-state (:storm-cluster-state nimbus)
         supervisor-infos (all-supervisor-info storm-cluster-state nil)
-        supervisor-details (dofor [[id info] supervisor-infos]
-                                  (SupervisorDetails. id (:meta info)))
+        supervisor-summaries (dofor [[id info] supervisor-infos]
+                                    (let [ports (set (:meta info))
+                                          ]
+                                      (SupervisorSummary. (:hostname info)
+                                                          (:uptime-secs info)
+                                                          (count ports)
+                                                          (count (:used-ports info))
+                                                          id )
+                                      ))
         ]
-    (reduce (fn [slots, sd] (+ slots (count(.getAllPorts sd)))) 0 supervisor-details)
+    (reduce (fn [slots, sd] (+ slots (.get_num_workers sd))) 0 supervisor-summaries)
   )
 )
 
