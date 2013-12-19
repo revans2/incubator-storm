@@ -80,13 +80,17 @@
                       "of 0 is expected if no acking is done.")
    :comp-id "The ID assigned to a the Component by the Topology."
    :comp-id-link "Click on the name to view the Component's page."
-   :capacity (str "If this is greater than 1, the corresponding Bolt is falling "
-                  "behind, and you may want to increase the Bolt's parallelism. "
-                  "This is (number executed * average latency) / measurement "
-                  "time.")
-   :exec-lat "The average time between receiving and emitting a Tuple."
+   :capacity (str "If this is around 1.0, the corresponding Bolt is running as "
+                  "fast as it can, so you may want to increase the Bolt's "
+                  "parallelism. This is (number executed * average execute "
+                  "latency) / measurement time.")
+   :exec-lat (str "The average time a Tuple spends in the execute method. The "
+                  "execute method may complete without sending an Ack for the "
+                  "tuple.")
    :num-executed "The number of incoming Tuples processed."
-   :proc-lat "The average time spent processing the Tuple in user code."
+   :proc-lat (str "The average time it takes to Ack a Tuple after it is first "
+                  "received.  Bolts that join, aggregate or batch may not Ack a "
+                  "tuple until a number of other Tuples have been received.")
    :bolt-acked "The number of Tuples acknowledged by this Bolt."
    :bolt-failed "The number of tuples Failed by this Bolt."
    :stream (str "The name of the Tuple stream given in the Topolgy, or \""
