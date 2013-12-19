@@ -273,8 +273,9 @@
               supervisor-ids))
        )))
 
-(defn get-total-num-slots [storm-cluster-state]
-  (let [supervisor-infos (all-supervisor-info storm-cluster-state nil)
+(defn get-total-num-slots [nimbus ]
+  (let [storm-cluster-state (:storm-cluster-state nimbus)
+        supervisor-infos (all-supervisor-info storm-cluster-state nil)
         supervisor-details (dofor [[id info] supervisor-infos]
                                   (SupervisorDetails. id (:meta info)))
         ]
@@ -931,14 +932,14 @@
   )
 )
 
-(defn validate-topology-size [topo-conf nimbus-conf topology storm-cluster-state]
+(defn validate-topology-size [topo-conf nimbus-conf topology nimbus]
   (let [workers-count (get topo-conf TOPOLOGY-WORKERS)
         workers-allowed (get nimbus-conf NIMBUS-SLOTS-PER-TOPOLOGY)
         num-executors (->> (all-components topology) (map-val num-start-executors))
         executors-count (reduce + (vals num-executors))
         executors-allowed (get nimbus-conf NIMBUS-EXECUTORS-PER-TOPOLOGY)
         ;; using PARALLEL-FACTOR default of 2 per slot
-        executors-cluster-capacity (* 2 (get-total-num-slots storm-cluster-state))
+        executors-cluster-capacity (* 2 (get-total-num-slots nimbus))
         ;; Defaulting limit to cluster-capacity in absence of configured limit.
         executors-limit (if-not (nil? executors-allowed) executors-allowed executors-cluster-capacity)]
     (when (> executors-count executors-limit)
@@ -1023,7 +1024,7 @@
             (if (and (conf SUPERVISOR-RUN-WORKER-AS-USER) (or (nil? submitter-user) (.isEmpty (.trim submitter-user)))) 
               (throw (AuthorizationException. "Could not determine the user to run this topology as.")))
             (system-topology! total-storm-conf topology) ;; this validates the structure of the topology
-            (validate-topology-size topo-conf conf topology storm-cluster-state)
+            (validate-topology-size topo-conf conf topology nimbus)
             (when (and (Utils/isZkAuthenticationConfiguredStormServer conf)
                        (not (Utils/isZkAuthenticationConfiguredTopology storm-conf)))
                 (throw (IllegalArgumentException. "The cluster is configured for zookeeper authentication, but no payload was provided.")))
