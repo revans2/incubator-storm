@@ -1113,7 +1113,7 @@
       (is (thrown-cause? AuthorizationException (.beginFileDownload nimbus "/bogus-path/foo")))
       )))
 
-(deftest test-nimbus-iface-methods-validate-topo-config
+(deftest test-validate-topo-config-on-submit
   (with-local-cluster [cluster]
     (let [nimbus (:nimbus cluster)
           topology (thrift/mk-topology {} {})
@@ -1121,5 +1121,5 @@
       ; Fake good authorization as part of setup.
       (mocking [nimbus/check-authorization!]
         (is (thrown-cause? InvalidTopologyException
-          (submit-local-topology-with-opts nimbus "test" {} topology
-              (SubmitOptions. TopologyInitialStatus/INACTIVE))))))))
+          (submit-local-topology-with-opts nimbus "test" bad-config topology
+                                           (SubmitOptions.))))))))
