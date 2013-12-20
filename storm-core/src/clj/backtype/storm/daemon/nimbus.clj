@@ -280,8 +280,6 @@
   )
 )
 
-
-
 (defn- all-scheduling-slots
   [nimbus topologies missing-assignment-topologies]
   (let [storm-cluster-state (:storm-cluster-state nimbus)
@@ -937,10 +935,10 @@
         num-executors (->> (all-components topology) (map-val num-start-executors))
         executors-count (reduce + (vals num-executors))
         executors-allowed (get nimbus-conf NIMBUS-EXECUTORS-PER-TOPOLOGY)
-        ;; using PARALLEL-FACTOR default of 2 per slot
-        executors-cluster-capacity (* 2 (get-total-num-slots nimbus))
+        PARALLEL-FACTOR 2
+        executors-cluster-capacity (* PARALLEL-FACTOR (get-total-num-slots nimbus))
         ;; Defaulting limit to cluster-capacity in absence of configured limit.
-        executors-limit (if-not (nil? executors-allowed) executors-allowed executors-cluster-capacity)]
+        executors-limit (if executors-allowed executors-allowed executors-cluster-capacity)]
     (when (> executors-count executors-limit)
       (throw 
        (InvalidTopologyException. 
