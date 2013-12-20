@@ -9,6 +9,7 @@
             Cluster Topologies SchedulerAssignment SchedulerAssignmentImpl DefaultScheduler ExecutorDetails])
   (:import [backtype.storm.generated AuthorizationException])
   (:use [backtype.storm bootstrap util])
+  (:use [backtype.storm.config :only [validate-configs-with-schemas]])
   (:use [backtype.storm.daemon common])
   (:import [org.apache.zookeeper data.ACL ZooDefs$Ids ZooDefs$Perms])
   (:gen-class
@@ -975,10 +976,15 @@
           (validate-topology-name! storm-name)
           (check-authorization! nimbus storm-name nil "submitTopology")
           (check-storm-active! nimbus storm-name false)
-          (.validate ^backtype.storm.nimbus.ITopologyValidator (:validator nimbus)
-                     storm-name
-                     (from-json serializedConf)
-                     topology)
+          (let [topo-conf (from-json serializedConf)]
+            (try
+              (validate-configs-with-schemas topo-conf)
+              (catch IllegalArgumentException ex
+                (throw (InvalidTopologyException. (.getMessage ex)))))
+            (.validate ^backtype.storm.nimbus.ITopologyValidator (:validator nimbus)
+                       storm-name
+                       topo-conf
+                       topology))
           (swap! (:submitted-count nimbus) inc)
           (let [storm-id (str storm-name "-" @(:submitted-count nimbus) "-" (current-time-secs))
                 credentials (.get_creds submitOptions)
