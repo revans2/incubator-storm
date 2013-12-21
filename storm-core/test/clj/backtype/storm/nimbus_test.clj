@@ -161,7 +161,9 @@
       )))
 
 (deftest test-assignment
-  (with-local-cluster [cluster :supervisors 4 :ports-per-supervisor 3 :daemon-conf {SUPERVISOR-ENABLE false TOPOLOGY-ACKER-EXECUTORS 0 NIMBUS-EXECUTORS-PER-TOPOLOGY 100}]
+  (with-local-cluster [cluster :supervisors 4 :ports-per-supervisor 3 :daemon-conf {SUPERVISOR-ENABLE false
+                                                                                    TOPOLOGY-ACKER-EXECUTORS 0
+                                                                                    NIMBUS-EXECUTORS-PER-TOPOLOGY 100}]
     (let [state (:storm-cluster-state cluster)
           nimbus (:nimbus cluster)
           topology (thrift/mk-topology
@@ -342,7 +344,7 @@
       )))
 
 
- (deftest test-under-parallelism-assignment
+(deftest test-under-parallelism-assignment
   (with-local-cluster [cluster :supervisors 2 :ports-per-supervisor 5 :daemon-conf {SUPERVISOR-ENABLE false
                                                                                     TOPOLOGY-ACKER-EXECUTORS 0
                                                                                     NIMBUS-EXECUTORS-PER-TOPOLOGY 50}]
@@ -371,8 +373,7 @@
     :daemon-conf {SUPERVISOR-ENABLE false
                   NIMBUS-TASK-TIMEOUT-SECS 30
                   NIMBUS-MONITOR-FREQ-SECS 10
-                  TOPOLOGY-ACKER-EXECUTORS 0
-                  NIMBUS-EXECUTORS-PER-TOPOLOGY 50}]
+                  TOPOLOGY-ACKER-EXECUTORS 0}]
     (letlocals
       (bind conf (:daemon-conf cluster))
       (bind topology (thrift/mk-topology
@@ -461,8 +462,7 @@
                   NIMBUS-TASK-TIMEOUT-SECS 20
                   NIMBUS-MONITOR-FREQ-SECS 10
                   NIMBUS-SUPERVISOR-TIMEOUT-SECS 100
-                  TOPOLOGY-ACKER-EXECUTORS 0
-                  NIMBUS-EXECUTORS-PER-TOPOLOGY 50}]
+                  TOPOLOGY-ACKER-EXECUTORS 0}]
     (letlocals
       (bind conf (:daemon-conf cluster))
       (bind topology (thrift/mk-topology
@@ -557,8 +557,7 @@
                   NIMBUS-TASK-TIMEOUT-SECS 20
                   NIMBUS-MONITOR-FREQ-SECS 10
                   NIMBUS-SUPERVISOR-TIMEOUT-SECS 100
-                  TOPOLOGY-ACKER-EXECUTORS 0
-                  NIMBUS-EXECUTORS-PER-TOPOLOGY 50}]
+                  TOPOLOGY-ACKER-EXECUTORS 0}]
     (letlocals
       (add-supervisor cluster :ports 1 :id "a")
       (add-supervisor cluster :ports 1 :id "b")
@@ -615,8 +614,7 @@
                   NIMBUS-TASK-LAUNCH-SECS 60
                   NIMBUS-TASK-TIMEOUT-SECS 20
                   NIMBUS-MONITOR-FREQ-SECS 10
-                  TOPOLOGY-ACKER-EXECUTORS 0
-                  NIMBUS-EXECUTORS-PER-TOPOLOGY 50}]
+                  TOPOLOGY-ACKER-EXECUTORS 0}]
     (letlocals
       (bind topology (thrift/mk-topology
                         {"1" (thrift/mk-spout-spec (TestPlannerSpout. true) :parallelism-hint 9)}
@@ -662,8 +660,7 @@
     :daemon-conf {SUPERVISOR-ENABLE false
                   NIMBUS-MONITOR-FREQ-SECS 10
                   TOPOLOGY-MESSAGE-TIMEOUT-SECS 30
-                  TOPOLOGY-ACKER-EXECUTORS 0
-                  NIMBUS-EXECUTORS-PER-TOPOLOGY 50}]
+                  TOPOLOGY-ACKER-EXECUTORS 0}]
     (letlocals
       (bind topology (thrift/mk-topology
                         {"1" (thrift/mk-spout-spec (TestPlannerSpout. true) :parallelism-hint 3)}
@@ -706,8 +703,7 @@
   (with-simulated-time-local-cluster [cluster :supervisors 4 :ports-per-supervisor 3
     :daemon-conf {SUPERVISOR-ENABLE false
                   NIMBUS-MONITOR-FREQ-SECS 10
-                  TOPOLOGY-ACKER-EXECUTORS 0
-                  NIMBUS-EXECUTORS-PER-TOPOLOGY 50}]
+                  TOPOLOGY-ACKER-EXECUTORS 0}]
     (letlocals
       (bind topology (thrift/mk-topology
                         {"1" (thrift/mk-spout-spec (TestPlannerSpout. true)
@@ -783,8 +779,7 @@
     :daemon-conf {SUPERVISOR-ENABLE false
                   NIMBUS-MONITOR-FREQ-SECS 10
                   TOPOLOGY-MESSAGE-TIMEOUT-SECS 30
-                  TOPOLOGY-ACKER-EXECUTORS 0
-                  NIMBUS-EXECUTORS-PER-TOPOLOGY 50}]
+                  TOPOLOGY-ACKER-EXECUTORS 0}]
     (letlocals
       (bind topology (thrift/mk-topology
                         {"1" (thrift/mk-spout-spec (TestPlannerSpout. true) :parallelism-hint 3)}
