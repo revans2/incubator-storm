@@ -364,7 +364,7 @@
       (is (= 2 (count (task-info "3"))))
       (is (= 10 (count (task-info "4"))))
       (is (= 7 (storm-num-workers state "test")))
-      )))
+    )))
 
 
 
