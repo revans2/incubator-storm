@@ -191,7 +191,7 @@
     (html4
      [:head
       [:title "Storm log viewer"]
-      (include-css "/css/bootstrap-1.1.0.css")
+      (include-css "/css/bootstrap-1.4.0.css")
       (include-css "/css/style.css")
       (include-js "/js/jquery-1.6.2.min.js")
       (include-js "/js/jquery.tablesorter.min.js")
