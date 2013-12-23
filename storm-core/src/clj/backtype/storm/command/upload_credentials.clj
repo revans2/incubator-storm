@@ -1,7 +1,7 @@
 (ns backtype.storm.command.upload-credentials
   (:use [clojure.tools.cli :only [cli]])
-  (:use [backtype.storm thrift config log util])
-  (:import [backtype.storm.generated Credentials])
+  (:use [backtype.storm log util])
+  (:import [backtype.storm StormSubmitter])
   (:import [java.util Properties])
   (:import [java.io FileReader])
   (:gen-class))
@@ -13,12 +13,8 @@
 
 (defn -main [& args]
   (let [[{cred-file :file} [name & rawCreds]] (cli args ["-f" "--file" :default nil])
-        _ (when (not (even? (.size rawCreds))) (throw (RuntimeException.  "Need an even number of arguments to make a map")))
-        mapping (apply assoc {} rawCreds)
-        file-mapping (if (nil? cred-file) {} (read-map cred-file))
-        creds (Credentials. )
-        _ (.set_creds creds (merge file-mapping mapping))]
-    (with-configured-nimbus-connection nimbus
-      (.uploadNewCredentials nimbus name creds)
-      (log-message "Uploaded new creds to topology: " name)
-      )))
+        _ (when (and rawCreds (not (even? (.size rawCreds)))) (throw (RuntimeException.  "Need an even number of arguments to make a map")))
+        mapping (if rawCreds (apply assoc {} rawCreds) {})
+        file-mapping (if (nil? cred-file) {} (read-map cred-file))]
+      (StormSubmitter/pushCredentials name {} (merge file-mapping mapping))
+      (log-message "Uploaded new creds to topology: " name)))

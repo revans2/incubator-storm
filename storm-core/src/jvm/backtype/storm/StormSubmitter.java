@@ -4,6 +4,8 @@ import backtype.storm.generated.*;
 import backtype.storm.utils.BufferFileInputStream;
 import backtype.storm.utils.NimbusClient;
 import backtype.storm.utils.Utils;
+import backtype.storm.security.auth.IAutoCredentials;
+import backtype.storm.security.auth.AuthUtils;
 import java.nio.ByteBuffer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -63,6 +65,56 @@ public class StormSubmitter {
         return toRet;
     }
 
+    private static Map<String,String> populateCredentials(Map conf, Map<String, String> creds) {
+        Map<String,String> ret = new HashMap<String,String>();
+        for (IAutoCredentials autoCred: AuthUtils.GetAutoCredentials(conf)) {
+            autoCred.populateCredentials(ret);
+        }
+        if (creds != null) {
+            ret.putAll(creds);
+        }
+        return ret;
+    }
+
+    /**
+     * Push a new set of credentials to the running topology.
+     * @param name the name of the topology to push credentials to.
+     * @param stormConf the topology-specific configuration, if desired. See {@link Config}. 
+     * @param credentials the credentials to push.
+     * @throws AuthorizationException if you are not authorized ot push credentials.
+     * @throws NotAliveException if the topology is not alive
+     */
+    public static void pushCredentials(String name, Map stormConf, Map<String, String> credentials) 
+            throws AuthorizationException, NotAliveException, InvalidTopologyException {
+        stormConf = new HashMap(stormConf);
+        stormConf.putAll(Utils.readCommandLineOpts());
+        Map conf = Utils.readStormConfig();
+        conf.putAll(stormConf);
+        Map<String,String> fullCreds = populateCredentials(conf, credentials);
+        if (fullCreds.isEmpty()) {
+            LOG.warn("No credentials were found to push to "+name);
+            return;
+        }
+        try {
+            if(localNimbus!=null) {
+                LOG.info("Pushing Credentials to topology " + name + " in local mode");
+                localNimbus.uploadNewCredentials(name, new Credentials(fullCreds));
+            } else {
+                NimbusClient client = NimbusClient.getConfiguredClient(conf);
+                try {
+                    LOG.info("Uploading new credentials to " +  name);
+                    client.getClient().uploadNewCredentials(name, new Credentials(fullCreds));
+                } finally {
+                    client.close();
+                }
+            }
+            LOG.info("Finished submitting topology: " +  name);
+        } catch(TException e) {
+            throw new RuntimeException(e);
+        }
+    }
+ 
+
     /**
      * Submits a topology to run on the cluster. A topology runs forever or until 
      * explicitly killed.
@@ -104,6 +156,21 @@ public class StormSubmitter {
         Map conf = Utils.readStormConfig();
         conf.putAll(stormConf);
         stormConf.putAll(prepareZookeeperAuthentication(conf));
+
+        Map<String,String> passedCreds = new HashMap<String, String>();
+        if (opts != null) {
+            Credentials tmpCreds = opts.get_creds();
+            if (tmpCreds != null) {
+                passedCreds = tmpCreds.get_creds();
+            }
+        }
+        Map<String,String> fullCreds = populateCredentials(conf, passedCreds);
+        if (!fullCreds.isEmpty()) {
+            if (opts == null) {
+                opts = new SubmitOptions(TopologyInitialStatus.ACTIVE);
+            }
+            opts.set_creds(new Credentials(fullCreds));
+        }
         try {
             String serConf = JSONValue.toJSONString(stormConf);
             if(localNimbus!=null) {

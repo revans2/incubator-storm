@@ -10,6 +10,12 @@ all: build
 test:
 	cd .. && $(MVN) -f m2-pom.xml -Pnative -Pcoverage -Dworker-launcher.conf.dir=${EXEC_CONF_DIR} package ${MVN_MAKE_OPTS}
 
+check: test
+	@echo "Errors or Failures:"
+	@egrep -il '<fail|<error' ../*/target/test-reports/*.xml | xargs -I '{}' bash -c "echo -n '{}':' '; egrep -ic '<fail|<error' '{}'"
+	@! egrep -iq '<fail|<error' ../*/target/test-reports/*.xml 
+
+
 build:
 	cd .. && $(MVN) -f m2-pom.xml -Pnative -Dworker-launcher.conf.dir=${EXEC_CONF_DIR} package -DskipTests ${MVN_MAKE_OPTS}
 
