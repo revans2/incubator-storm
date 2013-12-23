@@ -274,6 +274,12 @@
               supervisor-ids))
        )))
 
+(defn get-total-num-slots [storm-cluster-state]
+  (let [supervisor-infos (all-supervisor-info storm-cluster-state nil)]
+    (reduce (fn [sum [id info]] (+ sum (count (set (:meta info))))) 0 supervisor-infos)
+  )
+)
+
 (defn- all-scheduling-slots
   [nimbus topologies missing-assignment-topologies]
   (let [storm-cluster-state (:storm-cluster-state nimbus)
@@ -923,18 +929,30 @@
   )
 )
 
-(defn validate-topology-size [topo-conf nimbus-conf topology]
+(defn get-cluster-num-executors-capacity
+  "Using parallel factor of 2 per slot to calculate cluster ceiling"
+  [storm-cluster-state]
+  (* 2 (get-total-num-slots storm-cluster-state))
+)
+
+(defn get-cluster-num-executors-limit
+  "Defaulting limit to cluster-capacity in absence of configured limit."
+  [nimbus-conf storm-cluster-state]
+ (let [ executors-allowed (get nimbus-conf NIMBUS-EXECUTORS-PER-TOPOLOGY)
+        executors-cluster-capacity (get-cluster-num-executors-capacity storm-cluster-state)]
+  (if executors-allowed executors-allowed executors-cluster-capacity)
+ ))
+
+(defn validate-topology-size [topo-conf nimbus-conf topology storm-cluster-state]
   (let [workers-count (get topo-conf TOPOLOGY-WORKERS)
         workers-allowed (get nimbus-conf NIMBUS-SLOTS-PER-TOPOLOGY)
         num-executors (->> (all-components topology) (map-val num-start-executors))
         executors-count (reduce + (vals num-executors))
-        executors-allowed (get nimbus-conf NIMBUS-EXECUTORS-PER-TOPOLOGY)]
-    (when (and 
-           (not (nil? executors-allowed))
-           (> executors-count executors-allowed))
+        executors-limit (get-cluster-num-executors-limit nimbus-conf storm-cluster-state)]
+    (when (> executors-count executors-limit)
       (throw 
        (InvalidTopologyException. 
-        (str "Failed to submit topology. Topology requests more than " executors-allowed " executors."))))
+        (str "Failed to submit topology. Topology requests [" executors-count "] executors, but the cluster allows only " executors-limit "."))))
     (when (and
            (not (nil? workers-allowed))
            (> workers-count workers-allowed))
@@ -1018,7 +1036,7 @@
             (if (and (conf SUPERVISOR-RUN-WORKER-AS-USER) (or (nil? submitter-user) (.isEmpty (.trim submitter-user)))) 
               (throw (AuthorizationException. "Could not determine the user to run this topology as.")))
             (system-topology! total-storm-conf topology) ;; this validates the structure of the topology
-            (validate-topology-size topo-conf conf topology)
+            (validate-topology-size topo-conf conf topology storm-cluster-state)
             (when (and (Utils/isZkAuthenticationConfiguredStormServer conf)
                        (not (Utils/isZkAuthenticationConfiguredTopology storm-conf)))
                 (throw (IllegalArgumentException. "The cluster is configured for zookeeper authentication, but no payload was provided.")))
