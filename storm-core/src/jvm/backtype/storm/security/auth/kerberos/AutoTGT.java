@@ -11,6 +11,9 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.lang.reflect.Method;
+import java.lang.reflect.Constructor;
+import java.security.Principal;
 
 import javax.security.auth.kerberos.KerberosTicket;
 import javax.security.auth.kerberos.KerberosPrincipal;
@@ -116,11 +119,16 @@ public class AutoTGT implements IAutoCredentials, ICredentialsRenewer {
 
     @Override
     public void updateSubject(Subject subject, Map<String, String> credentials) {
-        populateSubject(subject, credentials);
+        populateSubjectWithTGT(subject, credentials);
     }
 
     @Override
     public void populateSubject(Subject subject, Map<String, String> credentials) {
+        populateSubjectWithTGT(subject, credentials);
+        loginHadoopUser(subject);
+    }
+
+    private void populateSubjectWithTGT(Subject subject, Map<String, String> credentials) {
         KerberosTicket tgt = getTGT(credentials);
         if (tgt != null) {
             KerberosTicket oldTGT = getTGT(subject);
@@ -131,6 +139,64 @@ public class AutoTGT implements IAutoCredentials, ICredentialsRenewer {
             subject.getPrincipals().add(tgt.getClient());
         } else {
             LOG.info("No TGT found in credentials");
+        }
+    }
+
+    /**
+     * Hadoop does not just go off of a TGT, it needs a bit more.  This
+     * should fill in the rest.
+     * @param subject the subject that should have a TGT in it.
+     */
+    private void loginHadoopUser(Subject subject) {
+        try {
+            Class<?> ugi = Class.forName("org.apache.hadoop.security.UserGroupInformation");
+            try {
+              Method isSecEnabled = ugi.getMethod("isSecurityEnabled");
+              LOG.info("Is Security Enabled? "+isSecEnabled.invoke(null));
+              Method login = ugi.getMethod("loginUserFromSubject", Subject.class);
+              login.invoke(null, subject);
+              //TODO handle all of the exception types from invoke
+              //TODO Handle SecurityException
+            } catch (NoSuchMethodException me) {
+              //TODO 
+              //The version of Hadoop is too old and does not have the needed client changes.
+              // So don't look now, but do something really ugly to work around it.
+              // This is because we are reaching into the hidden bowles of Hadoop security, and it might not work.
+
+              // Configuration conf = new Configuration();
+              // HadoopKerberosName.setConfiguration(conf);
+              // subject.getPrincipals().add(new User(tgt.getClient().toString(), AuthenticationMethod.KERBEROS, null));
+              String name = getTGT(subject).getClient().toString();
+
+              LOG.warn("The Hadoop client appears to be too old does not have loginUserFromSubject, Trying to hack around it. This may not work...");
+              Class<?> confClass = Class.forName("org.apache.hadoop.conf.Configuration");
+              Constructor confCons = confClass.getConstructor();
+              Object conf = confCons.newInstance();
+              Class<?> hknClass = Class.forName("org.apache.hadoop.security.HadoopKerberosName");
+              Method hknSetConf = hknClass.getMethod("setConfiguration",confClass);
+              hknSetConf.invoke(null, conf);
+
+              Class<?> authMethodClass = Class.forName("org.apache.hadoop.security.UserGroupInformation$AuthenticationMethod");
+              Object kerbAuthMethod = null;
+              for (Object authMethod : authMethodClass.getEnumConstants()) {
+                  LOG.info("Found enum: "+authMethod);
+                  if ("KERBEROS".equals(authMethod.toString())) {
+                      kerbAuthMethod = authMethod;
+                      break;
+                  }
+              }
+              LOG.info("Found KERBEROS!!! "+kerbAuthMethod); 
+
+              Class<?> userClass = Class.forName("org.apache.hadoop.security.User");
+              Constructor userCons = userClass.getConstructor(String.class, authMethodClass, LoginContext.class);
+              userCons.setAccessible(true);
+              Object user = userCons.newInstance(name, kerbAuthMethod, null);
+              subject.getPrincipals().add((Principal)user);
+            }
+        } catch (ClassNotFoundException e) {
+            LOG.info("Hadoop was not found on the class path, so ignoring", e);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
     }
 
@@ -156,5 +222,17 @@ public class AutoTGT implements IAutoCredentials, ICredentialsRenewer {
                 }
             }
         }
+    }
+
+    public static void main(String[] args) throws Exception {
+        AutoTGT at = new AutoTGT();
+        Map conf = new java.util.HashMap();
+        conf.put("java.security.auth.login.config", args[0]);
+        at.prepare(conf);
+        Map<String,String> creds = new java.util.HashMap<String,String>();
+        at.populateCredentials(creds);
+        Subject s = new Subject();
+        at.populateSubject(s, creds);
+        LOG.info("Got a Subject "+s);
     }
 }
