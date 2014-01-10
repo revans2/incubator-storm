@@ -24,9 +24,9 @@ import org.json.simple.JSONValue;
 public class StormSubmitter {
     public static Logger LOG = LoggerFactory.getLogger(StormSubmitter.class);    
 
-    private static Nimbus.Iface localNimbus = null;
+    private static ILocalCluster localNimbus = null;
 
-    public static void setLocalNimbus(Nimbus.Iface localNimbusHandler) {
+    public static void setLocalNimbus(ILocalCluster localNimbusHandler) {
         StormSubmitter.localNimbus = localNimbusHandler;
     }
 
@@ -68,6 +68,7 @@ public class StormSubmitter {
     private static Map<String,String> populateCredentials(Map conf, Map<String, String> creds) {
         Map<String,String> ret = new HashMap<String,String>();
         for (IAutoCredentials autoCred: AuthUtils.GetAutoCredentials(conf)) {
+            LOG.info("Running "+autoCred);
             autoCred.populateCredentials(ret);
         }
         if (creds != null) {
@@ -172,11 +173,16 @@ public class StormSubmitter {
             opts.set_creds(new Credentials(fullCreds));
         }
         try {
-            String serConf = JSONValue.toJSONString(stormConf);
             if(localNimbus!=null) {
                 LOG.info("Submitting topology " + name + " in local mode");
-                localNimbus.submitTopology(name, null, serConf, topology);
+                if(opts!=null) {
+                    localNimbus.submitTopologyWithOpts(name, stormConf, topology, opts);                    
+                } else {
+                    // this is for backwards compatibility
+                    localNimbus.submitTopology(name, stormConf, topology);                                            
+                }
             } else {
+                String serConf = JSONValue.toJSONString(stormConf);
                 NimbusClient client = NimbusClient.getConfiguredClient(conf);
                 if(topologyNameExists(conf, name)) {
                     throw new RuntimeException("Topology with name `" + name + "` already exists on cluster");

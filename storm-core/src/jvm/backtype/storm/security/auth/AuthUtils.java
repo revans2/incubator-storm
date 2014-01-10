@@ -107,6 +107,7 @@ public class AuthUtils {
                     autos.add(a);
                 }
             }
+            LOG.info("Got AutoCreds "+autos);
             return autos;
         } catch (Exception e) {
             throw new RuntimeException(e);

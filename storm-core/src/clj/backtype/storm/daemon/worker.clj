@@ -364,7 +364,7 @@
         cluster-state (cluster/mk-distributed-cluster-state conf :auth-conf storm-conf :acls acls)
         storm-cluster-state (cluster/mk-storm-cluster-state cluster-state :acls acls)
         initial-credentials (.credentials storm-cluster-state storm-id nil)
-        auto-creds (AuthUtils/GetAutoCredentials conf)
+        auto-creds (AuthUtils/GetAutoCredentials storm-conf)
         subject (AuthUtils/populateSubject nil auto-creds initial-credentials)]
       (Subject/doAs subject (reify PrivilegedExceptionAction 
         (run [this]
