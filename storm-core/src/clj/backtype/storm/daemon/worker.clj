@@ -5,6 +5,9 @@
   (:import [java.util.concurrent Executors])
   (:import [backtype.storm.messaging TransportFactory])
   (:import [backtype.storm.messaging IContext IConnection])
+  (:import [backtype.storm.security.auth AuthUtils])
+  (:import [javax.security.auth Subject])
+  (:import [java.security PrivilegedExceptionAction])
   (:gen-class))
 
 (bootstrap)
@@ -203,12 +206,8 @@
       :transfer-fn (mk-transfer-fn <>)
       ))
 
-(defn worker-data [conf mq-context storm-id assignment-id port worker-id]
-  (let [storm-conf (read-supervisor-storm-conf conf storm-id)
-        acls (Utils/getWorkerACL storm-conf)
-        cluster-state (cluster/mk-distributed-cluster-state conf :auth-conf storm-conf :acls acls)
-        storm-cluster-state (cluster/mk-storm-cluster-state cluster-state :acls acls)
-        executors (set (read-worker-executors storm-conf storm-cluster-state storm-id assignment-id port))
+(defn worker-data [conf mq-context storm-id assignment-id port worker-id storm-conf cluster-state storm-cluster-state]
+  (let [executors (set (read-worker-executors storm-conf storm-cluster-state storm-id assignment-id port))
         transfer-queue (disruptor/disruptor-queue (storm-conf TOPOLOGY-TRANSFER-BUFFER-SIZE)
                                                   :wait-strategy (storm-conf TOPOLOGY-DISRUPTOR-WAIT-STRATEGY))
         executor-receive-queue-map (mk-receive-queue-map storm-conf executors)
@@ -360,7 +359,16 @@
   ;; process. supervisor will register it in this case
   (when (= :distributed (cluster-mode conf))
     (touch (worker-pid-path conf worker-id (process-pid))))
-  (let [worker (worker-data conf shared-mq-context storm-id assignment-id port worker-id)
+  (let [storm-conf (read-supervisor-storm-conf conf storm-id)
+        acls (Utils/getWorkerACL storm-conf)
+        cluster-state (cluster/mk-distributed-cluster-state conf :auth-conf storm-conf :acls acls)
+        storm-cluster-state (cluster/mk-storm-cluster-state cluster-state :acls acls)
+        initial-credentials (.credentials storm-cluster-state storm-id nil)
+        auto-creds (AuthUtils/GetAutoCredentials storm-conf)
+        subject (AuthUtils/populateSubject nil auto-creds initial-credentials)]
+      (Subject/doAs subject (reify PrivilegedExceptionAction 
+        (run [this]
+          (let [worker (worker-data conf shared-mq-context storm-id assignment-id port worker-id storm-conf cluster-state storm-cluster-state)
         heartbeat-fn #(do-heartbeat worker)
         ;; do this here so that the worker process dies if this fails
         ;; it's important that worker heartbeat to supervisor ASAP when launching so that the supervisor knows it's running (and can move on)
@@ -376,7 +384,6 @@
         _ (schedule-recurring (:heartbeat-timer worker) 0 (conf WORKER-HEARTBEAT-FREQUENCY-SECS) heartbeat-fn)
         _ (schedule-recurring (:executor-heartbeat-timer worker) 0 (conf TASK-HEARTBEAT-FREQUENCY-SECS) #(do-executor-heartbeats worker :executors @executors))
 
-        initial-credentials (.credentials (:storm-cluster-state worker) storm-id nil)
         refresh-connections (mk-refresh-connections worker)
 
         _ (refresh-connections nil)
@@ -447,8 +454,9 @@
         check-credentials-changed (fn []
                                     (let [new-creds (.credentials (:storm-cluster-state worker) storm-id nil)]
                                       (when-not (= new-creds @credentials) ;;This does not have to be atomic, worst case we update when one is not needed
+                                        (AuthUtils/updateSubject subject auto-creds new-creds)
                                         (dofor [e @executors] (.credentials-changed e new-creds))
-                                          (reset! credentials new-creds))))
+                                        (reset! credentials new-creds))))
       ]
     (.credentials (:storm-cluster-state worker) storm-id (fn [args] (check-credentials-changed)))
     (schedule-recurring (:refresh-credentials-timer worker) 0 (conf TASK-CREDENTIALS-POLL-SECS) check-credentials-changed)
@@ -458,7 +466,7 @@
     (log-message "Worker has topology config " (:storm-conf worker))
     (log-message "Worker " worker-id " for storm " storm-id " on " assignment-id ":" port " has finished loading")
     ret
-    ))
+    ))))))
 
 (defmethod mk-suicide-fn
   :local [conf]
