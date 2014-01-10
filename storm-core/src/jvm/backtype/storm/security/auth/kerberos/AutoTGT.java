@@ -28,7 +28,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Automatically take a users TGT, and push it, and renew it in Nimbus.
+ * Automatically take a user's TGT, and push it, and renew it in Nimbus.
  */
 public class AutoTGT implements IAutoCredentials, ICredentialsRenewer {
     private static final Logger LOG = LoggerFactory.getLogger(AutoTGT.class);
@@ -44,9 +44,11 @@ public class AutoTGT implements IAutoCredentials, ICredentialsRenewer {
         for(KerberosTicket ticket: tickets) {
             KerberosPrincipal server = ticket.getServer();
             if (server.getName().equals("krbtgt/" + server.getRealm() + "@" + server.getRealm())) {
+                tickets = null;
                 return ticket;
             }
         }
+        tickets = null;
         return null;
     } 
 
@@ -115,7 +117,6 @@ public class AutoTGT implements IAutoCredentials, ICredentialsRenewer {
         }
         return ret;
     }
-
 
     @Override
     public void updateSubject(Subject subject, Map<String, String> credentials) {
@@ -221,7 +222,7 @@ public class AutoTGT implements IAutoCredentials, ICredentialsRenewer {
             long now = System.currentTimeMillis();
             if (now >= refreshTime) {
                 try {
-                     LOG.info("Renewing TGT for "+tgt.getClient());
+                    LOG.info("Renewing TGT for "+tgt.getClient());
                     tgt.refresh();
                     saveTGT(tgt, credentials);
                 } catch (RefreshFailedException e) {

@@ -84,6 +84,7 @@ public class StormSubmitter {
      * @param credentials the credentials to push.
      * @throws AuthorizationException if you are not authorized ot push credentials.
      * @throws NotAliveException if the topology is not alive
+     * @throws InvalidTopologyException if any other error happens
      */
     public static void pushCredentials(String name, Map stormConf, Map<String, String> credentials) 
             throws AuthorizationException, NotAliveException, InvalidTopologyException {
