@@ -417,7 +417,9 @@
           stormjar (supervisor-stormjar-path stormroot)
           storm-conf (read-supervisor-storm-conf conf storm-id)
           classpath (add-to-classpath (current-classpath) [stormjar])
-          childopts (.replaceAll (str (conf WORKER-CHILDOPTS) " " (storm-conf TOPOLOGY-WORKER-CHILDOPTS))
+          top-gc-opts (storm-conf TOPOLOGY-WORKER-GC-CHILDOPTS)
+          gc-opts (if top-gc-opts top-gc-opts (conf WORKER-GC-CHILDOPTS))
+          childopts (.replaceAll (str (conf WORKER-CHILDOPTS) " " (storm-conf TOPOLOGY-WORKER-CHILDOPTS) " " gc-opts)
                                  "%ID%"
                                  (str port))
           logfilename (str "worker-" port ".log")
