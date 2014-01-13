@@ -508,13 +508,6 @@
       nil)
     ))
 
-(defn jlp [stormroot conf]
-  (let [resource-root (str stormroot "/" RESOURCES-SUBDIR)
-        os (clojure.string/replace (System/getProperty "os.name") #"\s+" "_")
-        arch (System/getProperty "os.arch")
-        arch-resource-root (str resource-root "/" os "-" arch)]
-    (str arch-resource-root ":" resource-root ":" (conf JAVA-LIBRARY-PATH))))
-
 (defmethod launch-worker
     :distributed [supervisor storm-id port worker-id]
     (let [conf (:conf supervisor)
