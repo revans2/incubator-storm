@@ -508,6 +508,13 @@
       nil)
     ))
 
+(defn jlp [stormroot conf]
+  (let [resource-root (str stormroot "/" RESOURCES-SUBDIR)
+        os (clojure.string/replace (System/getProperty "os.name") #"\s+" "_")
+        arch (System/getProperty "os.arch")
+        arch-resource-root (str resource-root "/" os "-" arch)]
+    (str arch-resource-root ":" resource-root ":" (conf JAVA-LIBRARY-PATH))))
+
 (defmethod launch-worker
     :distributed [supervisor storm-id port worker-id]
     (let [conf (:conf supervisor)
@@ -518,7 +525,9 @@
           stormjar (supervisor-stormjar-path stormroot)
           storm-conf (read-supervisor-storm-conf conf storm-id)
           classpath (add-to-classpath (current-classpath) [stormjar])
-          childopts (replace-childopts-tags-by-ids (str (conf WORKER-CHILDOPTS) " " (storm-conf TOPOLOGY-WORKER-CHILDOPTS))
+          top-gc-opts (storm-conf TOPOLOGY-WORKER-GC-CHILDOPTS)
+          gc-opts (if top-gc-opts top-gc-opts (conf WORKER-GC-CHILDOPTS))
+          childopts (replace-childopts-tags-by-ids (str (conf WORKER-CHILDOPTS) " " (storm-conf TOPOLOGY-WORKER-CHILDOPTS) " " gc-opts)
                                  worker-id storm-id port)
           user (storm-conf TOPOLOGY-SUBMITTER-USER)
           logfilename (logs-filename storm-id port)

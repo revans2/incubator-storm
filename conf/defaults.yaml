@@ -97,6 +97,7 @@ supervisor.supervisors.commands: []
 
 ### worker.* configs are for task workers
 worker.childopts: "-Xmx768m"
+worker.gc.childopts: ""
 worker.heartbeat.frequency.secs: 1
 
 task.heartbeat.frequency.secs: 3
