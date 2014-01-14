@@ -622,6 +622,13 @@ public class Config extends HashMap<String, Object> {
     public static final String WORKER_CHILDOPTS = "worker.childopts";
     public static final Object WORKER_CHILDOPTS_SCHEMA = String.class;
 
+    /**
+     * The jvm opts provided to workers launched by this supervisor for GC. All "%ID%" substrings are replaced
+     * with an identifier for this worker.  Because the JVM complains about multiple GC opts the topology
+     * can override this default value by setting topology.worker.gc.childopts.
+     */
+    public static final String WORKER_GC_CHILDOPTS = "worker.gc.childopts";
+    public static final Object WORKER_GC_CHILDOPTS_SCHEMA = String.class;
 
     /**
      * How often this worker should heartbeat to the supervisor.
@@ -837,6 +844,12 @@ public class Config extends HashMap<String, Object> {
      */
     public static final String TOPOLOGY_WORKER_CHILDOPTS="topology.worker.childopts";
     public static final Object TOPOLOGY_WORKER_CHILDOPTS_SCHEMA = String.class;
+
+    /**
+     * Topology-specific options GC for the worker child process. This overrides WORKER_GC_CHILDOPTS.
+     */
+    public static final String TOPOLOGY_WORKER_GC_CHILDOPTS="topology.worker.gc.childopts";
+    public static final Object TOPOLOGY_WORKER_GC_CHILDOPTS_SCHEMA = String.class;
 
     /**
      * This config is available for TransactionalSpouts, and contains the id ( a String) for
