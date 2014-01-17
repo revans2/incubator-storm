@@ -69,7 +69,7 @@ class Client implements IConnection {
      * We will retry connection with exponential back-off policy
      */
     void reconnect() {
-        //reconnect only if it's being closed
+        //reconnect only if it's not being closed
         if (being_closed.get()) return;
 
         setChannel(null);
