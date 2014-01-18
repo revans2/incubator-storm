@@ -69,10 +69,11 @@ class Client implements IConnection {
      * We will retry connection with exponential back-off policy
      */
     void reconnect() {
+        close_n_release();
+
         //reconnect only if it's not being closed
         if (being_closed.get()) return;
 
-        setChannel(null);
         try {
             int tried_count = retries.incrementAndGet();
             if (tried_count < max_retries) {
@@ -128,24 +129,13 @@ class Client implements IConnection {
         final MessageBatch requests = tryTakeMessages();
         if (requests==null) {
             wait_for_requests.set(true);
-            LOG.debug("waitings for requests");
+            //LOG.debug("waiting for requests");
             return;
         }
 
-        wait_for_requests.set(false);
-        if (requests.size()==0 || being_closed.get()) return;
-
-        //if task==CLOSE_MESSAGE for our last request, the channel is to be closed
-        Object last_msg = requests.get(requests.size()-1);
-        if (last_msg==ControlMessage.CLOSE_MESSAGE) {
-            being_closed.set(true);
-            requests.remove(last_msg);
-        }
-
-        //we may don't need do anything if no requests found
-        if (requests.isEmpty()) {
-            if (being_closed.get())
-                close_n_release();
+        //if channel is being closed and we have no outstanding messages,  let's close the channel
+        if (requests.size()==0 && being_closed.get()) {
+            close_n_release();
             return;
         }
 
@@ -159,39 +149,50 @@ class Client implements IConnection {
                     future.getChannel().close();
                 } else {
                     LOG.debug("{} request(s) sent", requests.size());
+
+                    //we are busily delivering messages, and will check queue upon response.
+                    //When send() is called by senders, we should not thus call tryDeliverMessages().
+                    wait_for_requests.set(false);
+
+                    //Now that our requests have been sent, channel could be closed if needed
+                    if (being_closed.get())
+                        close_n_release();
                 }
-                if (being_closed.get())
-                    close_n_release();
             }
         });
     }
 
     /**
      * Take all enqueued messages from queue
-     * @return
+     * @return  batch of messages
      * @throws InterruptedException
+     *
+     * synchronized ... ensure that messages are delivered in the same order
+     * as they are added into queue
      */
-    MessageBatch tryTakeMessages()  throws InterruptedException {
+    synchronized MessageBatch tryTakeMessages() throws InterruptedException {
         //1st message
-        MessageBatch batch = new MessageBatch(buffer_size);
         Object msg = message_queue.poll();
-        if (msg==null) return null;
-        batch.add(msg);
+        if (msg == null) return null;
+
+        MessageBatch batch = new MessageBatch(buffer_size);
 
         //we will discard any message after CLOSE
-        if (msg==ControlMessage.CLOSE_MESSAGE)
+        if (msg == ControlMessage.CLOSE_MESSAGE) {
+            being_closed.set(true);
             return batch;
+        }
 
+        batch.add(msg);
         while (!batch.isFull()) {
             //peek the next message
             msg = message_queue.peek();
             //no more messages
             if (msg == null) break;
 
-            //we will discard any message after CLOSE
-            if (msg==ControlMessage.CLOSE_MESSAGE) {
-                message_queue.take();
-                batch.add(msg);
+            //CLOSE message will be handled as its own batch
+            if (msg == ControlMessage.CLOSE_MESSAGE) {
+                being_closed.set(true);
                 break;
             }
 
@@ -211,15 +212,13 @@ class Client implements IConnection {
      *
      * We will send all existing requests, and then invoke close_n_release() method
      */
-    public synchronized void close() {
-        if (!being_closed.get()) {
-            //enqueue a CLOSE message so that shutdown() will be invoked
-            try {
-                message_queue.put(ControlMessage.CLOSE_MESSAGE);
-                being_closed.set(true);
-            } catch (InterruptedException e) {
-                close_n_release();
-            }
+    public void close() {
+        //enqueue a CLOSE message so that shutdown() will be invoked
+        try {
+            LOG.debug("Closing client ...");
+            message_queue.put(ControlMessage.CLOSE_MESSAGE);
+        } catch (InterruptedException e) {
+            close_n_release();
         }
     }
 
@@ -227,8 +226,10 @@ class Client implements IConnection {
      * close_n_release() is invoked after all messages have been sent.
      */
     void  close_n_release() {
-        if (channelRef.get() != null)
-            channelRef.get().close().awaitUninterruptibly();
+        if (channelRef.get() != null) {
+            channelRef.get().close();
+            channelRef.set(null);
+        }
     }
 
     public TaskMessage recv(int flags) {
