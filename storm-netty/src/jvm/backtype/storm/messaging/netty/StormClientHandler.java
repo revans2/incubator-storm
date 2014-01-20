@@ -27,13 +27,14 @@ public class StormClientHandler extends SimpleChannelUpstreamHandler  {
         //register the newly established channel
         Channel channel = event.getChannel();
         client.setChannel(channel);
-        LOG.debug("connection established to a remote host");
+        LOG.debug("connection established from "+channel.getLocalAddress()+" to "+channel.getRemoteAddress());
         
         //send next batch of requests if any
         try {
             client.tryDeliverMessages();
-        } catch (InterruptedException ex) {
-            channel.close();
+        } catch (Exception ex) {
+            LOG.info("exception when sending messages:", ex.getMessage());
+            client.reconnect();
         }
     }
 
@@ -49,8 +50,9 @@ public class StormClientHandler extends SimpleChannelUpstreamHandler  {
         //send next batch of requests if any
         try {
             client.tryDeliverMessages();
-        } catch (InterruptedException ex) {
-            event.getChannel().close();
+        } catch (Exception ex) {
+            LOG.info("exception when sending messages:", ex.getMessage());
+            client.reconnect();
         }
     }
 

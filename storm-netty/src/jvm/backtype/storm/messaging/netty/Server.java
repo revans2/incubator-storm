@@ -107,7 +107,7 @@ class Server implements IConnection {
      * close all channels, and release resources
      */
     public synchronized void close() {
-        if (allChannels != null) {  
+        if (allChannels != null) {
             allChannels.close().awaitUninterruptibly();
             factory.releaseExternalResources();
             allChannels = null;

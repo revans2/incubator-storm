@@ -113,7 +113,7 @@ class Client implements IConnection {
         try {
             message_queue.put(new TaskMessage(task, message));
 
-            //resume delivery if it is waitinsg for requests
+            //resume delivery if it is waiting for requests
             if (wait_for_requests.get())
                 tryDeliverMessages();
         } catch (InterruptedException e) {
@@ -134,7 +134,7 @@ class Client implements IConnection {
         }
 
         //if channel is being closed and we have no outstanding messages,  let's close the channel
-        if (requests.size()==0 && being_closed.get()) {
+        if (requests.isEmpty() && being_closed.get()) {
             close_n_release();
             return;
         }
@@ -215,8 +215,11 @@ class Client implements IConnection {
     public void close() {
         //enqueue a CLOSE message so that shutdown() will be invoked
         try {
-            LOG.debug("Closing client ...");
             message_queue.put(ControlMessage.CLOSE_MESSAGE);
+
+            //resume delivery if it is waiting for requests
+            if (wait_for_requests.get())
+                tryDeliverMessages();
         } catch (InterruptedException e) {
             close_n_release();
         }
@@ -225,10 +228,11 @@ class Client implements IConnection {
     /**
      * close_n_release() is invoked after all messages have been sent.
      */
-    void  close_n_release() {
+    synchronized void close_n_release() {
         if (channelRef.get() != null) {
             channelRef.get().close();
-            channelRef.set(null);
+            LOG.debug("channel closed");
+            setChannel(null);
         }
     }
 
@@ -238,9 +242,6 @@ class Client implements IConnection {
 
     void setChannel(Channel channel) {
         channelRef.set(channel);
-        //reset retries
-        if (channel != null)
-            retries.set(0);
     }
 
 }
