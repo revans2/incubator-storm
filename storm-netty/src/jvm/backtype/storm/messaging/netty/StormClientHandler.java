@@ -31,7 +31,7 @@ public class StormClientHandler extends SimpleChannelUpstreamHandler  {
         
         //send next batch of requests if any
         try {
-            client.tryDeliverMessages();
+            client.tryDeliverMessages(false);
         } catch (Exception ex) {
             LOG.info("exception when sending messages:", ex.getMessage());
             client.reconnect();
@@ -49,7 +49,7 @@ public class StormClientHandler extends SimpleChannelUpstreamHandler  {
 
         //send next batch of requests if any
         try {
-            client.tryDeliverMessages();
+            client.tryDeliverMessages(false);
         } catch (Exception ex) {
             LOG.info("exception when sending messages:", ex.getMessage());
             client.reconnect();

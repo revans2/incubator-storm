@@ -114,8 +114,7 @@ class Client implements IConnection {
             message_queue.put(new TaskMessage(task, message));
 
             //resume delivery if it is waiting for requests
-            if (wait_for_requests.get())
-                tryDeliverMessages();
+            tryDeliverMessages(true);
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
@@ -124,8 +123,14 @@ class Client implements IConnection {
     /**
      * Retrieve messages from queue, and delivery to server if any
      */
-    synchronized void tryDeliverMessages() throws InterruptedException {
+    synchronized void tryDeliverMessages(boolean only_if_waiting) throws InterruptedException {
+        //just skip if delivery oni if waiting, and we are not waiting currently
+        if (only_if_waiting && !wait_for_requests.get())  return;
+
+        //make sure that channel was not closed
         Channel channel = channelRef.get();
+        if (channel == null)  return;
+
         final MessageBatch requests = tryTakeMessages();
         if (requests==null) {
             wait_for_requests.set(true);
@@ -146,7 +151,7 @@ class Client implements IConnection {
                     throws Exception {
                 if (!future.isSuccess()) {
                     LOG.info("failed to send requests:", future.getCause());
-                    future.getChannel().close();
+                    close_n_release();
                 } else {
                     LOG.debug("{} request(s) sent", requests.size());
 
@@ -218,8 +223,7 @@ class Client implements IConnection {
             message_queue.put(ControlMessage.CLOSE_MESSAGE);
 
             //resume delivery if it is waiting for requests
-            if (wait_for_requests.get())
-                tryDeliverMessages();
+            tryDeliverMessages(true);
         } catch (InterruptedException e) {
             close_n_release();
         }
