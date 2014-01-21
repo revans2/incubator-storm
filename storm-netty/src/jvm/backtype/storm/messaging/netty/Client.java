@@ -124,7 +124,7 @@ class Client implements IConnection {
     /**
      * Retrieve messages from queue, and delivery to server if any
      */
-    void tryDeliverMessages() throws InterruptedException {
+    synchronized void tryDeliverMessages() throws InterruptedException {
         Channel channel = channelRef.get();
         final MessageBatch requests = tryTakeMessages();
         if (requests==null) {
@@ -170,7 +170,7 @@ class Client implements IConnection {
      * synchronized ... ensure that messages are delivered in the same order
      * as they are added into queue
      */
-    synchronized MessageBatch tryTakeMessages() throws InterruptedException {
+    private MessageBatch tryTakeMessages() throws InterruptedException {
         //1st message
         Object msg = message_queue.poll();
         if (msg == null) return null;
