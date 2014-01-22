@@ -144,6 +144,10 @@ class Client implements IConnection {
             return;
         }
 
+        //we are busily delivering messages, and will check queue upon response.
+        //When send() is called by senders, we should not thus call tryDeliverMessages().
+        wait_for_requests.set(false);
+
         //write request into socket channel
         ChannelFuture future = channel.write(requests);
         future.addListener(new ChannelFutureListener() {
@@ -154,10 +158,6 @@ class Client implements IConnection {
                     close_n_release();
                 } else {
                     LOG.debug("{} request(s) sent", requests.size());
-
-                    //we are busily delivering messages, and will check queue upon response.
-                    //When send() is called by senders, we should not thus call tryDeliverMessages().
-                    wait_for_requests.set(false);
 
                     //Now that our requests have been sent, channel could be closed if needed
                     if (being_closed.get())
