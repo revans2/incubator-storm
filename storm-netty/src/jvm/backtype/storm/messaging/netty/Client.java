@@ -35,7 +35,7 @@ class Client implements IConnection {
     private final ChannelFactory factory;
     private final int buffer_size;
     private final AtomicBoolean being_closed;
-    private final AtomicBoolean wait_for_requests;
+    private boolean wait_for_requests;
 
     @SuppressWarnings("rawtypes")
     Client(Map storm_conf, ChannelFactory factory, String host, int port) {
@@ -44,7 +44,7 @@ class Client implements IConnection {
         retries = new AtomicInteger(0);
         channelRef = new AtomicReference<Channel>(null);
         being_closed = new AtomicBoolean(false);
-        wait_for_requests = new AtomicBoolean(false);
+        wait_for_requests = false;
 
         // Configure
         buffer_size = Utils.getInt(storm_conf.get(Config.STORM_MESSAGING_NETTY_BUFFER_SIZE));
@@ -124,8 +124,8 @@ class Client implements IConnection {
      * Retrieve messages from queue, and delivery to server if any
      */
     synchronized void tryDeliverMessages(boolean only_if_waiting) throws InterruptedException {
-        //just skip if delivery oni if waiting, and we are not waiting currently
-        if (only_if_waiting && !wait_for_requests.get())  return;
+        //just skip if delivery only if waiting, and we are not waiting currently
+        if (only_if_waiting && !wait_for_requests)  return;
 
         //make sure that channel was not closed
         Channel channel = channelRef.get();
@@ -133,8 +133,7 @@ class Client implements IConnection {
 
         final MessageBatch requests = tryTakeMessages();
         if (requests==null) {
-            wait_for_requests.set(true);
-            //LOG.debug("waiting for requests");
+            wait_for_requests = true;
             return;
         }
 
@@ -146,7 +145,7 @@ class Client implements IConnection {
 
         //we are busily delivering messages, and will check queue upon response.
         //When send() is called by senders, we should not thus call tryDeliverMessages().
-        wait_for_requests.set(false);
+        wait_for_requests = false;
 
         //write request into socket channel
         ChannelFuture future = channel.write(requests);
@@ -189,14 +188,10 @@ class Client implements IConnection {
         }
 
         batch.add(msg);
-        while (!batch.isFull()) {
-            //peek the next message
-            msg = message_queue.peek();
-            //no more messages
-            if (msg == null) break;
-
-            //CLOSE message will be handled as its own batch
+        while (!batch.isFull() && ((msg = message_queue.peek())!=null)) {
+            //Is it a CLOSE message?
             if (msg == ControlMessage.CLOSE_MESSAGE) {
+                message_queue.take();
                 being_closed.set(true);
                 break;
             }
