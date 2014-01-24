@@ -664,3 +664,59 @@
     (is (= "Scheduled Isolated on 5 Nodes" (.get (.getStatusMap cluster) "topology3")))
 ))
 
+
+(deftest test-multitenant-scheduler-bad-starting-state
+  (let [supers (gen-supervisors 10)
+       topology1 (TopologyDetails. "topology1" 
+                   {TOPOLOGY-NAME "topology-name-1"
+                    TOPOLOGY-SUBMITTER-USER "userC"}
+                   (StormTopology.)
+                   4
+                   (mk-ed-map [["spout1" 0 5]
+                               ["bolt1" 5 10]
+                               ["bolt2" 10 15]
+                               ["bolt3" 15 20]]))
+       topology2 (TopologyDetails. "topology2"
+                    {TOPOLOGY-NAME "topology-name-2"
+                     TOPOLOGY-ISOLATED-MACHINES 2
+                     TOPOLOGY-SUBMITTER-USER "userA"}
+                    (StormTopology.)
+                    4
+                    (mk-ed-map [["spout11" 0 5]
+                                ["bolt12" 5 6]
+                                ["bolt13" 6 7]
+                                ["bolt14" 7 10]]))
+       topology3 (TopologyDetails. "topology3"
+                    {TOPOLOGY-NAME "topology-name-3"
+                     TOPOLOGY-ISOLATED-MACHINES 5
+                     TOPOLOGY-SUBMITTER-USER "userB"}
+                    (StormTopology.)
+                    10
+                    (mk-ed-map [["spout21" 0 10]
+                                ["bolt22" 10 20]
+                                ["bolt23" 20 30]
+                                ["bolt24" 30 40]]))
+       existing-assignments {
+         "topology2" (SchedulerAssignmentImpl. "topology2" {(ExecutorDetails. 0 5) (WorkerSlot. "super1" 1)})
+         "topology3" (SchedulerAssignmentImpl. "topology3" {(ExecutorDetails. 0 10) (WorkerSlot. "super1" 1)})
+       }
+       cluster (Cluster. (nimbus/standalone-nimbus) supers existing-assignments)
+       topologies (Topologies. (to-top-map [topology1 topology2 topology3]))
+       conf {MULTITENANT-SCHEDULER-USER-POOLS {"userA" 5 "userB" 5}}
+       scheduler (MultitenantScheduler.)]
+    (.prepare scheduler conf)
+    (.schedule scheduler topologies cluster)
+    (let [assignment (.getAssignmentById cluster "topology1")
+          assigned-slots (.getSlots assignment)
+          executors (.getExecutors assignment)]
+      ;; 4 slots on 1 machine, all executors assigned
+      (is (= 4 (.size assigned-slots)))
+      (is (= 1 (.size (into #{} (for [slot assigned-slots] (.getNodeId slot))))))
+      (is (= 20 (.size executors)))
+    )
+    (is (= "Fully Scheduled" (.get (.getStatusMap cluster) "topology1")))
+    (is (= "Scheduled Isolated on 2 Nodes" (.get (.getStatusMap cluster) "topology2")))
+    (is (= "Scheduled Isolated on 5 Nodes" (.get (.getStatusMap cluster) "topology3")))
+))
+
+
