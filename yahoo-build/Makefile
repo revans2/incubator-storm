@@ -99,7 +99,7 @@ component: BB_BIM_FILE=$(COMPONENT_BIM)
 
 git-tag:
 	git tag -f -a $(FULL_VERSION) -m "yahoo version $(FULL_VERSION)"
-	git push --tags
+	git push origin $(FULL_VERSION)
 
 component-dist-push:: BB_BIM_FILE=./component.bim
 #component-dist-push:: component BB_Dist_Push
