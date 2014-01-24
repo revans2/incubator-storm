@@ -187,7 +187,7 @@ class Client implements IConnection {
             return batch;
         }
 
-        batch.add(msg);
+        batch.add((TaskMessage)msg);
         while (!batch.isFull() && ((msg = message_queue.peek())!=null)) {
             //Is it a CLOSE message?
             if (msg == ControlMessage.CLOSE_MESSAGE) {
