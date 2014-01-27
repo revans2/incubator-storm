@@ -26,6 +26,7 @@ YINST set worker_launcher_group           nobody
 YINST set min_user_id                     500
 YINST set storm_messaging_transport       backtype.storm.messaging.netty.Context
 YINST set logviewer_cleanup_interval_secs 1440
+YINST set drpc_http_port                  -1
 
 # Bouncer UI Filter Configuration
 #YINST set ui_filter                yjava.servlet.filter.BouncerFilter
