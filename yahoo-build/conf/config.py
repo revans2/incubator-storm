@@ -53,7 +53,7 @@ ignoredKeys = set(["min.user.pid", "storm.zookeeper.auth.payload", "storm.cluste
 config = dict((k[8:].replace("_", "."), v) for k, v in os.environ.items() if k.startswith("ystorm__"))
 
 qq_string = re.compile("^\".*\"$")
-numeric = re.compile("^[0-9\.]+$")
+numeric = re.compile("^-?([0-9]*\.)?[0-9]*$")
 bool_re = re.compile("^(true)|(false)$",re.I)
 
 def double_quote_if_needed(str):
