@@ -551,6 +551,19 @@ public class Config extends HashMap<String, Object> {
     public static final Object NIMBUS_SLOTS_PER_TOPOLOGY_SCHEMA = Number.class;
 
     /**
+     * A class implementing javax.servlet.Filter for DRPC HTTP requests
+     */
+    public static final String DRPC_HTTP_FILTER = "drpc.http.filter";
+    public static final Object DRPC_HTTP_FILTER_SCHEMA = String.class;
+
+    /**
+     * Initialization parameters for the javax.servlet.Filter of the DRPC HTTP
+     * service
+     */
+    public static final String DRPC_HTTP_FILTER_PARAMS = "drpc.http.filter.params";
+    public static final Object DRPC_HTTP_FILTER_PARAMS_SCHEMA = Map.class;
+
+    /**
      * A number representing the maximum number of executors any single topology can acquire.
      */
     public static final String NIMBUS_EXECUTORS_PER_TOPOLOGY = "nimbus.executors.perTopology";

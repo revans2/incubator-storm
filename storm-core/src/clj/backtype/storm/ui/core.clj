@@ -1140,13 +1140,17 @@
 (defn start-server! []
   (try
     (let [conf *STORM-CONF*
-          header-buffer-size (int (.get conf UI-HEADER-BUFFER-BYTES))]
+          header-buffer-size (int (.get conf UI-HEADER-BUFFER-BYTES))
+          filter-class (conf UI-FILTER)
+          filter-params (conf UI-FILTER-PARAMS)]
       (run-jetty app {:port (conf UI-PORT)
                           :join? false
                           :configurator (fn [server]
                                           (doseq [connector (.getConnectors server)]
                                             (.setHeaderBufferSize connector header-buffer-size))
-                                          (config-filter server app conf))}))
+                                          (config-filter server app
+                                                         filter-class
+                                                         filter-params))}))
    (catch Exception ex
      (log-error ex))))
 

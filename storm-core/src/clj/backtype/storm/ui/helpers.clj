@@ -140,12 +140,12 @@ $(\"table#%s\").each(function(i) { $(this).tablesorter({ sortList: %s, headers: 
 (defn unauthorized-user-html [user]
   [[:h2 "User '" (escape-html user) "' is not authorized."]])
 
-(defn config-filter [server handler conf]
-  (if-let [filter-class (conf UI-FILTER)]
+(defn config-filter [server handler filter-class filter-params]
+  (if filter-class
     (let [filter (doto (org.mortbay.jetty.servlet.FilterHolder.)
                    (.setName "springSecurityFilterChain")
                    (.setClassName filter-class)
-                   (.setInitParameters (conf UI-FILTER-PARAMS)))
+                   (.setInitParameters filter-params))
           servlet (doto (org.mortbay.jetty.servlet.ServletHolder. (ring.util.servlet/servlet handler))
                     (.setName "default"))
           context (doto (org.mortbay.jetty.servlet.Context. server "/")
