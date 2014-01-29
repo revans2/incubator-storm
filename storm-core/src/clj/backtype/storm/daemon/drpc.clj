@@ -1,5 +1,5 @@
 (ns backtype.storm.daemon.drpc
-  (:import [backtype.storm.security.auth ThriftServer ReqContext])
+  (:import [backtype.storm.security.auth AuthUtils])
   (:import [org.apache.thrift7 TException])
   (:import [backtype.storm.generated DistributedRPC DistributedRPC$Iface DistributedRPC$Processor
             DRPCRequest DRPCExecutionException DistributedRPCInvocations DistributedRPCInvocations$Iface
@@ -14,6 +14,7 @@
   (:use compojure.core)
   (:use ring.middleware.reload)
   (:use [ring.adapter.jetty :only [run-jetty]])
+  (:require [compojure.handler :as handler])
   (:gen-class))
 
 (bootstrap)
@@ -117,17 +118,23 @@
   (fn [request]
     (handler request)))
 
-(defn webapp [handler]
-  (->(def http-routes
-       (routes
-         (GET "/drpc/:func/:args" [func args & m]
-           (.execute handler func args))
-         (GET "/drpc/:func/" [func & m]
-           (.execute handler func ""))
-         (GET "/drpc/:func" [func & m]
-           (.execute handler func ""))))
+(defn webapp [handler http-creds-handler]
+  (handler/site (->
+    (defroutes http-routes
+      (GET "/drpc/:func/:args" [:as {:keys [servlet-request]} func args & m]
+        (let [user (.getUserName http-creds-handler servlet-request)]
+          (log-debug "Servlet user was: " user)
+          (.execute handler func args)))
+      (GET "/drpc/:func/" [:as {:keys [servlet-request]} func & m]
+        (let [user (.getUserName http-creds-handler servlet-request)]
+          (log-debug "Servlet user was: " user)
+          (.execute handler func "")))
+      (GET "/drpc/:func" [:as {:keys [servlet-request]} func & m]
+        (let [user (.getUserName http-creds-handler servlet-request)]
+          (log-debug "Servlet user was: " user)
+          (.execute handler func ""))))
     (wrap-reload '[backtype.storm.daemon.drpc])
-    handle-request))
+    handle-request)))
 
 (defn launch-server!
   ([]
@@ -151,14 +158,15 @@
           invoke-server (ThriftServer. conf
                           (DistributedRPCInvocations$Processor. drpc-service-handler)
                           (int (conf DRPC-INVOCATIONS-PORT))
-                          backtype.storm.Config$ThriftServerPurpose/DRPC)]
+                          backtype.storm.Config$ThriftServerPurpose/DRPC)
+          http-creds-handler (AuthUtils/GetDrpcHttpCredentialsPlugin conf)]
       (.addShutdownHook (Runtime/getRuntime) (Thread. (fn []
                                                         (if handler-server (.stop handler-server))
                                                         (.stop invoke-server))))
       (log-message "Starting Distributed RPC servers...")
       (future (.serve invoke-server))
       (when (> drpc-http-port 0)
-        (let [app (webapp drpc-service-handler)
+        (let [app (webapp drpc-service-handler http-creds-handler)
               filter-class (conf DRPC-HTTP-FILTER)
               filter-params (conf DRPC-HTTP-FILTER-PARAMS)]
           (run-jetty app

@@ -174,6 +174,52 @@ public class AuthUtils {
         return transportPlugin;
     }
 
+    private static IHttpCredentialsPlugin GetHttpCredentialsPlugin(Map conf,
+            String klassName) {
+        IHttpCredentialsPlugin plugin = null;
+        try {
+            Class klass = Class.forName(klassName);
+            plugin = (IHttpCredentialsPlugin)klass.newInstance();
+            plugin.prepare(conf);
+        } catch(Exception e) {
+            throw new RuntimeException(e);
+        }
+        return plugin;
+    }
+
+    /**
+     * Construct an HttpServletRequest credential plugin specified by the
+     * logviewer storm configuration
+     * @param conf storm configuration
+     * @return the plugin
+     */
+    public static IHttpCredentialsPlugin GetLogviewerHttpCredentialsPlugin(Map conf) {
+        String klassName = (String)conf.get(Config.LOGVIEWER_HTTP_CREDS_PLUGIN);
+        return AuthUtils.GetHttpCredentialsPlugin(conf, klassName);
+    }
+
+    /**
+     * Construct an HttpServletRequest credential plugin specified by the UI
+     * storm configuration
+     * @param conf storm configuration
+     * @return the plugin
+     */
+    public static IHttpCredentialsPlugin GetUiHttpCredentialsPlugin(Map conf) {
+        String klassName = (String)conf.get(Config.UI_HTTP_CREDS_PLUGIN);
+        return AuthUtils.GetHttpCredentialsPlugin(conf, klassName);
+    }
+
+    /**
+     * Construct an HttpServletRequest credential plugin specified by the DRPC
+     * storm configuration
+     * @param conf storm configuration
+     * @return the plugin
+     */
+    public static IHttpCredentialsPlugin GetDrpcHttpCredentialsPlugin(Map conf) {
+        String klassName = (String)conf.get(Config.DRPC_HTTP_CREDS_PLUGIN);
+        return AuthUtils.GetHttpCredentialsPlugin(conf, klassName);
+    }
+
     public static String get(Configuration configuration, String section, String key) throws IOException {
         AppConfigurationEntry configurationEntries[] = configuration.getAppConfigurationEntry(section);
         if (configurationEntries == null) {
