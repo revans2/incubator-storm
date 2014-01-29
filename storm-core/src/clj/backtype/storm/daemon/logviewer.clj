@@ -220,10 +220,13 @@
 
 (defn start-logviewer! [conf]
   (try
-    (run-jetty logapp {:port (int (conf LOGVIEWER-PORT))
-                       :join? false
-                       :configurator (fn [server]
-                                       (config-filter server logapp conf))})
+    (let [filter-class (conf UI-FILTER)
+          filter-params (conf UI-FILTER-PARAMS)]
+      (run-jetty logapp {:port (int (conf LOGVIEWER-PORT))
+                         :join? false
+                         :configurator (fn [server]
+                                         (config-filter server logapp
+                                                        filter-class filter-params))}))
   (catch Exception ex
     (log-error ex))))
 
