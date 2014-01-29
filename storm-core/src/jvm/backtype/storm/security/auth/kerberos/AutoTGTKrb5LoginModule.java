@@ -22,8 +22,7 @@ import org.slf4j.LoggerFactory;
 /**
  * Created by kpatil on 1/15/14.
  */
-public class AutoTGTKrb5LoginModule implements LoginModule
-{
+public class AutoTGTKrb5LoginModule implements LoginModule {
     private static final Logger LOG = LoggerFactory.getLogger(AutoTGTKrb5LoginModule.class);
 
     // initial state
@@ -84,8 +83,8 @@ public class AutoTGTKrb5LoginModule implements LoginModule
                 throw new LoginException("Subject is Readonly");
             }
 
-            Set<Object> privCredSet =  subject.getPrivateCredentials();
-            Set<java.security.Principal> princSet  = subject.getPrincipals();
+            Set<Object> privCredSet = subject.getPrivateCredentials();
+            Set<java.security.Principal> princSet = subject.getPrincipals();
 
             // Let us add the kerbClientPrinc and kerbTicket
             if (!princSet.contains(kerbClientPrinc)) {
@@ -119,7 +118,7 @@ public class AutoTGTKrb5LoginModule implements LoginModule
     public boolean logout() throws LoginException {
         subject.getPrincipals().remove(kerbClientPrinc);
 
-        Set<Object> privCredSet =  subject.getPrivateCredentials();
+        Set<Object> privCredSet = subject.getPrivateCredentials();
         if (privCredSet.contains(kerbTicket))
             privCredSet.remove(kerbTicket);
         succeeded = false;
