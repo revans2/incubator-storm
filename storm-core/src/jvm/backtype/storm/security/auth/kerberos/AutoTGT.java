@@ -90,7 +90,7 @@ public class AutoTGT implements IAutoCredentials, ICredentialsRenewer {
         }
     }
 
-    private static void saveTGT(KerberosTicket tgt, Map<String, String> credentials) {
+    public static void saveTGT(KerberosTicket tgt, Map<String, String> credentials) {
         try {
             ByteArrayOutputStream bao = new ByteArrayOutputStream();
             ObjectOutputStream out = new ObjectOutputStream(bao);
