@@ -20,7 +20,7 @@ import org.slf4j.LoggerFactory;
 
 
 /**
- * Created by kpatil on 1/15/14.
+ * Custom LoginModule to enable Auto Login based on cached ticket
  */
 public class AutoTGTKrb5LoginModule implements LoginModule {
     private static final Logger LOG = LoggerFactory.getLogger(AutoTGTKrb5LoginModule.class);
@@ -30,10 +30,6 @@ public class AutoTGTKrb5LoginModule implements LoginModule {
     private CallbackHandler callbackHandler;
     private Map sharedState;
     private Map<String, ?> options;
-
-    // specify if initiator.
-    // perform authentication exchange if initiator
-    private boolean isInitiator = true;
 
     // the authentication status
     private boolean succeeded = false;

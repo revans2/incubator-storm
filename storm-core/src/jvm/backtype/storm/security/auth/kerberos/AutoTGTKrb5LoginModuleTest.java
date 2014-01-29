@@ -18,7 +18,7 @@ import javax.security.auth.login.LoginContext;
 import java.util.*;
 
 /**
- * * Created by kpatil on 1/23/14.
+ * Testing AutoTGTKrb5LoginModule to auto login into the ZK.
  */
 public class AutoTGTKrb5LoginModuleTest {
 
