@@ -5,12 +5,10 @@ import org.slf4j.LoggerFactory;
 
 import javax.security.auth.Subject;
 import javax.security.auth.callback.CallbackHandler;
-import javax.security.auth.kerberos.KerberosPrincipal;
 import javax.security.auth.kerberos.KerberosTicket;
 import javax.security.auth.login.LoginException;
 import javax.security.auth.spi.LoginModule;
 import java.util.Map;
-import java.util.Set;
 
 
 /**
@@ -21,15 +19,7 @@ public class AutoTGTKrb5LoginModule implements LoginModule {
 
     // initial state
     private Subject subject;
-    private CallbackHandler callbackHandler;
-    private Map sharedState;
-    private Map<String, ?> options;
 
-    // the authentication status
-    private boolean succeeded = false;
-    private boolean commitSucceeded = false;
-
-    private KerberosPrincipal kerbClientPrinc = null;
     private KerberosTicket kerbTicket = null;
 
     public void initialize(Subject subject,
@@ -38,84 +28,55 @@ public class AutoTGTKrb5LoginModule implements LoginModule {
                            Map<String, ?> options) {
 
         this.subject = subject;
-        this.callbackHandler = callbackHandler;
-        this.sharedState = sharedState;
-        this.options = options;
-
     }
 
     public boolean login() throws LoginException {
         LOG.debug("Acquire TGT from Cache");
-        kerbTicket = AutoTGT.kerbTicket.get();
-
+        getKerbTicketFromCache();
         if (kerbTicket != null) {
-            if (kerbClientPrinc == null) {
-                kerbClientPrinc = kerbTicket.getClient();
-            }
-            succeeded = true;
             return true;
         } else {
-            LoginException loginException = new LoginException("The TGT not found.");
-            LOG.debug("Authentication failed.", loginException);
-            succeeded = false;
-            throw loginException;
+            throw new LoginException("Authentication failed, the TGT not found.");
         }
     }
 
+    protected void getKerbTicketFromCache() {
+        kerbTicket = AutoTGT.kerbTicket.get();
+    }
+
     public boolean commit() throws LoginException {
-        if (succeeded == false) {
+        if (isSucceeded() == false) {
             return false;
-        } else {
-
-            if (subject.isReadOnly()) {
-                kerbTicket = null;
-                kerbClientPrinc = null;
-                throw new LoginException("Subject is Readonly");
-            }
-
-            Set<Object> privCredSet = subject.getPrivateCredentials();
-            Set<java.security.Principal> princSet = subject.getPrincipals();
-
-            // Let us add the kerbClientPrinc and kerbTicket
-            if (!princSet.contains(kerbClientPrinc)) {
-                princSet.add(kerbClientPrinc);
-            }
-
-            // add the TGT
-            if (kerbTicket != null) {
-                if (!privCredSet.contains(kerbTicket))
-                    privCredSet.add(kerbTicket);
-            }
         }
-        commitSucceeded = true;
-        LOG.debug("Commit Succeeded \n");
+        if (subject.isReadOnly()) {
+            kerbTicket = null;
+            throw new LoginException("Authentication failed, Subject is Readonly");
+        }
+        // Let us add the kerbClientPrinc and kerbTicket
+        subject.getPrivateCredentials().add(kerbTicket);
+        subject.getPrincipals().add(kerbTicket.getClient());
+        LOG.debug("Commit Succeeded.");
         return true;
     }
 
     public boolean abort() throws LoginException {
-        if (succeeded == false) {
+        if (isSucceeded() == false) {
             return false;
-        } else if (succeeded == true && commitSucceeded == false) {
-            succeeded = false;
-            kerbClientPrinc = null;
-            kerbTicket = null;
         } else {
-            logout();
+            return logout();
         }
-        return true;
     }
 
     public boolean logout() throws LoginException {
-        subject.getPrincipals().remove(kerbClientPrinc);
-
-        Set<Object> privCredSet = subject.getPrivateCredentials();
-        if (privCredSet.contains(kerbTicket))
-            privCredSet.remove(kerbTicket);
-        succeeded = false;
-        commitSucceeded = false;
-        kerbClientPrinc = null;
+        if (!subject.isReadOnly() && kerbTicket != null) {
+            subject.getPrincipals().remove(kerbTicket.getClient());
+            subject.getPrivateCredentials().remove(kerbTicket);
+        }
         kerbTicket = null;
         return true;
     }
 
+    private boolean isSucceeded() {
+        return kerbTicket != null;
+    }
 }
