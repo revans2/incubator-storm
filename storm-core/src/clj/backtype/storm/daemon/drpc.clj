@@ -10,6 +10,7 @@
   (:import [backtype.storm.generated AuthorizationException])
   (:use [backtype.storm bootstrap config log])
   (:use [backtype.storm.daemon common])
+  (:use [backtype.storm.ui helpers])
   (:use compojure.core)
   (:use ring.middleware.reload)
   (:use [ring.adapter.jetty :only [run-jetty]])
@@ -157,9 +158,15 @@
       (log-message "Starting Distributed RPC servers...")
       (future (.serve invoke-server))
       (when (> drpc-http-port 0)
-        (run-jetty (webapp drpc-service-handler)
-          {:port drpc-http-port :join? false})
-        )
+        (let [app (webapp drpc-service-handler)
+              filter-class (conf DRPC-HTTP-FILTER)
+              filter-params (conf DRPC-HTTP-FILTER-PARAMS)]
+          (run-jetty app
+            {:port drpc-http-port :join? false
+             :configurator (fn [server]
+                             (config-filter server app
+                                            filter-class
+                                            filter-params))})))
       (when handler-server
         (.serve handler-server)))))
 
