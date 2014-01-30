@@ -223,13 +223,17 @@
 
 (defn start-logviewer! [conf]
   (try
-    (let [filter-class (conf UI-FILTER)
+    (let [header-buffer-size (int (.get conf UI-HEADER-BUFFER-BYTES))
+          filter-class (conf UI-FILTER)
           filter-params (conf UI-FILTER-PARAMS)]
       (run-jetty logapp {:port (int (conf LOGVIEWER-PORT))
                          :join? false
                          :configurator (fn [server]
+                                         (doseq [connector (.getConnectors server)]
+                                           (.setHeaderBufferSize connector header-buffer-size))
                                          (config-filter server logapp
-                                                        filter-class filter-params))}))
+                                                        filter-class
+                                                        filter-params))}))
   (catch Exception ex
     (log-error ex))))
 
