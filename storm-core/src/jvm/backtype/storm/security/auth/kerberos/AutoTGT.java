@@ -14,6 +14,7 @@ import java.io.ObjectOutputStream;
 import java.lang.reflect.Method;
 import java.lang.reflect.Constructor;
 import java.security.Principal;
+import java.util.concurrent.atomic.AtomicReference;
 
 import javax.security.auth.kerberos.KerberosTicket;
 import javax.security.auth.kerberos.KerberosPrincipal;
@@ -33,6 +34,7 @@ import org.slf4j.LoggerFactory;
 public class AutoTGT implements IAutoCredentials, ICredentialsRenewer {
     private static final Logger LOG = LoggerFactory.getLogger(AutoTGT.class);
     private static final float TICKET_RENEW_WINDOW = 0.80f;
+    protected static AtomicReference<KerberosTicket> kerbTicket = new AtomicReference<KerberosTicket>();
     private Map conf;
 
     public void prepare(Map conf) {
@@ -138,6 +140,7 @@ public class AutoTGT implements IAutoCredentials, ICredentialsRenewer {
                 subject.getPrivateCredentials().remove(oldTGT);
             }
             subject.getPrincipals().add(tgt.getClient());
+            kerbTicket.set(tgt);
         } else {
             LOG.info("No TGT found in credentials");
         }
