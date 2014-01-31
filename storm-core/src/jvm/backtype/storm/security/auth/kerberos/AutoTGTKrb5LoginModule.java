@@ -3,12 +3,13 @@ package backtype.storm.security.auth.kerberos;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.security.Principal;
+import java.util.Map;
 import javax.security.auth.Subject;
 import javax.security.auth.callback.CallbackHandler;
 import javax.security.auth.kerberos.KerberosTicket;
 import javax.security.auth.login.LoginException;
 import javax.security.auth.spi.LoginModule;
-import java.util.Map;
 
 
 /**
@@ -20,7 +21,7 @@ public class AutoTGTKrb5LoginModule implements LoginModule {
     // initial state
     private Subject subject;
 
-    private KerberosTicket kerbTicket = null;
+    protected KerberosTicket kerbTicket = null;
 
     public void initialize(Subject subject,
                            CallbackHandler callbackHandler,
@@ -44,17 +45,24 @@ public class AutoTGTKrb5LoginModule implements LoginModule {
         kerbTicket = AutoTGT.kerbTicket.get();
     }
 
+    protected Principal getKerbTicketClient() {
+        if (kerbTicket != null) {
+            return kerbTicket.getClient();
+        }
+        return null;
+    }
+
     public boolean commit() throws LoginException {
         if (isSucceeded() == false) {
             return false;
         }
-        if (subject.isReadOnly()) {
+        if (subject == null || subject.isReadOnly()) {
             kerbTicket = null;
-            throw new LoginException("Authentication failed, Subject is Readonly");
+            throw new LoginException("Authentication failed because the Subject is invalid.");
         }
         // Let us add the kerbClientPrinc and kerbTicket
         subject.getPrivateCredentials().add(kerbTicket);
-        subject.getPrincipals().add(kerbTicket.getClient());
+        subject.getPrincipals().add(getKerbTicketClient());
         LOG.debug("Commit Succeeded.");
         return true;
     }
@@ -68,7 +76,7 @@ public class AutoTGTKrb5LoginModule implements LoginModule {
     }
 
     public boolean logout() throws LoginException {
-        if (!subject.isReadOnly() && kerbTicket != null) {
+        if (subject != null && !subject.isReadOnly() && kerbTicket != null) {
             subject.getPrincipals().remove(kerbTicket.getClient());
             subject.getPrivateCredentials().remove(kerbTicket);
         }
