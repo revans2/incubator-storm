@@ -13,6 +13,7 @@
             ErrorInfo ClusterSummary SupervisorSummary TopologySummary
             Nimbus$Client StormTopology GlobalStreamId RebalanceOptions
             KillOptions])
+  (:import [backtype.storm.security.auth AuthUtils])
   (:import [java.io File PrintWriter StringWriter])
   (:import [org.mortbay.jetty.servlet Context])
   (:require [compojure.route :as route]
@@ -1048,19 +1049,22 @@
         sys? (if (or (nil? sys?) (= "false" (:value sys?))) false true)]
     sys?))
 
+(def http-creds-handler (AuthUtils/GetUiHttpCredentialsPlugin *STORM-CONF*))
+
 (if (ui-actions-enabled?)
   (defroutes main-routes
     (GET "/" [:as {servlet-request :servlet-request}]
-         (ui-template (main-page) (get-servlet-user servlet-request)))
+         (ui-template (main-page)
+                      (.getUserName http-creds-handler servlet-request)))
     (GET "/topology/:id" [:as {:keys [cookies servlet-request]} id & m]
          (let [include-sys? (get-include-sys? cookies)
-               user (get-servlet-user servlet-request)]
+               user (.getUserName http-creds-handler servlet-request)]
            (ui-template (topology-page id (:window m) include-sys? user)
                         user)))
     (GET "/topology/:id/component/:component" [:as {:keys [cookies servlet-request]}
                                                id component & m]
          (let [include-sys? (get-include-sys? cookies)
-               user (get-servlet-user servlet-request)]
+               user (.getUserName http-creds-handler servlet-request)]
            (ui-template (component-page id component (:window m) include-sys? user)
                         user)))
     (POST "/topology/:id/activate" [id]
@@ -1100,15 +1104,16 @@
 
   (defroutes main-routes
     (GET "/" [:as {servlet-request :servlet-request}]
-         (ui-template (main-page) (get-servlet-user servlet-request)))
+         (ui-template (main-page)
+                      (.getUserName http-creds-handler servlet-request)))
     (GET "/topology/:id" [:as {:keys [cookies servlet-request]} id & m]
          (let [include-sys? (get-include-sys? cookies)
-               user (get-servlet-user servlet-request)]
+               user (.getUserName http-creds-handler servlet-request)]
            (ui-template (topology-page id (:window m) include-sys? user) user)))
     (GET "/topology/:id/component/:component" [:as {:keys [cookies servlet-request]}
                                                id component & m]
          (let [include-sys? (get-include-sys? cookies)
-               user (get-servlet-user servlet-request)]
+               user (.getUserName http-creds-handler servlet-request)]
            (ui-template (component-page id component (:window m) include-sys? user)
                         user)))
     (route/resources "/")

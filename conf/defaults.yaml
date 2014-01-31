@@ -55,6 +55,7 @@ ui.filter: null
 ui.filter.params: null
 ui.users: null
 ui.header.buffer.bytes: 4096
+ui.http.creds.plugin: backtype.storm.security.auth.DefaultHttpCredentialsPlugin
 
 logviewer.port: 8000
 logviewer.childopts: "-Xmx128m"
@@ -69,6 +70,7 @@ drpc.invocations.port: 3773
 drpc.request.timeout.secs: 600
 drpc.childopts: "-Xmx768m"
 drpc.http.port: 3774
+drpc.http.creds.plugin: backtype.storm.security.auth.DefaultHttpCredentialsPlugin
 
 transactional.zookeeper.root: "/transactional"
 transactional.zookeeper.servers: null
