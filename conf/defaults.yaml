@@ -60,7 +60,6 @@ ui.http.creds.plugin: backtype.storm.security.auth.DefaultHttpCredentialsPlugin
 logviewer.port: 8000
 logviewer.childopts: "-Xmx128m"
 logviewer.cleanup.age.mins: 10080
-logviewer.http.creds.plugin: backtype.storm.security.auth.DefaultHttpCredentialsPlugin
 
 logs.users: null
 
