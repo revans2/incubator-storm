@@ -205,7 +205,7 @@
         (seq body))
       ])))
 
-(def http-creds-handler (AuthUtils/GetLogviewerHttpCredentialsPlugin *STORM-CONF*))
+(def http-creds-handler (AuthUtils/GetUiHttpCredentialsPlugin *STORM-CONF*))
 
 (defroutes log-routes
   (GET "/log" [:as {servlet-request :servlet-request} & m]

@@ -188,17 +188,6 @@ public class AuthUtils {
     }
 
     /**
-     * Construct an HttpServletRequest credential plugin specified by the
-     * logviewer storm configuration
-     * @param conf storm configuration
-     * @return the plugin
-     */
-    public static IHttpCredentialsPlugin GetLogviewerHttpCredentialsPlugin(Map conf) {
-        String klassName = (String)conf.get(Config.LOGVIEWER_HTTP_CREDS_PLUGIN);
-        return AuthUtils.GetHttpCredentialsPlugin(conf, klassName);
-    }
-
-    /**
      * Construct an HttpServletRequest credential plugin specified by the UI
      * storm configuration
      * @param conf storm configuration

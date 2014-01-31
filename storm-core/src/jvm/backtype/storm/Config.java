@@ -538,12 +538,6 @@ public class Config extends HashMap<String, Object> {
     public static final Object UI_HTTP_CREDS_PLUGIN_SCHEMA = String.class;
 
     /**
-     * Class name of the HTTP credentials plugin for the logviewer.
-     */
-    public static final String LOGVIEWER_HTTP_CREDS_PLUGIN = "logviewer.http.creds.plugin";
-    public static final Object LOGVIEWER_HTTP_CREDS_PLUGIN_SCHEMA = String.class;
-
-    /**
      * Class name of the HTTP credentials plugin for DRPC.
      */
     public static final String DRPC_HTTP_CREDS_PLUGIN = "drpc.http.creds.plugin";
