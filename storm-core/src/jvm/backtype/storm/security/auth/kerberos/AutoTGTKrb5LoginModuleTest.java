@@ -4,7 +4,7 @@ import java.security.Principal;
 import javax.security.auth.kerberos.KerberosTicket;
 
 /**
- * Custom LoginModule to enable Auto Login based on cached ticket
+ * Custom LoginModule extended for testing.
  */
 public class AutoTGTKrb5LoginModuleTest extends AutoTGTKrb5LoginModule {
 
