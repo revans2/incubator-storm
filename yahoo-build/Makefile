@@ -46,6 +46,8 @@ _release: RELEASE build
 	cp ../storm-core-mvn/target/dependency/*.jar _release/storm/lib
 	cp ../storm-netty-mvn/target/storm-netty-$(BASE_VERSION).jar _release/storm/storm-netty.jar
 	cp ../storm-netty-mvn/target/dependency/*.jar _release/storm/lib
+	cp ../storm-yahoo/target/storm-yahoo-$(BASE_VERSION).jar _release/storm/storm-yahoo.jar
+	cp ../storm-yahoo/target/dependency/*.jar _release/storm/lib
 	cp ../CHANGELOG.md _release/storm/
 	cp RELEASE _release/storm/
 	cp -r ../logback _release/storm/
