@@ -15,6 +15,7 @@ YINST requires pkg ystorm_jzmq           2.1.0.6     *
 YINST requires pkg ypython               2.6.0_2     2.7.9999
 YINST requires pkg yjava_jdk             1.7.0_11.64 1.7.999999
 YINST requires pkg yjava_servlet_filters 0.22.495    *
+YINST requires pkg yjava_yca             0.23.218    *
 
 YINST set storm_local_dir                 /home/y/var/storm
 YINST set syslog_facility                 LOCAL5
@@ -27,10 +28,16 @@ YINST set min_user_id                     500
 YINST set storm_messaging_transport       backtype.storm.messaging.netty.Context
 YINST set logviewer_cleanup_interval_secs 1440
 YINST set drpc_http_port                  -1
+YINST set drpc_authorizer_acl_strict      true
 
 # Bouncer UI Filter Configuration
 #YINST set ui_filter                yjava.servlet.filter.BouncerFilter
 YINST set ui_filter_params bouncer_cookie_timeout,480,bouncer_url,https://by.bouncer.login.yahoo.com/login/
+
+# DRPC HTTP Filter Configuration
+#YINST set drpc_http_filter yjava.servlet.filter.YCAFilter
+YINST set drpc_http_filter_params yca.disabled,false,yca.allowAny,true,yca.optional,true
+#YINST set drpc_http_creds_plugin com.yahoo.storm.security.yca.YcaHttpCredentialsPlugin
 
 PERM = 0444
 OWNER = root
@@ -39,7 +46,7 @@ GROUP = users
 dir 3777 - - lib64/storm/$(BASE_VERSION)/logs
 dir 3777 - - lib64/storm/$(BASE_VERSION)/logs/metadata
 find 755 - - lib64/storm/$(BASE_VERSION)/bin/ ../bin/ -type f
-find - - - lib64/storm/$(BASE_VERSION)/lib/ ../storm-core-mvn/target/dependency/ ../storm-netty-mvn/target/dependency/ -type f
+find - - - lib64/storm/$(BASE_VERSION)/lib/ ../storm-core-mvn/target/dependency/ ../storm-netty-mvn/target/dependency/ ../storm-yahoo/target/dependency/ -type f
 
 # Bouncer UI Filter
 symlink - - - lib64/storm/$(BASE_VERSION)/lib/yjava_servlet_filters.jar /home/y/lib/jars/yjava_servlet_filters.jar
@@ -47,6 +54,7 @@ symlink - - - lib64/storm/$(BASE_VERSION)/lib/yjava_filter_logic.jar    /home/y/
 symlink - - - lib64/storm/$(BASE_VERSION)/lib/yjava_servlet.jar         /home/y/lib/jars/yjava_servlet.jar
 symlink - - - lib64/storm/$(BASE_VERSION)/lib/yjava_byauth.jar          /home/y/lib/jars/yjava_byauth.jar
 symlink - - - lib64/storm/$(BASE_VERSION)/lib/bouncer_auth_java.jar     /home/y/lib/jars/bouncer_auth_java.jar
+symlink - - - lib64/storm/$(BASE_VERSION)/lib/yjava_yca.jar             /home/y/lib/jars/yjava_yca.jar
 
 #The actual group of the executable will be set by a pre-activate script
 file 6550 root root lib64/storm/$(BASE_VERSION)/bin/worker-launcher ../storm-core-mvn/target/native/target/usr/local/bin/worker-launcher
@@ -60,11 +68,15 @@ file 444 - - lib64/jars/storm-core.pom ../storm-core-mvn/pom.xml
 file 444 - - lib64/jars/storm-netty.jar ../storm-netty-mvn/target/storm-netty-$(BASE_VERSION).jar
 file 444 - - lib64/jars/storm-netty-sources.jar ../storm-netty-mvn/target/storm-netty-$(BASE_VERSION)-sources.jar
 file 444 - - lib64/jars/storm-netty.pom ../storm-netty-mvn/pom.xml
+file 444 - - lib64/jars/storm-yahoo.jar ../storm-yahoo/target/storm-yahoo-$(BASE_VERSION).jar
+file 444 - - lib64/jars/storm-yahoo-sources.jar ../storm-yahoo/target/storm-yahoo-$(BASE_VERSION)-sources.jar
+file 444 - - lib64/jars/storm-yahoo.pom ../storm-yahoo/pom.xml
 file 444 - - lib64/storm/$(BASE_VERSION)/RELEASE ./RELEASE
 file 444 - - lib64/storm/$(BASE_VERSION)/CHANGELOG.md ../CHANGELOG.md
 file 444 - - lib64/storm/$(BASE_VERSION)/LICENSE.html ../LICENSE.html
 file 444 - - lib64/storm/$(BASE_VERSION)/storm-core-$(BASE_VERSION).jar ../storm-core-mvn/target/storm-core-$(BASE_VERSION).jar
 file 444 - - lib64/storm/$(BASE_VERSION)/storm-netty-$(BASE_VERSION).jar ../storm-netty-mvn/target/storm-netty-$(BASE_VERSION).jar
+file 444 - - lib64/storm/$(BASE_VERSION)/storm-yahoo-$(BASE_VERSION).jar ../storm-yahoo/target/storm-yahoo-$(BASE_VERSION).jar
 file 444 - - lib64/storm/$(BASE_VERSION)/README.markdown ../README.markdown
 file 444 - - lib64/storm/$(BASE_VERSION)/README.yahoo ./README.yahoo
 

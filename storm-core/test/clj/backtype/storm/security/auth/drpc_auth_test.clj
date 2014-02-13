@@ -16,9 +16,8 @@
 
 (def drpc-timeout (Integer. 30))
 
-(defn launch-server [conf drpcAznClass invocationsAznClass transportPluginClass login-cfg] 
+(defn launch-server [conf drpcAznClass transportPluginClass login-cfg]
   (let [conf (if drpcAznClass (assoc conf DRPC-AUTHORIZER drpcAznClass) conf)
-        conf (if invocationsAznClass (assoc conf DRPC-INVOCATIONS-AUTHORIZER invocationsAznClass) conf)
         conf (if transportPluginClass (assoc conf STORM-THRIFT-TRANSPORT-PLUGIN transportPluginClass) conf)
         conf (if login-cfg (assoc conf "java.security.auth.login.config" login-cfg) conf)
         service-handler (drpc/service-handler conf)
@@ -49,7 +48,6 @@
 (deftest deny-drpc-test 
   (let [storm-conf (read-storm-config)]
     (with-server [storm-conf "backtype.storm.security.auth.authorizer.DenyAuthorizer"  
-                  "backtype.storm.security.auth.authorizer.DenyAuthorizer"  
                   nil nil]
       (let [drpc (DRPCClient. storm-conf "localhost" (storm-conf DRPC-PORT))
             drpc_client (.getClient drpc)
@@ -65,7 +63,6 @@
 (deftest deny-drpc-digest-test 
   (let [storm-conf (read-storm-config)]
     (with-server [storm-conf "backtype.storm.security.auth.authorizer.DenyAuthorizer"  
-                  "backtype.storm.security.auth.authorizer.DenyAuthorizer"  
                   "backtype.storm.security.auth.digest.DigestSaslTransportPlugin" 
                   "test/clj/backtype/storm/security/auth/jaas_digest.conf"]
       (let [conf (merge storm-conf {STORM-THRIFT-TRANSPORT-PLUGIN "backtype.storm.security.auth.digest.DigestSaslTransportPlugin"
