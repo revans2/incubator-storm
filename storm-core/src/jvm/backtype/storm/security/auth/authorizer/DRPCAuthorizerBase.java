@@ -17,7 +17,7 @@ public abstract class DRPCAuthorizerBase implements IAuthorizer {
 
     abstract protected boolean permitClientRequest(ReqContext context, String operation, Map params);
 
-    abstract protected boolean permitTopologyRequest(ReqContext context, String operation, Map params);
+    abstract protected boolean permitInvocationRequest(ReqContext context, String operation, Map params);
     
     /**
      * Authorizes request from to the DRPC server.
@@ -32,7 +32,7 @@ public abstract class DRPCAuthorizerBase implements IAuthorizer {
         } else if ("failRequest".equals(operation) || 
                 "fetchRequest".equals(operation) || 
                 "result".equals(operation)) {
-            return permitTopologyRequest(context, operation, params);
+            return permitInvocationRequest(context, operation, params);
         }
         // Deny unsupported operations.
         return false;

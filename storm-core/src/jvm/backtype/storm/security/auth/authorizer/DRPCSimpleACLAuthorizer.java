@@ -136,7 +136,7 @@ public class DRPCSimpleACLAuthorizer extends DRPCAuthorizerBase {
     }
 
     @Override
-    protected boolean permitTopologyRequest(ReqContext context, String operation,
+    protected boolean permitInvocationRequest(ReqContext context, String operation,
             Map params) {
         return permitClientOrInvocationRequest(context, params, "invocationUser");
     }
