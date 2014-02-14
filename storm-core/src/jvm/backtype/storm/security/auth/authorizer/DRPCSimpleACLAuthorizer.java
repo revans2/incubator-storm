@@ -21,7 +21,7 @@ public class DRPCSimpleACLAuthorizer extends DRPCAuthorizerBase {
         LoggerFactory.getLogger(DRPCSimpleACLAuthorizer.class);
 
     public static final String CLIENT_USERS_KEY = "client.users";
-    public static final String INVOCATIONS_USERS_KEY = "invocation.users";
+    public static final String INVOCATION_USER_KEY = "invocation.user";
     public static final String FUNCTION_KEY = "function";
 
     protected String _aclFileName = "drpc-auth-acl.yaml";
@@ -40,13 +40,12 @@ public class DRPCSimpleACLAuthorizer extends DRPCAuthorizerBase {
 
     protected class AclFunctionEntry {
         final public Set<String> clientUsers;
-        final public Set<String> invocationUsers;
+        final public String invocationUser;
         public AclFunctionEntry(Collection<String> clientUsers,
-                Collection<String> invocationUsers) {
+                String invocationUser) {
             this.clientUsers = (clientUsers != null) ?
                 new HashSet<String>(clientUsers) : new HashSet<String>();
-            this.invocationUsers = (invocationUsers != null) ?
-                new HashSet<String>(invocationUsers) : new HashSet<String>();
+            this.invocationUser = invocationUser;
         }
     }
 
@@ -58,20 +57,20 @@ public class DRPCSimpleACLAuthorizer extends DRPCAuthorizerBase {
         Map conf = Utils.findAndReadConfigFile(_aclFileName);
         if (conf.containsKey(Config.DRPC_AUTHORIZER_ACL)) {
             _acl.clear();
-            Map<String,Map<String,Collection<String>>> confAcl =
-                (Map<String,Map<String,Collection<String>>>)
+            Map<String,Map<String,?>> confAcl =
+                (Map<String,Map<String,?>>)
                 conf.get(Config.DRPC_AUTHORIZER_ACL);
 
             for (String function : confAcl.keySet()) {
-                Map<String,Collection<String>> val = confAcl.get(function);
+                Map<String,?> val = confAcl.get(function);
                 Collection<String> clientUsers =
                     val.containsKey(CLIENT_USERS_KEY) ?
-                    val.get(CLIENT_USERS_KEY) : null;
-                Collection<String> invocationUsers =
-                    val.containsKey(INVOCATIONS_USERS_KEY) ?
-                    val.get(INVOCATIONS_USERS_KEY) : null;
+                    (Collection<String>) val.get(CLIENT_USERS_KEY) : null;
+                String invocationUser =
+                    val.containsKey(INVOCATION_USER_KEY) ?
+                    (String) val.get(INVOCATION_USER_KEY) : null;
                 _acl.put(function,
-                        new AclFunctionEntry(clientUsers, invocationUsers));
+                        new AclFunctionEntry(clientUsers, invocationUser));
             }
         } else if (!_permitWhenMissingFunctionEntry) {
             LOG.warn("Requiring explicit ACL entries, but none given. " +
@@ -109,15 +108,20 @@ public class DRPCSimpleACLAuthorizer extends DRPCAuthorizerBase {
                 return true;
             }
             if (entry != null) {
-                Set<String> userSet;
+                Object value;
                 try {
                     Field field = AclFunctionEntry.class.getDeclaredField(fieldName);
-                    userSet = (Set<String>) field.get(entry);
+                    value = field.get(entry);
                 } catch (Exception ex) {
                     LOG.warn("Caught Exception while accessing ACL", ex);
                     return false;
                 }
-                if (userSet.contains(getUserFromContext(context))) {
+                String requestingUser = getUserFromContext(context);
+                if (value instanceof Set && 
+                        ((Set<String>)value).contains(requestingUser)) {
+                    return true;
+                } else if (value instanceof String && 
+                        requestingUser.equals((String)value)) {
                     return true;
                 }
             }
@@ -134,6 +138,6 @@ public class DRPCSimpleACLAuthorizer extends DRPCAuthorizerBase {
     @Override
     protected boolean permitTopologyRequest(ReqContext context, String operation,
             Map params) {
-        return permitClientOrInvocationRequest(context, params, "invocationUsers");
+        return permitClientOrInvocationRequest(context, params, "invocationUser");
     }
 }

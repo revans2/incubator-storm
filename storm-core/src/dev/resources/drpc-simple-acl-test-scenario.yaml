@@ -4,5 +4,5 @@ drpc.authorizer.acl:
   "jump":
     "client.users":
       - "alice"
-    "invocation.users":
       - "bob"
+    "invocation.user": "charlie"

@@ -16,6 +16,7 @@
 (let [function "jump"
       alice-context (mk-mock-context "alice")
       bob-context (mk-mock-context "bob")
+      charlie-context (mk-mock-context "charlie")
       strict-handler (doto (DRPCSimpleACLAuthorizer.)
                            (.prepare {DRPC-AUTHORIZER-ACL-STRICT true}))
       permissive-handler (doto (DRPCSimpleACLAuthorizer.)
@@ -68,7 +69,7 @@
     (testing "allow execute to authorized user for correct function"
       (is
         (.permit permissive-handler
-                 alice-context
+                 bob-context
                  "execute"
                  {DRPCSimpleACLAuthorizer/FUNCTION_KEY function}))))
 
@@ -89,7 +90,7 @@
         (is (not
               (.permit
                 strict-handler
-                bob-context
+                charlie-context
                 operation
                 {DRPCSimpleACLAuthorizer/FUNCTION_KEY "wrongFunction"}))))
 
@@ -98,7 +99,7 @@
         (is
           (.permit
             strict-handler
-            bob-context
+            charlie-context
             operation
             {DRPCSimpleACLAuthorizer/FUNCTION_KEY function}))))))
 
@@ -110,7 +111,7 @@
         (is (not
               (.permit
                 permissive-handler
-                alice-context
+                bob-context
                 operation
                 {DRPCSimpleACLAuthorizer/FUNCTION_KEY function}))))
 
@@ -119,7 +120,7 @@
           (is
             (.permit
               permissive-handler
-              bob-context
+              charlie-context
               operation
               {DRPCSimpleACLAuthorizer/FUNCTION_KEY "wrongFunction"})))
 
@@ -127,7 +128,7 @@
         (is
           (.permit
             permissive-handler
-            bob-context
+            charlie-context
             operation
             {DRPCSimpleACLAuthorizer/FUNCTION_KEY function})))))
 
@@ -143,12 +144,12 @@
            {DRPCSimpleACLAuthorizer/FUNCTION_KEY nil})))
 
     (is (not
-         (.permit permissive-handler alice-context "execute" {})))
+         (.permit permissive-handler bob-context "execute" {})))
 
     (is (not
          (.permit
            permissive-handler
-           alice-context
+           bob-context
            "execute"
            {DRPCSimpleACLAuthorizer/FUNCTION_KEY nil}))))
 
