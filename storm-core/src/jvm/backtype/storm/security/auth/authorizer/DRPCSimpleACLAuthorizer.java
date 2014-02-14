@@ -82,7 +82,7 @@ public class DRPCSimpleACLAuthorizer extends DRPCAuthorizerBase {
     @Override
     public void prepare(Map conf) {
         _acl.clear();
-        if ((boolean) conf.get(Config.DRPC_AUTHORIZER_ACL_STRICT)) {
+        if ((Boolean) conf.get(Config.DRPC_AUTHORIZER_ACL_STRICT)) {
             _permitWhenMissingFunctionEntry = false;
         } else {
             _permitWhenMissingFunctionEntry = true;
