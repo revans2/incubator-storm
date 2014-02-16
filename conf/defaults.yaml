@@ -20,6 +20,7 @@ storm.zookeeper.auth.password: null
 storm.cluster.mode: "distributed" # can be distributed or local
 storm.local.mode.zmq: false
 storm.thrift.transport: "backtype.storm.security.auth.SimpleTransportPlugin"
+storm.thrift.chunk.size: 307200
 storm.principal.tolocal: "backtype.storm.security.auth.DefaultPrincipalToLocal"
 storm.messaging.transport: "backtype.storm.messaging.zmq"
 storm.nimbus.retry.times: 5
