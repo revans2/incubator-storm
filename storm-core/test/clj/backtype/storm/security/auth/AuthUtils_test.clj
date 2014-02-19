@@ -1,10 +1,13 @@
 (ns backtype.storm.security.auth.AuthUtils-test
-  (:import [backtype.storm.security.auth AuthUtils])
+  (:import [backtype.storm.security.auth AuthUtils IAutoCredentials])
   (:import [java.io IOException])
   (:import [javax.security.auth.login AppConfigurationEntry Configuration])
   (:import [org.mockito Mockito])
   (:use [clojure test])
+  (:use [backtype.storm bootstrap])
 )
+
+(bootstrap)
 
 (deftest test-throws-on-missing-section
   (is (thrown? IOException
@@ -46,5 +49,16 @@
       (is (not (nil? (AuthUtils/get conf section k))))
       (is (= (AuthUtils/get conf section k) expected))
     )
+  ))
+
+(deftest test-empty-auto-creds
+  (let [result (AuthUtils/GetAutoCredentials {})]
+    (is (.isEmpty result))
+  )
+)
+
+(deftest test-empty-creds-renewers
+  (let [result (AuthUtils/GetCredentialRenewers {})]
+    (is (.isEmpty result))
   )
 )

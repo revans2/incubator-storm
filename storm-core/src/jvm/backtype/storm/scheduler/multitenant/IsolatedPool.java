@@ -171,7 +171,9 @@ public class IsolatedPool extends NodePool {
     _usedNodes += foundMore.size();
     allNodes.addAll(foundMore);
 
-    int slotsRequested = td.getNumWorkers();
+    int totalTasks = td.getExecutors().size();
+    int origRequest = td.getNumWorkers();
+    int slotsRequested = Math.min(totalTasks, origRequest);
     int slotsUsed = Node.countSlotsUsed(allNodes);
     int slotsFree = Node.countFreeSlotsAlive(allNodes);
     int slotsToUse = Math.min(slotsRequested - slotsUsed, slotsFree);
@@ -193,7 +195,9 @@ public class IsolatedPool extends NodePool {
       NodePool[] lesserPools) {
     String topId = td.getId();
     LOG.debug("Topology {} is not isolated",topId);
-    int slotsRequested = td.getNumWorkers();
+    int totalTasks = td.getExecutors().size();
+    int origRequest = td.getNumWorkers();
+    int slotsRequested = Math.min(totalTasks, origRequest);
     int slotsUsed = Node.countSlotsUsed(topId, allNodes);
     int slotsFree = Node.countFreeSlotsAlive(allNodes);
     //Check to see if we have enough slots before trying to get them

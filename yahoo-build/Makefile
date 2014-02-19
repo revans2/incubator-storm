@@ -10,6 +10,12 @@ all: build
 test:
 	cd .. && $(MVN) -f m2-pom.xml -Pnative -Pcoverage -Dworker-launcher.conf.dir=${EXEC_CONF_DIR} package ${MVN_MAKE_OPTS}
 
+check: test
+	@echo "Errors or Failures:"
+	@egrep -il '<fail|<error' ../*/target/test-reports/*.xml | xargs -I '{}' bash -c "echo -n '{}':' '; egrep -ic '<fail|<error' '{}'"
+	@! egrep -iq '<fail|<error' ../*/target/test-reports/*.xml 
+
+
 build:
 	cd .. && $(MVN) -f m2-pom.xml -Pnative -Dworker-launcher.conf.dir=${EXEC_CONF_DIR} package -DskipTests ${MVN_MAKE_OPTS}
 
@@ -40,6 +46,8 @@ _release: RELEASE build
 	cp ../storm-core-mvn/target/dependency/*.jar _release/storm/lib
 	cp ../storm-netty-mvn/target/storm-netty-$(BASE_VERSION).jar _release/storm/storm-netty.jar
 	cp ../storm-netty-mvn/target/dependency/*.jar _release/storm/lib
+	cp ../storm-yahoo/target/storm-yahoo-$(BASE_VERSION).jar _release/storm/storm-yahoo.jar
+	cp ../storm-yahoo/target/dependency/*.jar _release/storm/lib
 	cp ../CHANGELOG.md _release/storm/
 	cp RELEASE _release/storm/
 	cp -r ../logback _release/storm/
@@ -93,7 +101,7 @@ component: BB_BIM_FILE=$(COMPONENT_BIM)
 
 git-tag:
 	git tag -f -a $(FULL_VERSION) -m "yahoo version $(FULL_VERSION)"
-	git push --tags
+	git push origin $(FULL_VERSION)
 
 component-dist-push:: BB_BIM_FILE=./component.bim
 #component-dist-push:: component BB_Dist_Push

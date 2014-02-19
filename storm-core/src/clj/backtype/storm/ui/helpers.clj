@@ -55,12 +55,12 @@
   (pretty-uptime-str* ms PRETTY-MS-DIVIDERS))
 
 
-(defelem table [headers data]
+(defelem table [headers-map data]
   [:table
    [:thead
     [:tr
-     (for [h headers]
-       [:th h])
+     (for [h headers-map]
+       [:th (if (:text h) [:span (:attr h) (:text h)] h)])
      ]]
    [:tbody
     (for [row data]
@@ -134,18 +134,15 @@ $(\"table#%s\").each(function(i) { $(this).tablesorter({ sortList: %s, headers: 
 (defn pretty-executor-info [^ExecutorInfo e]
   (str "[" (.get_task_start e) "-" (.get_task_end e) "]"))
 
-(defn get-servlet-user [servlet-request]
-  (when servlet-request (.. servlet-request getUserPrincipal getName)))
-
 (defn unauthorized-user-html [user]
   [[:h2 "User '" (escape-html user) "' is not authorized."]])
 
-(defn config-filter [server handler conf]
-  (if-let [filter-class (conf UI-FILTER)]
+(defn config-filter [server handler filter-class filter-params]
+  (if filter-class
     (let [filter (doto (org.mortbay.jetty.servlet.FilterHolder.)
                    (.setName "springSecurityFilterChain")
                    (.setClassName filter-class)
-                   (.setInitParameters (conf UI-FILTER-PARAMS)))
+                   (.setInitParameters filter-params))
           servlet (doto (org.mortbay.jetty.servlet.ServletHolder. (ring.util.servlet/servlet handler))
                     (.setName "default"))
           context (doto (org.mortbay.jetty.servlet.Context. server "/")

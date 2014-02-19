@@ -3,6 +3,7 @@ package backtype.storm.security.auth;
 import backtype.storm.Config;
 import javax.security.auth.login.Configuration;
 import javax.security.auth.login.AppConfigurationEntry;
+import javax.security.auth.Subject;
 import java.security.NoSuchAlgorithmException;
 import java.security.URIParameter;
 import org.slf4j.Logger;
@@ -11,6 +12,9 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.URI;
+import java.util.Collection;
+import java.util.Set;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 
@@ -66,6 +70,92 @@ public class AuthUtils {
     }
 
     /**
+     * Get all of the configured Credential Renwer Plugins.
+     * @param storm_conf the storm configuration to use.
+     * @return the configured credential renewers.
+     */ 
+    public static Collection<ICredentialsRenewer> GetCredentialRenewers(Map conf) {
+        try {
+            Set<ICredentialsRenewer> ret = new HashSet<ICredentialsRenewer>();
+            Collection<String> clazzes = (Collection<String>)conf.get(Config.NIMBUS_CREDENTIAL_RENEWERS);
+            if (clazzes != null) {
+                for (String clazz : clazzes) {
+                    ICredentialsRenewer inst = (ICredentialsRenewer)Class.forName(clazz).newInstance();
+                    inst.prepare(conf);
+                    ret.add(inst);
+                }
+            }
+            return ret;
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    /**
+     * Get all of the configured AutoCredential Plugins.
+     * @param storm_conf the storm configuration to use.
+     * @return the configured auto credentials.
+     */ 
+    public static Collection<IAutoCredentials> GetAutoCredentials(Map storm_conf) {
+        try {
+            Set<IAutoCredentials> autos = new HashSet<IAutoCredentials>();
+            Collection<String> clazzes = (Collection<String>)storm_conf.get(Config.TOPOLOGY_AUTO_CREDENTIALS);
+            if (clazzes != null) {
+                for (String clazz : clazzes) {
+                    IAutoCredentials a = (IAutoCredentials)Class.forName(clazz).newInstance();
+                    a.prepare(storm_conf);
+                    autos.add(a);
+                }
+            }
+            LOG.info("Got AutoCreds "+autos);
+            return autos;
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    /**
+     * Populate a subject from credentials using the IAutoCredentials.
+     * @param subject the subject to populate or null if a new Subject should be created.
+     * @param autos the IAutoCredentials to call to populate the subject.
+     * @param credentials the credentials to pull from
+     * @return the populated subject.
+     */ 
+    public static Subject populateSubject(Subject subject, Collection<IAutoCredentials> autos, Map<String,String> credentials) {
+        try {
+            if (subject == null) {
+                subject = new Subject();
+            }
+            for (IAutoCredentials autoCred : autos) {
+                autoCred.populateSubject(subject, credentials);
+            }
+            return subject;
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    /**
+     * Update a subject from credentials using the IAutoCredentials.
+     * @param subject the subject to update 
+     * @param autos the IAutoCredentials to call to update the subject.
+     * @param credentials the credentials to pull from
+     */ 
+    public static void updateSubject(Subject subject, Collection<IAutoCredentials> autos, Map<String,String> credentials) {
+        if (subject == null) {
+            throw new RuntimeException("The subject cannot be null when updating a subject with credentials");
+        }
+
+        try {
+            for (IAutoCredentials autoCred : autos) {
+                autoCred.updateSubject(subject, credentials);
+            }
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    /**
      * Construct a transport plugin per storm configuration
      * @param conf storm configuration
      * @return
@@ -82,6 +172,41 @@ public class AuthUtils {
             throw new RuntimeException(e);
         } 
         return transportPlugin;
+    }
+
+    private static IHttpCredentialsPlugin GetHttpCredentialsPlugin(Map conf,
+            String klassName) {
+        IHttpCredentialsPlugin plugin = null;
+        try {
+            Class klass = Class.forName(klassName);
+            plugin = (IHttpCredentialsPlugin)klass.newInstance();
+            plugin.prepare(conf);
+        } catch(Exception e) {
+            throw new RuntimeException(e);
+        }
+        return plugin;
+    }
+
+    /**
+     * Construct an HttpServletRequest credential plugin specified by the UI
+     * storm configuration
+     * @param conf storm configuration
+     * @return the plugin
+     */
+    public static IHttpCredentialsPlugin GetUiHttpCredentialsPlugin(Map conf) {
+        String klassName = (String)conf.get(Config.UI_HTTP_CREDS_PLUGIN);
+        return AuthUtils.GetHttpCredentialsPlugin(conf, klassName);
+    }
+
+    /**
+     * Construct an HttpServletRequest credential plugin specified by the DRPC
+     * storm configuration
+     * @param conf storm configuration
+     * @return the plugin
+     */
+    public static IHttpCredentialsPlugin GetDrpcHttpCredentialsPlugin(Map conf) {
+        String klassName = (String)conf.get(Config.DRPC_HTTP_CREDS_PLUGIN);
+        return AuthUtils.GetHttpCredentialsPlugin(conf, klassName);
     }
 
     public static String get(Configuration configuration, String section, String key) throws IOException {

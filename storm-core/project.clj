@@ -17,7 +17,9 @@
                  [compojure "1.1.3"]
                  [hiccup "0.3.6"]
                  [ring/ring-devel "0.3.11"]
-                 [ring/ring-jetty-adapter "0.3.11"]
+                 [ring/ring-jetty-adapter "0.3.11"
+                  :exclusions [org.mortbay.jetty/servlet-api]]
+                 [javax.servlet/servlet-api "2.5"]
                  [org.clojure/tools.logging "0.2.3"]
                  [org.clojure/math.numeric-tower "0.0.1"]
                  [storm/carbonite "1.5.0"]

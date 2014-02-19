@@ -213,7 +213,11 @@ public class TopologyContext extends WorkerTopologyContext implements IMetricsCo
             throw new RuntimeException("TopologyContext.registerMetric can only be called from within overridden " + 
                                        "IBolt::prepare() or ISpout::open() method.");
         }
-        
+       
+        if (metric == null) {
+            throw new NullPointerException("Cannot register a null metric");
+        }
+ 
         Map m1 = _registeredMetrics;
         if(!m1.containsKey(timeBucketSizeInSecs)) {
             m1.put(timeBucketSizeInSecs, new HashMap());

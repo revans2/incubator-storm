@@ -383,6 +383,18 @@ public class Config extends HashMap<String, Object> {
     public static final Object NIMBUS_AUTHORIZER_SCHEMA = String.class;
 
     /**
+     * How often nimbus should wake up to renew credentials if needed.
+     */
+    public static final String NIMBUS_CREDENTIAL_RENEW_FREQ_SECS = "nimbus.credential.renewers.freq.secs";
+    public static final Object NIMBUS_CREDENTIAL_RENEW_FREQ_SECS_SCHEMA = Number.class;
+
+    /**
+     * A list of credential renewers that nimbus should load.
+     */
+    public static final String NIMBUS_CREDENTIAL_RENEWERS = "nimbus.credential.renewers.classes";
+    public static final Object NIMBUS_CREDENTIAL_RENEWERS_SCHEMA = ConfigValidation.StringsValidator;
+
+    /**
      * Storm UI binds to this port.
      */
     public static final String UI_PORT = "ui.port";
@@ -520,6 +532,18 @@ public class Config extends HashMap<String, Object> {
     public static final Object DRPC_CHILDOPTS_SCHEMA = String.class;
 
     /**
+     * Class name of the HTTP credentials plugin for the UI.
+     */
+    public static final String UI_HTTP_CREDS_PLUGIN = "ui.http.creds.plugin";
+    public static final Object UI_HTTP_CREDS_PLUGIN_SCHEMA = String.class;
+
+    /**
+     * Class name of the HTTP credentials plugin for DRPC.
+     */
+    public static final String DRPC_HTTP_CREDS_PLUGIN = "drpc.http.creds.plugin";
+    public static final Object DRPC_HTTP_CREDS_PLUGIN_SCHEMA = String.class;
+
+    /**
      * the metadata configured on the supervisor
      */
     public static final String SUPERVISOR_SCHEDULER_META = "supervisor.scheduler.meta";
@@ -537,6 +561,19 @@ public class Config extends HashMap<String, Object> {
      */
     public static final String NIMBUS_SLOTS_PER_TOPOLOGY = "nimbus.slots.perTopology";
     public static final Object NIMBUS_SLOTS_PER_TOPOLOGY_SCHEMA = Number.class;
+
+    /**
+     * A class implementing javax.servlet.Filter for DRPC HTTP requests
+     */
+    public static final String DRPC_HTTP_FILTER = "drpc.http.filter";
+    public static final Object DRPC_HTTP_FILTER_SCHEMA = String.class;
+
+    /**
+     * Initialization parameters for the javax.servlet.Filter of the DRPC HTTP
+     * service
+     */
+    public static final String DRPC_HTTP_FILTER_PARAMS = "drpc.http.filter.params";
+    public static final Object DRPC_HTTP_FILTER_PARAMS_SCHEMA = Map.class;
 
     /**
      * A number representing the maximum number of executors any single topology can acquire.
@@ -610,6 +647,13 @@ public class Config extends HashMap<String, Object> {
     public static final String WORKER_CHILDOPTS = "worker.childopts";
     public static final Object WORKER_CHILDOPTS_SCHEMA = String.class;
 
+    /**
+     * The jvm opts provided to workers launched by this supervisor for GC. All "%ID%" substrings are replaced
+     * with an identifier for this worker.  Because the JVM complains about multiple GC opts the topology
+     * can override this default value by setting topology.worker.gc.childopts.
+     */
+    public static final String WORKER_GC_CHILDOPTS = "worker.gc.childopts";
+    public static final Object WORKER_GC_CHILDOPTS_SCHEMA = String.class;
 
     /**
      * How often this worker should heartbeat to the supervisor.
@@ -827,6 +871,12 @@ public class Config extends HashMap<String, Object> {
     public static final Object TOPOLOGY_WORKER_CHILDOPTS_SCHEMA = String.class;
 
     /**
+     * Topology-specific options GC for the worker child process. This overrides WORKER_GC_CHILDOPTS.
+     */
+    public static final String TOPOLOGY_WORKER_GC_CHILDOPTS="topology.worker.gc.childopts";
+    public static final Object TOPOLOGY_WORKER_GC_CHILDOPTS_SCHEMA = String.class;
+
+    /**
      * This config is available for TransactionalSpouts, and contains the id ( a String) for
      * the transactional topology. This id is used to store the state of the transactional
      * topology in Zookeeper.
@@ -934,7 +984,13 @@ public class Config extends HashMap<String, Object> {
      */
     public static final String TOPOLOGY_SPREAD_COMPONENTS = "topology.spread.components";
     public static final Object TOPOLOGY_SPREAD_COMPONENTS_SCHEMA = ConfigValidation.StringsValidator;
-    
+   
+    /**
+     * A list of IAutoCredentials that the topology should load and use.
+     */
+    public static final String TOPOLOGY_AUTO_CREDENTIALS = "topology.auto-credentials";
+    public static final Object TOPOLOGY_AUTO_CREDENTIALS_SCHEMA = ConfigValidation.StringsValidator;
+ 
     /**
      * The root directory in ZooKeeper for metadata about TransactionalSpouts.
      */

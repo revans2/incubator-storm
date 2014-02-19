@@ -89,10 +89,12 @@ public class Node {
     }
   }
   
-  void assignInternal(WorkerSlot ws, String topId) {
+  boolean assignInternal(WorkerSlot ws, String topId, boolean dontThrow) {
     validateSlot(ws);
-    if (!_freeSlots.remove(ws) && _isAlive) {
-      //If the node is dead go ahead and add in a dead slot.  This is part of initialization
+    if (!_freeSlots.remove(ws)) {
+      if (dontThrow) {
+        return true;
+      }
       throw new IllegalStateException("Assigning a slot that was not free " + ws);
     }
     Set<WorkerSlot> usedSlots = _topIdToUsedSlots.get(topId);
@@ -101,6 +103,7 @@ public class Node {
       _topIdToUsedSlots.put(topId, usedSlots);
     }
     usedSlots.add(ws);
+    return false;
   }
   
   /**
@@ -178,7 +181,7 @@ public class Node {
     } else {
       WorkerSlot slot = _freeSlots.iterator().next();
       cluster.assign(slot, topId, executors);
-      assignInternal(slot, topId);
+      assignInternal(slot, topId, false);
     }
   }
   
@@ -257,7 +260,10 @@ public class Node {
           node = new Node(id, null, false);
           nodeIdToNode.put(id, node);
         }
-        node.assignInternal(ws, topId);
+        if (node.assignInternal(ws, topId, true)) {
+          LOG.warn("Bad scheduling state, "+ws+" assigned multiple workers, unassigning everything...");
+          node.free(ws, cluster);
+        }
       }
     }
     

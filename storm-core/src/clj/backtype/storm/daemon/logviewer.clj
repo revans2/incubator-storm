@@ -12,6 +12,7 @@
   (:import [org.apache.log4j Level])
   (:import [org.yaml.snakeyaml Yaml]
            [org.yaml.snakeyaml.constructor SafeConstructor])
+  (:import [backtype.storm.security.auth AuthUtils])
   (:require [compojure.route :as route]
             [compojure.handler :as handler]
             [ring.util.response :as resp])
@@ -191,7 +192,7 @@
     (html4
      [:head
       [:title "Storm log viewer"]
-      (include-css "/css/bootstrap-1.1.0.css")
+      (include-css "/css/bootstrap-1.4.0.css")
       (include-css "/css/style.css")
       (include-js "/js/jquery-1.6.2.min.js")
       (include-js "/js/jquery.tablesorter.min.js")
@@ -204,12 +205,14 @@
         (seq body))
       ])))
 
+(def http-creds-handler (AuthUtils/GetUiHttpCredentialsPlugin *STORM-CONF*))
+
 (defroutes log-routes
   (GET "/log" [:as {servlet-request :servlet-request} & m]
-       (let [user (get-servlet-user servlet-request)]
+       (let [user (.getUserName http-creds-handler servlet-request)]
          (log-template (log-page (:file m) (:tail m) (:grep m) user) user)))
   (GET "/loglevel" [:as {servlet-request :servlet-request} & m]
-       (let [user (get-servlet-user servlet-request)]
+       (let [user (.getUserName http-creds-handler servlet-request)]
          (log-template (log-level-page (:name m) (:level m)) user) user))
   (route/resources "/")
   (route/not-found "Page not found"))
@@ -220,10 +223,17 @@
 
 (defn start-logviewer! [conf]
   (try
-    (run-jetty logapp {:port (int (conf LOGVIEWER-PORT))
-                       :join? false
-                       :configurator (fn [server]
-                                       (config-filter server logapp conf))})
+    (let [header-buffer-size (int (.get conf UI-HEADER-BUFFER-BYTES))
+          filter-class (conf UI-FILTER)
+          filter-params (conf UI-FILTER-PARAMS)]
+      (run-jetty logapp {:port (int (conf LOGVIEWER-PORT))
+                         :join? false
+                         :configurator (fn [server]
+                                         (doseq [connector (.getConnectors server)]
+                                           (.setHeaderBufferSize connector header-buffer-size))
+                                         (config-filter server logapp
+                                                        filter-class
+                                                        filter-params))}))
   (catch Exception ex
     (log-error ex))))
 

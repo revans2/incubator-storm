@@ -41,17 +41,19 @@ remappedKeys = {"storm.messaging.netty.buffer.size":"storm.messaging.netty.buffe
 listKeys = set(["storm.auth.simple-white-list.users", "supervisor.slots.ports",
  "storm.zookeeper.servers", "topology.kryo.register", "drpc.servers",
  "worker.childopts", "ui.users", "logs.users", "nimbus.supervisor.users",
- "nimbus.admins", "topology.users"])
-mapKeys = set(["isolation.scheduler.machines", "multitenant.scheduler.user.pools", "ui.filter.params"])
+ "nimbus.admins", "topology.users", "nimbus.credential.renewers.classes",
+ "topology.auto-credentials"])
+mapKeys = set(["isolation.scheduler.machines", "ui.filter.params", "drpc.http.filter.params"])
 
-allStringKeys = set(["ui.filter.params"])
+allStringKeys = set(["ui.filter.params", "drpc.http.filter.params"])
 
-ignoredKeys = set(["min.user.pid", "storm.zookeeper.auth.payload", "storm.cluster.user", "worker.launcher.group"])
+ignoredKeys = set(["min.user.pid", "storm.zookeeper.auth.payload", "storm.cluster.user", "worker.launcher.group",
+ "multitenant.scheduler.user.pools"])
 
 config = dict((k[8:].replace("_", "."), v) for k, v in os.environ.items() if k.startswith("ystorm__"))
 
 qq_string = re.compile("^\".*\"$")
-numeric = re.compile("^[0-9\.]+$")
+numeric = re.compile("^-?([0-9]*\.)?[0-9]*$")
 bool_re = re.compile("^(true)|(false)$",re.I)
 
 def double_quote_if_needed(str):
