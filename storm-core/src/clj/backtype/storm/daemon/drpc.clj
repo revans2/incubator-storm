@@ -33,7 +33,7 @@
 
 (defn check-authorization
   ([aclHandler mapping operation context]
-    (log-debug "DRPC check-authorization with handler: " aclHandler)
+    (log-message "DRPC check-authorization with handler: " aclHandler)
     (if aclHandler
       (let [context (or context (ReqContext/context))]
         (if-not (.permit aclHandler context operation mapping)
@@ -98,24 +98,26 @@
               ))))
       DistributedRPCInvocations$Iface
       (^void result [this ^String id ^String result]
-        (check-authorization drpc-acl-handler
-                             {DRPCAuthorizerBase/FUNCTION_NAME (@id->func id)}
-                             "result")
-        (let [^Semaphore sem (@id->sem id)]
-          (log-debug "Received result " result " for " id " at " (System/currentTimeMillis))
-          (when sem
-            (swap! id->result assoc id result)
-            (.release sem)
-            )))
+        (when (@id->func id)
+          (check-authorization drpc-acl-handler
+                               {DRPCAuthorizerBase/FUNCTION_NAME (@id->func id)}
+                               "result")
+          (let [^Semaphore sem (@id->sem id)]
+            (log-debug "Received result " result " for " id " at " (System/currentTimeMillis))
+            (when sem
+              (swap! id->result assoc id result)
+              (.release sem)
+              ))))
       (^void failRequest [this ^String id]
-        (check-authorization drpc-acl-handler
-                             {DRPCAuthorizerBase/FUNCTION_NAME (@id->func id)}
-                             "failRequest")
-        (let [^Semaphore sem (@id->sem id)]
-          (when sem
-            (swap! id->result assoc id (DRPCExecutionException. "Request failed"))
-            (.release sem)
-            )))
+        (when (@id->func id)
+          (check-authorization drpc-acl-handler
+                               {DRPCAuthorizerBase/FUNCTION_NAME (@id->func id)}
+                               "failRequest")
+          (let [^Semaphore sem (@id->sem id)]
+            (when sem
+              (swap! id->result assoc id (DRPCExecutionException. "Request failed"))
+              (.release sem)
+              ))))
       (^DRPCRequest fetchRequest [this ^String func]
         (check-authorization drpc-acl-handler
                              {DRPCAuthorizerBase/FUNCTION_NAME func}

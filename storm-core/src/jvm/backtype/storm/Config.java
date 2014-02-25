@@ -501,6 +501,13 @@ public class Config extends HashMap<String, Object> {
     public static final Object DRPC_AUTHORIZER_ACL_SCHEMA = Map.class;
 
     /**
+     * File name of the DRPC Authorizer ACL.
+     * @see DRPCSimpleAclAuthorizer
+     */
+    public static final String DRPC_AUTHORIZER_ACL_FILENAME = "drpc.authorizer.acl.filename";
+    public static final Object DRPC_AUTHORIZER_ACL_FILENAME_SCHEMA = String.class;
+
+    /**
      * Whether the DRPCSimpleAclAuthorizer should deny requests for operations
      * involving functions that have no explicit ACL entry. When set to false
      * (the default) DRPC functions that have no entry in the ACL will be

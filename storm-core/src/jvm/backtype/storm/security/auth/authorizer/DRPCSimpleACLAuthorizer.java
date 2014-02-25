@@ -22,21 +22,11 @@ public class DRPCSimpleACLAuthorizer extends DRPCAuthorizerBase {
 
     public static final String CLIENT_USERS_KEY = "client.users";
     public static final String INVOCATION_USER_KEY = "invocation.user";
-    public static final String FUNCTION_KEY = "function";
+    public static final String FUNCTION_KEY = "function.name";
 
-    protected String _aclFileName = "drpc-auth-acl.yaml";
+    protected String _aclFileName = "";
 
     protected boolean _permitWhenMissingFunctionEntry = false;
-
-    /**
-     * Sets the file name of the configuration from which the ACL is populated.
-     * This has value in enabling test scenarios to be loaded from different
-     * files.
-     * @param String the name (basename) of the file to load
-     */
-    public void setAclFileName(String name) {
-        this._aclFileName = name;
-    }
 
     protected class AclFunctionEntry {
         final public Set<String> clientUsers;
@@ -75,17 +65,18 @@ public class DRPCSimpleACLAuthorizer extends DRPCAuthorizerBase {
         } else if (!_permitWhenMissingFunctionEntry) {
             LOG.warn("Requiring explicit ACL entries, but none given. " +
                     "Therefore, all operiations will be denied.");
-        }
+        } 
+       
     }
 
     @Override
     public void prepare(Map conf) {
         _acl.clear();
-        if ((Boolean) conf.get(Config.DRPC_AUTHORIZER_ACL_STRICT)) {
-            _permitWhenMissingFunctionEntry = false;
-        } else {
-            _permitWhenMissingFunctionEntry = true;
-        }
+        Boolean isStrict = 
+                (Boolean) conf.get(Config.DRPC_AUTHORIZER_ACL_STRICT);
+        _permitWhenMissingFunctionEntry = 
+                (isStrict != null && !isStrict) ? true : false;
+        _aclFileName = (String) conf.get(Config.DRPC_AUTHORIZER_ACL_FILENAME);
     }
 
     private String getUserFromContext(ReqContext context) {

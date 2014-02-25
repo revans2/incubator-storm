@@ -5,7 +5,11 @@ import java.util.Map;
 import backtype.storm.security.auth.IAuthorizer;
 import backtype.storm.security.auth.ReqContext;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 public abstract class DRPCAuthorizerBase implements IAuthorizer {
+    public static Logger LOG = LoggerFactory.getLogger(DRPCAuthorizerBase.class);
 
     /**
      * A key name for the function requested to be executed by a user.
