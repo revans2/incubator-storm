@@ -39,6 +39,8 @@ public abstract class DRPCAuthorizerBase implements IAuthorizer {
             return permitInvocationRequest(context, operation, params);
         }
         // Deny unsupported operations.
+        LOG.warn("Denying unsupported operation \""+operation+"\" from "+
+                context.remoteAddress());
         return false;
     }
 }
