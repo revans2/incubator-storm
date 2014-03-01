@@ -17,14 +17,13 @@
       alice-context (mk-mock-context "alice")
       bob-context (mk-mock-context "bob")
       charlie-context (mk-mock-context "charlie")
+      acl-file "drpc-simple-acl-test-scenario.yaml"
       strict-handler (doto (DRPCSimpleACLAuthorizer.)
-                           (.prepare {DRPC-AUTHORIZER-ACL-STRICT true}))
+                           (.prepare {DRPC-AUTHORIZER-ACL-STRICT true
+                                      DRPC-AUTHORIZER-ACL-FILENAME acl-file}))
       permissive-handler (doto (DRPCSimpleACLAuthorizer.)
-                               (.prepare {DRPC-AUTHORIZER-ACL-STRICT false}))
-      acl-file "resources/drpc-simple-acl-test-scenario.yaml"]
-
-  (.setAclFileName strict-handler acl-file)
-  (.setAclFileName permissive-handler acl-file)
+                               (.prepare {DRPC-AUTHORIZER-ACL-STRICT false
+                                          DRPC-AUTHORIZER-ACL-FILENAME acl-file}))]
 
   (deftest test-client-authorization-strict
     (testing "deny execute to unauthorized user"
