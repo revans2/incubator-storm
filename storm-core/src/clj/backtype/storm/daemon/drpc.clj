@@ -33,7 +33,6 @@
 
 (defn check-authorization
   ([aclHandler mapping operation context]
-    (log-message "DRPC check-authorization with handler: " aclHandler)
     (if aclHandler
       (let [context (or context (ReqContext/context))]
         (if-not (.permit aclHandler context operation mapping)
