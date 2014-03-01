@@ -50,7 +50,9 @@ allStringKeys = set(["ui.filter.params", "drpc.http.filter.params"])
 ignoredKeys = set(["min.user.pid", "storm.zookeeper.auth.payload", "storm.cluster.user", "worker.launcher.group",
  "multitenant.scheduler.user.pools"])
 
-config = dict((k[8:].replace("_", "."), v) for k, v in os.environ.items() if k.startswith("ystorm__"))
+config = dict((k[8:].replace("_", "."), v) for k, v in os.environ.items() \
+        if k.startswith("ystorm__") \
+        and not k.startswith("ystorm__drpc_auth_acl"))
 
 qq_string = re.compile("^\".*\"$")
 numeric = re.compile("^-?([0-9]*\.)?[0-9]*$")
