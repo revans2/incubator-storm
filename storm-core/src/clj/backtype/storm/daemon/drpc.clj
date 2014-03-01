@@ -97,9 +97,9 @@
               ))))
       DistributedRPCInvocations$Iface
       (^void result [this ^String id ^String result]
-        (when (@id->func id)
+        (when-let [func (@id->func id)]
           (check-authorization drpc-acl-handler
-                               {DRPCAuthorizerBase/FUNCTION_NAME (@id->func id)}
+                               {DRPCAuthorizerBase/FUNCTION_NAME func}
                                "result")
           (let [^Semaphore sem (@id->sem id)]
             (log-debug "Received result " result " for " id " at " (System/currentTimeMillis))
@@ -108,9 +108,9 @@
               (.release sem)
               ))))
       (^void failRequest [this ^String id]
-        (when (@id->func id)
+        (when-let [func (@id->func id)]
           (check-authorization drpc-acl-handler
-                               {DRPCAuthorizerBase/FUNCTION_NAME (@id->func id)}
+                               {DRPCAuthorizerBase/FUNCTION_NAME func}
                                "failRequest")
           (let [^Semaphore sem (@id->sem id)]
             (when sem
