@@ -607,5 +607,4 @@
   `(let [f# (future ~@body)]
      (try
        (.get f# ~millis ~unit)
-       (catch java.util.concurrent.TimeoutException e# (throw e#))
        (finally (future-cancel f#)))))
