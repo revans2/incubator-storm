@@ -141,16 +141,19 @@
   (handler/site (->
     (defroutes http-routes
       (GET "/drpc/:func/:args" [:as {:keys [servlet-request]} func args & m]
-          (.populateContext http-creds-handler (ReqContext/context)
-                            servlet-request)
+          (if http-creds-handler
+            (.populateContext http-creds-handler (ReqContext/context)
+                              servlet-request))
           (.execute handler func args))
       (GET "/drpc/:func/" [:as {:keys [servlet-request]} func & m]
-          (.populateContext http-creds-handler (ReqContext/context)
-                            servlet-request)
+          (if http-creds-handler
+            (.populateContext http-creds-handler (ReqContext/context)
+                              servlet-request))
           (.execute handler func ""))
       (GET "/drpc/:func" [:as {:keys [servlet-request]} func & m]
-          (.populateContext http-creds-handler (ReqContext/context)
-                            servlet-request)
+          (if http-creds-handler
+            (.populateContext http-creds-handler (ReqContext/context)
+                              servlet-request))
           (.execute handler func "")))
     (wrap-reload '[backtype.storm.daemon.drpc])
     handle-request)))
