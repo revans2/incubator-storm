@@ -345,6 +345,11 @@
     (.shutdownNow (get dr WorkerTopologyContext/SHARED_EXECUTOR))
     (log-message "Shut down default resources")))
 
+(defn- override-login-config-with-system-property [conf]
+  (if-let [login_conf_file (System/getProperty "java.security.auth.login.config")]
+    (assoc conf "java.security.auth.login.config" login_conf_file)
+    conf))
+
 ;; TODO: should worker even take the storm-id as input? this should be
 ;; deducable from cluster state (by searching through assignments)
 ;; what about if there's inconsistency in assignments? -> but nimbus
@@ -360,6 +365,7 @@
   (when (= :distributed (cluster-mode conf))
     (touch (worker-pid-path conf worker-id (process-pid))))
   (let [storm-conf (read-supervisor-storm-conf conf storm-id)
+        storm-conf (override-login-config-with-system-property storm-conf)
         acls (Utils/getWorkerACL storm-conf)
         cluster-state (cluster/mk-distributed-cluster-state conf :auth-conf storm-conf :acls acls)
         storm-cluster-state (cluster/mk-storm-cluster-state cluster-state :acls acls)
@@ -477,8 +483,6 @@
   (fn [] (halt-process! 1 "Worker died")))
 
 (defn -main [storm-id assignment-id port-str worker-id]  
-  (let [conf1 (read-storm-config)
-        login_conf_file (System/getProperty "java.security.auth.login.config")
-        conf (if login_conf_file (merge conf1 {"java.security.auth.login.config" login_conf_file}) conf1)]
+  (let [conf (read-storm-config)]
     (validate-distributed-mode! conf)
     (mk-worker conf nil (java.net.URLDecoder/decode storm-id) assignment-id (Integer/parseInt port-str) worker-id)))
