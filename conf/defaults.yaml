@@ -71,6 +71,8 @@ drpc.request.timeout.secs: 600
 drpc.childopts: "-Xmx768m"
 drpc.http.port: 3774
 drpc.http.creds.plugin: backtype.storm.security.auth.DefaultHttpCredentialsPlugin
+drpc.authorizer.acl.filename: "drpc-auth-acl.yaml"
+drpc.authorizer.acl.strict: false
 
 transactional.zookeeper.root: "/transactional"
 transactional.zookeeper.servers: null
