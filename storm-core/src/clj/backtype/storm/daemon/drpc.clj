@@ -72,7 +72,7 @@
         ]
     (reify DistributedRPC$Iface
       (^String execute [this ^String function ^String args]
-        (log-debug "Received DRPC request for " function " " args " at " (System/currentTimeMillis))
+        (log-debug "Received DRPC request for " function " (" args ") at " (System/currentTimeMillis))
         (check-authorization drpc-acl-handler
                              {DRPCAuthorizerBase/FUNCTION_NAME function}
                              "execute")
@@ -140,6 +140,16 @@
 (defn webapp [handler http-creds-handler]
   (handler/site (->
     (defroutes http-routes
+      (POST "/drpc/:func" [:as {:keys [body servlet-request]} func & m]
+        (let [user (.getUserName http-creds-handler servlet-request)
+              args (slurp body)]
+          (log-debug "Servlet user was: " user)
+          (.execute handler func args)))
+      (POST "/drpc/:func/" [:as {:keys [body servlet-request]} func & m]
+        (let [user (.getUserName http-creds-handler servlet-request)
+              args (slurp body)]
+          (log-debug "Servlet user was: " user)
+          (.execute handler func args)))
       (GET "/drpc/:func/:args" [:as {:keys [servlet-request]} func args & m]
           (if http-creds-handler
             (.populateContext http-creds-handler (ReqContext/context)
