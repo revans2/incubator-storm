@@ -1,5 +1,6 @@
 (ns backtype.storm.daemon.drpc
   (:import [backtype.storm.security.auth AuthUtils])
+  (:import [backtype.storm.security.auth.authorizer DRPCAuthorizerBase])
   (:import [org.apache.thrift7 TException])
   (:import [backtype.storm.generated DistributedRPC DistributedRPC$Iface DistributedRPC$Processor
             DRPCRequest DRPCExecutionException DistributedRPCInvocations DistributedRPCInvocations$Iface
@@ -30,25 +31,32 @@
         ))
   (@queues-atom function))
 
-(defn check-authorization! [aclHandler storm-conf operation]
-  (log-debug "DRPC check-authorization with handler: " aclHandler)
-  (if aclHandler
-    (if-not (.permit aclHandler (ReqContext/context) operation storm-conf)
-          (throw (AuthorizationException. (str "DRPC request " operation " is not authorized")))
-          )))
+(defn check-authorization
+  ([aclHandler mapping operation context]
+    (if aclHandler
+      (let [context (or context (ReqContext/context))]
+        (if-not (.permit aclHandler context operation mapping)
+          (let [principal (.principal context)
+                user (if principal (.getName principal) "unknown")]
+              (throw (AuthorizationException.
+                       (str "DRPC request '" operation "' for '"
+                            user "' user is not authorized"))))))))
+  ([aclHandler mapping operation]
+    (check-authorization aclHandler mapping operation (ReqContext/context))))
 
 ;; TODO: change this to use TimeCacheMap
 (defn service-handler [conf]
   (let [drpc-acl-handler (mk-authorization-handler (conf DRPC-AUTHORIZER) conf)
-        invocations-acl-handler (mk-authorization-handler (conf DRPC-INVOCATIONS-AUTHORIZER) conf)
         ctr (atom 0)
         id->sem (atom {})
         id->result (atom {})
         id->start (atom {})
+        id->func (atom {})
         request-queues (atom {})
         cleanup (fn [id] (swap! id->sem dissoc id)
                          (swap! id->result dissoc id)
-                         (swap! id->start dissoc id))
+                         (swap! id->start dissoc id)
+                         (swap! id->func dissoc id))
         my-ip (.getHostAddress (InetAddress/getLocalHost))
         clear-thread (async-loop
                       (fn []
@@ -64,13 +72,16 @@
         ]
     (reify DistributedRPC$Iface
       (^String execute [this ^String function ^String args]
-        (log-debug "Received DRPC request for " function " " args " at " (System/currentTimeMillis))
-        (check-authorization! drpc-acl-handler conf "execute")
+        (log-debug "Received DRPC request for " function " (" args ") at " (System/currentTimeMillis))
+        (check-authorization drpc-acl-handler
+                             {DRPCAuthorizerBase/FUNCTION_NAME function}
+                             "execute")
         (let [id (str (swap! ctr (fn [v] (mod (inc v) 1000000000))))
               ^Semaphore sem (Semaphore. 0)
               req (DRPCRequest. args id)
               ^ConcurrentLinkedQueue queue (acquire-queue request-queues function)
               ]
+          (swap! id->func assoc id function)
           (swap! id->start assoc id (current-time-secs))
           (swap! id->sem assoc id sem)
           (.add queue req)
@@ -86,22 +97,30 @@
               ))))
       DistributedRPCInvocations$Iface
       (^void result [this ^String id ^String result]
-        (check-authorization! invocations-acl-handler conf "result")
-        (let [^Semaphore sem (@id->sem id)]
-          (log-debug "Received result " result " for " id " at " (System/currentTimeMillis))
-          (when sem
-            (swap! id->result assoc id result)
-            (.release sem)
-            )))
+        (when-let [func (@id->func id)]
+          (check-authorization drpc-acl-handler
+                               {DRPCAuthorizerBase/FUNCTION_NAME func}
+                               "result")
+          (let [^Semaphore sem (@id->sem id)]
+            (log-debug "Received result " result " for " id " at " (System/currentTimeMillis))
+            (when sem
+              (swap! id->result assoc id result)
+              (.release sem)
+              ))))
       (^void failRequest [this ^String id]
-        (check-authorization! invocations-acl-handler conf "failRequest")
-        (let [^Semaphore sem (@id->sem id)]
-          (when sem
-            (swap! id->result assoc id (DRPCExecutionException. "Request failed"))
-            (.release sem)
-            )))
+        (when-let [func (@id->func id)]
+          (check-authorization drpc-acl-handler
+                               {DRPCAuthorizerBase/FUNCTION_NAME func}
+                               "failRequest")
+          (let [^Semaphore sem (@id->sem id)]
+            (when sem
+              (swap! id->result assoc id (DRPCExecutionException. "Request failed"))
+              (.release sem)
+              ))))
       (^DRPCRequest fetchRequest [this ^String func]
-        (check-authorization! invocations-acl-handler conf "fetchRequest")
+        (check-authorization drpc-acl-handler
+                             {DRPCAuthorizerBase/FUNCTION_NAME func}
+                             "fetchRequest")
         (let [^ConcurrentLinkedQueue queue (acquire-queue request-queues func)
               ret (.poll queue)]
           (if ret
@@ -121,18 +140,31 @@
 (defn webapp [handler http-creds-handler]
   (handler/site (->
     (defroutes http-routes
-      (GET "/drpc/:func/:args" [:as {:keys [servlet-request]} func args & m]
-        (let [user (.getUserName http-creds-handler servlet-request)]
+      (POST "/drpc/:func" [:as {:keys [body servlet-request]} func & m]
+        (let [user (.getUserName http-creds-handler servlet-request)
+              args (slurp body)]
           (log-debug "Servlet user was: " user)
           (.execute handler func args)))
+      (POST "/drpc/:func/" [:as {:keys [body servlet-request]} func & m]
+        (let [user (.getUserName http-creds-handler servlet-request)
+              args (slurp body)]
+          (log-debug "Servlet user was: " user)
+          (.execute handler func args)))
+      (GET "/drpc/:func/:args" [:as {:keys [servlet-request]} func args & m]
+          (if http-creds-handler
+            (.populateContext http-creds-handler (ReqContext/context)
+                              servlet-request))
+          (.execute handler func args))
       (GET "/drpc/:func/" [:as {:keys [servlet-request]} func & m]
-        (let [user (.getUserName http-creds-handler servlet-request)]
-          (log-debug "Servlet user was: " user)
-          (.execute handler func "")))
+          (if http-creds-handler
+            (.populateContext http-creds-handler (ReqContext/context)
+                              servlet-request))
+          (.execute handler func ""))
       (GET "/drpc/:func" [:as {:keys [servlet-request]} func & m]
-        (let [user (.getUserName http-creds-handler servlet-request)]
-          (log-debug "Servlet user was: " user)
-          (.execute handler func ""))))
+          (if http-creds-handler
+            (.populateContext http-creds-handler (ReqContext/context)
+                              servlet-request))
+          (.execute handler func "")))
     (wrap-reload '[backtype.storm.daemon.drpc])
     handle-request)))
 

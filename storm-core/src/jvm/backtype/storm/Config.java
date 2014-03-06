@@ -519,6 +519,32 @@ public class Config extends HashMap<String, Object> {
     public static final Object DRPC_AUTHORIZER_SCHEMA = String.class;
 
     /**
+     * The Access Control List for the DRPC Authorizer.
+     * @see DRPCSimpleAclAuthorizer
+     */
+    public static final String DRPC_AUTHORIZER_ACL = "drpc.authorizer.acl";
+    public static final Object DRPC_AUTHORIZER_ACL_SCHEMA = Map.class;
+
+    /**
+     * File name of the DRPC Authorizer ACL.
+     * @see DRPCSimpleAclAuthorizer
+     */
+    public static final String DRPC_AUTHORIZER_ACL_FILENAME = "drpc.authorizer.acl.filename";
+    public static final Object DRPC_AUTHORIZER_ACL_FILENAME_SCHEMA = String.class;
+
+    /**
+     * Whether the DRPCSimpleAclAuthorizer should deny requests for operations
+     * involving functions that have no explicit ACL entry. When set to false
+     * (the default) DRPC functions that have no entry in the ACL will be
+     * permitted, which is appropriate for a development environment. When set
+     * to true, explicit ACL entries are required for every DRPC function, and
+     * any request for functions will be denied.
+     * @see DRPCSimpleAclAuthorizer
+     */
+    public static final String DRPC_AUTHORIZER_ACL_STRICT = "drpc.authorizer.acl.strict";
+    public static final Object DRPC_AUTHORIZER_ACL_STRICT_SCHEMA = Boolean.class;
+
+    /**
      * DRPC thrift server worker threads 
      */
     public static final String DRPC_WORKER_THREADS = "drpc.worker.threads";
@@ -535,12 +561,6 @@ public class Config extends HashMap<String, Object> {
      */
     public static final String DRPC_INVOCATIONS_PORT = "drpc.invocations.port";
     public static final Object DRPC_INVOCATIONS_PORT_SCHEMA = Number.class;
-
-    /**
-     * Class name for authorization plugin for DRPC Invocations client
-     */
-    public static final String DRPC_INVOCATIONS_AUTHORIZER = "drpc.invocations.authorizer";
-    public static final Object DRPC_INVOCATIONS_AUTHORIZER_SCHEMA = String.class;
 
     /**
      * The timeout on DRPC requests within the DRPC server. Defaults to 10 minutes. Note that requests can also

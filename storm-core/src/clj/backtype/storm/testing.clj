@@ -602,3 +602,9 @@
                   (atom false))]
     (TupleImpl. context values 1 stream)
     ))
+
+(defmacro with-timeout [millis unit & body]
+  `(let [f# (future ~@body)]
+     (try
+       (.get f# ~millis ~unit)
+       (finally (future-cancel f#)))))
