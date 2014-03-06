@@ -488,19 +488,19 @@ public class Config extends HashMap<String, Object> {
     public static final Object DRPC_HTTPS_PORT_SCHEMA = Number.class;
 
     /**
-     * Path to the keystore is used by Storm DRPC for receiving HTTPS (SSL) DPRC requests from clients.
+     * Path to the keystore used by Storm DRPC for setting up HTTPS (SSL).
      */
     public static final String DRPC_HTTPS_KEYSTORE_PATH = "drpc.https.keystore.path";
     public static final Object DRPC_HTTPS_KEYSTORE_PATH_SCHEMA = String.class;
 
     /**
-     * Password to the keystore is used by Storm DRPC for receiving HTTPS (SSL) DPRC requests from clients.
+     * Password to the keystore used by Storm DRPC for setting up HTTPS (SSL).
      */
     public static final String DRPC_HTTPS_KEYSTORE_PASSWORD = "drpc.https.keystore.password";
     public static final Object DRPC_HTTPS_KEYSTORE_PASSWORD_SCHEMA = String.class;
 
     /**
-     * Type of keystore used by Storm DRPC for receiving HTTPS (SSL) DPRC requests from clients.
+     * Type of keystore used by Storm DRPC for setting up HTTPS (SSL).
      * see http://docs.oracle.com/javase/7/docs/api/java/security/KeyStore.html for more details.
      */
     public static final String DRPC_HTTPS_KEYSTORE_TYPE = "drpc.https.keystore.type";

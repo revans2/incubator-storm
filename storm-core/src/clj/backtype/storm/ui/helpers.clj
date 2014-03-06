@@ -138,8 +138,7 @@ $(\"table#%s\").each(function(i) { $(this).tablesorter({ sortList: %s, headers: 
 (defn unauthorized-user-html [user]
   [[:h2 "User '" (escape-html user) "' is not authorized."]])
 
-(defn- ssl-connector [port ks-path ks-password ks-type]
-  (log-message "Setting up ssl-connector " port " " ks-path " " ks-password " " ks-type)
+(defn- mk-ssl-connector [port ks-path ks-password ks-type]
   (doto (SslSocketConnector.)
     (.setExcludeCipherSuites (into-array String ["SSL_RSA_WITH_RC4_128_MD5" "SSL_RSA_WITH_RC4_128_SHA"]))
     (.setAllowRenegotiate false)
@@ -151,7 +150,7 @@ $(\"table#%s\").each(function(i) { $(this).tablesorter({ sortList: %s, headers: 
 
 (defn config-ssl [server port ks-path ks-password ks-type]
   (when (> port 0)
-    (.addConnector server (ssl-connector port ks-path ks-password ks-type))))
+    (.addConnector server (mk-ssl-connector port ks-path ks-password ks-type))))
 
 (defn config-filter [server handler filter-class filter-params]
   (if filter-class
