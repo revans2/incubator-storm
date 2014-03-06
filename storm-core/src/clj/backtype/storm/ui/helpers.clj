@@ -6,6 +6,7 @@
   (:use [backtype.storm.util :only [uuid defnk]])
   (:use [clj-time coerce format])
   (:import [backtype.storm.generated ExecutorInfo ExecutorSummary])
+  (:import [org.mortbay.jetty.security SslSocketConnector])
   (:require [ring.util servlet])
   (:require [compojure.route :as route]
             [compojure.handler :as handler]))
@@ -136,6 +137,20 @@ $(\"table#%s\").each(function(i) { $(this).tablesorter({ sortList: %s, headers: 
 
 (defn unauthorized-user-html [user]
   [[:h2 "User '" (escape-html user) "' is not authorized."]])
+
+(defn- mk-ssl-connector [port ks-path ks-password ks-type]
+  (doto (SslSocketConnector.)
+    (.setExcludeCipherSuites (into-array String ["SSL_RSA_WITH_RC4_128_MD5" "SSL_RSA_WITH_RC4_128_SHA"]))
+    (.setAllowRenegotiate false)
+    (.setKeystore ks-path)
+    (.setKeystoreType ks-type)
+    (.setKeyPassword ks-password)
+    (.setPassword ks-password)
+    (.setPort port)))
+
+(defn config-ssl [server port ks-path ks-password ks-type]
+  (when (> port 0)
+    (.addConnector server (mk-ssl-connector port ks-path ks-password ks-type))))
 
 (defn config-filter [server handler filter-class filter-params]
   (if filter-class

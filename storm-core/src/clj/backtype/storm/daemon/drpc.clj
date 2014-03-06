@@ -200,10 +200,20 @@
       (when (> drpc-http-port 0)
         (let [app (webapp drpc-service-handler http-creds-handler)
               filter-class (conf DRPC-HTTP-FILTER)
-              filter-params (conf DRPC-HTTP-FILTER-PARAMS)]
+              filter-params (conf DRPC-HTTP-FILTER-PARAMS)
+              https-port (int (conf DRPC-HTTPS-PORT))
+              https-ks-path (conf DRPC-HTTPS-KEYSTORE-PATH)
+              https-ks-password (conf DRPC-HTTPS-KEYSTORE-PASSWORD)
+              https-ks-type (conf DRPC-HTTPS-KEYSTORE-TYPE)]
+
           (run-jetty app
             {:port drpc-http-port :join? false
              :configurator (fn [server]
+                             (config-ssl server
+                                         https-port 
+                                         https-ks-path 
+                                         https-ks-password
+                                         https-ks-type)
                              (config-filter server app
                                             filter-class
                                             filter-params))})))
