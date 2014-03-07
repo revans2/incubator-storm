@@ -66,9 +66,9 @@
                           (when (> (time-delta start) (conf DRPC-REQUEST-TIMEOUT-SECS))
                             (when-let [sem (@id->sem id)]
                               (swap! id->result assoc id (DRPCExecutionException. "Request timed out"))
-                              (.release sem))
                               (.remove (acquire-queue request-queues (@id->func id)) (@id->request id))
                               (log-warn "Timeout DRPC request id: " id " start at " start)
+                              (.release sem))
                             (cleanup id)
                             ))
                         TIMEOUT-CHECK-SECS
