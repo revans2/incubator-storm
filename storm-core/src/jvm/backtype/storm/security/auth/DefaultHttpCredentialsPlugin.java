@@ -1,5 +1,6 @@
 package backtype.storm.security.auth;
 
+import java.security.Principal;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -25,8 +26,9 @@ public class DefaultHttpCredentialsPlugin implements IHttpCredentialsPlugin {
      */
     @Override
     public String getUserName(HttpServletRequest req) {
-        if (req != null) {
-            return req.getUserPrincipal().getName();
+        Principal princ = null;
+        if (req != null && (princ = req.getUserPrincipal()) != null) {
+            return princ.getName();
         }
         return null;
     }
@@ -41,10 +43,13 @@ public class DefaultHttpCredentialsPlugin implements IHttpCredentialsPlugin {
     @Override
     public ReqContext populateContext(ReqContext context,
             HttpServletRequest req) {
-        Set<SingleUserPrincipal> principals = new HashSet<SingleUserPrincipal>(1);
-        principals.add(new SingleUserPrincipal(getUserName(req)));
-        Subject s = new Subject(true, principals, new HashSet(), new HashSet());
-        context.setSubject(s);
+        String userName = getUserName(req);
+        if (userName != null && !userName.isEmpty()) {
+            Set<SingleUserPrincipal> principals = new HashSet<SingleUserPrincipal>(1);
+            principals.add(new SingleUserPrincipal(userName));
+            Subject s = new Subject(true, principals, new HashSet(), new HashSet());
+            context.setSubject(s);
+        }
         return context;
     }
 }
