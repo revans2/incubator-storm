@@ -7,9 +7,15 @@ import java.util.Set;
 import javax.security.auth.Subject;
 import javax.servlet.http.HttpServletRequest;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import backtype.storm.security.auth.ReqContext;
 
 public class DefaultHttpCredentialsPlugin implements IHttpCredentialsPlugin {
+    private static final Logger LOG =
+            LoggerFactory.getLogger(DefaultHttpCredentialsPlugin.class);
+
     /**
      * No-op
      * @param storm_conf Storm configuration
@@ -28,7 +34,11 @@ public class DefaultHttpCredentialsPlugin implements IHttpCredentialsPlugin {
     public String getUserName(HttpServletRequest req) {
         Principal princ = null;
         if (req != null && (princ = req.getUserPrincipal()) != null) {
-            return princ.getName();
+            String userName = princ.getName();
+            if (userName != null && !userName.isEmpty()) {
+                LOG.debug("HTTP request had user ("+userName+")");
+                return userName;
+            }
         }
         return null;
     }
@@ -44,7 +54,7 @@ public class DefaultHttpCredentialsPlugin implements IHttpCredentialsPlugin {
     public ReqContext populateContext(ReqContext context,
             HttpServletRequest req) {
         String userName = getUserName(req);
-        if (userName != null && !userName.isEmpty()) {
+        if (userName != null) {
             Set<SingleUserPrincipal> principals = new HashSet<SingleUserPrincipal>(1);
             principals.add(new SingleUserPrincipal(userName));
             Subject s = new Subject(true, principals, new HashSet(), new HashSet());
