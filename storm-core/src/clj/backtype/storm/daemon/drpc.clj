@@ -138,17 +138,19 @@
     (handler request)))
 
 (defn webapp [handler http-creds-handler]
-  (handler/site (->
-    (defroutes http-routes
+  (->
+    (routes
       (POST "/drpc/:func" [:as {:keys [body servlet-request]} func & m]
-        (let [user (.getUserName http-creds-handler servlet-request)
-              args (slurp body)]
-          (log-debug "Servlet user was: " user)
+        (let [args (slurp body)]
+          (if http-creds-handler
+            (.populateContext http-creds-handler (ReqContext/context)
+                              servlet-request))
           (.execute handler func args)))
       (POST "/drpc/:func/" [:as {:keys [body servlet-request]} func & m]
-        (let [user (.getUserName http-creds-handler servlet-request)
-              args (slurp body)]
-          (log-debug "Servlet user was: " user)
+        (let [args (slurp body)]
+          (if http-creds-handler
+            (.populateContext http-creds-handler (ReqContext/context)
+                              servlet-request))
           (.execute handler func args)))
       (GET "/drpc/:func/:args" [:as {:keys [servlet-request]} func args & m]
           (if http-creds-handler
@@ -164,9 +166,9 @@
           (if http-creds-handler
             (.populateContext http-creds-handler (ReqContext/context)
                               servlet-request))
-          (.execute handler func "")))
-    (wrap-reload '[backtype.storm.daemon.drpc])
-    handle-request)))
+    (.execute handler func "")))
+                (wrap-reload '[backtype.storm.daemon.drpc])
+                handle-request))
 
 (defn launch-server!
   ([]
