@@ -68,15 +68,15 @@ file 444 - - lib64/jars/storm-core.pom ../storm-core-mvn/pom.xml
 file 444 - - lib64/jars/storm-netty.jar ../storm-netty-mvn/target/storm-netty-$(BASE_VERSION).jar
 file 444 - - lib64/jars/storm-netty-sources.jar ../storm-netty-mvn/target/storm-netty-$(BASE_VERSION)-sources.jar
 file 444 - - lib64/jars/storm-netty.pom ../storm-netty-mvn/pom.xml
-file 444 - - lib64/jars/storm-yahoo.jar ../storm-yahoo/target/storm-yahoo-$(BASE_VERSION).jar
-file 444 - - lib64/jars/storm-yahoo-sources.jar ../storm-yahoo/target/storm-yahoo-$(BASE_VERSION)-sources.jar
-file 444 - - lib64/jars/storm-yahoo.pom ../storm-yahoo/pom.xml
+file 444 - - lib64/jars/storm_yahoo.jar ../storm-yahoo/target/storm_yahoo-$(BASE_VERSION).jar
+file 444 - - lib64/jars/storm_yahoo-sources.jar ../storm-yahoo/target/storm_yahoo-$(BASE_VERSION)-sources.jar
+file 444 - - lib64/jars/storm_yahoo.pom ../storm-yahoo/pom.xml
 file 444 - - lib64/storm/$(BASE_VERSION)/RELEASE ./RELEASE
 file 444 - - lib64/storm/$(BASE_VERSION)/CHANGELOG.md ../CHANGELOG.md
 file 444 - - lib64/storm/$(BASE_VERSION)/LICENSE.html ../LICENSE.html
 file 444 - - lib64/storm/$(BASE_VERSION)/storm-core-$(BASE_VERSION).jar ../storm-core-mvn/target/storm-core-$(BASE_VERSION).jar
 file 444 - - lib64/storm/$(BASE_VERSION)/storm-netty-$(BASE_VERSION).jar ../storm-netty-mvn/target/storm-netty-$(BASE_VERSION).jar
-file 444 - - lib64/storm/$(BASE_VERSION)/storm-yahoo-$(BASE_VERSION).jar ../storm-yahoo/target/storm-yahoo-$(BASE_VERSION).jar
+file 444 - - lib64/storm/$(BASE_VERSION)/storm_yahoo-$(BASE_VERSION).jar ../storm-yahoo/target/storm_yahoo-$(BASE_VERSION).jar
 file 444 - - lib64/storm/$(BASE_VERSION)/README.markdown ../README.markdown
 file 444 - - lib64/storm/$(BASE_VERSION)/README.yahoo ./README.yahoo
 
