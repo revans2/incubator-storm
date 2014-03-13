@@ -146,6 +146,22 @@ public class AutoYCA implements IAutoCredentials {
         V2_CACHE.put(coanonicalAppId(appid), cert);
     }
 
+    /**
+     * Parse the YCA certs out of the credentials
+     * @param credentials the credentials that need to be parsed
+     * @param ycaCerts a map of app id to cred that will be updated with new certs after processing.
+     */ 
+    public static void updateV2CertsFromCreds(Map<String, String> credentials, Map<String, String> ycaCerts) {
+        for (Map.Entry<String,String> entry: credentials.entrySet()) {
+            if (entry.getKey().startsWith(YCA_CRED_PREFIX)) {
+                String appId = coanonicalAppId(entry.getKey().substring(YCA_CRED_PREFIX.length()));
+                String cert = entry.getValue();
+                LOG.info("Adding cert for {}", appId);
+                ycaCerts.put(appId, cert); 
+            }
+        }
+    }
+
     private static String getYcaV2CertRaw(String v2Role, String v1Role, String proxyRole) throws YCAException {
         v2Role = coanonicalAppId(v2Role);
         String v2RoleForWeb = appIdForWebService(v2Role);
@@ -252,13 +268,6 @@ public class AutoYCA implements IAutoCredentials {
     public void populateSubject(Subject subject, Map<String, String> credentials) {
         LOG.info("Populating YCA certs from credentials");
         //ignore the subject and just pull out the YCA Certs into the cache
-        for (Map.Entry<String,String> entry: credentials.entrySet()) {
-            if (entry.getKey().startsWith(YCA_CRED_PREFIX)) {
-                String appId = entry.getKey().substring(YCA_CRED_PREFIX.length());
-                String cert = entry.getValue();
-                LOG.info("Adding cert for {}", appId);
-                V2_CACHE.put(appId, cert); 
-            }
-        }
+        updateV2CertsFromCreds(credentials, V2_CACHE);
     }
 }
