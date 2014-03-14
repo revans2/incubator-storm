@@ -16,5 +16,8 @@ add yinst pkg ypython                   2.7.0     2.7.9999
 add yinst pkg yjava_jdk                 1.7.0_13.66 1.7.9999999
 add yinst pkg yjava_maven               2.2.1_16     3.99999.99999
 
+# Yahoo specific dependencies
+add yinst pkg yjava_yca             0.23.218    *
+
 # Needed to force the version to match what is outside the yroot
 add yinst pkg ylock_kern                1.98.0.16
