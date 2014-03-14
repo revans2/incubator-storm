@@ -61,19 +61,6 @@ _release: RELEASE build
 	cp ../README.markdown _release/storm/
 	cp ../LICENSE.html _release/storm/
 	
-	
-
-#Ugly hack to remove svnlite from the state file because statcc cannot deal
-# with y_subversion replacing svnlite
-rhel4_build.state: rhel4_build.yidf  rhel4_build.yml
-	rm -f rhel4_build.state rhel4_build.state.tmp rhel4_build.ruleset
-	statecc --branch test --no-validate ./rhel4_build.yml
-	grep -v svnlite rhel4_build.state > rhel4_build.state.tmp
-	mv -f rhel4_build.state.tmp rhel4_build.state
-	statecc-validate-state rhel4_build.state
-
-#Ugly hack to remove svnlite from the state file because statcc cannot deal
-# with y_subversion replacing svnlite
 rhel6_build.state: rhel6_build.yidf  rhel6_build.yml
 	rm -f rhel6_build.state rhel6_build.state.tmp rhel6_build.ruleset
 	statecc --branch test ./rhel6_build.yml

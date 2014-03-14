@@ -1,9 +1,0 @@
-rule_type: Yidf
-inputs:
- - ./rhel4_build.yidf
-
-outputs: 
- - legacy
-
-targets:
- - rhel4_build
