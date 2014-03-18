@@ -33,7 +33,6 @@ public class DRPCSpout extends BaseRichSpout {
     public static Logger LOG = LoggerFactory.getLogger(DRPCSpout.class);
     
     SpoutOutputCollector _collector;
-    //TODO need a collection of these that can do load balancing and reconnect in the background
     List<DRPCInvocationsClient> _clients = new ArrayList<DRPCInvocationsClient>();
     LinkedList<Future<Void>> _futures = new LinkedList<Future<Void>>();
     transient ExecutorService background = null;
@@ -101,7 +100,6 @@ public class DRPCSpout extends BaseRichSpout {
             try {
                 f.get();
             } catch (Exception e) {
-                //TODO do we want to retry on failure? if so need to distinguish reconnect from open.
                 throw new RuntimeException(e);
             }
         }
