@@ -27,7 +27,7 @@ public class StormClientHandler extends SimpleChannelUpstreamHandler  {
         //register the newly established channel
         Channel channel = event.getChannel();
         client.setChannel(channel);
-        LOG.debug("connection established from "+channel.getLocalAddress()+" to "+channel.getRemoteAddress());
+        LOG.info("connection established from "+channel.getLocalAddress()+" to "+channel.getRemoteAddress());
         
         //send next batch of requests if any
         try {
@@ -60,7 +60,7 @@ public class StormClientHandler extends SimpleChannelUpstreamHandler  {
     public void exceptionCaught(ChannelHandlerContext ctx, ExceptionEvent event) {
         Throwable cause = event.getCause();
         if (!(cause instanceof ConnectException)) {
-            LOG.info("Connection failed:", cause);
+            LOG.info("Connection to "+client.remote_addr+" failed:", cause);
         }
         client.reconnect();
     }

@@ -29,7 +29,7 @@ class Client implements IConnection {
     private LinkedBlockingQueue<Object> message_queue; //entry should either be TaskMessage or ControlMessage
     private AtomicReference<Channel> channelRef;
     private final ClientBootstrap bootstrap;
-    private InetSocketAddress remote_addr;
+    InetSocketAddress remote_addr;
     private AtomicInteger retries;
     private final Random random = new Random();
     private final ChannelFactory factory;
@@ -77,10 +77,11 @@ class Client implements IConnection {
         try {
             int tried_count = retries.incrementAndGet();
             if (tried_count < max_retries) {
-                Thread.sleep(getSleepTimeMs());
-                LOG.info("Reconnect ... [{}]", tried_count);
+                long sleep = getSleepTimeMs();
+                LOG.info("Waiting {} ms before trying connection to {}", sleep, remote_addr);
+                Thread.sleep(sleep);
+                LOG.info("Reconnect ... [{}] to {}", tried_count, remote_addr);
                 bootstrap.connect(remote_addr);
-                LOG.debug("connection started...");
             } else {
                 LOG.warn("Remote address is not reachable. We will close this client.");
                 close();
@@ -134,6 +135,12 @@ class Client implements IConnection {
         //make sure that channel was not closed
         Channel channel = channelRef.get();
         if (channel == null)  return;
+        if (!channel.isOpen()) {
+            LOG.info("Channel to {} is no longer open.",remote_addr);
+            //The channel is not open yet. Reconnect?
+            reconnect();
+            return;
+        }
 
         final MessageBatch requests = tryTakeMessages();
         if (requests==null) {
@@ -157,8 +164,8 @@ class Client implements IConnection {
             public void operationComplete(ChannelFuture future)
                     throws Exception {
                 if (!future.isSuccess()) {
-                    LOG.info("failed to send requests:", future.getCause());
-                    close_n_release();
+                    LOG.info("failed to send "+requests.size()+" requests to "+remote_addr, future.getCause());
+                    reconnect();
                 } else {
                     LOG.debug("{} request(s) sent", requests.size());
 
@@ -244,6 +251,10 @@ class Client implements IConnection {
     }
 
     void setChannel(Channel channel) {
+        if (channel != null) {
+            //Assume that the retries worked
+            retries.set(0);
+        }
         channelRef.set(channel);
     }
 
