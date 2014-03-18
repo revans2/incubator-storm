@@ -17,26 +17,44 @@ public class ThriftClient {
     private static final Logger LOG = LoggerFactory.getLogger(ThriftClient.class);
     private TTransport _transport;
     protected TProtocol _protocol;
+    private String host;
+    private int port;
+    private Integer timeout;
+    private ITransportPlugin transportPlugin;
+    private Map storm_conf;
 
     public ThriftClient(Map storm_conf, String host, int port) {
         this(storm_conf, host, port, null);
     }
 
     public ThriftClient(Map storm_conf, String host, int port, Integer timeout) {
+        this.host = host;
+        this.port = port;
+        this.timeout = timeout;
+        this.storm_conf = storm_conf;
+        //locate login configuration 
+        Configuration login_conf = AuthUtils.GetConfiguration(storm_conf);
+
+        //construct a transport plugin
+        this.transportPlugin = AuthUtils.GetTransportPlugin(storm_conf, login_conf, null);
+
+        //create a socket with server
+        if (host==null) {
+            throw new IllegalArgumentException("host is not set");
+        }
+        if (port<=0) {
+            throw new IllegalArgumentException("invalid port: "+port);
+        }
+        reconnect();
+    }
+
+    public synchronized TTransport transport() {
+        return _transport;
+    }
+    
+    public synchronized void reconnect() {
+        close();    
         try {
-            //locate login configuration 
-            Configuration login_conf = AuthUtils.GetConfiguration(storm_conf);
-
-            //construct a transport plugin
-            ITransportPlugin  transportPlugin = AuthUtils.GetTransportPlugin(storm_conf, login_conf, null);
-
-            //create a socket with server
-            if(host==null) {
-                throw new IllegalArgumentException("host is not set");
-            }
-            if(port<=0) {
-                throw new IllegalArgumentException("invalid port: "+port);
-            }            
             TSocket socket = new TSocket(host, port);
             if(timeout!=null) {
                 socket.setTimeout(timeout);
@@ -56,15 +74,16 @@ public class ThriftClient {
             throw new RuntimeException(ex);
         }
         _protocol = null;
-        if (_transport != null)
+        if (_transport != null) {
             _protocol = new  TBinaryProtocol(_transport);
+        }
     }
 
-    public TTransport transport() {
-        return _transport;
-    }
-
-    public void close() {
-        _transport.close();
+    public synchronized void close() {
+        if (_transport != null) {
+            _transport.close();
+            _transport = null;
+            _protocol = null;
+        }
     }
 }
