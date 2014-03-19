@@ -3,6 +3,8 @@ package backtype.storm.messaging.netty;
 import java.net.InetSocketAddress;
 import java.util.Map;
 import java.util.Random;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -23,6 +25,8 @@ import backtype.storm.utils.Utils;
 
 class Client implements IConnection {
     private static final Logger LOG = LoggerFactory.getLogger(Client.class);
+    private static final Timer TIMER = new Timer("netty-client-timer", true);
+
     private final int max_retries;
     private final long base_sleep_ms;
     private final long max_sleep_ms;
@@ -74,20 +78,19 @@ class Client implements IConnection {
         //reconnect only if it's not being closed
         if (being_closed.get()) return;
 
-        try {
-            int tried_count = retries.incrementAndGet();
-            if (tried_count < max_retries) {
-                long sleep = getSleepTimeMs();
-                LOG.info("Waiting {} ms before trying connection to {}", sleep, remote_addr);
-                Thread.sleep(sleep);
-                LOG.info("Reconnect ... [{}] to {}", tried_count, remote_addr);
-                bootstrap.connect(remote_addr);
-            } else {
-                LOG.warn("Remote address is not reachable. We will close this client.");
-                close();
-            }
-        } catch (InterruptedException e) {
-            LOG.warn("connection failed", e);
+        final int tried_count = retries.incrementAndGet();
+        if (tried_count < max_retries) {
+            long sleep = getSleepTimeMs();
+            LOG.info("Waiting {} ms before trying connection to {}", sleep, remote_addr);
+            TIMER.schedule(new TimerTask() {
+                @Override
+                public void run() { 
+                    LOG.info("Reconnect ... [{}] to {}", tried_count, remote_addr);
+                    bootstrap.connect(remote_addr);
+                }}, sleep);
+        } else {
+            LOG.warn("Remote address is not reachable. We will close this client.");
+            close();
         }
     }
 
@@ -194,6 +197,7 @@ class Client implements IConnection {
 
         //we will discard any message after CLOSE
         if (msg == ControlMessage.CLOSE_MESSAGE) {
+            LOG.info("Connection to {} is being closed", remote_addr);
             being_closed.set(true);
             return batch;
         }
@@ -203,6 +207,7 @@ class Client implements IConnection {
             //Is it a CLOSE message?
             if (msg == ControlMessage.CLOSE_MESSAGE) {
                 message_queue.take();
+                LOG.info("Connection to {} is being closed", remote_addr);
                 being_closed.set(true);
                 break;
             }
@@ -231,6 +236,8 @@ class Client implements IConnection {
             //resume delivery if it is waiting for requests
             tryDeliverMessages(true);
         } catch (InterruptedException e) {
+            LOG.info("Interrupted Connection to {} is being closed", remote_addr);
+            being_closed.set(true);
             close_n_release();
         }
     }
@@ -241,7 +248,7 @@ class Client implements IConnection {
     synchronized void close_n_release() {
         if (channelRef.get() != null) {
             channelRef.get().close();
-            LOG.debug("channel closed");
+            LOG.debug("channel {} closed",remote_addr);
             setChannel(null);
         }
     }
@@ -259,7 +266,3 @@ class Client implements IConnection {
     }
 
 }
-
-
-
-
