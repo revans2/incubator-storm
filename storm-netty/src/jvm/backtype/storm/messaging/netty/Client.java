@@ -251,8 +251,8 @@ class Client implements IConnection {
     }
 
     void setChannel(Channel channel) {
-        if (channel != null) {
-            //Assume that the retries worked
+        if (channel != null && channel.isOpen()) {
+            //Assume the most recent connection attempt was successful.
             retries.set(0);
         }
         channelRef.set(channel);
