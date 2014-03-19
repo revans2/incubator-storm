@@ -89,7 +89,7 @@ class Client implements IConnection {
                     bootstrap.connect(remote_addr);
                 }}, sleep);
         } else {
-            LOG.warn("Remote address is not reachable. We will close this client.");
+            LOG.warn(remote_addr+" is not reachable. We will close this client.");
             close();
         }
     }
