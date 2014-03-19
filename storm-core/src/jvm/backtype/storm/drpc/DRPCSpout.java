@@ -35,7 +35,7 @@ public class DRPCSpout extends BaseRichSpout {
     SpoutOutputCollector _collector;
     List<DRPCInvocationsClient> _clients = new ArrayList<DRPCInvocationsClient>();
     LinkedList<Future<Void>> _futures = new LinkedList<Future<Void>>();
-    transient ExecutorService background = null;
+    transient ExecutorService _backround = null;
     String _function;
     String _local_drpc_id = null;
     
@@ -81,7 +81,7 @@ public class DRPCSpout extends BaseRichSpout {
     }
 
     private void reconnect(final DRPCInvocationsClient c) {
-        _futures.add(background.submit(new Callable<Void>() {
+        _futures.add(_backround.submit(new Callable<Void>() {
             @Override
             public Void call() throws Exception {
                 c.reconnectClient();
@@ -109,7 +109,7 @@ public class DRPCSpout extends BaseRichSpout {
     public void open(Map conf, TopologyContext context, SpoutOutputCollector collector) {
         _collector = collector;
         if(_local_drpc_id==null) {
-            background = Executors.newCachedThreadPool();
+            _backround = Executors.newCachedThreadPool();
             int numTasks = context.getComponentTasks(context.getThisComponentId()).size();
             int index = context.getThisTaskIndex();
 
@@ -121,11 +121,11 @@ public class DRPCSpout extends BaseRichSpout {
             
             if (numTasks < servers.size()) {
                 for (String s: servers) {
-                    _futures.add(background.submit(new Adder(s, port, conf)));
+                    _futures.add(_backround.submit(new Adder(s, port, conf)));
                 }
             } else {        
                 int i = index % servers.size();
-                _futures.add(background.submit(new Adder(servers.get(i), port, conf)));
+                _futures.add(_backround.submit(new Adder(servers.get(i), port, conf)));
             }
         }
         
