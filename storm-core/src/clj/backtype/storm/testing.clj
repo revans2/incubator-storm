@@ -168,10 +168,17 @@
 
 (defmacro while-timeout [timeout-ms condition & body]
   `(let [end-time# (+ (System/currentTimeMillis) ~timeout-ms)]
+    (log-debug "Looping until " '~condition)
     (while ~condition
+      (log-debug (- end-time# (System/currentTimeMillis)) " until error on " '~condition )
       (when (> (System/currentTimeMillis) end-time#)
-        (throw (AssertionError. (str "Test timed out (" ~timeout-ms "ms)"))))
-      ~@body)))
+        (let [thread-dump# (Utils/threadDump)]
+          (log-message "Condition " '~condition  " not met in " ~timeout-ms "ms")
+          (log-message thread-dump#)
+          (throw (AssertionError. (str "Test timed out (" ~timeout-ms "ms) " '~condition)))))
+      ~@body)
+    (log-debug "Condition met " '~condition)
+    ))
 
 (defn wait-until-cluster-waiting
   "Wait until the cluster is idle. Should be used with time simulation."
@@ -341,7 +348,7 @@
 (defn simulate-wait [cluster-map]
   (if (Time/isSimulating)
     (advance-cluster-time cluster-map 10)
-    (Thread/sleep 100)
+    (Thread/sleep 10)
     ))
 
 (defprotocol CompletableSpout
@@ -453,6 +460,9 @@
     
     
     (let [storm-id (common/get-storm-id state storm-name)]
+      ;;Give the topology time to come up without using it to wait for the spouts to complete
+      (simulate-wait cluster-map)
+
       (while-timeout TEST-TIMEOUT-MS (not (every? exhausted? (spout-objects spouts)))
         (simulate-wait cluster-map))
 
@@ -568,7 +578,7 @@
           ;; (println "Spout emitted: " (global-amt track-id "spout-emitted"))
           ;; (println "Processed: " (global-amt track-id "processed"))
           ;; (println "Transferred: " (global-amt track-id "transferred"))
-          (Thread/sleep (rand-int 2000)))
+          (Thread/sleep (rand-int 200)))
         (reset! (:last-spout-emit tracked-topology) target)
         )))
 
