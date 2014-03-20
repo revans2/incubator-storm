@@ -30,11 +30,14 @@ import org.apache.thrift7.transport.TTransportException;
 import org.json.simple.JSONValue;
 
 public class DRPCSpout extends BaseRichSpout {
+    //ANY CHANGE TO THIS CODE MUST BE SERIALIZABLE COMPATIBLE OR THERE WILL BE PROBLEMS
+    static final long serialVersionUID = 2387848310969237877L;
+
     public static Logger LOG = LoggerFactory.getLogger(DRPCSpout.class);
     
     SpoutOutputCollector _collector;
     List<DRPCInvocationsClient> _clients = new ArrayList<DRPCInvocationsClient>();
-    LinkedList<Future<Void>> _futures = new LinkedList<Future<Void>>();
+    transient LinkedList<Future<Void>> _futures = null;
     transient ExecutorService _backround = null;
     String _function;
     String _local_drpc_id = null;
@@ -110,6 +113,8 @@ public class DRPCSpout extends BaseRichSpout {
         _collector = collector;
         if(_local_drpc_id==null) {
             _backround = Executors.newCachedThreadPool();
+            _futures = new LinkedList<Future<Void>>();
+
             int numTasks = context.getComponentTasks(context.getThisComponentId()).size();
             int index = context.getThisTaskIndex();
 
