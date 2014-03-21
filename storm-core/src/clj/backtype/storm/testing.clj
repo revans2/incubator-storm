@@ -170,7 +170,6 @@
   `(let [end-time# (+ (System/currentTimeMillis) ~timeout-ms)]
     (log-debug "Looping until " '~condition)
     (while ~condition
-      (log-debug (- end-time# (System/currentTimeMillis)) " until error on " '~condition )
       (when (> (System/currentTimeMillis) end-time#)
         (let [thread-dump# (Utils/threadDump)]
           (log-message "Condition " '~condition  " not met in " ~timeout-ms "ms")
@@ -348,7 +347,7 @@
 (defn simulate-wait [cluster-map]
   (if (Time/isSimulating)
     (advance-cluster-time cluster-map 10)
-    (Thread/sleep 10)
+    (Thread/sleep 100)
     ))
 
 (defprotocol CompletableSpout
