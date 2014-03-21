@@ -88,7 +88,20 @@ public class Node {
           " is not a part of " + _nodeId);
     }
   }
-  
+ 
+  void addSlotIfNeeded(WorkerSlot ws) {
+    validateSlot(ws);
+    if (_freeSlots.contains(ws)) {
+      return;
+    }
+    for (Set<WorkerSlot> used: _topIdToUsedSlots.values()) {
+      if (used.contains(ws)) {
+        return;
+      }
+    }
+    _freeSlots.add(ws);
+  }
+ 
   boolean assignInternal(WorkerSlot ws, String topId, boolean dontThrow) {
     validateSlot(ws);
     if (!_freeSlots.remove(ws)) {
@@ -259,6 +272,10 @@ public class Node {
           LOG.debug("Found an assigned slot on a dead supervisor {}", ws);
           node = new Node(id, null, false);
           nodeIdToNode.put(id, node);
+        }
+        if (!node.isAlive()) {
+          //If the node is dead we don't know the slots availble until we want to assign something
+          node.addSlotIfNeeded(ws);
         }
         if (node.assignInternal(ws, topId, true)) {
           LOG.warn("Bad scheduling state, "+ws+" assigned multiple workers, unassigning everything...");
