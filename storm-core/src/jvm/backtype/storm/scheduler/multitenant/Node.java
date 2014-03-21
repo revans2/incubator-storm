@@ -89,7 +89,11 @@ public class Node {
     }
   }
  
-  void addSlotIfNeeded(WorkerSlot ws) {
+  private void addOrphanedSlot(WorkerSlot ws) {
+    if (_isAlive) {
+      throw new IllegalArgumentException("Orphaned Slots " +
+        "only are allowed on dead nodes.");
+    }
     validateSlot(ws);
     if (_freeSlots.contains(ws)) {
       return;
@@ -274,8 +278,8 @@ public class Node {
           nodeIdToNode.put(id, node);
         }
         if (!node.isAlive()) {
-          //If the node is dead we don't know the slots availble until we want to assign something
-          node.addSlotIfNeeded(ws);
+          //The supervisor on the node down so add an orphaned slot to hold the unsupervised worker 
+          node.addOrphanedSlot(ws);
         }
         if (node.assignInternal(ws, topId, true)) {
           LOG.warn("Bad scheduling state, "+ws+" assigned multiple workers, unassigning everything...");
