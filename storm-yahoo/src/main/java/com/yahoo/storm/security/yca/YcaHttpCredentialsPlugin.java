@@ -16,7 +16,7 @@ public class YcaHttpCredentialsPlugin extends DefaultHttpCredentialsPlugin {
      */
     @Override
     public String getUserName(HttpServletRequest req) {
-        if (req.getAttribute(YCAFilterLogic.REQUEST_ATTRIBUTE_AUTHENTICATED) == Boolean.TRUE) {
+        if (req != null && req.getAttribute(YCAFilterLogic.REQUEST_ATTRIBUTE_AUTHENTICATED) == Boolean.TRUE) {
             Object id = req.getAttribute(YCAFilterLogic.REQUEST_ATTRIBUTE_CLIENT_APP_ID);
             if (id != null && id instanceof String) {
                 return id.toString();
