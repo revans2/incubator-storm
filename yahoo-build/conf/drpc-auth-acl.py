@@ -57,11 +57,14 @@ def groupSettingsByFunction(config):
 def printConfig(map):
     print 'drpc.authorizer.acl:'
     for func in map.keys():
-        print '  %s:'%func
-        print '    %s:'%CLIENT_KEY
-        for user in map[func][CLIENT_KEY]:
-            print '      -', user
-        print '    %s:'%INV_KEY, map[func][INV_KEY]
+        if CLIENT_KEY in map[func] or INV_KEY in map[func]:
+            print '  %s:'%func
+            if CLIENT_KEY in map[func]:
+                print '    %s:'%CLIENT_KEY
+                for user in map[func][CLIENT_KEY]:
+                    print '      -', user
+            if INV_KEY in map[func]:
+                print '    %s:'%INV_KEY, map[func][INV_KEY]
 
 map = groupSettingsByFunction(config)
 printConfig(map)
