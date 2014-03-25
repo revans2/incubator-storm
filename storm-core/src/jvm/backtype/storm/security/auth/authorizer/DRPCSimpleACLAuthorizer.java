@@ -11,6 +11,8 @@ import java.util.Set;
 import backtype.storm.Config;
 import backtype.storm.security.auth.ReqContext;
 import backtype.storm.security.auth.authorizer.DRPCAuthorizerBase;
+import backtype.storm.security.auth.AuthUtils;
+import backtype.storm.security.auth.IPrincipalToLocal;
 import backtype.storm.utils.Utils;
 
 import org.slf4j.Logger;
@@ -25,7 +27,7 @@ public class DRPCSimpleACLAuthorizer extends DRPCAuthorizerBase {
     public static final String FUNCTION_KEY = "function.name";
 
     protected String _aclFileName = "";
-
+    protected IPrincipalToLocal _ptol;
     protected boolean _permitWhenMissingFunctionEntry = false;
 
     protected class AclFunctionEntry {
@@ -77,6 +79,7 @@ public class DRPCSimpleACLAuthorizer extends DRPCAuthorizerBase {
         _permitWhenMissingFunctionEntry = 
                 (isStrict != null && !isStrict) ? true : false;
         _aclFileName = (String) conf.get(Config.DRPC_AUTHORIZER_ACL_FILENAME);
+        _ptol = AuthUtils.GetPrincipalToLocalPlugin(conf);
     }
 
     private String getUserFromContext(ReqContext context) {
@@ -85,6 +88,13 @@ public class DRPCSimpleACLAuthorizer extends DRPCAuthorizerBase {
             if (princ != null) {
                 return princ.getName();
             }
+        }
+        return null;
+    }
+
+    private String getLocalUserFromContext(ReqContext context) {
+        if (context != null) {
+            return _ptol.toLocal(context.principal());
         }
         return null;
     }
@@ -107,16 +117,19 @@ public class DRPCSimpleACLAuthorizer extends DRPCAuthorizerBase {
                     LOG.warn("Caught Exception while accessing ACL", ex);
                     return false;
                 }
-                String requestingUser = getUserFromContext(context);
+                String principal = getUserFromContext(context);
+                String user = getLocalUserFromContext(context);
                 if (value == null) {
                     LOG.warn("Configuration for function '"+function+"' is "+
                             "invalid: it should have both an invocation user "+
                             "and a list of client users defined.");
-                } else if (value instanceof Set &&
-                        ((Set<String>)value).contains(requestingUser)) {
+                } else if (value instanceof Set && 
+                        (((Set<String>)value).contains(principal) ||
+                        ((Set<String>)value).contains(user))) {
                     return true;
                 } else if (value instanceof String && 
-                        requestingUser.equals((String)value)) {
+                        (value.equals(principal) ||
+                         value.equals(user))) {
                     return true;
                 }
             }

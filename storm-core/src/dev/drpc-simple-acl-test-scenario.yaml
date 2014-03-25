@@ -6,3 +6,6 @@ drpc.authorizer.acl:
       - "alice"
       - "bob"
     "invocation.user": "charlie"
+  "partial":
+    "client.users":
+      - "alice"
