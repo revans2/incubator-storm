@@ -24,6 +24,8 @@ import org.json.simple.JSONValue;
 public class StormSubmitter {
     public static Logger LOG = LoggerFactory.getLogger(StormSubmitter.class);    
 
+    private static final int THRIFT_CHUNK_SIZE_BYTES = 307200;
+    
     private static ILocalCluster localNimbus = null;
 
     public static void setLocalNimbus(ILocalCluster localNimbusHandler) {
@@ -243,7 +245,7 @@ public class StormSubmitter {
         try {
             String uploadLocation = client.getClient().beginFileUpload();
             LOG.info("Uploading topology jar " + localJar + " to assigned location: " + uploadLocation);
-            BufferFileInputStream is = new BufferFileInputStream(localJar);
+            BufferFileInputStream is = new BufferFileInputStream(localJar, THRIFT_CHUNK_SIZE_BYTES);
             while(true) {
                 byte[] toSubmit = is.read();
                 if(toSubmit.length==0) break;
