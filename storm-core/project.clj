@@ -22,7 +22,7 @@
                  [javax.servlet/servlet-api "2.5"]
                  [org.clojure/tools.logging "0.2.3"]
                  [org.clojure/math.numeric-tower "0.0.1"]
-                 [storm/carbonite "1.5.0"]
+                 [com.twitter/carbonite "1.4.0"]
                  [org.yaml/snakeyaml "1.11"]
                  [org.apache.httpcomponents/httpclient "4.1.1"]
                  [storm/tools.cli "0.2.2"]
