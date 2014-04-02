@@ -94,26 +94,37 @@
               (log-warn "Received invalid messages for unknown tasks. Dropping... ")
               )))))))
 
+(defn- assert-can-serialize [^KryoTupleSerializer serializer tuple-batch]
+  "Check that all of the tuples can be serialized by serializing them."
+  (fast-list-iter [[task tuple :as pair] tuple-batch]
+    (.serialize serializer tuple)))
+
 (defn mk-transfer-fn [worker]
   (let [local-tasks (-> worker :task-ids set)
         local-transfer (:transfer-local-fn worker)
         ^DisruptorQueue transfer-queue (:transfer-queue worker)
         try-serialize-local ((:conf worker) TOPOLOGY-TESTING-ALWAYS-TRY-SERIALIZE)
-        - (when try-serialize-local (log-warn "WILL TRY TO SERIALIZE ALL TUPLES (Turn off " TOPOLOGY-TESTING-ALWAYS-TRY-SERIALIZE " for production)"))]
-    (fn [^KryoTupleSerializer serializer tuple-batch]
-      (let [local (ArrayList.)
-            remote (ArrayList.)]
-        (fast-list-iter [[task tuple :as pair] tuple-batch]
-          (if (local-tasks task)
-            (let [- (when try-serialize-local (.serialize serializer tuple))]
-              (.add local pair))
-            (.add remote pair)
-            ))
-        (local-transfer local)
-        ;; not using map because the lazy seq shows up in perf profiles
-        (let [serialized-pairs (fast-list-for [[task ^TupleImpl tuple] remote] [task (.serialize serializer tuple)])]
-          (disruptor/publish transfer-queue serialized-pairs)
-          )))))
+        transfer-fn
+          (fn [^KryoTupleSerializer serializer tuple-batch]
+            (let [local (ArrayList.)
+                  remote (ArrayList.)]
+              (fast-list-iter [[task tuple :as pair] tuple-batch]
+                (if (local-tasks task)
+                  (.add local pair)
+                  (.add remote pair)
+              ))
+              (local-transfer local)
+              ;; not using map because the lazy seq shows up in perf profiles
+              (let [serialized-pairs (fast-list-for [[task ^TupleImpl tuple] remote] [task (.serialize serializer tuple)])]
+                (disruptor/publish transfer-queue serialized-pairs)
+              )))]
+    (if try-serialize-local
+      (do 
+        (log-warn "WILL TRY TO SERIALIZE ALL TUPLES (Turn off " TOPOLOGY-TESTING-ALWAYS-TRY-SERIALIZE " for production)")
+        (fn [^KryoTupleSerializer serializer tuple-batch]
+          (assert-can-serialize serializer tuple-batch)
+          (transfer-fn serializer tuple-batch)))
+      transfer-fn)))
 
 (defn- mk-receive-queue-map [storm-conf executors]
   (->> executors
