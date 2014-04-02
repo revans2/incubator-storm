@@ -97,13 +97,16 @@
 (defn mk-transfer-fn [worker]
   (let [local-tasks (-> worker :task-ids set)
         local-transfer (:transfer-local-fn worker)
-        ^DisruptorQueue transfer-queue (:transfer-queue worker)]
+        ^DisruptorQueue transfer-queue (:transfer-queue worker)
+        try-serialize-local ((:conf worker) TOPOLOGY-TESTING-ALWAYS-TRY-SERIALIZE)
+        - (when try-serialize-local (log-warn "WILL TRY TO SERIALIZE ALL TUPLES (Turn off " TOPOLOGY-TESTING-ALWAYS-TRY-SERIALIZE " for production)"))]
     (fn [^KryoTupleSerializer serializer tuple-batch]
       (let [local (ArrayList.)
             remote (ArrayList.)]
         (fast-list-iter [[task tuple :as pair] tuple-batch]
           (if (local-tasks task)
-            (.add local pair)
+            (let [- (when try-serialize-local (.serialize serializer tuple))]
+              (.add local pair))
             (.add remote pair)
             ))
         (local-transfer local)
