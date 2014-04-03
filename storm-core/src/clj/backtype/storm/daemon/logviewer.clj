@@ -7,15 +7,12 @@
   (:use [backtype.storm.ui helpers])
   (:use [ring.adapter.jetty :only [run-jetty]])
   (:import [java.io File FileFilter])
-  (:import [org.mortbay.jetty Request]
-           [org.mortbay.jetty.handler AbstractHandler])
   (:import [org.yaml.snakeyaml Yaml]
            [org.yaml.snakeyaml.constructor SafeConstructor])
   (:import [backtype.storm.security.auth AuthUtils])
   (:require [compojure.route :as route]
             [compojure.handler :as handler]
             [ring.middleware.keyword-params]
-            [ring.util.servlet :as servlet]
             [ring.util.response :as resp])
   (:require [backtype.storm.daemon common [supervisor :as supervisor]])
   (:gen-class))
@@ -251,10 +248,6 @@
       [:title (str (escape-html fname) " - Storm Log Viewer")]
       (include-css "/css/bootstrap-1.4.0.css")
       (include-css "/css/style.css")
-      (include-js "/js/jquery-1.6.2.min.js")
-      (include-js "/js/jquery.tablesorter.min.js")
-      (include-js "/js/jquery.cookies.2.2.0.min.js")
-      (include-js "/js/script.js")
       ]
      [:body
       (concat
