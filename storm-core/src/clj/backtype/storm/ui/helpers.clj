@@ -1,9 +1,11 @@
 (ns backtype.storm.ui.helpers
   (:use compojure.core)
   (:use [hiccup core page-helpers])
-  (:use [clojure [string :only [blank? join]]])
+  (:use [clojure
+         [string :only [blank? join]]
+         [walk :only [keywordize-keys]]])
   (:use [backtype.storm config log])
-  (:use [backtype.storm.util :only [uuid defnk]])
+  (:use [backtype.storm.util :only [clojurify-structure uuid defnk]])
   (:use [clj-time coerce format])
   (:import [backtype.storm.generated ExecutorInfo ExecutorSummary])
   (:import [org.mortbay.jetty.security SslSocketConnector])
@@ -166,3 +168,8 @@ $(\"table#%s\").each(function(i) { $(this).tablesorter({ sortList: %s, headers: 
                                 (.setInitParameters (or filter-params {})))]
             (.addFilter context filter-holder "/*" org.mortbay.jetty.Handler/ALL))))
       (.addHandler server context))))
+
+(defn ring-response-from-exception [ex]
+  {:headers {}
+   :status 400
+   :body (.getMessage ex)})

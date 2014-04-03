@@ -6,10 +6,11 @@
   (:use [backtype.storm config util log timer])
   (:use [backtype.storm.ui helpers])
   (:use [ring.adapter.jetty :only [run-jetty]])
-  (:import [java.io File FileFilter])
+  (:import [java.io File FileFilter FileInputStream])
   (:import [org.yaml.snakeyaml Yaml]
            [org.yaml.snakeyaml.constructor SafeConstructor])
-  (:import [backtype.storm.security.auth AuthUtils])
+  (:import [backtype.storm.ui InvalidRequestException]
+           [backtype.storm.security.auth AuthUtils])
   (:require [compojure.route :as route]
             [compojure.handler :as handler]
             [ring.middleware.keyword-params]
@@ -133,9 +134,16 @@
           skip (- flen tail)]
       (page-file path skip tail)))
   ([path start length]
-    (with-open [input (clojure.java.io/input-stream path)
+    (with-open [input (FileInputStream. path)
                 output (java.io.ByteArrayOutputStream.)]
-      (if (> start 0) (.skip input start))
+      (if (>= start (.length (clojure.java.io/file path)))
+        (throw
+          (InvalidRequestException. "Cannot start past the end of the file")))
+      (if (> start 0)
+        ;; FileInputStream#skip may not work the first time.
+        (loop [skipped 0]
+          (let [skipped (+ skipped (.skip input (- start skipped)))]
+            (if (< skipped start) (recur skipped)))))
       (let [buffer (make-array Byte/TYPE 1024)]
         (loop []
           (when (< (.size output) length)
@@ -196,40 +204,39 @@
   [[:p (link-to (url-format "/download/%s" fname) "Download Full Log")]])
 
 (defn log-page [fname start length grep user]
-  (let [file (-> (File. LOG-DIR fname) .getCanonicalFile)
-        file-length (.length file)
-        path (.getCanonicalPath file)]
-    (if (= (File. LOG-DIR)
-           (.getParentFile file))
-      (let [default-length 51200
-            length (if length
-                     (min 10485760 length)
-                   default-length)
-            log-string (escape-html
-                         (if start
-                           (page-file path start length)
-                           (page-file path length)))
-            start (if-not start (- file-length length) start)]
-        (if (or (blank? (*STORM-CONF* UI-FILTER))
-                (authorized-log-user? user fname *STORM-CONF*))
+  (if (or (blank? (*STORM-CONF* UI-FILTER))
+          (authorized-log-user? user fname *STORM-CONF*))
+    (let [file (.getCanonicalFile (File. LOG-DIR fname))
+          file-length (.length file)
+          path (.getCanonicalPath file)]
+      (if (= (File. LOG-DIR)
+             (.getParentFile file))
+        (let [default-length 51200
+              length (if length
+                       (min 10485760 length)
+                     default-length)
+              log-string (escape-html
+                           (if start
+                             (page-file path start length)
+                             (page-file path length)))
+              start (or start (- file-length length))]
           (if grep
             (html [:pre
                    (if grep
-                     (filter #(.contains % grep) (.split log-string "\n"))
+                     (filter #(.contains % grep)
+                             (.split log-string "\n"))
                      log-string)])
             (let [pager-data (pager-links fname start length file-length)]
               (html (concat pager-data
                             (download-link fname)
                             [[:pre log-string]]
-                            pager-data))))
-
-          (unauthorized-user-html user)))
-
-      (-> (resp/response "Page not found")
-          (resp/status 404)))))
+                            pager-data)))))
+        (-> (resp/response "Page not found")
+            (resp/status 404))))
+    (unauthorized-user-html user)))
 
 (defn download-log-file [fname req resp user]
-  (let [file (-> (File. LOG-DIR fname) .getCanonicalFile)
+  (let [file (.getCanonicalFile (File. LOG-DIR fname))
         path (.getCanonicalPath file)]
     (if (= (File. LOG-DIR) (.getParentFile file))
       (if (or (blank? (*STORM-CONF* UI-FILTER))
@@ -258,30 +265,33 @@
 
 (def http-creds-handler (AuthUtils/GetUiHttpCredentialsPlugin *STORM-CONF*))
 
-(defn- parse-int-from-map [m k]
+(defn- parse-long-from-map [m k]
   (try
-    {:value (Integer/parseInt (k m))}
+    (Long/parseLong (k m))
     (catch NumberFormatException ex
-      (log-error ex)
-      {:error-response (-> (resp/response
-                             (str "Could not make an integer "
-                                  "out of the query parameter '" (name k) "'"))
-                           (resp/status 400))})))
+      (throw (InvalidRequestException.
+               (str "Could not make an integer out of the query parameter '"
+                    (name k) "'")
+               ex)))))
 
 (defroutes log-routes
   (GET "/log" [:as {servlet-request :servlet-request} & m]
-       (let [user (.getUserName http-creds-handler servlet-request)
-             start (if (:start m) (parse-int-from-map m :start))
-             length (if (:length m) (parse-int-from-map m :length))]
-         (or
-           (:error-response start)
-           (:error-response length)
-           (log-template (log-page (:file m) (:value start) (:value length)
-                                   (:grep m) user)
-                         (:file m) user))))
+       (try
+         (let [user (.getUserName http-creds-handler servlet-request)
+               start (if (:start m) (parse-long-from-map m :start))
+               length (if (:length m) (parse-long-from-map m :length))]
+           (log-template (log-page (:file m) start length (:grep m) user)
+                         (:file m) user))
+         (catch InvalidRequestException ex
+           (log-error ex)
+           (ring-response-from-exception ex))))
   (GET "/download/:file" [:as {:keys [servlet-request servlet-response]} file & m]
-       (let [user (.getUserName http-creds-handler servlet-request)]
-         (download-log-file file servlet-request servlet-response user)))
+       (try
+         (let [user (.getUserName http-creds-handler servlet-request)]
+           (download-log-file file servlet-request servlet-response user))
+         (catch InvalidRequestException ex
+           (log-error ex)
+           (ring-response-from-exception ex))))
   (route/resources "/")
   (route/not-found "Page not found"))
 
