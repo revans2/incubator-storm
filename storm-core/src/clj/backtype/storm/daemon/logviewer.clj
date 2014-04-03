@@ -7,9 +7,6 @@
   (:use [backtype.storm.ui helpers])
   (:use [ring.adapter.jetty :only [run-jetty]])
   (:import [java.io File FileFilter])
-  (:import [org.apache.commons.logging LogFactory])
-  (:import [org.apache.commons.logging.impl Log4JLogger])
-  (:import [org.apache.log4j Level])
   (:import [org.mortbay.jetty Request]
            [org.mortbay.jetty.handler AbstractHandler])
   (:import [org.yaml.snakeyaml Yaml]
@@ -246,13 +243,6 @@
       (-> (resp/response "Page not found")
           (resp/status 404)))))
 
-(defn log-level-page [name level]
-  (let [log (LogFactory/getLog name)]
-    (if level
-      (if (instance? Log4JLogger log)
-        (.setLevel (.getLogger log) (Level/toLevel level))))
-    (str "effective log level for " name " is " (.getLevel (.getLogger log)))))
-
 (defn log-template
   ([body] (log-template body nil nil))
   ([body fname user]
@@ -299,9 +289,6 @@
   (GET "/download/:file" [:as {:keys [servlet-request servlet-response]} file & m]
        (let [user (.getUserName http-creds-handler servlet-request)]
          (download-log-file file servlet-request servlet-response user)))
-  (GET "/loglevel" [:as {servlet-request :servlet-request} & m]
-       (let [user (.getUserName http-creds-handler servlet-request)]
-         (log-template (log-level-page (:name m) (:level m)) user) nil user))
   (route/resources "/")
   (route/not-found "Page not found"))
 
