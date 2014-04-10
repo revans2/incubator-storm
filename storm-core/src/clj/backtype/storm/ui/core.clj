@@ -15,7 +15,6 @@
             KillOptions])
   (:import [backtype.storm.security.auth AuthUtils])
   (:import [java.io File PrintWriter StringWriter])
-  (:import [org.mortbay.jetty.servlet Context])
   (:require [compojure.route :as route]
             [compojure.handler :as handler]
             [ring.util.response :as resp]
