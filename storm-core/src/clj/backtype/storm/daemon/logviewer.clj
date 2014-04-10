@@ -221,7 +221,7 @@
                              (page-file path length)))
               start (or start (- file-length length))]
           (if grep
-            (html [:pre
+            (html [:pre#logContent
                    (if grep
                      (filter #(.contains % grep)
                              (.split log-string "\n"))
@@ -229,7 +229,7 @@
             (let [pager-data (pager-links fname start length file-length)]
               (html (concat pager-data
                             (download-link fname)
-                            [[:pre log-string]]
+                            [[:pre#logContent log-string]]
                             pager-data)))))
         (-> (resp/response "Page not found")
             (resp/status 404))))
