@@ -129,7 +129,13 @@ public class Utils {
             }
             URL resource = resources.iterator().next();
             Yaml yaml = new Yaml(new SafeConstructor());
-            Map ret = (Map) yaml.load(new InputStreamReader(resource.openStream()));
+            Map ret = null;
+            InputStream input = resource.openStream();
+            try {
+                ret = (Map) yaml.load(new InputStreamReader(input));
+            } finally {
+                input.close();
+            }
             if(ret==null) ret = new HashMap();
             
 
