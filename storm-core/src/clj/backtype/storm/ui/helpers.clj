@@ -1,9 +1,11 @@
 (ns backtype.storm.ui.helpers
   (:use compojure.core)
   (:use [hiccup core page-helpers])
-  (:use [clojure [string :only [blank? join]]])
+  (:use [clojure
+         [string :only [blank? join]]
+         [walk :only [keywordize-keys]]])
   (:use [backtype.storm config log])
-  (:use [backtype.storm.util :only [uuid defnk]])
+  (:use [backtype.storm.util :only [clojurify-structure uuid defnk]])
   (:use [clj-time coerce format])
   (:import [backtype.storm.generated ExecutorInfo ExecutorSummary])
   (:import [org.mortbay.jetty.security SslSocketConnector])
@@ -152,17 +154,22 @@ $(\"table#%s\").each(function(i) { $(this).tablesorter({ sortList: %s, headers: 
   (when (> port 0)
     (.addConnector server (mk-ssl-connector port ks-path ks-password ks-type))))
 
-(defn config-filter [server handler filter-class filter-params]
-  (if filter-class
-    (let [filter (doto (org.mortbay.jetty.servlet.FilterHolder.)
-                   (.setName "springSecurityFilterChain")
-                   (.setClassName filter-class)
-                   (.setInitParameters filter-params))
-          servlet (doto (org.mortbay.jetty.servlet.ServletHolder. (ring.util.servlet/servlet handler))
-                    (.setName "default"))
+(defn config-filter [server handler filters-confs]
+  (if filters-confs
+    (let [servlet-holder (org.mortbay.jetty.servlet.ServletHolder.
+                           (ring.util.servlet/servlet handler))
           context (doto (org.mortbay.jetty.servlet.Context. server "/")
-                    (.addFilter filter "/*" 0)
-                    (.addServlet servlet "/"))]
-      (log-message "configuring filter " filter-class)
+                    (.addServlet servlet-holder "/"))]
+      (doseq [{:keys [filter-name filter-class filter-params]} filters-confs]
+        (if filter-class
+          (let [filter-holder (doto (org.mortbay.jetty.servlet.FilterHolder.)
+                                (.setClassName filter-class)
+                                (.setName (or filter-name filter-class))
+                                (.setInitParameters (or filter-params {})))]
+            (.addFilter context filter-holder "/*" org.mortbay.jetty.Handler/ALL))))
       (.addHandler server context))))
 
+(defn ring-response-from-exception [ex]
+  {:headers {}
+   :status 400
+   :body (.getMessage ex)})

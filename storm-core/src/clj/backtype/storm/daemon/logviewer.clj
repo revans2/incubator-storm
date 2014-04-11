@@ -6,15 +6,14 @@
   (:use [backtype.storm config util log timer])
   (:use [backtype.storm.ui helpers])
   (:use [ring.adapter.jetty :only [run-jetty]])
-  (:import [java.io File FileFilter])
-  (:import [org.apache.commons.logging LogFactory])
-  (:import [org.apache.commons.logging.impl Log4JLogger])
-  (:import [org.apache.log4j Level])
+  (:import [java.io File FileFilter FileInputStream])
   (:import [org.yaml.snakeyaml Yaml]
            [org.yaml.snakeyaml.constructor SafeConstructor])
-  (:import [backtype.storm.security.auth AuthUtils])
+  (:import [backtype.storm.ui InvalidRequestException]
+           [backtype.storm.security.auth AuthUtils])
   (:require [compojure.route :as route]
             [compojure.handler :as handler]
+            [ring.middleware.keyword-params]
             [ring.util.response :as resp])
   (:require [backtype.storm.daemon common [supervisor :as supervisor]])
   (:gen-class))
@@ -129,20 +128,30 @@
                           interval-secs
                           cleanup-fn!))))
 
-(defn tail-file [path tail]
-  (let [flen (.length (clojure.java.io/file path))
-        skip (- flen tail)]
-    (with-open [input (clojure.java.io/input-stream path)
+(defn page-file
+  ([path tail]
+    (let [flen (.length (clojure.java.io/file path))
+          skip (- flen tail)]
+      (page-file path skip tail)))
+  ([path start length]
+    (with-open [input (FileInputStream. path)
                 output (java.io.ByteArrayOutputStream.)]
-      (if (> skip 0) (.skip input skip))
+      (if (>= start (.length (clojure.java.io/file path)))
+        (throw
+          (InvalidRequestException. "Cannot start past the end of the file")))
+      (if (> start 0)
+        ;; FileInputStream#skip may not work the first time.
+        (loop [skipped 0]
+          (let [skipped (+ skipped (.skip input (- start skipped)))]
+            (if (< skipped start) (recur skipped)))))
       (let [buffer (make-array Byte/TYPE 1024)]
         (loop []
-          (let [size (.read input buffer)]
-            (when (and (pos? size) (< (.size output) tail))
-              (do (.write output buffer 0 size)
-                  (recur))))))
-      (.toString output))
-    ))
+          (when (< (.size output) length)
+            (let [size (.read input buffer 0 (min 1024 (- length (.size output))))]
+              (when (pos? size)
+                (.write output buffer 0 size)
+                (recur)))))
+      (.toString output)))))
 
 (defn get-log-user-whitelist [fname]
   (let [wl-file (get-log-metadata-file fname)
@@ -158,82 +167,154 @@
                              whitelist)]
        (some #(= % user) logs-users))))
 
-(defn log-page [fname tail grep user]
-  (let [file (-> (File. LOG-DIR fname) .getCanonicalFile)
-        path (.getCanonicalPath file)]
-    (if (= (File. LOG-DIR)
-           (.getParentFile file))
-      (let [tail (if tail
-                   (min 10485760 (Integer/parseInt tail))
-                   10240)
-            tail-string (tail-file path tail)]
-        (if (or (blank? (*STORM-CONF* UI-FILTER))
-                (authorized-log-user? user fname *STORM-CONF*))
+(defn pager-links [fname start length file-size]
+  (let [prev-start (max 0 (- start length))
+        next-start (if (> file-size 0)
+                     (min (max 0 (- file-size length)) (+ start length))
+                     (+ start length))]
+    [[:div.pagination
+      [:ul
+        (concat
+          [[(if (< prev-start start) (keyword "li") (keyword "li.disabled"))
+            (link-to (url "/log"
+                          {:file fname
+                             :start (max 0 (- start length))
+                             :length length})
+                     "Prev")]]
+          [[:li (link-to
+                  (url "/log"
+                       {:file fname
+                        :start 0
+                        :length length})
+                  "First")]]
+          [[:li (link-to
+                  (url "/log"
+                       {:file fname
+                        :length length})
+                  "Last")]]
+          [[(if (> next-start start) (keyword "li.next") (keyword "li.next.disabled"))
+            (link-to (url "/log"
+                          {:file fname
+                           :start (min (max 0 (- file-size length))
+                                       (+ start length))
+                           :length length})
+                     "Next")]])]]]))
+
+(defn- download-link [fname]
+  [[:p (link-to (url-format "/download/%s" fname) "Download Full Log")]])
+
+(defn log-page [fname start length grep user]
+  (if (or (blank? (*STORM-CONF* UI-FILTER))
+          (authorized-log-user? user fname *STORM-CONF*))
+    (let [file (.getCanonicalFile (File. LOG-DIR fname))
+          file-length (.length file)
+          path (.getCanonicalPath file)]
+      (if (= (File. LOG-DIR)
+             (.getParentFile file))
+        (let [default-length 51200
+              length (if length
+                       (min 10485760 length)
+                     default-length)
+              log-string (escape-html
+                           (if start
+                             (page-file path start length)
+                             (page-file path length)))
+              start (or start (- file-length length))]
           (if grep
-             (clojure.string/join "\n<br>"
-               (filter #(.contains % grep) (.split tail-string "\n")))
-             (.replaceAll tail-string "\n" "\n<br>"))
+            (html [:pre#logContent
+                   (if grep
+                     (filter #(.contains % grep)
+                             (.split log-string "\n"))
+                     log-string)])
+            (let [pager-data (pager-links fname start length file-length)]
+              (html (concat pager-data
+                            (download-link fname)
+                            [[:pre#logContent log-string]]
+                            pager-data)))))
+        (-> (resp/response "Page not found")
+            (resp/status 404))))
+    (unauthorized-user-html user)))
 
-          (unauthorized-user-html user)))
-
+(defn download-log-file [fname req resp user]
+  (let [file (.getCanonicalFile (File. LOG-DIR fname))
+        path (.getCanonicalPath file)]
+    (if (= (File. LOG-DIR) (.getParentFile file))
+      (if (or (blank? (*STORM-CONF* UI-FILTER))
+              (authorized-log-user? user fname *STORM-CONF*))
+        (-> (resp/response file)
+            (resp/content-type "application/octet-stream"))
+        (unauthorized-user-html user))
       (-> (resp/response "Page not found")
           (resp/status 404)))))
 
-(defn log-level-page [name level]
-  (let [log (LogFactory/getLog name)]
-    (if level
-      (if (instance? Log4JLogger log)
-        (.setLevel (.getLogger log) (Level/toLevel level))))
-    (str "effective log level for " name " is " (.getLevel (.getLogger log)))))
-
 (defn log-template
-  ([body] (log-template body nil))
-  ([body user]
+  ([body] (log-template body nil nil))
+  ([body fname user]
     (html4
      [:head
-      [:title "Storm log viewer"]
+      [:title (str (escape-html fname) " - Storm Log Viewer")]
       (include-css "/css/bootstrap-1.4.0.css")
       (include-css "/css/style.css")
-      (include-js "/js/jquery-1.6.2.min.js")
-      (include-js "/js/jquery.tablesorter.min.js")
-      (include-js "/js/jquery.cookies.2.2.0.min.js")
-      (include-js "/js/script.js")
       ]
      [:body
       (concat
         (when (not (blank? user)) [[:div.ui-user [:p "User: " user]]])
+        [[:h3 (escape-html fname)]]
         (seq body))
       ])))
 
 (def http-creds-handler (AuthUtils/GetUiHttpCredentialsPlugin *STORM-CONF*))
 
+(defn- parse-long-from-map [m k]
+  (try
+    (Long/parseLong (k m))
+    (catch NumberFormatException ex
+      (throw (InvalidRequestException.
+               (str "Could not make an integer out of the query parameter '"
+                    (name k) "'")
+               ex)))))
+
 (defroutes log-routes
   (GET "/log" [:as {servlet-request :servlet-request} & m]
-       (let [user (.getUserName http-creds-handler servlet-request)]
-         (log-template (log-page (:file m) (:tail m) (:grep m) user) user)))
-  (GET "/loglevel" [:as {servlet-request :servlet-request} & m]
-       (let [user (.getUserName http-creds-handler servlet-request)]
-         (log-template (log-level-page (:name m) (:level m)) user) user))
+       (try
+         (let [user (.getUserName http-creds-handler servlet-request)
+               start (if (:start m) (parse-long-from-map m :start))
+               length (if (:length m) (parse-long-from-map m :length))]
+           (log-template (log-page (:file m) start length (:grep m) user)
+                         (:file m) user))
+         (catch InvalidRequestException ex
+           (log-error ex)
+           (ring-response-from-exception ex))))
+  (GET "/download/:file" [:as {:keys [servlet-request servlet-response]} file & m]
+       (try
+         (let [user (.getUserName http-creds-handler servlet-request)]
+           (download-log-file file servlet-request servlet-response user))
+         (catch InvalidRequestException ex
+           (log-error ex)
+           (ring-response-from-exception ex))))
   (route/resources "/")
   (route/not-found "Page not found"))
-
-(def logapp
-  (handler/site log-routes)
- )
 
 (defn start-logviewer! [conf]
   (try
     (let [header-buffer-size (int (.get conf UI-HEADER-BUFFER-BYTES))
           filter-class (conf UI-FILTER)
-          filter-params (conf UI-FILTER-PARAMS)]
+          filter-params (conf UI-FILTER-PARAMS)
+          logapp (handler/api log-routes) ;; query params as map
+          filters-confs (if (conf UI-FILTER)
+                          [{:filter-class filter-class
+                            :filter-params (or (conf UI-FILTER-PARAMS) {})}]
+                          [])
+          filters-confs (concat filters-confs
+                          [{:filter-class "org.mortbay.servlet.GzipFilter"
+                            :filter-name "Gzipper"
+                            :filter-params {}}])]
       (run-jetty logapp {:port (int (conf LOGVIEWER-PORT))
                          :join? false
                          :configurator (fn [server]
                                          (doseq [connector (.getConnectors server)]
                                            (.setHeaderBufferSize connector header-buffer-size))
-                                         (config-filter server logapp
-                                                        filter-class
-                                                        filter-params))}))
+                                         (config-filter server logapp filters-confs))}))
   (catch Exception ex
     (log-error ex))))
 

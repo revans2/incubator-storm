@@ -203,6 +203,8 @@
         (let [app (webapp drpc-service-handler http-creds-handler)
               filter-class (conf DRPC-HTTP-FILTER)
               filter-params (conf DRPC-HTTP-FILTER-PARAMS)
+              filters-confs [{:filter-class filter-class
+                              :filter-params filter-params}]
               https-port (int (conf DRPC-HTTPS-PORT))
               https-ks-path (conf DRPC-HTTPS-KEYSTORE-PATH)
               https-ks-password (conf DRPC-HTTPS-KEYSTORE-PASSWORD)
@@ -216,9 +218,7 @@
                                          https-ks-path 
                                          https-ks-password
                                          https-ks-type)
-                             (config-filter server app
-                                            filter-class
-                                            filter-params))})))
+                             (config-filter server app filters-confs))})))
       (when handler-server
         (.serve handler-server)))))
 
