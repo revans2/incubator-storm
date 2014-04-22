@@ -494,17 +494,21 @@
         arch-resource-root (str resource-root "/" os "-" arch)]
     (str arch-resource-root ":" resource-root ":" (conf JAVA-LIBRARY-PATH))))
 
-(defn replace-childopts-tags-by-ids
+(defn substitute-childopts
   [childopts worker-id storm-id port]
   (
     let [replacement-map {"%ID%"          (str port)
                           "%WORKER-ID%"   (str worker-id)
                           "%STORM-ID%"    (str storm-id)
-                          "%WORKER-PORT%" (str port)}]
+                          "%WORKER-PORT%" (str port)}
+         sub-fn (fn [s] 
+                  (reduce (fn [string entry]
+                    (apply clojure.string/replace string entry))
+                     s replacement-map))]
     (if-not (nil? childopts)
-      (reduce (fn [string entry]
-                (apply clojure.string/replace string entry))
-              childopts replacement-map)
+      (if (sequential? childopts)
+        (map sub-fn childopts)
+        (-> childopts sub-fn (.split " ")))
       nil)
     ))
 
@@ -519,24 +523,38 @@
           storm-conf (read-supervisor-storm-conf conf storm-id)
           classpath (add-to-classpath (current-classpath) [stormjar])
           top-gc-opts (storm-conf TOPOLOGY-WORKER-GC-CHILDOPTS)
-          gc-opts (if top-gc-opts top-gc-opts (conf WORKER-GC-CHILDOPTS))
-          childopts (replace-childopts-tags-by-ids (str (conf WORKER-CHILDOPTS) " " (storm-conf TOPOLOGY-WORKER-CHILDOPTS) " " gc-opts)
-                                 worker-id storm-id port)
+          gc-opts (substitute-childopts (if top-gc-opts top-gc-opts (conf WORKER-GC-CHILDOPTS)) worker-id storm-id port)
           user (storm-conf TOPOLOGY-SUBMITTER-USER)
           logfilename (logs-filename storm-id port)
-          command (str "java -server " childopts
-                       " -Djava.library.path=" jlp
-                       " -Dlogfile.name=" logfilename
-                       " -Dstorm.home=" storm-home
-                       " -Dlogback.configurationFile=" storm-home "/logback/worker.xml"
-                       " -Dstorm.id=" storm-id
-                       " -Dworker.id=" worker-id
-                       " -Dworker.port=" port
-                       " -cp " classpath " backtype.storm.daemon.worker "
-                       (java.net.URLEncoder/encode storm-id) " " (:assignment-id supervisor)
-                       " " port " " worker-id)]
+
+          worker-childopts (substitute-childopts (conf WORKER-CHILDOPTS) worker-id storm-id port)
+          topo-worker-childopts (substitute-childopts (storm-conf TOPOLOGY-WORKER-CHILDOPTS) worker-id storm-id port)
+          command (concat
+                    ["java" "-server"]
+                    worker-childopts
+                    topo-worker-childopts
+                    gc-opts
+                    [(str "-Djava.library.path=" jlp)
+                     (str "-Dlogfile.name=" logfilename)
+                     (str "-Dstorm.home=" storm-home)
+                     (str "-Dlogback.configurationFile=" storm-home "/logback/worker.xml")
+                     (str "-Dstorm.id=" storm-id)
+                     (str "-Dworker.id=" worker-id)
+                     (str "-Dworker.port=" port)
+                     "-cp" classpath
+                     "backtype.storm.daemon.worker"
+                     storm-id
+                     (:assignment-id supervisor)
+                     port
+                     worker-id])
+          command (->> command (map str) (filter (complement empty?)))
+
+          shell-cmd (->> command
+                         (map #(str \' (clojure.string/escape % {\' "\\'"}) \'))
+                         (clojure.string/join " "))]
+
+      (log-message "Launching worker with command: " shell-cmd)
       (write-log-metadata! storm-conf user worker-id storm-id port)
-      (log-message "Launching worker with command: " command)
       (set-worker-user! conf worker-id user)
       (let [log-prefix (str "Worker Process " worker-id)
            callback (fn [exit-code] 

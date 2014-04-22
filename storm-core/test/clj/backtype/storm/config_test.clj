@@ -79,3 +79,23 @@
       (is (nil? (try
                   (.validateField validator "test" x)
                   (catch Exception e e)))))))
+
+(deftest test-worker-childopts-is-string-or-string-list
+  (let [pass-cases [nil "some string" ["some" "string" "list"]]]
+    (testing "worker.childopts validates"
+      (let [validator (CONFIG-SCHEMA-MAP WORKER-CHILDOPTS)]
+        (doseq [value pass-cases]
+          (is (nil? (try
+                      (.validateField validator "test" value)
+                      (catch Exception e e)))))
+        (is (thrown-cause? java.lang.IllegalArgumentException
+          (.validateField validator "test" 42)))))
+
+    (testing "topology.worker.childopts validates"
+      (let [validator (CONFIG-SCHEMA-MAP TOPOLOGY-WORKER-CHILDOPTS)]
+        (doseq [value pass-cases]
+          (is (nil? (try
+                      (.validateField validator "test" value)
+                      (catch Exception e e)))))
+        (is (thrown-cause? java.lang.IllegalArgumentException
+          (.validateField validator "test" 42)))))))

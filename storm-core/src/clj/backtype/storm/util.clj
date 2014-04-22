@@ -437,9 +437,7 @@
   ))
 
 (defnk launch-process [command :environment {} :log-prefix nil :exit-code-callback nil]
-  (let [command (->> (seq (.split command " "))
-                     (filter (complement empty?)))
-        builder (ProcessBuilder. command)
+  (let [builder (ProcessBuilder. command)
         process-env (.environment builder)]
     (.redirectErrorStream builder true)
     (doseq [[k v] environment]
@@ -458,7 +456,7 @@
              (exit-code-callback (.exitValue process)))
            nil)))                    
       process)))
-          
+   
 (defn exists-file? [path]
   (.exists (File. path)))
 
