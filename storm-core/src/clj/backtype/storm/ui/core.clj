@@ -531,8 +531,8 @@
 
 (defn worker-log-link [host port topology-id]
   (let [fname (logs-filename topology-id port)]
-    (link-to (url-format (str "http://%s:%s/log?file=" fname)
-                host (*STORM-CONF* LOGVIEWER-PORT)) (str port))))
+    (link-to (url-format (str "http://%s:%s/log?file=%s")
+                host (*STORM-CONF* LOGVIEWER-PORT) fname) (str port))))
 
 (defn render-capacity [capacity]
   (let [capacity (nil-to-zero capacity)]
