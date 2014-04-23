@@ -162,7 +162,7 @@
         wl-initial (conf SUPERVISOR-WORKER-LAUNCHER)
         storm-home (System/getProperty "storm.home")
         wl (if wl-initial wl-initial (str storm-home "/bin/worker-launcher"))
-        command (str wl " " user " " args)]
+        command (concat [wl user] args)]
     (log-message "Running as user:" user " command:" command)
     (launch-process command :environment environment :log-prefix log-prefix :exit-code-callback exit-code-callback)
   ))
@@ -182,7 +182,7 @@
     (if (.exists (File. (worker-root conf id)))
       (do
         (if (conf SUPERVISOR-RUN-WORKER-AS-USER)
-          (worker-launcher-and-wait conf user (str "rmr " (worker-root conf id)) :log-prefix (str "rmr " id) )
+          (worker-launcher-and-wait conf user ["rmr" (worker-root conf id)] :log-prefix (str "rmr " id) )
           (do
             (rmr (worker-heartbeats-root conf id))
             ;; this avoids a race condition with worker or subprocess writing pid around same time
@@ -208,10 +208,10 @@
       (psim/kill-process thread-pid))
     (doseq [pid pids]
       (if as-user
-        (worker-launcher-and-wait conf user (str "signal " pid " 9") :log-prefix (str "kill -9 " pid))
+        (worker-launcher-and-wait conf user ["signal" pid "9"] :log-prefix (str "kill -9 " pid))
         (ensure-process-killed! pid))
       (if as-user
-        (worker-launcher-and-wait conf user (str "rmr " (worker-pid-path conf id pid)) :log-prefix (str "rmr for " pid))
+        (worker-launcher-and-wait conf user ["rmr" (worker-pid-path conf id pid)] :log-prefix (str "rmr for " pid))
         (rmpath (worker-pid-path conf id pid)))
       )
     (try-cleanup-worker conf id user))
@@ -451,7 +451,7 @@
 
 (defn setup-storm-code-dir [conf storm-conf dir]
  (if (conf SUPERVISOR-RUN-WORKER-AS-USER)
-  (worker-launcher-and-wait conf (storm-conf TOPOLOGY-SUBMITTER-USER) (str "code-dir " dir) :log-prefix (str "setup conf for " dir))))
+  (worker-launcher-and-wait conf (storm-conf TOPOLOGY-SUBMITTER-USER) ["code-dir" dir] :log-prefix (str "setup conf for " dir))))
 
 ;; distributed implementation
 (defmethod download-storm-code
@@ -547,13 +547,9 @@
                      (:assignment-id supervisor)
                      port
                      worker-id])
-          command (->> command (map str) (filter (complement empty?)))
+          command (->> command (map str) (filter (complement empty?)))]
 
-          shell-cmd (->> command
-                         (map #(str \' (clojure.string/escape % {\' "\\'"}) \'))
-                         (clojure.string/join " "))]
-
-      (log-message "Launching worker with command: " shell-cmd)
+      (log-message "Launching worker with command: " (shell-cmd command))
       (write-log-metadata! storm-conf user worker-id storm-id port)
       (set-worker-user! conf worker-id user)
       (let [log-prefix (str "Worker Process " worker-id)
@@ -563,7 +559,7 @@
         (remove-dead-worker worker-id) 
         (if run-worker-as-user
           (let [worker-dir (worker-root conf worker-id)]
-            (worker-launcher conf user (str "worker " worker-dir " " (write-script worker-dir command :environment {"LD_LIBRARY_PATH" jlp})) :log-prefix log-prefix :exit-code-callback callback))
+            (worker-launcher conf user ["worker" worker-dir (write-script worker-dir command :environment {"LD_LIBRARY_PATH" jlp})] :log-prefix log-prefix :exit-code-callback callback))
           (launch-process command :environment {"LD_LIBRARY_PATH" jlp} :log-prefix log-prefix :exit-code-callback callback)
       ))))
 

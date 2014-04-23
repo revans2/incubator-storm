@@ -429,8 +429,13 @@
         ))
       ))
 
+(defn shell-cmd [command]
+  (->> command
+    (map #(str \' (clojure.string/escape % {\' "\\'"}) \'))
+      (clojure.string/join " ")))
+
 (defnk write-script [dir command :environment {}]
-  (let [script-src (str "#!/bin/bash\n" (clojure.string/join "" (map (fn [[k v]] (str "export '" k "=" v "';\n")) environment)) "\nexec " command ";")
+  (let [script-src (str "#!/bin/bash\n" (clojure.string/join "" (map (fn [[k v]] (str "export '" k "=" v "';\n")) environment)) "\nexec " (shell-cmd command) ";")
         script-path (str dir "/storm-worker-script.sh")
         - (spit script-path script-src)]
     script-path
