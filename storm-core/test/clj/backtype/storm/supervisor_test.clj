@@ -318,7 +318,7 @@
                       (str storm-local "/workers/" mock-worker-id)
                       worker-script]
           exp-script-fn (fn [opts topo-opts]
-                       (str "#!/bin/bash\nexport 'LD_LIBRARY_PATH=';\n\nexec 'java' '-server'"
+                       (str "#!/bin/bash\n'export' 'LD_LIBRARY_PATH=';\n\nexec 'java' '-server'"
                                 " " (shell-cmd opts)
                                 " " (shell-cmd topo-opts)
                                 " '-Djava.library.path='"
@@ -328,7 +328,7 @@
                                 " '-Dstorm.id=" mock-storm-id "'"
                                 " '-Dworker.id=" mock-worker-id "'"
                                 " '-Dworker.port=" mock-port "'"
-                                " '-cp' 'mock-classpath\\'quote-on-purpose'"
+                                " '-cp' 'mock-classpath'\"'\"'quote-on-purpose'"
                                 " 'backtype.storm.daemon.worker'"
                                 " '" mock-storm-id "'"
                                 " '" mock-port "'"
