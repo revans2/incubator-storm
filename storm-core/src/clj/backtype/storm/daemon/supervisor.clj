@@ -162,8 +162,8 @@
         wl-initial (conf SUPERVISOR-WORKER-LAUNCHER)
         storm-home (System/getProperty "storm.home")
         wl (if wl-initial wl-initial (str storm-home "/bin/worker-launcher"))
-        command (str wl " " user " " args)]
-    (log-message "Running as user:" user " command:" command)
+        command (concat [wl user] args)]
+    (log-message "Running as user:" user " command:" (pr-str command))
     (launch-process command :environment environment :log-prefix log-prefix :exit-code-callback exit-code-callback)
   ))
 
@@ -182,7 +182,7 @@
     (if (.exists (File. (worker-root conf id)))
       (do
         (if (conf SUPERVISOR-RUN-WORKER-AS-USER)
-          (worker-launcher-and-wait conf user (str "rmr " (worker-root conf id)) :log-prefix (str "rmr " id) )
+          (worker-launcher-and-wait conf user ["rmr" (worker-root conf id)] :log-prefix (str "rmr " id) )
           (do
             (rmr (worker-heartbeats-root conf id))
             ;; this avoids a race condition with worker or subprocess writing pid around same time
@@ -208,10 +208,10 @@
       (psim/kill-process thread-pid))
     (doseq [pid pids]
       (if as-user
-        (worker-launcher-and-wait conf user (str "signal " pid " 9") :log-prefix (str "kill -9 " pid))
+        (worker-launcher-and-wait conf user ["signal" pid "9"] :log-prefix (str "kill -9 " pid))
         (ensure-process-killed! pid))
       (if as-user
-        (worker-launcher-and-wait conf user (str "rmr " (worker-pid-path conf id pid)) :log-prefix (str "rmr for " pid))
+        (worker-launcher-and-wait conf user ["rmr" (worker-pid-path conf id pid)] :log-prefix (str "rmr for " pid))
         (rmpath (worker-pid-path conf id pid)))
       )
     (try-cleanup-worker conf id user))
@@ -451,7 +451,7 @@
 
 (defn setup-storm-code-dir [conf storm-conf dir]
  (if (conf SUPERVISOR-RUN-WORKER-AS-USER)
-  (worker-launcher-and-wait conf (storm-conf TOPOLOGY-SUBMITTER-USER) (str "code-dir " dir) :log-prefix (str "setup conf for " dir))))
+  (worker-launcher-and-wait conf (storm-conf TOPOLOGY-SUBMITTER-USER) ["code-dir" dir] :log-prefix (str "setup conf for " dir))))
 
 ;; distributed implementation
 (defmethod download-storm-code
@@ -494,17 +494,21 @@
         arch-resource-root (str resource-root "/" os "-" arch)]
     (str arch-resource-root ":" resource-root ":" (conf JAVA-LIBRARY-PATH))))
 
-(defn replace-childopts-tags-by-ids
+(defn substitute-childopts
   [childopts worker-id storm-id port]
   (
     let [replacement-map {"%ID%"          (str port)
                           "%WORKER-ID%"   (str worker-id)
                           "%STORM-ID%"    (str storm-id)
-                          "%WORKER-PORT%" (str port)}]
+                          "%WORKER-PORT%" (str port)}
+         sub-fn (fn [s] 
+                  (reduce (fn [string entry]
+                    (apply clojure.string/replace string entry))
+                     s replacement-map))]
     (if-not (nil? childopts)
-      (reduce (fn [string entry]
-                (apply clojure.string/replace string entry))
-              childopts replacement-map)
+      (if (sequential? childopts)
+        (map sub-fn childopts)
+        (-> childopts sub-fn (.split " ")))
       nil)
     ))
 
@@ -519,24 +523,34 @@
           storm-conf (read-supervisor-storm-conf conf storm-id)
           classpath (add-to-classpath (current-classpath) [stormjar])
           top-gc-opts (storm-conf TOPOLOGY-WORKER-GC-CHILDOPTS)
-          gc-opts (if top-gc-opts top-gc-opts (conf WORKER-GC-CHILDOPTS))
-          childopts (replace-childopts-tags-by-ids (str (conf WORKER-CHILDOPTS) " " (storm-conf TOPOLOGY-WORKER-CHILDOPTS) " " gc-opts)
-                                 worker-id storm-id port)
+          gc-opts (substitute-childopts (if top-gc-opts top-gc-opts (conf WORKER-GC-CHILDOPTS)) worker-id storm-id port)
           user (storm-conf TOPOLOGY-SUBMITTER-USER)
           logfilename (logs-filename storm-id port)
-          command (str "java -server " childopts
-                       " -Djava.library.path=" jlp
-                       " -Dlogfile.name=" logfilename
-                       " -Dstorm.home=" storm-home
-                       " -Dlogback.configurationFile=" storm-home "/logback/worker.xml"
-                       " -Dstorm.id=" storm-id
-                       " -Dworker.id=" worker-id
-                       " -Dworker.port=" port
-                       " -cp " classpath " backtype.storm.daemon.worker "
-                       (java.net.URLEncoder/encode storm-id) " " (:assignment-id supervisor)
-                       " " port " " worker-id)]
+
+          worker-childopts (substitute-childopts (conf WORKER-CHILDOPTS) worker-id storm-id port)
+          topo-worker-childopts (substitute-childopts (storm-conf TOPOLOGY-WORKER-CHILDOPTS) worker-id storm-id port)
+          command (concat
+                    ["java" "-server"]
+                    worker-childopts
+                    topo-worker-childopts
+                    gc-opts
+                    [(str "-Djava.library.path=" jlp)
+                     (str "-Dlogfile.name=" logfilename)
+                     (str "-Dstorm.home=" storm-home)
+                     (str "-Dlogback.configurationFile=" storm-home "/logback/worker.xml")
+                     (str "-Dstorm.id=" storm-id)
+                     (str "-Dworker.id=" worker-id)
+                     (str "-Dworker.port=" port)
+                     "-cp" classpath
+                     "backtype.storm.daemon.worker"
+                     storm-id
+                     (:assignment-id supervisor)
+                     port
+                     worker-id])
+          command (->> command (map str) (filter (complement empty?)))]
+
+      (log-message "Launching worker with command: " (shell-cmd command))
       (write-log-metadata! storm-conf user worker-id storm-id port)
-      (log-message "Launching worker with command: " command)
       (set-worker-user! conf worker-id user)
       (let [log-prefix (str "Worker Process " worker-id)
            callback (fn [exit-code] 
@@ -545,7 +559,7 @@
         (remove-dead-worker worker-id) 
         (if run-worker-as-user
           (let [worker-dir (worker-root conf worker-id)]
-            (worker-launcher conf user (str "worker " worker-dir " " (write-script worker-dir command :environment {"LD_LIBRARY_PATH" jlp})) :log-prefix log-prefix :exit-code-callback callback))
+            (worker-launcher conf user ["worker" worker-dir (write-script worker-dir command :environment {"LD_LIBRARY_PATH" jlp})] :log-prefix log-prefix :exit-code-callback callback))
           (launch-process command :environment {"LD_LIBRARY_PATH" jlp} :log-prefix log-prefix :exit-code-callback callback)
       ))))
 

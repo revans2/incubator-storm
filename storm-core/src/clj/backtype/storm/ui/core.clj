@@ -15,6 +15,7 @@
             KillOptions])
   (:import [backtype.storm.security.auth AuthUtils])
   (:import [java.io File PrintWriter StringWriter])
+  (:import [java.net URLDecoder])
   (:require [compojure.route :as route]
             [compojure.handler :as handler]
             [ring.util.response :as resp]
@@ -530,8 +531,8 @@
 
 (defn worker-log-link [host port topology-id]
   (let [fname (logs-filename topology-id port)]
-    (link-to (url-format (str "http://%s:%s/log?file=" fname)
-                host (*STORM-CONF* LOGVIEWER-PORT)) (str port))))
+    (link-to (url-format (str "http://%s:%s/log?file=%s")
+                host (*STORM-CONF* LOGVIEWER-PORT) fname) (str port))))
 
 (defn render-capacity [capacity]
   (let [capacity (nil-to-zero capacity)]
@@ -1058,31 +1059,31 @@
     (GET "/topology/:id" [:as {:keys [cookies servlet-request]} id & m]
          (let [include-sys? (get-include-sys? cookies)
                user (.getUserName http-creds-handler servlet-request)]
-           (ui-template (topology-page id (:window m) include-sys? user)
+           (ui-template (topology-page (URLDecoder/decode id) (:window m) include-sys? user)
                         user)))
     (GET "/topology/:id/component/:component" [:as {:keys [cookies servlet-request]}
                                                id component & m]
          (let [include-sys? (get-include-sys? cookies)
                user (.getUserName http-creds-handler servlet-request)]
-           (ui-template (component-page id component (:window m) include-sys? user)
+           (ui-template (component-page (URLDecoder/decode id) component (:window m) include-sys? user)
                         user)))
     (POST "/topology/:id/activate" [id]
       (with-nimbus nimbus
-        (let [tplg (.getTopologyInfo ^Nimbus$Client nimbus id)
+        (let [tplg (.getTopologyInfo ^Nimbus$Client nimbus (URLDecoder/decode id))
               name (.get_name tplg)]
           (.activate nimbus name)
           (log-message "Activating topology '" name "'")))
       (resp/redirect (str "/topology/" id)))
     (POST "/topology/:id/deactivate" [id]
       (with-nimbus nimbus
-        (let [tplg (.getTopologyInfo ^Nimbus$Client nimbus id)
+        (let [tplg (.getTopologyInfo ^Nimbus$Client nimbus (URLDecoder/decode id))
               name (.get_name tplg)]
           (.deactivate nimbus name)
           (log-message "Deactivating topology '" name "'")))
       (resp/redirect (str "/topology/" id)))
     (POST "/topology/:id/rebalance/:wait-time" [id wait-time]
       (with-nimbus nimbus
-        (let [tplg (.getTopologyInfo ^Nimbus$Client nimbus id)
+        (let [tplg (.getTopologyInfo ^Nimbus$Client nimbus (URLDecoder/decode id))
               name (.get_name tplg)
               options (RebalanceOptions.)]
           (.set_wait_secs options (Integer/parseInt wait-time))
@@ -1091,7 +1092,7 @@
       (resp/redirect (str "/topology/" id)))
     (POST "/topology/:id/kill/:wait-time" [id wait-time]
       (with-nimbus nimbus
-        (let [tplg (.getTopologyInfo ^Nimbus$Client nimbus id)
+        (let [tplg (.getTopologyInfo ^Nimbus$Client nimbus (URLDecoder/decode id))
               name (.get_name tplg)
               options (KillOptions.)]
           (.set_wait_secs options (Integer/parseInt wait-time))
@@ -1108,12 +1109,12 @@
     (GET "/topology/:id" [:as {:keys [cookies servlet-request]} id & m]
          (let [include-sys? (get-include-sys? cookies)
                user (.getUserName http-creds-handler servlet-request)]
-           (ui-template (topology-page id (:window m) include-sys? user) user)))
+           (ui-template (topology-page (URLDecoder/decode id) (:window m) include-sys? user) user)))
     (GET "/topology/:id/component/:component" [:as {:keys [cookies servlet-request]}
                                                id component & m]
          (let [include-sys? (get-include-sys? cookies)
                user (.getUserName http-creds-handler servlet-request)]
-           (ui-template (component-page id component (:window m) include-sys? user)
+           (ui-template (component-page (URLDecoder/decode id) component (:window m) include-sys? user)
                         user)))
     (route/resources "/")
     (route/not-found "Page not found")))

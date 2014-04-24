@@ -3,11 +3,15 @@
   (:require [conjure.core])
   (:use [conjure core])
   (:require [clojure.contrib [string :as contrib-str]])
+  (:require [clojure [string :as string]])
   (:import [backtype.storm.testing TestWordCounter TestWordSpout TestGlobalCount TestAggregatesCounter])
   (:import [backtype.storm.scheduler ISupervisor])
-  (:use [backtype.storm bootstrap testing])
+  (:import [java.util UUID])
+  (:use [backtype.storm bootstrap config testing])
   (:use [backtype.storm.daemon common])
   (:require [backtype.storm.daemon [worker :as worker] [supervisor :as supervisor]])
+  (:use [conjure core])
+  (:require [clojure.java.io :as io])
   )
 
 (bootstrap)
@@ -228,6 +232,164 @@
 
       )))
 
+(deftest test-worker-launch-command
+  (testing "*.worker.childopts configuration"
+    (let [mock-port "42"
+          mock-storm-id "fake-storm-id"
+          mock-worker-id "fake-worker-id"
+          mock-cp "mock-classpath"
+          exp-args-fn (fn [opts topo-opts]
+                       (concat ["java" "-server"]
+                               opts
+                               topo-opts
+                               ["-Djava.library.path="
+                                (str "-Dlogfile.name=" mock-storm-id "-worker-" mock-port ".log")
+                                "-Dstorm.home="
+                                "-Dlogback.configurationFile=/logback/worker.xml"
+                                (str "-Dstorm.id=" mock-storm-id)
+                                (str "-Dworker.id=" mock-worker-id)
+                                (str "-Dworker.port=" mock-port)
+                                "-cp" mock-cp
+                                "backtype.storm.daemon.worker"
+                                mock-storm-id
+                                mock-port
+                                mock-worker-id]))]
+      (testing "testing *.worker.childopts as strings with extra spaces"
+        (let [string-opts "-Dfoo=bar  -Xmx1024m"
+              topo-string-opts "-Dkau=aux   -Xmx2048m"
+              exp-args (exp-args-fn ["-Dfoo=bar" "-Xmx1024m"]
+                                    ["-Dkau=aux" "-Xmx2048m"])
+              mock-supervisor {:conf {STORM-CLUSTER-MODE :distributed
+                                      WORKER-CHILDOPTS string-opts}}]
+          (stubbing [read-supervisor-storm-conf {TOPOLOGY-WORKER-CHILDOPTS
+                                                   topo-string-opts}
+                     add-to-classpath mock-cp
+                     supervisor-stormdist-root nil
+                     launch-process nil
+                     set-worker-user! nil
+                     supervisor/jlp nil
+                     supervisor/write-log-metadata! nil]
+            (supervisor/launch-worker mock-supervisor
+                                      mock-storm-id
+                                      mock-port
+                                      mock-worker-id)
+            (verify-first-call-args-for-indices launch-process
+                                                [0]
+                                                exp-args))))
+      (testing "testing *.worker.childopts as list of strings, with spaces in values"
+        (let [list-opts '("-Dopt1='this has a space in it'" "-Xmx1024m")
+              topo-list-opts '("-Dopt2='val with spaces'" "-Xmx2048m")
+              exp-args (exp-args-fn list-opts topo-list-opts)
+              mock-supervisor {:conf {STORM-CLUSTER-MODE :distributed
+                                      WORKER-CHILDOPTS list-opts}}]
+          (stubbing [read-supervisor-storm-conf {TOPOLOGY-WORKER-CHILDOPTS
+                                                   topo-list-opts}
+                     add-to-classpath mock-cp
+                     supervisor-stormdist-root nil
+                     launch-process nil
+                     set-worker-user! nil
+                     supervisor/jlp nil
+                     supervisor/write-log-metadata! nil]
+            (supervisor/launch-worker mock-supervisor
+                                      mock-storm-id
+                                      mock-port
+                                      mock-worker-id)
+            (verify-first-call-args-for-indices launch-process
+                                                [0]
+                                                exp-args)))))))
+
+(defn rm-r [f]
+  (if (.isDirectory f)
+    (for [sub (.listFiles f)] (rm-r sub))
+    (.delete f) 
+  ))
+
+(deftest test-worker-launch-command-run-as-user
+  (testing "*.worker.childopts configuration"
+    (let [mock-port "42"
+          mock-storm-id "fake-storm-id"
+          mock-worker-id "fake-worker-id"
+          mock-cp "mock-classpath'quote-on-purpose"
+          storm-local (str "/tmp/" (UUID/randomUUID))
+          worker-script (str storm-local "/workers/" mock-worker-id "/storm-worker-script.sh")
+          exp-launch ["/bin/worker-launcher"
+                      "me"
+                      "worker"
+                      (str storm-local "/workers/" mock-worker-id)
+                      worker-script]
+          exp-script-fn (fn [opts topo-opts]
+                       (str "#!/bin/bash\nexport 'LD_LIBRARY_PATH=';\n\nexec 'java' '-server'"
+                                " " (shell-cmd opts)
+                                " " (shell-cmd topo-opts)
+                                " '-Djava.library.path='"
+                                " '-Dlogfile.name=" mock-storm-id "-worker-" mock-port ".log'"
+                                " '-Dstorm.home='"
+                                " '-Dlogback.configurationFile=/logback/worker.xml'"
+                                " '-Dstorm.id=" mock-storm-id "'"
+                                " '-Dworker.id=" mock-worker-id "'"
+                                " '-Dworker.port=" mock-port "'"
+                                " '-cp' 'mock-classpath\\'quote-on-purpose'"
+                                " 'backtype.storm.daemon.worker'"
+                                " '" mock-storm-id "'"
+                                " '" mock-port "'"
+                                " '" mock-worker-id "';"))]
+      (.mkdirs (io/file storm-local "workers" mock-worker-id))
+      (try
+      (testing "testing *.worker.childopts as strings with extra spaces"
+        (let [string-opts "-Dfoo=bar  -Xmx1024m"
+              topo-string-opts "-Dkau=aux   -Xmx2048m"
+              exp-script (exp-script-fn ["-Dfoo=bar" "-Xmx1024m"]
+                                    ["-Dkau=aux" "-Xmx2048m"])
+              mock-supervisor {:conf {STORM-CLUSTER-MODE :distributed
+                                      STORM-LOCAL-DIR storm-local
+                                      SUPERVISOR-RUN-WORKER-AS-USER true
+                                      WORKER-CHILDOPTS string-opts}}]
+          (stubbing [read-supervisor-storm-conf {TOPOLOGY-WORKER-CHILDOPTS
+                                                  topo-string-opts
+                                                 TOPOLOGY-SUBMITTER-USER "me"}
+                     add-to-classpath mock-cp
+                     supervisor-stormdist-root nil
+                     launch-process nil
+                     set-worker-user! nil
+                     supervisor/jlp nil
+                     supervisor/write-log-metadata! nil]
+            (supervisor/launch-worker mock-supervisor
+                                      mock-storm-id
+                                      mock-port
+                                      mock-worker-id)
+            (verify-first-call-args-for-indices launch-process
+                                                [0]
+                                                exp-launch))
+          (is (= (slurp worker-script) exp-script))))
+      (testing "testing *.worker.childopts as list of strings, with spaces in values"
+        (let [list-opts '("-Dopt1='this has a space in it'" "-Xmx1024m")
+              topo-list-opts '("-Dopt2='val with spaces'" "-Xmx2048m")
+              exp-script (exp-script-fn list-opts topo-list-opts)
+              mock-supervisor {:conf {STORM-CLUSTER-MODE :distributed
+                                      STORM-LOCAL-DIR storm-local
+                                      SUPERVISOR-RUN-WORKER-AS-USER true
+                                      WORKER-CHILDOPTS list-opts}}]
+          (stubbing [read-supervisor-storm-conf {TOPOLOGY-WORKER-CHILDOPTS
+                                                  topo-list-opts
+                                                 TOPOLOGY-SUBMITTER-USER "me"}
+                     add-to-classpath mock-cp
+                     supervisor-stormdist-root nil
+                     launch-process nil
+                     set-worker-user! nil
+                     supervisor/jlp nil
+                     supervisor/write-log-metadata! nil]
+            (supervisor/launch-worker mock-supervisor
+                                      mock-storm-id
+                                      mock-port
+                                      mock-worker-id)
+            (verify-first-call-args-for-indices launch-process
+                                                [0]
+                                                exp-launch))
+          (is (= (slurp worker-script) exp-script))))
+(finally (rm-r (io/file storm-local)))
+))))
+
+
 (deftest test-workers-go-bananas
   ;; test that multiple workers are started for a port, and test that
   ;; supervisor shuts down propertly (doesn't shutdown the most
@@ -290,20 +452,22 @@
                                   #"(?i).*user cannot be blank.*"
                                   (supervisor/worker-launcher {} nil ""))))))
 
-(defn found? [sub-str input-str] (
-                                contrib-str/substring? sub-str (str input-str)
-                                ))
+(defn found? [sub-str input-str]
+  (if (string? input-str)
+    (contrib-str/substring? sub-str (str input-str))
+    (some? #(contrib-str/substring? sub-str %) input-str)))
+
 (defn not-found? [sub-str input-str]
     (complement (found? sub-str input-str)))
 
-(deftest test-replace-childopts-tags-by-ids-happy-path
+(deftest test-substitute-childopts-happy-path
   (testing "worker-launcher replaces ids in childopts"
     (let [ worker-id "w-01"
            storm-id "s-01"
            port 9999
            childopts "-Xloggc:/home/y/lib/storm/current/logs/gc.worker-%ID%-%STORM-ID%-%WORKER-ID%-%WORKER-PORT%.log"
            ]
-      (def childopts-with-ids (supervisor/replace-childopts-tags-by-ids childopts worker-id storm-id port))
+      (def childopts-with-ids (supervisor/substitute-childopts childopts worker-id storm-id port))
       (is (not-found? "%WORKER-ID%" childopts-with-ids))
       (is (found? "w-01" childopts-with-ids))
       (is (not-found? "%STORM-ID%" childopts-with-ids))
@@ -314,13 +478,13 @@
       (is (found? "worker-9999" childopts-with-ids) (str childopts-with-ids))
     )))
 
-(deftest test-replace-childopts-tags-by-ids-storm-id-alone
+(deftest test-substitute-childopts-storm-id-alone
   (testing "worker-launcher replaces ids in childopts"
     (let [ worker-id "w-01"
            storm-id "s-01"
            port 9999
            childopts "-Xloggc:/home/y/lib/storm/current/logs/gc.worker-%STORM-ID%.log"]
-           (def childopts-with-ids (supervisor/replace-childopts-tags-by-ids childopts worker-id storm-id port))
+           (def childopts-with-ids (supervisor/substitute-childopts childopts worker-id storm-id port))
            (is (not-found? "%WORKER-ID%" childopts-with-ids))
            (is (not-found? "w-01" childopts-with-ids))
            (is (not-found? "%STORM-ID%" childopts-with-ids))
@@ -330,13 +494,13 @@
            (is (not-found? "%ID%" childopts-with-ids))
            (is (not-found? "worker-9999" childopts-with-ids) (str childopts-with-ids))     )))
 
-(deftest test-replace-childopts-tags-by-ids-no-keys
+(deftest test-substitute-childopts-no-keys
   (testing "worker-launcher has no ids to replace in childopts"
     (let [ worker-id "w-01"
            storm-id "s-01"
            port 9999
            childopts "-Xloggc:/home/y/lib/storm/current/logs/gc.worker.log"]
-           (def childopts-with-ids (supervisor/replace-childopts-tags-by-ids childopts worker-id storm-id port))
+           (def childopts-with-ids (supervisor/substitute-childopts childopts worker-id storm-id port))
            (is (not-found? "%WORKER-ID%" childopts-with-ids))
            (is (not-found? "w-01" childopts-with-ids))
            (is (not-found? "%STORM-ID%" childopts-with-ids))
@@ -346,13 +510,13 @@
            (is (not-found? "%ID%" childopts-with-ids))
            (is (not-found? "worker-9999" childopts-with-ids) (str childopts-with-ids))    )))
 
-(deftest test-replace-childopts-tags-by-ids-nil-childopts
+(deftest test-substitute-childopts-nil-childopts
   (testing "worker-launcher has nil childopts"
     (let [ worker-id "w-01"
            storm-id "s-01"
            port 9999
            childopts nil]
-           (def childopts-with-ids (supervisor/replace-childopts-tags-by-ids childopts worker-id storm-id port))
+           (def childopts-with-ids (supervisor/substitute-childopts childopts worker-id storm-id port))
            (is (not-found? "%WORKER-ID%" childopts-with-ids))
            (is (not-found? "w-01" childopts-with-ids))
            (is (not-found? "%STORM-ID%" childopts-with-ids))
@@ -363,13 +527,13 @@
            (is (not-found? "worker-9999" childopts-with-ids) (str childopts-with-ids))
     )))
 
-(deftest test-replace-childopts-tags-by-ids-nil-ids
+(deftest test-substitute-childopts-nil-ids
   (testing "worker-launcher has nil ids"
     (let [ worker-id nil
            storm-id "s-01"
            port 9999
            childopts "-Xloggc:/home/y/lib/storm/current/logs/gc.worker-%ID%-%STORM-ID%-%WORKER-ID%-%WORKER-PORT%.log"]
-      (def childopts-with-ids (supervisor/replace-childopts-tags-by-ids childopts worker-id storm-id port))
+      (def childopts-with-ids (supervisor/substitute-childopts childopts worker-id storm-id port))
       (is (not-found? "%WORKER-ID%" childopts-with-ids))
       (is (not-found? "w-01" childopts-with-ids))
       (is (not-found? "%STORM-ID%" childopts-with-ids))

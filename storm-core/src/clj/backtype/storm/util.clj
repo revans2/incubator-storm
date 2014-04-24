@@ -429,17 +429,20 @@
         ))
       ))
 
+(defn shell-cmd [command]
+  (->> command
+    (map #(str \' (clojure.string/escape % {\' "'\"'\"'"}) \'))
+      (clojure.string/join " ")))
+
 (defnk write-script [dir command :environment {}]
-  (let [script-src (str "#!/bin/bash\n" (clojure.string/join "" (map (fn [[k v]] (str "export '" k "=" v "';\n")) environment)) "\nexec " command ";")
+  (let [script-src (str "#!/bin/bash\n" (clojure.string/join "" (map (fn [[k v]] (str (shell-cmd ["export" (str k "=" v)]) ";\n")) environment)) "\nexec " (shell-cmd command) ";")
         script-path (str dir "/storm-worker-script.sh")
         - (spit script-path script-src)]
     script-path
   ))
 
 (defnk launch-process [command :environment {} :log-prefix nil :exit-code-callback nil]
-  (let [command (->> (seq (.split command " "))
-                     (filter (complement empty?)))
-        builder (ProcessBuilder. command)
+  (let [builder (ProcessBuilder. command)
         process-env (.environment builder)]
     (.redirectErrorStream builder true)
     (doseq [[k v] environment]
@@ -458,7 +461,7 @@
              (exit-code-callback (.exitValue process)))
            nil)))                    
       process)))
-          
+   
 (defn exists-file? [path]
   (.exists (File. path)))
 

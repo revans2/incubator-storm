@@ -697,7 +697,7 @@ public class Config extends HashMap<String, Object> {
      * replaced with appropriate runtime values for this worker.
      */
     public static final String WORKER_CHILDOPTS = "worker.childopts";
-    public static final Object WORKER_CHILDOPTS_SCHEMA = String.class;
+    public static final Object WORKER_CHILDOPTS_SCHEMA = ConfigValidation.StringOrStringListValidator;
 
     /**
      * The jvm opts provided to workers launched by this supervisor for GC. All "%ID%" substrings are replaced
@@ -705,7 +705,7 @@ public class Config extends HashMap<String, Object> {
      * can override this default value by setting topology.worker.gc.childopts.
      */
     public static final String WORKER_GC_CHILDOPTS = "worker.gc.childopts";
-    public static final Object WORKER_GC_CHILDOPTS_SCHEMA = String.class;
+    public static final Object WORKER_GC_CHILDOPTS_SCHEMA = ConfigValidation.StringOrStringListValidator;
 
     /**
      * How often this worker should heartbeat to the supervisor.
@@ -920,13 +920,13 @@ public class Config extends HashMap<String, Object> {
      * Topology-specific options for the worker child process. This is used in addition to WORKER_CHILDOPTS.
      */
     public static final String TOPOLOGY_WORKER_CHILDOPTS="topology.worker.childopts";
-    public static final Object TOPOLOGY_WORKER_CHILDOPTS_SCHEMA = String.class;
+    public static final Object TOPOLOGY_WORKER_CHILDOPTS_SCHEMA = ConfigValidation.StringOrStringListValidator;
 
     /**
      * Topology-specific options GC for the worker child process. This overrides WORKER_GC_CHILDOPTS.
      */
     public static final String TOPOLOGY_WORKER_GC_CHILDOPTS="topology.worker.gc.childopts";
-    public static final Object TOPOLOGY_WORKER_GC_CHILDOPTS_SCHEMA = String.class;
+    public static final Object TOPOLOGY_WORKER_GC_CHILDOPTS_SCHEMA = ConfigValidation.StringOrStringListValidator;
 
     /**
      * This config is available for TransactionalSpouts, and contains the id ( a String) for
