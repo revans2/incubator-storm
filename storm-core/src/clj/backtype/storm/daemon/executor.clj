@@ -646,7 +646,16 @@
                                     (stats/bolt-execute-tuple! executor-stats
                                                                (.getSourceComponent tuple)
                                                                (.getSourceStreamId tuple)
-                                                               delta)))))))]
+                                                               delta)))))))
+
+        ;; the overflow buffer is used to ensure that bolts do not block when emitting
+        ;; this ensures that the bolt can always clear the incoming messages, which
+        ;; prevents deadlock from occurs across the topology
+        ;; (e.g. Spout -> BoltA -> Splitter -> BoltB -> BoltA, and all
+        ;; buffers filled up)
+        ;; the overflow buffer is might gradually fill degrading the performance gradually
+        ;; eventually running out of memory, but at least prevent live-locks/deadlocks.
+        overflow-buffer (LinkedList.)]
     
     ;; TODO: can get any SubscribedState objects out of the context now
 
@@ -666,7 +675,12 @@
                                                     (tasks-fn task stream values)
                                                     (tasks-fn stream values))]
                                     (fast-list-iter [t out-tasks]
-                                                    (let [anchors-to-ids (HashMap.)]
+                                                    (let [anchors-to-ids (HashMap.)
+                                                         out-tuple (TupleImpl. worker-context
+                                                                               values
+                                                                               task-id
+                                                                               stream
+                                                                               (MessageId/makeId anchors-to-ids))]
                                                       (fast-list-iter [^TupleImpl a anchors]
                                                                       (let [root-ids (-> a .getMessageId .getAnchorsToIds .keySet)]
                                                                         (when (pos? (count root-ids))
@@ -676,11 +690,8 @@
                                                                                             (put-xor! anchors-to-ids root-id edge-id))
                                                                             ))))
                                                       (transfer-fn t
-                                                                   (TupleImpl. worker-context
-                                                                               values
-                                                                               task-id
-                                                                               stream
-                                                                               (MessageId/makeId anchors-to-ids)))))
+                                                                   out-tuple
+                                                                   overflow-buffer)))
                                     (or out-tasks [])))]]
           (builtin-metrics/register-all (:builtin-metrics task-data) storm-conf user-context)
           (when (instance? ICredentialsListener bolt-obj) (.setCredentials bolt-obj initial-credentials)) 
@@ -699,7 +710,7 @@
                            (fast-map-iter [[root id] (.. tuple getMessageId getAnchorsToIds)]
                                           (task/send-unanchored task-data
                                                                 ACKER-ACK-STREAM-ID
-                                                                [root (bit-xor id ack-val)])
+                                                                [root (bit-xor id ack-val)] overflow-buffer)
                                           ))
                          (let [delta (tuple-time-delta! tuple)
                                debug? (= true (storm-conf TOPOLOGY-DEBUG))]
@@ -720,7 +731,7 @@
                          (fast-list-iter [root (.. tuple getMessageId getAnchors)]
                                          (task/send-unanchored task-data
                                                                ACKER-FAIL-STREAM-ID
-                                                               [root]))
+                                                               [root] overflow-buffer))
                          (let [delta (tuple-time-delta! tuple)
                                debug? (= true (storm-conf TOPOLOGY-DEBUG))]
                            (when debug? 
@@ -747,6 +758,16 @@
           (disruptor/consumer-started! receive-queue)
           (fn []            
             (disruptor/consume-batch-when-available receive-queue event-handler)
+            ;; try to clear the overflow-buffer
+            (try-cause
+              (while (not (.isEmpty overflow-buffer))
+                (let [[out-task out-tuple] (.peek overflow-buffer)]
+                  (transfer-fn out-task out-tuple false nil)
+                  (.removeFirst overflow-buffer)))
+              (catch InsufficientCapacityException e
+                (when (= true (storm-conf TOPOLOGY-DEBUG))
+                  (log-message "Insufficient Capacity on queue to emit by bolt " component-id ":" (keys task-datas) ))
+                ))
             0)))
       :kill-fn (:report-error-and-die executor-data)
       :factory? true
