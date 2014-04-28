@@ -675,12 +675,7 @@
                                                     (tasks-fn task stream values)
                                                     (tasks-fn stream values))]
                                     (fast-list-iter [t out-tasks]
-                                                    (let [anchors-to-ids (HashMap.)
-                                                         out-tuple (TupleImpl. worker-context
-                                                                               values
-                                                                               task-id
-                                                                               stream
-                                                                               (MessageId/makeId anchors-to-ids))]
+                                                    (let [anchors-to-ids (HashMap.)]
                                                       (fast-list-iter [^TupleImpl a anchors]
                                                                       (let [root-ids (-> a .getMessageId .getAnchorsToIds .keySet)]
                                                                         (when (pos? (count root-ids))
@@ -690,7 +685,11 @@
                                                                                             (put-xor! anchors-to-ids root-id edge-id))
                                                                             ))))
                                                       (transfer-fn t
-                                                                   out-tuple
+                                                                   (TupleImpl. worker-context
+                                                                               values
+                                                                               task-id
+                                                                               stream
+                                                                               (MessageId/makeId anchors-to-ids))
                                                                    overflow-buffer)))
                                     (or out-tasks [])))]]
           (builtin-metrics/register-all (:builtin-metrics task-data) storm-conf user-context)
