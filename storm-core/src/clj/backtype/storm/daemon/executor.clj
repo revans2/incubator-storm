@@ -8,6 +8,7 @@
   (:import [backtype.storm.hooks.info SpoutAckInfo SpoutFailInfo
             EmitInfo BoltFailInfo BoltAckInfo BoltExecuteInfo])
   (:import [backtype.storm.metric.api IMetric IMetricsConsumer$TaskInfo IMetricsConsumer$DataPoint])
+  (:import [java.util.concurrent ConcurrentLinkedQueue])
   (:require [backtype.storm [tuple :as tuple]])
   (:require [backtype.storm.daemon [task :as task]])
   (:require [backtype.storm.daemon.builtin-metrics :as builtin-metrics]))
@@ -167,7 +168,7 @@
 ;; in its own function so that it can be mocked out by tracked topologies
 (defn mk-executor-transfer-fn [batch-transfer->worker storm-conf]
   (fn this
-    ([task tuple block? ^List overflow-buffer]
+    ([task tuple block? ^ConcurrentLinkedQueue overflow-buffer]
       (when (= true (storm-conf TOPOLOGY-DEBUG))
         (log-message "TRANSFERING tuple TASK: " task " TUPLE: " tuple))
       (if (and overflow-buffer (not (.isEmpty overflow-buffer)))
@@ -461,7 +462,7 @@
         ;; when the overflow buffer is full, spouts stop calling nextTuple until it's able to clear the overflow buffer
         ;; this limits the size of the overflow buffer to however many tuples a spout emits in one call of nextTuple, 
         ;; preventing memory issues
-        overflow-buffer (LinkedList.)]
+        overflow-buffer (ConcurrentLinkedQueue.)]
    
     [(async-loop
       (fn []
@@ -541,7 +542,7 @@
             (while (not (.isEmpty overflow-buffer))
               (let [[out-task out-tuple] (.peek overflow-buffer)]
                 (transfer-fn out-task out-tuple false nil)
-                (.removeFirst overflow-buffer)))
+                (.poll overflow-buffer)))
           (catch InsufficientCapacityException e
             ))
           
@@ -646,7 +647,16 @@
                                     (stats/bolt-execute-tuple! executor-stats
                                                                (.getSourceComponent tuple)
                                                                (.getSourceStreamId tuple)
-                                                               delta)))))))]
+                                                               delta)))))))
+
+        ;; the overflow buffer is used to ensure that bolts do not block when emitting
+        ;; this ensures that the bolt can always clear the incoming messages, which
+        ;; prevents deadlock from occurs across the topology
+        ;; (e.g. Spout -> BoltA -> Splitter -> BoltB -> BoltA, and all
+        ;; buffers filled up)
+        ;; the overflow buffer is might gradually fill degrading the performance gradually
+        ;; eventually running out of memory, but at least prevent live-locks/deadlocks.
+        overflow-buffer (ConcurrentLinkedQueue.)]
     
     ;; TODO: can get any SubscribedState objects out of the context now
 
@@ -680,7 +690,8 @@
                                                                                values
                                                                                task-id
                                                                                stream
-                                                                               (MessageId/makeId anchors-to-ids)))))
+                                                                               (MessageId/makeId anchors-to-ids))
+                                                                   overflow-buffer)))
                                     (or out-tasks [])))]]
           (builtin-metrics/register-all (:builtin-metrics task-data) storm-conf user-context)
           (when (instance? ICredentialsListener bolt-obj) (.setCredentials bolt-obj initial-credentials)) 
@@ -699,7 +710,7 @@
                            (fast-map-iter [[root id] (.. tuple getMessageId getAnchorsToIds)]
                                           (task/send-unanchored task-data
                                                                 ACKER-ACK-STREAM-ID
-                                                                [root (bit-xor id ack-val)])
+                                                                [root (bit-xor id ack-val)] overflow-buffer)
                                           ))
                          (let [delta (tuple-time-delta! tuple)
                                debug? (= true (storm-conf TOPOLOGY-DEBUG))]
@@ -720,7 +731,7 @@
                          (fast-list-iter [root (.. tuple getMessageId getAnchors)]
                                          (task/send-unanchored task-data
                                                                ACKER-FAIL-STREAM-ID
-                                                               [root]))
+                                                               [root] overflow-buffer))
                          (let [delta (tuple-time-delta! tuple)
                                debug? (= true (storm-conf TOPOLOGY-DEBUG))]
                            (when debug? 
@@ -747,6 +758,16 @@
           (disruptor/consumer-started! receive-queue)
           (fn []            
             (disruptor/consume-batch-when-available receive-queue event-handler)
+            ;; try to clear the overflow-buffer
+            (try-cause
+              (while (not (.isEmpty overflow-buffer))
+                (let [[out-task out-tuple] (.peek overflow-buffer)]
+                  (transfer-fn out-task out-tuple false nil)
+                  (.poll overflow-buffer)))
+              (catch InsufficientCapacityException e
+                (when (= true (storm-conf TOPOLOGY-DEBUG))
+                  (log-message "Insufficient Capacity on queue to emit by bolt " component-id ":" (keys task-datas) ))
+                ))
             0)))
       :kill-fn (:report-error-and-die executor-data)
       :factory? true
