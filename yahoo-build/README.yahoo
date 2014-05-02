@@ -13,13 +13,34 @@ whould add the following line to storm.yaml
 
 nimbus.host: host.corp.yahoo.com
 
-NOTE:
-----
-This package is intended to be used by the cloud services storm team to support
-a hosted storm service.  If anyone else wants to use this go ahead, but we are
-not going to be able to officially support you for a while :) so good luck.
+NOTE ABOUT SUPPORT:
+-------------------
+The ystorm yinst packages, ystorm and
+ystorm_{nimbus,drpc,supervisor,ui,logviewer,registry}, are intended primarily
+to be used by the storm team itself for running a hosted storm service inside
+of Yahoo, and as a maven dependency for teams that want to compile storm
+topologies that run on this hosted service.  If you want to use ystorm for
+testing your code using ystorm_onabox, that is fine, but we do not officially
+support those setups.  We are generally nice people and if you are in a bind we
+can help even for production issues on most versions of storm, but we cannot
+guarantee anything.  If you do want our help debugging please make sure that we
+have access to the boxes that your storm cluster is running on.  We do not like
+debugging issues over webex, it just isn't an efficient use of our time. The
+Storm team is on the insider list and has been trained with PII so it should
+hopefully not be an issue with the Paranoids.
 
-ystorm documentation: http://twiki.corp.yahoo.com/view/Grid/StormDocumentation 
+Be aware that by default the ystorm packages are NOT secure. This is to help
+facilitate testing, but please do NOT run any financial or PII data through a
+cluster you setup yourself.  The paranoids would not like it.  If you want
+information about how to secure your own clusters please look at
+http://twiki.corp.yahoo.com/view/Grid/MultiTenantStormSetup and
+http://twiki.corp.yahoo.com/view/Grid/StormRegistryService.  But just like with
+other clusters we do NOT officially support these setups and do not guarantee
+that we will announce when we push new security fixes, or be willing to back
+port them to older releases.
 
+Is a best practice to keep all configurations the same for all storm cluster
+nodes (gateways, nimbus, supervisors).  If you run into trouble, check your
+configurations against those of a hosted storm cluster.
 
 ================================================================
