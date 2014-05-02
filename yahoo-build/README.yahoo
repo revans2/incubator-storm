@@ -26,7 +26,7 @@ can help even for production issues on most versions of storm, but we cannot
 guarantee anything.  If you do want our help debugging please make sure that we
 have access to the boxes that your storm cluster is running on.  We do not like
 debugging issues over webex, it just isn't an efficient use of our time. The
-Storm team on the insider list and has been trained with PII so it should
+Storm team is on the insider list and has been trained with PII so it should
 hopefully not be an issue with the Paranoids.
 
 Be aware that by default the ystorm packages are NOT secure. This is to help
