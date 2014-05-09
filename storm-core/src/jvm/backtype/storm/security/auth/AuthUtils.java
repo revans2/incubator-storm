@@ -123,6 +123,9 @@ public class AuthUtils {
      */ 
     public static Subject populateSubject(Subject subject, Collection<IAutoCredentials> autos, Map<String,String> credentials) {
         try {
+            if (credentials == null) {
+                LOG.warn("No credentials were found for this topology! AutoCredentials will not be called");
+            }
             if (subject == null) {
                 subject = new Subject();
             }
@@ -144,6 +147,9 @@ public class AuthUtils {
     public static void updateSubject(Subject subject, Collection<IAutoCredentials> autos, Map<String,String> credentials) {
         if (subject == null) {
             throw new RuntimeException("The subject cannot be null when updating a subject with credentials");
+        }
+        if (credentials == null) {
+            LOG.warn("No credentials were found for this topology! AutoCredentials will not be called");
         }
 
         try {
