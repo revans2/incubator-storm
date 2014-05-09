@@ -16,6 +16,7 @@ import java.util.Collection;
 import java.util.Set;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.HashMap;
 import java.util.concurrent.ExecutorService;
 
 public class AuthUtils {
@@ -123,6 +124,10 @@ public class AuthUtils {
      */ 
     public static Subject populateSubject(Subject subject, Collection<IAutoCredentials> autos, Map<String,String> credentials) {
         try {
+            if (credentials == null) {
+                LOG.warn("No credentials were found for this topology! AutoCredentials will not be called");
+                credentials = new HashMap<String, String>();
+            }
             if (subject == null) {
                 subject = new Subject();
             }
@@ -144,6 +149,10 @@ public class AuthUtils {
     public static void updateSubject(Subject subject, Collection<IAutoCredentials> autos, Map<String,String> credentials) {
         if (subject == null) {
             throw new RuntimeException("The subject cannot be null when updating a subject with credentials");
+        }
+        if (credentials == null) {
+            LOG.warn("No credentials were found for this topology! AutoCredentials will not be called");
+            credentials = new HashMap<String, String>();
         }
 
         try {
