@@ -159,7 +159,7 @@ $(\"table#%s\").each(function(i) { $(this).tablesorter({ sortList: %s, headers: 
 (defn config-filter [server handler filters-confs]
   (if filters-confs
     (let [servlet-holder (org.mortbay.jetty.servlet.ServletHolder.
-                          (ring.util.servlet/servlet handler))
+                           (ring.util.servlet/servlet handler))
           context (doto (org.mortbay.jetty.servlet.Context. server "/")
                     (.addServlet servlet-holder "/"))]
       (doseq [{:keys [filter-name filter-class filter-params]} filters-confs]
@@ -192,7 +192,7 @@ $(\"table#%s\").each(function(i) { $(this).tablesorter({ sortList: %s, headers: 
   "Modified version of run-jetty
   Must contain configurator, and configurator must set handler."
   [config]
-  (let [#^Server s (jetty-create-server (dissoc config :configurator))]
-    (let [configurator (:configurator config)]
-      (configurator s)
-      (.start s))))
+  (let [#^Server s (jetty-create-server (dissoc config :configurator))
+        configurator (:configurator config)]
+    (configurator s)
+    (.start s)))
