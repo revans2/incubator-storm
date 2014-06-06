@@ -9,6 +9,8 @@
   (:use [clj-time coerce format])
   (:import [backtype.storm.generated ExecutorInfo ExecutorSummary])
   (:import [org.mortbay.jetty.security SslSocketConnector])
+  (:import (org.mortbay.jetty Server)
+           (org.mortbay.jetty.bio SocketConnector))
   (:require [ring.util servlet])
   (:require [compojure.route :as route]
             [compojure.handler :as handler]))
@@ -173,3 +175,24 @@ $(\"table#%s\").each(function(i) { $(this).tablesorter({ sortList: %s, headers: 
   {:headers {}
    :status 400
    :body (.getMessage ex)})
+
+;; Stolen right from ring.adapter.jetty
+(defn- jetty-create-server
+  "Construct a Jetty Server instance."
+  [options]
+  (let [connector (doto (SocketConnector.)
+                    (.setPort (options :port))
+                    (.setHost (options :host)))
+        server (doto (Server.)
+                 (.addConnector connector)
+                 (.setSendDateHeader true))]
+    server))
+
+(defn storm-run-jetty
+  "Modified version of run-jetty
+  Must contain configurator, and configurator must set handler."
+  [config]
+  (let [#^Server s (jetty-create-server (dissoc config :configurator))
+        configurator (:configurator config)]
+    (configurator s)
+    (.start s)))
