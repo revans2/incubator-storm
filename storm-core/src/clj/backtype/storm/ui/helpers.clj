@@ -181,7 +181,7 @@ $(\"table#%s\").each(function(i) { $(this).tablesorter({ sortList: %s, headers: 
   "Construct a Jetty Server instance."
   [options]
   (let [connector (doto (SocketConnector.)
-                    (.setPort (options :port 80))
+                    (.setPort (options :port))
                     (.setHost (options :host)))
         server (doto (Server.)
                  (.addConnector connector)
