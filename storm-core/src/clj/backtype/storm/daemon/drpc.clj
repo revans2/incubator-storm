@@ -139,36 +139,36 @@
 
 (defn webapp [handler http-creds-handler]
   (->
-    (routes
-      (POST "/drpc/:func" [:as {:keys [body servlet-request]} func & m]
-        (let [args (slurp body)]
-          (if http-creds-handler
-            (.populateContext http-creds-handler (ReqContext/context)
-                              servlet-request))
-          (.execute handler func args)))
-      (POST "/drpc/:func/" [:as {:keys [body servlet-request]} func & m]
-        (let [args (slurp body)]
-          (if http-creds-handler
-            (.populateContext http-creds-handler (ReqContext/context)
-                              servlet-request))
-          (.execute handler func args)))
-      (GET "/drpc/:func/:args" [:as {:keys [servlet-request]} func args & m]
-          (if http-creds-handler
-            (.populateContext http-creds-handler (ReqContext/context)
-                              servlet-request))
-          (.execute handler func args))
-      (GET "/drpc/:func/" [:as {:keys [servlet-request]} func & m]
-          (if http-creds-handler
-            (.populateContext http-creds-handler (ReqContext/context)
-                              servlet-request))
-          (.execute handler func ""))
-      (GET "/drpc/:func" [:as {:keys [servlet-request]} func & m]
-          (if http-creds-handler
-            (.populateContext http-creds-handler (ReqContext/context)
-                              servlet-request))
-    (.execute handler func "")))
-                (wrap-reload '[backtype.storm.daemon.drpc])
-                handle-request))
+   (routes
+    (POST "/drpc/:func" [:as {:keys [body servlet-request]} func & m]
+          (let [args (slurp body)]
+            (if http-creds-handler
+              (.populateContext http-creds-handler (ReqContext/context)
+                                servlet-request))
+            (.execute handler func args)))
+    (POST "/drpc/:func/" [:as {:keys [body servlet-request]} func & m]
+          (let [args (slurp body)]
+            (if http-creds-handler
+              (.populateContext http-creds-handler (ReqContext/context)
+                                servlet-request))
+            (.execute handler func args)))
+    (GET "/drpc/:func/:args" [:as {:keys [servlet-request]} func args & m]
+         (if http-creds-handler
+           (.populateContext http-creds-handler (ReqContext/context)
+                             servlet-request))
+         (.execute handler func args))
+    (GET "/drpc/:func/" [:as {:keys [servlet-request]} func & m]
+         (if http-creds-handler
+           (.populateContext http-creds-handler (ReqContext/context)
+                             servlet-request))
+         (.execute handler func ""))
+    (GET "/drpc/:func" [:as {:keys [servlet-request]} func & m]
+         (if http-creds-handler
+           (.populateContext http-creds-handler (ReqContext/context)
+                             servlet-request))
+         (.execute handler func "")))
+   (wrap-reload '[backtype.storm.daemon.drpc])
+   handle-request))
 
 (defn launch-server!
   ([]
@@ -210,15 +210,15 @@
               https-ks-password (conf DRPC-HTTPS-KEYSTORE-PASSWORD)
               https-ks-type (conf DRPC-HTTPS-KEYSTORE-TYPE)]
 
-          (run-jetty app
-            {:port drpc-http-port :join? false
-             :configurator (fn [server]
-                             (config-ssl server
-                                         https-port 
-                                         https-ks-path 
-                                         https-ks-password
-                                         https-ks-type)
-                             (config-filter server app filters-confs))})))
+          (storm-run-jetty
+           {:port drpc-http-port
+            :configurator (fn [server]
+                            (config-ssl server
+                                        https-port
+                                        https-ks-path
+                                        https-ks-password
+                                        https-ks-type)
+                            (config-filter server app filters-confs))})))
       (when handler-server
         (.serve handler-server)))))
 
