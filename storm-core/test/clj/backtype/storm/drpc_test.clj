@@ -206,7 +206,6 @@
     (.shutdown drpc)
     ))
 
-
 (deftest test-dequeue-req-after-timeout
   (let [queue (ConcurrentLinkedQueue.)
         delay-seconds 2
@@ -217,7 +216,7 @@
                   (.execute drpc-handler "ArbitraryDRPCFunctionName" "")))
                 (is (= 0 (.size queue)))))))
 
-(deftest test-drpc-timeout-cleanup 
+(deftest test-drpc-timeout-cleanup
   (let [queue (ConcurrentLinkedQueue.)
         delay-seconds 1
         storm-config {DRPC-REQUEST-TIMEOUT-SECS delay-seconds}]
@@ -226,5 +225,3 @@
               (let [drpc-handler (service-handler storm-config)]
                 (is (thrown? DRPCExecutionException
                                (.execute drpc-handler "ArbitraryDRPCFunctionName" "no-args")))))))
-
-
