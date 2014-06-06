@@ -20,7 +20,7 @@
 
 (bootstrap)
 
-(def TIMEOUT-CHECK-SECS 5)
+(defn timeout-check-secs [] 5)
 
 (defn acquire-queue [queues-atom function]
   (swap! queues-atom
@@ -65,13 +65,12 @@
                         (doseq [[id start] @id->start]
                           (when (> (time-delta start) (conf DRPC-REQUEST-TIMEOUT-SECS))
                             (when-let [sem (@id->sem id)]
-                              (swap! id->result assoc id (DRPCExecutionException. "Request timed out"))
                               (.remove (acquire-queue request-queues (@id->func id)) (@id->request id))
                               (log-warn "Timeout DRPC request id: " id " start at " start)
                               (.release sem))
                             (cleanup id)
                             ))
-                        TIMEOUT-CHECK-SECS
+                        (timeout-check-secs)
                         ))
         ]
     (reify DistributedRPC$Iface
@@ -98,7 +97,9 @@
             (log-debug "Returning DRPC result for " function " " args " at " (System/currentTimeMillis))
             (if (instance? DRPCExecutionException result)
               (throw result)
-              result
+              (if (nil? result)
+                (throw (DRPCExecutionException. "Request timed out"))
+                result)
               ))))
       DistributedRPCInvocations$Iface
       (^void result [this ^String id ^String result]
