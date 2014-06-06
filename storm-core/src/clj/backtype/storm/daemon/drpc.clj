@@ -20,7 +20,7 @@
 
 (bootstrap)
 
-(def TIMEOUT-CHECK-SECS 5)
+(defn timeout-check-secs [] 5)
 
 (defn acquire-queue [queues-atom function]
   (swap! queues-atom
@@ -52,22 +52,25 @@
         id->result (atom {})
         id->start (atom {})
         id->func (atom {})
+        id->request (atom {})
         request-queues (atom {})
         cleanup (fn [id] (swap! id->sem dissoc id)
                          (swap! id->result dissoc id)
                          (swap! id->start dissoc id)
-                         (swap! id->func dissoc id))
+                         (swap! id->func dissoc id)
+                         (swap! id->request dissoc id))
         my-ip (.getHostAddress (InetAddress/getLocalHost))
         clear-thread (async-loop
                       (fn []
                         (doseq [[id start] @id->start]
                           (when (> (time-delta start) (conf DRPC-REQUEST-TIMEOUT-SECS))
                             (when-let [sem (@id->sem id)]
-                              (swap! id->result assoc id (DRPCExecutionException. "Request timed out"))
+                              (.remove (acquire-queue request-queues (@id->func id)) (@id->request id))
+                              (log-warn "Timeout DRPC request id: " id " start at " start)
                               (.release sem))
                             (cleanup id)
                             ))
-                        TIMEOUT-CHECK-SECS
+                        (timeout-check-secs)
                         ))
         ]
     (reify DistributedRPC$Iface
@@ -84,6 +87,7 @@
           (swap! id->func assoc id function)
           (swap! id->start assoc id (current-time-secs))
           (swap! id->sem assoc id sem)
+          (swap! id->request assoc id req)
           (.add queue req)
           (log-debug "Waiting for DRPC result for " function " " args " at " (System/currentTimeMillis))
           (.acquire sem)
@@ -93,7 +97,9 @@
             (log-debug "Returning DRPC result for " function " " args " at " (System/currentTimeMillis))
             (if (instance? DRPCExecutionException result)
               (throw result)
-              result
+              (if (nil? result)
+                (throw (DRPCExecutionException. "Request timed out"))
+                result)
               ))))
       DistributedRPCInvocations$Iface
       (^void result [this ^String id ^String result]
