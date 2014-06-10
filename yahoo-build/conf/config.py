@@ -43,7 +43,8 @@ listKeys = set(["storm.auth.simple-white-list.users", "supervisor.slots.ports",
  "worker.childopts", "ui.users", "logs.users", "nimbus.supervisor.users",
  "nimbus.admins", "topology.users", "nimbus.credential.renewers.classes",
  "topology.auto-credentials"])
-mapKeys = set(["isolation.scheduler.machines", "ui.filter.params", "drpc.http.filter.params"])
+mapKeys = set(["isolation.scheduler.machines", "ui.filter.params", "drpc.http.filter.params",
+               "supervisor.scheduler.meta"])
 
 allStringKeys = set(["ui.filter.params", "drpc.http.filter.params"])
 
