@@ -10,10 +10,15 @@ import com.lmax.disruptor.Sequence;
 import com.lmax.disruptor.SequenceBarrier;
 import com.lmax.disruptor.SingleThreadedClaimStrategy;
 import com.lmax.disruptor.WaitStrategy;
+
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.TimeUnit;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.HashMap;
+import java.util.Map;
+import backtype.storm.metric.api.IStatefulObject;
+
 
 /**
  *
@@ -32,6 +37,13 @@ public class DisruptorQueue {
     volatile boolean consumerStartedFlag = false;
     ConcurrentLinkedQueue<Object> _cache = new ConcurrentLinkedQueue();
     
+    private final ReentrantReadWriteLock cacheLock = new ReentrantReadWriteLock();
+    private final Lock cacheReadLock  = cacheLock.readLock();
+    private final Lock cacheWriteLock = cacheLock.writeLock();
+    
+    private static String PREFIX = "disruptor-";
+    private String _queueName = "";
+    
     public DisruptorQueue(ClaimStrategy claim, WaitStrategy wait) {
         _buffer = new RingBuffer<MutableObject>(new ObjectEventFactory(), claim, wait);
         _consumer = new Sequence();
@@ -39,6 +51,13 @@ public class DisruptorQueue {
         _buffer.setGatingSequences(_consumer);
         if(claim instanceof SingleThreadedClaimStrategy) {
             consumerStartedFlag = true;
+        } else {
+            // make sure we flush the pending messages in cache first
+            try {
+                publishDirect(FLUSH_CACHE, true);
+            } catch (InsufficientCapacityException e) {
+                throw new RuntimeException("This code should be unreachable!");
+            }
         }
     }
     
@@ -107,31 +126,64 @@ public class DisruptorQueue {
     }
     
     public void publish(Object obj, boolean block) throws InsufficientCapacityException {
-        if(consumerStartedFlag) {
-            final long id;
-            if(block) {
-                id = _buffer.next();
-            } else {
-                id = _buffer.tryNext(1);
+
+        boolean publishNow = consumerStartedFlag;
+
+        if (!publishNow) {
+            cacheReadLock.lock(); 
+            try {
+                publishNow = consumerStartedFlag;
+                if (!publishNow) {
+                    _cache.add(obj);
+                }
+            } finally {
+                cacheReadLock.unlock();
             }
-            final MutableObject m = _buffer.get(id);
-            m.setObject(obj);
-            _buffer.publish(id);
-        } else {
-            _cache.add(obj);
-            if(consumerStartedFlag) flushCache();
         }
+        
+        if (publishNow) {
+            publishDirect(obj, block);
+        }
+    }
+    
+    private void publishDirect(Object obj, boolean block) throws InsufficientCapacityException {
+        final long id;
+        if(block) {
+            id = _buffer.next();
+        } else {
+            id = _buffer.tryNext(1);
+        }
+        final MutableObject m = _buffer.get(id);
+        m.setObject(obj);
+        _buffer.publish(id);
     }
     
     public void consumerStarted() {
-        if(!consumerStartedFlag) {
-            consumerStartedFlag = true;
-            flushCache();
-        }
+
+        consumerStartedFlag = true;
+        
+        // Use writeLock to make sure all pending cache add opearation completed
+        cacheWriteLock.lock();
+        cacheWriteLock.unlock();
     }
     
-    private void flushCache() {
-        publish(FLUSH_CACHE);
+    public long  population() { return (writePos() - readPos()); }
+    public long  capacity()   { return _buffer.getBufferSize(); }
+    public long  writePos()   { return _buffer.getCursor(); }
+    public long  readPos()    { return _consumer.get(); }
+    public float pctFull()    { return (1.0F * population() / capacity()); }
+
+    @Override
+    public Object getState() {
+        Map state = new HashMap<String, Object>();
+        // get readPos then writePos so it's never an under-estimate
+        long rp = readPos();
+        long wp = writePos();
+        state.put("capacity",   capacity());
+        state.put("population", wp - rp);
+        state.put("write_pos",  wp);
+        state.put("read_pos",   rp);
+        return state;
     }
 
     public static class ObjectEventFactory implements EventFactory<MutableObject> {
