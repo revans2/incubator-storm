@@ -38,8 +38,8 @@ public class DisruptorQueue {
     ConcurrentLinkedQueue<Object> _cache = new ConcurrentLinkedQueue();
     
     private final ReentrantReadWriteLock cacheLock = new ReentrantReadWriteLock();
-    private final Lock cacheReadLock  = cacheLock.readLock();
-    private final Lock cacheWriteLock = cacheLock.writeLock();
+    private final Lock readLock  = cacheLock.readLock();
+    private final Lock writeLock = cacheLock.writeLock();
     
     private static String PREFIX = "disruptor-";
     private String _queueName = "";
@@ -130,14 +130,14 @@ public class DisruptorQueue {
         boolean publishNow = consumerStartedFlag;
 
         if (!publishNow) {
-            cacheReadLock.lock(); 
+            readLock.lock(); 
             try {
                 publishNow = consumerStartedFlag;
                 if (!publishNow) {
                     _cache.add(obj);
                 }
             } finally {
-                cacheReadLock.unlock();
+                readLock.unlock();
             }
         }
         
@@ -163,8 +163,8 @@ public class DisruptorQueue {
         consumerStartedFlag = true;
         
         // Use writeLock to make sure all pending cache add opearation completed
-        cacheWriteLock.lock();
-        cacheWriteLock.unlock();
+        writeLock.lock();
+        writeLock.unlock();
     }
     
     public long  population() { return (writePos() - readPos()); }
