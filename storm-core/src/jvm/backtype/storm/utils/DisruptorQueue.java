@@ -56,7 +56,7 @@ public class DisruptorQueue {
             try {
                 publishDirect(FLUSH_CACHE, true);
             } catch (InsufficientCapacityException e) {
-                throw new RuntimeException("This code should be unreachable!");
+                throw new RuntimeException("This code should be unreachable!", e);
             }
         }
     }
