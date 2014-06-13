@@ -1,3 +1,20 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package backtype.storm.utils;
 
 import com.lmax.disruptor.AlertException;
@@ -10,10 +27,13 @@ import com.lmax.disruptor.Sequence;
 import com.lmax.disruptor.SequenceBarrier;
 import com.lmax.disruptor.SingleThreadedClaimStrategy;
 import com.lmax.disruptor.WaitStrategy;
+
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.TimeUnit;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  *
@@ -32,14 +52,37 @@ public class DisruptorQueue {
     volatile boolean consumerStartedFlag = false;
     ConcurrentLinkedQueue<Object> _cache = new ConcurrentLinkedQueue();
     
+    private final ReentrantReadWriteLock cacheLock = new ReentrantReadWriteLock();
+    private final Lock readLock  = cacheLock.readLock();
+    private final Lock writeLock = cacheLock.writeLock();
+    
+    private static String PREFIX = "disruptor-";
+    private String _queueName = "";
+    
     public DisruptorQueue(ClaimStrategy claim, WaitStrategy wait) {
+        this("queue",claim,wait);
+    }
+
+    public DisruptorQueue(String queueName, ClaimStrategy claim, WaitStrategy wait) {
+         this._queueName = PREFIX + queueName;
         _buffer = new RingBuffer<MutableObject>(new ObjectEventFactory(), claim, wait);
         _consumer = new Sequence();
         _barrier = _buffer.newBarrier();
         _buffer.setGatingSequences(_consumer);
         if(claim instanceof SingleThreadedClaimStrategy) {
             consumerStartedFlag = true;
+        } else {
+            // make sure we flush the pending messages in cache first
+            try {
+                publishDirect(FLUSH_CACHE, true);
+            } catch (InsufficientCapacityException e) {
+                throw new RuntimeException("This code should be unreachable!", e);
+            }
         }
+    }
+    
+    public String getName() {
+      return _queueName;
     }
     
     public void consumeBatch(EventHandler<Object> handler) {
@@ -107,31 +150,63 @@ public class DisruptorQueue {
     }
     
     public void publish(Object obj, boolean block) throws InsufficientCapacityException {
-        if(consumerStartedFlag) {
-            final long id;
-            if(block) {
-                id = _buffer.next();
-            } else {
-                id = _buffer.tryNext(1);
+
+        boolean publishNow = consumerStartedFlag;
+
+        if (!publishNow) {
+            readLock.lock(); 
+            try {
+                publishNow = consumerStartedFlag;
+                if (!publishNow) {
+                    _cache.add(obj);
+                }
+            } finally {
+                readLock.unlock();
             }
-            final MutableObject m = _buffer.get(id);
-            m.setObject(obj);
-            _buffer.publish(id);
-        } else {
-            _cache.add(obj);
-            if(consumerStartedFlag) flushCache();
         }
+        
+        if (publishNow) {
+            publishDirect(obj, block);
+        }
+    }
+    
+    private void publishDirect(Object obj, boolean block) throws InsufficientCapacityException {
+        final long id;
+        if(block) {
+            id = _buffer.next();
+        } else {
+            id = _buffer.tryNext(1);
+        }
+        final MutableObject m = _buffer.get(id);
+        m.setObject(obj);
+        _buffer.publish(id);
     }
     
     public void consumerStarted() {
-        if(!consumerStartedFlag) {
-            consumerStartedFlag = true;
-            flushCache();
-        }
+
+        consumerStartedFlag = true;
+        
+        // Use writeLock to make sure all pending cache add opearation completed
+        writeLock.lock();
+        writeLock.unlock();
     }
     
-    private void flushCache() {
-        publish(FLUSH_CACHE);
+    public long  population() { return (writePos() - readPos()); }
+    public long  capacity()   { return _buffer.getBufferSize(); }
+    public long  writePos()   { return _buffer.getCursor(); }
+    public long  readPos()    { return _consumer.get(); }
+    public float pctFull()    { return (1.0F * population() / capacity()); }
+
+    public Object getState() {
+        Map state = new HashMap<String, Object>();
+        // get readPos then writePos so it's never an under-estimate
+        long rp = readPos();
+        long wp = writePos();
+        state.put("capacity",   capacity());
+        state.put("population", wp - rp);
+        state.put("write_pos",  wp);
+        state.put("read_pos",   rp);
+        return state;
     }
 
     public static class ObjectEventFactory implements EventFactory<MutableObject> {
