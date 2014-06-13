@@ -55,10 +55,10 @@ public class DisruptorQueueTest extends TestCase {
                 }
             }
         });
-        
-        Assert.assertEquals("We expect to receive first published message first, but received " + result[0].toString(), 
-                "1", result[0]);
+
         run(producer, consumer);
+        Assert.assertEquals("We expect to receive first published message first, but received " + result[0],
+                "1", result[0]);
     }
     
     @Test 
@@ -101,7 +101,6 @@ public class DisruptorQueueTest extends TestCase {
         }
         consumerThread.interrupt();
         consumerThread.join(TIMEOUT);
-        //consumerThread.stop();
     }
 
     private class Producer implements Runnable {
