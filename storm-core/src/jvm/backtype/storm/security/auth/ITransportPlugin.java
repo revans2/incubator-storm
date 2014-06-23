@@ -1,17 +1,35 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package backtype.storm.security.auth;
 
 import java.io.IOException;
 import java.security.Principal;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
+
 import javax.security.auth.login.Configuration;
 
-import org.apache.thrift7.TProcessor;
-import org.apache.thrift7.server.TServer;
-import org.apache.thrift7.transport.TTransport;
-import org.apache.thrift7.transport.TTransportException;
+import org.apache.thrift.TProcessor;
+import org.apache.thrift.server.TServer;
+import org.apache.thrift.transport.TTransport;
+import org.apache.thrift.transport.TTransportException;
 
-import backtype.storm.Config;
+import backtype.storm.security.auth.ThriftConnectionType;
 
 /**
  * Interface for Thrift Transport plugin
@@ -19,22 +37,18 @@ import backtype.storm.Config;
 public interface ITransportPlugin {
     /**
      * Invoked once immediately after construction
+     * @param type the type of connection this will process.
      * @param storm_conf Storm configuration 
      * @param login_conf login configuration
-     * @param executor_service executor service for server
      */
-    void prepare(Map storm_conf, Configuration login_conf, ExecutorService executor_service);
+    void prepare(ThriftConnectionType type, Map storm_conf, Configuration login_conf);
     
     /**
      * Create a server associated with a given port, service handler, and purpose
-     * @param port listening port
      * @param processor service handler
-     * @param purpose purpose for the thrift server
-     * @return server to be binded
+     * @return server
      */
-    public TServer getServer(int port, TProcessor processor,
-            Config.ThriftServerPurpose purpose) 
-            throws IOException, TTransportException;
+    public TServer getServer(TProcessor processor) throws IOException, TTransportException;
 
     /**
      * Connect to the specified server via framed transport 

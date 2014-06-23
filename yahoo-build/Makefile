@@ -8,7 +8,7 @@ EXEC_CONF_DIR?=/home/y/conf/storm/
 all: build
 
 test:
-	cd .. && $(MVN) -f m2-pom.xml -Pnative -Pcoverage -Dworker-launcher.conf.dir=${EXEC_CONF_DIR} package ${MVN_MAKE_OPTS}
+	cd .. && $(MVN) -Pnative -Pcoverage -Dworker-launcher.conf.dir=${EXEC_CONF_DIR} package ${MVN_MAKE_OPTS}
 
 check: test
 	@echo "Errors or Failures:"
@@ -17,13 +17,13 @@ check: test
 
 
 build:
-	cd .. && $(MVN) -f m2-pom.xml -Pnative -Dworker-launcher.conf.dir=${EXEC_CONF_DIR} package -DskipTests ${MVN_MAKE_OPTS}
+	cd .. && $(MVN) -Pnative -Dworker-launcher.conf.dir=${EXEC_CONF_DIR} package -DskipTests ${MVN_MAKE_OPTS}
 
 install:
-	cd .. && $(MVN) -f m2-pom.xml -Pnative -Dworker-launcher.conf.dir=${EXEC_CONF_DIR} install -DskipTests ${MVN_MAKE_OPTS}
+	cd .. && $(MVN) -Pnative -Dworker-launcher.conf.dir=${EXEC_CONF_DIR} install -DskipTests ${MVN_MAKE_OPTS}
 
 #TODO need a good way to see if these values would have changed and update only then
-BASE_VERSION: ../project.clj
+BASE_VERSION: ../pom.xml
 	echo $(BASE_VERSION) > BASE_VERSION
 
 RELEASE:
@@ -42,10 +42,8 @@ storm.zip: _release
 _release: RELEASE build
 	rm -rf _release
 	mkdir -p _release/storm/lib
-	cp ../storm-core-mvn/target/storm-core-$(BASE_VERSION).jar _release/storm/storm.jar
-	cp ../storm-core-mvn/target/dependency/*.jar _release/storm/lib
-	cp ../storm-netty-mvn/target/storm-netty-$(BASE_VERSION).jar _release/storm/storm-netty.jar
-	cp ../storm-netty-mvn/target/dependency/*.jar _release/storm/lib
+	cp ../storm-core/target/storm-core-$(BASE_VERSION).jar _release/storm/storm.jar
+	cp ../storm-core/target/dependency/*.jar _release/storm/lib
 	cp ../storm-yahoo/target/storm_yahoo-$(BASE_VERSION).jar _release/storm/storm_yahoo.jar
 	cp ../storm-yahoo/target/dependency/*.jar _release/storm/lib
 	cp ../CHANGELOG.md _release/storm/
@@ -67,7 +65,7 @@ rhel6_build.state: rhel6_build.yidf  rhel6_build.yml
 
 clean:
 	rm -rf *_build.ruleset ystorm*.tgz BASE_VERSION RELEASE _release storm.zip
-	cd .. && $(MVN) -f m2-pom.xml clean ${MVN_MAKE_OPTS}
+	cd .. && $(MVN) clean ${MVN_MAKE_OPTS}
 
 
 #BuildyBlocks targets

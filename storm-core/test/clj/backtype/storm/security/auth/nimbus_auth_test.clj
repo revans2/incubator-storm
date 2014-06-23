@@ -1,3 +1,18 @@
+;; Licensed to the Apache Software Foundation (ASF) under one
+;; or more contributor license agreements.  See the NOTICE file
+;; distributed with this work for additional information
+;; regarding copyright ownership.  The ASF licenses this file
+;; to you under the Apache License, Version 2.0 (the
+;; "License"); you may not use this file except in compliance
+;; with the License.  You may obtain a copy of the License at
+;;
+;; http://www.apache.org/licenses/LICENSE-2.0
+;;
+;; Unless required by applicable law or agreed to in writing, software
+;; distributed under the License is distributed on an "AS IS" BASIS,
+;; WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+;; See the License for the specific language governing permissions and
+;; limitations under the License.
 (ns backtype.storm.security.auth.nimbus-auth-test
   (:use [clojure test])
   (:require [backtype.storm [testing :as testing]])
@@ -8,7 +23,7 @@
   (:import [backtype.storm.utils NimbusClient])
   (:import [backtype.storm.generated NotAliveException])
   (:import [backtype.storm.security.auth AuthUtils ThriftServer ThriftClient 
-                                         ReqContext])
+                                         ReqContext ThriftConnectionType])
   (:use [backtype.storm bootstrap cluster util])
   (:use [backtype.storm.daemon common nimbus])
   (:use [backtype.storm bootstrap])
@@ -32,7 +47,7 @@
                                             :daemon-conf conf)
         nimbus-server (ThriftServer. (:daemon-conf cluster-map)
                                      (Nimbus$Processor. (:nimbus cluster-map)) 
-                                     (int nimbus-port) backtype.storm.Config$ThriftServerPurpose/NIMBUS)]
+                                     ThriftConnectionType/NIMBUS)]
     (.addShutdownHook (Runtime/getRuntime) (Thread. (fn [] (.stop nimbus-server))))
     (.start (Thread. #(.serve nimbus-server)))
     (wait-for-condition #(.isServing nimbus-server))

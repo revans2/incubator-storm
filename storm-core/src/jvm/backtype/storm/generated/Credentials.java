@@ -21,15 +21,15 @@ import java.util.Arrays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class Credentials implements org.apache.thrift7.TBase<Credentials, Credentials._Fields>, java.io.Serializable, Cloneable {
-  private static final org.apache.thrift7.protocol.TStruct STRUCT_DESC = new org.apache.thrift7.protocol.TStruct("Credentials");
+public class Credentials implements org.apache.thrift.TBase<Credentials, Credentials._Fields>, java.io.Serializable, Cloneable {
+  private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("Credentials");
 
-  private static final org.apache.thrift7.protocol.TField CREDS_FIELD_DESC = new org.apache.thrift7.protocol.TField("creds", org.apache.thrift7.protocol.TType.MAP, (short)1);
+  private static final org.apache.thrift.protocol.TField CREDS_FIELD_DESC = new org.apache.thrift.protocol.TField("creds", org.apache.thrift.protocol.TType.MAP, (short)1);
 
   private Map<String,String> creds; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-  public enum _Fields implements org.apache.thrift7.TFieldIdEnum {
+  public enum _Fields implements org.apache.thrift.TFieldIdEnum {
     CREDS((short)1, "creds");
 
     private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
@@ -88,15 +88,15 @@ public class Credentials implements org.apache.thrift7.TBase<Credentials, Creden
 
   // isset id assignments
 
-  public static final Map<_Fields, org.apache.thrift7.meta_data.FieldMetaData> metaDataMap;
+  public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
   static {
-    Map<_Fields, org.apache.thrift7.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift7.meta_data.FieldMetaData>(_Fields.class);
-    tmpMap.put(_Fields.CREDS, new org.apache.thrift7.meta_data.FieldMetaData("creds", org.apache.thrift7.TFieldRequirementType.REQUIRED, 
-        new org.apache.thrift7.meta_data.MapMetaData(org.apache.thrift7.protocol.TType.MAP, 
-            new org.apache.thrift7.meta_data.FieldValueMetaData(org.apache.thrift7.protocol.TType.STRING), 
-            new org.apache.thrift7.meta_data.FieldValueMetaData(org.apache.thrift7.protocol.TType.STRING))));
+    Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
+    tmpMap.put(_Fields.CREDS, new org.apache.thrift.meta_data.FieldMetaData("creds", org.apache.thrift.TFieldRequirementType.REQUIRED, 
+        new org.apache.thrift.meta_data.MapMetaData(org.apache.thrift.protocol.TType.MAP, 
+            new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING), 
+            new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING))));
     metaDataMap = Collections.unmodifiableMap(tmpMap);
-    org.apache.thrift7.meta_data.FieldMetaData.addStructMetaDataMap(Credentials.class, metaDataMap);
+    org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(Credentials.class, metaDataMap);
   }
 
   public Credentials() {
@@ -258,7 +258,7 @@ public class Credentials implements org.apache.thrift7.TBase<Credentials, Creden
       return lastComparison;
     }
     if (is_set_creds()) {
-      lastComparison = org.apache.thrift7.TBaseHelper.compareTo(this.creds, typedOther.creds);
+      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.creds, typedOther.creds);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -270,20 +270,20 @@ public class Credentials implements org.apache.thrift7.TBase<Credentials, Creden
     return _Fields.findByThriftId(fieldId);
   }
 
-  public void read(org.apache.thrift7.protocol.TProtocol iprot) throws org.apache.thrift7.TException {
-    org.apache.thrift7.protocol.TField field;
+  public void read(org.apache.thrift.protocol.TProtocol iprot) throws org.apache.thrift.TException {
+    org.apache.thrift.protocol.TField field;
     iprot.readStructBegin();
     while (true)
     {
       field = iprot.readFieldBegin();
-      if (field.type == org.apache.thrift7.protocol.TType.STOP) { 
+      if (field.type == org.apache.thrift.protocol.TType.STOP) { 
         break;
       }
       switch (field.id) {
         case 1: // CREDS
-          if (field.type == org.apache.thrift7.protocol.TType.MAP) {
+          if (field.type == org.apache.thrift.protocol.TType.MAP) {
             {
-              org.apache.thrift7.protocol.TMap _map163 = iprot.readMapBegin();
+              org.apache.thrift.protocol.TMap _map163 = iprot.readMapBegin();
               this.creds = new HashMap<String,String>(2*_map163.size);
               for (int _i164 = 0; _i164 < _map163.size; ++_i164)
               {
@@ -296,11 +296,11 @@ public class Credentials implements org.apache.thrift7.TBase<Credentials, Creden
               iprot.readMapEnd();
             }
           } else { 
-            org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
+            org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
           }
           break;
         default:
-          org.apache.thrift7.protocol.TProtocolUtil.skip(iprot, field.type);
+          org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
       }
       iprot.readFieldEnd();
     }
@@ -308,14 +308,14 @@ public class Credentials implements org.apache.thrift7.TBase<Credentials, Creden
     validate();
   }
 
-  public void write(org.apache.thrift7.protocol.TProtocol oprot) throws org.apache.thrift7.TException {
+  public void write(org.apache.thrift.protocol.TProtocol oprot) throws org.apache.thrift.TException {
     validate();
 
     oprot.writeStructBegin(STRUCT_DESC);
     if (this.creds != null) {
       oprot.writeFieldBegin(CREDS_FIELD_DESC);
       {
-        oprot.writeMapBegin(new org.apache.thrift7.protocol.TMap(org.apache.thrift7.protocol.TType.STRING, org.apache.thrift7.protocol.TType.STRING, this.creds.size()));
+        oprot.writeMapBegin(new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.STRING, this.creds.size()));
         for (Map.Entry<String, String> _iter167 : this.creds.entrySet())
         {
           oprot.writeString(_iter167.getKey());
@@ -345,26 +345,26 @@ public class Credentials implements org.apache.thrift7.TBase<Credentials, Creden
     return sb.toString();
   }
 
-  public void validate() throws org.apache.thrift7.TException {
+  public void validate() throws org.apache.thrift.TException {
     // check for required fields
     if (!is_set_creds()) {
-      throw new org.apache.thrift7.protocol.TProtocolException("Required field 'creds' is unset! Struct:" + toString());
+      throw new org.apache.thrift.protocol.TProtocolException("Required field 'creds' is unset! Struct:" + toString());
     }
 
   }
 
   private void writeObject(java.io.ObjectOutputStream out) throws java.io.IOException {
     try {
-      write(new org.apache.thrift7.protocol.TCompactProtocol(new org.apache.thrift7.transport.TIOStreamTransport(out)));
-    } catch (org.apache.thrift7.TException te) {
+      write(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(out)));
+    } catch (org.apache.thrift.TException te) {
       throw new java.io.IOException(te);
     }
   }
 
   private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, ClassNotFoundException {
     try {
-      read(new org.apache.thrift7.protocol.TCompactProtocol(new org.apache.thrift7.transport.TIOStreamTransport(in)));
-    } catch (org.apache.thrift7.TException te) {
+      read(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(in)));
+    } catch (org.apache.thrift.TException te) {
       throw new java.io.IOException(te);
     }
   }

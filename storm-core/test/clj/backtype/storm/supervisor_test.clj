@@ -1,3 +1,18 @@
+;; Licensed to the Apache Software Foundation (ASF) under one
+;; or more contributor license agreements.  See the NOTICE file
+;; distributed with this work for additional information
+;; regarding copyright ownership.  The ASF licenses this file
+;; to you under the Apache License, Version 2.0 (the
+;; "License"); you may not use this file except in compliance
+;; with the License.  You may obtain a copy of the License at
+;;
+;; http://www.apache.org/licenses/LICENSE-2.0
+;;
+;; Unless required by applicable law or agreed to in writing, software
+;; distributed under the License is distributed on an "AS IS" BASIS,
+;; WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+;; See the License for the specific language governing permissions and
+;; limitations under the License.
 (ns backtype.storm.supervisor-test
   (:use [clojure test])
   (:require [conjure.core])
@@ -239,13 +254,13 @@
           mock-worker-id "fake-worker-id"
           mock-cp "mock-classpath"
           exp-args-fn (fn [opts topo-opts]
-                       (concat ["java" "-server"]
+                       (concat [(supervisor/java-cmd) "-server"]
                                opts
                                topo-opts
                                ["-Djava.library.path="
                                 (str "-Dlogfile.name=" mock-storm-id "-worker-" mock-port ".log")
                                 "-Dstorm.home="
-                                "-Dlogback.configurationFile=/logback/worker.xml"
+                                "-Dlogback.configurationFile=/logback/cluster.xml"
                                 (str "-Dstorm.id=" mock-storm-id)
                                 (str "-Dworker.id=" mock-worker-id)
                                 (str "-Dworker.port=" mock-port)
@@ -324,7 +339,7 @@
                                 " '-Djava.library.path='"
                                 " '-Dlogfile.name=" mock-storm-id "-worker-" mock-port ".log'"
                                 " '-Dstorm.home='"
-                                " '-Dlogback.configurationFile=/logback/worker.xml'"
+                                " '-Dlogback.configurationFile=/logback/cluster.xml'"
                                 " '-Dstorm.id=" mock-storm-id "'"
                                 " '-Dworker.id=" mock-worker-id "'"
                                 " '-Dworker.port=" mock-port "'"
@@ -345,12 +360,13 @@
                                       SUPERVISOR-RUN-WORKER-AS-USER true
                                       WORKER-CHILDOPTS string-opts}}]
           (stubbing [read-supervisor-storm-conf {TOPOLOGY-WORKER-CHILDOPTS
-                                                  topo-string-opts
+                                                 topo-string-opts
                                                  TOPOLOGY-SUBMITTER-USER "me"}
                      add-to-classpath mock-cp
                      supervisor-stormdist-root nil
                      launch-process nil
                      set-worker-user! nil
+                     supervisor/java-cmd "java"
                      supervisor/jlp nil
                      supervisor/write-log-metadata! nil]
             (supervisor/launch-worker mock-supervisor
@@ -370,12 +386,13 @@
                                       SUPERVISOR-RUN-WORKER-AS-USER true
                                       WORKER-CHILDOPTS list-opts}}]
           (stubbing [read-supervisor-storm-conf {TOPOLOGY-WORKER-CHILDOPTS
-                                                  topo-list-opts
+                                                 topo-list-opts
                                                  TOPOLOGY-SUBMITTER-USER "me"}
                      add-to-classpath mock-cp
                      supervisor-stormdist-root nil
                      launch-process nil
                      set-worker-user! nil
+                     supervisor/java-cmd "java"
                      supervisor/jlp nil
                      supervisor/write-log-metadata! nil]
             (supervisor/launch-worker mock-supervisor
@@ -388,7 +405,6 @@
           (is (= (slurp worker-script) exp-script))))
 (finally (rm-r (io/file storm-local)))
 ))))
-
 
 (deftest test-workers-go-bananas
   ;; test that multiple workers are started for a port, and test that
@@ -438,12 +454,13 @@
                       LOGS-USERS ["daryl"]}
           exp-data {TOPOLOGY-SUBMITTER-USER exp-owner
                     "worker-id" exp-worker-id
-                    LOGS-USERS exp-logs-users}]
+                    LOGS-USERS exp-logs-users}
+          conf {}]
       (mocking [supervisor/write-log-metadata-to-yaml-file!]
         (supervisor/write-log-metadata! storm-conf exp-owner exp-worker-id
-                                        exp-storm-id exp-port)
+                                        exp-storm-id exp-port conf)
         (verify-called-once-with-args supervisor/write-log-metadata-to-yaml-file!
-                                      exp-storm-id exp-port exp-data)))))
+                                      exp-storm-id exp-port exp-data conf)))))
 
 (deftest test-worker-launcher-requires-user
   (testing "worker-launcher throws on blank user"

@@ -1,3 +1,18 @@
+;; Licensed to the Apache Software Foundation (ASF) under one
+;; or more contributor license agreements.  See the NOTICE file
+;; distributed with this work for additional information
+;; regarding copyright ownership.  The ASF licenses this file
+;; to you under the Apache License, Version 2.0 (the
+;; "License"); you may not use this file except in compliance
+;; with the License.  You may obtain a copy of the License at
+;;
+;; http://www.apache.org/licenses/LICENSE-2.0
+;;
+;; Unless required by applicable law or agreed to in writing, software
+;; distributed under the License is distributed on an "AS IS" BASIS,
+;; WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+;; See the License for the specific language governing permissions and
+;; limitations under the License.
 (ns backtype.storm.drpc-test
   (:use [clojure test])
   (:import [backtype.storm.drpc ReturnResults DRPCSpout
@@ -209,19 +224,22 @@
 (deftest test-dequeue-req-after-timeout
   (let [queue (ConcurrentLinkedQueue.)
         delay-seconds 2
-        storm-config {DRPC-REQUEST-TIMEOUT-SECS delay-seconds}]
-    (stubbing [acquire-queue queue]
-              (let [drpc-handler (service-handler storm-config)]
-                (is (thrown? DRPCExecutionException
-                  (.execute drpc-handler "ArbitraryDRPCFunctionName" "")))
-                (is (= 0 (.size queue)))))))
+        conf {DRPC-REQUEST-TIMEOUT-SECS delay-seconds}]
+    (stubbing [acquire-queue queue
+               read-storm-config conf]
+      (let [drpc-handler (service-handler conf)]
+        (is (thrown? DRPCExecutionException
+          (.execute drpc-handler "ArbitraryDRPCFunctionName" "")))
+        (is (= 0 (.size queue)))))))
 
-(deftest test-drpc-timeout-cleanup
+(deftest test-drpc-timeout-cleanup 
   (let [queue (ConcurrentLinkedQueue.)
         delay-seconds 1
-        storm-config {DRPC-REQUEST-TIMEOUT-SECS delay-seconds}]
+        conf {DRPC-REQUEST-TIMEOUT-SECS delay-seconds}]
     (stubbing [acquire-queue queue
+               read-storm-config conf
                timeout-check-secs delay-seconds]
-              (let [drpc-handler (service-handler storm-config)]
-                (is (thrown? DRPCExecutionException
-                               (.execute drpc-handler "ArbitraryDRPCFunctionName" "no-args")))))))
+              (let [drpc-handler (service-handler conf)]
+                (is (thrown? DRPCExecutionException 
+                             (.execute drpc-handler "ArbitraryDRPCFunctionName" "no-args")))))))
+

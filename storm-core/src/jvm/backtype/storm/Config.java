@@ -1,3 +1,20 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package backtype.storm;
 
 import backtype.storm.ConfigValidation;
@@ -65,17 +82,30 @@ public class Config extends HashMap<String, Object> {
     public static final Object STORM_MESSAGING_NETTY_MAX_SLEEP_MS_SCHEMA = Number.class;
 
     /**
-     * Netty based messaging: The # of worker threads for the server. Setting this to -1, returns it to the netty default.
+     * Netty based messaging: The # of worker threads for the server.
      */
     public static final String STORM_MESSAGING_NETTY_SERVER_WORKER_THREADS = "storm.messaging.netty.server_worker_threads"; 
     public static final Object STORM_MESSAGING_NETTY_SERVER_WORKER_THREADS_SCHEMA = Number.class;
 
     /**
-     * Netty based messaging: The # of worker threads for the client. Setting this to -1, returns it to the netty default.
+     * Netty based messaging: The # of worker threads for the client.
      */
     public static final String STORM_MESSAGING_NETTY_CLIENT_WORKER_THREADS = "storm.messaging.netty.client_worker_threads"; 
     public static final Object STORM_MESSAGING_NETTY_CLIENT_WORKER_THREADS_SCHEMA = Number.class;
+    
+    /**
+     * If the Netty messaging layer is busy, the Netty client will try to batch message as more as possible up to the size of STORM_NETTY_MESSAGE_BATCH_SIZE bytes
+     */
+    public static final String STORM_NETTY_MESSAGE_BATCH_SIZE = "storm.messaging.netty.transfer.batch.size";
+    public static final Object STORM_NETTY_MESSAGE_BATCH_SIZE_SCHEMA = Number.class;
 
+    /**
+     * We check with this interval that whether the Netty channel is writable and try to write pending messages
+     */
+    public static final String STORM_NETTY_FLUSH_CHECK_INTERVAL_MS = "storm.messaging.netty.flush.check.interval.ms";
+    public static final Object STORM_NETTY_FLUSH_CHECK_INTERVAL_MS_SCHEMA = Number.class;
+    
+    
     /**
      * A list of hosts of ZooKeeper servers used to manage the cluster.
      */
@@ -128,7 +158,7 @@ public class Config extends HashMap<String, Object> {
     public static final Object STORM_PRINCIPAL_TO_LOCAL_PLUGIN_SCHEMA = String.class;
 
     /**
-     * The transport plug-in for Thrift client/server communication
+     * The default transport plug-in for Thrift client/server communication
      */
     public static final String STORM_THRIFT_TRANSPORT_PLUGIN = "storm.thrift.transport";
     public static final Object STORM_THRIFT_TRANSPORT_PLUGIN_SCHEMA = String.class;
@@ -255,6 +285,12 @@ public class Config extends HashMap<String, Object> {
     public static final Object NIMBUS_HOST_SCHEMA = String.class;
 
     /**
+     * The Nimbus transport plug-in for Thrift client/server communication
+     */
+    public static final String NIMBUS_THRIFT_TRANSPORT_PLUGIN = "nimbus.thrift.transport";
+    public static final Object NIMBUS_THRIFT_TRANSPORT_PLUGIN_SCHEMA = String.class;
+
+    /**
      * Which port the Thrift interface of Nimbus should run on. Clients should
      * connect to this port to upload jars and submit topologies.
      */
@@ -283,22 +319,10 @@ public class Config extends HashMap<String, Object> {
     public static final Object NIMBUS_SUPERVISOR_USERS_SCHEMA = ConfigValidation.StringsValidator;
 
     /**
-     * The purpose for which the Thrift server is created.
+     * The maximum buffer size thrift should use when reading messages.
      */
-    public static enum ThriftServerPurpose {
-        NIMBUS("nimbus.thrift"),
-        DRPC("drpc.worker");
-
-        private final String configPrefix;
-
-        ThriftServerPurpose(String pfx) {
-            this.configPrefix = pfx;
-        }
-
-        public int getNumThreads(Map conf) { 
-            return Utils.getInt(conf.get(this.configPrefix + ".threads"));
-        }
-    }
+    public static final String NIMBUS_THRIFT_MAX_BUFFER_SIZE = "nimbus.thrift.max_buffer_size";
+    public static final Object NIMBUS_THRIFT_MAX_BUFFER_SIZE_SCHEMA = Number.class;
 
     /**
      * This parameter is used by the storm-deploy project to configure the
@@ -438,6 +462,12 @@ public class Config extends HashMap<String, Object> {
     public static final Object LOGS_USERS_SCHEMA = ConfigValidation.StringsValidator;
 
     /**
+     * Appender name used by log viewer to determine log directory.
+     */
+    public static final String LOGVIEWER_APPENDER_NAME = "logviewer.appender.name";
+    public static final Object LOGVIEWER_APPENDER_NAME_SCHEMA = String.class;
+
+    /**
      * Childopts for Storm UI Java process.
      */
     public static final String UI_CHILDOPTS = "ui.childopts";
@@ -514,6 +544,12 @@ public class Config extends HashMap<String, Object> {
     public static final Object DRPC_HTTPS_KEYSTORE_TYPE_SCHEMA = String.class;
 
     /**
+     * The DRPC transport plug-in for Thrift client/server communication
+     */
+    public static final String DRPC_THRIFT_TRANSPORT_PLUGIN = "drpc.thrift.transport";
+    public static final Object DRPC_THRIFT_TRANSPORT_PLUGIN_SCHEMA = String.class;
+
+    /**
      * This port is used by Storm DRPC for receiving DPRC requests from clients.
      */
     public static final String DRPC_PORT = "drpc.port";
@@ -558,16 +594,34 @@ public class Config extends HashMap<String, Object> {
     public static final Object DRPC_WORKER_THREADS_SCHEMA = Number.class;
 
     /**
+     * The maximum buffer size thrift should use when reading messages for DRPC.
+     */
+    public static final String DRPC_MAX_BUFFER_SIZE = "drpc.max_buffer_size";
+    public static final Object DRPC_MAX_BUFFER_SIZE_SCHEMA = Number.class;
+
+    /**
      * DRPC thrift server queue size 
      */
     public static final String DRPC_QUEUE_SIZE = "drpc.queue.size";
     public static final Object DRPC_QUEUE_SIZE_SCHEMA = Number.class;
 
     /**
+     * The DRPC invocations transport plug-in for Thrift client/server communication
+     */
+    public static final String DRPC_INVOCATIONS_THRIFT_TRANSPORT_PLUGIN = "drpc.invocations.thrift.transport";
+    public static final Object DRPC_INVOCATIONS_THRIFT_TRANSPORT_PLUGIN_SCHEMA = String.class;
+
+    /**
      * This port on Storm DRPC is used by DRPC topologies to receive function invocations and send results back. 
      */
     public static final String DRPC_INVOCATIONS_PORT = "drpc.invocations.port";
     public static final Object DRPC_INVOCATIONS_PORT_SCHEMA = Number.class;
+
+    /**
+     * DRPC invocations thrift server worker threads 
+     */
+    public static final String DRPC_INVOCATIONS_THREADS = "drpc.invocations.threads";
+    public static final Object DRPC_INVOCATIONS_THREADS_SCHEMA = Number.class;
 
     /**
      * The timeout on DRPC requests within the DRPC server. Defaults to 10 minutes. Note that requests can also
@@ -708,6 +762,12 @@ public class Config extends HashMap<String, Object> {
     public static final Object WORKER_GC_CHILDOPTS_SCHEMA = ConfigValidation.StringOrStringListValidator;
 
     /**
+     * control how many worker receiver threads we need per worker
+     */
+    public static final String WORKER_RECEIVER_THREAD_COUNT = "topology.worker.receiver.thread.count";
+    public static final Object WORKER_RECEIVER_THREAD_COUNT_SCHEMA = Number.class;
+    
+    /**
      * How often this worker should heartbeat to the supervisor.
      */
     public static final String WORKER_HEARTBEAT_FREQUENCY_SECS = "worker.heartbeat.frequency.secs";
@@ -758,13 +818,12 @@ public class Config extends HashMap<String, Object> {
     public static final String TOPOLOGY_DEBUG = "topology.debug";
     public static final Object TOPOLOGY_DEBUG_SCHEMA = Boolean.class;
 
-
     /**
-     * Whether or not the master should optimize topologies by running multiple
-     * tasks in a single thread where appropriate.
+     * The serializer for communication between shell components and non-JVM
+     * processes
      */
-    public static final String TOPOLOGY_OPTIMIZE = "topology.optimize";
-    public static final Object TOPOLOGY_OPTIMIZE_SCHEMA = Boolean.class;
+    public static final String TOPOLOGY_MULTILANG_SERIALIZER = "topology.multilang.serializer";
+    public static final Object TOPOLOGY_MULTILANG_SERIALIZER_SCHEMA = String.class;
 
     /**
      * How many processes should be spawned around the cluster to execute this
@@ -1044,6 +1103,12 @@ public class Config extends HashMap<String, Object> {
     public static final Object TOPOLOGY_AUTO_CREDENTIALS_SCHEMA = ConfigValidation.StringsValidator;
  
     /**
+     * Max pending tuples in one ShellBolt
+     */
+    public static final String TOPOLOGY_SHELLBOLT_MAX_PENDING="topology.shellbolt.max.pending";
+    public static final Object TOPOLOGY_SHELLBOLT_MAX_PENDING_SCHEMA = Number.class;
+
+    /**
      * The root directory in ZooKeeper for metadata about TransactionalSpouts.
      */
     public static final String TRANSACTIONAL_ZOOKEEPER_ROOT="transactional.zookeeper.root";
@@ -1129,11 +1194,6 @@ public class Config extends HashMap<String, Object> {
     public void setDebug(boolean isOn) {
         setDebug(this, isOn);
     }
-    
-    @Deprecated
-    public void setOptimize(boolean isOn) {
-        put(Config.TOPOLOGY_OPTIMIZE, isOn);
-    } 
     
     public static void setNumWorkers(Map conf, int workers) {
         conf.put(Config.TOPOLOGY_WORKERS, workers);

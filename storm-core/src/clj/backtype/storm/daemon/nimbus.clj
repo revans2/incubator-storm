@@ -1,9 +1,23 @@
+;; Licensed to the Apache Software Foundation (ASF) under one
+;; or more contributor license agreements.  See the NOTICE file
+;; distributed with this work for additional information
+;; regarding copyright ownership.  The ASF licenses this file
+;; to you under the Apache License, Version 2.0 (the
+;; "License"); you may not use this file except in compliance
+;; with the License.  You may obtain a copy of the License at
+;;
+;; http://www.apache.org/licenses/LICENSE-2.0
+;;
+;; Unless required by applicable law or agreed to in writing, software
+;; distributed under the License is distributed on an "AS IS" BASIS,
+;; WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+;; See the License for the specific language governing permissions and
+;; limitations under the License.
 (ns backtype.storm.daemon.nimbus
-  (:import [org.apache.thrift7 TException])
   (:import [java.nio ByteBuffer])
   (:import [java.io FileNotFoundException])
   (:import [java.nio.channels Channels WritableByteChannel])
-  (:import [backtype.storm.security.auth ThriftServer ReqContext AuthUtils])
+  (:import [backtype.storm.security.auth ThriftServer ThriftConnectionType ReqContext AuthUtils])
   (:use [backtype.storm.scheduler.DefaultScheduler])
   (:import [backtype.storm.scheduler INimbus SupervisorDetails WorkerSlot TopologyDetails
             Cluster Topologies SchedulerAssignment SchedulerAssignmentImpl DefaultScheduler ExecutorDetails])
@@ -295,12 +309,6 @@
     (dofor [^WorkerSlot slot ret]
       [(.getNodeId slot) (.getPort slot)]
       )))
-
-(defn- optimize-topology [topology]
-  ;; TODO: create new topology by collapsing bolts into CompoundSpout
-  ;; and CompoundBolt
-  ;; need to somehow maintain stream/component ids inside tuples
-  topology)
 
 (defn- setup-storm-code [conf storm-id tmp-jar-location storm-conf topology]
   (let [stormroot (master-stormdist-root conf storm-id)]
@@ -753,13 +761,12 @@
 
 (defn check-authorization! 
   ([nimbus storm-name storm-conf operation context]
-     (let [aclHandler (:authorization-handler nimbus)]
-       (log-debug "check-authorization with handler: " aclHandler)
+     (let [aclHandler (:authorization-handler nimbus)
+           ctx (or context (ReqContext/context))
+           check-conf (if storm-conf storm-conf (if storm-name {TOPOLOGY-NAME storm-name}))]
+       (log-message "[req " (.requestID ctx) "] Access from: " (.remoteAddress ctx) " principal:" (.principal ctx) " op:" operation)
        (if aclHandler
-         (if-not (.permit aclHandler 
-                          (or context (ReqContext/context))
-                          operation 
-                          (if storm-conf storm-conf (if storm-name {TOPOLOGY-NAME storm-name})))
+         (if-not (.permit aclHandler ctx operation check-conf)
            (throw (AuthorizationException. (str operation (if storm-name (str " on topology " storm-name)) " is not authorized")))
            ))))
   ([nimbus storm-name storm-conf operation]
@@ -862,7 +869,8 @@
             (if orig-creds
               (let [new-creds (HashMap. orig-creds)]
                 (doseq [renewer renewers]
-                  (log-message "Renewing Creds For " id " with " renewer))
+                  (log-message "Renewing Creds For " id " with " renewer)
+		  (.renew renewer new-creds))
                 (when-not (= orig-creds new-creds)
                   (.set-credentials! storm-cluster-state id new-creds)
               )))))))))
@@ -915,11 +923,11 @@
 (defn check-file-access [conf file-path]
   (log-debug "check file access:" file-path)
   (try
-    (if (not= (File. (master-stormdist-root conf))
+    (if (not= (.getCanonicalFile (File. (master-stormdist-root conf)))
           (-> (File. file-path) .getCanonicalFile .getParentFile .getParentFile))
-      (throw (AuthorizationException. (str "Invalid file path:" file-path))))
+      (throw (AuthorizationException. (str "Invalid file path: " file-path))))
     (catch Exception e
-      (throw (AuthorizationException. (str "Invalid file path:" file-path))))))
+      (throw (AuthorizationException. (str "Invalid file path: " file-path))))))
 
 (defn try-read-storm-conf [conf storm-id]
   (try-cause
@@ -1036,9 +1044,6 @@
                                 (dissoc storm-conf STORM-ZOOKEEPER-TOPOLOGY-AUTH-SCHEME STORM-ZOOKEEPER-TOPOLOGY-AUTH-PAYLOAD))
                 total-storm-conf (merge conf storm-conf)
                 topology (normalize-topology total-storm-conf topology)
-                topology (if (total-storm-conf TOPOLOGY-OPTIMIZE)
-                           (optimize-topology topology)
-                           topology)
                 storm-cluster-state (:storm-cluster-state nimbus)]
             (if (and (conf SUPERVISOR-RUN-WORKER-AS-USER) (or (nil? submitter-user) (.isEmpty (.trim submitter-user)))) 
               (throw (AuthorizationException. "Could not determine the user to run this topology as.")))
@@ -1297,14 +1302,13 @@
 (defn launch-server! [conf nimbus]
   (validate-distributed-mode! conf)
   (let [service-handler (service-handler conf nimbus)
+        ;;TODO need to honor NIMBUS-THRIFT-MAX-BUFFER-SIZE for different transports
         server (ThriftServer. conf (Nimbus$Processor. service-handler) 
-                              (int (conf NIMBUS-THRIFT-PORT)) 
-                              backtype.storm.Config$ThriftServerPurpose/NIMBUS)]
+                              ThriftConnectionType/NIMBUS)]
     (.addShutdownHook (Runtime/getRuntime) (Thread. (fn [] (.shutdown service-handler) (.stop server))))
     (log-message "Starting Nimbus server...")
     (.serve server)
     service-handler))
-
 
 ;; distributed implementation
 

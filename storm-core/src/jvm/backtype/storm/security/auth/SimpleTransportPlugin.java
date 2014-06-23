@@ -1,3 +1,20 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package backtype.storm.security.auth;
 
 import java.io.IOException;
@@ -7,27 +24,28 @@ import java.net.Socket;
 import java.net.UnknownHostException;
 import java.util.Map;
 import java.util.HashSet;
-import java.util.concurrent.ExecutorService;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.TimeUnit;
 
 import javax.security.auth.login.Configuration;
 import javax.security.auth.Subject;
-import org.apache.thrift7.TException;
-import org.apache.thrift7.TProcessor;
-import org.apache.thrift7.protocol.TBinaryProtocol;
-import org.apache.thrift7.protocol.TProtocol;
-import org.apache.thrift7.server.THsHaServer;
-import org.apache.thrift7.server.TServer;
-import org.apache.thrift7.transport.TFramedTransport;
-import org.apache.thrift7.transport.TMemoryInputTransport;
-import org.apache.thrift7.transport.TNonblockingServerSocket;
-import org.apache.thrift7.transport.TSocket;
-import org.apache.thrift7.transport.TTransport;
-import org.apache.thrift7.transport.TTransportException;
+import org.apache.thrift.TException;
+import org.apache.thrift.TProcessor;
+import org.apache.thrift.protocol.TBinaryProtocol;
+import org.apache.thrift.protocol.TProtocol;
+import org.apache.thrift.server.THsHaServer;
+import org.apache.thrift.server.TServer;
+import org.apache.thrift.transport.TFramedTransport;
+import org.apache.thrift.transport.TMemoryInputTransport;
+import org.apache.thrift.transport.TNonblockingServerSocket;
+import org.apache.thrift.transport.TSocket;
+import org.apache.thrift.transport.TTransport;
+import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import backtype.storm.Config;
-import backtype.storm.utils.Utils;
+import backtype.storm.security.auth.ThriftConnectionType;
 
 /**
  * Simple transport for Thrift plugin.
@@ -35,38 +53,35 @@ import backtype.storm.utils.Utils;
  * This plugin is designed to be backward compatible with existing Storm code.
  */
 public class SimpleTransportPlugin implements ITransportPlugin {
+    protected ThriftConnectionType type;
     protected Map storm_conf;
     protected Configuration login_conf;
-    protected ExecutorService executor_service;
     private static final Logger LOG = LoggerFactory.getLogger(SimpleTransportPlugin.class);
 
-    /**
-     * Invoked once immediately after construction
-     * @param conf Storm configuration 
-     * @param login_conf login configuration
-     * @param executor_service executor service for server
-     */
-    public void prepare(Map storm_conf, Configuration login_conf, ExecutorService executor_service) {        
+    @Override
+    public void prepare(ThriftConnectionType type, Map storm_conf, Configuration login_conf) {
+        this.type = type;
         this.storm_conf = storm_conf;
         this.login_conf = login_conf;
-        this.executor_service = executor_service;
     }
 
-    /**
-     * We will let Thrift to apply default transport factory
-     */
-    public TServer getServer(int port, TProcessor processor,
-            Config.ThriftServerPurpose purpose) 
-            throws IOException, TTransportException {
+    @Override
+    public TServer getServer(TProcessor processor) throws IOException, TTransportException {
+        int port = type.getPort(storm_conf);
         TNonblockingServerSocket serverTransport = new TNonblockingServerSocket(port);
-        int numWorkerThreads = purpose.getNumThreads(this.storm_conf);
+        int numWorkerThreads = type.getNumThreads(storm_conf);
+        int maxBufferSize = type.getMaxBufferSize(storm_conf);
+        Integer queueSize = type.getQueueSize(storm_conf);
+
         THsHaServer.Args server_args = new THsHaServer.Args(serverTransport).
                 processor(new SimpleWrapProcessor(processor)).
                 workerThreads(numWorkerThreads).
-                protocolFactory(new TBinaryProtocol.Factory());            
+                protocolFactory(new TBinaryProtocol.Factory(false, true, maxBufferSize));
 
-        if (executor_service!=null)
-            server_args = server_args.executorService(executor_service);
+        if (queueSize != null) {
+            server_args.executorService(new ThreadPoolExecutor(numWorkerThreads, numWorkerThreads, 
+                                   60, TimeUnit.SECONDS, new ArrayBlockingQueue(queueSize)));
+        }
 
         //construct THsHaServer
         return new THsHaServer(server_args);
