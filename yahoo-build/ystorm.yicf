@@ -70,7 +70,7 @@ file 444 - - lib64/jars/storm_yahoo-sources.jar ../storm-yahoo/target/storm_yaho
 file 444 - - lib64/jars/storm_yahoo.pom ../storm-yahoo/pom.xml
 file 444 - - lib64/storm/$(BASE_VERSION)/RELEASE ./RELEASE
 file 444 - - lib64/storm/$(BASE_VERSION)/CHANGELOG.md ../CHANGELOG.md
-file 444 - - lib64/storm/$(BASE_VERSION)/LICENSE.html ../LICENSE.html
+file 444 - - lib64/storm/$(BASE_VERSION)/LICENSE ../LICENSE
 file 444 - - lib64/storm/$(BASE_VERSION)/storm-core-$(BASE_VERSION).jar ../storm-core/target/storm-core-$(BASE_VERSION).jar
 file 444 - - lib64/storm/$(BASE_VERSION)/storm_yahoo-$(BASE_VERSION).jar ../storm-yahoo/target/storm_yahoo-$(BASE_VERSION).jar
 file 444 - - lib64/storm/$(BASE_VERSION)/README.markdown ../README.markdown

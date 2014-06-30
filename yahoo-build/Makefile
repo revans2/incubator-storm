@@ -1,4 +1,4 @@
-BASE_VERSION:=`cat ../VERSION`
+BASE_VERSION:=`cat BASE_VERSION`
 BUILD_NUMBER?=0
 FULL_VERSION="$(BASE_VERSION).$(BUILD_NUMBER)"
 LEIN=LD_LIBRARY_PATH=/home/y/lib64 /home/y/bin/lein
@@ -24,9 +24,9 @@ install:
 
 #TODO need a good way to see if these values would have changed and update only then
 BASE_VERSION: ../pom.xml
-	echo $(BASE_VERSION) > BASE_VERSION
+	cd .. && $(MVN) help:evaluate -Dexpression=project.version | grep -v "^\[" | tail -1 > yahoo-build/BASE_VERSION
 
-RELEASE:
+RELEASE: BASE_VERSION
 	echo $(FULL_VERSION) > RELEASE
 
 testpkg: RELEASE BASE_VERSION build storm.zip
@@ -57,7 +57,7 @@ _release: RELEASE build
 	cp -R ../storm-core/src/ui/public _release/storm/
 	cp -R ../bin _release/storm/
 	cp ../README.markdown _release/storm/
-	cp ../LICENSE.html _release/storm/
+	cp ../LICENSE _release/storm/
 	
 rhel6_build.state: rhel6_build.yidf  rhel6_build.yml
 	rm -f rhel6_build.state rhel6_build.state.tmp rhel6_build.ruleset
