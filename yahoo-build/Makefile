@@ -1,7 +1,6 @@
 BASE_VERSION:=`cat BASE_VERSION`
 BUILD_NUMBER?=0
 FULL_VERSION="$(BASE_VERSION).$(BUILD_NUMBER)"
-LEIN=LD_LIBRARY_PATH=/home/y/lib64 /home/y/bin/lein
 MVN=LD_LIBRARY_PATH=/home/y/lib64 /home/y/bin/mvn
 EXEC_CONF_DIR?=/home/y/conf/storm/
 
