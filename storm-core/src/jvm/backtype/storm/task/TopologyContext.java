@@ -1,3 +1,20 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package backtype.storm.task;
 
 import backtype.storm.generated.GlobalStreamId;
@@ -20,6 +37,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import org.apache.commons.lang.NotImplementedException;
+import org.json.simple.JSONValue;
 
 /**
  * A TopologyContext is given to bolts and spouts in their "prepare" and "open"
@@ -200,6 +218,16 @@ public class TopologyContext extends WorkerTopologyContext implements IMetricsCo
     public Collection<ITaskHook> getHooks() {
         return _hooks;
     }
+    
+    @Override
+    public String toJSONString() {
+        Map obj = new HashMap();
+        obj.put("task->component", this.getTaskToComponent());
+        obj.put("taskid", this.getThisTaskId());
+        // TODO: jsonify StormTopology
+        // at the minimum should send source info
+        return JSONValue.toJSONString(obj);
+    }
 
     /*
      * Register a IMetric instance. 
@@ -213,11 +241,16 @@ public class TopologyContext extends WorkerTopologyContext implements IMetricsCo
             throw new RuntimeException("TopologyContext.registerMetric can only be called from within overridden " + 
                                        "IBolt::prepare() or ISpout::open() method.");
         }
-       
+
         if (metric == null) {
-            throw new NullPointerException("Cannot register a null metric");
+            throw new IllegalArgumentException("Cannot register a null metric");
         }
- 
+
+        if (timeBucketSizeInSecs <= 0) {
+            throw new IllegalArgumentException("TopologyContext.registerMetric can only be called with timeBucketSizeInSecs " +
+                                               "greater than or equal to 1 second.");
+        }
+        
         Map m1 = _registeredMetrics;
         if(!m1.containsKey(timeBucketSizeInSecs)) {
             m1.put(timeBucketSizeInSecs, new HashMap());

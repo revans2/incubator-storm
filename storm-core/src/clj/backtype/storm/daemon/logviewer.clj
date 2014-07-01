@@ -1,3 +1,18 @@
+;; Licensed to the Apache Software Foundation (ASF) under one
+;; or more contributor license agreements.  See the NOTICE file
+;; distributed with this work for additional information
+;; regarding copyright ownership.  The ASF licenses this file
+;; to you under the Apache License, Version 2.0 (the
+;; "License"); you may not use this file except in compliance
+;; with the License.  You may obtain a copy of the License at
+;;
+;; http://www.apache.org/licenses/LICENSE-2.0
+;;
+;; Unless required by applicable law or agreed to in writing, software
+;; distributed under the License is distributed on an "AS IS" BASIS,
+;; WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+;; See the License for the specific language governing permissions and
+;; limitations under the License.
 (ns backtype.storm.daemon.logviewer
   (:use compojure.core)
   (:use [clojure.set :only [difference]])
@@ -6,6 +21,9 @@
   (:use [backtype.storm config util log timer])
   (:use [backtype.storm.ui helpers])
   (:use [ring.adapter.jetty :only [run-jetty]])
+  (:import [org.slf4j LoggerFactory])
+  (:import [ch.qos.logback.classic Logger])
+  (:import [ch.qos.logback.core FileAppender])
   (:import [java.io File FileFilter FileInputStream])
   (:import [org.yaml.snakeyaml Yaml]
            [org.yaml.snakeyaml.constructor SafeConstructor])
@@ -16,6 +34,11 @@
             [ring.middleware.keyword-params]
             [ring.util.response :as resp])
   (:require [backtype.storm.daemon common [supervisor :as supervisor]])
+  (:import [java.io File FileFilter])
+  (:require [compojure.route :as route]
+            [compojure.handler :as handler]
+            [ring.util.response :as resp]
+            [clojure.string :as string])
   (:gen-class))
 
 (def ^:dynamic *STORM-CONF* (read-storm-config))
@@ -31,12 +54,12 @@
                           (re-find worker-log-filename-pattern (.getName file))
                           (<= (.lastModified file) cutoff-age-millis)))))))
 
-(defn select-files-for-cleanup [conf now-millis]
+(defn select-files-for-cleanup [conf now-millis root-dir]
   (let [file-filter (mk-FileFilter-for-log-cleanup conf now-millis)]
-    (.listFiles (File. LOG-DIR) file-filter)))
+    (.listFiles (File. root-dir) file-filter)))
 
-(defn get-metadata-file-for-log-root-name [root-name]
-  (let [metaFile (clojure.java.io/file LOG-DIR "metadata"
+(defn get-metadata-file-for-log-root-name [root-name root-dir]
+  (let [metaFile (clojure.java.io/file root-dir "metadata"
                                        (str root-name ".yaml"))]
     (if (.exists metaFile)
       metaFile
@@ -64,10 +87,10 @@
                   %)                                                          ;; The log file
                log-files)))
 
-(defn identify-worker-log-files [log-files]
+(defn identify-worker-log-files [log-files root-dir]
   (into {} (for [log-root-entry (get-log-root->files-map log-files)
                  :let [metaFile (get-metadata-file-for-log-root-name
-                                  (key log-root-entry))
+                                  (key log-root-entry) root-dir)
                        log-root (key log-root-entry)
                        files (val log-root-entry)]
                  :when metaFile]
@@ -78,13 +101,13 @@
                  ;; include the metadata file also.
                  (if (empty? (difference
                                   (set (filter #(re-find (re-pattern log-root) %)
-                                               (read-dir-contents LOG-DIR)))
+                                               (read-dir-contents root-dir)))
                                   (set (map #(.getName %) files))))
                   (conj files metaFile)
                   ;; Otherwise, keep the list of files as it is.
                   files)}})))
 
-(defn get-dead-worker-files-and-owners [conf now-secs log-files]
+(defn get-dead-worker-files-and-owners [conf now-secs log-files root-dir]
   (if (empty? log-files)
     {}
     (let [id->heartbeat (supervisor/read-worker-heartbeats conf)
@@ -92,16 +115,16 @@
                             #(or (not (val %))
                                  (supervisor/is-worker-hb-timed-out? now-secs (val %) conf))
                             id->heartbeat))
-          id->entries (identify-worker-log-files log-files)]
+          id->entries (identify-worker-log-files log-files root-dir)]
       (for [[id {:keys [owner files]}] id->entries
             :when (not (contains? (set alive-ids) id))]
         {:owner owner
          :files files}))))
 
-(defn cleanup-fn! []
+(defn cleanup-fn! [log-root-dir]
   (let [now-secs (current-time-secs)
-        old-log-files (select-files-for-cleanup *STORM-CONF* (* now-secs 1000))
-        dead-worker-files (get-dead-worker-files-and-owners *STORM-CONF* now-secs old-log-files)]
+        old-log-files (select-files-for-cleanup *STORM-CONF* (* now-secs 1000) log-root-dir)
+        dead-worker-files (get-dead-worker-files-and-owners *STORM-CONF* now-secs old-log-files log-root-dir)]
     (log-debug "log cleanup: now(" now-secs
                ") old log files (" (seq (map #(.getName %) old-log-files))
                ") dead worker files (" (seq (map #(.getName %) dead-worker-files)) ")")
@@ -119,14 +142,14 @@
           (catch Exception ex
             (log-error ex)))))))
 
-(defn start-log-cleaner! [conf]
+(defn start-log-cleaner! [conf log-root-dir]
   (let [interval-secs (conf LOGVIEWER-CLEANUP-INTERVAL-SECS)]
     (when interval-secs
       (log-debug "starting log cleanup thread at interval: " interval-secs)
       (schedule-recurring (mk-timer :thread-name "logviewer-cleanup")
                           0 ;; Start immediately.
                           interval-secs
-                          cleanup-fn!))))
+                          (fn [] (cleanup-fn! log-root-dir))))))
 
 (defn page-file
   ([path tail]
@@ -167,6 +190,17 @@
                              whitelist)]
        (some #(= % user) logs-users))))
 
+(defn log-root-dir
+  "Given an appender name, as configured, get the parent directory of the appender's log file.
+
+Note that if anything goes wrong, this will throw an Error and exit."
+  [appender-name]
+  (let [appender (.getAppender (LoggerFactory/getLogger Logger/ROOT_LOGGER_NAME) appender-name)]
+    (if (and appender-name appender (instance? FileAppender appender))
+      (.getParent (File. (.getFile appender)))
+      (throw
+       (RuntimeException. "Log viewer could not find configured appender, or the appender is not a FileAppender. Please check that the appender name configured in storm and logback agree.")))))
+
 (defn pager-links [fname start length file-size]
   (let [prev-start (max 0 (- start length))
         next-start (if (> file-size 0)
@@ -203,13 +237,13 @@
 (defn- download-link [fname]
   [[:p (link-to (url-format "/download/%s" fname) "Download Full Log")]])
 
-(defn log-page [fname start length grep user]
+(defn log-page [fname start length grep user root-dir]
   (if (or (blank? (*STORM-CONF* UI-FILTER))
           (authorized-log-user? user fname *STORM-CONF*))
-    (let [file (.getCanonicalFile (File. LOG-DIR fname))
+    (let [file (.getCanonicalFile (File. root-dir fname))
           file-length (.length file)
           path (.getCanonicalPath file)]
-      (if (= (File. LOG-DIR)
+      (if (= (File. root-dir)
              (.getParentFile file))
         (let [default-length 51200
               length (if length
@@ -235,10 +269,9 @@
             (resp/status 404))))
     (unauthorized-user-html user)))
 
-(defn download-log-file [fname req resp user]
-  (let [file (.getCanonicalFile (File. LOG-DIR fname))
-        path (.getCanonicalPath file)]
-    (if (= (File. LOG-DIR) (.getParentFile file))
+(defn download-log-file [fname req resp user ^String root-dir]
+  (let [file (.getCanonicalFile (File. root-dir fname))]
+    (if (= (File. root-dir) (.getParentFile file))
       (if (or (blank? (*STORM-CONF* UI-FILTER))
               (authorized-log-user? user fname *STORM-CONF*))
         (-> (resp/response file)
@@ -275,32 +308,41 @@
                ex)))))
 
 (defroutes log-routes
-  (GET "/log" [:as {servlet-request :servlet-request} & m]
+  (GET "/log" [:as req & m]
        (try
-         (let [user (.getUserName http-creds-handler servlet-request)
+         (let [servlet-request (:servlet-request req)
+               log-root (:log-root req)
+               user (.getUserName http-creds-handler servlet-request)
                start (if (:start m) (parse-long-from-map m :start))
                length (if (:length m) (parse-long-from-map m :length))]
-           (log-template (log-page (:file m) start length (:grep m) user)
+           (log-template (log-page (:file m) start length (:grep m) user log-root)
                          (:file m) user))
          (catch InvalidRequestException ex
            (log-error ex)
            (ring-response-from-exception ex))))
-  (GET "/download/:file" [:as {:keys [servlet-request servlet-response]} file & m]
+  (GET "/download/:file" [:as {:keys [servlet-request servlet-response log-root]} file & m]
        (try
          (let [user (.getUserName http-creds-handler servlet-request)]
-           (download-log-file file servlet-request servlet-response user))
+           (download-log-file file servlet-request servlet-response user log-root))
          (catch InvalidRequestException ex
            (log-error ex)
            (ring-response-from-exception ex))))
   (route/resources "/")
   (route/not-found "Page not found"))
 
-(defn start-logviewer! [conf]
+(defn conf-middleware
+  "For passing the storm configuration with each request."
+  [app log-root]
+  (fn [req]
+    (app (assoc req :log-root log-root))))
+
+(defn start-logviewer! [conf log-root-dir]
   (try
     (let [header-buffer-size (int (.get conf UI-HEADER-BUFFER-BYTES))
           filter-class (conf UI-FILTER)
           filter-params (conf UI-FILTER-PARAMS)
           logapp (handler/api log-routes) ;; query params as map
+          middle (conf-middleware logapp log-root-dir)
           filters-confs (if (conf UI-FILTER)
                           [{:filter-class filter-class
                             :filter-params (or (conf UI-FILTER-PARAMS) {})}]
@@ -309,16 +351,18 @@
                           [{:filter-class "org.mortbay.servlet.GzipFilter"
                             :filter-name "Gzipper"
                             :filter-params {}}])]
-      (run-jetty logapp {:port (int (conf LOGVIEWER-PORT))
+      (run-jetty middle 
+                        {:port (int (conf LOGVIEWER-PORT))
                          :join? false
                          :configurator (fn [server]
                                          (doseq [connector (.getConnectors server)]
                                            (.setHeaderBufferSize connector header-buffer-size))
-                                         (config-filter server logapp filters-confs))}))
+                                         (config-filter server middle filters-confs))}))
   (catch Exception ex
     (log-error ex))))
 
 (defn -main []
-  (let [conf (read-storm-config)]
-    (start-log-cleaner! conf)
-    (start-logviewer! (read-storm-config))))
+  (let [conf (read-storm-config)
+        log-root (log-root-dir (conf LOGVIEWER-APPENDER-NAME))]
+    (start-log-cleaner! conf log-root)
+    (start-logviewer! conf log-root)))

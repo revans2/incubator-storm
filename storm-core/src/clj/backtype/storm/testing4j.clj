@@ -1,3 +1,18 @@
+;; Licensed to the Apache Software Foundation (ASF) under one
+;; or more contributor license agreements.  See the NOTICE file
+;; distributed with this work for additional information
+;; regarding copyright ownership.  The ASF licenses this file
+;; to you under the Apache License, Version 2.0 (the
+;; "License"); you may not use this file except in compliance
+;; with the License.  You may obtain a copy of the License at
+;;
+;; http://www.apache.org/licenses/LICENSE-2.0
+;;
+;; Unless required by applicable law or agreed to in writing, software
+;; distributed under the License is distributed on an "AS IS" BASIS,
+;; WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+;; See the License for the specific language governing permissions and
+;; limitations under the License.
 (ns backtype.storm.testing4j
   (:import [java.util Map List Collection ArrayList])
   (:require [backtype.storm [LocalCluster :as LocalCluster]])
@@ -36,7 +51,6 @@
              ^:static [testTuple [java.util.List] backtype.storm.tuple.Tuple]
              ^:static [testTuple [java.util.List backtype.storm.testing.MkTupleParam] backtype.storm.tuple.Tuple]]))
 
-
 (defn -completeTopology
   ([^ILocalCluster cluster ^StormTopology topology ^CompleteTopologyParam completeTopologyParam]
      (let [mocked-sources (or (-> completeTopologyParam .getMockedSources .getData) {})
@@ -51,11 +65,13 @@
   ([^ILocalCluster cluster ^StormTopology topology]
      (-completeTopology cluster topology (CompleteTopologyParam.))))
 
-(defn -withSimulatedTime [^Runnable code]
+(defn -withSimulatedTime
+  [^Runnable code]
   (with-simulated-time
     (.run code)))
 
-(defmacro with-cluster [cluster-type mkClusterParam code]
+(defmacro with-cluster
+  [cluster-type mkClusterParam code]
   `(let [supervisors# (or (.getSupervisors ~mkClusterParam) 2)
          ports-per-supervisor# (or (.getPortsPerSupervisor ~mkClusterParam) 3)
          daemon-conf# (or (.getDaemonConf ~mkClusterParam) {})]
@@ -83,7 +99,8 @@
   ([^TestJob code]
      (-withTrackedCluster (MkClusterParam.) code)))
 
-(defn- find-tuples [^List fixed-tuples ^String stream]
+(defn- find-tuples
+  [^List fixed-tuples ^String stream]
   (let [ret (ArrayList.)]
     (doseq [fixed-tuple fixed-tuples]
       (if (= (.stream fixed-tuple) stream)
@@ -92,48 +109,52 @@
 
 (defn -readTuples
   ([^Map result ^String componentId ^String streamId]
-     (let [stream-result (.get result componentId)
-           ret (if stream-result
-                 (find-tuples stream-result streamId)
-                 [])]
-       ret))
+   (let [stream-result (.get result componentId)
+         ret (if stream-result
+               (find-tuples stream-result streamId)
+               [])]
+     ret))
   ([^Map result ^String componentId]
-     (-readTuples result componentId Utils/DEFAULT_STREAM_ID)))
+   (-readTuples result componentId Utils/DEFAULT_STREAM_ID)))
 
-(defn -mkTrackedTopology [^ILocalCluster trackedCluster ^StormTopology topology]
+(defn -mkTrackedTopology
+  [^ILocalCluster trackedCluster ^StormTopology topology]
   (-> (mk-tracked-topology (.getState trackedCluster) topology)
       (TrackedTopology.)))
 
 (defn -trackedWait
   ([^TrackedTopology trackedTopology ^Integer amt]
-     (tracked-wait trackedTopology amt))
+   (tracked-wait trackedTopology amt))
   ([^TrackedTopology trackedTopology]
-     (-trackedWait trackedTopology 1)))
+   (-trackedWait trackedTopology 1)))
 
 (defn -advanceClusterTime
   ([^ILocalCluster cluster ^Integer secs ^Integer step]
-     (advance-cluster-time (.getState cluster) secs step))
+   (advance-cluster-time (.getState cluster) secs step))
   ([^ILocalCluster cluster ^Integer secs]
-      (-advanceClusterTime cluster secs 1)))
+   (-advanceClusterTime cluster secs 1)))
 
-(defn- multiseteq [^Object obj1 ^Object obj2]
+(defn- multiseteq
+  [^Object obj1 ^Object obj2]
   (let [obj1 (clojurify-structure obj1)
         obj2 (clojurify-structure obj2)]
     (ms= obj1 obj2)))
 
-(defn -multiseteq [^Collection coll1 ^Collection coll2]
-     (multiseteq coll1 coll2))
+(defn -multiseteq
+  [^Collection coll1 ^Collection coll2]
+  (multiseteq coll1 coll2))
 
-(defn -multiseteq [^Map coll1 ^Map coll2]
+(defn -multiseteq
+  [^Map coll1 ^Map coll2]
   (multiseteq coll1 coll2))
 
 (defn -testTuple
   ([^List values]
-     (-testTuple values nil))
+   (-testTuple values nil))
   ([^List values ^MkTupleParam param]
-     (if (nil? param)
-       (test-tuple values)
-       (let [stream (or (.getStream param) Utils/DEFAULT_STREAM_ID)
-             component (or (.getComponent param) "component")
-             fields (.getFields param)]
-         (test-tuple values :stream stream :component component :fields fields)))))
+   (if (nil? param)
+     (test-tuple values)
+     (let [stream (or (.getStream param) Utils/DEFAULT_STREAM_ID)
+           component (or (.getComponent param) "component")
+           fields (.getFields param)]
+       (test-tuple values :stream stream :component component :fields fields)))))

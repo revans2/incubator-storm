@@ -1,3 +1,20 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package storm.trident.util;
 
 import backtype.storm.generated.StreamInfo;
@@ -12,10 +29,10 @@ import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import org.apache.thrift7.TBase;
-import org.apache.thrift7.TDeserializer;
-import org.apache.thrift7.TException;
-import org.apache.thrift7.TSerializer;
+import org.apache.thrift.TBase;
+import org.apache.thrift.TDeserializer;
+import org.apache.thrift.TException;
+import org.apache.thrift.TSerializer;
 import org.jgrapht.DirectedGraph;
 
 public class TridentUtils {
@@ -91,11 +108,16 @@ public class TridentUtils {
         return parents.get(0);
     }
     
-    private static TSerializer ser = new TSerializer();
-    private static TDeserializer des = new TDeserializer();
+    private static ThreadLocal<TSerializer> threadSer = new ThreadLocal<TSerializer>();
+    private static ThreadLocal<TDeserializer> threadDes = new ThreadLocal<TDeserializer>();
     
     public static byte[] thriftSerialize(TBase t) {
         try {
+            TSerializer ser = threadSer.get();
+            if (ser == null) {
+                ser = new TSerializer();
+                threadSer.set(ser);
+            } 
             return ser.serialize(t);
         } catch (TException e) {
             throw new RuntimeException(e);
@@ -105,6 +127,11 @@ public class TridentUtils {
     public static <T> T thriftDeserialize(Class c, byte[] b) {
         try {
             T ret = (T) c.newInstance();
+            TDeserializer des = threadDes.get();
+            if (des == null) {
+                des = new TDeserializer();
+                threadDes.set(des);
+            }
             des.deserialize((TBase) ret, b);
             return ret;
         } catch (Exception e) {

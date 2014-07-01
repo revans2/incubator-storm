@@ -34,13 +34,15 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.HashMap;
 import java.util.Map;
+import backtype.storm.metric.api.IStatefulObject;
+
 
 /**
  *
  * A single consumer queue that uses the LMAX Disruptor. They key to the performance is
  * the ability to catch up to the producer by processing tuples in batches.
  */
-public class DisruptorQueue {
+public class DisruptorQueue implements IStatefulObject {
     static final Object FLUSH_CACHE = new Object();
     static final Object INTERRUPT = new Object();
     
@@ -59,10 +61,6 @@ public class DisruptorQueue {
     private static String PREFIX = "disruptor-";
     private String _queueName = "";
     
-    public DisruptorQueue(ClaimStrategy claim, WaitStrategy wait) {
-        this("queue",claim,wait);
-    }
-
     public DisruptorQueue(String queueName, ClaimStrategy claim, WaitStrategy wait) {
          this._queueName = PREFIX + queueName;
         _buffer = new RingBuffer<MutableObject>(new ObjectEventFactory(), claim, wait);
@@ -197,6 +195,7 @@ public class DisruptorQueue {
     public long  readPos()    { return _consumer.get(); }
     public float pctFull()    { return (1.0F * population() / capacity()); }
 
+    @Override
     public Object getState() {
         Map state = new HashMap<String, Object>();
         // get readPos then writePos so it's never an under-estimate

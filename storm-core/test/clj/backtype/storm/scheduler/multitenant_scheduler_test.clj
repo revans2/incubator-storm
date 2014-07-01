@@ -1,3 +1,18 @@
+;; Licensed to the Apache Software Foundation (ASF) under one
+;; or more contributor license agreements.  See the NOTICE file
+;; distributed with this work for additional information
+;; regarding copyright ownership.  The ASF licenses this file
+;; to you under the Apache License, Version 2.0 (the
+;; "License"); you may not use this file except in compliance
+;; with the License.  You may obtain a copy of the License at
+;;
+;; http://www.apache.org/licenses/LICENSE-2.0
+;;
+;; Unless required by applicable law or agreed to in writing, software
+;; distributed under the License is distributed on an "AS IS" BASIS,
+;; WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+;; See the License for the specific language governing permissions and
+;; limitations under the License.
 (ns backtype.storm.scheduler.multitenant-scheduler-test
   (:use [clojure test])
   (:use [backtype.storm bootstrap config testing])
@@ -664,6 +679,41 @@
     (is (= "Scheduled Isolated on 5 Nodes" (.get (.getStatusMap cluster) "topology3")))
 ))
 
+(deftest test-force-free-slot-in-bad-state
+  (let [supers (gen-supervisors 1)
+        topology1 (TopologyDetails. "topology1"
+                                    {TOPOLOGY-NAME "topology-name-1"
+                                     TOPOLOGY-SUBMITTER-USER "userC"}
+                                    (StormTopology.)
+                                    4
+                                    (mk-ed-map [["spout1" 0 5]
+                                                ["bolt1" 5 10]
+                                                ["bolt2" 10 15]
+                                                ["bolt3" 15 20]]))
+        existing-assignments {
+                               "topology1" (SchedulerAssignmentImpl. "topology1" {(ExecutorDetails. 0 5) (WorkerSlot. "super0" 1)
+                                                                                  (ExecutorDetails. 5 10) (WorkerSlot. "super0" 20)
+                                                                                  (ExecutorDetails. 10 15) (WorkerSlot. "super0" 1)
+                                                                                  (ExecutorDetails. 15 20) (WorkerSlot. "super0" 1)})
+                               }
+        cluster (Cluster. (nimbus/standalone-nimbus) supers existing-assignments)
+        node-map (Node/getAllNodesFrom cluster)
+        topologies (Topologies. (to-top-map [topology1]))
+        conf {MULTITENANT-SCHEDULER-USER-POOLS {"userA" 5 "userB" 5}}
+        scheduler (MultitenantScheduler.)]
+    (.assign (.get node-map "super0") "topology1" (list (ed 1)) cluster)
+    (.prepare scheduler conf)
+    (.schedule scheduler topologies cluster)
+    (let [assignment (.getAssignmentById cluster "topology1")
+          assigned-slots (.getSlots assignment)
+          executors (.getExecutors assignment)]
+      (log-message "Executors are:" executors)
+      ;; 4 slots on 1 machine, all executors assigned
+      (is (= 4 (.size assigned-slots)))
+      (is (= 1 (.size (into #{} (for [slot assigned-slots] (.getNodeId slot))))))
+      )
+    (is (= "Fully Scheduled" (.get (.getStatusMap cluster) "topology1")))
+    ))
 
 (deftest test-multitenant-scheduler-bad-starting-state
   (let [supers (gen-supervisors 10)

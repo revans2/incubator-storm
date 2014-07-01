@@ -9,7 +9,6 @@ add yinst pkg dist_tools                3.174     3.9999
 add yinst pkg git                       1.7.12    1.9999
 
 # Native Build Dependencies
-add yinst pkg ystorm_jzmq               2.1.0     2.1.9999
 add yinst pkg yruby                     1.9       1.9999
 add yinst pkg ypython                   2.7.0     2.7.9999
 

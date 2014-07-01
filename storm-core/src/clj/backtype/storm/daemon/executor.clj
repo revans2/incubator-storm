@@ -1,3 +1,18 @@
+;; Licensed to the Apache Software Foundation (ASF) under one
+;; or more contributor license agreements.  See the NOTICE file
+;; distributed with this work for additional information
+;; regarding copyright ownership.  The ASF licenses this file
+;; to you under the Apache License, Version 2.0 (the
+;; "License"); you may not use this file except in compliance
+;; with the License.  You may obtain a copy of the License at
+;;
+;; http://www.apache.org/licenses/LICENSE-2.0
+;;
+;; Unless required by applicable law or agreed to in writing, software
+;; distributed under the License is distributed on an "AS IS" BASIS,
+;; WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+;; See the License for the specific language governing permissions and
+;; limitations under the License.
 (ns backtype.storm.daemon.executor
   (:use [backtype.storm.daemon common])
   (:use [backtype.storm bootstrap])
@@ -8,6 +23,7 @@
   (:import [backtype.storm.hooks.info SpoutAckInfo SpoutFailInfo
             EmitInfo BoltFailInfo BoltAckInfo BoltExecuteInfo])
   (:import [backtype.storm.metric.api IMetric IMetricsConsumer$TaskInfo IMetricsConsumer$DataPoint])
+  (:import [backtype.storm Config])
   (:import [java.util.concurrent ConcurrentLinkedQueue])
   (:require [backtype.storm [tuple :as tuple]])
   (:require [backtype.storm.daemon [task :as task]])
@@ -193,6 +209,7 @@
         storm-conf (normalized-component-conf (:storm-conf worker) worker-context component-id)
         executor-type (executor-type worker-context component-id)
         batch-transfer->worker (disruptor/disruptor-queue
+                                  (str "executor"  executor-id "-send-queue")
                                   (storm-conf TOPOLOGY-EXECUTOR-SEND-BUFFER-SIZE)
                                   :claim-strategy :single-threaded
                                   :wait-strategy (storm-conf TOPOLOGY-DISRUPTOR-WAIT-STRATEGY))
@@ -260,27 +277,27 @@
           receive-queue
           [[nil (TupleImpl. worker-context [interval] Constants/SYSTEM_TASK_ID Constants/METRICS_TICK_STREAM_ID)]]))))))
 
-(defn metrics-tick [executor-data task-datas ^TupleImpl tuple]
+(defn metrics-tick [executor-data task-data ^TupleImpl tuple]
   (let [{:keys [interval->task->metric-registry ^WorkerTopologyContext worker-context]} executor-data
-        interval (.getInteger tuple 0)]
-    (doseq [[task-id task-data] task-datas
-            :let [name->imetric (-> interval->task->metric-registry (get interval) (get task-id))
-                  task-info (IMetricsConsumer$TaskInfo.
-                             (. (java.net.InetAddress/getLocalHost) getCanonicalHostName)
-                             (.getThisWorkerPort worker-context)
-                             (:component-id executor-data)
-                             task-id
-                             (long (/ (System/currentTimeMillis) 1000))
-                             interval)
-                  data-points (->> name->imetric
-                                   (map (fn [[name imetric]]
-                                          (let [value (.getValueAndReset ^IMetric imetric)]
-                                            (if value
-                                              (IMetricsConsumer$DataPoint. name value)))))
-                                   (filter identity)
-                                   (into []))]]
+        interval (.getInteger tuple 0)
+        task-id (:task-id task-data)
+        name->imetric (-> interval->task->metric-registry (get interval) (get task-id))
+        task-info (IMetricsConsumer$TaskInfo.
+                    (. (java.net.InetAddress/getLocalHost) getCanonicalHostName)
+                    (.getThisWorkerPort worker-context)
+                    (:component-id executor-data)
+                    task-id
+                    (long (/ (System/currentTimeMillis) 1000))
+                    interval)
+        data-points (->> name->imetric
+                      (map (fn [[name imetric]]
+                             (let [value (.getValueAndReset ^IMetric imetric)]
+                               (if value
+                                 (IMetricsConsumer$DataPoint. name value)))))
+                      (filter identity)
+                      (into []))]
       (if (seq data-points)
-        (task/send-unanchored task-data Constants/METRICS_STREAM_ID [task-info data-points])))))
+        (task/send-unanchored task-data Constants/METRICS_STREAM_ID [task-info data-points]))))
 
 (defn setup-ticks! [worker executor-data]
   (let [storm-conf (:storm-conf executor-data)
@@ -288,9 +305,10 @@
         receive-queue (:receive-queue executor-data)
         context (:worker-context executor-data)]
     (when tick-time-secs
-      (if (and (not (storm-conf TOPOLOGY-ENABLE-MESSAGE-TIMEOUTS))
-               (= :spout (:type executor-data)))
-        (log-message "Timeouts disabled for executor " (:executor-id executor-data))
+      (if (or (system-id? (:component-id executor-data))
+              (and (not (storm-conf TOPOLOGY-ENABLE-MESSAGE-TIMEOUTS))
+                   (= :spout (:type executor-data))))
+        (log-message "Timeouts disabled for executor " (:component-id executor-data) ":" (:executor-id executor-data))
         (schedule-recurring
           (:user-timer worker)
           tick-time-secs
@@ -430,7 +448,7 @@
                           (let [stream-id (.getSourceStreamId tuple)]
                             (condp = stream-id
                               Constants/SYSTEM_TICK_STREAM_ID (.rotate pending)
-                              Constants/METRICS_TICK_STREAM_ID (metrics-tick executor-data task-datas tuple)
+                              Constants/METRICS_TICK_STREAM_ID (metrics-tick executor-data (get task-datas task-id) tuple)
                               Constants/CREDENTIALS_CHANGED_STREAM_ID 
                                 (let [task-data (get task-datas task-id)
                                       spout-obj (:object task-data)]
@@ -513,7 +531,11 @@
                                          (or out-tasks [])
                                          ))]]
           (builtin-metrics/register-all (:builtin-metrics task-data) storm-conf (:user-context task-data))
-          (when (instance? ICredentialsListener spout-obj) (.setCredentials spout-obj initial-credentials)) 
+          (builtin-metrics/register-queue-metrics {:sendqueue (:batch-transfer-queue executor-data)
+                                                   :receive receive-queue}
+                                                  storm-conf (:user-context task-data))
+          (when (instance? ICredentialsListener spout-obj) (.setCredentials spout-obj initial-credentials))
+
           (.open spout-obj
                  storm-conf
                  (:user-context task-data)
@@ -612,9 +634,9 @@
                           ;; TODO: for state sync, need to check if tuple comes from state spout. if so, update state
                           ;; TODO: how to handle incremental updates as well as synchronizations at same time
                           ;; TODO: need to version tuples somehow
-                          (when (= true (storm-conf TOPOLOGY-DEBUG))
-                            (log-message "Received tuple " tuple " at task " task-id))
-
+                          
+                          ;;(log-debug "Received tuple " tuple " at task " task-id)
+                          ;; need to do it this way to avoid reflection
                           (let [stream-id (.getSourceStreamId tuple)]
                             (condp = stream-id
                               Constants/CREDENTIALS_CHANGED_STREAM_ID 
@@ -622,7 +644,7 @@
                                       bolt-obj (:object task-data)]
                                   (when (instance? ICredentialsListener bolt-obj)
                                     (.setCredentials bolt-obj (.getValue tuple 0))))
-                              Constants/METRICS_TICK_STREAM_ID (metrics-tick executor-data task-datas tuple)
+                              Constants/METRICS_TICK_STREAM_ID (metrics-tick executor-data (get task-datas task-id) tuple)
                               (let [task-data (get task-datas task-id)
                                     ^IBolt bolt-obj (:object task-data)
                                     user-context (:user-context task-data)
@@ -696,6 +718,16 @@
                                     (or out-tasks [])))]]
           (builtin-metrics/register-all (:builtin-metrics task-data) storm-conf user-context)
           (when (instance? ICredentialsListener bolt-obj) (.setCredentials bolt-obj initial-credentials)) 
+          (if (= component-id Constants/SYSTEM_COMPONENT_ID)
+            (builtin-metrics/register-queue-metrics {:sendqueue (:batch-transfer-queue executor-data)
+                                                     :receive (:receive-queue executor-data)
+                                                     :transfer (:transfer-queue (:worker executor-data))}
+                                                    storm-conf user-context)
+            (builtin-metrics/register-queue-metrics {:sendqueue (:batch-transfer-queue executor-data)
+                                                     :receive (:receive-queue executor-data)}
+                                                    storm-conf user-context)
+            )
+
           (.prepare bolt-obj
                     storm-conf
                     user-context

@@ -1,6 +1,6 @@
 yinst.generated_by: statecc 1.0.7; yinst_lib 1.1.6297
 yinst.yinst_version: 4.225
-yinst.timestamp: 1403821276
+yinst.timestamp: 1404228420
 yinst.command: /home/y/bin/statecc --branch test ./rhel6_build.yml 
 yinst.package: yahoo/buildyblocks-1.99.4.13(1403759397)
 yinst.package: yahoo/buildyblocks_assemble-1.99.2.13(1403759382)
@@ -219,8 +219,6 @@ yinst.package: yahoo/yrop-0.32.155(1355879400)
 yinst.package: yahoo/yruby-1.9_4(1352205339)
 yinst.package: yahoo/yruby19-1.9.3_p448_2(1382608853)
 yinst.package: yahoo/ysecure-2.13.6(1400218170)
-yinst.package: yahoo/ystorm_jzmq-2.1.0.8(1365124342)
-yinst.package: yahoo/ystorm_zeromq-2.1.7.9(1378928976)
 yinst.package: yahoo/ysys-2.30.40(1352486451)
 --- /dev/null
 +++ var/yinst/settings/buildyblocks_deploy

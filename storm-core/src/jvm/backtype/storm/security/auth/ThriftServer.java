@@ -1,39 +1,43 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package backtype.storm.security.auth;
 
 import java.util.Map;
-import java.util.concurrent.ExecutorService;
 
 import javax.security.auth.login.Configuration;
-import org.apache.thrift7.TProcessor;
-import org.apache.thrift7.server.TServer;
+
+import org.apache.thrift.TProcessor;
+import org.apache.thrift.server.TServer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import backtype.storm.Config;
-import backtype.storm.utils.Utils;
 
 public class ThriftServer {
     private static final Logger LOG = LoggerFactory.getLogger(ThriftServer.class);
     private Map _storm_conf; //storm configuration
     protected TProcessor _processor = null;
-    private int _port = 0;
-    private final Config.ThriftServerPurpose _purpose;
+    private final ThriftConnectionType _type;
     private TServer _server = null;
     private Configuration _login_conf;
-    private ExecutorService _executor_service;
     
-    public ThriftServer(Map storm_conf, TProcessor processor, int port,
-            Config.ThriftServerPurpose purpose) {
-        this(storm_conf, processor, port, purpose, null);
-    }
-    
-    public ThriftServer(Map storm_conf, TProcessor processor, int port,
-            Config.ThriftServerPurpose purpose, 
-            ExecutorService executor_service) {
+    public ThriftServer(Map storm_conf, TProcessor processor, ThriftConnectionType type) {
         _storm_conf = storm_conf;
         _processor = processor;
-        _port = port;
-        _purpose = purpose;
-        _executor_service = executor_service;
+        _type = type;
 
         try {
             //retrieve authentication configuration 
@@ -60,10 +64,10 @@ public class ThriftServer {
     public void serve()  {
         try {
             //locate our thrift transport plugin
-            ITransportPlugin  transportPlugin = AuthUtils.GetTransportPlugin(_storm_conf, _login_conf, _executor_service);
+            ITransportPlugin  transportPlugin = AuthUtils.GetTransportPlugin(_type, _storm_conf, _login_conf);
 
             //server
-            _server = transportPlugin.getServer(_port, _processor, _purpose);
+            _server = transportPlugin.getServer(_processor);
 
             //start accepting requests
             _server.serve();

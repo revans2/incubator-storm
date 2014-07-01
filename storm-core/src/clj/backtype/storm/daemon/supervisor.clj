@@ -1,3 +1,18 @@
+;; Licensed to the Apache Software Foundation (ASF) under one
+;; or more contributor license agreements.  See the NOTICE file
+;; distributed with this work for additional information
+;; regarding copyright ownership.  The ASF licenses this file
+;; to you under the Apache License, Version 2.0 (the
+;; "License"); you may not use this file except in compliance
+;; with the License.  You may obtain a copy of the License at
+;;
+;; http://www.apache.org/licenses/LICENSE-2.0
+;;
+;; Unless required by applicable law or agreed to in writing, software
+;; distributed under the License is distributed on an "AS IS" BASIS,
+;; WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+;; See the License for the specific language governing permissions and
+;; limitations under the License.
 (ns backtype.storm.daemon.supervisor
   (:import [java.io OutputStreamWriter BufferedWriter IOException])
   (:import [backtype.storm.scheduler ISupervisor])
@@ -58,7 +73,7 @@
   (map-val :master-code-dir assignments-snapshot))
 
 (defn- read-downloaded-storm-ids [conf]
-  (map #(java.net.URLDecoder/decode %) (read-dir-contents (supervisor-stormdist-root conf)))
+  (map #(url-decode %) (read-dir-contents (supervisor-stormdist-root conf)))
   )
 
 (defn read-worker-heartbeat [conf id]
@@ -110,11 +125,11 @@
      {}
      (dofor [[id hb] id->heartbeat]
             (let [state (cond
+                         (not hb)
+                           :not-started
                          (or (not (contains? approved-ids id))
                              (not (matches-an-assignment? hb assigned-executors)))
                            :disallowed
-                         (not hb)
-                           :not-started
                          (or 
                           (when (get (get-dead-workers) id)
                             (log-message "Worker Process " id " has died!")
@@ -206,7 +221,9 @@
     (log-warn-error e "Failed to cleanup worker " id ". Will retry later"))
   (catch RuntimeException e
     (log-warn-error e "Failed to cleanup worker " id ". Will retry later")
-    )))
+    )
+  (catch java.io.FileNotFoundException e (log-message (.getMessage e)))
+    ))
 
 (defn shutdown-worker [supervisor id]
   (log-message "Shutting down " (:supervisor-id supervisor) ":" id)
@@ -223,8 +240,10 @@
         (ensure-process-killed! pid))
       (if as-user
         (rmr-as-user conf id user (worker-pid-path conf id pid))
-        (rmpath (worker-pid-path conf id pid)))
-      )
+        (try
+          (rmpath (worker-pid-path conf id pid))
+          (catch Exception e)) ;; on windows, the supervisor may still holds the lock on the worker directory
+      ))
     (try-cleanup-worker conf id user))
   (log-message "Shut down " (:supervisor-id supervisor) ":" id))
 
@@ -329,6 +348,21 @@
        (map :storm-id)
        set))
 
+(defn shutdown-disallowed-workers [supervisor]
+  (let [conf (:conf supervisor)
+        ^LocalState local-state (:local-state supervisor)
+        assigned-executors (defaulted (.get local-state LS-LOCAL-ASSIGNMENTS) {})
+        now (current-time-secs)
+        allocated (read-allocated-workers supervisor assigned-executors now)
+        disallowed (keys (filter-val
+                                  (fn [[state _]] (= state :disallowed))
+                                  allocated))]
+    (log-debug "Allocated workers " allocated)
+    (log-debug "Disallowed workers " disallowed)
+    (doseq [id disallowed]
+      (shutdown-worker supervisor id))
+    ))
+
 (defn mk-synchronize-supervisor [supervisor sync-processes event-manager processes-event-manager]
   (fn this []
     (let [conf (:conf supervisor)
@@ -384,11 +418,14 @@
       ;; important that this happens after setting the local assignment so that
       ;; synchronize-supervisor doesn't try to launch workers for which the
       ;; resources don't exist
+      (if on-windows? (shutdown-disallowed-workers supervisor))
       (doseq [storm-id downloaded-storm-ids]
         (when-not (assigned-storm-ids storm-id)
           (log-message "Removing code for storm id "
                        storm-id)
-          (rmr (supervisor-stormdist-root conf storm-id))
+          (try
+            (rmr (supervisor-stormdist-root conf storm-id))
+            (catch Exception e (log-message (.getMessage e))))
           ))
       (.add processes-event-manager sync-processes)
       )))
@@ -468,7 +505,7 @@
 (defmethod download-storm-code
     :distributed [conf storm-id master-code-dir]
     ;; Downloading to permanent location is atomic
-    (let [tmproot (str (supervisor-tmp-dir conf) "/" (uuid))
+    (let [tmproot (str (supervisor-tmp-dir conf) file-path-separator (uuid))
           stormroot (supervisor-stormdist-root conf storm-id)]
       (FileUtils/forceMkdir (File. tmproot))
       
@@ -480,30 +517,35 @@
       (setup-storm-code-dir conf (read-supervisor-storm-conf conf storm-id) stormroot)      
     ))
 
-(defn write-log-metadata-to-yaml-file! [storm-id port data]
-  (let [file (get-log-metadata-file storm-id port)
-        writer (java.io.FileWriter. file)
+(defn write-log-metadata-to-yaml-file! [storm-id port data conf]
+  (let [file (get-log-metadata-file storm-id port)]
+    ;;run worker as user needs the directory to have special permissions
+    ;; or it is insecure
+    (when (and (not (conf SUPERVISOR-RUN-WORKER-AS-USER))
+               (not (.exists (.getParentFile file))))
+      (.mkdirs (.getParentFile file)))
+    (let [writer (java.io.FileWriter. file)
         yaml (Yaml.)]
-    (try
-      (.dump yaml data writer)
-      (finally
-        (.close writer)))))
+      (try
+        (.dump yaml data writer)
+        (finally
+          (.close writer))))))
 
-(defn write-log-metadata! [storm-conf user worker-id storm-id port]
+(defn write-log-metadata! [storm-conf user worker-id storm-id port conf]
   (let [data {TOPOLOGY-SUBMITTER-USER user
               "worker-id" worker-id
               LOGS-USERS (sort (distinct (remove nil?
                                            (concat
                                              (storm-conf LOGS-USERS)
                                              (storm-conf TOPOLOGY-USERS)))))}]
-    (write-log-metadata-to-yaml-file! storm-id port data)))
+    (write-log-metadata-to-yaml-file! storm-id port data conf)))
 
 (defn jlp [stormroot conf]
-  (let [resource-root (str stormroot "/" RESOURCES-SUBDIR)
+  (let [resource-root (str stormroot File/separator RESOURCES-SUBDIR)
         os (clojure.string/replace (System/getProperty "os.name") #"\s+" "_")
         arch (System/getProperty "os.arch")
-        arch-resource-root (str resource-root "/" os "-" arch)]
-    (str arch-resource-root ":" resource-root ":" (conf JAVA-LIBRARY-PATH))))
+        arch-resource-root (str resource-root File/separator os "-" arch)]
+    (str arch-resource-root File/pathSeparator resource-root File/pathSeparator (conf JAVA-LIBRARY-PATH)))) 
 
 (defn substitute-childopts
   [childopts worker-id storm-id port]
@@ -523,6 +565,14 @@
       nil)
     ))
 
+(defn java-cmd []
+  (let [java-home (.get (System/getenv) "JAVA_HOME")]
+    (if (nil? java-home)
+      "java"
+      (str java-home file-path-separator "bin" file-path-separator "java")
+      )))
+
+
 (defmethod launch-worker
     :distributed [supervisor storm-id port worker-id]
     (let [conf (:conf supervisor)
@@ -541,14 +591,14 @@
           worker-childopts (substitute-childopts (conf WORKER-CHILDOPTS) worker-id storm-id port)
           topo-worker-childopts (substitute-childopts (storm-conf TOPOLOGY-WORKER-CHILDOPTS) worker-id storm-id port)
           command (concat
-                    ["java" "-server"]
+                    [(java-cmd) "-server"]
                     worker-childopts
                     topo-worker-childopts
                     gc-opts
                     [(str "-Djava.library.path=" jlp)
                      (str "-Dlogfile.name=" logfilename)
                      (str "-Dstorm.home=" storm-home)
-                     (str "-Dlogback.configurationFile=" storm-home "/logback/worker.xml")
+                     (str "-Dlogback.configurationFile=" storm-home "/logback/cluster.xml")
                      (str "-Dstorm.id=" storm-id)
                      (str "-Dworker.id=" worker-id)
                      (str "-Dworker.port=" port)
@@ -561,7 +611,7 @@
           command (->> command (map str) (filter (complement empty?)))]
 
       (log-message "Launching worker with command: " (shell-cmd command))
-      (write-log-metadata! storm-conf user worker-id storm-id port)
+      (write-log-metadata! storm-conf user worker-id storm-id port conf)
       (set-worker-user! conf worker-id user)
       (let [log-prefix (str "Worker Process " worker-id)
            callback (fn [exit-code] 
@@ -589,7 +639,7 @@
       (let [classloader (.getContextClassLoader (Thread/currentThread))
             resources-jar (resources-jar)
             url (.getResource classloader RESOURCES-SUBDIR)
-            target-dir (str stormroot "/" RESOURCES-SUBDIR)]
+            target-dir (str stormroot file-path-separator RESOURCES-SUBDIR)]
             (cond
               resources-jar
               (do

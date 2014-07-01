@@ -1,3 +1,18 @@
+;; Licensed to the Apache Software Foundation (ASF) under one
+;; or more contributor license agreements.  See the NOTICE file
+;; distributed with this work for additional information
+;; regarding copyright ownership.  The ASF licenses this file
+;; to you under the Apache License, Version 2.0 (the
+;; "License"); you may not use this file except in compliance
+;; with the License.  You may obtain a copy of the License at
+;;
+;; http://www.apache.org/licenses/LICENSE-2.0
+;;
+;; Unless required by applicable law or agreed to in writing, software
+;; distributed under the License is distributed on an "AS IS" BASIS,
+;; WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+;; See the License for the specific language governing permissions and
+;; limitations under the License.
 (ns backtype.storm.ui.helpers
   (:use compojure.core)
   (:use [hiccup core page-helpers])
@@ -5,12 +20,10 @@
          [string :only [blank? join]]
          [walk :only [keywordize-keys]]])
   (:use [backtype.storm config log])
-  (:use [backtype.storm.util :only [clojurify-structure uuid defnk]])
+  (:use [backtype.storm.util :only [clojurify-structure uuid defnk url-encode]])
   (:use [clj-time coerce format])
   (:import [backtype.storm.generated ExecutorInfo ExecutorSummary])
   (:import [org.mortbay.jetty.security SslSocketConnector])
-  (:import (org.mortbay.jetty Server)
-           (org.mortbay.jetty.bio SocketConnector))
   (:require [ring.util servlet])
   (:require [compojure.route :as route]
             [compojure.handler :as handler]))
@@ -122,7 +135,7 @@ $(\"table#%s\").each(function(i) { $(this).tablesorter({ sortList: %s, headers: 
 
 (defn url-format [fmt & args]
   (String/format fmt 
-    (to-array (map #(java.net.URLEncoder/encode (str %)) args))))
+    (to-array (map #(url-encode (str %)) args))))
 
 (defn to-tasks [^ExecutorInfo e]
   (let [start (.get_task_start e)
@@ -175,24 +188,3 @@ $(\"table#%s\").each(function(i) { $(this).tablesorter({ sortList: %s, headers: 
   {:headers {}
    :status 400
    :body (.getMessage ex)})
-
-;; Stolen right from ring.adapter.jetty
-(defn- jetty-create-server
-  "Construct a Jetty Server instance."
-  [options]
-  (let [connector (doto (SocketConnector.)
-                    (.setPort (options :port))
-                    (.setHost (options :host)))
-        server (doto (Server.)
-                 (.addConnector connector)
-                 (.setSendDateHeader true))]
-    server))
-
-(defn storm-run-jetty
-  "Modified version of run-jetty
-  Must contain configurator, and configurator must set handler."
-  [config]
-  (let [#^Server s (jetty-create-server (dissoc config :configurator))
-        configurator (:configurator config)]
-    (configurator s)
-    (.start s)))

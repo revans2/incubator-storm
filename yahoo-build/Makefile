@@ -1,14 +1,13 @@
-BASE_VERSION:=`cat ../VERSION`
+BASE_VERSION:=`cat BASE_VERSION`
 BUILD_NUMBER?=0
 FULL_VERSION="$(BASE_VERSION).$(BUILD_NUMBER)"
-LEIN=LD_LIBRARY_PATH=/home/y/lib64 /home/y/bin/lein
 MVN=LD_LIBRARY_PATH=/home/y/lib64 /home/y/bin/mvn
 EXEC_CONF_DIR?=/home/y/conf/storm/
 
 all: build
 
 test:
-	cd .. && $(MVN) -f m2-pom.xml -Pnative -Pcoverage -Dworker-launcher.conf.dir=${EXEC_CONF_DIR} package ${MVN_MAKE_OPTS}
+	cd .. && $(MVN) -Pnative -Pcoverage -Dworker-launcher.conf.dir=${EXEC_CONF_DIR} package ${MVN_MAKE_OPTS}
 
 check: test
 	@echo "Errors or Failures:"
@@ -17,57 +16,31 @@ check: test
 
 
 build:
-	cd .. && $(MVN) -f m2-pom.xml -Pnative -Dworker-launcher.conf.dir=${EXEC_CONF_DIR} package -DskipTests ${MVN_MAKE_OPTS}
+	cd .. && $(MVN) -Pnative -Dworker-launcher.conf.dir=${EXEC_CONF_DIR} package -DskipTests ${MVN_MAKE_OPTS}
 
 install:
-	cd .. && $(MVN) -f m2-pom.xml -Pnative -Dworker-launcher.conf.dir=${EXEC_CONF_DIR} install -DskipTests ${MVN_MAKE_OPTS}
+	cd .. && $(MVN) -Pnative -Dworker-launcher.conf.dir=${EXEC_CONF_DIR} install -DskipTests ${MVN_MAKE_OPTS}
 
 #TODO need a good way to see if these values would have changed and update only then
-BASE_VERSION: ../project.clj
-	echo $(BASE_VERSION) > BASE_VERSION
+BASE_VERSION: ../pom.xml
+	cd .. && $(MVN) help:evaluate -Dexpression=project.version | grep -v "^\[" | tail -1 > yahoo-build/BASE_VERSION
 
-RELEASE:
+RELEASE: BASE_VERSION
 	echo $(FULL_VERSION) > RELEASE
 
-testpkg: RELEASE BASE_VERSION build storm.zip
+testpkg: RELEASE BASE_VERSION build
 	yinst_create --buildtype test ystorm.yicf
 	
-package: RELEASE BASE_VERSION build storm.zip
+package: RELEASE BASE_VERSION build
 	yinst_create --buildtype release ystorm.yicf
 
-storm.zip: _release
-	rm -f storm.zip
-	cd _release && zip -r ../storm.zip *
-
-_release: RELEASE build
-	rm -rf _release
-	mkdir -p _release/storm/lib
-	cp ../storm-core-mvn/target/storm-core-$(BASE_VERSION).jar _release/storm/storm.jar
-	cp ../storm-core-mvn/target/dependency/*.jar _release/storm/lib
-	cp ../storm-netty-mvn/target/storm-netty-$(BASE_VERSION).jar _release/storm/storm-netty.jar
-	cp ../storm-netty-mvn/target/dependency/*.jar _release/storm/lib
-	cp ../storm-yahoo/target/storm_yahoo-$(BASE_VERSION).jar _release/storm/storm_yahoo.jar
-	cp ../storm-yahoo/target/dependency/*.jar _release/storm/lib
-	cp ../CHANGELOG.md _release/storm/
-	cp RELEASE _release/storm/
-	cp -r ../logback _release/storm/
-	mkdir -p _release/storm/logs
-	mkdir _release/storm/conf
-	cp ../conf/storm.yaml.example _release/storm/conf/storm.yaml
-	cp ../conf/jaas_digest.conf _release/storm/conf/
-	cp ../conf/jaas_kerberos.conf _release/storm/conf/
-	cp -R ../storm-core/src/ui/public _release/storm/
-	cp -R ../bin _release/storm/
-	cp ../README.markdown _release/storm/
-	cp ../LICENSE.html _release/storm/
-	
-rhel6_build.state: rhel6_build.yidf  rhel6_build.yml
+rhel6_build.state: rhel6_build.yidf rhel6_build.yml
 	rm -f rhel6_build.state rhel6_build.state.tmp rhel6_build.ruleset
 	statecc --branch test ./rhel6_build.yml
 
 clean:
 	rm -rf *_build.ruleset ystorm*.tgz BASE_VERSION RELEASE _release storm.zip
-	cd .. && $(MVN) -f m2-pom.xml clean ${MVN_MAKE_OPTS}
+	cd .. && $(MVN) clean ${MVN_MAKE_OPTS}
 
 
 #BuildyBlocks targets

@@ -1,3 +1,18 @@
+;; Licensed to the Apache Software Foundation (ASF) under one
+;; or more contributor license agreements.  See the NOTICE file
+;; distributed with this work for additional information
+;; regarding copyright ownership.  The ASF licenses this file
+;; to you under the Apache License, Version 2.0 (the
+;; "License"); you may not use this file except in compliance
+;; with the License.  You may obtain a copy of the License at
+;;
+;; http://www.apache.org/licenses/LICENSE-2.0
+;;
+;; Unless required by applicable law or agreed to in writing, software
+;; distributed under the License is distributed on an "AS IS" BASIS,
+;; WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+;; See the License for the specific language governing permissions and
+;; limitations under the License.
 (ns backtype.storm.logviewer-test
   (:use [backtype.storm config util])
   (:require [backtype.storm.daemon [logviewer :as logviewer]
@@ -104,7 +119,7 @@
                 read-dir-contents [(.getName old-logFile) (.getName new-logFile)]
                 logviewer/get-worker-id-from-metadata-file exp-id
                 logviewer/get-topo-owner-from-metadata-file exp-user]
-        (is (= expected (logviewer/identify-worker-log-files [old-logFile])))))))
+        (is (= expected (logviewer/identify-worker-log-files [old-logFile] "/tmp/")))))))
 
 (deftest test-get-dead-worker-files-and-owners
   (testing "removes any files of workers that are still alive"
@@ -120,7 +135,7 @@
                  logviewer/get-topo-owner-from-metadata-file "alice"
                  supervisor/read-worker-heartbeats id->hb]
         (is (= [{:owner exp-owner :files #{:expected-file}}]
-               (logviewer/get-dead-worker-files-and-owners conf now-secs log-files)))))))
+               (logviewer/get-dead-worker-files-and-owners conf now-secs log-files "/tmp/")))))))
 
 (deftest test-cleanup-fn
   (testing "cleanup function removes file as user when one is specified"
@@ -138,7 +153,7 @@
                     {:owner exp-user :files #{mockfile3 mockyaml}}]
                  supervisor/worker-launcher nil
                  rmr nil]
-        (logviewer/cleanup-fn!)
+        (logviewer/cleanup-fn! "/tmp/")
         (verify-call-times-for supervisor/worker-launcher 1)
         (verify-first-call-args-for-indices supervisor/worker-launcher
                                             [1 2] exp-user exp-cmd)

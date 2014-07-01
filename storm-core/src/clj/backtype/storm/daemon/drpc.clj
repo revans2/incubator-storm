@@ -1,11 +1,27 @@
+;; Licensed to the Apache Software Foundation (ASF) under one
+;; or more contributor license agreements.  See the NOTICE file
+;; distributed with this work for additional information
+;; regarding copyright ownership.  The ASF licenses this file
+;; to you under the Apache License, Version 2.0 (the
+;; "License"); you may not use this file except in compliance
+;; with the License.  You may obtain a copy of the License at
+;;
+;; http://www.apache.org/licenses/LICENSE-2.0
+;;
+;; Unless required by applicable law or agreed to in writing, software
+;; distributed under the License is distributed on an "AS IS" BASIS,
+;; WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+;; See the License for the specific language governing permissions and
+;; limitations under the License.
+
 (ns backtype.storm.daemon.drpc
-  (:import [backtype.storm.security.auth AuthUtils])
+  (:import [backtype.storm.security.auth AuthUtils ThriftServer ThriftConnectionType])
   (:import [backtype.storm.security.auth.authorizer DRPCAuthorizerBase])
-  (:import [org.apache.thrift7 TException])
   (:import [backtype.storm.generated DistributedRPC DistributedRPC$Iface DistributedRPC$Processor
             DRPCRequest DRPCExecutionException DistributedRPCInvocations DistributedRPCInvocations$Iface
             DistributedRPCInvocations$Processor])
-  (:import [java.util.concurrent Semaphore ConcurrentLinkedQueue ThreadPoolExecutor ArrayBlockingQueue TimeUnit])
+  (:import [java.util.concurrent Semaphore ConcurrentLinkedQueue
+            ThreadPoolExecutor ArrayBlockingQueue TimeUnit])
   (:import [backtype.storm.daemon Shutdownable])
   (:import [java.net InetAddress])
   (:import [backtype.storm.generated AuthorizationException])
@@ -27,8 +43,7 @@
     (fn [amap]
       (if-not (amap function)
         (assoc amap function (ConcurrentLinkedQueue.))
-        amap)
-        ))
+        amap)))
   (@queues-atom function))
 
 (defn check-authorization
@@ -51,30 +66,28 @@
         id->sem (atom {})
         id->result (atom {})
         id->start (atom {})
-        id->func (atom {})
+        id->function (atom {})
         id->request (atom {})
         request-queues (atom {})
         cleanup (fn [id] (swap! id->sem dissoc id)
-                         (swap! id->result dissoc id)
-                         (swap! id->start dissoc id)
-                         (swap! id->func dissoc id)
-                         (swap! id->request dissoc id))
+                  (swap! id->result dissoc id)
+                  (swap! id->function dissoc id)
+                  (swap! id->request dissoc id)
+                  (swap! id->start dissoc id))
         my-ip (.getHostAddress (InetAddress/getLocalHost))
         clear-thread (async-loop
-                      (fn []
-                        (doseq [[id start] @id->start]
-                          (when (> (time-delta start) (conf DRPC-REQUEST-TIMEOUT-SECS))
-                            (when-let [sem (@id->sem id)]
-                              (.remove (acquire-queue request-queues (@id->func id)) (@id->request id))
-                              (log-warn "Timeout DRPC request id: " id " start at " start)
-                              (.release sem))
-                            (cleanup id)
-                            ))
-                        (timeout-check-secs)
-                        ))
-        ]
+                       (fn []
+                         (doseq [[id start] @id->start]
+                           (when (> (time-delta start) (conf DRPC-REQUEST-TIMEOUT-SECS))
+                             (when-let [sem (@id->sem id)]
+                               (.remove (acquire-queue request-queues (@id->function id)) (@id->request id))
+                               (log-warn "Timeout DRPC request id: " id " start at " start)
+                               (.release sem))
+                             (cleanup id)))
+                         (timeout-check-secs)))]
     (reify DistributedRPC$Iface
-      (^String execute [this ^String function ^String args]
+      (^String execute
+        [this ^String function ^String args]
         (log-debug "Received DRPC request for " function " (" args ") at " (System/currentTimeMillis))
         (check-authorization drpc-acl-handler
                              {DRPCAuthorizerBase/FUNCTION_NAME function}
@@ -82,11 +95,10 @@
         (let [id (str (swap! ctr (fn [v] (mod (inc v) 1000000000))))
               ^Semaphore sem (Semaphore. 0)
               req (DRPCRequest. args id)
-              ^ConcurrentLinkedQueue queue (acquire-queue request-queues function)
-              ]
-          (swap! id->func assoc id function)
+              ^ConcurrentLinkedQueue queue (acquire-queue request-queues function)]
           (swap! id->start assoc id (current-time-secs))
           (swap! id->sem assoc id sem)
+          (swap! id->function assoc id function)
           (swap! id->request assoc id req)
           (.add queue req)
           (log-debug "Waiting for DRPC result for " function " " args " at " (System/currentTimeMillis))
@@ -99,11 +111,13 @@
               (throw result)
               (if (nil? result)
                 (throw (DRPCExecutionException. "Request timed out"))
-                result)
-              ))))
+                result)))))
+
       DistributedRPCInvocations$Iface
-      (^void result [this ^String id ^String result]
-        (when-let [func (@id->func id)]
+
+      (^void result
+        [this ^String id ^String result]
+        (when-let [func (@id->function id)]
           (check-authorization drpc-acl-handler
                                {DRPCAuthorizerBase/FUNCTION_NAME func}
                                "result")
@@ -113,17 +127,20 @@
               (swap! id->result assoc id result)
               (.release sem)
               ))))
-      (^void failRequest [this ^String id]
-        (when-let [func (@id->func id)]
+
+      (^void failRequest
+        [this ^String id]
+        (when-let [func (@id->function id)]
           (check-authorization drpc-acl-handler
                                {DRPCAuthorizerBase/FUNCTION_NAME func}
                                "failRequest")
           (let [^Semaphore sem (@id->sem id)]
             (when sem
               (swap! id->result assoc id (DRPCExecutionException. "Request failed"))
-              (.release sem)
-              ))))
-      (^DRPCRequest fetchRequest [this ^String func]
+              (.release sem)))))
+
+      (^DRPCRequest fetchRequest
+        [this ^String func]
         (check-authorization drpc-acl-handler
                              {DRPCAuthorizerBase/FUNCTION_NAME func}
                              "fetchRequest")
@@ -131,13 +148,14 @@
               ret (.poll queue)]
           (if ret
             (do (log-debug "Fetched request for " func " at " (System/currentTimeMillis))
-                ret)
-            (DRPCRequest. "" ""))
-          ))
+              ret)
+            (DRPCRequest. "" ""))))
+
       Shutdownable
-      (shutdown [this]
-        (.interrupt clear-thread))
-      )))
+
+      (shutdown
+        [this]
+        (.interrupt clear-thread)))))
 
 (defn handle-request [handler]
   (fn [request]
@@ -172,9 +190,9 @@
           (if http-creds-handler
             (.populateContext http-creds-handler (ReqContext/context)
                               servlet-request))
-          (.execute handler func "")))
-    (wrap-reload '[backtype.storm.daemon.drpc])
-    handle-request))
+    (.execute handler func "")))
+                (wrap-reload '[backtype.storm.daemon.drpc])
+                handle-request))
 
 (defn launch-server!
   ([]
@@ -190,16 +208,12 @@
           ;; invocations that will unblock those threads
           handler-server (when (> drpc-port 0)
                            (ThriftServer. conf
-                             (DistributedRPC$Processor. drpc-service-handler)
-                             drpc-port
-                             backtype.storm.Config$ThriftServerPurpose/DRPC
-                             (ThreadPoolExecutor. worker-threads worker-threads
-                               60 TimeUnit/SECONDS (ArrayBlockingQueue. queue-size))))
+                             (DistributedRPC$Processor. service-handler)
+                             ThriftConnectionType/DRPC))
           invoke-server (ThriftServer. conf
-                          (DistributedRPCInvocations$Processor. drpc-service-handler)
-                          (int (conf DRPC-INVOCATIONS-PORT))
-                          backtype.storm.Config$ThriftServerPurpose/DRPC)
-          http-creds-handler (AuthUtils/GetDrpcHttpCredentialsPlugin conf)]
+                          (DistributedRPCInvocations$Processor. service-handler)
+                          ThriftConnectionType/DRPC_INVOCATIONS)
+          http-creds-handler (AuthUtils/GetDrpcHttpCredentialsPlugin conf)] 
       (.addShutdownHook (Runtime/getRuntime) (Thread. (fn []
                                                         (if handler-server (.stop handler-server))
                                                         (.stop invoke-server))))
@@ -216,15 +230,15 @@
               https-ks-password (conf DRPC-HTTPS-KEYSTORE-PASSWORD)
               https-ks-type (conf DRPC-HTTPS-KEYSTORE-TYPE)]
 
-          (storm-run-jetty
-           {:port drpc-http-port
-            :configurator (fn [server]
-                            (config-ssl server
-                                        https-port
-                                        https-ks-path
-                                        https-ks-password
-                                        https-ks-type)
-                            (config-filter server app filters-confs))})))
+          (run-jetty app
+            {:port drpc-http-port :join? false
+             :configurator (fn [server]
+                             (config-ssl server
+                                         https-port 
+                                         https-ks-path 
+                                         https-ks-password
+                                         https-ks-type)
+                             (config-filter server app filters-confs))})))
       (when handler-server
         (.serve handler-server)))))
 

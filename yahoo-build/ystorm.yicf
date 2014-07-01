@@ -11,7 +11,6 @@ CUSTODIAN = yahoo-storm-team@yahoo-inc.com http://twiki.corp.yahoo.com/view/Grid
 YINST bug-product Low Latency
 YINST bug-component General
 
-YINST requires pkg ystorm_jzmq           2.1.0.6     *
 YINST requires pkg ypython               2.6.0_2     2.7.9999
 YINST requires pkg yjava_jdk             1.7.0_11.64 1.7.999999
 YINST requires pkg yjava_servlet_filters 0.22.495    *
@@ -46,7 +45,13 @@ GROUP = users
 dir 3777 - - lib64/storm/$(BASE_VERSION)/logs
 dir 3777 - - lib64/storm/$(BASE_VERSION)/logs/metadata
 find 755 - - lib64/storm/$(BASE_VERSION)/bin/ ../bin/ -type f
-find - - - lib64/storm/$(BASE_VERSION)/lib/ ../storm-core-mvn/target/dependency/ ../storm-netty-mvn/target/dependency/ ../storm-yahoo/target/dependency/ -type f
+glob - - - lib64/storm/$(BASE_VERSION)/lib/ ../storm-core/target/dependency/*.jar ../storm-yahoo/target/dependency/*.jar
+find 444 - - lib64/storm/$(BASE_VERSION)/ ../ -maxdepth 1 -type f -iname '*.md' -or -iname '*.markdown'
+find 444 - - lib64/storm/$(BASE_VERSION)/public/css/ ../storm-core/src/ui/public/css/ -maxdepth 1 -type f -iname '*.css'
+find 444 - - lib64/storm/$(BASE_VERSION)/public/js/ ../storm-core/src/ui/public/js/ -maxdepth 1 -type f -iname '*.js'
+find 444 - - lib64/storm/$(BASE_VERSION)/public/templates/ ../storm-core/src/ui/public/templates/ -maxdepth 1 -type f -iname '*.html'
+find 444 - - lib64/storm/$(BASE_VERSION)/public/ ../storm-core/src/ui/public/ -maxdepth 1 -type f -iname '*.html'
+find 444 - - lib64/storm/$(BASE_VERSION)/examples/ ../examples/ -type f -not -path '*/target/*'
 
 # Bouncer UI Filter
 symlink - - - lib64/storm/$(BASE_VERSION)/lib/yjava_servlet_filters.jar /home/y/lib/jars/yjava_servlet_filters.jar
@@ -57,37 +62,30 @@ symlink - - - lib64/storm/$(BASE_VERSION)/lib/bouncer_auth_java.jar     /home/y/
 symlink - - - lib64/storm/$(BASE_VERSION)/lib/yjava_yca.jar             /home/y/lib/jars/yjava_yca.jar
 
 #The actual group of the executable will be set by a pre-activate script
-file 6550 root root lib64/storm/$(BASE_VERSION)/bin/worker-launcher ../storm-core-mvn/target/native/target/usr/local/bin/worker-launcher
+file 6550 root root lib64/storm/$(BASE_VERSION)/bin/worker-launcher ../storm-core/target/native/target/usr/local/bin/worker-launcher
 
-file 444 - - lib64/jars/storm.jar ../storm-core-mvn/target/storm-core-$(BASE_VERSION).jar
-file 444 - - lib64/jars/storm-sources.jar ../storm-core-mvn/target/storm-core-$(BASE_VERSION)-sources.jar
-file 444 - - lib64/jars/storm.pom ../storm-core-mvn/pom.xml
-file 444 - - lib64/jars/storm-core.jar ../storm-core-mvn/target/storm-core-$(BASE_VERSION).jar
-file 444 - - lib64/jars/storm-core-sources.jar ../storm-core-mvn/target/storm-core-$(BASE_VERSION)-sources.jar
-file 444 - - lib64/jars/storm-core.pom ../storm-core-mvn/pom.xml
-file 444 - - lib64/jars/storm-netty.jar ../storm-netty-mvn/target/storm-netty-$(BASE_VERSION).jar
-file 444 - - lib64/jars/storm-netty-sources.jar ../storm-netty-mvn/target/storm-netty-$(BASE_VERSION)-sources.jar
-file 444 - - lib64/jars/storm-netty.pom ../storm-netty-mvn/pom.xml
+file 444 - - lib64/jars/storm.jar ../storm-core/target/storm-core-$(BASE_VERSION).jar
+file 444 - - lib64/jars/storm-sources.jar ../storm-core/target/storm-core-$(BASE_VERSION)-sources.jar
+file 444 - - lib64/jars/storm.pom ../storm-core/pom.xml
+file 444 - - lib64/jars/storm-core.jar ../storm-core/target/storm-core-$(BASE_VERSION).jar
+file 444 - - lib64/jars/storm-core-sources.jar ../storm-core/target/storm-core-$(BASE_VERSION)-sources.jar
+file 444 - - lib64/jars/storm-core.pom ../storm-core/pom.xml
 file 444 - - lib64/jars/storm_yahoo.jar ../storm-yahoo/target/storm_yahoo-$(BASE_VERSION).jar
 file 444 - - lib64/jars/storm_yahoo-sources.jar ../storm-yahoo/target/storm_yahoo-$(BASE_VERSION)-sources.jar
 file 444 - - lib64/jars/storm_yahoo.pom ../storm-yahoo/pom.xml
+file 444 - - lib64/jars/storm-starter.jar ../examples/storm-starter/target/storm-starter-$(BASE_VERSION).jar
+file 444 - - lib64/jars/storm-starter-sources.jar ../examples/storm-starter/target/storm-starter-$(BASE_VERSION)-sources.jar
+file 444 - - lib64/jars/storm-starter-topologies.pom ../examples/storm-starter/pom.xml
+file 444 - - lib64/jars/storm-kafka.jar ../external/storm-kafka/target/storm-kafka-$(BASE_VERSION).jar
+file 444 - - lib64/jars/storm-kafka-sources.jar ../external/storm-kafka/target/storm-kafka-$(BASE_VERSION)-sources.jar
+file 444 - - lib64/jars/storm-kafka.pom ../external/storm-kafka/pom.xml
+
 file 444 - - lib64/storm/$(BASE_VERSION)/RELEASE ./RELEASE
-file 444 - - lib64/storm/$(BASE_VERSION)/CHANGELOG.md ../CHANGELOG.md
-file 444 - - lib64/storm/$(BASE_VERSION)/LICENSE.html ../LICENSE.html
-file 444 - - lib64/storm/$(BASE_VERSION)/storm-core-$(BASE_VERSION).jar ../storm-core-mvn/target/storm-core-$(BASE_VERSION).jar
-file 444 - - lib64/storm/$(BASE_VERSION)/storm-netty-$(BASE_VERSION).jar ../storm-netty-mvn/target/storm-netty-$(BASE_VERSION).jar
-file 444 - - lib64/storm/$(BASE_VERSION)/storm_yahoo-$(BASE_VERSION).jar ../storm-yahoo/target/storm_yahoo-$(BASE_VERSION).jar
-file 444 - - lib64/storm/$(BASE_VERSION)/README.markdown ../README.markdown
+file 444 - - lib64/storm/$(BASE_VERSION)/LICENSE ../LICENSE
+file 444 - - lib64/storm/$(BASE_VERSION)/DISCLAIMER ../DISCLAIMER
+file 444 - - lib64/storm/$(BASE_VERSION)/lib/storm-core-$(BASE_VERSION).jar ../storm-core/target/storm-core-$(BASE_VERSION).jar
+file 444 - - lib64/storm/$(BASE_VERSION)/lib/storm_yahoo-$(BASE_VERSION).jar ../storm-yahoo/target/storm_yahoo-$(BASE_VERSION).jar
 file 444 - - lib64/storm/$(BASE_VERSION)/README.yahoo ./README.yahoo
-
-
-file 444 - - lib64/storm/$(BASE_VERSION)/public/css/bootstrap-1.4.0.css ../storm-core/src/ui/public/css/bootstrap-1.4.0.css
-file 444 - - lib64/storm/$(BASE_VERSION)/public/css/style.css ../storm-core/src/ui/public/css/style.css
-file 444 - - lib64/storm/$(BASE_VERSION)/public/js/script.js ../storm-core/src/ui/public/js/script.js
-file 444 - - lib64/storm/$(BASE_VERSION)/public/js/jquery-1.6.2.min.js ../storm-core/src/ui/public/js/jquery-1.6.2.min.js
-file 444 - - lib64/storm/$(BASE_VERSION)/public/js/jquery.cookies.2.2.0.min.js ../storm-core/src/ui/public/js/jquery.cookies.2.2.0.min.js
-file 444 - - lib64/storm/$(BASE_VERSION)/public/js/jquery.tablesorter.min.js ../storm-core/src/ui/public/js/jquery.tablesorter.min.js
-file 444 - - lib64/storm/$(BASE_VERSION)/public/js/bootstrap-twipsy.js ../storm-core/src/ui/public/js/bootstrap-twipsy.js
 
 configfile 644 - - lib64/storm/$(BASE_VERSION)/conf/storm.yaml ./conf/config.py template overwrite
 configfile 644 - - lib64/storm/$(BASE_VERSION)/conf/multitenant-scheduler.yaml ./conf/multitenant-scheduler.py template overwrite

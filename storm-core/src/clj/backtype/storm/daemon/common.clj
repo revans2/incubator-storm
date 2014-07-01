@@ -1,3 +1,18 @@
+;; Licensed to the Apache Software Foundation (ASF) under one
+;; or more contributor license agreements.  See the NOTICE file
+;; distributed with this work for additional information
+;; regarding copyright ownership.  The ASF licenses this file
+;; to you under the Apache License, Version 2.0 (the
+;; "License"); you may not use this file except in compliance
+;; with the License.  You may obtain a copy of the License at
+;;
+;; http://www.apache.org/licenses/LICENSE-2.0
+;;
+;; Unless required by applicable law or agreed to in writing, software
+;; distributed under the License is distributed on an "AS IS" BASIS,
+;; WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+;; See the License for the specific language governing permissions and
+;; limitations under the License.
 (ns backtype.storm.daemon.common
   (:use [backtype.storm log config util])
   (:import [backtype.storm.generated StormTopology
@@ -231,13 +246,15 @@
        (second)
        (reverse)))
 
-(defn number-duplicates [coll]
+(defn number-duplicates
   "(number-duplicates [\"a\", \"b\", \"a\"]) => [\"a\", \"b\", \"a#2\"]"
+  [coll]
   (map-occurrences (fn [x occurences] (if (>= occurences 2) (str x "#" occurences) x)) coll))
 
-(defn metrics-consumer-register-ids [storm-conf]
+(defn metrics-consumer-register-ids
   "Generates a list of component ids for each metrics consumer
    e.g. [\"__metrics_org.mycompany.MyMetricsConsumer\", ..] "
+  [storm-conf]
   (->> (get storm-conf TOPOLOGY-METRICS-CONSUMER-REGISTER)         
        (map #(get % "class"))
        (number-duplicates)
