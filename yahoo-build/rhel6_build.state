@@ -1,6 +1,6 @@
 yinst.generated_by: statecc 1.0.7; yinst_lib 1.1.6297
 yinst.yinst_version: 4.225
-yinst.timestamp: 1404226920
+yinst.timestamp: 1404228420
 yinst.command: /home/y/bin/statecc --branch test ./rhel6_build.yml 
 yinst.package: yahoo/buildyblocks-1.99.4.13(1403759397)
 yinst.package: yahoo/buildyblocks_assemble-1.99.2.13(1403759382)

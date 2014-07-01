@@ -31,10 +31,10 @@ provision_yinst_version: rhel6stable
 #dist_group: hadoopqa
 #dist_tag: ystorm_master_security
 
-assemble_yinst_branch: quarantine
-assemble_commit_user: hadoopqa
-assemble_commit_key_file: /home/y/var/yhudson/keys/hadoopqa/id_dsa
-assemble_os_arch: x86_64
+#assemble_yinst_branch: quarantine
+#assemble_commit_user: hadoopqa
+#assemble_commit_key_file: /home/y/var/yhudson/keys/hadoopqa/id_dsa
+#assemble_os_arch: x86_64
 
 yroot_mount_paths:
 	/home/y/var/yhudson/keys/hadoopqa
