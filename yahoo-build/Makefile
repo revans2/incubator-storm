@@ -29,37 +29,13 @@ BASE_VERSION: ../pom.xml
 RELEASE: BASE_VERSION
 	echo $(FULL_VERSION) > RELEASE
 
-testpkg: RELEASE BASE_VERSION build storm.zip
+testpkg: RELEASE BASE_VERSION build
 	yinst_create --buildtype test ystorm.yicf
 	
-package: RELEASE BASE_VERSION build storm.zip
+package: RELEASE BASE_VERSION build
 	yinst_create --buildtype release ystorm.yicf
 
-storm.zip: _release
-	rm -f storm.zip
-	cd _release && zip -r ../storm.zip *
-
-_release: RELEASE build
-	rm -rf _release
-	mkdir -p _release/storm/lib
-	cp ../storm-core/target/storm-core-$(BASE_VERSION).jar _release/storm/storm.jar
-	cp ../storm-core/target/dependency/*.jar _release/storm/lib
-	cp ../storm-yahoo/target/storm_yahoo-$(BASE_VERSION).jar _release/storm/storm_yahoo.jar
-	cp ../storm-yahoo/target/dependency/*.jar _release/storm/lib
-	cp ../CHANGELOG.md _release/storm/
-	cp RELEASE _release/storm/
-	cp -r ../logback _release/storm/
-	mkdir -p _release/storm/logs
-	mkdir _release/storm/conf
-	cp ../conf/storm.yaml.example _release/storm/conf/storm.yaml
-	cp ../conf/jaas_digest.conf _release/storm/conf/
-	cp ../conf/jaas_kerberos.conf _release/storm/conf/
-	cp -R ../storm-core/src/ui/public _release/storm/
-	cp -R ../bin _release/storm/
-	cp ../README.markdown _release/storm/
-	cp ../LICENSE _release/storm/
-	
-rhel6_build.state: rhel6_build.yidf  rhel6_build.yml
+rhel6_build.state: rhel6_build.yidf rhel6_build.yml
 	rm -f rhel6_build.state rhel6_build.state.tmp rhel6_build.ruleset
 	statecc --branch test ./rhel6_build.yml
 

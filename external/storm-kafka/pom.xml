@@ -31,7 +31,20 @@
     <description>Storm Spouts for Apache Kafka</description>
     <build>
         <plugins>
-
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-source-plugin</artifactId>
+                <version>2.2.1</version>
+                <executions>
+                    <execution>
+                        <id>attach-sources</id>
+                        <goals>
+                            <!-- avoid warning about recursion -->
+                            <goal>jar-no-fork</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
         </plugins>
         <sourceDirectory>src/jvm</sourceDirectory>
         <testSourceDirectory>src/test</testSourceDirectory>
