@@ -1,6 +1,8 @@
 BASE_VERSION:=`cat BASE_VERSION`
+MVN_BASE_VERSION:=`cat yahoo-build/BASE_VERSION`
 BUILD_NUMBER?=0
-FULL_VERSION="$(BASE_VERSION).$(BUILD_NUMBER)"
+FULL_VERSION=`cat RELEASE`
+MVN_FULL_VERSION=`cat yahoo-build/RELEASE`
 MVN=LD_LIBRARY_PATH=/home/y/lib64 /home/y/bin/mvn
 EXEC_CONF_DIR?=/home/y/conf/storm/
 
@@ -26,21 +28,33 @@ BASE_VERSION: ../pom.xml
 	cd .. && $(MVN) help:evaluate -Dexpression=project.version | grep -v "^\[" | tail -1 > yahoo-build/BASE_VERSION
 
 RELEASE: BASE_VERSION
-	echo $(FULL_VERSION) > RELEASE
+	echo "$(BASE_VERSION).$(BUILD_NUMBER)" | sed -e 's/-/_/g' > RELEASE
 
 testpkg: RELEASE BASE_VERSION build
+	cd .. && ${MVN} versions:set -DnewVersion=$(MVN_FULL_VERSION)
+	cd .. && ${MVN} versions:update-child-modules
 	yinst_create --buildtype test ystorm.yicf
+	cd .. && ${MVN} versions:revert
+	cd .. && ${MVN} versions:update-child-modules
+
 	
 package: RELEASE BASE_VERSION build
+	cd .. && ${MVN} versions:set -DnewVersion=$(MVN_FULL_VERSION)
+	cd .. && ${MVN} versions:update-child-modules
 	yinst_create --buildtype release ystorm.yicf
+	cd .. && ${MVN} versions:revert
+	cd .. && ${MVN} versions:update-child-modules
+
 
 rhel6_build.state: rhel6_build.yidf rhel6_build.yml
 	rm -f rhel6_build.state rhel6_build.state.tmp rhel6_build.ruleset
 	statecc --branch test ./rhel6_build.yml
 
 clean:
-	rm -rf *_build.ruleset ystorm*.tgz BASE_VERSION RELEASE _release storm.zip
 	cd .. && $(MVN) clean ${MVN_MAKE_OPTS}
+	cd .. && ${MVN} versions:revert
+	cd .. && ${MVN} versions:update-child-modules
+	rm -rf *_build.ruleset ystorm*.tgz BASE_VERSION RELEASE
 
 
 #BuildyBlocks targets

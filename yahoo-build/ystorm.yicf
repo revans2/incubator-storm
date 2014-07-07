@@ -64,9 +64,7 @@ symlink - - - lib64/storm/$(BASE_VERSION)/lib/yjava_yca.jar             /home/y/
 #The actual group of the executable will be set by a pre-activate script
 file 6550 root root lib64/storm/$(BASE_VERSION)/bin/worker-launcher ../storm-core/target/native/target/usr/local/bin/worker-launcher
 
-file 444 - - lib64/jars/storm.jar ../storm-core/target/storm-core-$(BASE_VERSION).jar
-file 444 - - lib64/jars/storm-sources.jar ../storm-core/target/storm-core-$(BASE_VERSION)-sources.jar
-file 444 - - lib64/jars/storm.pom ../storm-core/pom.xml
+file 444 - - lib64/jars/storm.pom ../pom.xml
 file 444 - - lib64/jars/storm-core.jar ../storm-core/target/storm-core-$(BASE_VERSION).jar
 file 444 - - lib64/jars/storm-core-sources.jar ../storm-core/target/storm-core-$(BASE_VERSION)-sources.jar
 file 444 - - lib64/jars/storm-core.pom ../storm-core/pom.xml
