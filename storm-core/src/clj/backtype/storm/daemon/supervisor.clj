@@ -582,7 +582,12 @@
           jlp (jlp stormroot conf)
           stormjar (supervisor-stormjar-path stormroot)
           storm-conf (read-supervisor-storm-conf conf storm-id)
-          classpath (add-to-classpath (current-classpath) [stormjar])
+          topo-classpath (if-let [cp (storm-conf TOPOLOGY-CLASSPATH)]
+                           [cp]
+                           [])
+          classpath (-> (current-classpath)
+                        (add-to-classpath [stormjar])
+                        (add-to-classpath topo-classpath))
           top-gc-opts (storm-conf TOPOLOGY-WORKER-GC-CHILDOPTS)
           gc-opts (substitute-childopts (if top-gc-opts top-gc-opts (conf WORKER-GC-CHILDOPTS)) worker-id storm-id port)
           user (storm-conf TOPOLOGY-SUBMITTER-USER)
@@ -590,6 +595,9 @@
 
           worker-childopts (substitute-childopts (conf WORKER-CHILDOPTS) worker-id storm-id port)
           topo-worker-childopts (substitute-childopts (storm-conf TOPOLOGY-WORKER-CHILDOPTS) worker-id storm-id port)
+          topology-worker-environment (if-let [env (storm-conf TOPOLOGY-ENVIRONMENT)]
+                                        (merge env {"LD_LIBRARY_PATH" jlp})
+                                        {"LD_LIBRARY_PATH" jlp})
           command (concat
                     [(java-cmd) "-server"]
                     worker-childopts
@@ -621,7 +629,7 @@
         (if run-worker-as-user
           (let [worker-dir (worker-root conf worker-id)]
             (worker-launcher conf user ["worker" worker-dir (write-script worker-dir command :environment {"LD_LIBRARY_PATH" jlp})] :log-prefix log-prefix :exit-code-callback callback))
-          (launch-process command :environment {"LD_LIBRARY_PATH" jlp} :log-prefix log-prefix :exit-code-callback callback)
+          (launch-process command :environment topology-worker-environment :log-prefix log-prefix :exit-code-callback callback)
       ))))
 
 ;; local implementation
