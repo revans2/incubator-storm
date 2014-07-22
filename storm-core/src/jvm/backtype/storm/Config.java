@@ -113,7 +113,13 @@ public class Config extends HashMap<String, Object> {
      */
     public static final String STORM_META_SERIALIZATION_DELEGATE = "storm.meta.serialization.delegate";
     public static final Object STORM_META_SERIALIZATION_DELEGATE_SCHEMA = String.class;
-
+    
+    /**
+     * Netty based messaging: Is authentication required for Netty messaging from client worker process to server worker process.
+     */
+    public static final String STORM_MESSAGING_NETTY_AUTHENTICATION = "storm.messaging.netty.authentication"; 
+    public static final Object STORM_MESSAGING_NETTY_AUTHENTICATION_SCHEMA = Boolean.class;
+    
     /**
      * A list of hosts of ZooKeeper servers used to manage the cluster.
      */
