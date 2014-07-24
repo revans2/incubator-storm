@@ -171,6 +171,8 @@ storm.messaging.netty.flush.check.interval.ms: 10
 
 # default number of seconds group mapping service will cache user group
 storm.group.mapping.service.cache.duration.secs: 120
+# By default, the Netty SASL authentication is set to false.  Users can override and set it true for a specific topology.
+storm.messaging.netty.authentication: false
 
 ### topology.* configs are for specific executing storms
 topology.enable.message.timeouts: true
