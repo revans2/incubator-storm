@@ -57,6 +57,8 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
 import backtype.storm.blobstore.BlobStoreAclHandler;
+import backtype.storm.serialization.DefaultSerializationDelegate;
+import backtype.storm.serialization.SerializationDelegate;
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
 import org.apache.curator.framework.CuratorFramework;
@@ -104,6 +106,13 @@ public class Utils {
     private static ThreadLocal<TSerializer> threadSer = new ThreadLocal<TSerializer>();
     private static ThreadLocal<TDeserializer> threadDes = new ThreadLocal<TDeserializer>();
 
+    private static SerializationDelegate serializationDelegate;
+
+    static {
+        Map conf = readStormConfig();
+        serializationDelegate = getSerializationDelegate(conf);
+    }
+
     public static Object newInstance(String klass) {
         try {
             Class c = Class.forName(klass);
@@ -123,6 +132,10 @@ public class Utils {
         } catch(IOException ioe) {
             throw new RuntimeException(ioe);
         }
+    }
+ 
+    public static byte[] serialize(Object obj) {
+        return serializationDelegate.serialize(obj);
     }
 
     public static byte[] thriftSerialize(TBase t) {
@@ -166,6 +179,7 @@ public class Utils {
         } catch(ClassNotFoundException e) {
             throw new RuntimeException(e);
         }
+        return serializationDelegate.deserialize(serialized);
     }
 
     public static <T> String join(Iterable<T> coll, String sep) {
@@ -1023,4 +1037,24 @@ public class Utils {
   }
 
 
+    // Assumes caller is synchronizing
+    private static SerializationDelegate getSerializationDelegate(Map stormConf) {
+        String delegateClassName = (String)stormConf.get(Config.STORM_META_SERIALIZATION_DELEGATE);
+        SerializationDelegate delegate;
+        try {
+            Class delegateClass = Class.forName(delegateClassName);
+            delegate = (SerializationDelegate) delegateClass.newInstance();
+        } catch (ClassNotFoundException e) {
+            LOG.error("Failed to construct serialization delegate, falling back to default", e);
+            delegate = new DefaultSerializationDelegate();
+        } catch (InstantiationException e) {
+            LOG.error("Failed to construct serialization delegate, falling back to default", e);
+            delegate = new DefaultSerializationDelegate();
+        } catch (IllegalAccessException e) {
+            LOG.error("Failed to construct serialization delegate, falling back to default", e);
+            delegate = new DefaultSerializationDelegate();
+        }
+        delegate.prepare(stormConf);
+        return delegate;
+    }
 }
