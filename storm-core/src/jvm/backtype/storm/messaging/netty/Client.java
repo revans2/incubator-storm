@@ -71,7 +71,7 @@ class Client implements IConnection, IStatefulObject{
     private Context context;
 
     Map storm_conf;
-    
+
     @SuppressWarnings("rawtypes")
     Client(Map storm_conf, ChannelFactory factory, String host, int port, Context context) {
         this.context = context;
