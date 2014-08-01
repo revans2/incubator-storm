@@ -152,6 +152,13 @@ public class AutoYCA implements IAutoCredentials {
      * @param ycaCerts a map of app id to cred that will be updated with new certs after processing.
      */ 
     public static void updateV2CertsFromCreds(Map<String, String> credentials, Map<String, String> ycaCerts) {
+        if (credentials == null) {
+            LOG.warn("Null credentials passed in to updateV2CertsFromCreds, clearing any stored credentials");
+            if (ycaCerts != null) {
+                ycaCerts.clear();
+            }
+            return;
+        }
         for (Map.Entry<String,String> entry: credentials.entrySet()) {
             if (entry.getKey().startsWith(YCA_CRED_PREFIX)) {
                 String appId = coanonicalAppId(entry.getKey().substring(YCA_CRED_PREFIX.length()));
