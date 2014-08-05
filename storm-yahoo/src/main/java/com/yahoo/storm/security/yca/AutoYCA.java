@@ -153,10 +153,7 @@ public class AutoYCA implements IAutoCredentials {
      */ 
     public static void updateV2CertsFromCreds(Map<String, String> credentials, Map<String, String> ycaCerts) {
         if (credentials == null) {
-            LOG.warn("Null credentials passed in to updateV2CertsFromCreds, clearing any stored credentials");
-            if (ycaCerts != null) {
-                ycaCerts.clear();
-            }
+            LOG.warn("Null credentials passed in to updateV2CertsFromCreds, ignoring.");
             return;
         }
         for (Map.Entry<String,String> entry: credentials.entrySet()) {
