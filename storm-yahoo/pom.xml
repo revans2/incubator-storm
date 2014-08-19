@@ -217,9 +217,9 @@
       </exclusions>
     </dependency>
     <dependency>
-      <groupId>yahoo.yinst.yjava_jetty</groupId>
+      <groupId>yahoo.yinst.yjava_jetty_core</groupId>
       <artifactId>yjava_jetty</artifactId>
-      <version>9.0.6.v20130930_0.47</version>
+      <version>9.2.1.v20140609_127</version>
       <exclusions>
         <exclusion>
           <groupId>org.slf4j</groupId>
