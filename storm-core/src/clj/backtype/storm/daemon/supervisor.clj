@@ -628,7 +628,7 @@
         (remove-dead-worker worker-id) 
         (if run-worker-as-user
           (let [worker-dir (worker-root conf worker-id)]
-            (worker-launcher conf user ["worker" worker-dir (write-script worker-dir command :environment {"LD_LIBRARY_PATH" jlp})] :log-prefix log-prefix :exit-code-callback callback))
+            (worker-launcher conf user ["worker" worker-dir (write-script worker-dir command :environment topology-worker-environment)] :log-prefix log-prefix :exit-code-callback callback))
           (launch-process command :environment topology-worker-environment :log-prefix log-prefix :exit-code-callback callback)
       ))))
 
