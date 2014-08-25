@@ -61,6 +61,11 @@ import backtype.storm.serialization.DefaultSerializationDelegate;
 import backtype.storm.serialization.SerializationDelegate;
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
+import java.util.zip.GZIPOutputStream;
+import java.util.zip.GZIPInputStream;
+
+import backtype.storm.serialization.DefaultSerializationDelegate;
+import backtype.storm.serialization.SerializationDelegate;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.commons.lang.StringUtils;
@@ -98,7 +103,7 @@ import org.apache.thrift.TDeserializer;
 import org.apache.thrift.TSerializer;
 
 public class Utils {
-    public static Logger LOG = LoggerFactory.getLogger(Utils.class);    
+    private static final Logger LOG = LoggerFactory.getLogger(Utils.class);
     public static final String DEFAULT_STREAM_ID = "default";
     public static final String DEFAULT_BLOB_VERSION_SUFFIX = ".version";
     public static final String CURRENT_BLOB_SUFFIX_ID = "current";
@@ -121,23 +126,11 @@ public class Utils {
             throw new RuntimeException(e);
         }
     }
-    
-    public static byte[] serialize(Object obj) {
-        try {
-            ByteArrayOutputStream bos = new ByteArrayOutputStream();
-            ObjectOutputStream oos = new ObjectOutputStream(bos);
-            oos.writeObject(obj);
-            oos.close();
-            return bos.toByteArray();
-        } catch(IOException ioe) {
-            throw new RuntimeException(ioe);
-        }
-    }
  
     public static byte[] serialize(Object obj) {
         return serializationDelegate.serialize(obj);
     }
-
+ 
     public static byte[] thriftSerialize(TBase t) {
         try {
             TSerializer ser = threadSer.get();
@@ -168,17 +161,6 @@ public class Utils {
     }
 
     public static Object deserialize(byte[] serialized) {
-        try {
-            ByteArrayInputStream bis = new ByteArrayInputStream(serialized);
-            ObjectInputStream ois = new ObjectInputStream(bis);
-            Object ret = ois.readObject();
-            ois.close();
-            return ret;
-        } catch(IOException ioe) {
-            throw new RuntimeException(ioe);
-        } catch(ClassNotFoundException e) {
-            throw new RuntimeException(e);
-        }
         return serializationDelegate.deserialize(serialized);
     }
 
