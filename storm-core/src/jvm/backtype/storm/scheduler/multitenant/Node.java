@@ -138,6 +138,8 @@ public class Node {
                   + topId + ". Its already assigned to " + topologySetEntry.getKey() + ".");
         }
       }
+      LOG.warn("Adding Worker slot [" + ws + "] that was not reported in the supervisor heartbeats," +
+              " but the worker is already running for topology " + topId + ".");
     }
     Set<WorkerSlot> usedSlots = _topIdToUsedSlots.get(topId);
     if (usedSlots == null) {
