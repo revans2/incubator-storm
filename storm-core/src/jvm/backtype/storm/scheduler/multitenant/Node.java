@@ -301,7 +301,7 @@ public class Node {
       String id = sup.getId();
       boolean isAlive = !cluster.isBlackListed(id);
       LOG.debug("Found a {} Node {} {}",
-              new Object[]{isAlive ? "living" : "dead", id, sup.getAllPorts()});
+          new Object[] {isAlive? "living":"dead", id, sup.getAllPorts()});
       nodeIdToNode.put(id, new Node(id, sup.getAllPorts(), isAlive));
     }
     
