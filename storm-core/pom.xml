@@ -192,11 +192,6 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>org.clojars.runa</groupId>
-            <artifactId>conjure</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
         	<groupId>junit</groupId>
         	<artifactId>junit</artifactId>
         	<version>4.1</version>
