@@ -20,7 +20,6 @@
   (:use [hiccup core page-helpers])
   (:use [backtype.storm config util log timer])
   (:use [backtype.storm.ui helpers])
-  (:use [ring.adapter.jetty :only [run-jetty]])
   (:import [org.slf4j LoggerFactory])
   (:import [ch.qos.logback.classic Logger])
   (:import [ch.qos.logback.core FileAppender])
@@ -351,13 +350,12 @@ Note that if anything goes wrong, this will throw an Error and exit."
                           [{:filter-class "org.mortbay.servlet.GzipFilter"
                             :filter-name "Gzipper"
                             :filter-params {}}])]
-      (run-jetty middle 
-                        {:port (int (conf LOGVIEWER-PORT))
-                         :join? false
-                         :configurator (fn [server]
-                                         (doseq [connector (.getConnectors server)]
-                                           (.setHeaderBufferSize connector header-buffer-size))
-                                         (config-filter server middle filters-confs))}))
+      (storm-run-jetty middle 
+                       {:port (int (conf LOGVIEWER-PORT))
+                        :configurator (fn [server]
+                                        (doseq [connector (.getConnectors server)]
+                                          (.setHeaderBufferSize connector header-buffer-size))
+                                        (config-filter server middle filters-confs))}))
   (catch Exception ex
     (log-error ex))))
 

@@ -22,7 +22,6 @@
   (:use [backtype.storm.ui helpers])
   (:use [backtype.storm.daemon [common :only [ACKER-COMPONENT-ID ACKER-INIT-STREAM-ID
                                               ACKER-ACK-STREAM-ID ACKER-FAIL-STREAM-ID system-id?]]])
-  (:use [ring.adapter.jetty :only [run-jetty]])
   (:use [clojure.string :only [blank? lower-case trim]])
   (:import [backtype.storm.utils Utils])
   (:import [backtype.storm.generated ExecutorSpecificStats
@@ -929,12 +928,11 @@
           header-buffer-size (int (.get conf UI-HEADER-BUFFER-BYTES))
           filters-confs [{:filter-class (conf UI-FILTER)
                           :filter-params (conf UI-FILTER-PARAMS)}]]
-      (run-jetty app {:port (conf UI-PORT)
-                          :join? false
-                          :configurator (fn [server]
-                                          (doseq [connector (.getConnectors server)]
-                                            (.setHeaderBufferSize connector header-buffer-size))
-                                          (config-filter server app filters-confs))}))
+      (storm-run-jetty app {:port (conf UI-PORT)
+                            :configurator (fn [server]
+                                            (doseq [connector (.getConnectors server)]
+                                              (.setHeaderBufferSize connector header-buffer-size))
+                                            (config-filter server app filters-confs))}))
    (catch Exception ex
      (log-error ex))))
 
