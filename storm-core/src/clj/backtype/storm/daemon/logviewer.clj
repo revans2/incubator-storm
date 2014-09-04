@@ -350,8 +350,7 @@ Note that if anything goes wrong, this will throw an Error and exit."
                           [{:filter-class "org.mortbay.servlet.GzipFilter"
                             :filter-name "Gzipper"
                             :filter-params {}}])]
-      (storm-run-jetty middle 
-                       {:port (int (conf LOGVIEWER-PORT))
+      (storm-run-jetty {:port (int (conf LOGVIEWER-PORT))
                         :configurator (fn [server]
                                         (doseq [connector (.getConnectors server)]
                                           (.setHeaderBufferSize connector header-buffer-size))
