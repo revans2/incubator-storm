@@ -79,29 +79,87 @@ $(document).ready(function() {
         $.get("/templates/component-page-template.html", function(template) {
             componentSummary.append(Mustache.render($(template).filter("#component-summary-template").html(),response));
             if(response["componentType"] == "spout") {
-                componentStatsDetail.append(Mustache.render($(template).filter("#spout-stats-detail-template").html(),response));
-                $("#spout-stats-table").tablesorter({ sortList: [[0,0]], headers: {0: { sorter: "stormtimestr"}}});
-                outputStats.append(Mustache.render($(template).filter("#output-stats-template").html(),response));
-                $("#output-stats-table").tablesorter({ sortList: [[0,0]], headers: {0: { sorter: "stormtimestr"}}});
-                executorStats.append(Mustache.render($(template).filter("#executor-stats-template").html(),response));
-                $("#executor-stats-table").tablesorter({ sortList: [[0,0]], headers: {1: { sorter: "stormtimestr"}}});
-            } else {
-                componentStatsDetail.append(Mustache.render($(template).filter("#bolt-stats-template").html(),response));
-                $("#bolt-stats-table").tablesorter({ sortList: [[0,0]], headers: {0: { sorter: "stormtimestr"}}});
-                inputStats.append(Mustache.render($(template).filter("#bolt-input-stats-template").html(),response));
-                if (response["inputStats"].length > 0) {
-                    $("#bolt-input-stats-table").tablesorter({ sortList: [[0,0]], headers: {}});
+                try {
+                  componentStatsDetail.append(Mustache.render($(template).filter("#spout-stats-detail-template").html(),response));
+                  if(response["spoutSummary"].length > 0) {
+                    $("#spout-stats-table").tablesorter({ sortList: [[0,0]], headers: {0: { sorter: "stormtimestr"}}});
+                  }
+                } catch (err) {
+                  $.get("/templates/json-error-template.html", function(template) {
+                    $("#json-response-error").append(Mustache.render($(template).filter("#json-error-template").html(),{error: "JS Error", errorMessage: err}));
+                  });
                 }
-                outputStats.append(Mustache.render($(template).filter("#bolt-output-stats-template").html(),response));
-                $("#bolt-output-stats-table").tablesorter({ sortList: [[0,0]], headers: {}});
-                executorStats.append(Mustache.render($(template).filter("#bolt-executor-template").html(),response));
-                if(response["outputStats"].length > 0) {
+                try {
+                  outputStats.append(Mustache.render($(template).filter("#output-stats-template").html(),response));
+                  if(response["outputStats"].length > 0) {
+                    $("#output-stats-table").tablesorter({ sortList: [[0,0]], headers: {0: { sorter: "stormtimestr"}}});
+                  }
+                } catch (err) {
+                  $.get("/templates/json-error-template.html", function(template) {
+                    $("#json-response-error").append(Mustache.render($(template).filter("#json-error-template").html(),{error: "JS Error", errorMessage: err}));
+                  });
+                }
+                try {
+                  executorStats.append(Mustache.render($(template).filter("#executor-stats-template").html(),response));
+                  if(response["executorStats"].length > 0) {
+                    $("#executor-stats-table").tablesorter({ sortList: [[0,0]], headers: {1: { sorter: "stormtimestr"}}});
+                  }
+                } catch (err) {
+                  $.get("/templates/json-error-template.html", function(template) {
+                    $("#json-response-error").append(Mustache.render($(template).filter("#json-error-template").html(),{error: "JS Error", errorMessage: err}));
+                  });
+                }
+            } else {
+                try {
+                  componentStatsDetail.append(Mustache.render($(template).filter("#bolt-stats-template").html(),response));
+                  if(response["boltStats"].length > 0) {
+                    $("#bolt-stats-table").tablesorter({ sortList: [[0,0]], headers: {0: { sorter: "stormtimestr"}}});
+                  }
+                } catch (err) {
+                  $.get("/templates/json-error-template.html", function(template) {
+                    $("#json-response-error").append(Mustache.render($(template).filter("#json-error-template").html(),{error: "JS Error", errorMessage: err}));
+                  });
+                }
+                try {
+                  inputStats.append(Mustache.render($(template).filter("#bolt-input-stats-template").html(),response));
+                  if (response["inputStats"].length > 0) {
+                    $("#bolt-input-stats-table").tablesorter({ sortList: [[0,0]], headers: {}});
+                  }
+                } catch (err) {
+                  $.get("/templates/json-error-template.html", function(template) {
+                    $("#json-response-error").append(Mustache.render($(template).filter("#json-error-template").html(),{error: "JS Error", errorMessage: err}));
+                  });
+                }
+                try {
+                  outputStats.append(Mustache.render($(template).filter("#bolt-output-stats-template").html(),response));
+                  if (response["outputStats"].length > 0) {
+                    $("#bolt-output-stats-table").tablesorter({ sortList: [[0,0]], headers: {}});
+                  }
+                } catch (err) {
+                  $.get("/templates/json-error-template.html", function(template) {
+                    $("#json-response-error").append(Mustache.render($(template).filter("#json-error-template").html(),{error: "JS Error", errorMessage: err}));
+                  });
+                }
+                try {
+                  executorStats.append(Mustache.render($(template).filter("#bolt-executor-template").html(),response));
+                  if(response["executorStats"].length > 0) {
                     $("#bolt-executor-table").tablesorter({ sortList: [[0,0]], headers: {}});
+                  }
+                } catch (err) {
+                  $.get("/templates/json-error-template.html", function(template) {
+                    $("#json-response-error").append(Mustache.render($(template).filter("#json-error-template").html(),{error: "JS Error", errorMessage: err}));
+                  });
                 }
             }
-            componentErrors.append(Mustache.render($(template).filter("#component-errors-template").html(),response));
-            if(response["componentErrors"].length > 0) {
+            try {
+              componentErrors.append(Mustache.render($(template).filter("#component-errors-template").html(),response));
+              if(response["componentErrors"].length > 0) {
                 $("#component-errors-table").tablesorter({ sortList: [[0,0]], headers: {1: { sorter: "stormtimestr"}}});
+              }
+            } catch (err) {
+              $.get("/templates/json-error-template.html", function(template) {
+                $("#json-response-error").append(Mustache.render($(template).filter("#json-error-template").html(),{error: "JS Error", errorMessage: err}));
+              });
             }
         });
     });

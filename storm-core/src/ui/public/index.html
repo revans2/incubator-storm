@@ -72,7 +72,7 @@ $(document).ready(function() {
           topologySummary.append(Mustache.render($(template).filter("#topology-summary-template").html(),response));
           if(response["topologies"].length > 0) {
               $("#topology-summary-table").tablesorter({ sortList: [[0,0]], headers: {4: { sorter: "stormtimestr"}}});
-              }
+          }
       });
     });
     $.getJSON("/api/v1/supervisor/summary",function(response,status,jqXHR) {
