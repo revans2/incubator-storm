@@ -20,3 +20,5 @@ add yinst pkg yjava_yca             0.23.218    *
 
 # Needed to force the version to match what is outside the yroot
 add yinst pkg ylock_kern                1.98.0.16
+
+add yinst pkg auto_increment_version    1.0.24  1.9999.999999

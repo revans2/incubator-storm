@@ -1,7 +1,7 @@
 BASE_VERSION:=`cat BASE_VERSION`
 MVN_BASE_VERSION:=`cat yahoo-build/BASE_VERSION`
-BUILD_NUMBER?=0
 FULL_VERSION=`cat RELEASE`
+BASE_VERSION_UNDERSCORE=`cat BASE_VERSION_UNDERSCORE`
 MVN_FULL_VERSION=`cat yahoo-build/RELEASE`
 MVN=LD_LIBRARY_PATH=/home/y/lib64 /home/y/bin/mvn
 EXEC_CONF_DIR?=/home/y/conf/storm/
@@ -27,8 +27,11 @@ install:
 BASE_VERSION: ../pom.xml
 	cd .. && $(MVN) help:evaluate -Dexpression=project.version | grep -v "^\[" | tail -1 > yahoo-build/BASE_VERSION
 
-RELEASE: BASE_VERSION
-	echo "$(BASE_VERSION).$(BUILD_NUMBER)" | sed -e 's/-/_/g' > RELEASE
+BASE_VERSION_UNDERSCORE: BASE_VERSION
+	echo "$(BASE_VERSION)" | sed -e 's/-/_/g' > BASE_VERSION_UNDERSCORE
+
+RELEASE: BASE_VERSION_UNDERSCORE
+	/home/y/bin/auto_increment_version.pl ystorm $(BASE_VERSION_UNDERSCORE) > RELEASE
 
 testpkg: RELEASE BASE_VERSION build
 	cd .. && ${MVN} versions:set -DnewVersion=$(MVN_FULL_VERSION)
@@ -38,7 +41,7 @@ testpkg: RELEASE BASE_VERSION build
 	cd .. && ${MVN} versions:update-child-modules
 
 	
-package: RELEASE BASE_VERSION build
+package: RELEASE build
 	cd .. && ${MVN} versions:set -DnewVersion=$(MVN_FULL_VERSION)
 	cd .. && ${MVN} versions:update-child-modules
 	yinst_create --buildtype release ystorm.yicf
@@ -54,7 +57,7 @@ clean:
 	cd .. && $(MVN) clean ${MVN_MAKE_OPTS}
 	cd .. && ${MVN} versions:revert
 	cd .. && ${MVN} versions:update-child-modules
-	rm -rf *_build.ruleset ystorm*.tgz BASE_VERSION RELEASE
+	rm -rf *_build.ruleset ystorm*.tgz BASE_VERSION RELEASE BASE_VERSION_UNDERSCORE
 
 
 #BuildyBlocks targets
@@ -73,7 +76,7 @@ COMPONENT_BIM=./component.bim
 component: BB_Provision build test package
 component: BB_BIM_FILE=$(COMPONENT_BIM)
 
-git-tag:
+git-tag: RELEASE
 	git tag -f -a $(FULL_VERSION) -m "yahoo version $(FULL_VERSION)"
 	git push origin $(FULL_VERSION)
 
