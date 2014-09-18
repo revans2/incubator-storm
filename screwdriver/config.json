@@ -30,7 +30,11 @@
                     "type": "release",
                     "yicf": [
                         "yahoo-build/ystorm.yicf"
-                    ]
+                    ],
+		    "after" : [
+			"git tag -f -a `cat $SRC_DIR/yahoo-build/RELEASE` -m \"yahoo version `cat $SRC_DIR/yahoo-build/RELEASE`\"",
+			"git push origin `cat $SRC_DIR/yahoo-build/RELEASE`"
+		   ]
                 }
             }
         }
