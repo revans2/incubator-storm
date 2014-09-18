@@ -10,13 +10,13 @@ cat <<XML
   <appender name="A1" class="ch.qos.logback.core.rolling.RollingFileAppender">
     <file>\${storm.home}/logs/\${logfile.name}</file>
     <rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
-      <fileNamePattern>\${storm.home}/logs/\${logfile.name}.%i</fileNamePattern>
+      <fileNamePattern>\${storm.home}/logs/\${logfile.name}.%i.gz</fileNamePattern>
       <minIndex>1</minIndex>
-      <maxIndex>9</maxIndex>
+      <maxIndex>1</maxIndex>
     </rollingPolicy>
 
     <triggeringPolicy class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
-      <maxFileSize>100MB</maxFileSize>
+      <maxFileSize>250MB</maxFileSize>
     </triggeringPolicy>
 
     <encoder>
