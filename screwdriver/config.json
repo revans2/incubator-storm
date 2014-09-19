@@ -28,13 +28,20 @@
                     "required": true,
                     "group": "hadoopqa",
                     "type": "release",
+		    "before" : [
+			"mvn versions:set -Dnewversion=`cat $SRC_DIR/yahoo-build/RELEASE`",
+			"mvn versions:update-child-modules",
+			"find . -name pom.xml | xargs git update-index --assume unchanged"
+		    ],
                     "yicf": [
                         "yahoo-build/ystorm.yicf"
                     ],
 		    "after" : [
+			"mvn versions:revert",
+			"mvn versions:update-child-modules",
 			"git tag -f -a `cat $SRC_DIR/yahoo-build/RELEASE` -m \"yahoo version `cat $SRC_DIR/yahoo-build/RELEASE`\"",
 			"git push origin `cat $SRC_DIR/yahoo-build/RELEASE`"
-		   ]
+		    ]
                 }
             }
         }
