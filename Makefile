@@ -12,4 +12,4 @@ internal:
 	(cd internal && git checkout ${GIT_SCRIPTS_BRANCH})
 
 screwdriver: internal 
-	$(MAKE) -C yahoo-build component_clean build test package 
+	$(MAKE) -C yahoo-build component_clean build test package-sd
