@@ -50,11 +50,7 @@ package-sd: RELEASE build
 	cd .. && find . -name pom.xml | xargs git update-index --assume-unchanged
 	yinst_create --buildtype release ystorm.yicf
 
-package: RELEASE build
-	cd .. && ${MVN} versions:set -DnewVersion=$(MVN_FULL_VERSION)
-	cd .. && ${MVN} versions:update-child-modules
-	cd .. && find . -name pom.xml | xargs git update-index --assume-unchanged
-	yinst_create --buildtype release ystorm.yicf
+package: package-sd
 	cd .. && ${MVN} versions:revert
 	cd .. && ${MVN} versions:update-child-modules
 
