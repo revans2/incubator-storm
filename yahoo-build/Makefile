@@ -36,15 +36,21 @@ RELEASE: BASE_VERSION_UNDERSCORE
 testpkg: RELEASE BASE_VERSION build
 	cd .. && ${MVN} versions:set -DnewVersion=$(MVN_FULL_VERSION)
 	cd .. && ${MVN} versions:update-child-modules
+	cd .. && find . -name pom.xml | xargs git update-index --assume-unchanged
 	yinst_create --buildtype test ystorm.yicf
 	cd .. && ${MVN} versions:revert
 	cd .. && ${MVN} versions:update-child-modules
 
 	
-package: RELEASE build
+# This target is called from screwdriver build and leaves the poms changed for its
+# publish phase
+package-sd: RELEASE build
 	cd .. && ${MVN} versions:set -DnewVersion=$(MVN_FULL_VERSION)
 	cd .. && ${MVN} versions:update-child-modules
+	cd .. && find . -name pom.xml | xargs git update-index --assume-unchanged
 	yinst_create --buildtype release ystorm.yicf
+
+package: package-sd
 	cd .. && ${MVN} versions:revert
 	cd .. && ${MVN} versions:update-child-modules
 
