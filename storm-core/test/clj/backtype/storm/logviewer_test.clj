@@ -144,7 +144,7 @@
           mockfile2 (mk-mock-File {:name "file2" :type :file})
           mockfile3 (mk-mock-File {:name "file3" :type :file})
           mockyaml  (mk-mock-File {:name "foo.yaml" :type :file})
-          exp-cmd (str "rmr /mock/canonical/path/to/" (.getName mockfile3))]
+          exp-cmd [(str "rmr /mock/canonical/path/to/" (.getName mockfile3))]]
       (stubbing [logviewer/select-files-for-cleanup
                    [(mk-mock-File {:name "throwaway" :type :file})]
                  logviewer/get-dead-worker-files-and-owners
