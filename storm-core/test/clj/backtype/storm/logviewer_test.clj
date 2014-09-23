@@ -144,19 +144,22 @@
           mockfile2 (mk-mock-File {:name "file2" :type :file})
           mockfile3 (mk-mock-File {:name "file3" :type :file})
           mockyaml  (mk-mock-File {:name "foo.yaml" :type :file})
-          exp-cmd [(str "rmr /mock/canonical/path/to/" (.getName mockfile3))]]
+          exp-path (str "/mock/canonical/path/to/" (.getName mockfile3))]
       (stubbing [logviewer/select-files-for-cleanup
                    [(mk-mock-File {:name "throwaway" :type :file})]
                  logviewer/get-dead-worker-files-and-owners
                    [{:owner nil :files #{mockfile1}}
                     {:files #{mockfile2}}
                     {:owner exp-user :files #{mockfile3 mockyaml}}]
-                 supervisor/worker-launcher nil
+                 supervisor/rmr-as-user nil
                  rmr nil]
         (logviewer/cleanup-fn! "/tmp/")
-        (verify-call-times-for supervisor/worker-launcher 1)
-        (verify-first-call-args-for-indices supervisor/worker-launcher
-                                            [1 2] exp-user exp-cmd)
+        (verify-call-times-for supervisor/rmr-as-user 1)
+        (verify-first-call-args-for-indices supervisor/rmr-as-user
+                                            [1 2 3]
+                                            exp-path
+                                            exp-user
+                                            exp-path)
         (verify-call-times-for rmr 3)
         (verify-nth-call-args-for 1 rmr (.getCanonicalPath mockfile1))
         (verify-nth-call-args-for 2 rmr (.getCanonicalPath mockfile2))
