@@ -192,7 +192,7 @@
         (log-message log-prefix " interrupted.")))
       (.exitValue process)))
 
-(defn- rmr-as-user
+(defn rmr-as-user
   "Launches a process owned by the given user that deletes the given path
   recursively.  Throws RuntimeException if the directory is not removed."
   [conf id user path]
