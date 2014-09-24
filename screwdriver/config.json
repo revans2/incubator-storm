@@ -8,19 +8,6 @@
             "test_results_type": "junit",
             "coverage_type": "none",
             "build" : {
-                "test": {
-                    "after": [
-                        "mkdir -p $TEST_RESULTS_DIR/storm-core",
-                        "mkdir -p $TEST_RESULTS_DIR/storm-yahoo",
-                        "mkdir -p $TEST_RESULTS_DIR/storm-starter",
-                        "mkdir -p $TEST_RESULTS_DIR/storm-kafka",
-                        "cp $SRC_DIR/storm-core/target/test-reports/*.xml $TEST_RESULTS_DIR",
-                        "cp $SRC_DIR/storm-core/target/surefire-reports/*.xml $TEST_RESULTS_DIR/storm-core",
-                        "cp $SRC_DIR/storm-yahoo/target/surefire-reports/*.xml $TEST_RESULTS_DIR/storm-yahoo",
-                        "cp $SRC_DIR/examples/storm-starter/target/surefire-reports/*.xml $TEST_RESULTS_DIR/storm-starter",
-                        "cp $SRC_DIR/external/storm-kafka/target/surefire-reports/*.xml $TEST_RESULTS_DIR/storm-kafka"
-                    ]
-                },
                 "publish" : {
                     "task": "dist-install",
                     "branch": "quarantine",
