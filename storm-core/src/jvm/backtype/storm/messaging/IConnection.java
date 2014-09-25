@@ -39,7 +39,6 @@ public interface IConnection {
      * send batch messages
      * @param msgs
      */
-
     public void send(Iterator<TaskMessage> msgs);
     
     /**

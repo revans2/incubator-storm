@@ -21,7 +21,6 @@ import org.jboss.netty.channel.socket.nio.NioClientSocketChannelFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.Map;
@@ -40,9 +39,6 @@ public class Context implements IContext {
     private volatile Vector<IConnection> connections;
     private NioClientSocketChannelFactory clientChannelFactory;
     
-    private ScheduledExecutorService clientScheduleService;
-    private final int MAX_CLIENT_SCHEDULER_THREAD_POOL_SIZE = 10;
-
     /**
      * initialization per Storm configuration 
      */
@@ -62,10 +58,6 @@ public class Context implements IContext {
             clientChannelFactory = new NioClientSocketChannelFactory(Executors.newCachedThreadPool(bossFactory),
                     Executors.newCachedThreadPool(workerFactory));
         }
-        
-        int otherWorkers = Utils.getInt(storm_conf.get(Config.TOPOLOGY_WORKERS), 1) - 1;
-        int poolSize = Math.min(Math.max(1, otherWorkers), MAX_CLIENT_SCHEDULER_THREAD_POOL_SIZE);
-        clientScheduleService = Executors.newScheduledThreadPool(poolSize, new NettyRenameThreadFactory("client-schedule-service"));
     }
 
     /**
@@ -82,7 +74,7 @@ public class Context implements IContext {
      */
     public IConnection connect(String storm_id, String host, int port) {        
         IConnection client =  new Client(storm_conf, clientChannelFactory, 
-                clientScheduleService, host, port);
+                host, port);
         connections.add(client);
         return client;
     }
@@ -91,22 +83,13 @@ public class Context implements IContext {
      * terminate this context
      */
     public void term() {
-        clientScheduleService.shutdown();        
-        
         for (IConnection conn : connections) {
             conn.close();
-        }
-        
-        try {
-            clientScheduleService.awaitTermination(30, TimeUnit.SECONDS);
-        } catch (InterruptedException e) {
-            LOG.error("Error when shutting down client scheduler", e);
         }
         
         connections = null;
 
         //we need to release resources associated with client channel factory
         clientChannelFactory.releaseExternalResources();
-
     }
 }
