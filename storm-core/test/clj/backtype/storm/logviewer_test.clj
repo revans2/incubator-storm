@@ -121,7 +121,7 @@
                 logviewer/get-topo-owner-from-metadata-file exp-user]
         (is (= expected (logviewer/identify-worker-log-files [old-logFile] "/tmp/")))))))
 
-(deftest test-get-dead-worker-files-and-owners
+(deftest test-get-dead-worker-files
   (testing "removes any files of workers that are still alive"
     (let [conf {SUPERVISOR-WORKER-TIMEOUT-SECS 5}
           id->hb {"42" {:time-secs 1}}
@@ -134,36 +134,20 @@
                                                              :files #{:expected-file}}}
                  logviewer/get-topo-owner-from-metadata-file "alice"
                  supervisor/read-worker-heartbeats id->hb]
-        (is (= [{:owner exp-owner :files #{:expected-file}}]
-               (logviewer/get-dead-worker-files-and-owners conf now-secs log-files "/tmp/")))))))
+        (is (= #{:expected-file}
+               (logviewer/get-dead-worker-files conf now-secs log-files "/tmp/")))))))
 
 (deftest test-cleanup-fn
-  (testing "cleanup function removes file as user when one is specified"
-    (let [exp-user "mock-user"
-          mockfile1 (mk-mock-File {:name "file1" :type :file})
-          mockfile2 (mk-mock-File {:name "file2" :type :file})
-          mockfile3 (mk-mock-File {:name "file3" :type :file})
-          mockyaml  (mk-mock-File {:name "foo.yaml" :type :file})
-          exp-path (str "/mock/canonical/path/to/" (.getName mockfile3))]
-      (stubbing [logviewer/select-files-for-cleanup
-                   [(mk-mock-File {:name "throwaway" :type :file})]
-                 logviewer/get-dead-worker-files-and-owners
-                   [{:owner nil :files #{mockfile1}}
-                    {:files #{mockfile2}}
-                    {:owner exp-user :files #{mockfile3 mockyaml}}]
-                 supervisor/rmr-as-user nil
+  (testing "cleanup function rmr's files of dead workers"
+    (let [mockfile1 (mk-mock-File {:name "delete-me1" :type :file})
+          mockfile2 (mk-mock-File {:name "delete-me2" :type :file})]
+      (stubbing [logviewer/select-files-for-cleanup nil
+                 logviewer/get-dead-worker-files (sorted-set mockfile1 mockfile2)
                  rmr nil]
-        (logviewer/cleanup-fn! "/tmp/")
-        (verify-call-times-for supervisor/rmr-as-user 1)
-        (verify-first-call-args-for-indices supervisor/rmr-as-user
-                                            [1 2 3]
-                                            exp-path
-                                            exp-user
-                                            exp-path)
-        (verify-call-times-for rmr 3)
+        (logviewer/cleanup-fn! "/bogus/path")
+        (verify-call-times-for rmr 2)
         (verify-nth-call-args-for 1 rmr (.getCanonicalPath mockfile1))
-        (verify-nth-call-args-for 2 rmr (.getCanonicalPath mockfile2))
-        (verify-nth-call-args-for 3 rmr (.getCanonicalPath mockyaml))))))
+        (verify-nth-call-args-for 2 rmr (.getCanonicalPath mockfile2))))))
 
 (deftest test-authorized-log-user
   (testing "allow cluster admin"
