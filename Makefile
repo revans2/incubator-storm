@@ -1,7 +1,7 @@
 include /home/y/share/yahoo_cfg/screwdriver/Make.rules
 
 export GIT_REPO = git@git.corp.yahoo.com:storm/storm_tools.git
-export GIT_SCRIPTS_BRANCH = storm_tools
+export GIT_SCRIPTS_BRANCH = FixStormTaggingForSD
 export STORM_LATEST_RELEASE_TAG = ystorm_master_launcher_latest
 export STORM_MASTER_PKGS = ystorm
 export AUTO_CREATE_RELEASE_TAG = 1
