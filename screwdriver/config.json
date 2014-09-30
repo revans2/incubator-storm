@@ -20,8 +20,12 @@
                     ],
 		    "after" : [
 			"git tag -f -a `cat $SRC_DIR/yahoo-build/RELEASE` -m \"yahoo version `cat $SRC_DIR/yahoo-build/RELEASE`\"",
-			"git push origin `cat $SRC_DIR/yahoo-build/RELEASE`"
+			"git push origin `cat $SRC_DIR/yahoo-build/RELEASE`",
+			"${SRC_DIR}/internal/QATools/storm_tag_master_launcher"
 		    ]
+                },
+                 "remote_trigger": {
+                                    "url": "http://re101.ygrid.corp.gq1.yahoo.com:9999/yhudson/job/ystorm_qe_assembly/build?token=HDP"
                 }
             }
         }
