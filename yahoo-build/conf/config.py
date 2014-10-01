@@ -36,7 +36,8 @@ remappedKeys = {"storm.messaging.netty.buffer.size":"storm.messaging.netty.buffe
                 "storm.messaging.netty.min.wait.ms":"storm.messaging.netty.min_wait_ms",
                 "storm.messaging.netty.max.wait.ms":"storm.messaging.netty.max_wait_ms",
                 "storm.messaging.netty.server.worker.threads":"storm.messaging.netty.server_worker_threads",
-                "storm.messaging.netty.client.worker.threads":"storm.messaging.netty.client_worker_threads"}
+                "storm.messaging.netty.client.worker.threads":"storm.messaging.netty.client_worker_threads",
+                "nimbus.thrift.max.buffer.size":"nimbus.thrift.max_buffer_size"}
 
 listKeys = set(["storm.auth.simple-white-list.users", "supervisor.slots.ports",
  "storm.zookeeper.servers", "topology.kryo.register", "drpc.servers",
