@@ -25,7 +25,11 @@
 		    ]
                 },
                  "remote_trigger": {
-                                    "url": "http://re101.ygrid.corp.gq1.yahoo.com:9999/yhudson/job/ystorm_qe_assembly/build?token=HDP"
+                                    "url": "http://re101.ygrid.corp.gq1.yahoo.com:9999/yhudson/job/ystorm_qe_assembly",
+					"params": {
+						"token": "HDP",
+						"DIST_TAG": "ystorm_master_launcher_latest_sd"
+					}
                 }
             }
         }
