@@ -31,7 +31,11 @@ BASE_VERSION_UNDERSCORE: BASE_VERSION
 	echo "$(BASE_VERSION)" | sed -e 's/-/_/g' > BASE_VERSION_UNDERSCORE
 
 RELEASE: BASE_VERSION_UNDERSCORE
-	/home/y/bin/auto_increment_version.pl ystorm $(BASE_VERSION_UNDERSCORE) > RELEASE
+	@ if [ "$(YSTORM_BUILD_NUMBER)" != "" ]; then \
+		echo "$(BASE_VERSION_UNDERSCORE).$(YSTORM_BUILD_NUMBER)" > RELEASE; \
+	else \
+		/home/y/bin/auto_increment_version.pl ystorm $(BASE_VERSION_UNDERSCORE) > RELEASE; \
+	fi
 
 testpkg: RELEASE BASE_VERSION build
 	cd .. && ${MVN} versions:set -DnewVersion=$(MVN_FULL_VERSION)
