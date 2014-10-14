@@ -101,19 +101,14 @@ class Client implements IConnection {
         if (being_closed.get()) return;
 
         final int tried_count = retries.incrementAndGet();
-        if (tried_count <= max_retries) {
-            long sleep = retryPolicy.getSleepTimeMs(retries.get(), 0);
-            LOG.info("Waiting {} ms before trying connection to {}", sleep, remote_addr);
-            TIMER.schedule(new TimerTask() {
-                @Override
-                public void run() { 
-                    LOG.info("Reconnect ... [{}] to {}", tried_count, remote_addr);
-                    bootstrap.connect(remote_addr);
-                }}, sleep);
-        } else {
-            LOG.warn(remote_addr+" is not reachable. We will close this client.");
-            close();
-        }
+        long sleep = retryPolicy.getSleepTimeMs(retries.get(), 0);
+        LOG.info("Waiting {} ms before trying connection to {}", sleep, remote_addr);
+        TIMER.schedule(new TimerTask() {
+            @Override
+            public void run() { 
+                LOG.info("Reconnect ... [{}] to {}", tried_count, remote_addr);
+                bootstrap.connect(remote_addr);
+            }}, sleep);
     }
 
     /**
