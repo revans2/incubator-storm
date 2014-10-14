@@ -15,7 +15,6 @@
 ;; limitations under the License.
 (ns backtype.storm.messaging.netty-unit-test
   (:use [clojure test])
-;  (:use [backtype.storm.util :only [available-port]])
   (:import [backtype.storm.messaging TransportFactory])
   (:use [backtype.storm bootstrap testing util]))
 
