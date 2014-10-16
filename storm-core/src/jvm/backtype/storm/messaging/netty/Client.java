@@ -18,6 +18,7 @@
 package backtype.storm.messaging.netty;
 
 import backtype.storm.Config;
+import backtype.storm.metric.api.IStatefulObject;
 import backtype.storm.messaging.IConnection;
 import backtype.storm.messaging.TaskMessage;
 import backtype.storm.utils.Utils;
@@ -33,8 +34,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.InetSocketAddress;
+import java.net.SocketAddress;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.HashMap;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.Random;
@@ -43,7 +46,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
-class Client implements IConnection {
+class Client implements IConnection, IStatefulObject{
     private static final Logger LOG = LoggerFactory.getLogger(Client.class);
     private static final Timer TIMER = new Timer("netty-client-timer", true);
 
@@ -55,6 +58,10 @@ class Client implements IConnection {
     private final ClientBootstrap bootstrap;
     InetSocketAddress remote_addr;
     private AtomicInteger retries;
+    private AtomicInteger totalReconnects;
+    private AtomicInteger messagesEnqueued;
+    private AtomicInteger messagesSent;
+    private AtomicInteger messagesLostReconnect;
     private final Random random = new Random();
     private final ChannelFactory factory;
     private final int buffer_size;
@@ -70,6 +77,10 @@ class Client implements IConnection {
         channelRef = new AtomicReference<Channel>(null);
         being_closed = new AtomicBoolean(false);
         wait_for_requests = false;
+        totalReconnects = new AtomicInteger(0);
+        messagesSent = new AtomicInteger(0);
+        messagesEnqueued = new AtomicInteger(0);
+        messagesLostReconnect = new AtomicInteger(0);
 
         // Configure
         buffer_size = Utils.getInt(storm_conf.get(Config.STORM_MESSAGING_NETTY_BUFFER_SIZE));
@@ -101,6 +112,7 @@ class Client implements IConnection {
         if (being_closed.get()) return;
 
         final int tried_count = retries.incrementAndGet();
+        totalReconnects.incrementAndGet();
         long sleep = retryPolicy.getSleepTimeMs(retries.get(), 0);
         LOG.info("Waiting {} ms before trying connection to {}", sleep, remote_addr);
         TIMER.schedule(new TimerTask() {
@@ -123,7 +135,7 @@ class Client implements IConnection {
 
         try {
             message_queue.put(new TaskMessage(task, message));
-
+            messagesEnqueued.incrementAndGet();
             //resume delivery if it is waiting for requests
             tryDeliverMessages(true);
         } catch (InterruptedException e) {
@@ -141,6 +153,7 @@ class Client implements IConnection {
         try {
             while(msgs.hasNext()) {
               message_queue.put(msgs.next());
+              messagesEnqueued.incrementAndGet();
             }
 
             //resume delivery if it is waiting for requests
@@ -192,9 +205,11 @@ class Client implements IConnection {
             public void operationComplete(ChannelFuture future)
                     throws Exception {
                 if (!future.isSuccess()) {
+                    messagesLostReconnect.addAndGet(requests.size());
                     LOG.info("failed to send "+requests.size()+" requests to "+remote_addr, future.getCause());
                     reconnect();
                 } else {
+                    messagesSent.addAndGet(requests.size());
                     //LOG.info("{} request(s) sent", requests.size());
 
                     //Now that our requests have been sent, channel could be closed if needed
@@ -296,4 +311,23 @@ class Client implements IConnection {
             retries.set(0);
     }
 
+    @Override
+    public Object getState() {
+        LOG.info("Getting metrics for connection to "+remote_addr);
+        HashMap<String, Object> ret = new HashMap<String, Object>();
+        ret.put("queue_length", message_queue.size());
+        ret.put("reconnects", totalReconnects.getAndSet(0));
+        ret.put("enqueued", messagesEnqueued.getAndSet(0));
+        ret.put("sent", messagesSent.getAndSet(0));
+        ret.put("lostOnSend", messagesLostReconnect.getAndSet(0));
+        ret.put("dest", remote_addr.toString());
+        Channel c = channelRef.get();
+        if (c != null) {
+            SocketAddress address = c.getLocalAddress();
+            if (address != null) {
+              ret.put("src", address.toString());
+            }
+        }
+        return ret;
+    }
 }

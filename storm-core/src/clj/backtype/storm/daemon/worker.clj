@@ -200,50 +200,52 @@
                                   executor-receive-queue-map 
                                   receive-queue-map
                                   topology]
-  (recursive-map
-      :conf conf
-      :mq-context (if mq-context
+  (let [mq-context  (if mq-context
                       mq-context
-                      (TransportFactory/makeContext storm-conf))
-      :storm-id storm-id
-      :assignment-id assignment-id
-      :port port
-      :worker-id worker-id
-      :cluster-state cluster-state
-      :storm-cluster-state storm-cluster-state
-      :storm-active-atom (atom false)
-      :executors executors
-      :task-ids (->> receive-queue-map keys (map int) sort)
-      :storm-conf storm-conf
-      :topology topology
-      :system-topology (system-topology! storm-conf topology)
-      :heartbeat-timer (mk-halting-timer "heartbeat-timer")
-      :refresh-connections-timer (mk-halting-timer "refresh-connections-timer")
-      :refresh-credentials-timer (mk-halting-timer "refresh-credentials-timer")
-      :refresh-active-timer (mk-halting-timer "refresh-active-timer")
-      :executor-heartbeat-timer (mk-halting-timer "executor-heartbeat-timer")
-      :user-timer (mk-halting-timer "user-timer")
-      :task->component (HashMap. (storm-task-info topology storm-conf)) ; for optimized access when used in tasks later on
-      :component->stream->fields (component->stream->fields (:system-topology <>))
-      :component->sorted-tasks (->> (:task->component <>) reverse-map (map-val sort))
-      :endpoint-socket-lock (mk-rw-lock)
-      :cached-node+port->socket (atom {})
-      :cached-task->node+port (atom {})
-      :transfer-queue transfer-queue
-      :executor-receive-queue-map executor-receive-queue-map
-      :short-executor-receive-queue-map (map-key first executor-receive-queue-map)
-      :task->short-executor (->> executors
-                                 (mapcat (fn [e] (for [t (executor-id->tasks e)] [t (first e)])))
-                                 (into {})
-                                 (HashMap.))
-      :suicide-fn (mk-suicide-fn conf)
-      :uptime (uptime-computer)
-      :default-shared-resources (mk-default-resources <>)
-      :user-shared-resources (mk-user-resources <>)
-      :transfer-local-fn (mk-transfer-local-fn <>)
-      :receiver-thread-count (get storm-conf WORKER-RECEIVER-THREAD-COUNT)
-      :transfer-fn (mk-transfer-fn <>)
-      ))
+                      (TransportFactory/makeContext storm-conf))]
+    (recursive-map
+        :conf conf
+        :mq-context mq-context
+        :receiver (.bind ^IContext mq-context storm-id port)
+        :storm-id storm-id
+        :assignment-id assignment-id
+        :port port
+        :worker-id worker-id
+        :cluster-state cluster-state
+        :storm-cluster-state storm-cluster-state
+        :storm-active-atom (atom false)
+        :executors executors
+        :task-ids (->> receive-queue-map keys (map int) sort)
+        :storm-conf storm-conf
+        :topology topology
+        :system-topology (system-topology! storm-conf topology)
+        :heartbeat-timer (mk-halting-timer "heartbeat-timer")
+        :refresh-connections-timer (mk-halting-timer "refresh-connections-timer")
+        :refresh-credentials-timer (mk-halting-timer "refresh-credentials-timer")
+        :refresh-active-timer (mk-halting-timer "refresh-active-timer")
+        :executor-heartbeat-timer (mk-halting-timer "executor-heartbeat-timer")
+        :user-timer (mk-halting-timer "user-timer")
+        :task->component (HashMap. (storm-task-info topology storm-conf)) ; for optimized access when used in tasks later on
+        :component->stream->fields (component->stream->fields (:system-topology <>))
+        :component->sorted-tasks (->> (:task->component <>) reverse-map (map-val sort))
+        :endpoint-socket-lock (mk-rw-lock)
+        :cached-node+port->socket (atom {})
+        :cached-task->node+port (atom {})
+        :transfer-queue transfer-queue
+        :executor-receive-queue-map executor-receive-queue-map
+        :short-executor-receive-queue-map (map-key first executor-receive-queue-map)
+        :task->short-executor (->> executors
+                                   (mapcat (fn [e] (for [t (executor-id->tasks e)] [t (first e)])))
+                                   (into {})
+                                   (HashMap.))
+        :suicide-fn (mk-suicide-fn conf)
+        :uptime (uptime-computer)
+        :default-shared-resources (mk-default-resources <>)
+        :user-shared-resources (mk-user-resources <>)
+        :transfer-local-fn (mk-transfer-local-fn <>)
+        :receiver-thread-count (get storm-conf WORKER-RECEIVER-THREAD-COUNT)
+        :transfer-fn (mk-transfer-fn <>)
+        )))
 
 (defn worker-data [conf mq-context storm-id assignment-id port worker-id storm-conf cluster-state storm-cluster-state]
   (let [executors (set (read-worker-executors storm-conf storm-cluster-state storm-id assignment-id port))
@@ -363,6 +365,7 @@
   (log-message "Launching receive-thread for " (:assignment-id worker) ":" (:port worker))
   (msg-loader/launch-receive-thread!
     (:mq-context worker)
+    (:receiver worker)
     (:storm-id worker)
     (:receiver-thread-count worker)
     (:port worker)
