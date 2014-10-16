@@ -161,7 +161,7 @@ class Server implements IConnection, IStatefulObject {
     private void addReceiveCount(String from, int amount) {
         //This is possibly lossy in the case where a value is deleted
         // because it has received no messages over the metrics collection
-        // period yes some new messages are starting to come in.  This is
+        // period and new messages are starting to come in.  This is
         // because I don't want the overhead of a synchronize just to have
         // the metric be absolutely perfect.
         AtomicInteger i = messagesEnqueued.get(from);
