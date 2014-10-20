@@ -73,7 +73,7 @@ public class ForwardingMetricsConsumer implements IMetricsConsumer {
             sb.delete(header.length(), sb.length());
             sb.append(p.name)
                 .append("\t")
-                .append(p.value);
+                .append(p.value)
                 .append("\n");
             try {
               out.write(sb.toString().getBytes());
