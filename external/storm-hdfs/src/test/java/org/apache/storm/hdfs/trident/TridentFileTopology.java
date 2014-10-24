@@ -32,7 +32,7 @@ public class TridentFileTopology {
         Fields hdfsFields = new Fields("sentence", "key");
 
         FileNameFormat fileNameFormat = new DefaultFileNameFormat()
-                .withPath("/trident")
+                .withPath("/tmp/trident")
                 .withPrefix("trident")
                 .withExtension(".txt");
 
