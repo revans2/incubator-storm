@@ -679,7 +679,7 @@
         ;; buffers filled up)
         ;; the overflow buffer is might gradually fill degrading the performance gradually
         ;; eventually running out of memory, but at least prevent live-locks/deadlocks.
-        overflow-buffer (ConcurrentLinkedQueue.)]
+        overflow-buffer (if (storm-conf TOPOLOGY-BOLTS-USE-OVERFLOW-BUFFER) (ConcurrentLinkedQueue.) nil)]
     
     ;; TODO: can get any SubscribedState objects out of the context now
 
@@ -796,7 +796,7 @@
             (disruptor/consume-batch-when-available receive-queue event-handler)
             ;; try to clear the overflow-buffer
             (try-cause
-              (while (not (.isEmpty overflow-buffer))
+              (while (and overflow-buffer (not (.isEmpty overflow-buffer)))
                 (let [[out-task out-tuple] (.peek overflow-buffer)]
                   (transfer-fn out-task out-tuple false nil)
                   (.poll overflow-buffer)))

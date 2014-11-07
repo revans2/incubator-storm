@@ -993,6 +993,15 @@ public class Config extends HashMap<String, Object> {
     public static final String TOPOLOGY_CLASSPATH="topology.classpath";
     public static final Object TOPOLOGY_CLASSPATH_SCHEMA = ConfigValidation.StringOrStringListValidator;
 
+    /*
+     * Topology-specific option to disable/enable bolt's outgoing overflow buffer.
+     * The blot's overflow buffer is used to ensure that bolts do not block when emitting
+     * this ensures that the bolt can always clear the incoming messages, which
+     * prevents deadlock from occurs across the topology
+     */
+    public static final String TOPOLOGY_BOLTS_USE_OVERFLOW_BUFFER = "topology.bolts.use.overflow.buffer";
+    public static final Object TOPOLOGY_BOLTS_USE_OVERFLOW_BUFFER_SCHEMA = Boolean.class;
+
     /**
      * Topology-specific environment variables for the worker child process. 
      * This is added to the existing environment (that of the supervisor)
