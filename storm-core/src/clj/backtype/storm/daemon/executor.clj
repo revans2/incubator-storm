@@ -679,7 +679,7 @@
         ;; buffers filled up)
         ;; the overflow buffer is might gradually fill degrading the performance gradually
         ;; eventually running out of memory, but at least prevent live-locks/deadlocks.
-        overflow-buffer (if (storm-conf TOPOLOGY-BOLTS-USE-OVERFLOW-BUFFER) (ConcurrentLinkedQueue.) nil)]
+        overflow-buffer (if (storm-conf TOPOLOGY-BOLTS-OUTGOING-OVERFLOW-BUFFER-ENABLE) (ConcurrentLinkedQueue.) nil)]
     
     ;; TODO: can get any SubscribedState objects out of the context now
 
