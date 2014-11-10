@@ -997,7 +997,7 @@ public class Config extends HashMap<String, Object> {
      * Topology-specific option to disable/enable bolt's outgoing overflow buffer.
      * Enabling this option ensures that the bolt can always clear the incoming messages, 
      * preventing live-lock for the topology with cyclic flow.
-     * The overflow buffer is might gradually fill degrading the performance gradually
+     * The overflow buffer can fill degrading the performance gradually,
      * eventually running out of memory.
      */
     public static final String TOPOLOGY_BOLTS_OUTGOING_OVERFLOW_BUFFER_ENABLE="topology.bolts.outgoing.overflow.buffer.enable";
