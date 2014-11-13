@@ -1305,10 +1305,10 @@ public class Config extends HashMap<String, Object> {
         m.put("parallelism.hint", parallelismHint);
         m.put("argument", argument);
 
-        List l = (List)this.get(TOPOLOGY_METRICS_CONSUMER_REGISTER);
+        List l = (List)conf.get(TOPOLOGY_METRICS_CONSUMER_REGISTER);
         if(l == null) { l = new ArrayList(); }
         l.add(m);
-        this.put(TOPOLOGY_METRICS_CONSUMER_REGISTER, l);
+        conf.put(TOPOLOGY_METRICS_CONSUMER_REGISTER, l);
     }
 
     public void registerMetricsConsumer(Class klass, long parallelismHint) {
