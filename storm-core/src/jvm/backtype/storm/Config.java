@@ -481,6 +481,12 @@ public class Config extends HashMap<String, Object> {
     public static final Object LOGS_USERS_SCHEMA = ConfigValidation.StringsValidator;
 
     /**
+     * A list of groups allowed to view logs via the Log Viewer
+     */
+    public static final String LOGS_GROUPS = "logs.groups";
+    public static final Object LOGS_GROUPS_SCHEMA = ConfigValidation.StringsValidator;
+
+    /**
      * Appender name used by log viewer to determine log directory.
      */
     public static final String LOGVIEWER_APPENDER_NAME = "logviewer.appender.name";
@@ -515,6 +521,12 @@ public class Config extends HashMap<String, Object> {
      */
     public static final String UI_USERS = "ui.users";
     public static final Object UI_USERS_SCHEMA = ConfigValidation.StringsValidator;
+
+    /**
+     * A list of groups allowed to view topologies via the UI
+     */
+    public static final String UI_GROUPS = "ui.groups";
+    public static final Object UI_GROUPS_SCHEMA = ConfigValidation.StringsValidator;
 
     /**
      * Whether or not actions should be enabled.  When disabled, requests to
