@@ -215,46 +215,46 @@
                               "beforeString" ""
                               "afterString" " needle000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000needle "
                               "matchString" pattern
-                              "logviewerLink" (str "http://"
-                                                   expected-host
-                                                   ":"
-                                                   expected-port
-                                                   "/log?file="
-                                                   (.getName file)
-                                                   "&start=0&length=51200")}
+                              "logviewerURL" (str "http://"
+                                                  expected-host
+                                                  ":"
+                                                  expected-port
+                                                  "/log?file="
+                                                  (.getName file)
+                                                  "&start=0&length=51200")}
                              {"byteOffset" 7
                               "beforeString" "needle "
                               "afterString" "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000needle needle\n"
                               "matchString" pattern
-                              "logviewerLink" (str "http://"
-                                                   expected-host
-                                                   ":"
-                                                   expected-port
-                                                   "/log?file="
-                                                   (.getName file)
-                                                   "&start=0&length=51200")}
+                              "logviewerURL" (str "http://"
+                                                  expected-host
+                                                  ":"
+                                                  expected-port
+                                                  "/log?file="
+                                                  (.getName file)
+                                                  "&start=0&length=51200")}
                              {"byteOffset" 127
                               "beforeString" "needle needle000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
                               "afterString" " needle\n"
                               "matchString" pattern
-                              "logviewerLink" (str "http://"
-                                                   expected-host
-                                                   ":"
-                                                   expected-port
-                                                   "/log?file="
-                                                   (.getName file)
-                                                   "&start=0&length=51200")}
+                              "logviewerURL" (str "http://"
+                                                  expected-host
+                                                  ":"
+                                                  expected-port
+                                                  "/log?file="
+                                                  (.getName file)
+                                                  "&start=0&length=51200")}
                              {"byteOffset" 134
                               "beforeString" " needle000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000needle "
                               "afterString" "\n"
                               "matchString" pattern
-                              "logviewerLink" (str "http://"
-                                                   expected-host
-                                                   ":"
-                                                   expected-port
-                                                   "/log?file="
-                                                   (.getName file)
-                                                   "&start=0&length=51200")}
+                              "logviewerURL" (str "http://"
+                                                  expected-host
+                                                  ":"
+                                                  expected-port
+                                                  "/log?file="
+                                                  (.getName file)
+                                                  "&start=0&length=51200")}
                              ]}
                  (logviewer/substring-search file pattern)))))
 
@@ -266,13 +266,13 @@
                               "beforeString" "000000 "
                               "afterString" " 000000\n"
                               "matchString" pattern
-                              "logviewerLink" (str "http://"
-                                                   expected-host
-                                                   ":"
-                                                   expected-port
-                                                   "/log?file="
-                                                   (.getName file)
-                                                   "&start=0&length=51200")}]}
+                              "logviewerURL" (str "http://"
+                                                  expected-host
+                                                  ":"
+                                                  expected-port
+                                                  "/log?file="
+                                                  (.getName file)
+                                                  "&start=0&length=51200")}]}
                    (logviewer/substring-search file pattern)))))
 
       (let [file (clojure.java.io/file "src" "dev" "test-3072.log")]
@@ -286,13 +286,13 @@
                                                 clojure.string/join)
                                "afterString" ""
                                "matchString" pattern
-                               "logviewerLink" (str "http://"
-                                                    expected-host
-                                                    ":"
-                                                    expected-port
-                                                    "/log?file="
-                                                    (.getName file)
-                                                    "&start=0&length=51200")}]}]
+                               "logviewerURL" (str "http://"
+                                                   expected-host
+                                                   ":"
+                                                   expected-port
+                                                   "/log?file="
+                                                   (.getName file)
+                                                   "&start=0&length=51200")}]}]
           (is (= expected
                  (logviewer/substring-search file pattern)))
           (is (= expected
@@ -329,7 +329,7 @@
                           "beforeString" "Test "
                           "afterString" " is near the beginning of the file.\nThis file assumes a buffer size of 2048 bytes, a max search string size of 1024 bytes, and a"
                           "matchString" pattern
-                          "logviewerLink" (str "http://"
+                          "logviewerURL" (str "http://"
                                                expected-host
                                                ":"
                                                expected-port
@@ -340,7 +340,7 @@
                           "beforeString" "ng 146\npadding 147\npadding 148\npadding 149\npadding 150\npadding 151\npadding 152\npadding 153\nNear the end of a 1024 byte block, a "
                           "afterString" ".\nA needle that straddles a 1024 byte boundary should also be detected.\n\npadding 157\npadding 158\npadding 159\npadding 160\npadding"
                           "matchString" pattern
-                          "logviewerLink" (str "http://"
+                          "logviewerURL" (str "http://"
                                                expected-host
                                                ":"
                                                expected-port
@@ -351,7 +351,7 @@
                           "beforeString" "ding 147\npadding 148\npadding 149\npadding 150\npadding 151\npadding 152\npadding 153\nNear the end of a 1024 byte block, a needle.\nA "
                           "afterString" " that straddles a 1024 byte boundary should also be detected.\n\npadding 157\npadding 158\npadding 159\npadding 160\npadding 161\npaddi"
                           "matchString" pattern
-                          "logviewerLink" (str "http://"
+                          "logviewerURL" (str "http://"
                                                expected-host
                                                ":"
                                                expected-port
@@ -362,7 +362,7 @@
                           "beforeString" "adding 226\npadding 227\npadding 228\npadding 229\npadding 230\npadding 231\npadding 232\npadding 233\npadding 234\npadding 235\n\n\nHere a "
                           "afterString" " occurs just after a 1024 byte boundary.  It should have the correct context.\n\nText with two adjoining matches: needleneedle\n\npa"
                           "matchString" pattern
-                          "logviewerLink" (str "http://"
+                          "logviewerURL" (str "http://"
                                                expected-host
                                                ":"
                                                expected-port
@@ -373,7 +373,7 @@
                           "beforeString" "\n\n\nHere a needle occurs just after a 1024 byte boundary.  It should have the correct context.\n\nText with two adjoining matches: "
                           "afterString" "needle\n\npadding 243\npadding 244\npadding 245\npadding 246\npadding 247\npadding 248\npadding 249\npadding 250\npadding 251\npadding 252\n"
                           "matchString" pattern
-                          "logviewerLink" (str "http://"
+                          "logviewerURL" (str "http://"
                                                expected-host
                                                ":"
                                                expected-port
@@ -384,7 +384,7 @@
                           "beforeString" "e a needle occurs just after a 1024 byte boundary.  It should have the correct context.\n\nText with two adjoining matches: needle"
                           "afterString" "\n\npadding 243\npadding 244\npadding 245\npadding 246\npadding 247\npadding 248\npadding 249\npadding 250\npadding 251\npadding 252\npaddin"
                           "matchString" pattern
-                          "logviewerLink" (str "http://"
+                          "logviewerURL" (str "http://"
                                                expected-host
                                                ":"
                                                expected-port
@@ -404,7 +404,7 @@
                               "beforeString" "\n\nThe following match of 1024 bytes completely fills half the byte buffer.  It is a search substring of the maximum size......\n\n"
                               "afterString" "\nThe following max-size match straddles a 1024 byte buffer.\nXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
                               "matchString" pattern
-                              "logviewerLink" (str "http://"
+                              "logviewerURL" (str "http://"
                                                    expected-host
                                                    ":"
                                                    expected-port
@@ -415,7 +415,7 @@
                               "beforeString" "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX\nThe following max-size match straddles a 1024 byte buffer.\n"
                               "afterString" "\n\nHere are four non-ascii 1-byte UTF-8 characters: αβγδε\n\nneedle\n\nHere are four printable 2-byte UTF-8 characters: ¡¢£¤"
                               "matchString" pattern
-                              "logviewerLink" (str "http://"
+                              "logviewerURL" (str "http://"
                                                    expected-host
                                                    ":"
                                                    expected-port
@@ -435,7 +435,7 @@
                               "beforeString" "padding 372\npadding 373\npadding 374\npadding 375\n\nThe following tests multibyte UTF-8 Characters straddling the byte boundary:   "
                               "afterString" "\n\nneedle"
                               "matchString" pattern
-                              "logviewerLink" (str "http://"
+                              "logviewerURL" (str "http://"
                                                    expected-host
                                                    ":"
                                                    expected-port

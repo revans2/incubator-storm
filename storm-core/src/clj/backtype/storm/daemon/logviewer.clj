@@ -316,10 +316,10 @@ Note that if anything goes wrong, this will throw an Error and exit."
 (defnk mk-match-data
   [^bytes needle ^ByteBuffer haystack haystack-offset file-offset fname
    :before-bytes nil :after-bytes nil]
-  (let [link (url-to-match-centered-in-log-page needle
-                                                fname
-                                                file-offset
-                                                (*STORM-CONF* LOGVIEWER-PORT))
+  (let [url (url-to-match-centered-in-log-page needle
+                                               fname
+                                               file-offset
+                                               (*STORM-CONF* LOGVIEWER-PORT))
         haystack-bytes (.array haystack)
         before-string (if (>= haystack-offset grep-context-size)
                         (String. haystack-bytes
@@ -373,7 +373,7 @@ Note that if anything goes wrong, this will throw an Error and exit."
      "beforeString" before-string
      "afterString" after-string
      "matchString" (String. needle "UTF-8")
-     "logviewerLink" link}))
+     "logviewerURL" url}))
 
 (defn- try-read-ahead!
   "Tries once to read ahead in the stream to fill the context and resets the
