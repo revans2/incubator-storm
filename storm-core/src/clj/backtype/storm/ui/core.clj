@@ -820,11 +820,6 @@
   [sys?]
   (if (or (nil? sys?) (= "false" sys?)) false true))
 
-(defn json-response [data & [status]]
-  {:status (or status 200)
-   :headers {"Content-Type" "application/json"}
-   :body (to-json data)})
-
 (def http-creds-handler (AuthUtils/GetUiHttpCredentialsPlugin *STORM-CONF*))
 
 (defroutes main-routes

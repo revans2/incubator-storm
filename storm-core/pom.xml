@@ -249,6 +249,7 @@
                     </sourceDirectories>
                     <testSourceDirectories>
                         <testSourceDirectory>test/clj</testSourceDirectory>
+                        <testSourceDirectory>src/dev</testSourceDirectory>
                     </testSourceDirectories>
                     <warnOnReflection>false</warnOnReflection>
                     <copyDeclaredNamespaceOnly>true</copyDeclaredNamespaceOnly>

@@ -20,7 +20,8 @@
          [string :only [blank? join]]
          [walk :only [keywordize-keys]]])
   (:use [backtype.storm config log])
-  (:use [backtype.storm.util :only [clojurify-structure uuid defnk url-encode]])
+  (:use [backtype.storm.util :only [clojurify-structure uuid defnk to-json
+                                    url-encode]])
   (:use [clj-time coerce format])
   (:import [backtype.storm.generated ExecutorInfo ExecutorSummary])
   (:import [org.mortbay.jetty.security SslSocketConnector])
@@ -211,3 +212,8 @@ $(\"table#%s\").each(function(i) { $(this).tablesorter({ sortList: %s, headers: 
         configurator (:configurator config)]
     (configurator s)
     (.start s)))
+
+(defn json-response [data & [status]]
+  {:status (or status 200)
+   :headers {"Content-Type" "application/json"}
+   :body (to-json data)})

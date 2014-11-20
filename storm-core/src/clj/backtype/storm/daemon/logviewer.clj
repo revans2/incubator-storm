@@ -20,10 +20,13 @@
   (:use [hiccup core page-helpers])
   (:use [backtype.storm config util log timer])
   (:use [backtype.storm.ui helpers])
+  (:import [java.util Arrays])
   (:import [org.slf4j LoggerFactory])
   (:import [ch.qos.logback.classic Logger])
   (:import [ch.qos.logback.core FileAppender])
-  (:import [java.io File FileFilter FileInputStream])
+  (:import [java.io BufferedInputStream File FileFilter FileInputStream
+                    InputStreamReader])
+  (:import [java.nio ByteBuffer])
   (:import [org.yaml.snakeyaml Yaml]
            [org.yaml.snakeyaml.constructor SafeConstructor])
   (:import [backtype.storm.ui InvalidRequestException]
@@ -33,7 +36,6 @@
             [ring.middleware.keyword-params]
             [ring.util.response :as resp])
   (:require [backtype.storm.daemon common [supervisor :as supervisor]])
-  (:import [java.io File FileFilter])
   (:require [compojure.route :as route]
             [compojure.handler :as handler]
             [ring.util.response :as resp]
@@ -157,6 +159,14 @@
                           interval-secs
                           (fn [] (cleanup-fn! log-root-dir))))))
 
+(defn- skip-bytes
+  "FileInputStream#skip may not work the first time, so ensure it successfully
+  skips the given number of bytes."
+  [^FileInputStream stream n]
+  (loop [skipped 0]
+    (let [skipped (+ skipped (.skip stream (- n skipped)))]
+      (if (< skipped n) (recur skipped)))))
+
 (defn page-file
   ([path tail]
     (let [flen (.length (clojure.java.io/file path))
@@ -168,11 +178,7 @@
       (if (>= start (.length (clojure.java.io/file path)))
         (throw
           (InvalidRequestException. "Cannot start past the end of the file")))
-      (if (> start 0)
-        ;; FileInputStream#skip may not work the first time.
-        (loop [skipped 0]
-          (let [skipped (+ skipped (.skip input (- start skipped)))]
-            (if (< skipped start) (recur skipped)))))
+      (if (> start 0) (skip-bytes input start))
       (let [buffer (make-array Byte/TYPE 1024)]
         (loop []
           (when (< (.size output) length)
@@ -243,6 +249,8 @@ Note that if anything goes wrong, this will throw an Error and exit."
 (defn- download-link [fname]
   [[:p (link-to (url-format "/download/%s" fname) "Download Full Log")]])
 
+(def default-bytes-per-page 51200)
+
 (defn log-page [fname start length grep user root-dir]
   (if (or (blank? (*STORM-CONF* UI-FILTER))
           (authorized-log-user? user fname *STORM-CONF*))
@@ -251,10 +259,9 @@ Note that if anything goes wrong, this will throw an Error and exit."
           path (.getCanonicalPath file)]
       (if (= (File. root-dir)
              (.getParentFile file))
-        (let [default-length 51200
-              length (if length
+        (let [length (if length
                        (min 10485760 length)
-                     default-length)
+                     default-bytes-per-page)
               log-string (escape-html
                            (if start
                              (page-file path start length)
@@ -282,6 +289,290 @@ Note that if anything goes wrong, this will throw an Error and exit."
               (authorized-log-user? user fname *STORM-CONF*))
         (-> (resp/response file)
             (resp/content-type "application/octet-stream"))
+        (unauthorized-user-html user))
+      (-> (resp/response "Page not found")
+          (resp/status 404)))))
+
+(def grep-max-search-size 1024)
+(def grep-buf-size 2048)
+(def grep-context-size 128)
+
+(defn logviewer-port
+  []
+  (int (*STORM-CONF* LOGVIEWER-PORT)))
+
+(defn url-to-match-centered-in-log-page
+  [needle fname offset port]
+  (let [host (local-hostname)
+        port (logviewer-port)]
+    (url (str "http://" host ":" port "/log")
+         {:file fname
+          :start (max 0
+                      (- offset
+                         (/ default-bytes-per-page 2)
+                         (/ (alength needle) -2))) ;; Addition
+          :length default-bytes-per-page})))
+
+(defnk mk-match-data
+  [^bytes needle ^ByteBuffer haystack haystack-offset file-offset fname
+   :before-bytes nil :after-bytes nil]
+  (let [link (url-to-match-centered-in-log-page needle
+                                                fname
+                                                file-offset
+                                                (*STORM-CONF* LOGVIEWER-PORT))
+        haystack-bytes (.array haystack)
+        before-string (if (>= haystack-offset grep-context-size)
+                        (String. haystack-bytes
+                                 (- haystack-offset grep-context-size)
+                                 grep-context-size
+                                 "UTF-8")
+                        (let [num-desired (max 0 (- grep-context-size
+                                                    haystack-offset))
+                              before-size (if before-bytes
+                                            (alength before-bytes)
+                                            0)
+                              num-expected (min before-size num-desired)]
+                          (if (pos? num-expected)
+                            (str (String. before-bytes
+                                          (- before-size num-expected)
+                                          num-expected
+                                          "UTF-8")
+                                 (String. haystack-bytes
+                                          0
+                                          haystack-offset
+                                          "UTF-8"))
+                            (String. haystack-bytes
+                                     0
+                                     haystack-offset
+                                     "UTF-8"))))
+        after-string (let [needle-size (alength needle)
+                           after-offset (+ haystack-offset needle-size)
+                           haystack-size (.limit haystack)]
+                       (if (< (+ after-offset grep-context-size) haystack-size)
+                         (String. haystack-bytes
+                                  after-offset
+                                  grep-context-size
+                                  "UTF-8")
+                         (let [num-desired (- grep-context-size
+                                              (- haystack-size after-offset))
+                               after-size (if after-bytes
+                                            (alength after-bytes)
+                                            0)
+                               num-expected (min after-size num-desired)]
+                           (if (pos? num-expected)
+                             (str (String. haystack-bytes
+                                           after-offset
+                                           (- haystack-size after-offset)
+                                           "UTF-8")
+                                  (String. after-bytes 0 num-expected "UTF-8"))
+                             (String. haystack-bytes
+                                      after-offset
+                                      (- haystack-size after-offset)
+                                      "UTF-8")))))]
+    {"byteOffset" file-offset
+     "beforeString" before-string
+     "afterString" after-string
+     "matchString" (String. needle "UTF-8")
+     "logviewerLink" link}))
+
+(defn- try-read-ahead!
+  "Tries once to read ahead in the stream to fill the context and resets the
+  stream to its position before the call."
+  [^BufferedInputStream stream haystack offset file-len bytes-read]
+  (let [num-expected (min (- file-len bytes-read)
+                          grep-context-size)
+        after-bytes (byte-array num-expected)]
+    (.mark stream num-expected)
+    ;; Only try reading once.
+    (.read stream after-bytes 0 num-expected)
+    (.reset stream)
+    after-bytes))
+
+(defn offset-of-bytes
+  "Searches a given byte array for a match of a sub-array of bytes.  Returns
+  the offset to the byte that matches, or -1 if no match was found."
+  [^bytes buf ^bytes value init-offset]
+  {:pre [(> (alength value) 0)
+         (not (neg? init-offset))]}
+  (loop [offset init-offset
+         candidate-offset init-offset
+         val-offset 0]
+    (if-not (pos? (- (alength value) val-offset))
+      ;; Found
+      candidate-offset
+      (if (>= offset (alength buf))
+        ;; We ran out of buffer for the search.
+        -1
+        (if (not= (aget value val-offset) (aget buf offset))
+          ;; The next byte did not match, start over with the next byte.
+          (let [new-offset (inc candidate-offset)]
+            (recur new-offset new-offset 0))
+          ;; So far it matches.  Keep going...
+          (recur (inc offset) candidate-offset (inc val-offset)))))))
+
+(defn- buffer-substring-search!
+  "As the file is read into a buffer, 1/2 the buffer's size at a time, we
+  search the buffer for matches of the substring and return a list of zero or
+  more matches."
+  [file file-len offset-to-buf init-buf-offset stream bytes-read
+   ^ByteBuffer haystack ^bytes needle initial-matches num-matches
+   ^bytes before-bytes]
+  (loop [buf-offset init-buf-offset
+         matches initial-matches]
+   ;; TODO Just find the offset of the byte with the match.  Do not
+   ;; convert/unconvert.
+   (let [offset (offset-of-bytes (.array haystack) needle buf-offset)]
+     (if (and (< (count matches) num-matches) (not (neg? offset)))
+       (let [file-offset (+ offset-to-buf offset)
+             bytes-needed-after-match (- (.limit haystack)
+                                         grep-context-size
+                                         (alength needle))
+             before-arg (if (< offset grep-context-size) before-bytes)
+             after-arg (if (> offset bytes-needed-after-match)
+                         (try-read-ahead! stream
+                                          haystack
+                                          offset
+                                          file-len
+                                          bytes-read))]
+         (recur (+ offset (alength needle))
+                (conj matches
+                      (mk-match-data needle
+                                     haystack
+                                     offset
+                                     file-offset
+                                     (.getName file)
+                                     :before-bytes before-arg
+                                     :after-bytes after-arg))))
+       (let [before-str-to-offset (min (.limit haystack)
+                                       grep-max-search-size)
+             before-str-from-offset (max 0 (- before-str-to-offset
+                                              grep-context-size))
+             new-before-bytes (Arrays/copyOfRange (.array haystack)
+                                                  before-str-from-offset
+                                                  before-str-to-offset)
+             ;; It's OK if new-byte-offset is negative.  This is normal if
+             ;; we are out of bytes to read from a small file.
+             new-byte-offset (if (>= (count matches) num-matches)
+                               (+ (get (last matches) "byteOffset")
+                                  (alength needle))
+                               (- bytes-read grep-max-search-size))]
+         [matches new-byte-offset new-before-bytes])))))
+
+(defn- mk-grep-response
+  "This response data only includes a next byte offset if there is more of the
+  file to read."
+  [search-bytes offset matches next-byte-offset]
+  (merge {"searchString" (String. search-bytes "UTF-8")
+          "startByteOffset" offset
+          "matches" matches}
+          (and next-byte-offset {"nextByteOffset" next-byte-offset})))
+
+(defn rotate-grep-buffer!
+  [^ByteBuffer buf ^BufferedInputStream stream total-bytes-read file file-len]
+  (let [buf-arr (.array buf)]
+    ;; Copy the 2nd half of the buffer to the first half.
+    (System/arraycopy buf-arr
+                      grep-max-search-size
+                      buf-arr
+                      0
+                      grep-max-search-size)
+    ;; Zero-out the 2nd half to prevent accidental matches.
+    (Arrays/fill buf-arr
+                 grep-max-search-size
+                 (count buf-arr)
+                 (byte 0))
+    ;; Fill the 2nd half with new bytes from the stream.
+    (let [bytes-read (.read stream
+                            buf-arr
+                            grep-max-search-size
+                            (min file-len grep-max-search-size))]
+      (.limit buf (+ grep-max-search-size bytes-read))
+      (swap! total-bytes-read + bytes-read))))
+
+(defnk substring-search
+  "Searches for a substring in a log file, starting at the given offset,
+  returning the given number of matches, surrounded by the given number of
+  context lines.  Other information is included to be useful for progressively
+  searching through a file for display in a UI. The search string must
+  grep-max-search-size bytes or fewer when decoded with UTF-8."
+  [file ^String search-string :num-matches 10 :start-byte-offset 0]
+  {:pre [(<= (count (.getBytes search-string "UTF-8")) grep-max-search-size)]}
+  (let [stream ^BufferedInputStream (BufferedInputStream.
+                                      (FileInputStream. file))
+        file-len (.length file)
+        buf ^ByteBuffer (ByteBuffer/allocate grep-buf-size)
+        buf-arr ^bytes (.array buf)
+        string nil
+        total-bytes-read (atom 0)
+        matches []
+        search-bytes ^bytes (.getBytes search-string "UTF-8")]
+    ;; Start at the part of the log file we are interested in.
+    (if (>= start-byte-offset file-len)
+      (throw
+        (InvalidRequestException. "Cannot search past the end of the file")))
+    (if (> start-byte-offset 0)
+      (skip-bytes stream start-byte-offset))
+    (java.util.Arrays/fill buf-arr (byte 0))
+    (let [bytes-read (.read stream buf-arr 0 (min file-len grep-buf-size))]
+      (.limit buf bytes-read)
+      (swap! total-bytes-read + bytes-read))
+    (loop [initial-matches []
+           init-buf-offset 0
+           byte-offset start-byte-offset
+           before-bytes nil]
+      (let [[matches new-byte-offset new-before-bytes]
+              (buffer-substring-search! file
+                                        file-len
+                                        byte-offset
+                                        init-buf-offset
+                                        stream
+                                        @total-bytes-read
+                                        buf
+                                        search-bytes
+                                        initial-matches
+                                        (- num-matches (count matches))
+                                        before-bytes)]
+        (if (and (< (count matches) num-matches)
+                 (< @total-bytes-read file-len))
+          (let [;; The start index is positioned to find any possible
+                ;; occurrence search string that did not quite fit in the
+                ;; buffer on the previous read.
+                new-buf-offset (- (min (.limit ^ByteBuffer buf)
+                                       grep-max-search-size)
+                                  (alength search-bytes))]
+            (rotate-grep-buffer! buf stream total-bytes-read file file-len)
+            (recur matches
+                   new-buf-offset
+                   new-byte-offset
+                   new-before-bytes))
+          (mk-grep-response search-bytes
+                            start-byte-offset
+                            matches
+                            (if-not (and (< (count matches) num-matches)
+                                         (>= @total-bytes-read file-len))
+                              (let [next-byte-offset (+ (get (last matches)
+                                                             "byteOffset")
+                                                        (alength search-bytes))]
+                                (if (> @total-bytes-read next-byte-offset)
+                                  next-byte-offset)))))))))
+
+(defn search-log-file
+  [fname user ^String root-dir search num-matches offset]
+  (let [file (.getCanonicalFile (File. root-dir fname))]
+    (if (= (File. root-dir) (.getParentFile file))
+      (if (or (blank? (*STORM-CONF* UI-FILTER))
+              (authorized-log-user? user fname *STORM-CONF*))
+        (if (<= (count (.getBytes search "UTF-8")) grep-max-search-size)
+          (json-response
+            (substring-search file
+                              search
+                              :num-matches num-matches
+                              :start-byte-offset offset))
+          (throw
+            (-> (str "Search substring in UTF-8 is larger than "
+                     grep-max-search-size
+                     " bytes in size.")
+              InvalidRequestException.)))
         (unauthorized-user-html user))
       (-> (resp/response "Page not found")
           (resp/status 404)))))
@@ -330,6 +621,19 @@ Note that if anything goes wrong, this will throw an Error and exit."
        (try
          (let [user (.getUserName http-creds-handler servlet-request)]
            (download-log-file file servlet-request servlet-response user log-root))
+         (catch InvalidRequestException ex
+           (log-error ex)
+           (ring-response-from-exception ex))))
+  (GET "/search/:file" [:as {:keys [servlet-request log-root search-string
+                                    num-matches start-byte-offset]} file & m]
+       (try
+         (let [user (.getUserName http-creds-handler servlet-request)]
+           (search-log-file file
+                            user
+                            log-root
+                            search-string
+                            num-matches
+                            start-byte-offset))
          (catch InvalidRequestException ex
            (log-error ex)
            (ring-response-from-exception ex))))
