@@ -432,8 +432,6 @@ Note that if anything goes wrong, this will throw an Error and exit."
    ^bytes before-bytes]
   (loop [buf-offset init-buf-offset
          matches initial-matches]
-   ;; TODO Just find the offset of the byte with the match.  Do not
-   ;; convert/unconvert.
    (let [offset (offset-of-bytes (.array haystack) needle buf-offset)]
      (if (and (< (count matches) num-matches) (not (neg? offset)))
        (let [file-offset (+ offset-to-buf offset)
