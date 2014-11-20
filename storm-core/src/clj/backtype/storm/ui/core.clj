@@ -23,6 +23,7 @@
   (:use [backtype.storm.daemon [common :only [ACKER-COMPONENT-ID ACKER-INIT-STREAM-ID
                                               ACKER-ACK-STREAM-ID ACKER-FAIL-STREAM-ID system-id?]]])
   (:use [clojure.string :only [blank? lower-case trim]])
+  (:use [clojure.set :only [intersection]])
   (:import [backtype.storm.utils Utils])
   (:import [backtype.storm.generated ExecutorSpecificStats
             ExecutorStats ExecutorSummary TopologyInfo SpoutStats BoltStats
@@ -39,6 +40,7 @@
   (:gen-class))
 
 (def ^:dynamic *STORM-CONF* (read-storm-config))
+(def igroup-mapper (AuthUtils/GetGroupMappingServiceProviderPlugin *STORM-CONF*))
 
 (defmacro with-nimbus
   [nimbus-sym & body]
@@ -46,15 +48,24 @@
      [~nimbus-sym (*STORM-CONF* NIMBUS-HOST) (*STORM-CONF* NIMBUS-THRIFT-PORT)]
      ~@body))
 
+(defn user-groups
+  [user]
+  (if (blank? user) [] (.getGroups igroup-mapper user)))
+
 (defn authorized-ui-user?
   [user conf topology-conf]
-  (let [ui-users (concat (conf UI-USERS)
+  (let [groups (user-groups user)
+        ui-users (concat (conf UI-USERS)
                          (conf NIMBUS-ADMINS)
                          (topology-conf UI-USERS)
-                         (topology-conf TOPOLOGY-USERS))]
+                         (topology-conf TOPOLOGY-USERS))
+        ui-groups (concat (conf UI-GROUPS)
+                         (topology-conf UI-GROUPS)
+                         (topology-conf TOPOLOGY-GROUPS))]
     (or (blank? (conf UI-FILTER))
         (and (not (blank? user))
-          (some #(= % user) ui-users)))))
+          (or (some #(= % user) ui-users)
+            (< 0 (.size (intersection (set groups) (set ui-groups)))))))))
 
 (defn assert-authorized-ui-user
   [user conf topology-conf]

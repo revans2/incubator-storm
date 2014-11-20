@@ -23,12 +23,14 @@ import java.util.Map;
 import java.util.Set;
 import java.util.HashSet;
 import java.util.Collection;
+import java.io.IOException;
 
 import backtype.storm.Config;
 import backtype.storm.security.auth.IAuthorizer;
 import backtype.storm.security.auth.ReqContext;
 import backtype.storm.security.auth.AuthUtils;
 import backtype.storm.security.auth.IPrincipalToLocal;
+import backtype.storm.security.auth.IGroupMappingServiceProvider;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -47,10 +49,10 @@ public class SimpleACLAuthorizer implements IAuthorizer {
     protected Set<String> _admins;
     protected Set<String> _supervisors;
     protected IPrincipalToLocal _ptol;
-
+    protected IGroupMappingServiceProvider _groupMappingProvider;
     /**
      * Invoked once immediately after construction
-     * @param conf Storm configuration 
+     * @param conf Storm configuration
      */
     @Override
     public void prepare(Map conf) {
@@ -63,28 +65,28 @@ public class SimpleACLAuthorizer implements IAuthorizer {
         if (conf.containsKey(Config.NIMBUS_SUPERVISOR_USERS)) {
             _supervisors.addAll((Collection<String>)conf.get(Config.NIMBUS_SUPERVISOR_USERS));
         }
+
         _ptol = AuthUtils.GetPrincipalToLocalPlugin(conf);
+        _groupMappingProvider = AuthUtils.GetGroupMappingServiceProviderPlugin(conf);
     }
 
     /**
      * permit() method is invoked for each incoming Thrift request
-     * @param context request context includes info about 
+     * @param context request context includes info about
      * @param operation operation name
-     * @param topology_storm configuration of targeted topology 
+     * @param topology_storm configuration of targeted topology
      * @return true if the request is authorized, false if reject
      */
     @Override
     public boolean permit(ReqContext context, String operation, Map topology_conf) {
-
         LOG.info("[req "+ context.requestID()+ "] Access "
                  + " from: " + (context.remoteAddress() == null? "null" : context.remoteAddress().toString())
                  + (context.principal() == null? "" : (" principal:"+ context.principal()))
                  +" op:"+operation
                  + (topology_conf == null? "" : (" topoology:"+topology_conf.get(Config.TOPOLOGY_NAME))));
-       
+
         String principal = context.principal().getName();
         String user = _ptol.toLocal(context.principal());
-
         if (_admins.contains(principal) || _admins.contains(user)) {
             return true;
         }
@@ -106,8 +108,24 @@ public class SimpleACLAuthorizer implements IAuthorizer {
             if (topoUsers.contains(principal) || topoUsers.contains(user)) {
                 return true;
             }
+
+            Set<String> topoGroups = new HashSet<String>();
+            if (topology_conf.containsKey(Config.TOPOLOGY_GROUPS)) {
+                topoGroups.addAll((Collection<String>)topology_conf.get(Config.TOPOLOGY_GROUPS));
+            }
+
+            if(_groupMappingProvider != null && topoGroups.size() > 0) {
+                try {
+                    Set<String> userGroups = _groupMappingProvider.getGroups(user);
+                    for (String tgroup : topoGroups) {
+                        if(userGroups.contains(tgroup))
+                            return true;
+                    }
+                } catch(IOException e) {
+                    LOG.warn("Error while trying to fetch user groups",e);
+                }
+            }
         }
-         
         return false;
     }
 }
