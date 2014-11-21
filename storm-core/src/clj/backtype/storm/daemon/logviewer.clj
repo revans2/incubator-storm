@@ -570,15 +570,28 @@ Note that if anything goes wrong, this will throw an Error and exit."
                                 (if (> @total-bytes-read next-byte-offset)
                                   next-byte-offset)))))))))
 
+(defn- try-parse-int-param
+  [nam value]
+  (try
+    (Integer/parseInt value)
+    (catch java.lang.NumberFormatException e
+      (->
+        (str "Could not parse " nam " to an integer")
+        (InvalidRequestException. e)
+        throw))))
+
 (defn search-log-file
   [fname user ^String root-dir search num-matches offset]
   (let [file (.getCanonicalFile (File. root-dir fname))]
     (if (= (File. root-dir) (.getParentFile file))
       (if (or (blank? (*STORM-CONF* UI-FILTER))
               (authorized-log-user? user fname *STORM-CONF*))
-        (try
-          (let [num-matches-int (if num-matches (Integer/parseInt num-matches))
-                offset-int (if offset (Integer/parseInt offset))]
+        (let [num-matches-int (if num-matches
+                                (try-parse-int-param "num-matches"
+                                                     num-matches))
+              offset-int (if offset
+                           (try-parse-int-param "start-byte-offset" offset))]
+          (try
             (if (and (not (empty? search))
                      <= (count (.getBytes search "UTF-8")) grep-max-search-size)
               (json-response
@@ -589,14 +602,13 @@ Note that if anything goes wrong, this will throw an Error and exit."
               (throw
                 (-> (str "Search substring must be between 1 and 1024 UTF-8 "
                          "bytes in size (inclusive)")
-                    InvalidRequestException.))))
-            (catch java.lang.NumberFormatException e
-              (throw (-> (str "'num-matches' and 'start-byte-offset' must be "
-                              "integers, if specified.")
-                         (InvalidRequestException.)))))
-        (unauthorized-user-html user))
-      (-> (resp/response "Page not found")
-          (resp/status 404)))))
+                    InvalidRequestException.)))
+            (catch Exception ex
+              (json-response (exception->json ex) 500))))
+        (json-response (unauthorized-user-json user) 401))
+      (json-response {"error" "Not Found"
+                      "errorMessage" "The file was not found on this node."}
+                     404))))
 
 (defn log-template
   ([body] (log-template body nil nil))
@@ -656,7 +668,7 @@ Note that if anything goes wrong, this will throw an Error and exit."
                             (:start-byte-offset m)))
          (catch InvalidRequestException ex
            (log-error ex)
-           (ring-response-from-exception ex))))
+           (json-response (exception->json ex) 400))))
   (route/resources "/")
   (route/not-found "Page not found"))
 

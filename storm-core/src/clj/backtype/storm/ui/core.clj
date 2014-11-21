@@ -907,14 +907,6 @@
   (route/resources "/")
   (route/not-found "Page not found"))
 
-(defn exception->json
-  [ex]
-  {"error" "Internal Server Error"
-   "errorMessage"
-   (let [sw (java.io.StringWriter.)]
-     (.printStackTrace ex (java.io.PrintWriter. sw))
-     (.toString sw))})
-
 (defn catch-errors
   [handler]
   (fn [request]

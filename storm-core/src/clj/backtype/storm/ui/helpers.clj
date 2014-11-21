@@ -155,6 +155,11 @@ $(\"table#%s\").each(function(i) { $(this).tablesorter({ sortList: %s, headers: 
 (defn pretty-executor-info [^ExecutorInfo e]
   (str "[" (.get_task_start e) "-" (.get_task_end e) "]"))
 
+(defn unauthorized-user-json
+  [user]
+  {"error" "No Authorization"
+   "errorMessage" (str "User " user " is not authorized.")})
+
 (defn unauthorized-user-html [user]
   [[:h2 "User '" (escape-html user) "' is not authorized."]])
 
@@ -217,3 +222,11 @@ $(\"table#%s\").each(function(i) { $(this).tablesorter({ sortList: %s, headers: 
   {:status (or status 200)
    :headers {"Content-Type" "application/json"}
    :body (to-json data)})
+
+(defn exception->json
+  [ex]
+  {"error" "Internal Server Error"
+   "errorMessage"
+   (let [sw (java.io.StringWriter.)]
+     (.printStackTrace ex (java.io.PrintWriter. sw))
+     (.toString sw))})
