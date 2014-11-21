@@ -635,16 +635,15 @@ Note that if anything goes wrong, this will throw an Error and exit."
          (catch InvalidRequestException ex
            (log-error ex)
            (ring-response-from-exception ex))))
-  (GET "/search/:file" [:as {:keys [servlet-request log-root search-string
-                                    num-matches start-byte-offset]} file & m]
+  (GET "/search/:file" [:as {:keys [servlet-request log-root]} file & m]
        (try
          (let [user (.getUserName http-creds-handler servlet-request)]
            (search-log-file file
                             user
                             log-root
-                            search-string
-                            num-matches
-                            start-byte-offset))
+                            (:search-string m)
+                            (:num-matches m)
+                            (:start-byte-offset m)))
          (catch InvalidRequestException ex
            (log-error ex)
            (ring-response-from-exception ex))))
