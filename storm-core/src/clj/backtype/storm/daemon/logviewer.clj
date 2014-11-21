@@ -25,7 +25,7 @@
   (:import [ch.qos.logback.classic Logger])
   (:import [ch.qos.logback.core FileAppender])
   (:import [java.io BufferedInputStream File FileFilter FileInputStream
-                    InputStreamReader])
+                    InputStream InputStreamReader])
   (:import [java.nio ByteBuffer])
   (:import [org.yaml.snakeyaml Yaml]
            [org.yaml.snakeyaml.constructor SafeConstructor])
@@ -162,7 +162,7 @@
 (defn- skip-bytes
   "FileInputStream#skip may not work the first time, so ensure it successfully
   skips the given number of bytes."
-  [^FileInputStream stream n]
+  [^InputStream stream n]
   (loop [skipped 0]
     (let [skipped (+ skipped (.skip stream (- n skipped)))]
       (if (< skipped n) (recur skipped)))))
@@ -572,22 +572,28 @@ Note that if anything goes wrong, this will throw an Error and exit."
 
 (defn search-log-file
   [fname user ^String root-dir search num-matches offset]
-  {:pre [search]}
   (let [file (.getCanonicalFile (File. root-dir fname))]
     (if (= (File. root-dir) (.getParentFile file))
       (if (or (blank? (*STORM-CONF* UI-FILTER))
               (authorized-log-user? user fname *STORM-CONF*))
-        (if (and (not (empty? search))
-                 <= (count (.getBytes search "UTF-8")) grep-max-search-size)
-          (json-response
-            (substring-search file
-                              search
-                              :num-matches num-matches
-                              :start-byte-offset offset))
-          (throw
-            (-> (str "Search substring must be between 1 and 1024 UTF-8 bytes "
-                     "in size (inclusive)")
-                InvalidRequestException.)))
+        (try
+          (let [num-matches-int (if num-matches (Integer/parseInt num-matches))
+                offset-int (if offset (Integer/parseInt offset))]
+            (if (and (not (empty? search))
+                     <= (count (.getBytes search "UTF-8")) grep-max-search-size)
+              (json-response
+                (substring-search file
+                                  search
+                                  :num-matches num-matches-int
+                                  :start-byte-offset offset-int))
+              (throw
+                (-> (str "Search substring must be between 1 and 1024 UTF-8 "
+                         "bytes in size (inclusive)")
+                    InvalidRequestException.))))
+            (catch java.lang.NumberFormatException e
+              (throw (-> (str "'num-matches' and 'start-byte-offset' must be "
+                              "integers, if specified.")
+                         (InvalidRequestException.)))))
         (unauthorized-user-html user))
       (-> (resp/response "Page not found")
           (resp/status 404)))))
