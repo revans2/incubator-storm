@@ -651,13 +651,19 @@ Note that if anything goes wrong, this will throw an Error and exit."
            (log-error ex)
            (ring-response-from-exception ex))))
   (GET "/download/:file" [:as {:keys [servlet-request servlet-response log-root]} file & m]
+       ;; We do not use servlet-response here, but do not remove it from the
+       ;; :keys list, or this rule could stop working when an authentication
+       ;; filter is configured.
        (try
          (let [user (.getUserName http-creds-handler servlet-request)]
            (download-log-file file servlet-request servlet-response user log-root))
          (catch InvalidRequestException ex
            (log-error ex)
            (ring-response-from-exception ex))))
-  (GET "/search/:file" [:as {:keys [servlet-request log-root]} file & m]
+  (GET "/search/:file" [:as {:keys [servlet-request servlet-response log-root]} file & m]
+       ;; We do not use servlet-response here, but do not remove it from the
+       ;; :keys list, or this rule could stop working when an authentication
+       ;; filter is configured.
        (try
          (let [user (.getUserName http-creds-handler servlet-request)]
            (search-log-file file
