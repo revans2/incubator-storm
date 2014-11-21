@@ -473,4 +473,7 @@
             (is (= {"searchString" pattern
                     "startByteOffset" 0
                     "matches" []}
-                   (logviewer/substring-search file pattern)))))))))
+                    (logviewer/substring-search file
+                                                pattern
+                                                :num-matches nil
+                                                :start-byte-offset nil)))))))))

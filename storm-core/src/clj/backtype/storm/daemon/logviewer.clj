@@ -507,7 +507,8 @@ Note that if anything goes wrong, this will throw an Error and exit."
   searching through a file for display in a UI. The search string must
   grep-max-search-size bytes or fewer when decoded with UTF-8."
   [file ^String search-string :num-matches 10 :start-byte-offset 0]
-  {:pre [(<= (count (.getBytes search-string "UTF-8")) grep-max-search-size)]}
+  {:pre [(not (empty? search-string))
+         (<= (count (.getBytes search-string "UTF-8")) grep-max-search-size)]}
   (let [stream ^BufferedInputStream (BufferedInputStream.
                                       (FileInputStream. file))
         file-len (.length file)
@@ -516,7 +517,9 @@ Note that if anything goes wrong, this will throw an Error and exit."
         string nil
         total-bytes-read (atom 0)
         matches []
-        search-bytes ^bytes (.getBytes search-string "UTF-8")]
+        search-bytes ^bytes (.getBytes search-string "UTF-8")
+        num-matches (or num-matches 10)
+        start-byte-offset (or start-byte-offset 0)]
     ;; Start at the part of the log file we are interested in.
     (if (>= start-byte-offset file-len)
       (throw
@@ -569,21 +572,22 @@ Note that if anything goes wrong, this will throw an Error and exit."
 
 (defn search-log-file
   [fname user ^String root-dir search num-matches offset]
+  {:pre [search]}
   (let [file (.getCanonicalFile (File. root-dir fname))]
     (if (= (File. root-dir) (.getParentFile file))
       (if (or (blank? (*STORM-CONF* UI-FILTER))
               (authorized-log-user? user fname *STORM-CONF*))
-        (if (<= (count (.getBytes search "UTF-8")) grep-max-search-size)
+        (if (and (not (empty? search))
+                 <= (count (.getBytes search "UTF-8")) grep-max-search-size)
           (json-response
             (substring-search file
                               search
                               :num-matches num-matches
                               :start-byte-offset offset))
           (throw
-            (-> (str "Search substring in UTF-8 is larger than "
-                     grep-max-search-size
-                     " bytes in size.")
-              InvalidRequestException.)))
+            (-> (str "Search substring must be between 1 and 1024 UTF-8 bytes "
+                     "in size (inclusive)")
+                InvalidRequestException.)))
         (unauthorized-user-html user))
       (-> (resp/response "Page not found")
           (resp/status 404)))))
