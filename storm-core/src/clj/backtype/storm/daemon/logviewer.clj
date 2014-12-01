@@ -232,6 +232,13 @@ Note that if anything goes wrong, this will throw an Error and exit."
   [:a {:href (java.net.URI. url) 
        :class (str "btn btn-default " (if enabled "enabled" "disabled"))} text])
 
+(defn search-file-form [fname] 
+  [[:form {:action "logviewer_search.html" :id "search-box"}
+    "Search this file:"
+    [:input {:type "text" :name "search"}]
+    [:input {:type "hidden" :name "file" :value fname}]
+    [:input {:type "submit" :value "Search"}]]])
+
 (defn pager-links [fname start length file-size]
   (let [prev-start (max 0 (- start length))
         next-start (if (> file-size 0)
@@ -287,7 +294,8 @@ Note that if anything goes wrong, this will throw an Error and exit."
                              (.split log-string "\n"))
                      log-string)])
             (let [pager-data (pager-links fname start length file-length)]
-              (html (concat pager-data
+              (html (concat (search-file-form fname)
+                            pager-data
                             (download-link fname)
                             [[:pre#logContent log-string]]
                             pager-data)))))
