@@ -51,7 +51,7 @@ $(document).ready(function() {
         $("#search-form").append(Mustache.render($(template).filter("#search-single-file").html(),{file: file, search: search}));
 
         var result = $("#result");
-        var url = "/search/"+file+"?search-string="+search;
+        var url = "/search/"+file+"?search-string="+search+"&start-byte-offset="+offset;
         $.getJSON(url,function(response,status,jqXHR) {
            response.file = file;
            result.append(Mustache.render($(template).filter("#logviewer-search-result-template").html(),response));
