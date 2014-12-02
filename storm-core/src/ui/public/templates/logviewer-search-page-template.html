@@ -16,11 +16,12 @@
 -->
 <script id="logviewer-search-result-template" type="text/html">
 <table id="search-result-table" class="table table-striped compact">
+  <thead><tr><th>File offset</th><th>Match</th></tr></thead>
   <tbody>
     {{#matches}}
     <tr>
-      <td><a href="{{logviewerURL}}">{{logviewerURL}}</a></td>
-      <td>{{beforeString}}<b>{{matchString}}</b>{{afterString}}</td>
+      <td>{{byteOffset}}</td>
+      <td>{{beforeString}}<b><a href="{{logviewerURL}}">{{matchString}}</a></b>{{afterString}}</td>
     </tr>
     {{/matches}}
   </tbody>

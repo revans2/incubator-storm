@@ -16,10 +16,11 @@
 -->
 <script id="search-result-files-template" type="text/html">
 <table id="search-result-table" class="table table-striped compact">
+  <thead><tr><th>host:port</th><th>Match</th></tr></thead>
   <tbody>
     {{#hostPortList}}
       <tr id="{{elemId}}">
-        <td>LOADING {{host}}:{{port}}...</td>
+        <td>{{host}}:{{port}}</td>
         <td>LOADING ...</td>
       </tr>
     {{/hostPortList}}
@@ -29,8 +30,8 @@
 <script id="search-result-identified-template" type="text/html">
     {{#matches}}
     <tr>
-      <td><a href="http://{{host}}:{{logviewerPort}}/logviewer_search.html?file={{file}}&search={{searchString}}">more for {{host}}:{{port}}/{{file}}</a></td>
-      <td>{{beforeString}}<b>{{matchString}}</b>{{afterString}}</td>
+      <td><a href="http://{{host}}:{{logviewerPort}}/logviewer_search.html?file={{file}}&search={{searchString}}">{{host}}:{{port}}</a></td>
+      <td>{{beforeString}}<b><a href="{{logviewerURL}}">{{matchString}}</a></b>{{afterString}}</td>
     </tr>
     {{/matches}}
 </script>
