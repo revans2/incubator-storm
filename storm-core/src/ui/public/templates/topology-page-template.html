@@ -332,3 +332,14 @@
   </p>
   {{/uiActionsEnabled}}
 </script>
+
+<script id="search-form-template" type="text/html">
+<form action="search_result.html" id="search-box">
+  Search {{id}}:
+  <input type="text" name="search">
+  <input type="hidden" name="id" value="{{id}}">
+  <input type="hidden" name="count" value="1">
+  <input type="submit" value="Search">
+</form>
+</script>
+

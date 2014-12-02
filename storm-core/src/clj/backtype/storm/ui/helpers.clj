@@ -197,9 +197,9 @@
     (configurator s)
     (.start s)))
 
-(defn json-response [data & [status]]
+(defnk json-response [data :status 200 :headers {}]
   {:status (or status 200)
-   :headers {"Content-Type" "application/json"}
+   :headers (merge {"Content-Type" "application/json"} headers)
    :body (to-json data)})
 
 (defn exception->json

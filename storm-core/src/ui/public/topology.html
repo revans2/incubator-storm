@@ -45,6 +45,10 @@
     <div id="ui-user" class="col-md-1"></div>
   </div>
   <div class="row">
+    <div class="col-md-12" id="search-form">
+    </div>
+  </div>
+  <div class="row">
     <div class="col-md-12">
       <h2>Topology summary</h2>
       <div id="topology-summary"></div>
@@ -136,9 +140,13 @@ $(document).ready(function() {
         var config = $("#topology-configuration");
         var topologyActions = $("#topology-actions");
         var topologyVisualization = $("#topology-visualization")
+        var searchForm = $("#search-form")
         var formattedConfig = formatConfigData(response["configuration"]);
         var buttonJsonData = topologyActionJson(response["id"],response["name"],response["status"],response["msgTimeout"], response["uiActionsEnabled"]);
         $.get("/templates/topology-page-template.html", function(template) {
+          jsError(function() {
+            searchForm.append(Mustache.render($(template).filter("#search-form-template").html(),{id: topologyId}));
+          });
           jsError(function() {
             topologySummary.append(Mustache.render($(template).filter("#topology-summary-template").html(),response));
           });

@@ -14,26 +14,32 @@
  See the License for the specific language governing permissions and
  limitations under the License.
 -->
-<script id="logviewer-search-result-template" type="text/html">
+<script id="search-result-files-template" type="text/html">
 <table id="search-result-table" class="table table-striped compact">
   <tbody>
+    {{#hostPortList}}
+      <tr id="{{elemId}}">
+        <td>LOADING {{host}}:{{port}}...</td>
+        <td>LOADING ...</td>
+      </tr>
+    {{/hostPortList}}
+  </tbody>
+</table>
+</script>
+<script id="search-result-identified-template" type="text/html">
     {{#matches}}
     <tr>
-      <td><a href="{{logviewerURL}}">{{logviewerURL}}</a></td>
+      <td><a href="http://{{host}}:{{logviewerPort}}/logviewer_search.html?file={{file}}&search={{searchString}}">more for {{host}}:{{port}}/{{file}}</a></td>
       <td>{{beforeString}}<b>{{matchString}}</b>{{afterString}}</td>
     </tr>
     {{/matches}}
-  </tbody>
-</table>
-{{#nextByteOffset}}
-<a href="/logviewer_search.html?file={{file}}&search={{searchString}}&offset={{nextByteOffset}}">Next</a>
-{{/nextByteOffset}}
 </script>
-<script id="search-single-file" type="text/html">
-<form action="logviewer_search.html" id="search-box">
-  Search {{file}}:
+<script id="search-form-template" type="text/html">
+<form action="search_result.html" id="search-box">
+  Search {{id}}:
   <input type="text" name="search" value="{{search}}">
-  <input type="hidden" name="file" value="{{file}}">
+  <input type="hidden" name="id" value="{{id}}">
+  <input type="hidden" name="count" value="{{count}}">
   <input type="submit" value="Search">
 </form>
 </script>

@@ -593,7 +593,7 @@ Note that if anything goes wrong, this will throw an Error and exit."
         throw))))
 
 (defn search-log-file
-  [fname user ^String root-dir search num-matches offset]
+  [fname user ^String root-dir search num-matches offset origin]
   (let [file (.getCanonicalFile (File. root-dir fname))]
     (if (= (File. root-dir) (.getParentFile file))
       (if (or (blank? (*STORM-CONF* UI-FILTER))
@@ -610,17 +610,18 @@ Note that if anything goes wrong, this will throw an Error and exit."
                 (substring-search file
                                   search
                                   :num-matches num-matches-int
-                                  :start-byte-offset offset-int))
+                                  :start-byte-offset offset-int)
+                :headers {"Access-Control-Allow-Origin" origin})
               (throw
                 (-> (str "Search substring must be between 1 and 1024 UTF-8 "
                          "bytes in size (inclusive)")
                     InvalidRequestException.)))
             (catch Exception ex
-              (json-response (exception->json ex) 500))))
-        (json-response (unauthorized-user-json user) 401))
+              (json-response (exception->json ex) :status 500))))
+        (json-response (unauthorized-user-json user) :status 401))
       (json-response {"error" "Not Found"
                       "errorMessage" "The file was not found on this node."}
-                     404))))
+                     :status 404))))
 
 (defn log-template
   ([body] (log-template body nil nil))
@@ -678,16 +679,18 @@ Note that if anything goes wrong, this will throw an Error and exit."
        ;; :keys list, or this rule could stop working when an authentication
        ;; filter is configured.
        (try
+         
          (let [user (.getUserName http-creds-handler servlet-request)]
            (search-log-file file
                             user
                             log-root
                             (:search-string m)
                             (:num-matches m)
-                            (:start-byte-offset m)))
+                            (:start-byte-offset m)
+                            (.getHeader servlet-request "Origin")))
          (catch InvalidRequestException ex
            (log-error ex)
-           (json-response (exception->json ex) 400))))
+           (json-response (exception->json ex) :status 400))))
   (route/resources "/")
   (route/not-found "Page not found"))
 
