@@ -324,27 +324,31 @@
       (let [file (clojure.java.io/file "src" "dev" "test-worker.log")]
 
         (testing "next byte offsets are correct for each match"
-          (doseq [[num-matches expected-next-byte-offset] [[1 11]
-                                                           [2 2042]
-                                                           [3 2052]
-                                                           [4 3078]
-                                                           [5 3196]
-                                                           [6 3202]
-                                                           [7 6252]
-                                                           [8 6321]
-                                                           [9 6395]
-                                                           [10 6474]
-                                                           [11 6552]
-                                                           [12 nil]
-                                                           [13 nil]]]
-            (let [result (logviewer/substring-search file
-                                                     pattern
-                                                     :num-matches num-matches)]
+          (doseq [[num-matches-sought
+                   num-matches-found
+                   expected-next-byte-offset] [[1 1 11]
+                                               [2 2 2042]
+                                               [3 3 2052]
+                                               [4 4 3078]
+                                               [5 5 3196]
+                                               [6 6 3202]
+                                               [7 7 6252]
+                                               [8 8 6321]
+                                               [9 9 6397]
+                                               [10 10 6476]
+                                               [11 11 6554]
+                                               [12 12 nil]
+                                               [13 12 nil]]]
+            (let [result
+                  (logviewer/substring-search file
+                                              pattern
+                                              :num-matches num-matches-sought)]
               (is (= expected-next-byte-offset
-                     (get result "nextByteOffset"))))))
+                     (get result "nextByteOffset")))
+              (is (= num-matches-found (count (get result "matches")))))))
 
         (is
-          (= {"nextByteOffset" 3202
+          (= {"nextByteOffset" 6252
               "searchString" pattern
               "startByteOffset" 0
               "matches" [
@@ -414,8 +418,40 @@
                                                "/log?file="
                                                (.getName file)
                                                "&start=0&length=51200")}
+                         {"byteOffset" 6246
+                          "beforeString" "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX\n\nHere are four non-ascii 1-byte UTF-8 characters: αβγδε\n\n"
+                          "afterString" "\n\nHere are four printable 2-byte UTF-8 characters: ¡¢£¤¥\n\nneedle\n\n\n\nHere are four printable 3-byte UTF-8 characters: ऄअ"
+                          "matchString" pattern
+                          "logviewerURL" (str "http://"
+                                               expected-host
+                                               ":"
+                                               expected-port
+                                               "/log?file="
+                                               (.getName file)
+                                               "&start=0&length=51200")}
                          ]}
-                 (logviewer/substring-search file pattern :num-matches 6)))
+                 (logviewer/substring-search file pattern :num-matches 7)))
+
+        (testing "Correct match offset is returned when skipping bytes"
+          (let [start-byte-offset 3197]
+            (is (= {"nextByteOffset" 6252
+                    "searchString" pattern
+                    "startByteOffset" start-byte-offset
+                    "matches" [{"byteOffset" 6246
+                                "beforeString" "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX\n\nHere are four non-ascii 1-byte UTF-8 characters: αβγδε\n\n"
+                                "afterString" "\n\nHere are four printable 2-byte UTF-8 characters: ¡¢£¤¥\n\nneedle\n\n\n\nHere are four printable 3-byte UTF-8 characters: ऄअ"
+                                "matchString" pattern
+                                "logviewerURL" (str "http://"
+                                                    expected-host
+                                                    ":"
+                                                    expected-port
+                                                    "/log?file="
+                                                    (.getName file)
+                                                    "&start=0&length=51200")}]}
+                   (logviewer/substring-search file
+                                               pattern
+                                               :num-matches 1
+                                               :start-byte-offset start-byte-offset)))))
 
           (let [pattern (clojure.string/join (repeat 1024 'X))]
             (is
@@ -450,11 +486,11 @@
 
           (let [pattern "𐄀𐄁𐄂"]
             (is
-              (= {"nextByteOffset" 7174
+              (= {"nextByteOffset" 7176
                   "searchString" pattern
                   "startByteOffset" 0
                   "matches" [
-                             {"byteOffset" 7162
+                             {"byteOffset" 7164
                               "beforeString" "padding 372\npadding 373\npadding 374\npadding 375\n\nThe following tests multibyte UTF-8 Characters straddling the byte boundary:   "
                               "afterString" "\n\nneedle"
                               "matchString" pattern

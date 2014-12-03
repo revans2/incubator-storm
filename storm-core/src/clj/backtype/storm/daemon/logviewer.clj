@@ -428,8 +428,8 @@ Note that if anything goes wrong, this will throw an Error and exit."
   "As the file is read into a buffer, 1/2 the buffer's size at a time, we
   search the buffer for matches of the substring and return a list of zero or
   more matches."
-  [file file-len offset-to-buf init-buf-offset stream bytes-read
-   ^ByteBuffer haystack ^bytes needle initial-matches num-matches
+  [file file-len offset-to-buf init-buf-offset stream bytes-skipped
+   bytes-read ^ByteBuffer haystack ^bytes needle initial-matches num-matches
    ^bytes before-bytes]
   (loop [buf-offset init-buf-offset
          matches initial-matches]
@@ -467,7 +467,9 @@ Note that if anything goes wrong, this will throw an Error and exit."
              new-byte-offset (if (>= (count matches) num-matches)
                                (+ (get (last matches) "byteOffset")
                                   (alength needle))
-                               (- bytes-read grep-max-search-size))]
+                               (+ bytes-skipped
+                                  bytes-read
+                                  (- grep-max-search-size)))]
          [matches new-byte-offset new-before-bytes])))))
 
 (defn- mk-grep-response
@@ -541,11 +543,12 @@ Note that if anything goes wrong, this will throw an Error and exit."
                                         byte-offset
                                         init-buf-offset
                                         stream
+                                        start-byte-offset
                                         @total-bytes-read
                                         buf
                                         search-bytes
                                         initial-matches
-                                        (- num-matches (count matches))
+                                        num-matches
                                         before-bytes)]
         (if (and (< (count matches) num-matches)
                  (< @total-bytes-read file-len))
@@ -568,7 +571,7 @@ Note that if anything goes wrong, this will throw an Error and exit."
                               (let [next-byte-offset (+ (get (last matches)
                                                              "byteOffset")
                                                         (alength search-bytes))]
-                                (if (> @total-bytes-read next-byte-offset)
+                                (if (> file-len next-byte-offset)
                                   next-byte-offset)))))))))
 
 (defn- try-parse-int-param
