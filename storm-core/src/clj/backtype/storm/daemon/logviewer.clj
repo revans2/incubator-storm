@@ -322,8 +322,8 @@ Note that if anything goes wrong, this will throw an Error and exit."
          {:file fname
           :start (max 0
                       (- offset
-                         (/ default-bytes-per-page 2)
-                         (/ (alength needle) -2))) ;; Addition
+                         (int (/ default-bytes-per-page 2))
+                         (int (/ (alength needle) -2)))) ;; Addition
           :length default-bytes-per-page})))
 
 (defnk mk-match-data
