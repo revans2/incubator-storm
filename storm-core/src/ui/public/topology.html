@@ -110,12 +110,23 @@ $(document).ready(function() {
             });
         }
     });
+    function jsError(other) {
+      try {
+        other();
+      } catch (err) {
+        $.get("/templates/json-error-template.html", function(template) {
+          $("#json-response-error").append(Mustache.render($(template).filter("#json-error-template").html(),{error: "JS Error", errorMessage: err}));
+        });
+      }
+    }
 
     $.getJSON(url,function(response,status,jqXHR) {
         var uiUser = $("#ui-user");
         $.get("/templates/user-template.html", function(template) {
+          jsError(function() {
             uiUser.append(Mustache.render($(template).filter("#user-template").html(),response));
             $('#ui-user [data-toggle="tooltip"]').tooltip();
+          });
         });
 
         var topologySummary = $("#topology-summary");
@@ -128,8 +139,13 @@ $(document).ready(function() {
         var formattedConfig = formatConfigData(response["configuration"]);
         var buttonJsonData = topologyActionJson(response["id"],response["name"],response["status"],response["msgTimeout"], response["uiActionsEnabled"]);
         $.get("/templates/topology-page-template.html", function(template) {
+          jsError(function() {
             topologySummary.append(Mustache.render($(template).filter("#topology-summary-template").html(),response));
+          });
+          jsError(function() {
             topologyActions.append(Mustache.render($(template).filter("#topology-actions-template").html(),buttonJsonData));
+          });
+          jsError(function() {
             topologyStats.append(Mustache.render($(template).filter("#topology-stats-template").html(),response));
             //window, emitted, transferred, complete latency, acked, failed
             $("#topology-stats-table").DataTable({
@@ -141,7 +157,9 @@ $(document).ready(function() {
                 {type: "time-str", targets: [0]}
               ]
             });
+          });
 
+          jsError(function() {
             spoutStats.append(Mustache.render($(template).filter("#spout-stats-template").html(),response));
             //id, executors, tasks, emitted, transferred, complete latency, acked, failed, Last error
             dtAutoPage("#spout-stats-table", {
@@ -149,7 +167,9 @@ $(document).ready(function() {
                 {type: "num", targets: [1, 2, 3, 4, 5, 6, 7]}
               ]
             });
+          });
 
+          jsError(function() {
             boltStats.append(Mustache.render($(template).filter("#bolt-stats-template").html(),response));
             //id, executors, tasks, emitted, transferred, capacity, execute latency, executed, process latency, acked, failed, last error
             dtAutoPage("#bolt-stats-table", {
@@ -157,14 +177,18 @@ $(document).ready(function() {
                 {type: "num", targets: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]}
               ]
             });
+          });
 
+          jsError(function() {
             topologyVisualization.append(Mustache.render($(template).filter("#topology-visualization-template").html(), response));
             $("#show-hide-visualization").click(function () { show_visualization(null) });
 
             config.append(Mustache.render($(template).filter("#topology-configuration-template").html(),formattedConfig));
             //key, value
             dtAutoPage("#topology-configuration-table", {});
+          });
 
+          jsError(function() {
             var errorCells = document.getElementsByClassName("errorSpan");
             for (i =0; i < errorCells.length; i++)
             {
@@ -174,13 +198,14 @@ $(document).ready(function() {
                 errorCells[i].style.borderBottomColor = "#9d261d";
               }
             }
-            $('#topology-summary [data-toggle="tooltip"]').tooltip();
-            $('#topology-stats [data-toggle="tooltip"]').tooltip();
-            $('#spout-stats [data-toggle="tooltip"]').tooltip();
-            $('#bolt-stats [data-toggle="tooltip"]').tooltip();
-            $('#topology-configuration [data-toggle="tooltip"]').tooltip();
-            $('#topology-actions [data-toggle="tooltip"]').tooltip();
-            $('#topology-visualization [data-toggle="tooltip"]').tooltip();
+          });
+          $('#topology-summary [data-toggle="tooltip"]').tooltip();
+          $('#topology-stats [data-toggle="tooltip"]').tooltip();
+          $('#spout-stats [data-toggle="tooltip"]').tooltip();
+          $('#bolt-stats [data-toggle="tooltip"]').tooltip();
+          $('#topology-configuration [data-toggle="tooltip"]').tooltip();
+          $('#topology-actions [data-toggle="tooltip"]').tooltip();
+          $('#topology-visualization [data-toggle="tooltip"]').tooltip();
         });
     });
  });

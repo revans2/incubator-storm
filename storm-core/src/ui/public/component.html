@@ -68,6 +68,15 @@
   </div>
 <script>
 $(document).ready(function() {
+    function jsError(other) {
+      try {
+        other();
+      } catch (err) {
+        $.get("/templates/json-error-template.html", function(template) {
+          $("#json-response-error").append(Mustache.render($(template).filter("#json-error-template").html(),{error: "JS Error", errorMessage: err}));
+        });
+      }
+    }
     var componentId = $.url().param("id");
     var topologyId = $.url().param("topology_id");
     var tableStateKey = ":".concat(topologyId, ":", componentId);
@@ -101,8 +110,10 @@ $(document).ready(function() {
     $.getJSON(url,function(response,status,jqXHR) {
         var uiUser = $("#ui-user");
         $.get("/templates/user-template.html", function(template) {
-            uiUser.append(Mustache.render($(template).filter("#user-template").html(),response));
-            $('#ui-user [data-toggle="tooltip"]').tooltip()
+            jsError(function() {
+              uiUser.append(Mustache.render($(template).filter("#user-template").html(),response));
+              $('#ui-user [data-toggle="tooltip"]').tooltip();
+            });
         });
 
         var componentSummary = $("#component-summary");
@@ -112,8 +123,11 @@ $(document).ready(function() {
         var executorStats = $("#component-executor-stats");
         var componentErrors = $("#component-errors");
         $.get("/templates/component-page-template.html", function(template) {
-            componentSummary.append(Mustache.render($(template).filter("#component-summary-template").html(),response));
+            jsError(function() {
+              componentSummary.append(Mustache.render($(template).filter("#component-summary-template").html(),response));
+            });
             if(response["componentType"] == "spout") {
+              jsError(function() {
                 componentStatsDetail.append(Mustache.render($(template).filter("#spout-stats-detail-template").html(),response));
                 //window, emitted, transferred, complete latency, acked, failed
                 $("#spout-stats-table").DataTable({
@@ -125,7 +139,9 @@ $(document).ready(function() {
                     {type: "time-str", targets: [0]}
                   ]
                 });
+              });
 
+              jsError(function() {
                 outputStats.append(Mustache.render($(template).filter("#output-stats-template").html(),response));
                 //stream, emitted, transferred, compltete latency, acked, failed
                 dtAutoPage("#output-stats-table", {
@@ -133,7 +149,10 @@ $(document).ready(function() {
                     {type: "num", targets: [1, 2, 3, 4, 5]}
                   ]
                 });
+              });
 
+
+              jsError(function() {
                 executorStats.append(Mustache.render($(template).filter("#executor-stats-template").html(),response));
                 //id, uptime, host, port, emitted, transferred, complete latency, acked, failed
                 dtAutoPage("#executor-stats-table", {
@@ -142,7 +161,9 @@ $(document).ready(function() {
                     {type: "time-str", targets: [1]}
                   ]
                 });
+              });
             } else {
+              jsError(function() {
                 componentStatsDetail.append(Mustache.render($(template).filter("#bolt-stats-template").html(),response));
                 //window, emitted, transferred, execute latency, executed, process latency, acked, failed
                 dtAutoPage("#bolt-stats-table", {
@@ -151,7 +172,9 @@ $(document).ready(function() {
                     {type: "time-str", targets: [0]}
                   ]
                 });
+              });
 
+              jsError(function() {
                 inputStats.append(Mustache.render($(template).filter("#bolt-input-stats-template").html(),response));
                 //component, stream, execute latency, executed, process latency, acked, failed
                 dtAutoPage("#bolt-input-stats-table", {
@@ -159,7 +182,9 @@ $(document).ready(function() {
                     {type: "num", targets: [2, 3, 4, 5, 6]}
                   ]
                 });
+              });
 
+              jsError(function() {
                 outputStats.append(Mustache.render($(template).filter("#bolt-output-stats-template").html(),response));
                 //stream, emitted, transferred
                 dtAutoPage("#bolt-output-stats-table", {
@@ -167,7 +192,9 @@ $(document).ready(function() {
                     {type: "num", targets: [1, 2]}
                   ]
                 });
+              });
 
+              jsError(function() {
                 executorStats.append(Mustache.render($(template).filter("#bolt-executor-template").html(),response));
                 //id, uptime, host, port, emitted, transferred, capacity, execute latency, executed, process latency, acked, failed
                 dtAutoPage("#bolt-executor-table", {
@@ -176,20 +203,24 @@ $(document).ready(function() {
                     {type: "time-str", targets: [1]}
                   ]
                 });
+              });
             }
-            componentErrors.append(Mustache.render($(template).filter("#component-errors-template").html(), response));
-            //time, error
-            dtAutoPage("#component-errors-table", {});
 
-            var errorCells = document.getElementsByClassName("errorSpan");
-            for (i =0; i < errorCells.length; i++)
-            {
-              var timeLapsedInSecs = errorCells[i].id;
-              if (parseInt(timeLapsedInSecs) < 1800) {
-                errorCells[i].style.color = "#9d261d";
-                errorCells[i].style.borderBottomColor = "#9d261d";
+            jsError(function() {
+              componentErrors.append(Mustache.render($(template).filter("#component-errors-template").html(), response));
+              //time, error
+              dtAutoPage("#component-errors-table", {});
+
+              var errorCells = document.getElementsByClassName("errorSpan");
+              for (i =0; i < errorCells.length; i++)
+              {
+                var timeLapsedInSecs = errorCells[i].id;
+                if (parseInt(timeLapsedInSecs) < 1800) {
+                  errorCells[i].style.color = "#9d261d";
+                  errorCells[i].style.borderBottomColor = "#9d261d";
+                }
               }
-            }
+            });
             $('#component-summary [data-toggle="tooltip"]').tooltip();
             $('#component-stats-detail [data-toggle="tooltip"]').tooltip();
             $('#component-input-stats [data-toggle="tooltip"]').tooltip();
