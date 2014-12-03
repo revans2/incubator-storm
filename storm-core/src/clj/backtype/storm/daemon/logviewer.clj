@@ -417,7 +417,8 @@ Note that if anything goes wrong, this will throw an Error and exit."
         ;; We ran out of buffer for the search.
         -1
         (if (not= (aget value val-offset) (aget buf offset))
-          ;; The next byte did not match, start over with the next byte.
+          ;; The match at this candidate offset failed, so start over with the
+          ;; next candidate byte from the buffer.
           (let [new-offset (inc candidate-offset)]
             (recur new-offset new-offset 0))
           ;; So far it matches.  Keep going...
