@@ -20,7 +20,8 @@
          [string :only [blank? join]]
          [walk :only [keywordize-keys]]])
   (:use [backtype.storm config log])
-  (:use [backtype.storm.util :only [clojurify-structure uuid defnk url-encode]])
+  (:use [backtype.storm.util :only [clojurify-structure uuid defnk to-json
+                                    url-encode]])
   (:use [clj-time coerce format])
   (:import [backtype.storm.generated ExecutorInfo ExecutorSummary])
   (:import [org.mortbay.jetty.security SslSocketConnector])
@@ -154,6 +155,11 @@ $(\"table#%s\").each(function(i) { $(this).tablesorter({ sortList: %s, headers: 
 (defn pretty-executor-info [^ExecutorInfo e]
   (str "[" (.get_task_start e) "-" (.get_task_end e) "]"))
 
+(defn unauthorized-user-json
+  [user]
+  {"error" "No Authorization"
+   "errorMessage" (str "User " user " is not authorized.")})
+
 (defn unauthorized-user-html [user]
   [[:h2 "User '" (escape-html user) "' is not authorized."]])
 
@@ -211,3 +217,16 @@ $(\"table#%s\").each(function(i) { $(this).tablesorter({ sortList: %s, headers: 
         configurator (:configurator config)]
     (configurator s)
     (.start s)))
+
+(defn json-response [data & [status]]
+  {:status (or status 200)
+   :headers {"Content-Type" "application/json"}
+   :body (to-json data)})
+
+(defn exception->json
+  [ex]
+  {"error" "Internal Server Error"
+   "errorMessage"
+   (let [sw (java.io.StringWriter.)]
+     (.printStackTrace ex (java.io.PrintWriter. sw))
+     (.toString sw))})

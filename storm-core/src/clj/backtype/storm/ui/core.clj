@@ -831,11 +831,6 @@
   [sys?]
   (if (or (nil? sys?) (= "false" sys?)) false true))
 
-(defn json-response [data & [status]]
-  {:status (or status 200)
-   :headers {"Content-Type" "application/json"}
-   :body (to-json data)})
-
 (def http-creds-handler (AuthUtils/GetUiHttpCredentialsPlugin *STORM-CONF*))
 
 (defroutes main-routes
@@ -911,14 +906,6 @@
        (resp/redirect "/index.html"))
   (route/resources "/")
   (route/not-found "Page not found"))
-
-(defn exception->json
-  [ex]
-  {"error" "Internal Server Error"
-   "errorMessage"
-   (let [sw (java.io.StringWriter.)]
-     (.printStackTrace ex (java.io.PrintWriter. sw))
-     (.toString sw))})
 
 (defn catch-errors
   [handler]
