@@ -31,7 +31,7 @@
     {{#matches}}
     <tr>
       <td><a href="http://{{host}}:{{logviewerPort}}/logviewer_search.html?file={{file}}&search={{searchString}}">{{host}}:{{port}}</a></td>
-      <td>{{beforeString}}<b><a href="{{logviewerURL}}">{{matchString}}</a></b>{{afterString}}</td>
+      <td><pre>{{beforeString}}<b><a href="{{logviewerURL}}">{{matchString}}</a></b>{{afterString}}</pre></td>
     </tr>
     {{/matches}}
 </script>
