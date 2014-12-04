@@ -15,6 +15,9 @@
  limitations under the License.
 -->
 <script id="logviewer-search-result-template" type="text/html">
+{{#nextByteOffset}}
+<a href="/logviewer_search.html?file={{file}}&search={{searchString}}&offset={{nextByteOffset}}" class="btn btn-default enabled">Next</a>
+{{/nextByteOffset}}
 <table id="search-result-table" class="table table-striped compact">
   <thead><tr><th>File offset</th><th>Match</th></tr></thead>
   <tbody>
@@ -27,7 +30,7 @@
   </tbody>
 </table>
 {{#nextByteOffset}}
-<a href="/logviewer_search.html?file={{file}}&search={{searchString}}&offset={{nextByteOffset}}">Next</a>
+<a href="/logviewer_search.html?file={{file}}&search={{searchString}}&offset={{nextByteOffset}}" class="btn btn-default enabled">Next</a>
 {{/nextByteOffset}}
 </script>
 <script id="search-single-file" type="text/html">
