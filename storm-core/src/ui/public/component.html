@@ -205,9 +205,6 @@ $(document).ready(function() {
                 });
               });
             }
-            componentErrors.append(Mustache.render($(template).filter("#component-errors-template").html(), response));
-            //time, error
-            dtAutoPage("#component-errors-table", {});
 
             jsError(function() {
               componentErrors.append(Mustache.render($(template).filter("#component-errors-template").html(), response));
