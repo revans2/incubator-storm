@@ -628,6 +628,18 @@
         "acked" (get-in stats [:acked k])
         "failed" (get-in stats [:failed k])})))
 
+(defn exec-host-port
+  [executors]
+  (for [^ExecutorSummary e executors]
+    {"host" (.get_host e)
+     "port" (.get_port e)}))
+
+(defn worker-host-port
+  "Get the set of all worker host/ports"
+  [id]
+  (with-nimbus nimbus
+    (distinct (exec-host-port (.get_executors (.getTopologyInfo nimbus id))))))
+
 (defn topology-page [id window include-sys? user]
   (with-nimbus nimbus
     (let [window (if window window ":all-time")
@@ -843,6 +855,11 @@
        (json-response (supervisor-summary)))
   (GET "/api/v1/topology/summary" []
        (json-response (all-topologies-summary)))
+  (GET  "/api/v1/topology-workers/:id" [:as {:keys [cookies servlet-request]} id & m]
+        (let [id (url-decode id)
+              user (.getUserName http-creds-handler servlet-request)]
+          (json-response {"hostPortList" (worker-host-port id)
+                          "logviewerPort" (*STORM-CONF* LOGVIEWER-PORT)})))
   (GET  "/api/v1/topology/:id" [:as {:keys [cookies servlet-request]} id & m]
         (let [id (url-decode id)
               user (.getUserName http-creds-handler servlet-request)]
@@ -913,7 +930,7 @@
     (try
       (handler request)
       (catch Exception ex
-        (json-response (exception->json ex) 500)))))
+        (json-response (exception->json ex) :status 500)))))
 
 (def app
   (handler/site (-> main-routes

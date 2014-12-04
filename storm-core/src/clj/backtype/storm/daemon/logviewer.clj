@@ -232,6 +232,13 @@ Note that if anything goes wrong, this will throw an Error and exit."
   [:a {:href (java.net.URI. url) 
        :class (str "btn btn-default " (if enabled "enabled" "disabled"))} text])
 
+(defn search-file-form [fname]
+  [[:form {:action "logviewer_search.html" :id "search-box"}
+    "Search this file:"
+    [:input {:type "text" :name "search"}]
+    [:input {:type "hidden" :name "file" :value fname}]
+    [:input {:type "submit" :value "Search"}]]])
+
 (defn pager-links [fname start length file-size]
   (let [prev-start (max 0 (- start length))
         next-start (if (> file-size 0)
@@ -287,7 +294,8 @@ Note that if anything goes wrong, this will throw an Error and exit."
                              (.split log-string "\n"))
                      log-string)])
             (let [pager-data (pager-links fname start length file-length)]
-              (html (concat pager-data
+              (html (concat (search-file-form fname)
+                            pager-data
                             (download-link fname)
                             [[:pre#logContent log-string]]
                             pager-data)))))
@@ -585,7 +593,7 @@ Note that if anything goes wrong, this will throw an Error and exit."
         throw))))
 
 (defn search-log-file
-  [fname user ^String root-dir search num-matches offset]
+  [fname user ^String root-dir search num-matches offset origin]
   (let [file (.getCanonicalFile (File. root-dir fname))]
     (if (= (File. root-dir) (.getParentFile file))
       (if (or (blank? (*STORM-CONF* UI-FILTER))
@@ -602,17 +610,18 @@ Note that if anything goes wrong, this will throw an Error and exit."
                 (substring-search file
                                   search
                                   :num-matches num-matches-int
-                                  :start-byte-offset offset-int))
+                                  :start-byte-offset offset-int)
+                :headers {"Access-Control-Allow-Origin" origin})
               (throw
                 (-> (str "Search substring must be between 1 and 1024 UTF-8 "
                          "bytes in size (inclusive)")
                     InvalidRequestException.)))
             (catch Exception ex
-              (json-response (exception->json ex) 500))))
-        (json-response (unauthorized-user-json user) 401))
+              (json-response (exception->json ex) :status 500))))
+        (json-response (unauthorized-user-json user) :status 401))
       (json-response {"error" "Not Found"
                       "errorMessage" "The file was not found on this node."}
-                     404))))
+                     :status 404))))
 
 (defn log-template
   ([body] (log-template body nil nil))
@@ -676,10 +685,11 @@ Note that if anything goes wrong, this will throw an Error and exit."
                             log-root
                             (:search-string m)
                             (:num-matches m)
-                            (:start-byte-offset m)))
+                            (:start-byte-offset m)
+                            (.getHeader servlet-request "Origin")))
          (catch InvalidRequestException ex
            (log-error ex)
-           (json-response (exception->json ex) 400))))
+           (json-response (exception->json ex) :status 400))))
   (route/resources "/")
   (route/not-found "Page not found"))
 
