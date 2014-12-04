@@ -232,7 +232,7 @@ Note that if anything goes wrong, this will throw an Error and exit."
   [:a {:href (java.net.URI. url) 
        :class (str "btn btn-default " (if enabled "enabled" "disabled"))} text])
 
-(defn search-file-form [fname] 
+(defn search-file-form [fname]
   [[:form {:action "logviewer_search.html" :id "search-box"}
     "Search this file:"
     [:input {:type "text" :name "search"}]
@@ -679,7 +679,6 @@ Note that if anything goes wrong, this will throw an Error and exit."
        ;; :keys list, or this rule could stop working when an authentication
        ;; filter is configured.
        (try
-         
          (let [user (.getUserName http-creds-handler servlet-request)]
            (search-log-file file
                             user

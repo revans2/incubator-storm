@@ -57,7 +57,7 @@ $(document).ready(function() {
              var port = response.hostPortList[index].port;
              var elemId = "search-results-"+host.replace(/\./g,"-")+"-"+port;
              response.hostPortList[index].elemId = elemId;
-           } 
+           }
            result.append(Mustache.render($(template).filter("#search-result-files-template").html(),response));
 
            var logviewerPort = response.logviewerPort;
