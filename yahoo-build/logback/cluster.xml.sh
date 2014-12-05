@@ -12,7 +12,7 @@ cat <<XML
     <rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
       <fileNamePattern>\${storm.home}/logs/\${logfile.name}.%i.gz</fileNamePattern>
       <minIndex>1</minIndex>
-      <maxIndex>9</maxIndex>
+      <maxIndex>${daemon_max_rolled_logs}</maxIndex>
     </rollingPolicy>
 
     <triggeringPolicy class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
