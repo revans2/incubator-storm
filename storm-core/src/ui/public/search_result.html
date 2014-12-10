@@ -67,16 +67,24 @@ $(document).ready(function() {
              var elemId = response.hostPortList[index].elemId;
              var file = id+"-worker-"+port+".log";
              var searchURL = "http://"+host+":"+logviewerPort+"/search/"+file+"?search-string="+search+"&num-matches="+count;
-             $.getJSON(searchURL, $.proxy(function(response,status,jqXHR) {
-               response.file = this.file;
-               response.host = this.host;
-               response.port = this.port;
-               response.id = id;
-               response.logviewerPort = logviewerPort;
-               var searchTemp = $(template).filter("#search-result-identified-template").html();
-               var rendered = Mustache.render(searchTemp, response);
-               $("#"+this.elemId).replaceWith(rendered);
-             }, {host: host, port: port, file: file, elemId: elemId}));
+
+             $.ajax({dataType: "json",
+               url: searchURL,
+               xhrFields: {
+                 withCredentials: true
+               },
+               data: "{}",
+               success: $.proxy(function(data,status,jqXHR) {
+                                  data.file = this.file;
+                                  data.host = this.host;
+                                  data.port = this.port;
+                                  data.id = id;
+                                  data.logviewerPort = logviewerPort;
+                                  var searchTemp = $(template).filter("#search-result-identified-template").html();
+                                  var rendered = Mustache.render(searchTemp, data);
+                                  $("#"+this.elemId).replaceWith(rendered);
+                                  }, {host: host, port: port, file: file, elemId: elemId})
+             });
            }
        });
     });
