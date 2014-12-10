@@ -30,6 +30,7 @@ YINST set storm_messaging_transport       backtype.storm.messaging.netty.Context
 YINST set logviewer_cleanup_interval_secs 1440
 YINST set drpc_http_port                  -1
 YINST set drpc_authorizer_acl_strict      true
+YINST set daemon_max_rolled_logs          9
 
 # Bouncer UI Filter Configuration
 #YINST set ui_filter                yjava.servlet.filter.BouncerFilter
