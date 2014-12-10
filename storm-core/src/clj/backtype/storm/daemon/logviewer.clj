@@ -611,7 +611,8 @@ Note that if anything goes wrong, this will throw an Error and exit."
                                   search
                                   :num-matches num-matches-int
                                   :start-byte-offset offset-int)
-                :headers {"Access-Control-Allow-Origin" origin})
+                :headers {"Access-Control-Allow-Origin" origin
+                          "Access-Control-Allow-Credentials" "true"})
               (throw
                 (-> (str "Search substring must be between 1 and 1024 UTF-8 "
                          "bytes in size (inclusive)")
