@@ -1,7 +1,6 @@
 package org.apache.storm.hdfs.bolt.format;
 
 import backtype.storm.tuple.Tuple;
-import org.apache.hadoop.io.Writable;
 
 import java.io.Serializable;
 
@@ -29,12 +28,12 @@ public interface SequenceFormat extends Serializable {
      * @param tuple
      * @return
      */
-    Writable key(Tuple tuple);
+    Object key(Tuple tuple);
 
     /**
      * Given a tuple, return the value that should be written to the sequence file.
      * @param tuple
      * @return
      */
-    Writable value(Tuple tuple);
+    Object value(Tuple tuple);
 }
