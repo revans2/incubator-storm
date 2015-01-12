@@ -66,6 +66,7 @@ class Client implements IConnection, IStatefulObject{
     private final ChannelFactory factory;
     private final int buffer_size;
     private final AtomicBoolean being_closed;
+    private final AtomicBoolean close_msg_enqueued;
     private boolean wait_for_requests;
     private final StormBoundedExponentialBackoffRetry retryPolicy;
 
@@ -76,6 +77,7 @@ class Client implements IConnection, IStatefulObject{
         retries = new AtomicInteger(0);
         channelRef = new AtomicReference<Channel>(null);
         being_closed = new AtomicBoolean(false);
+        close_msg_enqueued = new AtomicBoolean(false);
         wait_for_requests = false;
         totalReconnects = new AtomicInteger(0);
         messagesSent = new AtomicInteger(0);
@@ -118,6 +120,12 @@ class Client implements IConnection, IStatefulObject{
         TIMER.schedule(new TimerTask() {
             @Override
             public void run() { 
+                if (being_closed.get()) {
+                    LOG.debug(
+                            "Not reconnecting to {} since we are closing [{}]",
+                            remote_addr, tried_count);
+                    return;
+                }
                 LOG.info("Reconnect ... [{}] to {}", tried_count, remote_addr);
                 bootstrap.connect(remote_addr);
             }}, sleep);
@@ -175,7 +183,15 @@ class Client implements IConnection, IStatefulObject{
 
         //make sure that channel was not closed
         Channel channel = channelRef.get();
-        if (channel == null)  return;
+        if ((channel == null || !channel.isOpen())
+                && close_msg_enqueued.get()) {
+            LOG.debug("Channel: ({}), Close Message Enqueued: ({})", channel, close_msg_enqueued.get());
+            being_closed.set(true);
+            return;
+        }
+        if (channel == null) {
+            return;
+        }
         if (!channel.isOpen()) {
             LOG.info("Channel to {} is no longer open.",remote_addr);
             //The channel is not open yet. Reconnect?
@@ -273,7 +289,9 @@ class Client implements IConnection, IStatefulObject{
     public void close() {
         //enqueue a CLOSE message so that shutdown() will be invoked
         try {
+            LOG.debug("Enqueing close message");
             message_queue.put(ControlMessage.CLOSE_MESSAGE);
+            close_msg_enqueued.set(true);
 
             //resume delivery if it is waiting for requests
             tryDeliverMessages(true);
