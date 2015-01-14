@@ -355,3 +355,26 @@ service DistributedRPCInvocations {
   DRPCRequest fetchRequest(1: string functionName) throws (1: AuthorizationException aze);
   void failRequest(1: string id) throws (1: AuthorizationException aze);  
 }
+
+exception HBExecutionException {
+  1: required string msg;
+}
+
+struct Pulse {
+  1: required string id;
+  2: binary details;
+}
+
+struct HBRecords {
+  1: list<Pulse> pulses;
+}
+
+service HBServer {
+  void createPath(1: string path) throws (1: HBExecutionException e, 2: AuthorizationException aze);
+  bool exists(1: string path) throws (1: HBExecutionException e, 2: AuthorizationException aze);
+  void sendPulse(1: Pulse pulse) throws (1: HBExecutionException e, 2: AuthorizationException aze);
+  HBRecords getAllPulseForPath(1: string idPrefix) throws (1: HBExecutionException e, 2: AuthorizationException aze);
+  Pulse getPulse(1: string id) throws (1: HBExecutionException e, 2: AuthorizationException aze);
+  void deletePath(1: string idPrefix) throws (1: HBExecutionException e, 2: AuthorizationException aze);
+  void deletePulseId(1: string id) throws (1: HBExecutionException e, 2: AuthorizationException aze);
+}
