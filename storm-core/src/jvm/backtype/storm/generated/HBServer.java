@@ -50,6 +50,8 @@ public class HBServer {
 
     public HBRecords getAllPulseForPath(String idPrefix) throws HBExecutionException, AuthorizationException, org.apache.thrift.TException;
 
+    public HBNodes getAllNodesForPath(String idPrefix) throws HBExecutionException, AuthorizationException, org.apache.thrift.TException;
+
     public Pulse getPulse(String id) throws HBExecutionException, AuthorizationException, org.apache.thrift.TException;
 
     public void deletePath(String idPrefix) throws HBExecutionException, AuthorizationException, org.apache.thrift.TException;
@@ -67,6 +69,8 @@ public class HBServer {
     public void sendPulse(Pulse pulse, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.sendPulse_call> resultHandler) throws org.apache.thrift.TException;
 
     public void getAllPulseForPath(String idPrefix, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.getAllPulseForPath_call> resultHandler) throws org.apache.thrift.TException;
+
+    public void getAllNodesForPath(String idPrefix, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.getAllNodesForPath_call> resultHandler) throws org.apache.thrift.TException;
 
     public void getPulse(String id, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.getPulse_call> resultHandler) throws org.apache.thrift.TException;
 
@@ -204,6 +208,35 @@ public class HBServer {
         throw result.aze;
       }
       throw new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.MISSING_RESULT, "getAllPulseForPath failed: unknown result");
+    }
+
+    public HBNodes getAllNodesForPath(String idPrefix) throws HBExecutionException, AuthorizationException, org.apache.thrift.TException
+    {
+      send_getAllNodesForPath(idPrefix);
+      return recv_getAllNodesForPath();
+    }
+
+    public void send_getAllNodesForPath(String idPrefix) throws org.apache.thrift.TException
+    {
+      getAllNodesForPath_args args = new getAllNodesForPath_args();
+      args.set_idPrefix(idPrefix);
+      sendBase("getAllNodesForPath", args);
+    }
+
+    public HBNodes recv_getAllNodesForPath() throws HBExecutionException, AuthorizationException, org.apache.thrift.TException
+    {
+      getAllNodesForPath_result result = new getAllNodesForPath_result();
+      receiveBase(result, "getAllNodesForPath");
+      if (result.is_set_success()) {
+        return result.success;
+      }
+      if (result.e != null) {
+        throw result.e;
+      }
+      if (result.aze != null) {
+        throw result.aze;
+      }
+      throw new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.MISSING_RESULT, "getAllNodesForPath failed: unknown result");
     }
 
     public Pulse getPulse(String id) throws HBExecutionException, AuthorizationException, org.apache.thrift.TException
@@ -433,6 +466,38 @@ public class HBServer {
       }
     }
 
+    public void getAllNodesForPath(String idPrefix, org.apache.thrift.async.AsyncMethodCallback<getAllNodesForPath_call> resultHandler) throws org.apache.thrift.TException {
+      checkReady();
+      getAllNodesForPath_call method_call = new getAllNodesForPath_call(idPrefix, resultHandler, this, ___protocolFactory, ___transport);
+      this.___currentMethod = method_call;
+      ___manager.call(method_call);
+    }
+
+    public static class getAllNodesForPath_call extends org.apache.thrift.async.TAsyncMethodCall {
+      private String idPrefix;
+      public getAllNodesForPath_call(String idPrefix, org.apache.thrift.async.AsyncMethodCallback<getAllNodesForPath_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+        super(client, protocolFactory, transport, resultHandler, false);
+        this.idPrefix = idPrefix;
+      }
+
+      public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
+        prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("getAllNodesForPath", org.apache.thrift.protocol.TMessageType.CALL, 0));
+        getAllNodesForPath_args args = new getAllNodesForPath_args();
+        args.set_idPrefix(idPrefix);
+        args.write(prot);
+        prot.writeMessageEnd();
+      }
+
+      public HBNodes getResult() throws HBExecutionException, AuthorizationException, org.apache.thrift.TException {
+        if (getState() != org.apache.thrift.async.TAsyncMethodCall.State.RESPONSE_READ) {
+          throw new IllegalStateException("Method call not finished!");
+        }
+        org.apache.thrift.transport.TMemoryInputTransport memoryTransport = new org.apache.thrift.transport.TMemoryInputTransport(getFrameBuffer().array());
+        org.apache.thrift.protocol.TProtocol prot = client.getProtocolFactory().getProtocol(memoryTransport);
+        return (new Client(prot)).recv_getAllNodesForPath();
+      }
+    }
+
     public void getPulse(String id, org.apache.thrift.async.AsyncMethodCallback<getPulse_call> resultHandler) throws org.apache.thrift.TException {
       checkReady();
       getPulse_call method_call = new getPulse_call(id, resultHandler, this, ___protocolFactory, ___transport);
@@ -546,6 +611,7 @@ public class HBServer {
       processMap.put("exists", new exists());
       processMap.put("sendPulse", new sendPulse());
       processMap.put("getAllPulseForPath", new getAllPulseForPath());
+      processMap.put("getAllNodesForPath", new getAllNodesForPath());
       processMap.put("getPulse", new getPulse());
       processMap.put("deletePath", new deletePath());
       processMap.put("deletePulseId", new deletePulseId());
@@ -632,6 +698,28 @@ public class HBServer {
         getAllPulseForPath_result result = new getAllPulseForPath_result();
         try {
           result.success = iface.getAllPulseForPath(args.idPrefix);
+        } catch (HBExecutionException e) {
+          result.e = e;
+        } catch (AuthorizationException aze) {
+          result.aze = aze;
+        }
+        return result;
+      }
+    }
+
+    private static class getAllNodesForPath<I extends Iface> extends org.apache.thrift.ProcessFunction<I, getAllNodesForPath_args> {
+      public getAllNodesForPath() {
+        super("getAllNodesForPath");
+      }
+
+      protected getAllNodesForPath_args getEmptyArgsInstance() {
+        return new getAllNodesForPath_args();
+      }
+
+      protected getAllNodesForPath_result getResult(I iface, getAllNodesForPath_args args) throws org.apache.thrift.TException {
+        getAllNodesForPath_result result = new getAllNodesForPath_result();
+        try {
+          result.success = iface.getAllNodesForPath(args.idPrefix);
         } catch (HBExecutionException e) {
           result.e = e;
         } catch (AuthorizationException aze) {
@@ -3624,6 +3712,794 @@ public class HBServer {
     @Override
     public String toString() {
       StringBuilder sb = new StringBuilder("getAllPulseForPath_result(");
+      boolean first = true;
+
+      sb.append("success:");
+      if (this.success == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.success);
+      }
+      first = false;
+      if (!first) sb.append(", ");
+      sb.append("e:");
+      if (this.e == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.e);
+      }
+      first = false;
+      if (!first) sb.append(", ");
+      sb.append("aze:");
+      if (this.aze == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.aze);
+      }
+      first = false;
+      sb.append(")");
+      return sb.toString();
+    }
+
+    public void validate() throws org.apache.thrift.TException {
+      // check for required fields
+    }
+
+    private void writeObject(java.io.ObjectOutputStream out) throws java.io.IOException {
+      try {
+        write(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(out)));
+      } catch (org.apache.thrift.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+    private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, ClassNotFoundException {
+      try {
+        read(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(in)));
+      } catch (org.apache.thrift.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+  }
+
+  public static class getAllNodesForPath_args implements org.apache.thrift.TBase<getAllNodesForPath_args, getAllNodesForPath_args._Fields>, java.io.Serializable, Cloneable   {
+    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("getAllNodesForPath_args");
+
+    private static final org.apache.thrift.protocol.TField ID_PREFIX_FIELD_DESC = new org.apache.thrift.protocol.TField("idPrefix", org.apache.thrift.protocol.TType.STRING, (short)1);
+
+    private String idPrefix; // required
+
+    /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+      ID_PREFIX((short)1, "idPrefix");
+
+      private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
+
+      static {
+        for (_Fields field : EnumSet.allOf(_Fields.class)) {
+          byName.put(field.getFieldName(), field);
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, or null if its not found.
+       */
+      public static _Fields findByThriftId(int fieldId) {
+        switch(fieldId) {
+          case 1: // ID_PREFIX
+            return ID_PREFIX;
+          default:
+            return null;
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, throwing an exception
+       * if it is not found.
+       */
+      public static _Fields findByThriftIdOrThrow(int fieldId) {
+        _Fields fields = findByThriftId(fieldId);
+        if (fields == null) throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
+        return fields;
+      }
+
+      /**
+       * Find the _Fields constant that matches name, or null if its not found.
+       */
+      public static _Fields findByName(String name) {
+        return byName.get(name);
+      }
+
+      private final short _thriftId;
+      private final String _fieldName;
+
+      _Fields(short thriftId, String fieldName) {
+        _thriftId = thriftId;
+        _fieldName = fieldName;
+      }
+
+      public short getThriftFieldId() {
+        return _thriftId;
+      }
+
+      public String getFieldName() {
+        return _fieldName;
+      }
+    }
+
+    // isset id assignments
+
+    public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
+    static {
+      Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
+      tmpMap.put(_Fields.ID_PREFIX, new org.apache.thrift.meta_data.FieldMetaData("idPrefix", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
+      metaDataMap = Collections.unmodifiableMap(tmpMap);
+      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(getAllNodesForPath_args.class, metaDataMap);
+    }
+
+    public getAllNodesForPath_args() {
+    }
+
+    public getAllNodesForPath_args(
+      String idPrefix)
+    {
+      this();
+      this.idPrefix = idPrefix;
+    }
+
+    /**
+     * Performs a deep copy on <i>other</i>.
+     */
+    public getAllNodesForPath_args(getAllNodesForPath_args other) {
+      if (other.is_set_idPrefix()) {
+        this.idPrefix = other.idPrefix;
+      }
+    }
+
+    public getAllNodesForPath_args deepCopy() {
+      return new getAllNodesForPath_args(this);
+    }
+
+    @Override
+    public void clear() {
+      this.idPrefix = null;
+    }
+
+    public String get_idPrefix() {
+      return this.idPrefix;
+    }
+
+    public void set_idPrefix(String idPrefix) {
+      this.idPrefix = idPrefix;
+    }
+
+    public void unset_idPrefix() {
+      this.idPrefix = null;
+    }
+
+    /** Returns true if field idPrefix is set (has been assigned a value) and false otherwise */
+    public boolean is_set_idPrefix() {
+      return this.idPrefix != null;
+    }
+
+    public void set_idPrefix_isSet(boolean value) {
+      if (!value) {
+        this.idPrefix = null;
+      }
+    }
+
+    public void setFieldValue(_Fields field, Object value) {
+      switch (field) {
+      case ID_PREFIX:
+        if (value == null) {
+          unset_idPrefix();
+        } else {
+          set_idPrefix((String)value);
+        }
+        break;
+
+      }
+    }
+
+    public Object getFieldValue(_Fields field) {
+      switch (field) {
+      case ID_PREFIX:
+        return get_idPrefix();
+
+      }
+      throw new IllegalStateException();
+    }
+
+    /** Returns true if field corresponding to fieldID is set (has been assigned a value) and false otherwise */
+    public boolean isSet(_Fields field) {
+      if (field == null) {
+        throw new IllegalArgumentException();
+      }
+
+      switch (field) {
+      case ID_PREFIX:
+        return is_set_idPrefix();
+      }
+      throw new IllegalStateException();
+    }
+
+    @Override
+    public boolean equals(Object that) {
+      if (that == null)
+        return false;
+      if (that instanceof getAllNodesForPath_args)
+        return this.equals((getAllNodesForPath_args)that);
+      return false;
+    }
+
+    public boolean equals(getAllNodesForPath_args that) {
+      if (that == null)
+        return false;
+
+      boolean this_present_idPrefix = true && this.is_set_idPrefix();
+      boolean that_present_idPrefix = true && that.is_set_idPrefix();
+      if (this_present_idPrefix || that_present_idPrefix) {
+        if (!(this_present_idPrefix && that_present_idPrefix))
+          return false;
+        if (!this.idPrefix.equals(that.idPrefix))
+          return false;
+      }
+
+      return true;
+    }
+
+    @Override
+    public int hashCode() {
+      HashCodeBuilder builder = new HashCodeBuilder();
+
+      boolean present_idPrefix = true && (is_set_idPrefix());
+      builder.append(present_idPrefix);
+      if (present_idPrefix)
+        builder.append(idPrefix);
+
+      return builder.toHashCode();
+    }
+
+    public int compareTo(getAllNodesForPath_args other) {
+      if (!getClass().equals(other.getClass())) {
+        return getClass().getName().compareTo(other.getClass().getName());
+      }
+
+      int lastComparison = 0;
+      getAllNodesForPath_args typedOther = (getAllNodesForPath_args)other;
+
+      lastComparison = Boolean.valueOf(is_set_idPrefix()).compareTo(typedOther.is_set_idPrefix());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (is_set_idPrefix()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.idPrefix, typedOther.idPrefix);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      return 0;
+    }
+
+    public _Fields fieldForId(int fieldId) {
+      return _Fields.findByThriftId(fieldId);
+    }
+
+    public void read(org.apache.thrift.protocol.TProtocol iprot) throws org.apache.thrift.TException {
+      org.apache.thrift.protocol.TField field;
+      iprot.readStructBegin();
+      while (true)
+      {
+        field = iprot.readFieldBegin();
+        if (field.type == org.apache.thrift.protocol.TType.STOP) { 
+          break;
+        }
+        switch (field.id) {
+          case 1: // ID_PREFIX
+            if (field.type == org.apache.thrift.protocol.TType.STRING) {
+              this.idPrefix = iprot.readString();
+            } else { 
+              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
+            }
+            break;
+          default:
+            org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
+        }
+        iprot.readFieldEnd();
+      }
+      iprot.readStructEnd();
+      validate();
+    }
+
+    public void write(org.apache.thrift.protocol.TProtocol oprot) throws org.apache.thrift.TException {
+      validate();
+
+      oprot.writeStructBegin(STRUCT_DESC);
+      if (this.idPrefix != null) {
+        oprot.writeFieldBegin(ID_PREFIX_FIELD_DESC);
+        oprot.writeString(this.idPrefix);
+        oprot.writeFieldEnd();
+      }
+      oprot.writeFieldStop();
+      oprot.writeStructEnd();
+    }
+
+    @Override
+    public String toString() {
+      StringBuilder sb = new StringBuilder("getAllNodesForPath_args(");
+      boolean first = true;
+
+      sb.append("idPrefix:");
+      if (this.idPrefix == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.idPrefix);
+      }
+      first = false;
+      sb.append(")");
+      return sb.toString();
+    }
+
+    public void validate() throws org.apache.thrift.TException {
+      // check for required fields
+    }
+
+    private void writeObject(java.io.ObjectOutputStream out) throws java.io.IOException {
+      try {
+        write(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(out)));
+      } catch (org.apache.thrift.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+    private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, ClassNotFoundException {
+      try {
+        read(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(in)));
+      } catch (org.apache.thrift.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+  }
+
+  public static class getAllNodesForPath_result implements org.apache.thrift.TBase<getAllNodesForPath_result, getAllNodesForPath_result._Fields>, java.io.Serializable, Cloneable   {
+    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("getAllNodesForPath_result");
+
+    private static final org.apache.thrift.protocol.TField SUCCESS_FIELD_DESC = new org.apache.thrift.protocol.TField("success", org.apache.thrift.protocol.TType.STRUCT, (short)0);
+    private static final org.apache.thrift.protocol.TField E_FIELD_DESC = new org.apache.thrift.protocol.TField("e", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+    private static final org.apache.thrift.protocol.TField AZE_FIELD_DESC = new org.apache.thrift.protocol.TField("aze", org.apache.thrift.protocol.TType.STRUCT, (short)2);
+
+    private HBNodes success; // required
+    private HBExecutionException e; // required
+    private AuthorizationException aze; // required
+
+    /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+      SUCCESS((short)0, "success"),
+      E((short)1, "e"),
+      AZE((short)2, "aze");
+
+      private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
+
+      static {
+        for (_Fields field : EnumSet.allOf(_Fields.class)) {
+          byName.put(field.getFieldName(), field);
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, or null if its not found.
+       */
+      public static _Fields findByThriftId(int fieldId) {
+        switch(fieldId) {
+          case 0: // SUCCESS
+            return SUCCESS;
+          case 1: // E
+            return E;
+          case 2: // AZE
+            return AZE;
+          default:
+            return null;
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, throwing an exception
+       * if it is not found.
+       */
+      public static _Fields findByThriftIdOrThrow(int fieldId) {
+        _Fields fields = findByThriftId(fieldId);
+        if (fields == null) throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
+        return fields;
+      }
+
+      /**
+       * Find the _Fields constant that matches name, or null if its not found.
+       */
+      public static _Fields findByName(String name) {
+        return byName.get(name);
+      }
+
+      private final short _thriftId;
+      private final String _fieldName;
+
+      _Fields(short thriftId, String fieldName) {
+        _thriftId = thriftId;
+        _fieldName = fieldName;
+      }
+
+      public short getThriftFieldId() {
+        return _thriftId;
+      }
+
+      public String getFieldName() {
+        return _fieldName;
+      }
+    }
+
+    // isset id assignments
+
+    public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
+    static {
+      Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
+      tmpMap.put(_Fields.SUCCESS, new org.apache.thrift.meta_data.FieldMetaData("success", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, HBNodes.class)));
+      tmpMap.put(_Fields.E, new org.apache.thrift.meta_data.FieldMetaData("e", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRUCT)));
+      tmpMap.put(_Fields.AZE, new org.apache.thrift.meta_data.FieldMetaData("aze", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRUCT)));
+      metaDataMap = Collections.unmodifiableMap(tmpMap);
+      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(getAllNodesForPath_result.class, metaDataMap);
+    }
+
+    public getAllNodesForPath_result() {
+    }
+
+    public getAllNodesForPath_result(
+      HBNodes success,
+      HBExecutionException e,
+      AuthorizationException aze)
+    {
+      this();
+      this.success = success;
+      this.e = e;
+      this.aze = aze;
+    }
+
+    /**
+     * Performs a deep copy on <i>other</i>.
+     */
+    public getAllNodesForPath_result(getAllNodesForPath_result other) {
+      if (other.is_set_success()) {
+        this.success = new HBNodes(other.success);
+      }
+      if (other.is_set_e()) {
+        this.e = new HBExecutionException(other.e);
+      }
+      if (other.is_set_aze()) {
+        this.aze = new AuthorizationException(other.aze);
+      }
+    }
+
+    public getAllNodesForPath_result deepCopy() {
+      return new getAllNodesForPath_result(this);
+    }
+
+    @Override
+    public void clear() {
+      this.success = null;
+      this.e = null;
+      this.aze = null;
+    }
+
+    public HBNodes get_success() {
+      return this.success;
+    }
+
+    public void set_success(HBNodes success) {
+      this.success = success;
+    }
+
+    public void unset_success() {
+      this.success = null;
+    }
+
+    /** Returns true if field success is set (has been assigned a value) and false otherwise */
+    public boolean is_set_success() {
+      return this.success != null;
+    }
+
+    public void set_success_isSet(boolean value) {
+      if (!value) {
+        this.success = null;
+      }
+    }
+
+    public HBExecutionException get_e() {
+      return this.e;
+    }
+
+    public void set_e(HBExecutionException e) {
+      this.e = e;
+    }
+
+    public void unset_e() {
+      this.e = null;
+    }
+
+    /** Returns true if field e is set (has been assigned a value) and false otherwise */
+    public boolean is_set_e() {
+      return this.e != null;
+    }
+
+    public void set_e_isSet(boolean value) {
+      if (!value) {
+        this.e = null;
+      }
+    }
+
+    public AuthorizationException get_aze() {
+      return this.aze;
+    }
+
+    public void set_aze(AuthorizationException aze) {
+      this.aze = aze;
+    }
+
+    public void unset_aze() {
+      this.aze = null;
+    }
+
+    /** Returns true if field aze is set (has been assigned a value) and false otherwise */
+    public boolean is_set_aze() {
+      return this.aze != null;
+    }
+
+    public void set_aze_isSet(boolean value) {
+      if (!value) {
+        this.aze = null;
+      }
+    }
+
+    public void setFieldValue(_Fields field, Object value) {
+      switch (field) {
+      case SUCCESS:
+        if (value == null) {
+          unset_success();
+        } else {
+          set_success((HBNodes)value);
+        }
+        break;
+
+      case E:
+        if (value == null) {
+          unset_e();
+        } else {
+          set_e((HBExecutionException)value);
+        }
+        break;
+
+      case AZE:
+        if (value == null) {
+          unset_aze();
+        } else {
+          set_aze((AuthorizationException)value);
+        }
+        break;
+
+      }
+    }
+
+    public Object getFieldValue(_Fields field) {
+      switch (field) {
+      case SUCCESS:
+        return get_success();
+
+      case E:
+        return get_e();
+
+      case AZE:
+        return get_aze();
+
+      }
+      throw new IllegalStateException();
+    }
+
+    /** Returns true if field corresponding to fieldID is set (has been assigned a value) and false otherwise */
+    public boolean isSet(_Fields field) {
+      if (field == null) {
+        throw new IllegalArgumentException();
+      }
+
+      switch (field) {
+      case SUCCESS:
+        return is_set_success();
+      case E:
+        return is_set_e();
+      case AZE:
+        return is_set_aze();
+      }
+      throw new IllegalStateException();
+    }
+
+    @Override
+    public boolean equals(Object that) {
+      if (that == null)
+        return false;
+      if (that instanceof getAllNodesForPath_result)
+        return this.equals((getAllNodesForPath_result)that);
+      return false;
+    }
+
+    public boolean equals(getAllNodesForPath_result that) {
+      if (that == null)
+        return false;
+
+      boolean this_present_success = true && this.is_set_success();
+      boolean that_present_success = true && that.is_set_success();
+      if (this_present_success || that_present_success) {
+        if (!(this_present_success && that_present_success))
+          return false;
+        if (!this.success.equals(that.success))
+          return false;
+      }
+
+      boolean this_present_e = true && this.is_set_e();
+      boolean that_present_e = true && that.is_set_e();
+      if (this_present_e || that_present_e) {
+        if (!(this_present_e && that_present_e))
+          return false;
+        if (!this.e.equals(that.e))
+          return false;
+      }
+
+      boolean this_present_aze = true && this.is_set_aze();
+      boolean that_present_aze = true && that.is_set_aze();
+      if (this_present_aze || that_present_aze) {
+        if (!(this_present_aze && that_present_aze))
+          return false;
+        if (!this.aze.equals(that.aze))
+          return false;
+      }
+
+      return true;
+    }
+
+    @Override
+    public int hashCode() {
+      HashCodeBuilder builder = new HashCodeBuilder();
+
+      boolean present_success = true && (is_set_success());
+      builder.append(present_success);
+      if (present_success)
+        builder.append(success);
+
+      boolean present_e = true && (is_set_e());
+      builder.append(present_e);
+      if (present_e)
+        builder.append(e);
+
+      boolean present_aze = true && (is_set_aze());
+      builder.append(present_aze);
+      if (present_aze)
+        builder.append(aze);
+
+      return builder.toHashCode();
+    }
+
+    public int compareTo(getAllNodesForPath_result other) {
+      if (!getClass().equals(other.getClass())) {
+        return getClass().getName().compareTo(other.getClass().getName());
+      }
+
+      int lastComparison = 0;
+      getAllNodesForPath_result typedOther = (getAllNodesForPath_result)other;
+
+      lastComparison = Boolean.valueOf(is_set_success()).compareTo(typedOther.is_set_success());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (is_set_success()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.success, typedOther.success);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      lastComparison = Boolean.valueOf(is_set_e()).compareTo(typedOther.is_set_e());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (is_set_e()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.e, typedOther.e);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      lastComparison = Boolean.valueOf(is_set_aze()).compareTo(typedOther.is_set_aze());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (is_set_aze()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.aze, typedOther.aze);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      return 0;
+    }
+
+    public _Fields fieldForId(int fieldId) {
+      return _Fields.findByThriftId(fieldId);
+    }
+
+    public void read(org.apache.thrift.protocol.TProtocol iprot) throws org.apache.thrift.TException {
+      org.apache.thrift.protocol.TField field;
+      iprot.readStructBegin();
+      while (true)
+      {
+        field = iprot.readFieldBegin();
+        if (field.type == org.apache.thrift.protocol.TType.STOP) { 
+          break;
+        }
+        switch (field.id) {
+          case 0: // SUCCESS
+            if (field.type == org.apache.thrift.protocol.TType.STRUCT) {
+              this.success = new HBNodes();
+              this.success.read(iprot);
+            } else { 
+              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
+            }
+            break;
+          case 1: // E
+            if (field.type == org.apache.thrift.protocol.TType.STRUCT) {
+              this.e = new HBExecutionException();
+              this.e.read(iprot);
+            } else { 
+              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
+            }
+            break;
+          case 2: // AZE
+            if (field.type == org.apache.thrift.protocol.TType.STRUCT) {
+              this.aze = new AuthorizationException();
+              this.aze.read(iprot);
+            } else { 
+              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
+            }
+            break;
+          default:
+            org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
+        }
+        iprot.readFieldEnd();
+      }
+      iprot.readStructEnd();
+      validate();
+    }
+
+    public void write(org.apache.thrift.protocol.TProtocol oprot) throws org.apache.thrift.TException {
+      oprot.writeStructBegin(STRUCT_DESC);
+
+      if (this.is_set_success()) {
+        oprot.writeFieldBegin(SUCCESS_FIELD_DESC);
+        this.success.write(oprot);
+        oprot.writeFieldEnd();
+      } else if (this.is_set_e()) {
+        oprot.writeFieldBegin(E_FIELD_DESC);
+        this.e.write(oprot);
+        oprot.writeFieldEnd();
+      } else if (this.is_set_aze()) {
+        oprot.writeFieldBegin(AZE_FIELD_DESC);
+        this.aze.write(oprot);
+        oprot.writeFieldEnd();
+      }
+      oprot.writeFieldStop();
+      oprot.writeStructEnd();
+    }
+
+    @Override
+    public String toString() {
+      StringBuilder sb = new StringBuilder("getAllNodesForPath_result(");
       boolean first = true;
 
       sb.append("success:");

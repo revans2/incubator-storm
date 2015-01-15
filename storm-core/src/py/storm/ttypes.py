@@ -5283,3 +5283,74 @@ class HBRecords:
 
   def __ne__(self, other):
     return not (self == other)
+
+class HBNodes:
+  """
+  Attributes:
+   - pulseIds
+  """
+
+  thrift_spec = (
+    None, # 0
+    (1, TType.LIST, 'pulseIds', (TType.STRING,None), None, ), # 1
+  )
+
+  def __hash__(self):
+    return 0 + hash(self.pulseIds)
+
+  def __init__(self, pulseIds=None,):
+    self.pulseIds = pulseIds
+
+  def read(self, iprot):
+    if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
+      fastbinary.decode_binary(self, iprot.trans, (self.__class__, self.thrift_spec))
+      return
+    iprot.readStructBegin()
+    while True:
+      (fname, ftype, fid) = iprot.readFieldBegin()
+      if ftype == TType.STOP:
+        break
+      if fid == 1:
+        if ftype == TType.LIST:
+          self.pulseIds = []
+          (_etype311, _size308) = iprot.readListBegin()
+          for _i312 in xrange(_size308):
+            _elem313 = iprot.readString().decode('utf-8')
+            self.pulseIds.append(_elem313)
+          iprot.readListEnd()
+        else:
+          iprot.skip(ftype)
+      else:
+        iprot.skip(ftype)
+      iprot.readFieldEnd()
+    iprot.readStructEnd()
+
+  def write(self, oprot):
+    if oprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and self.thrift_spec is not None and fastbinary is not None:
+      oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
+      return
+    oprot.writeStructBegin('HBNodes')
+    if self.pulseIds is not None:
+      oprot.writeFieldBegin('pulseIds', TType.LIST, 1)
+      oprot.writeListBegin(TType.STRING, len(self.pulseIds))
+      for iter314 in self.pulseIds:
+        oprot.writeString(iter314.encode('utf-8'))
+      oprot.writeListEnd()
+      oprot.writeFieldEnd()
+    oprot.writeFieldStop()
+    oprot.writeStructEnd()
+
+  def validate(self):
+    return
+
+
+  def __repr__(self):
+    L = ['%s=%r' % (key, value)
+      for key, value in self.__dict__.iteritems()]
+    return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+  def __eq__(self, other):
+    return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+  def __ne__(self, other):
+    return not (self == other)

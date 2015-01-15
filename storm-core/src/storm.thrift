@@ -369,11 +369,16 @@ struct HBRecords {
   1: list<Pulse> pulses;
 }
 
+struct HBNodes {
+  1: list<string> pulseIds;
+}
+
 service HBServer {
   void createPath(1: string path) throws (1: HBExecutionException e, 2: AuthorizationException aze);
   bool exists(1: string path) throws (1: HBExecutionException e, 2: AuthorizationException aze);
   void sendPulse(1: Pulse pulse) throws (1: HBExecutionException e, 2: AuthorizationException aze);
   HBRecords getAllPulseForPath(1: string idPrefix) throws (1: HBExecutionException e, 2: AuthorizationException aze);
+  HBNodes getAllNodesForPath(1: string idPrefix) throws (1: HBExecutionException e, 2: AuthorizationException aze);
   Pulse getPulse(1: string id) throws (1: HBExecutionException e, 2: AuthorizationException aze);
   void deletePath(1: string idPrefix) throws (1: HBExecutionException e, 2: AuthorizationException aze);
   void deletePulseId(1: string id) throws (1: HBExecutionException e, 2: AuthorizationException aze);

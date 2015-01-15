@@ -551,6 +551,52 @@ public class Config extends HashMap<String, Object> {
     public static final Object UI_ACTIONS_ENABLED_SCHEMA = Boolean.class;
 
     /**
+     * The host that the HB server is running on.
+     */
+    public static final String HBSERVER_HOST = "hbserver.host";
+    public static final Object HBSERVER_HOST_SCHEMA = String.class;
+
+    /**
+     * The HBServer transport plug-in for Thrift client/server communication
+     */
+    public static final String HBSERVER_THRIFT_TRANSPORT_PLUGIN = "hbserver.thrift.transport";
+    public static final Object HBSERVER_THRIFT_TRANSPORT_PLUGIN_SCHEMA = String.class;
+
+    /**
+     * Which port the Thrift interface of HBServer should run on. Clients should
+     * connect to this port to upload jars and submit topologies.
+     */
+    public static final String HBSERVER_THRIFT_PORT = "hbserver.thrift.port";
+    public static final Object HBSERVER_THRIFT_PORT_SCHEMA = Number.class;
+
+    /**
+     * The number of threads that should be used by the HBServer thrift server.
+     */
+    public static final String HBSERVER_THRIFT_THREADS = "hbserver.thrift.threads";
+    public static final Object HBSERVER_THRIFT_THREADS_SCHEMA = Number.class;
+
+
+    /**
+     * The maximum buffer size thrift should use when reading messages.
+     */
+    public static final String HBSERVER_THRIFT_MAX_BUFFER_SIZE = "hbserver.thrift.max_buffer_size";
+    public static final Object HBSERVER_THRIFT_MAX_BUFFER_SIZE_SCHEMA = Number.class;
+
+    /**
+     * This parameter is used by the storm-deploy project to configure the
+     * jvm options for the nimbus daemon.
+     */
+    public static final String HBSERVER_CHILDOPTS = "hbserver.childopts";
+    public static final Object HBSERVER_CHILDOPTS_SCHEMA = String.class;
+
+
+    /**
+     * This parameter is used by the to configure storm cluster to use HBServer for worker heartbeats.
+     */
+    public static final String HBSERVER_ROUTE_WORKER_HEARTBEATS = "hbserver.route.worker.heartbeats";
+    public static final Object HBSERVER_ROUTE_WORKER_HEARTBEATS_SCHEMA = Boolean.class;
+
+    /**
      * List of DRPC servers so that the DRPCSpout knows who to talk to.
      */
     public static final String DRPC_SERVERS = "drpc.servers";

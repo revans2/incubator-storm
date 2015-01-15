@@ -43,6 +43,7 @@ if len(sys.argv) <= 1 or sys.argv[1] == '--help':
   print '  bool exists(string path)'
   print '  void sendPulse(Pulse pulse)'
   print '  HBRecords getAllPulseForPath(string idPrefix)'
+  print '  HBNodes getAllNodesForPath(string idPrefix)'
   print '  Pulse getPulse(string id)'
   print '  void deletePath(string idPrefix)'
   print '  void deletePulseId(string id)'
@@ -119,6 +120,12 @@ elif cmd == 'getAllPulseForPath':
     print 'getAllPulseForPath requires 1 args'
     sys.exit(1)
   pp.pprint(client.getAllPulseForPath(args[0],))
+
+elif cmd == 'getAllNodesForPath':
+  if len(args) != 1:
+    print 'getAllNodesForPath requires 1 args'
+    sys.exit(1)
+  pp.pprint(client.getAllNodesForPath(args[0],))
 
 elif cmd == 'getPulse':
   if len(args) != 1:
