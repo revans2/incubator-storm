@@ -622,6 +622,16 @@
       (is (= 4 (.size assigned-slots)))
       (is (= 2 (.size (into #{} (for [slot assigned-slots] (.getNodeId slot))))))
     )
+    ;; The order of scheduling topologies is not guaranteed. But the results are
+    ;; If topology 1 is scheduled first topology2 will steal nodes from it but
+    ;; ui will need some time to get to a stable state. So schedule again
+    ;; to let the ui get to that stable state.
+    (log-message (.get (.getStatusMap cluster) "topology1"))
+    (log-message (.get (.getStatusMap cluster) "topology2"))
+    (.scheduleAsNeeded isolated-pool (into-array NodePool [free-pool]))
+    (log-message (.get (.getStatusMap cluster) "topology1"))
+    (log-message (.get (.getStatusMap cluster) "topology2"))
+
     ;;The text can be off for a bit until we schedule again
     (.scheduleAsNeeded isolated-pool (into-array NodePool [free-pool]))
     (is (= "Max Nodes(2) for this user would be exceeded. 1 more nodes needed to run topology." (.get (.getStatusMap cluster) "topology1")))

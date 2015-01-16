@@ -124,7 +124,9 @@
                            {TOPOLOGY-SKIP-MISSING-KRYO-REGISTRATIONS true
                             ZMQ-LINGER-MILLIS 0
                             TOPOLOGY-ENABLE-MESSAGE-TIMEOUTS false
-                            TOPOLOGY-TRIDENT-BATCH-EMIT-INTERVAL-MILLIS 50}
+                            TOPOLOGY-TRIDENT-BATCH-EMIT-INTERVAL-MILLIS 50
+                            STORM-PRINCIPAL-TO-LOCAL-PLUGIN "backtype.storm.security.auth.DefaultPrincipalToLocal"
+                            BLOBSTORE-SUPERUSER (System/getProperty "user.name")}
                            daemon-conf
                            {STORM-CLUSTER-MODE "local"
                             STORM-ZOOKEEPER-PORT zk-port

@@ -135,6 +135,14 @@ exception InvalidTopologyException {
   1: required string msg;
 }
 
+exception KeyNotFoundException {
+  1: required string msg;
+}
+
+exception KeyAlreadyExistsException {
+  1: required string msg;
+}
+
 struct TopologySummary {
   1: required string id;
   2: required string name;
@@ -241,6 +249,40 @@ struct SubmitOptions {
   2: optional Credentials creds;
 }
 
+enum AccessControlType {
+  OTHER = 1,
+  USER = 2
+  //eventually ,GROUP=3
+}
+
+struct AccessControl {
+  1: required AccessControlType type;
+  2: optional string name; //Name of user or group in ACL
+  3: required i32 access; //bitmasks READ=0x1, WRITE=0x2, ADMIN=0x4
+}
+
+struct SettableBlobMeta {
+  1: required list<AccessControl> acl;
+}
+
+struct ReadableBlobMeta {
+  1: required SettableBlobMeta settable;
+  //This is some indication of a version of a BLOB.  The only guarantee is
+  // if the data changed in the blob the version will be different.
+  2: required i64 version;
+}
+
+struct ListBlobsResult {
+  1: required list<string> keys;
+  2: required string session;
+}
+
+struct BeginDownloadResult {
+  //Same version as in ReadableBlobMeta
+  1: required i64 version;
+  2: required string session;
+}
+
 service Nimbus {
   void submitTopology(1: string name, 2: string uploadedJarLocation, 3: string jsonConf, 4: StormTopology topology) throws (1: AlreadyAliveException e, 2: InvalidTopologyException ite, 3: AuthorizationException aze);
   void submitTopologyWithOpts(1: string name, 2: string uploadedJarLocation, 3: string jsonConf, 4: StormTopology topology, 5: SubmitOptions options) throws (1: AlreadyAliveException e, 2: InvalidTopologyException ite, 3: AuthorizationException aze);
@@ -252,6 +294,29 @@ service Nimbus {
   void uploadNewCredentials(1: string name, 2: Credentials creds) throws (1: NotAliveException e, 2: InvalidTopologyException ite, 3: AuthorizationException aze);
 
   // need to add functions for asking about status of storms, what nodes they're running on, looking at task logs
+
+  //BLOB APIs
+  // These blob APIs guarantee very little.
+  // Writes and reads can fail at any point in time and should be retried.
+  // deletes are a best effort and if someone is adding or updating the same key
+  //  at the same time the key may exist afterwards.
+  // About the only thing that is guaranteed is a blob will be self consistent.
+  // When downloading a blob all of the bits will be from the same version of the
+  // blob. It may even mean that reading throws an exception in the middle.
+  // Many of the APIs have sessions assoicated with them.  If you take too long to
+  // complete a session it may timeout and you will need to start over.
+  string beginCreateBlob(1: string key, 2: SettableBlobMeta meta) throws (1: AuthorizationException aze, 2: KeyAlreadyExistsException kae);
+  string beginUpdateBlob(1: string key) throws (1: AuthorizationException aze, 2: KeyNotFoundException knf);
+  void uploadBlobChunk(1: string session, 2: binary chunk) throws (1: AuthorizationException aze);
+  void finishBlobUpload(1: string session) throws (1: AuthorizationException aze);
+  void cancelBlobUpload(1: string session) throws (1: AuthorizationException aze);
+  ReadableBlobMeta getBlobMeta(1: string key) throws (1: AuthorizationException aze, 2: KeyNotFoundException knf);
+  void setBlobMeta(1: string key, 2: SettableBlobMeta meta) throws (1: AuthorizationException aze, 2: KeyNotFoundException knf); 
+  BeginDownloadResult beginBlobDownload(1: string key) throws (1: AuthorizationException aze, 2: KeyNotFoundException knf);
+  //can stop downloading chunks when receive 0-length byte array back
+  binary downloadBlobChunk(1: string session) throws (1: AuthorizationException aze);
+  void deleteBlob(1: string key) throws (1: AuthorizationException aze, 2: KeyNotFoundException knf);
+  ListBlobsResult listBlobs(1: string session); //empty string "" means start at the beginning
 
   string beginFileUpload() throws (1: AuthorizationException aze);
   void uploadChunk(1: string location, 2: binary chunk) throws (1: AuthorizationException aze);

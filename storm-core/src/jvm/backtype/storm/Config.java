@@ -20,7 +20,6 @@ package backtype.storm;
 import backtype.storm.ConfigValidation;
 import backtype.storm.serialization.IKryoDecorator;
 import backtype.storm.serialization.IKryoFactory;
-import backtype.storm.utils.Utils;
 import com.esotericsoftware.kryo.Serializer;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -104,7 +103,6 @@ public class Config extends HashMap<String, Object> {
      */
     public static final String STORM_NETTY_FLUSH_CHECK_INTERVAL_MS = "storm.messaging.netty.flush.check.interval.ms";
     public static final Object STORM_NETTY_FLUSH_CHECK_INTERVAL_MS_SCHEMA = Number.class;
-
 
     /**
      * The delegate for serializing metadata, should be used for serialized objects stored in zookeeper and on disk.
@@ -412,11 +410,26 @@ public class Config extends HashMap<String, Object> {
     public static final Object NIMBUS_REASSIGN_SCHEMA = Boolean.class;
 
     /**
-     * During upload/download with the master, how long an upload or download connection is idle
-     * before nimbus considers it dead and drops the connection.
+     * During file upload/download with the master, how long an upload or
+     * download connection is idle before nimbus considers it dead and drops
+     * the connection.
      */
     public static final String NIMBUS_FILE_COPY_EXPIRATION_SECS = "nimbus.file.copy.expiration.secs";
-    public static final Object NIMBUS_FILE_COPY_EXPIRATION_SECS_SCHEMA = Number.class;
+    public static final Object NIMBUS_FILE_COPY_EXPIRATION_SECS_SCHEMA = ConfigValidation.PositiveIntegerValidator;
+    
+    /**
+     * What blobstore implementation nimbus should use.
+     */
+    public static final String NIMBUS_BLOBSTORE = "nimbus.blobstore.class";
+    public static final Object NIMBUS_BLOBSTORE_SCHEMA = String.class;
+
+    /**
+     * During operations with the blob store, via master, how long a connection
+     * is idle before nimbus considers it dead and drops the session and any
+     * associated connections.
+     */
+    public static final String NIMBUS_BLOBSTORE_EXPIRATION_SECS = "nimbus.blobstore.expiration.secs";
+    public static final Object NIMBUS_BLOBSTORE_EXPIRATION_SECS_SCHEMA = ConfigValidation.PositiveIntegerValidator;
 
     /**
      * A custom class that implements ITopologyValidator that is run whenever a
@@ -694,6 +707,69 @@ public class Config extends HashMap<String, Object> {
     public static final Object SUPERVISOR_SLOTS_PORTS_SCHEMA = ConfigValidation.NumbersValidator;
 
     /**
+     * What blobstore implementation the supervisor should use.
+     */
+    public static final String SUPERVISOR_BLOBSTORE = "supervisor.blobstore.class";
+    public static final Object SUPERVISOR_BLOBSTORE_SCHEMA = String.class;   
+
+    /**
+     * What blobstore implementation the storm client should use.
+     */
+    public static final String CLIENT_BLOBSTORE = "client.blobstore.class";
+    public static final Object CLIENT_BLOBSTORE_SCHEMA = String.class;   
+ 
+    /**
+     * What blobstore download parallelism the supervisor should use.
+     */
+    public static final String SUPERVISOR_BLOBSTORE_DOWNLOAD_THREAD_COUNT = "supervisor.blobstore.download.thread.count";
+    public static final Object SUPERVISOR_BLOBSTORE_DOWNLOAD_THREAD_COUNT_SCHEMA = ConfigValidation.PositiveIntegerValidator;
+
+    /**
+     * What blobstore download parallelism the supervisor should use.
+     */
+    public static final String SUPERVISOR_BLOBSTORE_DOWNLOAD_MAX_RETRIES = "supervisor.blobstore.download.max_retries";
+    public static final Object SUPERVISOR_BLOBSTORE_DOWNLOAD_MAX_RETRIES_SCHEMA = ConfigValidation.PositiveIntegerValidator;
+
+    /**
+     * The blobstore super user has all read/write/admin permissions to all blobs - user running
+     * the blobstore.
+     */
+    public static final String BLOBSTORE_SUPERUSER = "blobstore.superuser";
+    public static final Object BLOBSTORE_SUPERUSER_SCHEMA = String.class;
+
+    /**
+     * What directory to use for the blobstore. The directory is expected to be an
+     * absolute path when using HDFS blobstore, for LocalFsBlobStore it could be either
+     * absolute or relative.
+     */
+    public static final String BLOBSTORE_DIR = "blobstore.dir";
+    public static final Object BLOBSTORE_DIR_SCHEMA = String.class;
+
+    /**
+     * What buffer size to use for the blobstore uploads.
+     */
+    public static final String STORM_BLOBSTORE_INPUTSTREAM_BUFFER_SIZE_BYTES = "storm.blobstore.inputstream.buffer.size.bytes";
+    public static final Object STORM_BLOBSTORE_INPUTSTREAM_BUFFER_SIZE_BYTES_SCHEMA = ConfigValidation.PositiveIntegerValidator;
+    /**
+     * Enable the blobstore cleaner. Certain blobstores may only want to run the cleaner
+     * on one daemon. Currently Nimbus handles setting this.
+     */
+    public static final String BLOBSTORE_CLEANUP_ENABLE = "blobstore.cleanup.enable";
+    public static final Object BLOBSTORE_CLEANUP_ENABLE_SCHEMA = Boolean.class;
+
+    /**
+     * principal for nimbus/supervisor to use to access secure hdfs for the blobstore.
+     */
+    public static final String BLOBSTORE_HDFS_PRINCIPAL = "blobstore.hdfs.principal";
+    public static final Object BLOBSTORE_HDFS_PRINCIPAL_SCHEMA = String.class;
+
+    /**
+     * keytab for nimbus/supervisor to use to access secure hdfs for the blobstore.
+     */
+    public static final String BLOBSTORE_HDFS_KEYTAB = "blobstore.hdfs.keytab";
+    public static final Object BLOBSTORE_HDFS_KEYTAB_SCHEMA = String.class;
+
+  /**
      * A number representing the maximum number of workers any single topology can acquire.
      */
     public static final String NIMBUS_SLOTS_PER_TOPOLOGY = "nimbus.slots.perTopology";
@@ -775,6 +851,22 @@ public class Config extends HashMap<String, Object> {
      */
     public static final String SUPERVISOR_WORKER_LAUNCHER = "supervisor.worker.launcher";
     public static final Object SUPERVISOR_WORKER_LAUNCHER_SCHEMA = String.class;
+
+    /**
+     * The distributed cache target size in MB. This is a soft limit to the size of the distributed
+     * cache contents.
+     */
+    public static final String SUPERVISOR_LOCALIZER_CACHE_TARGET_SIZE_MB = "supervisor.localizer.cache.target.size.mb";
+    public static final Object SUPERVISOR_LOCALIZER_CACHE_TARGET_SIZE_MB_SCHEMA = ConfigValidation
+       .PositiveIntegerValidator;
+
+    /**
+     * The distributed cache cleanup interval. Controls how often it scans to attempt to cleanup
+     * anything over the cache target size.
+     */
+    public static final String SUPERVISOR_LOCALIZER_CACHE_CLEANUP_INTERVAL_MS = "supervisor.localizer.cleanup.interval.ms";
+    public static final Object SUPERVISOR_LOCALIZER_CACHE_CLEANUP_INTERVAL_MS_SCHEMA =
+       ConfigValidation.PositiveIntegerValidator;
 
     /**
      * The jvm opts provided to workers launched by this supervisor. All "%ID%", "%WORKER-ID%", "%TOPOLOGY-ID%"
@@ -1250,6 +1342,18 @@ public class Config extends HashMap<String, Object> {
      */
     public static final String TOPOLOGY_ISOLATED_MACHINES = "topology.isolate.machines";
     public static final Object TOPOLOGY_ISOLATED_MACHINES_SCHEMA = Number.class;
+
+    /**
+     * A map with blobstore keys mapped to each filename the worker will have access to in the
+     * launch directory to the blob by local file name and uncompress flag. Both localname and
+     * uncompress flag are optional. It uses the key is localname is not specified. Each topology
+     * will have different map of blobs.  Example: topology.blobstore.map: {"blobstorekey" :
+     * {"localname": "myblob", "uncompress": false}, {"blobstorearchivekey" :
+     * {"localname": "myarchive", "uncompress": true}}
+     */
+    public static final String TOPOLOGY_BLOBSTORE_MAP = "topology.blobstore.map";
+    public static final Object TOPOLOGY_BLOBSTORE_MAP_SCHEMA =
+        ConfigValidation.MapOfStringToMapOfStringToObjectValidator;
     
     public static void setClasspath(Map conf, String cp) {
         conf.put(Config.TOPOLOGY_CLASSPATH, cp);

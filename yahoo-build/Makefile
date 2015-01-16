@@ -9,7 +9,7 @@ EXEC_CONF_DIR?=/home/y/conf/storm/
 all: build
 
 test:
-	cd .. && $(MVN) -Pnative -Pcoverage -Dworker-launcher.conf.dir=${EXEC_CONF_DIR} package ${MVN_MAKE_OPTS}
+	cd .. && $(MVN) -Pyahoo -Pnative -Pcoverage -Dworker-launcher.conf.dir=${EXEC_CONF_DIR} package ${MVN_MAKE_OPTS}
 
 check: test
 	@echo "Errors or Failures:"
@@ -18,10 +18,10 @@ check: test
 
 
 build:
-	cd .. && $(MVN) -Pnative -Dworker-launcher.conf.dir=${EXEC_CONF_DIR} package -DskipTests ${MVN_MAKE_OPTS}
+	cd .. && $(MVN) -Pyahoo -Pnative -Dworker-launcher.conf.dir=${EXEC_CONF_DIR} package -DskipTests ${MVN_MAKE_OPTS}
 
 install:
-	cd .. && $(MVN) -Pnative -Dworker-launcher.conf.dir=${EXEC_CONF_DIR} install -DskipTests ${MVN_MAKE_OPTS}
+	cd .. && $(MVN) -Pyahoo -Pnative -Dworker-launcher.conf.dir=${EXEC_CONF_DIR} install -DskipTests ${MVN_MAKE_OPTS}
 
 #TODO need a good way to see if these values would have changed and update only then
 BASE_VERSION: ../pom.xml
@@ -38,25 +38,25 @@ RELEASE: BASE_VERSION_UNDERSCORE
 	fi
 
 testpkg: RELEASE BASE_VERSION build
-	cd .. && ${MVN} versions:set -DnewVersion=$(MVN_FULL_VERSION)
-	cd .. && ${MVN} versions:update-child-modules
+	cd .. && ${MVN} -Pyahoo versions:set -DnewVersion=$(MVN_FULL_VERSION)
+	cd .. && ${MVN} -Pyahoo versions:update-child-modules
 	cd .. && find . -name pom.xml | xargs git update-index --assume-unchanged
 	yinst_create --buildtype test ystorm.yicf
-	cd .. && ${MVN} versions:revert
-	cd .. && ${MVN} versions:update-child-modules
+	cd .. && ${MVN} -Pyahoo versions:revert
+	cd .. && ${MVN} -Pyahoo versions:update-child-modules
 
 	
 # This target is called from screwdriver build and leaves the poms changed for its
 # publish phase
 package-sd: RELEASE build
-	cd .. && ${MVN} versions:set -DnewVersion=$(MVN_FULL_VERSION)
-	cd .. && ${MVN} versions:update-child-modules
+	cd .. && ${MVN} -Pyahoo versions:set -DnewVersion=$(MVN_FULL_VERSION)
+	cd .. && ${MVN} -Pyahoo versions:update-child-modules
 	cd .. && find . -name pom.xml | xargs git update-index --assume-unchanged
 	yinst_create --buildtype release ystorm.yicf
 
 package: package-sd
-	cd .. && ${MVN} versions:revert
-	cd .. && ${MVN} versions:update-child-modules
+	cd .. && ${MVN} -Pyahoo versions:revert
+	cd .. && ${MVN} -Pyahoo versions:update-child-modules
 
 
 rhel6_build.state: rhel6_build.yidf rhel6_build.yml
@@ -64,9 +64,9 @@ rhel6_build.state: rhel6_build.yidf rhel6_build.yml
 	statecc --branch test ./rhel6_build.yml
 
 clean:
-	cd .. && $(MVN) clean ${MVN_MAKE_OPTS}
-	cd .. && ${MVN} versions:revert
-	cd .. && ${MVN} versions:update-child-modules
+	cd .. && $(MVN) -Pyahoo clean ${MVN_MAKE_OPTS}
+	cd .. && ${MVN} -Pyahoo versions:revert
+	cd .. && ${MVN} -Pyahoo versions:update-child-modules
 	rm -rf *_build.ruleset ystorm*.tgz BASE_VERSION RELEASE BASE_VERSION_UNDERSCORE
 
 

@@ -348,12 +348,6 @@
                                                         [2]
                                                         (merge topo-env {"LD_LIBRARY_PATH" nil}))))))))
 
-(defn rm-r [f]
-  (if (.isDirectory f)
-    (for [sub (.listFiles f)] (rm-r sub))
-    (.delete f) 
-  ))
-
 (deftest test-worker-launch-command-run-as-user
   (testing "*.worker.childopts configuration"
     (let [mock-port "42"
@@ -385,61 +379,63 @@
                                 " '" mock-worker-id "';"))]
       (.mkdirs (io/file storm-local "workers" mock-worker-id))
       (try
-      (testing "testing *.worker.childopts as strings with extra spaces"
-        (let [string-opts "-Dfoo=bar  -Xmx1024m"
-              topo-string-opts "-Dkau=aux   -Xmx2048m"
-              exp-script (exp-script-fn ["-Dfoo=bar" "-Xmx1024m"]
-                                    ["-Dkau=aux" "-Xmx2048m"])
-              mock-supervisor {:conf {STORM-CLUSTER-MODE :distributed
-                                      STORM-LOCAL-DIR storm-local
-                                      SUPERVISOR-RUN-WORKER-AS-USER true
-                                      WORKER-CHILDOPTS string-opts}}]
-          (stubbing [read-supervisor-storm-conf {TOPOLOGY-WORKER-CHILDOPTS
-                                                 topo-string-opts
-                                                 TOPOLOGY-SUBMITTER-USER "me"}
-                     add-to-classpath mock-cp
-                     supervisor-stormdist-root nil
-                     launch-process nil
-                     set-worker-user! nil
-                     supervisor/java-cmd "java"
-                     supervisor/jlp nil
-                     supervisor/write-log-metadata! nil]
-            (supervisor/launch-worker mock-supervisor
-                                      mock-storm-id
-                                      mock-port
-                                      mock-worker-id)
-            (verify-first-call-args-for-indices launch-process
-                                                [0]
-                                                exp-launch))
-          (is (= (slurp worker-script) exp-script))))
-      (testing "testing *.worker.childopts as list of strings, with spaces in values"
-        (let [list-opts '("-Dopt1='this has a space in it'" "-Xmx1024m")
-              topo-list-opts '("-Dopt2='val with spaces'" "-Xmx2048m")
-              exp-script (exp-script-fn list-opts topo-list-opts)
-              mock-supervisor {:conf {STORM-CLUSTER-MODE :distributed
-                                      STORM-LOCAL-DIR storm-local
-                                      SUPERVISOR-RUN-WORKER-AS-USER true
-                                      WORKER-CHILDOPTS list-opts}}]
-          (stubbing [read-supervisor-storm-conf {TOPOLOGY-WORKER-CHILDOPTS
-                                                 topo-list-opts
-                                                 TOPOLOGY-SUBMITTER-USER "me"}
-                     add-to-classpath mock-cp
-                     supervisor-stormdist-root nil
-                     launch-process nil
-                     set-worker-user! nil
-                     supervisor/java-cmd "java"
-                     supervisor/jlp nil
-                     supervisor/write-log-metadata! nil]
-            (supervisor/launch-worker mock-supervisor
-                                      mock-storm-id
-                                      mock-port
-                                      mock-worker-id)
-            (verify-first-call-args-for-indices launch-process
-                                                [0]
-                                                exp-launch))
-          (is (= (slurp worker-script) exp-script))))
-(finally (rm-r (io/file storm-local)))
-))))
+        (testing "testing *.worker.childopts as strings with extra spaces"
+          (let [string-opts "-Dfoo=bar  -Xmx1024m"
+                topo-string-opts "-Dkau=aux   -Xmx2048m"
+                exp-script (exp-script-fn ["-Dfoo=bar" "-Xmx1024m"]
+                                      ["-Dkau=aux" "-Xmx2048m"])
+                mock-supervisor {:conf {STORM-CLUSTER-MODE :distributed
+                                        STORM-LOCAL-DIR storm-local
+                                        SUPERVISOR-RUN-WORKER-AS-USER true
+                                        WORKER-CHILDOPTS string-opts}}]
+            (stubbing [read-supervisor-storm-conf {TOPOLOGY-WORKER-CHILDOPTS
+                                                   topo-string-opts
+                                                   TOPOLOGY-SUBMITTER-USER "me"}
+                       add-to-classpath mock-cp
+                       supervisor-stormdist-root nil
+                       launch-process nil
+                       set-worker-user! nil
+                       supervisor/java-cmd "java"
+                       supervisor/jlp nil
+                       supervisor/write-log-metadata! nil]
+              (supervisor/launch-worker mock-supervisor
+                                        mock-storm-id
+                                        mock-port
+                                        mock-worker-id)
+              (verify-first-call-args-for-indices launch-process
+                                                  [0]
+                                                  exp-launch))
+            (is (= (slurp worker-script) exp-script))))
+        (finally (rmr storm-local)))
+      (.mkdirs (io/file storm-local "workers" mock-worker-id))
+      (try
+        (testing "testing *.worker.childopts as list of strings, with spaces in values"
+          (let [list-opts '("-Dopt1='this has a space in it'" "-Xmx1024m")
+                topo-list-opts '("-Dopt2='val with spaces'" "-Xmx2048m")
+                exp-script (exp-script-fn list-opts topo-list-opts)
+                mock-supervisor {:conf {STORM-CLUSTER-MODE :distributed
+                                        STORM-LOCAL-DIR storm-local
+                                        SUPERVISOR-RUN-WORKER-AS-USER true
+                                        WORKER-CHILDOPTS list-opts}}]
+            (stubbing [read-supervisor-storm-conf {TOPOLOGY-WORKER-CHILDOPTS
+                                                   topo-list-opts
+                                                   TOPOLOGY-SUBMITTER-USER "me"}
+                       add-to-classpath mock-cp
+                       supervisor-stormdist-root nil
+                       launch-process nil
+                       set-worker-user! nil
+                       supervisor/java-cmd "java"
+                       supervisor/jlp nil
+                       supervisor/write-log-metadata! nil]
+              (supervisor/launch-worker mock-supervisor
+                                        mock-storm-id
+                                        mock-port
+                                        mock-worker-id)
+              (verify-first-call-args-for-indices launch-process
+                                                  [0]
+                                                  exp-launch))
+            (is (= (slurp worker-script) exp-script))))
+        (finally (rmr storm-local))))))
 
 (deftest test-workers-go-bananas
   ;; test that multiple workers are started for a port, and test that
@@ -471,7 +467,8 @@
                  cluster/mk-storm-cluster-state nil
                  supervisor-state nil
                  local-hostname nil
-                 mk-timer nil]
+                 mk-timer nil
+                 supervisor-local-dir nil]
         (supervisor/supervisor-data auth-conf nil fake-isupervisor)
         (verify-call-times-for cluster/mk-storm-cluster-state 1)
         (verify-first-call-args-for-indices cluster/mk-storm-cluster-state [2]

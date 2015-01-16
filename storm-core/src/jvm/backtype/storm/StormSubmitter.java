@@ -18,6 +18,7 @@
 package backtype.storm;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.nio.ByteBuffer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -33,7 +34,7 @@ import org.slf4j.LoggerFactory;
 import backtype.storm.security.auth.IAutoCredentials;
 import backtype.storm.security.auth.AuthUtils;
 import backtype.storm.generated.*;
-import backtype.storm.utils.BufferFileInputStream;
+import backtype.storm.utils.BufferInputStream;
 import backtype.storm.utils.NimbusClient;
 import backtype.storm.utils.Utils;
 
@@ -218,7 +219,7 @@ public class StormSubmitter {
         }
         try {
             if(localNimbus!=null) {
-                LOG.info("Submitting topology " + name + " in local mode");
+                LOG.info("Submitting topology " + name + " in local mode with conf "+stormConf);
                 if(opts!=null) {
                     localNimbus.submitTopologyWithOpts(name, stormConf, topology, opts);                    
                 } else {
@@ -360,7 +361,7 @@ public class StormSubmitter {
         try {
             String uploadLocation = client.getClient().beginFileUpload();
             LOG.info("Uploading topology jar " + localJar + " to assigned location: " + uploadLocation);
-            BufferFileInputStream is = new BufferFileInputStream(localJar, THRIFT_CHUNK_SIZE_BYTES);
+            BufferInputStream is = new BufferInputStream(new FileInputStream(localJar), THRIFT_CHUNK_SIZE_BYTES);
 
             long totalSize = new File(localJar).length();
             if (listener != null) {

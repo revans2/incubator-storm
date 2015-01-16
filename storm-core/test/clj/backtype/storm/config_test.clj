@@ -17,6 +17,9 @@
   (:import [backtype.storm Config ConfigValidation])
   (:import [backtype.storm.scheduler TopologyDetails])
   (:import [backtype.storm.utils Utils])
+  (:import [java.nio.file Files])
+  (:import [java.nio.file.attribute FileAttribute])
+  (:require [clojure.java.io :as io])
   (:use [clojure test])
   (:use [backtype.storm config util])
   )
@@ -114,3 +117,22 @@
                       (catch Exception e e)))))
         (is (thrown-cause? java.lang.IllegalArgumentException
           (.validateField validator "test" 42)))))))
+
+(deftest test-create-symlink
+  (testing "validates symlink creation"
+  (let [tempFile (java.io.File/createTempFile "create-symlink-test" ".txt")
+        target-file (.getAbsolutePath tempFile)
+        attrs (make-array FileAttribute 0)
+        tempDirPath (Files/createTempDirectory "symlink-testDir" attrs)
+        tempDir (.toString (.toAbsolutePath tempDirPath))
+        link-file (str  tempDir file-path-separator (.getName tempFile))
+        input-text "valid-data"
+        _ (spit target-file input-text)
+        _ (create-symlink! tempDir (.getParent tempFile) (.getName tempFile))]
+    (try 
+      (is (= (slurp link-file) input-text))
+      (finally 
+        (io/delete-file link-file)
+        (io/delete-file tempDir)
+        (io/delete-file tempFile))))))
+

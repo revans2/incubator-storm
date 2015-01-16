@@ -288,6 +288,13 @@ abstract public class ShellUtils {
         return process;
     }
 
+    /** get the exit code
+     * @return the exit code of the process
+     */
+    public int getExitCode() {
+      return exitCode;
+    }
+
     /**
      * This is an IOException with exit code added.
      */

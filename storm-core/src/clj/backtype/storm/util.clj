@@ -28,6 +28,8 @@
   (:import [java.io File FileOutputStream RandomAccessFile StringWriter
             PrintWriter BufferedReader InputStreamReader IOException])
   (:import [java.lang.management ManagementFactory])
+  (:import [java.nio.file Files Paths])
+  (:import [java.nio.file.attribute FileAttribute])
   (:import [org.apache.commons.exec DefaultExecutor CommandLine])
   (:import [org.apache.commons.io FileUtils])
   (:import [org.apache.commons.exec ExecuteException])
@@ -538,6 +540,21 @@
     (when-not success?
       (throw (RuntimeException. (str "Failed to touch " path))))))
 
+(defn create-symlink!
+  "Create symlink is to the target"
+  ([path-dir target-dir file-name]
+    (create-symlink! path-dir target-dir file-name file-name))
+  ([path-dir target-dir from-file-name to-file-name]
+    (let [path (str path-dir file-path-separator from-file-name)
+          target (str target-dir file-path-separator to-file-name)
+          empty-array (make-array String 0)
+          attrs (make-array FileAttribute 0)
+          abs-path (.toAbsolutePath (Paths/get path empty-array))
+          abs-target (.toAbsolutePath (Paths/get target empty-array))]
+      (log-message "Creating symlink [" abs-path "] to [" abs-target "]")
+      (if (not (.exists (.toFile abs-path)))
+        (Files/createSymbolicLink abs-path abs-target attrs)))))
+
 (defn read-dir-contents
   [dir]
   (if (exists-file? dir)
@@ -999,3 +1016,20 @@
 
 (defn hashmap-to-persistent [^HashMap m]
   (zipmap (.keySet m) (.values m)))
+
+(defn retry-on-exception
+  "Retries specific function on exception based on retries count"
+  [tries task-description f & args]
+  (let [res (try {:value (apply f args)}
+              (catch Exception e
+                (if (= 0 tries)
+                  (throw e)
+                  {:exception e})))]
+    (if (:exception res)
+      (do 
+        (log-error (:exception res) (str "Failed to " task-description ". Will make [" tries "] more attempts."))
+        (recur (dec tries) task-description f args))
+      (do 
+        (log-message (str "Successful " task-description "."))
+        (:value res)))))
+

@@ -136,23 +136,22 @@
     (FileUtils/forceMkdir (File. ret))
     ret))
 
-(defn master-stormdist-root
-  ([conf]
-   (str (master-local-dir conf) file-path-separator "stormdist"))
-  ([conf storm-id]
-   (str (master-stormdist-root conf) file-path-separator storm-id)))
+(defn get-id-from-blob-key
+  [key]
+    (if-let [groups (re-find #"^(.*)((-stormjar\.jar)|(-stormcode\.ser)|(-stormconf\.ser))$" key)]
+      (nth groups 1)))
 
-(defn master-stormjar-path
-  [stormroot]
-  (str stormroot file-path-separator "stormjar.jar"))
+(defn master-stormjar-key
+  [topology-id]
+  (str topology-id "-stormjar.jar"))
 
-(defn master-stormcode-path
-  [stormroot]
-  (str stormroot file-path-separator "stormcode.ser"))
+(defn master-stormcode-key
+  [topology-id]
+  (str topology-id "-stormcode.ser"))
 
-(defn master-stormconf-path
-  [stormroot]
-  (str stormroot file-path-separator "stormconf.ser"))
+(defn master-stormconf-key
+  [topology-id]
+  (str topology-id "-stormconf.ser"))
 
 (defn master-inbox
   [conf]
@@ -206,13 +205,15 @@
   [conf]
   (LocalState. (str (supervisor-local-dir conf) file-path-separator "localstate")))
 
+(defn read-supervisor-storm-conf-given-path
+  [conf stormconf-path]
+    (merge conf (Utils/deserialize (FileUtils/readFileToByteArray (File. stormconf-path)))))
+
 (defn read-supervisor-storm-conf
   [conf storm-id]
   (let [stormroot (supervisor-stormdist-root conf storm-id)
-        conf-path (supervisor-stormconf-path stormroot)
-        topology-path (supervisor-stormcode-path stormroot)]
-    (merge conf (Utils/deserialize (FileUtils/readFileToByteArray (File. conf-path))))
-    ))
+        conf-path (supervisor-stormconf-path stormroot)]
+    (read-supervisor-storm-conf-given-path conf conf-path)))
 
 (defn read-supervisor-topology
   [conf storm-id]

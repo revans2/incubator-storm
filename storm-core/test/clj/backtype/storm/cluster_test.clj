@@ -222,8 +222,9 @@
       (let [state (mk-storm-state zk-port)]
         (.report-error state "a" "1" (RuntimeException.))
         (validate-errors! state "a" "1" ["RuntimeException"])
+        (advance-time-secs! 1)
         (.report-error state "a" "1" (IllegalArgumentException.))
-        (validate-errors! state "a" "1" ["RuntimeException" "IllegalArgumentException"])
+        (validate-errors! state "a" "1" ["IllegalArgumentException" "RuntimeException"])
         (doseq [i (range 10)]
           (.report-error state "a" "2" (RuntimeException.))
           (advance-time-secs! 2))

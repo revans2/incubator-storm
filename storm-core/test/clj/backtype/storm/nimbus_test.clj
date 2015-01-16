@@ -854,6 +854,7 @@
                          {STORM-ZOOKEEPER-SERVERS ["localhost"]
                           STORM-CLUSTER-MODE "local"
                           STORM-ZOOKEEPER-PORT zk-port
+                          BLOBSTORE-SUPERUSER (System/getProperty "user.name")
                           STORM-LOCAL-DIR nimbus-dir}))
        (bind cluster-state (cluster/mk-storm-cluster-state conf))
        (bind nimbus (nimbus/service-handler conf (nimbus/standalone-nimbus)))
@@ -865,7 +866,9 @@
        (bind storm-id1 (get-storm-id cluster-state "t1"))
        (bind storm-id2 (get-storm-id cluster-state "t2"))
        (.shutdown nimbus)
-       (rmr (master-stormdist-root conf storm-id1))
+       (let [blob-store (Utils/getNimbusBlobStore conf)]
+         (nimbus/rm-from-blob-store storm-id1 blob-store)
+         (.shutdown blob-store))
        (bind nimbus (nimbus/service-handler conf (nimbus/standalone-nimbus)))
        (is ( = #{storm-id2} (set (.active-storms cluster-state))))
        (.shutdown nimbus)
@@ -1105,12 +1108,16 @@
     (let [scheme "digest"
           digest "storm:thisisapoorpassword"
           auth-conf {STORM-ZOOKEEPER-AUTH-SCHEME scheme
-                     STORM-ZOOKEEPER-AUTH-PAYLOAD digest}
+                     STORM-ZOOKEEPER-AUTH-PAYLOAD digest
+                     STORM-PRINCIPAL-TO-LOCAL-PLUGIN "backtype.storm.security.auth.DefaultPrincipalToLocal"
+                     BLOBSTORE-SUPERUSER "test"}
           expected-acls nimbus/NIMBUS-ZK-ACLS
           fake-inimbus (reify INimbus (getForcedScheduler [this] nil))]
       (stubbing [mk-authorization-handler nil
                  cluster/mk-storm-cluster-state nil
-                 nimbus/file-cache-map nil
+                 nimbus/mk-file-cache-map nil
+                 nimbus/mk-blob-cache-map nil
+                 nimbus/mk-bloblist-cache-map nil
                  uptime-computer nil
                  new-instance nil
                  mk-timer nil

@@ -68,6 +68,9 @@ CONFFILE = ""
 JAR_JVM_OPTS = shlex.split(os.getenv('STORM_JAR_JVM_OPTS', ''))
 JAVA_HOME = os.getenv('JAVA_HOME', None)
 JAVA_CMD = 'java' if not JAVA_HOME else os.path.join(JAVA_HOME, 'bin', 'java')
+NIMBUS_EXTRA_CLASSPATHS = os.getenv('NIMBUS_EXTRA_CLASSPATHS', None)
+SUPERVISOR_EXTRA_CLASSPATHS = os.getenv('SUPERVISOR_EXTRA_CLASSPATHS', None)
+
 
 def get_config_opts():
     global CONFIG_OPTS
@@ -198,7 +201,7 @@ def kill(*args):
 
 
 def upload_credentials(*args):
-    """Syntax: [storm upload_credentials topology-name [credkey credvalue]*]
+    """Syntax: [storm upload-credentials topology-name [credkey credvalue]*]
 
     Uploads a new set of credentials to a running topology
     """
@@ -207,6 +210,31 @@ def upload_credentials(*args):
         args=args, 
         jvmtype="-client", 
         extrajars=[USER_CONF_DIR, STORM_DIR + "/bin"])
+
+def blobstore(*args):
+    """Syntax: [storm blobstore [cmd]]
+
+    list [KEY...] - lists blobs currently in the blob store
+    cat [-f FILE] KEY - read a blob and then either write it to a file, or STDOUT (requires read access). 
+    create [-f FILE] [-a ACL ...] KEY - create a new blob. Contents comes from a FILE
+         or STDIN. ACL is in the form [uo]:[username]:[r-][w-][a-] can be comma
+         separated list.
+         for example the following would create a mytopo:data.tgz key using the data 
+         stored in data.tgz.  User alice would have full access, bob would have
+         read/write access and everyone else would have read access.
+         storm blobstore create mytopo:data.tgz -f data.tgz -a u:alice:rwa,u:bob:rw,o::r
+    update [-f FILE] KEY - update the contents of a blob.  Contents comes from
+         a FILE or STDIN (requires write access).
+    delete KEY - delete an entry from the blob store (requires write access).
+    set-acl [-s ACL] KEY - ACL is in the form [uo]:[username]:[r-][w-][a-] can be comma
+         separated list (requires admin access).
+    """
+    exec_storm_class(
+        "backtype.storm.command.blobstore", 
+        args=args, 
+        jvmtype="-client", 
+        extrajars=[USER_CONF_DIR, STORM_DIR + "/bin"])
+
 
 def activate(*args):
     """Syntax: [storm activate topology-name]
@@ -299,7 +327,10 @@ def nimbus(klass="backtype.storm.daemon.nimbus"):
     See Setting up a Storm cluster for more information.
     (http://storm.incubator.apache.org/documentation/Setting-up-a-Storm-cluster)
     """
-    cppaths = [CLUSTER_CONF_DIR]
+    if NIMBUS_EXTRA_CLASSPATHS != None:
+        cppaths = [CLUSTER_CONF_DIR, NIMBUS_EXTRA_CLASSPATHS]
+    else:
+        cppaths = [CLUSTER_CONF_DIR]
     jvmopts = parse_args(confvalue("nimbus.childopts", cppaths)) + [
         "-Dlogfile.name=nimbus.log",
         "-Dlogback.configurationFile=" + STORM_DIR + "/logback/cluster.xml",
@@ -319,7 +350,10 @@ def supervisor(klass="backtype.storm.daemon.supervisor"):
     See Setting up a Storm cluster for more information.
     (http://storm.incubator.apache.org/documentation/Setting-up-a-Storm-cluster)
     """
-    cppaths = [CLUSTER_CONF_DIR]
+    if SUPERVISOR_EXTRA_CLASSPATHS != None:
+        cppaths = [CLUSTER_CONF_DIR, SUPERVISOR_EXTRA_CLASSPATHS]
+    else:
+        cppaths = [CLUSTER_CONF_DIR]
     jvmopts = parse_args(confvalue("supervisor.childopts", cppaths)) + [
         "-Dlogfile.name=supervisor.log",
         "-Dlogback.configurationFile=" + STORM_DIR + "/logback/cluster.xml",
@@ -450,7 +484,7 @@ COMMANDS = {"jar": jar, "kill": kill, "shell": shell, "nimbus": nimbus, "ui": ui
             "remoteconfvalue": print_remoteconfvalue, "repl": repl, "classpath": print_classpath,
             "activate": activate, "deactivate": deactivate, "rebalance": rebalance, "help": print_usage,
             "list": listtopos, "dev-zookeeper": dev_zookeeper, "version": version, 
-            "upload-credentials": upload_credentials}
+            "upload-credentials": upload_credentials, "blobstore": blobstore}
 
 def parse_config(config_list):
     global CONFIG_OPTS

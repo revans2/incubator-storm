@@ -1,4 +1,4 @@
-/**
+/*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -58,6 +58,28 @@ public class Nimbus {
 
     public void uploadNewCredentials(String name, Credentials creds) throws NotAliveException, InvalidTopologyException, AuthorizationException, org.apache.thrift.TException;
 
+    public String beginCreateBlob(String key, SettableBlobMeta meta) throws AuthorizationException, KeyAlreadyExistsException, org.apache.thrift.TException;
+
+    public String beginUpdateBlob(String key) throws AuthorizationException, KeyNotFoundException, org.apache.thrift.TException;
+
+    public void uploadBlobChunk(String session, ByteBuffer chunk) throws AuthorizationException, org.apache.thrift.TException;
+
+    public void finishBlobUpload(String session) throws AuthorizationException, org.apache.thrift.TException;
+
+    public void cancelBlobUpload(String session) throws AuthorizationException, org.apache.thrift.TException;
+
+    public ReadableBlobMeta getBlobMeta(String key) throws AuthorizationException, KeyNotFoundException, org.apache.thrift.TException;
+
+    public void setBlobMeta(String key, SettableBlobMeta meta) throws AuthorizationException, KeyNotFoundException, org.apache.thrift.TException;
+
+    public BeginDownloadResult beginBlobDownload(String key) throws AuthorizationException, KeyNotFoundException, org.apache.thrift.TException;
+
+    public ByteBuffer downloadBlobChunk(String session) throws AuthorizationException, org.apache.thrift.TException;
+
+    public void deleteBlob(String key) throws AuthorizationException, KeyNotFoundException, org.apache.thrift.TException;
+
+    public ListBlobsResult listBlobs(String session) throws org.apache.thrift.TException;
+
     public String beginFileUpload() throws AuthorizationException, org.apache.thrift.TException;
 
     public void uploadChunk(String location, ByteBuffer chunk) throws AuthorizationException, org.apache.thrift.TException;
@@ -99,6 +121,28 @@ public class Nimbus {
     public void rebalance(String name, RebalanceOptions options, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.rebalance_call> resultHandler) throws org.apache.thrift.TException;
 
     public void uploadNewCredentials(String name, Credentials creds, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.uploadNewCredentials_call> resultHandler) throws org.apache.thrift.TException;
+
+    public void beginCreateBlob(String key, SettableBlobMeta meta, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.beginCreateBlob_call> resultHandler) throws org.apache.thrift.TException;
+
+    public void beginUpdateBlob(String key, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.beginUpdateBlob_call> resultHandler) throws org.apache.thrift.TException;
+
+    public void uploadBlobChunk(String session, ByteBuffer chunk, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.uploadBlobChunk_call> resultHandler) throws org.apache.thrift.TException;
+
+    public void finishBlobUpload(String session, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.finishBlobUpload_call> resultHandler) throws org.apache.thrift.TException;
+
+    public void cancelBlobUpload(String session, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.cancelBlobUpload_call> resultHandler) throws org.apache.thrift.TException;
+
+    public void getBlobMeta(String key, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.getBlobMeta_call> resultHandler) throws org.apache.thrift.TException;
+
+    public void setBlobMeta(String key, SettableBlobMeta meta, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.setBlobMeta_call> resultHandler) throws org.apache.thrift.TException;
+
+    public void beginBlobDownload(String key, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.beginBlobDownload_call> resultHandler) throws org.apache.thrift.TException;
+
+    public void downloadBlobChunk(String session, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.downloadBlobChunk_call> resultHandler) throws org.apache.thrift.TException;
+
+    public void deleteBlob(String key, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.deleteBlob_call> resultHandler) throws org.apache.thrift.TException;
+
+    public void listBlobs(String session, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.listBlobs_call> resultHandler) throws org.apache.thrift.TException;
 
     public void beginFileUpload(org.apache.thrift.async.AsyncMethodCallback<AsyncClient.beginFileUpload_call> resultHandler) throws org.apache.thrift.TException;
 
@@ -372,6 +416,295 @@ public class Nimbus {
         throw result.aze;
       }
       return;
+    }
+
+    public String beginCreateBlob(String key, SettableBlobMeta meta) throws AuthorizationException, KeyAlreadyExistsException, org.apache.thrift.TException
+    {
+      send_beginCreateBlob(key, meta);
+      return recv_beginCreateBlob();
+    }
+
+    public void send_beginCreateBlob(String key, SettableBlobMeta meta) throws org.apache.thrift.TException
+    {
+      beginCreateBlob_args args = new beginCreateBlob_args();
+      args.set_key(key);
+      args.set_meta(meta);
+      sendBase("beginCreateBlob", args);
+    }
+
+    public String recv_beginCreateBlob() throws AuthorizationException, KeyAlreadyExistsException, org.apache.thrift.TException
+    {
+      beginCreateBlob_result result = new beginCreateBlob_result();
+      receiveBase(result, "beginCreateBlob");
+      if (result.is_set_success()) {
+        return result.success;
+      }
+      if (result.aze != null) {
+        throw result.aze;
+      }
+      if (result.kae != null) {
+        throw result.kae;
+      }
+      throw new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.MISSING_RESULT, "beginCreateBlob failed: unknown result");
+    }
+
+    public String beginUpdateBlob(String key) throws AuthorizationException, KeyNotFoundException, org.apache.thrift.TException
+    {
+      send_beginUpdateBlob(key);
+      return recv_beginUpdateBlob();
+    }
+
+    public void send_beginUpdateBlob(String key) throws org.apache.thrift.TException
+    {
+      beginUpdateBlob_args args = new beginUpdateBlob_args();
+      args.set_key(key);
+      sendBase("beginUpdateBlob", args);
+    }
+
+    public String recv_beginUpdateBlob() throws AuthorizationException, KeyNotFoundException, org.apache.thrift.TException
+    {
+      beginUpdateBlob_result result = new beginUpdateBlob_result();
+      receiveBase(result, "beginUpdateBlob");
+      if (result.is_set_success()) {
+        return result.success;
+      }
+      if (result.aze != null) {
+        throw result.aze;
+      }
+      if (result.knf != null) {
+        throw result.knf;
+      }
+      throw new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.MISSING_RESULT, "beginUpdateBlob failed: unknown result");
+    }
+
+    public void uploadBlobChunk(String session, ByteBuffer chunk) throws AuthorizationException, org.apache.thrift.TException
+    {
+      send_uploadBlobChunk(session, chunk);
+      recv_uploadBlobChunk();
+    }
+
+    public void send_uploadBlobChunk(String session, ByteBuffer chunk) throws org.apache.thrift.TException
+    {
+      uploadBlobChunk_args args = new uploadBlobChunk_args();
+      args.set_session(session);
+      args.set_chunk(chunk);
+      sendBase("uploadBlobChunk", args);
+    }
+
+    public void recv_uploadBlobChunk() throws AuthorizationException, org.apache.thrift.TException
+    {
+      uploadBlobChunk_result result = new uploadBlobChunk_result();
+      receiveBase(result, "uploadBlobChunk");
+      if (result.aze != null) {
+        throw result.aze;
+      }
+      return;
+    }
+
+    public void finishBlobUpload(String session) throws AuthorizationException, org.apache.thrift.TException
+    {
+      send_finishBlobUpload(session);
+      recv_finishBlobUpload();
+    }
+
+    public void send_finishBlobUpload(String session) throws org.apache.thrift.TException
+    {
+      finishBlobUpload_args args = new finishBlobUpload_args();
+      args.set_session(session);
+      sendBase("finishBlobUpload", args);
+    }
+
+    public void recv_finishBlobUpload() throws AuthorizationException, org.apache.thrift.TException
+    {
+      finishBlobUpload_result result = new finishBlobUpload_result();
+      receiveBase(result, "finishBlobUpload");
+      if (result.aze != null) {
+        throw result.aze;
+      }
+      return;
+    }
+
+    public void cancelBlobUpload(String session) throws AuthorizationException, org.apache.thrift.TException
+    {
+      send_cancelBlobUpload(session);
+      recv_cancelBlobUpload();
+    }
+
+    public void send_cancelBlobUpload(String session) throws org.apache.thrift.TException
+    {
+      cancelBlobUpload_args args = new cancelBlobUpload_args();
+      args.set_session(session);
+      sendBase("cancelBlobUpload", args);
+    }
+
+    public void recv_cancelBlobUpload() throws AuthorizationException, org.apache.thrift.TException
+    {
+      cancelBlobUpload_result result = new cancelBlobUpload_result();
+      receiveBase(result, "cancelBlobUpload");
+      if (result.aze != null) {
+        throw result.aze;
+      }
+      return;
+    }
+
+    public ReadableBlobMeta getBlobMeta(String key) throws AuthorizationException, KeyNotFoundException, org.apache.thrift.TException
+    {
+      send_getBlobMeta(key);
+      return recv_getBlobMeta();
+    }
+
+    public void send_getBlobMeta(String key) throws org.apache.thrift.TException
+    {
+      getBlobMeta_args args = new getBlobMeta_args();
+      args.set_key(key);
+      sendBase("getBlobMeta", args);
+    }
+
+    public ReadableBlobMeta recv_getBlobMeta() throws AuthorizationException, KeyNotFoundException, org.apache.thrift.TException
+    {
+      getBlobMeta_result result = new getBlobMeta_result();
+      receiveBase(result, "getBlobMeta");
+      if (result.is_set_success()) {
+        return result.success;
+      }
+      if (result.aze != null) {
+        throw result.aze;
+      }
+      if (result.knf != null) {
+        throw result.knf;
+      }
+      throw new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.MISSING_RESULT, "getBlobMeta failed: unknown result");
+    }
+
+    public void setBlobMeta(String key, SettableBlobMeta meta) throws AuthorizationException, KeyNotFoundException, org.apache.thrift.TException
+    {
+      send_setBlobMeta(key, meta);
+      recv_setBlobMeta();
+    }
+
+    public void send_setBlobMeta(String key, SettableBlobMeta meta) throws org.apache.thrift.TException
+    {
+      setBlobMeta_args args = new setBlobMeta_args();
+      args.set_key(key);
+      args.set_meta(meta);
+      sendBase("setBlobMeta", args);
+    }
+
+    public void recv_setBlobMeta() throws AuthorizationException, KeyNotFoundException, org.apache.thrift.TException
+    {
+      setBlobMeta_result result = new setBlobMeta_result();
+      receiveBase(result, "setBlobMeta");
+      if (result.aze != null) {
+        throw result.aze;
+      }
+      if (result.knf != null) {
+        throw result.knf;
+      }
+      return;
+    }
+
+    public BeginDownloadResult beginBlobDownload(String key) throws AuthorizationException, KeyNotFoundException, org.apache.thrift.TException
+    {
+      send_beginBlobDownload(key);
+      return recv_beginBlobDownload();
+    }
+
+    public void send_beginBlobDownload(String key) throws org.apache.thrift.TException
+    {
+      beginBlobDownload_args args = new beginBlobDownload_args();
+      args.set_key(key);
+      sendBase("beginBlobDownload", args);
+    }
+
+    public BeginDownloadResult recv_beginBlobDownload() throws AuthorizationException, KeyNotFoundException, org.apache.thrift.TException
+    {
+      beginBlobDownload_result result = new beginBlobDownload_result();
+      receiveBase(result, "beginBlobDownload");
+      if (result.is_set_success()) {
+        return result.success;
+      }
+      if (result.aze != null) {
+        throw result.aze;
+      }
+      if (result.knf != null) {
+        throw result.knf;
+      }
+      throw new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.MISSING_RESULT, "beginBlobDownload failed: unknown result");
+    }
+
+    public ByteBuffer downloadBlobChunk(String session) throws AuthorizationException, org.apache.thrift.TException
+    {
+      send_downloadBlobChunk(session);
+      return recv_downloadBlobChunk();
+    }
+
+    public void send_downloadBlobChunk(String session) throws org.apache.thrift.TException
+    {
+      downloadBlobChunk_args args = new downloadBlobChunk_args();
+      args.set_session(session);
+      sendBase("downloadBlobChunk", args);
+    }
+
+    public ByteBuffer recv_downloadBlobChunk() throws AuthorizationException, org.apache.thrift.TException
+    {
+      downloadBlobChunk_result result = new downloadBlobChunk_result();
+      receiveBase(result, "downloadBlobChunk");
+      if (result.is_set_success()) {
+        return result.success;
+      }
+      if (result.aze != null) {
+        throw result.aze;
+      }
+      throw new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.MISSING_RESULT, "downloadBlobChunk failed: unknown result");
+    }
+
+    public void deleteBlob(String key) throws AuthorizationException, KeyNotFoundException, org.apache.thrift.TException
+    {
+      send_deleteBlob(key);
+      recv_deleteBlob();
+    }
+
+    public void send_deleteBlob(String key) throws org.apache.thrift.TException
+    {
+      deleteBlob_args args = new deleteBlob_args();
+      args.set_key(key);
+      sendBase("deleteBlob", args);
+    }
+
+    public void recv_deleteBlob() throws AuthorizationException, KeyNotFoundException, org.apache.thrift.TException
+    {
+      deleteBlob_result result = new deleteBlob_result();
+      receiveBase(result, "deleteBlob");
+      if (result.aze != null) {
+        throw result.aze;
+      }
+      if (result.knf != null) {
+        throw result.knf;
+      }
+      return;
+    }
+
+    public ListBlobsResult listBlobs(String session) throws org.apache.thrift.TException
+    {
+      send_listBlobs(session);
+      return recv_listBlobs();
+    }
+
+    public void send_listBlobs(String session) throws org.apache.thrift.TException
+    {
+      listBlobs_args args = new listBlobs_args();
+      args.set_session(session);
+      sendBase("listBlobs", args);
+    }
+
+    public ListBlobsResult recv_listBlobs() throws org.apache.thrift.TException
+    {
+      listBlobs_result result = new listBlobs_result();
+      receiveBase(result, "listBlobs");
+      if (result.is_set_success()) {
+        return result.success;
+      }
+      throw new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.MISSING_RESULT, "listBlobs failed: unknown result");
     }
 
     public String beginFileUpload() throws AuthorizationException, org.apache.thrift.TException
@@ -968,6 +1301,367 @@ public class Nimbus {
       }
     }
 
+    public void beginCreateBlob(String key, SettableBlobMeta meta, org.apache.thrift.async.AsyncMethodCallback<beginCreateBlob_call> resultHandler) throws org.apache.thrift.TException {
+      checkReady();
+      beginCreateBlob_call method_call = new beginCreateBlob_call(key, meta, resultHandler, this, ___protocolFactory, ___transport);
+      this.___currentMethod = method_call;
+      ___manager.call(method_call);
+    }
+
+    public static class beginCreateBlob_call extends org.apache.thrift.async.TAsyncMethodCall {
+      private String key;
+      private SettableBlobMeta meta;
+      public beginCreateBlob_call(String key, SettableBlobMeta meta, org.apache.thrift.async.AsyncMethodCallback<beginCreateBlob_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+        super(client, protocolFactory, transport, resultHandler, false);
+        this.key = key;
+        this.meta = meta;
+      }
+
+      public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
+        prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("beginCreateBlob", org.apache.thrift.protocol.TMessageType.CALL, 0));
+        beginCreateBlob_args args = new beginCreateBlob_args();
+        args.set_key(key);
+        args.set_meta(meta);
+        args.write(prot);
+        prot.writeMessageEnd();
+      }
+
+      public String getResult() throws AuthorizationException, KeyAlreadyExistsException, org.apache.thrift.TException {
+        if (getState() != org.apache.thrift.async.TAsyncMethodCall.State.RESPONSE_READ) {
+          throw new IllegalStateException("Method call not finished!");
+        }
+        org.apache.thrift.transport.TMemoryInputTransport memoryTransport = new org.apache.thrift.transport.TMemoryInputTransport(getFrameBuffer().array());
+        org.apache.thrift.protocol.TProtocol prot = client.getProtocolFactory().getProtocol(memoryTransport);
+        return (new Client(prot)).recv_beginCreateBlob();
+      }
+    }
+
+    public void beginUpdateBlob(String key, org.apache.thrift.async.AsyncMethodCallback<beginUpdateBlob_call> resultHandler) throws org.apache.thrift.TException {
+      checkReady();
+      beginUpdateBlob_call method_call = new beginUpdateBlob_call(key, resultHandler, this, ___protocolFactory, ___transport);
+      this.___currentMethod = method_call;
+      ___manager.call(method_call);
+    }
+
+    public static class beginUpdateBlob_call extends org.apache.thrift.async.TAsyncMethodCall {
+      private String key;
+      public beginUpdateBlob_call(String key, org.apache.thrift.async.AsyncMethodCallback<beginUpdateBlob_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+        super(client, protocolFactory, transport, resultHandler, false);
+        this.key = key;
+      }
+
+      public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
+        prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("beginUpdateBlob", org.apache.thrift.protocol.TMessageType.CALL, 0));
+        beginUpdateBlob_args args = new beginUpdateBlob_args();
+        args.set_key(key);
+        args.write(prot);
+        prot.writeMessageEnd();
+      }
+
+      public String getResult() throws AuthorizationException, KeyNotFoundException, org.apache.thrift.TException {
+        if (getState() != org.apache.thrift.async.TAsyncMethodCall.State.RESPONSE_READ) {
+          throw new IllegalStateException("Method call not finished!");
+        }
+        org.apache.thrift.transport.TMemoryInputTransport memoryTransport = new org.apache.thrift.transport.TMemoryInputTransport(getFrameBuffer().array());
+        org.apache.thrift.protocol.TProtocol prot = client.getProtocolFactory().getProtocol(memoryTransport);
+        return (new Client(prot)).recv_beginUpdateBlob();
+      }
+    }
+
+    public void uploadBlobChunk(String session, ByteBuffer chunk, org.apache.thrift.async.AsyncMethodCallback<uploadBlobChunk_call> resultHandler) throws org.apache.thrift.TException {
+      checkReady();
+      uploadBlobChunk_call method_call = new uploadBlobChunk_call(session, chunk, resultHandler, this, ___protocolFactory, ___transport);
+      this.___currentMethod = method_call;
+      ___manager.call(method_call);
+    }
+
+    public static class uploadBlobChunk_call extends org.apache.thrift.async.TAsyncMethodCall {
+      private String session;
+      private ByteBuffer chunk;
+      public uploadBlobChunk_call(String session, ByteBuffer chunk, org.apache.thrift.async.AsyncMethodCallback<uploadBlobChunk_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+        super(client, protocolFactory, transport, resultHandler, false);
+        this.session = session;
+        this.chunk = chunk;
+      }
+
+      public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
+        prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("uploadBlobChunk", org.apache.thrift.protocol.TMessageType.CALL, 0));
+        uploadBlobChunk_args args = new uploadBlobChunk_args();
+        args.set_session(session);
+        args.set_chunk(chunk);
+        args.write(prot);
+        prot.writeMessageEnd();
+      }
+
+      public void getResult() throws AuthorizationException, org.apache.thrift.TException {
+        if (getState() != org.apache.thrift.async.TAsyncMethodCall.State.RESPONSE_READ) {
+          throw new IllegalStateException("Method call not finished!");
+        }
+        org.apache.thrift.transport.TMemoryInputTransport memoryTransport = new org.apache.thrift.transport.TMemoryInputTransport(getFrameBuffer().array());
+        org.apache.thrift.protocol.TProtocol prot = client.getProtocolFactory().getProtocol(memoryTransport);
+        (new Client(prot)).recv_uploadBlobChunk();
+      }
+    }
+
+    public void finishBlobUpload(String session, org.apache.thrift.async.AsyncMethodCallback<finishBlobUpload_call> resultHandler) throws org.apache.thrift.TException {
+      checkReady();
+      finishBlobUpload_call method_call = new finishBlobUpload_call(session, resultHandler, this, ___protocolFactory, ___transport);
+      this.___currentMethod = method_call;
+      ___manager.call(method_call);
+    }
+
+    public static class finishBlobUpload_call extends org.apache.thrift.async.TAsyncMethodCall {
+      private String session;
+      public finishBlobUpload_call(String session, org.apache.thrift.async.AsyncMethodCallback<finishBlobUpload_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+        super(client, protocolFactory, transport, resultHandler, false);
+        this.session = session;
+      }
+
+      public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
+        prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("finishBlobUpload", org.apache.thrift.protocol.TMessageType.CALL, 0));
+        finishBlobUpload_args args = new finishBlobUpload_args();
+        args.set_session(session);
+        args.write(prot);
+        prot.writeMessageEnd();
+      }
+
+      public void getResult() throws AuthorizationException, org.apache.thrift.TException {
+        if (getState() != org.apache.thrift.async.TAsyncMethodCall.State.RESPONSE_READ) {
+          throw new IllegalStateException("Method call not finished!");
+        }
+        org.apache.thrift.transport.TMemoryInputTransport memoryTransport = new org.apache.thrift.transport.TMemoryInputTransport(getFrameBuffer().array());
+        org.apache.thrift.protocol.TProtocol prot = client.getProtocolFactory().getProtocol(memoryTransport);
+        (new Client(prot)).recv_finishBlobUpload();
+      }
+    }
+
+    public void cancelBlobUpload(String session, org.apache.thrift.async.AsyncMethodCallback<cancelBlobUpload_call> resultHandler) throws org.apache.thrift.TException {
+      checkReady();
+      cancelBlobUpload_call method_call = new cancelBlobUpload_call(session, resultHandler, this, ___protocolFactory, ___transport);
+      this.___currentMethod = method_call;
+      ___manager.call(method_call);
+    }
+
+    public static class cancelBlobUpload_call extends org.apache.thrift.async.TAsyncMethodCall {
+      private String session;
+      public cancelBlobUpload_call(String session, org.apache.thrift.async.AsyncMethodCallback<cancelBlobUpload_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+        super(client, protocolFactory, transport, resultHandler, false);
+        this.session = session;
+      }
+
+      public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
+        prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("cancelBlobUpload", org.apache.thrift.protocol.TMessageType.CALL, 0));
+        cancelBlobUpload_args args = new cancelBlobUpload_args();
+        args.set_session(session);
+        args.write(prot);
+        prot.writeMessageEnd();
+      }
+
+      public void getResult() throws AuthorizationException, org.apache.thrift.TException {
+        if (getState() != org.apache.thrift.async.TAsyncMethodCall.State.RESPONSE_READ) {
+          throw new IllegalStateException("Method call not finished!");
+        }
+        org.apache.thrift.transport.TMemoryInputTransport memoryTransport = new org.apache.thrift.transport.TMemoryInputTransport(getFrameBuffer().array());
+        org.apache.thrift.protocol.TProtocol prot = client.getProtocolFactory().getProtocol(memoryTransport);
+        (new Client(prot)).recv_cancelBlobUpload();
+      }
+    }
+
+    public void getBlobMeta(String key, org.apache.thrift.async.AsyncMethodCallback<getBlobMeta_call> resultHandler) throws org.apache.thrift.TException {
+      checkReady();
+      getBlobMeta_call method_call = new getBlobMeta_call(key, resultHandler, this, ___protocolFactory, ___transport);
+      this.___currentMethod = method_call;
+      ___manager.call(method_call);
+    }
+
+    public static class getBlobMeta_call extends org.apache.thrift.async.TAsyncMethodCall {
+      private String key;
+      public getBlobMeta_call(String key, org.apache.thrift.async.AsyncMethodCallback<getBlobMeta_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+        super(client, protocolFactory, transport, resultHandler, false);
+        this.key = key;
+      }
+
+      public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
+        prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("getBlobMeta", org.apache.thrift.protocol.TMessageType.CALL, 0));
+        getBlobMeta_args args = new getBlobMeta_args();
+        args.set_key(key);
+        args.write(prot);
+        prot.writeMessageEnd();
+      }
+
+      public ReadableBlobMeta getResult() throws AuthorizationException, KeyNotFoundException, org.apache.thrift.TException {
+        if (getState() != org.apache.thrift.async.TAsyncMethodCall.State.RESPONSE_READ) {
+          throw new IllegalStateException("Method call not finished!");
+        }
+        org.apache.thrift.transport.TMemoryInputTransport memoryTransport = new org.apache.thrift.transport.TMemoryInputTransport(getFrameBuffer().array());
+        org.apache.thrift.protocol.TProtocol prot = client.getProtocolFactory().getProtocol(memoryTransport);
+        return (new Client(prot)).recv_getBlobMeta();
+      }
+    }
+
+    public void setBlobMeta(String key, SettableBlobMeta meta, org.apache.thrift.async.AsyncMethodCallback<setBlobMeta_call> resultHandler) throws org.apache.thrift.TException {
+      checkReady();
+      setBlobMeta_call method_call = new setBlobMeta_call(key, meta, resultHandler, this, ___protocolFactory, ___transport);
+      this.___currentMethod = method_call;
+      ___manager.call(method_call);
+    }
+
+    public static class setBlobMeta_call extends org.apache.thrift.async.TAsyncMethodCall {
+      private String key;
+      private SettableBlobMeta meta;
+      public setBlobMeta_call(String key, SettableBlobMeta meta, org.apache.thrift.async.AsyncMethodCallback<setBlobMeta_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+        super(client, protocolFactory, transport, resultHandler, false);
+        this.key = key;
+        this.meta = meta;
+      }
+
+      public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
+        prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("setBlobMeta", org.apache.thrift.protocol.TMessageType.CALL, 0));
+        setBlobMeta_args args = new setBlobMeta_args();
+        args.set_key(key);
+        args.set_meta(meta);
+        args.write(prot);
+        prot.writeMessageEnd();
+      }
+
+      public void getResult() throws AuthorizationException, KeyNotFoundException, org.apache.thrift.TException {
+        if (getState() != org.apache.thrift.async.TAsyncMethodCall.State.RESPONSE_READ) {
+          throw new IllegalStateException("Method call not finished!");
+        }
+        org.apache.thrift.transport.TMemoryInputTransport memoryTransport = new org.apache.thrift.transport.TMemoryInputTransport(getFrameBuffer().array());
+        org.apache.thrift.protocol.TProtocol prot = client.getProtocolFactory().getProtocol(memoryTransport);
+        (new Client(prot)).recv_setBlobMeta();
+      }
+    }
+
+    public void beginBlobDownload(String key, org.apache.thrift.async.AsyncMethodCallback<beginBlobDownload_call> resultHandler) throws org.apache.thrift.TException {
+      checkReady();
+      beginBlobDownload_call method_call = new beginBlobDownload_call(key, resultHandler, this, ___protocolFactory, ___transport);
+      this.___currentMethod = method_call;
+      ___manager.call(method_call);
+    }
+
+    public static class beginBlobDownload_call extends org.apache.thrift.async.TAsyncMethodCall {
+      private String key;
+      public beginBlobDownload_call(String key, org.apache.thrift.async.AsyncMethodCallback<beginBlobDownload_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+        super(client, protocolFactory, transport, resultHandler, false);
+        this.key = key;
+      }
+
+      public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
+        prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("beginBlobDownload", org.apache.thrift.protocol.TMessageType.CALL, 0));
+        beginBlobDownload_args args = new beginBlobDownload_args();
+        args.set_key(key);
+        args.write(prot);
+        prot.writeMessageEnd();
+      }
+
+      public BeginDownloadResult getResult() throws AuthorizationException, KeyNotFoundException, org.apache.thrift.TException {
+        if (getState() != org.apache.thrift.async.TAsyncMethodCall.State.RESPONSE_READ) {
+          throw new IllegalStateException("Method call not finished!");
+        }
+        org.apache.thrift.transport.TMemoryInputTransport memoryTransport = new org.apache.thrift.transport.TMemoryInputTransport(getFrameBuffer().array());
+        org.apache.thrift.protocol.TProtocol prot = client.getProtocolFactory().getProtocol(memoryTransport);
+        return (new Client(prot)).recv_beginBlobDownload();
+      }
+    }
+
+    public void downloadBlobChunk(String session, org.apache.thrift.async.AsyncMethodCallback<downloadBlobChunk_call> resultHandler) throws org.apache.thrift.TException {
+      checkReady();
+      downloadBlobChunk_call method_call = new downloadBlobChunk_call(session, resultHandler, this, ___protocolFactory, ___transport);
+      this.___currentMethod = method_call;
+      ___manager.call(method_call);
+    }
+
+    public static class downloadBlobChunk_call extends org.apache.thrift.async.TAsyncMethodCall {
+      private String session;
+      public downloadBlobChunk_call(String session, org.apache.thrift.async.AsyncMethodCallback<downloadBlobChunk_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+        super(client, protocolFactory, transport, resultHandler, false);
+        this.session = session;
+      }
+
+      public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
+        prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("downloadBlobChunk", org.apache.thrift.protocol.TMessageType.CALL, 0));
+        downloadBlobChunk_args args = new downloadBlobChunk_args();
+        args.set_session(session);
+        args.write(prot);
+        prot.writeMessageEnd();
+      }
+
+      public ByteBuffer getResult() throws AuthorizationException, org.apache.thrift.TException {
+        if (getState() != org.apache.thrift.async.TAsyncMethodCall.State.RESPONSE_READ) {
+          throw new IllegalStateException("Method call not finished!");
+        }
+        org.apache.thrift.transport.TMemoryInputTransport memoryTransport = new org.apache.thrift.transport.TMemoryInputTransport(getFrameBuffer().array());
+        org.apache.thrift.protocol.TProtocol prot = client.getProtocolFactory().getProtocol(memoryTransport);
+        return (new Client(prot)).recv_downloadBlobChunk();
+      }
+    }
+
+    public void deleteBlob(String key, org.apache.thrift.async.AsyncMethodCallback<deleteBlob_call> resultHandler) throws org.apache.thrift.TException {
+      checkReady();
+      deleteBlob_call method_call = new deleteBlob_call(key, resultHandler, this, ___protocolFactory, ___transport);
+      this.___currentMethod = method_call;
+      ___manager.call(method_call);
+    }
+
+    public static class deleteBlob_call extends org.apache.thrift.async.TAsyncMethodCall {
+      private String key;
+      public deleteBlob_call(String key, org.apache.thrift.async.AsyncMethodCallback<deleteBlob_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+        super(client, protocolFactory, transport, resultHandler, false);
+        this.key = key;
+      }
+
+      public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
+        prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("deleteBlob", org.apache.thrift.protocol.TMessageType.CALL, 0));
+        deleteBlob_args args = new deleteBlob_args();
+        args.set_key(key);
+        args.write(prot);
+        prot.writeMessageEnd();
+      }
+
+      public void getResult() throws AuthorizationException, KeyNotFoundException, org.apache.thrift.TException {
+        if (getState() != org.apache.thrift.async.TAsyncMethodCall.State.RESPONSE_READ) {
+          throw new IllegalStateException("Method call not finished!");
+        }
+        org.apache.thrift.transport.TMemoryInputTransport memoryTransport = new org.apache.thrift.transport.TMemoryInputTransport(getFrameBuffer().array());
+        org.apache.thrift.protocol.TProtocol prot = client.getProtocolFactory().getProtocol(memoryTransport);
+        (new Client(prot)).recv_deleteBlob();
+      }
+    }
+
+    public void listBlobs(String session, org.apache.thrift.async.AsyncMethodCallback<listBlobs_call> resultHandler) throws org.apache.thrift.TException {
+      checkReady();
+      listBlobs_call method_call = new listBlobs_call(session, resultHandler, this, ___protocolFactory, ___transport);
+      this.___currentMethod = method_call;
+      ___manager.call(method_call);
+    }
+
+    public static class listBlobs_call extends org.apache.thrift.async.TAsyncMethodCall {
+      private String session;
+      public listBlobs_call(String session, org.apache.thrift.async.AsyncMethodCallback<listBlobs_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+        super(client, protocolFactory, transport, resultHandler, false);
+        this.session = session;
+      }
+
+      public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
+        prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("listBlobs", org.apache.thrift.protocol.TMessageType.CALL, 0));
+        listBlobs_args args = new listBlobs_args();
+        args.set_session(session);
+        args.write(prot);
+        prot.writeMessageEnd();
+      }
+
+      public ListBlobsResult getResult() throws org.apache.thrift.TException {
+        if (getState() != org.apache.thrift.async.TAsyncMethodCall.State.RESPONSE_READ) {
+          throw new IllegalStateException("Method call not finished!");
+        }
+        org.apache.thrift.transport.TMemoryInputTransport memoryTransport = new org.apache.thrift.transport.TMemoryInputTransport(getFrameBuffer().array());
+        org.apache.thrift.protocol.TProtocol prot = client.getProtocolFactory().getProtocol(memoryTransport);
+        return (new Client(prot)).recv_listBlobs();
+      }
+    }
+
     public void beginFileUpload(org.apache.thrift.async.AsyncMethodCallback<beginFileUpload_call> resultHandler) throws org.apache.thrift.TException {
       checkReady();
       beginFileUpload_call method_call = new beginFileUpload_call(resultHandler, this, ___protocolFactory, ___transport);
@@ -1335,6 +2029,17 @@ public class Nimbus {
       processMap.put("deactivate", new deactivate());
       processMap.put("rebalance", new rebalance());
       processMap.put("uploadNewCredentials", new uploadNewCredentials());
+      processMap.put("beginCreateBlob", new beginCreateBlob());
+      processMap.put("beginUpdateBlob", new beginUpdateBlob());
+      processMap.put("uploadBlobChunk", new uploadBlobChunk());
+      processMap.put("finishBlobUpload", new finishBlobUpload());
+      processMap.put("cancelBlobUpload", new cancelBlobUpload());
+      processMap.put("getBlobMeta", new getBlobMeta());
+      processMap.put("setBlobMeta", new setBlobMeta());
+      processMap.put("beginBlobDownload", new beginBlobDownload());
+      processMap.put("downloadBlobChunk", new downloadBlobChunk());
+      processMap.put("deleteBlob", new deleteBlob());
+      processMap.put("listBlobs", new listBlobs());
       processMap.put("beginFileUpload", new beginFileUpload());
       processMap.put("uploadChunk", new uploadChunk());
       processMap.put("finishFileUpload", new finishFileUpload());
@@ -1529,6 +2234,234 @@ public class Nimbus {
         } catch (AuthorizationException aze) {
           result.aze = aze;
         }
+        return result;
+      }
+    }
+
+    private static class beginCreateBlob<I extends Iface> extends org.apache.thrift.ProcessFunction<I, beginCreateBlob_args> {
+      public beginCreateBlob() {
+        super("beginCreateBlob");
+      }
+
+      protected beginCreateBlob_args getEmptyArgsInstance() {
+        return new beginCreateBlob_args();
+      }
+
+      protected beginCreateBlob_result getResult(I iface, beginCreateBlob_args args) throws org.apache.thrift.TException {
+        beginCreateBlob_result result = new beginCreateBlob_result();
+        try {
+          result.success = iface.beginCreateBlob(args.key, args.meta);
+        } catch (AuthorizationException aze) {
+          result.aze = aze;
+        } catch (KeyAlreadyExistsException kae) {
+          result.kae = kae;
+        }
+        return result;
+      }
+    }
+
+    private static class beginUpdateBlob<I extends Iface> extends org.apache.thrift.ProcessFunction<I, beginUpdateBlob_args> {
+      public beginUpdateBlob() {
+        super("beginUpdateBlob");
+      }
+
+      protected beginUpdateBlob_args getEmptyArgsInstance() {
+        return new beginUpdateBlob_args();
+      }
+
+      protected beginUpdateBlob_result getResult(I iface, beginUpdateBlob_args args) throws org.apache.thrift.TException {
+        beginUpdateBlob_result result = new beginUpdateBlob_result();
+        try {
+          result.success = iface.beginUpdateBlob(args.key);
+        } catch (AuthorizationException aze) {
+          result.aze = aze;
+        } catch (KeyNotFoundException knf) {
+          result.knf = knf;
+        }
+        return result;
+      }
+    }
+
+    private static class uploadBlobChunk<I extends Iface> extends org.apache.thrift.ProcessFunction<I, uploadBlobChunk_args> {
+      public uploadBlobChunk() {
+        super("uploadBlobChunk");
+      }
+
+      protected uploadBlobChunk_args getEmptyArgsInstance() {
+        return new uploadBlobChunk_args();
+      }
+
+      protected uploadBlobChunk_result getResult(I iface, uploadBlobChunk_args args) throws org.apache.thrift.TException {
+        uploadBlobChunk_result result = new uploadBlobChunk_result();
+        try {
+          iface.uploadBlobChunk(args.session, args.chunk);
+        } catch (AuthorizationException aze) {
+          result.aze = aze;
+        }
+        return result;
+      }
+    }
+
+    private static class finishBlobUpload<I extends Iface> extends org.apache.thrift.ProcessFunction<I, finishBlobUpload_args> {
+      public finishBlobUpload() {
+        super("finishBlobUpload");
+      }
+
+      protected finishBlobUpload_args getEmptyArgsInstance() {
+        return new finishBlobUpload_args();
+      }
+
+      protected finishBlobUpload_result getResult(I iface, finishBlobUpload_args args) throws org.apache.thrift.TException {
+        finishBlobUpload_result result = new finishBlobUpload_result();
+        try {
+          iface.finishBlobUpload(args.session);
+        } catch (AuthorizationException aze) {
+          result.aze = aze;
+        }
+        return result;
+      }
+    }
+
+    private static class cancelBlobUpload<I extends Iface> extends org.apache.thrift.ProcessFunction<I, cancelBlobUpload_args> {
+      public cancelBlobUpload() {
+        super("cancelBlobUpload");
+      }
+
+      protected cancelBlobUpload_args getEmptyArgsInstance() {
+        return new cancelBlobUpload_args();
+      }
+
+      protected cancelBlobUpload_result getResult(I iface, cancelBlobUpload_args args) throws org.apache.thrift.TException {
+        cancelBlobUpload_result result = new cancelBlobUpload_result();
+        try {
+          iface.cancelBlobUpload(args.session);
+        } catch (AuthorizationException aze) {
+          result.aze = aze;
+        }
+        return result;
+      }
+    }
+
+    private static class getBlobMeta<I extends Iface> extends org.apache.thrift.ProcessFunction<I, getBlobMeta_args> {
+      public getBlobMeta() {
+        super("getBlobMeta");
+      }
+
+      protected getBlobMeta_args getEmptyArgsInstance() {
+        return new getBlobMeta_args();
+      }
+
+      protected getBlobMeta_result getResult(I iface, getBlobMeta_args args) throws org.apache.thrift.TException {
+        getBlobMeta_result result = new getBlobMeta_result();
+        try {
+          result.success = iface.getBlobMeta(args.key);
+        } catch (AuthorizationException aze) {
+          result.aze = aze;
+        } catch (KeyNotFoundException knf) {
+          result.knf = knf;
+        }
+        return result;
+      }
+    }
+
+    private static class setBlobMeta<I extends Iface> extends org.apache.thrift.ProcessFunction<I, setBlobMeta_args> {
+      public setBlobMeta() {
+        super("setBlobMeta");
+      }
+
+      protected setBlobMeta_args getEmptyArgsInstance() {
+        return new setBlobMeta_args();
+      }
+
+      protected setBlobMeta_result getResult(I iface, setBlobMeta_args args) throws org.apache.thrift.TException {
+        setBlobMeta_result result = new setBlobMeta_result();
+        try {
+          iface.setBlobMeta(args.key, args.meta);
+        } catch (AuthorizationException aze) {
+          result.aze = aze;
+        } catch (KeyNotFoundException knf) {
+          result.knf = knf;
+        }
+        return result;
+      }
+    }
+
+    private static class beginBlobDownload<I extends Iface> extends org.apache.thrift.ProcessFunction<I, beginBlobDownload_args> {
+      public beginBlobDownload() {
+        super("beginBlobDownload");
+      }
+
+      protected beginBlobDownload_args getEmptyArgsInstance() {
+        return new beginBlobDownload_args();
+      }
+
+      protected beginBlobDownload_result getResult(I iface, beginBlobDownload_args args) throws org.apache.thrift.TException {
+        beginBlobDownload_result result = new beginBlobDownload_result();
+        try {
+          result.success = iface.beginBlobDownload(args.key);
+        } catch (AuthorizationException aze) {
+          result.aze = aze;
+        } catch (KeyNotFoundException knf) {
+          result.knf = knf;
+        }
+        return result;
+      }
+    }
+
+    private static class downloadBlobChunk<I extends Iface> extends org.apache.thrift.ProcessFunction<I, downloadBlobChunk_args> {
+      public downloadBlobChunk() {
+        super("downloadBlobChunk");
+      }
+
+      protected downloadBlobChunk_args getEmptyArgsInstance() {
+        return new downloadBlobChunk_args();
+      }
+
+      protected downloadBlobChunk_result getResult(I iface, downloadBlobChunk_args args) throws org.apache.thrift.TException {
+        downloadBlobChunk_result result = new downloadBlobChunk_result();
+        try {
+          result.success = iface.downloadBlobChunk(args.session);
+        } catch (AuthorizationException aze) {
+          result.aze = aze;
+        }
+        return result;
+      }
+    }
+
+    private static class deleteBlob<I extends Iface> extends org.apache.thrift.ProcessFunction<I, deleteBlob_args> {
+      public deleteBlob() {
+        super("deleteBlob");
+      }
+
+      protected deleteBlob_args getEmptyArgsInstance() {
+        return new deleteBlob_args();
+      }
+
+      protected deleteBlob_result getResult(I iface, deleteBlob_args args) throws org.apache.thrift.TException {
+        deleteBlob_result result = new deleteBlob_result();
+        try {
+          iface.deleteBlob(args.key);
+        } catch (AuthorizationException aze) {
+          result.aze = aze;
+        } catch (KeyNotFoundException knf) {
+          result.knf = knf;
+        }
+        return result;
+      }
+    }
+
+    private static class listBlobs<I extends Iface> extends org.apache.thrift.ProcessFunction<I, listBlobs_args> {
+      public listBlobs() {
+        super("listBlobs");
+      }
+
+      protected listBlobs_args getEmptyArgsInstance() {
+        return new listBlobs_args();
+      }
+
+      protected listBlobs_result getResult(I iface, listBlobs_args args) throws org.apache.thrift.TException {
+        listBlobs_result result = new listBlobs_result();
+        result.success = iface.listBlobs(args.session);
         return result;
       }
     }
@@ -8603,6 +9536,7949 @@ public class Nimbus {
         sb.append("null");
       } else {
         sb.append(this.aze);
+      }
+      first = false;
+      sb.append(")");
+      return sb.toString();
+    }
+
+    public void validate() throws org.apache.thrift.TException {
+      // check for required fields
+    }
+
+    private void writeObject(java.io.ObjectOutputStream out) throws java.io.IOException {
+      try {
+        write(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(out)));
+      } catch (org.apache.thrift.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+    private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, ClassNotFoundException {
+      try {
+        read(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(in)));
+      } catch (org.apache.thrift.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+  }
+
+  public static class beginCreateBlob_args implements org.apache.thrift.TBase<beginCreateBlob_args, beginCreateBlob_args._Fields>, java.io.Serializable, Cloneable   {
+    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("beginCreateBlob_args");
+
+    private static final org.apache.thrift.protocol.TField KEY_FIELD_DESC = new org.apache.thrift.protocol.TField("key", org.apache.thrift.protocol.TType.STRING, (short)1);
+    private static final org.apache.thrift.protocol.TField META_FIELD_DESC = new org.apache.thrift.protocol.TField("meta", org.apache.thrift.protocol.TType.STRUCT, (short)2);
+
+    private String key; // required
+    private SettableBlobMeta meta; // required
+
+    /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+      KEY((short)1, "key"),
+      META((short)2, "meta");
+
+      private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
+
+      static {
+        for (_Fields field : EnumSet.allOf(_Fields.class)) {
+          byName.put(field.getFieldName(), field);
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, or null if its not found.
+       */
+      public static _Fields findByThriftId(int fieldId) {
+        switch(fieldId) {
+          case 1: // KEY
+            return KEY;
+          case 2: // META
+            return META;
+          default:
+            return null;
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, throwing an exception
+       * if it is not found.
+       */
+      public static _Fields findByThriftIdOrThrow(int fieldId) {
+        _Fields fields = findByThriftId(fieldId);
+        if (fields == null) throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
+        return fields;
+      }
+
+      /**
+       * Find the _Fields constant that matches name, or null if its not found.
+       */
+      public static _Fields findByName(String name) {
+        return byName.get(name);
+      }
+
+      private final short _thriftId;
+      private final String _fieldName;
+
+      _Fields(short thriftId, String fieldName) {
+        _thriftId = thriftId;
+        _fieldName = fieldName;
+      }
+
+      public short getThriftFieldId() {
+        return _thriftId;
+      }
+
+      public String getFieldName() {
+        return _fieldName;
+      }
+    }
+
+    // isset id assignments
+
+    public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
+    static {
+      Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
+      tmpMap.put(_Fields.KEY, new org.apache.thrift.meta_data.FieldMetaData("key", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
+      tmpMap.put(_Fields.META, new org.apache.thrift.meta_data.FieldMetaData("meta", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, SettableBlobMeta.class)));
+      metaDataMap = Collections.unmodifiableMap(tmpMap);
+      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(beginCreateBlob_args.class, metaDataMap);
+    }
+
+    public beginCreateBlob_args() {
+    }
+
+    public beginCreateBlob_args(
+      String key,
+      SettableBlobMeta meta)
+    {
+      this();
+      this.key = key;
+      this.meta = meta;
+    }
+
+    /**
+     * Performs a deep copy on <i>other</i>.
+     */
+    public beginCreateBlob_args(beginCreateBlob_args other) {
+      if (other.is_set_key()) {
+        this.key = other.key;
+      }
+      if (other.is_set_meta()) {
+        this.meta = new SettableBlobMeta(other.meta);
+      }
+    }
+
+    public beginCreateBlob_args deepCopy() {
+      return new beginCreateBlob_args(this);
+    }
+
+    @Override
+    public void clear() {
+      this.key = null;
+      this.meta = null;
+    }
+
+    public String get_key() {
+      return this.key;
+    }
+
+    public void set_key(String key) {
+      this.key = key;
+    }
+
+    public void unset_key() {
+      this.key = null;
+    }
+
+    /** Returns true if field key is set (has been assigned a value) and false otherwise */
+    public boolean is_set_key() {
+      return this.key != null;
+    }
+
+    public void set_key_isSet(boolean value) {
+      if (!value) {
+        this.key = null;
+      }
+    }
+
+    public SettableBlobMeta get_meta() {
+      return this.meta;
+    }
+
+    public void set_meta(SettableBlobMeta meta) {
+      this.meta = meta;
+    }
+
+    public void unset_meta() {
+      this.meta = null;
+    }
+
+    /** Returns true if field meta is set (has been assigned a value) and false otherwise */
+    public boolean is_set_meta() {
+      return this.meta != null;
+    }
+
+    public void set_meta_isSet(boolean value) {
+      if (!value) {
+        this.meta = null;
+      }
+    }
+
+    public void setFieldValue(_Fields field, Object value) {
+      switch (field) {
+      case KEY:
+        if (value == null) {
+          unset_key();
+        } else {
+          set_key((String)value);
+        }
+        break;
+
+      case META:
+        if (value == null) {
+          unset_meta();
+        } else {
+          set_meta((SettableBlobMeta)value);
+        }
+        break;
+
+      }
+    }
+
+    public Object getFieldValue(_Fields field) {
+      switch (field) {
+      case KEY:
+        return get_key();
+
+      case META:
+        return get_meta();
+
+      }
+      throw new IllegalStateException();
+    }
+
+    /** Returns true if field corresponding to fieldID is set (has been assigned a value) and false otherwise */
+    public boolean isSet(_Fields field) {
+      if (field == null) {
+        throw new IllegalArgumentException();
+      }
+
+      switch (field) {
+      case KEY:
+        return is_set_key();
+      case META:
+        return is_set_meta();
+      }
+      throw new IllegalStateException();
+    }
+
+    @Override
+    public boolean equals(Object that) {
+      if (that == null)
+        return false;
+      if (that instanceof beginCreateBlob_args)
+        return this.equals((beginCreateBlob_args)that);
+      return false;
+    }
+
+    public boolean equals(beginCreateBlob_args that) {
+      if (that == null)
+        return false;
+
+      boolean this_present_key = true && this.is_set_key();
+      boolean that_present_key = true && that.is_set_key();
+      if (this_present_key || that_present_key) {
+        if (!(this_present_key && that_present_key))
+          return false;
+        if (!this.key.equals(that.key))
+          return false;
+      }
+
+      boolean this_present_meta = true && this.is_set_meta();
+      boolean that_present_meta = true && that.is_set_meta();
+      if (this_present_meta || that_present_meta) {
+        if (!(this_present_meta && that_present_meta))
+          return false;
+        if (!this.meta.equals(that.meta))
+          return false;
+      }
+
+      return true;
+    }
+
+    @Override
+    public int hashCode() {
+      HashCodeBuilder builder = new HashCodeBuilder();
+
+      boolean present_key = true && (is_set_key());
+      builder.append(present_key);
+      if (present_key)
+        builder.append(key);
+
+      boolean present_meta = true && (is_set_meta());
+      builder.append(present_meta);
+      if (present_meta)
+        builder.append(meta);
+
+      return builder.toHashCode();
+    }
+
+    public int compareTo(beginCreateBlob_args other) {
+      if (!getClass().equals(other.getClass())) {
+        return getClass().getName().compareTo(other.getClass().getName());
+      }
+
+      int lastComparison = 0;
+      beginCreateBlob_args typedOther = (beginCreateBlob_args)other;
+
+      lastComparison = Boolean.valueOf(is_set_key()).compareTo(typedOther.is_set_key());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (is_set_key()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.key, typedOther.key);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      lastComparison = Boolean.valueOf(is_set_meta()).compareTo(typedOther.is_set_meta());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (is_set_meta()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.meta, typedOther.meta);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      return 0;
+    }
+
+    public _Fields fieldForId(int fieldId) {
+      return _Fields.findByThriftId(fieldId);
+    }
+
+    public void read(org.apache.thrift.protocol.TProtocol iprot) throws org.apache.thrift.TException {
+      org.apache.thrift.protocol.TField field;
+      iprot.readStructBegin();
+      while (true)
+      {
+        field = iprot.readFieldBegin();
+        if (field.type == org.apache.thrift.protocol.TType.STOP) { 
+          break;
+        }
+        switch (field.id) {
+          case 1: // KEY
+            if (field.type == org.apache.thrift.protocol.TType.STRING) {
+              this.key = iprot.readString();
+            } else { 
+              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
+            }
+            break;
+          case 2: // META
+            if (field.type == org.apache.thrift.protocol.TType.STRUCT) {
+              this.meta = new SettableBlobMeta();
+              this.meta.read(iprot);
+            } else { 
+              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
+            }
+            break;
+          default:
+            org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
+        }
+        iprot.readFieldEnd();
+      }
+      iprot.readStructEnd();
+      validate();
+    }
+
+    public void write(org.apache.thrift.protocol.TProtocol oprot) throws org.apache.thrift.TException {
+      validate();
+
+      oprot.writeStructBegin(STRUCT_DESC);
+      if (this.key != null) {
+        oprot.writeFieldBegin(KEY_FIELD_DESC);
+        oprot.writeString(this.key);
+        oprot.writeFieldEnd();
+      }
+      if (this.meta != null) {
+        oprot.writeFieldBegin(META_FIELD_DESC);
+        this.meta.write(oprot);
+        oprot.writeFieldEnd();
+      }
+      oprot.writeFieldStop();
+      oprot.writeStructEnd();
+    }
+
+    @Override
+    public String toString() {
+      StringBuilder sb = new StringBuilder("beginCreateBlob_args(");
+      boolean first = true;
+
+      sb.append("key:");
+      if (this.key == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.key);
+      }
+      first = false;
+      if (!first) sb.append(", ");
+      sb.append("meta:");
+      if (this.meta == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.meta);
+      }
+      first = false;
+      sb.append(")");
+      return sb.toString();
+    }
+
+    public void validate() throws org.apache.thrift.TException {
+      // check for required fields
+    }
+
+    private void writeObject(java.io.ObjectOutputStream out) throws java.io.IOException {
+      try {
+        write(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(out)));
+      } catch (org.apache.thrift.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+    private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, ClassNotFoundException {
+      try {
+        read(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(in)));
+      } catch (org.apache.thrift.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+  }
+
+  public static class beginCreateBlob_result implements org.apache.thrift.TBase<beginCreateBlob_result, beginCreateBlob_result._Fields>, java.io.Serializable, Cloneable   {
+    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("beginCreateBlob_result");
+
+    private static final org.apache.thrift.protocol.TField SUCCESS_FIELD_DESC = new org.apache.thrift.protocol.TField("success", org.apache.thrift.protocol.TType.STRING, (short)0);
+    private static final org.apache.thrift.protocol.TField AZE_FIELD_DESC = new org.apache.thrift.protocol.TField("aze", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+    private static final org.apache.thrift.protocol.TField KAE_FIELD_DESC = new org.apache.thrift.protocol.TField("kae", org.apache.thrift.protocol.TType.STRUCT, (short)2);
+
+    private String success; // required
+    private AuthorizationException aze; // required
+    private KeyAlreadyExistsException kae; // required
+
+    /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+      SUCCESS((short)0, "success"),
+      AZE((short)1, "aze"),
+      KAE((short)2, "kae");
+
+      private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
+
+      static {
+        for (_Fields field : EnumSet.allOf(_Fields.class)) {
+          byName.put(field.getFieldName(), field);
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, or null if its not found.
+       */
+      public static _Fields findByThriftId(int fieldId) {
+        switch(fieldId) {
+          case 0: // SUCCESS
+            return SUCCESS;
+          case 1: // AZE
+            return AZE;
+          case 2: // KAE
+            return KAE;
+          default:
+            return null;
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, throwing an exception
+       * if it is not found.
+       */
+      public static _Fields findByThriftIdOrThrow(int fieldId) {
+        _Fields fields = findByThriftId(fieldId);
+        if (fields == null) throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
+        return fields;
+      }
+
+      /**
+       * Find the _Fields constant that matches name, or null if its not found.
+       */
+      public static _Fields findByName(String name) {
+        return byName.get(name);
+      }
+
+      private final short _thriftId;
+      private final String _fieldName;
+
+      _Fields(short thriftId, String fieldName) {
+        _thriftId = thriftId;
+        _fieldName = fieldName;
+      }
+
+      public short getThriftFieldId() {
+        return _thriftId;
+      }
+
+      public String getFieldName() {
+        return _fieldName;
+      }
+    }
+
+    // isset id assignments
+
+    public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
+    static {
+      Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
+      tmpMap.put(_Fields.SUCCESS, new org.apache.thrift.meta_data.FieldMetaData("success", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
+      tmpMap.put(_Fields.AZE, new org.apache.thrift.meta_data.FieldMetaData("aze", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRUCT)));
+      tmpMap.put(_Fields.KAE, new org.apache.thrift.meta_data.FieldMetaData("kae", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRUCT)));
+      metaDataMap = Collections.unmodifiableMap(tmpMap);
+      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(beginCreateBlob_result.class, metaDataMap);
+    }
+
+    public beginCreateBlob_result() {
+    }
+
+    public beginCreateBlob_result(
+      String success,
+      AuthorizationException aze,
+      KeyAlreadyExistsException kae)
+    {
+      this();
+      this.success = success;
+      this.aze = aze;
+      this.kae = kae;
+    }
+
+    /**
+     * Performs a deep copy on <i>other</i>.
+     */
+    public beginCreateBlob_result(beginCreateBlob_result other) {
+      if (other.is_set_success()) {
+        this.success = other.success;
+      }
+      if (other.is_set_aze()) {
+        this.aze = new AuthorizationException(other.aze);
+      }
+      if (other.is_set_kae()) {
+        this.kae = new KeyAlreadyExistsException(other.kae);
+      }
+    }
+
+    public beginCreateBlob_result deepCopy() {
+      return new beginCreateBlob_result(this);
+    }
+
+    @Override
+    public void clear() {
+      this.success = null;
+      this.aze = null;
+      this.kae = null;
+    }
+
+    public String get_success() {
+      return this.success;
+    }
+
+    public void set_success(String success) {
+      this.success = success;
+    }
+
+    public void unset_success() {
+      this.success = null;
+    }
+
+    /** Returns true if field success is set (has been assigned a value) and false otherwise */
+    public boolean is_set_success() {
+      return this.success != null;
+    }
+
+    public void set_success_isSet(boolean value) {
+      if (!value) {
+        this.success = null;
+      }
+    }
+
+    public AuthorizationException get_aze() {
+      return this.aze;
+    }
+
+    public void set_aze(AuthorizationException aze) {
+      this.aze = aze;
+    }
+
+    public void unset_aze() {
+      this.aze = null;
+    }
+
+    /** Returns true if field aze is set (has been assigned a value) and false otherwise */
+    public boolean is_set_aze() {
+      return this.aze != null;
+    }
+
+    public void set_aze_isSet(boolean value) {
+      if (!value) {
+        this.aze = null;
+      }
+    }
+
+    public KeyAlreadyExistsException get_kae() {
+      return this.kae;
+    }
+
+    public void set_kae(KeyAlreadyExistsException kae) {
+      this.kae = kae;
+    }
+
+    public void unset_kae() {
+      this.kae = null;
+    }
+
+    /** Returns true if field kae is set (has been assigned a value) and false otherwise */
+    public boolean is_set_kae() {
+      return this.kae != null;
+    }
+
+    public void set_kae_isSet(boolean value) {
+      if (!value) {
+        this.kae = null;
+      }
+    }
+
+    public void setFieldValue(_Fields field, Object value) {
+      switch (field) {
+      case SUCCESS:
+        if (value == null) {
+          unset_success();
+        } else {
+          set_success((String)value);
+        }
+        break;
+
+      case AZE:
+        if (value == null) {
+          unset_aze();
+        } else {
+          set_aze((AuthorizationException)value);
+        }
+        break;
+
+      case KAE:
+        if (value == null) {
+          unset_kae();
+        } else {
+          set_kae((KeyAlreadyExistsException)value);
+        }
+        break;
+
+      }
+    }
+
+    public Object getFieldValue(_Fields field) {
+      switch (field) {
+      case SUCCESS:
+        return get_success();
+
+      case AZE:
+        return get_aze();
+
+      case KAE:
+        return get_kae();
+
+      }
+      throw new IllegalStateException();
+    }
+
+    /** Returns true if field corresponding to fieldID is set (has been assigned a value) and false otherwise */
+    public boolean isSet(_Fields field) {
+      if (field == null) {
+        throw new IllegalArgumentException();
+      }
+
+      switch (field) {
+      case SUCCESS:
+        return is_set_success();
+      case AZE:
+        return is_set_aze();
+      case KAE:
+        return is_set_kae();
+      }
+      throw new IllegalStateException();
+    }
+
+    @Override
+    public boolean equals(Object that) {
+      if (that == null)
+        return false;
+      if (that instanceof beginCreateBlob_result)
+        return this.equals((beginCreateBlob_result)that);
+      return false;
+    }
+
+    public boolean equals(beginCreateBlob_result that) {
+      if (that == null)
+        return false;
+
+      boolean this_present_success = true && this.is_set_success();
+      boolean that_present_success = true && that.is_set_success();
+      if (this_present_success || that_present_success) {
+        if (!(this_present_success && that_present_success))
+          return false;
+        if (!this.success.equals(that.success))
+          return false;
+      }
+
+      boolean this_present_aze = true && this.is_set_aze();
+      boolean that_present_aze = true && that.is_set_aze();
+      if (this_present_aze || that_present_aze) {
+        if (!(this_present_aze && that_present_aze))
+          return false;
+        if (!this.aze.equals(that.aze))
+          return false;
+      }
+
+      boolean this_present_kae = true && this.is_set_kae();
+      boolean that_present_kae = true && that.is_set_kae();
+      if (this_present_kae || that_present_kae) {
+        if (!(this_present_kae && that_present_kae))
+          return false;
+        if (!this.kae.equals(that.kae))
+          return false;
+      }
+
+      return true;
+    }
+
+    @Override
+    public int hashCode() {
+      HashCodeBuilder builder = new HashCodeBuilder();
+
+      boolean present_success = true && (is_set_success());
+      builder.append(present_success);
+      if (present_success)
+        builder.append(success);
+
+      boolean present_aze = true && (is_set_aze());
+      builder.append(present_aze);
+      if (present_aze)
+        builder.append(aze);
+
+      boolean present_kae = true && (is_set_kae());
+      builder.append(present_kae);
+      if (present_kae)
+        builder.append(kae);
+
+      return builder.toHashCode();
+    }
+
+    public int compareTo(beginCreateBlob_result other) {
+      if (!getClass().equals(other.getClass())) {
+        return getClass().getName().compareTo(other.getClass().getName());
+      }
+
+      int lastComparison = 0;
+      beginCreateBlob_result typedOther = (beginCreateBlob_result)other;
+
+      lastComparison = Boolean.valueOf(is_set_success()).compareTo(typedOther.is_set_success());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (is_set_success()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.success, typedOther.success);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      lastComparison = Boolean.valueOf(is_set_aze()).compareTo(typedOther.is_set_aze());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (is_set_aze()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.aze, typedOther.aze);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      lastComparison = Boolean.valueOf(is_set_kae()).compareTo(typedOther.is_set_kae());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (is_set_kae()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.kae, typedOther.kae);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      return 0;
+    }
+
+    public _Fields fieldForId(int fieldId) {
+      return _Fields.findByThriftId(fieldId);
+    }
+
+    public void read(org.apache.thrift.protocol.TProtocol iprot) throws org.apache.thrift.TException {
+      org.apache.thrift.protocol.TField field;
+      iprot.readStructBegin();
+      while (true)
+      {
+        field = iprot.readFieldBegin();
+        if (field.type == org.apache.thrift.protocol.TType.STOP) { 
+          break;
+        }
+        switch (field.id) {
+          case 0: // SUCCESS
+            if (field.type == org.apache.thrift.protocol.TType.STRING) {
+              this.success = iprot.readString();
+            } else { 
+              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
+            }
+            break;
+          case 1: // AZE
+            if (field.type == org.apache.thrift.protocol.TType.STRUCT) {
+              this.aze = new AuthorizationException();
+              this.aze.read(iprot);
+            } else { 
+              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
+            }
+            break;
+          case 2: // KAE
+            if (field.type == org.apache.thrift.protocol.TType.STRUCT) {
+              this.kae = new KeyAlreadyExistsException();
+              this.kae.read(iprot);
+            } else { 
+              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
+            }
+            break;
+          default:
+            org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
+        }
+        iprot.readFieldEnd();
+      }
+      iprot.readStructEnd();
+      validate();
+    }
+
+    public void write(org.apache.thrift.protocol.TProtocol oprot) throws org.apache.thrift.TException {
+      oprot.writeStructBegin(STRUCT_DESC);
+
+      if (this.is_set_success()) {
+        oprot.writeFieldBegin(SUCCESS_FIELD_DESC);
+        oprot.writeString(this.success);
+        oprot.writeFieldEnd();
+      } else if (this.is_set_aze()) {
+        oprot.writeFieldBegin(AZE_FIELD_DESC);
+        this.aze.write(oprot);
+        oprot.writeFieldEnd();
+      } else if (this.is_set_kae()) {
+        oprot.writeFieldBegin(KAE_FIELD_DESC);
+        this.kae.write(oprot);
+        oprot.writeFieldEnd();
+      }
+      oprot.writeFieldStop();
+      oprot.writeStructEnd();
+    }
+
+    @Override
+    public String toString() {
+      StringBuilder sb = new StringBuilder("beginCreateBlob_result(");
+      boolean first = true;
+
+      sb.append("success:");
+      if (this.success == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.success);
+      }
+      first = false;
+      if (!first) sb.append(", ");
+      sb.append("aze:");
+      if (this.aze == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.aze);
+      }
+      first = false;
+      if (!first) sb.append(", ");
+      sb.append("kae:");
+      if (this.kae == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.kae);
+      }
+      first = false;
+      sb.append(")");
+      return sb.toString();
+    }
+
+    public void validate() throws org.apache.thrift.TException {
+      // check for required fields
+    }
+
+    private void writeObject(java.io.ObjectOutputStream out) throws java.io.IOException {
+      try {
+        write(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(out)));
+      } catch (org.apache.thrift.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+    private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, ClassNotFoundException {
+      try {
+        read(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(in)));
+      } catch (org.apache.thrift.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+  }
+
+  public static class beginUpdateBlob_args implements org.apache.thrift.TBase<beginUpdateBlob_args, beginUpdateBlob_args._Fields>, java.io.Serializable, Cloneable   {
+    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("beginUpdateBlob_args");
+
+    private static final org.apache.thrift.protocol.TField KEY_FIELD_DESC = new org.apache.thrift.protocol.TField("key", org.apache.thrift.protocol.TType.STRING, (short)1);
+
+    private String key; // required
+
+    /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+      KEY((short)1, "key");
+
+      private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
+
+      static {
+        for (_Fields field : EnumSet.allOf(_Fields.class)) {
+          byName.put(field.getFieldName(), field);
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, or null if its not found.
+       */
+      public static _Fields findByThriftId(int fieldId) {
+        switch(fieldId) {
+          case 1: // KEY
+            return KEY;
+          default:
+            return null;
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, throwing an exception
+       * if it is not found.
+       */
+      public static _Fields findByThriftIdOrThrow(int fieldId) {
+        _Fields fields = findByThriftId(fieldId);
+        if (fields == null) throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
+        return fields;
+      }
+
+      /**
+       * Find the _Fields constant that matches name, or null if its not found.
+       */
+      public static _Fields findByName(String name) {
+        return byName.get(name);
+      }
+
+      private final short _thriftId;
+      private final String _fieldName;
+
+      _Fields(short thriftId, String fieldName) {
+        _thriftId = thriftId;
+        _fieldName = fieldName;
+      }
+
+      public short getThriftFieldId() {
+        return _thriftId;
+      }
+
+      public String getFieldName() {
+        return _fieldName;
+      }
+    }
+
+    // isset id assignments
+
+    public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
+    static {
+      Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
+      tmpMap.put(_Fields.KEY, new org.apache.thrift.meta_data.FieldMetaData("key", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
+      metaDataMap = Collections.unmodifiableMap(tmpMap);
+      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(beginUpdateBlob_args.class, metaDataMap);
+    }
+
+    public beginUpdateBlob_args() {
+    }
+
+    public beginUpdateBlob_args(
+      String key)
+    {
+      this();
+      this.key = key;
+    }
+
+    /**
+     * Performs a deep copy on <i>other</i>.
+     */
+    public beginUpdateBlob_args(beginUpdateBlob_args other) {
+      if (other.is_set_key()) {
+        this.key = other.key;
+      }
+    }
+
+    public beginUpdateBlob_args deepCopy() {
+      return new beginUpdateBlob_args(this);
+    }
+
+    @Override
+    public void clear() {
+      this.key = null;
+    }
+
+    public String get_key() {
+      return this.key;
+    }
+
+    public void set_key(String key) {
+      this.key = key;
+    }
+
+    public void unset_key() {
+      this.key = null;
+    }
+
+    /** Returns true if field key is set (has been assigned a value) and false otherwise */
+    public boolean is_set_key() {
+      return this.key != null;
+    }
+
+    public void set_key_isSet(boolean value) {
+      if (!value) {
+        this.key = null;
+      }
+    }
+
+    public void setFieldValue(_Fields field, Object value) {
+      switch (field) {
+      case KEY:
+        if (value == null) {
+          unset_key();
+        } else {
+          set_key((String)value);
+        }
+        break;
+
+      }
+    }
+
+    public Object getFieldValue(_Fields field) {
+      switch (field) {
+      case KEY:
+        return get_key();
+
+      }
+      throw new IllegalStateException();
+    }
+
+    /** Returns true if field corresponding to fieldID is set (has been assigned a value) and false otherwise */
+    public boolean isSet(_Fields field) {
+      if (field == null) {
+        throw new IllegalArgumentException();
+      }
+
+      switch (field) {
+      case KEY:
+        return is_set_key();
+      }
+      throw new IllegalStateException();
+    }
+
+    @Override
+    public boolean equals(Object that) {
+      if (that == null)
+        return false;
+      if (that instanceof beginUpdateBlob_args)
+        return this.equals((beginUpdateBlob_args)that);
+      return false;
+    }
+
+    public boolean equals(beginUpdateBlob_args that) {
+      if (that == null)
+        return false;
+
+      boolean this_present_key = true && this.is_set_key();
+      boolean that_present_key = true && that.is_set_key();
+      if (this_present_key || that_present_key) {
+        if (!(this_present_key && that_present_key))
+          return false;
+        if (!this.key.equals(that.key))
+          return false;
+      }
+
+      return true;
+    }
+
+    @Override
+    public int hashCode() {
+      HashCodeBuilder builder = new HashCodeBuilder();
+
+      boolean present_key = true && (is_set_key());
+      builder.append(present_key);
+      if (present_key)
+        builder.append(key);
+
+      return builder.toHashCode();
+    }
+
+    public int compareTo(beginUpdateBlob_args other) {
+      if (!getClass().equals(other.getClass())) {
+        return getClass().getName().compareTo(other.getClass().getName());
+      }
+
+      int lastComparison = 0;
+      beginUpdateBlob_args typedOther = (beginUpdateBlob_args)other;
+
+      lastComparison = Boolean.valueOf(is_set_key()).compareTo(typedOther.is_set_key());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (is_set_key()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.key, typedOther.key);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      return 0;
+    }
+
+    public _Fields fieldForId(int fieldId) {
+      return _Fields.findByThriftId(fieldId);
+    }
+
+    public void read(org.apache.thrift.protocol.TProtocol iprot) throws org.apache.thrift.TException {
+      org.apache.thrift.protocol.TField field;
+      iprot.readStructBegin();
+      while (true)
+      {
+        field = iprot.readFieldBegin();
+        if (field.type == org.apache.thrift.protocol.TType.STOP) { 
+          break;
+        }
+        switch (field.id) {
+          case 1: // KEY
+            if (field.type == org.apache.thrift.protocol.TType.STRING) {
+              this.key = iprot.readString();
+            } else { 
+              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
+            }
+            break;
+          default:
+            org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
+        }
+        iprot.readFieldEnd();
+      }
+      iprot.readStructEnd();
+      validate();
+    }
+
+    public void write(org.apache.thrift.protocol.TProtocol oprot) throws org.apache.thrift.TException {
+      validate();
+
+      oprot.writeStructBegin(STRUCT_DESC);
+      if (this.key != null) {
+        oprot.writeFieldBegin(KEY_FIELD_DESC);
+        oprot.writeString(this.key);
+        oprot.writeFieldEnd();
+      }
+      oprot.writeFieldStop();
+      oprot.writeStructEnd();
+    }
+
+    @Override
+    public String toString() {
+      StringBuilder sb = new StringBuilder("beginUpdateBlob_args(");
+      boolean first = true;
+
+      sb.append("key:");
+      if (this.key == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.key);
+      }
+      first = false;
+      sb.append(")");
+      return sb.toString();
+    }
+
+    public void validate() throws org.apache.thrift.TException {
+      // check for required fields
+    }
+
+    private void writeObject(java.io.ObjectOutputStream out) throws java.io.IOException {
+      try {
+        write(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(out)));
+      } catch (org.apache.thrift.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+    private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, ClassNotFoundException {
+      try {
+        read(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(in)));
+      } catch (org.apache.thrift.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+  }
+
+  public static class beginUpdateBlob_result implements org.apache.thrift.TBase<beginUpdateBlob_result, beginUpdateBlob_result._Fields>, java.io.Serializable, Cloneable   {
+    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("beginUpdateBlob_result");
+
+    private static final org.apache.thrift.protocol.TField SUCCESS_FIELD_DESC = new org.apache.thrift.protocol.TField("success", org.apache.thrift.protocol.TType.STRING, (short)0);
+    private static final org.apache.thrift.protocol.TField AZE_FIELD_DESC = new org.apache.thrift.protocol.TField("aze", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+    private static final org.apache.thrift.protocol.TField KNF_FIELD_DESC = new org.apache.thrift.protocol.TField("knf", org.apache.thrift.protocol.TType.STRUCT, (short)2);
+
+    private String success; // required
+    private AuthorizationException aze; // required
+    private KeyNotFoundException knf; // required
+
+    /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+      SUCCESS((short)0, "success"),
+      AZE((short)1, "aze"),
+      KNF((short)2, "knf");
+
+      private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
+
+      static {
+        for (_Fields field : EnumSet.allOf(_Fields.class)) {
+          byName.put(field.getFieldName(), field);
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, or null if its not found.
+       */
+      public static _Fields findByThriftId(int fieldId) {
+        switch(fieldId) {
+          case 0: // SUCCESS
+            return SUCCESS;
+          case 1: // AZE
+            return AZE;
+          case 2: // KNF
+            return KNF;
+          default:
+            return null;
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, throwing an exception
+       * if it is not found.
+       */
+      public static _Fields findByThriftIdOrThrow(int fieldId) {
+        _Fields fields = findByThriftId(fieldId);
+        if (fields == null) throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
+        return fields;
+      }
+
+      /**
+       * Find the _Fields constant that matches name, or null if its not found.
+       */
+      public static _Fields findByName(String name) {
+        return byName.get(name);
+      }
+
+      private final short _thriftId;
+      private final String _fieldName;
+
+      _Fields(short thriftId, String fieldName) {
+        _thriftId = thriftId;
+        _fieldName = fieldName;
+      }
+
+      public short getThriftFieldId() {
+        return _thriftId;
+      }
+
+      public String getFieldName() {
+        return _fieldName;
+      }
+    }
+
+    // isset id assignments
+
+    public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
+    static {
+      Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
+      tmpMap.put(_Fields.SUCCESS, new org.apache.thrift.meta_data.FieldMetaData("success", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
+      tmpMap.put(_Fields.AZE, new org.apache.thrift.meta_data.FieldMetaData("aze", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRUCT)));
+      tmpMap.put(_Fields.KNF, new org.apache.thrift.meta_data.FieldMetaData("knf", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRUCT)));
+      metaDataMap = Collections.unmodifiableMap(tmpMap);
+      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(beginUpdateBlob_result.class, metaDataMap);
+    }
+
+    public beginUpdateBlob_result() {
+    }
+
+    public beginUpdateBlob_result(
+      String success,
+      AuthorizationException aze,
+      KeyNotFoundException knf)
+    {
+      this();
+      this.success = success;
+      this.aze = aze;
+      this.knf = knf;
+    }
+
+    /**
+     * Performs a deep copy on <i>other</i>.
+     */
+    public beginUpdateBlob_result(beginUpdateBlob_result other) {
+      if (other.is_set_success()) {
+        this.success = other.success;
+      }
+      if (other.is_set_aze()) {
+        this.aze = new AuthorizationException(other.aze);
+      }
+      if (other.is_set_knf()) {
+        this.knf = new KeyNotFoundException(other.knf);
+      }
+    }
+
+    public beginUpdateBlob_result deepCopy() {
+      return new beginUpdateBlob_result(this);
+    }
+
+    @Override
+    public void clear() {
+      this.success = null;
+      this.aze = null;
+      this.knf = null;
+    }
+
+    public String get_success() {
+      return this.success;
+    }
+
+    public void set_success(String success) {
+      this.success = success;
+    }
+
+    public void unset_success() {
+      this.success = null;
+    }
+
+    /** Returns true if field success is set (has been assigned a value) and false otherwise */
+    public boolean is_set_success() {
+      return this.success != null;
+    }
+
+    public void set_success_isSet(boolean value) {
+      if (!value) {
+        this.success = null;
+      }
+    }
+
+    public AuthorizationException get_aze() {
+      return this.aze;
+    }
+
+    public void set_aze(AuthorizationException aze) {
+      this.aze = aze;
+    }
+
+    public void unset_aze() {
+      this.aze = null;
+    }
+
+    /** Returns true if field aze is set (has been assigned a value) and false otherwise */
+    public boolean is_set_aze() {
+      return this.aze != null;
+    }
+
+    public void set_aze_isSet(boolean value) {
+      if (!value) {
+        this.aze = null;
+      }
+    }
+
+    public KeyNotFoundException get_knf() {
+      return this.knf;
+    }
+
+    public void set_knf(KeyNotFoundException knf) {
+      this.knf = knf;
+    }
+
+    public void unset_knf() {
+      this.knf = null;
+    }
+
+    /** Returns true if field knf is set (has been assigned a value) and false otherwise */
+    public boolean is_set_knf() {
+      return this.knf != null;
+    }
+
+    public void set_knf_isSet(boolean value) {
+      if (!value) {
+        this.knf = null;
+      }
+    }
+
+    public void setFieldValue(_Fields field, Object value) {
+      switch (field) {
+      case SUCCESS:
+        if (value == null) {
+          unset_success();
+        } else {
+          set_success((String)value);
+        }
+        break;
+
+      case AZE:
+        if (value == null) {
+          unset_aze();
+        } else {
+          set_aze((AuthorizationException)value);
+        }
+        break;
+
+      case KNF:
+        if (value == null) {
+          unset_knf();
+        } else {
+          set_knf((KeyNotFoundException)value);
+        }
+        break;
+
+      }
+    }
+
+    public Object getFieldValue(_Fields field) {
+      switch (field) {
+      case SUCCESS:
+        return get_success();
+
+      case AZE:
+        return get_aze();
+
+      case KNF:
+        return get_knf();
+
+      }
+      throw new IllegalStateException();
+    }
+
+    /** Returns true if field corresponding to fieldID is set (has been assigned a value) and false otherwise */
+    public boolean isSet(_Fields field) {
+      if (field == null) {
+        throw new IllegalArgumentException();
+      }
+
+      switch (field) {
+      case SUCCESS:
+        return is_set_success();
+      case AZE:
+        return is_set_aze();
+      case KNF:
+        return is_set_knf();
+      }
+      throw new IllegalStateException();
+    }
+
+    @Override
+    public boolean equals(Object that) {
+      if (that == null)
+        return false;
+      if (that instanceof beginUpdateBlob_result)
+        return this.equals((beginUpdateBlob_result)that);
+      return false;
+    }
+
+    public boolean equals(beginUpdateBlob_result that) {
+      if (that == null)
+        return false;
+
+      boolean this_present_success = true && this.is_set_success();
+      boolean that_present_success = true && that.is_set_success();
+      if (this_present_success || that_present_success) {
+        if (!(this_present_success && that_present_success))
+          return false;
+        if (!this.success.equals(that.success))
+          return false;
+      }
+
+      boolean this_present_aze = true && this.is_set_aze();
+      boolean that_present_aze = true && that.is_set_aze();
+      if (this_present_aze || that_present_aze) {
+        if (!(this_present_aze && that_present_aze))
+          return false;
+        if (!this.aze.equals(that.aze))
+          return false;
+      }
+
+      boolean this_present_knf = true && this.is_set_knf();
+      boolean that_present_knf = true && that.is_set_knf();
+      if (this_present_knf || that_present_knf) {
+        if (!(this_present_knf && that_present_knf))
+          return false;
+        if (!this.knf.equals(that.knf))
+          return false;
+      }
+
+      return true;
+    }
+
+    @Override
+    public int hashCode() {
+      HashCodeBuilder builder = new HashCodeBuilder();
+
+      boolean present_success = true && (is_set_success());
+      builder.append(present_success);
+      if (present_success)
+        builder.append(success);
+
+      boolean present_aze = true && (is_set_aze());
+      builder.append(present_aze);
+      if (present_aze)
+        builder.append(aze);
+
+      boolean present_knf = true && (is_set_knf());
+      builder.append(present_knf);
+      if (present_knf)
+        builder.append(knf);
+
+      return builder.toHashCode();
+    }
+
+    public int compareTo(beginUpdateBlob_result other) {
+      if (!getClass().equals(other.getClass())) {
+        return getClass().getName().compareTo(other.getClass().getName());
+      }
+
+      int lastComparison = 0;
+      beginUpdateBlob_result typedOther = (beginUpdateBlob_result)other;
+
+      lastComparison = Boolean.valueOf(is_set_success()).compareTo(typedOther.is_set_success());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (is_set_success()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.success, typedOther.success);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      lastComparison = Boolean.valueOf(is_set_aze()).compareTo(typedOther.is_set_aze());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (is_set_aze()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.aze, typedOther.aze);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      lastComparison = Boolean.valueOf(is_set_knf()).compareTo(typedOther.is_set_knf());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (is_set_knf()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.knf, typedOther.knf);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      return 0;
+    }
+
+    public _Fields fieldForId(int fieldId) {
+      return _Fields.findByThriftId(fieldId);
+    }
+
+    public void read(org.apache.thrift.protocol.TProtocol iprot) throws org.apache.thrift.TException {
+      org.apache.thrift.protocol.TField field;
+      iprot.readStructBegin();
+      while (true)
+      {
+        field = iprot.readFieldBegin();
+        if (field.type == org.apache.thrift.protocol.TType.STOP) { 
+          break;
+        }
+        switch (field.id) {
+          case 0: // SUCCESS
+            if (field.type == org.apache.thrift.protocol.TType.STRING) {
+              this.success = iprot.readString();
+            } else { 
+              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
+            }
+            break;
+          case 1: // AZE
+            if (field.type == org.apache.thrift.protocol.TType.STRUCT) {
+              this.aze = new AuthorizationException();
+              this.aze.read(iprot);
+            } else { 
+              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
+            }
+            break;
+          case 2: // KNF
+            if (field.type == org.apache.thrift.protocol.TType.STRUCT) {
+              this.knf = new KeyNotFoundException();
+              this.knf.read(iprot);
+            } else { 
+              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
+            }
+            break;
+          default:
+            org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
+        }
+        iprot.readFieldEnd();
+      }
+      iprot.readStructEnd();
+      validate();
+    }
+
+    public void write(org.apache.thrift.protocol.TProtocol oprot) throws org.apache.thrift.TException {
+      oprot.writeStructBegin(STRUCT_DESC);
+
+      if (this.is_set_success()) {
+        oprot.writeFieldBegin(SUCCESS_FIELD_DESC);
+        oprot.writeString(this.success);
+        oprot.writeFieldEnd();
+      } else if (this.is_set_aze()) {
+        oprot.writeFieldBegin(AZE_FIELD_DESC);
+        this.aze.write(oprot);
+        oprot.writeFieldEnd();
+      } else if (this.is_set_knf()) {
+        oprot.writeFieldBegin(KNF_FIELD_DESC);
+        this.knf.write(oprot);
+        oprot.writeFieldEnd();
+      }
+      oprot.writeFieldStop();
+      oprot.writeStructEnd();
+    }
+
+    @Override
+    public String toString() {
+      StringBuilder sb = new StringBuilder("beginUpdateBlob_result(");
+      boolean first = true;
+
+      sb.append("success:");
+      if (this.success == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.success);
+      }
+      first = false;
+      if (!first) sb.append(", ");
+      sb.append("aze:");
+      if (this.aze == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.aze);
+      }
+      first = false;
+      if (!first) sb.append(", ");
+      sb.append("knf:");
+      if (this.knf == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.knf);
+      }
+      first = false;
+      sb.append(")");
+      return sb.toString();
+    }
+
+    public void validate() throws org.apache.thrift.TException {
+      // check for required fields
+    }
+
+    private void writeObject(java.io.ObjectOutputStream out) throws java.io.IOException {
+      try {
+        write(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(out)));
+      } catch (org.apache.thrift.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+    private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, ClassNotFoundException {
+      try {
+        read(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(in)));
+      } catch (org.apache.thrift.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+  }
+
+  public static class uploadBlobChunk_args implements org.apache.thrift.TBase<uploadBlobChunk_args, uploadBlobChunk_args._Fields>, java.io.Serializable, Cloneable   {
+    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("uploadBlobChunk_args");
+
+    private static final org.apache.thrift.protocol.TField SESSION_FIELD_DESC = new org.apache.thrift.protocol.TField("session", org.apache.thrift.protocol.TType.STRING, (short)1);
+    private static final org.apache.thrift.protocol.TField CHUNK_FIELD_DESC = new org.apache.thrift.protocol.TField("chunk", org.apache.thrift.protocol.TType.STRING, (short)2);
+
+    private String session; // required
+    private ByteBuffer chunk; // required
+
+    /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+      SESSION((short)1, "session"),
+      CHUNK((short)2, "chunk");
+
+      private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
+
+      static {
+        for (_Fields field : EnumSet.allOf(_Fields.class)) {
+          byName.put(field.getFieldName(), field);
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, or null if its not found.
+       */
+      public static _Fields findByThriftId(int fieldId) {
+        switch(fieldId) {
+          case 1: // SESSION
+            return SESSION;
+          case 2: // CHUNK
+            return CHUNK;
+          default:
+            return null;
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, throwing an exception
+       * if it is not found.
+       */
+      public static _Fields findByThriftIdOrThrow(int fieldId) {
+        _Fields fields = findByThriftId(fieldId);
+        if (fields == null) throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
+        return fields;
+      }
+
+      /**
+       * Find the _Fields constant that matches name, or null if its not found.
+       */
+      public static _Fields findByName(String name) {
+        return byName.get(name);
+      }
+
+      private final short _thriftId;
+      private final String _fieldName;
+
+      _Fields(short thriftId, String fieldName) {
+        _thriftId = thriftId;
+        _fieldName = fieldName;
+      }
+
+      public short getThriftFieldId() {
+        return _thriftId;
+      }
+
+      public String getFieldName() {
+        return _fieldName;
+      }
+    }
+
+    // isset id assignments
+
+    public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
+    static {
+      Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
+      tmpMap.put(_Fields.SESSION, new org.apache.thrift.meta_data.FieldMetaData("session", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
+      tmpMap.put(_Fields.CHUNK, new org.apache.thrift.meta_data.FieldMetaData("chunk", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING          , true)));
+      metaDataMap = Collections.unmodifiableMap(tmpMap);
+      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(uploadBlobChunk_args.class, metaDataMap);
+    }
+
+    public uploadBlobChunk_args() {
+    }
+
+    public uploadBlobChunk_args(
+      String session,
+      ByteBuffer chunk)
+    {
+      this();
+      this.session = session;
+      this.chunk = chunk;
+    }
+
+    /**
+     * Performs a deep copy on <i>other</i>.
+     */
+    public uploadBlobChunk_args(uploadBlobChunk_args other) {
+      if (other.is_set_session()) {
+        this.session = other.session;
+      }
+      if (other.is_set_chunk()) {
+        this.chunk = org.apache.thrift.TBaseHelper.copyBinary(other.chunk);
+;
+      }
+    }
+
+    public uploadBlobChunk_args deepCopy() {
+      return new uploadBlobChunk_args(this);
+    }
+
+    @Override
+    public void clear() {
+      this.session = null;
+      this.chunk = null;
+    }
+
+    public String get_session() {
+      return this.session;
+    }
+
+    public void set_session(String session) {
+      this.session = session;
+    }
+
+    public void unset_session() {
+      this.session = null;
+    }
+
+    /** Returns true if field session is set (has been assigned a value) and false otherwise */
+    public boolean is_set_session() {
+      return this.session != null;
+    }
+
+    public void set_session_isSet(boolean value) {
+      if (!value) {
+        this.session = null;
+      }
+    }
+
+    public byte[] get_chunk() {
+      set_chunk(org.apache.thrift.TBaseHelper.rightSize(chunk));
+      return chunk == null ? null : chunk.array();
+    }
+
+    public ByteBuffer buffer_for_chunk() {
+      return chunk;
+    }
+
+    public void set_chunk(byte[] chunk) {
+      set_chunk(chunk == null ? (ByteBuffer)null : ByteBuffer.wrap(chunk));
+    }
+
+    public void set_chunk(ByteBuffer chunk) {
+      this.chunk = chunk;
+    }
+
+    public void unset_chunk() {
+      this.chunk = null;
+    }
+
+    /** Returns true if field chunk is set (has been assigned a value) and false otherwise */
+    public boolean is_set_chunk() {
+      return this.chunk != null;
+    }
+
+    public void set_chunk_isSet(boolean value) {
+      if (!value) {
+        this.chunk = null;
+      }
+    }
+
+    public void setFieldValue(_Fields field, Object value) {
+      switch (field) {
+      case SESSION:
+        if (value == null) {
+          unset_session();
+        } else {
+          set_session((String)value);
+        }
+        break;
+
+      case CHUNK:
+        if (value == null) {
+          unset_chunk();
+        } else {
+          set_chunk((ByteBuffer)value);
+        }
+        break;
+
+      }
+    }
+
+    public Object getFieldValue(_Fields field) {
+      switch (field) {
+      case SESSION:
+        return get_session();
+
+      case CHUNK:
+        return get_chunk();
+
+      }
+      throw new IllegalStateException();
+    }
+
+    /** Returns true if field corresponding to fieldID is set (has been assigned a value) and false otherwise */
+    public boolean isSet(_Fields field) {
+      if (field == null) {
+        throw new IllegalArgumentException();
+      }
+
+      switch (field) {
+      case SESSION:
+        return is_set_session();
+      case CHUNK:
+        return is_set_chunk();
+      }
+      throw new IllegalStateException();
+    }
+
+    @Override
+    public boolean equals(Object that) {
+      if (that == null)
+        return false;
+      if (that instanceof uploadBlobChunk_args)
+        return this.equals((uploadBlobChunk_args)that);
+      return false;
+    }
+
+    public boolean equals(uploadBlobChunk_args that) {
+      if (that == null)
+        return false;
+
+      boolean this_present_session = true && this.is_set_session();
+      boolean that_present_session = true && that.is_set_session();
+      if (this_present_session || that_present_session) {
+        if (!(this_present_session && that_present_session))
+          return false;
+        if (!this.session.equals(that.session))
+          return false;
+      }
+
+      boolean this_present_chunk = true && this.is_set_chunk();
+      boolean that_present_chunk = true && that.is_set_chunk();
+      if (this_present_chunk || that_present_chunk) {
+        if (!(this_present_chunk && that_present_chunk))
+          return false;
+        if (!this.chunk.equals(that.chunk))
+          return false;
+      }
+
+      return true;
+    }
+
+    @Override
+    public int hashCode() {
+      HashCodeBuilder builder = new HashCodeBuilder();
+
+      boolean present_session = true && (is_set_session());
+      builder.append(present_session);
+      if (present_session)
+        builder.append(session);
+
+      boolean present_chunk = true && (is_set_chunk());
+      builder.append(present_chunk);
+      if (present_chunk)
+        builder.append(chunk);
+
+      return builder.toHashCode();
+    }
+
+    public int compareTo(uploadBlobChunk_args other) {
+      if (!getClass().equals(other.getClass())) {
+        return getClass().getName().compareTo(other.getClass().getName());
+      }
+
+      int lastComparison = 0;
+      uploadBlobChunk_args typedOther = (uploadBlobChunk_args)other;
+
+      lastComparison = Boolean.valueOf(is_set_session()).compareTo(typedOther.is_set_session());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (is_set_session()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.session, typedOther.session);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      lastComparison = Boolean.valueOf(is_set_chunk()).compareTo(typedOther.is_set_chunk());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (is_set_chunk()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.chunk, typedOther.chunk);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      return 0;
+    }
+
+    public _Fields fieldForId(int fieldId) {
+      return _Fields.findByThriftId(fieldId);
+    }
+
+    public void read(org.apache.thrift.protocol.TProtocol iprot) throws org.apache.thrift.TException {
+      org.apache.thrift.protocol.TField field;
+      iprot.readStructBegin();
+      while (true)
+      {
+        field = iprot.readFieldBegin();
+        if (field.type == org.apache.thrift.protocol.TType.STOP) { 
+          break;
+        }
+        switch (field.id) {
+          case 1: // SESSION
+            if (field.type == org.apache.thrift.protocol.TType.STRING) {
+              this.session = iprot.readString();
+            } else { 
+              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
+            }
+            break;
+          case 2: // CHUNK
+            if (field.type == org.apache.thrift.protocol.TType.STRING) {
+              this.chunk = iprot.readBinary();
+            } else { 
+              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
+            }
+            break;
+          default:
+            org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
+        }
+        iprot.readFieldEnd();
+      }
+      iprot.readStructEnd();
+      validate();
+    }
+
+    public void write(org.apache.thrift.protocol.TProtocol oprot) throws org.apache.thrift.TException {
+      validate();
+
+      oprot.writeStructBegin(STRUCT_DESC);
+      if (this.session != null) {
+        oprot.writeFieldBegin(SESSION_FIELD_DESC);
+        oprot.writeString(this.session);
+        oprot.writeFieldEnd();
+      }
+      if (this.chunk != null) {
+        oprot.writeFieldBegin(CHUNK_FIELD_DESC);
+        oprot.writeBinary(this.chunk);
+        oprot.writeFieldEnd();
+      }
+      oprot.writeFieldStop();
+      oprot.writeStructEnd();
+    }
+
+    @Override
+    public String toString() {
+      StringBuilder sb = new StringBuilder("uploadBlobChunk_args(");
+      boolean first = true;
+
+      sb.append("session:");
+      if (this.session == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.session);
+      }
+      first = false;
+      if (!first) sb.append(", ");
+      sb.append("chunk:");
+      if (this.chunk == null) {
+        sb.append("null");
+      } else {
+        org.apache.thrift.TBaseHelper.toString(this.chunk, sb);
+      }
+      first = false;
+      sb.append(")");
+      return sb.toString();
+    }
+
+    public void validate() throws org.apache.thrift.TException {
+      // check for required fields
+    }
+
+    private void writeObject(java.io.ObjectOutputStream out) throws java.io.IOException {
+      try {
+        write(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(out)));
+      } catch (org.apache.thrift.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+    private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, ClassNotFoundException {
+      try {
+        read(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(in)));
+      } catch (org.apache.thrift.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+  }
+
+  public static class uploadBlobChunk_result implements org.apache.thrift.TBase<uploadBlobChunk_result, uploadBlobChunk_result._Fields>, java.io.Serializable, Cloneable   {
+    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("uploadBlobChunk_result");
+
+    private static final org.apache.thrift.protocol.TField AZE_FIELD_DESC = new org.apache.thrift.protocol.TField("aze", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+
+    private AuthorizationException aze; // required
+
+    /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+      AZE((short)1, "aze");
+
+      private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
+
+      static {
+        for (_Fields field : EnumSet.allOf(_Fields.class)) {
+          byName.put(field.getFieldName(), field);
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, or null if its not found.
+       */
+      public static _Fields findByThriftId(int fieldId) {
+        switch(fieldId) {
+          case 1: // AZE
+            return AZE;
+          default:
+            return null;
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, throwing an exception
+       * if it is not found.
+       */
+      public static _Fields findByThriftIdOrThrow(int fieldId) {
+        _Fields fields = findByThriftId(fieldId);
+        if (fields == null) throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
+        return fields;
+      }
+
+      /**
+       * Find the _Fields constant that matches name, or null if its not found.
+       */
+      public static _Fields findByName(String name) {
+        return byName.get(name);
+      }
+
+      private final short _thriftId;
+      private final String _fieldName;
+
+      _Fields(short thriftId, String fieldName) {
+        _thriftId = thriftId;
+        _fieldName = fieldName;
+      }
+
+      public short getThriftFieldId() {
+        return _thriftId;
+      }
+
+      public String getFieldName() {
+        return _fieldName;
+      }
+    }
+
+    // isset id assignments
+
+    public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
+    static {
+      Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
+      tmpMap.put(_Fields.AZE, new org.apache.thrift.meta_data.FieldMetaData("aze", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRUCT)));
+      metaDataMap = Collections.unmodifiableMap(tmpMap);
+      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(uploadBlobChunk_result.class, metaDataMap);
+    }
+
+    public uploadBlobChunk_result() {
+    }
+
+    public uploadBlobChunk_result(
+      AuthorizationException aze)
+    {
+      this();
+      this.aze = aze;
+    }
+
+    /**
+     * Performs a deep copy on <i>other</i>.
+     */
+    public uploadBlobChunk_result(uploadBlobChunk_result other) {
+      if (other.is_set_aze()) {
+        this.aze = new AuthorizationException(other.aze);
+      }
+    }
+
+    public uploadBlobChunk_result deepCopy() {
+      return new uploadBlobChunk_result(this);
+    }
+
+    @Override
+    public void clear() {
+      this.aze = null;
+    }
+
+    public AuthorizationException get_aze() {
+      return this.aze;
+    }
+
+    public void set_aze(AuthorizationException aze) {
+      this.aze = aze;
+    }
+
+    public void unset_aze() {
+      this.aze = null;
+    }
+
+    /** Returns true if field aze is set (has been assigned a value) and false otherwise */
+    public boolean is_set_aze() {
+      return this.aze != null;
+    }
+
+    public void set_aze_isSet(boolean value) {
+      if (!value) {
+        this.aze = null;
+      }
+    }
+
+    public void setFieldValue(_Fields field, Object value) {
+      switch (field) {
+      case AZE:
+        if (value == null) {
+          unset_aze();
+        } else {
+          set_aze((AuthorizationException)value);
+        }
+        break;
+
+      }
+    }
+
+    public Object getFieldValue(_Fields field) {
+      switch (field) {
+      case AZE:
+        return get_aze();
+
+      }
+      throw new IllegalStateException();
+    }
+
+    /** Returns true if field corresponding to fieldID is set (has been assigned a value) and false otherwise */
+    public boolean isSet(_Fields field) {
+      if (field == null) {
+        throw new IllegalArgumentException();
+      }
+
+      switch (field) {
+      case AZE:
+        return is_set_aze();
+      }
+      throw new IllegalStateException();
+    }
+
+    @Override
+    public boolean equals(Object that) {
+      if (that == null)
+        return false;
+      if (that instanceof uploadBlobChunk_result)
+        return this.equals((uploadBlobChunk_result)that);
+      return false;
+    }
+
+    public boolean equals(uploadBlobChunk_result that) {
+      if (that == null)
+        return false;
+
+      boolean this_present_aze = true && this.is_set_aze();
+      boolean that_present_aze = true && that.is_set_aze();
+      if (this_present_aze || that_present_aze) {
+        if (!(this_present_aze && that_present_aze))
+          return false;
+        if (!this.aze.equals(that.aze))
+          return false;
+      }
+
+      return true;
+    }
+
+    @Override
+    public int hashCode() {
+      HashCodeBuilder builder = new HashCodeBuilder();
+
+      boolean present_aze = true && (is_set_aze());
+      builder.append(present_aze);
+      if (present_aze)
+        builder.append(aze);
+
+      return builder.toHashCode();
+    }
+
+    public int compareTo(uploadBlobChunk_result other) {
+      if (!getClass().equals(other.getClass())) {
+        return getClass().getName().compareTo(other.getClass().getName());
+      }
+
+      int lastComparison = 0;
+      uploadBlobChunk_result typedOther = (uploadBlobChunk_result)other;
+
+      lastComparison = Boolean.valueOf(is_set_aze()).compareTo(typedOther.is_set_aze());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (is_set_aze()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.aze, typedOther.aze);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      return 0;
+    }
+
+    public _Fields fieldForId(int fieldId) {
+      return _Fields.findByThriftId(fieldId);
+    }
+
+    public void read(org.apache.thrift.protocol.TProtocol iprot) throws org.apache.thrift.TException {
+      org.apache.thrift.protocol.TField field;
+      iprot.readStructBegin();
+      while (true)
+      {
+        field = iprot.readFieldBegin();
+        if (field.type == org.apache.thrift.protocol.TType.STOP) { 
+          break;
+        }
+        switch (field.id) {
+          case 1: // AZE
+            if (field.type == org.apache.thrift.protocol.TType.STRUCT) {
+              this.aze = new AuthorizationException();
+              this.aze.read(iprot);
+            } else { 
+              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
+            }
+            break;
+          default:
+            org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
+        }
+        iprot.readFieldEnd();
+      }
+      iprot.readStructEnd();
+      validate();
+    }
+
+    public void write(org.apache.thrift.protocol.TProtocol oprot) throws org.apache.thrift.TException {
+      oprot.writeStructBegin(STRUCT_DESC);
+
+      if (this.is_set_aze()) {
+        oprot.writeFieldBegin(AZE_FIELD_DESC);
+        this.aze.write(oprot);
+        oprot.writeFieldEnd();
+      }
+      oprot.writeFieldStop();
+      oprot.writeStructEnd();
+    }
+
+    @Override
+    public String toString() {
+      StringBuilder sb = new StringBuilder("uploadBlobChunk_result(");
+      boolean first = true;
+
+      sb.append("aze:");
+      if (this.aze == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.aze);
+      }
+      first = false;
+      sb.append(")");
+      return sb.toString();
+    }
+
+    public void validate() throws org.apache.thrift.TException {
+      // check for required fields
+    }
+
+    private void writeObject(java.io.ObjectOutputStream out) throws java.io.IOException {
+      try {
+        write(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(out)));
+      } catch (org.apache.thrift.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+    private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, ClassNotFoundException {
+      try {
+        read(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(in)));
+      } catch (org.apache.thrift.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+  }
+
+  public static class finishBlobUpload_args implements org.apache.thrift.TBase<finishBlobUpload_args, finishBlobUpload_args._Fields>, java.io.Serializable, Cloneable   {
+    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("finishBlobUpload_args");
+
+    private static final org.apache.thrift.protocol.TField SESSION_FIELD_DESC = new org.apache.thrift.protocol.TField("session", org.apache.thrift.protocol.TType.STRING, (short)1);
+
+    private String session; // required
+
+    /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+      SESSION((short)1, "session");
+
+      private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
+
+      static {
+        for (_Fields field : EnumSet.allOf(_Fields.class)) {
+          byName.put(field.getFieldName(), field);
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, or null if its not found.
+       */
+      public static _Fields findByThriftId(int fieldId) {
+        switch(fieldId) {
+          case 1: // SESSION
+            return SESSION;
+          default:
+            return null;
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, throwing an exception
+       * if it is not found.
+       */
+      public static _Fields findByThriftIdOrThrow(int fieldId) {
+        _Fields fields = findByThriftId(fieldId);
+        if (fields == null) throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
+        return fields;
+      }
+
+      /**
+       * Find the _Fields constant that matches name, or null if its not found.
+       */
+      public static _Fields findByName(String name) {
+        return byName.get(name);
+      }
+
+      private final short _thriftId;
+      private final String _fieldName;
+
+      _Fields(short thriftId, String fieldName) {
+        _thriftId = thriftId;
+        _fieldName = fieldName;
+      }
+
+      public short getThriftFieldId() {
+        return _thriftId;
+      }
+
+      public String getFieldName() {
+        return _fieldName;
+      }
+    }
+
+    // isset id assignments
+
+    public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
+    static {
+      Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
+      tmpMap.put(_Fields.SESSION, new org.apache.thrift.meta_data.FieldMetaData("session", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
+      metaDataMap = Collections.unmodifiableMap(tmpMap);
+      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(finishBlobUpload_args.class, metaDataMap);
+    }
+
+    public finishBlobUpload_args() {
+    }
+
+    public finishBlobUpload_args(
+      String session)
+    {
+      this();
+      this.session = session;
+    }
+
+    /**
+     * Performs a deep copy on <i>other</i>.
+     */
+    public finishBlobUpload_args(finishBlobUpload_args other) {
+      if (other.is_set_session()) {
+        this.session = other.session;
+      }
+    }
+
+    public finishBlobUpload_args deepCopy() {
+      return new finishBlobUpload_args(this);
+    }
+
+    @Override
+    public void clear() {
+      this.session = null;
+    }
+
+    public String get_session() {
+      return this.session;
+    }
+
+    public void set_session(String session) {
+      this.session = session;
+    }
+
+    public void unset_session() {
+      this.session = null;
+    }
+
+    /** Returns true if field session is set (has been assigned a value) and false otherwise */
+    public boolean is_set_session() {
+      return this.session != null;
+    }
+
+    public void set_session_isSet(boolean value) {
+      if (!value) {
+        this.session = null;
+      }
+    }
+
+    public void setFieldValue(_Fields field, Object value) {
+      switch (field) {
+      case SESSION:
+        if (value == null) {
+          unset_session();
+        } else {
+          set_session((String)value);
+        }
+        break;
+
+      }
+    }
+
+    public Object getFieldValue(_Fields field) {
+      switch (field) {
+      case SESSION:
+        return get_session();
+
+      }
+      throw new IllegalStateException();
+    }
+
+    /** Returns true if field corresponding to fieldID is set (has been assigned a value) and false otherwise */
+    public boolean isSet(_Fields field) {
+      if (field == null) {
+        throw new IllegalArgumentException();
+      }
+
+      switch (field) {
+      case SESSION:
+        return is_set_session();
+      }
+      throw new IllegalStateException();
+    }
+
+    @Override
+    public boolean equals(Object that) {
+      if (that == null)
+        return false;
+      if (that instanceof finishBlobUpload_args)
+        return this.equals((finishBlobUpload_args)that);
+      return false;
+    }
+
+    public boolean equals(finishBlobUpload_args that) {
+      if (that == null)
+        return false;
+
+      boolean this_present_session = true && this.is_set_session();
+      boolean that_present_session = true && that.is_set_session();
+      if (this_present_session || that_present_session) {
+        if (!(this_present_session && that_present_session))
+          return false;
+        if (!this.session.equals(that.session))
+          return false;
+      }
+
+      return true;
+    }
+
+    @Override
+    public int hashCode() {
+      HashCodeBuilder builder = new HashCodeBuilder();
+
+      boolean present_session = true && (is_set_session());
+      builder.append(present_session);
+      if (present_session)
+        builder.append(session);
+
+      return builder.toHashCode();
+    }
+
+    public int compareTo(finishBlobUpload_args other) {
+      if (!getClass().equals(other.getClass())) {
+        return getClass().getName().compareTo(other.getClass().getName());
+      }
+
+      int lastComparison = 0;
+      finishBlobUpload_args typedOther = (finishBlobUpload_args)other;
+
+      lastComparison = Boolean.valueOf(is_set_session()).compareTo(typedOther.is_set_session());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (is_set_session()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.session, typedOther.session);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      return 0;
+    }
+
+    public _Fields fieldForId(int fieldId) {
+      return _Fields.findByThriftId(fieldId);
+    }
+
+    public void read(org.apache.thrift.protocol.TProtocol iprot) throws org.apache.thrift.TException {
+      org.apache.thrift.protocol.TField field;
+      iprot.readStructBegin();
+      while (true)
+      {
+        field = iprot.readFieldBegin();
+        if (field.type == org.apache.thrift.protocol.TType.STOP) { 
+          break;
+        }
+        switch (field.id) {
+          case 1: // SESSION
+            if (field.type == org.apache.thrift.protocol.TType.STRING) {
+              this.session = iprot.readString();
+            } else { 
+              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
+            }
+            break;
+          default:
+            org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
+        }
+        iprot.readFieldEnd();
+      }
+      iprot.readStructEnd();
+      validate();
+    }
+
+    public void write(org.apache.thrift.protocol.TProtocol oprot) throws org.apache.thrift.TException {
+      validate();
+
+      oprot.writeStructBegin(STRUCT_DESC);
+      if (this.session != null) {
+        oprot.writeFieldBegin(SESSION_FIELD_DESC);
+        oprot.writeString(this.session);
+        oprot.writeFieldEnd();
+      }
+      oprot.writeFieldStop();
+      oprot.writeStructEnd();
+    }
+
+    @Override
+    public String toString() {
+      StringBuilder sb = new StringBuilder("finishBlobUpload_args(");
+      boolean first = true;
+
+      sb.append("session:");
+      if (this.session == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.session);
+      }
+      first = false;
+      sb.append(")");
+      return sb.toString();
+    }
+
+    public void validate() throws org.apache.thrift.TException {
+      // check for required fields
+    }
+
+    private void writeObject(java.io.ObjectOutputStream out) throws java.io.IOException {
+      try {
+        write(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(out)));
+      } catch (org.apache.thrift.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+    private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, ClassNotFoundException {
+      try {
+        read(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(in)));
+      } catch (org.apache.thrift.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+  }
+
+  public static class finishBlobUpload_result implements org.apache.thrift.TBase<finishBlobUpload_result, finishBlobUpload_result._Fields>, java.io.Serializable, Cloneable   {
+    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("finishBlobUpload_result");
+
+    private static final org.apache.thrift.protocol.TField AZE_FIELD_DESC = new org.apache.thrift.protocol.TField("aze", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+
+    private AuthorizationException aze; // required
+
+    /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+      AZE((short)1, "aze");
+
+      private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
+
+      static {
+        for (_Fields field : EnumSet.allOf(_Fields.class)) {
+          byName.put(field.getFieldName(), field);
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, or null if its not found.
+       */
+      public static _Fields findByThriftId(int fieldId) {
+        switch(fieldId) {
+          case 1: // AZE
+            return AZE;
+          default:
+            return null;
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, throwing an exception
+       * if it is not found.
+       */
+      public static _Fields findByThriftIdOrThrow(int fieldId) {
+        _Fields fields = findByThriftId(fieldId);
+        if (fields == null) throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
+        return fields;
+      }
+
+      /**
+       * Find the _Fields constant that matches name, or null if its not found.
+       */
+      public static _Fields findByName(String name) {
+        return byName.get(name);
+      }
+
+      private final short _thriftId;
+      private final String _fieldName;
+
+      _Fields(short thriftId, String fieldName) {
+        _thriftId = thriftId;
+        _fieldName = fieldName;
+      }
+
+      public short getThriftFieldId() {
+        return _thriftId;
+      }
+
+      public String getFieldName() {
+        return _fieldName;
+      }
+    }
+
+    // isset id assignments
+
+    public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
+    static {
+      Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
+      tmpMap.put(_Fields.AZE, new org.apache.thrift.meta_data.FieldMetaData("aze", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRUCT)));
+      metaDataMap = Collections.unmodifiableMap(tmpMap);
+      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(finishBlobUpload_result.class, metaDataMap);
+    }
+
+    public finishBlobUpload_result() {
+    }
+
+    public finishBlobUpload_result(
+      AuthorizationException aze)
+    {
+      this();
+      this.aze = aze;
+    }
+
+    /**
+     * Performs a deep copy on <i>other</i>.
+     */
+    public finishBlobUpload_result(finishBlobUpload_result other) {
+      if (other.is_set_aze()) {
+        this.aze = new AuthorizationException(other.aze);
+      }
+    }
+
+    public finishBlobUpload_result deepCopy() {
+      return new finishBlobUpload_result(this);
+    }
+
+    @Override
+    public void clear() {
+      this.aze = null;
+    }
+
+    public AuthorizationException get_aze() {
+      return this.aze;
+    }
+
+    public void set_aze(AuthorizationException aze) {
+      this.aze = aze;
+    }
+
+    public void unset_aze() {
+      this.aze = null;
+    }
+
+    /** Returns true if field aze is set (has been assigned a value) and false otherwise */
+    public boolean is_set_aze() {
+      return this.aze != null;
+    }
+
+    public void set_aze_isSet(boolean value) {
+      if (!value) {
+        this.aze = null;
+      }
+    }
+
+    public void setFieldValue(_Fields field, Object value) {
+      switch (field) {
+      case AZE:
+        if (value == null) {
+          unset_aze();
+        } else {
+          set_aze((AuthorizationException)value);
+        }
+        break;
+
+      }
+    }
+
+    public Object getFieldValue(_Fields field) {
+      switch (field) {
+      case AZE:
+        return get_aze();
+
+      }
+      throw new IllegalStateException();
+    }
+
+    /** Returns true if field corresponding to fieldID is set (has been assigned a value) and false otherwise */
+    public boolean isSet(_Fields field) {
+      if (field == null) {
+        throw new IllegalArgumentException();
+      }
+
+      switch (field) {
+      case AZE:
+        return is_set_aze();
+      }
+      throw new IllegalStateException();
+    }
+
+    @Override
+    public boolean equals(Object that) {
+      if (that == null)
+        return false;
+      if (that instanceof finishBlobUpload_result)
+        return this.equals((finishBlobUpload_result)that);
+      return false;
+    }
+
+    public boolean equals(finishBlobUpload_result that) {
+      if (that == null)
+        return false;
+
+      boolean this_present_aze = true && this.is_set_aze();
+      boolean that_present_aze = true && that.is_set_aze();
+      if (this_present_aze || that_present_aze) {
+        if (!(this_present_aze && that_present_aze))
+          return false;
+        if (!this.aze.equals(that.aze))
+          return false;
+      }
+
+      return true;
+    }
+
+    @Override
+    public int hashCode() {
+      HashCodeBuilder builder = new HashCodeBuilder();
+
+      boolean present_aze = true && (is_set_aze());
+      builder.append(present_aze);
+      if (present_aze)
+        builder.append(aze);
+
+      return builder.toHashCode();
+    }
+
+    public int compareTo(finishBlobUpload_result other) {
+      if (!getClass().equals(other.getClass())) {
+        return getClass().getName().compareTo(other.getClass().getName());
+      }
+
+      int lastComparison = 0;
+      finishBlobUpload_result typedOther = (finishBlobUpload_result)other;
+
+      lastComparison = Boolean.valueOf(is_set_aze()).compareTo(typedOther.is_set_aze());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (is_set_aze()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.aze, typedOther.aze);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      return 0;
+    }
+
+    public _Fields fieldForId(int fieldId) {
+      return _Fields.findByThriftId(fieldId);
+    }
+
+    public void read(org.apache.thrift.protocol.TProtocol iprot) throws org.apache.thrift.TException {
+      org.apache.thrift.protocol.TField field;
+      iprot.readStructBegin();
+      while (true)
+      {
+        field = iprot.readFieldBegin();
+        if (field.type == org.apache.thrift.protocol.TType.STOP) { 
+          break;
+        }
+        switch (field.id) {
+          case 1: // AZE
+            if (field.type == org.apache.thrift.protocol.TType.STRUCT) {
+              this.aze = new AuthorizationException();
+              this.aze.read(iprot);
+            } else { 
+              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
+            }
+            break;
+          default:
+            org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
+        }
+        iprot.readFieldEnd();
+      }
+      iprot.readStructEnd();
+      validate();
+    }
+
+    public void write(org.apache.thrift.protocol.TProtocol oprot) throws org.apache.thrift.TException {
+      oprot.writeStructBegin(STRUCT_DESC);
+
+      if (this.is_set_aze()) {
+        oprot.writeFieldBegin(AZE_FIELD_DESC);
+        this.aze.write(oprot);
+        oprot.writeFieldEnd();
+      }
+      oprot.writeFieldStop();
+      oprot.writeStructEnd();
+    }
+
+    @Override
+    public String toString() {
+      StringBuilder sb = new StringBuilder("finishBlobUpload_result(");
+      boolean first = true;
+
+      sb.append("aze:");
+      if (this.aze == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.aze);
+      }
+      first = false;
+      sb.append(")");
+      return sb.toString();
+    }
+
+    public void validate() throws org.apache.thrift.TException {
+      // check for required fields
+    }
+
+    private void writeObject(java.io.ObjectOutputStream out) throws java.io.IOException {
+      try {
+        write(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(out)));
+      } catch (org.apache.thrift.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+    private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, ClassNotFoundException {
+      try {
+        read(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(in)));
+      } catch (org.apache.thrift.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+  }
+
+  public static class cancelBlobUpload_args implements org.apache.thrift.TBase<cancelBlobUpload_args, cancelBlobUpload_args._Fields>, java.io.Serializable, Cloneable   {
+    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("cancelBlobUpload_args");
+
+    private static final org.apache.thrift.protocol.TField SESSION_FIELD_DESC = new org.apache.thrift.protocol.TField("session", org.apache.thrift.protocol.TType.STRING, (short)1);
+
+    private String session; // required
+
+    /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+      SESSION((short)1, "session");
+
+      private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
+
+      static {
+        for (_Fields field : EnumSet.allOf(_Fields.class)) {
+          byName.put(field.getFieldName(), field);
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, or null if its not found.
+       */
+      public static _Fields findByThriftId(int fieldId) {
+        switch(fieldId) {
+          case 1: // SESSION
+            return SESSION;
+          default:
+            return null;
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, throwing an exception
+       * if it is not found.
+       */
+      public static _Fields findByThriftIdOrThrow(int fieldId) {
+        _Fields fields = findByThriftId(fieldId);
+        if (fields == null) throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
+        return fields;
+      }
+
+      /**
+       * Find the _Fields constant that matches name, or null if its not found.
+       */
+      public static _Fields findByName(String name) {
+        return byName.get(name);
+      }
+
+      private final short _thriftId;
+      private final String _fieldName;
+
+      _Fields(short thriftId, String fieldName) {
+        _thriftId = thriftId;
+        _fieldName = fieldName;
+      }
+
+      public short getThriftFieldId() {
+        return _thriftId;
+      }
+
+      public String getFieldName() {
+        return _fieldName;
+      }
+    }
+
+    // isset id assignments
+
+    public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
+    static {
+      Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
+      tmpMap.put(_Fields.SESSION, new org.apache.thrift.meta_data.FieldMetaData("session", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
+      metaDataMap = Collections.unmodifiableMap(tmpMap);
+      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(cancelBlobUpload_args.class, metaDataMap);
+    }
+
+    public cancelBlobUpload_args() {
+    }
+
+    public cancelBlobUpload_args(
+      String session)
+    {
+      this();
+      this.session = session;
+    }
+
+    /**
+     * Performs a deep copy on <i>other</i>.
+     */
+    public cancelBlobUpload_args(cancelBlobUpload_args other) {
+      if (other.is_set_session()) {
+        this.session = other.session;
+      }
+    }
+
+    public cancelBlobUpload_args deepCopy() {
+      return new cancelBlobUpload_args(this);
+    }
+
+    @Override
+    public void clear() {
+      this.session = null;
+    }
+
+    public String get_session() {
+      return this.session;
+    }
+
+    public void set_session(String session) {
+      this.session = session;
+    }
+
+    public void unset_session() {
+      this.session = null;
+    }
+
+    /** Returns true if field session is set (has been assigned a value) and false otherwise */
+    public boolean is_set_session() {
+      return this.session != null;
+    }
+
+    public void set_session_isSet(boolean value) {
+      if (!value) {
+        this.session = null;
+      }
+    }
+
+    public void setFieldValue(_Fields field, Object value) {
+      switch (field) {
+      case SESSION:
+        if (value == null) {
+          unset_session();
+        } else {
+          set_session((String)value);
+        }
+        break;
+
+      }
+    }
+
+    public Object getFieldValue(_Fields field) {
+      switch (field) {
+      case SESSION:
+        return get_session();
+
+      }
+      throw new IllegalStateException();
+    }
+
+    /** Returns true if field corresponding to fieldID is set (has been assigned a value) and false otherwise */
+    public boolean isSet(_Fields field) {
+      if (field == null) {
+        throw new IllegalArgumentException();
+      }
+
+      switch (field) {
+      case SESSION:
+        return is_set_session();
+      }
+      throw new IllegalStateException();
+    }
+
+    @Override
+    public boolean equals(Object that) {
+      if (that == null)
+        return false;
+      if (that instanceof cancelBlobUpload_args)
+        return this.equals((cancelBlobUpload_args)that);
+      return false;
+    }
+
+    public boolean equals(cancelBlobUpload_args that) {
+      if (that == null)
+        return false;
+
+      boolean this_present_session = true && this.is_set_session();
+      boolean that_present_session = true && that.is_set_session();
+      if (this_present_session || that_present_session) {
+        if (!(this_present_session && that_present_session))
+          return false;
+        if (!this.session.equals(that.session))
+          return false;
+      }
+
+      return true;
+    }
+
+    @Override
+    public int hashCode() {
+      HashCodeBuilder builder = new HashCodeBuilder();
+
+      boolean present_session = true && (is_set_session());
+      builder.append(present_session);
+      if (present_session)
+        builder.append(session);
+
+      return builder.toHashCode();
+    }
+
+    public int compareTo(cancelBlobUpload_args other) {
+      if (!getClass().equals(other.getClass())) {
+        return getClass().getName().compareTo(other.getClass().getName());
+      }
+
+      int lastComparison = 0;
+      cancelBlobUpload_args typedOther = (cancelBlobUpload_args)other;
+
+      lastComparison = Boolean.valueOf(is_set_session()).compareTo(typedOther.is_set_session());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (is_set_session()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.session, typedOther.session);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      return 0;
+    }
+
+    public _Fields fieldForId(int fieldId) {
+      return _Fields.findByThriftId(fieldId);
+    }
+
+    public void read(org.apache.thrift.protocol.TProtocol iprot) throws org.apache.thrift.TException {
+      org.apache.thrift.protocol.TField field;
+      iprot.readStructBegin();
+      while (true)
+      {
+        field = iprot.readFieldBegin();
+        if (field.type == org.apache.thrift.protocol.TType.STOP) { 
+          break;
+        }
+        switch (field.id) {
+          case 1: // SESSION
+            if (field.type == org.apache.thrift.protocol.TType.STRING) {
+              this.session = iprot.readString();
+            } else { 
+              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
+            }
+            break;
+          default:
+            org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
+        }
+        iprot.readFieldEnd();
+      }
+      iprot.readStructEnd();
+      validate();
+    }
+
+    public void write(org.apache.thrift.protocol.TProtocol oprot) throws org.apache.thrift.TException {
+      validate();
+
+      oprot.writeStructBegin(STRUCT_DESC);
+      if (this.session != null) {
+        oprot.writeFieldBegin(SESSION_FIELD_DESC);
+        oprot.writeString(this.session);
+        oprot.writeFieldEnd();
+      }
+      oprot.writeFieldStop();
+      oprot.writeStructEnd();
+    }
+
+    @Override
+    public String toString() {
+      StringBuilder sb = new StringBuilder("cancelBlobUpload_args(");
+      boolean first = true;
+
+      sb.append("session:");
+      if (this.session == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.session);
+      }
+      first = false;
+      sb.append(")");
+      return sb.toString();
+    }
+
+    public void validate() throws org.apache.thrift.TException {
+      // check for required fields
+    }
+
+    private void writeObject(java.io.ObjectOutputStream out) throws java.io.IOException {
+      try {
+        write(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(out)));
+      } catch (org.apache.thrift.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+    private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, ClassNotFoundException {
+      try {
+        read(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(in)));
+      } catch (org.apache.thrift.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+  }
+
+  public static class cancelBlobUpload_result implements org.apache.thrift.TBase<cancelBlobUpload_result, cancelBlobUpload_result._Fields>, java.io.Serializable, Cloneable   {
+    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("cancelBlobUpload_result");
+
+    private static final org.apache.thrift.protocol.TField AZE_FIELD_DESC = new org.apache.thrift.protocol.TField("aze", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+
+    private AuthorizationException aze; // required
+
+    /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+      AZE((short)1, "aze");
+
+      private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
+
+      static {
+        for (_Fields field : EnumSet.allOf(_Fields.class)) {
+          byName.put(field.getFieldName(), field);
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, or null if its not found.
+       */
+      public static _Fields findByThriftId(int fieldId) {
+        switch(fieldId) {
+          case 1: // AZE
+            return AZE;
+          default:
+            return null;
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, throwing an exception
+       * if it is not found.
+       */
+      public static _Fields findByThriftIdOrThrow(int fieldId) {
+        _Fields fields = findByThriftId(fieldId);
+        if (fields == null) throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
+        return fields;
+      }
+
+      /**
+       * Find the _Fields constant that matches name, or null if its not found.
+       */
+      public static _Fields findByName(String name) {
+        return byName.get(name);
+      }
+
+      private final short _thriftId;
+      private final String _fieldName;
+
+      _Fields(short thriftId, String fieldName) {
+        _thriftId = thriftId;
+        _fieldName = fieldName;
+      }
+
+      public short getThriftFieldId() {
+        return _thriftId;
+      }
+
+      public String getFieldName() {
+        return _fieldName;
+      }
+    }
+
+    // isset id assignments
+
+    public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
+    static {
+      Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
+      tmpMap.put(_Fields.AZE, new org.apache.thrift.meta_data.FieldMetaData("aze", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRUCT)));
+      metaDataMap = Collections.unmodifiableMap(tmpMap);
+      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(cancelBlobUpload_result.class, metaDataMap);
+    }
+
+    public cancelBlobUpload_result() {
+    }
+
+    public cancelBlobUpload_result(
+      AuthorizationException aze)
+    {
+      this();
+      this.aze = aze;
+    }
+
+    /**
+     * Performs a deep copy on <i>other</i>.
+     */
+    public cancelBlobUpload_result(cancelBlobUpload_result other) {
+      if (other.is_set_aze()) {
+        this.aze = new AuthorizationException(other.aze);
+      }
+    }
+
+    public cancelBlobUpload_result deepCopy() {
+      return new cancelBlobUpload_result(this);
+    }
+
+    @Override
+    public void clear() {
+      this.aze = null;
+    }
+
+    public AuthorizationException get_aze() {
+      return this.aze;
+    }
+
+    public void set_aze(AuthorizationException aze) {
+      this.aze = aze;
+    }
+
+    public void unset_aze() {
+      this.aze = null;
+    }
+
+    /** Returns true if field aze is set (has been assigned a value) and false otherwise */
+    public boolean is_set_aze() {
+      return this.aze != null;
+    }
+
+    public void set_aze_isSet(boolean value) {
+      if (!value) {
+        this.aze = null;
+      }
+    }
+
+    public void setFieldValue(_Fields field, Object value) {
+      switch (field) {
+      case AZE:
+        if (value == null) {
+          unset_aze();
+        } else {
+          set_aze((AuthorizationException)value);
+        }
+        break;
+
+      }
+    }
+
+    public Object getFieldValue(_Fields field) {
+      switch (field) {
+      case AZE:
+        return get_aze();
+
+      }
+      throw new IllegalStateException();
+    }
+
+    /** Returns true if field corresponding to fieldID is set (has been assigned a value) and false otherwise */
+    public boolean isSet(_Fields field) {
+      if (field == null) {
+        throw new IllegalArgumentException();
+      }
+
+      switch (field) {
+      case AZE:
+        return is_set_aze();
+      }
+      throw new IllegalStateException();
+    }
+
+    @Override
+    public boolean equals(Object that) {
+      if (that == null)
+        return false;
+      if (that instanceof cancelBlobUpload_result)
+        return this.equals((cancelBlobUpload_result)that);
+      return false;
+    }
+
+    public boolean equals(cancelBlobUpload_result that) {
+      if (that == null)
+        return false;
+
+      boolean this_present_aze = true && this.is_set_aze();
+      boolean that_present_aze = true && that.is_set_aze();
+      if (this_present_aze || that_present_aze) {
+        if (!(this_present_aze && that_present_aze))
+          return false;
+        if (!this.aze.equals(that.aze))
+          return false;
+      }
+
+      return true;
+    }
+
+    @Override
+    public int hashCode() {
+      HashCodeBuilder builder = new HashCodeBuilder();
+
+      boolean present_aze = true && (is_set_aze());
+      builder.append(present_aze);
+      if (present_aze)
+        builder.append(aze);
+
+      return builder.toHashCode();
+    }
+
+    public int compareTo(cancelBlobUpload_result other) {
+      if (!getClass().equals(other.getClass())) {
+        return getClass().getName().compareTo(other.getClass().getName());
+      }
+
+      int lastComparison = 0;
+      cancelBlobUpload_result typedOther = (cancelBlobUpload_result)other;
+
+      lastComparison = Boolean.valueOf(is_set_aze()).compareTo(typedOther.is_set_aze());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (is_set_aze()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.aze, typedOther.aze);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      return 0;
+    }
+
+    public _Fields fieldForId(int fieldId) {
+      return _Fields.findByThriftId(fieldId);
+    }
+
+    public void read(org.apache.thrift.protocol.TProtocol iprot) throws org.apache.thrift.TException {
+      org.apache.thrift.protocol.TField field;
+      iprot.readStructBegin();
+      while (true)
+      {
+        field = iprot.readFieldBegin();
+        if (field.type == org.apache.thrift.protocol.TType.STOP) { 
+          break;
+        }
+        switch (field.id) {
+          case 1: // AZE
+            if (field.type == org.apache.thrift.protocol.TType.STRUCT) {
+              this.aze = new AuthorizationException();
+              this.aze.read(iprot);
+            } else { 
+              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
+            }
+            break;
+          default:
+            org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
+        }
+        iprot.readFieldEnd();
+      }
+      iprot.readStructEnd();
+      validate();
+    }
+
+    public void write(org.apache.thrift.protocol.TProtocol oprot) throws org.apache.thrift.TException {
+      oprot.writeStructBegin(STRUCT_DESC);
+
+      if (this.is_set_aze()) {
+        oprot.writeFieldBegin(AZE_FIELD_DESC);
+        this.aze.write(oprot);
+        oprot.writeFieldEnd();
+      }
+      oprot.writeFieldStop();
+      oprot.writeStructEnd();
+    }
+
+    @Override
+    public String toString() {
+      StringBuilder sb = new StringBuilder("cancelBlobUpload_result(");
+      boolean first = true;
+
+      sb.append("aze:");
+      if (this.aze == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.aze);
+      }
+      first = false;
+      sb.append(")");
+      return sb.toString();
+    }
+
+    public void validate() throws org.apache.thrift.TException {
+      // check for required fields
+    }
+
+    private void writeObject(java.io.ObjectOutputStream out) throws java.io.IOException {
+      try {
+        write(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(out)));
+      } catch (org.apache.thrift.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+    private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, ClassNotFoundException {
+      try {
+        read(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(in)));
+      } catch (org.apache.thrift.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+  }
+
+  public static class getBlobMeta_args implements org.apache.thrift.TBase<getBlobMeta_args, getBlobMeta_args._Fields>, java.io.Serializable, Cloneable   {
+    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("getBlobMeta_args");
+
+    private static final org.apache.thrift.protocol.TField KEY_FIELD_DESC = new org.apache.thrift.protocol.TField("key", org.apache.thrift.protocol.TType.STRING, (short)1);
+
+    private String key; // required
+
+    /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+      KEY((short)1, "key");
+
+      private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
+
+      static {
+        for (_Fields field : EnumSet.allOf(_Fields.class)) {
+          byName.put(field.getFieldName(), field);
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, or null if its not found.
+       */
+      public static _Fields findByThriftId(int fieldId) {
+        switch(fieldId) {
+          case 1: // KEY
+            return KEY;
+          default:
+            return null;
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, throwing an exception
+       * if it is not found.
+       */
+      public static _Fields findByThriftIdOrThrow(int fieldId) {
+        _Fields fields = findByThriftId(fieldId);
+        if (fields == null) throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
+        return fields;
+      }
+
+      /**
+       * Find the _Fields constant that matches name, or null if its not found.
+       */
+      public static _Fields findByName(String name) {
+        return byName.get(name);
+      }
+
+      private final short _thriftId;
+      private final String _fieldName;
+
+      _Fields(short thriftId, String fieldName) {
+        _thriftId = thriftId;
+        _fieldName = fieldName;
+      }
+
+      public short getThriftFieldId() {
+        return _thriftId;
+      }
+
+      public String getFieldName() {
+        return _fieldName;
+      }
+    }
+
+    // isset id assignments
+
+    public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
+    static {
+      Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
+      tmpMap.put(_Fields.KEY, new org.apache.thrift.meta_data.FieldMetaData("key", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
+      metaDataMap = Collections.unmodifiableMap(tmpMap);
+      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(getBlobMeta_args.class, metaDataMap);
+    }
+
+    public getBlobMeta_args() {
+    }
+
+    public getBlobMeta_args(
+      String key)
+    {
+      this();
+      this.key = key;
+    }
+
+    /**
+     * Performs a deep copy on <i>other</i>.
+     */
+    public getBlobMeta_args(getBlobMeta_args other) {
+      if (other.is_set_key()) {
+        this.key = other.key;
+      }
+    }
+
+    public getBlobMeta_args deepCopy() {
+      return new getBlobMeta_args(this);
+    }
+
+    @Override
+    public void clear() {
+      this.key = null;
+    }
+
+    public String get_key() {
+      return this.key;
+    }
+
+    public void set_key(String key) {
+      this.key = key;
+    }
+
+    public void unset_key() {
+      this.key = null;
+    }
+
+    /** Returns true if field key is set (has been assigned a value) and false otherwise */
+    public boolean is_set_key() {
+      return this.key != null;
+    }
+
+    public void set_key_isSet(boolean value) {
+      if (!value) {
+        this.key = null;
+      }
+    }
+
+    public void setFieldValue(_Fields field, Object value) {
+      switch (field) {
+      case KEY:
+        if (value == null) {
+          unset_key();
+        } else {
+          set_key((String)value);
+        }
+        break;
+
+      }
+    }
+
+    public Object getFieldValue(_Fields field) {
+      switch (field) {
+      case KEY:
+        return get_key();
+
+      }
+      throw new IllegalStateException();
+    }
+
+    /** Returns true if field corresponding to fieldID is set (has been assigned a value) and false otherwise */
+    public boolean isSet(_Fields field) {
+      if (field == null) {
+        throw new IllegalArgumentException();
+      }
+
+      switch (field) {
+      case KEY:
+        return is_set_key();
+      }
+      throw new IllegalStateException();
+    }
+
+    @Override
+    public boolean equals(Object that) {
+      if (that == null)
+        return false;
+      if (that instanceof getBlobMeta_args)
+        return this.equals((getBlobMeta_args)that);
+      return false;
+    }
+
+    public boolean equals(getBlobMeta_args that) {
+      if (that == null)
+        return false;
+
+      boolean this_present_key = true && this.is_set_key();
+      boolean that_present_key = true && that.is_set_key();
+      if (this_present_key || that_present_key) {
+        if (!(this_present_key && that_present_key))
+          return false;
+        if (!this.key.equals(that.key))
+          return false;
+      }
+
+      return true;
+    }
+
+    @Override
+    public int hashCode() {
+      HashCodeBuilder builder = new HashCodeBuilder();
+
+      boolean present_key = true && (is_set_key());
+      builder.append(present_key);
+      if (present_key)
+        builder.append(key);
+
+      return builder.toHashCode();
+    }
+
+    public int compareTo(getBlobMeta_args other) {
+      if (!getClass().equals(other.getClass())) {
+        return getClass().getName().compareTo(other.getClass().getName());
+      }
+
+      int lastComparison = 0;
+      getBlobMeta_args typedOther = (getBlobMeta_args)other;
+
+      lastComparison = Boolean.valueOf(is_set_key()).compareTo(typedOther.is_set_key());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (is_set_key()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.key, typedOther.key);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      return 0;
+    }
+
+    public _Fields fieldForId(int fieldId) {
+      return _Fields.findByThriftId(fieldId);
+    }
+
+    public void read(org.apache.thrift.protocol.TProtocol iprot) throws org.apache.thrift.TException {
+      org.apache.thrift.protocol.TField field;
+      iprot.readStructBegin();
+      while (true)
+      {
+        field = iprot.readFieldBegin();
+        if (field.type == org.apache.thrift.protocol.TType.STOP) { 
+          break;
+        }
+        switch (field.id) {
+          case 1: // KEY
+            if (field.type == org.apache.thrift.protocol.TType.STRING) {
+              this.key = iprot.readString();
+            } else { 
+              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
+            }
+            break;
+          default:
+            org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
+        }
+        iprot.readFieldEnd();
+      }
+      iprot.readStructEnd();
+      validate();
+    }
+
+    public void write(org.apache.thrift.protocol.TProtocol oprot) throws org.apache.thrift.TException {
+      validate();
+
+      oprot.writeStructBegin(STRUCT_DESC);
+      if (this.key != null) {
+        oprot.writeFieldBegin(KEY_FIELD_DESC);
+        oprot.writeString(this.key);
+        oprot.writeFieldEnd();
+      }
+      oprot.writeFieldStop();
+      oprot.writeStructEnd();
+    }
+
+    @Override
+    public String toString() {
+      StringBuilder sb = new StringBuilder("getBlobMeta_args(");
+      boolean first = true;
+
+      sb.append("key:");
+      if (this.key == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.key);
+      }
+      first = false;
+      sb.append(")");
+      return sb.toString();
+    }
+
+    public void validate() throws org.apache.thrift.TException {
+      // check for required fields
+    }
+
+    private void writeObject(java.io.ObjectOutputStream out) throws java.io.IOException {
+      try {
+        write(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(out)));
+      } catch (org.apache.thrift.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+    private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, ClassNotFoundException {
+      try {
+        read(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(in)));
+      } catch (org.apache.thrift.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+  }
+
+  public static class getBlobMeta_result implements org.apache.thrift.TBase<getBlobMeta_result, getBlobMeta_result._Fields>, java.io.Serializable, Cloneable   {
+    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("getBlobMeta_result");
+
+    private static final org.apache.thrift.protocol.TField SUCCESS_FIELD_DESC = new org.apache.thrift.protocol.TField("success", org.apache.thrift.protocol.TType.STRUCT, (short)0);
+    private static final org.apache.thrift.protocol.TField AZE_FIELD_DESC = new org.apache.thrift.protocol.TField("aze", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+    private static final org.apache.thrift.protocol.TField KNF_FIELD_DESC = new org.apache.thrift.protocol.TField("knf", org.apache.thrift.protocol.TType.STRUCT, (short)2);
+
+    private ReadableBlobMeta success; // required
+    private AuthorizationException aze; // required
+    private KeyNotFoundException knf; // required
+
+    /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+      SUCCESS((short)0, "success"),
+      AZE((short)1, "aze"),
+      KNF((short)2, "knf");
+
+      private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
+
+      static {
+        for (_Fields field : EnumSet.allOf(_Fields.class)) {
+          byName.put(field.getFieldName(), field);
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, or null if its not found.
+       */
+      public static _Fields findByThriftId(int fieldId) {
+        switch(fieldId) {
+          case 0: // SUCCESS
+            return SUCCESS;
+          case 1: // AZE
+            return AZE;
+          case 2: // KNF
+            return KNF;
+          default:
+            return null;
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, throwing an exception
+       * if it is not found.
+       */
+      public static _Fields findByThriftIdOrThrow(int fieldId) {
+        _Fields fields = findByThriftId(fieldId);
+        if (fields == null) throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
+        return fields;
+      }
+
+      /**
+       * Find the _Fields constant that matches name, or null if its not found.
+       */
+      public static _Fields findByName(String name) {
+        return byName.get(name);
+      }
+
+      private final short _thriftId;
+      private final String _fieldName;
+
+      _Fields(short thriftId, String fieldName) {
+        _thriftId = thriftId;
+        _fieldName = fieldName;
+      }
+
+      public short getThriftFieldId() {
+        return _thriftId;
+      }
+
+      public String getFieldName() {
+        return _fieldName;
+      }
+    }
+
+    // isset id assignments
+
+    public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
+    static {
+      Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
+      tmpMap.put(_Fields.SUCCESS, new org.apache.thrift.meta_data.FieldMetaData("success", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, ReadableBlobMeta.class)));
+      tmpMap.put(_Fields.AZE, new org.apache.thrift.meta_data.FieldMetaData("aze", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRUCT)));
+      tmpMap.put(_Fields.KNF, new org.apache.thrift.meta_data.FieldMetaData("knf", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRUCT)));
+      metaDataMap = Collections.unmodifiableMap(tmpMap);
+      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(getBlobMeta_result.class, metaDataMap);
+    }
+
+    public getBlobMeta_result() {
+    }
+
+    public getBlobMeta_result(
+      ReadableBlobMeta success,
+      AuthorizationException aze,
+      KeyNotFoundException knf)
+    {
+      this();
+      this.success = success;
+      this.aze = aze;
+      this.knf = knf;
+    }
+
+    /**
+     * Performs a deep copy on <i>other</i>.
+     */
+    public getBlobMeta_result(getBlobMeta_result other) {
+      if (other.is_set_success()) {
+        this.success = new ReadableBlobMeta(other.success);
+      }
+      if (other.is_set_aze()) {
+        this.aze = new AuthorizationException(other.aze);
+      }
+      if (other.is_set_knf()) {
+        this.knf = new KeyNotFoundException(other.knf);
+      }
+    }
+
+    public getBlobMeta_result deepCopy() {
+      return new getBlobMeta_result(this);
+    }
+
+    @Override
+    public void clear() {
+      this.success = null;
+      this.aze = null;
+      this.knf = null;
+    }
+
+    public ReadableBlobMeta get_success() {
+      return this.success;
+    }
+
+    public void set_success(ReadableBlobMeta success) {
+      this.success = success;
+    }
+
+    public void unset_success() {
+      this.success = null;
+    }
+
+    /** Returns true if field success is set (has been assigned a value) and false otherwise */
+    public boolean is_set_success() {
+      return this.success != null;
+    }
+
+    public void set_success_isSet(boolean value) {
+      if (!value) {
+        this.success = null;
+      }
+    }
+
+    public AuthorizationException get_aze() {
+      return this.aze;
+    }
+
+    public void set_aze(AuthorizationException aze) {
+      this.aze = aze;
+    }
+
+    public void unset_aze() {
+      this.aze = null;
+    }
+
+    /** Returns true if field aze is set (has been assigned a value) and false otherwise */
+    public boolean is_set_aze() {
+      return this.aze != null;
+    }
+
+    public void set_aze_isSet(boolean value) {
+      if (!value) {
+        this.aze = null;
+      }
+    }
+
+    public KeyNotFoundException get_knf() {
+      return this.knf;
+    }
+
+    public void set_knf(KeyNotFoundException knf) {
+      this.knf = knf;
+    }
+
+    public void unset_knf() {
+      this.knf = null;
+    }
+
+    /** Returns true if field knf is set (has been assigned a value) and false otherwise */
+    public boolean is_set_knf() {
+      return this.knf != null;
+    }
+
+    public void set_knf_isSet(boolean value) {
+      if (!value) {
+        this.knf = null;
+      }
+    }
+
+    public void setFieldValue(_Fields field, Object value) {
+      switch (field) {
+      case SUCCESS:
+        if (value == null) {
+          unset_success();
+        } else {
+          set_success((ReadableBlobMeta)value);
+        }
+        break;
+
+      case AZE:
+        if (value == null) {
+          unset_aze();
+        } else {
+          set_aze((AuthorizationException)value);
+        }
+        break;
+
+      case KNF:
+        if (value == null) {
+          unset_knf();
+        } else {
+          set_knf((KeyNotFoundException)value);
+        }
+        break;
+
+      }
+    }
+
+    public Object getFieldValue(_Fields field) {
+      switch (field) {
+      case SUCCESS:
+        return get_success();
+
+      case AZE:
+        return get_aze();
+
+      case KNF:
+        return get_knf();
+
+      }
+      throw new IllegalStateException();
+    }
+
+    /** Returns true if field corresponding to fieldID is set (has been assigned a value) and false otherwise */
+    public boolean isSet(_Fields field) {
+      if (field == null) {
+        throw new IllegalArgumentException();
+      }
+
+      switch (field) {
+      case SUCCESS:
+        return is_set_success();
+      case AZE:
+        return is_set_aze();
+      case KNF:
+        return is_set_knf();
+      }
+      throw new IllegalStateException();
+    }
+
+    @Override
+    public boolean equals(Object that) {
+      if (that == null)
+        return false;
+      if (that instanceof getBlobMeta_result)
+        return this.equals((getBlobMeta_result)that);
+      return false;
+    }
+
+    public boolean equals(getBlobMeta_result that) {
+      if (that == null)
+        return false;
+
+      boolean this_present_success = true && this.is_set_success();
+      boolean that_present_success = true && that.is_set_success();
+      if (this_present_success || that_present_success) {
+        if (!(this_present_success && that_present_success))
+          return false;
+        if (!this.success.equals(that.success))
+          return false;
+      }
+
+      boolean this_present_aze = true && this.is_set_aze();
+      boolean that_present_aze = true && that.is_set_aze();
+      if (this_present_aze || that_present_aze) {
+        if (!(this_present_aze && that_present_aze))
+          return false;
+        if (!this.aze.equals(that.aze))
+          return false;
+      }
+
+      boolean this_present_knf = true && this.is_set_knf();
+      boolean that_present_knf = true && that.is_set_knf();
+      if (this_present_knf || that_present_knf) {
+        if (!(this_present_knf && that_present_knf))
+          return false;
+        if (!this.knf.equals(that.knf))
+          return false;
+      }
+
+      return true;
+    }
+
+    @Override
+    public int hashCode() {
+      HashCodeBuilder builder = new HashCodeBuilder();
+
+      boolean present_success = true && (is_set_success());
+      builder.append(present_success);
+      if (present_success)
+        builder.append(success);
+
+      boolean present_aze = true && (is_set_aze());
+      builder.append(present_aze);
+      if (present_aze)
+        builder.append(aze);
+
+      boolean present_knf = true && (is_set_knf());
+      builder.append(present_knf);
+      if (present_knf)
+        builder.append(knf);
+
+      return builder.toHashCode();
+    }
+
+    public int compareTo(getBlobMeta_result other) {
+      if (!getClass().equals(other.getClass())) {
+        return getClass().getName().compareTo(other.getClass().getName());
+      }
+
+      int lastComparison = 0;
+      getBlobMeta_result typedOther = (getBlobMeta_result)other;
+
+      lastComparison = Boolean.valueOf(is_set_success()).compareTo(typedOther.is_set_success());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (is_set_success()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.success, typedOther.success);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      lastComparison = Boolean.valueOf(is_set_aze()).compareTo(typedOther.is_set_aze());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (is_set_aze()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.aze, typedOther.aze);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      lastComparison = Boolean.valueOf(is_set_knf()).compareTo(typedOther.is_set_knf());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (is_set_knf()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.knf, typedOther.knf);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      return 0;
+    }
+
+    public _Fields fieldForId(int fieldId) {
+      return _Fields.findByThriftId(fieldId);
+    }
+
+    public void read(org.apache.thrift.protocol.TProtocol iprot) throws org.apache.thrift.TException {
+      org.apache.thrift.protocol.TField field;
+      iprot.readStructBegin();
+      while (true)
+      {
+        field = iprot.readFieldBegin();
+        if (field.type == org.apache.thrift.protocol.TType.STOP) { 
+          break;
+        }
+        switch (field.id) {
+          case 0: // SUCCESS
+            if (field.type == org.apache.thrift.protocol.TType.STRUCT) {
+              this.success = new ReadableBlobMeta();
+              this.success.read(iprot);
+            } else { 
+              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
+            }
+            break;
+          case 1: // AZE
+            if (field.type == org.apache.thrift.protocol.TType.STRUCT) {
+              this.aze = new AuthorizationException();
+              this.aze.read(iprot);
+            } else { 
+              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
+            }
+            break;
+          case 2: // KNF
+            if (field.type == org.apache.thrift.protocol.TType.STRUCT) {
+              this.knf = new KeyNotFoundException();
+              this.knf.read(iprot);
+            } else { 
+              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
+            }
+            break;
+          default:
+            org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
+        }
+        iprot.readFieldEnd();
+      }
+      iprot.readStructEnd();
+      validate();
+    }
+
+    public void write(org.apache.thrift.protocol.TProtocol oprot) throws org.apache.thrift.TException {
+      oprot.writeStructBegin(STRUCT_DESC);
+
+      if (this.is_set_success()) {
+        oprot.writeFieldBegin(SUCCESS_FIELD_DESC);
+        this.success.write(oprot);
+        oprot.writeFieldEnd();
+      } else if (this.is_set_aze()) {
+        oprot.writeFieldBegin(AZE_FIELD_DESC);
+        this.aze.write(oprot);
+        oprot.writeFieldEnd();
+      } else if (this.is_set_knf()) {
+        oprot.writeFieldBegin(KNF_FIELD_DESC);
+        this.knf.write(oprot);
+        oprot.writeFieldEnd();
+      }
+      oprot.writeFieldStop();
+      oprot.writeStructEnd();
+    }
+
+    @Override
+    public String toString() {
+      StringBuilder sb = new StringBuilder("getBlobMeta_result(");
+      boolean first = true;
+
+      sb.append("success:");
+      if (this.success == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.success);
+      }
+      first = false;
+      if (!first) sb.append(", ");
+      sb.append("aze:");
+      if (this.aze == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.aze);
+      }
+      first = false;
+      if (!first) sb.append(", ");
+      sb.append("knf:");
+      if (this.knf == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.knf);
+      }
+      first = false;
+      sb.append(")");
+      return sb.toString();
+    }
+
+    public void validate() throws org.apache.thrift.TException {
+      // check for required fields
+    }
+
+    private void writeObject(java.io.ObjectOutputStream out) throws java.io.IOException {
+      try {
+        write(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(out)));
+      } catch (org.apache.thrift.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+    private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, ClassNotFoundException {
+      try {
+        read(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(in)));
+      } catch (org.apache.thrift.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+  }
+
+  public static class setBlobMeta_args implements org.apache.thrift.TBase<setBlobMeta_args, setBlobMeta_args._Fields>, java.io.Serializable, Cloneable   {
+    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("setBlobMeta_args");
+
+    private static final org.apache.thrift.protocol.TField KEY_FIELD_DESC = new org.apache.thrift.protocol.TField("key", org.apache.thrift.protocol.TType.STRING, (short)1);
+    private static final org.apache.thrift.protocol.TField META_FIELD_DESC = new org.apache.thrift.protocol.TField("meta", org.apache.thrift.protocol.TType.STRUCT, (short)2);
+
+    private String key; // required
+    private SettableBlobMeta meta; // required
+
+    /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+      KEY((short)1, "key"),
+      META((short)2, "meta");
+
+      private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
+
+      static {
+        for (_Fields field : EnumSet.allOf(_Fields.class)) {
+          byName.put(field.getFieldName(), field);
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, or null if its not found.
+       */
+      public static _Fields findByThriftId(int fieldId) {
+        switch(fieldId) {
+          case 1: // KEY
+            return KEY;
+          case 2: // META
+            return META;
+          default:
+            return null;
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, throwing an exception
+       * if it is not found.
+       */
+      public static _Fields findByThriftIdOrThrow(int fieldId) {
+        _Fields fields = findByThriftId(fieldId);
+        if (fields == null) throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
+        return fields;
+      }
+
+      /**
+       * Find the _Fields constant that matches name, or null if its not found.
+       */
+      public static _Fields findByName(String name) {
+        return byName.get(name);
+      }
+
+      private final short _thriftId;
+      private final String _fieldName;
+
+      _Fields(short thriftId, String fieldName) {
+        _thriftId = thriftId;
+        _fieldName = fieldName;
+      }
+
+      public short getThriftFieldId() {
+        return _thriftId;
+      }
+
+      public String getFieldName() {
+        return _fieldName;
+      }
+    }
+
+    // isset id assignments
+
+    public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
+    static {
+      Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
+      tmpMap.put(_Fields.KEY, new org.apache.thrift.meta_data.FieldMetaData("key", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
+      tmpMap.put(_Fields.META, new org.apache.thrift.meta_data.FieldMetaData("meta", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, SettableBlobMeta.class)));
+      metaDataMap = Collections.unmodifiableMap(tmpMap);
+      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(setBlobMeta_args.class, metaDataMap);
+    }
+
+    public setBlobMeta_args() {
+    }
+
+    public setBlobMeta_args(
+      String key,
+      SettableBlobMeta meta)
+    {
+      this();
+      this.key = key;
+      this.meta = meta;
+    }
+
+    /**
+     * Performs a deep copy on <i>other</i>.
+     */
+    public setBlobMeta_args(setBlobMeta_args other) {
+      if (other.is_set_key()) {
+        this.key = other.key;
+      }
+      if (other.is_set_meta()) {
+        this.meta = new SettableBlobMeta(other.meta);
+      }
+    }
+
+    public setBlobMeta_args deepCopy() {
+      return new setBlobMeta_args(this);
+    }
+
+    @Override
+    public void clear() {
+      this.key = null;
+      this.meta = null;
+    }
+
+    public String get_key() {
+      return this.key;
+    }
+
+    public void set_key(String key) {
+      this.key = key;
+    }
+
+    public void unset_key() {
+      this.key = null;
+    }
+
+    /** Returns true if field key is set (has been assigned a value) and false otherwise */
+    public boolean is_set_key() {
+      return this.key != null;
+    }
+
+    public void set_key_isSet(boolean value) {
+      if (!value) {
+        this.key = null;
+      }
+    }
+
+    public SettableBlobMeta get_meta() {
+      return this.meta;
+    }
+
+    public void set_meta(SettableBlobMeta meta) {
+      this.meta = meta;
+    }
+
+    public void unset_meta() {
+      this.meta = null;
+    }
+
+    /** Returns true if field meta is set (has been assigned a value) and false otherwise */
+    public boolean is_set_meta() {
+      return this.meta != null;
+    }
+
+    public void set_meta_isSet(boolean value) {
+      if (!value) {
+        this.meta = null;
+      }
+    }
+
+    public void setFieldValue(_Fields field, Object value) {
+      switch (field) {
+      case KEY:
+        if (value == null) {
+          unset_key();
+        } else {
+          set_key((String)value);
+        }
+        break;
+
+      case META:
+        if (value == null) {
+          unset_meta();
+        } else {
+          set_meta((SettableBlobMeta)value);
+        }
+        break;
+
+      }
+    }
+
+    public Object getFieldValue(_Fields field) {
+      switch (field) {
+      case KEY:
+        return get_key();
+
+      case META:
+        return get_meta();
+
+      }
+      throw new IllegalStateException();
+    }
+
+    /** Returns true if field corresponding to fieldID is set (has been assigned a value) and false otherwise */
+    public boolean isSet(_Fields field) {
+      if (field == null) {
+        throw new IllegalArgumentException();
+      }
+
+      switch (field) {
+      case KEY:
+        return is_set_key();
+      case META:
+        return is_set_meta();
+      }
+      throw new IllegalStateException();
+    }
+
+    @Override
+    public boolean equals(Object that) {
+      if (that == null)
+        return false;
+      if (that instanceof setBlobMeta_args)
+        return this.equals((setBlobMeta_args)that);
+      return false;
+    }
+
+    public boolean equals(setBlobMeta_args that) {
+      if (that == null)
+        return false;
+
+      boolean this_present_key = true && this.is_set_key();
+      boolean that_present_key = true && that.is_set_key();
+      if (this_present_key || that_present_key) {
+        if (!(this_present_key && that_present_key))
+          return false;
+        if (!this.key.equals(that.key))
+          return false;
+      }
+
+      boolean this_present_meta = true && this.is_set_meta();
+      boolean that_present_meta = true && that.is_set_meta();
+      if (this_present_meta || that_present_meta) {
+        if (!(this_present_meta && that_present_meta))
+          return false;
+        if (!this.meta.equals(that.meta))
+          return false;
+      }
+
+      return true;
+    }
+
+    @Override
+    public int hashCode() {
+      HashCodeBuilder builder = new HashCodeBuilder();
+
+      boolean present_key = true && (is_set_key());
+      builder.append(present_key);
+      if (present_key)
+        builder.append(key);
+
+      boolean present_meta = true && (is_set_meta());
+      builder.append(present_meta);
+      if (present_meta)
+        builder.append(meta);
+
+      return builder.toHashCode();
+    }
+
+    public int compareTo(setBlobMeta_args other) {
+      if (!getClass().equals(other.getClass())) {
+        return getClass().getName().compareTo(other.getClass().getName());
+      }
+
+      int lastComparison = 0;
+      setBlobMeta_args typedOther = (setBlobMeta_args)other;
+
+      lastComparison = Boolean.valueOf(is_set_key()).compareTo(typedOther.is_set_key());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (is_set_key()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.key, typedOther.key);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      lastComparison = Boolean.valueOf(is_set_meta()).compareTo(typedOther.is_set_meta());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (is_set_meta()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.meta, typedOther.meta);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      return 0;
+    }
+
+    public _Fields fieldForId(int fieldId) {
+      return _Fields.findByThriftId(fieldId);
+    }
+
+    public void read(org.apache.thrift.protocol.TProtocol iprot) throws org.apache.thrift.TException {
+      org.apache.thrift.protocol.TField field;
+      iprot.readStructBegin();
+      while (true)
+      {
+        field = iprot.readFieldBegin();
+        if (field.type == org.apache.thrift.protocol.TType.STOP) { 
+          break;
+        }
+        switch (field.id) {
+          case 1: // KEY
+            if (field.type == org.apache.thrift.protocol.TType.STRING) {
+              this.key = iprot.readString();
+            } else { 
+              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
+            }
+            break;
+          case 2: // META
+            if (field.type == org.apache.thrift.protocol.TType.STRUCT) {
+              this.meta = new SettableBlobMeta();
+              this.meta.read(iprot);
+            } else { 
+              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
+            }
+            break;
+          default:
+            org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
+        }
+        iprot.readFieldEnd();
+      }
+      iprot.readStructEnd();
+      validate();
+    }
+
+    public void write(org.apache.thrift.protocol.TProtocol oprot) throws org.apache.thrift.TException {
+      validate();
+
+      oprot.writeStructBegin(STRUCT_DESC);
+      if (this.key != null) {
+        oprot.writeFieldBegin(KEY_FIELD_DESC);
+        oprot.writeString(this.key);
+        oprot.writeFieldEnd();
+      }
+      if (this.meta != null) {
+        oprot.writeFieldBegin(META_FIELD_DESC);
+        this.meta.write(oprot);
+        oprot.writeFieldEnd();
+      }
+      oprot.writeFieldStop();
+      oprot.writeStructEnd();
+    }
+
+    @Override
+    public String toString() {
+      StringBuilder sb = new StringBuilder("setBlobMeta_args(");
+      boolean first = true;
+
+      sb.append("key:");
+      if (this.key == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.key);
+      }
+      first = false;
+      if (!first) sb.append(", ");
+      sb.append("meta:");
+      if (this.meta == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.meta);
+      }
+      first = false;
+      sb.append(")");
+      return sb.toString();
+    }
+
+    public void validate() throws org.apache.thrift.TException {
+      // check for required fields
+    }
+
+    private void writeObject(java.io.ObjectOutputStream out) throws java.io.IOException {
+      try {
+        write(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(out)));
+      } catch (org.apache.thrift.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+    private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, ClassNotFoundException {
+      try {
+        read(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(in)));
+      } catch (org.apache.thrift.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+  }
+
+  public static class setBlobMeta_result implements org.apache.thrift.TBase<setBlobMeta_result, setBlobMeta_result._Fields>, java.io.Serializable, Cloneable   {
+    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("setBlobMeta_result");
+
+    private static final org.apache.thrift.protocol.TField AZE_FIELD_DESC = new org.apache.thrift.protocol.TField("aze", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+    private static final org.apache.thrift.protocol.TField KNF_FIELD_DESC = new org.apache.thrift.protocol.TField("knf", org.apache.thrift.protocol.TType.STRUCT, (short)2);
+
+    private AuthorizationException aze; // required
+    private KeyNotFoundException knf; // required
+
+    /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+      AZE((short)1, "aze"),
+      KNF((short)2, "knf");
+
+      private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
+
+      static {
+        for (_Fields field : EnumSet.allOf(_Fields.class)) {
+          byName.put(field.getFieldName(), field);
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, or null if its not found.
+       */
+      public static _Fields findByThriftId(int fieldId) {
+        switch(fieldId) {
+          case 1: // AZE
+            return AZE;
+          case 2: // KNF
+            return KNF;
+          default:
+            return null;
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, throwing an exception
+       * if it is not found.
+       */
+      public static _Fields findByThriftIdOrThrow(int fieldId) {
+        _Fields fields = findByThriftId(fieldId);
+        if (fields == null) throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
+        return fields;
+      }
+
+      /**
+       * Find the _Fields constant that matches name, or null if its not found.
+       */
+      public static _Fields findByName(String name) {
+        return byName.get(name);
+      }
+
+      private final short _thriftId;
+      private final String _fieldName;
+
+      _Fields(short thriftId, String fieldName) {
+        _thriftId = thriftId;
+        _fieldName = fieldName;
+      }
+
+      public short getThriftFieldId() {
+        return _thriftId;
+      }
+
+      public String getFieldName() {
+        return _fieldName;
+      }
+    }
+
+    // isset id assignments
+
+    public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
+    static {
+      Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
+      tmpMap.put(_Fields.AZE, new org.apache.thrift.meta_data.FieldMetaData("aze", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRUCT)));
+      tmpMap.put(_Fields.KNF, new org.apache.thrift.meta_data.FieldMetaData("knf", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRUCT)));
+      metaDataMap = Collections.unmodifiableMap(tmpMap);
+      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(setBlobMeta_result.class, metaDataMap);
+    }
+
+    public setBlobMeta_result() {
+    }
+
+    public setBlobMeta_result(
+      AuthorizationException aze,
+      KeyNotFoundException knf)
+    {
+      this();
+      this.aze = aze;
+      this.knf = knf;
+    }
+
+    /**
+     * Performs a deep copy on <i>other</i>.
+     */
+    public setBlobMeta_result(setBlobMeta_result other) {
+      if (other.is_set_aze()) {
+        this.aze = new AuthorizationException(other.aze);
+      }
+      if (other.is_set_knf()) {
+        this.knf = new KeyNotFoundException(other.knf);
+      }
+    }
+
+    public setBlobMeta_result deepCopy() {
+      return new setBlobMeta_result(this);
+    }
+
+    @Override
+    public void clear() {
+      this.aze = null;
+      this.knf = null;
+    }
+
+    public AuthorizationException get_aze() {
+      return this.aze;
+    }
+
+    public void set_aze(AuthorizationException aze) {
+      this.aze = aze;
+    }
+
+    public void unset_aze() {
+      this.aze = null;
+    }
+
+    /** Returns true if field aze is set (has been assigned a value) and false otherwise */
+    public boolean is_set_aze() {
+      return this.aze != null;
+    }
+
+    public void set_aze_isSet(boolean value) {
+      if (!value) {
+        this.aze = null;
+      }
+    }
+
+    public KeyNotFoundException get_knf() {
+      return this.knf;
+    }
+
+    public void set_knf(KeyNotFoundException knf) {
+      this.knf = knf;
+    }
+
+    public void unset_knf() {
+      this.knf = null;
+    }
+
+    /** Returns true if field knf is set (has been assigned a value) and false otherwise */
+    public boolean is_set_knf() {
+      return this.knf != null;
+    }
+
+    public void set_knf_isSet(boolean value) {
+      if (!value) {
+        this.knf = null;
+      }
+    }
+
+    public void setFieldValue(_Fields field, Object value) {
+      switch (field) {
+      case AZE:
+        if (value == null) {
+          unset_aze();
+        } else {
+          set_aze((AuthorizationException)value);
+        }
+        break;
+
+      case KNF:
+        if (value == null) {
+          unset_knf();
+        } else {
+          set_knf((KeyNotFoundException)value);
+        }
+        break;
+
+      }
+    }
+
+    public Object getFieldValue(_Fields field) {
+      switch (field) {
+      case AZE:
+        return get_aze();
+
+      case KNF:
+        return get_knf();
+
+      }
+      throw new IllegalStateException();
+    }
+
+    /** Returns true if field corresponding to fieldID is set (has been assigned a value) and false otherwise */
+    public boolean isSet(_Fields field) {
+      if (field == null) {
+        throw new IllegalArgumentException();
+      }
+
+      switch (field) {
+      case AZE:
+        return is_set_aze();
+      case KNF:
+        return is_set_knf();
+      }
+      throw new IllegalStateException();
+    }
+
+    @Override
+    public boolean equals(Object that) {
+      if (that == null)
+        return false;
+      if (that instanceof setBlobMeta_result)
+        return this.equals((setBlobMeta_result)that);
+      return false;
+    }
+
+    public boolean equals(setBlobMeta_result that) {
+      if (that == null)
+        return false;
+
+      boolean this_present_aze = true && this.is_set_aze();
+      boolean that_present_aze = true && that.is_set_aze();
+      if (this_present_aze || that_present_aze) {
+        if (!(this_present_aze && that_present_aze))
+          return false;
+        if (!this.aze.equals(that.aze))
+          return false;
+      }
+
+      boolean this_present_knf = true && this.is_set_knf();
+      boolean that_present_knf = true && that.is_set_knf();
+      if (this_present_knf || that_present_knf) {
+        if (!(this_present_knf && that_present_knf))
+          return false;
+        if (!this.knf.equals(that.knf))
+          return false;
+      }
+
+      return true;
+    }
+
+    @Override
+    public int hashCode() {
+      HashCodeBuilder builder = new HashCodeBuilder();
+
+      boolean present_aze = true && (is_set_aze());
+      builder.append(present_aze);
+      if (present_aze)
+        builder.append(aze);
+
+      boolean present_knf = true && (is_set_knf());
+      builder.append(present_knf);
+      if (present_knf)
+        builder.append(knf);
+
+      return builder.toHashCode();
+    }
+
+    public int compareTo(setBlobMeta_result other) {
+      if (!getClass().equals(other.getClass())) {
+        return getClass().getName().compareTo(other.getClass().getName());
+      }
+
+      int lastComparison = 0;
+      setBlobMeta_result typedOther = (setBlobMeta_result)other;
+
+      lastComparison = Boolean.valueOf(is_set_aze()).compareTo(typedOther.is_set_aze());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (is_set_aze()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.aze, typedOther.aze);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      lastComparison = Boolean.valueOf(is_set_knf()).compareTo(typedOther.is_set_knf());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (is_set_knf()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.knf, typedOther.knf);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      return 0;
+    }
+
+    public _Fields fieldForId(int fieldId) {
+      return _Fields.findByThriftId(fieldId);
+    }
+
+    public void read(org.apache.thrift.protocol.TProtocol iprot) throws org.apache.thrift.TException {
+      org.apache.thrift.protocol.TField field;
+      iprot.readStructBegin();
+      while (true)
+      {
+        field = iprot.readFieldBegin();
+        if (field.type == org.apache.thrift.protocol.TType.STOP) { 
+          break;
+        }
+        switch (field.id) {
+          case 1: // AZE
+            if (field.type == org.apache.thrift.protocol.TType.STRUCT) {
+              this.aze = new AuthorizationException();
+              this.aze.read(iprot);
+            } else { 
+              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
+            }
+            break;
+          case 2: // KNF
+            if (field.type == org.apache.thrift.protocol.TType.STRUCT) {
+              this.knf = new KeyNotFoundException();
+              this.knf.read(iprot);
+            } else { 
+              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
+            }
+            break;
+          default:
+            org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
+        }
+        iprot.readFieldEnd();
+      }
+      iprot.readStructEnd();
+      validate();
+    }
+
+    public void write(org.apache.thrift.protocol.TProtocol oprot) throws org.apache.thrift.TException {
+      oprot.writeStructBegin(STRUCT_DESC);
+
+      if (this.is_set_aze()) {
+        oprot.writeFieldBegin(AZE_FIELD_DESC);
+        this.aze.write(oprot);
+        oprot.writeFieldEnd();
+      } else if (this.is_set_knf()) {
+        oprot.writeFieldBegin(KNF_FIELD_DESC);
+        this.knf.write(oprot);
+        oprot.writeFieldEnd();
+      }
+      oprot.writeFieldStop();
+      oprot.writeStructEnd();
+    }
+
+    @Override
+    public String toString() {
+      StringBuilder sb = new StringBuilder("setBlobMeta_result(");
+      boolean first = true;
+
+      sb.append("aze:");
+      if (this.aze == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.aze);
+      }
+      first = false;
+      if (!first) sb.append(", ");
+      sb.append("knf:");
+      if (this.knf == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.knf);
+      }
+      first = false;
+      sb.append(")");
+      return sb.toString();
+    }
+
+    public void validate() throws org.apache.thrift.TException {
+      // check for required fields
+    }
+
+    private void writeObject(java.io.ObjectOutputStream out) throws java.io.IOException {
+      try {
+        write(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(out)));
+      } catch (org.apache.thrift.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+    private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, ClassNotFoundException {
+      try {
+        read(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(in)));
+      } catch (org.apache.thrift.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+  }
+
+  public static class beginBlobDownload_args implements org.apache.thrift.TBase<beginBlobDownload_args, beginBlobDownload_args._Fields>, java.io.Serializable, Cloneable   {
+    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("beginBlobDownload_args");
+
+    private static final org.apache.thrift.protocol.TField KEY_FIELD_DESC = new org.apache.thrift.protocol.TField("key", org.apache.thrift.protocol.TType.STRING, (short)1);
+
+    private String key; // required
+
+    /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+      KEY((short)1, "key");
+
+      private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
+
+      static {
+        for (_Fields field : EnumSet.allOf(_Fields.class)) {
+          byName.put(field.getFieldName(), field);
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, or null if its not found.
+       */
+      public static _Fields findByThriftId(int fieldId) {
+        switch(fieldId) {
+          case 1: // KEY
+            return KEY;
+          default:
+            return null;
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, throwing an exception
+       * if it is not found.
+       */
+      public static _Fields findByThriftIdOrThrow(int fieldId) {
+        _Fields fields = findByThriftId(fieldId);
+        if (fields == null) throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
+        return fields;
+      }
+
+      /**
+       * Find the _Fields constant that matches name, or null if its not found.
+       */
+      public static _Fields findByName(String name) {
+        return byName.get(name);
+      }
+
+      private final short _thriftId;
+      private final String _fieldName;
+
+      _Fields(short thriftId, String fieldName) {
+        _thriftId = thriftId;
+        _fieldName = fieldName;
+      }
+
+      public short getThriftFieldId() {
+        return _thriftId;
+      }
+
+      public String getFieldName() {
+        return _fieldName;
+      }
+    }
+
+    // isset id assignments
+
+    public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
+    static {
+      Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
+      tmpMap.put(_Fields.KEY, new org.apache.thrift.meta_data.FieldMetaData("key", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
+      metaDataMap = Collections.unmodifiableMap(tmpMap);
+      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(beginBlobDownload_args.class, metaDataMap);
+    }
+
+    public beginBlobDownload_args() {
+    }
+
+    public beginBlobDownload_args(
+      String key)
+    {
+      this();
+      this.key = key;
+    }
+
+    /**
+     * Performs a deep copy on <i>other</i>.
+     */
+    public beginBlobDownload_args(beginBlobDownload_args other) {
+      if (other.is_set_key()) {
+        this.key = other.key;
+      }
+    }
+
+    public beginBlobDownload_args deepCopy() {
+      return new beginBlobDownload_args(this);
+    }
+
+    @Override
+    public void clear() {
+      this.key = null;
+    }
+
+    public String get_key() {
+      return this.key;
+    }
+
+    public void set_key(String key) {
+      this.key = key;
+    }
+
+    public void unset_key() {
+      this.key = null;
+    }
+
+    /** Returns true if field key is set (has been assigned a value) and false otherwise */
+    public boolean is_set_key() {
+      return this.key != null;
+    }
+
+    public void set_key_isSet(boolean value) {
+      if (!value) {
+        this.key = null;
+      }
+    }
+
+    public void setFieldValue(_Fields field, Object value) {
+      switch (field) {
+      case KEY:
+        if (value == null) {
+          unset_key();
+        } else {
+          set_key((String)value);
+        }
+        break;
+
+      }
+    }
+
+    public Object getFieldValue(_Fields field) {
+      switch (field) {
+      case KEY:
+        return get_key();
+
+      }
+      throw new IllegalStateException();
+    }
+
+    /** Returns true if field corresponding to fieldID is set (has been assigned a value) and false otherwise */
+    public boolean isSet(_Fields field) {
+      if (field == null) {
+        throw new IllegalArgumentException();
+      }
+
+      switch (field) {
+      case KEY:
+        return is_set_key();
+      }
+      throw new IllegalStateException();
+    }
+
+    @Override
+    public boolean equals(Object that) {
+      if (that == null)
+        return false;
+      if (that instanceof beginBlobDownload_args)
+        return this.equals((beginBlobDownload_args)that);
+      return false;
+    }
+
+    public boolean equals(beginBlobDownload_args that) {
+      if (that == null)
+        return false;
+
+      boolean this_present_key = true && this.is_set_key();
+      boolean that_present_key = true && that.is_set_key();
+      if (this_present_key || that_present_key) {
+        if (!(this_present_key && that_present_key))
+          return false;
+        if (!this.key.equals(that.key))
+          return false;
+      }
+
+      return true;
+    }
+
+    @Override
+    public int hashCode() {
+      HashCodeBuilder builder = new HashCodeBuilder();
+
+      boolean present_key = true && (is_set_key());
+      builder.append(present_key);
+      if (present_key)
+        builder.append(key);
+
+      return builder.toHashCode();
+    }
+
+    public int compareTo(beginBlobDownload_args other) {
+      if (!getClass().equals(other.getClass())) {
+        return getClass().getName().compareTo(other.getClass().getName());
+      }
+
+      int lastComparison = 0;
+      beginBlobDownload_args typedOther = (beginBlobDownload_args)other;
+
+      lastComparison = Boolean.valueOf(is_set_key()).compareTo(typedOther.is_set_key());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (is_set_key()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.key, typedOther.key);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      return 0;
+    }
+
+    public _Fields fieldForId(int fieldId) {
+      return _Fields.findByThriftId(fieldId);
+    }
+
+    public void read(org.apache.thrift.protocol.TProtocol iprot) throws org.apache.thrift.TException {
+      org.apache.thrift.protocol.TField field;
+      iprot.readStructBegin();
+      while (true)
+      {
+        field = iprot.readFieldBegin();
+        if (field.type == org.apache.thrift.protocol.TType.STOP) { 
+          break;
+        }
+        switch (field.id) {
+          case 1: // KEY
+            if (field.type == org.apache.thrift.protocol.TType.STRING) {
+              this.key = iprot.readString();
+            } else { 
+              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
+            }
+            break;
+          default:
+            org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
+        }
+        iprot.readFieldEnd();
+      }
+      iprot.readStructEnd();
+      validate();
+    }
+
+    public void write(org.apache.thrift.protocol.TProtocol oprot) throws org.apache.thrift.TException {
+      validate();
+
+      oprot.writeStructBegin(STRUCT_DESC);
+      if (this.key != null) {
+        oprot.writeFieldBegin(KEY_FIELD_DESC);
+        oprot.writeString(this.key);
+        oprot.writeFieldEnd();
+      }
+      oprot.writeFieldStop();
+      oprot.writeStructEnd();
+    }
+
+    @Override
+    public String toString() {
+      StringBuilder sb = new StringBuilder("beginBlobDownload_args(");
+      boolean first = true;
+
+      sb.append("key:");
+      if (this.key == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.key);
+      }
+      first = false;
+      sb.append(")");
+      return sb.toString();
+    }
+
+    public void validate() throws org.apache.thrift.TException {
+      // check for required fields
+    }
+
+    private void writeObject(java.io.ObjectOutputStream out) throws java.io.IOException {
+      try {
+        write(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(out)));
+      } catch (org.apache.thrift.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+    private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, ClassNotFoundException {
+      try {
+        read(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(in)));
+      } catch (org.apache.thrift.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+  }
+
+  public static class beginBlobDownload_result implements org.apache.thrift.TBase<beginBlobDownload_result, beginBlobDownload_result._Fields>, java.io.Serializable, Cloneable   {
+    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("beginBlobDownload_result");
+
+    private static final org.apache.thrift.protocol.TField SUCCESS_FIELD_DESC = new org.apache.thrift.protocol.TField("success", org.apache.thrift.protocol.TType.STRUCT, (short)0);
+    private static final org.apache.thrift.protocol.TField AZE_FIELD_DESC = new org.apache.thrift.protocol.TField("aze", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+    private static final org.apache.thrift.protocol.TField KNF_FIELD_DESC = new org.apache.thrift.protocol.TField("knf", org.apache.thrift.protocol.TType.STRUCT, (short)2);
+
+    private BeginDownloadResult success; // required
+    private AuthorizationException aze; // required
+    private KeyNotFoundException knf; // required
+
+    /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+      SUCCESS((short)0, "success"),
+      AZE((short)1, "aze"),
+      KNF((short)2, "knf");
+
+      private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
+
+      static {
+        for (_Fields field : EnumSet.allOf(_Fields.class)) {
+          byName.put(field.getFieldName(), field);
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, or null if its not found.
+       */
+      public static _Fields findByThriftId(int fieldId) {
+        switch(fieldId) {
+          case 0: // SUCCESS
+            return SUCCESS;
+          case 1: // AZE
+            return AZE;
+          case 2: // KNF
+            return KNF;
+          default:
+            return null;
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, throwing an exception
+       * if it is not found.
+       */
+      public static _Fields findByThriftIdOrThrow(int fieldId) {
+        _Fields fields = findByThriftId(fieldId);
+        if (fields == null) throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
+        return fields;
+      }
+
+      /**
+       * Find the _Fields constant that matches name, or null if its not found.
+       */
+      public static _Fields findByName(String name) {
+        return byName.get(name);
+      }
+
+      private final short _thriftId;
+      private final String _fieldName;
+
+      _Fields(short thriftId, String fieldName) {
+        _thriftId = thriftId;
+        _fieldName = fieldName;
+      }
+
+      public short getThriftFieldId() {
+        return _thriftId;
+      }
+
+      public String getFieldName() {
+        return _fieldName;
+      }
+    }
+
+    // isset id assignments
+
+    public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
+    static {
+      Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
+      tmpMap.put(_Fields.SUCCESS, new org.apache.thrift.meta_data.FieldMetaData("success", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, BeginDownloadResult.class)));
+      tmpMap.put(_Fields.AZE, new org.apache.thrift.meta_data.FieldMetaData("aze", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRUCT)));
+      tmpMap.put(_Fields.KNF, new org.apache.thrift.meta_data.FieldMetaData("knf", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRUCT)));
+      metaDataMap = Collections.unmodifiableMap(tmpMap);
+      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(beginBlobDownload_result.class, metaDataMap);
+    }
+
+    public beginBlobDownload_result() {
+    }
+
+    public beginBlobDownload_result(
+      BeginDownloadResult success,
+      AuthorizationException aze,
+      KeyNotFoundException knf)
+    {
+      this();
+      this.success = success;
+      this.aze = aze;
+      this.knf = knf;
+    }
+
+    /**
+     * Performs a deep copy on <i>other</i>.
+     */
+    public beginBlobDownload_result(beginBlobDownload_result other) {
+      if (other.is_set_success()) {
+        this.success = new BeginDownloadResult(other.success);
+      }
+      if (other.is_set_aze()) {
+        this.aze = new AuthorizationException(other.aze);
+      }
+      if (other.is_set_knf()) {
+        this.knf = new KeyNotFoundException(other.knf);
+      }
+    }
+
+    public beginBlobDownload_result deepCopy() {
+      return new beginBlobDownload_result(this);
+    }
+
+    @Override
+    public void clear() {
+      this.success = null;
+      this.aze = null;
+      this.knf = null;
+    }
+
+    public BeginDownloadResult get_success() {
+      return this.success;
+    }
+
+    public void set_success(BeginDownloadResult success) {
+      this.success = success;
+    }
+
+    public void unset_success() {
+      this.success = null;
+    }
+
+    /** Returns true if field success is set (has been assigned a value) and false otherwise */
+    public boolean is_set_success() {
+      return this.success != null;
+    }
+
+    public void set_success_isSet(boolean value) {
+      if (!value) {
+        this.success = null;
+      }
+    }
+
+    public AuthorizationException get_aze() {
+      return this.aze;
+    }
+
+    public void set_aze(AuthorizationException aze) {
+      this.aze = aze;
+    }
+
+    public void unset_aze() {
+      this.aze = null;
+    }
+
+    /** Returns true if field aze is set (has been assigned a value) and false otherwise */
+    public boolean is_set_aze() {
+      return this.aze != null;
+    }
+
+    public void set_aze_isSet(boolean value) {
+      if (!value) {
+        this.aze = null;
+      }
+    }
+
+    public KeyNotFoundException get_knf() {
+      return this.knf;
+    }
+
+    public void set_knf(KeyNotFoundException knf) {
+      this.knf = knf;
+    }
+
+    public void unset_knf() {
+      this.knf = null;
+    }
+
+    /** Returns true if field knf is set (has been assigned a value) and false otherwise */
+    public boolean is_set_knf() {
+      return this.knf != null;
+    }
+
+    public void set_knf_isSet(boolean value) {
+      if (!value) {
+        this.knf = null;
+      }
+    }
+
+    public void setFieldValue(_Fields field, Object value) {
+      switch (field) {
+      case SUCCESS:
+        if (value == null) {
+          unset_success();
+        } else {
+          set_success((BeginDownloadResult)value);
+        }
+        break;
+
+      case AZE:
+        if (value == null) {
+          unset_aze();
+        } else {
+          set_aze((AuthorizationException)value);
+        }
+        break;
+
+      case KNF:
+        if (value == null) {
+          unset_knf();
+        } else {
+          set_knf((KeyNotFoundException)value);
+        }
+        break;
+
+      }
+    }
+
+    public Object getFieldValue(_Fields field) {
+      switch (field) {
+      case SUCCESS:
+        return get_success();
+
+      case AZE:
+        return get_aze();
+
+      case KNF:
+        return get_knf();
+
+      }
+      throw new IllegalStateException();
+    }
+
+    /** Returns true if field corresponding to fieldID is set (has been assigned a value) and false otherwise */
+    public boolean isSet(_Fields field) {
+      if (field == null) {
+        throw new IllegalArgumentException();
+      }
+
+      switch (field) {
+      case SUCCESS:
+        return is_set_success();
+      case AZE:
+        return is_set_aze();
+      case KNF:
+        return is_set_knf();
+      }
+      throw new IllegalStateException();
+    }
+
+    @Override
+    public boolean equals(Object that) {
+      if (that == null)
+        return false;
+      if (that instanceof beginBlobDownload_result)
+        return this.equals((beginBlobDownload_result)that);
+      return false;
+    }
+
+    public boolean equals(beginBlobDownload_result that) {
+      if (that == null)
+        return false;
+
+      boolean this_present_success = true && this.is_set_success();
+      boolean that_present_success = true && that.is_set_success();
+      if (this_present_success || that_present_success) {
+        if (!(this_present_success && that_present_success))
+          return false;
+        if (!this.success.equals(that.success))
+          return false;
+      }
+
+      boolean this_present_aze = true && this.is_set_aze();
+      boolean that_present_aze = true && that.is_set_aze();
+      if (this_present_aze || that_present_aze) {
+        if (!(this_present_aze && that_present_aze))
+          return false;
+        if (!this.aze.equals(that.aze))
+          return false;
+      }
+
+      boolean this_present_knf = true && this.is_set_knf();
+      boolean that_present_knf = true && that.is_set_knf();
+      if (this_present_knf || that_present_knf) {
+        if (!(this_present_knf && that_present_knf))
+          return false;
+        if (!this.knf.equals(that.knf))
+          return false;
+      }
+
+      return true;
+    }
+
+    @Override
+    public int hashCode() {
+      HashCodeBuilder builder = new HashCodeBuilder();
+
+      boolean present_success = true && (is_set_success());
+      builder.append(present_success);
+      if (present_success)
+        builder.append(success);
+
+      boolean present_aze = true && (is_set_aze());
+      builder.append(present_aze);
+      if (present_aze)
+        builder.append(aze);
+
+      boolean present_knf = true && (is_set_knf());
+      builder.append(present_knf);
+      if (present_knf)
+        builder.append(knf);
+
+      return builder.toHashCode();
+    }
+
+    public int compareTo(beginBlobDownload_result other) {
+      if (!getClass().equals(other.getClass())) {
+        return getClass().getName().compareTo(other.getClass().getName());
+      }
+
+      int lastComparison = 0;
+      beginBlobDownload_result typedOther = (beginBlobDownload_result)other;
+
+      lastComparison = Boolean.valueOf(is_set_success()).compareTo(typedOther.is_set_success());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (is_set_success()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.success, typedOther.success);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      lastComparison = Boolean.valueOf(is_set_aze()).compareTo(typedOther.is_set_aze());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (is_set_aze()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.aze, typedOther.aze);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      lastComparison = Boolean.valueOf(is_set_knf()).compareTo(typedOther.is_set_knf());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (is_set_knf()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.knf, typedOther.knf);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      return 0;
+    }
+
+    public _Fields fieldForId(int fieldId) {
+      return _Fields.findByThriftId(fieldId);
+    }
+
+    public void read(org.apache.thrift.protocol.TProtocol iprot) throws org.apache.thrift.TException {
+      org.apache.thrift.protocol.TField field;
+      iprot.readStructBegin();
+      while (true)
+      {
+        field = iprot.readFieldBegin();
+        if (field.type == org.apache.thrift.protocol.TType.STOP) { 
+          break;
+        }
+        switch (field.id) {
+          case 0: // SUCCESS
+            if (field.type == org.apache.thrift.protocol.TType.STRUCT) {
+              this.success = new BeginDownloadResult();
+              this.success.read(iprot);
+            } else { 
+              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
+            }
+            break;
+          case 1: // AZE
+            if (field.type == org.apache.thrift.protocol.TType.STRUCT) {
+              this.aze = new AuthorizationException();
+              this.aze.read(iprot);
+            } else { 
+              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
+            }
+            break;
+          case 2: // KNF
+            if (field.type == org.apache.thrift.protocol.TType.STRUCT) {
+              this.knf = new KeyNotFoundException();
+              this.knf.read(iprot);
+            } else { 
+              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
+            }
+            break;
+          default:
+            org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
+        }
+        iprot.readFieldEnd();
+      }
+      iprot.readStructEnd();
+      validate();
+    }
+
+    public void write(org.apache.thrift.protocol.TProtocol oprot) throws org.apache.thrift.TException {
+      oprot.writeStructBegin(STRUCT_DESC);
+
+      if (this.is_set_success()) {
+        oprot.writeFieldBegin(SUCCESS_FIELD_DESC);
+        this.success.write(oprot);
+        oprot.writeFieldEnd();
+      } else if (this.is_set_aze()) {
+        oprot.writeFieldBegin(AZE_FIELD_DESC);
+        this.aze.write(oprot);
+        oprot.writeFieldEnd();
+      } else if (this.is_set_knf()) {
+        oprot.writeFieldBegin(KNF_FIELD_DESC);
+        this.knf.write(oprot);
+        oprot.writeFieldEnd();
+      }
+      oprot.writeFieldStop();
+      oprot.writeStructEnd();
+    }
+
+    @Override
+    public String toString() {
+      StringBuilder sb = new StringBuilder("beginBlobDownload_result(");
+      boolean first = true;
+
+      sb.append("success:");
+      if (this.success == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.success);
+      }
+      first = false;
+      if (!first) sb.append(", ");
+      sb.append("aze:");
+      if (this.aze == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.aze);
+      }
+      first = false;
+      if (!first) sb.append(", ");
+      sb.append("knf:");
+      if (this.knf == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.knf);
+      }
+      first = false;
+      sb.append(")");
+      return sb.toString();
+    }
+
+    public void validate() throws org.apache.thrift.TException {
+      // check for required fields
+    }
+
+    private void writeObject(java.io.ObjectOutputStream out) throws java.io.IOException {
+      try {
+        write(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(out)));
+      } catch (org.apache.thrift.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+    private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, ClassNotFoundException {
+      try {
+        read(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(in)));
+      } catch (org.apache.thrift.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+  }
+
+  public static class downloadBlobChunk_args implements org.apache.thrift.TBase<downloadBlobChunk_args, downloadBlobChunk_args._Fields>, java.io.Serializable, Cloneable   {
+    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("downloadBlobChunk_args");
+
+    private static final org.apache.thrift.protocol.TField SESSION_FIELD_DESC = new org.apache.thrift.protocol.TField("session", org.apache.thrift.protocol.TType.STRING, (short)1);
+
+    private String session; // required
+
+    /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+      SESSION((short)1, "session");
+
+      private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
+
+      static {
+        for (_Fields field : EnumSet.allOf(_Fields.class)) {
+          byName.put(field.getFieldName(), field);
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, or null if its not found.
+       */
+      public static _Fields findByThriftId(int fieldId) {
+        switch(fieldId) {
+          case 1: // SESSION
+            return SESSION;
+          default:
+            return null;
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, throwing an exception
+       * if it is not found.
+       */
+      public static _Fields findByThriftIdOrThrow(int fieldId) {
+        _Fields fields = findByThriftId(fieldId);
+        if (fields == null) throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
+        return fields;
+      }
+
+      /**
+       * Find the _Fields constant that matches name, or null if its not found.
+       */
+      public static _Fields findByName(String name) {
+        return byName.get(name);
+      }
+
+      private final short _thriftId;
+      private final String _fieldName;
+
+      _Fields(short thriftId, String fieldName) {
+        _thriftId = thriftId;
+        _fieldName = fieldName;
+      }
+
+      public short getThriftFieldId() {
+        return _thriftId;
+      }
+
+      public String getFieldName() {
+        return _fieldName;
+      }
+    }
+
+    // isset id assignments
+
+    public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
+    static {
+      Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
+      tmpMap.put(_Fields.SESSION, new org.apache.thrift.meta_data.FieldMetaData("session", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
+      metaDataMap = Collections.unmodifiableMap(tmpMap);
+      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(downloadBlobChunk_args.class, metaDataMap);
+    }
+
+    public downloadBlobChunk_args() {
+    }
+
+    public downloadBlobChunk_args(
+      String session)
+    {
+      this();
+      this.session = session;
+    }
+
+    /**
+     * Performs a deep copy on <i>other</i>.
+     */
+    public downloadBlobChunk_args(downloadBlobChunk_args other) {
+      if (other.is_set_session()) {
+        this.session = other.session;
+      }
+    }
+
+    public downloadBlobChunk_args deepCopy() {
+      return new downloadBlobChunk_args(this);
+    }
+
+    @Override
+    public void clear() {
+      this.session = null;
+    }
+
+    public String get_session() {
+      return this.session;
+    }
+
+    public void set_session(String session) {
+      this.session = session;
+    }
+
+    public void unset_session() {
+      this.session = null;
+    }
+
+    /** Returns true if field session is set (has been assigned a value) and false otherwise */
+    public boolean is_set_session() {
+      return this.session != null;
+    }
+
+    public void set_session_isSet(boolean value) {
+      if (!value) {
+        this.session = null;
+      }
+    }
+
+    public void setFieldValue(_Fields field, Object value) {
+      switch (field) {
+      case SESSION:
+        if (value == null) {
+          unset_session();
+        } else {
+          set_session((String)value);
+        }
+        break;
+
+      }
+    }
+
+    public Object getFieldValue(_Fields field) {
+      switch (field) {
+      case SESSION:
+        return get_session();
+
+      }
+      throw new IllegalStateException();
+    }
+
+    /** Returns true if field corresponding to fieldID is set (has been assigned a value) and false otherwise */
+    public boolean isSet(_Fields field) {
+      if (field == null) {
+        throw new IllegalArgumentException();
+      }
+
+      switch (field) {
+      case SESSION:
+        return is_set_session();
+      }
+      throw new IllegalStateException();
+    }
+
+    @Override
+    public boolean equals(Object that) {
+      if (that == null)
+        return false;
+      if (that instanceof downloadBlobChunk_args)
+        return this.equals((downloadBlobChunk_args)that);
+      return false;
+    }
+
+    public boolean equals(downloadBlobChunk_args that) {
+      if (that == null)
+        return false;
+
+      boolean this_present_session = true && this.is_set_session();
+      boolean that_present_session = true && that.is_set_session();
+      if (this_present_session || that_present_session) {
+        if (!(this_present_session && that_present_session))
+          return false;
+        if (!this.session.equals(that.session))
+          return false;
+      }
+
+      return true;
+    }
+
+    @Override
+    public int hashCode() {
+      HashCodeBuilder builder = new HashCodeBuilder();
+
+      boolean present_session = true && (is_set_session());
+      builder.append(present_session);
+      if (present_session)
+        builder.append(session);
+
+      return builder.toHashCode();
+    }
+
+    public int compareTo(downloadBlobChunk_args other) {
+      if (!getClass().equals(other.getClass())) {
+        return getClass().getName().compareTo(other.getClass().getName());
+      }
+
+      int lastComparison = 0;
+      downloadBlobChunk_args typedOther = (downloadBlobChunk_args)other;
+
+      lastComparison = Boolean.valueOf(is_set_session()).compareTo(typedOther.is_set_session());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (is_set_session()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.session, typedOther.session);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      return 0;
+    }
+
+    public _Fields fieldForId(int fieldId) {
+      return _Fields.findByThriftId(fieldId);
+    }
+
+    public void read(org.apache.thrift.protocol.TProtocol iprot) throws org.apache.thrift.TException {
+      org.apache.thrift.protocol.TField field;
+      iprot.readStructBegin();
+      while (true)
+      {
+        field = iprot.readFieldBegin();
+        if (field.type == org.apache.thrift.protocol.TType.STOP) { 
+          break;
+        }
+        switch (field.id) {
+          case 1: // SESSION
+            if (field.type == org.apache.thrift.protocol.TType.STRING) {
+              this.session = iprot.readString();
+            } else { 
+              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
+            }
+            break;
+          default:
+            org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
+        }
+        iprot.readFieldEnd();
+      }
+      iprot.readStructEnd();
+      validate();
+    }
+
+    public void write(org.apache.thrift.protocol.TProtocol oprot) throws org.apache.thrift.TException {
+      validate();
+
+      oprot.writeStructBegin(STRUCT_DESC);
+      if (this.session != null) {
+        oprot.writeFieldBegin(SESSION_FIELD_DESC);
+        oprot.writeString(this.session);
+        oprot.writeFieldEnd();
+      }
+      oprot.writeFieldStop();
+      oprot.writeStructEnd();
+    }
+
+    @Override
+    public String toString() {
+      StringBuilder sb = new StringBuilder("downloadBlobChunk_args(");
+      boolean first = true;
+
+      sb.append("session:");
+      if (this.session == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.session);
+      }
+      first = false;
+      sb.append(")");
+      return sb.toString();
+    }
+
+    public void validate() throws org.apache.thrift.TException {
+      // check for required fields
+    }
+
+    private void writeObject(java.io.ObjectOutputStream out) throws java.io.IOException {
+      try {
+        write(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(out)));
+      } catch (org.apache.thrift.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+    private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, ClassNotFoundException {
+      try {
+        read(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(in)));
+      } catch (org.apache.thrift.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+  }
+
+  public static class downloadBlobChunk_result implements org.apache.thrift.TBase<downloadBlobChunk_result, downloadBlobChunk_result._Fields>, java.io.Serializable, Cloneable   {
+    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("downloadBlobChunk_result");
+
+    private static final org.apache.thrift.protocol.TField SUCCESS_FIELD_DESC = new org.apache.thrift.protocol.TField("success", org.apache.thrift.protocol.TType.STRING, (short)0);
+    private static final org.apache.thrift.protocol.TField AZE_FIELD_DESC = new org.apache.thrift.protocol.TField("aze", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+
+    private ByteBuffer success; // required
+    private AuthorizationException aze; // required
+
+    /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+      SUCCESS((short)0, "success"),
+      AZE((short)1, "aze");
+
+      private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
+
+      static {
+        for (_Fields field : EnumSet.allOf(_Fields.class)) {
+          byName.put(field.getFieldName(), field);
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, or null if its not found.
+       */
+      public static _Fields findByThriftId(int fieldId) {
+        switch(fieldId) {
+          case 0: // SUCCESS
+            return SUCCESS;
+          case 1: // AZE
+            return AZE;
+          default:
+            return null;
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, throwing an exception
+       * if it is not found.
+       */
+      public static _Fields findByThriftIdOrThrow(int fieldId) {
+        _Fields fields = findByThriftId(fieldId);
+        if (fields == null) throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
+        return fields;
+      }
+
+      /**
+       * Find the _Fields constant that matches name, or null if its not found.
+       */
+      public static _Fields findByName(String name) {
+        return byName.get(name);
+      }
+
+      private final short _thriftId;
+      private final String _fieldName;
+
+      _Fields(short thriftId, String fieldName) {
+        _thriftId = thriftId;
+        _fieldName = fieldName;
+      }
+
+      public short getThriftFieldId() {
+        return _thriftId;
+      }
+
+      public String getFieldName() {
+        return _fieldName;
+      }
+    }
+
+    // isset id assignments
+
+    public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
+    static {
+      Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
+      tmpMap.put(_Fields.SUCCESS, new org.apache.thrift.meta_data.FieldMetaData("success", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING          , true)));
+      tmpMap.put(_Fields.AZE, new org.apache.thrift.meta_data.FieldMetaData("aze", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRUCT)));
+      metaDataMap = Collections.unmodifiableMap(tmpMap);
+      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(downloadBlobChunk_result.class, metaDataMap);
+    }
+
+    public downloadBlobChunk_result() {
+    }
+
+    public downloadBlobChunk_result(
+      ByteBuffer success,
+      AuthorizationException aze)
+    {
+      this();
+      this.success = success;
+      this.aze = aze;
+    }
+
+    /**
+     * Performs a deep copy on <i>other</i>.
+     */
+    public downloadBlobChunk_result(downloadBlobChunk_result other) {
+      if (other.is_set_success()) {
+        this.success = org.apache.thrift.TBaseHelper.copyBinary(other.success);
+;
+      }
+      if (other.is_set_aze()) {
+        this.aze = new AuthorizationException(other.aze);
+      }
+    }
+
+    public downloadBlobChunk_result deepCopy() {
+      return new downloadBlobChunk_result(this);
+    }
+
+    @Override
+    public void clear() {
+      this.success = null;
+      this.aze = null;
+    }
+
+    public byte[] get_success() {
+      set_success(org.apache.thrift.TBaseHelper.rightSize(success));
+      return success == null ? null : success.array();
+    }
+
+    public ByteBuffer buffer_for_success() {
+      return success;
+    }
+
+    public void set_success(byte[] success) {
+      set_success(success == null ? (ByteBuffer)null : ByteBuffer.wrap(success));
+    }
+
+    public void set_success(ByteBuffer success) {
+      this.success = success;
+    }
+
+    public void unset_success() {
+      this.success = null;
+    }
+
+    /** Returns true if field success is set (has been assigned a value) and false otherwise */
+    public boolean is_set_success() {
+      return this.success != null;
+    }
+
+    public void set_success_isSet(boolean value) {
+      if (!value) {
+        this.success = null;
+      }
+    }
+
+    public AuthorizationException get_aze() {
+      return this.aze;
+    }
+
+    public void set_aze(AuthorizationException aze) {
+      this.aze = aze;
+    }
+
+    public void unset_aze() {
+      this.aze = null;
+    }
+
+    /** Returns true if field aze is set (has been assigned a value) and false otherwise */
+    public boolean is_set_aze() {
+      return this.aze != null;
+    }
+
+    public void set_aze_isSet(boolean value) {
+      if (!value) {
+        this.aze = null;
+      }
+    }
+
+    public void setFieldValue(_Fields field, Object value) {
+      switch (field) {
+      case SUCCESS:
+        if (value == null) {
+          unset_success();
+        } else {
+          set_success((ByteBuffer)value);
+        }
+        break;
+
+      case AZE:
+        if (value == null) {
+          unset_aze();
+        } else {
+          set_aze((AuthorizationException)value);
+        }
+        break;
+
+      }
+    }
+
+    public Object getFieldValue(_Fields field) {
+      switch (field) {
+      case SUCCESS:
+        return get_success();
+
+      case AZE:
+        return get_aze();
+
+      }
+      throw new IllegalStateException();
+    }
+
+    /** Returns true if field corresponding to fieldID is set (has been assigned a value) and false otherwise */
+    public boolean isSet(_Fields field) {
+      if (field == null) {
+        throw new IllegalArgumentException();
+      }
+
+      switch (field) {
+      case SUCCESS:
+        return is_set_success();
+      case AZE:
+        return is_set_aze();
+      }
+      throw new IllegalStateException();
+    }
+
+    @Override
+    public boolean equals(Object that) {
+      if (that == null)
+        return false;
+      if (that instanceof downloadBlobChunk_result)
+        return this.equals((downloadBlobChunk_result)that);
+      return false;
+    }
+
+    public boolean equals(downloadBlobChunk_result that) {
+      if (that == null)
+        return false;
+
+      boolean this_present_success = true && this.is_set_success();
+      boolean that_present_success = true && that.is_set_success();
+      if (this_present_success || that_present_success) {
+        if (!(this_present_success && that_present_success))
+          return false;
+        if (!this.success.equals(that.success))
+          return false;
+      }
+
+      boolean this_present_aze = true && this.is_set_aze();
+      boolean that_present_aze = true && that.is_set_aze();
+      if (this_present_aze || that_present_aze) {
+        if (!(this_present_aze && that_present_aze))
+          return false;
+        if (!this.aze.equals(that.aze))
+          return false;
+      }
+
+      return true;
+    }
+
+    @Override
+    public int hashCode() {
+      HashCodeBuilder builder = new HashCodeBuilder();
+
+      boolean present_success = true && (is_set_success());
+      builder.append(present_success);
+      if (present_success)
+        builder.append(success);
+
+      boolean present_aze = true && (is_set_aze());
+      builder.append(present_aze);
+      if (present_aze)
+        builder.append(aze);
+
+      return builder.toHashCode();
+    }
+
+    public int compareTo(downloadBlobChunk_result other) {
+      if (!getClass().equals(other.getClass())) {
+        return getClass().getName().compareTo(other.getClass().getName());
+      }
+
+      int lastComparison = 0;
+      downloadBlobChunk_result typedOther = (downloadBlobChunk_result)other;
+
+      lastComparison = Boolean.valueOf(is_set_success()).compareTo(typedOther.is_set_success());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (is_set_success()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.success, typedOther.success);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      lastComparison = Boolean.valueOf(is_set_aze()).compareTo(typedOther.is_set_aze());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (is_set_aze()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.aze, typedOther.aze);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      return 0;
+    }
+
+    public _Fields fieldForId(int fieldId) {
+      return _Fields.findByThriftId(fieldId);
+    }
+
+    public void read(org.apache.thrift.protocol.TProtocol iprot) throws org.apache.thrift.TException {
+      org.apache.thrift.protocol.TField field;
+      iprot.readStructBegin();
+      while (true)
+      {
+        field = iprot.readFieldBegin();
+        if (field.type == org.apache.thrift.protocol.TType.STOP) { 
+          break;
+        }
+        switch (field.id) {
+          case 0: // SUCCESS
+            if (field.type == org.apache.thrift.protocol.TType.STRING) {
+              this.success = iprot.readBinary();
+            } else { 
+              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
+            }
+            break;
+          case 1: // AZE
+            if (field.type == org.apache.thrift.protocol.TType.STRUCT) {
+              this.aze = new AuthorizationException();
+              this.aze.read(iprot);
+            } else { 
+              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
+            }
+            break;
+          default:
+            org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
+        }
+        iprot.readFieldEnd();
+      }
+      iprot.readStructEnd();
+      validate();
+    }
+
+    public void write(org.apache.thrift.protocol.TProtocol oprot) throws org.apache.thrift.TException {
+      oprot.writeStructBegin(STRUCT_DESC);
+
+      if (this.is_set_success()) {
+        oprot.writeFieldBegin(SUCCESS_FIELD_DESC);
+        oprot.writeBinary(this.success);
+        oprot.writeFieldEnd();
+      } else if (this.is_set_aze()) {
+        oprot.writeFieldBegin(AZE_FIELD_DESC);
+        this.aze.write(oprot);
+        oprot.writeFieldEnd();
+      }
+      oprot.writeFieldStop();
+      oprot.writeStructEnd();
+    }
+
+    @Override
+    public String toString() {
+      StringBuilder sb = new StringBuilder("downloadBlobChunk_result(");
+      boolean first = true;
+
+      sb.append("success:");
+      if (this.success == null) {
+        sb.append("null");
+      } else {
+        org.apache.thrift.TBaseHelper.toString(this.success, sb);
+      }
+      first = false;
+      if (!first) sb.append(", ");
+      sb.append("aze:");
+      if (this.aze == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.aze);
+      }
+      first = false;
+      sb.append(")");
+      return sb.toString();
+    }
+
+    public void validate() throws org.apache.thrift.TException {
+      // check for required fields
+    }
+
+    private void writeObject(java.io.ObjectOutputStream out) throws java.io.IOException {
+      try {
+        write(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(out)));
+      } catch (org.apache.thrift.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+    private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, ClassNotFoundException {
+      try {
+        read(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(in)));
+      } catch (org.apache.thrift.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+  }
+
+  public static class deleteBlob_args implements org.apache.thrift.TBase<deleteBlob_args, deleteBlob_args._Fields>, java.io.Serializable, Cloneable   {
+    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("deleteBlob_args");
+
+    private static final org.apache.thrift.protocol.TField KEY_FIELD_DESC = new org.apache.thrift.protocol.TField("key", org.apache.thrift.protocol.TType.STRING, (short)1);
+
+    private String key; // required
+
+    /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+      KEY((short)1, "key");
+
+      private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
+
+      static {
+        for (_Fields field : EnumSet.allOf(_Fields.class)) {
+          byName.put(field.getFieldName(), field);
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, or null if its not found.
+       */
+      public static _Fields findByThriftId(int fieldId) {
+        switch(fieldId) {
+          case 1: // KEY
+            return KEY;
+          default:
+            return null;
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, throwing an exception
+       * if it is not found.
+       */
+      public static _Fields findByThriftIdOrThrow(int fieldId) {
+        _Fields fields = findByThriftId(fieldId);
+        if (fields == null) throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
+        return fields;
+      }
+
+      /**
+       * Find the _Fields constant that matches name, or null if its not found.
+       */
+      public static _Fields findByName(String name) {
+        return byName.get(name);
+      }
+
+      private final short _thriftId;
+      private final String _fieldName;
+
+      _Fields(short thriftId, String fieldName) {
+        _thriftId = thriftId;
+        _fieldName = fieldName;
+      }
+
+      public short getThriftFieldId() {
+        return _thriftId;
+      }
+
+      public String getFieldName() {
+        return _fieldName;
+      }
+    }
+
+    // isset id assignments
+
+    public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
+    static {
+      Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
+      tmpMap.put(_Fields.KEY, new org.apache.thrift.meta_data.FieldMetaData("key", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
+      metaDataMap = Collections.unmodifiableMap(tmpMap);
+      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(deleteBlob_args.class, metaDataMap);
+    }
+
+    public deleteBlob_args() {
+    }
+
+    public deleteBlob_args(
+      String key)
+    {
+      this();
+      this.key = key;
+    }
+
+    /**
+     * Performs a deep copy on <i>other</i>.
+     */
+    public deleteBlob_args(deleteBlob_args other) {
+      if (other.is_set_key()) {
+        this.key = other.key;
+      }
+    }
+
+    public deleteBlob_args deepCopy() {
+      return new deleteBlob_args(this);
+    }
+
+    @Override
+    public void clear() {
+      this.key = null;
+    }
+
+    public String get_key() {
+      return this.key;
+    }
+
+    public void set_key(String key) {
+      this.key = key;
+    }
+
+    public void unset_key() {
+      this.key = null;
+    }
+
+    /** Returns true if field key is set (has been assigned a value) and false otherwise */
+    public boolean is_set_key() {
+      return this.key != null;
+    }
+
+    public void set_key_isSet(boolean value) {
+      if (!value) {
+        this.key = null;
+      }
+    }
+
+    public void setFieldValue(_Fields field, Object value) {
+      switch (field) {
+      case KEY:
+        if (value == null) {
+          unset_key();
+        } else {
+          set_key((String)value);
+        }
+        break;
+
+      }
+    }
+
+    public Object getFieldValue(_Fields field) {
+      switch (field) {
+      case KEY:
+        return get_key();
+
+      }
+      throw new IllegalStateException();
+    }
+
+    /** Returns true if field corresponding to fieldID is set (has been assigned a value) and false otherwise */
+    public boolean isSet(_Fields field) {
+      if (field == null) {
+        throw new IllegalArgumentException();
+      }
+
+      switch (field) {
+      case KEY:
+        return is_set_key();
+      }
+      throw new IllegalStateException();
+    }
+
+    @Override
+    public boolean equals(Object that) {
+      if (that == null)
+        return false;
+      if (that instanceof deleteBlob_args)
+        return this.equals((deleteBlob_args)that);
+      return false;
+    }
+
+    public boolean equals(deleteBlob_args that) {
+      if (that == null)
+        return false;
+
+      boolean this_present_key = true && this.is_set_key();
+      boolean that_present_key = true && that.is_set_key();
+      if (this_present_key || that_present_key) {
+        if (!(this_present_key && that_present_key))
+          return false;
+        if (!this.key.equals(that.key))
+          return false;
+      }
+
+      return true;
+    }
+
+    @Override
+    public int hashCode() {
+      HashCodeBuilder builder = new HashCodeBuilder();
+
+      boolean present_key = true && (is_set_key());
+      builder.append(present_key);
+      if (present_key)
+        builder.append(key);
+
+      return builder.toHashCode();
+    }
+
+    public int compareTo(deleteBlob_args other) {
+      if (!getClass().equals(other.getClass())) {
+        return getClass().getName().compareTo(other.getClass().getName());
+      }
+
+      int lastComparison = 0;
+      deleteBlob_args typedOther = (deleteBlob_args)other;
+
+      lastComparison = Boolean.valueOf(is_set_key()).compareTo(typedOther.is_set_key());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (is_set_key()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.key, typedOther.key);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      return 0;
+    }
+
+    public _Fields fieldForId(int fieldId) {
+      return _Fields.findByThriftId(fieldId);
+    }
+
+    public void read(org.apache.thrift.protocol.TProtocol iprot) throws org.apache.thrift.TException {
+      org.apache.thrift.protocol.TField field;
+      iprot.readStructBegin();
+      while (true)
+      {
+        field = iprot.readFieldBegin();
+        if (field.type == org.apache.thrift.protocol.TType.STOP) { 
+          break;
+        }
+        switch (field.id) {
+          case 1: // KEY
+            if (field.type == org.apache.thrift.protocol.TType.STRING) {
+              this.key = iprot.readString();
+            } else { 
+              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
+            }
+            break;
+          default:
+            org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
+        }
+        iprot.readFieldEnd();
+      }
+      iprot.readStructEnd();
+      validate();
+    }
+
+    public void write(org.apache.thrift.protocol.TProtocol oprot) throws org.apache.thrift.TException {
+      validate();
+
+      oprot.writeStructBegin(STRUCT_DESC);
+      if (this.key != null) {
+        oprot.writeFieldBegin(KEY_FIELD_DESC);
+        oprot.writeString(this.key);
+        oprot.writeFieldEnd();
+      }
+      oprot.writeFieldStop();
+      oprot.writeStructEnd();
+    }
+
+    @Override
+    public String toString() {
+      StringBuilder sb = new StringBuilder("deleteBlob_args(");
+      boolean first = true;
+
+      sb.append("key:");
+      if (this.key == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.key);
+      }
+      first = false;
+      sb.append(")");
+      return sb.toString();
+    }
+
+    public void validate() throws org.apache.thrift.TException {
+      // check for required fields
+    }
+
+    private void writeObject(java.io.ObjectOutputStream out) throws java.io.IOException {
+      try {
+        write(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(out)));
+      } catch (org.apache.thrift.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+    private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, ClassNotFoundException {
+      try {
+        read(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(in)));
+      } catch (org.apache.thrift.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+  }
+
+  public static class deleteBlob_result implements org.apache.thrift.TBase<deleteBlob_result, deleteBlob_result._Fields>, java.io.Serializable, Cloneable   {
+    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("deleteBlob_result");
+
+    private static final org.apache.thrift.protocol.TField AZE_FIELD_DESC = new org.apache.thrift.protocol.TField("aze", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+    private static final org.apache.thrift.protocol.TField KNF_FIELD_DESC = new org.apache.thrift.protocol.TField("knf", org.apache.thrift.protocol.TType.STRUCT, (short)2);
+
+    private AuthorizationException aze; // required
+    private KeyNotFoundException knf; // required
+
+    /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+      AZE((short)1, "aze"),
+      KNF((short)2, "knf");
+
+      private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
+
+      static {
+        for (_Fields field : EnumSet.allOf(_Fields.class)) {
+          byName.put(field.getFieldName(), field);
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, or null if its not found.
+       */
+      public static _Fields findByThriftId(int fieldId) {
+        switch(fieldId) {
+          case 1: // AZE
+            return AZE;
+          case 2: // KNF
+            return KNF;
+          default:
+            return null;
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, throwing an exception
+       * if it is not found.
+       */
+      public static _Fields findByThriftIdOrThrow(int fieldId) {
+        _Fields fields = findByThriftId(fieldId);
+        if (fields == null) throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
+        return fields;
+      }
+
+      /**
+       * Find the _Fields constant that matches name, or null if its not found.
+       */
+      public static _Fields findByName(String name) {
+        return byName.get(name);
+      }
+
+      private final short _thriftId;
+      private final String _fieldName;
+
+      _Fields(short thriftId, String fieldName) {
+        _thriftId = thriftId;
+        _fieldName = fieldName;
+      }
+
+      public short getThriftFieldId() {
+        return _thriftId;
+      }
+
+      public String getFieldName() {
+        return _fieldName;
+      }
+    }
+
+    // isset id assignments
+
+    public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
+    static {
+      Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
+      tmpMap.put(_Fields.AZE, new org.apache.thrift.meta_data.FieldMetaData("aze", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRUCT)));
+      tmpMap.put(_Fields.KNF, new org.apache.thrift.meta_data.FieldMetaData("knf", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRUCT)));
+      metaDataMap = Collections.unmodifiableMap(tmpMap);
+      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(deleteBlob_result.class, metaDataMap);
+    }
+
+    public deleteBlob_result() {
+    }
+
+    public deleteBlob_result(
+      AuthorizationException aze,
+      KeyNotFoundException knf)
+    {
+      this();
+      this.aze = aze;
+      this.knf = knf;
+    }
+
+    /**
+     * Performs a deep copy on <i>other</i>.
+     */
+    public deleteBlob_result(deleteBlob_result other) {
+      if (other.is_set_aze()) {
+        this.aze = new AuthorizationException(other.aze);
+      }
+      if (other.is_set_knf()) {
+        this.knf = new KeyNotFoundException(other.knf);
+      }
+    }
+
+    public deleteBlob_result deepCopy() {
+      return new deleteBlob_result(this);
+    }
+
+    @Override
+    public void clear() {
+      this.aze = null;
+      this.knf = null;
+    }
+
+    public AuthorizationException get_aze() {
+      return this.aze;
+    }
+
+    public void set_aze(AuthorizationException aze) {
+      this.aze = aze;
+    }
+
+    public void unset_aze() {
+      this.aze = null;
+    }
+
+    /** Returns true if field aze is set (has been assigned a value) and false otherwise */
+    public boolean is_set_aze() {
+      return this.aze != null;
+    }
+
+    public void set_aze_isSet(boolean value) {
+      if (!value) {
+        this.aze = null;
+      }
+    }
+
+    public KeyNotFoundException get_knf() {
+      return this.knf;
+    }
+
+    public void set_knf(KeyNotFoundException knf) {
+      this.knf = knf;
+    }
+
+    public void unset_knf() {
+      this.knf = null;
+    }
+
+    /** Returns true if field knf is set (has been assigned a value) and false otherwise */
+    public boolean is_set_knf() {
+      return this.knf != null;
+    }
+
+    public void set_knf_isSet(boolean value) {
+      if (!value) {
+        this.knf = null;
+      }
+    }
+
+    public void setFieldValue(_Fields field, Object value) {
+      switch (field) {
+      case AZE:
+        if (value == null) {
+          unset_aze();
+        } else {
+          set_aze((AuthorizationException)value);
+        }
+        break;
+
+      case KNF:
+        if (value == null) {
+          unset_knf();
+        } else {
+          set_knf((KeyNotFoundException)value);
+        }
+        break;
+
+      }
+    }
+
+    public Object getFieldValue(_Fields field) {
+      switch (field) {
+      case AZE:
+        return get_aze();
+
+      case KNF:
+        return get_knf();
+
+      }
+      throw new IllegalStateException();
+    }
+
+    /** Returns true if field corresponding to fieldID is set (has been assigned a value) and false otherwise */
+    public boolean isSet(_Fields field) {
+      if (field == null) {
+        throw new IllegalArgumentException();
+      }
+
+      switch (field) {
+      case AZE:
+        return is_set_aze();
+      case KNF:
+        return is_set_knf();
+      }
+      throw new IllegalStateException();
+    }
+
+    @Override
+    public boolean equals(Object that) {
+      if (that == null)
+        return false;
+      if (that instanceof deleteBlob_result)
+        return this.equals((deleteBlob_result)that);
+      return false;
+    }
+
+    public boolean equals(deleteBlob_result that) {
+      if (that == null)
+        return false;
+
+      boolean this_present_aze = true && this.is_set_aze();
+      boolean that_present_aze = true && that.is_set_aze();
+      if (this_present_aze || that_present_aze) {
+        if (!(this_present_aze && that_present_aze))
+          return false;
+        if (!this.aze.equals(that.aze))
+          return false;
+      }
+
+      boolean this_present_knf = true && this.is_set_knf();
+      boolean that_present_knf = true && that.is_set_knf();
+      if (this_present_knf || that_present_knf) {
+        if (!(this_present_knf && that_present_knf))
+          return false;
+        if (!this.knf.equals(that.knf))
+          return false;
+      }
+
+      return true;
+    }
+
+    @Override
+    public int hashCode() {
+      HashCodeBuilder builder = new HashCodeBuilder();
+
+      boolean present_aze = true && (is_set_aze());
+      builder.append(present_aze);
+      if (present_aze)
+        builder.append(aze);
+
+      boolean present_knf = true && (is_set_knf());
+      builder.append(present_knf);
+      if (present_knf)
+        builder.append(knf);
+
+      return builder.toHashCode();
+    }
+
+    public int compareTo(deleteBlob_result other) {
+      if (!getClass().equals(other.getClass())) {
+        return getClass().getName().compareTo(other.getClass().getName());
+      }
+
+      int lastComparison = 0;
+      deleteBlob_result typedOther = (deleteBlob_result)other;
+
+      lastComparison = Boolean.valueOf(is_set_aze()).compareTo(typedOther.is_set_aze());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (is_set_aze()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.aze, typedOther.aze);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      lastComparison = Boolean.valueOf(is_set_knf()).compareTo(typedOther.is_set_knf());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (is_set_knf()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.knf, typedOther.knf);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      return 0;
+    }
+
+    public _Fields fieldForId(int fieldId) {
+      return _Fields.findByThriftId(fieldId);
+    }
+
+    public void read(org.apache.thrift.protocol.TProtocol iprot) throws org.apache.thrift.TException {
+      org.apache.thrift.protocol.TField field;
+      iprot.readStructBegin();
+      while (true)
+      {
+        field = iprot.readFieldBegin();
+        if (field.type == org.apache.thrift.protocol.TType.STOP) { 
+          break;
+        }
+        switch (field.id) {
+          case 1: // AZE
+            if (field.type == org.apache.thrift.protocol.TType.STRUCT) {
+              this.aze = new AuthorizationException();
+              this.aze.read(iprot);
+            } else { 
+              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
+            }
+            break;
+          case 2: // KNF
+            if (field.type == org.apache.thrift.protocol.TType.STRUCT) {
+              this.knf = new KeyNotFoundException();
+              this.knf.read(iprot);
+            } else { 
+              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
+            }
+            break;
+          default:
+            org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
+        }
+        iprot.readFieldEnd();
+      }
+      iprot.readStructEnd();
+      validate();
+    }
+
+    public void write(org.apache.thrift.protocol.TProtocol oprot) throws org.apache.thrift.TException {
+      oprot.writeStructBegin(STRUCT_DESC);
+
+      if (this.is_set_aze()) {
+        oprot.writeFieldBegin(AZE_FIELD_DESC);
+        this.aze.write(oprot);
+        oprot.writeFieldEnd();
+      } else if (this.is_set_knf()) {
+        oprot.writeFieldBegin(KNF_FIELD_DESC);
+        this.knf.write(oprot);
+        oprot.writeFieldEnd();
+      }
+      oprot.writeFieldStop();
+      oprot.writeStructEnd();
+    }
+
+    @Override
+    public String toString() {
+      StringBuilder sb = new StringBuilder("deleteBlob_result(");
+      boolean first = true;
+
+      sb.append("aze:");
+      if (this.aze == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.aze);
+      }
+      first = false;
+      if (!first) sb.append(", ");
+      sb.append("knf:");
+      if (this.knf == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.knf);
+      }
+      first = false;
+      sb.append(")");
+      return sb.toString();
+    }
+
+    public void validate() throws org.apache.thrift.TException {
+      // check for required fields
+    }
+
+    private void writeObject(java.io.ObjectOutputStream out) throws java.io.IOException {
+      try {
+        write(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(out)));
+      } catch (org.apache.thrift.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+    private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, ClassNotFoundException {
+      try {
+        read(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(in)));
+      } catch (org.apache.thrift.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+  }
+
+  public static class listBlobs_args implements org.apache.thrift.TBase<listBlobs_args, listBlobs_args._Fields>, java.io.Serializable, Cloneable   {
+    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("listBlobs_args");
+
+    private static final org.apache.thrift.protocol.TField SESSION_FIELD_DESC = new org.apache.thrift.protocol.TField("session", org.apache.thrift.protocol.TType.STRING, (short)1);
+
+    private String session; // required
+
+    /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+      SESSION((short)1, "session");
+
+      private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
+
+      static {
+        for (_Fields field : EnumSet.allOf(_Fields.class)) {
+          byName.put(field.getFieldName(), field);
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, or null if its not found.
+       */
+      public static _Fields findByThriftId(int fieldId) {
+        switch(fieldId) {
+          case 1: // SESSION
+            return SESSION;
+          default:
+            return null;
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, throwing an exception
+       * if it is not found.
+       */
+      public static _Fields findByThriftIdOrThrow(int fieldId) {
+        _Fields fields = findByThriftId(fieldId);
+        if (fields == null) throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
+        return fields;
+      }
+
+      /**
+       * Find the _Fields constant that matches name, or null if its not found.
+       */
+      public static _Fields findByName(String name) {
+        return byName.get(name);
+      }
+
+      private final short _thriftId;
+      private final String _fieldName;
+
+      _Fields(short thriftId, String fieldName) {
+        _thriftId = thriftId;
+        _fieldName = fieldName;
+      }
+
+      public short getThriftFieldId() {
+        return _thriftId;
+      }
+
+      public String getFieldName() {
+        return _fieldName;
+      }
+    }
+
+    // isset id assignments
+
+    public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
+    static {
+      Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
+      tmpMap.put(_Fields.SESSION, new org.apache.thrift.meta_data.FieldMetaData("session", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
+      metaDataMap = Collections.unmodifiableMap(tmpMap);
+      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(listBlobs_args.class, metaDataMap);
+    }
+
+    public listBlobs_args() {
+    }
+
+    public listBlobs_args(
+      String session)
+    {
+      this();
+      this.session = session;
+    }
+
+    /**
+     * Performs a deep copy on <i>other</i>.
+     */
+    public listBlobs_args(listBlobs_args other) {
+      if (other.is_set_session()) {
+        this.session = other.session;
+      }
+    }
+
+    public listBlobs_args deepCopy() {
+      return new listBlobs_args(this);
+    }
+
+    @Override
+    public void clear() {
+      this.session = null;
+    }
+
+    public String get_session() {
+      return this.session;
+    }
+
+    public void set_session(String session) {
+      this.session = session;
+    }
+
+    public void unset_session() {
+      this.session = null;
+    }
+
+    /** Returns true if field session is set (has been assigned a value) and false otherwise */
+    public boolean is_set_session() {
+      return this.session != null;
+    }
+
+    public void set_session_isSet(boolean value) {
+      if (!value) {
+        this.session = null;
+      }
+    }
+
+    public void setFieldValue(_Fields field, Object value) {
+      switch (field) {
+      case SESSION:
+        if (value == null) {
+          unset_session();
+        } else {
+          set_session((String)value);
+        }
+        break;
+
+      }
+    }
+
+    public Object getFieldValue(_Fields field) {
+      switch (field) {
+      case SESSION:
+        return get_session();
+
+      }
+      throw new IllegalStateException();
+    }
+
+    /** Returns true if field corresponding to fieldID is set (has been assigned a value) and false otherwise */
+    public boolean isSet(_Fields field) {
+      if (field == null) {
+        throw new IllegalArgumentException();
+      }
+
+      switch (field) {
+      case SESSION:
+        return is_set_session();
+      }
+      throw new IllegalStateException();
+    }
+
+    @Override
+    public boolean equals(Object that) {
+      if (that == null)
+        return false;
+      if (that instanceof listBlobs_args)
+        return this.equals((listBlobs_args)that);
+      return false;
+    }
+
+    public boolean equals(listBlobs_args that) {
+      if (that == null)
+        return false;
+
+      boolean this_present_session = true && this.is_set_session();
+      boolean that_present_session = true && that.is_set_session();
+      if (this_present_session || that_present_session) {
+        if (!(this_present_session && that_present_session))
+          return false;
+        if (!this.session.equals(that.session))
+          return false;
+      }
+
+      return true;
+    }
+
+    @Override
+    public int hashCode() {
+      HashCodeBuilder builder = new HashCodeBuilder();
+
+      boolean present_session = true && (is_set_session());
+      builder.append(present_session);
+      if (present_session)
+        builder.append(session);
+
+      return builder.toHashCode();
+    }
+
+    public int compareTo(listBlobs_args other) {
+      if (!getClass().equals(other.getClass())) {
+        return getClass().getName().compareTo(other.getClass().getName());
+      }
+
+      int lastComparison = 0;
+      listBlobs_args typedOther = (listBlobs_args)other;
+
+      lastComparison = Boolean.valueOf(is_set_session()).compareTo(typedOther.is_set_session());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (is_set_session()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.session, typedOther.session);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      return 0;
+    }
+
+    public _Fields fieldForId(int fieldId) {
+      return _Fields.findByThriftId(fieldId);
+    }
+
+    public void read(org.apache.thrift.protocol.TProtocol iprot) throws org.apache.thrift.TException {
+      org.apache.thrift.protocol.TField field;
+      iprot.readStructBegin();
+      while (true)
+      {
+        field = iprot.readFieldBegin();
+        if (field.type == org.apache.thrift.protocol.TType.STOP) { 
+          break;
+        }
+        switch (field.id) {
+          case 1: // SESSION
+            if (field.type == org.apache.thrift.protocol.TType.STRING) {
+              this.session = iprot.readString();
+            } else { 
+              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
+            }
+            break;
+          default:
+            org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
+        }
+        iprot.readFieldEnd();
+      }
+      iprot.readStructEnd();
+      validate();
+    }
+
+    public void write(org.apache.thrift.protocol.TProtocol oprot) throws org.apache.thrift.TException {
+      validate();
+
+      oprot.writeStructBegin(STRUCT_DESC);
+      if (this.session != null) {
+        oprot.writeFieldBegin(SESSION_FIELD_DESC);
+        oprot.writeString(this.session);
+        oprot.writeFieldEnd();
+      }
+      oprot.writeFieldStop();
+      oprot.writeStructEnd();
+    }
+
+    @Override
+    public String toString() {
+      StringBuilder sb = new StringBuilder("listBlobs_args(");
+      boolean first = true;
+
+      sb.append("session:");
+      if (this.session == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.session);
+      }
+      first = false;
+      sb.append(")");
+      return sb.toString();
+    }
+
+    public void validate() throws org.apache.thrift.TException {
+      // check for required fields
+    }
+
+    private void writeObject(java.io.ObjectOutputStream out) throws java.io.IOException {
+      try {
+        write(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(out)));
+      } catch (org.apache.thrift.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+    private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, ClassNotFoundException {
+      try {
+        read(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(in)));
+      } catch (org.apache.thrift.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+  }
+
+  public static class listBlobs_result implements org.apache.thrift.TBase<listBlobs_result, listBlobs_result._Fields>, java.io.Serializable, Cloneable   {
+    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("listBlobs_result");
+
+    private static final org.apache.thrift.protocol.TField SUCCESS_FIELD_DESC = new org.apache.thrift.protocol.TField("success", org.apache.thrift.protocol.TType.STRUCT, (short)0);
+
+    private ListBlobsResult success; // required
+
+    /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+      SUCCESS((short)0, "success");
+
+      private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
+
+      static {
+        for (_Fields field : EnumSet.allOf(_Fields.class)) {
+          byName.put(field.getFieldName(), field);
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, or null if its not found.
+       */
+      public static _Fields findByThriftId(int fieldId) {
+        switch(fieldId) {
+          case 0: // SUCCESS
+            return SUCCESS;
+          default:
+            return null;
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, throwing an exception
+       * if it is not found.
+       */
+      public static _Fields findByThriftIdOrThrow(int fieldId) {
+        _Fields fields = findByThriftId(fieldId);
+        if (fields == null) throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
+        return fields;
+      }
+
+      /**
+       * Find the _Fields constant that matches name, or null if its not found.
+       */
+      public static _Fields findByName(String name) {
+        return byName.get(name);
+      }
+
+      private final short _thriftId;
+      private final String _fieldName;
+
+      _Fields(short thriftId, String fieldName) {
+        _thriftId = thriftId;
+        _fieldName = fieldName;
+      }
+
+      public short getThriftFieldId() {
+        return _thriftId;
+      }
+
+      public String getFieldName() {
+        return _fieldName;
+      }
+    }
+
+    // isset id assignments
+
+    public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
+    static {
+      Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
+      tmpMap.put(_Fields.SUCCESS, new org.apache.thrift.meta_data.FieldMetaData("success", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, ListBlobsResult.class)));
+      metaDataMap = Collections.unmodifiableMap(tmpMap);
+      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(listBlobs_result.class, metaDataMap);
+    }
+
+    public listBlobs_result() {
+    }
+
+    public listBlobs_result(
+      ListBlobsResult success)
+    {
+      this();
+      this.success = success;
+    }
+
+    /**
+     * Performs a deep copy on <i>other</i>.
+     */
+    public listBlobs_result(listBlobs_result other) {
+      if (other.is_set_success()) {
+        this.success = new ListBlobsResult(other.success);
+      }
+    }
+
+    public listBlobs_result deepCopy() {
+      return new listBlobs_result(this);
+    }
+
+    @Override
+    public void clear() {
+      this.success = null;
+    }
+
+    public ListBlobsResult get_success() {
+      return this.success;
+    }
+
+    public void set_success(ListBlobsResult success) {
+      this.success = success;
+    }
+
+    public void unset_success() {
+      this.success = null;
+    }
+
+    /** Returns true if field success is set (has been assigned a value) and false otherwise */
+    public boolean is_set_success() {
+      return this.success != null;
+    }
+
+    public void set_success_isSet(boolean value) {
+      if (!value) {
+        this.success = null;
+      }
+    }
+
+    public void setFieldValue(_Fields field, Object value) {
+      switch (field) {
+      case SUCCESS:
+        if (value == null) {
+          unset_success();
+        } else {
+          set_success((ListBlobsResult)value);
+        }
+        break;
+
+      }
+    }
+
+    public Object getFieldValue(_Fields field) {
+      switch (field) {
+      case SUCCESS:
+        return get_success();
+
+      }
+      throw new IllegalStateException();
+    }
+
+    /** Returns true if field corresponding to fieldID is set (has been assigned a value) and false otherwise */
+    public boolean isSet(_Fields field) {
+      if (field == null) {
+        throw new IllegalArgumentException();
+      }
+
+      switch (field) {
+      case SUCCESS:
+        return is_set_success();
+      }
+      throw new IllegalStateException();
+    }
+
+    @Override
+    public boolean equals(Object that) {
+      if (that == null)
+        return false;
+      if (that instanceof listBlobs_result)
+        return this.equals((listBlobs_result)that);
+      return false;
+    }
+
+    public boolean equals(listBlobs_result that) {
+      if (that == null)
+        return false;
+
+      boolean this_present_success = true && this.is_set_success();
+      boolean that_present_success = true && that.is_set_success();
+      if (this_present_success || that_present_success) {
+        if (!(this_present_success && that_present_success))
+          return false;
+        if (!this.success.equals(that.success))
+          return false;
+      }
+
+      return true;
+    }
+
+    @Override
+    public int hashCode() {
+      HashCodeBuilder builder = new HashCodeBuilder();
+
+      boolean present_success = true && (is_set_success());
+      builder.append(present_success);
+      if (present_success)
+        builder.append(success);
+
+      return builder.toHashCode();
+    }
+
+    public int compareTo(listBlobs_result other) {
+      if (!getClass().equals(other.getClass())) {
+        return getClass().getName().compareTo(other.getClass().getName());
+      }
+
+      int lastComparison = 0;
+      listBlobs_result typedOther = (listBlobs_result)other;
+
+      lastComparison = Boolean.valueOf(is_set_success()).compareTo(typedOther.is_set_success());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (is_set_success()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.success, typedOther.success);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      return 0;
+    }
+
+    public _Fields fieldForId(int fieldId) {
+      return _Fields.findByThriftId(fieldId);
+    }
+
+    public void read(org.apache.thrift.protocol.TProtocol iprot) throws org.apache.thrift.TException {
+      org.apache.thrift.protocol.TField field;
+      iprot.readStructBegin();
+      while (true)
+      {
+        field = iprot.readFieldBegin();
+        if (field.type == org.apache.thrift.protocol.TType.STOP) { 
+          break;
+        }
+        switch (field.id) {
+          case 0: // SUCCESS
+            if (field.type == org.apache.thrift.protocol.TType.STRUCT) {
+              this.success = new ListBlobsResult();
+              this.success.read(iprot);
+            } else { 
+              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
+            }
+            break;
+          default:
+            org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
+        }
+        iprot.readFieldEnd();
+      }
+      iprot.readStructEnd();
+      validate();
+    }
+
+    public void write(org.apache.thrift.protocol.TProtocol oprot) throws org.apache.thrift.TException {
+      oprot.writeStructBegin(STRUCT_DESC);
+
+      if (this.is_set_success()) {
+        oprot.writeFieldBegin(SUCCESS_FIELD_DESC);
+        this.success.write(oprot);
+        oprot.writeFieldEnd();
+      }
+      oprot.writeFieldStop();
+      oprot.writeStructEnd();
+    }
+
+    @Override
+    public String toString() {
+      StringBuilder sb = new StringBuilder("listBlobs_result(");
+      boolean first = true;
+
+      sb.append("success:");
+      if (this.success == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.success);
       }
       first = false;
       sb.append(")");

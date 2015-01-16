@@ -17,23 +17,22 @@
  */
 package backtype.storm.utils;
 
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.Arrays;
 
 
-public class BufferFileInputStream {
+public class BufferInputStream {
     byte[] buffer;
-    FileInputStream stream;
+    InputStream stream;
 
-    public BufferFileInputStream(String file, int bufferSize) throws FileNotFoundException {
-        stream = new FileInputStream(file);
+    public BufferInputStream(InputStream stream, int bufferSize) {
+        this.stream = stream;
         buffer = new byte[bufferSize];
     }
 
-    public BufferFileInputStream(String file) throws FileNotFoundException {
-        this(file, 15*1024);
+    public BufferInputStream(InputStream stream) {
+        this(stream, 15*1024);
     }
 
     public byte[] read() throws IOException {

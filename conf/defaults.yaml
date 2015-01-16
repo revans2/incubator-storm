@@ -47,6 +47,7 @@ storm.auth.simple-white-list.users: []
 storm.auth.simple-acl.users: []
 storm.auth.simple-acl.users.commands: []
 storm.auth.simple-acl.admins: []
+storm.blobstore.inputstream.buffer.size.bytes: 65536
 
 ### nimbus.* configs are for the master
 nimbus.host: "localhost"
@@ -64,6 +65,8 @@ nimbus.reassign: true
 nimbus.file.copy.expiration.secs: 600
 nimbus.topology.validator: "backtype.storm.nimbus.DefaultTopologyValidator"
 nimbus.credential.renewers.freq.secs: 600
+nimbus.blobstore.class: "backtype.storm.blobstore.LocalFsBlobStore"
+nimbus.blobstore.expiration.secs: 600
 
 ### ui.* configs are for the master
 ui.port: 8080
@@ -122,7 +125,11 @@ supervisor.heartbeat.frequency.secs: 5
 supervisor.enable: true
 supervisor.supervisors: []
 supervisor.supervisors.commands: []
-
+supervisor.blobstore.class: "backtype.storm.blobstore.NimbusBlobStore"
+supervisor.blobstore.download.thread.count: 5
+supervisor.blobstore.download.max_retries: 3
+supervisor.localizer.cache.target.size.mb: 10240
+supervisor.localizer.cleanup.interval.ms: 600000
 
 ### worker.* configs are for task workers
 worker.childopts: "-Xmx768m"
@@ -193,5 +200,7 @@ topology.testing.always.try.serialize: false
 topology.classpath: null
 topology.environment: null
 topology.bolts.outgoing.overflow.buffer.enable: false
+
+client.blobstore.class: "backtype.storm.blobstore.NimbusBlobStore"
 
 dev.zookeeper.path: "/tmp/dev-storm-zookeeper"
