@@ -57,8 +57,15 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
 import backtype.storm.blobstore.BlobStoreAclHandler;
+import backtype.storm.serialization.DefaultSerializationDelegate;
+import backtype.storm.serialization.SerializationDelegate;
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
+import java.util.zip.GZIPOutputStream;
+import java.util.zip.GZIPInputStream;
+
+import backtype.storm.serialization.DefaultSerializationDelegate;
+import backtype.storm.serialization.SerializationDelegate;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.commons.lang.StringUtils;
@@ -96,13 +103,20 @@ import org.apache.thrift.TDeserializer;
 import org.apache.thrift.TSerializer;
 
 public class Utils {
-    public static Logger LOG = LoggerFactory.getLogger(Utils.class);    
+    private static final Logger LOG = LoggerFactory.getLogger(Utils.class);
     public static final String DEFAULT_STREAM_ID = "default";
     public static final String DEFAULT_BLOB_VERSION_SUFFIX = ".version";
     public static final String CURRENT_BLOB_SUFFIX_ID = "current";
     public static final String DEFAULT_CURRENT_BLOB_SUFFIX = "." + CURRENT_BLOB_SUFFIX_ID;
     private static ThreadLocal<TSerializer> threadSer = new ThreadLocal<TSerializer>();
     private static ThreadLocal<TDeserializer> threadDes = new ThreadLocal<TDeserializer>();
+
+    private static SerializationDelegate serializationDelegate;
+
+    static {
+        Map conf = readStormConfig();
+        serializationDelegate = getSerializationDelegate(conf);
+    }
 
     public static Object newInstance(String klass) {
         try {
@@ -112,19 +126,11 @@ public class Utils {
             throw new RuntimeException(e);
         }
     }
-    
+ 
     public static byte[] serialize(Object obj) {
-        try {
-            ByteArrayOutputStream bos = new ByteArrayOutputStream();
-            ObjectOutputStream oos = new ObjectOutputStream(bos);
-            oos.writeObject(obj);
-            oos.close();
-            return bos.toByteArray();
-        } catch(IOException ioe) {
-            throw new RuntimeException(ioe);
-        }
+        return serializationDelegate.serialize(obj);
     }
-
+ 
     public static byte[] thriftSerialize(TBase t) {
         try {
             TSerializer ser = threadSer.get();
@@ -155,17 +161,7 @@ public class Utils {
     }
 
     public static Object deserialize(byte[] serialized) {
-        try {
-            ByteArrayInputStream bis = new ByteArrayInputStream(serialized);
-            ObjectInputStream ois = new ObjectInputStream(bis);
-            Object ret = ois.readObject();
-            ois.close();
-            return ret;
-        } catch(IOException ioe) {
-            throw new RuntimeException(ioe);
-        } catch(ClassNotFoundException e) {
-            throw new RuntimeException(e);
-        }
+        return serializationDelegate.deserialize(serialized);
     }
 
     public static <T> String join(Iterable<T> coll, String sep) {
@@ -1023,4 +1019,24 @@ public class Utils {
   }
 
 
+    // Assumes caller is synchronizing
+    private static SerializationDelegate getSerializationDelegate(Map stormConf) {
+        String delegateClassName = (String)stormConf.get(Config.STORM_META_SERIALIZATION_DELEGATE);
+        SerializationDelegate delegate;
+        try {
+            Class delegateClass = Class.forName(delegateClassName);
+            delegate = (SerializationDelegate) delegateClass.newInstance();
+        } catch (ClassNotFoundException e) {
+            LOG.error("Failed to construct serialization delegate, falling back to default", e);
+            delegate = new DefaultSerializationDelegate();
+        } catch (InstantiationException e) {
+            LOG.error("Failed to construct serialization delegate, falling back to default", e);
+            delegate = new DefaultSerializationDelegate();
+        } catch (IllegalAccessException e) {
+            LOG.error("Failed to construct serialization delegate, falling back to default", e);
+            delegate = new DefaultSerializationDelegate();
+        }
+        delegate.prepare(stormConf);
+        return delegate;
+    }
 }
