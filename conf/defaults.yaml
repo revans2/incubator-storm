@@ -202,5 +202,6 @@ topology.environment: null
 topology.bolts.outgoing.overflow.buffer.enable: false
 
 client.blobstore.class: "backtype.storm.blobstore.NimbusBlobStore"
+blobstore.superuser: "nobody"
 
 dev.zookeeper.path: "/tmp/dev-storm-zookeeper"
