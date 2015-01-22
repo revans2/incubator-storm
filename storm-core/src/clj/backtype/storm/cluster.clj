@@ -150,6 +150,7 @@
   (remove-storm! [this storm-id])
   (report-error [this storm-id task-id error])
   (errors [this storm-id task-id])
+  (last-error [this storm-id task-id])
   (set-credentials! [this storm-id creds topo-conf])
   (credentials [this storm-id callback])
   (disconnect [this]))
@@ -197,6 +198,16 @@
   [storm-id component-id]
   (str (error-storm-root storm-id) "/" (url-encode component-id)))
 
+(def last-error-path-seg "last-error")
+
+(defn last-error-path
+  [storm-id component-id]
+  (str (error-storm-root storm-id)
+       "/"
+       (url-encode component-id)
+       "-"
+       last-error-path-seg))
+
 (defn credentials-path
   [storm-id]
   (str CREDENTIALS-SUBTREE "/" storm-id))
@@ -220,7 +231,7 @@
   (when ser
     (Utils/deserialize ser)))
 
-(defstruct TaskError :error :time-secs)
+(defrecord TaskError [error time-secs])
 
 (defn- parse-error-path
   [^String p]
@@ -401,9 +412,13 @@
       (report-error
          [this storm-id component-id error]                
          (let [path (error-path storm-id component-id)
+               last-error-path (last-error-path storm-id component-id)
                data {:time-secs (current-time-secs) :error (stringify-error error)}
                _ (mkdirs cluster-state path acls)
-               _ (create-sequential cluster-state (str path "/e") (Utils/serialize data) acls)
+               ser-data (Utils/serialize data)
+               _ (mkdirs cluster-state path acls)
+               _ (create-sequential cluster-state (str path "/e") ser-data acls)
+               _ (set-data cluster-state last-error-path ser-data acls)
                to-kill (->> (get-children cluster-state path false)
                             (sort-by parse-error-path)
                             reverse
@@ -416,15 +431,22 @@
          (let [path (error-path storm-id component-id)
                errors (if (exists-node? cluster-state path false)
                         (dofor [c (get-children cluster-state path false)]
-                          (let [data (-> (get-data cluster-state (str path "/" c) false)
+                          (if-let [data (-> (get-data cluster-state
+                                                      (str path "/" c)
+                                                      false)
                                          maybe-deserialize)]
-                            (when data
-                              (struct TaskError (:error data) (:time-secs data))
-                              )))
-                        ())
-               ]
+                            (map->TaskError data)))
+                        ())]
            (->> (filter not-nil? errors)
                 (sort-by (comp - :time-secs)))))
+
+      (last-error
+        [this storm-id component-id]
+        (let [path (last-error-path storm-id component-id)]
+          (if (exists-node? cluster-state path false)
+            (if-let [data (->> (get-data cluster-state path false)
+                               maybe-deserialize)]
+              (map->TaskError data)))))
       
       (disconnect
          [this]
