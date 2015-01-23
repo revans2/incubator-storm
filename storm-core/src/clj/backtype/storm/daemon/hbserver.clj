@@ -55,10 +55,10 @@
 
       (^HBNodes getAllNodesForPath [this ^String idPrefix]
        (let [_ (log-message "List all nodes for path " idPrefix)]
-         (HBNodes. (for [k (.keySet heartbeats)
+         (HBNodes. (distinct (for [k (.keySet heartbeats)
                          :let [trimmed-k (second (split (replace-first k idPrefix "") #"/"))]
                          :when (= (.indexOf k idPrefix) 0)]
-                     trimmed-k))))
+                     trimmed-k)))))
 
       (^Pulse getPulse [this ^String id]
        (let [details (.get heartbeats id)

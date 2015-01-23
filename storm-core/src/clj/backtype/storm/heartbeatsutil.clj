@@ -16,33 +16,43 @@
 
 (ns backtype.storm.heartbeatsutil
   (:import [backtype.storm.utils Utils ZookeeperAuthInfo HBClient])
-  (:import [backtype.storm.generated HBNodes HBRecords Pulse ])
+  (:import [backtype.storm.generated HBNodes HBRecords Pulse])
   (:use [backtype.storm util log config]))
 
-(defn get-pulse-data [conf id]
-  (let [_ (log-message "Getting hb pulse for id: " id)]
-    (try (.. (HBClient/getConfiguredClient conf) (getClient) (getPulse id) (get_details))
-      (catch Exception e (log-error e (str "Failed to get hb for id: [" id "]."))))))
+(defmacro with-configured-heartbeats-client
+  [client-sym & body]
+  `(let [conf# (read-storm-config)
+         ^HBClient ~client-sym (HBClient/getConfiguredClient conf#)]
+     (try
+       ~@body
+       (finally (.close ~client-sym)))))
+(defn get-pulse-data [id]
+  (with-configured-heartbeats-client hbclient
+    (let [_ (log-message "Getting hb pulse for id: " id)]
+      (try (.. hbclient (getClient) (getPulse id) (get_details))
+        (catch Exception e (log-error e (str "Failed to get hb for id: [" id "].")))))))
 
-(defn send-pulse [conf id details]
-  (let [_ (log-message "Sending pulse to hbserver for id: " id " data [ " (str details) "].")]
-  (try (.. (HBClient/getConfiguredClient conf) (getClient) (sendPulse (doto (Pulse. ) (.set_id id) (.set_details details))))
-    (catch Exception e (log-error e (str "Failed to send pulse for id [" id "]."))))))
+(defn send-pulse [id details]
+  (with-configured-heartbeats-client hbclient
+    (let [_ (log-message "Sending pulse to hbserver for id: " id " data [ " (str details) "].")]
+      (try (.. hbclient (getClient) (sendPulse (doto (Pulse.) (.set_id id) (.set_details details))))
+        (catch Exception e (log-error e (str "Failed to send pulse for id [" id "].")))))))
 
-(defn get-pulse-children [conf path]
-  (let [_ (log-message "Getting children from hbserver for path: " path)]
-  (try (.. (HBClient/getConfiguredClient conf)  (getClient) (getAllNodesForPath path) (get_pulseIds))
-    (catch Exception e (log-error e (str "Failed to get children from hbserver for path: [" path "]."))))))
+(defn get-pulse-children [path]
+  (with-configured-heartbeats-client hbclient
+    (let [_ (log-message "Getting children from hbserver for path: " path)]
+      (try (.. hbclient (getClient) (getAllNodesForPath path) (get_pulseIds))
+        (catch Exception e (log-error e (str "Failed to get children from hbserver for path: [" path "].")))))))
 
-(defn delete-pulse-recursive [conf path]
-  (let [_ (log-message "Deleting all pulses from hbserver for path: " path)]
-  (try (.. (HBClient/getConfiguredClient conf) (getClient) (deletePath path))
-    (catch Exception e (log-error e (str "Failed to delete all pulses from hbserver for path: [" path "]."))))))
+(defn delete-pulse-recursive [path]
+  (with-configured-heartbeats-client hbclient
+    (let [_ (log-message "Deleting all pulses from hbserver for path: " path)]
+      (try (.. hbclient (getClient) (deletePath path))
+        (catch Exception e (log-error e (str "Failed to delete all pulses from hbserver for path: [" path "].")))))))
 
-(defn delete-pulse [conf id]
-  (let [_ (log-message "Deleting the pulse from hbserver for id: " id)]
-  (try (.. (HBClient/getConfiguredClient conf) (getClient) (deletePulseId id))
-    (catch Exception e (log-error e (str "Failed to delete the pulse from hbserver for id: [" id "]."))))))
-
-
+(defn delete-pulse [id]
+  (with-configured-heartbeats-client hbclient
+    (let [_ (log-message "Deleting the pulse from hbserver for id: " id)]
+      (try (.. hbclient (getClient) (deletePulseId id))
+        (catch Exception e (log-error e (str "Failed to delete the pulse from hbserver for id: [" id "].")))))))
 

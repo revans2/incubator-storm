@@ -235,6 +235,16 @@ def blobstore(*args):
         jvmtype="-client", 
         extrajars=[USER_CONF_DIR, STORM_DIR + "/bin"])
 
+def heartbeats(*args):
+    """Syntax: [storm heartbeats [cmd]]
+
+    list [KEY...] - lists heartbeats nodes under KEY currently in the hbserver.
+    """
+    exec_storm_class(
+        "backtype.storm.command.heartbeats",
+        args=args,
+        jvmtype="-client",
+        extrajars=[USER_CONF_DIR, STORM_DIR + "/bin"])
 
 def activate(*args):
     """Syntax: [storm activate topology-name]
@@ -505,7 +515,7 @@ COMMANDS = {"jar": jar, "kill": kill, "shell": shell, "nimbus": nimbus, "ui": ui
             "remoteconfvalue": print_remoteconfvalue, "repl": repl, "classpath": print_classpath,
             "activate": activate, "deactivate": deactivate, "rebalance": rebalance, "help": print_usage,
             "list": listtopos, "dev-zookeeper": dev_zookeeper, "version": version, 
-            "upload-credentials": upload_credentials, "blobstore": blobstore, "hbserver": hbserver}
+            "upload-credentials": upload_credentials, "blobstore": blobstore, "hbserver": hbserver, "heartbeats": heartbeats }
 
 def parse_config(config_list):
     global CONFIG_OPTS

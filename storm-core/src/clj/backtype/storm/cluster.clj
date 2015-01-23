@@ -101,7 +101,7 @@
        [this path data acls heartbeat?]
        ;; note: this does not turn off any existing watches
        (if (and heartbeat? use-hbserver)
-         (hbu/send-pulse conf path data)
+         (hbu/send-pulse path data)
          (if (zk/exists zk path false)
          (zk/set-data zk path data)
          (do
@@ -115,7 +115,7 @@
      (delete-hb-node
        [this path heartbeat?]
        (if (and heartbeat? use-hbserver)
-         (hbu/delete-pulse-recursive conf path)
+         (hbu/delete-pulse-recursive path)
          (zk/delete-recursive zk path)))
 
      (delete-node
@@ -125,7 +125,7 @@
      (get-hb-data
        [this path watch? heartbeat?]
        (if (and heartbeat? use-hbserver)
-         (hbu/get-pulse-data conf path)
+         (hbu/get-pulse-data path)
          (zk/get-data zk path watch?)))
 
      (get-data
@@ -134,7 +134,7 @@
 
      (get-hb-children [this path watch? heartbeat?]
        (if (and heartbeat? use-hbserver)
-         (hbu/get-pulse-children conf path)
+         (hbu/get-pulse-children path)
          (zk/get-children zk path watch?)))
 
      (get-children [this path watch?]
