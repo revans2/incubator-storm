@@ -218,7 +218,7 @@ public class BlobStoreAclHandler {
     for (AccessControl ac : acl) {
       int allowed = getAllowed(ac, user);
       mask = ~allowed & mask;
-      LOG.debug(" user: " + user + " allowed: " + allowed + " mask: + " + mask + " key: " + key);
+      LOG.debug(" user: " + user + " allowed: " + allowed + " mask: " + mask + " key: " + key);
     }
     if (mask != 0) {
       throw new AuthorizationException(
