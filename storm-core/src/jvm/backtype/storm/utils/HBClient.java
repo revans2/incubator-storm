@@ -45,10 +45,5 @@ public class HBClient extends ThriftClient {
     public HBServer.Client getClient() {
         return _client;
     }
-/*
-    public byte[] getData(Map conf, String id) throws HBExecutionException, AuthorizationException, TException {
-        //HBClient.getConfiguredClient(conf).getClient().getAllNodesForPath(id).get_pulseIds();
-        //HBClient.getConfiguredClient(conf).getClient().deletePulseId();
-    }*/
 
 }

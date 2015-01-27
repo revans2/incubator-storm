@@ -22,13 +22,12 @@
   (:import [backtype.storm.security.auth ThriftServer ThriftConnectionType ReqContext AuthUtils])
   (:import [backtype.storm.generated HBServer HBServer$Processor
             HBServer$Iface AuthorizationException HBExecutionException HBRecords Pulse HBNodes])
+  (:import [backtype.storm.daemon Shutdownable])
   (:use [clojure.string :only [replace-first split]])
   (:use [backtype.storm bootstrap util log])
-  (:use [backtype.storm.config :only [validate-configs-with-schemas]])
+  (:use [backtype.storm.config :only [validate-configs-with-schemas read-storm-config]])
   (:use [backtype.storm.daemon common])
   (:gen-class))
-
-(bootstrap)
 
 (defn hb-data [conf]
   (ConcurrentHashMap.))
