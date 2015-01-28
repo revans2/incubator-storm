@@ -1,18 +1,25 @@
 package com.yahoo.storm.security.yca;
 
 import backtype.storm.security.auth.IAutoCredentials;
+import backtype.storm.utils.ShellUtils.ShellCommandExecutor;
+import backtype.storm.utils.ShellUtils.ExitCodeException;
 
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Arrays;
 import java.util.ArrayList;
+import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.UUID;
 import java.net.URLEncoder;
 
 import java.io.InputStream;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.File;
 
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.DocumentBuilder;
@@ -21,6 +28,8 @@ import javax.security.auth.Subject;
 
 import yjava.security.yca.CertDatabase;
 import yjava.security.yca.YCAException;
+
+import org.apache.commons.io.FileUtils;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -166,6 +175,47 @@ public class AutoYCA implements IAutoCredentials {
         }
     }
 
+    /* Temporarily workaround an issue with jdk8 and empty REALM in the ticket cache */
+    private static File copyKrbFile() throws IOException {
+        File tmpFile = new File("/tmp/" + UUID.randomUUID().toString());
+        ShellCommandExecutor shExec;
+        List<String> command = new ArrayList<String>(Arrays.asList("klist", "-l"));
+        String[] commandArray = command.toArray(new String[command.size()]);
+        shExec = new ShellCommandExecutor(commandArray);
+        try {
+            shExec.execute();
+            LOG.debug("output: {}", shExec.getOutput());
+            Pattern filePattern= Pattern.compile(".* FILE:(.+)$");
+            Matcher matcher = filePattern.matcher(shExec.getOutput());
+            if (matcher.find()) {
+                String krbFile = matcher.group(1);
+                LOG.debug("krb5 file is: " + krbFile);
+                // use the os cp to preserve permissions
+                List<String> cpcommand = new ArrayList<String>(Arrays.asList("cp", krbFile, tmpFile.getCanonicalPath()));
+                String[] cpcommandArray = cpcommand.toArray(new String[cpcommand.size()]);
+                ShellCommandExecutor cpshExec = new ShellCommandExecutor(cpcommandArray);
+                LOG.info("copying krb5 file");
+                try {
+                    cpshExec.execute();
+                    LOG.debug("krb5 copied to: {} output: {}", tmpFile, cpshExec.getOutput());
+                } catch (ExitCodeException e) {
+                    int exitCode = cpshExec.getExitCode();
+                    LOG.error("Exit code from copy command is: " + exitCode, e);
+                    LOG.debug("output: {}", cpshExec.getOutput());
+                    return null;
+                }
+            } else {
+                LOG.error("could not find kerberos ticket cache file - did you kinit?");
+            }
+        } catch (ExitCodeException e) {
+            int exitCode = shExec.getExitCode();
+            LOG.error("Error doing klist, did you kinit? Exit code is : " + exitCode, e);
+            LOG.debug("output: {}", shExec.getOutput());
+            return null;
+        }
+        return tmpFile;
+    }
+
     private static String getYcaV2CertRaw(String v2Role, String v1Role, String proxyRole) throws YCAException {
         v2Role = coanonicalAppId(v2Role);
         String v2RoleForWeb = appIdForWebService(v2Role);
@@ -179,6 +229,7 @@ public class AutoYCA implements IAutoCredentials {
             }
         }
 
+        File krbFile = null;
         try {
             ArrayList<String> cmd = new ArrayList<String>();
             cmd.add("curl");
@@ -195,9 +246,15 @@ public class AutoYCA implements IAutoCredentials {
                 cmd.add("-u");
                 cmd.add(":");
                 cmd.add("http://ca.yca.platform.yahoo.com:4080/wsca/v2/certificates/kerberos/"+v2RoleForWeb+proxyPart);
+
+                krbFile = copyKrbFile();
             }
             LOG.info("Running {} to get YCAv2 Cert",cmd);
             ProcessBuilder pb = new ProcessBuilder(cmd);
+            if (krbFile != null) {
+              Map<String, String> env = pb.environment();
+              env.put("KRB5CCNAME", krbFile.getCanonicalPath());
+            }
             pb.redirectError(ProcessBuilder.Redirect.INHERIT);
             Process p = pb.start();
             InputStream in = p.getInputStream();
@@ -225,6 +282,14 @@ public class AutoYCA implements IAutoCredentials {
             throw new YCAException("Error parsing YCA curl result ", e);
         } catch (IOException | InterruptedException e2) {
             throw new YCAException("Error running YCA curl command ", e2);
+        } finally {
+            if (krbFile != null) {
+                try {
+                    FileUtils.forceDelete(krbFile);
+                } catch(IOException ignore) {
+                    LOG.warn("error removing: " + krbFile.toString());
+                }
+            }
         }
     }
 
