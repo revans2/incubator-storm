@@ -162,7 +162,7 @@ public class Localizer {
 
     if (lrsrcs != null) {
       for (File rsrc : lrsrcs) {
-        LOG.info("ad localized in dir found: " + rsrc);
+        LOG.info("add localized in dir found: " + rsrc);
         /// strip off .suffix
         String path = rsrc.getPath();
         int p = path.lastIndexOf('.');
