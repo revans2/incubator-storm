@@ -331,8 +331,8 @@ def repl():
 def nimbus(klass="backtype.storm.daemon.nimbus"):
     """Syntax: [storm nimbus]
 
-    Launches the nimbus daemon. This command should be run under
-    supervision with a tool like daemontools or monit.
+    Launches the nimbus daemon. This command should be run under 
+    supervision with a tool like daemontools or monit. 
 
     See Setting up a Storm cluster for more information.
     (http://storm.incubator.apache.org/documentation/Setting-up-a-Storm-cluster)
