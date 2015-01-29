@@ -202,6 +202,9 @@ public class AutoYCA implements IAutoCredentials {
                     int exitCode = cpshExec.getExitCode();
                     LOG.error("Exit code from copy command is: " + exitCode, e);
                     LOG.debug("output: {}", cpshExec.getOutput());
+                    try {
+                        FileUtils.forceDelete(tmpFile);
+                    } catch (IOException ignore) {}
                     return null;
                 }
             } else {
