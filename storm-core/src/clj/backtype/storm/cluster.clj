@@ -15,13 +15,15 @@
 ;; limitations under the License.
 
 (ns backtype.storm.cluster
-  (:import [org.apache.zookeeper.data Stat ACL Id])
+  (:import [org.apache.zookeeper.data Stat ACL Id]
+           [backtype.storm.generated SupervisorInfo Assignment StormBase ZKWorkerHeartbeat ErrorInfo Credentials]
+           [java.io Serializable])
   (:import [org.apache.zookeeper KeeperException KeeperException$NoNodeException ZooDefs ZooDefs$Ids ZooDefs$Perms])
   (:import [backtype.storm.utils Utils])
   (:import [backtype.storm.cluster ClusterState])
   (:import [java.security MessageDigest])
   (:import [org.apache.zookeeper.server.auth DigestAuthenticationProvider])
-  (:use [backtype.storm util log config])
+  (:use [backtype.storm util log config converter])
   (:require [backtype.storm [zookeeper :as zk]])
   (:require [backtype.storm.daemon [common :as common]]))
 
@@ -152,9 +154,9 @@
       (cb id))))
 
 (defn- maybe-deserialize
-  [ser]
+  [ser clazz]
   (when ser
-    (Utils/deserialize ser)))
+    (Utils/deserialize ser clazz)))
 
 (defrecord TaskError [error time-secs])
 
@@ -219,15 +221,15 @@
         [this storm-id callback]
         (when callback
           (swap! assignment-info-callback assoc storm-id callback))
-        (maybe-deserialize (.get_data cluster-state (assignment-path storm-id) (not-nil? callback))))
+        (clojurify-assignment (maybe-deserialize (.get-data cluster-state (assignment-path storm-id) (not-nil? callback)) Assignment)))
 
       (assignment-info-with-version 
         [this storm-id callback]
         (when callback
           (swap! assignment-info-with-version-callback assoc storm-id callback))
         (let [{data :data version :version} 
-              (.get_data_with_version cluster-state (assignment-path storm-id) (not-nil? callback))]
-        {:data (maybe-deserialize data)
+              (.get-data-with-version cluster-state (assignment-path storm-id) (not-nil? callback))]
+        {:data (clojurify-assignment (maybe-deserialize data Assignment))
          :version version}))
 
       (assignment-version 
@@ -252,7 +254,8 @@
         [this storm-id node port]
         (-> cluster-state
             (.get_worker_hb (workerbeat-path storm-id node port) false)
-            maybe-deserialize))
+          (maybe-deserialize ZKWorkerHeartbeat)
+          clojurify-zk-worker-hb))
 
       (executor-beats
         [this storm-id executor->node+port]
@@ -275,21 +278,24 @@
 
       (supervisor-info
         [this supervisor-id]
-        (maybe-deserialize (.get_data cluster-state (supervisor-path supervisor-id) false)))
+        (clojurify-supervisor-info (maybe-deserialize (.get-data cluster-state (supervisor-path supervisor-id) false) SupervisorInfo)))
 
       (topology-log-config
         [this storm-id cb]
+        ;;TODO need to turn this not into thrift
         (when cb 
           (swap! log-config-callback assoc storm-id cb))
         (maybe-deserialize (.get_data cluster-state (log-config-path storm-id) (not-nil? cb))))
 
       (set-topology-log-config!
         [this storm-id log-config]
+        ;;TODO need to turn this into thrift
         (.set_data cluster-state (log-config-path storm-id) (Utils/serialize log-config) acls))
 
       (worker-heartbeat!
         [this storm-id node port info]
-        (.set_worker_hb cluster-state (workerbeat-path storm-id node port) (Utils/serialize info) acls))
+        (let [thrift-worker-hb (thriftify-zk-worker-hb info)]
+          (.set_worker_hb cluster-state (workerbeat-path storm-id node port) (Utils/serialize thrift-worker-hb) acls)))
 
       (remove-worker-heartbeat!
         [this storm-id node port]
@@ -322,11 +328,13 @@
 
       (supervisor-heartbeat!
         [this supervisor-id info]
-        (.set_ephemeral_node cluster-state (supervisor-path supervisor-id) (Utils/serialize info) acls))
+        (let [thrift-supervisor-info (thriftify-supervisor-info info)]
+          (.set_ephemeral_node cluster-state (supervisor-path supervisor-id) (Utils/serialize thrift-supervisor-info) acls)))
 
       (activate-storm!
         [this storm-id storm-base]
-        (.set_data cluster-state (storm-path storm-id) (Utils/serialize storm-base) acls))
+        (let [thrift-storm-base (thriftify-storm-base storm-base)]
+          (.set_data cluster-state (storm-path storm-id) (Utils/serialize thrift-storm-base) acls)))
 
       (update-storm!
         [this storm-id new-elems]
@@ -336,6 +344,7 @@
           (.set_data cluster-state (storm-path storm-id)
                     (-> base
                         (merge new-elems)
+                        thriftify-storm-base
                         Utils/serialize)
                     acls)))
 
@@ -343,7 +352,7 @@
         [this storm-id callback]
         (when callback
           (swap! storm-base-callback assoc storm-id callback))
-        (maybe-deserialize (.get_data cluster-state (storm-path storm-id) (not-nil? callback))))
+        (clojurify-storm-base (maybe-deserialize (.get_data cluster-state (storm-path storm-id) (not-nil? callback)) StormBase)))
 
       (remove-storm-base!
         [this storm-id]
@@ -351,7 +360,8 @@
 
       (set-assignment!
         [this storm-id info]
-        (.set_data cluster-state (assignment-path storm-id) (Utils/serialize info) acls))
+        (let [thrift-assignment (thriftify-assignment info)]
+          (.set_data cluster-state (assignment-path storm-id) (Utils/serialize thrift-assignment) acls)))
 
       (remove-storm!
         [this storm-id]
@@ -362,20 +372,21 @@
       (set-credentials!
          [this storm-id creds topo-conf]
          (let [topo-acls (mk-topo-only-acls topo-conf)
-               path (credentials-path storm-id)]
-           (.set_data cluster-state path (Utils/serialize creds) topo-acls)))
+               path (credentials-path storm-id)
+               thriftified-creds (thriftify-credentials creds)]
+           (.set_data cluster-state path (Utils/serialize thriftified-creds) topo-acls)))
 
       (credentials
         [this storm-id callback]
         (when callback
           (swap! credentials-callback assoc storm-id callback))
-        (maybe-deserialize (.get_data cluster-state (credentials-path storm-id) (not-nil? callback))))
+        (clojurify-crdentials (maybe-deserialize (.get_data cluster-state (credentials-path storm-id) (not-nil? callback)) Credentials)))
 
       (report-error
          [this storm-id component-id error]
          (let [path (error-path storm-id component-id)
                last-error-path (last-error-path storm-id component-id)
-               data {:time-secs (current-time-secs) :error (stringify-error error)}
+               data (thriftify-error {:time-secs (current-time-secs) :error (stringify-error error)})
                _ (.mkdirs cluster-state path acls)
                ser-data (Utils/serialize data)
                _ (.mkdirs cluster-state path acls)
@@ -392,13 +403,15 @@
          [this storm-id component-id]
          (let [path (error-path storm-id component-id)
                errors (if (.node_exists cluster-state path false)
-                        (dofor [c (.get_children cluster-state path false)]
-                          (if-let [data (-> (.get_data cluster-state
-                                                      (str path "/" c)
-                                                      false)
-                                         maybe-deserialize)]
-                            (map->TaskError data)))
-                        ())]
+                        (dofor [c (get-children cluster-state path false)]
+                          (let [data (-> (get-data cluster-state (str path "/" c) false)
+                                       (maybe-deserialize ErrorInfo)
+                                       clojurify-error)]
+                            (when data
+                              (struct TaskError (:error data) (:time-secs data) (:host data) (:port data))
+                              )))
+                        ())
+               ]
            (->> (filter not-nil? errors)
                 (sort-by (comp - :time-secs)))))
 

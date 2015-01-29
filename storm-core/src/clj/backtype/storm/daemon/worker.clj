@@ -68,7 +68,7 @@
 
 (defn do-heartbeat [worker]
   (let [conf (:conf worker)
-        hb (WorkerHeartbeat.
+        hb (mk-local-worker-heartbeat
              (current-time-secs)
              (:storm-id worker)
              (:executors worker)
