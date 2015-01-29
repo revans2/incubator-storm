@@ -18,6 +18,7 @@
 package backtype.storm.messaging.netty;
 
 import backtype.storm.Config;
+import backtype.storm.grouping.Load;
 import backtype.storm.metric.api.IStatefulObject;
 import backtype.storm.messaging.IConnection;
 import backtype.storm.messaging.TaskMessage;
@@ -36,6 +37,7 @@ import org.slf4j.LoggerFactory;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.util.Iterator;
+import java.util.Collection;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.Timer;
@@ -69,6 +71,7 @@ class Client implements IConnection, IStatefulObject{
     private final AtomicBoolean close_msg_enqueued;
     private boolean wait_for_requests;
     private final StormBoundedExponentialBackoffRetry retryPolicy;
+    private volatile Map<Integer, Double> serverLoad = null;
 
     @SuppressWarnings("rawtypes")
     Client(Map storm_conf, ChannelFactory factory, String host, int port) {
@@ -313,9 +316,34 @@ class Client implements IConnection, IStatefulObject{
         }
     }
 
+    void setLoadMetrics(Map<Integer, Double> taskToLoad) {
+        this.serverLoad = taskToLoad;
+    }
+
+    @Override
+    public Map<Integer, Load> getLoad(Collection<Integer> tasks) {
+        Map<Integer, Double> loadCache = serverLoad;
+        Map<Integer, Load> ret = new HashMap<Integer, Load>();
+        if (loadCache != null) {
+            double clientLoad = Math.max(messagesEnqueued.get(), 1024)/1024.0;
+            for (Integer task : tasks) {
+                Double found = loadCache.get(task);
+                if (found != null) {
+                    ret.put(task, new Load(true, found, clientLoad));
+                }
+            }
+        }
+        return ret;
+    }
+
     @Override
     public Iterator<TaskMessage> recv(int flags, int clientId) {
         throw new RuntimeException("Client connection should not receive any messages");
+    }
+
+    @Override
+    public void sendLoadMetrics(Map<Integer, Double> taskToLoad) {
+        throw new RuntimeException("Client connection should not send load metrics");
     }
 
     void setChannel(Channel channel) {

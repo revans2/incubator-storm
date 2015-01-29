@@ -17,8 +17,13 @@
  */
 package backtype.storm.messaging.netty;
 
+import backtype.storm.messaging.TaskMessage;
+import backtype.storm.utils.Utils;
+
 import java.net.ConnectException;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.Map;
+import java.util.List;
 
 import org.jboss.netty.channel.Channel;
 import org.jboss.netty.channel.ChannelHandlerContext;
@@ -28,9 +33,6 @@ import org.jboss.netty.channel.MessageEvent;
 import org.jboss.netty.channel.SimpleChannelUpstreamHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.net.ConnectException;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 public class StormClientHandler extends SimpleChannelUpstreamHandler  {
     private static final Logger LOG = LoggerFactory.getLogger(StormClientHandler.class);
@@ -63,16 +65,30 @@ public class StormClientHandler extends SimpleChannelUpstreamHandler  {
         LOG.info("send/recv time (ms): {}", (System.currentTimeMillis() - start_time));
         
         //examine the response message from server
-        ControlMessage msg = (ControlMessage)event.getMessage();
-        if (msg==ControlMessage.FAILURE_RESPONSE)
-            LOG.info("failure response:{}", msg);
+        Object message = event.getMessage();
+        if (message instanceof ControlMessage) {
+          ControlMessage msg = (ControlMessage)message;
+          if (msg==ControlMessage.FAILURE_RESPONSE)
+              LOG.info("failure response:{}", msg);
 
-        //send next batch of requests if any
-        try {
-            client.tryDeliverMessages(false);
-        } catch (Exception ex) {
-            LOG.info("exception when sending messages:", ex.getMessage());
-            client.reconnect();
+          //send next batch of requests if any
+          try {
+              client.tryDeliverMessages(false);
+          } catch (Exception ex) {
+              LOG.info("exception when sending messages:", ex.getMessage());
+              client.reconnect();
+          }
+        } else if (message instanceof List) {
+          //This should be the metrics, and there should only be one of them
+          List<TaskMessage> list = (List<TaskMessage>)message;
+          if (list.size() != 1) throw new RuntimeException("Expected to only see one message for load metrics");
+          TaskMessage tm = ((List<TaskMessage>)message).get(0);
+          if (tm.task() != -1) throw new RuntimeException("Metrics messages are sent to the system task");
+          Object metrics = Utils.deserialize(tm.message());
+          if (!(metrics instanceof Map)) throw new RuntimeException("metrics are expected to be a map");
+          client.setLoadMetrics((Map<Integer, Double>)metrics);
+        } else {
+          throw new RuntimeException("Don't know how to handle a message of type "+message);
         }
     }
 
