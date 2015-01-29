@@ -315,22 +315,28 @@ public class Localizer {
       // resource set must have been removed
       return results;
     }
-
-    for (LocalResource localResource: localResources) {
-      String key = localResource.getBlobName();
-      LocalizedResource lrsrc = lrsrcSet.get(key, localResource.shouldUncompress());
-      if (lrsrc == null) {
-        LOG.warn("blob requested for update doesn't exist: {}", key);
-        continue;
-      } else {
-        // update it if either the version isn't the latest or if any local blob files are missing
-        ClientBlobStore blobstore = getClientBlobStore();
-        if (!isLocalizedResourceUpToDate(lrsrc, blobstore) ||
-            !isLocalizedResourceDownloaded(lrsrc)) {
-          LOG.debug("updating blob: {}", key);
-          updates.add(new DownloadBlob(this, _conf, key, new File(lrsrc.getFilePath()), user,
-              lrsrc.isUncompressed(), blobstore, true));
+    ClientBlobStore blobstore = null;
+    try {
+      blobstore = getClientBlobStore();
+      for (LocalResource localResource: localResources) {
+        String key = localResource.getBlobName();
+        LocalizedResource lrsrc = lrsrcSet.get(key, localResource.shouldUncompress());
+        if (lrsrc == null) {
+          LOG.warn("blob requested for update doesn't exist: {}", key);
+          continue;
+        } else {
+          // update it if either the version isn't the latest or if any local blob files are missing
+          if (!isLocalizedResourceUpToDate(lrsrc, blobstore) ||
+              !isLocalizedResourceDownloaded(lrsrc)) {
+            LOG.debug("updating blob: {}", key);
+            updates.add(new DownloadBlob(this, _conf, key, new File(lrsrc.getFilePath()), user,
+                lrsrc.isUncompressed(), true));
+          }
         }
+      }
+    } finally {
+      if(blobstore != null) {
+        blobstore.shutdown();
       }
     }
     try {
@@ -376,37 +382,44 @@ public class Localizer {
     ArrayList<LocalizedResource> results = new ArrayList<>();
     ArrayList<Callable<LocalizedResource>> downloads = new ArrayList<>();
 
-    for (LocalResource localResource: localResources) {
-      String key = localResource.getBlobName();
-      boolean uncompress = localResource.shouldUncompress();
-      LocalizedResource lrsrc = lrsrcSet.get(key, localResource.shouldUncompress());
-      ClientBlobStore blobstore = getClientBlobStore();
-      boolean isUpdate = false;
-      if ((lrsrc != null) && (lrsrc.isUncompressed() == localResource.shouldUncompress()) &&
-          (isLocalizedResourceDownloaded(lrsrc))) {
-        if (isLocalizedResourceUpToDate(lrsrc, blobstore)) {
-          LOG.debug("blob already exists: {}", key);
-          lrsrc.addReference(topo);
-          results.add(lrsrc);
-          continue;
+    ClientBlobStore blobstore = null;
+    try {
+      blobstore = getClientBlobStore();
+      for (LocalResource localResource: localResources) {
+        String key = localResource.getBlobName();
+        boolean uncompress = localResource.shouldUncompress();
+        LocalizedResource lrsrc = lrsrcSet.get(key, localResource.shouldUncompress());
+        boolean isUpdate = false;
+        if ((lrsrc != null) && (lrsrc.isUncompressed() == localResource.shouldUncompress()) &&
+            (isLocalizedResourceDownloaded(lrsrc))) {
+          if (isLocalizedResourceUpToDate(lrsrc, blobstore)) {
+            LOG.debug("blob already exists: {}", key);
+            lrsrc.addReference(topo);
+            results.add(lrsrc);
+            continue;
+          }
+          LOG.debug("blob exists but isn't up to date: {}", key);
+          isUpdate = true;
         }
-        LOG.debug("blob exists but isn't up to date: {}", key);
-        isUpdate = true;
-      }
 
-      // go off to blobstore and get it
-      // assume dir passed in exists and has correct permission
-      LOG.debug("fetching blob: {}", key);
-      File downloadDir = getCacheDirForFiles(userFileDir);
-      File localFile = new File(downloadDir, key);
-      if (uncompress) {
-        // for compressed file, download to archives dir
-        downloadDir = getCacheDirForArchives(userFileDir);
-        localFile = new File(downloadDir, key);
+        // go off to blobstore and get it
+        // assume dir passed in exists and has correct permission
+        LOG.debug("fetching blob: {}", key);
+        File downloadDir = getCacheDirForFiles(userFileDir);
+        File localFile = new File(downloadDir, key);
+        if (uncompress) {
+          // for compressed file, download to archives dir
+          downloadDir = getCacheDirForArchives(userFileDir);
+          localFile = new File(downloadDir, key);
+        }
+        downloadDir.mkdir();
+        downloads.add(new DownloadBlob(this, _conf, key, localFile, user, uncompress,
+            isUpdate));
       }
-      downloadDir.mkdir();
-      downloads.add(new DownloadBlob(this, _conf, key, localFile, user, uncompress,
-          blobstore, isUpdate));
+    } finally {
+      if(blobstore !=null) {
+        blobstore.shutdown();
+      }
     }
     try {
       List<Future<LocalizedResource>> futures = _execService.invokeAll(downloads);
@@ -435,17 +448,15 @@ public class Localizer {
     private String _user;
     private boolean _uncompress;
     private boolean _isUpdate;
-    private ClientBlobStore _blobstore;
 
     public DownloadBlob(Localizer localizer, Map conf, String key, File localFile,
-        String user, boolean uncompress, ClientBlobStore blobstore, boolean update) {
+        String user, boolean uncompress, boolean update) {
       _localizer = localizer;
       _conf = conf;
       _key = key;
       _localFile = localFile;
       _user = user;
       _uncompress = uncompress;
-      _blobstore = blobstore;
       _isUpdate = update;
     }
 
@@ -453,138 +464,145 @@ public class Localizer {
     public LocalizedResource call()
         throws AuthorizationException, KeyNotFoundException, IOException  {
       return _localizer.downloadBlob(_conf, _key, _localFile, _user, _uncompress,
-          _blobstore, _isUpdate);
+        _isUpdate);
     }
   }
 
   private LocalizedResource downloadBlob(Map conf, String key, File localFile,
-      String user, boolean uncompress, ClientBlobStore blobstore, boolean isUpdate)
+      String user, boolean uncompress, boolean isUpdate)
       throws AuthorizationException, KeyNotFoundException, IOException {
-    long nimbusBlobVersion = Utils.nimbusVersionOfBlob(key, blobstore);
-    long oldVersion = Utils.localVersionOfBlob(localFile.toString());
-    FileOutputStream out = null;
-    PrintWriter writer = null;
-    int numTries = 0;
-    String localizedPath = localFile.toString();
-    String localFileWithVersion = Utils.constructBlobWithVerionFileName(localFile.toString(),
-        nimbusBlobVersion);
-    String localVersionFile = Utils.constructVersionFileName(localFile.toString());
-    String downloadFile = localFileWithVersion;
-    if (uncompress) {
-      // we need to download to temp file and then unpack into the one requested
-      downloadFile = new File(localFile.getParent(), TO_UNCOMPRESS + localFile.getName()).toString();
-    }
-    while (numTries < _blobDownloadRetries) {
-      out = new FileOutputStream(downloadFile);
-      numTries++;
-      try {
-        if (!Utils.canUserReadBlob(blobstore.getBlobMeta(key), user)) {
-          throw new AuthorizationException(user + " does not have READ access to " + key);
-        }
-        InputStreamWithMeta in = blobstore.getBlob(key);
-        byte[] buffer = new byte[1024];
-        int len;
-        while ((len = in.read(buffer)) >= 0) {
-          out.write(buffer, 0, len);
-        }
-        out.close();
-        in.close();
-        if (uncompress) {
-          Utils.unpack(new File(downloadFile), new File(localFileWithVersion));
-          LOG.debug("uncompressed " + downloadFile + " to: " + localFileWithVersion);
-        }
-
-        // Next write the version.
-        LOG.info("Blob: " + key + " updated with new Nimbus-provided version: " +
-            nimbusBlobVersion + " local version was: " + oldVersion);
-        // The false parameter ensures overwriting the version file, not appending
-        writer = new PrintWriter(
-            new BufferedWriter(new FileWriter(localVersionFile, false)));
-        writer.println(nimbusBlobVersion);
-        writer.close();
-
+    ClientBlobStore blobstore = null;
+    try {
+      blobstore = getClientBlobStore();
+      long nimbusBlobVersion = Utils.nimbusVersionOfBlob(key, blobstore);
+      long oldVersion = Utils.localVersionOfBlob(localFile.toString());
+      FileOutputStream out = null;
+      PrintWriter writer = null;
+      int numTries = 0;
+      String localizedPath = localFile.toString();
+      String localFileWithVersion = Utils.constructBlobWithVerionFileName(localFile.toString(),
+          nimbusBlobVersion);
+      String localVersionFile = Utils.constructVersionFileName(localFile.toString());
+      String downloadFile = localFileWithVersion;
+      if (uncompress) {
+        // we need to download to temp file and then unpack into the one requested
+        downloadFile = new File(localFile.getParent(), TO_UNCOMPRESS + localFile.getName()).toString();
+      }
+      while (numTries < _blobDownloadRetries) {
+        out = new FileOutputStream(downloadFile);
+        numTries++;
         try {
-          setBlobPermissions(conf, user, localFileWithVersion);
-          setBlobPermissions(conf, user, localVersionFile);
-
-          // Update the key.current symlink. First create tmp symlink and do
-          // move of tmp to current so that the operation is atomic.
-          String tmp_uuid_local = java.util.UUID.randomUUID().toString();
-          LOG.debug("Creating a symlink @" + localFile + "." + tmp_uuid_local + " , " +
-              "linking to: " + localFile + "." + nimbusBlobVersion);
-          File uuid_symlink = new File(localFile + "." + tmp_uuid_local);
-
-          Files.createSymbolicLink(uuid_symlink.toPath(),
-              Paths.get(Utils.constructBlobWithVerionFileName(localFile.toString(),
-                  nimbusBlobVersion)));
-          File current_symlink = new File(Utils.constructBlobCurrentSymlinkName(
-              localFile.toString()));
-          Files.move(uuid_symlink.toPath(), current_symlink.toPath(), ATOMIC_MOVE);
-        } catch (IOException e) {
-          // if we fail after writing the version file but before we move current link we need to
-          // restore the old version to the file
-          try {
-            PrintWriter restoreWriter = new PrintWriter(
-                new BufferedWriter(new FileWriter(localVersionFile, false)));
-            restoreWriter.println(oldVersion);
-            restoreWriter.close();
-          } catch (IOException ignore) {}
-          throw e;
-        }
-
-        String oldBlobFile = localFile + "." + oldVersion;
-        try {
-          // Remove the old version. Note that if a number of processes have that file open,
-          // the OS will keep the old blob file around until they all close the handle and only
-          // then deletes it. No new process will open the old blob, since the users will open the
-          // blob through the "blob.current" symlink, which always points to the latest version of
-          // a blob. Remove the old version after the current symlink is updated as to not affect
-          // anyone trying to read it.
-          if ((oldVersion != -1) && (oldVersion != nimbusBlobVersion)) {
-            LOG.info("Removing an old blob file:" + oldBlobFile);
-            Files.delete(Paths.get(oldBlobFile));
+          if (!Utils.canUserReadBlob(blobstore.getBlobMeta(key), user)) {
+            throw new AuthorizationException(user + " does not have READ access to " + key);
           }
-        } catch (IOException e) {
-          // At this point we have downloaded everything and moved symlinks.  If the remove of
-          // old fails just log an error
-          LOG.error("Exception removing old blob version: " + oldBlobFile);
-        }
+          InputStreamWithMeta in = blobstore.getBlob(key);
+          byte[] buffer = new byte[1024];
+          int len;
+          while ((len = in.read(buffer)) >= 0) {
+            out.write(buffer, 0, len);
+          }
+          out.close();
+          in.close();
+          if (uncompress) {
+            Utils.unpack(new File(downloadFile), new File(localFileWithVersion));
+            LOG.debug("uncompressed " + downloadFile + " to: " + localFileWithVersion);
+          }
 
-        break;
-      } catch (AuthorizationException ae) {
-        // we consider this non-retriable exceptions
-        if (out != null) {
-          out.close();
-        }
-        new File(downloadFile).delete();
-        throw ae;
-      } catch (IOException | KeyNotFoundException e) {
-        if (out != null) {
-          out.close();
-        }
-        if (writer != null) {
+          // Next write the version.
+          LOG.info("Blob: " + key + " updated with new Nimbus-provided version: " +
+              nimbusBlobVersion + " local version was: " + oldVersion);
+          // The false parameter ensures overwriting the version file, not appending
+          writer = new PrintWriter(
+              new BufferedWriter(new FileWriter(localVersionFile, false)));
+          writer.println(nimbusBlobVersion);
           writer.close();
-        }
-        new File(downloadFile).delete();
-        if (uncompress) {
-          try {
-            FileUtils.deleteDirectory(new File(localFileWithVersion));
-          } catch (IOException ignore) {}
-        }
-        if (!isUpdate) {
-          // don't want to remove existing version file if its an update
-          new File(localVersionFile).delete();
-        }
 
-        if (numTries < _blobDownloadRetries) {
-          LOG.error("Failed to download blob, retrying", e);
-        } else {
-          throw e;
+          try {
+            setBlobPermissions(conf, user, localFileWithVersion);
+            setBlobPermissions(conf, user, localVersionFile);
+
+            // Update the key.current symlink. First create tmp symlink and do
+            // move of tmp to current so that the operation is atomic.
+            String tmp_uuid_local = java.util.UUID.randomUUID().toString();
+            LOG.debug("Creating a symlink @" + localFile + "." + tmp_uuid_local + " , " +
+                "linking to: " + localFile + "." + nimbusBlobVersion);
+            File uuid_symlink = new File(localFile + "." + tmp_uuid_local);
+
+            Files.createSymbolicLink(uuid_symlink.toPath(),
+                Paths.get(Utils.constructBlobWithVerionFileName(localFile.toString(),
+                    nimbusBlobVersion)));
+            File current_symlink = new File(Utils.constructBlobCurrentSymlinkName(
+                localFile.toString()));
+            Files.move(uuid_symlink.toPath(), current_symlink.toPath(), ATOMIC_MOVE);
+          } catch (IOException e) {
+            // if we fail after writing the version file but before we move current link we need to
+            // restore the old version to the file
+            try {
+              PrintWriter restoreWriter = new PrintWriter(
+                  new BufferedWriter(new FileWriter(localVersionFile, false)));
+              restoreWriter.println(oldVersion);
+              restoreWriter.close();
+            } catch (IOException ignore) {}
+            throw e;
+          }
+
+          String oldBlobFile = localFile + "." + oldVersion;
+          try {
+            // Remove the old version. Note that if a number of processes have that file open,
+            // the OS will keep the old blob file around until they all close the handle and only
+            // then deletes it. No new process will open the old blob, since the users will open the
+            // blob through the "blob.current" symlink, which always points to the latest version of
+            // a blob. Remove the old version after the current symlink is updated as to not affect
+            // anyone trying to read it.
+            if ((oldVersion != -1) && (oldVersion != nimbusBlobVersion)) {
+              LOG.info("Removing an old blob file:" + oldBlobFile);
+              Files.delete(Paths.get(oldBlobFile));
+            }
+          } catch (IOException e) {
+            // At this point we have downloaded everything and moved symlinks.  If the remove of
+            // old fails just log an error
+            LOG.error("Exception removing old blob version: " + oldBlobFile);
+          }
+
+          break;
+        } catch (AuthorizationException ae) {
+          // we consider this non-retriable exceptions
+          if (out != null) {
+            out.close();
+          }
+          new File(downloadFile).delete();
+          throw ae;
+        } catch (IOException | KeyNotFoundException e) {
+          if (out != null) {
+            out.close();
+          }
+          if (writer != null) {
+            writer.close();
+          }
+          new File(downloadFile).delete();
+          if (uncompress) {
+            try {
+              FileUtils.deleteDirectory(new File(localFileWithVersion));
+            } catch (IOException ignore) {}
+          }
+          if (!isUpdate) {
+            // don't want to remove existing version file if its an update
+            new File(localVersionFile).delete();
+          }
+
+          if (numTries < _blobDownloadRetries) {
+            LOG.error("Failed to download blob, retrying", e);
+          } else {
+            throw e;
+          }
         }
       }
+      return new LocalizedResource(key, localizedPath, uncompress);
+    } finally {
+      if(blobstore != null) {
+        blobstore.shutdown();
+      }
     }
-    blobstore.shutdown();
-    return new LocalizedResource(key, localizedPath, uncompress);
   }
 
   public void setBlobPermissions(Map conf, String user, String path)
