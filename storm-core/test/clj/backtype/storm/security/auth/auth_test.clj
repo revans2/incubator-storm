@@ -363,7 +363,7 @@
             client (NimbusClient. storm-conf "localhost" a-port nimbus-timeout)
             nimbus_client (.getClient client)]
         (testing "(Negative authentication) Server: Digest vs. Client: Simple"
-          (is (thrown-cause? java.net.SocketTimeoutException
+          (is (thrown-cause? org.apache.thrift.transport.TTransportException
                              (.activate nimbus_client "security_auth_test_topology"))))
         (.close client))
       
