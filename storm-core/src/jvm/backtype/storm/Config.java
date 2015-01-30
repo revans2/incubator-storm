@@ -575,7 +575,6 @@ public class Config extends HashMap<String, Object> {
     public static final String HBSERVER_THRIFT_THREADS = "hbserver.thrift.threads";
     public static final Object HBSERVER_THRIFT_THREADS_SCHEMA = Number.class;
 
-
     /**
      * The maximum buffer size thrift should use when reading messages.
      */
@@ -588,7 +587,6 @@ public class Config extends HashMap<String, Object> {
      */
     public static final String HBSERVER_CHILDOPTS = "hbserver.childopts";
     public static final Object HBSERVER_CHILDOPTS_SCHEMA = String.class;
-
 
     /**
      * This parameter is used by the to configure storm cluster to use HBServer for worker heartbeats.

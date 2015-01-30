@@ -68,7 +68,7 @@
                                       (when-not (= :none type)
                                         (doseq [callback (vals @callbacks)]
                                           (callback type path))))))
-        use-hbserver (conf HBSERVER-ROUTE-WORKER-HEARTBEATS)]
+        use-hbserver (Boolean/valueOf (conf HBSERVER-ROUTE-WORKER-HEARTBEATS))]
     (reify
      ClusterState
 
@@ -103,10 +103,10 @@
        (if (and heartbeat? use-hbserver)
          (hbu/send-pulse path data)
          (if (zk/exists zk path false)
-         (zk/set-data zk path data)
-         (do
-           (zk/mkdirs zk (parent-path path) acls)
-           (zk/create-node zk path data :persistent acls)))))
+           (zk/set-data zk path data)
+           (do
+             (zk/mkdirs zk (parent-path path) acls)
+             (zk/create-node zk path data :persistent acls)))))
 
      (set-data
        [this path data acls]

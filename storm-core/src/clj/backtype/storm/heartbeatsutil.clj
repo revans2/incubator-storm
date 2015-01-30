@@ -26,6 +26,7 @@
      (try
        ~@body
        (finally (.close ~client-sym)))))
+
 (defn get-pulse-data [id]
   (with-configured-heartbeats-client hbclient
     (let [_ (log-debug "Getting hb pulse for id: " id)]

@@ -41,19 +41,19 @@
 
       (^boolean exists [this ^String path]
        (let [it-does (.exists heartbeats path)
-             _ (log-message (str "Checking if path [" path "] exists..." it-does "."))]
+             _ (log-debug (str "Checking if path [" path "] exists..." it-does "."))]
          it-does))
 
       (^void sendPulse [this ^Pulse pulse]
        (let [id (.get_id pulse)
              details (.get_details pulse)
-             _ (log-message (str "Saving Pulse for id [" id "] data [" + (str details) "]."))]
+             _ (log-debug (str "Saving Pulse for id [" id "] data [" + (str details) "]."))]
          (.put heartbeats id details)))
 
       (^HBRecords getAllPulseForPath [this ^String idPrefix])
 
       (^HBNodes getAllNodesForPath [this ^String idPrefix]
-       (let [_ (log-message "List all nodes for path " idPrefix)]
+       (let [_ (log-debug "List all nodes for path " idPrefix)]
          (HBNodes. (distinct (for [k (.keySet heartbeats)
                          :let [trimmed-k (second (split (replace-first k idPrefix "") #"/"))]
                          :when (= (.indexOf k idPrefix) 0)]
@@ -61,13 +61,14 @@
 
       (^Pulse getPulse [this ^String id]
        (let [details (.get heartbeats id)
-             _ (log-message (str "Getting Pulse for id [" id "]...data " (str details) "]."))]
+             _ (log-debug (str "Getting Pulse for id [" id "]...data " (str details) "]."))]
          (doto (Pulse. ) (.set_id id) (.set_details details))))
 
       (^void deletePath [this ^String idPrefix]
-       (doseq [k (.keySet heartbeats)
-               :when (= (.indexOf k idPrefix) 0)]
-         (.deletePulseId this k)))
+       (let [prefix (if (= \/ (last idPrefix)) idPrefix (str idPrefix "/"))]
+         (doseq [k (.keySet heartbeats)
+               :when (= (.indexOf k prefix) 0)]
+         (.deletePulseId this k))))
 
       (^void deletePulseId [this ^String id]
        (let [_  (log-message (str "Deleting Pulse for id [" id "]."))]
@@ -75,25 +76,22 @@
 
       Shutdownable
       (shutdown [this]
-        (log-message "Shutting down master")
-        (log-message "Shut down master"))
-
+        (log-message "Shutting down hbserver"))
 
     DaemonCommon
     (waiting? [this]
       ())
     )))
 
-(defn launch-server!
-  ([]
-   (let [conf (read-storm-config)
-         service-handler (service-handler conf)
-         server (ThriftServer. conf (HBServer$Processor. service-handler)
-                                    ThriftConnectionType/HBSERVER)]
-     (.addShutdownHook (Runtime/getRuntime) (Thread. (fn [] (.shutdown service-handler) (.stop server))))
-     (log-message "Starting hbserver...")
-     (.serve server)
-     service-handler)))
+(defn launch-server! []
+  (let [conf (read-storm-config)
+        service-handler (service-handler conf)
+        server (ThriftServer. conf (HBServer$Processor. service-handler)
+                                   ThriftConnectionType/HBSERVER)]
+    (.addShutdownHook (Runtime/getRuntime) (Thread. (fn [] (.shutdown service-handler) (.stop server))))
+    (log-message "Starting hbserver...")
+    (.serve server)
+    service-handler))
 
 (defn -main []
   (launch-server!))
