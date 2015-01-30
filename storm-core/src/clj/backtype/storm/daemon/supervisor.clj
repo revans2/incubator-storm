@@ -548,14 +548,14 @@
             event-manager (event/event-manager false)
             sync-callback (fn [& ignored] (.add event-manager this))
             assignments-snapshot (assignments-snapshot storm-cluster-state sync-callback)
-            storm-id->local-dir (read-storm-local-dir assignments-snapshot)
+            downloaded-storm-ids (set (read-downloaded-storm-ids conf))
             all-assignment (read-assignments
                              assignments-snapshot
                              (:assignment-id supervisor))
             new-assignment (->> all-assignment
                              (filter-key #(.confirmAssigned isupervisor %)))
             assigned-storm-ids (assigned-storm-ids-from-port-assignments new-assignment)]
-        (doseq [[topology-id master-local-dir] storm-id->local-dir]
+        (doseq [topology-id downloaded-storm-ids]
           (let [storm-root (supervisor-stormdist-root conf topology-id)]
             (when (assigned-storm-ids topology-id)
               (log-debug "Checking Blob updates for storm topology id " topology-id " With target_dir: " storm-root)
@@ -820,8 +820,8 @@
         (remove-dead-worker worker-id) 
         (if run-worker-as-user
           (let [worker-dir (worker-root conf worker-id)]
-            (worker-launcher conf user ["worker" worker-dir (write-script worker-dir command :environment topology-worker-environment)] :log-prefix log-prefix :exit-code-callback callback)
-            (create-blobstore-links conf storm-id port worker-id))
+            (create-blobstore-links conf storm-id port worker-id)
+            (worker-launcher conf user ["worker" worker-dir (write-script worker-dir command :environment topology-worker-environment)] :log-prefix log-prefix :exit-code-callback callback))
           (launch-process command :environment topology-worker-environment :log-prefix log-prefix :exit-code-callback callback)
       ))))
 
