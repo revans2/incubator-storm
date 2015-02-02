@@ -31,6 +31,8 @@
   ;; if node does not exist, create persistent with this data
   (set-data [this path data acls])
   (get-data [this path watch?])
+  (get-version [this path watch?])
+  (get-data-with-version [this path watch?])
   (get-children [this path watch?])
   (mkdirs [this path acls])
   (exists-node? [this path watch?])
@@ -109,6 +111,14 @@
        [this path watch?]
        (zk/get-data zk path watch?))
 
+     (get-data-with-version
+       [this path watch?]
+       (zk/get-data-with-version zk path watch?))
+
+     (get-version 
+       [this path watch?]
+       (zk/get-version zk path watch?))
+
      (get-children
        [this path watch?]
        (zk/get-children zk path watch?))
@@ -129,6 +139,8 @@
 (defprotocol StormClusterState
   (assignments [this callback])
   (assignment-info [this storm-id callback])
+  (assignment-info-with-version [this storm-id callback])
+  (assignment-version [this storm-id callback])
   (active-storms [this])
   (storm-base [this storm-id callback])
   (get-worker-heartbeat [this storm-id node port])
@@ -257,6 +269,8 @@
                                 [false cluster-state-spec]
                                 [true (mk-distributed-cluster-state cluster-state-spec :auth-conf cluster-state-spec :acls acls)])
         assignment-info-callback (atom {})
+        assignment-info-with-version-callback (atom {})
+        assignment-version-callback (atom {})
         supervisors-callback (atom nil)
         assignments-callback (atom nil)
         storm-base-callback (atom {})
@@ -290,6 +304,21 @@
         (when callback
           (swap! assignment-info-callback assoc storm-id callback))
         (maybe-deserialize (get-data cluster-state (assignment-path storm-id) (not-nil? callback))))
+
+      (assignment-info-with-version 
+        [this storm-id callback]
+        (when callback
+          (swap! assignment-info-with-version-callback assoc storm-id callback))
+        (let [{data :data version :version} 
+              (get-data-with-version cluster-state (assignment-path storm-id) (not-nil? callback))]
+        {:data (maybe-deserialize data)
+         :version version}))
+
+      (assignment-version 
+        [this storm-id callback]
+        (when callback
+          (swap! assignment-version-callback assoc storm-id callback))
+        (get-version cluster-state (assignment-path storm-id) (not-nil? callback)))
 
       (active-storms
         [this]
