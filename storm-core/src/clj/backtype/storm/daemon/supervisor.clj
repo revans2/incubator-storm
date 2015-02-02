@@ -488,7 +488,7 @@
       (.put local-state
             LS-LOCAL-ASSIGNMENTS
             new-assignment)
-      (swap! (:assignment-versions supervisor) versions)
+      (reset! (:assignment-versions supervisor) versions)
       (reset! (:curr-assignment supervisor) new-assignment)
       ;; remove any downloaded code that's no longer assigned or active
       ;; important that this happens after setting the local assignment so that
@@ -562,7 +562,7 @@
             storm-cluster-state (:storm-cluster-state supervisor)
             event-manager (event/event-manager false)
             sync-callback (fn [& ignored] (.add event-manager this))
-            assignments-snapshot (assignments-snapshot storm-cluster-state sync-callback)
+            assignments-snapshot (assignments-snapshot storm-cluster-state sync-callback (:assignment-versions supervisor))
             downloaded-storm-ids (set (read-downloaded-storm-ids conf))
             all-assignment (read-assignments
                              assignments-snapshot
