@@ -43,13 +43,23 @@
   (shutdown-all-workers [this])
   )
 
-(defn- assignments-snapshot [storm-cluster-state callback]
+(defn- assignments-snapshot [storm-cluster-state callback assignment-versions]
   (let [storm-ids (.assignments storm-cluster-state callback)]
-     (->> (dofor [sid storm-ids] {sid (.assignment-info storm-cluster-state sid callback)})
-          (apply merge)
-          (filter-val not-nil?)
-          )))
-
+    (let [new-assignments 
+          (->>
+           (dofor [sid storm-ids] 
+                  (let [recorded-version (:version (get assignment-versions sid))]
+                    (if-let [assignment-version (.assignment-version storm-cluster-state sid callback)]
+                      (if (= assignment-version recorded-version)
+                        {sid (get assignment-versions sid)}
+                        {sid (.assignment-info-with-version storm-cluster-state sid callback)})
+                      {sid nil})))
+           (apply merge)
+           (filter-val not-nil?))]
+          
+      {:assignments (into {} (for [[k v] new-assignments] [k (:data v)]))
+       :versions new-assignments})))
+  
 (defn- read-my-executors [assignments-snapshot storm-id assignment-id]
   (let [assignment (get assignments-snapshot storm-id)
         my-executors (filter (fn [[_ [node _]]] (= node assignment-id))
@@ -281,7 +291,8 @@
                                            (log-error t "Error when processing blob-update")
                                            (halt-process! 20 "Error when processing a blob-update")
                                            ))
-   :localizer (Utils/createLocalizer conf (supervisor-local-dir conf))})
+   :localizer (Utils/createLocalizer conf (supervisor-local-dir conf))
+   :assignment-versions (atom {})})
 
 (defn sync-processes [supervisor]
   (let [conf (:conf supervisor)
@@ -437,7 +448,10 @@
           ^ISupervisor isupervisor (:isupervisor supervisor)
           ^LocalState local-state (:local-state supervisor)
           sync-callback (fn [& ignored] (.add event-manager this))
-          assignments-snapshot (assignments-snapshot storm-cluster-state sync-callback)
+          assignment-versions @(:assignment-versions supervisor)
+          {assignments-snapshot :assignments versions :versions}  (assignments-snapshot 
+                                                                   storm-cluster-state sync-callback 
+                                                                   assignment-versions)
           storm-local-map (read-storm-local-dir assignments-snapshot)
           downloaded-storm-ids (set (read-downloaded-storm-ids conf))
           all-assignment (read-assignments
@@ -474,6 +488,7 @@
       (.put local-state
             LS-LOCAL-ASSIGNMENTS
             new-assignment)
+      (reset! (:assignment-versions supervisor) versions)
       (reset! (:curr-assignment supervisor) new-assignment)
       ;; remove any downloaded code that's no longer assigned or active
       ;; important that this happens after setting the local assignment so that
@@ -547,15 +562,15 @@
             storm-cluster-state (:storm-cluster-state supervisor)
             event-manager (event/event-manager false)
             sync-callback (fn [& ignored] (.add event-manager this))
-            assignments-snapshot (assignments-snapshot storm-cluster-state sync-callback)
-            storm-id->local-dir (read-storm-local-dir assignments-snapshot)
+            assignments-snapshot (assignments-snapshot storm-cluster-state sync-callback (:assignment-versions supervisor))
+            downloaded-storm-ids (set (read-downloaded-storm-ids conf))
             all-assignment (read-assignments
                              assignments-snapshot
                              (:assignment-id supervisor))
             new-assignment (->> all-assignment
                              (filter-key #(.confirmAssigned isupervisor %)))
             assigned-storm-ids (assigned-storm-ids-from-port-assignments new-assignment)]
-        (doseq [[topology-id master-local-dir] storm-id->local-dir]
+        (doseq [topology-id downloaded-storm-ids]
           (let [storm-root (supervisor-stormdist-root conf topology-id)]
             (when (assigned-storm-ids topology-id)
               (log-debug "Checking Blob updates for storm topology id " topology-id " With target_dir: " storm-root)
@@ -820,8 +835,8 @@
         (remove-dead-worker worker-id) 
         (if run-worker-as-user
           (let [worker-dir (worker-root conf worker-id)]
-            (worker-launcher conf user ["worker" worker-dir (write-script worker-dir command :environment topology-worker-environment)] :log-prefix log-prefix :exit-code-callback callback)
-            (create-blobstore-links conf storm-id port worker-id))
+            (create-blobstore-links conf storm-id port worker-id)
+            (worker-launcher conf user ["worker" worker-dir (write-script worker-dir command :environment topology-worker-environment)] :log-prefix log-prefix :exit-code-callback callback))
           (launch-process command :environment topology-worker-environment :log-prefix log-prefix :exit-code-callback callback)
       ))))
 

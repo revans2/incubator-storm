@@ -31,6 +31,8 @@
   ;; if node does not exist, create persistent with this data
   (set-data [this path data acls])
   (get-data [this path watch?])
+  (get-version [this path watch?])
+  (get-data-with-version [this path watch?])
   (get-children [this path watch?])
   (set-worker-hb [this path data acls])
   (get-worker-hb [this path watch?])
@@ -127,13 +129,22 @@
        [this path watch?]
        (zk/get-data zk path watch?))
 
+     (get-data-with-version
+       [this path watch?]
+       (zk/get-data-with-version zk path watch?))
+
+     (get-version 
+       [this path watch?]
+       (zk/get-version zk path watch?))
+
      (get-worker-hb
        [this path watch?]
        (if use-hbserver
          (hbu/get-pulse-data path)
          (get-data this path watch?)))
 
-     (get-children [this path watch?]
+     (get-children
+       [this path watch?]
        (zk/get-children zk path watch?))
 
      (get-worker-hb-children
@@ -158,6 +169,8 @@
 (defprotocol StormClusterState
   (assignments [this callback])
   (assignment-info [this storm-id callback])
+  (assignment-info-with-version [this storm-id callback])
+  (assignment-version [this storm-id callback])
   (active-storms [this])
   (storm-base [this storm-id callback])
   (get-worker-heartbeat [this storm-id node port])
@@ -179,6 +192,7 @@
   (remove-storm! [this storm-id])
   (report-error [this storm-id task-id error])
   (errors [this storm-id task-id])
+  (last-error [this storm-id task-id])
   (set-credentials! [this storm-id creds topo-conf])
   (credentials [this storm-id callback])
   (disconnect [this]))
@@ -226,6 +240,16 @@
   [storm-id component-id]
   (str (error-storm-root storm-id) "/" (url-encode component-id)))
 
+(def last-error-path-seg "last-error")
+
+(defn last-error-path
+  [storm-id component-id]
+  (str (error-storm-root storm-id)
+       "/"
+       (url-encode component-id)
+       "-"
+       last-error-path-seg))
+
 (defn credentials-path
   [storm-id]
   (str CREDENTIALS-SUBTREE "/" storm-id))
@@ -249,7 +273,7 @@
   (when ser
     (Utils/deserialize ser)))
 
-(defstruct TaskError :error :time-secs)
+(defrecord TaskError [error time-secs])
 
 (defn- parse-error-path
   [^String p]
@@ -275,6 +299,8 @@
                                 [false cluster-state-spec]
                                 [true (mk-distributed-cluster-state cluster-state-spec :auth-conf cluster-state-spec :acls acls)])
         assignment-info-callback (atom {})
+        assignment-info-with-version-callback (atom {})
+        assignment-version-callback (atom {})
         supervisors-callback (atom nil)
         assignments-callback (atom nil)
         storm-base-callback (atom {})
@@ -308,6 +334,21 @@
         (when callback
           (swap! assignment-info-callback assoc storm-id callback))
         (maybe-deserialize (get-data cluster-state (assignment-path storm-id) (not-nil? callback))))
+
+      (assignment-info-with-version 
+        [this storm-id callback]
+        (when callback
+          (swap! assignment-info-with-version-callback assoc storm-id callback))
+        (let [{data :data version :version} 
+              (get-data-with-version cluster-state (assignment-path storm-id) (not-nil? callback))]
+        {:data (maybe-deserialize data)
+         :version version}))
+
+      (assignment-version 
+        [this storm-id callback]
+        (when callback
+          (swap! assignment-version-callback assoc storm-id callback))
+        (get-version cluster-state (assignment-path storm-id) (not-nil? callback)))
 
       (active-storms
         [this]
@@ -430,9 +471,13 @@
       (report-error
          [this storm-id component-id error]                
          (let [path (error-path storm-id component-id)
+               last-error-path (last-error-path storm-id component-id)
                data {:time-secs (current-time-secs) :error (stringify-error error)}
                _ (mkdirs cluster-state path acls)
-               _ (create-sequential cluster-state (str path "/e") (Utils/serialize data) acls)
+               ser-data (Utils/serialize data)
+               _ (mkdirs cluster-state path acls)
+               _ (create-sequential cluster-state (str path "/e") ser-data acls)
+               _ (set-data cluster-state last-error-path ser-data acls)
                to-kill (->> (get-children cluster-state path false)
                             (sort-by parse-error-path)
                             reverse
@@ -445,15 +490,22 @@
          (let [path (error-path storm-id component-id)
                errors (if (exists-node? cluster-state path false)
                         (dofor [c (get-children cluster-state path false)]
-                          (let [data (-> (get-data cluster-state (str path "/" c) false)
+                          (if-let [data (-> (get-data cluster-state
+                                                      (str path "/" c)
+                                                      false)
                                          maybe-deserialize)]
-                            (when data
-                              (struct TaskError (:error data) (:time-secs data))
-                              )))
-                        ())
-               ]
+                            (map->TaskError data)))
+                        ())]
            (->> (filter not-nil? errors)
                 (sort-by (comp - :time-secs)))))
+
+      (last-error
+        [this storm-id component-id]
+        (let [path (last-error-path storm-id component-id)]
+          (if (exists-node? cluster-state path false)
+            (if-let [data (->> (get-data cluster-state path false)
+                               maybe-deserialize)]
+              (map->TaskError data)))))
       
       (disconnect
          [this]

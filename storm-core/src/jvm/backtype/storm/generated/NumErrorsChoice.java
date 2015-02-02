@@ -28,13 +28,14 @@ import java.util.Map;
 import java.util.HashMap;
 import org.apache.thrift.TEnum;
 
-public enum AccessControlType implements org.apache.thrift.TEnum {
-  OTHER(1),
-  USER(2);
+public enum NumErrorsChoice implements org.apache.thrift.TEnum {
+  ALL(0),
+  NONE(1),
+  ONE(2);
 
   private final int value;
 
-  private AccessControlType(int value) {
+  private NumErrorsChoice(int value) {
     this.value = value;
   }
 
@@ -49,12 +50,14 @@ public enum AccessControlType implements org.apache.thrift.TEnum {
    * Find a the enum type by its integer value, as defined in the Thrift IDL.
    * @return null if the value is not found.
    */
-  public static AccessControlType findByValue(int value) { 
+  public static NumErrorsChoice findByValue(int value) { 
     switch (value) {
+      case 0:
+        return ALL;
       case 1:
-        return OTHER;
+        return NONE;
       case 2:
-        return USER;
+        return ONE;
       default:
         return null;
     }
