@@ -206,3 +206,11 @@ client.blobstore.class: "backtype.storm.blobstore.NimbusBlobStore"
 blobstore.superuser: "nobody"
 
 dev.zookeeper.path: "/tmp/dev-storm-zookeeper"
+
+### hhserver.* configs are for the master
+hbserver.host: "localhost"
+hbserver.thrift.port: 6699
+hbserver.thrift.threads: 64
+hbserver.thrift.max_buffer_size: 4194304
+hbserver.childopts: "-Xmx1024m"
+hbserver.route.worker.heartbeats: false
