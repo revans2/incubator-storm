@@ -32,10 +32,10 @@
   (set-data [this path data acls])
   (get-data [this path watch?])
   (get-children [this path watch?])
-  (set-hb-data [this path data acls])
-  (get-hb-data [this path watch?])
-  (get-hb-children [this path watch?])
-  (delete-hb-node [this path])
+  (set-worker-hb [this path data acls])
+  (get-worker-hb [this path watch?])
+  (get-worker-hb-children [this path watch?])
+  (delete-worker-hb [this path])
   (mkdirs [this path acls])
   (exists-node? [this path watch?])
   (close [this])
@@ -99,13 +99,14 @@
 
      (set-data
        [this path data acls]
+       ;; note: this does not turn off any existing watches
        (if (zk/exists zk path false)
          (zk/set-data zk path data)
          (do
            (zk/mkdirs zk (parent-path path) acls)
            (zk/create-node zk path data :persistent acls))))
 
-     (set-hb-data
+     (set-worker-hb
        [this path data acls]
        ;; note: this does not turn off any existing watches
        (if use-hbserver
@@ -116,7 +117,7 @@
        [this path]
        (zk/delete-recursive zk path))
 
-     (delete-hb-node
+     (delete-worker-hb
        [this path]
        (if use-hbserver
          (hbu/delete-pulse-recursive path)
@@ -126,7 +127,7 @@
        [this path watch?]
        (zk/get-data zk path watch?))
 
-     (get-hb-data
+     (get-worker-hb
        [this path watch?]
        (if use-hbserver
          (hbu/get-pulse-data path)
@@ -135,7 +136,7 @@
      (get-children [this path watch?]
        (zk/get-children zk path watch?))
 
-     (get-hb-children
+     (get-worker-hb-children
        [this path watch?]
        (if use-hbserver
          (hbu/get-pulse-children path)
@@ -314,7 +315,7 @@
 
       (heartbeat-storms
         [this]
-        (get-hb-children cluster-state WORKERBEATS-SUBTREE false))
+        (get-worker-hb-children cluster-state WORKERBEATS-SUBTREE false))
 
       (error-topologies
         [this]
@@ -323,7 +324,7 @@
       (get-worker-heartbeat
         [this storm-id node port]
         (-> cluster-state
-            (get-hb-data (workerbeat-path storm-id node port) false)
+            (get-worker-hb (workerbeat-path storm-id node port) false)
             maybe-deserialize))
 
       (executor-beats
@@ -351,11 +352,11 @@
 
       (worker-heartbeat!
         [this storm-id node port info]
-        (set-hb-data cluster-state (workerbeat-path storm-id node port) (Utils/serialize info) acls))
+        (set-worker-hb cluster-state (workerbeat-path storm-id node port) (Utils/serialize info) acls))
 
       (remove-worker-heartbeat!
         [this storm-id node port]
-        (delete-hb-node cluster-state (workerbeat-path storm-id node port)))
+        (delete-worker-hb cluster-state (workerbeat-path storm-id node port)))
 
       (setup-heartbeats!
         [this storm-id]
@@ -364,7 +365,7 @@
       (teardown-heartbeats!
         [this storm-id]
         (try-cause
-          (delete-hb-node cluster-state (workerbeat-storm-root storm-id))
+          (delete-worker-hb cluster-state (workerbeat-storm-root storm-id))
           (catch KeeperException e
             (log-warn-error e "Could not teardown heartbeats for " storm-id))))
 
