@@ -32,7 +32,8 @@
 
 (defmulti mk-suicide-fn cluster-mode)
 
-(defn read-worker-executors [storm-conf storm-cluster-state storm-id assignment-id port]
+(defn read-worker-executors [storm-conf storm-cluster-state storm-id assignment-id port assignment-versions]
+  (log-message "Reading Assignments.")
   (let [assignment (:executor->node+port (.assignment-info storm-cluster-state storm-id nil))]
     (doall
      (concat     
@@ -200,7 +201,8 @@
                                   transfer-queue
                                   executor-receive-queue-map 
                                   receive-queue-map
-                                  topology]
+                                  topology
+                                  assignment-versions]
   (let [mq-context  (if mq-context
                       mq-context
                       (TransportFactory/makeContext storm-conf))]
@@ -248,10 +250,12 @@
         :receiver-thread-count (get storm-conf WORKER-RECEIVER-THREAD-COUNT)
         :transfer-fn (mk-transfer-fn <>)
         :load-mapping (LoadMapping.)
+        :assignment-versions assignment-versions
         )))
 
 (defn worker-data [conf mq-context storm-id assignment-id port worker-id storm-conf cluster-state storm-cluster-state]
-  (let [executors (set (read-worker-executors storm-conf storm-cluster-state storm-id assignment-id port))
+  (let [assignment-versions (atom {})
+        executors (set (read-worker-executors storm-conf storm-cluster-state storm-id assignment-id port assignment-versions))
         transfer-queue (disruptor/disruptor-queue "worker-transfer-queue" (storm-conf TOPOLOGY-TRANSFER-BUFFER-SIZE)
                                                   :wait-strategy (storm-conf TOPOLOGY-DISRUPTOR-WAIT-STRATEGY))
         executor-receive-queue-map (mk-receive-queue-map storm-conf executors)
@@ -271,7 +275,8 @@
           transfer-queue
           executor-receive-queue-map 
           receive-queue-map
-          topology)
+          topology
+          assignment-versions)
   ))
 
 (defn- endpoint->string [[node port]]
@@ -290,15 +295,14 @@
     (fn this
       ([] 
         (let [^LoadMapping load-mapping (:load-mapping worker)
-              local-pop (into {} (for [[exec queue] short-executor-receive-queue-map] [exec (/ (double (.population queue)) (.capacity queue))]))
+              local-pop (map-val (fn [queue] (/ (double (.population queue)) (.capacity queue))) short-executor-receive-queue-map)
               remote-load (reduce merge (for [[np conn] @(:cached-node+port->socket worker)] (into {} (.getLoad conn remote-tasks))))
               now (System/currentTimeMillis)]
           (.setLocal load-mapping local-pop)
           (.setRemote load-mapping remote-load)
           (when (> now @next-update)
             (.sendLoadMetrics (:receiver worker) local-pop)
-            (reset! next-update (+ 5000 now)))
-          )))))
+            (reset! next-update (+ 5000 now))))))))
 
 (defn mk-refresh-connections [worker]
   (let [outbound-tasks (worker-outbound-tasks worker)
@@ -309,7 +313,12 @@
       ([]
         (this (fn [& ignored] (schedule (:refresh-connections-timer worker) 0 this))))
       ([callback]
-        (let [assignment (.assignment-info storm-cluster-state storm-id callback)
+         (let [version (.assignment-version storm-cluster-state storm-id callback)
+               assignment (if (= version (:version (get @(:assignment-versions worker) storm-id)))
+                            (:data (get @(:assignment-versions worker) storm-id))
+                            (let [new-assignment (.assignment-info-with-version storm-cluster-state storm-id callback)]
+                              (swap! (:assignment-versions worker) assoc storm-id new-assignment)
+                              (:data new-assignment)))
               my-assignment (-> assignment
                                 :executor->node+port
                                 to-task->node+port
@@ -522,7 +531,7 @@
     (.credentials (:storm-cluster-state worker) storm-id (fn [args] (check-credentials-changed)))
     (schedule-recurring (:refresh-credentials-timer worker) 0 (conf TASK-CREDENTIALS-POLL-SECS) check-credentials-changed)
     ;; The jitter allows the clients to get the data at different times, and avoids thundering herd
-    (when-not (or (.get conf TOPOLOGY-DISABLE-LOADAWARE) false)
+    (when-not (.get conf TOPOLOGY-DISABLE-LOADAWARE)
       (schedule-recurring-with-jitter (:refresh-load-timer worker) 0 1 500 refresh-load))
     (schedule-recurring (:refresh-connections-timer worker) 0 (conf TASK-REFRESH-POLL-SECS) refresh-connections)
     (schedule-recurring (:refresh-active-timer worker) 0 (conf TASK-REFRESH-POLL-SECS) (partial refresh-storm-active worker))

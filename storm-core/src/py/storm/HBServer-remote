@@ -34,7 +34,7 @@ from thrift.transport import TSSLSocket
 from thrift.transport import THttpClient
 from thrift.protocol import TBinaryProtocol
 
-from storm import DistributedRPC
+from storm import HBServer
 from storm.ttypes import *
 
 if len(sys.argv) <= 1 or sys.argv[1] == '--help':
@@ -42,7 +42,14 @@ if len(sys.argv) <= 1 or sys.argv[1] == '--help':
   print('Usage: ' + sys.argv[0] + ' [-h host[:port]] [-u url] [-f[ramed]] [-s[sl]] function [arg1 [arg2...]]')
   print('')
   print('Functions:')
-  print('  string execute(string functionName, string funcArgs)')
+  print('  void createPath(string path)')
+  print('  bool exists(string path)')
+  print('  void sendPulse(Pulse pulse)')
+  print('  HBRecords getAllPulseForPath(string idPrefix)')
+  print('  HBNodes getAllNodesForPath(string idPrefix)')
+  print('  Pulse getPulse(string id)')
+  print('  void deletePath(string idPrefix)')
+  print('  void deletePulseId(string id)')
   print('')
   sys.exit(0)
 
@@ -96,14 +103,56 @@ else:
   else:
     transport = TTransport.TBufferedTransport(socket)
 protocol = TBinaryProtocol.TBinaryProtocol(transport)
-client = DistributedRPC.Client(protocol)
+client = HBServer.Client(protocol)
 transport.open()
 
-if cmd == 'execute':
-  if len(args) != 2:
-    print('execute requires 2 args')
+if cmd == 'createPath':
+  if len(args) != 1:
+    print('createPath requires 1 args')
     sys.exit(1)
-  pp.pprint(client.execute(args[0],args[1],))
+  pp.pprint(client.createPath(args[0],))
+
+elif cmd == 'exists':
+  if len(args) != 1:
+    print('exists requires 1 args')
+    sys.exit(1)
+  pp.pprint(client.exists(args[0],))
+
+elif cmd == 'sendPulse':
+  if len(args) != 1:
+    print('sendPulse requires 1 args')
+    sys.exit(1)
+  pp.pprint(client.sendPulse(eval(args[0]),))
+
+elif cmd == 'getAllPulseForPath':
+  if len(args) != 1:
+    print('getAllPulseForPath requires 1 args')
+    sys.exit(1)
+  pp.pprint(client.getAllPulseForPath(args[0],))
+
+elif cmd == 'getAllNodesForPath':
+  if len(args) != 1:
+    print('getAllNodesForPath requires 1 args')
+    sys.exit(1)
+  pp.pprint(client.getAllNodesForPath(args[0],))
+
+elif cmd == 'getPulse':
+  if len(args) != 1:
+    print('getPulse requires 1 args')
+    sys.exit(1)
+  pp.pprint(client.getPulse(args[0],))
+
+elif cmd == 'deletePath':
+  if len(args) != 1:
+    print('deletePath requires 1 args')
+    sys.exit(1)
+  pp.pprint(client.deletePath(args[0],))
+
+elif cmd == 'deletePulseId':
+  if len(args) != 1:
+    print('deletePulseId requires 1 args')
+    sys.exit(1)
+  pp.pprint(client.deletePulseId(args[0],))
 
 else:
   print('Unrecognized method %s' % cmd)

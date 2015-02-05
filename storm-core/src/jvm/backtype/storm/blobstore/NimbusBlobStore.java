@@ -144,7 +144,7 @@ public class NimbusBlobStore extends ClientBlobStore {
           if (length == 0) {
             eof = true;
           }
-        } catch (AuthorizationException | TException e) {
+        } catch (TException e) {
           throw new RuntimeException(e);
         }
       }
@@ -176,7 +176,7 @@ public class NimbusBlobStore extends ClientBlobStore {
         synchronized(client) {
           client.getClient().cancelBlobUpload(session);
         }
-      } catch (AuthorizationException | TException e) {
+      } catch (TException e) {
         throw new RuntimeException(e);
       }
     }
@@ -187,7 +187,7 @@ public class NimbusBlobStore extends ClientBlobStore {
         synchronized(client) {
           client.getClient().uploadBlobChunk(session, ByteBuffer.wrap(new byte[] {(byte)b}));
         }
-      } catch (AuthorizationException | TException e) {
+      } catch (TException e) {
         throw new RuntimeException(e);
       }
     }
@@ -208,7 +208,7 @@ public class NimbusBlobStore extends ClientBlobStore {
             client.getClient().uploadBlobChunk(session, ByteBuffer.wrap(b, realOffset, realLen));
           }
         }
-      } catch (AuthorizationException | TException e) {
+      } catch (TException e) {
         throw new RuntimeException(e);
       }
     }
@@ -219,7 +219,7 @@ public class NimbusBlobStore extends ClientBlobStore {
         synchronized(client) {
           client.getClient().finishBlobUpload(session);
         }
-      } catch (AuthorizationException | TException e) {
+      } catch (TException e) {
         throw new RuntimeException(e);
       }
     }

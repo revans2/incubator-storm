@@ -942,9 +942,7 @@
 (defn- get-last-error
   [storm-cluster-state storm-id component-id]
   (if-let [e (.last-error storm-cluster-state storm-id component-id)]
-    (doto (ErrorInfo. (:error e) (:time-secs e))
-                      (.set_host (:host e))
-                      (.set_port (:port e)))))
+    (ErrorInfo. (:error e) (:time-secs e))))
 
 (defn- thriftify-executor-id [[first-task-id last-task-id]]
   (ExecutorInfo. (int first-task-id) (int last-task-id)))
