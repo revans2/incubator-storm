@@ -68,10 +68,9 @@ public class LogWriter extends Thread {
         LogWriter in = null;
         int ret = -1;
         try {
-            Logger logger = LoggerFactory.getLogger("STDERR");
-            err = new LogWriter(p.getErrorStream(), logger);
+            err = new LogWriter(p.getErrorStream(), LoggerFactory.getLogger("STDERR"));
             err.start();
-            in = new LogWriter(p.getInputStream(), logger);
+            in = new LogWriter(p.getInputStream(), LoggerFactory.getLogger("STDOUT"));
             in.start();
             ret = p.waitFor();
         } finally {
