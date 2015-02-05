@@ -4,7 +4,7 @@
  <appender name="A1" class="ch.qos.logback.core.rolling.RollingFileAppender">
     <file>${storm.home}/logs/${logfile.name}</file>
     <rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
-      <fileNamePattern>${storm.home}/logs/${logfile.name}.%i</fileNamePattern>
+      <fileNamePattern>${storm.home}/logs/${logfile.name}.%i.gz</fileNamePattern>
       <minIndex>1</minIndex>
       <maxIndex>9</maxIndex>
     </rollingPolicy>
@@ -18,10 +18,10 @@
     </encoder>
  </appender> 
 
- <appender name="ACCESS" class="ch.qos.logback.core.rolling.RollingFileAppender">
-    <file>${storm.home}/logs/access.log</file>
+ <appender name="STDERR" class="ch.qos.logback.core.rolling.RollingFileAppender">
+    <file>${storm.home}/logs/${logfile.name}.err</file>
     <rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
-      <fileNamePattern>${storm.home}/logs/${logfile.name}.%i</fileNamePattern>
+      <fileNamePattern>${storm.home}/logs/${logfile.name}.err.%i.gz</fileNamePattern>
       <minIndex>1</minIndex>
       <maxIndex>9</maxIndex>
     </rollingPolicy>
@@ -31,7 +31,7 @@
     </triggeringPolicy>
 
     <encoder>
-      <pattern>%d{yyyy-MM-dd HH:mm:ss} %c{1} [%p] %m%n</pattern>
+      <pattern>%m</pattern>
     </encoder>
   </appender> 
 
@@ -39,8 +39,8 @@
     <appender-ref ref="A1"/>
   </root>
 
-  <logger name="backtype.storm.security.auth.authorizer" additivity="false">
+  <logger name="STDERR" additivity="false">
     <level value="INFO" />
-    <appender-ref ref="ACCESS" />
+    <appender-ref ref="STDERR" />
   </logger>
 </configuration>

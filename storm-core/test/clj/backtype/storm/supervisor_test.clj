@@ -254,7 +254,15 @@
           mock-worker-id "fake-worker-id"
           mock-cp "/base:/stormjar.jar"
           exp-args-fn (fn [opts topo-opts classpath]
-                       (concat [(supervisor/java-cmd) "-server"]
+                       (concat [(supervisor/java-cmd) "-cp" classpath 
+                               (str "-Dlogfile.name=" mock-storm-id "-worker-" mock-port ".log")
+                               "-Dstorm.home="
+                                (str "-Dstorm.id=" mock-storm-id)
+                                (str "-Dworker.id=" mock-worker-id)
+                                (str "-Dworker.port=" mock-port)
+                               "-Dlogback.configurationFile=/logback/worker.xml"
+                               "backtype.storm.LogWriter"]
+                               [(supervisor/java-cmd) "-server"]
                                opts
                                topo-opts
                                ["-Djava.library.path="
@@ -362,7 +370,16 @@
                       (str storm-local "/workers/" mock-worker-id)
                       worker-script]
           exp-script-fn (fn [opts topo-opts]
-                       (str "#!/bin/bash\n'export' 'LD_LIBRARY_PATH=';\n\nexec 'java' '-server'"
+                       (str "#!/bin/bash\n'export' 'LD_LIBRARY_PATH=';\n\nexec 'java'"
+                                " '-cp' 'mock-classpath'\"'\"'quote-on-purpose'"
+                                " '-Dlogfile.name=" mock-storm-id "-worker-" mock-port ".log'"
+                                " '-Dstorm.home='"
+                                " '-Dstorm.id=" mock-storm-id "'"
+                                " '-Dworker.id=" mock-worker-id "'"
+                                " '-Dworker.port=" mock-port "'"
+                                " '-Dlogback.configurationFile=/logback/worker.xml'"
+                                " 'backtype.storm.LogWriter'"
+                                " 'java' '-server'"
                                 " " (shell-cmd opts)
                                 " " (shell-cmd topo-opts)
                                 " '-Djava.library.path='"
