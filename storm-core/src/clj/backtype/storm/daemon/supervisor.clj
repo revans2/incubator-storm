@@ -562,13 +562,8 @@
             storm-cluster-state (:storm-cluster-state supervisor)
             event-manager (event/event-manager false)
             sync-callback (fn [& ignored] (.add event-manager this))
-            assignments-snapshot (assignments-snapshot storm-cluster-state sync-callback (:assignment-versions supervisor))
             downloaded-storm-ids (set (read-downloaded-storm-ids conf))
-            all-assignment (read-assignments
-                             assignments-snapshot
-                             (:assignment-id supervisor))
-            new-assignment (->> all-assignment
-                             (filter-key #(.confirmAssigned isupervisor %)))
+            new-assignment @(:curr-assignment supervisor)
             assigned-storm-ids (assigned-storm-ids-from-port-assignments new-assignment)]
         (doseq [topology-id downloaded-storm-ids]
           (let [storm-root (supervisor-stormdist-root conf topology-id)]
