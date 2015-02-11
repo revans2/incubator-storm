@@ -35,11 +35,11 @@ cat <<XML
     <rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
       <fileNamePattern>\${storm.home}/logs/\${logfile.name}.err.%i.gz</fileNamePattern>
       <minIndex>1</minIndex>
-      <maxIndex>4</maxIndex>
+      <maxIndex>1</maxIndex>
     </rollingPolicy>
 
     <triggeringPolicy class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
-      <maxFileSize>100MB</maxFileSize>
+      <maxFileSize>250MB</maxFileSize>
     </triggeringPolicy>
 
     <encoder>
