@@ -55,6 +55,14 @@
                           (re-find worker-log-filename-pattern (.getName file))
                           (<= (.lastModified file) cutoff-age-millis)))))))
 
+(defn mk-FileFilter-for-worker-logs
+  "A FileFilter that matches worker logs."
+  []
+  (reify FileFilter (^boolean accept [this ^File file]
+                      (boolean (and
+                        (.isFile file)
+                        (re-find worker-log-filename-pattern (.getName file)))))))
+
 (defn select-files-for-cleanup [conf now-millis root-dir]
   (let [file-filter (mk-FileFilter-for-log-cleanup conf now-millis)]
     (.listFiles (File. root-dir) file-filter)))
@@ -130,6 +138,24 @@
                     :when (not (contains? alive-ids id))]
                 files)))))
 
+(defn sorted-logs
+  "Collect the log files in a directory, sorted by decreasing age."
+  [root-dir]
+  (let [logs (.listFiles (File. root-dir) (mk-FileFilter-for-worker-logs))]
+    (sort #(compare (.lastModified %1) (.lastModified %2)) logs)))
+
+(defn sum-file-size
+  "Given a sequence of Files, sum their sizes."
+  [files]
+  (reduce #(+ %1 (.length %2)) 0 files))
+
+(defn delete-oldest-while-logs-too-large [logs size]
+  (when (> (sum-file-size logs) size)
+    (log-message "Log sizes too high. Going to delete: " (.getName (first logs)))
+    (try (rmr (.getCanonicalPath (first logs)))
+         (catch Exception ex (log-error ex)))
+    (delete-oldest-while-logs-too-large (rest logs) size)))
+
 (defn cleanup-fn!
   "Delete old log files for which the workers are no longer alive"
   [log-root-dir]
@@ -148,7 +174,10 @@
     (dofor [file dead-worker-files]
       (let [path (.getCanonicalPath file)]
         (log-message "Cleaning up: Removing " path)
-        (try (rmr path) (catch Exception ex (log-error ex)))))))
+        (try (rmr path) (catch Exception ex (log-error ex)))))
+    (let [all-logs (sorted-logs log-root-dir)
+          size (* (*STORM-CONF* LOGVIEWER-MAX-SUM-LOG-SIZE-MB) (*  1024 1024))]
+      (delete-oldest-while-logs-too-large all-logs size))))
 
 (defn start-log-cleaner! [conf log-root-dir]
   (let [interval-secs (conf LOGVIEWER-CLEANUP-INTERVAL-SECS)]
