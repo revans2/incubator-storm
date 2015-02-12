@@ -1032,4 +1032,3 @@
       (do 
         (log-message (str "Successful " task-description "."))
         (:value res)))))
-
