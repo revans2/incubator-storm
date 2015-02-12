@@ -20,6 +20,7 @@
   (:require [conjure.core])
   (:use [clojure test])
   (:use [conjure core])
+  (:use [backtype.storm.ui helpers])
   (:import [java.io File])
   (:import [org.mockito Mockito]))
 
@@ -513,3 +514,29 @@
                                                 pattern
                                                 :num-matches nil
                                                 :start-byte-offset nil)))))))))
+
+(deftest test-list-log-files
+  (testing "list-log-files filter selects the correct log files to return"
+    (let [files (map #(mk-mock-File %)
+                           [{:name "log-1-2-worker-6702.log"
+                             :type :file}
+                            {:name "log-1-3-worker-6701.log.8"
+                             :type :file}
+                            {:name "foobar123_topo-1-24242-worker-2834238.log"
+                             :type :file}])
+          origin "www.origin.server.net"
+          expected-all (json-response (seq '("log-1-2-worker-6702.log" "log-1-3-worker-6701.log.8" "foobar123_topo-1-24242-worker-2834238.log"))
+                         :headers {"Access-Control-Allow-Origin" origin
+                                   "Access-Control-Allow-Credentials" "true"})
+          expected-filter-port (json-response (seq '("log-1-2-worker-6702.log"))
+                         :headers {"Access-Control-Allow-Origin" origin
+                                   "Access-Control-Allow-Credentials" "true"})
+          expected-filter-topoId (json-response (seq '("foobar123_topo-1-24242-worker-2834238.log"))
+                         :headers {"Access-Control-Allow-Origin" origin
+                                   "Access-Control-Allow-Credentials" "true"})
+          returned-all (logviewer/list-log-files "user" nil nil files origin)
+          returned-filter-port (logviewer/list-log-files "user" nil "6702" files origin)
+          returned-filter-topoId (logviewer/list-log-files "user" "foobar123_topo-1-24242" nil files origin) ]
+      (is   (= expected-all returned-all))
+      (is   (= expected-filter-port returned-filter-port))
+      (is   (= expected-filter-topoId returned-filter-topoId)))))
