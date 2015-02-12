@@ -63,6 +63,6 @@ public class LoadMapping {
     }
 
     public String toString() {
-        return "LoadMapping: local: "+_local.get()+" remote: "+_remote.get();
+        return "LoadMapping: local: " + _local.get() + " remote: " + _remote.get();
     }
 }
