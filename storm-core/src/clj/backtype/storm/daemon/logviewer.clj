@@ -169,13 +169,12 @@
     (let [skipped (+ skipped (.skip stream (- n skipped)))]
       (if (< skipped n) (recur skipped)))))
 
-(defn mk-logs-filter
+(defn logfile-matches-filter?
   [topo-id port log-file-name]
   (let [my-topo-id (if (nil? topo-id) ".*" topo-id)
         my-port (if (nil? port) ".*" port)
         regex-string (str my-topo-id "-worker-" my-port ".log.*")
-        regex-pattern (re-pattern regex-string)
-        regex-result (re-seq regex-pattern (.toString log-file-name))]
+        regex-pattern (re-pattern regex-string)]
     (not= (re-seq regex-pattern (.toString log-file-name)) nil)))
 
 (defn page-file
@@ -300,7 +299,7 @@ Note that if anything goes wrong, this will throw an Error and exit."
           [topoId m] (string/split fname #"-worker-")
           log-files (.listFiles (File. root-dir))
           files-str (for [file log-files] (.getName file))
-          filtered-logs (filter (partial mk-logs-filter topoId ".*") files-str)]
+          filtered-logs (filter (partial logfile-matches-filter? topoId ".*") files-str)]
       (if (= (File. root-dir)
              (.getParentFile file))
         (let [length (if length
@@ -680,7 +679,7 @@ Note that if anything goes wrong, this will throw an Error and exit."
 (defn list-log-files
   [user topoId port log-files origin]
   (let [files-str (for [file log-files] (.getName file))
-        filter-results (filter (partial mk-logs-filter topoId port) files-str)]
+        filter-results (filter (partial logfile-matches-filter? topoId port) files-str)]
     (json-response filter-results
             :headers {"Access-Control-Allow-Origin" origin
                       "Access-Control-Allow-Credentials" "true"})))
