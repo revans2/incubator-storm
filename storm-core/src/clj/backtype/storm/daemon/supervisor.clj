@@ -801,6 +801,14 @@
                                         (merge env {"LD_LIBRARY_PATH" jlp})
                                         {"LD_LIBRARY_PATH" jlp})
           command (concat
+                    [(java-cmd) "-cp" classpath 
+                     (str "-Dlogfile.name=" logfilename)
+                     (str "-Dstorm.home=" storm-home)
+                     (str "-Dstorm.id=" storm-id)
+                     (str "-Dworker.id=" worker-id)
+                     (str "-Dworker.port=" port)
+                     (str "-Dlogback.configurationFile=" storm-home "/logback/worker.xml")
+                     "backtype.storm.LogWriter"]
                     [(java-cmd) "-server"]
                     worker-childopts
                     topo-worker-childopts
