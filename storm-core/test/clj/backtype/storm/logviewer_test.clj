@@ -20,7 +20,8 @@
   (:require [conjure.core])
   (:use [clojure test])
   (:use [conjure core])
-  (:import [org.mockito Mockito Matchers]))
+  (:import [org.mockito Mockito Matchers])
+  (:import [java.io File]))
 
 (defmulti mk-mock-File #(:type %))
 
@@ -92,6 +93,32 @@
         (is (not-any? #(.accept file-filter %) excluded-files))
         )))
 
+(deftest test-filter-worker-logs
+  (testing "log file filter selects the correct log files for purge"
+    (let [matching-files (map #(mk-mock-File %)
+                              [{:name "oldlog-1-2-worker-3.log"
+                                :type :file}
+                               {:name "oldlog-1-2-worker-3.log.8"
+                                :type :file}
+                               {:name "foobar*_topo-1-24242-worker-2834238.log"
+                                :type :file}])
+          excluded-files (map #(mk-mock-File %)
+                              [{:name "oldlog-1-2-worker-.log"
+                                :type :file}
+                               {:name "olddir-1-2-worker.log"
+                                :type :directory}
+                               {:name "newlog-1-2-worker.log"
+                                :type :file}
+                               {:name "some-old-file.txt"
+                                :type :file}
+                               {:name "metadata"
+                                :type :directory}
+                               {:name "newdir-1-2-worker.log"
+                                :type :directory}
+                               {:name "newdir"
+                                :type :directory}])]
+      (is   (= matching-files (logviewer/filter-worker-logs matching-files)))
+      (is (empty? (logviewer/filter-worker-logs excluded-files))))))
 
 (deftest test-sort-worker-logs
   (stubbing [logviewer/filter-worker-logs (fn [x] x)]
