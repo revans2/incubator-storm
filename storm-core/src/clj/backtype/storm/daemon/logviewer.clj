@@ -573,9 +573,14 @@ Note that if anything goes wrong, this will throw an Error and exit."
   [file ^String search-string :num-matches 10 :start-byte-offset 0]
   {:pre [(not (empty? search-string))
          (<= (count (.getBytes search-string "UTF-8")) grep-max-search-size)]}
-  (let [stream ^BufferedInputStream (BufferedInputStream.
-                                      (FileInputStream. file))
-        file-len (.length file)
+  (let [zip-file? (.endsWith (.getName file) ".gz")
+        f-input-steam (FileInputStream. file)
+        gzipped-input-stream (if zip-file?
+                               (GZIPInputStream. f-input-steam)
+                               f-input-steam)
+        stream ^BufferedInputStream (BufferedInputStream.
+                                      gzipped-input-stream)
+        file-len (if zip-file? (Utils/zipFileSize file) (.length file))
         buf ^ByteBuffer (ByteBuffer/allocate grep-buf-size)
         buf-arr ^bytes (.array buf)
         string nil
@@ -752,6 +757,19 @@ Note that if anything goes wrong, this will throw an Error and exit."
          (catch InvalidRequestException ex
            (log-error ex)
            (json-response (exception->json ex) :status 400))))
+  (GET "/searchLogs" [:as req & m]
+    (try
+      (let [servlet-request (:servlet-request req)
+            user (.getUserName http-creds-handler servlet-request)]
+        (list-log-files user
+          (:topoId m)
+          (:port m)
+          (.listFiles (File. (:log-root req)))
+          (.getHeader servlet-request "Origin")))
+      (catch InvalidRequestException ex
+        (log-error ex)
+         (json-response (exception->json ex) :status 400))))
+
   (GET "/listLogs" [:as req & m]
     (try
       (let [servlet-request (:servlet-request req)
