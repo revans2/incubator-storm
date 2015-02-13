@@ -132,6 +132,32 @@
                     :when (not (contains? alive-ids id))]
                 files)))))
 
+(defn filter-worker-logs [logs]
+  (filter #(and (.isFile %)
+                (re-find worker-log-filename-pattern (.getName %)))
+          logs))
+
+(defn sorted-worker-logs
+  "Collect the wroker log files in a directory, sorted by decreasing age."
+  [^File log-dir]
+  (let [logs (filter-worker-logs (into [] (.listFiles log-dir)))]
+    (sort #(compare (.lastModified %1) (.lastModified %2)) logs)))
+
+(defn sum-file-size
+  "Given a sequence of Files, sum their sizes."
+  [files]
+  (reduce #(+ %1 (.length %2)) 0 files))
+
+(defn delete-oldest-while-logs-too-large [logs_ size]
+  (loop [logs logs_]
+    (if (> (sum-file-size logs) size)
+      (do
+        (log-message "Log sizes too high. Going to delete: " (.getName (first logs)))
+        (try (rmr (.getCanonicalPath (first logs)))
+             (catch Exception ex (log-error ex)))
+        (recur (rest logs)))
+      logs)))
+
 (defn cleanup-fn!
   "Delete old log files for which the workers are no longer alive"
   [log-root-dir]
@@ -150,7 +176,10 @@
     (dofor [file dead-worker-files]
       (let [path (.getCanonicalPath file)]
         (log-message "Cleaning up: Removing " path)
-        (try (rmr path) (catch Exception ex (log-error ex)))))))
+        (try (rmr path) (catch Exception ex (log-error ex)))))
+    (let [all-logs (sorted-worker-logs (File. log-root-dir))
+          size (* (*STORM-CONF* LOGVIEWER-MAX-SUM-WORKER-LOGS-SIZE-MB) (*  1024 1024))]
+      (delete-oldest-while-logs-too-large all-logs size))))
 
 (defn start-log-cleaner! [conf log-root-dir]
   (let [interval-secs (conf LOGVIEWER-CLEANUP-INTERVAL-SECS)]
