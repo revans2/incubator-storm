@@ -325,7 +325,7 @@ class Client implements IConnection, IStatefulObject{
         Map<Integer, Double> loadCache = serverLoad;
         Map<Integer, Load> ret = new HashMap<Integer, Load>();
         if (loadCache != null) {
-            double clientLoad = Math.max(messagesEnqueued.get(), 1024)/1024.0;
+            double clientLoad = Math.min(message_queue.size(), 1024)/1024.0;
             for (Integer task : tasks) {
                 Double found = loadCache.get(task);
                 if (found != null) {

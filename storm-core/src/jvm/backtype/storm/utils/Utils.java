@@ -33,6 +33,7 @@ import java.io.ObjectOutputStream;
 import java.io.FileReader;
 import java.io.OutputStream;
 import java.io.PrintStream;
+import java.io.RandomAccessFile;
 import java.net.URL;
 import java.net.URLDecoder;
 import java.nio.ByteBuffer;
@@ -1018,7 +1019,6 @@ public class Utils {
     outputStream.close();
   }
 
-
     // Assumes caller is synchronizing
     private static SerializationDelegate getSerializationDelegate(Map stormConf) {
         String delegateClassName = (String)stormConf.get(Config.STORM_META_SERIALIZATION_DELEGATE);
@@ -1039,4 +1039,20 @@ public class Utils {
         delegate.prepare(stormConf);
         return delegate;
     }
+
+    //Note: Only works for zip files whose uncompressed size is less than 4 GB
+    //Otherwise returns the size module 2^32, per gzip specifications
+    //Returns a long, since that's what file lengths in Java/Clojure usually are.
+    public static long zipFileSize(File myFile) throws IOException{
+        RandomAccessFile raf = new RandomAccessFile(myFile, "r");
+        raf.seek(raf.length() - 4);
+        long b4 = raf.read();
+        long b3 = raf.read();
+        long b2 = raf.read();
+        long b1 = raf.read();
+        long val = (b1 << 24) | (b2 << 16) + (b3 << 8) + b4;
+        raf.close();
+        return val;
+    }
 }
+

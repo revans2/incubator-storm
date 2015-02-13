@@ -17,16 +17,18 @@
   (:use compojure.core)
   (:use [clojure.set :only [difference intersection]])
   (:use [clojure.string :only [blank?]])
-  (:use [hiccup core page-helpers])
+  (:use [hiccup core page-helpers form-helpers])
   (:use [backtype.storm config util log timer])
   (:use [backtype.storm.ui helpers])
   (:import [java.util Arrays])
+  (:import [java.util.zip GZIPInputStream])
   (:import [org.slf4j LoggerFactory])
   (:import [ch.qos.logback.classic Logger])
   (:import [ch.qos.logback.core FileAppender])
   (:import [java.io BufferedInputStream File FileFilter FileInputStream
                     InputStream InputStreamReader])
   (:import [java.nio ByteBuffer])
+  (:import [backtype.storm.utils Utils])
   (:import [org.yaml.snakeyaml Yaml]
            [org.yaml.snakeyaml.constructor SafeConstructor])
   (:import [backtype.storm.ui InvalidRequestException]
@@ -196,26 +198,38 @@
     (let [skipped (+ skipped (.skip stream (- n skipped)))]
       (if (< skipped n) (recur skipped)))))
 
+(defn mk-logs-filter
+  [topo-id port log-file-name]
+  (let [my-topo-id (if (nil? topo-id) ".*" topo-id)
+        my-port (if (nil? port) ".*" port)
+        regex-string (str my-topo-id "-worker-" my-port ".log.*")
+        regex-pattern (re-pattern regex-string)
+        regex-result (re-seq regex-pattern (.toString log-file-name))]
+    (not= (re-seq regex-pattern (.toString log-file-name)) nil)))
+
 (defn page-file
   ([path tail]
-    (let [flen (.length (clojure.java.io/file path))
+    (let [zip-file? (.endsWith path ".gz")
+          flen (if zip-file? (Utils/zipFileSize (clojure.java.io/file path)) (.length (clojure.java.io/file path)))
           skip (- flen tail)]
       (page-file path skip tail)))
   ([path start length]
-    (with-open [input (FileInputStream. path)
-                output (java.io.ByteArrayOutputStream.)]
-      (if (>= start (.length (clojure.java.io/file path)))
-        (throw
-          (InvalidRequestException. "Cannot start past the end of the file")))
-      (if (> start 0) (skip-bytes input start))
-      (let [buffer (make-array Byte/TYPE 1024)]
-        (loop []
-          (when (< (.size output) length)
-            (let [size (.read input buffer 0 (min 1024 (- length (.size output))))]
-              (when (pos? size)
-                (.write output buffer 0 size)
-                (recur)))))
-      (.toString output)))))
+    (let [zip-file? (.endsWith path ".gz")
+          flen (if zip-file? (Utils/zipFileSize (clojure.java.io/file path)) (.length (clojure.java.io/file path)))]
+      (with-open [input (if zip-file? (GZIPInputStream. (FileInputStream. path)) (FileInputStream. path))
+                  output (java.io.ByteArrayOutputStream.)]
+        (if (>= start flen)
+          (throw
+            (InvalidRequestException. "Cannot start past the end of the file")))
+        (if (> start 0) (skip-bytes input start))
+        (let [buffer (make-array Byte/TYPE 1024)]
+          (loop []
+            (when (< (.size output) length)
+              (let [size (.read input buffer 0 (min 1024 (- length (.size output))))]
+                (when (pos? size)
+                  (.write output buffer 0 size)
+                  (recur)))))
+        (.toString output))))))
 
 (defn get-log-user-group-whitelist [fname]
   (let [wl-file (get-log-metadata-file fname)
@@ -268,6 +282,11 @@ Note that if anything goes wrong, this will throw an Error and exit."
     [:input {:type "hidden" :name "file" :value fname}]
     [:input {:type "submit" :value "Search"}]]])
 
+(defn log-file-selection-form [log-files]
+  [[:form {:action "log" :id "list-of-files"}
+    (drop-down "file" log-files )
+    [:input {:type "submit" :value "Switch log file"}]]])
+
 (defn pager-links [fname start length file-size]
   (let [prev-start (max 0 (- start length))
         next-start (if (> file-size 0)
@@ -304,8 +323,13 @@ Note that if anything goes wrong, this will throw an Error and exit."
   (if (or (blank? (*STORM-CONF* UI-FILTER))
           (authorized-log-user? user fname *STORM-CONF*))
     (let [file (.getCanonicalFile (File. root-dir fname))
-          file-length (.length file)
-          path (.getCanonicalPath file)]
+          path (.getCanonicalPath file)
+          zip-file? (.endsWith path ".gz")
+          file-length (if zip-file? (Utils/zipFileSize (clojure.java.io/file path)) (.length (clojure.java.io/file path)))
+          [topoId m] (string/split fname #"-worker-")
+          log-files (.listFiles (File. root-dir))
+          files-str (for [file log-files] (.getName file))
+          filtered-logs (filter (partial mk-logs-filter topoId ".*") files-str)]
       (if (= (File. root-dir)
              (.getParentFile file))
         (let [length (if length
@@ -324,6 +348,7 @@ Note that if anything goes wrong, this will throw an Error and exit."
                      log-string)])
             (let [pager-data (pager-links fname start length file-length)]
               (html (concat (search-file-form fname)
+                            (log-file-selection-form filtered-logs)
                             pager-data
                             (download-link fname)
                             [[:pre#logContent log-string]]
@@ -681,6 +706,14 @@ Note that if anything goes wrong, this will throw an Error and exit."
                     (name k) "'")
                ex)))))
 
+(defn list-log-files
+  [user topoId port log-files origin]
+  (let [files-str (for [file log-files] (.getName file))
+        filter-results (filter (partial mk-logs-filter topoId port) files-str)]
+    (json-response filter-results
+            :headers {"Access-Control-Allow-Origin" origin
+                      "Access-Control-Allow-Credentials" "true"})))
+
 (defroutes log-routes
   (GET "/log" [:as req & m]
        (try
@@ -720,6 +753,18 @@ Note that if anything goes wrong, this will throw an Error and exit."
          (catch InvalidRequestException ex
            (log-error ex)
            (json-response (exception->json ex) :status 400))))
+  (GET "/listLogs" [:as req & m]
+    (try
+      (let [servlet-request (:servlet-request req)
+            user (.getUserName http-creds-handler servlet-request)]
+        (list-log-files user
+                        (:topoId m)
+                        (:port m)
+                        (.listFiles (File. (:log-root req)))
+                        (.getHeader servlet-request "Origin")))
+      (catch InvalidRequestException ex
+        (log-error ex)
+        (json-response (exception->json ex) :status 400))))
   (route/resources "/")
   (route/not-found "Page not found"))
 
