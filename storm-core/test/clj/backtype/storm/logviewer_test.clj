@@ -20,27 +20,30 @@
   (:require [conjure.core])
   (:use [clojure test])
   (:use [conjure core])
-  (:import [java.io File])
-  (:import [org.mockito Mockito]))
+  (:import [org.mockito Mockito Matchers]))
 
 (defmulti mk-mock-File #(:type %))
 
-(defmethod mk-mock-File :file [{file-name :name mtime :mtime
-                                :or {file-name "afile" mtime 1}}]
+(defmethod mk-mock-File :file [{file-name :name mtime :mtime length :length
+                                :or {file-name "afile"
+                                     mtime 1
+                                     length (* 10 (* 1024 (* 1024 1024))) }}] ; Length 10 MB
   (let [mockFile (Mockito/mock java.io.File)]
     (. (Mockito/when (.getName mockFile)) thenReturn file-name)
     (. (Mockito/when (.lastModified mockFile)) thenReturn mtime)
     (. (Mockito/when (.isFile mockFile)) thenReturn true)
     (. (Mockito/when (.getCanonicalPath mockFile))
        thenReturn (str "/mock/canonical/path/to/" file-name))
+    (. (Mockito/when (.length mockFile)) thenReturn length)
     mockFile))
 
-(defmethod mk-mock-File :directory [{dir-name :name mtime :mtime
-                                     :or {dir-name "adir" mtime 1}}]
+(defmethod mk-mock-File :directory [{dir-name :name mtime :mtime files :files
+                                     :or {dir-name "adir" mtime 1 files []}}]
   (let [mockDir (Mockito/mock java.io.File)]
     (. (Mockito/when (.getName mockDir)) thenReturn dir-name)
     (. (Mockito/when (.lastModified mockDir)) thenReturn mtime)
     (. (Mockito/when (.isFile mockDir)) thenReturn false)
+    (. (Mockito/when (.listFiles mockDir)) thenReturn (into-array File files))
     mockDir))
 
 (deftest test-mk-FileFilter-for-log-cleanup
@@ -87,7 +90,38 @@
           file-filter (logviewer/mk-FileFilter-for-log-cleanup conf now-millis)]
         (is   (every? #(.accept file-filter %) matching-files))
         (is (not-any? #(.accept file-filter %) excluded-files))
-      )))
+        )))
+
+
+(deftest test-sort-worker-logs
+  (stubbing [logviewer/filter-worker-logs (fn [x] x)]
+            (let [now-millis (current-time-millis)
+                  files (into-array File (map #(mk-mock-File {:name (str %)
+                                                              :type :file
+                                                              :mtime (- now-millis (* 100 %))})
+                                              (range 1 16)))
+                  directory (mk-mock-File {:name "/logs"
+                                           :type :directory
+                                           :files files})
+                  sorted-logs (logviewer/sorted-worker-logs directory)
+                  sorted-ints (map #(Integer. (.getName %)) sorted-logs)]
+              (is (= (count sorted-logs) 15))
+              (is (= (count sorted-ints) 15))
+              (is (apply #'> sorted-ints)))))
+
+(deftest test-delete-oldest-log-cleanup
+  (testing "delete oldest logs deletes the oldest set of logs when the total size gets too large.")
+  (stubbing [rmr nil]
+            (let [now-millis (current-time-millis)
+                  files (map #(mk-mock-File {:name (str %)
+                                             :type :file
+                                             :mtime (+ now-millis (* 100 %))
+                                             :length 100 })
+                             (range 0 20))
+                  remaining-logs (logviewer/delete-oldest-while-logs-too-large files 501)]
+              (is (= (logviewer/sum-file-size files) 2000))
+              (is (= (count remaining-logs) 5))
+              (is (= (.getName (first remaining-logs)) "15")))))
 
 (deftest test-get-log-root->files-map
   (testing "returns map of root name to list of files"
