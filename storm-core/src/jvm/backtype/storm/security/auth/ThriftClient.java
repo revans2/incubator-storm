@@ -111,4 +111,12 @@ public class ThriftClient {
             _protocol = null;
         }
     }
+
+    public synchronized boolean isOpen() {
+      if(_transport != null) {
+        return _transport.isOpen();
+      }
+      return false;
+    }
+
 }

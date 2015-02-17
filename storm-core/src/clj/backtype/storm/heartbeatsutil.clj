@@ -19,13 +19,24 @@
   (:import [backtype.storm.generated HBNodes HBRecords Pulse])
   (:use [backtype.storm util log config]))
 
+(def hbc-inst (atom nil))
+
+(defn ^HBClient get-hb-client []
+  (let [conf# (read-storm-config)]
+    (when-not @hbc-inst
+      (reset! hbc-inst ^HBClient (HBClient/getConfiguredClient conf#)))
+    (when-not (.isOpen @hbc-inst) (.reconnect @hbc-inst))
+    @hbc-inst))
+
 (defmacro with-configured-heartbeats-client
   [client-sym & body]
-  `(let [conf# (read-storm-config)
-         ^HBClient ~client-sym (HBClient/getConfiguredClient conf#)]
+  `(let [^HBClient ~client-sym (get-hb-client)]
      (try
        ~@body
-       (finally (.close ~client-sym)))))
+       (catch Exception tex#
+         (log-error tex# "Failure in communication with HBServer")
+         (.close ~client-sym)))))
+
 
 (defn get-pulse-data [id]
   (with-configured-heartbeats-client hbclient
