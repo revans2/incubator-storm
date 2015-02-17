@@ -116,6 +116,7 @@ public class Utils {
     private static ThreadLocal<TDeserializer> threadDes = new ThreadLocal<TDeserializer>();
 
     private static SerializationDelegate serializationDelegate;
+    private static final DefaultSerializationDelegate javaSerializationDelegate = new DefaultSerializationDelegate();
 
     static {
         Map conf = readStormConfig();
@@ -182,6 +183,14 @@ public class Utils {
 
     public static <T> T deserialize(byte[] serialized, Class<T> clazz) {
         return serializationDelegate.deserialize(serialized, clazz);
+    }
+
+    public static byte[] javaSerialize(Object obj) {
+        return javaSerializationDelegate.serialize(obj);
+    }
+
+    public static <T> T javaDeserialize(byte[] serialized, Class<T> clazz) {
+        return javaSerializationDelegate.deserialize(serialized, clazz);
     }
 
     public static <T> String join(Iterable<T> coll, String sep) {
@@ -320,7 +329,7 @@ public class Utils {
 
     public static Object getSetComponentObject(ComponentObject obj) {
         if(obj.getSetField()==ComponentObject._Fields.SERIALIZED_JAVA) {
-            return Utils.deserialize(obj.get_serialized_java(), Serializable.class);
+            return Utils.javaDeserialize(obj.get_serialized_java(), Serializable.class);
         } else if(obj.getSetField()==ComponentObject._Fields.JAVA_OBJECT) {
             return obj.get_java_object();
         } else {
