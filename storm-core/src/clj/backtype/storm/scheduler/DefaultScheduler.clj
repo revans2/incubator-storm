@@ -51,6 +51,9 @@
 (defn -prepare [this conf]
   )
 
+(defn -config [this]
+  )
+
 (defn default-schedule [^Topologies topologies ^Cluster cluster]
   (let [needs-scheduling-topologies (.needsSchedulingTopologies cluster topologies)]
     (doseq [^TopologyDetails topology needs-scheduling-topologies

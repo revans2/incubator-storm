@@ -37,11 +37,9 @@ import org.slf4j.LoggerFactory;
 public class StormClientHandler extends SimpleChannelUpstreamHandler  {
     private static final Logger LOG = LoggerFactory.getLogger(StormClientHandler.class);
     private Client client;
-    long start_time;
     
     StormClientHandler(Client client) {
         this.client = client;
-        start_time = System.currentTimeMillis();
     }
 
     @Override
@@ -62,8 +60,6 @@ public class StormClientHandler extends SimpleChannelUpstreamHandler  {
 
     @Override
     public void messageReceived(ChannelHandlerContext ctx, MessageEvent event) {
-        LOG.info("send/recv time (ms): {}", (System.currentTimeMillis() - start_time));
-        
         //examine the response message from server
         Object message = event.getMessage();
         if (message instanceof ControlMessage) {

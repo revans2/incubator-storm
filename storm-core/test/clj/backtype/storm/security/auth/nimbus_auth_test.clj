@@ -164,6 +164,7 @@
       (is (thrown-cause? AuthorizationException (.beginFileDownload nimbus_client nil)))
       (is (thrown-cause? AuthorizationException (.downloadChunk nimbus_client nil)))
       (is (thrown-cause? AuthorizationException (.getNimbusConf nimbus_client)))
+      (is (thrown-cause? AuthorizationException (.getSchedulerConf nimbus_client)))
       (is (thrown-cause? AuthorizationException (.getClusterInfo nimbus_client)))
       (stubbing [nimbus/check-storm-active! nil
                  nimbus/try-read-storm-conf-from-name {}]

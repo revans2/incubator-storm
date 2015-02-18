@@ -95,4 +95,9 @@ public class MultitenantScheduler implements IScheduler {
     defaultPool.scheduleAsNeeded(freePool);
     LOG.debug("Scheduling done...");
   }
+
+    @Override
+    public Map<String, Object> config() {
+        return (Map)getUserConf();
+    }
 }

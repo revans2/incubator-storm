@@ -219,6 +219,22 @@ public class AutoYCA implements IAutoCredentials {
         return tmpFile;
     }
 
+    private static String getYcaV2CertRawWithRetry(String v2Role, String v1Role, String proxyRole) throws YCAException, InterruptedException {
+       try {
+          return getYcaV2CertRaw(v2Role, v1Role, proxyRole);
+       } catch(Exception e) {
+          LOG.error("First try ERROR:", e); 
+       }
+       Thread.sleep(1000);
+       try {
+          return getYcaV2CertRaw(v2Role, v1Role, proxyRole);
+       } catch(Exception e) {
+          LOG.error("Second try ERROR:", e); 
+       }
+       Thread.sleep(3000);
+       return getYcaV2CertRaw(v2Role, v1Role, proxyRole);
+    }
+
     private static String getYcaV2CertRaw(String v2Role, String v1Role, String proxyRole) throws YCAException {
         v2Role = coanonicalAppId(v2Role);
         String v2RoleForWeb = appIdForWebService(v2Role);
@@ -233,6 +249,8 @@ public class AutoYCA implements IAutoCredentials {
         }
 
         File krbFile = null;
+        ByteArrayOutputStream outTmp = new ByteArrayOutputStream();
+        final ByteArrayOutputStream errTmp = new ByteArrayOutputStream();
         try {
             ArrayList<String> cmd = new ArrayList<String>();
             cmd.add("curl");
@@ -242,9 +260,11 @@ public class AutoYCA implements IAutoCredentials {
 
             if (v1Cert != null) {
                 cmd.add("http://ca.yca.platform.yahoo.com:4080/wsca/v2/certificates/yca/"+v2RoleForWeb+proxyPart);
+                cmd.add("-vvvv");
                 cmd.add("-H");
                 cmd.add("Yahoo-App-Auth:"+v1Cert);
             } else { //user kerberos
+                cmd.add("-vvvv");
                 cmd.add("--negotiate");
                 cmd.add("-u");
                 cmd.add(":");
@@ -257,19 +277,37 @@ public class AutoYCA implements IAutoCredentials {
             if (krbFile != null) {
               Map<String, String> env = pb.environment();
               env.put("KRB5CCNAME", krbFile.getCanonicalPath());
+              LOG.info("Will use different krb file {}",krbFile.getCanonicalPath());
             }
-            pb.redirectError(ProcessBuilder.Redirect.INHERIT);
             Process p = pb.start();
             InputStream in = p.getInputStream();
-            ByteArrayOutputStream outTmp = new ByteArrayOutputStream();
+            final InputStream err = p.getErrorStream();
+            Thread t = new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        byte [] buffer = new byte[1024];
+                        int read = 0;
+                        while ((read = err.read(buffer)) >= 0) {
+                            errTmp.write(buffer,0,read);
+                        }
+                    } catch (IOException e) {
+                        LOG.error("ERROR", e);
+                        throw new RuntimeException(e);
+                    }
+                }
+            });
+            t.start();
             byte [] buffer = new byte[1024];
             int read = 0;
             while ((read = in.read(buffer)) >= 0) {
                 outTmp.write(buffer,0,read);
             }
             int ret = p.waitFor();
-            LOG.info("result of command: {}", new String(outTmp.toByteArray()));
+            t.join();
             if (ret != 0) {
+                LOG.error("result of command: {}", new String(outTmp.toByteArray()));
+                LOG.error("std err of the command {}", new String(errTmp.toByteArray()));
                 throw new YCAException("Something went wrong and "+cmd+" exited with "+ret+" please check the logs for more details");
             }
             DocumentBuilderFactory builderFactory =
@@ -278,12 +316,18 @@ public class AutoYCA implements IAutoCredentials {
             Document document = builder.parse(new ByteArrayInputStream(outTmp.toByteArray()));
             Node n = document.getDocumentElement().getElementsByTagName("certificate").item(0);
             if (n == null) {
+                LOG.error("result of command: {}", new String(outTmp.toByteArray()));
+                LOG.error("std err of the command {}", new String(errTmp.toByteArray()));
                 throw new YCAException("Could not find the certificate in returned XML.");
             }
             return n.getTextContent();
         } catch (SAXException | DOMException | ParserConfigurationException e) {
+            LOG.error("result of command: {}", new String(outTmp.toByteArray()));
+            LOG.error("std err of the command {}", new String(errTmp.toByteArray()));
             throw new YCAException("Error parsing YCA curl result ", e);
         } catch (IOException | InterruptedException e2) {
+            LOG.error("result of command: {}", new String(outTmp.toByteArray()));
+            LOG.error("std err of the command {}", new String(errTmp.toByteArray()));
             throw new YCAException("Error running YCA curl command ", e2);
         } finally {
             if (krbFile != null) {
@@ -323,10 +367,10 @@ public class AutoYCA implements IAutoCredentials {
         try {
             for (String appId: v2AppIds) {
                 appId = coanonicalAppId(appId);
-                String cert = getYcaV2CertRaw(appId, v1AppId, proxyAppId);
+                String cert = getYcaV2CertRawWithRetry(appId, v1AppId, proxyAppId);
                 credentials.put(YCA_CRED_PREFIX + appId, cert);
             }
-        } catch (YCAException e) {
+        } catch (YCAException|InterruptedException e) {
             throw new RuntimeException(e);
         }
     }
@@ -341,5 +385,12 @@ public class AutoYCA implements IAutoCredentials {
         LOG.info("Populating YCA certs from credentials");
         //ignore the subject and just pull out the YCA Certs into the cache
         updateV2CertsFromCreds(credentials, V2_CACHE);
+    }
+
+
+    public static void main(String[] args) throws Exception {
+        for (String s: args) {
+            System.out.println(s+" : "+getYcaV2CertRawWithRetry(s, null, null));
+        }
     }
 }

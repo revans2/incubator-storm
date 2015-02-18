@@ -482,13 +482,15 @@ public class Config extends HashMap<String, Object> {
     public static final Object LOGVIEWER_CHILDOPTS_SCHEMA = String.class;
 
     /**
-     * How often to clean up old log files
+     * How often to clean up old log files. This config is also used by Nimbus to determine
+     * when it cleans up the list of old topologies.
      */
     public static final String LOGVIEWER_CLEANUP_INTERVAL_SECS = "logviewer.cleanup.interval.secs";
     public static final Object LOGVIEWER_CLEANUP_INTERVAL_SECS_SCHEMA = ConfigValidation.PositiveIntegerValidator;
 
     /**
-     * How many minutes since a log was last modified for the log to be considered for clean-up
+     * How many minutes since a log was last modified for the log to be considered for clean-up.
+     * This config is also used by Nimbus to determine when it cleans up the list of old topologies.
      */
     public static final String LOGVIEWER_CLEANUP_AGE_MINS = "logviewer.cleanup.age.mins";
     public static final Object LOGVIEWER_CLEANUP_AGE_MINS_SCHEMA = ConfigValidation.PositiveIntegerValidator;
@@ -510,6 +512,12 @@ public class Config extends HashMap<String, Object> {
      */
     public static final String LOGVIEWER_APPENDER_NAME = "logviewer.appender.name";
     public static final Object LOGVIEWER_APPENDER_NAME_SCHEMA = String.class;
+
+    /**
+     * The maximum number of bytes all worker log files can take up in MB
+     */
+    public static final String LOGVIEWER_MAX_SUM_WORKER_LOGS_SIZE_MB = "logviewer.max.sum.worker.logs.size.mb";
+    public static final Object LOGVIEWER_MAX_SUM_WORKER_LOGS_SIZE_MB_SCHEMA = Number.class;
 
     /**
      * Childopts for Storm UI Java process.

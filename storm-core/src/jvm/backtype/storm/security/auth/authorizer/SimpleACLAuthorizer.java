@@ -42,7 +42,7 @@ import org.slf4j.LoggerFactory;
 public class SimpleACLAuthorizer implements IAuthorizer {
     private static final Logger LOG = LoggerFactory.getLogger(SimpleACLAuthorizer.class);
 
-    protected Set<String> _userCommands = new HashSet<String>(Arrays.asList("submitTopology", "fileUpload", "getNimbusConf", "getClusterInfo"));
+    protected Set<String> _userCommands = new HashSet<String>(Arrays.asList("submitTopology", "fileUpload", "getNimbusConf", "getSchedulerConf", "getClusterInfo"));
     protected Set<String> _supervisorCommands = new HashSet<String>(Arrays.asList("fileDownload"));
     protected Set<String> _topoCommands = new HashSet<String>(Arrays.asList("killTopology","rebalance","activate","deactivate","getTopologyConf","getTopology","getUserTopology","getTopologyInfo","uploadNewCredentials"));
 

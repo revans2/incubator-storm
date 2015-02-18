@@ -240,6 +240,9 @@
   (prewalk (fn [x]
              (cond (instance? Map x) (into {} x)
                    (instance? List x) (vec x)
+                   ;; (Boolean. false) does not evaluate to false in an if.
+                   ;; This fixes that.
+                   (instance? Boolean x) (boolean x)
                    true x))
            s))
 
@@ -998,7 +1001,7 @@
 (defn logs-metadata-filename [storm-id port]
   (str (logs-rootname storm-id port) ".yaml"))
 
-(def worker-log-filename-pattern #"((.*-\d+-\d+)-worker-(\d+)).log")
+(def worker-log-filename-pattern #"^((.*-\d+-\d+)-worker-(\d+))\.log(.*)")
 
 (defn get-log-metadata-file
   ([fname]
@@ -1032,3 +1035,11 @@
       (do 
         (log-message (str "Successful " task-description "."))
         (:value res)))))
+
+(defn setup-default-uncaught-exception-handler
+  "Set a default uncaught exception handler to handle exceptions not caught in other threads."
+  []
+  (Thread/setDefaultUncaughtExceptionHandler
+    (proxy [Thread$UncaughtExceptionHandler] []
+      (uncaughtException [thread thrown]
+        (Utils/handleUncaughtException thrown)))))

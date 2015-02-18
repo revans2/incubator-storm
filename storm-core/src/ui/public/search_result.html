@@ -46,9 +46,10 @@ $(document).ready(function() {
     var id = $.url().param("id");
     var search = $.url().param("search");
     var count = $.url().param("count") || 2;
+    var searchArchived = $.url().param("searchArchived") || "";
 
     $.get("/templates/search-result-page-template.html", function(template) {
-        $("#search-form").append(Mustache.render($(template).filter("#search-form-template").html(),{id: id, search: search, count: count}));
+        $("#search-form").append(Mustache.render($(template).filter("#search-form-template").html(),{id: id, search: search, count: count, searchArchived: searchArchived}));
 
         var result = $("#result");
         $.getJSON("/api/v1/topology-workers/"+id, function(response,status,jqXHR) {
@@ -67,6 +68,9 @@ $(document).ready(function() {
              var elemId = response.hostPortList[index].elemId;
              var file = id+"-worker-"+port+".log";
              var searchURL = "http://"+host+":"+logviewerPort+"/search/"+file+"?search-string="+search+"&num-matches="+count;
+             if (searchArchived != "") {
+               searchURL = "http://"+host+":"+logviewerPort+"/deepSearch/"+id+"?search-string="+search+"&num-matches="+count+"&search-archived=true&port="+port;
+             }
 
              $.ajax({dataType: "json",
                url: searchURL,
@@ -80,6 +84,9 @@ $(document).ready(function() {
                                   data.id = id;
                                   data.logviewerPort = logviewerPort;
                                   var searchTemp = $(template).filter("#search-result-identified-template").html();
+                                  if (searchArchived != "") {
+                                    searchTemp = $(template).filter("#deepsearch-result-identified-template").html();
+                                  }
                                   var rendered = Mustache.render(searchTemp, data);
                                   $("#"+this.elemId).replaceWith(rendered);
                                   }, {host: host, port: port, file: file, elemId: elemId})
