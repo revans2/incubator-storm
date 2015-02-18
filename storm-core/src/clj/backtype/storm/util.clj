@@ -998,7 +998,7 @@
 (defn logs-metadata-filename [storm-id port]
   (str (logs-rootname storm-id port) ".yaml"))
 
-(def worker-log-filename-pattern #"^((.*-\d+-\d+)-worker-(\d+))\.log")
+(def worker-log-filename-pattern #"^((.*-\d+-\d+)-worker-(\d+))\.log(.*)")
 
 (defn get-log-metadata-file
   ([fname]
