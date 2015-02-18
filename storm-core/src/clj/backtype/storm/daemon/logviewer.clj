@@ -682,6 +682,9 @@ Note that if anything goes wrong, this will throw an Error and exit."
                       "errorMessage" "The file was not found on this node."}
                      :status 404))))
 
+(defn deep-search-logs-for-topology
+  [fname user ^String root-dir search num-matches ports file-offset offset deep-search? origin])
+
 (defn log-template
   ([body] (log-template body nil nil))
   ([body fname user]
@@ -757,6 +760,25 @@ Note that if anything goes wrong, this will throw an Error and exit."
          (catch InvalidRequestException ex
            (log-error ex)
            (json-response (exception->json ex) :status 400))))
+  (GET "/deepSearch/:topology" [:as {:keys [servlet-request servlet-response log-root]} topology & m]
+       ;; We do not use servlet-response here, but do not remove it from the
+       ;; :keys list, or this rule could stop working when an authentication
+       ;; filter is configured.
+       (try
+         (let [user (.getUserName http-creds-handler servlet-request)]
+           (deep-search-logs-for-topology topology
+             user
+             log-root
+             (:search-string m)
+             (:num-matches m)
+             (:port m)
+             (:start-file-offset m)
+             (:start-byte-offset m)
+             (:deep-search m)
+             (.getHeader servlet-request "Origin")))
+         (catch InvalidRequestException ex
+            (log-error ex)
+            (json-response (exception->json ex) :status 400))))
   (GET "/searchLogs" [:as req & m]
     (try
       (let [servlet-request (:servlet-request req)
