@@ -714,14 +714,8 @@
 (defn write-log-metadata! [storm-conf user worker-id storm-id port conf]
   (let [data {TOPOLOGY-SUBMITTER-USER user
               "worker-id" worker-id
-              LOGS-GROUPS (sort (distinct (remove nil?
-                                           (concat
-                                             (storm-conf LOGS-GROUPS)
-                                             (storm-conf TOPOLOGY-GROUPS)))))
-              LOGS-USERS (sort (distinct (remove nil?
-                                           (concat
-                                             (storm-conf LOGS-USERS)
-                                             (storm-conf TOPOLOGY-USERS)))))}]
+              LOGS-GROUPS (get-topo-logs-groups storm-conf)
+              LOGS-USERS (get-topo-logs-users storm-conf)}]
     (write-log-metadata-to-yaml-file! storm-id port data conf)))
 
 (defn jlp [stormroot conf]

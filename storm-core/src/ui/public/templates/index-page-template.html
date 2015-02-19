@@ -74,6 +74,26 @@
   </tbody>
 </table>
 </script>
+<script id="history-template" type="text/html">
+<table id="history-table" class="table compact">
+  <thead>
+    <tr>
+      <th>
+        <span data-toggle="tooltip" data-placement="right" title="The version of storm installed on the UI node. (Hopefully, this is the same on all storm nodes!)">
+         Host 
+        </span>
+      </th>
+    </tr>
+  </thead>
+    <tbody>
+      {{#topo-history}}
+      <tr>
+        <td>{{host}}</td>
+      </tr>
+      {{/topo-history}}
+    </tbody>
+</table>
+</script>
 <script id="topology-summary-template" type="text/html">
   <table class="table table-striped compact" id="topology-summary-table">
     <thead>
