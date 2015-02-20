@@ -687,6 +687,7 @@ Note that if anything goes wrong, this will throw an Error and exit."
     (loop [matches []
            logs logs
            offset offset
+           file-offset file-offset
            match-count 0]
       (if (empty? logs)
         matches
@@ -697,15 +698,17 @@ Note that if anything goes wrong, this will throw an Error and exit."
                                                 :num-matches (- n match-count)
                                                 :start-byte-offset offset)
                               (catch InvalidRequestException e
-                                nil))
+                                {}))
                 new-matches (conj matches these-matches)
                 new-count (+ match-count (count (these-matches "matches")))]
-          (if (nil? these-matches)
-            (recur matches (rest logs) 0 count)
+          (if (empty? these-matches)
+            (recur matches (rest logs) 0 (+ file-offset 1) match-count)
             (if (>= new-count n)
-              new-matches
-              (recur new-matches (rest logs) 0 new-count))))))))
-       
+              {"fileOffset" file-offset
+               "searchString" search
+               "matches" new-matches}
+              (recur new-matches (rest logs) 0 (+ file-offset 1) new-count))))))))
+
 
 (defn deep-search-logs-for-topology
   [topology-id user ^String root-dir search num-matches port file-offset offset search-archived? origin]
