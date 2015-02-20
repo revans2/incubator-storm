@@ -207,7 +207,7 @@
 
 (defn read-supervisor-storm-conf-given-path
   [conf stormconf-path]
-    (merge conf (Utils/deserialize (FileUtils/readFileToByteArray (File. stormconf-path)))))
+    (merge conf (clojurify-structure (Utils/deserialize (FileUtils/readFileToByteArray (File. stormconf-path))))))
 
 (defn read-supervisor-storm-conf
   [conf storm-id]
