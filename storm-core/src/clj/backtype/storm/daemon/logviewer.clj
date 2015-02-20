@@ -682,8 +682,79 @@ Note that if anything goes wrong, this will throw an Error and exit."
                       "errorMessage" "The file was not found on this node."}
                      :status 404))))
 
+(defn find-n-matches [logs n file-offset offset search]
+  (let [logs (drop file-offset logs)]
+    (loop [matches []
+           logs logs
+           offset offset
+           match-count 0]
+      (if (empty? logs)
+        matches
+        (let [these-matches (substring-search (first logs)
+                                              search
+                                              :num-matches (- n match-count)
+                                              :start-byte-offset offset)
+              new-matches (conj matches these-matches)
+              new-count (+ match-count (count (these-matches "matches")))]
+          (if (>= new-count n)
+            new-matches
+            (recur new-matches (rest logs) 0 new-count)))))))
+
 (defn deep-search-logs-for-topology
-  [fname user ^String root-dir search num-matches ports file-offset offset deep-search? origin])
+  [topology-id user ^String root-dir search num-matches port file-offset offset search-archived? origin]
+  (json-response
+   (let [log-files (.listFiles (File. root-dir))
+         filter-authorized-fn (fn [user logs]
+                                (filter #(or
+                                          (blank? (*STORM-CONF* UI-FILTER))
+                                          (authorized-log-user? user % *STORM-CONF*)) logs))
+         logs-for-port-fn (fn [port]
+                            (map (partial sort #(compare (.lastModified %2) (.lastModified %1)))
+                                 (map #(File. root-dir %)
+                                      (filter-authorized-fn
+                                       user
+                                       (filter (partial logfile-matches-filter? (str topology-id ".*?") port)
+                                               (map #(.getName %) log-files))))))]
+     (if (or (not port) (= "*" port))
+       ;; Check for all ports
+       (let [slot-ports (*STORM-CONF* SUPERVISOR-SLOTS-PORTS)
+             filtered-logs (map logs-for-port-fn slot-ports)]
+         (log-message "Matching files: "
+                      (pr-str
+                       (filter (partial logfile-matches-filter? (str topology-id ".*?") port)
+                               (map #(.getName %) log-files))))
+         (log-message "Authorization filtered: "  (pr-str
+                                                   (filter-authorized-fn
+                                                    user
+                                                    (filter (partial logfile-matches-filter? (str topology-id ".*?") port)
+                                                            (map #(.getName %) log-files)))))
+         (log-message "File-ized: " (pr-str
+                                     (map #(File. root-dir %)
+                                          (filter-authorized-fn
+                                           user
+                                           (filter (partial logfile-matches-filter? (str topology-id ".*?") port)
+                                                   (map #(.getName %) log-files))))))
+         (log-message "Sorted: " (pr-str
+                                  (map (partial sort #(compare (.lastModified %2) (.lastModified %1)))
+                                       (map #(File. root-dir %)
+                                            (filter-authorized-fn
+                                             user
+                                             (filter (partial logfile-matches-filter? (str topology-id ".*?") port)
+                                                     (map #(.getName %) log-files)))))))
+                                          
+         (log-message "Checking ports: " (pr-str slot-ports))
+;         (log-message "Filtered-logs: " stst)
+         (log-message "Checking logs: " (pr-str (map (partial map #(.getName %)) filtered-logs)))
+         (if search-archived?
+           (map #(find-n-matches % num-matches 0 0 search)
+                filtered-logs)
+           (map #(substring-search % search :num-matches num-matches :start-byte-offset 0)
+                (filter not-nil? (map first filtered-logs)))))
+       ;; Check just the one port
+       (let [filtered-logs (logs-for-port-fn port)]
+         (if (and search-archived? (not-nil? (first filtered-logs)))
+           (substring-search (first filtered-logs) search :num-matches num-matches :start-byte-offset offset)
+           (find-n-matches filtered-logs num-matches file-offset offset search)))))))
 
 (defn log-template
   ([body] (log-template body nil nil))
