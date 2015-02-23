@@ -187,6 +187,25 @@
 </table>
 </script>
 
+<script id="scheduler-configuration-template" type="text/html">
+    <table class="table table-striped compact" id="scheduler-configuration-table">
+        <thead>
+        <tr>
+            <th>Key</th>
+            <th>Value</th>
+        </tr>
+        </thead>
+        <tbody>
+        {{#config}}
+        <tr>
+            <td>{{key}}</td>
+            <td>{{value}}</td>
+        </tr>
+        {{/config}}
+        </tbody>
+    </table>
+</script>
+
 <script id="configuration-template" type="text/html">
   <table class="table table-striped compact" id="nimbus-configuration-table">
     <thead>
