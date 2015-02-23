@@ -672,9 +672,9 @@ Note that if anything goes wrong, this will throw an Error and exit."
                 :headers {"Access-Control-Allow-Origin" origin
                           "Access-Control-Allow-Credentials" "true"})
               (throw
-                (-> (str "Search substring must be between 1 and 1024 UTF-8 "
-                         "bytes in size (inclusive)")
-                    InvalidRequestException.)))
+               (InvalidRequestException.
+                (str "Search substring must be between 1 and 1024 UTF-8 "
+                     "bytes in size (inclusive)"))))
             (catch Exception ex
               (json-response (exception->json ex) :status 500))))
         (json-response (unauthorized-user-json user) :status 401))
@@ -698,9 +698,13 @@ Note that if anything goes wrong, this will throw an Error and exit."
                                                 :num-matches (- n match-count)
                                                 :start-byte-offset offset)
                               (catch InvalidRequestException e
+                                (log-error e "Can't search past end of file.")
                                 {}))
-                new-matches (conj matches these-matches)
-                new-count (+ match-count (count (these-matches "matches")))]
+              new-matches (conj matches
+                                (assoc these-matches
+                                       :file-name
+                                       (str "\"" (first logs) "\"")))
+              new-count (+ match-count (count (these-matches "matches")))]
           (if (empty? these-matches)
             (recur matches (rest logs) 0 (+ file-offset 1) match-count)
             (if (>= new-count n)
@@ -737,14 +741,16 @@ Note that if anything goes wrong, this will throw an Error and exit."
            (if search-archived?
              (map #(find-n-matches % num-matches 0 0 search)
                   filtered-logs)
-             (map #(substring-search % search :num-matches num-matches :start-byte-offset 0)
-                  (filter not-nil? (map first filtered-logs)))))
+             (map #(find-n-matches % num-matches 0 0 search)
+                  filter not-nil? (map first filtered-logs))))
          ;; Check just the one port
-         (let [filtered-logs (logs-for-port-fn port)]
-           (if (and search-archived? (not-nil? (first filtered-logs)))
-             (find-n-matches filtered-logs num-matches file-offset offset search)
-             (substring-search (first filtered-logs) search :num-matches num-matches :start-byte-offset offset))))))))
-
+         (if (not (contains? (into #{} (map str (*STORM-CONF* SUPERVISOR-SLOTS-PORTS))) port))
+           []
+           (let [filtered-logs (logs-for-port-fn port)]
+             (if (and search-archived? (not-nil? (first filtered-logs)))
+               (find-n-matches filtered-logs num-matches file-offset offset search)
+               (find-n-matches [(first filtered-logs)] num-matches 0 offset search)))))))))
+  
 (defn log-template
   ([body] (log-template body nil nil))
   ([body fname user]
@@ -820,13 +826,13 @@ Note that if anything goes wrong, this will throw an Error and exit."
          (catch InvalidRequestException ex
            (log-error ex)
            (json-response (exception->json ex) :status 400))))
-  (GET "/deepSearch/:topology" [:as {:keys [servlet-request servlet-response log-root]} topology & m]
+  (GET "/deepSearch/:topo-id" [:as {:keys [servlet-request servlet-response log-root]} topo-id & m]
        ;; We do not use servlet-response here, but do not remove it from the
        ;; :keys list, or this rule could stop working when an authentication
        ;; filter is configured.
        (try
          (let [user (.getUserName http-creds-handler servlet-request)]
-           (deep-search-logs-for-topology topology
+           (deep-search-logs-for-topology topo-id
              user
              log-root
              (:search-string m)
