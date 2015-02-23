@@ -713,7 +713,6 @@ Note that if anything goes wrong, this will throw an Error and exit."
                "matches" new-matches}
               (recur new-matches (rest logs) 0 (+ file-offset 1) new-count))))))))
 
-
 (defn deep-search-logs-for-topology
   [topology-id user ^String root-dir search num-matches port file-offset offset search-archived? origin]
   (json-response
