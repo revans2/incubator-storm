@@ -558,10 +558,6 @@
   (fn this []
     (try
       (let [conf (:conf supervisor)
-            ^ISupervisor isupervisor (:isupervisor supervisor)
-            storm-cluster-state (:storm-cluster-state supervisor)
-            event-manager (event/event-manager false)
-            sync-callback (fn [& ignored] (.add event-manager this))
             downloaded-storm-ids (set (read-downloaded-storm-ids conf))
             new-assignment @(:curr-assignment supervisor)
             assigned-storm-ids (assigned-storm-ids-from-port-assignments new-assignment)]
