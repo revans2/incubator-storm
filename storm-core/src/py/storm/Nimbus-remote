@@ -67,6 +67,7 @@ if len(sys.argv) <= 1 or sys.argv[1] == '--help':
   print('  string beginFileDownload(string file)')
   print('  string downloadChunk(string id)')
   print('  string getNimbusConf()')
+  print('  string getSchedulerConf()')
   print('  ClusterSummary getClusterInfo()')
   print('  TopologyInfo getTopologyInfo(string id)')
   print('  TopologyInfo getTopologyInfoWithOpts(string id, GetInfoOptions options)')
@@ -278,6 +279,12 @@ elif cmd == 'getNimbusConf':
     print('getNimbusConf requires 0 args')
     sys.exit(1)
   pp.pprint(client.getNimbusConf())
+
+elif cmd == 'getSchedulerConf':
+  if len(args) != 0:
+    print('getSchedulerConf requires 0 args')
+    sys.exit(1)
+  pp.pprint(client.getSchedulerConf())
 
 elif cmd == 'getClusterInfo':
   if len(args) != 0:
