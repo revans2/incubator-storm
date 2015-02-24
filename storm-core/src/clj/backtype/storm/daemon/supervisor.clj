@@ -501,7 +501,11 @@
                        storm-id)
           (try
             (remove-blob-references localizer storm-id conf)
-            (rmr (supervisor-stormdist-root conf storm-id))
+            (if (conf SUPERVISOR-RUN-WORKER-AS-USER)
+              (let [storm-conf (read-supervisor-storm-conf conf storm-id)
+                    user (storm-conf TOPOLOGY-SUBMITTER-USER)]
+                (rmr-as-user conf storm-id user (supervisor-stormdist-root conf storm-id)))
+            (rmr (supervisor-stormdist-root conf storm-id)))
             (catch Exception e (log-error e (str "Exception removing: " storm-id))))
           ))
       (.add processes-event-manager sync-processes)
