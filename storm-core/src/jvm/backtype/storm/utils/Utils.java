@@ -39,6 +39,7 @@ import java.net.URLDecoder;
 import java.nio.ByteBuffer;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.attribute.PosixFilePermission;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -396,6 +397,10 @@ public class Utils {
       throw new RuntimeException(e);
     }
     return nimbusBlobVersion;
+  }
+
+  public static String getFileOwner(String path) throws IOException {
+      return Files.getOwner(FileSystems.getDefault().getPath(path)).getName();
   }
 
   public static long localVersionOfBlob(String localFile) {

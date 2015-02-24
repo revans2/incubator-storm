@@ -209,20 +209,21 @@
 (defn rmr-as-user
   "Launches a process owned by the given user that deletes the given path
   recursively.  Throws RuntimeException if the directory is not removed."
-  [conf id user path]
-  (worker-launcher-and-wait conf
+  [conf id path]
+  (let [user (Utils/getFileOwner path)]
+    (worker-launcher-and-wait conf
                             user
                             ["rmr" path]
                             :log-prefix (str "rmr " id))
-  (if (exists-file? path)
-    (throw (RuntimeException. (str path " was not deleted")))))
+    (if (exists-file? path)
+      (throw (RuntimeException. (str path " was not deleted"))))))
 
 (defn try-cleanup-worker [conf id user]
   (try
     (if (.exists (File. (worker-root conf id)))
       (do
         (if (conf SUPERVISOR-RUN-WORKER-AS-USER)
-          (rmr-as-user conf id user (worker-root conf id))
+          (rmr-as-user conf id (worker-root conf id))
           (do
             (rmr (worker-heartbeats-root conf id))
             ;; this avoids a race condition with worker or subprocess writing pid around same time
@@ -253,7 +254,7 @@
         (worker-launcher-and-wait conf user ["signal" pid "9"] :log-prefix (str "kill -9 " pid))
         (ensure-process-killed! pid))
       (if as-user
-        (rmr-as-user conf id user (worker-pid-path conf id pid))
+        (rmr-as-user conf id (worker-pid-path conf id pid))
         (try
           (rmpath (worker-pid-path conf id pid))
           (catch Exception e)) ;; on windows, the supervisor may still holds the lock on the worker directory
@@ -502,9 +503,7 @@
           (try
             (remove-blob-references localizer storm-id conf)
             (if (conf SUPERVISOR-RUN-WORKER-AS-USER)
-              (let [storm-conf (read-supervisor-storm-conf conf storm-id)
-                    user (storm-conf TOPOLOGY-SUBMITTER-USER)]
-                (rmr-as-user conf storm-id user (supervisor-stormdist-root conf storm-id)))
+              (rmr-as-user conf storm-id (supervisor-stormdist-root conf storm-id))
             (rmr (supervisor-stormdist-root conf storm-id)))
             (catch Exception e (log-error e (str "Exception removing: " storm-id))))
           ))
