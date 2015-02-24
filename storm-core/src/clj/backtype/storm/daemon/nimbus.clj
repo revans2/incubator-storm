@@ -16,7 +16,6 @@
 (ns backtype.storm.daemon.nimbus
   (:import [java.nio ByteBuffer])
   (:import [java.nio.channels Channels WritableByteChannel])
-  (:import [java.nio.file Files StandardCopyOption])
   (:import [java.util Iterator])
   (:import [backtype.storm.security.auth ThriftServer ThriftConnectionType ReqContext AuthUtils])
   (:use [backtype.storm.scheduler.DefaultScheduler])
