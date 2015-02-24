@@ -496,20 +496,6 @@
   (with-nimbus nimbus
     (.getNimbusConf ^Nimbus$Client nimbus)))
 
-(defn topology-history-info
-   ([user]
-    (log-message "in getting history info 1")
-     (with-nimbus nimbus
-        (topology-history-info (.getTopologyHistory ^Nimbus$Client nimbus user) user)))
-  ([history user]
-      (log-message "in getting history info 2 " user)
-      (log-message "in getting history info 2 " history)
-      (for [^String s (.get_topo_ids history)]
-         (log-message "host is: " s))
-      {"topo-history"
-       (for [^String s (.get_topo_ids history)]
-          {"host" s})}))
-
 (defn cluster-summary
   ([user]
      (with-nimbus nimbus
@@ -871,9 +857,6 @@
   (GET "/api/v1/cluster/summary" [:as {:keys [cookies servlet-request]}]
        (let [user (.getUserName http-creds-handler servlet-request)]
          (json-response (cluster-summary user))))
-  (GET "/api/v1/history/summary" [:as {:keys [cookies servlet-request]}]
-       (let [user (.getUserName http-creds-handler servlet-request)]
-         (json-response (topology-history-info user))))
   (GET "/api/v1/supervisor/summary" []
        (json-response (supervisor-summary)))
   (GET "/api/v1/topology/summary" []
