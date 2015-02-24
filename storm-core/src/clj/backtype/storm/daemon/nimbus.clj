@@ -123,6 +123,7 @@
      :scheduler (mk-scheduler conf inimbus)
      :id->sched-status (atom {})
      :cred-renewers (AuthUtils/GetCredentialRenewers conf)
+     :topology-history-lock (Object.)
      :topo-history-state (nimbus-topo-history-state conf)
      }))
 
@@ -933,12 +934,13 @@
 (defn clean-topology-history
   "Deletes topologies from history older than minutes."
   [mins nimbus]
-  (let [cutoff-age (- (current-time-secs) (* mins 60))
-        topo-history-state (:topo-history-state nimbus)
-        curr-history (vec (.get topo-history-state NIMBUS-LS-TOPO-HISTORY))
-        new-history (vec (filter (fn [line]
-                                   (> (line :timestamp) cutoff-age)) curr-history))]
-    (.put topo-history-state NIMBUS-LS-TOPO-HISTORY new-history)))
+  (locking (:topology-history-lock nimbus)
+    (let [cutoff-age (- (current-time-secs) (* mins 60))
+          topo-history-state (:topo-history-state nimbus)
+          curr-history (vec (.get topo-history-state NIMBUS-LS-TOPO-HISTORY))
+          new-history (vec (filter (fn [line]
+                                     (> (line :timestamp) cutoff-age)) curr-history))]
+      (.put topo-history-state NIMBUS-LS-TOPO-HISTORY new-history))))
 
 (defn cleanup-corrupt-topologies! [nimbus]
   (let [storm-cluster-state (:storm-cluster-state nimbus)
@@ -997,13 +999,14 @@
 (defn add-topology-to-history-log
   [storm-id nimbus topology-conf]
   (log-message "Adding topo to history log: " storm-id)
-  (let [topo-history-state (:topo-history-state nimbus)
-        users (get-topo-logs-users topology-conf)
-        groups (get-topo-logs-groups topology-conf)
-        curr-history (vec (.get topo-history-state NIMBUS-LS-TOPO-HISTORY))
-        new-history (conj curr-history {:topoid storm-id :timestamp (current-time-secs)
-                                        :users users :groups groups})]
-    (.put topo-history-state NIMBUS-LS-TOPO-HISTORY new-history)))
+  (locking (:topology-history-lock nimbus)
+    (let [topo-history-state (:topo-history-state nimbus)
+          users (get-topo-logs-users topology-conf)
+          groups (get-topo-logs-groups topology-conf)
+          curr-history (vec (.get topo-history-state NIMBUS-LS-TOPO-HISTORY))
+          new-history (conj curr-history {:topoid storm-id :timestamp (current-time-secs)
+                                          :users users :groups groups})]
+      (.put topo-history-state NIMBUS-LS-TOPO-HISTORY new-history))))
 
 (defn igroup-mapper
   [storm-conf]
