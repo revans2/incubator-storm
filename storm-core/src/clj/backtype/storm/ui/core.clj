@@ -29,7 +29,7 @@
             ExecutorStats ExecutorSummary TopologyInfo SpoutStats BoltStats
             ErrorInfo ClusterSummary SupervisorSummary TopologySummary
             Nimbus$Client StormTopology GlobalStreamId RebalanceOptions
-            KillOptions GetInfoOptions NumErrorsChoice TopologyHistoryInfo])
+            KillOptions GetInfoOptions NumErrorsChoice])
   (:import [backtype.storm.security.auth AuthUtils])
   (:import [java.io File])
   (:require [compojure.route :as route]
