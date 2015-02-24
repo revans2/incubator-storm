@@ -573,9 +573,14 @@ Note that if anything goes wrong, this will throw an Error and exit."
   [file ^String search-string :num-matches 10 :start-byte-offset 0]
   {:pre [(not (empty? search-string))
          (<= (count (.getBytes search-string "UTF-8")) grep-max-search-size)]}
-  (let [stream ^BufferedInputStream (BufferedInputStream.
-                                      (FileInputStream. file))
-        file-len (.length file)
+  (let [zip-file? (.endsWith (.getName file) ".gz")
+        f-input-steam (FileInputStream. file)
+        gzipped-input-stream (if zip-file?
+                               (GZIPInputStream. f-input-steam)
+                               f-input-steam)
+        stream ^BufferedInputStream (BufferedInputStream.
+                                      gzipped-input-stream)
+        file-len (if zip-file? (Utils/zipFileSize file) (.length file))
         buf ^ByteBuffer (ByteBuffer/allocate grep-buf-size)
         buf-arr ^bytes (.array buf)
         string nil
@@ -588,7 +593,7 @@ Note that if anything goes wrong, this will throw an Error and exit."
     (if (>= start-byte-offset file-len)
       (throw
         (InvalidRequestException. "Cannot search past the end of the file")))
-    (if (> start-byte-offset 0)
+    (when (> start-byte-offset 0)
       (skip-bytes stream start-byte-offset))
     (java.util.Arrays/fill buf-arr (byte 0))
     (let [bytes-read (.read stream buf-arr 0 (min file-len grep-buf-size))]
@@ -612,7 +617,7 @@ Note that if anything goes wrong, this will throw an Error and exit."
                                         num-matches
                                         before-bytes)]
         (if (and (< (count matches) num-matches)
-                 (< @total-bytes-read file-len))
+                 (< (+ @total-bytes-read start-byte-offset) file-len))
           (let [;; The start index is positioned to find any possible
                 ;; occurrence search string that did not quite fit in the
                 ;; buffer on the previous read.
@@ -620,6 +625,8 @@ Note that if anything goes wrong, this will throw an Error and exit."
                                        grep-max-search-size)
                                   (alength search-bytes))]
             (rotate-grep-buffer! buf stream total-bytes-read file file-len)
+            (when (< @total-bytes-read 0)
+              (throw (InvalidRequestException. "Cannot search past the end of the file")))
             (recur matches
                    new-buf-offset
                    new-byte-offset
@@ -667,9 +674,9 @@ Note that if anything goes wrong, this will throw an Error and exit."
                 :headers {"Access-Control-Allow-Origin" origin
                           "Access-Control-Allow-Credentials" "true"})
               (throw
-                (-> (str "Search substring must be between 1 and 1024 UTF-8 "
-                         "bytes in size (inclusive)")
-                    InvalidRequestException.)))
+               (InvalidRequestException.
+                (str "Search substring must be between 1 and 1024 UTF-8 "
+                     "bytes in size (inclusive)"))))
             (catch Exception ex
               (json-response (exception->json ex) :status 500))))
         (json-response (unauthorized-user-json user) :status 401))
@@ -677,6 +684,80 @@ Note that if anything goes wrong, this will throw an Error and exit."
                       "errorMessage" "The file was not found on this node."}
                      :status 404))))
 
+(defn find-n-matches [logs n file-offset offset search]
+  (let [logs (drop file-offset logs)]
+    (loop [matches []
+           logs logs
+           offset offset
+           file-offset file-offset
+           match-count 0]
+      (if (empty? logs)
+        matches
+        (let [these-matches (try
+                              (log-debug "Looking through " (first logs))
+                              (substring-search (first logs)
+                                                search
+                                                :num-matches (- n match-count)
+                                                :start-byte-offset offset)
+                              (catch InvalidRequestException e
+                                (log-error e "Can't search past end of file.")
+                                {}))
+              new-matches (conj matches
+                                (assoc these-matches
+                                       "file-name"
+                                       (str "\"" (first logs) "\"")))
+              new-count (+ match-count (count (these-matches "matches")))]
+          (if (empty? these-matches)
+            (recur matches (rest logs) 0 (+ file-offset 1) match-count)
+            (if (>= new-count n)
+              {"fileOffset" file-offset
+               "searchString" search
+               "matches" new-matches}
+              (recur new-matches (rest logs) 0 (+ file-offset 1) new-count))))))))
+
+(defn logs-for-port
+  "Get the filtered, authorized log files for a port."
+  [user root-dir topology-id log-files port]
+  (let [filter-authorized-fn (fn [user logs]
+                                  (filter #(or
+                                            (blank? (*STORM-CONF* UI-FILTER))
+                                            (authorized-log-user? user % *STORM-CONF*)) logs))]
+    (sort #(compare (.lastModified %2) (.lastModified %1))
+          (map #(File. root-dir %)
+               (filter-authorized-fn
+                user
+                (filter (partial logfile-matches-filter? (str topology-id ".*?") (str port))
+                        (map #(.getName %) log-files)))))))
+
+(defn deep-search-logs-for-topology
+  [topology-id user ^String root-dir search num-matches port file-offset offset search-archived? origin]
+  (json-response
+   (if (not search)
+     []
+     (let [file-offset (if file-offset (Integer/parseInt file-offset) 0)
+           offset (if offset (Integer/parseInt offset) 0)
+           num-matches (or (Integer/parseInt num-matches) 1)
+           log-files (.listFiles (File. root-dir))
+           logs-for-port-fn (partial logs-for-port user root-dir topology-id log-files)]
+       (if (or (not port) (= "*" port))
+         ;; Check for all ports
+         (let [slot-ports (*STORM-CONF* SUPERVISOR-SLOTS-PORTS)
+               filtered-logs (map logs-for-port-fn slot-ports)]
+           (if search-archived?
+             (map #(find-n-matches % num-matches 0 0 search)
+                  filtered-logs)
+             (map #(find-n-matches % num-matches 0 0 search)
+                  (filter not-nil? (map first filtered-logs)))))
+         ;; Check just the one port
+         (if (not (contains? (into #{} (map str (*STORM-CONF* SUPERVISOR-SLOTS-PORTS))) port))
+           []
+           (let [filtered-logs (logs-for-port-fn port)]
+             (if (and search-archived? (not-nil? (first filtered-logs)))
+               (find-n-matches filtered-logs num-matches file-offset offset search)
+               (find-n-matches [(first filtered-logs)] num-matches 0 offset search)))))))
+   :headers {"Access-Control-Allow-Origin" origin
+             "Access-Control-Allow-Credentials" "true"}))
+  
 (defn log-template
   ([body] (log-template body nil nil))
   ([body fname user]
@@ -752,6 +833,38 @@ Note that if anything goes wrong, this will throw an Error and exit."
          (catch InvalidRequestException ex
            (log-error ex)
            (json-response (exception->json ex) :status 400))))
+  (GET "/deepSearch/:topo-id" [:as {:keys [servlet-request servlet-response log-root]} topo-id & m]
+       ;; We do not use servlet-response here, but do not remove it from the
+       ;; :keys list, or this rule could stop working when an authentication
+       ;; filter is configured.
+       (try
+         (let [user (.getUserName http-creds-handler servlet-request)]
+           (deep-search-logs-for-topology topo-id
+             user
+             log-root
+             (:search-string m)
+             (:num-matches m)
+             (:port m)
+             (:start-file-offset m)
+             (:start-byte-offset m)
+             (:search-archived m)
+             (.getHeader servlet-request "Origin")))
+         (catch InvalidRequestException ex
+            (log-error ex)
+            (json-response (exception->json ex) :status 400))))
+  (GET "/searchLogs" [:as req & m]
+    (try
+      (let [servlet-request (:servlet-request req)
+            user (.getUserName http-creds-handler servlet-request)]
+        (list-log-files user
+          (:topoId m)
+          (:port m)
+          (.listFiles (File. (:log-root req)))
+          (.getHeader servlet-request "Origin")))
+      (catch InvalidRequestException ex
+        (log-error ex)
+         (json-response (exception->json ex) :status 400))))
+
   (GET "/listLogs" [:as req & m]
     (try
       (let [servlet-request (:servlet-request req)

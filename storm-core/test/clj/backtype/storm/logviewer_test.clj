@@ -608,3 +608,96 @@
       (is   (= expected-all returned-all))
       (is   (= expected-filter-port returned-filter-port))
       (is   (= expected-filter-topoId returned-filter-topoId)))))
+
+(deftest test-find-n-matches
+  (testing "find-n-matches looks through logs properly"
+    (let [files [(clojure.java.io/file "src" "dev" "logviewer-search-context-tests.log")
+                 (clojure.java.io/file "src" "dev" "logviewer-search-context-tests.log.gz")]
+          matches1 (logviewer/find-n-matches files 20 0 0 "needle")
+          matches2 (logviewer/find-n-matches files 20 0 126 "needle")
+          matches3 (logviewer/find-n-matches files 20 1 0 "needle")]
+
+      (is (= 2 (count matches1)))
+      (is (= 4 (count ((first matches1) "matches"))))
+      (is (= 4 (count ((second matches1) "matches"))))
+      (is (= ((first matches1) "file-name") "\"src/dev/logviewer-search-context-tests.log\""))
+      (is (= ((second matches1) "file-name") "\"src/dev/logviewer-search-context-tests.log.gz\""))
+
+      (is (= 2 (count ((first matches2) "matches"))))
+      (is (= 4 (count ((second matches2) "matches"))))
+
+      (is (= 1 (count matches3)))
+      (is (= 4 (count ((first matches3) "matches")))))))
+
+(deftest test-deep-search-logs-for-topology
+  (let [files [(clojure.java.io/file "src" "dev" "logviewer-search-context-tests.log")
+               (clojure.java.io/file "src" "dev" "logviewer-search-context-tests.log.gz")]]
+    (stubbing
+     [logviewer/logs-for-port files
+      logviewer/find-n-matches nil]
+     (testing "deep-search-logs-for-topology all-ports search-archived = true"
+       (instrumenting
+        [logviewer/find-n-matches
+         logviewer/logs-for-port]
+        (logviewer/deep-search-logs-for-topology "" nil "." "search" "20" "*" "20" "199" true nil)
+        (verify-call-times-for logviewer/find-n-matches 4)
+        (verify-call-times-for logviewer/logs-for-port 4)
+        ; File offset and byte offset should always be zero when searching multiple workers (multiple ports).
+        (verify-nth-call-args-for 1 logviewer/find-n-matches files 20 0 0 "search")
+        (verify-nth-call-args-for 2 logviewer/find-n-matches files 20 0 0 "search")
+        (verify-nth-call-args-for 3 logviewer/find-n-matches files 20 0 0 "search")
+        (verify-nth-call-args-for 4 logviewer/find-n-matches files 20 0 0 "search")))
+     (testing "deep-search-logs-for-topology all-ports search-archived = false"
+       (instrumenting
+        [logviewer/find-n-matches
+         logviewer/logs-for-port]
+        (logviewer/deep-search-logs-for-topology "" nil "." "search" "20" nil "20" "199" nil nil)
+        (verify-call-times-for logviewer/find-n-matches 4)
+        (verify-call-times-for logviewer/logs-for-port 4)
+        ; File offset and byte offset should always be zero when searching multiple workers (multiple ports).
+        (verify-nth-call-args-for 1 logviewer/find-n-matches (first files) 20 0 0 "search")
+        (verify-nth-call-args-for 2 logviewer/find-n-matches (first files) 20 0 0 "search")
+        (verify-nth-call-args-for 3 logviewer/find-n-matches (first files) 20 0 0 "search")
+        (verify-nth-call-args-for 4 logviewer/find-n-matches (first files) 20 0 0 "search")))
+     (testing "deep-search-logs-for-topology one-port search-archived = true, no file-offset"
+       (instrumenting
+        [logviewer/find-n-matches
+         logviewer/logs-for-port]
+        (logviewer/deep-search-logs-for-topology "" nil "." "search" "20" "6700" "0" "0" true nil)
+        (verify-call-times-for logviewer/find-n-matches 1)
+        (verify-call-times-for logviewer/logs-for-port 1)
+        (verify-nth-call-args-for 1 logviewer/find-n-matches files 20 0 0 "search")))
+     (testing "deep-search-logs-for-topology one-port search-archived = true, file-offset = 1"
+       (instrumenting
+        [logviewer/find-n-matches
+         logviewer/logs-for-port]
+        (logviewer/deep-search-logs-for-topology "" nil "." "search" "20" "6700" "1" "0" true nil)
+        (verify-call-times-for logviewer/find-n-matches 1)
+        (verify-call-times-for logviewer/logs-for-port 1)
+        (verify-nth-call-args-for 1 logviewer/find-n-matches files 20 1 0 "search")))
+     (testing "deep-search-logs-for-topology one-port search-archived = false, file-offset = 1"
+       (instrumenting
+        [logviewer/find-n-matches
+         logviewer/logs-for-port]
+        (logviewer/deep-search-logs-for-topology "" nil "." "search" "20" "6700" "1" "0" nil nil)
+        (verify-call-times-for logviewer/find-n-matches 1)
+        (verify-call-times-for logviewer/logs-for-port 1)
+        ; File offset should be zero, since search-archived is false.
+        (verify-nth-call-args-for 1 logviewer/find-n-matches [(first files)] 20 0 0 "search")))
+     (testing "deep-search-logs-for-topology one-port search-archived = true, file-offset = 1, byte-offset = 100"
+       (instrumenting
+        [logviewer/find-n-matches
+         logviewer/logs-for-port]
+        (logviewer/deep-search-logs-for-topology "" nil "." "search" "20" "6700" "1" "100" true nil)
+        (verify-call-times-for logviewer/find-n-matches 1)
+        (verify-call-times-for logviewer/logs-for-port 1)
+        ; File offset should be zero, since search-archived is false.
+        (verify-nth-call-args-for 1 logviewer/find-n-matches files 20 1 100 "search")))
+      (testing "deep-search-logs-for-topology bad-port search-archived = false, file-offset = 1"
+       (instrumenting
+        [logviewer/find-n-matches
+         logviewer/logs-for-port]
+        (logviewer/deep-search-logs-for-topology "" nil "." "search" "20" "2700" "1" "0" nil nil)
+        ; Called with a bad port (not in the config) No searching should be done.
+        (verify-call-times-for logviewer/find-n-matches 0)
+        (verify-call-times-for logviewer/logs-for-port 0))))))
