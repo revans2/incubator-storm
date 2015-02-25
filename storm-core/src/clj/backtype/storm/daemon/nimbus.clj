@@ -34,7 +34,6 @@
   (:use [backtype.storm bootstrap util])
   (:use [backtype.storm.config :only [validate-configs-with-schemas]])
   (:use [backtype.storm.daemon common])
-  (:use [clojure.java.io])
   (:use [clojure.string :only [blank?]])
   (:use [clojure.set :only [intersection]])
   (:import [org.apache.zookeeper data.ACL ZooDefs$Ids ZooDefs$Perms])
