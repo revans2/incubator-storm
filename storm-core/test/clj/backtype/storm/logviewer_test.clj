@@ -620,8 +620,8 @@
       (is (= 2 (count matches1)))
       (is (= 4 (count ((first matches1) "matches"))))
       (is (= 4 (count ((second matches1) "matches"))))
-      (is (= ((first matches1) "file-name") "\"src/dev/logviewer-search-context-tests.log\""))
-      (is (= ((second matches1) "file-name") "\"src/dev/logviewer-search-context-tests.log.gz\""))
+      (is (= ((first matches1) "file-name") "\"logviewer-search-context-tests.log\""))
+      (is (= ((second matches1) "file-name") "\"logviewer-search-context-tests.log.gz\""))
 
       (is (= 2 (count ((first matches2) "matches"))))
       (is (= 4 (count ((second matches2) "matches"))))
