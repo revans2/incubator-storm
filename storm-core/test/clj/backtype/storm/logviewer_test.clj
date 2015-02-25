@@ -613,9 +613,9 @@
   (testing "find-n-matches looks through logs properly"
     (let [files [(clojure.java.io/file "src" "dev" "logviewer-search-context-tests.log")
                  (clojure.java.io/file "src" "dev" "logviewer-search-context-tests.log.gz")]
-          matches1 (logviewer/find-n-matches files 20 0 0 "needle")
-          matches2 (logviewer/find-n-matches files 20 0 126 "needle")
-          matches3 (logviewer/find-n-matches files 20 1 0 "needle")]
+          matches1 ((logviewer/find-n-matches files 20 0 0 "needle") "matches")
+          matches2 ((logviewer/find-n-matches files 20 0 126 "needle") "matches")
+          matches3 ((logviewer/find-n-matches files 20 1 0 "needle") "matches")]
 
       (is (= 2 (count matches1)))
       (is (= 4 (count ((first matches1) "matches"))))
@@ -627,7 +627,7 @@
       (is (= 4 (count ((second matches2) "matches"))))
 
       (is (= 1 (count matches3)))
-      (is (= 4 (count ((first matches3) "matches")))))))
+      (is (= 4 (count ((first matches3) "matches"))))
 
 (deftest test-deep-search-logs-for-topology
   (let [files [(clojure.java.io/file "src" "dev" "logviewer-search-context-tests.log")
