@@ -367,8 +367,7 @@
         (is (not-nil? (.assignment-info state storm-id nil)))
         (advance-cluster-time cluster 35)
         ;; kill topology read on group
-        (submit-local-topology (:nimbus cluster) "killgrouptest" {TOPOLOGY-MESSAGE-TIMEOUT-SECS 20, LOGS-GROUPS ["alice-group
-"]} topology)
+        (submit-local-topology (:nimbus cluster) "killgrouptest" {TOPOLOGY-MESSAGE-TIMEOUT-SECS 20, LOGS-GROUPS ["alice-group"]} topology)
         (bind storm-id-killgroup (get-storm-id state "killgrouptest"))
         (advance-cluster-time cluster 5)
         (is (not-nil? (.storm-base state storm-id-killgroup nil)))
@@ -1184,7 +1183,8 @@
                      BLOBSTORE-SUPERUSER "test"}
           expected-acls nimbus/NIMBUS-ZK-ACLS
           fake-inimbus (reify INimbus (getForcedScheduler [this] nil))]
-      (stubbing [mk-authorization-handler nil
+      (stubbing [nimbus-topo-history-state nil
+                 mk-authorization-handler nil
                  cluster/mk-storm-cluster-state nil
                  nimbus/mk-file-cache-map nil
                  nimbus/mk-blob-cache-map nil
