@@ -218,7 +218,7 @@
     (if (exists-file? path)
       (throw (RuntimeException. (str path " was not deleted"))))))
 
-(defn try-cleanup-worker [conf id user]
+(defn try-cleanup-worker [conf id]
   (try
     (if (.exists (File. (worker-root conf id)))
       (do
@@ -259,7 +259,7 @@
           (rmpath (worker-pid-path conf id pid))
           (catch Exception e)) ;; on windows, the supervisor may still holds the lock on the worker directory
       ))
-    (try-cleanup-worker conf id user))
+    (try-cleanup-worker conf id))
   (log-message "Shut down " (:supervisor-id supervisor) ":" id))
 
 (def SUPERVISOR-ZK-ACLS
