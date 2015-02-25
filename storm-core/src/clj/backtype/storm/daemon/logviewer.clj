@@ -685,14 +685,18 @@ Note that if anything goes wrong, this will throw an Error and exit."
                      :status 404))))
 
 (defn find-n-matches [logs n file-offset offset search]
-  (let [logs (drop file-offset logs)]
+  (let [logs (drop file-offset logs)
+        wrap-matches-fn (fn [matches]
+                          {"fileOffset" file-offset
+                           "searchString" search
+                           "matches" matches})]
     (loop [matches []
            logs logs
            offset offset
            file-offset file-offset
            match-count 0]
       (if (empty? logs)
-        matches
+        (wrap-matches-fn matches)
         (let [these-matches (try
                               (log-debug "Looking through " (first logs))
                               (substring-search (first logs)
@@ -710,9 +714,7 @@ Note that if anything goes wrong, this will throw an Error and exit."
           (if (empty? these-matches)
             (recur matches (rest logs) 0 (+ file-offset 1) match-count)
             (if (>= new-count n)
-              {"fileOffset" file-offset
-               "searchString" search
-               "matches" new-matches}
+              (wrap-matches-fn new-matches)
               (recur new-matches (rest logs) 0 (+ file-offset 1) new-count))))))))
 
 (defn logs-for-port
