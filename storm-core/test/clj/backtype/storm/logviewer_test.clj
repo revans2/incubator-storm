@@ -655,10 +655,10 @@
         (verify-call-times-for logviewer/find-n-matches 4)
         (verify-call-times-for logviewer/logs-for-port 4)
         ; File offset and byte offset should always be zero when searching multiple workers (multiple ports).
-        (verify-nth-call-args-for 1 logviewer/find-n-matches (first files) 20 0 0 "search")
-        (verify-nth-call-args-for 2 logviewer/find-n-matches (first files) 20 0 0 "search")
-        (verify-nth-call-args-for 3 logviewer/find-n-matches (first files) 20 0 0 "search")
-        (verify-nth-call-args-for 4 logviewer/find-n-matches (first files) 20 0 0 "search")))
+        (verify-nth-call-args-for 1 logviewer/find-n-matches [(first files)] 20 0 0 "search")
+        (verify-nth-call-args-for 2 logviewer/find-n-matches [(first files)] 20 0 0 "search")
+        (verify-nth-call-args-for 3 logviewer/find-n-matches [(first files)] 20 0 0 "search")
+        (verify-nth-call-args-for 4 logviewer/find-n-matches [(first files)] 20 0 0 "search")))
      (testing "deep-search-logs-for-topology one-port search-archived = true, no file-offset"
        (instrumenting
         [logviewer/find-n-matches
