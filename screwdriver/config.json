@@ -9,6 +9,9 @@
             "coverage_type": "none",
             "build" : {
                 "publish" : {
+                    "before" : [
+			"make -C ${SRC_DIR}/yahoo-build ignore-pom-changes"
+                    ],
                     "task": "dist-install",
                     "branch": "quarantine",
                     "dist_tag": "ystorm_master_security",

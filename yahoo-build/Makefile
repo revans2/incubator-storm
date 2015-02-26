@@ -44,6 +44,8 @@ testpkg: RELEASE BASE_VERSION build
 	cd .. && ${MVN} -Pyahoo versions:revert
 	cd .. && ${MVN} -Pyahoo versions:update-child-modules
 
+ignore-pom-changes:
+	cd .. && find . -name pom.xml | xargs git update-index --assume-unchanged
 	
 # This target is called from screwdriver build and leaves the poms changed for its
 # publish phase
