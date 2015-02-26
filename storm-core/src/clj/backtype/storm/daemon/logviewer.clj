@@ -708,7 +708,7 @@ Note that if anything goes wrong, this will throw an Error and exit."
                                 {}))
               new-matches (conj matches
                                 (assoc these-matches
-                                       "file-name"
+                                       "fileName"
                                        (str (.getName (first logs)))))
               new-count (+ match-count (count (these-matches "matches")))]
           (if (empty? these-matches)
