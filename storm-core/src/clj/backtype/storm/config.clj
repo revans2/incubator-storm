@@ -157,7 +157,7 @@
   [conf]
   (let [ret (str (master-local-dir conf) file-path-separator "inbox")]
     (FileUtils/forceMkdir (File. ret))
-    ret ))
+    ret))
 
 (defn master-inimbus-dir
   [conf]
@@ -204,6 +204,10 @@
 (defn ^LocalState supervisor-state
   [conf]
   (LocalState. (str (supervisor-local-dir conf) file-path-separator "localstate")))
+
+(defn ^LocalState nimbus-topo-history-state
+  [conf]
+  (LocalState. (str (master-local-dir conf) file-path-separator "history")))
 
 (defn read-supervisor-storm-conf-given-path
   [conf stormconf-path]
@@ -272,3 +276,17 @@
 (defn ^LocalState worker-state
   [conf id]
   (LocalState. (worker-heartbeats-root conf id)))
+
+(defn get-topo-logs-users
+  [topology-conf]
+  (sort (distinct (remove nil?
+                    (concat
+                      (topology-conf LOGS-USERS)
+                      (topology-conf TOPOLOGY-USERS))))))
+
+(defn get-topo-logs-groups
+  [topology-conf]
+  (sort (distinct (remove nil?
+                    (concat
+                      (topology-conf LOGS-GROUPS)
+                      (topology-conf TOPOLOGY-GROUPS))))))

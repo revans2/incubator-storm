@@ -39,6 +39,7 @@ import java.net.URLDecoder;
 import java.nio.ByteBuffer;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.attribute.PosixFilePermission;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -396,6 +397,10 @@ public class Utils {
       throw new RuntimeException(e);
     }
     return nimbusBlobVersion;
+  }
+
+  public static String getFileOwner(String path) throws IOException {
+      return Files.getOwner(FileSystems.getDefault().getPath(path)).getName();
   }
 
   public static long localVersionOfBlob(String localFile) {
@@ -1053,6 +1058,17 @@ public class Utils {
         long val = (b1 << 24) | (b2 << 16) + (b3 << 8) + b4;
         raf.close();
         return val;
+    }
+
+    public static void handleUncaughtException(Throwable t) {
+        if (t != null && t instanceof OutOfMemoryError) {
+            try {
+                System.err.println("Halting due to Out Of Memory Error..." + Thread.currentThread().getName());
+            } catch (Throwable err) {
+                //Again we don't want to exit because of logging issues.
+            }
+            Runtime.getRuntime().halt(-1);
+        }
     }
 }
 

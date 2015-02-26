@@ -40,7 +40,6 @@ RELEASE: BASE_VERSION_UNDERSCORE
 testpkg: RELEASE BASE_VERSION build
 	cd .. && ${MVN} -Pyahoo versions:set -DnewVersion=$(MVN_FULL_VERSION)
 	cd .. && ${MVN} -Pyahoo versions:update-child-modules
-	cd .. && find . -name pom.xml | xargs git update-index --assume-unchanged
 	yinst_create --buildtype test ystorm.yicf
 	cd .. && ${MVN} -Pyahoo versions:revert
 	cd .. && ${MVN} -Pyahoo versions:update-child-modules
@@ -53,6 +52,7 @@ package-sd: RELEASE build
 	cd .. && ${MVN} -Pyahoo versions:update-child-modules
 	cd .. && find . -name pom.xml | xargs git update-index --assume-unchanged
 	yinst_create --buildtype release ystorm.yicf
+	cd .. && find . -name pom.xml | xargs git update-index --no-assume-unchanged
 
 package: package-sd
 	cd .. && ${MVN} -Pyahoo versions:revert

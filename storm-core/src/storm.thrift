@@ -348,6 +348,7 @@ service Nimbus {
   string getTopologyConf(1: string id) throws (1: NotAliveException e, 2: AuthorizationException aze);
   StormTopology getTopology(1: string id) throws (1: NotAliveException e, 2: AuthorizationException aze);
   StormTopology getUserTopology(1: string id) throws (1: NotAliveException e, 2: AuthorizationException aze);
+  TopologyHistoryInfo getTopologyHistory(1: string user) throws (1: AuthorizationException aze);
 }
 
 struct DRPCRequest {
@@ -395,4 +396,8 @@ service HBServer {
   Pulse getPulse(1: string id) throws (1: HBExecutionException e, 2: AuthorizationException aze);
   void deletePath(1: string idPrefix) throws (1: HBExecutionException e, 2: AuthorizationException aze);
   void deletePulseId(1: string id) throws (1: HBExecutionException e, 2: AuthorizationException aze);
+}
+
+struct TopologyHistoryInfo {
+  1: list<string> topo_ids;
 }

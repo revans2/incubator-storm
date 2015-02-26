@@ -1035,3 +1035,11 @@
       (do 
         (log-message (str "Successful " task-description "."))
         (:value res)))))
+
+(defn setup-default-uncaught-exception-handler
+  "Set a default uncaught exception handler to handle exceptions not caught in other threads."
+  []
+  (Thread/setDefaultUncaughtExceptionHandler
+    (proxy [Thread$UncaughtExceptionHandler] []
+      (uncaughtException [thread thrown]
+        (Utils/handleUncaughtException thrown)))))
