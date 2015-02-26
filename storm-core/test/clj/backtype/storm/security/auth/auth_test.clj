@@ -222,6 +222,11 @@
   (is (= true (.permit authorizer (ReqContext. admin-user) "getNimbusConf" nil)))
   (is (= false (.permit authorizer (ReqContext. supervisor-user) "getNimbusConf" nil)))
 
+  (is (= true (.permit authorizer (ReqContext. user-a) "getSchedulerConf" nil)))
+  (is (= true (.permit authorizer (ReqContext. user-b) "getSchedulerConf" nil)))
+  (is (= true (.permit authorizer (ReqContext. admin-user) "getSchedulerConf" nil)))
+  (is (= false (.permit authorizer (ReqContext. supervisor-user) "getSchedulerConf" nil)))
+
   (is (= true (.permit authorizer (ReqContext. user-a) "getClusterInfo" nil)))
   (is (= true (.permit authorizer (ReqContext. user-b) "getClusterInfo" nil)))
   (is (= true (.permit authorizer (ReqContext. admin-user) "getClusterInfo" nil)))

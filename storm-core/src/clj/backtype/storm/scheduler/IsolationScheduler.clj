@@ -32,6 +32,9 @@
 (defn -prepare [this conf]
   (container-set! (.state this) conf))
 
+(defn -config [this]
+  )
+
 (defn- compute-worker-specs "Returns mutable set of sets of executors"
   [^TopologyDetails details]
   (->> (.getExecutorToComponent details)

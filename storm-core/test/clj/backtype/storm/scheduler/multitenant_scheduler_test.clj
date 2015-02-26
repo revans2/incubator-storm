@@ -680,11 +680,13 @@
     (.schedule scheduler topologies cluster)
     (let [assignment (.getAssignmentById cluster "topology1")
           assigned-slots (.getSlots assignment)
-          executors (.getExecutors assignment)]
+          executors (.getExecutors assignment)
+          scheduler-config (.config scheduler)]
       ;; 4 slots on 1 machine, all executors assigned
       (is (= 4 (.size assigned-slots)))
       (is (= 1 (.size (into #{} (for [slot assigned-slots] (.getNodeId slot))))))
       (is (= 20 (.size executors)))
+      (is (= 2 (count scheduler-config)))
     )
     (is (= "Fully Scheduled" (.get (.getStatusMap cluster) "topology1")))
     (is (= "Scheduled Isolated on 2 Nodes" (.get (.getStatusMap cluster) "topology2")))

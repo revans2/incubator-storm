@@ -1275,6 +1275,10 @@
         (check-authorization! nimbus nil nil "getNimbusConf")
         (to-json (:conf nimbus)))
 
+      (^String getSchedulerConf [this]
+       (check-authorization! nimbus nil nil "getSchedulerConf")
+       (to-json (.config (:scheduler nimbus))))
+
       (^String getTopologyConf [this ^String id]
         (let [topology-conf (try-read-storm-conf conf id blob-store)
               storm-name (topology-conf TOPOLOGY-NAME)]

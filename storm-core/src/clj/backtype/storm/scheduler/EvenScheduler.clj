@@ -77,5 +77,8 @@
 (defn -prepare [this conf]
   )
 
+(defn -config [this]
+  )
+
 (defn -schedule [this ^Topologies topologies ^Cluster cluster]
   (schedule-topologies-evenly topologies cluster))

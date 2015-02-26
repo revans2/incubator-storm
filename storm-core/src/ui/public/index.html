@@ -64,6 +64,12 @@
   </div>
   <div class="row">
     <div class="col-md-12">
+      <h2>Scheduler Configuration</h2>
+      <div id="scheduler-configuration"></div>
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-md-12">
       <div id="json-response-error"></div>
     </div>
   </div>
@@ -100,6 +106,7 @@ $(document).ready(function() {
     var topologySummary = $("#topology-summary");
     var supervisorSummary = $("#supervisor-summary");
     var config = $("#nimbus-configuration");
+    var schedulerConfig = $("#scheduler-configuration");
 
     $.getJSON("/api/v1/cluster/summary",function(response,status,jqXHR) {
         $.get("/templates/user-template.html", function(template) {
@@ -145,6 +152,17 @@ $(document).ready(function() {
           $('#supervisor-summary [data-toggle="tooltip"]').tooltip();
         });
       });
+    });
+    $.getJSON("/api/v1/cluster/schedulerConfiguration",function(response,status,jqXHR) {
+        jsError(function() {
+            var formattedResponse = formatConfigData(response);
+            $.get("/templates/index-page-template.html", function(template) {
+                schedulerConfig.append(Mustache.render($(template).filter("#scheduler-configuration-template").html(),formattedResponse));
+                //key, value
+                dtAutoPage("#scheduler-configuration-table", {});
+                $('#scheduler-configuration [data-toggle="tooltip"]').tooltip();
+            });
+        });
     });
     $.getJSON("/api/v1/cluster/configuration",function(response,status,jqXHR) {
       jsError(function() {

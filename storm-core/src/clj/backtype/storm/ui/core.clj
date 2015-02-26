@@ -496,6 +496,10 @@
   (with-nimbus nimbus
     (.getNimbusConf ^Nimbus$Client nimbus)))
 
+(defn scheduler-configuration []
+  (with-nimbus nimbus
+    (.getSchedulerConf ^Nimbus$Client nimbus)))
+
 (defn cluster-summary
   ([user]
      (with-nimbus nimbus
@@ -854,6 +858,8 @@
 (defroutes main-routes
   (GET "/api/v1/cluster/configuration" []
        (cluster-configuration))
+  (GET "/api/v1/cluster/schedulerConfiguration" []
+       (scheduler-configuration))
   (GET "/api/v1/cluster/summary" [:as {:keys [cookies servlet-request]}]
        (let [user (.getUserName http-creds-handler servlet-request)]
          (json-response (cluster-summary user))))

@@ -37,4 +37,6 @@ public interface IScheduler {
      *       <code>cluster.setAssignmentById</code>
      */
     void schedule(Topologies topologies, Cluster cluster);
+
+    Map<String, Object> config();
 }

@@ -338,6 +338,8 @@ service Nimbus {
 
   // returns json
   string getNimbusConf() throws (1: AuthorizationException aze);
+  // returns json
+  string getSchedulerConf() throws (1: AuthorizationException aze);
   // stats functions
   ClusterSummary getClusterInfo() throws (1: AuthorizationException aze);
   TopologyInfo getTopologyInfo(1: string id) throws (1: NotAliveException e, 2: AuthorizationException aze);
