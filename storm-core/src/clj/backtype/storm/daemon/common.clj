@@ -64,7 +64,7 @@
 (def LS-LOCAL-ASSIGNMENTS "local-assignments")
 (def LS-APPROVED-WORKERS "approved-workers")
 
-
+(def NIMBUS-LS-TOPO-HISTORY "topo-hist")
 
 (defrecord WorkerHeartbeat [time-secs storm-id executors port])
 
