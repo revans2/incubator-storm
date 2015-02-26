@@ -613,22 +613,22 @@
   (testing "find-n-matches looks through logs properly"
     (let [files [(clojure.java.io/file "src" "dev" "logviewer-search-context-tests.log")
                  (clojure.java.io/file "src" "dev" "logviewer-search-context-tests.log.gz")]
-          matches1 (logviewer/find-n-matches files 20 0 0 "needle")
-          matches2 (logviewer/find-n-matches files 20 0 126 "needle")
-          matches3 (logviewer/find-n-matches files 20 1 0 "needle")]
+          matches1 ((logviewer/find-n-matches files 20 0 0 "needle") "matches")
+          matches2 ((logviewer/find-n-matches files 20 0 126 "needle") "matches")
+          matches3 ((logviewer/find-n-matches files 20 1 0 "needle") "matches")]
 
       (is (= 2 (count matches1)))
       (is (= 4 (count ((first matches1) "matches"))))
       (is (= 4 (count ((second matches1) "matches"))))
-      (is (= ((first matches1) "file-name") "\"src/dev/logviewer-search-context-tests.log\""))
-      (is (= ((second matches1) "file-name") "\"src/dev/logviewer-search-context-tests.log.gz\""))
-
+      (is (= ((first matches1) "fileName") "logviewer-search-context-tests.log"))
+      (is (= ((second matches1) "fileName") "logviewer-search-context-tests.log.gz"))
+      
       (is (= 2 (count ((first matches2) "matches"))))
       (is (= 4 (count ((second matches2) "matches"))))
-
+      
       (is (= 1 (count matches3)))
       (is (= 4 (count ((first matches3) "matches")))))))
-
+      
 (deftest test-deep-search-logs-for-topology
   (let [files [(clojure.java.io/file "src" "dev" "logviewer-search-context-tests.log")
                (clojure.java.io/file "src" "dev" "logviewer-search-context-tests.log.gz")]]
@@ -655,10 +655,10 @@
         (verify-call-times-for logviewer/find-n-matches 4)
         (verify-call-times-for logviewer/logs-for-port 4)
         ; File offset and byte offset should always be zero when searching multiple workers (multiple ports).
-        (verify-nth-call-args-for 1 logviewer/find-n-matches (first files) 20 0 0 "search")
-        (verify-nth-call-args-for 2 logviewer/find-n-matches (first files) 20 0 0 "search")
-        (verify-nth-call-args-for 3 logviewer/find-n-matches (first files) 20 0 0 "search")
-        (verify-nth-call-args-for 4 logviewer/find-n-matches (first files) 20 0 0 "search")))
+        (verify-nth-call-args-for 1 logviewer/find-n-matches [(first files)] 20 0 0 "search")
+        (verify-nth-call-args-for 2 logviewer/find-n-matches [(first files)] 20 0 0 "search")
+        (verify-nth-call-args-for 3 logviewer/find-n-matches [(first files)] 20 0 0 "search")
+        (verify-nth-call-args-for 4 logviewer/find-n-matches [(first files)] 20 0 0 "search")))
      (testing "deep-search-logs-for-topology one-port search-archived = true, no file-offset"
        (instrumenting
         [logviewer/find-n-matches

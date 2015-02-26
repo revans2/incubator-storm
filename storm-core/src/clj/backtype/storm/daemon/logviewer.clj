@@ -685,14 +685,18 @@ Note that if anything goes wrong, this will throw an Error and exit."
                      :status 404))))
 
 (defn find-n-matches [logs n file-offset offset search]
-  (let [logs (drop file-offset logs)]
+  (let [logs (drop file-offset logs)
+        wrap-matches-fn (fn [matches]
+                          {"fileOffset" file-offset
+                           "searchString" search
+                           "matches" matches})]
     (loop [matches []
            logs logs
            offset offset
            file-offset file-offset
            match-count 0]
       (if (empty? logs)
-        matches
+        (wrap-matches-fn matches)
         (let [these-matches (try
                               (log-debug "Looking through " (first logs))
                               (substring-search (first logs)
@@ -704,15 +708,13 @@ Note that if anything goes wrong, this will throw an Error and exit."
                                 {}))
               new-matches (conj matches
                                 (assoc these-matches
-                                       "file-name"
-                                       (str "\"" (first logs) "\"")))
+                                       "fileName"
+                                       (str (.getName (first logs)))))
               new-count (+ match-count (count (these-matches "matches")))]
           (if (empty? these-matches)
             (recur matches (rest logs) 0 (+ file-offset 1) match-count)
             (if (>= new-count n)
-              {"fileOffset" file-offset
-               "searchString" search
-               "matches" new-matches}
+              (wrap-matches-fn new-matches)
               (recur new-matches (rest logs) 0 (+ file-offset 1) new-count))))))))
 
 (defn logs-for-port
@@ -737,27 +739,29 @@ Note that if anything goes wrong, this will throw an Error and exit."
      (let [file-offset (if file-offset (Integer/parseInt file-offset) 0)
            offset (if offset (Integer/parseInt offset) 0)
            num-matches (or (Integer/parseInt num-matches) 1)
-           log-files (.listFiles (File. root-dir))
+           log-files (vec (.listFiles (File. root-dir)))
            logs-for-port-fn (partial logs-for-port user root-dir topology-id log-files)]
        (if (or (not port) (= "*" port))
          ;; Check for all ports
          (let [slot-ports (*STORM-CONF* SUPERVISOR-SLOTS-PORTS)
-               filtered-logs (map logs-for-port-fn slot-ports)]
+               filtered-logs (filter (comp not empty?) (map logs-for-port-fn slot-ports))]
            (if search-archived?
              (map #(find-n-matches % num-matches 0 0 search)
                   filtered-logs)
              (map #(find-n-matches % num-matches 0 0 search)
-                  (filter not-nil? (map first filtered-logs)))))
+                  (map (comp vector first) filtered-logs))))
          ;; Check just the one port
          (if (not (contains? (into #{} (map str (*STORM-CONF* SUPERVISOR-SLOTS-PORTS))) port))
            []
            (let [filtered-logs (logs-for-port-fn port)]
-             (if (and search-archived? (not-nil? (first filtered-logs)))
-               (find-n-matches filtered-logs num-matches file-offset offset search)
-               (find-n-matches [(first filtered-logs)] num-matches 0 offset search)))))))
+             (if (empty? filtered-logs)
+               []
+               (if search-archived?
+                 (find-n-matches filtered-logs num-matches file-offset offset search)
+                 (find-n-matches [(first filtered-logs)] num-matches 0 offset search))))))))
    :headers {"Access-Control-Allow-Origin" origin
              "Access-Control-Allow-Credentials" "true"}))
-  
+
 (defn log-template
   ([body] (log-template body nil nil))
   ([body fname user]
