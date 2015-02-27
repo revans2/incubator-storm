@@ -35,6 +35,16 @@
     </tr>
     {{/matches}}
 </script>
+<script id="deepsearch-result-identified-template" type="text/html">
+    {{#matches}}
+    {{#matches}}
+    <tr>
+      <td><a href="http://{{host}}:{{logviewerPort}}/logviewer_search.html?file={{fileName}}&search={{searchString}}">{{host}}:{{port}}</a></td>
+      <td><pre>{{beforeString}}<b><a href="{{logviewerURL}}">{{matchString}}</a></b>{{afterString}}</pre></td>
+    </tr>
+    {{/matches}}
+    {{/matches}}
+</script>
 <script id="search-form-template" type="text/html">
 <form action="search_result.html" id="search-box">
   Search {{id}}:
@@ -42,6 +52,7 @@
   <input type="hidden" name="id" value="{{id}}">
   <input type="hidden" name="count" value="{{count}}">
   <input type="submit" value="Search">
+  Search Archived Logs: <input type="checkbox" name="searchArchived" value="checked" {{searchArchived}}>
 </form>
 </script>
 
