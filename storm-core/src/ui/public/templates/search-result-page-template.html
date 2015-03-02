@@ -46,15 +46,15 @@
     {{/matches}}
 </script>
 <script id="search-form-template" type="text/html">
-<div class="search-box">
-<form action="search_result.html" id="search-box">
-  Search {{id}}:
-  <input type="text" name="search" value="{{search}}">
-  <input type="hidden" name="id" value="{{id}}">
-  <input type="hidden" name="count" value="{{count}}">
-  <input type="submit" value="Search">
-  Search Archived Logs: <input type="checkbox" name="searchArchived" value="checked" {{searchArchived}}>
-</form>
-</div>
+  <div class="search-box">
+    <form action="search_result.html" id="search-box">
+      Search {{id}}:
+      <input type="text" name="search" value="{{search}}">
+      <input type="hidden" name="id" value="{{id}}">
+      <input type="hidden" name="count" value="{{count}}">
+      <input type="submit" value="Search">
+      Search Archived Logs: <input type="checkbox" name="searchArchived" value="checked" {{searchArchived}}>
+    </form>
+  </div>
 </script>
 
