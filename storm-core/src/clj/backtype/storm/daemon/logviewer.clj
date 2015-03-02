@@ -590,7 +590,7 @@ Note that if anything goes wrong, this will throw an Error and exit."
         num-matches (or num-matches 10)
         start-byte-offset (or start-byte-offset 0)]
     ;; Start at the part of the log file we are interested in.
-    (if (>= start-byte-offset file-len)
+    (if (> start-byte-offset file-len)
       (throw
         (InvalidRequestException. "Cannot search past the end of the file")))
     (when (> start-byte-offset 0)
@@ -706,10 +706,11 @@ Note that if anything goes wrong, this will throw an Error and exit."
                               (catch InvalidRequestException e
                                 (log-error e "Can't search past end of file.")
                                 {}))
+              file-name (str (.getName (first logs)))
               new-matches (conj matches
-                                (assoc these-matches
-                                       "fileName"
-                                       (str (.getName (first logs)))))
+                                (merge these-matches
+                                       { "fileName" file-name
+                                         "port" (nth (re-matches worker-log-filename-pattern file-name) 3)}))
               new-count (+ match-count (count (these-matches "matches")))]
           (if (empty? these-matches)
             (recur matches (rest logs) 0 (+ file-offset 1) match-count)

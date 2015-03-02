@@ -18,42 +18,51 @@
 <table id="search-result-table" class="table table-striped compact">
   <thead><tr><th>host:port</th><th>Match</th></tr></thead>
   <tbody>
-    {{#hostPortList}}
-      <tr id="{{elemId}}">
-        <td>{{host}}:{{port}}</td>
-        <td>LOADING ...</td>
-      </tr>
-    {{/hostPortList}}
+    {{#supervisors}}
+    <tr id="{{elemId}}">
+      <td>{{host}}</td>
+      <td>LOADING ...</td>
+    </tr>
+    {{/supervisors}}
   </tbody>
 </table>
 </script>
 <script id="search-result-identified-template" type="text/html">
     {{#matches}}
     <tr>
-      <td><a href="http://{{host}}:{{logviewerPort}}/logviewer_search.html?file={{file}}&search={{searchString}}">{{host}}:{{port}}</a></td>
-      <td><pre>{{beforeString}}<b><a href="{{logviewerURL}}">{{matchString}}</a></b>{{afterString}}</pre></td>
-    </tr>
-    {{/matches}}
-</script>
-<script id="deepsearch-result-identified-template" type="text/html">
-    {{#matches}}
-    {{#matches}}
-    <tr>
       <td><a href="http://{{host}}:{{logviewerPort}}/logviewer_search.html?file={{fileName}}&search={{searchString}}">{{host}}:{{port}}</a></td>
       <td><pre>{{beforeString}}<b><a href="{{logviewerURL}}">{{matchString}}</a></b>{{afterString}}</pre></td>
     </tr>
     {{/matches}}
-    {{/matches}}
 </script>
 <script id="search-form-template" type="text/html">
-  <div class="search-box">
-    <form action="search_result.html" id="search-box">
-      Search {{id}}:
-      <input type="text" name="search" value="{{search}}">
-      <input type="hidden" name="id" value="{{id}}">
+  <div id="search-form-container" class="search-box">
+    <form action="deep_search_result.html" id="search-box">
+      <table id="search-options" class="table table-condensed" style="width:500px;">
+        <tr>
+          <td>Topology Id:</td>
+          <td><select name="id">
+              {{#topologies}}
+              <option value={{host}} {{selected}}>{{host}}</option>
+              {{/topologies}}
+            </select>
+          </td>
+        </tr>
+        <tr>
+          <td>Search:</td>
+          <td><input type="text" name="search" value="{{search}}"></td>
+        </tr>
+        <tr>
+          <td>Search archived logs:</td>
+          <td><input type="checkbox" name="search-archived" {{search_archived}}></td>
+        </tr>
+        <tr>
+          <td colspan="2">
+            <input type="submit" value="Search">
+          </td>
+        </tr>
+      </table>
       <input type="hidden" name="count" value="{{count}}">
-      <input type="submit" value="Search">
-      Search Archived Logs: <input type="checkbox" name="searchArchived" value="checked" {{searchArchived}}>
     </form>
   </div>
 </script>

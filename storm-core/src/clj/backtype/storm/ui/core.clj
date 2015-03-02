@@ -496,6 +496,15 @@
   (with-nimbus nimbus
     (.getNimbusConf ^Nimbus$Client nimbus)))
 
+(defn topology-history-info
+  ([user]
+   (with-nimbus nimbus
+     (topology-history-info (.getTopologyHistory ^Nimbus$Client nimbus user) user)))
+  ([history user]
+   {"topo-history"
+    (for [^String s (.get_topo_ids history)]
+      {"host" s})}))
+
 (defn scheduler-configuration []
   (with-nimbus nimbus
     (.getSchedulerConf ^Nimbus$Client nimbus)))
@@ -863,8 +872,12 @@
   (GET "/api/v1/cluster/summary" [:as {:keys [cookies servlet-request]}]
        (let [user (.getUserName http-creds-handler servlet-request)]
          (json-response (cluster-summary user))))
+  (GET "/api/v1/history/summary" [:as {:keys [cookies servlet-request]}]
+       (let [user (.getUserName http-creds-handler servlet-request)]
+         (json-response (topology-history-info user))))
   (GET "/api/v1/supervisor/summary" []
-       (json-response (supervisor-summary)))
+       (json-response (assoc (supervisor-summary)
+                             "logviewerPort" (*STORM-CONF* LOGVIEWER-PORT))))
   (GET "/api/v1/topology/summary" []
        (json-response (all-topologies-summary)))
   (GET  "/api/v1/topology-workers/:id" [:as {:keys [cookies servlet-request]} id & m]

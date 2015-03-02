@@ -628,7 +628,7 @@
       
       (is (= 1 (count matches3)))
       (is (= 4 (count ((first matches3) "matches")))))))
-      
+
 (deftest test-deep-search-logs-for-topology
   (let [files [(clojure.java.io/file "src" "dev" "logviewer-search-context-tests.log")
                (clojure.java.io/file "src" "dev" "logviewer-search-context-tests.log.gz")]]

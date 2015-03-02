@@ -1548,8 +1548,9 @@
               user-group-match-fn (fn [topo-id user conf]
                                     (let [topology-conf (try-read-storm-conf conf topo-id (:blob-store nimbus))
                                           groups (get-topo-logs-groups topology-conf)]
-                                      (or (does-users-group-intersect? user groups conf)
-                                        (some #(= % user) (get-topo-logs-users topology-conf)))))
+                                      (or (nil? user)
+                                          (does-users-group-intersect? user groups conf)
+                                          (some #(= % user) (get-topo-logs-users topology-conf)))))
               active-ids-for-user (filter #(user-group-match-fn % user (:conf nimbus)) assigned-topology-ids)
               topo-history-list (read-topology-history nimbus user)]
           (TopologyHistoryInfo. (distinct (concat active-ids-for-user topo-history-list)))))
