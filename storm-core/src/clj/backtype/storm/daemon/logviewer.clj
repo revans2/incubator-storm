@@ -590,6 +590,7 @@ Note that if anything goes wrong, this will throw an Error and exit."
         num-matches (or num-matches 10)
         start-byte-offset (or start-byte-offset 0)]
     ;; Start at the part of the log file we are interested in.
+    ;; Allow searching when start-byte-offset == file-len so it doesn't blow up on 0-length files
     (if (> start-byte-offset file-len)
       (throw
         (InvalidRequestException. "Cannot search past the end of the file")))
