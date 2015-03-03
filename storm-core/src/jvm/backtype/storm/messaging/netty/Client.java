@@ -72,9 +72,11 @@ class Client implements IConnection, IStatefulObject{
     private boolean wait_for_requests;
     private final StormBoundedExponentialBackoffRetry retryPolicy;
     private volatile Map<Integer, Double> serverLoad = null;
+    private Context context;
 
     @SuppressWarnings("rawtypes")
-    Client(Map storm_conf, ChannelFactory factory, String host, int port) {
+    Client(Map storm_conf, ChannelFactory factory, String host, int port, Context context) {
+        this.context = context;
         this.factory = factory;
         message_queue = new LinkedBlockingQueue<Object>();
         retries = new AtomicInteger(0);
@@ -300,6 +302,8 @@ class Client implements IConnection, IStatefulObject{
 
             //resume delivery if it is waiting for requests
             tryDeliverMessages(true);
+            context.removeClient(this);
+            context = null;
         } catch (InterruptedException e) {
             LOG.info("Interrupted Connection to {} is being closed", remote_addr);
             being_closed.set(true);
