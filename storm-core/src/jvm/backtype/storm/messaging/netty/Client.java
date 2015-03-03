@@ -184,7 +184,7 @@ class Client implements IConnection, IStatefulObject{
         Channel channel = channelRef.get();
         if ((channel == null || !channel.isOpen())
                 && close_msg_enqueued.get()) {
-            LOG.info("Channel to {} fully closed {} messages not delivered", remote_addr, message_queue.size());
+            LOG.info("Channel to {} fully closed, {} messages not delivered", remote_addr, message_queue.size());
             being_closed.set(true);
             return;
         }
@@ -214,7 +214,7 @@ class Client implements IConnection, IStatefulObject{
         //if channel is being closed and we have no outstanding messages,  let's close the channel
         if (requests.isEmpty() && being_closed.get()) {
             close_n_release();
-            LOG.info("Channel to {} is fully closed all messages delivered", remote_addr);
+            LOG.info("Channel to {} is fully closed, all messages delivered", remote_addr);
             return;
         }
 
