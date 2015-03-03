@@ -124,7 +124,7 @@ class Client implements IConnection, IStatefulObject{
             @Override
             public void run() { 
                 if (being_closed.get()) {
-                    LOG.debug(
+                    LOG.info(
                             "Not reconnecting to {} since we are closing [{}]",
                             remote_addr, tried_count);
                     return;
@@ -178,20 +178,21 @@ class Client implements IConnection, IStatefulObject{
      * Retrieve messages from queue, and delivery to server if any
      */
     synchronized void tryDeliverMessages(boolean only_if_waiting) throws InterruptedException {
-        //just skip if delivery only if waiting, and we are not waiting currently
-        if (only_if_waiting && !wait_for_requests)  {
-          //LOG.info("Cutting out early, not waiting for requests... ("+message_queue.size()+")");
-          return;
-        }
-
         //make sure that channel was not closed
         Channel channel = channelRef.get();
         if ((channel == null || !channel.isOpen())
                 && close_msg_enqueued.get()) {
-            LOG.debug("Channel: ({}), Close Message Enqueued: ({})", channel, close_msg_enqueued.get());
+            LOG.info("Channel to {} fully closed {} messages not delivered", remote_addr, message_queue.size());
             being_closed.set(true);
             return;
         }
+
+        //just skip if delivery only if waiting, and we are not waiting currently
+        if (only_if_waiting && !wait_for_requests)  {
+          LOG.debug("Cutting out early, not waiting for requests... ({})", message_queue.size());
+          return;
+        }
+
         if (channel == null) {
             return;
         }
@@ -211,6 +212,7 @@ class Client implements IConnection, IStatefulObject{
         //if channel is being closed and we have no outstanding messages,  let's close the channel
         if (requests.isEmpty() && being_closed.get()) {
             close_n_release();
+            LOG.info("Channel to {} is fully closed all messages delivered", remote_addr);
             return;
         }
 
@@ -292,7 +294,7 @@ class Client implements IConnection, IStatefulObject{
     public void close() {
         //enqueue a CLOSE message so that shutdown() will be invoked
         try {
-            LOG.debug("Enqueing close message");
+            LOG.info("Enqueing close message");
             message_queue.put(ControlMessage.CLOSE_MESSAGE);
             close_msg_enqueued.set(true);
 

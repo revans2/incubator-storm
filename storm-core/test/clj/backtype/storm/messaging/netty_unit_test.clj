@@ -123,8 +123,8 @@
         _ (.start server)
         _ (.send client task (.getBytes req_msg))
         ]
-    (.close client)
     (.join server)
+    (.close client)
     (.term context)))
 
 (deftest test-batch
