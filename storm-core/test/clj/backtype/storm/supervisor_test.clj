@@ -260,7 +260,7 @@
                                 (str "-Dstorm.id=" mock-storm-id)
                                 (str "-Dworker.id=" mock-worker-id)
                                 (str "-Dworker.port=" mock-port)
-                               "-Dlogback.configurationFile=/logback/worker.xml"
+                               "-Dlog4j.configurationFile=/log4j2/worker.xml"
                                "backtype.storm.LogWriter"]
                                [(supervisor/java-cmd) "-server"]
                                opts
@@ -268,7 +268,7 @@
                                ["-Djava.library.path="
                                 (str "-Dlogfile.name=" mock-storm-id "-worker-" mock-port ".log")
                                 "-Dstorm.home="
-                                "-Dlogback.configurationFile=/logback/worker.xml"
+                                "-Dlog4j.configurationFile=/log4j2/worker.xml"
                                 (str "-Dstorm.id=" mock-storm-id)
                                 (str "-Dworker.id=" mock-worker-id)
                                 (str "-Dworker.port=" mock-port)
@@ -377,7 +377,7 @@
                                 " '-Dstorm.id=" mock-storm-id "'"
                                 " '-Dworker.id=" mock-worker-id "'"
                                 " '-Dworker.port=" mock-port "'"
-                                " '-Dlogback.configurationFile=/logback/worker.xml'"
+                                " '-Dlog4j.configurationFile=/log4j2/worker.xml'"
                                 " 'backtype.storm.LogWriter'"
                                 " 'java' '-server'"
                                 " " (shell-cmd opts)
@@ -385,7 +385,7 @@
                                 " '-Djava.library.path='"
                                 " '-Dlogfile.name=" mock-storm-id "-worker-" mock-port ".log'"
                                 " '-Dstorm.home='"
-                                " '-Dlogback.configurationFile=/logback/worker.xml'"
+                                " '-Dlog4j.configurationFile=/log4j2/worker.xml'"
                                 " '-Dstorm.id=" mock-storm-id "'"
                                 " '-Dworker.id=" mock-worker-id "'"
                                 " '-Dworker.port=" mock-port "'"
@@ -525,7 +525,7 @@
 (defn found? [sub-str input-str]
   (if (string? input-str)
     (contrib-str/substring? sub-str (str input-str))
-    (some? #(contrib-str/substring? sub-str %) input-str)))
+    (boolean (some #(contrib-str/substring? sub-str %) input-str))))
 
 (defn not-found? [sub-str input-str]
     (complement (found? sub-str input-str)))
