@@ -61,8 +61,6 @@ cat <<XML
             <DefaultRolloverStrategy max="9"/>
         </Policies>
     </RollingFile>
-    <!-- Syslog name="syslog" host="localhost" port="514" protocol="UDP" appName="\${sys:servicename}">
-    </Syslog -->
 </appenders>
 <loggers>
 
