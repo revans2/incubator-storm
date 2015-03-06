@@ -62,7 +62,7 @@ cat <<XML
         </Policies>
     </RollingFile>
     <Syslog name="syslog" format="RFC5424" host="${syslog_host}" port="514"
-        protocol="UDP" appName="\${sys:storm.id}:\${sys:worker.port}" mdcId="mdc" includeMDC="true"
+        protocol="UDP" appName="[\${sys:storm.id}:\${sys:worker.port}]" mdcId="mdc" includeMDC="true"
         facility="${syslog_facility}" enterpriseNumber="18060" newLine="true"
         messageId="Audit" id="ystorm"/>
 </appenders>

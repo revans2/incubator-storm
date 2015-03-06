@@ -61,6 +61,10 @@ cat <<XML
             <DefaultRolloverStrategy max="9"/>
         </Policies>
     </RollingFile>
+    <Syslog name="syslog" format="RFC5424" host="${syslog_host}" port="514"
+        protocol="UDP" appName="[\${sys:daemon.name}]" mdcId="mdc" includeMDC="true"
+        facility="${syslog_facility}" enterpriseNumber="18060" newLine="true"
+        messageId="Audit" id="ystorm"/>
 </appenders>
 <loggers>
 
@@ -72,7 +76,7 @@ cat <<XML
     </Logger>
     <root level="info"> <!-- We log everything -->
         <appender-ref ref="A1"/>
-        <!-- appender-ref ref="syslog"/ -->
+        <appender-ref ref="syslog"/>
     </root>
 </loggers>
 </configuration>

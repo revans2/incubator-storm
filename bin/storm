@@ -343,6 +343,7 @@ def nimbus(klass="backtype.storm.daemon.nimbus"):
         cppaths = [CLUSTER_CONF_DIR]
     jvmopts = parse_args(confvalue("nimbus.childopts", cppaths)) + [
         "-Dlogfile.name=nimbus.log",
+        "-Ddaemon.name=nimbus",
         "-Dlog4j.configurationFile=" + STORM_DIR + "/log4j2/cluster.xml",
     ]
     exec_storm_class(
@@ -363,6 +364,7 @@ def hbserver(klass="backtype.storm.daemon.hbserver"):
     cppaths = [CLUSTER_CONF_DIR]
     jvmopts = parse_args(confvalue("hbserver.childopts", cppaths)) + [
         "-Dlogfile.name=hbserver.log",
+        "-Ddaemon.name=hbserver",
         "-Dlog4j.configurationFile=" + STORM_DIR + "/log4j2/cluster.xml",
     ]
     exec_storm_class(
@@ -386,6 +388,7 @@ def supervisor(klass="backtype.storm.daemon.supervisor"):
         cppaths = [CLUSTER_CONF_DIR]
     jvmopts = parse_args(confvalue("supervisor.childopts", cppaths)) + [
         "-Dlogfile.name=supervisor.log",
+        "-Ddaemon.name=supervisor",
         "-Dlog4j.configurationFile=" + STORM_DIR + "/log4j2/cluster.xml",
     ]
     exec_storm_class(
@@ -407,6 +410,7 @@ def ui():
     cppaths = [CLUSTER_CONF_DIR]
     jvmopts = parse_args(confvalue("ui.childopts", cppaths)) + [
         "-Dlogfile.name=ui.log",
+        "-Ddaemon.name=ui",
         "-Dlog4j.configurationFile=" + STORM_DIR + "/log4j2/cluster.xml",
     ]
     exec_storm_class(
@@ -428,6 +432,7 @@ def logviewer():
     cppaths = [CLUSTER_CONF_DIR]
     jvmopts = parse_args(confvalue("logviewer.childopts", cppaths)) + [
         "-Dlogfile.name=logviewer.log",
+        "-Ddaemon.name=logviewer",
         "-Dlog4j.configurationFile=" + STORM_DIR + "/log4j2/cluster.xml",
     ]
     exec_storm_class(
@@ -448,6 +453,7 @@ def drpc():
     cppaths = [CLUSTER_CONF_DIR]
     jvmopts = parse_args(confvalue("drpc.childopts", cppaths)) + [
         "-Dlogfile.name=drpc.log",
+        "-Ddaemon.name=drpc",
         "-Dlog4j.configurationFile=" + STORM_DIR + "/log4j2/cluster.xml"
     ]
     exec_storm_class(
