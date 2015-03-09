@@ -57,7 +57,7 @@
     </RollingFile>
     <Syslog name="syslog" format="RFC5424" host="localhost" port="514"
             protocol="UDP" appName="[${sys:daemon.name}]" mdcId="mdc" includeMDC="true"
-            facility="LOCAL5" enterpriseNumber="18060" newLine="true"
+            facility="LOCAL5" enterpriseNumber="18060" newLine="true" exceptionPattern="%rEx{full}"
             messageId="Audit" id="ystorm"/>
 </appenders>
 <loggers>
