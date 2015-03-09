@@ -302,7 +302,7 @@ class Client implements IConnection, IStatefulObject{
 
             //resume delivery if it is waiting for requests
             tryDeliverMessages(true);
-            context.removeClient(this);
+            context.removeClient(remote_addr.getHostName(),remote_addr.getPort());
             context = null;
         } catch (InterruptedException e) {
             LOG.info("Interrupted Connection to {} is being closed", remote_addr);
