@@ -451,7 +451,8 @@
                                      600)
                                 (get (:executed statk->w->sid->num) 600))
                     vals ;; Ignore the stream ids.
-                    (reduce add-pairs) ;; Combine weighted averages and counts.
+                    (reduce add-pairs
+                            [0. 0]) ;; Combine weighted averages and counts.
                     ((fn [[weighted-avg cnt]]
                       (div weighted-avg (* 1000 (min uptime 600))))))
         :acked (-> statk->w->sid->num
