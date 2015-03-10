@@ -98,18 +98,6 @@
     "0"
     ))
 
-(defn swap-map-order [m]
-  (->> m
-       (map (fn [[k v]]
-              (into
-               {}
-               (for [[k2 v2] v]
-                 [k2 {k v2}]
-                 ))
-              ))
-       (apply merge-with merge)
-       ))
-
 (defn date-str [secs]
   (let [dt (from-long (* 1000 (long secs)))]
     (unparse (:rfc822 formatters) dt)

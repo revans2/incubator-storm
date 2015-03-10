@@ -432,11 +432,98 @@ public class RebalanceOptions implements org.apache.thrift.TBase<RebalanceOption
   }
 
   public void read(org.apache.thrift.protocol.TProtocol iprot) throws org.apache.thrift.TException {
+<<<<<<< HEAD
     schemes.get(iprot.getScheme()).getScheme().read(iprot, this);
   }
 
   public void write(org.apache.thrift.protocol.TProtocol oprot) throws org.apache.thrift.TException {
     schemes.get(oprot.getScheme()).getScheme().write(oprot, this);
+=======
+    org.apache.thrift.protocol.TField field;
+    iprot.readStructBegin();
+    while (true)
+    {
+      field = iprot.readFieldBegin();
+      if (field.type == org.apache.thrift.protocol.TType.STOP) { 
+        break;
+      }
+      switch (field.id) {
+        case 1: // WAIT_SECS
+          if (field.type == org.apache.thrift.protocol.TType.I32) {
+            this.wait_secs = iprot.readI32();
+            set_wait_secs_isSet(true);
+          } else { 
+            org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
+          }
+          break;
+        case 2: // NUM_WORKERS
+          if (field.type == org.apache.thrift.protocol.TType.I32) {
+            this.num_workers = iprot.readI32();
+            set_num_workers_isSet(true);
+          } else { 
+            org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
+          }
+          break;
+        case 3: // NUM_EXECUTORS
+          if (field.type == org.apache.thrift.protocol.TType.MAP) {
+            {
+              org.apache.thrift.protocol.TMap _map191 = iprot.readMapBegin();
+              this.num_executors = new HashMap<String,Integer>(2*_map191.size);
+              for (int _i192 = 0; _i192 < _map191.size; ++_i192)
+              {
+                String _key193; // required
+                int _val194; // required
+                _key193 = iprot.readString();
+                _val194 = iprot.readI32();
+                this.num_executors.put(_key193, _val194);
+              }
+              iprot.readMapEnd();
+            }
+          } else { 
+            org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
+          }
+          break;
+        default:
+          org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
+      }
+      iprot.readFieldEnd();
+    }
+    iprot.readStructEnd();
+    validate();
+  }
+
+  public void write(org.apache.thrift.protocol.TProtocol oprot) throws org.apache.thrift.TException {
+    validate();
+
+    oprot.writeStructBegin(STRUCT_DESC);
+    if (is_set_wait_secs()) {
+      oprot.writeFieldBegin(WAIT_SECS_FIELD_DESC);
+      oprot.writeI32(this.wait_secs);
+      oprot.writeFieldEnd();
+    }
+    if (is_set_num_workers()) {
+      oprot.writeFieldBegin(NUM_WORKERS_FIELD_DESC);
+      oprot.writeI32(this.num_workers);
+      oprot.writeFieldEnd();
+    }
+    if (this.num_executors != null) {
+      if (is_set_num_executors()) {
+        oprot.writeFieldBegin(NUM_EXECUTORS_FIELD_DESC);
+        {
+          oprot.writeMapBegin(new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.I32, this.num_executors.size()));
+          for (Map.Entry<String, Integer> _iter195 : this.num_executors.entrySet())
+          {
+            oprot.writeString(_iter195.getKey());
+            oprot.writeI32(_iter195.getValue());
+          }
+          oprot.writeMapEnd();
+        }
+        oprot.writeFieldEnd();
+      }
+    }
+    oprot.writeFieldStop();
+    oprot.writeStructEnd();
+>>>>>>> eb99826... aggregate stats on nimbus side before serializing for topology page
   }
 
   @Override

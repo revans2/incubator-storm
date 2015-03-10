@@ -296,11 +296,70 @@ public class Credentials implements org.apache.thrift.TBase<Credentials, Credent
   }
 
   public void read(org.apache.thrift.protocol.TProtocol iprot) throws org.apache.thrift.TException {
+<<<<<<< HEAD
     schemes.get(iprot.getScheme()).getScheme().read(iprot, this);
   }
 
   public void write(org.apache.thrift.protocol.TProtocol oprot) throws org.apache.thrift.TException {
     schemes.get(oprot.getScheme()).getScheme().write(oprot, this);
+=======
+    org.apache.thrift.protocol.TField field;
+    iprot.readStructBegin();
+    while (true)
+    {
+      field = iprot.readFieldBegin();
+      if (field.type == org.apache.thrift.protocol.TType.STOP) { 
+        break;
+      }
+      switch (field.id) {
+        case 1: // CREDS
+          if (field.type == org.apache.thrift.protocol.TType.MAP) {
+            {
+              org.apache.thrift.protocol.TMap _map196 = iprot.readMapBegin();
+              this.creds = new HashMap<String,String>(2*_map196.size);
+              for (int _i197 = 0; _i197 < _map196.size; ++_i197)
+              {
+                String _key198; // required
+                String _val199; // required
+                _key198 = iprot.readString();
+                _val199 = iprot.readString();
+                this.creds.put(_key198, _val199);
+              }
+              iprot.readMapEnd();
+            }
+          } else { 
+            org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
+          }
+          break;
+        default:
+          org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
+      }
+      iprot.readFieldEnd();
+    }
+    iprot.readStructEnd();
+    validate();
+  }
+
+  public void write(org.apache.thrift.protocol.TProtocol oprot) throws org.apache.thrift.TException {
+    validate();
+
+    oprot.writeStructBegin(STRUCT_DESC);
+    if (this.creds != null) {
+      oprot.writeFieldBegin(CREDS_FIELD_DESC);
+      {
+        oprot.writeMapBegin(new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.STRING, this.creds.size()));
+        for (Map.Entry<String, String> _iter200 : this.creds.entrySet())
+        {
+          oprot.writeString(_iter200.getKey());
+          oprot.writeString(_iter200.getValue());
+        }
+        oprot.writeMapEnd();
+      }
+      oprot.writeFieldEnd();
+    }
+    oprot.writeFieldStop();
+    oprot.writeStructEnd();
+>>>>>>> eb99826... aggregate stats on nimbus side before serializing for topology page
   }
 
   @Override

@@ -24,7 +24,9 @@
   (:import [backtype.storm.generated AuthorizationException BeginDownloadResult
                                      GetInfoOptions NumErrorsChoice
                                      ListBlobsResult ReadableBlobMeta
-                                     SettableBlobMeta KeyNotFoundException TopologyHistoryInfo])
+                                     SettableBlobMeta KeyNotFoundException TopologyHistoryInfo
+                                     BoltAggregateStats SpoutAggregateStats
+                                     TopologyStats])
   (:import [backtype.storm.blobstore AtomicOutputStream
                                      BlobStore
                                      BlobStoreAclHandler
@@ -954,11 +956,6 @@
   (->> (.errors storm-cluster-state storm-id component-id)
        (map #(ErrorInfo. (:error %) (:time-secs %)))))
 
-(defn- get-last-error
-  [storm-cluster-state storm-id component-id]
-  (if-let [e (.last-error storm-cluster-state storm-id component-id)]
-    (ErrorInfo. (:error e) (:time-secs e))))
-
 (defn- thriftify-executor-id [[first-task-id last-task-id]]
   (ExecutorInfo. (int first-task-id) (int last-task-id)))
 
@@ -1057,7 +1054,38 @@
   (log-message "Starting Nimbus with conf " conf)
   (let [nimbus (nimbus-data conf inimbus)
         blob-store (:blob-store nimbus)
-        principal-to-local (AuthUtils/GetPrincipalToLocalPlugin conf)]
+        principal-to-local (AuthUtils/GetPrincipalToLocalPlugin conf)
+        get-common-topo-info
+          (fn [^String storm-id operation]
+            (let [storm-cluster-state (:storm-cluster-state nimbus)
+                  topology-conf (try-read-storm-conf conf storm-id blob-store)
+                  storm-name (topology-conf TOPOLOGY-NAME)
+                  _ (check-authorization! nimbus
+                                          storm-name
+                                          topology-conf
+                                          operation)
+                  topology (try-read-storm-topology conf storm-id blob-store)
+                  task->component (storm-task-info topology topology-conf)
+                  base (.storm-base storm-cluster-state storm-id nil)
+                  launch-time-secs (if base (:launch-time-secs base)
+                                     (throw
+                                       (NotAliveException. (str storm-id))))
+                  assignment (.assignment-info storm-cluster-state storm-id nil)
+                  beats (map-val :heartbeat (get @(:heartbeats-cache nimbus)
+                                                 storm-id))
+                  all-components (set (vals task->component))
+                  ret-map
+                  {:storm-name storm-name
+                   :storm-cluster-state storm-cluster-state
+                   :all-components all-components
+                   :launch-time-secs launch-time-secs
+                   :assignment assignment
+                   :beats beats
+                   :topology topology
+                   :task->component task->component
+                   :base base}]
+              ret-map))]
+
     (.prepare ^backtype.storm.nimbus.ITopologyValidator (:validator nimbus) conf)
     (cleanup-corrupt-topologies! nimbus)
     (doseq [storm-id (.active-storms (:storm-cluster-state nimbus))]
@@ -1341,24 +1369,21 @@
           ))
       
       (^TopologyInfo getTopologyInfoWithOpts [this ^String storm-id ^GetInfoOptions options]
-        (let [storm-cluster-state (:storm-cluster-state nimbus)
-              topology-conf (try-read-storm-conf conf storm-id blob-store)
-              storm-name (topology-conf TOPOLOGY-NAME)
-              _ (check-authorization! nimbus storm-name topology-conf "getTopologyInfo")
-              topology (try-read-storm-topology conf storm-id blob-store)
-              task->component (storm-task-info topology topology-conf)
-              base (.storm-base storm-cluster-state storm-id nil)
-              launch-time-secs (if base (:launch-time-secs base) (throw (NotAliveException. (str storm-id))))
-              assignment (.assignment-info storm-cluster-state storm-id nil)
-              beats (map-val :heartbeat (get @(:heartbeats-cache nimbus) storm-id))
-              all-components (-> task->component reverse-map keys)
+        (let [{:keys [storm-name
+                      storm-cluster-state
+                      all-components
+                      launch-time-secs
+                      assignment
+                      beats
+                      task->component
+                      base]} (get-common-topo-info storm-id "getTopologyInfo")
               num-err-choice (or (.get_num_err_choice options)
                                  NumErrorsChoice/ALL)
               errors-fn (condp = num-err-choice
                           NumErrorsChoice/NONE (fn [& _] ()) ;; empty list only
                           NumErrorsChoice/ONE (comp #(remove nil? %)
                                                     list
-                                                    get-last-error)
+                                                    stats/get-last-error)
                           NumErrorsChoice/ALL get-errors
                           ;; Default
                           (do
@@ -1399,6 +1424,85 @@
         (.getTopologyInfoWithOpts this
                                   storm-id
                                   (doto (GetInfoOptions.) (.set_num_err_choice NumErrorsChoice/ALL))))
+
+      (^TopologyPageInfo getTopologyPageInfo
+        [this ^String storm-id ^String window ^boolean include-sys?]
+        (let [{:keys [storm-name
+                      storm-cluster-state
+                      launch-time-secs
+                      assignment
+                      beats
+                      topology
+                      task->component
+                      base]} (get-common-topo-info storm-id "getTopologyPageInfo")
+              exec->node+port (:executor->node+port assignment)
+              last-err-fn (partial stats/get-last-error storm-cluster-state
+                                                        storm-id)
+              {:keys
+               [num-tasks
+                num-workers
+                num-executors
+                spout-id->stats
+                bolt-id->stats
+                window->emitted
+                window->transferred
+                window->complete-latency
+                window->acked
+                window->failed]
+                               } (stats/agg-executors-stats exec->node+port
+                                                            task->component
+                                                            beats
+                                                            topology
+                                                            window
+                                                            include-sys?
+                                                            last-err-fn)
+              spout-agg-stats (for [[id m] spout-id->stats]
+                                (doto (SpoutAggregateStats. id)
+                                  (.set_num_executors (:numExecutors m))
+                                  (.set_num_tasks (:numTasks m))
+                                  (.set_num_emitted (:emitted m))
+                                  (.set_num_transferred (:transferred m))
+                                  (.set_num_acked (:acked m))
+                                  (.set_num_failed (:failed m))
+                                  (.set_last_error (:lastError m))
+                                  (.set_complete_latency (:completeLatency m))))
+              bolt-agg-stats (for [[id m] bolt-id->stats]
+                               (doto (BoltAggregateStats. id)
+                                 (.set_num_executors (:numExecutors m))
+                                 (.set_num_tasks (:numTasks m))
+                                 (.set_num_emitted (:emitted m))
+                                 (.set_num_transferred (:transferred m))
+                                 (.set_num_acked (:acked m))
+                                 (.set_num_failed (:failed m))
+                                 (.set_last_error (:lastError m))
+                                 (.set_execute_latency (:executeLatency m))
+                                 (.set_process_latency (:processLatency m))
+                                 (.set_num_executed (:executed m))
+                                 (.set_capacity (:capacity m))))
+              topology-stats
+                (doto (TopologyStats.)
+                  (.set_emitted window->emitted)
+                  (.set_transferred window->transferred)
+                  (.set_complete_latencies window->complete-latency)
+                  (.set_acked window->acked)
+                  (.set_failed window->failed))
+              topology-conf (to-json
+                              (try-read-storm-conf conf storm-id blob-store))
+              topo-page-info (doto (TopologyPageInfo. storm-id)
+                               (.set_name storm-name)
+                               (.set_uptime_secs (time-delta launch-time-secs))
+                               (.set_status (extract-status-str base))
+                               (.set_num_tasks num-tasks)
+                               (.set_num_workers num-workers)
+                               (.set_num_executors num-executors)
+                               (.set_topology_conf topology-conf)
+                               (.set_spout_agg_stats spout-agg-stats)
+                               (.set_bolt_agg_stats bolt-agg-stats)
+                               (.set_topology_stats topology-stats))]
+            (when-let [owner (:owner base)] (.set_owner topo-page-info owner))
+            (when-let [sched-status (.get @(:id->sched-status nimbus) storm-id)]
+              (.set_sched_status topo-page-info sched-status))
+            topo-page-info))
 
       (^String beginCreateBlob [this
                                 ^String blob-key

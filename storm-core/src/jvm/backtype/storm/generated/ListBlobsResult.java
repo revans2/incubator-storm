@@ -372,11 +372,79 @@ public class ListBlobsResult implements org.apache.thrift.TBase<ListBlobsResult,
   }
 
   public void read(org.apache.thrift.protocol.TProtocol iprot) throws org.apache.thrift.TException {
+<<<<<<< HEAD
     schemes.get(iprot.getScheme()).getScheme().read(iprot, this);
   }
 
   public void write(org.apache.thrift.protocol.TProtocol oprot) throws org.apache.thrift.TException {
     schemes.get(oprot.getScheme()).getScheme().write(oprot, this);
+=======
+    org.apache.thrift.protocol.TField field;
+    iprot.readStructBegin();
+    while (true)
+    {
+      field = iprot.readFieldBegin();
+      if (field.type == org.apache.thrift.protocol.TType.STOP) { 
+        break;
+      }
+      switch (field.id) {
+        case 1: // KEYS
+          if (field.type == org.apache.thrift.protocol.TType.LIST) {
+            {
+              org.apache.thrift.protocol.TList _list205 = iprot.readListBegin();
+              this.keys = new ArrayList<String>(_list205.size);
+              for (int _i206 = 0; _i206 < _list205.size; ++_i206)
+              {
+                String _elem207; // required
+                _elem207 = iprot.readString();
+                this.keys.add(_elem207);
+              }
+              iprot.readListEnd();
+            }
+          } else { 
+            org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
+          }
+          break;
+        case 2: // SESSION
+          if (field.type == org.apache.thrift.protocol.TType.STRING) {
+            this.session = iprot.readString();
+          } else { 
+            org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
+          }
+          break;
+        default:
+          org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
+      }
+      iprot.readFieldEnd();
+    }
+    iprot.readStructEnd();
+    validate();
+  }
+
+  public void write(org.apache.thrift.protocol.TProtocol oprot) throws org.apache.thrift.TException {
+    validate();
+
+    oprot.writeStructBegin(STRUCT_DESC);
+    if (this.keys != null) {
+      oprot.writeFieldBegin(KEYS_FIELD_DESC);
+      {
+        oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRING, this.keys.size()));
+        for (String _iter208 : this.keys)
+        {
+          oprot.writeString(_iter208);
+        }
+        oprot.writeListEnd();
+      }
+      oprot.writeFieldEnd();
+    }
+    if (this.session != null) {
+      oprot.writeFieldBegin(SESSION_FIELD_DESC);
+      oprot.writeString(this.session);
+      oprot.writeFieldEnd();
+    }
+    oprot.writeFieldStop();
+    oprot.writeStructEnd();
+>>>>>>> eb99826... aggregate stats on nimbus side before serializing for topology page
   }
 
   @Override

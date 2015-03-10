@@ -226,6 +226,57 @@ struct TopologyInfo {
 514: optional string owner;
 }
 
+struct SpoutAggregateStats {
+  1: required string id;
+513: optional i32 num_executors;
+514: optional i32 num_tasks;
+515: optional i64 num_emitted;
+516: optional i64 num_transferred;
+517: optional i64 num_acked;
+518: optional i64 num_failed;
+519: optional ErrorInfo last_error;
+520: optional double complete_latency;
+}
+
+struct BoltAggregateStats {
+  1: required string id;
+513: optional i32 num_executors;
+514: optional i32 num_tasks;
+515: optional i64 num_emitted;
+516: optional i64 num_transferred;
+517: optional i64 num_acked;
+518: optional i64 num_failed;
+519: optional ErrorInfo last_error;
+520: optional double execute_latency;
+521: optional double process_latency;
+522: optional i64 num_executed;
+523: optional double capacity;
+}
+
+struct TopologyStats {
+513: optional map<string, i64> emitted;
+514: optional map<string, i64> transferred;
+515: optional map<string, double> complete_latencies;
+516: optional map<string, i64> acked;
+517: optional map<string, i64> failed;
+}
+
+struct TopologyPageInfo {
+  1: required string id;
+513: optional string name;
+514: optional i32 uptime_secs;
+515: optional string status;
+516: optional i32 num_tasks;
+517: optional i32 num_workers;
+518: optional i32 num_executors;
+519: optional string topology_conf;
+520: optional list<SpoutAggregateStats> spout_agg_stats;
+521: optional list<BoltAggregateStats> bolt_agg_stats;
+522: optional string sched_status;
+523: optional TopologyStats topology_stats;
+524: optional string owner;
+}
+
 struct KillOptions {
   1: optional i32 wait_secs;
 }
@@ -344,6 +395,7 @@ service Nimbus {
   ClusterSummary getClusterInfo() throws (1: AuthorizationException aze);
   TopologyInfo getTopologyInfo(1: string id) throws (1: NotAliveException e, 2: AuthorizationException aze);
   TopologyInfo getTopologyInfoWithOpts(1: string id, 2: GetInfoOptions options) throws (1: NotAliveException e, 2: AuthorizationException aze);
+  TopologyPageInfo getTopologyPageInfo(1: string id, 2: string window, 3: bool is_include_sys) throws (1: NotAliveException e, 2: AuthorizationException aze);
   //returns json
   string getTopologyConf(1: string id) throws (1: NotAliveException e, 2: AuthorizationException aze);
   StormTopology getTopology(1: string id) throws (1: NotAliveException e, 2: AuthorizationException aze);
