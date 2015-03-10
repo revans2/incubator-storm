@@ -4875,9 +4875,6 @@ class SpoutAggregateStats:
     (520, TType.DOUBLE, 'complete_latency', None, None, ), # 520
   )
 
-  def __hash__(self):
-    return 0 + hash(self.id) + hash(self.num_executors) + hash(self.num_tasks) + hash(self.num_emitted) + hash(self.num_transferred) + hash(self.num_acked) + hash(self.num_failed) + hash(self.last_error) + hash(self.complete_latency)
-
   def __init__(self, id=None, num_executors=None, num_tasks=None, num_emitted=None, num_transferred=None, num_acked=None, num_failed=None, last_error=None, complete_latency=None,):
     self.id = id
     self.num_executors = num_executors
@@ -4998,6 +4995,19 @@ class SpoutAggregateStats:
       raise TProtocol.TProtocolException(message='Required field id is unset!')
     return
 
+
+  def __hash__(self):
+    value = 17
+    value = (value * 31) ^ hash(self.id)
+    value = (value * 31) ^ hash(self.num_executors)
+    value = (value * 31) ^ hash(self.num_tasks)
+    value = (value * 31) ^ hash(self.num_emitted)
+    value = (value * 31) ^ hash(self.num_transferred)
+    value = (value * 31) ^ hash(self.num_acked)
+    value = (value * 31) ^ hash(self.num_failed)
+    value = (value * 31) ^ hash(self.last_error)
+    value = (value * 31) ^ hash(self.complete_latency)
+    return value
 
   def __repr__(self):
     L = ['%s=%r' % (key, value)
@@ -5554,9 +5564,6 @@ class BoltAggregateStats:
     (523, TType.DOUBLE, 'capacity', None, None, ), # 523
   )
 
-  def __hash__(self):
-    return 0 + hash(self.id) + hash(self.num_executors) + hash(self.num_tasks) + hash(self.num_emitted) + hash(self.num_transferred) + hash(self.num_acked) + hash(self.num_failed) + hash(self.last_error) + hash(self.execute_latency) + hash(self.process_latency) + hash(self.num_executed) + hash(self.capacity)
-
   def __init__(self, id=None, num_executors=None, num_tasks=None, num_emitted=None, num_transferred=None, num_acked=None, num_failed=None, last_error=None, execute_latency=None, process_latency=None, num_executed=None, capacity=None,):
     self.id = id
     self.num_executors = num_executors
@@ -5707,6 +5714,22 @@ class BoltAggregateStats:
       raise TProtocol.TProtocolException(message='Required field id is unset!')
     return
 
+
+  def __hash__(self):
+    value = 17
+    value = (value * 31) ^ hash(self.id)
+    value = (value * 31) ^ hash(self.num_executors)
+    value = (value * 31) ^ hash(self.num_tasks)
+    value = (value * 31) ^ hash(self.num_emitted)
+    value = (value * 31) ^ hash(self.num_transferred)
+    value = (value * 31) ^ hash(self.num_acked)
+    value = (value * 31) ^ hash(self.num_failed)
+    value = (value * 31) ^ hash(self.last_error)
+    value = (value * 31) ^ hash(self.execute_latency)
+    value = (value * 31) ^ hash(self.process_latency)
+    value = (value * 31) ^ hash(self.num_executed)
+    value = (value * 31) ^ hash(self.capacity)
+    return value
 
   def __repr__(self):
     L = ['%s=%r' % (key, value)
@@ -6250,9 +6273,6 @@ class TopologyStats:
     (517, TType.MAP, 'failed', (TType.STRING,None,TType.I64,None), None, ), # 517
   )
 
-  def __hash__(self):
-    return 0 + hash(self.emitted) + hash(self.transferred) + hash(self.complete_latencies) + hash(self.acked) + hash(self.failed)
-
   def __init__(self, emitted=None, transferred=None, complete_latencies=None, acked=None, failed=None,):
     self.emitted = emitted
     self.transferred = transferred
@@ -6272,7 +6292,7 @@ class TopologyStats:
       if fid == 513:
         if ftype == TType.MAP:
           self.emitted = {}
-          (_ktype284, _vtype285, _size283 ) = iprot.readMapBegin() 
+          (_ktype284, _vtype285, _size283 ) = iprot.readMapBegin()
           for _i287 in xrange(_size283):
             _key288 = iprot.readString().decode('utf-8')
             _val289 = iprot.readI64();
@@ -6283,7 +6303,7 @@ class TopologyStats:
       elif fid == 514:
         if ftype == TType.MAP:
           self.transferred = {}
-          (_ktype291, _vtype292, _size290 ) = iprot.readMapBegin() 
+          (_ktype291, _vtype292, _size290 ) = iprot.readMapBegin()
           for _i294 in xrange(_size290):
             _key295 = iprot.readString().decode('utf-8')
             _val296 = iprot.readI64();
@@ -6294,7 +6314,7 @@ class TopologyStats:
       elif fid == 515:
         if ftype == TType.MAP:
           self.complete_latencies = {}
-          (_ktype298, _vtype299, _size297 ) = iprot.readMapBegin() 
+          (_ktype298, _vtype299, _size297 ) = iprot.readMapBegin()
           for _i301 in xrange(_size297):
             _key302 = iprot.readString().decode('utf-8')
             _val303 = iprot.readDouble();
@@ -6305,7 +6325,7 @@ class TopologyStats:
       elif fid == 516:
         if ftype == TType.MAP:
           self.acked = {}
-          (_ktype305, _vtype306, _size304 ) = iprot.readMapBegin() 
+          (_ktype305, _vtype306, _size304 ) = iprot.readMapBegin()
           for _i308 in xrange(_size304):
             _key309 = iprot.readString().decode('utf-8')
             _val310 = iprot.readI64();
@@ -6316,7 +6336,7 @@ class TopologyStats:
       elif fid == 517:
         if ftype == TType.MAP:
           self.failed = {}
-          (_ktype312, _vtype313, _size311 ) = iprot.readMapBegin() 
+          (_ktype312, _vtype313, _size311 ) = iprot.readMapBegin()
           for _i315 in xrange(_size311):
             _key316 = iprot.readString().decode('utf-8')
             _val317 = iprot.readI64();
@@ -6380,6 +6400,15 @@ class TopologyStats:
   def validate(self):
     return
 
+
+  def __hash__(self):
+    value = 17
+    value = (value * 31) ^ hash(self.emitted)
+    value = (value * 31) ^ hash(self.transferred)
+    value = (value * 31) ^ hash(self.complete_latencies)
+    value = (value * 31) ^ hash(self.acked)
+    value = (value * 31) ^ hash(self.failed)
+    return value
 
   def __repr__(self):
     L = ['%s=%r' % (key, value)
@@ -6938,9 +6967,6 @@ class TopologyPageInfo:
     (524, TType.STRING, 'owner', None, None, ), # 524
   )
 
-  def __hash__(self):
-    return 0 + hash(self.id) + hash(self.name) + hash(self.uptime_secs) + hash(self.status) + hash(self.num_tasks) + hash(self.num_workers) + hash(self.num_executors) + hash(self.topology_conf) + hash(self.spout_agg_stats) + hash(self.bolt_agg_stats) + hash(self.sched_status) + hash(self.topology_stats) + hash(self.owner)
-
   def __init__(self, id=None, name=None, uptime_secs=None, status=None, num_tasks=None, num_workers=None, num_executors=None, topology_conf=None, spout_agg_stats=None, bolt_agg_stats=None, sched_status=None, topology_stats=None, owner=None,):
     self.id = id
     self.name = name
@@ -7120,6 +7146,23 @@ class TopologyPageInfo:
     return
 
 
+  def __hash__(self):
+    value = 17
+    value = (value * 31) ^ hash(self.id)
+    value = (value * 31) ^ hash(self.name)
+    value = (value * 31) ^ hash(self.uptime_secs)
+    value = (value * 31) ^ hash(self.status)
+    value = (value * 31) ^ hash(self.num_tasks)
+    value = (value * 31) ^ hash(self.num_workers)
+    value = (value * 31) ^ hash(self.num_executors)
+    value = (value * 31) ^ hash(self.topology_conf)
+    value = (value * 31) ^ hash(self.spout_agg_stats)
+    value = (value * 31) ^ hash(self.bolt_agg_stats)
+    value = (value * 31) ^ hash(self.sched_status)
+    value = (value * 31) ^ hash(self.topology_stats)
+    value = (value * 31) ^ hash(self.owner)
+    return value
+
   def __repr__(self):
     L = ['%s=%r' % (key, value)
       for key, value in self.__dict__.iteritems()]
@@ -7238,19 +7281,11 @@ class RebalanceOptions:
       elif fid == 3:
         if ftype == TType.MAP:
           self.num_executors = {}
-<<<<<<< HEAD
-          (_ktype284, _vtype285, _size283 ) = iprot.readMapBegin()
-          for _i287 in xrange(_size283):
-            _key288 = iprot.readString().decode('utf-8')
-            _val289 = iprot.readI32();
-            self.num_executors[_key288] = _val289
-=======
-          (_ktype343, _vtype344, _size342 ) = iprot.readMapBegin() 
+          (_ktype343, _vtype344, _size342 ) = iprot.readMapBegin()
           for _i346 in xrange(_size342):
             _key347 = iprot.readString().decode('utf-8')
             _val348 = iprot.readI32();
             self.num_executors[_key347] = _val348
->>>>>>> eb99826... aggregate stats on nimbus side before serializing for topology page
           iprot.readMapEnd()
         else:
           iprot.skip(ftype)
@@ -7331,19 +7366,11 @@ class Credentials:
       if fid == 1:
         if ftype == TType.MAP:
           self.creds = {}
-<<<<<<< HEAD
-          (_ktype293, _vtype294, _size292 ) = iprot.readMapBegin()
-          for _i296 in xrange(_size292):
-            _key297 = iprot.readString().decode('utf-8')
-            _val298 = iprot.readString().decode('utf-8')
-            self.creds[_key297] = _val298
-=======
-          (_ktype352, _vtype353, _size351 ) = iprot.readMapBegin() 
+          (_ktype352, _vtype353, _size351 ) = iprot.readMapBegin()
           for _i355 in xrange(_size351):
             _key356 = iprot.readString().decode('utf-8')
             _val357 = iprot.readString().decode('utf-8')
             self.creds[_key356] = _val357
->>>>>>> eb99826... aggregate stats on nimbus side before serializing for topology page
           iprot.readMapEnd()
         else:
           iprot.skip(ftype)
@@ -8290,11 +8317,11 @@ class HBRecords:
       if fid == 1:
         if ftype == TType.LIST:
           self.pulses = []
-          (_etype318, _size315) = iprot.readListBegin()
-          for _i319 in xrange(_size315):
-            _elem320 = Pulse()
-            _elem320.read(iprot)
-            self.pulses.append(_elem320)
+          (_etype377, _size374) = iprot.readListBegin()
+          for _i378 in xrange(_size374):
+            _elem379 = Pulse()
+            _elem379.read(iprot)
+            self.pulses.append(_elem379)
           iprot.readListEnd()
         else:
           iprot.skip(ftype)
@@ -8311,8 +8338,8 @@ class HBRecords:
     if self.pulses is not None:
       oprot.writeFieldBegin('pulses', TType.LIST, 1)
       oprot.writeListBegin(TType.STRUCT, len(self.pulses))
-      for iter321 in self.pulses:
-        iter321.write(oprot)
+      for iter380 in self.pulses:
+        iter380.write(oprot)
       oprot.writeListEnd()
       oprot.writeFieldEnd()
     oprot.writeFieldStop()
@@ -8364,10 +8391,10 @@ class HBNodes:
       if fid == 1:
         if ftype == TType.LIST:
           self.pulseIds = []
-          (_etype325, _size322) = iprot.readListBegin()
-          for _i326 in xrange(_size322):
-            _elem327 = iprot.readString().decode('utf-8')
-            self.pulseIds.append(_elem327)
+          (_etype384, _size381) = iprot.readListBegin()
+          for _i385 in xrange(_size381):
+            _elem386 = iprot.readString().decode('utf-8')
+            self.pulseIds.append(_elem386)
           iprot.readListEnd()
         else:
           iprot.skip(ftype)
@@ -8384,8 +8411,8 @@ class HBNodes:
     if self.pulseIds is not None:
       oprot.writeFieldBegin('pulseIds', TType.LIST, 1)
       oprot.writeListBegin(TType.STRING, len(self.pulseIds))
-      for iter328 in self.pulseIds:
-        oprot.writeString(iter328.encode('utf-8'))
+      for iter387 in self.pulseIds:
+        oprot.writeString(iter387.encode('utf-8'))
       oprot.writeListEnd()
       oprot.writeFieldEnd()
     oprot.writeFieldStop()
@@ -8437,10 +8464,10 @@ class TopologyHistoryInfo:
       if fid == 1:
         if ftype == TType.LIST:
           self.topo_ids = []
-          (_etype332, _size329) = iprot.readListBegin()
-          for _i333 in xrange(_size329):
-            _elem334 = iprot.readString().decode('utf-8')
-            self.topo_ids.append(_elem334)
+          (_etype391, _size388) = iprot.readListBegin()
+          for _i392 in xrange(_size388):
+            _elem393 = iprot.readString().decode('utf-8')
+            self.topo_ids.append(_elem393)
           iprot.readListEnd()
         else:
           iprot.skip(ftype)
@@ -8457,8 +8484,8 @@ class TopologyHistoryInfo:
     if self.topo_ids is not None:
       oprot.writeFieldBegin('topo_ids', TType.LIST, 1)
       oprot.writeListBegin(TType.STRING, len(self.topo_ids))
-      for iter335 in self.topo_ids:
-        oprot.writeString(iter335.encode('utf-8'))
+      for iter394 in self.topo_ids:
+        oprot.writeString(iter394.encode('utf-8'))
       oprot.writeListEnd()
       oprot.writeFieldEnd()
     oprot.writeFieldStop()

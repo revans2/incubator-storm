@@ -1276,16 +1276,17 @@ class Client(Iface):
     self._oprot.writeMessageEnd()
     self._oprot.trans.flush()
 
-  def recv_getTopologyPageInfo(self, ):
-    (fname, mtype, rseqid) = self._iprot.readMessageBegin()
+  def recv_getTopologyPageInfo(self):
+    iprot = self._iprot
+    (fname, mtype, rseqid) = iprot.readMessageBegin()
     if mtype == TMessageType.EXCEPTION:
       x = TApplicationException()
-      x.read(self._iprot)
-      self._iprot.readMessageEnd()
+      x.read(iprot)
+      iprot.readMessageEnd()
       raise x
     result = getTopologyPageInfo_result()
-    result.read(self._iprot)
-    self._iprot.readMessageEnd()
+    result.read(iprot)
+    iprot.readMessageEnd()
     if result.success is not None:
       return result.success
     if result.e is not None:
@@ -6393,9 +6394,6 @@ class getTopologyPageInfo_args:
     (3, TType.BOOL, 'is_include_sys', None, None, ), # 3
   )
 
-  def __hash__(self):
-    return 0 + hash(self.id) + hash(self.window) + hash(self.is_include_sys)
-
   def __init__(self, id=None, window=None, is_include_sys=None,):
     self.id = id
     self.window = window
@@ -6454,6 +6452,13 @@ class getTopologyPageInfo_args:
     return
 
 
+  def __hash__(self):
+    value = 17
+    value = (value * 31) ^ hash(self.id)
+    value = (value * 31) ^ hash(self.window)
+    value = (value * 31) ^ hash(self.is_include_sys)
+    return value
+
   def __repr__(self):
     L = ['%s=%r' % (key, value)
       for key, value in self.__dict__.iteritems()]
@@ -6478,9 +6483,6 @@ class getTopologyPageInfo_result:
     (1, TType.STRUCT, 'e', (NotAliveException, NotAliveException.thrift_spec), None, ), # 1
     (2, TType.STRUCT, 'aze', (AuthorizationException, AuthorizationException.thrift_spec), None, ), # 2
   )
-
-  def __hash__(self):
-    return 0 + hash(self.success) + hash(self.e) + hash(self.aze)
 
   def __init__(self, success=None, e=None, aze=None,):
     self.success = success
@@ -6542,6 +6544,13 @@ class getTopologyPageInfo_result:
   def validate(self):
     return
 
+
+  def __hash__(self):
+    value = 17
+    value = (value * 31) ^ hash(self.success)
+    value = (value * 31) ^ hash(self.e)
+    value = (value * 31) ^ hash(self.aze)
+    return value
 
   def __repr__(self):
     L = ['%s=%r' % (key, value)

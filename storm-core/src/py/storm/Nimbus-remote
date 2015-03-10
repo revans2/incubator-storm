@@ -38,7 +38,6 @@ from storm import Nimbus
 from storm.ttypes import *
 
 if len(sys.argv) <= 1 or sys.argv[1] == '--help':
-<<<<<<< HEAD
   print('')
   print('Usage: ' + sys.argv[0] + ' [-h host[:port]] [-u url] [-f[ramed]] [-s[sl]] function [arg1 [arg2...]]')
   print('')
@@ -72,50 +71,12 @@ if len(sys.argv) <= 1 or sys.argv[1] == '--help':
   print('  ClusterSummary getClusterInfo()')
   print('  TopologyInfo getTopologyInfo(string id)')
   print('  TopologyInfo getTopologyInfoWithOpts(string id, GetInfoOptions options)')
+  print('  TopologyPageInfo getTopologyPageInfo(string id, string window, bool is_include_sys)')
   print('  string getTopologyConf(string id)')
   print('  StormTopology getTopology(string id)')
   print('  StormTopology getUserTopology(string id)')
   print('  TopologyHistoryInfo getTopologyHistory(string user)')
   print('')
-=======
-  print ''
-  print 'Usage: ' + sys.argv[0] + ' [-h host:port] [-u url] [-f[ramed]] function [arg1 [arg2...]]'
-  print ''
-  print 'Functions:'
-  print '  void submitTopology(string name, string uploadedJarLocation, string jsonConf, StormTopology topology)'
-  print '  void submitTopologyWithOpts(string name, string uploadedJarLocation, string jsonConf, StormTopology topology, SubmitOptions options)'
-  print '  void killTopology(string name)'
-  print '  void killTopologyWithOpts(string name, KillOptions options)'
-  print '  void activate(string name)'
-  print '  void deactivate(string name)'
-  print '  void rebalance(string name, RebalanceOptions options)'
-  print '  void uploadNewCredentials(string name, Credentials creds)'
-  print '  string beginCreateBlob(string key, SettableBlobMeta meta)'
-  print '  string beginUpdateBlob(string key)'
-  print '  void uploadBlobChunk(string session, string chunk)'
-  print '  void finishBlobUpload(string session)'
-  print '  void cancelBlobUpload(string session)'
-  print '  ReadableBlobMeta getBlobMeta(string key)'
-  print '  void setBlobMeta(string key, SettableBlobMeta meta)'
-  print '  BeginDownloadResult beginBlobDownload(string key)'
-  print '  string downloadBlobChunk(string session)'
-  print '  void deleteBlob(string key)'
-  print '  ListBlobsResult listBlobs(string session)'
-  print '  string beginFileUpload()'
-  print '  void uploadChunk(string location, string chunk)'
-  print '  void finishFileUpload(string location)'
-  print '  string beginFileDownload(string file)'
-  print '  string downloadChunk(string id)'
-  print '  string getNimbusConf()'
-  print '  ClusterSummary getClusterInfo()'
-  print '  TopologyInfo getTopologyInfo(string id)'
-  print '  TopologyInfo getTopologyInfoWithOpts(string id, GetInfoOptions options)'
-  print '  TopologyPageInfo getTopologyPageInfo(string id, string window, bool is_include_sys)'
-  print '  string getTopologyConf(string id)'
-  print '  StormTopology getTopology(string id)'
-  print '  StormTopology getUserTopology(string id)'
-  print ''
->>>>>>> eb99826... aggregate stats on nimbus side before serializing for topology page
   sys.exit(0)
 
 pp = pprint.PrettyPrinter(indent = 2)
@@ -347,7 +308,7 @@ elif cmd == 'getTopologyInfoWithOpts':
 
 elif cmd == 'getTopologyPageInfo':
   if len(args) != 3:
-    print 'getTopologyPageInfo requires 3 args'
+    print('getTopologyPageInfo requires 3 args')
     sys.exit(1)
   pp.pprint(client.getTopologyPageInfo(args[0],args[1],eval(args[2]),))
 
