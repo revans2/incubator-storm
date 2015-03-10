@@ -23,8 +23,9 @@
   (:import [java.util Arrays])
   (:import [java.util.zip GZIPInputStream])
   (:import [org.slf4j LoggerFactory])
-  (:import [ch.qos.logback.classic Logger])
-  (:import [ch.qos.logback.core FileAppender])
+  (:import [org.apache.logging.log4j LogManager])
+  (:import [org.apache.logging.log4j.core Appender LoggerContext])
+  (:import [org.apache.logging.log4j.core.appender RollingFileAppender])
   (:import [java.io BufferedInputStream File FileFilter FileInputStream
                     InputStream InputStreamReader])
   (:import [java.nio ByteBuffer])
@@ -262,9 +263,9 @@
 
 Note that if anything goes wrong, this will throw an Error and exit."
   [appender-name]
-  (let [appender (.getAppender (LoggerFactory/getLogger Logger/ROOT_LOGGER_NAME) appender-name)]
-    (if (and appender-name appender (instance? FileAppender appender))
-      (.getParent (File. (.getFile appender)))
+  (let [appender (.getAppender (.getConfiguration (LogManager/getContext)) appender-name)]
+    (if (and appender-name appender (instance? RollingFileAppender appender))
+      (.getParent (File. (.getFileName appender)))
       (throw
        (RuntimeException. "Log viewer could not find configured appender, or the appender is not a FileAppender. Please check that the appender name configured in storm and logback agree.")))))
 

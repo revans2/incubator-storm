@@ -1,4 +1,4 @@
-<?xml version="1.0"?>
+<?xml version="1.0" encoding="UTF-8"?>
 <!--
  Licensed to the Apache Software Foundation (ASF) under one or more
  contributor license agreements.  See the NOTICE file distributed with
@@ -15,14 +15,18 @@
  See the License for the specific language governing permissions and
  limitations under the License.
 -->
-<configuration scan="true" scanPeriod="30 seconds">
-  <appender name="A1" class="ch.qos.logback.core.ConsoleAppender">
-    <encoder>
-      <pattern>%-4r [%t] %-5p %c - %m%n</pattern>
-    </encoder>
-  </appender>
-  <logger name="org.apache.zookeeper" level="WARN"/>
-  <root level="INFO">
-    <appender-ref ref="A1"/>
-  </root>
+
+<configuration monitorInterval="60">
+  <Appenders>
+    <Console name="Console" target="SYSTEM_OUT">
+     <PatternLayout pattern="%-4r [%t] %-5p %c{1.} - %msg%n"/>
+    </Console>
+  </Appenders>
+  <Loggers>
+    <Logger name="org.apache.zookeeper" level="WARN"/>
+    <Root level="info">
+      <AppenderRef ref="Console"/>
+    </Root>
+  </Loggers>
 </configuration>
+

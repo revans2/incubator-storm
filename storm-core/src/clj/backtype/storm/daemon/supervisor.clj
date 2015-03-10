@@ -800,7 +800,7 @@
                      (str "-Dstorm.id=" storm-id)
                      (str "-Dworker.id=" worker-id)
                      (str "-Dworker.port=" port)
-                     (str "-Dlogback.configurationFile=" storm-home "/logback/worker.xml")
+                     (str "-Dlog4j.configurationFile=" storm-home "/log4j2/worker.xml")
                      "backtype.storm.LogWriter"]
                     [(java-cmd) "-server"]
                     worker-childopts
@@ -809,7 +809,7 @@
                     [(str "-Djava.library.path=" jlp)
                      (str "-Dlogfile.name=" logfilename)
                      (str "-Dstorm.home=" storm-home)
-                     (str "-Dlogback.configurationFile=" storm-home "/logback/worker.xml")
+                     (str "-Dlog4j.configurationFile=" storm-home "/log4j2/worker.xml")
                      (str "-Dstorm.id=" storm-id)
                      (str "-Dworker.id=" worker-id)
                      (str "-Dworker.port=" port)
