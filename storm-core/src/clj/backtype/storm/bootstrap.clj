@@ -55,8 +55,7 @@
                      TopologySummary ExecutorSummary ExecutorStats ExecutorSpecificStats
                      SpoutStats BoltStats ErrorInfo SupervisorSummary ExecutorInfo
                      KillOptions SubmitOptions RebalanceOptions JavaObject JavaObjectArg
-                     TopologyInitialStatus AuthorizationException
-                     TopologyPageInfo]))
+                     TopologyInitialStatus AuthorizationException]))
      (import (quote [backtype.storm.daemon.common StormBase Assignment
                      SupervisorInfo WorkerHeartbeat]))
      (import (quote [backtype.storm.grouping CustomStreamGrouping]))

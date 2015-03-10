@@ -26,7 +26,7 @@
                                      ListBlobsResult ReadableBlobMeta
                                      SettableBlobMeta KeyNotFoundException TopologyHistoryInfo
                                      BoltAggregateStats SpoutAggregateStats
-                                     TopologyStats])
+                                     TopologyPageInfo TopologyStats])
   (:import [backtype.storm.blobstore AtomicOutputStream
                                      BlobStore
                                      BlobStoreAclHandler
