@@ -23,6 +23,9 @@ build:
 install:
 	cd .. && $(MVN) -Pyahoo -Pnative -Dworker-launcher.conf.dir=${EXEC_CONF_DIR} install -DskipTests ${MVN_MAKE_OPTS}
 
+dist_tag: RELEASE
+	$(shell echo "ystorm_`cat RELEASE`" | sed 's/\./_/g' > DIST_TAG)
+
 #TODO need a good way to see if these values would have changed and update only then
 BASE_VERSION: ../pom.xml
 	cd .. && $(MVN) help:evaluate -Dexpression=project.version | grep -v "^\[" | tail -1 > yahoo-build/BASE_VERSION
