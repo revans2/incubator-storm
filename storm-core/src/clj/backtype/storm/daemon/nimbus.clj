@@ -139,7 +139,6 @@
 (defn inbox [nimbus]
   (master-inbox (:conf nimbus)))
 
-;;TODO need to switch this out to not use java serialization, if at all possible
 (defn- read-storm-conf [conf storm-id blob-store]
   (Utils/deserialize
     (.readBlob blob-store (master-stormconf-key storm-id) nil) java.util.Map))
