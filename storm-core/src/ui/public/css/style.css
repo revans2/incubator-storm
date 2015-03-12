@@ -27,3 +27,11 @@
 .search-box {
     padding-left: 50px;
 }
+
+#change-log-level select{
+    width:100px;
+}
+
+#change-log-level input.timeout_input{
+    width:50px;
+}

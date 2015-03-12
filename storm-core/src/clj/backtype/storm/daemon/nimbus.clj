@@ -25,7 +25,7 @@
                                      GetInfoOptions NumErrorsChoice
                                      ListBlobsResult ReadableBlobMeta
                                      SettableBlobMeta KeyNotFoundException TopologyHistoryInfo
-                                     TopologyPageInfo TopologyStats])
+                                     TopologyPageInfo TopologyStats LogConfig LogLevel LogLevelAction])
   (:import [backtype.storm.blobstore AtomicOutputStream
                                      BlobStore
                                      BlobStoreAclHandler
@@ -38,6 +38,8 @@
   (:use [clojure.string :only [blank?]])
   (:use [clojure.set :only [intersection]])
   (:import [org.apache.zookeeper data.ACL ZooDefs$Ids ZooDefs$Perms])
+  (:require [clj-time.core :as time])
+  (:require [clj-time.coerce :as coerce])
   (:gen-class
     :methods [^{:static true} [launch [backtype.storm.scheduler.INimbus] void]]))
 
@@ -106,6 +108,7 @@
                                                                        NIMBUS-ZK-ACLS))
      :submit-lock (Object.)
      :cred-update-lock (Object.)
+     :log-update-lock (Object.)
      :heartbeats-cache (atom {})
      :downloaders (mk-file-cache-map conf)
      :uploaders (mk-file-cache-map conf)
@@ -893,6 +896,7 @@
           (log-message "Cleaning up " id)
           (.teardown-heartbeats! storm-cluster-state id)
           (.teardown-topology-errors! storm-cluster-state id)
+          (.teardown-topology-log-config! storm-cluster-state id)
           (rm-from-blob-store id blob-store)
           (swap! (:heartbeats-cache nimbus) dissoc id))
         ))))
@@ -1047,6 +1051,14 @@
       (throw 
        (InvalidTopologyException. 
         (str "Failed to submit topology. Topology requests more than " workers-allowed " workers."))))))
+
+(defn- set-logger-timeouts [log-config]
+  (let [timeout-secs (.get_reset_log_level_timeout_secs log-config)
+       timeout (time/plus (time/now) (time/secs timeout-secs))]
+   (do
+     (if (time/after? timeout (time/now))
+       (.set_reset_log_level_timeout_epoch log-config (coerce/to-long timeout))
+       (.unset_reset_log_level_timeout_epoch log-config)))))
 
 (defserverfn service-handler [conf inimbus]
   (.prepare inimbus conf (master-inimbus-dir conf))
@@ -1233,6 +1245,30 @@
           (check-authorization! nimbus storm-name topology-conf "deactivate"))
         (transition-name! nimbus storm-name :inactivate true))
 
+      (setLogConfig [this storm-name log-config-msg] 
+        (let [storm-cluster-state (:storm-cluster-state nimbus)
+              merged-log-config (or (.topology-log-config storm-cluster-state storm-name nil) (LogConfig.))
+              named-loggers (.get_named_logger_level merged-log-config)]
+            (doseq [existent-logger-level named-loggers]
+              (.set_action (val existent-logger-level) LogLevelAction/UNCHANGED))
+            (doseq [entry (.get_named_logger_level log-config-msg)]
+              (let [logger-name (key entry)
+                    log-config (val entry)
+                    action (.get_action log-config)]
+                (if (clojure.string/blank? logger-name)
+                  (throw (RuntimeException. "Named loggers need a valid name. Use ROOT for the root logger")))
+                (condp = action
+                  LogLevelAction/UPDATE
+                    (do (set-logger-timeouts log-config)
+                          (.put_to_named_logger_level merged-log-config logger-name log-config))
+                  LogLevelAction/REMOVE
+                    (let [named-loggers (.get_named_logger_level merged-log-config)]
+                      (if (and (not (nil? named-loggers))
+                               (.containsKey named-loggers logger-name))
+                        (.remove named-loggers logger-name))))))
+            (log-message "Setting log config for " storm-name ":" merged-log-config)
+            (.set-topology-log-config! storm-cluster-state storm-name merged-log-config)))
+  
       (uploadNewCredentials [this storm-name credentials]
         (let [storm-cluster-state (:storm-cluster-state nimbus)
               storm-id (get-storm-id storm-cluster-state storm-name)
@@ -1303,6 +1339,13 @@
       (^String getSchedulerConf [this]
        (check-authorization! nimbus nil nil "getSchedulerConf")
        (to-json (.config (:scheduler nimbus))))
+      ;; note that this function has a return type in thrift
+      ;; if I add the type hint, mvn compile crashes
+      ;; not sure why. However, it *seems* to work without the hint
+      (getLogConfig [this storm-name]
+        (let [storm-cluster-state (:storm-cluster-state nimbus)
+             log-config (.topology-log-config storm-cluster-state storm-name nil)]
+           (if log-config log-config (LogConfig.))))
 
       (^String getTopologyConf [this ^String id]
         (let [topology-conf (try-read-storm-conf conf id blob-store)

@@ -67,5 +67,7 @@
         <appender-ref ref="STDERR"/>
         <appender-ref ref="syslog"/>
     </root>
+    <!-- add other loggers here, especially if intending
+         to use the dynamic log level feature -->
 </loggers>
 </configuration>

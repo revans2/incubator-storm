@@ -149,6 +149,8 @@ zmq.threads: 1
 zmq.linger.millis: 5000
 zmq.hwm: 0
 
+# check whether dynamic log levels can be reset from DEBUG to INFO in workers
+log.level.reset.poll.secs: 30
 
 storm.messaging.netty.server_worker_threads: 1
 storm.messaging.netty.client_worker_threads: 1

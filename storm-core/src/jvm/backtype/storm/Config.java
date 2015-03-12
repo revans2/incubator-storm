@@ -110,7 +110,7 @@ public class Config extends HashMap<String, Object> {
      */
     public static final String STORM_META_SERIALIZATION_DELEGATE = "storm.meta.serialization.delegate";
     public static final Object STORM_META_SERIALIZATION_DELEGATE_SCHEMA = String.class;
-    
+
     /**
      * A list of hosts of ZooKeeper servers used to manage the cluster.
      */
@@ -422,7 +422,7 @@ public class Config extends HashMap<String, Object> {
      */
     public static final String NIMBUS_FILE_COPY_EXPIRATION_SECS = "nimbus.file.copy.expiration.secs";
     public static final Object NIMBUS_FILE_COPY_EXPIRATION_SECS_SCHEMA = ConfigValidation.PositiveIntegerValidator;
-    
+
     /**
      * What blobstore implementation nimbus should use.
      */
@@ -768,14 +768,14 @@ public class Config extends HashMap<String, Object> {
      * What blobstore implementation the supervisor should use.
      */
     public static final String SUPERVISOR_BLOBSTORE = "supervisor.blobstore.class";
-    public static final Object SUPERVISOR_BLOBSTORE_SCHEMA = String.class;   
+    public static final Object SUPERVISOR_BLOBSTORE_SCHEMA = String.class;
 
     /**
      * What blobstore implementation the storm client should use.
      */
     public static final String CLIENT_BLOBSTORE = "client.blobstore.class";
-    public static final Object CLIENT_BLOBSTORE_SCHEMA = String.class;   
- 
+    public static final Object CLIENT_BLOBSTORE_SCHEMA = String.class;
+
     /**
      * What blobstore download parallelism the supervisor should use.
      */
@@ -974,6 +974,13 @@ public class Config extends HashMap<String, Object> {
     public static final String TASK_REFRESH_POLL_SECS = "task.refresh.poll.secs";
     public static final Object TASK_REFRESH_POLL_SECS_SCHEMA = Number.class;
 
+    /**
+     * How often a worker should check dynamic log level timeouts for expiration.
+     * For expired logger settings, the clean up polling task will reset the log levels
+     * to the original levels (detected at startup), and will clean up the timeout map
+     */
+    public static final String LOG_LEVEL_RESET_POLL_SECS = "log.level.reset.poll.secs";
+    public static final Object LOG_LEVEL_RESET_POLL_SECS_SCHEMA = Number.class;
 
     /**
      * How often a task should sync credentials, worst case.
@@ -1186,7 +1193,7 @@ public class Config extends HashMap<String, Object> {
 
     /*
      * Topology-specific option to disable/enable bolt's outgoing overflow buffer.
-     * Enabling this option ensures that the bolt can always clear the incoming messages, 
+     * Enabling this option ensures that the bolt can always clear the incoming messages,
      * preventing live-lock for the topology with cyclic flow.
      * The overflow buffer can fill degrading the performance gradually,
      * eventually running out of memory.
@@ -1195,7 +1202,7 @@ public class Config extends HashMap<String, Object> {
     public static final Object TOPOLOGY_BOLTS_OUTGOING_OVERFLOW_BUFFER_ENABLE_SCHEMA = Boolean.class;
 
     /**
-     * Topology-specific environment variables for the worker child process. 
+     * Topology-specific environment variables for the worker child process.
      * This is added to the existing environment (that of the supervisor)
      */
      public static final String TOPOLOGY_ENVIRONMENT="topology.environment";
@@ -1412,7 +1419,7 @@ public class Config extends HashMap<String, Object> {
     public static final String TOPOLOGY_BLOBSTORE_MAP = "topology.blobstore.map";
     public static final Object TOPOLOGY_BLOBSTORE_MAP_SCHEMA =
         ConfigValidation.MapOfStringToMapOfStringToObjectValidator;
-    
+
     public static void setClasspath(Map conf, String cp) {
         conf.put(Config.TOPOLOGY_CLASSPATH, cp);
     }

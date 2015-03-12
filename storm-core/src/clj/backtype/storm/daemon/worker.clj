@@ -16,6 +16,8 @@
 (ns backtype.storm.daemon.worker
   (:use [backtype.storm.daemon common])
   (:use [backtype.storm bootstrap])
+  (:require [clj-time.core :as time])
+  (:require [clj-time.coerce :as coerce])
   (:require [backtype.storm.daemon [executor :as executor]])
   (:import [java.util.concurrent Executors])
   (:import [java.util ArrayList HashMap])
@@ -26,6 +28,9 @@
   (:import [backtype.storm.security.auth AuthUtils])
   (:import [javax.security.auth Subject])
   (:import [java.security PrivilegedExceptionAction])
+  (:import [org.apache.logging.log4j LogManager])
+  (:import [org.apache.logging.log4j Level])
+  (:import [backtype.storm.generated LogConfig LogLevelAction])
   (:gen-class))
 
 (bootstrap)
@@ -226,6 +231,7 @@
         :refresh-load-timer (mk-halting-timer "refresh-load-timer")
         :refresh-connections-timer (mk-halting-timer "refresh-connections-timer")
         :refresh-credentials-timer (mk-halting-timer "refresh-credentials-timer")
+        :reset-log-levels-timer (mk-halting-timer "reset-log-levels-timer")
         :refresh-active-timer (mk-halting-timer "refresh-active-timer")
         :executor-heartbeat-timer (mk-halting-timer "executor-heartbeat-timer")
         :user-timer (mk-halting-timer "user-timer")
@@ -414,6 +420,84 @@
     (assoc conf "java.security.auth.login.config" login_conf_file)
     conf))
 
+(defn- get-logger-levels []
+  (into {}
+    (let [logger-config (.getConfiguration (LogManager/getContext true))]
+      (for [logger (.getLoggers logger-config)]
+        {(key logger) (.getLevel (val logger))}))))
+
+(defn- set-logger-level [logger-context logger-name new-level]
+  (let [config (.getConfiguration logger-context)
+        logger-config (.getLoggerConfig config logger-name)]
+    (log-message "Setting " logger-config " log level to: " new-level)
+    (.setLevel logger-config new-level)))
+
+;; function called on timer to reset log levels last set to DEBUG
+;; also called from process-log-config-change
+(defn- reset-log-levels [latest-log-config-atom]
+  (let [latest-log-config @latest-log-config-atom
+        logger-context (LogManager/getContext true)]
+    (doseq [logger-timeouts latest-log-config]
+      (let [logger-name (key logger-timeouts)
+            logger-setting (val logger-timeouts)
+            timeout (:timeout logger-setting)
+            target-log-level (:target-log-level logger-setting)
+            reset-log-level (:reset-log-level logger-setting)]
+        (when (> (coerce/to-long (time/now)) timeout)
+          (log-message logger-name ": Resetting level to " reset-log-level) 
+          (set-logger-level logger-context logger-name reset-log-level)
+          (swap! latest-log-config-atom
+            (fn [prev]
+              (dissoc prev logger-name))))))
+    (.updateLoggers logger-context)))
+
+;; when a new log level is received from zookeeper, this function is called
+(defn- process-log-config-change [latest-log-config original-log-levels log-config]
+  (when log-config
+    (log-message "Processing received log config: " log-config)
+    ;; merge log configs together
+    (let [loggers (.get_named_logger_level log-config)
+          logger-context (LogManager/getContext true)]
+      (def new-log-configs
+        (into {}
+         ;; merge named log levels
+         (for [entry loggers] 
+           (let [msg-logger-name (key entry)
+                 logger-name (if (= msg-logger-name "ROOT")
+                                LogManager/ROOT_LOGGER_NAME
+                                msg-logger-name)
+                 logger-level (val entry)]
+             ;; the new-timeouts map now contains logger => timeout 
+             (when (.is_set_reset_log_level_timeout_epoch logger-level)
+               {logger-name {:action (.get_action logger-level)
+                             :target-log-level (Level/toLevel (.get_target_log_level logger-level))
+                             :reset-log-level (or (.get @original-log-levels logger-name) (Level/INFO))
+                             :timeout (.get_reset_log_level_timeout_epoch logger-level)}})))))
+
+      ;; look for deleted log timeouts
+      (doseq [existing @latest-log-config]
+        (when (not (contains? new-log-configs (key existing)))
+          ;; if we had a timeout, but the timeout is no longer active
+          (set-logger-level
+            logger-context (key existing) (:reset-log-level (val existing)))))
+
+      ;; apply new log settings we just received
+      ;; the merged configs are only for the reset logic
+      (doseq [entry (.get_named_logger_level log-config)]
+        (let [msg-logger-name (key entry)
+              logger-name (if (= msg-logger-name "ROOT")
+                                LogManager/ROOT_LOGGER_NAME
+                                msg-logger-name)
+              logger-level (val entry)
+              level (Level/toLevel (.get_target_log_level logger-level))
+              action (.get_action logger-level)]
+          (if (= action LogLevelAction/UPDATE)
+            (set-logger-level logger-context logger-name level))))
+   
+      (.updateLoggers logger-context)
+      (reset! latest-log-config new-log-configs)
+      (log-message "New merged log config is " @latest-log-config))))
+
 ;; TODO: should worker even take the storm-id as input? this should be
 ;; deducable from cluster state (by searching through assignments)
 ;; what about if there's inconsistency in assignments? -> but nimbus
@@ -428,6 +512,13 @@
   ;; process. supervisor will register it in this case
   (when (= :distributed (cluster-mode conf))
     (touch (worker-pid-path conf worker-id (process-pid))))
+
+  (declare establish-log-setting-callback)
+
+  ;; start out with empty list of timeouts 
+  (def latest-log-config (atom {}))
+  (def original-log-levels (atom {}))
+
   (let [storm-conf (read-supervisor-storm-conf conf storm-id)
         storm-conf (override-login-config-with-system-property storm-conf)
         acls (Utils/getWorkerACL storm-conf)
@@ -527,13 +618,25 @@
                                         (AuthUtils/updateSubject subject auto-creds new-creds)
                                         (dofor [e @executors] (.credentials-changed e new-creds))
                                         (reset! credentials new-creds))))
-      ]
+        check-log-config-changed (fn []
+                                  (let [log-config (.topology-log-config (:storm-cluster-state worker) storm-id nil)]
+                                    (process-log-config-change latest-log-config original-log-levels log-config)
+                                    (establish-log-setting-callback)))
+    ]
+    (reset! original-log-levels (get-logger-levels))
+    (log-message "Started with log levels: " @original-log-levels)
+  
+    (defn establish-log-setting-callback []
+      (.topology-log-config (:storm-cluster-state worker) storm-id (fn [args] (check-log-config-changed))))
+
+    (establish-log-setting-callback)
     (.credentials (:storm-cluster-state worker) storm-id (fn [args] (check-credentials-changed)))
     (schedule-recurring (:refresh-credentials-timer worker) 0 (conf TASK-CREDENTIALS-POLL-SECS) check-credentials-changed)
     ;; The jitter allows the clients to get the data at different times, and avoids thundering herd
     (when-not (storm-conf TOPOLOGY-DISABLE-LOADAWARE-MESSAGING)
       (schedule-recurring-with-jitter (:refresh-load-timer worker) 0 1 500 refresh-load))
     (schedule-recurring (:refresh-connections-timer worker) 0 (conf TASK-REFRESH-POLL-SECS) refresh-connections)
+    (schedule-recurring (:reset-log-levels-timer worker) 0 (conf LOG-LEVEL-RESET-POLL-SECS) (fn [] (reset-log-levels latest-log-config)))
     (schedule-recurring (:refresh-active-timer worker) 0 (conf TASK-REFRESH-POLL-SECS) (partial refresh-storm-active worker))
 
     (log-message "Worker has topology config " (:storm-conf worker))
