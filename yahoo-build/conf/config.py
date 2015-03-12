@@ -42,7 +42,7 @@ remappedKeys = {"storm.messaging.netty.buffer.size":"storm.messaging.netty.buffe
 
 listKeys = set(["storm.auth.simple-white-list.users", "supervisor.slots.ports",
  "storm.zookeeper.servers", "topology.kryo.register", "drpc.servers",
- "worker.childopts", "ui.users", "logs.users", "nimbus.supervisor.users",
+ "worker.childopts", "ui.users", "logs.users", "logs.groups", "nimbus.supervisor.users",
  "nimbus.admins", "topology.users", "nimbus.credential.renewers.classes",
  "topology.auto-credentials"])
 mapKeys = set(["isolation.scheduler.machines", "ui.filter.params", "drpc.http.filter.params",
