@@ -1073,18 +1073,16 @@
                   assignment (.assignment-info storm-cluster-state storm-id nil)
                   beats (map-val :heartbeat (get @(:heartbeats-cache nimbus)
                                                  storm-id))
-                  all-components (set (vals task->component))
-                  ret-map
-                  {:storm-name storm-name
-                   :storm-cluster-state storm-cluster-state
-                   :all-components all-components
-                   :launch-time-secs launch-time-secs
-                   :assignment assignment
-                   :beats beats
-                   :topology topology
-                   :task->component task->component
-                   :base base}]
-              ret-map))]
+                  all-components (set (vals task->component))]
+              {:storm-name storm-name
+               :storm-cluster-state storm-cluster-state
+               :all-components all-components
+               :launch-time-secs launch-time-secs
+               :assignment assignment
+               :beats beats
+               :topology topology
+               :task->component task->component
+               :base base}))]
 
     (.prepare ^backtype.storm.nimbus.ITopologyValidator (:validator nimbus) conf)
     (cleanup-corrupt-topologies! nimbus)
