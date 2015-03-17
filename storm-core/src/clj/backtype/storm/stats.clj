@@ -345,8 +345,7 @@
 (defn- to-tasks [^ExecutorInfo e]
   (let [start (.get_task_start e)
         end (.get_task_end e)]
-    (range start (inc end))
-    ))
+    (range start (inc end))))
 
 (defn sum-tasks [executors]
   (reduce + (->> executors
@@ -554,16 +553,13 @@
   "{:a {:A 3, :B 5}, :b {:A 1, :B 2}}
     -> {:A {:b 1, :a 3}, :B {:b 2, :a 5}}"
   [m]
-  (->> m
-       (map (fn [[k v]]
-              (into
-               {}
-               (for [[k2 v2] v]
-                 [k2 {k v2}]
-                 ))
-              ))
-       (apply merge-with merge)
-       ))
+  (apply merge-with
+         merge
+         (map (fn [[k v]]
+                (into {}
+                      (for [[k2 v2] v]
+                        [k2 {k v2}])))
+              m)))
 
 (defn- agg-executor-stats-common
   "A helper function parameterized for the component type that does the common
@@ -587,12 +583,12 @@
         {w->compLatWgtAvg :compLatWgtAvg
          w->acked :acked}
           (if (:complete-latencies stats)
-            (->>
+            (swap-map-order
               (into {}
                     (for [w (keys (:acked stats))]
-                         [w (agg-spout-lat-and-count ((:complete-latencies stats) w)
-                                                     ((:acked stats) w))]))
-              swap-map-order)
+                         [w (agg-spout-lat-and-count
+                              ((:complete-latencies stats) w)
+                              ((:acked stats) w))])))
             {:compLatWgtAvg nil
              :acks (aggregate-count-streams (:acked stats))})
         handle-sys-components (mk-include-sys-filter include-sys?)]
