@@ -657,8 +657,7 @@
   [exec->node+port
    task->component
    beats
-   ^StormTopology
-   topology
+   ^StormTopology topology
    window
    include-sys?
    last-err-fn]
