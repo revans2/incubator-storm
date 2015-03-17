@@ -19,7 +19,7 @@
             NotAliveException AlreadyAliveException InvalidTopologyException GlobalStreamId
             ClusterSummary TopologyInfo TopologySummary ExecutorInfo ExecutorSummary ExecutorStats
             ExecutorSpecificStats SpoutStats BoltStats ErrorInfo
-            SupervisorSummary])
+            SupervisorSummary BoltAggregateStats SpoutAggregateStats])
   (:use [backtype.storm log util])
   (:use [backtype.storm.daemon [common :only [system-id?]]]))
 
@@ -732,3 +732,30 @@
                   [(str window) (div wgt-avg acked)]))
      :window->acked (map-key str (:window->acked acc-data))
      :window->failed (map-key str (:window->failed acc-data))}))
+
+(defn thriftify-spout-agg-stats
+  [id m]
+  (doto (SpoutAggregateStats. id)
+    (.set_num_executors (:numExecutors m))
+    (.set_num_tasks (:numTasks m))
+    (.set_num_emitted (:emitted m))
+    (.set_num_transferred (:transferred m))
+    (.set_num_acked (:acked m))
+    (.set_num_failed (:failed m))
+    (.set_last_error (:lastError m))
+    (.set_complete_latency (:completeLatency m))))
+
+(defn thriftify-bolt-agg-stats
+  [id m]
+  (doto (BoltAggregateStats. id)
+    (.set_num_executors (:numExecutors m))
+    (.set_num_tasks (:numTasks m))
+    (.set_num_emitted (:emitted m))
+    (.set_num_transferred (:transferred m))
+    (.set_num_acked (:acked m))
+    (.set_num_failed (:failed m))
+    (.set_last_error (:lastError m))
+    (.set_execute_latency (:executeLatency m))
+    (.set_process_latency (:processLatency m))
+    (.set_num_executed (:executed m))
+    (.set_capacity (:capacity m))))

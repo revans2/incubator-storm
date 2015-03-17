@@ -25,7 +25,6 @@
                                      GetInfoOptions NumErrorsChoice
                                      ListBlobsResult ReadableBlobMeta
                                      SettableBlobMeta KeyNotFoundException TopologyHistoryInfo
-                                     BoltAggregateStats SpoutAggregateStats
                                      TopologyPageInfo TopologyStats])
   (:import [backtype.storm.blobstore AtomicOutputStream
                                      BlobStore
@@ -1446,8 +1445,7 @@
                 window->transferred
                 window->complete-latency
                 window->acked
-                window->failed]
-                               } (stats/agg-executors-stats exec->node+port
+                window->failed]} (stats/agg-executors-stats exec->node+port
                                                             task->component
                                                             beats
                                                             topology
@@ -1455,28 +1453,9 @@
                                                             include-sys?
                                                             last-err-fn)
               spout-agg-stats (for [[id m] spout-id->stats]
-                                (doto (SpoutAggregateStats. id)
-                                  (.set_num_executors (:numExecutors m))
-                                  (.set_num_tasks (:numTasks m))
-                                  (.set_num_emitted (:emitted m))
-                                  (.set_num_transferred (:transferred m))
-                                  (.set_num_acked (:acked m))
-                                  (.set_num_failed (:failed m))
-                                  (.set_last_error (:lastError m))
-                                  (.set_complete_latency (:completeLatency m))))
+                                (stats/thriftify-spout-agg-stats id m))
               bolt-agg-stats (for [[id m] bolt-id->stats]
-                               (doto (BoltAggregateStats. id)
-                                 (.set_num_executors (:numExecutors m))
-                                 (.set_num_tasks (:numTasks m))
-                                 (.set_num_emitted (:emitted m))
-                                 (.set_num_transferred (:transferred m))
-                                 (.set_num_acked (:acked m))
-                                 (.set_num_failed (:failed m))
-                                 (.set_last_error (:lastError m))
-                                 (.set_execute_latency (:executeLatency m))
-                                 (.set_process_latency (:processLatency m))
-                                 (.set_num_executed (:executed m))
-                                 (.set_capacity (:capacity m))))
+                               (stats/thriftify-bolt-agg-stats id m))
               topology-stats
                 (doto (TopologyStats.)
                   (.set_emitted window->emitted)
