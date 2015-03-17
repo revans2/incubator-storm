@@ -94,4 +94,5 @@
     service-handler))
 
 (defn -main []
+  (setup-default-uncaught-exception-handler)
   (launch-server!))
