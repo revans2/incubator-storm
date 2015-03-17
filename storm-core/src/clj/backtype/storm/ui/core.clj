@@ -18,7 +18,7 @@
   (:use compojure.core)
   (:use ring.middleware.reload)
   (:use [hiccup core page-helpers])
-  (:use [backtype.storm config util log])
+  (:use [backtype.storm config util log stats])
   (:use [backtype.storm.ui helpers])
   (:use [backtype.storm.daemon [common :only [ACKER-COMPONENT-ID ACKER-INIT-STREAM-ID
                                               ACKER-ACK-STREAM-ID ACKER-FAIL-STREAM-ID system-id?]]])
@@ -37,7 +37,6 @@
             [compojure.handler :as handler]
             [ring.util.response :as resp]
             [backtype.storm [thrift :as thrift]])
-  (:require [backtype.storm [stats :as stats]])
   (:import [org.apache.commons.lang StringEscapeUtils])
   (:gen-class))
 
@@ -87,12 +86,6 @@
     ;;TODO need a better exception here so the UI can appear better
     (throw (RuntimeException. (str "Topology actions for the UI have been disabled")))))
 
-(defn get-filled-stats
-  [summs]
-  (->> summs
-       (map #(.get_stats ^ExecutorSummary %))
-       (filter not-nil?)))
-
 (defn read-storm-version
   "Returns a string containing the Storm version or 'Unknown'."
   []
@@ -117,58 +110,6 @@
   [topology ^ExecutorSummary s]
   (component-type topology (.get_component_id s)))
 
-(defn expand-averages
-  [avg counts]
-  (let [avg (clojurify-structure avg)
-        counts (clojurify-structure counts)]
-    (into {}
-          (for [[slice streams] counts]
-            [slice
-             (into {}
-                   (for [[stream c] streams]
-                     [stream
-                      [(* c (get-in avg [slice stream]))
-                       c]]
-                     ))]))))
-
-(defn expand-averages-seq
-  [average-seq counts-seq]
-  (->> (map vector average-seq counts-seq)
-       (map #(apply expand-averages %))
-       (apply merge-with (fn [s1 s2] (merge-with stats/add-pairs s1 s2)))))
-
-(defn- val-avg
-  [[t c]]
-  (if (= t 0) 0
-    (double (/ t c))))
-
-(defn aggregate-averages
-  [average-seq counts-seq]
-  (->> (expand-averages-seq average-seq counts-seq)
-       (map-val
-         (fn [s]
-           (map-val val-avg s)))))
-
-(defn aggregate-counts
-  [counts-seq]
-  (->> counts-seq
-       (map clojurify-structure)
-       (apply merge-with
-              (fn [s1 s2]
-                (merge-with + s1 s2)))))
-
-(defn aggregate-avg-streams
-  [avg counts]
-  (let [expanded (expand-averages avg counts)]
-    (->> expanded
-         (map-val #(reduce stats/add-pairs (vals %)))
-         (map-val val-avg))))
-
-(defn aggregate-common-stats
-  [stats-seq]
-  {:emitted (aggregate-counts (map #(.get_emitted ^ExecutorStats %) stats-seq))
-   :transferred (aggregate-counts (map #(.get_transferred ^ExecutorStats %) stats-seq))})
-
 (defn is-ack-stream
   [stream]
   (let [acker-streams
@@ -176,80 +117,6 @@
          ACKER-ACK-STREAM-ID
          ACKER-FAIL-STREAM-ID]]
     (every? #(not= %1 stream) acker-streams)))
-
-(defn pre-process
-  [stream-summary include-sys?]
-  (let [filter-fn (stats/mk-include-sys-fn include-sys?)
-        emitted (:emitted stream-summary)
-        emitted (into {} (for [[window stat] emitted]
-                           {window (filter-key filter-fn stat)}))
-        transferred (:transferred stream-summary)
-        transferred (into {} (for [[window stat] transferred]
-                               {window (filter-key filter-fn stat)}))
-        stream-summary (-> stream-summary (dissoc :emitted) (assoc :emitted emitted))
-        stream-summary (-> stream-summary (dissoc :transferred) (assoc :transferred transferred))]
-    stream-summary))
-
-(defn aggregate-bolt-stats
-  [stats-seq include-sys?]
-  (let [stats-seq (collectify stats-seq)]
-    (merge (pre-process (aggregate-common-stats stats-seq) include-sys?)
-           {:acked
-            (aggregate-counts (map #(.. ^ExecutorStats % get_specific get_bolt get_acked)
-                                   stats-seq))
-            :failed
-            (aggregate-counts (map #(.. ^ExecutorStats % get_specific get_bolt get_failed)
-                                   stats-seq))
-            :executed
-            (aggregate-counts (map #(.. ^ExecutorStats % get_specific get_bolt get_executed)
-                                   stats-seq))
-            :process-latencies
-            (aggregate-averages (map #(.. ^ExecutorStats % get_specific get_bolt get_process_ms_avg)
-                                     stats-seq)
-                                (map #(.. ^ExecutorStats % get_specific get_bolt get_acked)
-                                     stats-seq))
-            :execute-latencies
-            (aggregate-averages (map #(.. ^ExecutorStats % get_specific get_bolt get_execute_ms_avg)
-                                     stats-seq)
-                                (map #(.. ^ExecutorStats % get_specific get_bolt get_executed)
-                                     stats-seq))})))
-
-(defn aggregate-spout-stats
-  [stats-seq include-sys?]
-  (let [stats-seq (collectify stats-seq)]
-    (merge (pre-process (aggregate-common-stats stats-seq) include-sys?)
-           {:acked
-            (aggregate-counts (map #(.. ^ExecutorStats % get_specific get_spout get_acked)
-                                   stats-seq))
-            :failed
-            (aggregate-counts (map #(.. ^ExecutorStats % get_specific get_spout get_failed)
-                                   stats-seq))
-            :complete-latencies
-            (aggregate-averages (map #(.. ^ExecutorStats % get_specific get_spout get_complete_ms_avg)
-                                     stats-seq)
-                                (map #(.. ^ExecutorStats % get_specific get_spout get_acked)
-                                     stats-seq))})))
-
-(defn aggregate-bolt-streams
-  [stats]
-  {:acked (stats/aggregate-count-streams (:acked stats))
-   :failed (stats/aggregate-count-streams (:failed stats))
-   :emitted (stats/aggregate-count-streams (:emitted stats))
-   :transferred (stats/aggregate-count-streams (:transferred stats))
-   :process-latencies (aggregate-avg-streams (:process-latencies stats)
-                                             (:acked stats))
-   :executed (stats/aggregate-count-streams (:executed stats))
-   :execute-latencies (aggregate-avg-streams (:execute-latencies stats)
-                                             (:executed stats))})
-
-(defn aggregate-spout-streams
-  [stats]
-  {:acked (stats/aggregate-count-streams (:acked stats))
-   :failed (stats/aggregate-count-streams (:failed stats))
-   :emitted (stats/aggregate-count-streams (:emitted stats))
-   :transferred (stats/aggregate-count-streams (:transferred stats))
-   :complete-latencies (aggregate-avg-streams (:complete-latencies stats)
-                                              (:acked stats))})
 
 (defn spout-summary?
   [topology s]
@@ -263,20 +130,6 @@
   [summs]
   (let [ret (group-by #(.get_component_id ^ExecutorSummary %) summs)]
     (into (sorted-map) ret )))
-
-(defn error-subset
-  [error-str]
-  (apply str (take 200 error-str)))
-
-(defn most-recent-error
-  [errors-list]
-  (let [error (->> errors-list
-                   (sort-by #(.get_error_time_secs ^ErrorInfo %))
-                   reverse
-                   first)]
-    (if error
-      (error-subset (.get_error ^ErrorInfo error))
-      "")))
 
 (defn component-task-summs
   [^TopologyInfo summ topology id]
@@ -293,64 +146,6 @@
   (let [fname (logs-filename topology-id port)]
     (url-format (str "http://%s:%s/log?file=%s")
           host (*STORM-CONF* LOGVIEWER-PORT) fname)))
-
-(defn compute-executor-capacity
-  [^ExecutorSummary e]
-  (let [stats (.get_stats e)
-        stats (if stats
-                (-> stats
-                    (aggregate-bolt-stats true)
-                    (aggregate-bolt-streams)
-                    stats/swap-map-order
-                    (get "600")))
-        uptime (nil-to-zero (.get_uptime_secs e))
-        window (if (< uptime 600) uptime 600)
-        executed (-> stats :executed nil-to-zero)
-        latency (-> stats :execute-latencies nil-to-zero)]
-    (if (> window 0)
-      (div (* executed latency) (* 1000 window)))))
-
-(defn compute-bolt-capacity
-  [executors]
-  (->> executors
-       (map compute-executor-capacity)
-       (map nil-to-zero)
-       (apply max)))
-
-(defn spout-streams-stats
-  [summs include-sys?]
-  (let [stats-seq (get-filled-stats summs)]
-    (aggregate-spout-streams
-      (aggregate-spout-stats
-        stats-seq include-sys?))))
-
-(defn bolt-streams-stats
-  [summs include-sys?]
-  (let [stats-seq (get-filled-stats summs)]
-    (aggregate-bolt-streams
-      (aggregate-bolt-stats
-        stats-seq include-sys?))))
-
-(defn total-aggregate-stats
-  [spout-summs bolt-summs include-sys?]
-  (let [spout-stats (get-filled-stats spout-summs)
-        bolt-stats (get-filled-stats bolt-summs)
-        agg-spout-stats (-> spout-stats
-                            (aggregate-spout-stats include-sys?)
-                            aggregate-spout-streams)
-        agg-bolt-stats (-> bolt-stats
-                           (aggregate-bolt-stats include-sys?)
-                           aggregate-bolt-streams)]
-    (merge-with
-      (fn [s1 s2]
-        (merge-with + s1 s2))
-      (select-keys
-        agg-bolt-stats
-        ;; Include only keys that will be used.  We want to count acked and
-        ;; failed only for the "tuple trees," so we do not include those keys
-        ;; from the bolt executors.
-        [:emitted :transferred])
-      agg-spout-stats)))
 
 (defn stats-times
   [stats-map]
@@ -439,7 +234,7 @@
     (into {} (doall components))))
 
 (defn stream-boxes [datmap]
-  (let [filter-fn (stats/mk-include-sys-fn true)
+  (let [filter-fn (mk-include-sys-fn true)
         streams
         (vec (doall (distinct
                      (apply concat
@@ -471,7 +266,7 @@
           bolt-summs (filter (partial bolt-summary? topology) execs)
           spout-comp-summs (group-by-comp spout-summs)
           bolt-comp-summs (group-by-comp bolt-summs)
-          bolt-comp-summs (filter-key (stats/mk-include-sys-fn include-sys?)
+          bolt-comp-summs (filter-key (mk-include-sys-fn include-sys?)
                                       bolt-comp-summs)]
       (visualization-data 
        (merge (hashmap-to-persistent spouts)
@@ -567,41 +362,6 @@
        "acked" (get-in stats [:acked k])
        "failed" (get-in stats [:failed k])})))
 
-(defn spout-comp [top-id summ-map errors window include-sys?]
-  (for [[id summs] summ-map
-        :let [stats-seq (get-filled-stats summs)
-              stats (aggregate-spout-streams
-                     (aggregate-spout-stats
-                      stats-seq include-sys?))]]
-    {"spoutId" id
-     "executors" (count summs)
-     "tasks" (stats/sum-tasks summs)
-     "emitted" (get-in stats [:emitted window])
-     "transferred" (get-in stats [:transferred window])
-     "completeLatency" (float-str (get-in stats [:complete-latencies window]))
-     "acked" (get-in stats [:acked window])
-     "failed" (get-in stats [:failed window])
-     "lastError" (most-recent-error (get errors id))}))
-
-(defn bolt-comp [top-id summ-map errors window include-sys?]
-  (for [[id summs] summ-map
-        :let [stats-seq (get-filled-stats summs)
-              stats (aggregate-bolt-streams
-                     (aggregate-bolt-stats
-                      stats-seq include-sys?))]]
-    {"boltId" id
-     "executors" (count summs)
-     "tasks" (stats/sum-tasks summs)
-     "emitted" (get-in stats [:emitted window])
-     "transferred" (get-in stats [:transferred window])
-     "capacity" (float-str (nil-to-zero (compute-bolt-capacity summs)))
-     "executeLatency" (float-str (get-in stats [:execute-latencies window]))
-     "executed" (get-in stats [:executed window])
-     "processLatency" (float-str (get-in stats [:process-latencies window]))
-     "acked" (get-in stats [:acked window])
-     "failed" (get-in stats [:failed window])
-     "lastError" (most-recent-error (get errors id))}))
-
 (defn topology-summary [^TopologyInfo summ]
   (let [executors (.get_executors summ)
         workers (set (for [^ExecutorSummary e executors]
@@ -611,7 +371,7 @@
        "name" (.get_name summ)
        "status" (.get_status summ)
        "uptime" (pretty-uptime-sec (.get_uptime_secs summ))
-       "tasksTotal" (stats/sum-tasks executors)
+       "tasksTotal" (sum-tasks executors)
        "workersTotal" (count workers)
        "executorsTotal" (count executors)
        "schedulerInfo" (.get_sched_status summ)}))
@@ -657,7 +417,7 @@
           bolt-executor-summaries (filter (partial bolt-summary? storm-topology) (.get_executors topology-info))
           spout-comp-id->executor-summaries (group-by-comp spout-executor-summaries)
           bolt-comp-id->executor-summaries (group-by-comp bolt-executor-summaries)
-          bolt-comp-id->executor-summaries (filter-key (stats/mk-include-sys-fn include-sys?) bolt-comp-id->executor-summaries)
+          bolt-comp-id->executor-summaries (filter-key (mk-include-sys-fn include-sys?) bolt-comp-id->executor-summaries)
           id->spout-spec (.get_spouts storm-topology)
           id->bolt (.get_bolts storm-topology)
           visualizer-data (visualization-data (merge (hashmap-to-persistent id->spout-spec)
@@ -683,7 +443,7 @@
           bolt-executor-summaries (filter (partial bolt-summary? storm-topology) (.get_executors topology-info))
           spout-comp-id->executor-summaries (group-by-comp spout-executor-summaries)
           bolt-comp-id->executor-summaries (group-by-comp bolt-executor-summaries)
-          bolt-comp-id->executor-summaries (filter-key (stats/mk-include-sys-fn include-sys?) bolt-comp-id->executor-summaries)
+          bolt-comp-id->executor-summaries (filter-key (mk-include-sys-fn include-sys?) bolt-comp-id->executor-summaries)
           name (.get_name topology-info)
           status (.get_status topology-info)
           msg-timeout (topology-conf TOPOLOGY-MESSAGE-TIMEOUT-SECS)
@@ -721,7 +481,7 @@
      "acked" (.get_num_acked s)
      "failed" (.get_num_failed s)
      "lastError" (error-subset (if-let [e (.get_last_error s)]
-                                 (.get_error e)))}))
+                                       (.get_error e)))}))
 
 (defn- bolt-agg-stats-json
   "Returns a JSON representation of a sequence of bolt aggregated statistics."
@@ -739,7 +499,7 @@
      "acked" (.get_num_acked s)
      "failed" (.get_num_failed s)
      "lastError" (error-subset (if-let [e (.get_last_error s)]
-                                 (.get_error e)))}))
+                                       (.get_error e)))}))
 
 (defn- unpack-topology-page-info
   "Unpacks the serialized object to data structures"
@@ -789,8 +549,8 @@
 
 (defn spout-output-stats
   [stream-summary window]
-  (let [stream-summary (map-val stats/swap-map-order
-                                (stats/swap-map-order stream-summary))]
+  (let [stream-summary (map-val swap-map-order
+                                (swap-map-order stream-summary))]
     (for [[s stats] (stream-summary window)]
       {"stream" s
        "emitted" (nil-to-zero (:emitted stats))
@@ -807,7 +567,7 @@
                       (-> stats
                           (aggregate-spout-stats include-sys?)
                           aggregate-spout-streams
-                          stats/swap-map-order
+                          swap-map-order
                           (get window)))]]
     {"id" (pretty-executor-info (.get_executor_info e))
      "uptime" (pretty-uptime-sec (.get_uptime_secs e))
@@ -862,10 +622,10 @@
 (defn bolt-output-stats
   [stream-summary window]
   (let [stream-summary (-> stream-summary
-                           stats/swap-map-order
+                           swap-map-order
                            (get window)
                            (select-keys [:emitted :transferred])
-                           stats/swap-map-order)]
+                           swap-map-order)]
     (for [[s stats] stream-summary]
       {"stream" s
         "emitted" (nil-to-zero (:emitted stats))
@@ -875,11 +635,11 @@
   [stream-summary window]
   (let [stream-summary
         (-> stream-summary
-            stats/swap-map-order
+            swap-map-order
             (get window)
             (select-keys [:acked :failed :process-latencies
                           :executed :execute-latencies])
-            stats/swap-map-order)]
+            swap-map-order)]
     (for [[^GlobalStreamId s stats] stream-summary]
       {"component" (.get_componentId s)
        "stream" (.get_streamId s)
@@ -897,7 +657,7 @@
                       (-> stats
                           (aggregate-bolt-stats include-sys?)
                           (aggregate-bolt-streams)
-                          stats/swap-map-order
+                          swap-map-order
                           (get window)))]]
     {"id" (pretty-executor-info (.get_executor_info e))
      "uptime" (pretty-uptime-sec (.get_uptime_secs e))
@@ -943,7 +703,7 @@
          "id" component
          "name" (.get_name summ)
          "executors" (count summs)
-         "tasks" (stats/sum-tasks summs)
+         "tasks" (sum-tasks summs)
          "topologyId" topology-id
          "window" window
          "componentType" (name type)
