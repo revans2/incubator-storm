@@ -159,6 +159,7 @@
         <module>storm-core</module>
         <module>examples/storm-starter</module>
         <module>external/storm-kafka</module>
+        <module>storm-hbserver</module>
     </modules>
 
     <scm>
