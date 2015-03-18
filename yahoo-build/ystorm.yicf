@@ -81,8 +81,8 @@ file 444 - - lib64/storm/$(BASE_VERSION)/lib/kryo-2.21.jar ../storm-core/target/
 file 444 - - lib64/storm/$(BASE_VERSION)/lib/libthrift-0.9.2.jar ../storm-core/target/dependency/libthrift-0.9.2.jar
 file 444 - - lib64/storm/$(BASE_VERSION)/lib/log4j-api-2.1.jar ../storm-core/target/dependency/log4j-api-2.1.jar
 file 444 - - lib64/storm/$(BASE_VERSION)/lib/log4j-core-2.1.jar ../storm-core/target/dependency/log4j-core-2.1.jar
-file 444 - - lib64/storm/$(BASE_VERSION)/lib/log4j-over-slf4j-1.6.6.jar ../storm-core/target/dependency/log4j-over-slf4j-1.6.6.jar
 file 444 - - lib64/storm/$(BASE_VERSION)/lib/log4j-slf4j-impl-2.1.jar ../storm-core/target/dependency/log4j-slf4j-impl-2.1.jar
+file 444 - - lib64/storm/$(BASE_VERSION)/lib/log4j-1.2-api-2.1.jar ../storm-core/target/dependency/log4j-1.2-api-2.1.jar
 file 444 - - lib64/storm/$(BASE_VERSION)/lib/math.numeric-tower-0.0.1.jar ../storm-core/target/dependency/math.numeric-tower-0.0.1.jar
 file 444 - - lib64/storm/$(BASE_VERSION)/lib/minlog-1.2.jar ../storm-core/target/dependency/minlog-1.2.jar
 file 444 - - lib64/storm/$(BASE_VERSION)/lib/netty-3.9.4.Final.jar ../storm-core/target/dependency/netty-3.9.4.Final.jar
