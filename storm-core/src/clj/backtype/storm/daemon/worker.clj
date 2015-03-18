@@ -551,5 +551,6 @@
 
 (defn -main [storm-id assignment-id port-str worker-id]  
   (let [conf (read-storm-config)]
+    (setup-default-uncaught-exception-handler)
     (validate-distributed-mode! conf)
     (mk-worker conf nil storm-id assignment-id (Integer/parseInt port-str) worker-id)))
