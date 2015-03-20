@@ -30,6 +30,7 @@
   (:import [java.security PrivilegedExceptionAction])
   (:import [org.apache.logging.log4j LogManager])
   (:import [org.apache.logging.log4j Level])
+  (:import [org.apache.logging.log4j.core.config LoggerConfig])
   (:import [backtype.storm.generated LogConfig LogLevelAction])
   (:gen-class))
 
@@ -429,8 +430,15 @@
 (defn- set-logger-level [logger-context logger-name new-level]
   (let [config (.getConfiguration logger-context)
         logger-config (.getLoggerConfig config logger-name)]
-    (log-message "Setting " logger-config " log level to: " new-level)
-    (.setLevel logger-config new-level)))
+    (if (not (= (.getName logger-config) logger-name))
+      ;; create a new config. Make it additive (true) s.t. inherit
+      ;; parents appenders
+      (let [new-logger-config (LoggerConfig. logger-name new-level true)]
+        (log-message "Adding config for: " new-logger-config " with level: " new-level)
+        (.addLogger config logger-name new-logger-config))
+      (do
+        (log-message "Setting " logger-config " log level to: " new-level)
+        (.setLevel logger-config new-level)))))
 
 ;; function called on timer to reset log levels last set to DEBUG
 ;; also called from process-log-config-change

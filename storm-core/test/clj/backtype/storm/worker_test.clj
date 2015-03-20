@@ -68,7 +68,7 @@
           result (atom false)]
       ;; the mocking function from conjure doesn't like private functions
       (with-redefs-fn {#'worker/set-logger-level 
-          (fn [logger-name level] (reset! result true))}
+          (fn [logger-context logger-name level] (reset! result true))}
         #(stubbing [time/now present]
           (def mock-config-atom (atom mock-config))
           (#'worker/reset-log-levels mock-config-atom)
@@ -89,7 +89,7 @@
 
       ;; the mocking function from conjure doesn't like private functions
       (with-redefs-fn {#'worker/set-logger-level 
-          (fn [logger-name level] (reset! result (assoc @result logger-name level)))}
+          (fn [logger-context logger-name level] (reset! result (assoc @result logger-name level)))}
         #(stubbing [time/now present]
           (def mock-config-atom (atom mock-config))
           (#'worker/reset-log-levels mock-config-atom)
@@ -114,7 +114,7 @@
                                           :reset-log-level Level/INFO}}
           result (atom {})]
       (with-redefs-fn {#'worker/set-logger-level 
-          (fn [logger-name level] (reset! result (assoc @result logger-name level)))}
+          (fn [logger-context logger-name level] (reset! result (assoc @result logger-name level)))}
         #(stubbing [time/now present]
           (def mock-config-atom (atom mock-config))
           (#'worker/reset-log-levels mock-config-atom)
@@ -138,7 +138,7 @@
           result (atom {})]
       ;; the mocking function from conjure doesn't like private functions
       (with-redefs-fn {#'worker/set-logger-level 
-        (fn [logger-name level] (reset! result (assoc @result logger-name level)))}
+        (fn [logger-context logger-name level] (reset! result (assoc @result logger-name level)))}
           #(#'worker/process-log-config-change mock-config-atom orig-levels mock-config))
       ;; test that the set-logger-level function was not called
       (log-message @result)
@@ -161,7 +161,7 @@
       (.put_to_named_logger_level mock-config "ROOT" root-level)
       ;; the mocking function from conjure doesn't like private functions
       (with-redefs-fn {#'worker/set-logger-level 
-        (fn [logger-name level] (reset! result (assoc @result logger-name level)))}
+        (fn [logger-context logger-name level] (reset! result (assoc @result logger-name level)))}
         #(stubbing [time/now present]
           (#'worker/process-log-config-change mock-config-atom orig-levels mock-config)))
       ;; test that the set-logger-level function was not called
@@ -196,8 +196,8 @@
           (.put_to_named_logger_level mock-config (key named) level)))
       (log-message "Tests " mock-config)
       ;; the mocking function from conjure doesn't like private functions
-      (with-redefs-fn {#'worker/set-logger-level 
-        (fn [logger-name level] (reset! result (assoc @result logger-name level)))}
+      (with-redefs-fn {#'worker/set-logger-level
+        (fn [logger-context logger-name level] (reset! result (assoc @result logger-name level)))}
         #(stubbing [time/now present]
           (#'worker/process-log-config-change mock-config-atom orig-levels mock-config)))
       ;; test that the set-logger-level function was not called
