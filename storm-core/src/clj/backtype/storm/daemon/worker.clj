@@ -422,7 +422,7 @@
 
 (defn- get-logger-levels []
   (into {}
-    (let [logger-config (.getConfiguration (LogManager/getContext true))]
+    (let [logger-config (.getConfiguration (LogManager/getContext false))]
       (for [logger (.getLoggers logger-config)]
         {(key logger) (.getLevel (val logger))}))))
 
@@ -436,7 +436,7 @@
 ;; also called from process-log-config-change
 (defn- reset-log-levels [latest-log-config-atom]
   (let [latest-log-config @latest-log-config-atom
-        logger-context (LogManager/getContext true)]
+        logger-context (LogManager/getContext false)]
     (doseq [logger-timeouts latest-log-config]
       (let [logger-name (key logger-timeouts)
             logger-setting (val logger-timeouts)
@@ -457,7 +457,7 @@
     (log-message "Processing received log config: " log-config)
     ;; merge log configs together
     (let [loggers (.get_named_logger_level log-config)
-          logger-context (LogManager/getContext true)]
+          logger-context (LogManager/getContext false)]
       (def new-log-configs
         (into {}
          ;; merge named log levels
