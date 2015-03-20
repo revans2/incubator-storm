@@ -20,15 +20,14 @@
   (:import [backtype.storm.generated LogConfig LogLevel LogLevelAction])
   (:gen-class))
 
-;; Parses [logger name]=[level string]:[optional timeout],[logger name2]...
-;;
-;; e.g. ROOT=DEBUG:30
-;;      root logger, debug for 30 seconds
-;;
-;;      org.apache.foo=WARN
-;;      org.apache.foo set to WARN indefinitely
-;;
 (defn- parse-named-log-levels [action]
+  "Parses [logger name]=[level string]:[optional timeout],[logger name2]...
+
+   e.g. ROOT=DEBUG:30
+        root logger, debug for 30 seconds
+
+        org.apache.foo=WARN
+        org.apache.foo set to WARN indefinitely"
   (fn [^String s]
     (let [log-args (re-find #"(.*?)=([A-Z]*):?(\d+)?" s)
           name (nth log-args 1)
