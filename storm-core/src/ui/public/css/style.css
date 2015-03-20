@@ -28,6 +28,21 @@
     padding-left: 50px;
 }
 
+.expand-box {
+  width: 90%;
+}
+
+.twitter-typeahead {
+  width: 100%;
+}
+
+.tt-dropdown-menu {
+  background-color: #F5F5F5;
+  padding: 0.1em;
+  width: 90%; 
+  border: 1px solid #CCC
+}
+
 body,
 .dataTables_wrapper label,
 div.dataTables_info[role="status"],
