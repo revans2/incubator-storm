@@ -69,10 +69,16 @@ cat <<XML
 <loggers>
     <root level="info"> <!-- We log everything -->
         <appender-ref ref="A1"/>
-        <appender-ref ref="STDOUT"/>
-        <appender-ref ref="STDERR"/>
         <appender-ref ref="syslog"/>
     </root>
+    <Logger name="STDERR" level="INFO">
+        <appender-ref ref="STDERR"/>
+        <appender-ref ref="syslog"/>
+    </Logger>
+    <Logger name="STDOUT" level="INFO">
+        <appender-ref ref="STDOUT"/>
+        <appender-ref ref="syslog"/>
+    </Logger>
 </loggers>
 </configuration>
 XML

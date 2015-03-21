@@ -1021,13 +1021,14 @@
     (> (.size (intersection (set groups) (set groups-to-check))) 0)))
 
 (defn read-topology-history
-  [nimbus user]
+  [nimbus user admin-users]
   (let [topo-history-state (:topo-history-state nimbus)
         curr-history (vec (.get topo-history-state NIMBUS-LS-TOPO-HISTORY))
         topo-user-can-access (fn [line user storm-conf]
                                (if (nil? user)
                                  (line :topoid)
-                                 (if (or (does-users-group-intersect? user (line :groups) storm-conf)
+                                 (if (or (some #(= % user) admin-users)
+                                       (does-users-group-intersect? user (line :groups) storm-conf)
                                        (some #(= % user) (line :users)))
                                    (line :topoid)
                                    nil)))]
@@ -1066,6 +1067,7 @@
   (let [nimbus (nimbus-data conf inimbus)
         blob-store (:blob-store nimbus)
         principal-to-local (AuthUtils/GetPrincipalToLocalPlugin conf)
+        admin-users (or (.get conf NIMBUS-ADMINS) [])
         get-common-topo-info
           (fn [^String storm-id operation]
             (let [storm-cluster-state (:storm-cluster-state nimbus)
@@ -1673,10 +1675,11 @@
                                     (let [topology-conf (try-read-storm-conf conf topo-id (:blob-store nimbus))
                                           groups (get-topo-logs-groups topology-conf)]
                                       (or (nil? user)
+                                          (some #(= % user) admin-users)
                                           (does-users-group-intersect? user groups conf)
                                           (some #(= % user) (get-topo-logs-users topology-conf)))))
               active-ids-for-user (filter #(user-group-match-fn % user (:conf nimbus)) assigned-topology-ids)
-              topo-history-list (read-topology-history nimbus user)]
+              topo-history-list (read-topology-history nimbus user admin-users)]
           (TopologyHistoryInfo. (distinct (concat active-ids-for-user topo-history-list)))))
 
       Shutdownable

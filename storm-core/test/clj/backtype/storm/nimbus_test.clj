@@ -162,8 +162,6 @@
       (is (not-nil? ((:executor->start-time-secs assignment) e))))
     ))
 
- 	
-
 (deftest test-bogusId
   (with-local-cluster [cluster :supervisors 4 :ports-per-supervisor 3 :daemon-conf {SUPERVISOR-ENABLE false TOPOLOGY-ACKER-EXECUTORS 0}]
     (let [state (:storm-cluster-state cluster)
@@ -344,6 +342,7 @@
 (deftest test-topo-history
   (with-simulated-time-local-cluster [cluster :supervisors 2 :ports-per-supervisor 5
                                       :daemon-conf {SUPERVISOR-ENABLE false
+                                                    NIMBUS-ADMINS ["admin-user"]
                                                     NIMBUS-TASK-TIMEOUT-SECS 30
                                                     NIMBUS-MONITOR-FREQ-SECS 10
                                                     TOPOLOGY-ACKER-EXECUTORS 0}]
@@ -405,13 +404,35 @@
         (is (not-nil? (.storm-base state storm-id4 nil)))
         (is (not-nil? (.assignment-info state storm-id4 nil)))
         ;; at this point have 1 running, 1 killed topo
-        (bind hist-topo-ids (vec (sort (.get_topo_ids (.getTopologyHistory (:nimbus cluster) (System/getProperty "user.name"))))))
-        (is (= 4 (count hist-topo-ids)))
-        (is (= storm-id2 (get hist-topo-ids 0)))
-        (is (= storm-id-killgroup (get hist-topo-ids 1)))
-        (is (= storm-id (get hist-topo-ids 2)))
-        (is (= storm-id4 (get hist-topo-ids 3)))
-        ))))
+        (let [hist-topo-ids (vec (sort (.get_topo_ids (.getTopologyHistory (:nimbus cluster) (System/getProperty "user.name")))))]
+          (log-message "Checking user " (System/getProperty "user.name") " " hist-topo-ids)
+          (is (= 4 (count hist-topo-ids)))
+          (is (= storm-id2 (get hist-topo-ids 0)))
+          (is (= storm-id-killgroup (get hist-topo-ids 1)))
+          (is (= storm-id (get hist-topo-ids 2)))
+          (is (= storm-id4 (get hist-topo-ids 3))))
+        (let [hist-topo-ids (vec (sort (.get_topo_ids (.getTopologyHistory (:nimbus cluster) "alice"))))]
+          (log-message "Checking user alice " hist-topo-ids)
+          (is (= 5 (count hist-topo-ids)))
+          (is (= storm-id2 (get hist-topo-ids 0)))
+          (is (= storm-id-killgroup (get hist-topo-ids 1)))
+          (is (= storm-id (get hist-topo-ids 2)))
+          (is (= storm-id3 (get hist-topo-ids 3)))
+          (is (= storm-id4 (get hist-topo-ids 4))))
+        (let [hist-topo-ids (vec (sort (.get_topo_ids (.getTopologyHistory (:nimbus cluster) "admin-user"))))]
+          (log-message "Checking user admin-user " hist-topo-ids)
+          (is (= 6 (count hist-topo-ids)))
+          (is (= storm-id2 (get hist-topo-ids 0)))
+          (is (= storm-id-killgroup (get hist-topo-ids 1)))
+          (is (= storm-id-killnoread (get hist-topo-ids 2)))
+          (is (= storm-id (get hist-topo-ids 3)))
+          (is (= storm-id3 (get hist-topo-ids 4)))
+          (is (= storm-id4 (get hist-topo-ids 5))))
+        (let [hist-topo-ids (vec (sort (.get_topo_ids (.getTopologyHistory (:nimbus cluster) "group-only-user"))))]
+          (log-message "Checking user group-only-user " hist-topo-ids)
+          (is (= 2 (count hist-topo-ids)))
+          (is (= storm-id-killgroup (get hist-topo-ids 0)))
+          (is (= storm-id4 (get hist-topo-ids 1))))))))
 
 (deftest test-kill-storm
   (with-simulated-time-local-cluster [cluster :supervisors 2 :ports-per-supervisor 5
