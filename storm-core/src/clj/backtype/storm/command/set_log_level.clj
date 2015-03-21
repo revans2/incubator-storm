@@ -29,14 +29,18 @@
         org.apache.foo=WARN
         org.apache.foo set to WARN indefinitely"
   (fn [^String s]
-    (let [log-args (re-find #"(.*?)=([A-Z]*):?(\d+)?" s)
-          name (nth log-args 1)
+    (let [log-args (re-find #"(.*)=([A-Z]+):?(\d*)" s)
+          name (if (= action LogLevelAction/REMOVE) s (nth log-args 1))
           level (Level/toLevel (nth log-args 2))
-          timeout (Integer/parseInt (or (nth log-args 3) 0))
+          timeout-str (nth log-args 3)
           log-level (LogLevel.)]
-      (.set_action log-level action)
-      (.set_target_log_level log-level (.toString level))
-      (.set_reset_log_level_timeout_secs log-level timeout)
+      (if (= action LogLevelAction/REMOVE)
+        (.set_action log-level action)
+        (do
+          (.set_action log-level action)
+          (.set_target_log_level log-level (.toString level))
+          (.set_reset_log_level_timeout_secs log-level
+            (Integer. (if (= timeout-str "") "0" timeout-str)))))
       {name log-level})))
 
 (defn- merge-together [previous key val]
