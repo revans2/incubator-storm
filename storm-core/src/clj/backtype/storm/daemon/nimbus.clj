@@ -1247,9 +1247,12 @@
           (check-authorization! nimbus storm-name topology-conf "deactivate"))
         (transition-name! nimbus storm-name :inactivate true))
 
-      (setLogConfig [this storm-name log-config-msg] 
-        (let [storm-cluster-state (:storm-cluster-state nimbus)
-              merged-log-config (or (.topology-log-config storm-cluster-state storm-name nil) (LogConfig.))
+      (^void setLogConfig [this ^String id ^LogConfig log-config-msg] 
+        (let [topology-conf (try-read-storm-conf conf id blob-store)
+              storm-name (topology-conf TOPOLOGY-NAME)
+              _ (check-authorization! nimbus storm-name topology-conf "setLogConfig")
+              storm-cluster-state (:storm-cluster-state nimbus)
+              merged-log-config (or (.topology-log-config storm-cluster-state id nil) (LogConfig.))
               named-loggers (.get_named_logger_level merged-log-config)]
             (doseq [existent-logger-level named-loggers]
               (.set_action (val existent-logger-level) LogLevelAction/UNCHANGED))
@@ -1269,7 +1272,7 @@
                                (.containsKey named-loggers logger-name))
                         (.remove named-loggers logger-name))))))
             (log-message "Setting log config for " storm-name ":" merged-log-config)
-            (.set-topology-log-config! storm-cluster-state storm-name merged-log-config)))
+            (.set-topology-log-config! storm-cluster-state id merged-log-config)))
   
       (uploadNewCredentials [this storm-name credentials]
         (let [storm-cluster-state (:storm-cluster-state nimbus)
@@ -1341,12 +1344,12 @@
       (^String getSchedulerConf [this]
        (check-authorization! nimbus nil nil "getSchedulerConf")
        (to-json (.config (:scheduler nimbus))))
-      ;; note that this function has a return type in thrift
-      ;; if I add the type hint, mvn compile crashes
-      ;; not sure why. However, it *seems* to work without the hint
-      (getLogConfig [this storm-name]
-        (let [storm-cluster-state (:storm-cluster-state nimbus)
-             log-config (.topology-log-config storm-cluster-state storm-name nil)]
+      (^LogConfig getLogConfig [this ^String id]
+        (let [topology-conf (try-read-storm-conf conf id blob-store)
+              storm-name (topology-conf TOPOLOGY-NAME)
+              _ (check-authorization! nimbus storm-name topology-conf "getLogConfig")
+             storm-cluster-state (:storm-cluster-state nimbus)
+             log-config (.topology-log-config storm-cluster-state id nil)]
            (if log-config log-config (LogConfig.))))
 
       (^String getTopologyConf [this ^String id]

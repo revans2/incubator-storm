@@ -1250,39 +1250,43 @@
       (.set_target_log_level level "ERROR")
       (.set_action level LogLevelAction/UPDATE)
       (.put_to_named_logger_level previous-config "test" level)
-      (.setLogConfig nimbus "foo" previous-config)
-      (.setLogConfig nimbus "foo" mock-config)
-      (let [saved-config (.getLogConfig nimbus "foo")
-            levels (.get_named_logger_level saved-config)]
-         (is (= (.get_action (.get levels "test")) LogLevelAction/UNCHANGED))))))
+      (stubbing [nimbus/check-storm-active! nil
+                 nimbus/try-read-storm-conf {}]
+        (.setLogConfig nimbus "foo" previous-config)
+        (.setLogConfig nimbus "foo" mock-config)
+        (let [saved-config (.getLogConfig nimbus "foo")
+              levels (.get_named_logger_level saved-config)]
+           (is (= (.get_action (.get levels "test")) LogLevelAction/UNCHANGED)))))))
 
 (deftest log-level-update-merges-and-flags-existent-log-level
   (with-local-cluster [cluster]
-    (let [nimbus (:nimbus cluster)
-          previous-config (LogConfig.)
-          level (LogLevel.)
-          other-level (LogLevel.)
-          mock-config (LogConfig.)]
-      ;; send something with content to nimbus beforehand
-      (.set_target_log_level level "ERROR")
-      (.set_action level LogLevelAction/UPDATE)
-      (.put_to_named_logger_level previous-config "test" level)
+    (stubbing [nimbus/check-storm-active! nil
+               nimbus/try-read-storm-conf {}]
+      (let [nimbus (:nimbus cluster)
+            previous-config (LogConfig.)
+            level (LogLevel.)
+            other-level (LogLevel.)
+            mock-config (LogConfig.)]
+        ;; send something with content to nimbus beforehand
+        (.set_target_log_level level "ERROR")
+        (.set_action level LogLevelAction/UPDATE)
+        (.put_to_named_logger_level previous-config "test" level)
 
-      (.set_target_log_level other-level "DEBUG")
-      (.set_action other-level LogLevelAction/UPDATE)
-      (.put_to_named_logger_level previous-config "other-test" other-level)
-      (.setLogConfig nimbus "foo" previous-config)
+        (.set_target_log_level other-level "DEBUG")
+        (.set_action other-level LogLevelAction/UPDATE)
+        (.put_to_named_logger_level previous-config "other-test" other-level)
+        (.setLogConfig nimbus "foo" previous-config)
       
-      ;; only change "test"
-      (.set_target_log_level level "INFO")
-      (.set_action level LogLevelAction/UPDATE)
-      (.put_to_named_logger_level mock-config "test" level)
-      (.setLogConfig nimbus "foo" mock-config)
+        ;; only change "test"
+        (.set_target_log_level level "INFO")
+        (.set_action level LogLevelAction/UPDATE)
+        (.put_to_named_logger_level mock-config "test" level)
+        (.setLogConfig nimbus "foo" mock-config)
 
-      (let [saved-config (.getLogConfig nimbus "foo")
-            levels (.get_named_logger_level saved-config)]
-         (is (= (.get_action (.get levels "test")) LogLevelAction/UPDATE))
-         (is (= (.get_target_log_level (.get levels "test")) "INFO"))
+        (let [saved-config (.getLogConfig nimbus "foo")
+              levels (.get_named_logger_level saved-config)]
+           (is (= (.get_action (.get levels "test")) LogLevelAction/UPDATE))
+           (is (= (.get_target_log_level (.get levels "test")) "INFO"))
 
-         (is (= (.get_action (.get levels "other-test")) LogLevelAction/UNCHANGED))
-         (is (= (.get_target_log_level (.get levels "other-test")) "DEBUG"))))))
+           (is (= (.get_action (.get levels "other-test")) LogLevelAction/UNCHANGED))
+           (is (= (.get_target_log_level (.get levels "other-test")) "DEBUG")))))))

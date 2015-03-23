@@ -20,6 +20,16 @@
   (:import [backtype.storm.generated LogConfig LogLevel LogLevelAction])
   (:gen-class))
 
+(defn- get-storm-id
+  "Get topology id for a running topology from the topology name."
+  [nimbus name]
+  (let [info (.getClusterInfo nimbus)
+        topologies (.get_topologies info)
+        topology (first (filter (fn [topo] (= name (.get_name topo))) topologies))]
+    (if topology 
+      (.get_id topology)
+      (throw (.IllegalArgumentException (str name " is not a running topology"))))))
+
 (defn- parse-named-log-levels [action]
   "Parses [logger name]=[level string]:[optional timeout],[logger name2]...
 
@@ -63,4 +73,4 @@
         (doseq [item (merge log-setting remove-log-setting)]
           (.put_to_named_logger_level log-config (key item) (val item)))
         (log-message "Sent log config " log-config " for topology " name)
-        (.setLogConfig nimbus name log-config)))))
+        (.setLogConfig nimbus (get-storm-id nimbus name) log-config)))))

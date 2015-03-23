@@ -780,6 +780,8 @@
              user (.getUserName http-creds-handler servlet-request)]
          (json-response (component-page id component (:window m) (check-include-sys? (:sys m)) user))))
   (GET "/api/v1/topology/:id/logconfig" [:as {:keys [cookies servlet-request]} id & m]
+         (let [user (.getUserName http-creds-handler servlet-request)]
+            (assert-authorized-topology-user user))
          (json-response (log-config id)))
   (POST "/api/v1/topology/:id/activate" [:as {:keys [cookies servlet-request]} id]
     (with-nimbus nimbus
@@ -841,7 +843,9 @@
 
   (POST "/api/v1/topology/:id/logconfig" [:as {:keys [body cookies servlet-request]} id & m]
     (with-nimbus nimbus
-      (let [log-config-json (from-json (slurp body))
+      (let [user (.getUserName http-creds-handler servlet-request)
+            _ (assert-authorized-topology-user user)
+            log-config-json (from-json (slurp body))
             named-loggers (.get log-config-json "namedLoggerLevels")
             new-log-config (LogConfig.)]
         (doseq [lvl named-loggers] 

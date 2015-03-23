@@ -390,8 +390,8 @@ service Nimbus {
   void rebalance(1: string name, 2: RebalanceOptions options) throws (1: NotAliveException e, 2: InvalidTopologyException ite, 3: AuthorizationException aze);
 
   // dynamic log levels
-  void setLogConfig(1: string name, 2: LogConfig config);
-  LogConfig getLogConfig(1: string name);
+  void setLogConfig(1: string id, 2: LogConfig config);
+  LogConfig getLogConfig(1: string id);
 
   void uploadNewCredentials(1: string name, 2: Credentials creds) throws (1: NotAliveException e, 2: InvalidTopologyException ite, 3: AuthorizationException aze);
 

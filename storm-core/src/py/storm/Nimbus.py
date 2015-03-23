@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+#
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
 # distributed with this work for additional information
@@ -92,18 +94,18 @@ class Iface:
     """
     pass
 
-  def setLogConfig(self, name, config):
+  def setLogConfig(self, id, config):
     """
     Parameters:
-     - name
+     - id
      - config
     """
     pass
 
-  def getLogConfig(self, name):
+  def getLogConfig(self, id):
     """
     Parameters:
-     - name
+     - id
     """
     pass
 
@@ -551,19 +553,19 @@ class Client(Iface):
       raise result.aze
     return
 
-  def setLogConfig(self, name, config):
+  def setLogConfig(self, id, config):
     """
     Parameters:
-     - name
+     - id
      - config
     """
-    self.send_setLogConfig(name, config)
+    self.send_setLogConfig(id, config)
     self.recv_setLogConfig()
 
-  def send_setLogConfig(self, name, config):
+  def send_setLogConfig(self, id, config):
     self._oprot.writeMessageBegin('setLogConfig', TMessageType.CALL, self._seqid)
     args = setLogConfig_args()
-    args.name = name
+    args.id = id
     args.config = config
     args.write(self._oprot)
     self._oprot.writeMessageEnd()
@@ -582,18 +584,18 @@ class Client(Iface):
     iprot.readMessageEnd()
     return
 
-  def getLogConfig(self, name):
+  def getLogConfig(self, id):
     """
     Parameters:
-     - name
+     - id
     """
-    self.send_getLogConfig(name)
+    self.send_getLogConfig(id)
     return self.recv_getLogConfig()
 
-  def send_getLogConfig(self, name):
+  def send_getLogConfig(self, id):
     self._oprot.writeMessageBegin('getLogConfig', TMessageType.CALL, self._seqid)
     args = getLogConfig_args()
-    args.name = name
+    args.id = id
     args.write(self._oprot)
     self._oprot.writeMessageEnd()
     self._oprot.trans.flush()
@@ -1690,7 +1692,7 @@ class Processor(Iface, TProcessor):
     args.read(iprot)
     iprot.readMessageEnd()
     result = setLogConfig_result()
-    self._handler.setLogConfig(args.name, args.config)
+    self._handler.setLogConfig(args.id, args.config)
     oprot.writeMessageBegin("setLogConfig", TMessageType.REPLY, seqid)
     result.write(oprot)
     oprot.writeMessageEnd()
@@ -1701,7 +1703,7 @@ class Processor(Iface, TProcessor):
     args.read(iprot)
     iprot.readMessageEnd()
     result = getLogConfig_result()
-    result.success = self._handler.getLogConfig(args.name)
+    result.success = self._handler.getLogConfig(args.id)
     oprot.writeMessageBegin("getLogConfig", TMessageType.REPLY, seqid)
     result.write(oprot)
     oprot.writeMessageEnd()
@@ -3295,18 +3297,18 @@ class rebalance_result:
 class setLogConfig_args:
   """
   Attributes:
-   - name
+   - id
    - config
   """
 
   thrift_spec = (
     None, # 0
-    (1, TType.STRING, 'name', None, None, ), # 1
+    (1, TType.STRING, 'id', None, None, ), # 1
     (2, TType.STRUCT, 'config', (LogConfig, LogConfig.thrift_spec), None, ), # 2
   )
 
-  def __init__(self, name=None, config=None,):
-    self.name = name
+  def __init__(self, id=None, config=None,):
+    self.id = id
     self.config = config
 
   def read(self, iprot):
@@ -3320,7 +3322,7 @@ class setLogConfig_args:
         break
       if fid == 1:
         if ftype == TType.STRING:
-          self.name = iprot.readString().decode('utf-8')
+          self.id = iprot.readString().decode('utf-8')
         else:
           iprot.skip(ftype)
       elif fid == 2:
@@ -3339,9 +3341,9 @@ class setLogConfig_args:
       oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
       return
     oprot.writeStructBegin('setLogConfig_args')
-    if self.name is not None:
-      oprot.writeFieldBegin('name', TType.STRING, 1)
-      oprot.writeString(self.name.encode('utf-8'))
+    if self.id is not None:
+      oprot.writeFieldBegin('id', TType.STRING, 1)
+      oprot.writeString(self.id.encode('utf-8'))
       oprot.writeFieldEnd()
     if self.config is not None:
       oprot.writeFieldBegin('config', TType.STRUCT, 2)
@@ -3356,7 +3358,7 @@ class setLogConfig_args:
 
   def __hash__(self):
     value = 17
-    value = (value * 31) ^ hash(self.name)
+    value = (value * 31) ^ hash(self.id)
     value = (value * 31) ^ hash(self.config)
     return value
 
@@ -3420,16 +3422,16 @@ class setLogConfig_result:
 class getLogConfig_args:
   """
   Attributes:
-   - name
+   - id
   """
 
   thrift_spec = (
     None, # 0
-    (1, TType.STRING, 'name', None, None, ), # 1
+    (1, TType.STRING, 'id', None, None, ), # 1
   )
 
-  def __init__(self, name=None,):
-    self.name = name
+  def __init__(self, id=None,):
+    self.id = id
 
   def read(self, iprot):
     if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
@@ -3442,7 +3444,7 @@ class getLogConfig_args:
         break
       if fid == 1:
         if ftype == TType.STRING:
-          self.name = iprot.readString().decode('utf-8')
+          self.id = iprot.readString().decode('utf-8')
         else:
           iprot.skip(ftype)
       else:
@@ -3455,9 +3457,9 @@ class getLogConfig_args:
       oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
       return
     oprot.writeStructBegin('getLogConfig_args')
-    if self.name is not None:
-      oprot.writeFieldBegin('name', TType.STRING, 1)
-      oprot.writeString(self.name.encode('utf-8'))
+    if self.id is not None:
+      oprot.writeFieldBegin('id', TType.STRING, 1)
+      oprot.writeString(self.id.encode('utf-8'))
       oprot.writeFieldEnd()
     oprot.writeFieldStop()
     oprot.writeStructEnd()
@@ -3468,7 +3470,7 @@ class getLogConfig_args:
 
   def __hash__(self):
     value = 17
-    value = (value * 31) ^ hash(self.name)
+    value = (value * 31) ^ hash(self.id)
     return value
 
   def __repr__(self):
