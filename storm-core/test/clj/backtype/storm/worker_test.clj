@@ -93,7 +93,6 @@
    passed the args specified, into the indices of the arglist specified. In
    other words, it checks only the particular args you care about."
   [n fn-name indices & args]
-
   `(do
      (assert-in-fake-context "verify-first-call-args-for-indices")
      (assert-conjurified-fn "verify-first-call-args-for-indices" ~fn-name)
@@ -130,10 +129,10 @@
           (is (= @mock-config-atom {}))
           (verify-call-times-for worker/set-logger-level 3)
           (verify-nth-call-args-for-indices 0 worker/set-logger-level [1 2] "my_debug_logger" Level/INFO)
-          (verify-nth-call-args-for-indices 1 worker/set-logger-level [1 2] "my_info_logger" Level/WARN)
-          (verify-nth-call-args-for-indices 2 worker/set-logger-level [1 2] "my_error_logger" Level/INFO)))))
+          (verify-nth-call-args-for-indices 1 worker/set-logger-level [1 2] "my_error_logger" Level/INFO)
+          (verify-nth-call-args-for-indices 2 worker/set-logger-level [1 2] "my_info_logger" Level/WARN)))))
 
-(deftest test-process-root-log-level-to-debug-sets-logger-and-timeout
+(deftest test-process-root-log-level-to-debug-sets-logger-and-timeout-2
   (with-local-cluster [cluster]
     (let [worker (:worker cluster)
           mock-config (LogConfig.)
@@ -153,7 +152,7 @@
           ;; test that the set-logger-level function was not called
           (log-message "Tests " @mock-config-atom)
           (verify-call-times-for worker/set-logger-level 1)
-          (verify-nth-call-args-for-indices 0 worker/set-logger-level [1 2] "ROOT" Level/DEBUG)
+          (verify-nth-call-args-for-indices 0 worker/set-logger-level [1 2] "" Level/DEBUG)
           (let [root-result (get @mock-config-atom LogManager/ROOT_LOGGER_NAME)]
             (is (= (:action root-result) LogLevelAction/UPDATE))
             (is (= (:target-log-level root-result) Level/DEBUG))
@@ -186,6 +185,6 @@
           (worker/process-log-config-change mock-config-atom orig-levels mock-config)
           (verify-call-times-for worker/set-logger-level 4)
           (verify-nth-call-args-for-indices 0 worker/set-logger-level [1 2] "" Level/DEBUG)
-          (verify-nth-call-args-for-indices 1 worker/set-logger-level [1 2] "my_error_logger" Level/ERROR)
-          (verify-nth-call-args-for-indices 2 worker/set-logger-level [1 2] "my_debug_logger" Level/DEBUG)
+          (verify-nth-call-args-for-indices 1 worker/set-logger-level [1 2] "my_debug_logger" Level/DEBUG)
+          (verify-nth-call-args-for-indices 2 worker/set-logger-level [1 2] "my_error_logger" Level/ERROR)
           (verify-nth-call-args-for-indices 3 worker/set-logger-level [1 2] "my_info_logger" Level/INFO)))))

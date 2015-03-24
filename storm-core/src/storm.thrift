@@ -373,7 +373,7 @@ struct LogLevel {
 
 struct LogConfig { 
   // logger name -> log level map
-  2: optional map<string, LogLevel> named_logger_level;
+  1: optional map<string, LogLevel> named_logger_level;
 }
 
 struct TopologyHistoryInfo {

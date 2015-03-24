@@ -8135,8 +8135,7 @@ class LogConfig:
 
   thrift_spec = (
     None, # 0
-    None, # 1
-    (2, TType.MAP, 'named_logger_level', (TType.STRING,None,TType.STRUCT,(LogLevel, LogLevel.thrift_spec)), None, ), # 2
+    (1, TType.MAP, 'named_logger_level', (TType.STRING,None,TType.STRUCT,(LogLevel, LogLevel.thrift_spec)), None, ), # 1
   )
 
   def __init__(self, named_logger_level=None,):
@@ -8151,7 +8150,7 @@ class LogConfig:
       (fname, ftype, fid) = iprot.readFieldBegin()
       if ftype == TType.STOP:
         break
-      if fid == 2:
+      if fid == 1:
         if ftype == TType.MAP:
           self.named_logger_level = {}
           (_ktype375, _vtype376, _size374 ) = iprot.readMapBegin()
@@ -8174,7 +8173,7 @@ class LogConfig:
       return
     oprot.writeStructBegin('LogConfig')
     if self.named_logger_level is not None:
-      oprot.writeFieldBegin('named_logger_level', TType.MAP, 2)
+      oprot.writeFieldBegin('named_logger_level', TType.MAP, 1)
       oprot.writeMapBegin(TType.STRING, TType.STRUCT, len(self.named_logger_level))
       for kiter381,viter382 in self.named_logger_level.items():
         oprot.writeString(kiter381.encode('utf-8'))

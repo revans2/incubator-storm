@@ -445,7 +445,7 @@
 (defn reset-log-levels [latest-log-config-atom]
   (let [latest-log-config @latest-log-config-atom
         logger-context (LogManager/getContext false)]
-    (doseq [[logger-name logger-setting] latest-log-config]
+    (doseq [[logger-name logger-setting] (sort latest-log-config)]
       (let [timeout (:timeout logger-setting)
             target-log-level (:target-log-level logger-setting)
             reset-log-level (:reset-log-level logger-setting)]
@@ -479,7 +479,7 @@
                              :timeout (.get_reset_log_level_timeout_epoch logger-level)}})))))
 
       ;; look for deleted log timeouts
-      (doseq [[logger-name logger-val] @latest-log-config]
+      (doseq [[logger-name logger-val] (sort @latest-log-config)]
         (when (not (contains? new-log-configs logger-name))
           ;; if we had a timeout, but the timeout is no longer active
           (set-logger-level
@@ -487,7 +487,7 @@
 
       ;; apply new log settings we just received
       ;; the merged configs are only for the reset logic
-      (doseq [[msg-logger-name logger-level] (.get_named_logger_level log-config)]
+      (doseq [[msg-logger-name logger-level] (sort (into {} (.get_named_logger_level log-config)))]
         (let [logger-name (if (= msg-logger-name "ROOT")
                                 LogManager/ROOT_LOGGER_NAME
                                 msg-logger-name)
