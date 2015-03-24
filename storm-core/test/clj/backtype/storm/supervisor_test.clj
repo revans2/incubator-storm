@@ -22,7 +22,7 @@
   (:import [backtype.storm.testing TestWordCounter TestWordSpout TestGlobalCount TestAggregatesCounter])
   (:import [backtype.storm.scheduler ISupervisor])
   (:import [java.util UUID])
-  (:use [backtype.storm bootstrap config testing])
+  (:use [backtype.storm bootstrap config testing thrift])
   (:use [backtype.storm.daemon common])
   (:require [backtype.storm.daemon [worker :as worker] [supervisor :as supervisor]])
   (:use [conjure core])
@@ -66,7 +66,7 @@
 
 (defn validate-launched-once [launched supervisor->ports storm-id]
   (let [counts (map count (vals launched))
-        launched-supervisor->ports (apply merge-with concat
+        launched-supervisor->ports (apply merge-with (comp sort concat)
                                      (for [[s p] (keys launched)]
                                        {s [p]}
                                        ))]

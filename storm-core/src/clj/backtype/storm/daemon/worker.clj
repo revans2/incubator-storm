@@ -15,7 +15,7 @@
 ;; limitations under the License.
 (ns backtype.storm.daemon.worker
   (:use [backtype.storm.daemon common])
-  (:use [backtype.storm bootstrap])
+  (:use [backtype.storm bootstrap thrift])
   (:require [backtype.storm.daemon [executor :as executor]])
   (:import [java.util.concurrent Executors])
   (:import [java.util ArrayList HashMap])

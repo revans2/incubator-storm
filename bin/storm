@@ -91,9 +91,10 @@ def get_jars_full(adir):
             ret.append(adir + "/" + f)
     return ret
 
-def get_classpath(extrajars):
+def get_classpath(extrajars, base_lib_dirs=["/lib"]):
     ret = get_jars_full(STORM_DIR)
-    ret.extend(get_jars_full(STORM_DIR + "/lib"))
+    for path in base_lib_dirs:
+        ret.extend(get_jars_full(STORM_DIR + path))
     ret.extend(extrajars)
     return normclasspath(":".join(ret))
 
@@ -151,14 +152,22 @@ def parse_args(string):
     args = [re.compile(r"'((?:[^'\\]|\\.)*)'").sub('\\1', x) for x in args]
     return [re.compile(r'\\(.)').sub('\\1', x) for x in args]
 
-def exec_storm_class(klass, jvmtype="-server", jvmopts=[], extrajars=[], args=[], fork=False):
+def exec_storm_class(klass, jvmtype="-server", jvmopts=[], extrajars=[], args=[], fork=False, lib_dirs=[]):
     global CONFFILE
+    print lib_dirs
+    if len(lib_dirs) > 0:
+        print "Getting Classpath for ", lib_dirs
+        cp = get_classpath(extrajars, lib_dirs)
+    else:
+        print "Regular classpath"
+        cp = get_classpath(extrajars)
+    
     all_args = [
         JAVA_CMD, jvmtype, get_config_opts(),
         "-Dstorm.home=" + STORM_DIR, 
         "-Djava.library.path=" + confvalue("java.library.path", extrajars),
         "-Dstorm.conf.file=" + CONFFILE,
-        "-cp", get_classpath(extrajars),
+        "-cp", cp,
     ] + jvmopts + [klass] + list(args)
     print "Running: " + " ".join(all_args)
     if fork:
@@ -352,7 +361,7 @@ def nimbus(klass="backtype.storm.daemon.nimbus"):
         extrajars=cppaths,
         jvmopts=jvmopts)
 
-def hbserver(klass="backtype.storm.daemon.hbserver"):
+def hbserver(klass="org.apache.storm.ecg"):
     """Syntax: [storm hbserver]
 
     Launches the HBServer daemon. This command should be run under
@@ -371,7 +380,8 @@ def hbserver(klass="backtype.storm.daemon.hbserver"):
         klass, 
         jvmtype="-server", 
         extrajars=cppaths, 
-        jvmopts=jvmopts)
+        jvmopts=jvmopts,
+        lib_dirs=["/libhb", "/lib"])
 
 def supervisor(klass="backtype.storm.daemon.supervisor"):
     """Syntax: [storm supervisor]

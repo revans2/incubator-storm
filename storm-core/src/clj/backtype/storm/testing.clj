@@ -21,7 +21,9 @@
              [common :as common]
              [worker :as worker]
              [executor :as executor]])
-  (:require [backtype.storm [process-simulator :as psim]])
+  (:require [backtype.storm
+             [process-simulator :as psim]
+             [thrift :as thrift]])
   (:import [org.apache.commons.io FileUtils])
   (:import [java.io File])
   (:import [java.util HashMap ArrayList])
@@ -276,7 +278,7 @@
 
 (defn submit-mocked-assignment
   [nimbus storm-name conf topology task->component executor->node+port]
-  (with-var-roots [common/storm-task-info (fn [& ignored] task->component)
+  (with-var-roots [thrift/storm-task-info (fn [& ignored] task->component)
                    nimbus/compute-new-topology->executor->node+port (mocked-compute-new-topology->executor->node+port
                                                                       storm-name
                                                                       executor->node+port)]
@@ -337,7 +339,7 @@
         nimbus (:nimbus cluster-map)
         storm-id (common/get-storm-id state storm-name)
         component->tasks (reverse-map
-                           (common/storm-task-info
+                           (thrift/storm-task-info
                              (.getUserTopology nimbus storm-id)
                              (from-json (.getTopologyConf nimbus storm-id))))
         component->tasks (if component-ids

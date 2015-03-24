@@ -15,6 +15,7 @@
 ;; limitations under the License.
 
 (ns org.apache.storm.ecg
+;  (:require [org.apache.storm hbserver])
   (:import [java.nio ByteBuffer]
            [org.apache.storm.generated HBServer HBServer$Processor HBServer$ServiceIface
             HBAuthorizationException HBExecutionException HBRecords Pulse HBNodes]
@@ -24,6 +25,7 @@
            [backtype.storm.security.auth ThriftServer ThriftConnectionType ReqContext AuthUtils]
            [backtype.storm.daemon Shutdownable]
            [com.twitter.util Future])
+           ;[org.apache.storm hbserver])
   (:use [clojure.string :only [replace-first split]]
         [backtype.storm bootstrap util log]
         [backtype.storm.config :only [validate-configs-with-schemas read-storm-config]]
@@ -44,7 +46,7 @@
               (ThreadPoolExecutor. 5 10
                                    1 TimeUnit/HOURS
                                    (LinkedBlockingDeque.)))]
-    (reify HBServer$ServiceIface
+    (thrift/service HBServer
       (^Future createPath [this ^String path] (futures/value nil))
       
       (^Future exists [this ^String path]
@@ -89,22 +91,23 @@
         (future-pool/run pool
           (log-message (str "Deleting Pulse for id [" id "]."))
           (.remove heartbeats id)))
-
-      Shutdownable
+      
       (shutdown [this]
         (log-message "Shutting down hbserver"))
-
-      DaemonCommon
-      (waiting? [this]
-        ())
-      )))
+      
+      
+      (waiting? [this] ()))))
+      
 
 (defn launch-server! []
+  (log-message "Beginning.")
   (let [conf (read-storm-config)
         service-handler (service-handler conf)
-        server (thrift/serve "localhost:8089" service-handler)]
-    (.addShutdownHook (Runtime/getRuntime) (Thread. (fn [] (.shutdown service-handler) (.close server))))
-    (log-message "Starting hbserver...")))
+        _ (log-message "Service Handler: " (type service-handler))]
+    ;(.addShutdownHook (Runtime/getRuntime) (Thread. (fn [] (.shutdown service-handler) (.close server))))
+    (log-message "Starting hbserver...")
+    (thrift/serve ":8089" service-handler)))
+
 
 (defn -main []
   (launch-server!))
