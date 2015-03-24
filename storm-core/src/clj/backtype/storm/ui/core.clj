@@ -727,8 +727,8 @@
   (with-nimbus nimbus
     (let [log-config (.getLogConfig ^Nimbus$Client nimbus topology-id)
           named-logger-levels (into {}
-                                (for [lvl (.get_named_logger_level log-config)] 
-                                  [(str (key lvl)) (level-to-dict (val lvl))]))] 
+                                (for [[key val] (.get_named_logger_level log-config)]
+                                  [(str key) (level-to-dict val)]))]
       {"namedLoggerLevels" named-logger-levels})))
 
 (defn topology-config [topology-id]
@@ -848,9 +848,8 @@
             log-config-json (from-json (slurp body))
             named-loggers (.get log-config-json "namedLoggerLevels")
             new-log-config (LogConfig.)]
-        (doseq [lvl named-loggers] 
-            (let [logger-name (str (key lvl))
-                  level (val lvl)
+        (doseq [[key level] named-loggers]
+            (let [logger-name (str key)
                   target-level (.get level "target_level")
                   timeout (or (.get level "timeout") 0)
                   named-logger-level (LogLevel.)]

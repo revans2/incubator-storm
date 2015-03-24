@@ -29,11 +29,11 @@
 }
 
 #change-log-level select{
-    width:100px;
+    width:10em;
 }
 
 #change-log-level input.timeout_input{
-    width:50px;
+    width:5em;
 }
 
 .expand-box {

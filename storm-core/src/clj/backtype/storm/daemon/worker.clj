@@ -424,10 +424,10 @@
 (defn- get-logger-levels []
   (into {}
     (let [logger-config (.getConfiguration (LogManager/getContext false))]
-      (for [logger (.getLoggers logger-config)]
-        {(key logger) (.getLevel (val logger))}))))
+      (for [[logger-name logger] (.getLoggers logger-config)]
+        {logger-name (.getLevel logger)}))))
 
-(defn- set-logger-level [logger-context logger-name new-level]
+(defn set-logger-level [logger-context logger-name new-level]
   (let [config (.getConfiguration logger-context)
         logger-config (.getLoggerConfig config logger-name)]
     (if (not (= (.getName logger-config) logger-name))
@@ -442,13 +442,11 @@
 
 ;; function called on timer to reset log levels last set to DEBUG
 ;; also called from process-log-config-change
-(defn- reset-log-levels [latest-log-config-atom]
+(defn reset-log-levels [latest-log-config-atom]
   (let [latest-log-config @latest-log-config-atom
         logger-context (LogManager/getContext false)]
-    (doseq [logger-timeouts latest-log-config]
-      (let [logger-name (key logger-timeouts)
-            logger-setting (val logger-timeouts)
-            timeout (:timeout logger-setting)
+    (doseq [[logger-name logger-setting] latest-log-config]
+      (let [timeout (:timeout logger-setting)
             target-log-level (:target-log-level logger-setting)
             reset-log-level (:reset-log-level logger-setting)]
         (when (> (coerce/to-long (time/now)) timeout)
@@ -460,21 +458,19 @@
     (.updateLoggers logger-context)))
 
 ;; when a new log level is received from zookeeper, this function is called
-(defn- process-log-config-change [latest-log-config original-log-levels log-config]
+(defn process-log-config-change [latest-log-config original-log-levels log-config]
   (when log-config
-    (log-message "Processing received log config: " log-config)
+    (log-debug "Processing received log config: " log-config)
     ;; merge log configs together
     (let [loggers (.get_named_logger_level log-config)
           logger-context (LogManager/getContext false)]
       (def new-log-configs
         (into {}
          ;; merge named log levels
-         (for [entry loggers] 
-           (let [msg-logger-name (key entry)
-                 logger-name (if (= msg-logger-name "ROOT")
+         (for [[msg-logger-name logger-level] loggers]
+           (let [logger-name (if (= msg-logger-name "ROOT")
                                 LogManager/ROOT_LOGGER_NAME
-                                msg-logger-name)
-                 logger-level (val entry)]
+                                msg-logger-name)]
              ;; the new-timeouts map now contains logger => timeout 
              (when (.is_set_reset_log_level_timeout_epoch logger-level)
                {logger-name {:action (.get_action logger-level)
@@ -483,20 +479,18 @@
                              :timeout (.get_reset_log_level_timeout_epoch logger-level)}})))))
 
       ;; look for deleted log timeouts
-      (doseq [existing @latest-log-config]
-        (when (not (contains? new-log-configs (key existing)))
+      (doseq [[logger-name logger-val] @latest-log-config]
+        (when (not (contains? new-log-configs logger-name))
           ;; if we had a timeout, but the timeout is no longer active
           (set-logger-level
-            logger-context (key existing) (:reset-log-level (val existing)))))
+            logger-context logger-name (:reset-log-level logger-val))))
 
       ;; apply new log settings we just received
       ;; the merged configs are only for the reset logic
-      (doseq [entry (.get_named_logger_level log-config)]
-        (let [msg-logger-name (key entry)
-              logger-name (if (= msg-logger-name "ROOT")
+      (doseq [[msg-logger-name logger-level] (.get_named_logger_level log-config)]
+        (let [logger-name (if (= msg-logger-name "ROOT")
                                 LogManager/ROOT_LOGGER_NAME
                                 msg-logger-name)
-              logger-level (val entry)
               level (Level/toLevel (.get_target_log_level logger-level))
               action (.get_action logger-level)]
           (if (= action LogLevelAction/UPDATE)
@@ -504,7 +498,7 @@
    
       (.updateLoggers logger-context)
       (reset! latest-log-config new-log-configs)
-      (log-message "New merged log config is " @latest-log-config))))
+      (log-debug "New merged log config is " @latest-log-config))))
 
 ;; TODO: should worker even take the storm-id as input? this should be
 ;; deducable from cluster state (by searching through assignments)
@@ -629,8 +623,7 @@
         check-log-config-changed (fn []
                                   (let [log-config (.topology-log-config (:storm-cluster-state worker) storm-id nil)]
                                     (process-log-config-change latest-log-config original-log-levels log-config)
-                                    (establish-log-setting-callback)))
-    ]
+                                    (establish-log-setting-callback)))]
     (reset! original-log-levels (get-logger-levels))
     (log-message "Started with log levels: " @original-log-levels)
   
@@ -644,7 +637,7 @@
     (when-not (storm-conf TOPOLOGY-DISABLE-LOADAWARE-MESSAGING)
       (schedule-recurring-with-jitter (:refresh-load-timer worker) 0 1 500 refresh-load))
     (schedule-recurring (:refresh-connections-timer worker) 0 (conf TASK-REFRESH-POLL-SECS) refresh-connections)
-    (schedule-recurring (:reset-log-levels-timer worker) 0 (conf LOG-LEVEL-RESET-POLL-SECS) (fn [] (reset-log-levels latest-log-config)))
+    (schedule-recurring (:reset-log-levels-timer worker) 0 (conf WORKER-LOG-LEVEL-RESET-POLL-SECS) (fn [] (reset-log-levels latest-log-config)))
     (schedule-recurring (:refresh-active-timer worker) 0 (conf TASK-REFRESH-POLL-SECS) (partial refresh-storm-active worker))
 
     (log-message "Worker has topology config " (:storm-conf worker))

@@ -137,6 +137,8 @@ supervisor.localizer.cleanup.interval.ms: 600000
 worker.childopts: "-Xmx768m"
 worker.gc.childopts: ""
 worker.heartbeat.frequency.secs: 1
+# check whether dynamic log levels can be reset from DEBUG to INFO in workers
+worker.log.level.reset.poll.secs: 30
 
 # control how many worker receiver threads we need per worker
 topology.worker.receiver.thread.count: 1
@@ -148,9 +150,6 @@ task.credentials.poll.secs: 30
 zmq.threads: 1
 zmq.linger.millis: 5000
 zmq.hwm: 0
-
-# check whether dynamic log levels can be reset from DEBUG to INFO in workers
-log.level.reset.poll.secs: 30
 
 storm.messaging.netty.server_worker_threads: 1
 storm.messaging.netty.client_worker_threads: 1

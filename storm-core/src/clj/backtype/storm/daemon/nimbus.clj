@@ -1056,10 +1056,9 @@
 (defn- set-logger-timeouts [log-config]
   (let [timeout-secs (.get_reset_log_level_timeout_secs log-config)
        timeout (time/plus (time/now) (time/secs timeout-secs))]
-   (do
-     (if (time/after? timeout (time/now))
-       (.set_reset_log_level_timeout_epoch log-config (coerce/to-long timeout))
-       (.unset_reset_log_level_timeout_epoch log-config)))))
+   (if (time/after? timeout (time/now))
+     (.set_reset_log_level_timeout_epoch log-config (coerce/to-long timeout))
+     (.unset_reset_log_level_timeout_epoch log-config))))
 
 (defserverfn service-handler [conf inimbus]
   (.prepare inimbus conf (master-inimbus-dir conf))
@@ -1254,12 +1253,10 @@
               storm-cluster-state (:storm-cluster-state nimbus)
               merged-log-config (or (.topology-log-config storm-cluster-state id nil) (LogConfig.))
               named-loggers (.get_named_logger_level merged-log-config)]
-            (doseq [existent-logger-level named-loggers]
-              (.set_action (val existent-logger-level) LogLevelAction/UNCHANGED))
-            (doseq [entry (.get_named_logger_level log-config-msg)]
-              (let [logger-name (key entry)
-                    log-config (val entry)
-                    action (.get_action log-config)]
+            (doseq [[_ level] named-loggers]
+              (.set_action level LogLevelAction/UNCHANGED))
+            (doseq [[logger-name log-config] (.get_named_logger_level log-config-msg)]
+              (let [action (.get_action log-config)]
                 (if (clojure.string/blank? logger-name)
                   (throw (RuntimeException. "Named loggers need a valid name. Use ROOT for the root logger")))
                 (condp = action
