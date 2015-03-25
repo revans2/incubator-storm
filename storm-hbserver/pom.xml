@@ -179,57 +179,6 @@
         </executions>
       </plugin>
       <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-shade-plugin</artifactId>
-        <version>2.2</version>
-        <executions>
-          <execution>
-            <phase>package</phase>
-            <goals>
-              <goal>shade</goal>
-            </goals>
-          </execution>
-        </executions>
-        <configuration>
-          <keepDependenciesWithProvidedScope>true</keepDependenciesWithProvidedScope>
-          <promoteTransitiveDependencies>false</promoteTransitiveDependencies>
-          <createDependencyReducedPom>true</createDependencyReducedPom>
-          <minimizeJar>false</minimizeJar>
-          <artifactSet>
-            <includes>
-              <include>org.apache.thrift:*</include>
-              <include>org.apache.storm:*</include>
-            </includes>
-          </artifactSet>
-
-          <relocations>
-            <relocation>
-              <pattern>org.apache.thrift</pattern>
-              <shadedPattern>org.apache.thrift7</shadedPattern>
-            </relocation>
-          </relocations>
-          <transformers>
-            <transformer implementation="org.apache.storm.maven.shade.clojure.ClojureTransformer" />
-          </transformers>
-          <filters>
-            <filter>
-              <artifact>org.apache.thrift:*</artifact>
-              <excludes>
-                <exclude>META-INF/LICENSE.txt</exclude>
-                <exclude>META-INF/NOTICE.txt</exclude>
-              </excludes>
-            </filter>
-          </filters>
-        </configuration>
-        <dependencies>
-          <dependency>
-            <groupId>org.apache.storm</groupId>
-            <artifactId>maven-shade-clojure-transformer</artifactId>
-            <version>${project.version}</version>
-          </dependency>
-        </dependencies>
-      </plugin>
-      <plugin>
         <artifactId>maven-dependency-plugin</artifactId>
         <version>2.8</version>
         <executions>

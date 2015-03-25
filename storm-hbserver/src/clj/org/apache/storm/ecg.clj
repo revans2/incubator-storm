@@ -27,8 +27,7 @@
            [com.twitter.util Future])
            ;[org.apache.storm hbserver])
   (:use [clojure.string :only [replace-first split]]
-        [backtype.storm bootstrap util log]
-        [backtype.storm.config :only [validate-configs-with-schemas read-storm-config]]
+        [backtype.storm bootstrap util log config]
         [backtype.storm.daemon common])
   (:require [finagle-clojure.future-pool :as future-pool]
             [finagle-clojure.futures :as futures]
@@ -103,10 +102,10 @@
   (log-message "Beginning.")
   (let [conf (read-storm-config)
         service-handler (service-handler conf)
-        _ (log-message "Service Handler: " (type service-handler))]
-    ;(.addShutdownHook (Runtime/getRuntime) (Thread. (fn [] (.shutdown service-handler) (.close server))))
+        server (thrift/serve (str ":" (conf HBSERVER-THRIFT-PORT)) service-handler)]
+    (.addShutdownHook (Runtime/getRuntime) (Thread. (fn [] (.shutdown service-handler) (.close server))))
     (log-message "Starting hbserver...")
-    (thrift/serve ":8089" service-handler)))
+    (futures/await server)))
 
 
 (defn -main []

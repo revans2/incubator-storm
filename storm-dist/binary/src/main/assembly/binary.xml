@@ -30,19 +30,6 @@
             <useProjectArtifact>false</useProjectArtifact>
             <outputDirectory>lib</outputDirectory>
             <unpack>false</unpack>
-            <excludes>
-              <exclude>org.apache.storm:hbserver</exclude>
-            </excludes>
-            <useTransitiveFiltering>true</useTransitiveFiltering>
-        </dependencySet>
-        <dependencySet>
-          <useProjectArtifact>false</useProjectArtifact>
-          <outputDirectory>libhb</outputDirectory>
-          <unpack>false</unpack>
-          <excludes>
-            <exclude>org.apache.storm:storm-core</exclude>
-          </excludes>
-          <useTransitiveFiltering>true</useTransitiveFiltering>
         </dependencySet>
     </dependencySets>
 

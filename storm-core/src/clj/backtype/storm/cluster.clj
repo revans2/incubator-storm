@@ -26,7 +26,9 @@
 
 (gen-interface
  :name backtype.storm.cluster.ClusterStateFactory
- :methods [[mkState [java.util.HashMap java.util.HashMap java.util.List] Object]])
+ :methods [[mkState [clojure.lang.PersistentHashMap
+                     clojure.lang.PersistentHashMap
+                     java.util.List] Object]])
 
 (defprotocol ClusterState
   (set-ephemeral-node [this path data acls])
@@ -57,10 +59,11 @@
 
 (defnk mk-distributed-cluster-state
   [conf :auth-conf nil :acls nil]
+  (log-message "WORKER-CLUSTER-STATE-STORE: " (conf WORKER-CLUSTER-STATE-STORE))
   (let [clazz (Class/forName (or (conf WORKER-CLUSTER-STATE-STORE)
                                  "backtype.storm.cluster_state.zookeeper_state"))
         state-instance (.newInstance clazz)]
-    (or (.mkState state-instance (java.util.HashMap. conf) (if auth-conf (java.util.HashMap. auth-conf)) acls)
+    (or (.mkState state-instance conf auth-conf acls)
         nil)))
 
 (defprotocol StormClusterState

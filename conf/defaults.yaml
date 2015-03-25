@@ -137,7 +137,7 @@ supervisor.localizer.cleanup.interval.ms: 600000
 worker.childopts: "-Xmx768m"
 worker.gc.childopts: ""
 worker.heartbeat.frequency.secs: 1
-worker.cluster.state.store: "backtype.storm.cluster_state.zookeeper_state"
+worker.cluster.state.store: "org.apache.storm.cluster_state.heartbeat_server_state"
 
 # control how many worker receiver threads we need per worker
 topology.worker.receiver.thread.count: 1

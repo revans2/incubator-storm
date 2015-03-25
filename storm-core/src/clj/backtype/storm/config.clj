@@ -31,6 +31,7 @@
 (doseq [f (seq (.getFields Config))]
   (let [name (.getName f)
         new-name (clojure-config-name name)]
+    (println name " -> " new-name)
     (eval
       `(def ~(symbol new-name) (. Config ~(symbol name))))))
 

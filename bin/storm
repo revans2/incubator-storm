@@ -380,8 +380,7 @@ def hbserver(klass="org.apache.storm.ecg"):
         klass, 
         jvmtype="-server", 
         extrajars=cppaths, 
-        jvmopts=jvmopts,
-        lib_dirs=["/libhb", "/lib"])
+        jvmopts=jvmopts)
 
 def supervisor(klass="backtype.storm.daemon.supervisor"):
     """Syntax: [storm supervisor]

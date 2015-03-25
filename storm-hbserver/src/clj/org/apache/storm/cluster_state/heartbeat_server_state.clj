@@ -1,9 +1,10 @@
 (ns org.apache.storm.cluster-state.heartbeat-server-state
-  (:import [org.apache.storm.generated HBServer Pulse])
   (:require [org.apache.storm ecg]
             [backtype.storm.cluster-state [zookeeper-state :as zk-state]]
             [finagle-clojure.thrift :as thrift]
             [finagle-clojure.futures :as futures])
+  (:import [org.apache.storm.generated HBServer Pulse]
+           [backtype.storm.cluster_state zookeeper_state])
   (:use [backtype.storm config cluster])
   (:gen-class
    :implements [backtype.storm.cluster.ClusterStateFactory]))
@@ -28,10 +29,9 @@
 ;;    (catch Exception e (.printStackTrace e))))
 
 (defn -mkState [this conf auth-conf acls]
-  (let [zk-client (zk-state/-mkState conf auth-conf acls)
-        conf (into {} conf)
-        auth-conf (if auth-conf (into {} auth-conf))
+  (let [zk-client (.mkState (zookeeper_state.) conf auth-conf acls)
         ecg-client (thrift/client (str ":" (conf HBSERVER-THRIFT-PORT)) HBServer)]
+    
     (reify
       ClusterState
 
