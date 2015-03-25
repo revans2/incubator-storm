@@ -17,7 +17,7 @@
  */
 package backtype.storm.security.auth;
 
-import backtype.storm.generated.HBServer;
+//import backtype.storm.generated.HBServer;
 import backtype.storm.utils.Utils;
 import backtype.storm.Config;
 

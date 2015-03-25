@@ -63,9 +63,9 @@
       
       (^Future getAllPulseForPath [this ^String idPrefix] (futures/value nil))
       
-      (^Future getAllNodesForPath [this ^String idPrefix]
+      (^Future getAllNodesForPath [this ^String idPrefix & therest]
         (future-pool/run pool
-          (log-debug "List all nodes for path " idPrefix)  
+          (log-message "List all nodes for path " idPrefix " : " therest)  
           (HBNodes. (distinct (for [k (.keySet heartbeats)
                                     :let [trimmed-k (second (split (replace-first k idPrefix "") #"/"))]
                                     :when (and

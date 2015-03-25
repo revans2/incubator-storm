@@ -1,7 +1,7 @@
 (ns backtype.storm.cluster-state.zookeeper-state
   (:import [org.apache.zookeeper KeeperException KeeperException$NoNodeException ZooDefs ZooDefs$Ids ZooDefs$Perms])
   (:use [backtype.storm cluster config log util])
-  (:require [backtype.storm [zookeeper :as zk] [heartbeatsutil :as hbu]])
+  (:require [backtype.storm [zookeeper :as zk]])
   (:gen-class
    :implements [backtype.storm.cluster.ClusterStateFactory]))
 
@@ -22,8 +22,7 @@
                                         (log-warn "Received event " state ":" type ":" path " with disconnected Zookeeper."))
                                       (when-not (= :none type)
                                         (doseq [callback (vals @callbacks)]
-                                          (callback type path))))))
-        use-hbserver (Boolean/valueOf (conf HBSERVER-ROUTE-WORKER-HEARTBEATS))]
+                                          (callback type path))))))]
     (reify
       ClusterState
       
@@ -64,9 +63,7 @@
       (set-worker-hb
         [this path data acls]
         ;; note: this does not turn off any existing watches
-        (if use-hbserver
-          (hbu/send-pulse path data)
-          (set-data this path data acls)))
+        (set-data this path data acls))
 
       (delete-node
         [this path]
@@ -74,9 +71,7 @@
 
       (delete-worker-hb
         [this path]
-        (if use-hbserver
-          (hbu/delete-pulse-recursive path)
-          (delete-node this path)))
+        (delete-node this path))
 
       (get-data
         [this path watch?]
@@ -92,9 +87,7 @@
 
       (get-worker-hb
         [this path watch?]
-        (if use-hbserver
-          (hbu/get-pulse-data path)
-          (get-data this path watch?)))
+        (get-data this path watch?))
 
       (get-children
         [this path watch?]
@@ -102,9 +95,7 @@
 
       (get-worker-hb-children
         [this path watch?]
-        (if use-hbserver
-          (hbu/get-pulse-children path)
-          (get-children this path watch?)))
+        (get-children this path watch?))
 
       (mkdirs
         [this path acls]

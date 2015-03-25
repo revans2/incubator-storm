@@ -15,30 +15,30 @@
 ;; limitations under the License.
 (ns backtype.storm.command.heartbeats
   (:import [java.io InputStream OutputStream])
-  (:import [backtype.storm.generated HBNodes Pulse HBRecords  AuthorizationException
-            KeyNotFoundException])
+  (:import [backtype.storm.generated  AuthorizationException
+            KeyNotFoundException]) ;HBNodes Pulse HBRecords 
   (:use [clojure.string :only [split]])
   (:use [clojure.tools.cli :only [cli]])
   (:use [clojure.java.io :only [copy input-stream output-stream]])
-  (:use [backtype.storm log [heartbeatsutil :as hbu]])
+  (:use [backtype.storm log]) ; [heartbeatsutil :as hbu]
   (:gen-class))
 
-(defn list-hbs [args]
-    (let [keys (if (empty? args) ["/"] args)]
-      (doseq [key keys]
-        (let [path (if (.endsWith key "/") (clojure.string/replace key #"\/$" "") key)]
-          (try
-            (doseq [id (hbu/get-pulse-children path)]
-              (log-message (str path "/" id)))
-            (catch AuthorizationException ae
-                                          (if-not (empty? args) (log-message "ACCESS DENIED to key: " key)))
-            (catch KeyNotFoundException knf
-                                        (if-not (empty? args) (log-message key " NOT FOUND"))))))))
+;(defn list-hbs [args]
+;    (let [keys (if (empty? args) ["/"] args)]
+;      (doseq [key keys]
+;        (let [path (if (.endsWith key "/") (clojure.string/replace key #"\/$" "") key)]
+;          (try
+;            (doseq [id (hbu/get-pulse-children path)]
+;              (log-message (str path "/" id)))
+;            (catch AuthorizationException ae
+;                                          (if-not (empty? args) (log-message "ACCESS DENIED to key: " key)))
+;            (catch KeyNotFoundException knf
+;                                        (if-not (empty? args) (log-message key " NOT FOUND"))))))))
+;
 
-
-(defn -main [& args]
-  (let [command (first args)
-        new-args (rest args)]
-    (condp = command
-             "list" (list-hbs new-args)
-             :else (throw (RuntimeException. (str command " is not a supported heartbeats command"))))))
+(defn -main [& args])
+;  (let [command (first args)
+;        new-args (rest args)]
+;    (condp = command
+;             "list" (list-hbs new-args)
+;             :else (throw (RuntimeException. (str command " is not a supported heartbeats command"))))))
