@@ -801,6 +801,7 @@
                      (str "-Dworker.id=" worker-id)
                      (str "-Dworker.port=" port)
                      (str "-Dlog4j.configurationFile=" storm-home "/log4j2/worker.xml")
+                     (str "-DLog4jContextSelector=org.apache.logging.log4j.core.selector.BasicContextSelector")
                      "backtype.storm.LogWriter"]
                     [(java-cmd) "-server"]
                     worker-childopts
@@ -810,6 +811,7 @@
                      (str "-Dlogfile.name=" logfilename)
                      (str "-Dstorm.home=" storm-home)
                      (str "-Dlog4j.configurationFile=" storm-home "/log4j2/worker.xml")
+                     (str "-DLog4jContextSelector=org.apache.logging.log4j.core.selector.BasicContextSelector")
                      (str "-Dstorm.id=" storm-id)
                      (str "-Dworker.id=" worker-id)
                      (str "-Dworker.port=" port)

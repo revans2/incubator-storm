@@ -344,6 +344,42 @@ struct GetInfoOptions {
   1: optional NumErrorsChoice num_err_choice;
 }
 
+enum LogLevelAction {
+  UNCHANGED = 1,
+  UPDATE    = 2,
+  REMOVE    = 3
+}
+
+struct LogLevel {
+  1: required LogLevelAction action;
+
+  // during this thrift call, we'll move logger to target_log_level
+  2: optional string target_log_level;
+
+  // number of seconds that target_log_level should be kept
+  // after this timeout, the loggers will be reset to reset_log_level
+  // if timeout is 0, we will not reset 
+  3: optional i32 reset_log_level_timeout_secs;
+
+  // number of seconds since unix epoch corresponding to 
+  // current time (when message gets to nimbus) + reset_log_level_timeout_secs 
+  // NOTE: this field gets set in Nimbus 
+  4: optional i64 reset_log_level_timeout_epoch;
+
+  // if reset timeout was set, then we would reset 
+  // to this level after timeout (or INFO by default)
+  5: optional string reset_log_level;
+}
+
+struct LogConfig { 
+  // logger name -> log level map
+  1: optional map<string, LogLevel> named_logger_level;
+}
+
+struct TopologyHistoryInfo {
+  1: list<string> topo_ids;
+}
+
 service Nimbus {
   void submitTopology(1: string name, 2: string uploadedJarLocation, 3: string jsonConf, 4: StormTopology topology) throws (1: AlreadyAliveException e, 2: InvalidTopologyException ite, 3: AuthorizationException aze);
   void submitTopologyWithOpts(1: string name, 2: string uploadedJarLocation, 3: string jsonConf, 4: StormTopology topology, 5: SubmitOptions options) throws (1: AlreadyAliveException e, 2: InvalidTopologyException ite, 3: AuthorizationException aze);
@@ -352,6 +388,11 @@ service Nimbus {
   void activate(1: string name) throws (1: NotAliveException e, 2: AuthorizationException aze);
   void deactivate(1: string name) throws (1: NotAliveException e, 2: AuthorizationException aze);
   void rebalance(1: string name, 2: RebalanceOptions options) throws (1: NotAliveException e, 2: InvalidTopologyException ite, 3: AuthorizationException aze);
+
+  // dynamic log levels
+  void setLogConfig(1: string id, 2: LogConfig config);
+  LogConfig getLogConfig(1: string id);
+
   void uploadNewCredentials(1: string name, 2: Credentials creds) throws (1: NotAliveException e, 2: InvalidTopologyException ite, 3: AuthorizationException aze);
 
   // need to add functions for asking about status of storms, what nodes they're running on, looking at task logs
@@ -450,6 +491,3 @@ service HBServer {
   void deletePulseId(1: string id) throws (1: HBExecutionException e, 2: AuthorizationException aze);
 }
 
-struct TopologyHistoryInfo {
-  1: list<string> topo_ids;
-}

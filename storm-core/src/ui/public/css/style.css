@@ -28,6 +28,14 @@
     padding-left: 50px;
 }
 
+#change-log-level select{
+    width:10em;
+}
+
+#change-log-level input.timeout_input{
+    width:5em;
+}
+
 .expand-box {
   width: 90%;
 }

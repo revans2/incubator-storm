@@ -333,10 +333,15 @@
     <input {{deactivateStatus}} onclick="confirmAction('{{id}}', '{{name}}', 'deactivate', false, 0)" type="button" value="Deactivate" class="btn btn-default">
     <input {{rebalanceStatus}} onclick="confirmAction('{{id}}', '{{name}}', 'rebalance', true, {{msgTimeout}})" type="button" value="Rebalance" class="btn btn-default">
     <input {{killStatus}} onclick="confirmAction('{{id}}', '{{name}}', 'kill', true, 30)" type="button" value="Kill" class="btn btn-default">
+    <input type="button" {{logLevel}} value="Change Log Level" onclick="toggleChangeLogLevel()" class="btn btn-default">
   </p>
   {{/uiActionsEnabled}}
+  <!-- 
+    Contents of topology-change-log-level-template will be added to the div below
+    once user clicks on "Change Log Level"
+  -->
+  <div id="change-log-level" style="display:none"></div>
 </script>
-
 <script id="search-form-template" type="text/html">
 <form action="search_result.html" id="search-box">
   Search {{id}}:
@@ -346,4 +351,66 @@
   <input type="submit" value="Search">
   Search Archived Logs: <input type="checkbox" name="searchArchived" value="checked">
 </form>
+</script>
+
+<script id="log-level-and-timeout" type="text/html" class="partials">
+    <tr id="logger-{{loggerId}}" class="{{cls}}">
+        {{#loggerName}}
+          <td>{{loggerName}}</td>
+          <input type="hidden" id="loggerName-{{loggerId}}" value="{{loggerName}}"/>
+          <input type="hidden" id="loggerRemove-{{loggerId}}" value="false"/>
+        {{/loggerName}}
+
+        {{#isNew}}
+          <td>
+            <input type="text" id="loggerName-{{loggerId}}" placeholder="com.your.organization.LoggerName"/>
+          </td>
+        {{/isNew}}
+
+        <td>
+            <select id="loggerLevel-{{loggerId}}">
+                {{#levels}} 
+                    <option value="{{name}}" {{levelSelected}}>{{name}}</option>
+                {{/levels}}
+            </select>
+        </td>
+        <td>
+            <input type="text" class="timeout_input" id="loggerTimeout-{{loggerId}}" placeholder="30" value="{{timeout}}"/> 
+        </td>
+        <td>
+            {{absoluteTimeout}}
+        </td>
+        <td>
+            {{#isNew}}
+                <input type="button" value="Add" name="clear" onClick='sendLoggerLevel({{loggerId}})' class="btn btn-secondary"/>
+            {{/isNew}}
+            {{#loggerName}}
+                <input type="button" value="Apply" name="clear" onClick='sendLoggerLevel({{loggerId}})' class="btn btn-secondary"/>
+                {{#canClear}}
+                    <input type="button" value="Clear" name="clear" onClick='clearLoggerLevel({{loggerId}})' class="btn btn-secondary"/>
+                {{/canClear}}
+            {{/loggerName}}
+        </td>
+    </tr>
+</script>
+
+<script id="topology-change-log-level-template" type="text/html">
+  <div id="change-log-level">
+      <h3>Change Log Level</h3>
+      Modify the logger levels for topology. Note that applying a setting restarts the timer in the workers. To configure the root logger, use the name ROOT. 
+      <table class="table table-striped compact">
+          <thead>
+              <tr>
+                  <th class="header">Logger</th>
+                  <th class="header">Level</th>
+                  <th class="header">Timeout (sec)</th>
+                  <th class="header">Expires at</th>
+                  <th class="header">Actions</th>
+              </tr>
+          </thead>
+      {{#loggers}}
+          {{ > log-level-and-timeout }}
+      {{/loggers}}
+      </table>
+  </div>
 </script>

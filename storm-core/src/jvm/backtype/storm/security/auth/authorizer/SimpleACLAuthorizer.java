@@ -54,6 +54,8 @@ public class SimpleACLAuthorizer implements IAuthorizer {
             "getUserTopology",
             "getTopologyInfo",
             "getTopologyPageInfo",
+            "setLogConfig",
+            "getLogConfig",
             "uploadNewCredentials"));
 
     protected Set<String> _admins;
