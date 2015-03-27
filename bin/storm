@@ -52,6 +52,8 @@ normclasspath = cygpath if sys.platform == 'cygwin' else identity
 STORM_DIR = "/".join(os.path.realpath( __file__ ).split("/")[:-2])
 USER_CONF_DIR = os.path.expanduser("~/.storm")
 STORM_CONF_DIR = os.getenv('STORM_CONF_DIR', None)
+STORM_EXTLIB_DIR = STORM_DIR + "/extlib"
+STORM_EXTLIB_DAEMON_DIR = STORM_DIR + "/extlib-daemon"
 
 if STORM_CONF_DIR == None:
     CLUSTER_CONF_DIR = STORM_DIR + "/conf"
@@ -94,6 +96,8 @@ def get_jars_full(adir):
 def get_classpath(extrajars):
     ret = get_jars_full(STORM_DIR)
     ret.extend(get_jars_full(STORM_DIR + "/lib"))
+    ret.extend(get_jars_full(STORM_DIR + "/extlib"))
+    ret.extend(get_jars_full(STORM_DIR + "/extlib-daemon"))
     ret.extend(extrajars)
     return normclasspath(":".join(ret))
 
