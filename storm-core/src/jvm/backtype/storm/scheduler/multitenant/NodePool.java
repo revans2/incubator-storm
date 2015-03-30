@@ -20,6 +20,8 @@ package backtype.storm.scheduler.multitenant;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -63,9 +65,10 @@ public abstract class NodePool {
     private Map<String,Set<String>> _nodeToComps;
     private HashMap<String, List<ExecutorDetails>> _spreadToSchedule;
     private LinkedList<Set<ExecutorDetails>> _slots;
-    private Set<ExecutorDetails> _lastSlot;
     private Cluster _cluster;
     private String _topId;
+    private Map<ExecutorDetails, String> _execToComp;
+    private SlotComparator _slotComparator = new SlotComparator();
     
     /**
      * Create a new scheduler for a given topology
@@ -78,8 +81,8 @@ public abstract class NodePool {
         Cluster cluster) {
       _topId = td.getId();
       _cluster = cluster;
+      _execToComp = td.getExecutorToComponent();
       
-      Map<ExecutorDetails, String> execToComp = td.getExecutorToComponent();
       SchedulerAssignment assignment = _cluster.getAssignmentById(_topId);
       _nodeToComps = new HashMap<String, Set<String>>();
 
@@ -93,7 +96,7 @@ public abstract class NodePool {
             comps = new HashSet<String>();
             _nodeToComps.put(nodeId, comps);
           }
-          comps.add(execToComp.get(entry.getKey()));
+          comps.add(_execToComp.get(entry.getKey()));
         }
       }
       
@@ -127,7 +130,6 @@ public abstract class NodePool {
           }
         }
       }
-      _lastSlot = _slots.get(_slots.size() - 1);
     }
     
     /**
@@ -139,8 +141,10 @@ public abstract class NodePool {
       if (_slots.isEmpty()) {
         return false;
       }
+      // Re-order slots in ascending order of number of executors excluding system components.
+      Collections.sort(_slots, _slotComparator);
       Set<ExecutorDetails> slot = _slots.pop();
-      if (slot == _lastSlot) {
+      if (_slots.isEmpty()) {
         //The last slot fill it up
         for (Entry<String, List<ExecutorDetails>> entry: _spreadToSchedule.entrySet()) {
           if (entry.getValue().size() > 0) {
@@ -166,6 +170,30 @@ public abstract class NodePool {
       }
       n.assign(_topId, slot, _cluster);
       return !_slots.isEmpty();
+    }
+
+    public class SlotComparator implements Comparator<Set<ExecutorDetails>> {
+
+      @Override
+      public int compare(Set<ExecutorDetails> o1, Set<ExecutorDetails> o2) {
+        int firstCount = countExecs(o1);
+        int secondCount = countExecs(o2);
+        return firstCount > secondCount ? 1 : firstCount < secondCount ? -1 : 0;
+      }
+
+      private int countExecs(Set<ExecutorDetails> executorDetailsSet) {
+        int count = 0;
+        if (executorDetailsSet == null) {
+          return count;
+        }
+        for (ExecutorDetails executorDetails : executorDetailsSet) {
+          //skip System Components from Counting weight
+          if (!_execToComp.get(executorDetails).startsWith("_")) {
+            count++;
+          }
+        }
+        return count;
+      }
     }
   }
   
