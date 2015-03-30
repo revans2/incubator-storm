@@ -361,7 +361,7 @@ def nimbus(klass="backtype.storm.daemon.nimbus"):
         extrajars=cppaths,
         jvmopts=jvmopts)
 
-def hbserver(klass="org.apache.storm.ecg"):
+def hbserver(klass="org.apache.storm.pacemaker"):
     """Syntax: [storm hbserver]
 
     Launches the HBServer daemon. This command should be run under

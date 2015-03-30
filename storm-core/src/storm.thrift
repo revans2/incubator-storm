@@ -373,3 +373,58 @@ service DistributedRPCInvocations {
 struct TopologyHistoryInfo {
   1: list<string> topo_ids;
 }
+
+
+enum HBServerMessageType {
+  CREATE_PATH,
+  CREATE_PATH_RESPONSE,
+  EXISTS,
+  EXISTS_RESPONSE,
+  SEND_PULSE,
+  SEND_PULSE_RESPONSE,
+  GET_ALL_PULSE_FOR_PATH,
+  GET_ALL_PULSE_FOR_PATH_RESPONSE,
+  GET_ALL_NODES_FOR_PATH,
+  GET_ALL_NODES_FOR_PATH_RESPONSE,
+  GET_PULSE,
+  GET_PULSE_RESPONSE,
+  DELETE_PATH,
+  DELETE_PATH_RESPONSE,
+  DELETE_PULSE_ID,
+  DELETE_PULSE_ID_RESPONSE
+}
+
+union MessageData {
+  1: string path,
+  2: Pulse pulse,
+  3: bool boolval,
+  4: HBRecords records,
+  5: HBNodes nodes
+}
+
+struct Message {
+  1: HBServerMessageType type,
+  2: MessageData data
+}
+
+
+exception HBAuthorizationException {
+  1: required string msg;
+}
+
+exception HBExecutionException {
+  1: required string msg;
+}
+
+struct Pulse {
+  1: required string id;
+  2: binary details;
+}
+
+struct HBRecords {
+  1: list<Pulse> pulses;
+}
+
+struct HBNodes {
+  1: list<string> pulseIds;
+}

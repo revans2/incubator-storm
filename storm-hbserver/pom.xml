@@ -16,25 +16,6 @@
       <artifactId>junit</artifactId>
       <scope>test</scope>
     </dependency>
-    <dependency>
-      <groupId>org.apache.thrift</groupId>
-      <artifactId>libthrift</artifactId>
-      <version>0.6.1</version>
-      <exclusions>
-        <exclusion>
-          <groupId>org.slf4j</groupId>
-          <artifactId>slf4j-api</artifactId>
-        </exclusion>
-        <exclusion>
-          <groupId>javax.servlet</groupId>
-          <artifactId>servlet-api</artifactId>
-        </exclusion>
-        <exclusion>
-          <groupId>org.apache.httpcomponents</groupId>
-          <artifactId>httpcore</artifactId>
-        </exclusion>
-      </exclusions>
-    </dependency>
     <!-- storm -->
     <dependency>
       <groupId>org.apache.storm</groupId>
@@ -65,16 +46,15 @@
       <groupId>org.slf4j</groupId>
       <artifactId>log4j-over-slf4j</artifactId>
     </dependency>
-    <!-- Needed by Scrooge-generated code -->
-    <dependency>
-      <groupId>com.twitter</groupId>
-      <artifactId>scrooge-core_2.10</artifactId>
-      <version>3.17.0</version>
-    </dependency>
     <!-- Finagle -->
     <dependency>
+      <groupId>com.google.guava</groupId>
+      <artifactId>guava</artifactId>
+      <version>16.0.1</version>
+    </dependency>
+    <dependency>
       <groupId>com.twitter</groupId>
-      <artifactId>finagle-thrift_2.10</artifactId>
+      <artifactId>finagle-core_2.10</artifactId>
       <version>6.24.0</version>
     </dependency>
     <dependency>
@@ -84,8 +64,13 @@
     </dependency>
     <dependency>
       <groupId>finagle-clojure</groupId>
-      <artifactId>thrift</artifactId>
+      <artifactId>http</artifactId>
       <version>0.3.0</version>
+    </dependency>
+    <dependency>
+      <groupId>com.twitter</groupId>
+      <artifactId>finagle-http_2.10</artifactId>
+      <version>6.24.0</version>
     </dependency>
     <dependency>
       <groupId>org.clojure</groupId>
@@ -94,52 +79,17 @@
     </dependency>
   </dependencies>
   <build>
-    <sourceDirectory>target/generated-sources/thrift/scrooge/</sourceDirectory>
+    <sourceDirectory>src/jvm</sourceDirectory>
     <testSourceDirectory>test/jvm</testSourceDirectory>
     <resources>
       <resource>
         <directory>./src/</directory>
         <targetPath>META-INF</targetPath>
         <includes>
-          <include>hbserver.thrift</include>
         </includes>
       </resource>
     </resources>
     <plugins>
-      <plugin>
-        <groupId>com.twitter</groupId>
-        <artifactId>scrooge-maven-plugin</artifactId>
-        <version>3.17.0</version>
-        <configuration>
-          <language>java</language> <!-- default is scala -->
-          <thriftOpts>
-            <!-- add other Scrooge command line options using thriftOpts -->
-            <thriftOpt>--finagle</thriftOpt>
-          </thriftOpts>
-          <!-- tell scrooge to extract thrifts from these artifacts -->
-          
-          <thriftSourceRoot>./src/</thriftSourceRoot>
-          <resourcesOutputDirectory>./src/jvm/</resourcesOutputDirectory>
-          <!-- tell scrooge to not to build the extracted thrift files (defaults to true) -->
-          <buildExtractedThrift>false</buildExtractedThrift>
-        </configuration>
-        <executions>
-          <execution>
-            <id>thrift-sources</id>
-            <phase>generate-sources</phase>
-            <goals>
-              <goal>compile</goal>
-            </goals>
-          </execution>
-          <execution>
-            <id>thrift-test-sources</id>
-            <phase>generate-test-sources</phase>
-            <goals>
-              <goal>testCompile</goal>
-            </goals>
-          </execution>
-        </executions>
-      </plugin>
       <plugin>
         <groupId>com.theoryinpractise</groupId>
         <artifactId>clojure-maven-plugin</artifactId>

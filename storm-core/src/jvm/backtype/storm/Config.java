@@ -571,29 +571,36 @@ public class Config extends HashMap<String, Object> {
     public static final Object HBSERVER_HOST_SCHEMA = String.class;
 
     /**
-     * The HBServer transport plug-in for Thrift client/server communication
+     * Which port the HBServer should run on. Clients should
+     * connect to this port to submit or read heartbeats.
      */
-    public static final String HBSERVER_THRIFT_TRANSPORT_PLUGIN = "hbserver.thrift.transport";
-    public static final Object HBSERVER_THRIFT_TRANSPORT_PLUGIN_SCHEMA = String.class;
+    public static final String HBSERVER_PORT = "hbserver.port";
+    public static final Object HBSERVER_PORT_SCHEMA = Number.class;
 
     /**
-     * Which port the Thrift interface of HBServer should run on. Clients should
-     * connect to this port to upload jars and submit topologies.
+     * The base number of threads that should be used by the HBServer.
+     * The HBServer will always keep at least this many threads waiting
+     * to handle heartbeats.
      */
-    public static final String HBSERVER_THRIFT_PORT = "hbserver.thrift.port";
-    public static final Object HBSERVER_THRIFT_PORT_SCHEMA = Number.class;
+    public static final String HBSERVER_BASE_THREADS = "hbserver.base.threads";
+    public static final Object HBSERVER_BASE_THREADS_SCHEMA = Number.class;
+    
+    /**
+     * The maximum number of threads that should be used by the HBServer.
+     * When the HBServer gets loaded it will spawn new threads, up to 
+     * this many total, to handle the load.
+     */
+    public static final String HBSERVER_MAX_THREADS = "hbserver.max.threads";
+    public static final Object HBSERVER_MAX_THREADS_SCHEMA = Number.class;
 
     /**
-     * The number of threads that should be used by the HBServer thrift server.
+     * The number of minutes idle HBServerThreads wait before shutting down.
+     * At least HBSERVER_BASE_THREADS threads will always be alive. If there
+     * are more than HBSERVER_BASE_THREADS and they are idle, they will shut
+     * down after this many minutes.
      */
-    public static final String HBSERVER_THRIFT_THREADS = "hbserver.thrift.threads";
-    public static final Object HBSERVER_THRIFT_THREADS_SCHEMA = Number.class;
-
-    /**
-     * The maximum buffer size thrift should use when reading messages.
-     */
-    public static final String HBSERVER_THRIFT_MAX_BUFFER_SIZE = "hbserver.thrift.max_buffer_size";
-    public static final Object HBSERVER_THRIFT_MAX_BUFFER_SIZE_SCHEMA = Number.class;
+    public static final String HBSERVER_THREAD_TIMEOUT = "hbserver.thread.timeout";
+    public static final Object HBSERVER_THREAD_TIMEOUT_SCHEMA = Number.class;    
 
     /**
      * This parameter is used by the storm-deploy project to configure the
@@ -601,12 +608,6 @@ public class Config extends HashMap<String, Object> {
      */
     public static final String HBSERVER_CHILDOPTS = "hbserver.childopts";
     public static final Object HBSERVER_CHILDOPTS_SCHEMA = String.class;
-
-    /**
-     * This parameter is used by the to configure storm cluster to use HBServer for worker heartbeats.
-     */
-    public static final String HBSERVER_ROUTE_WORKER_HEARTBEATS = "hbserver.route.worker.heartbeats";
-    public static final Object HBSERVER_ROUTE_WORKER_HEARTBEATS_SCHEMA = Boolean.class;
 
     /**
      * List of DRPC servers so that the DRPCSpout knows who to talk to.
