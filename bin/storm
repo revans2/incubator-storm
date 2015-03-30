@@ -91,10 +91,9 @@ def get_jars_full(adir):
             ret.append(adir + "/" + f)
     return ret
 
-def get_classpath(extrajars, base_lib_dirs=["/lib"]):
+def get_classpath(extrajars):
     ret = get_jars_full(STORM_DIR)
-    for path in base_lib_dirs:
-        ret.extend(get_jars_full(STORM_DIR + path))
+    ret.extend(get_jars_full(STORM_DIR + "/lib"))
     ret.extend(extrajars)
     return normclasspath(":".join(ret))
 
@@ -152,22 +151,14 @@ def parse_args(string):
     args = [re.compile(r"'((?:[^'\\]|\\.)*)'").sub('\\1', x) for x in args]
     return [re.compile(r'\\(.)').sub('\\1', x) for x in args]
 
-def exec_storm_class(klass, jvmtype="-server", jvmopts=[], extrajars=[], args=[], fork=False, lib_dirs=[]):
+def exec_storm_class(klass, jvmtype="-server", jvmopts=[], extrajars=[], args=[], fork=False):
     global CONFFILE
-    print lib_dirs
-    if len(lib_dirs) > 0:
-        print "Getting Classpath for ", lib_dirs
-        cp = get_classpath(extrajars, lib_dirs)
-    else:
-        print "Regular classpath"
-        cp = get_classpath(extrajars)
-    
     all_args = [
         JAVA_CMD, jvmtype, get_config_opts(),
         "-Dstorm.home=" + STORM_DIR, 
         "-Djava.library.path=" + confvalue("java.library.path", extrajars),
         "-Dstorm.conf.file=" + CONFFILE,
-        "-cp", cp,
+        "-cp", get_classpath(extrajars),
     ] + jvmopts + [klass] + list(args)
     print "Running: " + " ".join(all_args)
     if fork:
@@ -247,7 +238,7 @@ def blobstore(*args):
 def heartbeats(*args):
     """Syntax: [storm heartbeats [cmd]]
 
-    list [KEY...] - lists heartbeats nodes under KEY currently in the hbserver.
+    list [KEY...] - lists heartbeats nodes under KEY currently in pacemaker.
     """
     exec_storm_class(
         "backtype.storm.command.heartbeats",
@@ -361,8 +352,8 @@ def nimbus(klass="backtype.storm.daemon.nimbus"):
         extrajars=cppaths,
         jvmopts=jvmopts)
 
-def hbserver(klass="org.apache.storm.pacemaker"):
-    """Syntax: [storm hbserver]
+def pacemaker(klass="org.apache.storm.pacemaker"):
+    """Syntax: [storm pacemaker]
 
     Launches the HBServer daemon. This command should be run under
     supervision with a tool like daemontools or monit. 
@@ -372,8 +363,8 @@ def hbserver(klass="org.apache.storm.pacemaker"):
     """
     cppaths = [CLUSTER_CONF_DIR]
     jvmopts = parse_args(confvalue("hbserver.childopts", cppaths)) + [
-        "-Dlogfile.name=hbserver.log",
-        "-Ddaemon.name=hbserver",
+        "-Dlogfile.name=pacemaker.log",
+        "-Ddaemon.name=pacemaker",
         "-Dlog4j.configurationFile=" + STORM_DIR + "/log4j2/cluster.xml",
     ]
     exec_storm_class(
@@ -529,7 +520,7 @@ COMMANDS = {"jar": jar, "kill": kill, "shell": shell, "nimbus": nimbus, "ui": ui
             "remoteconfvalue": print_remoteconfvalue, "repl": repl, "classpath": print_classpath,
             "activate": activate, "deactivate": deactivate, "rebalance": rebalance, "help": print_usage,
             "list": listtopos, "dev-zookeeper": dev_zookeeper, "version": version, 
-            "upload-credentials": upload_credentials, "blobstore": blobstore, "hbserver": hbserver,
+            "upload-credentials": upload_credentials, "blobstore": blobstore, "pacemaker": pacemaker,
             "heartbeats": heartbeats }
 
 def parse_config(config_list):
