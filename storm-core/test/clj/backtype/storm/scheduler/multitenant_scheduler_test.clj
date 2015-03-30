@@ -693,6 +693,40 @@
     (is (= "Scheduled Isolated on 5 Nodes" (.get (.getStatusMap cluster) "topology3")))
 ))
 
+(deftest test-multitenant-isolated-spread-scheduler
+  (let [supers (gen-supervisors 10)
+        topology1 (TopologyDetails. "topology1"
+                    {TOPOLOGY-NAME "topology-name-1"
+                     TOPOLOGY-ISOLATED-MACHINES 4
+                     TOPOLOGY-SUBMITTER-USER "userA"
+                     TOPOLOGY-SPREAD-COMPONENTS ["spout1"]}
+                    (StormTopology.)
+                    12
+                    (mk-ed-map [["spout1" 0 4]
+                                ["bolt1" 4 12]
+                                ["_acker" 12 24]
+                                ["_metricsConsumer" 24 25]]))
+        cluster (Cluster. (nimbus/standalone-nimbus) supers {})
+        node-map (Node/getAllNodesFrom cluster)
+        topologies (Topologies. (to-top-map [topology1]))
+        conf {MULTITENANT-SCHEDULER-USER-POOLS {"userA" 5 "userB" 5 }}
+        scheduler (MultitenantScheduler.)]
+    (.assign (.get node-map "super0") "topology1" (list (ed 1)) cluster)
+    (.prepare scheduler conf)
+    (.schedule scheduler topologies cluster)
+    (let [assignment (.getAssignmentById cluster "topology1")
+          assigned-slots (.getSlots assignment)
+          executors (.getExecutors assignment)
+          scheduler-config (.config scheduler)
+          executor-to-slot (.getExecutorToSlot assignment)]
+      ;; 4 slots on 1 machine, all executors assigned
+      (is (= 12 (.size assigned-slots)))
+      (is (= 4 (.size (into #{} (for [slot assigned-slots] (.getNodeId slot))))))
+      (is (= 25 (.size executors)))
+      (is (= 2 (count scheduler-config)))
+      (is (= 4 (.size (remove nil? (for [[execDetails slot] executor-to-slot] (when (contains? #{0 1 2 3} (.getStartTask execDetails)) (.getNodeId slot))))))))
+    (is (= "Scheduled Isolated on 4 Nodes" (.get (.getStatusMap cluster) "topology1")))))
+
 (deftest test-force-free-slot-in-bad-state
   (let [supers (gen-supervisors 1)
         topology1 (TopologyDetails. "topology1"

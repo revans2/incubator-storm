@@ -70,6 +70,10 @@ public class Nimbus {
 
     public void rebalance(String name, RebalanceOptions options) throws NotAliveException, InvalidTopologyException, AuthorizationException, org.apache.thrift.TException;
 
+    public void setLogConfig(String id, LogConfig config) throws org.apache.thrift.TException;
+
+    public LogConfig getLogConfig(String id) throws org.apache.thrift.TException;
+
     public void uploadNewCredentials(String name, Credentials creds) throws NotAliveException, InvalidTopologyException, AuthorizationException, org.apache.thrift.TException;
 
     public String beginCreateBlob(String key, SettableBlobMeta meta) throws AuthorizationException, KeyAlreadyExistsException, org.apache.thrift.TException;
@@ -114,6 +118,8 @@ public class Nimbus {
 
     public TopologyInfo getTopologyInfoWithOpts(String id, GetInfoOptions options) throws NotAliveException, AuthorizationException, org.apache.thrift.TException;
 
+    public TopologyPageInfo getTopologyPageInfo(String id, String window, boolean is_include_sys) throws NotAliveException, AuthorizationException, org.apache.thrift.TException;
+
     public String getTopologyConf(String id) throws NotAliveException, AuthorizationException, org.apache.thrift.TException;
 
     public StormTopology getTopology(String id) throws NotAliveException, AuthorizationException, org.apache.thrift.TException;
@@ -139,6 +145,10 @@ public class Nimbus {
     public void deactivate(String name, org.apache.thrift.async.AsyncMethodCallback resultHandler) throws org.apache.thrift.TException;
 
     public void rebalance(String name, RebalanceOptions options, org.apache.thrift.async.AsyncMethodCallback resultHandler) throws org.apache.thrift.TException;
+
+    public void setLogConfig(String id, LogConfig config, org.apache.thrift.async.AsyncMethodCallback resultHandler) throws org.apache.thrift.TException;
+
+    public void getLogConfig(String id, org.apache.thrift.async.AsyncMethodCallback resultHandler) throws org.apache.thrift.TException;
 
     public void uploadNewCredentials(String name, Credentials creds, org.apache.thrift.async.AsyncMethodCallback resultHandler) throws org.apache.thrift.TException;
 
@@ -183,6 +193,8 @@ public class Nimbus {
     public void getTopologyInfo(String id, org.apache.thrift.async.AsyncMethodCallback resultHandler) throws org.apache.thrift.TException;
 
     public void getTopologyInfoWithOpts(String id, GetInfoOptions options, org.apache.thrift.async.AsyncMethodCallback resultHandler) throws org.apache.thrift.TException;
+
+    public void getTopologyPageInfo(String id, String window, boolean is_include_sys, org.apache.thrift.async.AsyncMethodCallback resultHandler) throws org.apache.thrift.TException;
 
     public void getTopologyConf(String id, org.apache.thrift.async.AsyncMethodCallback resultHandler) throws org.apache.thrift.TException;
 
@@ -412,6 +424,50 @@ public class Nimbus {
         throw result.aze;
       }
       return;
+    }
+
+    public void setLogConfig(String id, LogConfig config) throws org.apache.thrift.TException
+    {
+      send_setLogConfig(id, config);
+      recv_setLogConfig();
+    }
+
+    public void send_setLogConfig(String id, LogConfig config) throws org.apache.thrift.TException
+    {
+      setLogConfig_args args = new setLogConfig_args();
+      args.set_id(id);
+      args.set_config(config);
+      sendBase("setLogConfig", args);
+    }
+
+    public void recv_setLogConfig() throws org.apache.thrift.TException
+    {
+      setLogConfig_result result = new setLogConfig_result();
+      receiveBase(result, "setLogConfig");
+      return;
+    }
+
+    public LogConfig getLogConfig(String id) throws org.apache.thrift.TException
+    {
+      send_getLogConfig(id);
+      return recv_getLogConfig();
+    }
+
+    public void send_getLogConfig(String id) throws org.apache.thrift.TException
+    {
+      getLogConfig_args args = new getLogConfig_args();
+      args.set_id(id);
+      sendBase("getLogConfig", args);
+    }
+
+    public LogConfig recv_getLogConfig() throws org.apache.thrift.TException
+    {
+      getLogConfig_result result = new getLogConfig_result();
+      receiveBase(result, "getLogConfig");
+      if (result.is_set_success()) {
+        return result.success;
+      }
+      throw new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.MISSING_RESULT, "getLogConfig failed: unknown result");
     }
 
     public void uploadNewCredentials(String name, Credentials creds) throws NotAliveException, InvalidTopologyException, AuthorizationException, org.apache.thrift.TException
@@ -991,6 +1047,37 @@ public class Nimbus {
       throw new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.MISSING_RESULT, "getTopologyInfoWithOpts failed: unknown result");
     }
 
+    public TopologyPageInfo getTopologyPageInfo(String id, String window, boolean is_include_sys) throws NotAliveException, AuthorizationException, org.apache.thrift.TException
+    {
+      send_getTopologyPageInfo(id, window, is_include_sys);
+      return recv_getTopologyPageInfo();
+    }
+
+    public void send_getTopologyPageInfo(String id, String window, boolean is_include_sys) throws org.apache.thrift.TException
+    {
+      getTopologyPageInfo_args args = new getTopologyPageInfo_args();
+      args.set_id(id);
+      args.set_window(window);
+      args.set_is_include_sys(is_include_sys);
+      sendBase("getTopologyPageInfo", args);
+    }
+
+    public TopologyPageInfo recv_getTopologyPageInfo() throws NotAliveException, AuthorizationException, org.apache.thrift.TException
+    {
+      getTopologyPageInfo_result result = new getTopologyPageInfo_result();
+      receiveBase(result, "getTopologyPageInfo");
+      if (result.is_set_success()) {
+        return result.success;
+      }
+      if (result.e != null) {
+        throw result.e;
+      }
+      if (result.aze != null) {
+        throw result.aze;
+      }
+      throw new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.MISSING_RESULT, "getTopologyPageInfo failed: unknown result");
+    }
+
     public String getTopologyConf(String id) throws NotAliveException, AuthorizationException, org.apache.thrift.TException
     {
       send_getTopologyConf(id);
@@ -1370,6 +1457,73 @@ public class Nimbus {
         org.apache.thrift.transport.TMemoryInputTransport memoryTransport = new org.apache.thrift.transport.TMemoryInputTransport(getFrameBuffer().array());
         org.apache.thrift.protocol.TProtocol prot = client.getProtocolFactory().getProtocol(memoryTransport);
         (new Client(prot)).recv_rebalance();
+      }
+    }
+
+    public void setLogConfig(String id, LogConfig config, org.apache.thrift.async.AsyncMethodCallback resultHandler) throws org.apache.thrift.TException {
+      checkReady();
+      setLogConfig_call method_call = new setLogConfig_call(id, config, resultHandler, this, ___protocolFactory, ___transport);
+      this.___currentMethod = method_call;
+      ___manager.call(method_call);
+    }
+
+    public static class setLogConfig_call extends org.apache.thrift.async.TAsyncMethodCall {
+      private String id;
+      private LogConfig config;
+      public setLogConfig_call(String id, LogConfig config, org.apache.thrift.async.AsyncMethodCallback resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+        super(client, protocolFactory, transport, resultHandler, false);
+        this.id = id;
+        this.config = config;
+      }
+
+      public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
+        prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("setLogConfig", org.apache.thrift.protocol.TMessageType.CALL, 0));
+        setLogConfig_args args = new setLogConfig_args();
+        args.set_id(id);
+        args.set_config(config);
+        args.write(prot);
+        prot.writeMessageEnd();
+      }
+
+      public void getResult() throws org.apache.thrift.TException {
+        if (getState() != org.apache.thrift.async.TAsyncMethodCall.State.RESPONSE_READ) {
+          throw new IllegalStateException("Method call not finished!");
+        }
+        org.apache.thrift.transport.TMemoryInputTransport memoryTransport = new org.apache.thrift.transport.TMemoryInputTransport(getFrameBuffer().array());
+        org.apache.thrift.protocol.TProtocol prot = client.getProtocolFactory().getProtocol(memoryTransport);
+        (new Client(prot)).recv_setLogConfig();
+      }
+    }
+
+    public void getLogConfig(String id, org.apache.thrift.async.AsyncMethodCallback resultHandler) throws org.apache.thrift.TException {
+      checkReady();
+      getLogConfig_call method_call = new getLogConfig_call(id, resultHandler, this, ___protocolFactory, ___transport);
+      this.___currentMethod = method_call;
+      ___manager.call(method_call);
+    }
+
+    public static class getLogConfig_call extends org.apache.thrift.async.TAsyncMethodCall {
+      private String id;
+      public getLogConfig_call(String id, org.apache.thrift.async.AsyncMethodCallback resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+        super(client, protocolFactory, transport, resultHandler, false);
+        this.id = id;
+      }
+
+      public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
+        prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("getLogConfig", org.apache.thrift.protocol.TMessageType.CALL, 0));
+        getLogConfig_args args = new getLogConfig_args();
+        args.set_id(id);
+        args.write(prot);
+        prot.writeMessageEnd();
+      }
+
+      public LogConfig getResult() throws org.apache.thrift.TException {
+        if (getState() != org.apache.thrift.async.TAsyncMethodCall.State.RESPONSE_READ) {
+          throw new IllegalStateException("Method call not finished!");
+        }
+        org.apache.thrift.transport.TMemoryInputTransport memoryTransport = new org.apache.thrift.transport.TMemoryInputTransport(getFrameBuffer().array());
+        org.apache.thrift.protocol.TProtocol prot = client.getProtocolFactory().getProtocol(memoryTransport);
+        return (new Client(prot)).recv_getLogConfig();
       }
     }
 
@@ -2083,6 +2237,44 @@ public class Nimbus {
       }
     }
 
+    public void getTopologyPageInfo(String id, String window, boolean is_include_sys, org.apache.thrift.async.AsyncMethodCallback resultHandler) throws org.apache.thrift.TException {
+      checkReady();
+      getTopologyPageInfo_call method_call = new getTopologyPageInfo_call(id, window, is_include_sys, resultHandler, this, ___protocolFactory, ___transport);
+      this.___currentMethod = method_call;
+      ___manager.call(method_call);
+    }
+
+    public static class getTopologyPageInfo_call extends org.apache.thrift.async.TAsyncMethodCall {
+      private String id;
+      private String window;
+      private boolean is_include_sys;
+      public getTopologyPageInfo_call(String id, String window, boolean is_include_sys, org.apache.thrift.async.AsyncMethodCallback resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+        super(client, protocolFactory, transport, resultHandler, false);
+        this.id = id;
+        this.window = window;
+        this.is_include_sys = is_include_sys;
+      }
+
+      public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
+        prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("getTopologyPageInfo", org.apache.thrift.protocol.TMessageType.CALL, 0));
+        getTopologyPageInfo_args args = new getTopologyPageInfo_args();
+        args.set_id(id);
+        args.set_window(window);
+        args.set_is_include_sys(is_include_sys);
+        args.write(prot);
+        prot.writeMessageEnd();
+      }
+
+      public TopologyPageInfo getResult() throws NotAliveException, AuthorizationException, org.apache.thrift.TException {
+        if (getState() != org.apache.thrift.async.TAsyncMethodCall.State.RESPONSE_READ) {
+          throw new IllegalStateException("Method call not finished!");
+        }
+        org.apache.thrift.transport.TMemoryInputTransport memoryTransport = new org.apache.thrift.transport.TMemoryInputTransport(getFrameBuffer().array());
+        org.apache.thrift.protocol.TProtocol prot = client.getProtocolFactory().getProtocol(memoryTransport);
+        return (new Client(prot)).recv_getTopologyPageInfo();
+      }
+    }
+
     public void getTopologyConf(String id, org.apache.thrift.async.AsyncMethodCallback resultHandler) throws org.apache.thrift.TException {
       checkReady();
       getTopologyConf_call method_call = new getTopologyConf_call(id, resultHandler, this, ___protocolFactory, ___transport);
@@ -2231,6 +2423,8 @@ public class Nimbus {
       processMap.put("activate", new activate());
       processMap.put("deactivate", new deactivate());
       processMap.put("rebalance", new rebalance());
+      processMap.put("setLogConfig", new setLogConfig());
+      processMap.put("getLogConfig", new getLogConfig());
       processMap.put("uploadNewCredentials", new uploadNewCredentials());
       processMap.put("beginCreateBlob", new beginCreateBlob());
       processMap.put("beginUpdateBlob", new beginUpdateBlob());
@@ -2253,6 +2447,7 @@ public class Nimbus {
       processMap.put("getClusterInfo", new getClusterInfo());
       processMap.put("getTopologyInfo", new getTopologyInfo());
       processMap.put("getTopologyInfoWithOpts", new getTopologyInfoWithOpts());
+      processMap.put("getTopologyPageInfo", new getTopologyPageInfo());
       processMap.put("getTopologyConf", new getTopologyConf());
       processMap.put("getTopology", new getTopology());
       processMap.put("getUserTopology", new getUserTopology());
@@ -2444,6 +2639,46 @@ public class Nimbus {
         } catch (AuthorizationException aze) {
           result.aze = aze;
         }
+        return result;
+      }
+    }
+
+    public static class setLogConfig<I extends Iface> extends org.apache.thrift.ProcessFunction<I, setLogConfig_args> {
+      public setLogConfig() {
+        super("setLogConfig");
+      }
+
+      public setLogConfig_args getEmptyArgsInstance() {
+        return new setLogConfig_args();
+      }
+
+      protected boolean isOneway() {
+        return false;
+      }
+
+      public setLogConfig_result getResult(I iface, setLogConfig_args args) throws org.apache.thrift.TException {
+        setLogConfig_result result = new setLogConfig_result();
+        iface.setLogConfig(args.id, args.config);
+        return result;
+      }
+    }
+
+    public static class getLogConfig<I extends Iface> extends org.apache.thrift.ProcessFunction<I, getLogConfig_args> {
+      public getLogConfig() {
+        super("getLogConfig");
+      }
+
+      public getLogConfig_args getEmptyArgsInstance() {
+        return new getLogConfig_args();
+      }
+
+      protected boolean isOneway() {
+        return false;
+      }
+
+      public getLogConfig_result getResult(I iface, getLogConfig_args args) throws org.apache.thrift.TException {
+        getLogConfig_result result = new getLogConfig_result();
+        result.success = iface.getLogConfig(args.id);
         return result;
       }
     }
@@ -2992,6 +3227,32 @@ public class Nimbus {
       }
     }
 
+    public static class getTopologyPageInfo<I extends Iface> extends org.apache.thrift.ProcessFunction<I, getTopologyPageInfo_args> {
+      public getTopologyPageInfo() {
+        super("getTopologyPageInfo");
+      }
+
+      public getTopologyPageInfo_args getEmptyArgsInstance() {
+        return new getTopologyPageInfo_args();
+      }
+
+      protected boolean isOneway() {
+        return false;
+      }
+
+      public getTopologyPageInfo_result getResult(I iface, getTopologyPageInfo_args args) throws org.apache.thrift.TException {
+        getTopologyPageInfo_result result = new getTopologyPageInfo_result();
+        try {
+          result.success = iface.getTopologyPageInfo(args.id, args.window, args.is_include_sys);
+        } catch (NotAliveException e) {
+          result.e = e;
+        } catch (AuthorizationException aze) {
+          result.aze = aze;
+        }
+        return result;
+      }
+    }
+
     public static class getTopologyConf<I extends Iface> extends org.apache.thrift.ProcessFunction<I, getTopologyConf_args> {
       public getTopologyConf() {
         super("getTopologyConf");
@@ -3114,6 +3375,8 @@ public class Nimbus {
       processMap.put("activate", new activate());
       processMap.put("deactivate", new deactivate());
       processMap.put("rebalance", new rebalance());
+      processMap.put("setLogConfig", new setLogConfig());
+      processMap.put("getLogConfig", new getLogConfig());
       processMap.put("uploadNewCredentials", new uploadNewCredentials());
       processMap.put("beginCreateBlob", new beginCreateBlob());
       processMap.put("beginUpdateBlob", new beginUpdateBlob());
@@ -3136,6 +3399,7 @@ public class Nimbus {
       processMap.put("getClusterInfo", new getClusterInfo());
       processMap.put("getTopologyInfo", new getTopologyInfo());
       processMap.put("getTopologyInfoWithOpts", new getTopologyInfoWithOpts());
+      processMap.put("getTopologyPageInfo", new getTopologyPageInfo());
       processMap.put("getTopologyConf", new getTopologyConf());
       processMap.put("getTopology", new getTopology());
       processMap.put("getUserTopology", new getUserTopology());
@@ -3582,6 +3846,107 @@ public class Nimbus {
 
       public void start(I iface, rebalance_args args, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler) throws TException {
         iface.rebalance(args.name, args.options,resultHandler);
+      }
+    }
+
+    public static class setLogConfig<I extends AsyncIface> extends org.apache.thrift.AsyncProcessFunction<I, setLogConfig_args, Void> {
+      public setLogConfig() {
+        super("setLogConfig");
+      }
+
+      public setLogConfig_args getEmptyArgsInstance() {
+        return new setLogConfig_args();
+      }
+
+      public AsyncMethodCallback<Void> getResultHandler(final AsyncFrameBuffer fb, final int seqid) {
+        final org.apache.thrift.AsyncProcessFunction fcall = this;
+        return new AsyncMethodCallback<Void>() { 
+          public void onComplete(Void o) {
+            setLogConfig_result result = new setLogConfig_result();
+            try {
+              fcall.sendResponse(fb,result, org.apache.thrift.protocol.TMessageType.REPLY,seqid);
+              return;
+            } catch (Exception e) {
+              LOGGER.error("Exception writing to internal frame buffer", e);
+            }
+            fb.close();
+          }
+          public void onError(Exception e) {
+            byte msgType = org.apache.thrift.protocol.TMessageType.REPLY;
+            org.apache.thrift.TBase msg;
+            setLogConfig_result result = new setLogConfig_result();
+            {
+              msgType = org.apache.thrift.protocol.TMessageType.EXCEPTION;
+              msg = (org.apache.thrift.TBase)new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.INTERNAL_ERROR, e.getMessage());
+            }
+            try {
+              fcall.sendResponse(fb,msg,msgType,seqid);
+              return;
+            } catch (Exception ex) {
+              LOGGER.error("Exception writing to internal frame buffer", ex);
+            }
+            fb.close();
+          }
+        };
+      }
+
+      protected boolean isOneway() {
+        return false;
+      }
+
+      public void start(I iface, setLogConfig_args args, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler) throws TException {
+        iface.setLogConfig(args.id, args.config,resultHandler);
+      }
+    }
+
+    public static class getLogConfig<I extends AsyncIface> extends org.apache.thrift.AsyncProcessFunction<I, getLogConfig_args, LogConfig> {
+      public getLogConfig() {
+        super("getLogConfig");
+      }
+
+      public getLogConfig_args getEmptyArgsInstance() {
+        return new getLogConfig_args();
+      }
+
+      public AsyncMethodCallback<LogConfig> getResultHandler(final AsyncFrameBuffer fb, final int seqid) {
+        final org.apache.thrift.AsyncProcessFunction fcall = this;
+        return new AsyncMethodCallback<LogConfig>() { 
+          public void onComplete(LogConfig o) {
+            getLogConfig_result result = new getLogConfig_result();
+            result.success = o;
+            try {
+              fcall.sendResponse(fb,result, org.apache.thrift.protocol.TMessageType.REPLY,seqid);
+              return;
+            } catch (Exception e) {
+              LOGGER.error("Exception writing to internal frame buffer", e);
+            }
+            fb.close();
+          }
+          public void onError(Exception e) {
+            byte msgType = org.apache.thrift.protocol.TMessageType.REPLY;
+            org.apache.thrift.TBase msg;
+            getLogConfig_result result = new getLogConfig_result();
+            {
+              msgType = org.apache.thrift.protocol.TMessageType.EXCEPTION;
+              msg = (org.apache.thrift.TBase)new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.INTERNAL_ERROR, e.getMessage());
+            }
+            try {
+              fcall.sendResponse(fb,msg,msgType,seqid);
+              return;
+            } catch (Exception ex) {
+              LOGGER.error("Exception writing to internal frame buffer", ex);
+            }
+            fb.close();
+          }
+        };
+      }
+
+      protected boolean isOneway() {
+        return false;
+      }
+
+      public void start(I iface, getLogConfig_args args, org.apache.thrift.async.AsyncMethodCallback<LogConfig> resultHandler) throws TException {
+        iface.getLogConfig(args.id,resultHandler);
       }
     }
 
@@ -4872,6 +5237,68 @@ public class Nimbus {
 
       public void start(I iface, getTopologyInfoWithOpts_args args, org.apache.thrift.async.AsyncMethodCallback<TopologyInfo> resultHandler) throws TException {
         iface.getTopologyInfoWithOpts(args.id, args.options,resultHandler);
+      }
+    }
+
+    public static class getTopologyPageInfo<I extends AsyncIface> extends org.apache.thrift.AsyncProcessFunction<I, getTopologyPageInfo_args, TopologyPageInfo> {
+      public getTopologyPageInfo() {
+        super("getTopologyPageInfo");
+      }
+
+      public getTopologyPageInfo_args getEmptyArgsInstance() {
+        return new getTopologyPageInfo_args();
+      }
+
+      public AsyncMethodCallback<TopologyPageInfo> getResultHandler(final AsyncFrameBuffer fb, final int seqid) {
+        final org.apache.thrift.AsyncProcessFunction fcall = this;
+        return new AsyncMethodCallback<TopologyPageInfo>() { 
+          public void onComplete(TopologyPageInfo o) {
+            getTopologyPageInfo_result result = new getTopologyPageInfo_result();
+            result.success = o;
+            try {
+              fcall.sendResponse(fb,result, org.apache.thrift.protocol.TMessageType.REPLY,seqid);
+              return;
+            } catch (Exception e) {
+              LOGGER.error("Exception writing to internal frame buffer", e);
+            }
+            fb.close();
+          }
+          public void onError(Exception e) {
+            byte msgType = org.apache.thrift.protocol.TMessageType.REPLY;
+            org.apache.thrift.TBase msg;
+            getTopologyPageInfo_result result = new getTopologyPageInfo_result();
+            if (e instanceof NotAliveException) {
+                        result.e = (NotAliveException) e;
+                        result.set_e_isSet(true);
+                        msg = result;
+            }
+            else             if (e instanceof AuthorizationException) {
+                        result.aze = (AuthorizationException) e;
+                        result.set_aze_isSet(true);
+                        msg = result;
+            }
+             else 
+            {
+              msgType = org.apache.thrift.protocol.TMessageType.EXCEPTION;
+              msg = (org.apache.thrift.TBase)new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.INTERNAL_ERROR, e.getMessage());
+            }
+            try {
+              fcall.sendResponse(fb,msg,msgType,seqid);
+              return;
+            } catch (Exception ex) {
+              LOGGER.error("Exception writing to internal frame buffer", ex);
+            }
+            fb.close();
+          }
+        };
+      }
+
+      protected boolean isOneway() {
+        return false;
+      }
+
+      public void start(I iface, getTopologyPageInfo_args args, org.apache.thrift.async.AsyncMethodCallback<TopologyPageInfo> resultHandler) throws TException {
+        iface.getTopologyPageInfo(args.id, args.window, args.is_include_sys,resultHandler);
       }
     }
 
@@ -12161,6 +12588,1440 @@ public class Nimbus {
           struct.aze = new AuthorizationException();
           struct.aze.read(iprot);
           struct.set_aze_isSet(true);
+        }
+      }
+    }
+
+  }
+
+  public static class setLogConfig_args implements org.apache.thrift.TBase<setLogConfig_args, setLogConfig_args._Fields>, java.io.Serializable, Cloneable, Comparable<setLogConfig_args>   {
+    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("setLogConfig_args");
+
+    private static final org.apache.thrift.protocol.TField ID_FIELD_DESC = new org.apache.thrift.protocol.TField("id", org.apache.thrift.protocol.TType.STRING, (short)1);
+    private static final org.apache.thrift.protocol.TField CONFIG_FIELD_DESC = new org.apache.thrift.protocol.TField("config", org.apache.thrift.protocol.TType.STRUCT, (short)2);
+
+    private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
+    static {
+      schemes.put(StandardScheme.class, new setLogConfig_argsStandardSchemeFactory());
+      schemes.put(TupleScheme.class, new setLogConfig_argsTupleSchemeFactory());
+    }
+
+    private String id; // required
+    private LogConfig config; // required
+
+    /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+      ID((short)1, "id"),
+      CONFIG((short)2, "config");
+
+      private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
+
+      static {
+        for (_Fields field : EnumSet.allOf(_Fields.class)) {
+          byName.put(field.getFieldName(), field);
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, or null if its not found.
+       */
+      public static _Fields findByThriftId(int fieldId) {
+        switch(fieldId) {
+          case 1: // ID
+            return ID;
+          case 2: // CONFIG
+            return CONFIG;
+          default:
+            return null;
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, throwing an exception
+       * if it is not found.
+       */
+      public static _Fields findByThriftIdOrThrow(int fieldId) {
+        _Fields fields = findByThriftId(fieldId);
+        if (fields == null) throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
+        return fields;
+      }
+
+      /**
+       * Find the _Fields constant that matches name, or null if its not found.
+       */
+      public static _Fields findByName(String name) {
+        return byName.get(name);
+      }
+
+      private final short _thriftId;
+      private final String _fieldName;
+
+      _Fields(short thriftId, String fieldName) {
+        _thriftId = thriftId;
+        _fieldName = fieldName;
+      }
+
+      public short getThriftFieldId() {
+        return _thriftId;
+      }
+
+      public String getFieldName() {
+        return _fieldName;
+      }
+    }
+
+    // isset id assignments
+    public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
+    static {
+      Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
+      tmpMap.put(_Fields.ID, new org.apache.thrift.meta_data.FieldMetaData("id", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
+      tmpMap.put(_Fields.CONFIG, new org.apache.thrift.meta_data.FieldMetaData("config", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, LogConfig.class)));
+      metaDataMap = Collections.unmodifiableMap(tmpMap);
+      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(setLogConfig_args.class, metaDataMap);
+    }
+
+    public setLogConfig_args() {
+    }
+
+    public setLogConfig_args(
+      String id,
+      LogConfig config)
+    {
+      this();
+      this.id = id;
+      this.config = config;
+    }
+
+    /**
+     * Performs a deep copy on <i>other</i>.
+     */
+    public setLogConfig_args(setLogConfig_args other) {
+      if (other.is_set_id()) {
+        this.id = other.id;
+      }
+      if (other.is_set_config()) {
+        this.config = new LogConfig(other.config);
+      }
+    }
+
+    public setLogConfig_args deepCopy() {
+      return new setLogConfig_args(this);
+    }
+
+    @Override
+    public void clear() {
+      this.id = null;
+      this.config = null;
+    }
+
+    public String get_id() {
+      return this.id;
+    }
+
+    public void set_id(String id) {
+      this.id = id;
+    }
+
+    public void unset_id() {
+      this.id = null;
+    }
+
+    /** Returns true if field id is set (has been assigned a value) and false otherwise */
+    public boolean is_set_id() {
+      return this.id != null;
+    }
+
+    public void set_id_isSet(boolean value) {
+      if (!value) {
+        this.id = null;
+      }
+    }
+
+    public LogConfig get_config() {
+      return this.config;
+    }
+
+    public void set_config(LogConfig config) {
+      this.config = config;
+    }
+
+    public void unset_config() {
+      this.config = null;
+    }
+
+    /** Returns true if field config is set (has been assigned a value) and false otherwise */
+    public boolean is_set_config() {
+      return this.config != null;
+    }
+
+    public void set_config_isSet(boolean value) {
+      if (!value) {
+        this.config = null;
+      }
+    }
+
+    public void setFieldValue(_Fields field, Object value) {
+      switch (field) {
+      case ID:
+        if (value == null) {
+          unset_id();
+        } else {
+          set_id((String)value);
+        }
+        break;
+
+      case CONFIG:
+        if (value == null) {
+          unset_config();
+        } else {
+          set_config((LogConfig)value);
+        }
+        break;
+
+      }
+    }
+
+    public Object getFieldValue(_Fields field) {
+      switch (field) {
+      case ID:
+        return get_id();
+
+      case CONFIG:
+        return get_config();
+
+      }
+      throw new IllegalStateException();
+    }
+
+    /** Returns true if field corresponding to fieldID is set (has been assigned a value) and false otherwise */
+    public boolean isSet(_Fields field) {
+      if (field == null) {
+        throw new IllegalArgumentException();
+      }
+
+      switch (field) {
+      case ID:
+        return is_set_id();
+      case CONFIG:
+        return is_set_config();
+      }
+      throw new IllegalStateException();
+    }
+
+    @Override
+    public boolean equals(Object that) {
+      if (that == null)
+        return false;
+      if (that instanceof setLogConfig_args)
+        return this.equals((setLogConfig_args)that);
+      return false;
+    }
+
+    public boolean equals(setLogConfig_args that) {
+      if (that == null)
+        return false;
+
+      boolean this_present_id = true && this.is_set_id();
+      boolean that_present_id = true && that.is_set_id();
+      if (this_present_id || that_present_id) {
+        if (!(this_present_id && that_present_id))
+          return false;
+        if (!this.id.equals(that.id))
+          return false;
+      }
+
+      boolean this_present_config = true && this.is_set_config();
+      boolean that_present_config = true && that.is_set_config();
+      if (this_present_config || that_present_config) {
+        if (!(this_present_config && that_present_config))
+          return false;
+        if (!this.config.equals(that.config))
+          return false;
+      }
+
+      return true;
+    }
+
+    @Override
+    public int hashCode() {
+      List<Object> list = new ArrayList<Object>();
+
+      boolean present_id = true && (is_set_id());
+      list.add(present_id);
+      if (present_id)
+        list.add(id);
+
+      boolean present_config = true && (is_set_config());
+      list.add(present_config);
+      if (present_config)
+        list.add(config);
+
+      return list.hashCode();
+    }
+
+    @Override
+    public int compareTo(setLogConfig_args other) {
+      if (!getClass().equals(other.getClass())) {
+        return getClass().getName().compareTo(other.getClass().getName());
+      }
+
+      int lastComparison = 0;
+
+      lastComparison = Boolean.valueOf(is_set_id()).compareTo(other.is_set_id());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (is_set_id()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.id, other.id);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      lastComparison = Boolean.valueOf(is_set_config()).compareTo(other.is_set_config());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (is_set_config()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.config, other.config);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      return 0;
+    }
+
+    public _Fields fieldForId(int fieldId) {
+      return _Fields.findByThriftId(fieldId);
+    }
+
+    public void read(org.apache.thrift.protocol.TProtocol iprot) throws org.apache.thrift.TException {
+      schemes.get(iprot.getScheme()).getScheme().read(iprot, this);
+    }
+
+    public void write(org.apache.thrift.protocol.TProtocol oprot) throws org.apache.thrift.TException {
+      schemes.get(oprot.getScheme()).getScheme().write(oprot, this);
+    }
+
+    @Override
+    public String toString() {
+      StringBuilder sb = new StringBuilder("setLogConfig_args(");
+      boolean first = true;
+
+      sb.append("id:");
+      if (this.id == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.id);
+      }
+      first = false;
+      if (!first) sb.append(", ");
+      sb.append("config:");
+      if (this.config == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.config);
+      }
+      first = false;
+      sb.append(")");
+      return sb.toString();
+    }
+
+    public void validate() throws org.apache.thrift.TException {
+      // check for required fields
+      // check for sub-struct validity
+      if (config != null) {
+        config.validate();
+      }
+    }
+
+    private void writeObject(java.io.ObjectOutputStream out) throws java.io.IOException {
+      try {
+        write(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(out)));
+      } catch (org.apache.thrift.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+    private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, ClassNotFoundException {
+      try {
+        read(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(in)));
+      } catch (org.apache.thrift.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+    private static class setLogConfig_argsStandardSchemeFactory implements SchemeFactory {
+      public setLogConfig_argsStandardScheme getScheme() {
+        return new setLogConfig_argsStandardScheme();
+      }
+    }
+
+    private static class setLogConfig_argsStandardScheme extends StandardScheme<setLogConfig_args> {
+
+      public void read(org.apache.thrift.protocol.TProtocol iprot, setLogConfig_args struct) throws org.apache.thrift.TException {
+        org.apache.thrift.protocol.TField schemeField;
+        iprot.readStructBegin();
+        while (true)
+        {
+          schemeField = iprot.readFieldBegin();
+          if (schemeField.type == org.apache.thrift.protocol.TType.STOP) { 
+            break;
+          }
+          switch (schemeField.id) {
+            case 1: // ID
+              if (schemeField.type == org.apache.thrift.protocol.TType.STRING) {
+                struct.id = iprot.readString();
+                struct.set_id_isSet(true);
+              } else { 
+                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+              }
+              break;
+            case 2: // CONFIG
+              if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
+                struct.config = new LogConfig();
+                struct.config.read(iprot);
+                struct.set_config_isSet(true);
+              } else { 
+                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+              }
+              break;
+            default:
+              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+          }
+          iprot.readFieldEnd();
+        }
+        iprot.readStructEnd();
+        struct.validate();
+      }
+
+      public void write(org.apache.thrift.protocol.TProtocol oprot, setLogConfig_args struct) throws org.apache.thrift.TException {
+        struct.validate();
+
+        oprot.writeStructBegin(STRUCT_DESC);
+        if (struct.id != null) {
+          oprot.writeFieldBegin(ID_FIELD_DESC);
+          oprot.writeString(struct.id);
+          oprot.writeFieldEnd();
+        }
+        if (struct.config != null) {
+          oprot.writeFieldBegin(CONFIG_FIELD_DESC);
+          struct.config.write(oprot);
+          oprot.writeFieldEnd();
+        }
+        oprot.writeFieldStop();
+        oprot.writeStructEnd();
+      }
+
+    }
+
+    private static class setLogConfig_argsTupleSchemeFactory implements SchemeFactory {
+      public setLogConfig_argsTupleScheme getScheme() {
+        return new setLogConfig_argsTupleScheme();
+      }
+    }
+
+    private static class setLogConfig_argsTupleScheme extends TupleScheme<setLogConfig_args> {
+
+      @Override
+      public void write(org.apache.thrift.protocol.TProtocol prot, setLogConfig_args struct) throws org.apache.thrift.TException {
+        TTupleProtocol oprot = (TTupleProtocol) prot;
+        BitSet optionals = new BitSet();
+        if (struct.is_set_id()) {
+          optionals.set(0);
+        }
+        if (struct.is_set_config()) {
+          optionals.set(1);
+        }
+        oprot.writeBitSet(optionals, 2);
+        if (struct.is_set_id()) {
+          oprot.writeString(struct.id);
+        }
+        if (struct.is_set_config()) {
+          struct.config.write(oprot);
+        }
+      }
+
+      @Override
+      public void read(org.apache.thrift.protocol.TProtocol prot, setLogConfig_args struct) throws org.apache.thrift.TException {
+        TTupleProtocol iprot = (TTupleProtocol) prot;
+        BitSet incoming = iprot.readBitSet(2);
+        if (incoming.get(0)) {
+          struct.id = iprot.readString();
+          struct.set_id_isSet(true);
+        }
+        if (incoming.get(1)) {
+          struct.config = new LogConfig();
+          struct.config.read(iprot);
+          struct.set_config_isSet(true);
+        }
+      }
+    }
+
+  }
+
+  public static class setLogConfig_result implements org.apache.thrift.TBase<setLogConfig_result, setLogConfig_result._Fields>, java.io.Serializable, Cloneable, Comparable<setLogConfig_result>   {
+    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("setLogConfig_result");
+
+
+    private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
+    static {
+      schemes.put(StandardScheme.class, new setLogConfig_resultStandardSchemeFactory());
+      schemes.put(TupleScheme.class, new setLogConfig_resultTupleSchemeFactory());
+    }
+
+
+    /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+;
+
+      private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
+
+      static {
+        for (_Fields field : EnumSet.allOf(_Fields.class)) {
+          byName.put(field.getFieldName(), field);
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, or null if its not found.
+       */
+      public static _Fields findByThriftId(int fieldId) {
+        switch(fieldId) {
+          default:
+            return null;
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, throwing an exception
+       * if it is not found.
+       */
+      public static _Fields findByThriftIdOrThrow(int fieldId) {
+        _Fields fields = findByThriftId(fieldId);
+        if (fields == null) throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
+        return fields;
+      }
+
+      /**
+       * Find the _Fields constant that matches name, or null if its not found.
+       */
+      public static _Fields findByName(String name) {
+        return byName.get(name);
+      }
+
+      private final short _thriftId;
+      private final String _fieldName;
+
+      _Fields(short thriftId, String fieldName) {
+        _thriftId = thriftId;
+        _fieldName = fieldName;
+      }
+
+      public short getThriftFieldId() {
+        return _thriftId;
+      }
+
+      public String getFieldName() {
+        return _fieldName;
+      }
+    }
+    public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
+    static {
+      Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
+      metaDataMap = Collections.unmodifiableMap(tmpMap);
+      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(setLogConfig_result.class, metaDataMap);
+    }
+
+    public setLogConfig_result() {
+    }
+
+    /**
+     * Performs a deep copy on <i>other</i>.
+     */
+    public setLogConfig_result(setLogConfig_result other) {
+    }
+
+    public setLogConfig_result deepCopy() {
+      return new setLogConfig_result(this);
+    }
+
+    @Override
+    public void clear() {
+    }
+
+    public void setFieldValue(_Fields field, Object value) {
+      switch (field) {
+      }
+    }
+
+    public Object getFieldValue(_Fields field) {
+      switch (field) {
+      }
+      throw new IllegalStateException();
+    }
+
+    /** Returns true if field corresponding to fieldID is set (has been assigned a value) and false otherwise */
+    public boolean isSet(_Fields field) {
+      if (field == null) {
+        throw new IllegalArgumentException();
+      }
+
+      switch (field) {
+      }
+      throw new IllegalStateException();
+    }
+
+    @Override
+    public boolean equals(Object that) {
+      if (that == null)
+        return false;
+      if (that instanceof setLogConfig_result)
+        return this.equals((setLogConfig_result)that);
+      return false;
+    }
+
+    public boolean equals(setLogConfig_result that) {
+      if (that == null)
+        return false;
+
+      return true;
+    }
+
+    @Override
+    public int hashCode() {
+      List<Object> list = new ArrayList<Object>();
+
+      return list.hashCode();
+    }
+
+    @Override
+    public int compareTo(setLogConfig_result other) {
+      if (!getClass().equals(other.getClass())) {
+        return getClass().getName().compareTo(other.getClass().getName());
+      }
+
+      int lastComparison = 0;
+
+      return 0;
+    }
+
+    public _Fields fieldForId(int fieldId) {
+      return _Fields.findByThriftId(fieldId);
+    }
+
+    public void read(org.apache.thrift.protocol.TProtocol iprot) throws org.apache.thrift.TException {
+      schemes.get(iprot.getScheme()).getScheme().read(iprot, this);
+    }
+
+    public void write(org.apache.thrift.protocol.TProtocol oprot) throws org.apache.thrift.TException {
+      schemes.get(oprot.getScheme()).getScheme().write(oprot, this);
+      }
+
+    @Override
+    public String toString() {
+      StringBuilder sb = new StringBuilder("setLogConfig_result(");
+      boolean first = true;
+
+      sb.append(")");
+      return sb.toString();
+    }
+
+    public void validate() throws org.apache.thrift.TException {
+      // check for required fields
+      // check for sub-struct validity
+    }
+
+    private void writeObject(java.io.ObjectOutputStream out) throws java.io.IOException {
+      try {
+        write(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(out)));
+      } catch (org.apache.thrift.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+    private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, ClassNotFoundException {
+      try {
+        read(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(in)));
+      } catch (org.apache.thrift.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+    private static class setLogConfig_resultStandardSchemeFactory implements SchemeFactory {
+      public setLogConfig_resultStandardScheme getScheme() {
+        return new setLogConfig_resultStandardScheme();
+      }
+    }
+
+    private static class setLogConfig_resultStandardScheme extends StandardScheme<setLogConfig_result> {
+
+      public void read(org.apache.thrift.protocol.TProtocol iprot, setLogConfig_result struct) throws org.apache.thrift.TException {
+        org.apache.thrift.protocol.TField schemeField;
+        iprot.readStructBegin();
+        while (true)
+        {
+          schemeField = iprot.readFieldBegin();
+          if (schemeField.type == org.apache.thrift.protocol.TType.STOP) { 
+            break;
+          }
+          switch (schemeField.id) {
+            default:
+              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+          }
+          iprot.readFieldEnd();
+        }
+        iprot.readStructEnd();
+        struct.validate();
+      }
+
+      public void write(org.apache.thrift.protocol.TProtocol oprot, setLogConfig_result struct) throws org.apache.thrift.TException {
+        struct.validate();
+
+        oprot.writeStructBegin(STRUCT_DESC);
+        oprot.writeFieldStop();
+        oprot.writeStructEnd();
+      }
+
+    }
+
+    private static class setLogConfig_resultTupleSchemeFactory implements SchemeFactory {
+      public setLogConfig_resultTupleScheme getScheme() {
+        return new setLogConfig_resultTupleScheme();
+      }
+    }
+
+    private static class setLogConfig_resultTupleScheme extends TupleScheme<setLogConfig_result> {
+
+      @Override
+      public void write(org.apache.thrift.protocol.TProtocol prot, setLogConfig_result struct) throws org.apache.thrift.TException {
+        TTupleProtocol oprot = (TTupleProtocol) prot;
+      }
+
+      @Override
+      public void read(org.apache.thrift.protocol.TProtocol prot, setLogConfig_result struct) throws org.apache.thrift.TException {
+        TTupleProtocol iprot = (TTupleProtocol) prot;
+      }
+    }
+
+  }
+
+  public static class getLogConfig_args implements org.apache.thrift.TBase<getLogConfig_args, getLogConfig_args._Fields>, java.io.Serializable, Cloneable, Comparable<getLogConfig_args>   {
+    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("getLogConfig_args");
+
+    private static final org.apache.thrift.protocol.TField ID_FIELD_DESC = new org.apache.thrift.protocol.TField("id", org.apache.thrift.protocol.TType.STRING, (short)1);
+
+    private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
+    static {
+      schemes.put(StandardScheme.class, new getLogConfig_argsStandardSchemeFactory());
+      schemes.put(TupleScheme.class, new getLogConfig_argsTupleSchemeFactory());
+    }
+
+    private String id; // required
+
+    /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+      ID((short)1, "id");
+
+      private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
+
+      static {
+        for (_Fields field : EnumSet.allOf(_Fields.class)) {
+          byName.put(field.getFieldName(), field);
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, or null if its not found.
+       */
+      public static _Fields findByThriftId(int fieldId) {
+        switch(fieldId) {
+          case 1: // ID
+            return ID;
+          default:
+            return null;
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, throwing an exception
+       * if it is not found.
+       */
+      public static _Fields findByThriftIdOrThrow(int fieldId) {
+        _Fields fields = findByThriftId(fieldId);
+        if (fields == null) throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
+        return fields;
+      }
+
+      /**
+       * Find the _Fields constant that matches name, or null if its not found.
+       */
+      public static _Fields findByName(String name) {
+        return byName.get(name);
+      }
+
+      private final short _thriftId;
+      private final String _fieldName;
+
+      _Fields(short thriftId, String fieldName) {
+        _thriftId = thriftId;
+        _fieldName = fieldName;
+      }
+
+      public short getThriftFieldId() {
+        return _thriftId;
+      }
+
+      public String getFieldName() {
+        return _fieldName;
+      }
+    }
+
+    // isset id assignments
+    public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
+    static {
+      Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
+      tmpMap.put(_Fields.ID, new org.apache.thrift.meta_data.FieldMetaData("id", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
+      metaDataMap = Collections.unmodifiableMap(tmpMap);
+      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(getLogConfig_args.class, metaDataMap);
+    }
+
+    public getLogConfig_args() {
+    }
+
+    public getLogConfig_args(
+      String id)
+    {
+      this();
+      this.id = id;
+    }
+
+    /**
+     * Performs a deep copy on <i>other</i>.
+     */
+    public getLogConfig_args(getLogConfig_args other) {
+      if (other.is_set_id()) {
+        this.id = other.id;
+      }
+    }
+
+    public getLogConfig_args deepCopy() {
+      return new getLogConfig_args(this);
+    }
+
+    @Override
+    public void clear() {
+      this.id = null;
+    }
+
+    public String get_id() {
+      return this.id;
+    }
+
+    public void set_id(String id) {
+      this.id = id;
+    }
+
+    public void unset_id() {
+      this.id = null;
+    }
+
+    /** Returns true if field id is set (has been assigned a value) and false otherwise */
+    public boolean is_set_id() {
+      return this.id != null;
+    }
+
+    public void set_id_isSet(boolean value) {
+      if (!value) {
+        this.id = null;
+      }
+    }
+
+    public void setFieldValue(_Fields field, Object value) {
+      switch (field) {
+      case ID:
+        if (value == null) {
+          unset_id();
+        } else {
+          set_id((String)value);
+        }
+        break;
+
+      }
+    }
+
+    public Object getFieldValue(_Fields field) {
+      switch (field) {
+      case ID:
+        return get_id();
+
+      }
+      throw new IllegalStateException();
+    }
+
+    /** Returns true if field corresponding to fieldID is set (has been assigned a value) and false otherwise */
+    public boolean isSet(_Fields field) {
+      if (field == null) {
+        throw new IllegalArgumentException();
+      }
+
+      switch (field) {
+      case ID:
+        return is_set_id();
+      }
+      throw new IllegalStateException();
+    }
+
+    @Override
+    public boolean equals(Object that) {
+      if (that == null)
+        return false;
+      if (that instanceof getLogConfig_args)
+        return this.equals((getLogConfig_args)that);
+      return false;
+    }
+
+    public boolean equals(getLogConfig_args that) {
+      if (that == null)
+        return false;
+
+      boolean this_present_id = true && this.is_set_id();
+      boolean that_present_id = true && that.is_set_id();
+      if (this_present_id || that_present_id) {
+        if (!(this_present_id && that_present_id))
+          return false;
+        if (!this.id.equals(that.id))
+          return false;
+      }
+
+      return true;
+    }
+
+    @Override
+    public int hashCode() {
+      List<Object> list = new ArrayList<Object>();
+
+      boolean present_id = true && (is_set_id());
+      list.add(present_id);
+      if (present_id)
+        list.add(id);
+
+      return list.hashCode();
+    }
+
+    @Override
+    public int compareTo(getLogConfig_args other) {
+      if (!getClass().equals(other.getClass())) {
+        return getClass().getName().compareTo(other.getClass().getName());
+      }
+
+      int lastComparison = 0;
+
+      lastComparison = Boolean.valueOf(is_set_id()).compareTo(other.is_set_id());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (is_set_id()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.id, other.id);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      return 0;
+    }
+
+    public _Fields fieldForId(int fieldId) {
+      return _Fields.findByThriftId(fieldId);
+    }
+
+    public void read(org.apache.thrift.protocol.TProtocol iprot) throws org.apache.thrift.TException {
+      schemes.get(iprot.getScheme()).getScheme().read(iprot, this);
+    }
+
+    public void write(org.apache.thrift.protocol.TProtocol oprot) throws org.apache.thrift.TException {
+      schemes.get(oprot.getScheme()).getScheme().write(oprot, this);
+    }
+
+    @Override
+    public String toString() {
+      StringBuilder sb = new StringBuilder("getLogConfig_args(");
+      boolean first = true;
+
+      sb.append("id:");
+      if (this.id == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.id);
+      }
+      first = false;
+      sb.append(")");
+      return sb.toString();
+    }
+
+    public void validate() throws org.apache.thrift.TException {
+      // check for required fields
+      // check for sub-struct validity
+    }
+
+    private void writeObject(java.io.ObjectOutputStream out) throws java.io.IOException {
+      try {
+        write(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(out)));
+      } catch (org.apache.thrift.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+    private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, ClassNotFoundException {
+      try {
+        read(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(in)));
+      } catch (org.apache.thrift.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+    private static class getLogConfig_argsStandardSchemeFactory implements SchemeFactory {
+      public getLogConfig_argsStandardScheme getScheme() {
+        return new getLogConfig_argsStandardScheme();
+      }
+    }
+
+    private static class getLogConfig_argsStandardScheme extends StandardScheme<getLogConfig_args> {
+
+      public void read(org.apache.thrift.protocol.TProtocol iprot, getLogConfig_args struct) throws org.apache.thrift.TException {
+        org.apache.thrift.protocol.TField schemeField;
+        iprot.readStructBegin();
+        while (true)
+        {
+          schemeField = iprot.readFieldBegin();
+          if (schemeField.type == org.apache.thrift.protocol.TType.STOP) { 
+            break;
+          }
+          switch (schemeField.id) {
+            case 1: // ID
+              if (schemeField.type == org.apache.thrift.protocol.TType.STRING) {
+                struct.id = iprot.readString();
+                struct.set_id_isSet(true);
+              } else { 
+                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+              }
+              break;
+            default:
+              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+          }
+          iprot.readFieldEnd();
+        }
+        iprot.readStructEnd();
+        struct.validate();
+      }
+
+      public void write(org.apache.thrift.protocol.TProtocol oprot, getLogConfig_args struct) throws org.apache.thrift.TException {
+        struct.validate();
+
+        oprot.writeStructBegin(STRUCT_DESC);
+        if (struct.id != null) {
+          oprot.writeFieldBegin(ID_FIELD_DESC);
+          oprot.writeString(struct.id);
+          oprot.writeFieldEnd();
+        }
+        oprot.writeFieldStop();
+        oprot.writeStructEnd();
+      }
+
+    }
+
+    private static class getLogConfig_argsTupleSchemeFactory implements SchemeFactory {
+      public getLogConfig_argsTupleScheme getScheme() {
+        return new getLogConfig_argsTupleScheme();
+      }
+    }
+
+    private static class getLogConfig_argsTupleScheme extends TupleScheme<getLogConfig_args> {
+
+      @Override
+      public void write(org.apache.thrift.protocol.TProtocol prot, getLogConfig_args struct) throws org.apache.thrift.TException {
+        TTupleProtocol oprot = (TTupleProtocol) prot;
+        BitSet optionals = new BitSet();
+        if (struct.is_set_id()) {
+          optionals.set(0);
+        }
+        oprot.writeBitSet(optionals, 1);
+        if (struct.is_set_id()) {
+          oprot.writeString(struct.id);
+        }
+      }
+
+      @Override
+      public void read(org.apache.thrift.protocol.TProtocol prot, getLogConfig_args struct) throws org.apache.thrift.TException {
+        TTupleProtocol iprot = (TTupleProtocol) prot;
+        BitSet incoming = iprot.readBitSet(1);
+        if (incoming.get(0)) {
+          struct.id = iprot.readString();
+          struct.set_id_isSet(true);
+        }
+      }
+    }
+
+  }
+
+  public static class getLogConfig_result implements org.apache.thrift.TBase<getLogConfig_result, getLogConfig_result._Fields>, java.io.Serializable, Cloneable, Comparable<getLogConfig_result>   {
+    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("getLogConfig_result");
+
+    private static final org.apache.thrift.protocol.TField SUCCESS_FIELD_DESC = new org.apache.thrift.protocol.TField("success", org.apache.thrift.protocol.TType.STRUCT, (short)0);
+
+    private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
+    static {
+      schemes.put(StandardScheme.class, new getLogConfig_resultStandardSchemeFactory());
+      schemes.put(TupleScheme.class, new getLogConfig_resultTupleSchemeFactory());
+    }
+
+    private LogConfig success; // required
+
+    /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+      SUCCESS((short)0, "success");
+
+      private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
+
+      static {
+        for (_Fields field : EnumSet.allOf(_Fields.class)) {
+          byName.put(field.getFieldName(), field);
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, or null if its not found.
+       */
+      public static _Fields findByThriftId(int fieldId) {
+        switch(fieldId) {
+          case 0: // SUCCESS
+            return SUCCESS;
+          default:
+            return null;
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, throwing an exception
+       * if it is not found.
+       */
+      public static _Fields findByThriftIdOrThrow(int fieldId) {
+        _Fields fields = findByThriftId(fieldId);
+        if (fields == null) throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
+        return fields;
+      }
+
+      /**
+       * Find the _Fields constant that matches name, or null if its not found.
+       */
+      public static _Fields findByName(String name) {
+        return byName.get(name);
+      }
+
+      private final short _thriftId;
+      private final String _fieldName;
+
+      _Fields(short thriftId, String fieldName) {
+        _thriftId = thriftId;
+        _fieldName = fieldName;
+      }
+
+      public short getThriftFieldId() {
+        return _thriftId;
+      }
+
+      public String getFieldName() {
+        return _fieldName;
+      }
+    }
+
+    // isset id assignments
+    public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
+    static {
+      Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
+      tmpMap.put(_Fields.SUCCESS, new org.apache.thrift.meta_data.FieldMetaData("success", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, LogConfig.class)));
+      metaDataMap = Collections.unmodifiableMap(tmpMap);
+      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(getLogConfig_result.class, metaDataMap);
+    }
+
+    public getLogConfig_result() {
+    }
+
+    public getLogConfig_result(
+      LogConfig success)
+    {
+      this();
+      this.success = success;
+    }
+
+    /**
+     * Performs a deep copy on <i>other</i>.
+     */
+    public getLogConfig_result(getLogConfig_result other) {
+      if (other.is_set_success()) {
+        this.success = new LogConfig(other.success);
+      }
+    }
+
+    public getLogConfig_result deepCopy() {
+      return new getLogConfig_result(this);
+    }
+
+    @Override
+    public void clear() {
+      this.success = null;
+    }
+
+    public LogConfig get_success() {
+      return this.success;
+    }
+
+    public void set_success(LogConfig success) {
+      this.success = success;
+    }
+
+    public void unset_success() {
+      this.success = null;
+    }
+
+    /** Returns true if field success is set (has been assigned a value) and false otherwise */
+    public boolean is_set_success() {
+      return this.success != null;
+    }
+
+    public void set_success_isSet(boolean value) {
+      if (!value) {
+        this.success = null;
+      }
+    }
+
+    public void setFieldValue(_Fields field, Object value) {
+      switch (field) {
+      case SUCCESS:
+        if (value == null) {
+          unset_success();
+        } else {
+          set_success((LogConfig)value);
+        }
+        break;
+
+      }
+    }
+
+    public Object getFieldValue(_Fields field) {
+      switch (field) {
+      case SUCCESS:
+        return get_success();
+
+      }
+      throw new IllegalStateException();
+    }
+
+    /** Returns true if field corresponding to fieldID is set (has been assigned a value) and false otherwise */
+    public boolean isSet(_Fields field) {
+      if (field == null) {
+        throw new IllegalArgumentException();
+      }
+
+      switch (field) {
+      case SUCCESS:
+        return is_set_success();
+      }
+      throw new IllegalStateException();
+    }
+
+    @Override
+    public boolean equals(Object that) {
+      if (that == null)
+        return false;
+      if (that instanceof getLogConfig_result)
+        return this.equals((getLogConfig_result)that);
+      return false;
+    }
+
+    public boolean equals(getLogConfig_result that) {
+      if (that == null)
+        return false;
+
+      boolean this_present_success = true && this.is_set_success();
+      boolean that_present_success = true && that.is_set_success();
+      if (this_present_success || that_present_success) {
+        if (!(this_present_success && that_present_success))
+          return false;
+        if (!this.success.equals(that.success))
+          return false;
+      }
+
+      return true;
+    }
+
+    @Override
+    public int hashCode() {
+      List<Object> list = new ArrayList<Object>();
+
+      boolean present_success = true && (is_set_success());
+      list.add(present_success);
+      if (present_success)
+        list.add(success);
+
+      return list.hashCode();
+    }
+
+    @Override
+    public int compareTo(getLogConfig_result other) {
+      if (!getClass().equals(other.getClass())) {
+        return getClass().getName().compareTo(other.getClass().getName());
+      }
+
+      int lastComparison = 0;
+
+      lastComparison = Boolean.valueOf(is_set_success()).compareTo(other.is_set_success());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (is_set_success()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.success, other.success);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      return 0;
+    }
+
+    public _Fields fieldForId(int fieldId) {
+      return _Fields.findByThriftId(fieldId);
+    }
+
+    public void read(org.apache.thrift.protocol.TProtocol iprot) throws org.apache.thrift.TException {
+      schemes.get(iprot.getScheme()).getScheme().read(iprot, this);
+    }
+
+    public void write(org.apache.thrift.protocol.TProtocol oprot) throws org.apache.thrift.TException {
+      schemes.get(oprot.getScheme()).getScheme().write(oprot, this);
+      }
+
+    @Override
+    public String toString() {
+      StringBuilder sb = new StringBuilder("getLogConfig_result(");
+      boolean first = true;
+
+      sb.append("success:");
+      if (this.success == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.success);
+      }
+      first = false;
+      sb.append(")");
+      return sb.toString();
+    }
+
+    public void validate() throws org.apache.thrift.TException {
+      // check for required fields
+      // check for sub-struct validity
+      if (success != null) {
+        success.validate();
+      }
+    }
+
+    private void writeObject(java.io.ObjectOutputStream out) throws java.io.IOException {
+      try {
+        write(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(out)));
+      } catch (org.apache.thrift.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+    private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, ClassNotFoundException {
+      try {
+        read(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(in)));
+      } catch (org.apache.thrift.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+    private static class getLogConfig_resultStandardSchemeFactory implements SchemeFactory {
+      public getLogConfig_resultStandardScheme getScheme() {
+        return new getLogConfig_resultStandardScheme();
+      }
+    }
+
+    private static class getLogConfig_resultStandardScheme extends StandardScheme<getLogConfig_result> {
+
+      public void read(org.apache.thrift.protocol.TProtocol iprot, getLogConfig_result struct) throws org.apache.thrift.TException {
+        org.apache.thrift.protocol.TField schemeField;
+        iprot.readStructBegin();
+        while (true)
+        {
+          schemeField = iprot.readFieldBegin();
+          if (schemeField.type == org.apache.thrift.protocol.TType.STOP) { 
+            break;
+          }
+          switch (schemeField.id) {
+            case 0: // SUCCESS
+              if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
+                struct.success = new LogConfig();
+                struct.success.read(iprot);
+                struct.set_success_isSet(true);
+              } else { 
+                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+              }
+              break;
+            default:
+              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+          }
+          iprot.readFieldEnd();
+        }
+        iprot.readStructEnd();
+        struct.validate();
+      }
+
+      public void write(org.apache.thrift.protocol.TProtocol oprot, getLogConfig_result struct) throws org.apache.thrift.TException {
+        struct.validate();
+
+        oprot.writeStructBegin(STRUCT_DESC);
+        if (struct.success != null) {
+          oprot.writeFieldBegin(SUCCESS_FIELD_DESC);
+          struct.success.write(oprot);
+          oprot.writeFieldEnd();
+        }
+        oprot.writeFieldStop();
+        oprot.writeStructEnd();
+      }
+
+    }
+
+    private static class getLogConfig_resultTupleSchemeFactory implements SchemeFactory {
+      public getLogConfig_resultTupleScheme getScheme() {
+        return new getLogConfig_resultTupleScheme();
+      }
+    }
+
+    private static class getLogConfig_resultTupleScheme extends TupleScheme<getLogConfig_result> {
+
+      @Override
+      public void write(org.apache.thrift.protocol.TProtocol prot, getLogConfig_result struct) throws org.apache.thrift.TException {
+        TTupleProtocol oprot = (TTupleProtocol) prot;
+        BitSet optionals = new BitSet();
+        if (struct.is_set_success()) {
+          optionals.set(0);
+        }
+        oprot.writeBitSet(optionals, 1);
+        if (struct.is_set_success()) {
+          struct.success.write(oprot);
+        }
+      }
+
+      @Override
+      public void read(org.apache.thrift.protocol.TProtocol prot, getLogConfig_result struct) throws org.apache.thrift.TException {
+        TTupleProtocol iprot = (TTupleProtocol) prot;
+        BitSet incoming = iprot.readBitSet(1);
+        if (incoming.get(0)) {
+          struct.success = new LogConfig();
+          struct.success.read(iprot);
+          struct.set_success_isSet(true);
         }
       }
     }
@@ -30635,6 +32496,1145 @@ public class Nimbus {
 
   }
 
+  public static class getTopologyPageInfo_args implements org.apache.thrift.TBase<getTopologyPageInfo_args, getTopologyPageInfo_args._Fields>, java.io.Serializable, Cloneable, Comparable<getTopologyPageInfo_args>   {
+    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("getTopologyPageInfo_args");
+
+    private static final org.apache.thrift.protocol.TField ID_FIELD_DESC = new org.apache.thrift.protocol.TField("id", org.apache.thrift.protocol.TType.STRING, (short)1);
+    private static final org.apache.thrift.protocol.TField WINDOW_FIELD_DESC = new org.apache.thrift.protocol.TField("window", org.apache.thrift.protocol.TType.STRING, (short)2);
+    private static final org.apache.thrift.protocol.TField IS_INCLUDE_SYS_FIELD_DESC = new org.apache.thrift.protocol.TField("is_include_sys", org.apache.thrift.protocol.TType.BOOL, (short)3);
+
+    private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
+    static {
+      schemes.put(StandardScheme.class, new getTopologyPageInfo_argsStandardSchemeFactory());
+      schemes.put(TupleScheme.class, new getTopologyPageInfo_argsTupleSchemeFactory());
+    }
+
+    private String id; // required
+    private String window; // required
+    private boolean is_include_sys; // required
+
+    /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+      ID((short)1, "id"),
+      WINDOW((short)2, "window"),
+      IS_INCLUDE_SYS((short)3, "is_include_sys");
+
+      private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
+
+      static {
+        for (_Fields field : EnumSet.allOf(_Fields.class)) {
+          byName.put(field.getFieldName(), field);
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, or null if its not found.
+       */
+      public static _Fields findByThriftId(int fieldId) {
+        switch(fieldId) {
+          case 1: // ID
+            return ID;
+          case 2: // WINDOW
+            return WINDOW;
+          case 3: // IS_INCLUDE_SYS
+            return IS_INCLUDE_SYS;
+          default:
+            return null;
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, throwing an exception
+       * if it is not found.
+       */
+      public static _Fields findByThriftIdOrThrow(int fieldId) {
+        _Fields fields = findByThriftId(fieldId);
+        if (fields == null) throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
+        return fields;
+      }
+
+      /**
+       * Find the _Fields constant that matches name, or null if its not found.
+       */
+      public static _Fields findByName(String name) {
+        return byName.get(name);
+      }
+
+      private final short _thriftId;
+      private final String _fieldName;
+
+      _Fields(short thriftId, String fieldName) {
+        _thriftId = thriftId;
+        _fieldName = fieldName;
+      }
+
+      public short getThriftFieldId() {
+        return _thriftId;
+      }
+
+      public String getFieldName() {
+        return _fieldName;
+      }
+    }
+
+    // isset id assignments
+    private static final int __IS_INCLUDE_SYS_ISSET_ID = 0;
+    private byte __isset_bitfield = 0;
+    public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
+    static {
+      Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
+      tmpMap.put(_Fields.ID, new org.apache.thrift.meta_data.FieldMetaData("id", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
+      tmpMap.put(_Fields.WINDOW, new org.apache.thrift.meta_data.FieldMetaData("window", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
+      tmpMap.put(_Fields.IS_INCLUDE_SYS, new org.apache.thrift.meta_data.FieldMetaData("is_include_sys", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.BOOL)));
+      metaDataMap = Collections.unmodifiableMap(tmpMap);
+      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(getTopologyPageInfo_args.class, metaDataMap);
+    }
+
+    public getTopologyPageInfo_args() {
+    }
+
+    public getTopologyPageInfo_args(
+      String id,
+      String window,
+      boolean is_include_sys)
+    {
+      this();
+      this.id = id;
+      this.window = window;
+      this.is_include_sys = is_include_sys;
+      set_is_include_sys_isSet(true);
+    }
+
+    /**
+     * Performs a deep copy on <i>other</i>.
+     */
+    public getTopologyPageInfo_args(getTopologyPageInfo_args other) {
+      __isset_bitfield = other.__isset_bitfield;
+      if (other.is_set_id()) {
+        this.id = other.id;
+      }
+      if (other.is_set_window()) {
+        this.window = other.window;
+      }
+      this.is_include_sys = other.is_include_sys;
+    }
+
+    public getTopologyPageInfo_args deepCopy() {
+      return new getTopologyPageInfo_args(this);
+    }
+
+    @Override
+    public void clear() {
+      this.id = null;
+      this.window = null;
+      set_is_include_sys_isSet(false);
+      this.is_include_sys = false;
+    }
+
+    public String get_id() {
+      return this.id;
+    }
+
+    public void set_id(String id) {
+      this.id = id;
+    }
+
+    public void unset_id() {
+      this.id = null;
+    }
+
+    /** Returns true if field id is set (has been assigned a value) and false otherwise */
+    public boolean is_set_id() {
+      return this.id != null;
+    }
+
+    public void set_id_isSet(boolean value) {
+      if (!value) {
+        this.id = null;
+      }
+    }
+
+    public String get_window() {
+      return this.window;
+    }
+
+    public void set_window(String window) {
+      this.window = window;
+    }
+
+    public void unset_window() {
+      this.window = null;
+    }
+
+    /** Returns true if field window is set (has been assigned a value) and false otherwise */
+    public boolean is_set_window() {
+      return this.window != null;
+    }
+
+    public void set_window_isSet(boolean value) {
+      if (!value) {
+        this.window = null;
+      }
+    }
+
+    public boolean is_is_include_sys() {
+      return this.is_include_sys;
+    }
+
+    public void set_is_include_sys(boolean is_include_sys) {
+      this.is_include_sys = is_include_sys;
+      set_is_include_sys_isSet(true);
+    }
+
+    public void unset_is_include_sys() {
+      __isset_bitfield = EncodingUtils.clearBit(__isset_bitfield, __IS_INCLUDE_SYS_ISSET_ID);
+    }
+
+    /** Returns true if field is_include_sys is set (has been assigned a value) and false otherwise */
+    public boolean is_set_is_include_sys() {
+      return EncodingUtils.testBit(__isset_bitfield, __IS_INCLUDE_SYS_ISSET_ID);
+    }
+
+    public void set_is_include_sys_isSet(boolean value) {
+      __isset_bitfield = EncodingUtils.setBit(__isset_bitfield, __IS_INCLUDE_SYS_ISSET_ID, value);
+    }
+
+    public void setFieldValue(_Fields field, Object value) {
+      switch (field) {
+      case ID:
+        if (value == null) {
+          unset_id();
+        } else {
+          set_id((String)value);
+        }
+        break;
+
+      case WINDOW:
+        if (value == null) {
+          unset_window();
+        } else {
+          set_window((String)value);
+        }
+        break;
+
+      case IS_INCLUDE_SYS:
+        if (value == null) {
+          unset_is_include_sys();
+        } else {
+          set_is_include_sys((Boolean)value);
+        }
+        break;
+
+      }
+    }
+
+    public Object getFieldValue(_Fields field) {
+      switch (field) {
+      case ID:
+        return get_id();
+
+      case WINDOW:
+        return get_window();
+
+      case IS_INCLUDE_SYS:
+        return Boolean.valueOf(is_is_include_sys());
+
+      }
+      throw new IllegalStateException();
+    }
+
+    /** Returns true if field corresponding to fieldID is set (has been assigned a value) and false otherwise */
+    public boolean isSet(_Fields field) {
+      if (field == null) {
+        throw new IllegalArgumentException();
+      }
+
+      switch (field) {
+      case ID:
+        return is_set_id();
+      case WINDOW:
+        return is_set_window();
+      case IS_INCLUDE_SYS:
+        return is_set_is_include_sys();
+      }
+      throw new IllegalStateException();
+    }
+
+    @Override
+    public boolean equals(Object that) {
+      if (that == null)
+        return false;
+      if (that instanceof getTopologyPageInfo_args)
+        return this.equals((getTopologyPageInfo_args)that);
+      return false;
+    }
+
+    public boolean equals(getTopologyPageInfo_args that) {
+      if (that == null)
+        return false;
+
+      boolean this_present_id = true && this.is_set_id();
+      boolean that_present_id = true && that.is_set_id();
+      if (this_present_id || that_present_id) {
+        if (!(this_present_id && that_present_id))
+          return false;
+        if (!this.id.equals(that.id))
+          return false;
+      }
+
+      boolean this_present_window = true && this.is_set_window();
+      boolean that_present_window = true && that.is_set_window();
+      if (this_present_window || that_present_window) {
+        if (!(this_present_window && that_present_window))
+          return false;
+        if (!this.window.equals(that.window))
+          return false;
+      }
+
+      boolean this_present_is_include_sys = true;
+      boolean that_present_is_include_sys = true;
+      if (this_present_is_include_sys || that_present_is_include_sys) {
+        if (!(this_present_is_include_sys && that_present_is_include_sys))
+          return false;
+        if (this.is_include_sys != that.is_include_sys)
+          return false;
+      }
+
+      return true;
+    }
+
+    @Override
+    public int hashCode() {
+      List<Object> list = new ArrayList<Object>();
+
+      boolean present_id = true && (is_set_id());
+      list.add(present_id);
+      if (present_id)
+        list.add(id);
+
+      boolean present_window = true && (is_set_window());
+      list.add(present_window);
+      if (present_window)
+        list.add(window);
+
+      boolean present_is_include_sys = true;
+      list.add(present_is_include_sys);
+      if (present_is_include_sys)
+        list.add(is_include_sys);
+
+      return list.hashCode();
+    }
+
+    @Override
+    public int compareTo(getTopologyPageInfo_args other) {
+      if (!getClass().equals(other.getClass())) {
+        return getClass().getName().compareTo(other.getClass().getName());
+      }
+
+      int lastComparison = 0;
+
+      lastComparison = Boolean.valueOf(is_set_id()).compareTo(other.is_set_id());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (is_set_id()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.id, other.id);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      lastComparison = Boolean.valueOf(is_set_window()).compareTo(other.is_set_window());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (is_set_window()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.window, other.window);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      lastComparison = Boolean.valueOf(is_set_is_include_sys()).compareTo(other.is_set_is_include_sys());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (is_set_is_include_sys()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.is_include_sys, other.is_include_sys);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      return 0;
+    }
+
+    public _Fields fieldForId(int fieldId) {
+      return _Fields.findByThriftId(fieldId);
+    }
+
+    public void read(org.apache.thrift.protocol.TProtocol iprot) throws org.apache.thrift.TException {
+      schemes.get(iprot.getScheme()).getScheme().read(iprot, this);
+    }
+
+    public void write(org.apache.thrift.protocol.TProtocol oprot) throws org.apache.thrift.TException {
+      schemes.get(oprot.getScheme()).getScheme().write(oprot, this);
+    }
+
+    @Override
+    public String toString() {
+      StringBuilder sb = new StringBuilder("getTopologyPageInfo_args(");
+      boolean first = true;
+
+      sb.append("id:");
+      if (this.id == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.id);
+      }
+      first = false;
+      if (!first) sb.append(", ");
+      sb.append("window:");
+      if (this.window == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.window);
+      }
+      first = false;
+      if (!first) sb.append(", ");
+      sb.append("is_include_sys:");
+      sb.append(this.is_include_sys);
+      first = false;
+      sb.append(")");
+      return sb.toString();
+    }
+
+    public void validate() throws org.apache.thrift.TException {
+      // check for required fields
+      // check for sub-struct validity
+    }
+
+    private void writeObject(java.io.ObjectOutputStream out) throws java.io.IOException {
+      try {
+        write(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(out)));
+      } catch (org.apache.thrift.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+    private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, ClassNotFoundException {
+      try {
+        // it doesn't seem like you should have to do this, but java serialization is wacky, and doesn't call the default constructor.
+        __isset_bitfield = 0;
+        read(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(in)));
+      } catch (org.apache.thrift.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+    private static class getTopologyPageInfo_argsStandardSchemeFactory implements SchemeFactory {
+      public getTopologyPageInfo_argsStandardScheme getScheme() {
+        return new getTopologyPageInfo_argsStandardScheme();
+      }
+    }
+
+    private static class getTopologyPageInfo_argsStandardScheme extends StandardScheme<getTopologyPageInfo_args> {
+
+      public void read(org.apache.thrift.protocol.TProtocol iprot, getTopologyPageInfo_args struct) throws org.apache.thrift.TException {
+        org.apache.thrift.protocol.TField schemeField;
+        iprot.readStructBegin();
+        while (true)
+        {
+          schemeField = iprot.readFieldBegin();
+          if (schemeField.type == org.apache.thrift.protocol.TType.STOP) { 
+            break;
+          }
+          switch (schemeField.id) {
+            case 1: // ID
+              if (schemeField.type == org.apache.thrift.protocol.TType.STRING) {
+                struct.id = iprot.readString();
+                struct.set_id_isSet(true);
+              } else { 
+                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+              }
+              break;
+            case 2: // WINDOW
+              if (schemeField.type == org.apache.thrift.protocol.TType.STRING) {
+                struct.window = iprot.readString();
+                struct.set_window_isSet(true);
+              } else { 
+                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+              }
+              break;
+            case 3: // IS_INCLUDE_SYS
+              if (schemeField.type == org.apache.thrift.protocol.TType.BOOL) {
+                struct.is_include_sys = iprot.readBool();
+                struct.set_is_include_sys_isSet(true);
+              } else { 
+                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+              }
+              break;
+            default:
+              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+          }
+          iprot.readFieldEnd();
+        }
+        iprot.readStructEnd();
+        struct.validate();
+      }
+
+      public void write(org.apache.thrift.protocol.TProtocol oprot, getTopologyPageInfo_args struct) throws org.apache.thrift.TException {
+        struct.validate();
+
+        oprot.writeStructBegin(STRUCT_DESC);
+        if (struct.id != null) {
+          oprot.writeFieldBegin(ID_FIELD_DESC);
+          oprot.writeString(struct.id);
+          oprot.writeFieldEnd();
+        }
+        if (struct.window != null) {
+          oprot.writeFieldBegin(WINDOW_FIELD_DESC);
+          oprot.writeString(struct.window);
+          oprot.writeFieldEnd();
+        }
+        oprot.writeFieldBegin(IS_INCLUDE_SYS_FIELD_DESC);
+        oprot.writeBool(struct.is_include_sys);
+        oprot.writeFieldEnd();
+        oprot.writeFieldStop();
+        oprot.writeStructEnd();
+      }
+
+    }
+
+    private static class getTopologyPageInfo_argsTupleSchemeFactory implements SchemeFactory {
+      public getTopologyPageInfo_argsTupleScheme getScheme() {
+        return new getTopologyPageInfo_argsTupleScheme();
+      }
+    }
+
+    private static class getTopologyPageInfo_argsTupleScheme extends TupleScheme<getTopologyPageInfo_args> {
+
+      @Override
+      public void write(org.apache.thrift.protocol.TProtocol prot, getTopologyPageInfo_args struct) throws org.apache.thrift.TException {
+        TTupleProtocol oprot = (TTupleProtocol) prot;
+        BitSet optionals = new BitSet();
+        if (struct.is_set_id()) {
+          optionals.set(0);
+        }
+        if (struct.is_set_window()) {
+          optionals.set(1);
+        }
+        if (struct.is_set_is_include_sys()) {
+          optionals.set(2);
+        }
+        oprot.writeBitSet(optionals, 3);
+        if (struct.is_set_id()) {
+          oprot.writeString(struct.id);
+        }
+        if (struct.is_set_window()) {
+          oprot.writeString(struct.window);
+        }
+        if (struct.is_set_is_include_sys()) {
+          oprot.writeBool(struct.is_include_sys);
+        }
+      }
+
+      @Override
+      public void read(org.apache.thrift.protocol.TProtocol prot, getTopologyPageInfo_args struct) throws org.apache.thrift.TException {
+        TTupleProtocol iprot = (TTupleProtocol) prot;
+        BitSet incoming = iprot.readBitSet(3);
+        if (incoming.get(0)) {
+          struct.id = iprot.readString();
+          struct.set_id_isSet(true);
+        }
+        if (incoming.get(1)) {
+          struct.window = iprot.readString();
+          struct.set_window_isSet(true);
+        }
+        if (incoming.get(2)) {
+          struct.is_include_sys = iprot.readBool();
+          struct.set_is_include_sys_isSet(true);
+        }
+      }
+    }
+
+  }
+
+  public static class getTopologyPageInfo_result implements org.apache.thrift.TBase<getTopologyPageInfo_result, getTopologyPageInfo_result._Fields>, java.io.Serializable, Cloneable, Comparable<getTopologyPageInfo_result>   {
+    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("getTopologyPageInfo_result");
+
+    private static final org.apache.thrift.protocol.TField SUCCESS_FIELD_DESC = new org.apache.thrift.protocol.TField("success", org.apache.thrift.protocol.TType.STRUCT, (short)0);
+    private static final org.apache.thrift.protocol.TField E_FIELD_DESC = new org.apache.thrift.protocol.TField("e", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+    private static final org.apache.thrift.protocol.TField AZE_FIELD_DESC = new org.apache.thrift.protocol.TField("aze", org.apache.thrift.protocol.TType.STRUCT, (short)2);
+
+    private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
+    static {
+      schemes.put(StandardScheme.class, new getTopologyPageInfo_resultStandardSchemeFactory());
+      schemes.put(TupleScheme.class, new getTopologyPageInfo_resultTupleSchemeFactory());
+    }
+
+    private TopologyPageInfo success; // required
+    private NotAliveException e; // required
+    private AuthorizationException aze; // required
+
+    /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+      SUCCESS((short)0, "success"),
+      E((short)1, "e"),
+      AZE((short)2, "aze");
+
+      private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
+
+      static {
+        for (_Fields field : EnumSet.allOf(_Fields.class)) {
+          byName.put(field.getFieldName(), field);
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, or null if its not found.
+       */
+      public static _Fields findByThriftId(int fieldId) {
+        switch(fieldId) {
+          case 0: // SUCCESS
+            return SUCCESS;
+          case 1: // E
+            return E;
+          case 2: // AZE
+            return AZE;
+          default:
+            return null;
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, throwing an exception
+       * if it is not found.
+       */
+      public static _Fields findByThriftIdOrThrow(int fieldId) {
+        _Fields fields = findByThriftId(fieldId);
+        if (fields == null) throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
+        return fields;
+      }
+
+      /**
+       * Find the _Fields constant that matches name, or null if its not found.
+       */
+      public static _Fields findByName(String name) {
+        return byName.get(name);
+      }
+
+      private final short _thriftId;
+      private final String _fieldName;
+
+      _Fields(short thriftId, String fieldName) {
+        _thriftId = thriftId;
+        _fieldName = fieldName;
+      }
+
+      public short getThriftFieldId() {
+        return _thriftId;
+      }
+
+      public String getFieldName() {
+        return _fieldName;
+      }
+    }
+
+    // isset id assignments
+    public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
+    static {
+      Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
+      tmpMap.put(_Fields.SUCCESS, new org.apache.thrift.meta_data.FieldMetaData("success", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, TopologyPageInfo.class)));
+      tmpMap.put(_Fields.E, new org.apache.thrift.meta_data.FieldMetaData("e", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRUCT)));
+      tmpMap.put(_Fields.AZE, new org.apache.thrift.meta_data.FieldMetaData("aze", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRUCT)));
+      metaDataMap = Collections.unmodifiableMap(tmpMap);
+      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(getTopologyPageInfo_result.class, metaDataMap);
+    }
+
+    public getTopologyPageInfo_result() {
+    }
+
+    public getTopologyPageInfo_result(
+      TopologyPageInfo success,
+      NotAliveException e,
+      AuthorizationException aze)
+    {
+      this();
+      this.success = success;
+      this.e = e;
+      this.aze = aze;
+    }
+
+    /**
+     * Performs a deep copy on <i>other</i>.
+     */
+    public getTopologyPageInfo_result(getTopologyPageInfo_result other) {
+      if (other.is_set_success()) {
+        this.success = new TopologyPageInfo(other.success);
+      }
+      if (other.is_set_e()) {
+        this.e = new NotAliveException(other.e);
+      }
+      if (other.is_set_aze()) {
+        this.aze = new AuthorizationException(other.aze);
+      }
+    }
+
+    public getTopologyPageInfo_result deepCopy() {
+      return new getTopologyPageInfo_result(this);
+    }
+
+    @Override
+    public void clear() {
+      this.success = null;
+      this.e = null;
+      this.aze = null;
+    }
+
+    public TopologyPageInfo get_success() {
+      return this.success;
+    }
+
+    public void set_success(TopologyPageInfo success) {
+      this.success = success;
+    }
+
+    public void unset_success() {
+      this.success = null;
+    }
+
+    /** Returns true if field success is set (has been assigned a value) and false otherwise */
+    public boolean is_set_success() {
+      return this.success != null;
+    }
+
+    public void set_success_isSet(boolean value) {
+      if (!value) {
+        this.success = null;
+      }
+    }
+
+    public NotAliveException get_e() {
+      return this.e;
+    }
+
+    public void set_e(NotAliveException e) {
+      this.e = e;
+    }
+
+    public void unset_e() {
+      this.e = null;
+    }
+
+    /** Returns true if field e is set (has been assigned a value) and false otherwise */
+    public boolean is_set_e() {
+      return this.e != null;
+    }
+
+    public void set_e_isSet(boolean value) {
+      if (!value) {
+        this.e = null;
+      }
+    }
+
+    public AuthorizationException get_aze() {
+      return this.aze;
+    }
+
+    public void set_aze(AuthorizationException aze) {
+      this.aze = aze;
+    }
+
+    public void unset_aze() {
+      this.aze = null;
+    }
+
+    /** Returns true if field aze is set (has been assigned a value) and false otherwise */
+    public boolean is_set_aze() {
+      return this.aze != null;
+    }
+
+    public void set_aze_isSet(boolean value) {
+      if (!value) {
+        this.aze = null;
+      }
+    }
+
+    public void setFieldValue(_Fields field, Object value) {
+      switch (field) {
+      case SUCCESS:
+        if (value == null) {
+          unset_success();
+        } else {
+          set_success((TopologyPageInfo)value);
+        }
+        break;
+
+      case E:
+        if (value == null) {
+          unset_e();
+        } else {
+          set_e((NotAliveException)value);
+        }
+        break;
+
+      case AZE:
+        if (value == null) {
+          unset_aze();
+        } else {
+          set_aze((AuthorizationException)value);
+        }
+        break;
+
+      }
+    }
+
+    public Object getFieldValue(_Fields field) {
+      switch (field) {
+      case SUCCESS:
+        return get_success();
+
+      case E:
+        return get_e();
+
+      case AZE:
+        return get_aze();
+
+      }
+      throw new IllegalStateException();
+    }
+
+    /** Returns true if field corresponding to fieldID is set (has been assigned a value) and false otherwise */
+    public boolean isSet(_Fields field) {
+      if (field == null) {
+        throw new IllegalArgumentException();
+      }
+
+      switch (field) {
+      case SUCCESS:
+        return is_set_success();
+      case E:
+        return is_set_e();
+      case AZE:
+        return is_set_aze();
+      }
+      throw new IllegalStateException();
+    }
+
+    @Override
+    public boolean equals(Object that) {
+      if (that == null)
+        return false;
+      if (that instanceof getTopologyPageInfo_result)
+        return this.equals((getTopologyPageInfo_result)that);
+      return false;
+    }
+
+    public boolean equals(getTopologyPageInfo_result that) {
+      if (that == null)
+        return false;
+
+      boolean this_present_success = true && this.is_set_success();
+      boolean that_present_success = true && that.is_set_success();
+      if (this_present_success || that_present_success) {
+        if (!(this_present_success && that_present_success))
+          return false;
+        if (!this.success.equals(that.success))
+          return false;
+      }
+
+      boolean this_present_e = true && this.is_set_e();
+      boolean that_present_e = true && that.is_set_e();
+      if (this_present_e || that_present_e) {
+        if (!(this_present_e && that_present_e))
+          return false;
+        if (!this.e.equals(that.e))
+          return false;
+      }
+
+      boolean this_present_aze = true && this.is_set_aze();
+      boolean that_present_aze = true && that.is_set_aze();
+      if (this_present_aze || that_present_aze) {
+        if (!(this_present_aze && that_present_aze))
+          return false;
+        if (!this.aze.equals(that.aze))
+          return false;
+      }
+
+      return true;
+    }
+
+    @Override
+    public int hashCode() {
+      List<Object> list = new ArrayList<Object>();
+
+      boolean present_success = true && (is_set_success());
+      list.add(present_success);
+      if (present_success)
+        list.add(success);
+
+      boolean present_e = true && (is_set_e());
+      list.add(present_e);
+      if (present_e)
+        list.add(e);
+
+      boolean present_aze = true && (is_set_aze());
+      list.add(present_aze);
+      if (present_aze)
+        list.add(aze);
+
+      return list.hashCode();
+    }
+
+    @Override
+    public int compareTo(getTopologyPageInfo_result other) {
+      if (!getClass().equals(other.getClass())) {
+        return getClass().getName().compareTo(other.getClass().getName());
+      }
+
+      int lastComparison = 0;
+
+      lastComparison = Boolean.valueOf(is_set_success()).compareTo(other.is_set_success());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (is_set_success()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.success, other.success);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      lastComparison = Boolean.valueOf(is_set_e()).compareTo(other.is_set_e());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (is_set_e()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.e, other.e);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      lastComparison = Boolean.valueOf(is_set_aze()).compareTo(other.is_set_aze());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (is_set_aze()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.aze, other.aze);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      return 0;
+    }
+
+    public _Fields fieldForId(int fieldId) {
+      return _Fields.findByThriftId(fieldId);
+    }
+
+    public void read(org.apache.thrift.protocol.TProtocol iprot) throws org.apache.thrift.TException {
+      schemes.get(iprot.getScheme()).getScheme().read(iprot, this);
+    }
+
+    public void write(org.apache.thrift.protocol.TProtocol oprot) throws org.apache.thrift.TException {
+      schemes.get(oprot.getScheme()).getScheme().write(oprot, this);
+      }
+
+    @Override
+    public String toString() {
+      StringBuilder sb = new StringBuilder("getTopologyPageInfo_result(");
+      boolean first = true;
+
+      sb.append("success:");
+      if (this.success == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.success);
+      }
+      first = false;
+      if (!first) sb.append(", ");
+      sb.append("e:");
+      if (this.e == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.e);
+      }
+      first = false;
+      if (!first) sb.append(", ");
+      sb.append("aze:");
+      if (this.aze == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.aze);
+      }
+      first = false;
+      sb.append(")");
+      return sb.toString();
+    }
+
+    public void validate() throws org.apache.thrift.TException {
+      // check for required fields
+      // check for sub-struct validity
+      if (success != null) {
+        success.validate();
+      }
+    }
+
+    private void writeObject(java.io.ObjectOutputStream out) throws java.io.IOException {
+      try {
+        write(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(out)));
+      } catch (org.apache.thrift.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+    private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, ClassNotFoundException {
+      try {
+        read(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(in)));
+      } catch (org.apache.thrift.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+    private static class getTopologyPageInfo_resultStandardSchemeFactory implements SchemeFactory {
+      public getTopologyPageInfo_resultStandardScheme getScheme() {
+        return new getTopologyPageInfo_resultStandardScheme();
+      }
+    }
+
+    private static class getTopologyPageInfo_resultStandardScheme extends StandardScheme<getTopologyPageInfo_result> {
+
+      public void read(org.apache.thrift.protocol.TProtocol iprot, getTopologyPageInfo_result struct) throws org.apache.thrift.TException {
+        org.apache.thrift.protocol.TField schemeField;
+        iprot.readStructBegin();
+        while (true)
+        {
+          schemeField = iprot.readFieldBegin();
+          if (schemeField.type == org.apache.thrift.protocol.TType.STOP) { 
+            break;
+          }
+          switch (schemeField.id) {
+            case 0: // SUCCESS
+              if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
+                struct.success = new TopologyPageInfo();
+                struct.success.read(iprot);
+                struct.set_success_isSet(true);
+              } else { 
+                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+              }
+              break;
+            case 1: // E
+              if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
+                struct.e = new NotAliveException();
+                struct.e.read(iprot);
+                struct.set_e_isSet(true);
+              } else { 
+                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+              }
+              break;
+            case 2: // AZE
+              if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
+                struct.aze = new AuthorizationException();
+                struct.aze.read(iprot);
+                struct.set_aze_isSet(true);
+              } else { 
+                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+              }
+              break;
+            default:
+              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+          }
+          iprot.readFieldEnd();
+        }
+        iprot.readStructEnd();
+        struct.validate();
+      }
+
+      public void write(org.apache.thrift.protocol.TProtocol oprot, getTopologyPageInfo_result struct) throws org.apache.thrift.TException {
+        struct.validate();
+
+        oprot.writeStructBegin(STRUCT_DESC);
+        if (struct.success != null) {
+          oprot.writeFieldBegin(SUCCESS_FIELD_DESC);
+          struct.success.write(oprot);
+          oprot.writeFieldEnd();
+        }
+        if (struct.e != null) {
+          oprot.writeFieldBegin(E_FIELD_DESC);
+          struct.e.write(oprot);
+          oprot.writeFieldEnd();
+        }
+        if (struct.aze != null) {
+          oprot.writeFieldBegin(AZE_FIELD_DESC);
+          struct.aze.write(oprot);
+          oprot.writeFieldEnd();
+        }
+        oprot.writeFieldStop();
+        oprot.writeStructEnd();
+      }
+
+    }
+
+    private static class getTopologyPageInfo_resultTupleSchemeFactory implements SchemeFactory {
+      public getTopologyPageInfo_resultTupleScheme getScheme() {
+        return new getTopologyPageInfo_resultTupleScheme();
+      }
+    }
+
+    private static class getTopologyPageInfo_resultTupleScheme extends TupleScheme<getTopologyPageInfo_result> {
+
+      @Override
+      public void write(org.apache.thrift.protocol.TProtocol prot, getTopologyPageInfo_result struct) throws org.apache.thrift.TException {
+        TTupleProtocol oprot = (TTupleProtocol) prot;
+        BitSet optionals = new BitSet();
+        if (struct.is_set_success()) {
+          optionals.set(0);
+        }
+        if (struct.is_set_e()) {
+          optionals.set(1);
+        }
+        if (struct.is_set_aze()) {
+          optionals.set(2);
+        }
+        oprot.writeBitSet(optionals, 3);
+        if (struct.is_set_success()) {
+          struct.success.write(oprot);
+        }
+        if (struct.is_set_e()) {
+          struct.e.write(oprot);
+        }
+        if (struct.is_set_aze()) {
+          struct.aze.write(oprot);
+        }
+      }
+
+      @Override
+      public void read(org.apache.thrift.protocol.TProtocol prot, getTopologyPageInfo_result struct) throws org.apache.thrift.TException {
+        TTupleProtocol iprot = (TTupleProtocol) prot;
+        BitSet incoming = iprot.readBitSet(3);
+        if (incoming.get(0)) {
+          struct.success = new TopologyPageInfo();
+          struct.success.read(iprot);
+          struct.set_success_isSet(true);
+        }
+        if (incoming.get(1)) {
+          struct.e = new NotAliveException();
+          struct.e.read(iprot);
+          struct.set_e_isSet(true);
+        }
+        if (incoming.get(2)) {
+          struct.aze = new AuthorizationException();
+          struct.aze.read(iprot);
+          struct.set_aze_isSet(true);
+        }
+      }
+    }
+
+  }
+
   public static class getTopologyConf_args implements org.apache.thrift.TBase<getTopologyConf_args, getTopologyConf_args._Fields>, java.io.Serializable, Cloneable, Comparable<getTopologyConf_args>   {
     private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("getTopologyConf_args");
 
@@ -33868,7 +36868,7 @@ public class Nimbus {
     static {
       Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
       tmpMap.put(_Fields.SUCCESS, new org.apache.thrift.meta_data.FieldMetaData("success", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRUCT          , "TopologyHistoryInfo")));
+          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, TopologyHistoryInfo.class)));
       tmpMap.put(_Fields.AZE, new org.apache.thrift.meta_data.FieldMetaData("aze", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRUCT)));
       metaDataMap = Collections.unmodifiableMap(tmpMap);
@@ -33892,7 +36892,7 @@ public class Nimbus {
      */
     public getTopologyHistory_result(getTopologyHistory_result other) {
       if (other.is_set_success()) {
-        this.success = other.success;
+        this.success = new TopologyHistoryInfo(other.success);
       }
       if (other.is_set_aze()) {
         this.aze = new AuthorizationException(other.aze);
@@ -34124,6 +37124,9 @@ public class Nimbus {
     public void validate() throws org.apache.thrift.TException {
       // check for required fields
       // check for sub-struct validity
+      if (success != null) {
+        success.validate();
+      }
     }
 
     private void writeObject(java.io.ObjectOutputStream out) throws java.io.IOException {

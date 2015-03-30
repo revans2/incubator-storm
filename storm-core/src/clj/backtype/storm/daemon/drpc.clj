@@ -242,4 +242,5 @@
         (.serve handler-server)))))
 
 (defn -main []
+  (setup-default-uncaught-exception-handler)
   (launch-server!))

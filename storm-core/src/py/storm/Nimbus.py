@@ -92,6 +92,21 @@ class Iface:
     """
     pass
 
+  def setLogConfig(self, id, config):
+    """
+    Parameters:
+     - id
+     - config
+    """
+    pass
+
+  def getLogConfig(self, id):
+    """
+    Parameters:
+     - id
+    """
+    pass
+
   def uploadNewCredentials(self, name, creds):
     """
     Parameters:
@@ -233,6 +248,15 @@ class Iface:
     Parameters:
      - id
      - options
+    """
+    pass
+
+  def getTopologyPageInfo(self, id, window, is_include_sys):
+    """
+    Parameters:
+     - id
+     - window
+     - is_include_sys
     """
     pass
 
@@ -526,6 +550,68 @@ class Client(Iface):
     if result.aze is not None:
       raise result.aze
     return
+
+  def setLogConfig(self, id, config):
+    """
+    Parameters:
+     - id
+     - config
+    """
+    self.send_setLogConfig(id, config)
+    self.recv_setLogConfig()
+
+  def send_setLogConfig(self, id, config):
+    self._oprot.writeMessageBegin('setLogConfig', TMessageType.CALL, self._seqid)
+    args = setLogConfig_args()
+    args.id = id
+    args.config = config
+    args.write(self._oprot)
+    self._oprot.writeMessageEnd()
+    self._oprot.trans.flush()
+
+  def recv_setLogConfig(self):
+    iprot = self._iprot
+    (fname, mtype, rseqid) = iprot.readMessageBegin()
+    if mtype == TMessageType.EXCEPTION:
+      x = TApplicationException()
+      x.read(iprot)
+      iprot.readMessageEnd()
+      raise x
+    result = setLogConfig_result()
+    result.read(iprot)
+    iprot.readMessageEnd()
+    return
+
+  def getLogConfig(self, id):
+    """
+    Parameters:
+     - id
+    """
+    self.send_getLogConfig(id)
+    return self.recv_getLogConfig()
+
+  def send_getLogConfig(self, id):
+    self._oprot.writeMessageBegin('getLogConfig', TMessageType.CALL, self._seqid)
+    args = getLogConfig_args()
+    args.id = id
+    args.write(self._oprot)
+    self._oprot.writeMessageEnd()
+    self._oprot.trans.flush()
+
+  def recv_getLogConfig(self):
+    iprot = self._iprot
+    (fname, mtype, rseqid) = iprot.readMessageBegin()
+    if mtype == TMessageType.EXCEPTION:
+      x = TApplicationException()
+      x.read(iprot)
+      iprot.readMessageEnd()
+      raise x
+    result = getLogConfig_result()
+    result.read(iprot)
+    iprot.readMessageEnd()
+    if result.success is not None:
+      return result.success
+    raise TApplicationException(TApplicationException.MISSING_RESULT, "getLogConfig failed: unknown result");
 
   def uploadNewCredentials(self, name, creds):
     """
@@ -1247,6 +1333,45 @@ class Client(Iface):
       raise result.aze
     raise TApplicationException(TApplicationException.MISSING_RESULT, "getTopologyInfoWithOpts failed: unknown result");
 
+  def getTopologyPageInfo(self, id, window, is_include_sys):
+    """
+    Parameters:
+     - id
+     - window
+     - is_include_sys
+    """
+    self.send_getTopologyPageInfo(id, window, is_include_sys)
+    return self.recv_getTopologyPageInfo()
+
+  def send_getTopologyPageInfo(self, id, window, is_include_sys):
+    self._oprot.writeMessageBegin('getTopologyPageInfo', TMessageType.CALL, self._seqid)
+    args = getTopologyPageInfo_args()
+    args.id = id
+    args.window = window
+    args.is_include_sys = is_include_sys
+    args.write(self._oprot)
+    self._oprot.writeMessageEnd()
+    self._oprot.trans.flush()
+
+  def recv_getTopologyPageInfo(self):
+    iprot = self._iprot
+    (fname, mtype, rseqid) = iprot.readMessageBegin()
+    if mtype == TMessageType.EXCEPTION:
+      x = TApplicationException()
+      x.read(iprot)
+      iprot.readMessageEnd()
+      raise x
+    result = getTopologyPageInfo_result()
+    result.read(iprot)
+    iprot.readMessageEnd()
+    if result.success is not None:
+      return result.success
+    if result.e is not None:
+      raise result.e
+    if result.aze is not None:
+      raise result.aze
+    raise TApplicationException(TApplicationException.MISSING_RESULT, "getTopologyPageInfo failed: unknown result");
+
   def getTopologyConf(self, id):
     """
     Parameters:
@@ -1397,6 +1522,8 @@ class Processor(Iface, TProcessor):
     self._processMap["activate"] = Processor.process_activate
     self._processMap["deactivate"] = Processor.process_deactivate
     self._processMap["rebalance"] = Processor.process_rebalance
+    self._processMap["setLogConfig"] = Processor.process_setLogConfig
+    self._processMap["getLogConfig"] = Processor.process_getLogConfig
     self._processMap["uploadNewCredentials"] = Processor.process_uploadNewCredentials
     self._processMap["beginCreateBlob"] = Processor.process_beginCreateBlob
     self._processMap["beginUpdateBlob"] = Processor.process_beginUpdateBlob
@@ -1419,6 +1546,7 @@ class Processor(Iface, TProcessor):
     self._processMap["getClusterInfo"] = Processor.process_getClusterInfo
     self._processMap["getTopologyInfo"] = Processor.process_getTopologyInfo
     self._processMap["getTopologyInfoWithOpts"] = Processor.process_getTopologyInfoWithOpts
+    self._processMap["getTopologyPageInfo"] = Processor.process_getTopologyPageInfo
     self._processMap["getTopologyConf"] = Processor.process_getTopologyConf
     self._processMap["getTopology"] = Processor.process_getTopology
     self._processMap["getUserTopology"] = Processor.process_getUserTopology
@@ -1553,6 +1681,28 @@ class Processor(Iface, TProcessor):
     except AuthorizationException, aze:
       result.aze = aze
     oprot.writeMessageBegin("rebalance", TMessageType.REPLY, seqid)
+    result.write(oprot)
+    oprot.writeMessageEnd()
+    oprot.trans.flush()
+
+  def process_setLogConfig(self, seqid, iprot, oprot):
+    args = setLogConfig_args()
+    args.read(iprot)
+    iprot.readMessageEnd()
+    result = setLogConfig_result()
+    self._handler.setLogConfig(args.id, args.config)
+    oprot.writeMessageBegin("setLogConfig", TMessageType.REPLY, seqid)
+    result.write(oprot)
+    oprot.writeMessageEnd()
+    oprot.trans.flush()
+
+  def process_getLogConfig(self, seqid, iprot, oprot):
+    args = getLogConfig_args()
+    args.read(iprot)
+    iprot.readMessageEnd()
+    result = getLogConfig_result()
+    result.success = self._handler.getLogConfig(args.id)
+    oprot.writeMessageBegin("getLogConfig", TMessageType.REPLY, seqid)
     result.write(oprot)
     oprot.writeMessageEnd()
     oprot.trans.flush()
@@ -1878,6 +2028,22 @@ class Processor(Iface, TProcessor):
     except AuthorizationException, aze:
       result.aze = aze
     oprot.writeMessageBegin("getTopologyInfoWithOpts", TMessageType.REPLY, seqid)
+    result.write(oprot)
+    oprot.writeMessageEnd()
+    oprot.trans.flush()
+
+  def process_getTopologyPageInfo(self, seqid, iprot, oprot):
+    args = getTopologyPageInfo_args()
+    args.read(iprot)
+    iprot.readMessageEnd()
+    result = getTopologyPageInfo_result()
+    try:
+      result.success = self._handler.getTopologyPageInfo(args.id, args.window, args.is_include_sys)
+    except NotAliveException, e:
+      result.e = e
+    except AuthorizationException, aze:
+      result.aze = aze
+    oprot.writeMessageBegin("getTopologyPageInfo", TMessageType.REPLY, seqid)
     result.write(oprot)
     oprot.writeMessageEnd()
     oprot.trans.flush()
@@ -3113,6 +3279,261 @@ class rebalance_result:
     value = (value * 31) ^ hash(self.e)
     value = (value * 31) ^ hash(self.ite)
     value = (value * 31) ^ hash(self.aze)
+    return value
+
+  def __repr__(self):
+    L = ['%s=%r' % (key, value)
+      for key, value in self.__dict__.iteritems()]
+    return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+  def __eq__(self, other):
+    return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+  def __ne__(self, other):
+    return not (self == other)
+
+class setLogConfig_args:
+  """
+  Attributes:
+   - id
+   - config
+  """
+
+  thrift_spec = (
+    None, # 0
+    (1, TType.STRING, 'id', None, None, ), # 1
+    (2, TType.STRUCT, 'config', (LogConfig, LogConfig.thrift_spec), None, ), # 2
+  )
+
+  def __init__(self, id=None, config=None,):
+    self.id = id
+    self.config = config
+
+  def read(self, iprot):
+    if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
+      fastbinary.decode_binary(self, iprot.trans, (self.__class__, self.thrift_spec))
+      return
+    iprot.readStructBegin()
+    while True:
+      (fname, ftype, fid) = iprot.readFieldBegin()
+      if ftype == TType.STOP:
+        break
+      if fid == 1:
+        if ftype == TType.STRING:
+          self.id = iprot.readString().decode('utf-8')
+        else:
+          iprot.skip(ftype)
+      elif fid == 2:
+        if ftype == TType.STRUCT:
+          self.config = LogConfig()
+          self.config.read(iprot)
+        else:
+          iprot.skip(ftype)
+      else:
+        iprot.skip(ftype)
+      iprot.readFieldEnd()
+    iprot.readStructEnd()
+
+  def write(self, oprot):
+    if oprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and self.thrift_spec is not None and fastbinary is not None:
+      oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
+      return
+    oprot.writeStructBegin('setLogConfig_args')
+    if self.id is not None:
+      oprot.writeFieldBegin('id', TType.STRING, 1)
+      oprot.writeString(self.id.encode('utf-8'))
+      oprot.writeFieldEnd()
+    if self.config is not None:
+      oprot.writeFieldBegin('config', TType.STRUCT, 2)
+      self.config.write(oprot)
+      oprot.writeFieldEnd()
+    oprot.writeFieldStop()
+    oprot.writeStructEnd()
+
+  def validate(self):
+    return
+
+
+  def __hash__(self):
+    value = 17
+    value = (value * 31) ^ hash(self.id)
+    value = (value * 31) ^ hash(self.config)
+    return value
+
+  def __repr__(self):
+    L = ['%s=%r' % (key, value)
+      for key, value in self.__dict__.iteritems()]
+    return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+  def __eq__(self, other):
+    return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+  def __ne__(self, other):
+    return not (self == other)
+
+class setLogConfig_result:
+
+  thrift_spec = (
+  )
+
+  def read(self, iprot):
+    if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
+      fastbinary.decode_binary(self, iprot.trans, (self.__class__, self.thrift_spec))
+      return
+    iprot.readStructBegin()
+    while True:
+      (fname, ftype, fid) = iprot.readFieldBegin()
+      if ftype == TType.STOP:
+        break
+      else:
+        iprot.skip(ftype)
+      iprot.readFieldEnd()
+    iprot.readStructEnd()
+
+  def write(self, oprot):
+    if oprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and self.thrift_spec is not None and fastbinary is not None:
+      oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
+      return
+    oprot.writeStructBegin('setLogConfig_result')
+    oprot.writeFieldStop()
+    oprot.writeStructEnd()
+
+  def validate(self):
+    return
+
+
+  def __hash__(self):
+    value = 17
+    return value
+
+  def __repr__(self):
+    L = ['%s=%r' % (key, value)
+      for key, value in self.__dict__.iteritems()]
+    return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+  def __eq__(self, other):
+    return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+  def __ne__(self, other):
+    return not (self == other)
+
+class getLogConfig_args:
+  """
+  Attributes:
+   - id
+  """
+
+  thrift_spec = (
+    None, # 0
+    (1, TType.STRING, 'id', None, None, ), # 1
+  )
+
+  def __init__(self, id=None,):
+    self.id = id
+
+  def read(self, iprot):
+    if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
+      fastbinary.decode_binary(self, iprot.trans, (self.__class__, self.thrift_spec))
+      return
+    iprot.readStructBegin()
+    while True:
+      (fname, ftype, fid) = iprot.readFieldBegin()
+      if ftype == TType.STOP:
+        break
+      if fid == 1:
+        if ftype == TType.STRING:
+          self.id = iprot.readString().decode('utf-8')
+        else:
+          iprot.skip(ftype)
+      else:
+        iprot.skip(ftype)
+      iprot.readFieldEnd()
+    iprot.readStructEnd()
+
+  def write(self, oprot):
+    if oprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and self.thrift_spec is not None and fastbinary is not None:
+      oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
+      return
+    oprot.writeStructBegin('getLogConfig_args')
+    if self.id is not None:
+      oprot.writeFieldBegin('id', TType.STRING, 1)
+      oprot.writeString(self.id.encode('utf-8'))
+      oprot.writeFieldEnd()
+    oprot.writeFieldStop()
+    oprot.writeStructEnd()
+
+  def validate(self):
+    return
+
+
+  def __hash__(self):
+    value = 17
+    value = (value * 31) ^ hash(self.id)
+    return value
+
+  def __repr__(self):
+    L = ['%s=%r' % (key, value)
+      for key, value in self.__dict__.iteritems()]
+    return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+  def __eq__(self, other):
+    return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+  def __ne__(self, other):
+    return not (self == other)
+
+class getLogConfig_result:
+  """
+  Attributes:
+   - success
+  """
+
+  thrift_spec = (
+    (0, TType.STRUCT, 'success', (LogConfig, LogConfig.thrift_spec), None, ), # 0
+  )
+
+  def __init__(self, success=None,):
+    self.success = success
+
+  def read(self, iprot):
+    if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
+      fastbinary.decode_binary(self, iprot.trans, (self.__class__, self.thrift_spec))
+      return
+    iprot.readStructBegin()
+    while True:
+      (fname, ftype, fid) = iprot.readFieldBegin()
+      if ftype == TType.STOP:
+        break
+      if fid == 0:
+        if ftype == TType.STRUCT:
+          self.success = LogConfig()
+          self.success.read(iprot)
+        else:
+          iprot.skip(ftype)
+      else:
+        iprot.skip(ftype)
+      iprot.readFieldEnd()
+    iprot.readStructEnd()
+
+  def write(self, oprot):
+    if oprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and self.thrift_spec is not None and fastbinary is not None:
+      oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
+      return
+    oprot.writeStructBegin('getLogConfig_result')
+    if self.success is not None:
+      oprot.writeFieldBegin('success', TType.STRUCT, 0)
+      self.success.write(oprot)
+      oprot.writeFieldEnd()
+    oprot.writeFieldStop()
+    oprot.writeStructEnd()
+
+  def validate(self):
+    return
+
+
+  def __hash__(self):
+    value = 17
+    value = (value * 31) ^ hash(self.success)
     return value
 
   def __repr__(self):
@@ -6277,6 +6698,190 @@ class getTopologyInfoWithOpts_result:
       oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
       return
     oprot.writeStructBegin('getTopologyInfoWithOpts_result')
+    if self.success is not None:
+      oprot.writeFieldBegin('success', TType.STRUCT, 0)
+      self.success.write(oprot)
+      oprot.writeFieldEnd()
+    if self.e is not None:
+      oprot.writeFieldBegin('e', TType.STRUCT, 1)
+      self.e.write(oprot)
+      oprot.writeFieldEnd()
+    if self.aze is not None:
+      oprot.writeFieldBegin('aze', TType.STRUCT, 2)
+      self.aze.write(oprot)
+      oprot.writeFieldEnd()
+    oprot.writeFieldStop()
+    oprot.writeStructEnd()
+
+  def validate(self):
+    return
+
+
+  def __hash__(self):
+    value = 17
+    value = (value * 31) ^ hash(self.success)
+    value = (value * 31) ^ hash(self.e)
+    value = (value * 31) ^ hash(self.aze)
+    return value
+
+  def __repr__(self):
+    L = ['%s=%r' % (key, value)
+      for key, value in self.__dict__.iteritems()]
+    return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+  def __eq__(self, other):
+    return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+  def __ne__(self, other):
+    return not (self == other)
+
+class getTopologyPageInfo_args:
+  """
+  Attributes:
+   - id
+   - window
+   - is_include_sys
+  """
+
+  thrift_spec = (
+    None, # 0
+    (1, TType.STRING, 'id', None, None, ), # 1
+    (2, TType.STRING, 'window', None, None, ), # 2
+    (3, TType.BOOL, 'is_include_sys', None, None, ), # 3
+  )
+
+  def __init__(self, id=None, window=None, is_include_sys=None,):
+    self.id = id
+    self.window = window
+    self.is_include_sys = is_include_sys
+
+  def read(self, iprot):
+    if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
+      fastbinary.decode_binary(self, iprot.trans, (self.__class__, self.thrift_spec))
+      return
+    iprot.readStructBegin()
+    while True:
+      (fname, ftype, fid) = iprot.readFieldBegin()
+      if ftype == TType.STOP:
+        break
+      if fid == 1:
+        if ftype == TType.STRING:
+          self.id = iprot.readString().decode('utf-8')
+        else:
+          iprot.skip(ftype)
+      elif fid == 2:
+        if ftype == TType.STRING:
+          self.window = iprot.readString().decode('utf-8')
+        else:
+          iprot.skip(ftype)
+      elif fid == 3:
+        if ftype == TType.BOOL:
+          self.is_include_sys = iprot.readBool();
+        else:
+          iprot.skip(ftype)
+      else:
+        iprot.skip(ftype)
+      iprot.readFieldEnd()
+    iprot.readStructEnd()
+
+  def write(self, oprot):
+    if oprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and self.thrift_spec is not None and fastbinary is not None:
+      oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
+      return
+    oprot.writeStructBegin('getTopologyPageInfo_args')
+    if self.id is not None:
+      oprot.writeFieldBegin('id', TType.STRING, 1)
+      oprot.writeString(self.id.encode('utf-8'))
+      oprot.writeFieldEnd()
+    if self.window is not None:
+      oprot.writeFieldBegin('window', TType.STRING, 2)
+      oprot.writeString(self.window.encode('utf-8'))
+      oprot.writeFieldEnd()
+    if self.is_include_sys is not None:
+      oprot.writeFieldBegin('is_include_sys', TType.BOOL, 3)
+      oprot.writeBool(self.is_include_sys)
+      oprot.writeFieldEnd()
+    oprot.writeFieldStop()
+    oprot.writeStructEnd()
+
+  def validate(self):
+    return
+
+
+  def __hash__(self):
+    value = 17
+    value = (value * 31) ^ hash(self.id)
+    value = (value * 31) ^ hash(self.window)
+    value = (value * 31) ^ hash(self.is_include_sys)
+    return value
+
+  def __repr__(self):
+    L = ['%s=%r' % (key, value)
+      for key, value in self.__dict__.iteritems()]
+    return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+  def __eq__(self, other):
+    return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+  def __ne__(self, other):
+    return not (self == other)
+
+class getTopologyPageInfo_result:
+  """
+  Attributes:
+   - success
+   - e
+   - aze
+  """
+
+  thrift_spec = (
+    (0, TType.STRUCT, 'success', (TopologyPageInfo, TopologyPageInfo.thrift_spec), None, ), # 0
+    (1, TType.STRUCT, 'e', (NotAliveException, NotAliveException.thrift_spec), None, ), # 1
+    (2, TType.STRUCT, 'aze', (AuthorizationException, AuthorizationException.thrift_spec), None, ), # 2
+  )
+
+  def __init__(self, success=None, e=None, aze=None,):
+    self.success = success
+    self.e = e
+    self.aze = aze
+
+  def read(self, iprot):
+    if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
+      fastbinary.decode_binary(self, iprot.trans, (self.__class__, self.thrift_spec))
+      return
+    iprot.readStructBegin()
+    while True:
+      (fname, ftype, fid) = iprot.readFieldBegin()
+      if ftype == TType.STOP:
+        break
+      if fid == 0:
+        if ftype == TType.STRUCT:
+          self.success = TopologyPageInfo()
+          self.success.read(iprot)
+        else:
+          iprot.skip(ftype)
+      elif fid == 1:
+        if ftype == TType.STRUCT:
+          self.e = NotAliveException()
+          self.e.read(iprot)
+        else:
+          iprot.skip(ftype)
+      elif fid == 2:
+        if ftype == TType.STRUCT:
+          self.aze = AuthorizationException()
+          self.aze.read(iprot)
+        else:
+          iprot.skip(ftype)
+      else:
+        iprot.skip(ftype)
+      iprot.readFieldEnd()
+    iprot.readStructEnd()
+
+  def write(self, oprot):
+    if oprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and self.thrift_spec is not None and fastbinary is not None:
+      oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
+      return
+    oprot.writeStructBegin('getTopologyPageInfo_result')
     if self.success is not None:
       oprot.writeFieldBegin('success', TType.STRUCT, 0)
       self.success.write(oprot)

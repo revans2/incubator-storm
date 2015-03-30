@@ -24,7 +24,8 @@
   (:import [backtype.storm.generated AuthorizationException BeginDownloadResult
                                      GetInfoOptions NumErrorsChoice
                                      ListBlobsResult ReadableBlobMeta
-                                     SettableBlobMeta KeyNotFoundException TopologyHistoryInfo])
+                                     SettableBlobMeta KeyNotFoundException TopologyHistoryInfo
+                                     TopologyPageInfo TopologyStats LogConfig LogLevel LogLevelAction])
   (:import [backtype.storm.blobstore AtomicOutputStream
                                      BlobStore
                                      BlobStoreAclHandler
@@ -37,6 +38,8 @@
   (:use [clojure.string :only [blank?]])
   (:use [clojure.set :only [intersection]])
   (:import [org.apache.zookeeper data.ACL ZooDefs$Ids ZooDefs$Perms])
+  (:require [clj-time.core :as time])
+  (:require [clj-time.coerce :as coerce])
   (:gen-class
     :methods [^{:static true} [launch [backtype.storm.scheduler.INimbus] void]]))
 
@@ -105,6 +108,7 @@
                                                                        NIMBUS-ZK-ACLS))
      :submit-lock (Object.)
      :cred-update-lock (Object.)
+     :log-update-lock (Object.)
      :heartbeats-cache (atom {})
      :downloaders (mk-file-cache-map conf)
      :uploaders (mk-file-cache-map conf)
@@ -892,6 +896,7 @@
           (log-message "Cleaning up " id)
           (.teardown-heartbeats! storm-cluster-state id)
           (.teardown-topology-errors! storm-cluster-state id)
+          (.teardown-topology-log-config! storm-cluster-state id)
           (rm-from-blob-store id blob-store)
           (swap! (:heartbeats-cache nimbus) dissoc id))
         ))))
@@ -953,11 +958,6 @@
 (defn- get-errors [storm-cluster-state storm-id component-id]
   (->> (.errors storm-cluster-state storm-id component-id)
        (map #(ErrorInfo. (:error %) (:time-secs %)))))
-
-(defn- get-last-error
-  [storm-cluster-state storm-id component-id]
-  (if-let [e (.last-error storm-cluster-state storm-id component-id)]
-    (ErrorInfo. (:error e) (:time-secs e))))
 
 (defn- thriftify-executor-id [[first-task-id last-task-id]]
   (ExecutorInfo. (int first-task-id) (int last-task-id)))
@@ -1021,13 +1021,14 @@
     (> (.size (intersection (set groups) (set groups-to-check))) 0)))
 
 (defn read-topology-history
-  [nimbus user]
+  [nimbus user admin-users]
   (let [topo-history-state (:topo-history-state nimbus)
         curr-history (vec (.get topo-history-state NIMBUS-LS-TOPO-HISTORY))
         topo-user-can-access (fn [line user storm-conf]
                                (if (nil? user)
                                  (line :topoid)
-                                 (if (or (does-users-group-intersect? user (line :groups) storm-conf)
+                                 (if (or (some #(= % user) admin-users)
+                                       (does-users-group-intersect? user (line :groups) storm-conf)
                                        (some #(= % user) (line :users)))
                                    (line :topoid)
                                    nil)))]
@@ -1052,12 +1053,49 @@
        (InvalidTopologyException. 
         (str "Failed to submit topology. Topology requests more than " workers-allowed " workers."))))))
 
+(defn- set-logger-timeouts [log-config]
+  (let [timeout-secs (.get_reset_log_level_timeout_secs log-config)
+       timeout (time/plus (time/now) (time/secs timeout-secs))]
+   (if (time/after? timeout (time/now))
+     (.set_reset_log_level_timeout_epoch log-config (coerce/to-long timeout))
+     (.unset_reset_log_level_timeout_epoch log-config))))
+
 (defserverfn service-handler [conf inimbus]
   (.prepare inimbus conf (master-inimbus-dir conf))
   (log-message "Starting Nimbus with conf " conf)
   (let [nimbus (nimbus-data conf inimbus)
         blob-store (:blob-store nimbus)
-        principal-to-local (AuthUtils/GetPrincipalToLocalPlugin conf)]
+        principal-to-local (AuthUtils/GetPrincipalToLocalPlugin conf)
+        admin-users (or (.get conf NIMBUS-ADMINS) [])
+        get-common-topo-info
+          (fn [^String storm-id operation]
+            (let [storm-cluster-state (:storm-cluster-state nimbus)
+                  topology-conf (try-read-storm-conf conf storm-id blob-store)
+                  storm-name (topology-conf TOPOLOGY-NAME)
+                  _ (check-authorization! nimbus
+                                          storm-name
+                                          topology-conf
+                                          operation)
+                  topology (try-read-storm-topology conf storm-id blob-store)
+                  task->component (storm-task-info topology topology-conf)
+                  base (.storm-base storm-cluster-state storm-id nil)
+                  launch-time-secs (if base (:launch-time-secs base)
+                                     (throw
+                                       (NotAliveException. (str storm-id))))
+                  assignment (.assignment-info storm-cluster-state storm-id nil)
+                  beats (map-val :heartbeat (get @(:heartbeats-cache nimbus)
+                                                 storm-id))
+                  all-components (set (vals task->component))]
+              {:storm-name storm-name
+               :storm-cluster-state storm-cluster-state
+               :all-components all-components
+               :launch-time-secs launch-time-secs
+               :assignment assignment
+               :beats beats
+               :topology topology
+               :task->component task->component
+               :base base}))]
+
     (.prepare ^backtype.storm.nimbus.ITopologyValidator (:validator nimbus) conf)
     (cleanup-corrupt-topologies! nimbus)
     (doseq [storm-id (.active-storms (:storm-cluster-state nimbus))]
@@ -1208,6 +1246,31 @@
           (check-authorization! nimbus storm-name topology-conf "deactivate"))
         (transition-name! nimbus storm-name :inactivate true))
 
+      (^void setLogConfig [this ^String id ^LogConfig log-config-msg] 
+        (let [topology-conf (try-read-storm-conf conf id blob-store)
+              storm-name (topology-conf TOPOLOGY-NAME)
+              _ (check-authorization! nimbus storm-name topology-conf "setLogConfig")
+              storm-cluster-state (:storm-cluster-state nimbus)
+              merged-log-config (or (.topology-log-config storm-cluster-state id nil) (LogConfig.))
+              named-loggers (.get_named_logger_level merged-log-config)]
+            (doseq [[_ level] named-loggers]
+              (.set_action level LogLevelAction/UNCHANGED))
+            (doseq [[logger-name log-config] (.get_named_logger_level log-config-msg)]
+              (let [action (.get_action log-config)]
+                (if (clojure.string/blank? logger-name)
+                  (throw (RuntimeException. "Named loggers need a valid name. Use ROOT for the root logger")))
+                (condp = action
+                  LogLevelAction/UPDATE
+                    (do (set-logger-timeouts log-config)
+                          (.put_to_named_logger_level merged-log-config logger-name log-config))
+                  LogLevelAction/REMOVE
+                    (let [named-loggers (.get_named_logger_level merged-log-config)]
+                      (if (and (not (nil? named-loggers))
+                               (.containsKey named-loggers logger-name))
+                        (.remove named-loggers logger-name))))))
+            (log-message "Setting log config for " storm-name ":" merged-log-config)
+            (.set-topology-log-config! storm-cluster-state id merged-log-config)))
+  
       (uploadNewCredentials [this storm-name credentials]
         (let [storm-cluster-state (:storm-cluster-state nimbus)
               storm-id (get-storm-id storm-cluster-state storm-name)
@@ -1278,6 +1341,13 @@
       (^String getSchedulerConf [this]
        (check-authorization! nimbus nil nil "getSchedulerConf")
        (to-json (.config (:scheduler nimbus))))
+      (^LogConfig getLogConfig [this ^String id]
+        (let [topology-conf (try-read-storm-conf conf id blob-store)
+              storm-name (topology-conf TOPOLOGY-NAME)
+              _ (check-authorization! nimbus storm-name topology-conf "getLogConfig")
+             storm-cluster-state (:storm-cluster-state nimbus)
+             log-config (.topology-log-config storm-cluster-state id nil)]
+           (if log-config log-config (LogConfig.))))
 
       (^String getTopologyConf [this ^String id]
         (let [topology-conf (try-read-storm-conf conf id blob-store)
@@ -1341,24 +1411,21 @@
           ))
       
       (^TopologyInfo getTopologyInfoWithOpts [this ^String storm-id ^GetInfoOptions options]
-        (let [storm-cluster-state (:storm-cluster-state nimbus)
-              topology-conf (try-read-storm-conf conf storm-id blob-store)
-              storm-name (topology-conf TOPOLOGY-NAME)
-              _ (check-authorization! nimbus storm-name topology-conf "getTopologyInfo")
-              topology (try-read-storm-topology conf storm-id blob-store)
-              task->component (storm-task-info topology topology-conf)
-              base (.storm-base storm-cluster-state storm-id nil)
-              launch-time-secs (if base (:launch-time-secs base) (throw (NotAliveException. (str storm-id))))
-              assignment (.assignment-info storm-cluster-state storm-id nil)
-              beats (map-val :heartbeat (get @(:heartbeats-cache nimbus) storm-id))
-              all-components (-> task->component reverse-map keys)
+        (let [{:keys [storm-name
+                      storm-cluster-state
+                      all-components
+                      launch-time-secs
+                      assignment
+                      beats
+                      task->component
+                      base]} (get-common-topo-info storm-id "getTopologyInfo")
               num-err-choice (or (.get_num_err_choice options)
                                  NumErrorsChoice/ALL)
               errors-fn (condp = num-err-choice
                           NumErrorsChoice/NONE (fn [& _] ()) ;; empty list only
                           NumErrorsChoice/ONE (comp #(remove nil? %)
                                                     list
-                                                    get-last-error)
+                                                    stats/get-last-error)
                           NumErrorsChoice/ALL get-errors
                           ;; Default
                           (do
@@ -1399,6 +1466,65 @@
         (.getTopologyInfoWithOpts this
                                   storm-id
                                   (doto (GetInfoOptions.) (.set_num_err_choice NumErrorsChoice/ALL))))
+
+      (^TopologyPageInfo getTopologyPageInfo
+        [this ^String storm-id ^String window ^boolean include-sys?]
+        (let [{:keys [storm-name
+                      storm-cluster-state
+                      launch-time-secs
+                      assignment
+                      beats
+                      topology
+                      task->component
+                      base]} (get-common-topo-info storm-id "getTopologyPageInfo")
+              exec->node+port (:executor->node+port assignment)
+              last-err-fn (partial stats/get-last-error storm-cluster-state
+                                                        storm-id)
+              {:keys
+               [num-tasks
+                num-workers
+                num-executors
+                spout-id->stats
+                bolt-id->stats
+                window->emitted
+                window->transferred
+                window->complete-latency
+                window->acked
+                window->failed]} (stats/agg-executors-stats exec->node+port
+                                                            task->component
+                                                            beats
+                                                            topology
+                                                            window
+                                                            include-sys?
+                                                            last-err-fn)
+              spout-agg-stats (for [[id m] spout-id->stats]
+                                (stats/thriftify-spout-agg-stats id m))
+              bolt-agg-stats (for [[id m] bolt-id->stats]
+                               (stats/thriftify-bolt-agg-stats id m))
+              topology-stats
+                (doto (TopologyStats.)
+                  (.set_emitted window->emitted)
+                  (.set_transferred window->transferred)
+                  (.set_complete_latencies window->complete-latency)
+                  (.set_acked window->acked)
+                  (.set_failed window->failed))
+              topology-conf (to-json
+                              (try-read-storm-conf conf storm-id blob-store))
+              topo-page-info (doto (TopologyPageInfo. storm-id)
+                               (.set_name storm-name)
+                               (.set_uptime_secs (time-delta launch-time-secs))
+                               (.set_status (extract-status-str base))
+                               (.set_num_tasks num-tasks)
+                               (.set_num_workers num-workers)
+                               (.set_num_executors num-executors)
+                               (.set_topology_conf topology-conf)
+                               (.set_spout_agg_stats spout-agg-stats)
+                               (.set_bolt_agg_stats bolt-agg-stats)
+                               (.set_topology_stats topology-stats))]
+            (when-let [owner (:owner base)] (.set_owner topo-page-info owner))
+            (when-let [sched-status (.get @(:id->sched-status nimbus) storm-id)]
+              (.set_sched_status topo-page-info sched-status))
+            topo-page-info))
 
       (^String beginCreateBlob [this
                                 ^String blob-key
@@ -1549,10 +1675,11 @@
                                     (let [topology-conf (try-read-storm-conf conf topo-id (:blob-store nimbus))
                                           groups (get-topo-logs-groups topology-conf)]
                                       (or (nil? user)
+                                          (some #(= % user) admin-users)
                                           (does-users-group-intersect? user groups conf)
                                           (some #(= % user) (get-topo-logs-users topology-conf)))))
               active-ids-for-user (filter #(user-group-match-fn % user (:conf nimbus)) assigned-topology-ids)
-              topo-history-list (read-topology-history nimbus user)]
+              topo-history-list (read-topology-history nimbus user admin-users)]
           (TopologyHistoryInfo. (distinct (concat active-ids-for-user topo-history-list)))))
 
       Shutdownable

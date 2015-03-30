@@ -92,24 +92,6 @@
       )]
    ])
 
-(defn float-str [n]
-  (if n
-    (format "%.3f" (float n))
-    "0"
-    ))
-
-(defn swap-map-order [m]
-  (->> m
-       (map (fn [[k v]]
-              (into
-               {}
-               (for [[k2 v2] v]
-                 [k2 {k v2}]
-                 ))
-              ))
-       (apply merge-with merge)
-       ))
-
 (defn date-str [secs]
   (let [dt (from-long (* 1000 (long secs)))]
     (unparse (:rfc822 formatters) dt)
@@ -124,12 +106,6 @@
         end (.get_task_end e)]
     (range start (inc end))
     ))
-
-(defn sum-tasks [executors]
-  (reduce + (->> executors
-                 (map #(.get_executor_info ^ExecutorSummary %))
-                 (map to-tasks)
-                 (map count))))
 
 (defn pretty-executor-info [^ExecutorInfo e]
   (str "[" (.get_task_start e) "-" (.get_task_end e) "]"))

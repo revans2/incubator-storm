@@ -80,8 +80,11 @@
   (setup-heartbeats! [this storm-id])
   (teardown-heartbeats! [this storm-id])
   (teardown-topology-errors! [this storm-id])
+  (teardown-topology-log-config! [this storm-id])
   (heartbeat-storms [this])
   (error-topologies [this])
+  (set-topology-log-config! [this storm-id log-config])
+  (topology-log-config [this storm-id cb])
   (worker-heartbeat! [this storm-id node port info])
   (remove-worker-heartbeat! [this storm-id node port])
   (supervisor-heartbeat! [this supervisor-id info])
@@ -104,6 +107,7 @@
 (def WORKERBEATS-ROOT "workerbeats")
 (def ERRORS-ROOT "errors")
 (def CREDENTIALS-ROOT "credentials")
+(def LOGCONFIG-ROOT "logconfigs")
 
 (def ASSIGNMENTS-SUBTREE (str "/" ASSIGNMENTS-ROOT))
 (def STORMS-SUBTREE (str "/" STORMS-ROOT))
@@ -111,6 +115,7 @@
 (def WORKERBEATS-SUBTREE (str "/" WORKERBEATS-ROOT))
 (def ERRORS-SUBTREE (str "/" ERRORS-ROOT))
 (def CREDENTIALS-SUBTREE (str "/" CREDENTIALS-ROOT))
+(def LOGCONFIG-SUBTREE (str "/" LOGCONFIG-ROOT))
 
 (defn supervisor-path
   [id]
@@ -153,6 +158,10 @@
 (defn credentials-path
   [storm-id]
   (str CREDENTIALS-SUBTREE "/" storm-id))
+
+(defn log-config-path
+  [storm-id]
+  (str LOGCONFIG-SUBTREE "/" storm-id)) 
 
 (defn- issue-callback!
   [cb-atom]
@@ -205,6 +214,7 @@
         assignments-callback (atom nil)
         storm-base-callback (atom {})
         credentials-callback (atom {})
+        log-config-callback (atom {})
         state-id (register
                   cluster-state
                   (fn [type path]
@@ -216,9 +226,11 @@
                          SUPERVISORS-ROOT (issue-callback! supervisors-callback)
                          STORMS-ROOT (issue-map-callback! storm-base-callback (first args))
                          CREDENTIALS-ROOT (issue-map-callback! credentials-callback (first args))
+                         LOGCONFIG-ROOT (issue-map-callback! log-config-callback (first args))
                          ;; this should never happen
                          (halt-process! 30 "Unknown callback for subtree " subtree args)))))]
-    (doseq [p [ASSIGNMENTS-SUBTREE STORMS-SUBTREE SUPERVISORS-SUBTREE WORKERBEATS-SUBTREE ERRORS-SUBTREE]]
+    (doseq [p [ASSIGNMENTS-SUBTREE STORMS-SUBTREE SUPERVISORS-SUBTREE WORKERBEATS-SUBTREE ERRORS-SUBTREE
+               LOGCONFIG-SUBTREE]]
       (mkdirs cluster-state p acls))
     (reify
       StormClusterState
@@ -291,6 +303,16 @@
         [this supervisor-id]
         (maybe-deserialize (get-data cluster-state (supervisor-path supervisor-id) false)))
 
+      (topology-log-config
+        [this storm-id cb]
+        (when cb 
+          (swap! log-config-callback assoc storm-id cb))
+        (maybe-deserialize (get-data cluster-state (log-config-path storm-id) (not-nil? cb))))
+
+      (set-topology-log-config!
+        [this storm-id log-config]
+        (set-data cluster-state (log-config-path storm-id) (Utils/serialize log-config) acls))
+
       (worker-heartbeat!
         [this storm-id node port info]
         (set-worker-hb cluster-state (workerbeat-path storm-id node port) (Utils/serialize info) acls))
@@ -316,6 +338,13 @@
           (delete-node cluster-state (error-storm-root storm-id))
           (catch KeeperException e
             (log-warn-error e "Could not teardown errors for " storm-id))))
+
+      (teardown-topology-log-config!
+        [this storm-id]
+        (try-cause
+          (delete-node cluster-state (log-config-path storm-id))
+          (catch KeeperException e
+            (log-warn-error e "Could not teardown log configs for " storm-id))))
 
       (supervisor-heartbeat!
         [this supervisor-id info]
@@ -369,7 +398,7 @@
         (maybe-deserialize (get-data cluster-state (credentials-path storm-id) (not-nil? callback))))
 
       (report-error
-         [this storm-id component-id error]                
+         [this storm-id component-id error]
          (let [path (error-path storm-id component-id)
                last-error-path (last-error-path storm-id component-id)
                data {:time-secs (current-time-secs) :error (stringify-error error)}

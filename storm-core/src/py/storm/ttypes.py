@@ -77,6 +77,23 @@ class NumErrorsChoice:
     "ONE": 2,
   }
 
+class LogLevelAction:
+  UNCHANGED = 1
+  UPDATE = 2
+  REMOVE = 3
+
+  _VALUES_TO_NAMES = {
+    1: "UNCHANGED",
+    2: "UPDATE",
+    3: "REMOVE",
+  }
+
+  _NAMES_TO_VALUES = {
+    "UNCHANGED": 1,
+    "UPDATE": 2,
+    "REMOVE": 3,
+  }
+
 class HBServerMessageType:
   CREATE_PATH = 0
   CREATE_PATH_RESPONSE = 1
@@ -4393,6 +4410,2843 @@ class TopologyInfo:
   def __ne__(self, other):
     return not (self == other)
 
+class SpoutAggregateStats:
+  """
+  Attributes:
+   - id
+   - num_executors
+   - num_tasks
+   - num_emitted
+   - num_transferred
+   - num_acked
+   - num_failed
+   - last_error
+   - complete_latency
+  """
+
+  thrift_spec = (
+    None, # 0
+    (1, TType.STRING, 'id', None, None, ), # 1
+    None, # 2
+    None, # 3
+    None, # 4
+    None, # 5
+    None, # 6
+    None, # 7
+    None, # 8
+    None, # 9
+    None, # 10
+    None, # 11
+    None, # 12
+    None, # 13
+    None, # 14
+    None, # 15
+    None, # 16
+    None, # 17
+    None, # 18
+    None, # 19
+    None, # 20
+    None, # 21
+    None, # 22
+    None, # 23
+    None, # 24
+    None, # 25
+    None, # 26
+    None, # 27
+    None, # 28
+    None, # 29
+    None, # 30
+    None, # 31
+    None, # 32
+    None, # 33
+    None, # 34
+    None, # 35
+    None, # 36
+    None, # 37
+    None, # 38
+    None, # 39
+    None, # 40
+    None, # 41
+    None, # 42
+    None, # 43
+    None, # 44
+    None, # 45
+    None, # 46
+    None, # 47
+    None, # 48
+    None, # 49
+    None, # 50
+    None, # 51
+    None, # 52
+    None, # 53
+    None, # 54
+    None, # 55
+    None, # 56
+    None, # 57
+    None, # 58
+    None, # 59
+    None, # 60
+    None, # 61
+    None, # 62
+    None, # 63
+    None, # 64
+    None, # 65
+    None, # 66
+    None, # 67
+    None, # 68
+    None, # 69
+    None, # 70
+    None, # 71
+    None, # 72
+    None, # 73
+    None, # 74
+    None, # 75
+    None, # 76
+    None, # 77
+    None, # 78
+    None, # 79
+    None, # 80
+    None, # 81
+    None, # 82
+    None, # 83
+    None, # 84
+    None, # 85
+    None, # 86
+    None, # 87
+    None, # 88
+    None, # 89
+    None, # 90
+    None, # 91
+    None, # 92
+    None, # 93
+    None, # 94
+    None, # 95
+    None, # 96
+    None, # 97
+    None, # 98
+    None, # 99
+    None, # 100
+    None, # 101
+    None, # 102
+    None, # 103
+    None, # 104
+    None, # 105
+    None, # 106
+    None, # 107
+    None, # 108
+    None, # 109
+    None, # 110
+    None, # 111
+    None, # 112
+    None, # 113
+    None, # 114
+    None, # 115
+    None, # 116
+    None, # 117
+    None, # 118
+    None, # 119
+    None, # 120
+    None, # 121
+    None, # 122
+    None, # 123
+    None, # 124
+    None, # 125
+    None, # 126
+    None, # 127
+    None, # 128
+    None, # 129
+    None, # 130
+    None, # 131
+    None, # 132
+    None, # 133
+    None, # 134
+    None, # 135
+    None, # 136
+    None, # 137
+    None, # 138
+    None, # 139
+    None, # 140
+    None, # 141
+    None, # 142
+    None, # 143
+    None, # 144
+    None, # 145
+    None, # 146
+    None, # 147
+    None, # 148
+    None, # 149
+    None, # 150
+    None, # 151
+    None, # 152
+    None, # 153
+    None, # 154
+    None, # 155
+    None, # 156
+    None, # 157
+    None, # 158
+    None, # 159
+    None, # 160
+    None, # 161
+    None, # 162
+    None, # 163
+    None, # 164
+    None, # 165
+    None, # 166
+    None, # 167
+    None, # 168
+    None, # 169
+    None, # 170
+    None, # 171
+    None, # 172
+    None, # 173
+    None, # 174
+    None, # 175
+    None, # 176
+    None, # 177
+    None, # 178
+    None, # 179
+    None, # 180
+    None, # 181
+    None, # 182
+    None, # 183
+    None, # 184
+    None, # 185
+    None, # 186
+    None, # 187
+    None, # 188
+    None, # 189
+    None, # 190
+    None, # 191
+    None, # 192
+    None, # 193
+    None, # 194
+    None, # 195
+    None, # 196
+    None, # 197
+    None, # 198
+    None, # 199
+    None, # 200
+    None, # 201
+    None, # 202
+    None, # 203
+    None, # 204
+    None, # 205
+    None, # 206
+    None, # 207
+    None, # 208
+    None, # 209
+    None, # 210
+    None, # 211
+    None, # 212
+    None, # 213
+    None, # 214
+    None, # 215
+    None, # 216
+    None, # 217
+    None, # 218
+    None, # 219
+    None, # 220
+    None, # 221
+    None, # 222
+    None, # 223
+    None, # 224
+    None, # 225
+    None, # 226
+    None, # 227
+    None, # 228
+    None, # 229
+    None, # 230
+    None, # 231
+    None, # 232
+    None, # 233
+    None, # 234
+    None, # 235
+    None, # 236
+    None, # 237
+    None, # 238
+    None, # 239
+    None, # 240
+    None, # 241
+    None, # 242
+    None, # 243
+    None, # 244
+    None, # 245
+    None, # 246
+    None, # 247
+    None, # 248
+    None, # 249
+    None, # 250
+    None, # 251
+    None, # 252
+    None, # 253
+    None, # 254
+    None, # 255
+    None, # 256
+    None, # 257
+    None, # 258
+    None, # 259
+    None, # 260
+    None, # 261
+    None, # 262
+    None, # 263
+    None, # 264
+    None, # 265
+    None, # 266
+    None, # 267
+    None, # 268
+    None, # 269
+    None, # 270
+    None, # 271
+    None, # 272
+    None, # 273
+    None, # 274
+    None, # 275
+    None, # 276
+    None, # 277
+    None, # 278
+    None, # 279
+    None, # 280
+    None, # 281
+    None, # 282
+    None, # 283
+    None, # 284
+    None, # 285
+    None, # 286
+    None, # 287
+    None, # 288
+    None, # 289
+    None, # 290
+    None, # 291
+    None, # 292
+    None, # 293
+    None, # 294
+    None, # 295
+    None, # 296
+    None, # 297
+    None, # 298
+    None, # 299
+    None, # 300
+    None, # 301
+    None, # 302
+    None, # 303
+    None, # 304
+    None, # 305
+    None, # 306
+    None, # 307
+    None, # 308
+    None, # 309
+    None, # 310
+    None, # 311
+    None, # 312
+    None, # 313
+    None, # 314
+    None, # 315
+    None, # 316
+    None, # 317
+    None, # 318
+    None, # 319
+    None, # 320
+    None, # 321
+    None, # 322
+    None, # 323
+    None, # 324
+    None, # 325
+    None, # 326
+    None, # 327
+    None, # 328
+    None, # 329
+    None, # 330
+    None, # 331
+    None, # 332
+    None, # 333
+    None, # 334
+    None, # 335
+    None, # 336
+    None, # 337
+    None, # 338
+    None, # 339
+    None, # 340
+    None, # 341
+    None, # 342
+    None, # 343
+    None, # 344
+    None, # 345
+    None, # 346
+    None, # 347
+    None, # 348
+    None, # 349
+    None, # 350
+    None, # 351
+    None, # 352
+    None, # 353
+    None, # 354
+    None, # 355
+    None, # 356
+    None, # 357
+    None, # 358
+    None, # 359
+    None, # 360
+    None, # 361
+    None, # 362
+    None, # 363
+    None, # 364
+    None, # 365
+    None, # 366
+    None, # 367
+    None, # 368
+    None, # 369
+    None, # 370
+    None, # 371
+    None, # 372
+    None, # 373
+    None, # 374
+    None, # 375
+    None, # 376
+    None, # 377
+    None, # 378
+    None, # 379
+    None, # 380
+    None, # 381
+    None, # 382
+    None, # 383
+    None, # 384
+    None, # 385
+    None, # 386
+    None, # 387
+    None, # 388
+    None, # 389
+    None, # 390
+    None, # 391
+    None, # 392
+    None, # 393
+    None, # 394
+    None, # 395
+    None, # 396
+    None, # 397
+    None, # 398
+    None, # 399
+    None, # 400
+    None, # 401
+    None, # 402
+    None, # 403
+    None, # 404
+    None, # 405
+    None, # 406
+    None, # 407
+    None, # 408
+    None, # 409
+    None, # 410
+    None, # 411
+    None, # 412
+    None, # 413
+    None, # 414
+    None, # 415
+    None, # 416
+    None, # 417
+    None, # 418
+    None, # 419
+    None, # 420
+    None, # 421
+    None, # 422
+    None, # 423
+    None, # 424
+    None, # 425
+    None, # 426
+    None, # 427
+    None, # 428
+    None, # 429
+    None, # 430
+    None, # 431
+    None, # 432
+    None, # 433
+    None, # 434
+    None, # 435
+    None, # 436
+    None, # 437
+    None, # 438
+    None, # 439
+    None, # 440
+    None, # 441
+    None, # 442
+    None, # 443
+    None, # 444
+    None, # 445
+    None, # 446
+    None, # 447
+    None, # 448
+    None, # 449
+    None, # 450
+    None, # 451
+    None, # 452
+    None, # 453
+    None, # 454
+    None, # 455
+    None, # 456
+    None, # 457
+    None, # 458
+    None, # 459
+    None, # 460
+    None, # 461
+    None, # 462
+    None, # 463
+    None, # 464
+    None, # 465
+    None, # 466
+    None, # 467
+    None, # 468
+    None, # 469
+    None, # 470
+    None, # 471
+    None, # 472
+    None, # 473
+    None, # 474
+    None, # 475
+    None, # 476
+    None, # 477
+    None, # 478
+    None, # 479
+    None, # 480
+    None, # 481
+    None, # 482
+    None, # 483
+    None, # 484
+    None, # 485
+    None, # 486
+    None, # 487
+    None, # 488
+    None, # 489
+    None, # 490
+    None, # 491
+    None, # 492
+    None, # 493
+    None, # 494
+    None, # 495
+    None, # 496
+    None, # 497
+    None, # 498
+    None, # 499
+    None, # 500
+    None, # 501
+    None, # 502
+    None, # 503
+    None, # 504
+    None, # 505
+    None, # 506
+    None, # 507
+    None, # 508
+    None, # 509
+    None, # 510
+    None, # 511
+    None, # 512
+    (513, TType.I32, 'num_executors', None, None, ), # 513
+    (514, TType.I32, 'num_tasks', None, None, ), # 514
+    (515, TType.I64, 'num_emitted', None, None, ), # 515
+    (516, TType.I64, 'num_transferred', None, None, ), # 516
+    (517, TType.I64, 'num_acked', None, None, ), # 517
+    (518, TType.I64, 'num_failed', None, None, ), # 518
+    (519, TType.STRUCT, 'last_error', (ErrorInfo, ErrorInfo.thrift_spec), None, ), # 519
+    (520, TType.DOUBLE, 'complete_latency', None, None, ), # 520
+  )
+
+  def __init__(self, id=None, num_executors=None, num_tasks=None, num_emitted=None, num_transferred=None, num_acked=None, num_failed=None, last_error=None, complete_latency=None,):
+    self.id = id
+    self.num_executors = num_executors
+    self.num_tasks = num_tasks
+    self.num_emitted = num_emitted
+    self.num_transferred = num_transferred
+    self.num_acked = num_acked
+    self.num_failed = num_failed
+    self.last_error = last_error
+    self.complete_latency = complete_latency
+
+  def read(self, iprot):
+    if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
+      fastbinary.decode_binary(self, iprot.trans, (self.__class__, self.thrift_spec))
+      return
+    iprot.readStructBegin()
+    while True:
+      (fname, ftype, fid) = iprot.readFieldBegin()
+      if ftype == TType.STOP:
+        break
+      if fid == 1:
+        if ftype == TType.STRING:
+          self.id = iprot.readString().decode('utf-8')
+        else:
+          iprot.skip(ftype)
+      elif fid == 513:
+        if ftype == TType.I32:
+          self.num_executors = iprot.readI32();
+        else:
+          iprot.skip(ftype)
+      elif fid == 514:
+        if ftype == TType.I32:
+          self.num_tasks = iprot.readI32();
+        else:
+          iprot.skip(ftype)
+      elif fid == 515:
+        if ftype == TType.I64:
+          self.num_emitted = iprot.readI64();
+        else:
+          iprot.skip(ftype)
+      elif fid == 516:
+        if ftype == TType.I64:
+          self.num_transferred = iprot.readI64();
+        else:
+          iprot.skip(ftype)
+      elif fid == 517:
+        if ftype == TType.I64:
+          self.num_acked = iprot.readI64();
+        else:
+          iprot.skip(ftype)
+      elif fid == 518:
+        if ftype == TType.I64:
+          self.num_failed = iprot.readI64();
+        else:
+          iprot.skip(ftype)
+      elif fid == 519:
+        if ftype == TType.STRUCT:
+          self.last_error = ErrorInfo()
+          self.last_error.read(iprot)
+        else:
+          iprot.skip(ftype)
+      elif fid == 520:
+        if ftype == TType.DOUBLE:
+          self.complete_latency = iprot.readDouble();
+        else:
+          iprot.skip(ftype)
+      else:
+        iprot.skip(ftype)
+      iprot.readFieldEnd()
+    iprot.readStructEnd()
+
+  def write(self, oprot):
+    if oprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and self.thrift_spec is not None and fastbinary is not None:
+      oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
+      return
+    oprot.writeStructBegin('SpoutAggregateStats')
+    if self.id is not None:
+      oprot.writeFieldBegin('id', TType.STRING, 1)
+      oprot.writeString(self.id.encode('utf-8'))
+      oprot.writeFieldEnd()
+    if self.num_executors is not None:
+      oprot.writeFieldBegin('num_executors', TType.I32, 513)
+      oprot.writeI32(self.num_executors)
+      oprot.writeFieldEnd()
+    if self.num_tasks is not None:
+      oprot.writeFieldBegin('num_tasks', TType.I32, 514)
+      oprot.writeI32(self.num_tasks)
+      oprot.writeFieldEnd()
+    if self.num_emitted is not None:
+      oprot.writeFieldBegin('num_emitted', TType.I64, 515)
+      oprot.writeI64(self.num_emitted)
+      oprot.writeFieldEnd()
+    if self.num_transferred is not None:
+      oprot.writeFieldBegin('num_transferred', TType.I64, 516)
+      oprot.writeI64(self.num_transferred)
+      oprot.writeFieldEnd()
+    if self.num_acked is not None:
+      oprot.writeFieldBegin('num_acked', TType.I64, 517)
+      oprot.writeI64(self.num_acked)
+      oprot.writeFieldEnd()
+    if self.num_failed is not None:
+      oprot.writeFieldBegin('num_failed', TType.I64, 518)
+      oprot.writeI64(self.num_failed)
+      oprot.writeFieldEnd()
+    if self.last_error is not None:
+      oprot.writeFieldBegin('last_error', TType.STRUCT, 519)
+      self.last_error.write(oprot)
+      oprot.writeFieldEnd()
+    if self.complete_latency is not None:
+      oprot.writeFieldBegin('complete_latency', TType.DOUBLE, 520)
+      oprot.writeDouble(self.complete_latency)
+      oprot.writeFieldEnd()
+    oprot.writeFieldStop()
+    oprot.writeStructEnd()
+
+  def validate(self):
+    if self.id is None:
+      raise TProtocol.TProtocolException(message='Required field id is unset!')
+    return
+
+
+  def __hash__(self):
+    value = 17
+    value = (value * 31) ^ hash(self.id)
+    value = (value * 31) ^ hash(self.num_executors)
+    value = (value * 31) ^ hash(self.num_tasks)
+    value = (value * 31) ^ hash(self.num_emitted)
+    value = (value * 31) ^ hash(self.num_transferred)
+    value = (value * 31) ^ hash(self.num_acked)
+    value = (value * 31) ^ hash(self.num_failed)
+    value = (value * 31) ^ hash(self.last_error)
+    value = (value * 31) ^ hash(self.complete_latency)
+    return value
+
+  def __repr__(self):
+    L = ['%s=%r' % (key, value)
+      for key, value in self.__dict__.iteritems()]
+    return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+  def __eq__(self, other):
+    return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+  def __ne__(self, other):
+    return not (self == other)
+
+class BoltAggregateStats:
+  """
+  Attributes:
+   - id
+   - num_executors
+   - num_tasks
+   - num_emitted
+   - num_transferred
+   - num_acked
+   - num_failed
+   - last_error
+   - execute_latency
+   - process_latency
+   - num_executed
+   - capacity
+  """
+
+  thrift_spec = (
+    None, # 0
+    (1, TType.STRING, 'id', None, None, ), # 1
+    None, # 2
+    None, # 3
+    None, # 4
+    None, # 5
+    None, # 6
+    None, # 7
+    None, # 8
+    None, # 9
+    None, # 10
+    None, # 11
+    None, # 12
+    None, # 13
+    None, # 14
+    None, # 15
+    None, # 16
+    None, # 17
+    None, # 18
+    None, # 19
+    None, # 20
+    None, # 21
+    None, # 22
+    None, # 23
+    None, # 24
+    None, # 25
+    None, # 26
+    None, # 27
+    None, # 28
+    None, # 29
+    None, # 30
+    None, # 31
+    None, # 32
+    None, # 33
+    None, # 34
+    None, # 35
+    None, # 36
+    None, # 37
+    None, # 38
+    None, # 39
+    None, # 40
+    None, # 41
+    None, # 42
+    None, # 43
+    None, # 44
+    None, # 45
+    None, # 46
+    None, # 47
+    None, # 48
+    None, # 49
+    None, # 50
+    None, # 51
+    None, # 52
+    None, # 53
+    None, # 54
+    None, # 55
+    None, # 56
+    None, # 57
+    None, # 58
+    None, # 59
+    None, # 60
+    None, # 61
+    None, # 62
+    None, # 63
+    None, # 64
+    None, # 65
+    None, # 66
+    None, # 67
+    None, # 68
+    None, # 69
+    None, # 70
+    None, # 71
+    None, # 72
+    None, # 73
+    None, # 74
+    None, # 75
+    None, # 76
+    None, # 77
+    None, # 78
+    None, # 79
+    None, # 80
+    None, # 81
+    None, # 82
+    None, # 83
+    None, # 84
+    None, # 85
+    None, # 86
+    None, # 87
+    None, # 88
+    None, # 89
+    None, # 90
+    None, # 91
+    None, # 92
+    None, # 93
+    None, # 94
+    None, # 95
+    None, # 96
+    None, # 97
+    None, # 98
+    None, # 99
+    None, # 100
+    None, # 101
+    None, # 102
+    None, # 103
+    None, # 104
+    None, # 105
+    None, # 106
+    None, # 107
+    None, # 108
+    None, # 109
+    None, # 110
+    None, # 111
+    None, # 112
+    None, # 113
+    None, # 114
+    None, # 115
+    None, # 116
+    None, # 117
+    None, # 118
+    None, # 119
+    None, # 120
+    None, # 121
+    None, # 122
+    None, # 123
+    None, # 124
+    None, # 125
+    None, # 126
+    None, # 127
+    None, # 128
+    None, # 129
+    None, # 130
+    None, # 131
+    None, # 132
+    None, # 133
+    None, # 134
+    None, # 135
+    None, # 136
+    None, # 137
+    None, # 138
+    None, # 139
+    None, # 140
+    None, # 141
+    None, # 142
+    None, # 143
+    None, # 144
+    None, # 145
+    None, # 146
+    None, # 147
+    None, # 148
+    None, # 149
+    None, # 150
+    None, # 151
+    None, # 152
+    None, # 153
+    None, # 154
+    None, # 155
+    None, # 156
+    None, # 157
+    None, # 158
+    None, # 159
+    None, # 160
+    None, # 161
+    None, # 162
+    None, # 163
+    None, # 164
+    None, # 165
+    None, # 166
+    None, # 167
+    None, # 168
+    None, # 169
+    None, # 170
+    None, # 171
+    None, # 172
+    None, # 173
+    None, # 174
+    None, # 175
+    None, # 176
+    None, # 177
+    None, # 178
+    None, # 179
+    None, # 180
+    None, # 181
+    None, # 182
+    None, # 183
+    None, # 184
+    None, # 185
+    None, # 186
+    None, # 187
+    None, # 188
+    None, # 189
+    None, # 190
+    None, # 191
+    None, # 192
+    None, # 193
+    None, # 194
+    None, # 195
+    None, # 196
+    None, # 197
+    None, # 198
+    None, # 199
+    None, # 200
+    None, # 201
+    None, # 202
+    None, # 203
+    None, # 204
+    None, # 205
+    None, # 206
+    None, # 207
+    None, # 208
+    None, # 209
+    None, # 210
+    None, # 211
+    None, # 212
+    None, # 213
+    None, # 214
+    None, # 215
+    None, # 216
+    None, # 217
+    None, # 218
+    None, # 219
+    None, # 220
+    None, # 221
+    None, # 222
+    None, # 223
+    None, # 224
+    None, # 225
+    None, # 226
+    None, # 227
+    None, # 228
+    None, # 229
+    None, # 230
+    None, # 231
+    None, # 232
+    None, # 233
+    None, # 234
+    None, # 235
+    None, # 236
+    None, # 237
+    None, # 238
+    None, # 239
+    None, # 240
+    None, # 241
+    None, # 242
+    None, # 243
+    None, # 244
+    None, # 245
+    None, # 246
+    None, # 247
+    None, # 248
+    None, # 249
+    None, # 250
+    None, # 251
+    None, # 252
+    None, # 253
+    None, # 254
+    None, # 255
+    None, # 256
+    None, # 257
+    None, # 258
+    None, # 259
+    None, # 260
+    None, # 261
+    None, # 262
+    None, # 263
+    None, # 264
+    None, # 265
+    None, # 266
+    None, # 267
+    None, # 268
+    None, # 269
+    None, # 270
+    None, # 271
+    None, # 272
+    None, # 273
+    None, # 274
+    None, # 275
+    None, # 276
+    None, # 277
+    None, # 278
+    None, # 279
+    None, # 280
+    None, # 281
+    None, # 282
+    None, # 283
+    None, # 284
+    None, # 285
+    None, # 286
+    None, # 287
+    None, # 288
+    None, # 289
+    None, # 290
+    None, # 291
+    None, # 292
+    None, # 293
+    None, # 294
+    None, # 295
+    None, # 296
+    None, # 297
+    None, # 298
+    None, # 299
+    None, # 300
+    None, # 301
+    None, # 302
+    None, # 303
+    None, # 304
+    None, # 305
+    None, # 306
+    None, # 307
+    None, # 308
+    None, # 309
+    None, # 310
+    None, # 311
+    None, # 312
+    None, # 313
+    None, # 314
+    None, # 315
+    None, # 316
+    None, # 317
+    None, # 318
+    None, # 319
+    None, # 320
+    None, # 321
+    None, # 322
+    None, # 323
+    None, # 324
+    None, # 325
+    None, # 326
+    None, # 327
+    None, # 328
+    None, # 329
+    None, # 330
+    None, # 331
+    None, # 332
+    None, # 333
+    None, # 334
+    None, # 335
+    None, # 336
+    None, # 337
+    None, # 338
+    None, # 339
+    None, # 340
+    None, # 341
+    None, # 342
+    None, # 343
+    None, # 344
+    None, # 345
+    None, # 346
+    None, # 347
+    None, # 348
+    None, # 349
+    None, # 350
+    None, # 351
+    None, # 352
+    None, # 353
+    None, # 354
+    None, # 355
+    None, # 356
+    None, # 357
+    None, # 358
+    None, # 359
+    None, # 360
+    None, # 361
+    None, # 362
+    None, # 363
+    None, # 364
+    None, # 365
+    None, # 366
+    None, # 367
+    None, # 368
+    None, # 369
+    None, # 370
+    None, # 371
+    None, # 372
+    None, # 373
+    None, # 374
+    None, # 375
+    None, # 376
+    None, # 377
+    None, # 378
+    None, # 379
+    None, # 380
+    None, # 381
+    None, # 382
+    None, # 383
+    None, # 384
+    None, # 385
+    None, # 386
+    None, # 387
+    None, # 388
+    None, # 389
+    None, # 390
+    None, # 391
+    None, # 392
+    None, # 393
+    None, # 394
+    None, # 395
+    None, # 396
+    None, # 397
+    None, # 398
+    None, # 399
+    None, # 400
+    None, # 401
+    None, # 402
+    None, # 403
+    None, # 404
+    None, # 405
+    None, # 406
+    None, # 407
+    None, # 408
+    None, # 409
+    None, # 410
+    None, # 411
+    None, # 412
+    None, # 413
+    None, # 414
+    None, # 415
+    None, # 416
+    None, # 417
+    None, # 418
+    None, # 419
+    None, # 420
+    None, # 421
+    None, # 422
+    None, # 423
+    None, # 424
+    None, # 425
+    None, # 426
+    None, # 427
+    None, # 428
+    None, # 429
+    None, # 430
+    None, # 431
+    None, # 432
+    None, # 433
+    None, # 434
+    None, # 435
+    None, # 436
+    None, # 437
+    None, # 438
+    None, # 439
+    None, # 440
+    None, # 441
+    None, # 442
+    None, # 443
+    None, # 444
+    None, # 445
+    None, # 446
+    None, # 447
+    None, # 448
+    None, # 449
+    None, # 450
+    None, # 451
+    None, # 452
+    None, # 453
+    None, # 454
+    None, # 455
+    None, # 456
+    None, # 457
+    None, # 458
+    None, # 459
+    None, # 460
+    None, # 461
+    None, # 462
+    None, # 463
+    None, # 464
+    None, # 465
+    None, # 466
+    None, # 467
+    None, # 468
+    None, # 469
+    None, # 470
+    None, # 471
+    None, # 472
+    None, # 473
+    None, # 474
+    None, # 475
+    None, # 476
+    None, # 477
+    None, # 478
+    None, # 479
+    None, # 480
+    None, # 481
+    None, # 482
+    None, # 483
+    None, # 484
+    None, # 485
+    None, # 486
+    None, # 487
+    None, # 488
+    None, # 489
+    None, # 490
+    None, # 491
+    None, # 492
+    None, # 493
+    None, # 494
+    None, # 495
+    None, # 496
+    None, # 497
+    None, # 498
+    None, # 499
+    None, # 500
+    None, # 501
+    None, # 502
+    None, # 503
+    None, # 504
+    None, # 505
+    None, # 506
+    None, # 507
+    None, # 508
+    None, # 509
+    None, # 510
+    None, # 511
+    None, # 512
+    (513, TType.I32, 'num_executors', None, None, ), # 513
+    (514, TType.I32, 'num_tasks', None, None, ), # 514
+    (515, TType.I64, 'num_emitted', None, None, ), # 515
+    (516, TType.I64, 'num_transferred', None, None, ), # 516
+    (517, TType.I64, 'num_acked', None, None, ), # 517
+    (518, TType.I64, 'num_failed', None, None, ), # 518
+    (519, TType.STRUCT, 'last_error', (ErrorInfo, ErrorInfo.thrift_spec), None, ), # 519
+    (520, TType.DOUBLE, 'execute_latency', None, None, ), # 520
+    (521, TType.DOUBLE, 'process_latency', None, None, ), # 521
+    (522, TType.I64, 'num_executed', None, None, ), # 522
+    (523, TType.DOUBLE, 'capacity', None, None, ), # 523
+  )
+
+  def __init__(self, id=None, num_executors=None, num_tasks=None, num_emitted=None, num_transferred=None, num_acked=None, num_failed=None, last_error=None, execute_latency=None, process_latency=None, num_executed=None, capacity=None,):
+    self.id = id
+    self.num_executors = num_executors
+    self.num_tasks = num_tasks
+    self.num_emitted = num_emitted
+    self.num_transferred = num_transferred
+    self.num_acked = num_acked
+    self.num_failed = num_failed
+    self.last_error = last_error
+    self.execute_latency = execute_latency
+    self.process_latency = process_latency
+    self.num_executed = num_executed
+    self.capacity = capacity
+
+  def read(self, iprot):
+    if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
+      fastbinary.decode_binary(self, iprot.trans, (self.__class__, self.thrift_spec))
+      return
+    iprot.readStructBegin()
+    while True:
+      (fname, ftype, fid) = iprot.readFieldBegin()
+      if ftype == TType.STOP:
+        break
+      if fid == 1:
+        if ftype == TType.STRING:
+          self.id = iprot.readString().decode('utf-8')
+        else:
+          iprot.skip(ftype)
+      elif fid == 513:
+        if ftype == TType.I32:
+          self.num_executors = iprot.readI32();
+        else:
+          iprot.skip(ftype)
+      elif fid == 514:
+        if ftype == TType.I32:
+          self.num_tasks = iprot.readI32();
+        else:
+          iprot.skip(ftype)
+      elif fid == 515:
+        if ftype == TType.I64:
+          self.num_emitted = iprot.readI64();
+        else:
+          iprot.skip(ftype)
+      elif fid == 516:
+        if ftype == TType.I64:
+          self.num_transferred = iprot.readI64();
+        else:
+          iprot.skip(ftype)
+      elif fid == 517:
+        if ftype == TType.I64:
+          self.num_acked = iprot.readI64();
+        else:
+          iprot.skip(ftype)
+      elif fid == 518:
+        if ftype == TType.I64:
+          self.num_failed = iprot.readI64();
+        else:
+          iprot.skip(ftype)
+      elif fid == 519:
+        if ftype == TType.STRUCT:
+          self.last_error = ErrorInfo()
+          self.last_error.read(iprot)
+        else:
+          iprot.skip(ftype)
+      elif fid == 520:
+        if ftype == TType.DOUBLE:
+          self.execute_latency = iprot.readDouble();
+        else:
+          iprot.skip(ftype)
+      elif fid == 521:
+        if ftype == TType.DOUBLE:
+          self.process_latency = iprot.readDouble();
+        else:
+          iprot.skip(ftype)
+      elif fid == 522:
+        if ftype == TType.I64:
+          self.num_executed = iprot.readI64();
+        else:
+          iprot.skip(ftype)
+      elif fid == 523:
+        if ftype == TType.DOUBLE:
+          self.capacity = iprot.readDouble();
+        else:
+          iprot.skip(ftype)
+      else:
+        iprot.skip(ftype)
+      iprot.readFieldEnd()
+    iprot.readStructEnd()
+
+  def write(self, oprot):
+    if oprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and self.thrift_spec is not None and fastbinary is not None:
+      oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
+      return
+    oprot.writeStructBegin('BoltAggregateStats')
+    if self.id is not None:
+      oprot.writeFieldBegin('id', TType.STRING, 1)
+      oprot.writeString(self.id.encode('utf-8'))
+      oprot.writeFieldEnd()
+    if self.num_executors is not None:
+      oprot.writeFieldBegin('num_executors', TType.I32, 513)
+      oprot.writeI32(self.num_executors)
+      oprot.writeFieldEnd()
+    if self.num_tasks is not None:
+      oprot.writeFieldBegin('num_tasks', TType.I32, 514)
+      oprot.writeI32(self.num_tasks)
+      oprot.writeFieldEnd()
+    if self.num_emitted is not None:
+      oprot.writeFieldBegin('num_emitted', TType.I64, 515)
+      oprot.writeI64(self.num_emitted)
+      oprot.writeFieldEnd()
+    if self.num_transferred is not None:
+      oprot.writeFieldBegin('num_transferred', TType.I64, 516)
+      oprot.writeI64(self.num_transferred)
+      oprot.writeFieldEnd()
+    if self.num_acked is not None:
+      oprot.writeFieldBegin('num_acked', TType.I64, 517)
+      oprot.writeI64(self.num_acked)
+      oprot.writeFieldEnd()
+    if self.num_failed is not None:
+      oprot.writeFieldBegin('num_failed', TType.I64, 518)
+      oprot.writeI64(self.num_failed)
+      oprot.writeFieldEnd()
+    if self.last_error is not None:
+      oprot.writeFieldBegin('last_error', TType.STRUCT, 519)
+      self.last_error.write(oprot)
+      oprot.writeFieldEnd()
+    if self.execute_latency is not None:
+      oprot.writeFieldBegin('execute_latency', TType.DOUBLE, 520)
+      oprot.writeDouble(self.execute_latency)
+      oprot.writeFieldEnd()
+    if self.process_latency is not None:
+      oprot.writeFieldBegin('process_latency', TType.DOUBLE, 521)
+      oprot.writeDouble(self.process_latency)
+      oprot.writeFieldEnd()
+    if self.num_executed is not None:
+      oprot.writeFieldBegin('num_executed', TType.I64, 522)
+      oprot.writeI64(self.num_executed)
+      oprot.writeFieldEnd()
+    if self.capacity is not None:
+      oprot.writeFieldBegin('capacity', TType.DOUBLE, 523)
+      oprot.writeDouble(self.capacity)
+      oprot.writeFieldEnd()
+    oprot.writeFieldStop()
+    oprot.writeStructEnd()
+
+  def validate(self):
+    if self.id is None:
+      raise TProtocol.TProtocolException(message='Required field id is unset!')
+    return
+
+
+  def __hash__(self):
+    value = 17
+    value = (value * 31) ^ hash(self.id)
+    value = (value * 31) ^ hash(self.num_executors)
+    value = (value * 31) ^ hash(self.num_tasks)
+    value = (value * 31) ^ hash(self.num_emitted)
+    value = (value * 31) ^ hash(self.num_transferred)
+    value = (value * 31) ^ hash(self.num_acked)
+    value = (value * 31) ^ hash(self.num_failed)
+    value = (value * 31) ^ hash(self.last_error)
+    value = (value * 31) ^ hash(self.execute_latency)
+    value = (value * 31) ^ hash(self.process_latency)
+    value = (value * 31) ^ hash(self.num_executed)
+    value = (value * 31) ^ hash(self.capacity)
+    return value
+
+  def __repr__(self):
+    L = ['%s=%r' % (key, value)
+      for key, value in self.__dict__.iteritems()]
+    return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+  def __eq__(self, other):
+    return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+  def __ne__(self, other):
+    return not (self == other)
+
+class TopologyStats:
+  """
+  Attributes:
+   - emitted
+   - transferred
+   - complete_latencies
+   - acked
+   - failed
+  """
+
+  thrift_spec = (
+    None, # 0
+    None, # 1
+    None, # 2
+    None, # 3
+    None, # 4
+    None, # 5
+    None, # 6
+    None, # 7
+    None, # 8
+    None, # 9
+    None, # 10
+    None, # 11
+    None, # 12
+    None, # 13
+    None, # 14
+    None, # 15
+    None, # 16
+    None, # 17
+    None, # 18
+    None, # 19
+    None, # 20
+    None, # 21
+    None, # 22
+    None, # 23
+    None, # 24
+    None, # 25
+    None, # 26
+    None, # 27
+    None, # 28
+    None, # 29
+    None, # 30
+    None, # 31
+    None, # 32
+    None, # 33
+    None, # 34
+    None, # 35
+    None, # 36
+    None, # 37
+    None, # 38
+    None, # 39
+    None, # 40
+    None, # 41
+    None, # 42
+    None, # 43
+    None, # 44
+    None, # 45
+    None, # 46
+    None, # 47
+    None, # 48
+    None, # 49
+    None, # 50
+    None, # 51
+    None, # 52
+    None, # 53
+    None, # 54
+    None, # 55
+    None, # 56
+    None, # 57
+    None, # 58
+    None, # 59
+    None, # 60
+    None, # 61
+    None, # 62
+    None, # 63
+    None, # 64
+    None, # 65
+    None, # 66
+    None, # 67
+    None, # 68
+    None, # 69
+    None, # 70
+    None, # 71
+    None, # 72
+    None, # 73
+    None, # 74
+    None, # 75
+    None, # 76
+    None, # 77
+    None, # 78
+    None, # 79
+    None, # 80
+    None, # 81
+    None, # 82
+    None, # 83
+    None, # 84
+    None, # 85
+    None, # 86
+    None, # 87
+    None, # 88
+    None, # 89
+    None, # 90
+    None, # 91
+    None, # 92
+    None, # 93
+    None, # 94
+    None, # 95
+    None, # 96
+    None, # 97
+    None, # 98
+    None, # 99
+    None, # 100
+    None, # 101
+    None, # 102
+    None, # 103
+    None, # 104
+    None, # 105
+    None, # 106
+    None, # 107
+    None, # 108
+    None, # 109
+    None, # 110
+    None, # 111
+    None, # 112
+    None, # 113
+    None, # 114
+    None, # 115
+    None, # 116
+    None, # 117
+    None, # 118
+    None, # 119
+    None, # 120
+    None, # 121
+    None, # 122
+    None, # 123
+    None, # 124
+    None, # 125
+    None, # 126
+    None, # 127
+    None, # 128
+    None, # 129
+    None, # 130
+    None, # 131
+    None, # 132
+    None, # 133
+    None, # 134
+    None, # 135
+    None, # 136
+    None, # 137
+    None, # 138
+    None, # 139
+    None, # 140
+    None, # 141
+    None, # 142
+    None, # 143
+    None, # 144
+    None, # 145
+    None, # 146
+    None, # 147
+    None, # 148
+    None, # 149
+    None, # 150
+    None, # 151
+    None, # 152
+    None, # 153
+    None, # 154
+    None, # 155
+    None, # 156
+    None, # 157
+    None, # 158
+    None, # 159
+    None, # 160
+    None, # 161
+    None, # 162
+    None, # 163
+    None, # 164
+    None, # 165
+    None, # 166
+    None, # 167
+    None, # 168
+    None, # 169
+    None, # 170
+    None, # 171
+    None, # 172
+    None, # 173
+    None, # 174
+    None, # 175
+    None, # 176
+    None, # 177
+    None, # 178
+    None, # 179
+    None, # 180
+    None, # 181
+    None, # 182
+    None, # 183
+    None, # 184
+    None, # 185
+    None, # 186
+    None, # 187
+    None, # 188
+    None, # 189
+    None, # 190
+    None, # 191
+    None, # 192
+    None, # 193
+    None, # 194
+    None, # 195
+    None, # 196
+    None, # 197
+    None, # 198
+    None, # 199
+    None, # 200
+    None, # 201
+    None, # 202
+    None, # 203
+    None, # 204
+    None, # 205
+    None, # 206
+    None, # 207
+    None, # 208
+    None, # 209
+    None, # 210
+    None, # 211
+    None, # 212
+    None, # 213
+    None, # 214
+    None, # 215
+    None, # 216
+    None, # 217
+    None, # 218
+    None, # 219
+    None, # 220
+    None, # 221
+    None, # 222
+    None, # 223
+    None, # 224
+    None, # 225
+    None, # 226
+    None, # 227
+    None, # 228
+    None, # 229
+    None, # 230
+    None, # 231
+    None, # 232
+    None, # 233
+    None, # 234
+    None, # 235
+    None, # 236
+    None, # 237
+    None, # 238
+    None, # 239
+    None, # 240
+    None, # 241
+    None, # 242
+    None, # 243
+    None, # 244
+    None, # 245
+    None, # 246
+    None, # 247
+    None, # 248
+    None, # 249
+    None, # 250
+    None, # 251
+    None, # 252
+    None, # 253
+    None, # 254
+    None, # 255
+    None, # 256
+    None, # 257
+    None, # 258
+    None, # 259
+    None, # 260
+    None, # 261
+    None, # 262
+    None, # 263
+    None, # 264
+    None, # 265
+    None, # 266
+    None, # 267
+    None, # 268
+    None, # 269
+    None, # 270
+    None, # 271
+    None, # 272
+    None, # 273
+    None, # 274
+    None, # 275
+    None, # 276
+    None, # 277
+    None, # 278
+    None, # 279
+    None, # 280
+    None, # 281
+    None, # 282
+    None, # 283
+    None, # 284
+    None, # 285
+    None, # 286
+    None, # 287
+    None, # 288
+    None, # 289
+    None, # 290
+    None, # 291
+    None, # 292
+    None, # 293
+    None, # 294
+    None, # 295
+    None, # 296
+    None, # 297
+    None, # 298
+    None, # 299
+    None, # 300
+    None, # 301
+    None, # 302
+    None, # 303
+    None, # 304
+    None, # 305
+    None, # 306
+    None, # 307
+    None, # 308
+    None, # 309
+    None, # 310
+    None, # 311
+    None, # 312
+    None, # 313
+    None, # 314
+    None, # 315
+    None, # 316
+    None, # 317
+    None, # 318
+    None, # 319
+    None, # 320
+    None, # 321
+    None, # 322
+    None, # 323
+    None, # 324
+    None, # 325
+    None, # 326
+    None, # 327
+    None, # 328
+    None, # 329
+    None, # 330
+    None, # 331
+    None, # 332
+    None, # 333
+    None, # 334
+    None, # 335
+    None, # 336
+    None, # 337
+    None, # 338
+    None, # 339
+    None, # 340
+    None, # 341
+    None, # 342
+    None, # 343
+    None, # 344
+    None, # 345
+    None, # 346
+    None, # 347
+    None, # 348
+    None, # 349
+    None, # 350
+    None, # 351
+    None, # 352
+    None, # 353
+    None, # 354
+    None, # 355
+    None, # 356
+    None, # 357
+    None, # 358
+    None, # 359
+    None, # 360
+    None, # 361
+    None, # 362
+    None, # 363
+    None, # 364
+    None, # 365
+    None, # 366
+    None, # 367
+    None, # 368
+    None, # 369
+    None, # 370
+    None, # 371
+    None, # 372
+    None, # 373
+    None, # 374
+    None, # 375
+    None, # 376
+    None, # 377
+    None, # 378
+    None, # 379
+    None, # 380
+    None, # 381
+    None, # 382
+    None, # 383
+    None, # 384
+    None, # 385
+    None, # 386
+    None, # 387
+    None, # 388
+    None, # 389
+    None, # 390
+    None, # 391
+    None, # 392
+    None, # 393
+    None, # 394
+    None, # 395
+    None, # 396
+    None, # 397
+    None, # 398
+    None, # 399
+    None, # 400
+    None, # 401
+    None, # 402
+    None, # 403
+    None, # 404
+    None, # 405
+    None, # 406
+    None, # 407
+    None, # 408
+    None, # 409
+    None, # 410
+    None, # 411
+    None, # 412
+    None, # 413
+    None, # 414
+    None, # 415
+    None, # 416
+    None, # 417
+    None, # 418
+    None, # 419
+    None, # 420
+    None, # 421
+    None, # 422
+    None, # 423
+    None, # 424
+    None, # 425
+    None, # 426
+    None, # 427
+    None, # 428
+    None, # 429
+    None, # 430
+    None, # 431
+    None, # 432
+    None, # 433
+    None, # 434
+    None, # 435
+    None, # 436
+    None, # 437
+    None, # 438
+    None, # 439
+    None, # 440
+    None, # 441
+    None, # 442
+    None, # 443
+    None, # 444
+    None, # 445
+    None, # 446
+    None, # 447
+    None, # 448
+    None, # 449
+    None, # 450
+    None, # 451
+    None, # 452
+    None, # 453
+    None, # 454
+    None, # 455
+    None, # 456
+    None, # 457
+    None, # 458
+    None, # 459
+    None, # 460
+    None, # 461
+    None, # 462
+    None, # 463
+    None, # 464
+    None, # 465
+    None, # 466
+    None, # 467
+    None, # 468
+    None, # 469
+    None, # 470
+    None, # 471
+    None, # 472
+    None, # 473
+    None, # 474
+    None, # 475
+    None, # 476
+    None, # 477
+    None, # 478
+    None, # 479
+    None, # 480
+    None, # 481
+    None, # 482
+    None, # 483
+    None, # 484
+    None, # 485
+    None, # 486
+    None, # 487
+    None, # 488
+    None, # 489
+    None, # 490
+    None, # 491
+    None, # 492
+    None, # 493
+    None, # 494
+    None, # 495
+    None, # 496
+    None, # 497
+    None, # 498
+    None, # 499
+    None, # 500
+    None, # 501
+    None, # 502
+    None, # 503
+    None, # 504
+    None, # 505
+    None, # 506
+    None, # 507
+    None, # 508
+    None, # 509
+    None, # 510
+    None, # 511
+    None, # 512
+    (513, TType.MAP, 'emitted', (TType.STRING,None,TType.I64,None), None, ), # 513
+    (514, TType.MAP, 'transferred', (TType.STRING,None,TType.I64,None), None, ), # 514
+    (515, TType.MAP, 'complete_latencies', (TType.STRING,None,TType.DOUBLE,None), None, ), # 515
+    (516, TType.MAP, 'acked', (TType.STRING,None,TType.I64,None), None, ), # 516
+    (517, TType.MAP, 'failed', (TType.STRING,None,TType.I64,None), None, ), # 517
+  )
+
+  def __init__(self, emitted=None, transferred=None, complete_latencies=None, acked=None, failed=None,):
+    self.emitted = emitted
+    self.transferred = transferred
+    self.complete_latencies = complete_latencies
+    self.acked = acked
+    self.failed = failed
+
+  def read(self, iprot):
+    if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
+      fastbinary.decode_binary(self, iprot.trans, (self.__class__, self.thrift_spec))
+      return
+    iprot.readStructBegin()
+    while True:
+      (fname, ftype, fid) = iprot.readFieldBegin()
+      if ftype == TType.STOP:
+        break
+      if fid == 513:
+        if ftype == TType.MAP:
+          self.emitted = {}
+          (_ktype284, _vtype285, _size283 ) = iprot.readMapBegin()
+          for _i287 in xrange(_size283):
+            _key288 = iprot.readString().decode('utf-8')
+            _val289 = iprot.readI64();
+            self.emitted[_key288] = _val289
+          iprot.readMapEnd()
+        else:
+          iprot.skip(ftype)
+      elif fid == 514:
+        if ftype == TType.MAP:
+          self.transferred = {}
+          (_ktype291, _vtype292, _size290 ) = iprot.readMapBegin()
+          for _i294 in xrange(_size290):
+            _key295 = iprot.readString().decode('utf-8')
+            _val296 = iprot.readI64();
+            self.transferred[_key295] = _val296
+          iprot.readMapEnd()
+        else:
+          iprot.skip(ftype)
+      elif fid == 515:
+        if ftype == TType.MAP:
+          self.complete_latencies = {}
+          (_ktype298, _vtype299, _size297 ) = iprot.readMapBegin()
+          for _i301 in xrange(_size297):
+            _key302 = iprot.readString().decode('utf-8')
+            _val303 = iprot.readDouble();
+            self.complete_latencies[_key302] = _val303
+          iprot.readMapEnd()
+        else:
+          iprot.skip(ftype)
+      elif fid == 516:
+        if ftype == TType.MAP:
+          self.acked = {}
+          (_ktype305, _vtype306, _size304 ) = iprot.readMapBegin()
+          for _i308 in xrange(_size304):
+            _key309 = iprot.readString().decode('utf-8')
+            _val310 = iprot.readI64();
+            self.acked[_key309] = _val310
+          iprot.readMapEnd()
+        else:
+          iprot.skip(ftype)
+      elif fid == 517:
+        if ftype == TType.MAP:
+          self.failed = {}
+          (_ktype312, _vtype313, _size311 ) = iprot.readMapBegin()
+          for _i315 in xrange(_size311):
+            _key316 = iprot.readString().decode('utf-8')
+            _val317 = iprot.readI64();
+            self.failed[_key316] = _val317
+          iprot.readMapEnd()
+        else:
+          iprot.skip(ftype)
+      else:
+        iprot.skip(ftype)
+      iprot.readFieldEnd()
+    iprot.readStructEnd()
+
+  def write(self, oprot):
+    if oprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and self.thrift_spec is not None and fastbinary is not None:
+      oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
+      return
+    oprot.writeStructBegin('TopologyStats')
+    if self.emitted is not None:
+      oprot.writeFieldBegin('emitted', TType.MAP, 513)
+      oprot.writeMapBegin(TType.STRING, TType.I64, len(self.emitted))
+      for kiter318,viter319 in self.emitted.items():
+        oprot.writeString(kiter318.encode('utf-8'))
+        oprot.writeI64(viter319)
+      oprot.writeMapEnd()
+      oprot.writeFieldEnd()
+    if self.transferred is not None:
+      oprot.writeFieldBegin('transferred', TType.MAP, 514)
+      oprot.writeMapBegin(TType.STRING, TType.I64, len(self.transferred))
+      for kiter320,viter321 in self.transferred.items():
+        oprot.writeString(kiter320.encode('utf-8'))
+        oprot.writeI64(viter321)
+      oprot.writeMapEnd()
+      oprot.writeFieldEnd()
+    if self.complete_latencies is not None:
+      oprot.writeFieldBegin('complete_latencies', TType.MAP, 515)
+      oprot.writeMapBegin(TType.STRING, TType.DOUBLE, len(self.complete_latencies))
+      for kiter322,viter323 in self.complete_latencies.items():
+        oprot.writeString(kiter322.encode('utf-8'))
+        oprot.writeDouble(viter323)
+      oprot.writeMapEnd()
+      oprot.writeFieldEnd()
+    if self.acked is not None:
+      oprot.writeFieldBegin('acked', TType.MAP, 516)
+      oprot.writeMapBegin(TType.STRING, TType.I64, len(self.acked))
+      for kiter324,viter325 in self.acked.items():
+        oprot.writeString(kiter324.encode('utf-8'))
+        oprot.writeI64(viter325)
+      oprot.writeMapEnd()
+      oprot.writeFieldEnd()
+    if self.failed is not None:
+      oprot.writeFieldBegin('failed', TType.MAP, 517)
+      oprot.writeMapBegin(TType.STRING, TType.I64, len(self.failed))
+      for kiter326,viter327 in self.failed.items():
+        oprot.writeString(kiter326.encode('utf-8'))
+        oprot.writeI64(viter327)
+      oprot.writeMapEnd()
+      oprot.writeFieldEnd()
+    oprot.writeFieldStop()
+    oprot.writeStructEnd()
+
+  def validate(self):
+    return
+
+
+  def __hash__(self):
+    value = 17
+    value = (value * 31) ^ hash(self.emitted)
+    value = (value * 31) ^ hash(self.transferred)
+    value = (value * 31) ^ hash(self.complete_latencies)
+    value = (value * 31) ^ hash(self.acked)
+    value = (value * 31) ^ hash(self.failed)
+    return value
+
+  def __repr__(self):
+    L = ['%s=%r' % (key, value)
+      for key, value in self.__dict__.iteritems()]
+    return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+  def __eq__(self, other):
+    return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+  def __ne__(self, other):
+    return not (self == other)
+
+class TopologyPageInfo:
+  """
+  Attributes:
+   - id
+   - name
+   - uptime_secs
+   - status
+   - num_tasks
+   - num_workers
+   - num_executors
+   - topology_conf
+   - spout_agg_stats
+   - bolt_agg_stats
+   - sched_status
+   - topology_stats
+   - owner
+  """
+
+  thrift_spec = (
+    None, # 0
+    (1, TType.STRING, 'id', None, None, ), # 1
+    None, # 2
+    None, # 3
+    None, # 4
+    None, # 5
+    None, # 6
+    None, # 7
+    None, # 8
+    None, # 9
+    None, # 10
+    None, # 11
+    None, # 12
+    None, # 13
+    None, # 14
+    None, # 15
+    None, # 16
+    None, # 17
+    None, # 18
+    None, # 19
+    None, # 20
+    None, # 21
+    None, # 22
+    None, # 23
+    None, # 24
+    None, # 25
+    None, # 26
+    None, # 27
+    None, # 28
+    None, # 29
+    None, # 30
+    None, # 31
+    None, # 32
+    None, # 33
+    None, # 34
+    None, # 35
+    None, # 36
+    None, # 37
+    None, # 38
+    None, # 39
+    None, # 40
+    None, # 41
+    None, # 42
+    None, # 43
+    None, # 44
+    None, # 45
+    None, # 46
+    None, # 47
+    None, # 48
+    None, # 49
+    None, # 50
+    None, # 51
+    None, # 52
+    None, # 53
+    None, # 54
+    None, # 55
+    None, # 56
+    None, # 57
+    None, # 58
+    None, # 59
+    None, # 60
+    None, # 61
+    None, # 62
+    None, # 63
+    None, # 64
+    None, # 65
+    None, # 66
+    None, # 67
+    None, # 68
+    None, # 69
+    None, # 70
+    None, # 71
+    None, # 72
+    None, # 73
+    None, # 74
+    None, # 75
+    None, # 76
+    None, # 77
+    None, # 78
+    None, # 79
+    None, # 80
+    None, # 81
+    None, # 82
+    None, # 83
+    None, # 84
+    None, # 85
+    None, # 86
+    None, # 87
+    None, # 88
+    None, # 89
+    None, # 90
+    None, # 91
+    None, # 92
+    None, # 93
+    None, # 94
+    None, # 95
+    None, # 96
+    None, # 97
+    None, # 98
+    None, # 99
+    None, # 100
+    None, # 101
+    None, # 102
+    None, # 103
+    None, # 104
+    None, # 105
+    None, # 106
+    None, # 107
+    None, # 108
+    None, # 109
+    None, # 110
+    None, # 111
+    None, # 112
+    None, # 113
+    None, # 114
+    None, # 115
+    None, # 116
+    None, # 117
+    None, # 118
+    None, # 119
+    None, # 120
+    None, # 121
+    None, # 122
+    None, # 123
+    None, # 124
+    None, # 125
+    None, # 126
+    None, # 127
+    None, # 128
+    None, # 129
+    None, # 130
+    None, # 131
+    None, # 132
+    None, # 133
+    None, # 134
+    None, # 135
+    None, # 136
+    None, # 137
+    None, # 138
+    None, # 139
+    None, # 140
+    None, # 141
+    None, # 142
+    None, # 143
+    None, # 144
+    None, # 145
+    None, # 146
+    None, # 147
+    None, # 148
+    None, # 149
+    None, # 150
+    None, # 151
+    None, # 152
+    None, # 153
+    None, # 154
+    None, # 155
+    None, # 156
+    None, # 157
+    None, # 158
+    None, # 159
+    None, # 160
+    None, # 161
+    None, # 162
+    None, # 163
+    None, # 164
+    None, # 165
+    None, # 166
+    None, # 167
+    None, # 168
+    None, # 169
+    None, # 170
+    None, # 171
+    None, # 172
+    None, # 173
+    None, # 174
+    None, # 175
+    None, # 176
+    None, # 177
+    None, # 178
+    None, # 179
+    None, # 180
+    None, # 181
+    None, # 182
+    None, # 183
+    None, # 184
+    None, # 185
+    None, # 186
+    None, # 187
+    None, # 188
+    None, # 189
+    None, # 190
+    None, # 191
+    None, # 192
+    None, # 193
+    None, # 194
+    None, # 195
+    None, # 196
+    None, # 197
+    None, # 198
+    None, # 199
+    None, # 200
+    None, # 201
+    None, # 202
+    None, # 203
+    None, # 204
+    None, # 205
+    None, # 206
+    None, # 207
+    None, # 208
+    None, # 209
+    None, # 210
+    None, # 211
+    None, # 212
+    None, # 213
+    None, # 214
+    None, # 215
+    None, # 216
+    None, # 217
+    None, # 218
+    None, # 219
+    None, # 220
+    None, # 221
+    None, # 222
+    None, # 223
+    None, # 224
+    None, # 225
+    None, # 226
+    None, # 227
+    None, # 228
+    None, # 229
+    None, # 230
+    None, # 231
+    None, # 232
+    None, # 233
+    None, # 234
+    None, # 235
+    None, # 236
+    None, # 237
+    None, # 238
+    None, # 239
+    None, # 240
+    None, # 241
+    None, # 242
+    None, # 243
+    None, # 244
+    None, # 245
+    None, # 246
+    None, # 247
+    None, # 248
+    None, # 249
+    None, # 250
+    None, # 251
+    None, # 252
+    None, # 253
+    None, # 254
+    None, # 255
+    None, # 256
+    None, # 257
+    None, # 258
+    None, # 259
+    None, # 260
+    None, # 261
+    None, # 262
+    None, # 263
+    None, # 264
+    None, # 265
+    None, # 266
+    None, # 267
+    None, # 268
+    None, # 269
+    None, # 270
+    None, # 271
+    None, # 272
+    None, # 273
+    None, # 274
+    None, # 275
+    None, # 276
+    None, # 277
+    None, # 278
+    None, # 279
+    None, # 280
+    None, # 281
+    None, # 282
+    None, # 283
+    None, # 284
+    None, # 285
+    None, # 286
+    None, # 287
+    None, # 288
+    None, # 289
+    None, # 290
+    None, # 291
+    None, # 292
+    None, # 293
+    None, # 294
+    None, # 295
+    None, # 296
+    None, # 297
+    None, # 298
+    None, # 299
+    None, # 300
+    None, # 301
+    None, # 302
+    None, # 303
+    None, # 304
+    None, # 305
+    None, # 306
+    None, # 307
+    None, # 308
+    None, # 309
+    None, # 310
+    None, # 311
+    None, # 312
+    None, # 313
+    None, # 314
+    None, # 315
+    None, # 316
+    None, # 317
+    None, # 318
+    None, # 319
+    None, # 320
+    None, # 321
+    None, # 322
+    None, # 323
+    None, # 324
+    None, # 325
+    None, # 326
+    None, # 327
+    None, # 328
+    None, # 329
+    None, # 330
+    None, # 331
+    None, # 332
+    None, # 333
+    None, # 334
+    None, # 335
+    None, # 336
+    None, # 337
+    None, # 338
+    None, # 339
+    None, # 340
+    None, # 341
+    None, # 342
+    None, # 343
+    None, # 344
+    None, # 345
+    None, # 346
+    None, # 347
+    None, # 348
+    None, # 349
+    None, # 350
+    None, # 351
+    None, # 352
+    None, # 353
+    None, # 354
+    None, # 355
+    None, # 356
+    None, # 357
+    None, # 358
+    None, # 359
+    None, # 360
+    None, # 361
+    None, # 362
+    None, # 363
+    None, # 364
+    None, # 365
+    None, # 366
+    None, # 367
+    None, # 368
+    None, # 369
+    None, # 370
+    None, # 371
+    None, # 372
+    None, # 373
+    None, # 374
+    None, # 375
+    None, # 376
+    None, # 377
+    None, # 378
+    None, # 379
+    None, # 380
+    None, # 381
+    None, # 382
+    None, # 383
+    None, # 384
+    None, # 385
+    None, # 386
+    None, # 387
+    None, # 388
+    None, # 389
+    None, # 390
+    None, # 391
+    None, # 392
+    None, # 393
+    None, # 394
+    None, # 395
+    None, # 396
+    None, # 397
+    None, # 398
+    None, # 399
+    None, # 400
+    None, # 401
+    None, # 402
+    None, # 403
+    None, # 404
+    None, # 405
+    None, # 406
+    None, # 407
+    None, # 408
+    None, # 409
+    None, # 410
+    None, # 411
+    None, # 412
+    None, # 413
+    None, # 414
+    None, # 415
+    None, # 416
+    None, # 417
+    None, # 418
+    None, # 419
+    None, # 420
+    None, # 421
+    None, # 422
+    None, # 423
+    None, # 424
+    None, # 425
+    None, # 426
+    None, # 427
+    None, # 428
+    None, # 429
+    None, # 430
+    None, # 431
+    None, # 432
+    None, # 433
+    None, # 434
+    None, # 435
+    None, # 436
+    None, # 437
+    None, # 438
+    None, # 439
+    None, # 440
+    None, # 441
+    None, # 442
+    None, # 443
+    None, # 444
+    None, # 445
+    None, # 446
+    None, # 447
+    None, # 448
+    None, # 449
+    None, # 450
+    None, # 451
+    None, # 452
+    None, # 453
+    None, # 454
+    None, # 455
+    None, # 456
+    None, # 457
+    None, # 458
+    None, # 459
+    None, # 460
+    None, # 461
+    None, # 462
+    None, # 463
+    None, # 464
+    None, # 465
+    None, # 466
+    None, # 467
+    None, # 468
+    None, # 469
+    None, # 470
+    None, # 471
+    None, # 472
+    None, # 473
+    None, # 474
+    None, # 475
+    None, # 476
+    None, # 477
+    None, # 478
+    None, # 479
+    None, # 480
+    None, # 481
+    None, # 482
+    None, # 483
+    None, # 484
+    None, # 485
+    None, # 486
+    None, # 487
+    None, # 488
+    None, # 489
+    None, # 490
+    None, # 491
+    None, # 492
+    None, # 493
+    None, # 494
+    None, # 495
+    None, # 496
+    None, # 497
+    None, # 498
+    None, # 499
+    None, # 500
+    None, # 501
+    None, # 502
+    None, # 503
+    None, # 504
+    None, # 505
+    None, # 506
+    None, # 507
+    None, # 508
+    None, # 509
+    None, # 510
+    None, # 511
+    None, # 512
+    (513, TType.STRING, 'name', None, None, ), # 513
+    (514, TType.I32, 'uptime_secs', None, None, ), # 514
+    (515, TType.STRING, 'status', None, None, ), # 515
+    (516, TType.I32, 'num_tasks', None, None, ), # 516
+    (517, TType.I32, 'num_workers', None, None, ), # 517
+    (518, TType.I32, 'num_executors', None, None, ), # 518
+    (519, TType.STRING, 'topology_conf', None, None, ), # 519
+    (520, TType.LIST, 'spout_agg_stats', (TType.STRUCT,(SpoutAggregateStats, SpoutAggregateStats.thrift_spec)), None, ), # 520
+    (521, TType.LIST, 'bolt_agg_stats', (TType.STRUCT,(BoltAggregateStats, BoltAggregateStats.thrift_spec)), None, ), # 521
+    (522, TType.STRING, 'sched_status', None, None, ), # 522
+    (523, TType.STRUCT, 'topology_stats', (TopologyStats, TopologyStats.thrift_spec), None, ), # 523
+    (524, TType.STRING, 'owner', None, None, ), # 524
+  )
+
+  def __init__(self, id=None, name=None, uptime_secs=None, status=None, num_tasks=None, num_workers=None, num_executors=None, topology_conf=None, spout_agg_stats=None, bolt_agg_stats=None, sched_status=None, topology_stats=None, owner=None,):
+    self.id = id
+    self.name = name
+    self.uptime_secs = uptime_secs
+    self.status = status
+    self.num_tasks = num_tasks
+    self.num_workers = num_workers
+    self.num_executors = num_executors
+    self.topology_conf = topology_conf
+    self.spout_agg_stats = spout_agg_stats
+    self.bolt_agg_stats = bolt_agg_stats
+    self.sched_status = sched_status
+    self.topology_stats = topology_stats
+    self.owner = owner
+
+  def read(self, iprot):
+    if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
+      fastbinary.decode_binary(self, iprot.trans, (self.__class__, self.thrift_spec))
+      return
+    iprot.readStructBegin()
+    while True:
+      (fname, ftype, fid) = iprot.readFieldBegin()
+      if ftype == TType.STOP:
+        break
+      if fid == 1:
+        if ftype == TType.STRING:
+          self.id = iprot.readString().decode('utf-8')
+        else:
+          iprot.skip(ftype)
+      elif fid == 513:
+        if ftype == TType.STRING:
+          self.name = iprot.readString().decode('utf-8')
+        else:
+          iprot.skip(ftype)
+      elif fid == 514:
+        if ftype == TType.I32:
+          self.uptime_secs = iprot.readI32();
+        else:
+          iprot.skip(ftype)
+      elif fid == 515:
+        if ftype == TType.STRING:
+          self.status = iprot.readString().decode('utf-8')
+        else:
+          iprot.skip(ftype)
+      elif fid == 516:
+        if ftype == TType.I32:
+          self.num_tasks = iprot.readI32();
+        else:
+          iprot.skip(ftype)
+      elif fid == 517:
+        if ftype == TType.I32:
+          self.num_workers = iprot.readI32();
+        else:
+          iprot.skip(ftype)
+      elif fid == 518:
+        if ftype == TType.I32:
+          self.num_executors = iprot.readI32();
+        else:
+          iprot.skip(ftype)
+      elif fid == 519:
+        if ftype == TType.STRING:
+          self.topology_conf = iprot.readString().decode('utf-8')
+        else:
+          iprot.skip(ftype)
+      elif fid == 520:
+        if ftype == TType.LIST:
+          self.spout_agg_stats = []
+          (_etype331, _size328) = iprot.readListBegin()
+          for _i332 in xrange(_size328):
+            _elem333 = SpoutAggregateStats()
+            _elem333.read(iprot)
+            self.spout_agg_stats.append(_elem333)
+          iprot.readListEnd()
+        else:
+          iprot.skip(ftype)
+      elif fid == 521:
+        if ftype == TType.LIST:
+          self.bolt_agg_stats = []
+          (_etype337, _size334) = iprot.readListBegin()
+          for _i338 in xrange(_size334):
+            _elem339 = BoltAggregateStats()
+            _elem339.read(iprot)
+            self.bolt_agg_stats.append(_elem339)
+          iprot.readListEnd()
+        else:
+          iprot.skip(ftype)
+      elif fid == 522:
+        if ftype == TType.STRING:
+          self.sched_status = iprot.readString().decode('utf-8')
+        else:
+          iprot.skip(ftype)
+      elif fid == 523:
+        if ftype == TType.STRUCT:
+          self.topology_stats = TopologyStats()
+          self.topology_stats.read(iprot)
+        else:
+          iprot.skip(ftype)
+      elif fid == 524:
+        if ftype == TType.STRING:
+          self.owner = iprot.readString().decode('utf-8')
+        else:
+          iprot.skip(ftype)
+      else:
+        iprot.skip(ftype)
+      iprot.readFieldEnd()
+    iprot.readStructEnd()
+
+  def write(self, oprot):
+    if oprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and self.thrift_spec is not None and fastbinary is not None:
+      oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
+      return
+    oprot.writeStructBegin('TopologyPageInfo')
+    if self.id is not None:
+      oprot.writeFieldBegin('id', TType.STRING, 1)
+      oprot.writeString(self.id.encode('utf-8'))
+      oprot.writeFieldEnd()
+    if self.name is not None:
+      oprot.writeFieldBegin('name', TType.STRING, 513)
+      oprot.writeString(self.name.encode('utf-8'))
+      oprot.writeFieldEnd()
+    if self.uptime_secs is not None:
+      oprot.writeFieldBegin('uptime_secs', TType.I32, 514)
+      oprot.writeI32(self.uptime_secs)
+      oprot.writeFieldEnd()
+    if self.status is not None:
+      oprot.writeFieldBegin('status', TType.STRING, 515)
+      oprot.writeString(self.status.encode('utf-8'))
+      oprot.writeFieldEnd()
+    if self.num_tasks is not None:
+      oprot.writeFieldBegin('num_tasks', TType.I32, 516)
+      oprot.writeI32(self.num_tasks)
+      oprot.writeFieldEnd()
+    if self.num_workers is not None:
+      oprot.writeFieldBegin('num_workers', TType.I32, 517)
+      oprot.writeI32(self.num_workers)
+      oprot.writeFieldEnd()
+    if self.num_executors is not None:
+      oprot.writeFieldBegin('num_executors', TType.I32, 518)
+      oprot.writeI32(self.num_executors)
+      oprot.writeFieldEnd()
+    if self.topology_conf is not None:
+      oprot.writeFieldBegin('topology_conf', TType.STRING, 519)
+      oprot.writeString(self.topology_conf.encode('utf-8'))
+      oprot.writeFieldEnd()
+    if self.spout_agg_stats is not None:
+      oprot.writeFieldBegin('spout_agg_stats', TType.LIST, 520)
+      oprot.writeListBegin(TType.STRUCT, len(self.spout_agg_stats))
+      for iter340 in self.spout_agg_stats:
+        iter340.write(oprot)
+      oprot.writeListEnd()
+      oprot.writeFieldEnd()
+    if self.bolt_agg_stats is not None:
+      oprot.writeFieldBegin('bolt_agg_stats', TType.LIST, 521)
+      oprot.writeListBegin(TType.STRUCT, len(self.bolt_agg_stats))
+      for iter341 in self.bolt_agg_stats:
+        iter341.write(oprot)
+      oprot.writeListEnd()
+      oprot.writeFieldEnd()
+    if self.sched_status is not None:
+      oprot.writeFieldBegin('sched_status', TType.STRING, 522)
+      oprot.writeString(self.sched_status.encode('utf-8'))
+      oprot.writeFieldEnd()
+    if self.topology_stats is not None:
+      oprot.writeFieldBegin('topology_stats', TType.STRUCT, 523)
+      self.topology_stats.write(oprot)
+      oprot.writeFieldEnd()
+    if self.owner is not None:
+      oprot.writeFieldBegin('owner', TType.STRING, 524)
+      oprot.writeString(self.owner.encode('utf-8'))
+      oprot.writeFieldEnd()
+    oprot.writeFieldStop()
+    oprot.writeStructEnd()
+
+  def validate(self):
+    if self.id is None:
+      raise TProtocol.TProtocolException(message='Required field id is unset!')
+    return
+
+
+  def __hash__(self):
+    value = 17
+    value = (value * 31) ^ hash(self.id)
+    value = (value * 31) ^ hash(self.name)
+    value = (value * 31) ^ hash(self.uptime_secs)
+    value = (value * 31) ^ hash(self.status)
+    value = (value * 31) ^ hash(self.num_tasks)
+    value = (value * 31) ^ hash(self.num_workers)
+    value = (value * 31) ^ hash(self.num_executors)
+    value = (value * 31) ^ hash(self.topology_conf)
+    value = (value * 31) ^ hash(self.spout_agg_stats)
+    value = (value * 31) ^ hash(self.bolt_agg_stats)
+    value = (value * 31) ^ hash(self.sched_status)
+    value = (value * 31) ^ hash(self.topology_stats)
+    value = (value * 31) ^ hash(self.owner)
+    return value
+
+  def __repr__(self):
+    L = ['%s=%r' % (key, value)
+      for key, value in self.__dict__.iteritems()]
+    return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+  def __eq__(self, other):
+    return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+  def __ne__(self, other):
+    return not (self == other)
+
 class KillOptions:
   """
   Attributes:
@@ -4500,11 +7354,11 @@ class RebalanceOptions:
       elif fid == 3:
         if ftype == TType.MAP:
           self.num_executors = {}
-          (_ktype284, _vtype285, _size283 ) = iprot.readMapBegin()
-          for _i287 in xrange(_size283):
-            _key288 = iprot.readString().decode('utf-8')
-            _val289 = iprot.readI32();
-            self.num_executors[_key288] = _val289
+          (_ktype343, _vtype344, _size342 ) = iprot.readMapBegin()
+          for _i346 in xrange(_size342):
+            _key347 = iprot.readString().decode('utf-8')
+            _val348 = iprot.readI32();
+            self.num_executors[_key347] = _val348
           iprot.readMapEnd()
         else:
           iprot.skip(ftype)
@@ -4529,9 +7383,9 @@ class RebalanceOptions:
     if self.num_executors is not None:
       oprot.writeFieldBegin('num_executors', TType.MAP, 3)
       oprot.writeMapBegin(TType.STRING, TType.I32, len(self.num_executors))
-      for kiter290,viter291 in self.num_executors.items():
-        oprot.writeString(kiter290.encode('utf-8'))
-        oprot.writeI32(viter291)
+      for kiter349,viter350 in self.num_executors.items():
+        oprot.writeString(kiter349.encode('utf-8'))
+        oprot.writeI32(viter350)
       oprot.writeMapEnd()
       oprot.writeFieldEnd()
     oprot.writeFieldStop()
@@ -4585,11 +7439,11 @@ class Credentials:
       if fid == 1:
         if ftype == TType.MAP:
           self.creds = {}
-          (_ktype293, _vtype294, _size292 ) = iprot.readMapBegin()
-          for _i296 in xrange(_size292):
-            _key297 = iprot.readString().decode('utf-8')
-            _val298 = iprot.readString().decode('utf-8')
-            self.creds[_key297] = _val298
+          (_ktype352, _vtype353, _size351 ) = iprot.readMapBegin()
+          for _i355 in xrange(_size351):
+            _key356 = iprot.readString().decode('utf-8')
+            _val357 = iprot.readString().decode('utf-8')
+            self.creds[_key356] = _val357
           iprot.readMapEnd()
         else:
           iprot.skip(ftype)
@@ -4606,9 +7460,9 @@ class Credentials:
     if self.creds is not None:
       oprot.writeFieldBegin('creds', TType.MAP, 1)
       oprot.writeMapBegin(TType.STRING, TType.STRING, len(self.creds))
-      for kiter299,viter300 in self.creds.items():
-        oprot.writeString(kiter299.encode('utf-8'))
-        oprot.writeString(viter300.encode('utf-8'))
+      for kiter358,viter359 in self.creds.items():
+        oprot.writeString(kiter358.encode('utf-8'))
+        oprot.writeString(viter359.encode('utf-8'))
       oprot.writeMapEnd()
       oprot.writeFieldEnd()
     oprot.writeFieldStop()
@@ -4838,11 +7692,11 @@ class SettableBlobMeta:
       if fid == 1:
         if ftype == TType.LIST:
           self.acl = []
-          (_etype304, _size301) = iprot.readListBegin()
-          for _i305 in xrange(_size301):
-            _elem306 = AccessControl()
-            _elem306.read(iprot)
-            self.acl.append(_elem306)
+          (_etype363, _size360) = iprot.readListBegin()
+          for _i364 in xrange(_size360):
+            _elem365 = AccessControl()
+            _elem365.read(iprot)
+            self.acl.append(_elem365)
           iprot.readListEnd()
         else:
           iprot.skip(ftype)
@@ -4859,8 +7713,8 @@ class SettableBlobMeta:
     if self.acl is not None:
       oprot.writeFieldBegin('acl', TType.LIST, 1)
       oprot.writeListBegin(TType.STRUCT, len(self.acl))
-      for iter307 in self.acl:
-        iter307.write(oprot)
+      for iter366 in self.acl:
+        iter366.write(oprot)
       oprot.writeListEnd()
       oprot.writeFieldEnd()
     oprot.writeFieldStop()
@@ -5000,10 +7854,10 @@ class ListBlobsResult:
       if fid == 1:
         if ftype == TType.LIST:
           self.keys = []
-          (_etype311, _size308) = iprot.readListBegin()
-          for _i312 in xrange(_size308):
-            _elem313 = iprot.readString().decode('utf-8')
-            self.keys.append(_elem313)
+          (_etype370, _size367) = iprot.readListBegin()
+          for _i371 in xrange(_size367):
+            _elem372 = iprot.readString().decode('utf-8')
+            self.keys.append(_elem372)
           iprot.readListEnd()
         else:
           iprot.skip(ftype)
@@ -5025,8 +7879,8 @@ class ListBlobsResult:
     if self.keys is not None:
       oprot.writeFieldBegin('keys', TType.LIST, 1)
       oprot.writeListBegin(TType.STRING, len(self.keys))
-      for iter314 in self.keys:
-        oprot.writeString(iter314.encode('utf-8'))
+      for iter373 in self.keys:
+        oprot.writeString(iter373.encode('utf-8'))
       oprot.writeListEnd()
       oprot.writeFieldEnd()
     if self.session is not None:
@@ -5208,6 +8062,274 @@ class GetInfoOptions:
   def __ne__(self, other):
     return not (self == other)
 
+class LogLevel:
+  """
+  Attributes:
+   - action
+   - target_log_level
+   - reset_log_level_timeout_secs
+   - reset_log_level_timeout_epoch
+   - reset_log_level
+  """
+
+  thrift_spec = (
+    None, # 0
+    (1, TType.I32, 'action', None, None, ), # 1
+    (2, TType.STRING, 'target_log_level', None, None, ), # 2
+    (3, TType.I32, 'reset_log_level_timeout_secs', None, None, ), # 3
+    (4, TType.I64, 'reset_log_level_timeout_epoch', None, None, ), # 4
+    (5, TType.STRING, 'reset_log_level', None, None, ), # 5
+  )
+
+  def __init__(self, action=None, target_log_level=None, reset_log_level_timeout_secs=None, reset_log_level_timeout_epoch=None, reset_log_level=None,):
+    self.action = action
+    self.target_log_level = target_log_level
+    self.reset_log_level_timeout_secs = reset_log_level_timeout_secs
+    self.reset_log_level_timeout_epoch = reset_log_level_timeout_epoch
+    self.reset_log_level = reset_log_level
+
+  def read(self, iprot):
+    if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
+      fastbinary.decode_binary(self, iprot.trans, (self.__class__, self.thrift_spec))
+      return
+    iprot.readStructBegin()
+    while True:
+      (fname, ftype, fid) = iprot.readFieldBegin()
+      if ftype == TType.STOP:
+        break
+      if fid == 1:
+        if ftype == TType.I32:
+          self.action = iprot.readI32();
+        else:
+          iprot.skip(ftype)
+      elif fid == 2:
+        if ftype == TType.STRING:
+          self.target_log_level = iprot.readString().decode('utf-8')
+        else:
+          iprot.skip(ftype)
+      elif fid == 3:
+        if ftype == TType.I32:
+          self.reset_log_level_timeout_secs = iprot.readI32();
+        else:
+          iprot.skip(ftype)
+      elif fid == 4:
+        if ftype == TType.I64:
+          self.reset_log_level_timeout_epoch = iprot.readI64();
+        else:
+          iprot.skip(ftype)
+      elif fid == 5:
+        if ftype == TType.STRING:
+          self.reset_log_level = iprot.readString().decode('utf-8')
+        else:
+          iprot.skip(ftype)
+      else:
+        iprot.skip(ftype)
+      iprot.readFieldEnd()
+    iprot.readStructEnd()
+
+  def write(self, oprot):
+    if oprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and self.thrift_spec is not None and fastbinary is not None:
+      oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
+      return
+    oprot.writeStructBegin('LogLevel')
+    if self.action is not None:
+      oprot.writeFieldBegin('action', TType.I32, 1)
+      oprot.writeI32(self.action)
+      oprot.writeFieldEnd()
+    if self.target_log_level is not None:
+      oprot.writeFieldBegin('target_log_level', TType.STRING, 2)
+      oprot.writeString(self.target_log_level.encode('utf-8'))
+      oprot.writeFieldEnd()
+    if self.reset_log_level_timeout_secs is not None:
+      oprot.writeFieldBegin('reset_log_level_timeout_secs', TType.I32, 3)
+      oprot.writeI32(self.reset_log_level_timeout_secs)
+      oprot.writeFieldEnd()
+    if self.reset_log_level_timeout_epoch is not None:
+      oprot.writeFieldBegin('reset_log_level_timeout_epoch', TType.I64, 4)
+      oprot.writeI64(self.reset_log_level_timeout_epoch)
+      oprot.writeFieldEnd()
+    if self.reset_log_level is not None:
+      oprot.writeFieldBegin('reset_log_level', TType.STRING, 5)
+      oprot.writeString(self.reset_log_level.encode('utf-8'))
+      oprot.writeFieldEnd()
+    oprot.writeFieldStop()
+    oprot.writeStructEnd()
+
+  def validate(self):
+    if self.action is None:
+      raise TProtocol.TProtocolException(message='Required field action is unset!')
+    return
+
+
+  def __hash__(self):
+    value = 17
+    value = (value * 31) ^ hash(self.action)
+    value = (value * 31) ^ hash(self.target_log_level)
+    value = (value * 31) ^ hash(self.reset_log_level_timeout_secs)
+    value = (value * 31) ^ hash(self.reset_log_level_timeout_epoch)
+    value = (value * 31) ^ hash(self.reset_log_level)
+    return value
+
+  def __repr__(self):
+    L = ['%s=%r' % (key, value)
+      for key, value in self.__dict__.iteritems()]
+    return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+  def __eq__(self, other):
+    return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+  def __ne__(self, other):
+    return not (self == other)
+
+class LogConfig:
+  """
+  Attributes:
+   - named_logger_level
+  """
+
+  thrift_spec = (
+    None, # 0
+    (1, TType.MAP, 'named_logger_level', (TType.STRING,None,TType.STRUCT,(LogLevel, LogLevel.thrift_spec)), None, ), # 1
+  )
+
+  def __init__(self, named_logger_level=None,):
+    self.named_logger_level = named_logger_level
+
+  def read(self, iprot):
+    if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
+      fastbinary.decode_binary(self, iprot.trans, (self.__class__, self.thrift_spec))
+      return
+    iprot.readStructBegin()
+    while True:
+      (fname, ftype, fid) = iprot.readFieldBegin()
+      if ftype == TType.STOP:
+        break
+      if fid == 1:
+        if ftype == TType.MAP:
+          self.named_logger_level = {}
+          (_ktype375, _vtype376, _size374 ) = iprot.readMapBegin()
+          for _i378 in xrange(_size374):
+            _key379 = iprot.readString().decode('utf-8')
+            _val380 = LogLevel()
+            _val380.read(iprot)
+            self.named_logger_level[_key379] = _val380
+          iprot.readMapEnd()
+        else:
+          iprot.skip(ftype)
+      else:
+        iprot.skip(ftype)
+      iprot.readFieldEnd()
+    iprot.readStructEnd()
+
+  def write(self, oprot):
+    if oprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and self.thrift_spec is not None and fastbinary is not None:
+      oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
+      return
+    oprot.writeStructBegin('LogConfig')
+    if self.named_logger_level is not None:
+      oprot.writeFieldBegin('named_logger_level', TType.MAP, 1)
+      oprot.writeMapBegin(TType.STRING, TType.STRUCT, len(self.named_logger_level))
+      for kiter381,viter382 in self.named_logger_level.items():
+        oprot.writeString(kiter381.encode('utf-8'))
+        viter382.write(oprot)
+      oprot.writeMapEnd()
+      oprot.writeFieldEnd()
+    oprot.writeFieldStop()
+    oprot.writeStructEnd()
+
+  def validate(self):
+    return
+
+
+  def __hash__(self):
+    value = 17
+    value = (value * 31) ^ hash(self.named_logger_level)
+    return value
+
+  def __repr__(self):
+    L = ['%s=%r' % (key, value)
+      for key, value in self.__dict__.iteritems()]
+    return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+  def __eq__(self, other):
+    return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+  def __ne__(self, other):
+    return not (self == other)
+
+class TopologyHistoryInfo:
+  """
+  Attributes:
+   - topo_ids
+  """
+
+  thrift_spec = (
+    None, # 0
+    (1, TType.LIST, 'topo_ids', (TType.STRING,None), None, ), # 1
+  )
+
+  def __init__(self, topo_ids=None,):
+    self.topo_ids = topo_ids
+
+  def read(self, iprot):
+    if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
+      fastbinary.decode_binary(self, iprot.trans, (self.__class__, self.thrift_spec))
+      return
+    iprot.readStructBegin()
+    while True:
+      (fname, ftype, fid) = iprot.readFieldBegin()
+      if ftype == TType.STOP:
+        break
+      if fid == 1:
+        if ftype == TType.LIST:
+          self.topo_ids = []
+          (_etype386, _size383) = iprot.readListBegin()
+          for _i387 in xrange(_size383):
+            _elem388 = iprot.readString().decode('utf-8')
+            self.topo_ids.append(_elem388)
+          iprot.readListEnd()
+        else:
+          iprot.skip(ftype)
+      else:
+        iprot.skip(ftype)
+      iprot.readFieldEnd()
+    iprot.readStructEnd()
+
+  def write(self, oprot):
+    if oprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and self.thrift_spec is not None and fastbinary is not None:
+      oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
+      return
+    oprot.writeStructBegin('TopologyHistoryInfo')
+    if self.topo_ids is not None:
+      oprot.writeFieldBegin('topo_ids', TType.LIST, 1)
+      oprot.writeListBegin(TType.STRING, len(self.topo_ids))
+      for iter389 in self.topo_ids:
+        oprot.writeString(iter389.encode('utf-8'))
+      oprot.writeListEnd()
+      oprot.writeFieldEnd()
+    oprot.writeFieldStop()
+    oprot.writeStructEnd()
+
+  def validate(self):
+    return
+
+
+  def __hash__(self):
+    value = 17
+    value = (value * 31) ^ hash(self.topo_ids)
+    return value
+
+  def __repr__(self):
+    L = ['%s=%r' % (key, value)
+      for key, value in self.__dict__.iteritems()]
+    return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+  def __eq__(self, other):
+    return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+  def __ne__(self, other):
+    return not (self == other)
+
 class DRPCRequest:
   """
   Attributes:
@@ -5347,79 +8469,6 @@ class DRPCExecutionException(TException):
   def __hash__(self):
     value = 17
     value = (value * 31) ^ hash(self.msg)
-    return value
-
-  def __repr__(self):
-    L = ['%s=%r' % (key, value)
-      for key, value in self.__dict__.iteritems()]
-    return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
-
-  def __eq__(self, other):
-    return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
-
-  def __ne__(self, other):
-    return not (self == other)
-
-class TopologyHistoryInfo:
-  """
-  Attributes:
-   - topo_ids
-  """
-
-  thrift_spec = (
-    None, # 0
-    (1, TType.LIST, 'topo_ids', (TType.STRING,None), None, ), # 1
-  )
-
-  def __init__(self, topo_ids=None,):
-    self.topo_ids = topo_ids
-
-  def read(self, iprot):
-    if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
-      fastbinary.decode_binary(self, iprot.trans, (self.__class__, self.thrift_spec))
-      return
-    iprot.readStructBegin()
-    while True:
-      (fname, ftype, fid) = iprot.readFieldBegin()
-      if ftype == TType.STOP:
-        break
-      if fid == 1:
-        if ftype == TType.LIST:
-          self.topo_ids = []
-          (_etype318, _size315) = iprot.readListBegin()
-          for _i319 in xrange(_size315):
-            _elem320 = iprot.readString().decode('utf-8')
-            self.topo_ids.append(_elem320)
-          iprot.readListEnd()
-        else:
-          iprot.skip(ftype)
-      else:
-        iprot.skip(ftype)
-      iprot.readFieldEnd()
-    iprot.readStructEnd()
-
-  def write(self, oprot):
-    if oprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and self.thrift_spec is not None and fastbinary is not None:
-      oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
-      return
-    oprot.writeStructBegin('TopologyHistoryInfo')
-    if self.topo_ids is not None:
-      oprot.writeFieldBegin('topo_ids', TType.LIST, 1)
-      oprot.writeListBegin(TType.STRING, len(self.topo_ids))
-      for iter321 in self.topo_ids:
-        oprot.writeString(iter321.encode('utf-8'))
-      oprot.writeListEnd()
-      oprot.writeFieldEnd()
-    oprot.writeFieldStop()
-    oprot.writeStructEnd()
-
-  def validate(self):
-    return
-
-
-  def __hash__(self):
-    value = 17
-    value = (value * 31) ^ hash(self.topo_ids)
     return value
 
   def __repr__(self):
@@ -5878,11 +8927,11 @@ class HBRecords:
       if fid == 1:
         if ftype == TType.LIST:
           self.pulses = []
-          (_etype325, _size322) = iprot.readListBegin()
-          for _i326 in xrange(_size322):
-            _elem327 = Pulse()
-            _elem327.read(iprot)
-            self.pulses.append(_elem327)
+          (_etype393, _size390) = iprot.readListBegin()
+          for _i394 in xrange(_size390):
+            _elem395 = Pulse()
+            _elem395.read(iprot)
+            self.pulses.append(_elem395)
           iprot.readListEnd()
         else:
           iprot.skip(ftype)
@@ -5899,8 +8948,8 @@ class HBRecords:
     if self.pulses is not None:
       oprot.writeFieldBegin('pulses', TType.LIST, 1)
       oprot.writeListBegin(TType.STRUCT, len(self.pulses))
-      for iter328 in self.pulses:
-        iter328.write(oprot)
+      for iter396 in self.pulses:
+        iter396.write(oprot)
       oprot.writeListEnd()
       oprot.writeFieldEnd()
     oprot.writeFieldStop()
@@ -5952,10 +9001,10 @@ class HBNodes:
       if fid == 1:
         if ftype == TType.LIST:
           self.pulseIds = []
-          (_etype332, _size329) = iprot.readListBegin()
-          for _i333 in xrange(_size329):
-            _elem334 = iprot.readString().decode('utf-8')
-            self.pulseIds.append(_elem334)
+          (_etype400, _size397) = iprot.readListBegin()
+          for _i401 in xrange(_size397):
+            _elem402 = iprot.readString().decode('utf-8')
+            self.pulseIds.append(_elem402)
           iprot.readListEnd()
         else:
           iprot.skip(ftype)
@@ -5972,8 +9021,8 @@ class HBNodes:
     if self.pulseIds is not None:
       oprot.writeFieldBegin('pulseIds', TType.LIST, 1)
       oprot.writeListBegin(TType.STRING, len(self.pulseIds))
-      for iter335 in self.pulseIds:
-        oprot.writeString(iter335.encode('utf-8'))
+      for iter403 in self.pulseIds:
+        oprot.writeString(iter403.encode('utf-8'))
       oprot.writeListEnd()
       oprot.writeFieldEnd()
     oprot.writeFieldStop()
