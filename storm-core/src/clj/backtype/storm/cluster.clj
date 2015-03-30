@@ -26,8 +26,8 @@
 
 (gen-interface
  :name backtype.storm.cluster.ClusterStateFactory
- :methods [[mkState [clojure.lang.PersistentHashMap
-                     clojure.lang.PersistentHashMap
+ :methods [[mkState [clojure.lang.APersistentMap
+                     clojure.lang.APersistentMap
                      java.util.List] Object]])
 
 (defprotocol ClusterState
