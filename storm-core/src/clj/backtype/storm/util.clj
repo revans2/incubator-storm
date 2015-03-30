@@ -577,7 +577,7 @@
   [dir]
   (if (exists-file? dir)
     (let [content-files (.listFiles (File. dir))]
-      (map #(.getAbsolutePath ^File %) content-files))
+      (filter #(.endsWith % ".jar") (map #(.getAbsolutePath ^File %) content-files)))
     []))
 
 (defn worker-classpath
@@ -586,9 +586,11 @@
         storm-lib-dir (str storm-dir file-path-separator "lib")
         storm-conf-env (System/getenv "STORM_CONF_DIR")
         storm-conf-dir (if-let [confdir (System/getenv "STORM_CONF_DIR")]
-                         confdir (str storm-dir file-path-separator "conf"))
+                         confdir 
+                         (str storm-dir file-path-separator "conf"))
         storm-extlib-dir (str storm-dir file-path-separator "extlib")]
-    (if (nil? storm-dir) (current-classpath)
+    (if (nil? storm-dir) 
+      (current-classpath)
       (str/join class-path-separator
                 (concat (get-full-jars storm-lib-dir) (get-full-jars storm-extlib-dir) [storm-conf-dir])))))
 
