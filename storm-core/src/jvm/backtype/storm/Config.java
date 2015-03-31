@@ -567,47 +567,47 @@ public class Config extends HashMap<String, Object> {
     /**
      * The host that the HB server is running on.
      */
-    public static final String HBSERVER_HOST = "hbserver.host";
-    public static final Object HBSERVER_HOST_SCHEMA = String.class;
+    public static final String PACEMAKER_HOST = "pacemaker.host";
+    public static final Object PACEMAKER_HOST_SCHEMA = String.class;
 
     /**
-     * Which port the HBServer should run on. Clients should
+     * The port Pacemaker should run on. Clients should
      * connect to this port to submit or read heartbeats.
      */
-    public static final String HBSERVER_PORT = "hbserver.port";
-    public static final Object HBSERVER_PORT_SCHEMA = Number.class;
+    public static final String PACEMAKER_PORT = "pacemaker.port";
+    public static final Object PACEMAKER_PORT_SCHEMA = Number.class;
 
     /**
-     * The base number of threads that should be used by the HBServer.
-     * The HBServer will always keep at least this many threads waiting
-     * to handle heartbeats.
+     * The base number of threads that should be used by the Pacemaker.
+     * Pacemaker will always keep at least this many threads waiting to
+     * handle heartbeats.
      */
-    public static final String HBSERVER_BASE_THREADS = "hbserver.base.threads";
-    public static final Object HBSERVER_BASE_THREADS_SCHEMA = Number.class;
+    public static final String PACEMAKER_BASE_THREADS = "pacemaker.base.threads";
+    public static final Object PACEMAKER_BASE_THREADS_SCHEMA = Number.class;
     
     /**
-     * The maximum number of threads that should be used by the HBServer.
-     * When the HBServer gets loaded it will spawn new threads, up to 
+     * The maximum number of threads that should be used by the Pacemaker.
+     * When Pacemaker gets loaded it will spawn new threads, up to 
      * this many total, to handle the load.
      */
-    public static final String HBSERVER_MAX_THREADS = "hbserver.max.threads";
-    public static final Object HBSERVER_MAX_THREADS_SCHEMA = Number.class;
+    public static final String PACEMAKER_MAX_THREADS = "pacemaker.max.threads";
+    public static final Object PACEMAKER_MAX_THREADS_SCHEMA = Number.class;
 
     /**
-     * The number of minutes idle HBServerThreads wait before shutting down.
-     * At least HBSERVER_BASE_THREADS threads will always be alive. If there
-     * are more than HBSERVER_BASE_THREADS and they are idle, they will shut
+     * The number of minutes idle Pacemaker Threads wait before shutting down.
+     * At least PACEMAKER_BASE_THREADS threads will always be alive. If there
+     * are more than PACEMAKER_BASE_THREADS and they are idle, they will shut
      * down after this many minutes.
      */
-    public static final String HBSERVER_THREAD_TIMEOUT = "hbserver.thread.timeout";
-    public static final Object HBSERVER_THREAD_TIMEOUT_SCHEMA = Number.class;    
+    public static final String PACEMAKER_THREAD_TIMEOUT = "pacemaker.thread.timeout";
+    public static final Object PACEMAKER_THREAD_TIMEOUT_SCHEMA = Number.class;    
 
     /**
      * This parameter is used by the storm-deploy project to configure the
      * jvm options for the nimbus daemon.
      */
-    public static final String HBSERVER_CHILDOPTS = "hbserver.childopts";
-    public static final Object HBSERVER_CHILDOPTS_SCHEMA = String.class;
+    public static final String PACEMAKER_CHILDOPTS = "pacemaker.childopts";
+    public static final Object PACEMAKER_CHILDOPTS_SCHEMA = String.class;
 
     /**
      * List of DRPC servers so that the DRPCSpout knows who to talk to.

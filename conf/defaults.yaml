@@ -139,7 +139,7 @@ worker.gc.childopts: ""
 worker.heartbeat.frequency.secs: 1
 # check whether dynamic log levels can be reset from DEBUG to INFO in workers
 worker.log.level.reset.poll.secs: 30
-#worker.cluster.state.store: "org.apache.storm.cluster_state.heartbeat_server_state"
+#worker.cluster.state.store: "org.apache.storm.cluster_state.pacemaker_state"
 worker.cluster.state.store: "backtype.storm.cluster_state.zookeeper_state"
 
 # control how many worker receiver threads we need per worker
@@ -212,10 +212,9 @@ blobstore.superuser: "nobody"
 
 dev.zookeeper.path: "/tmp/dev-storm-zookeeper"
 
-### hhserver.* configs are for the master
-hbserver.host: "localhost"
-hbserver.port: 6699
-hbserver.base.threads: 10
-hbserver.max.threads: 50
-hbserver.thread.timeout: 10
-hbserver.childopts: "-Xmx1024m"
+pacemaker.host: "localhost"
+pacemaker.port: 6699
+pacemaker.base.threads: 10
+pacemaker.max.threads: 50
+pacemaker.thread.timeout: 10
+pacemaker.childopts: "-Xmx1024m"
