@@ -38,7 +38,7 @@
         </dependency>
         <dependency>
           <groupId>org.apache.storm</groupId>
-          <artifactId>hbserver</artifactId>
+          <artifactId>pacemaker</artifactId>
           <version>${project.version}</version>
         </dependency>
     </dependencies>

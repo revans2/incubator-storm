@@ -388,14 +388,14 @@ def nimbus(klass="backtype.storm.daemon.nimbus"):
 def pacemaker(klass="org.apache.storm.pacemaker"):
     """Syntax: [storm pacemaker]
 
-    Launches the HBServer daemon. This command should be run under
+    Launches the Pacemaker daemon. This command should be run under
     supervision with a tool like daemontools or monit.
 
     See Setting up a Storm cluster for more information.
     (http://storm.apache.org/documentation/Setting-up-a-Storm-cluster)
     """
     cppaths = [CLUSTER_CONF_DIR]
-    jvmopts = parse_args(confvalue("hbserver.childopts", cppaths)) + [
+    jvmopts = parse_args(confvalue("pacemaker.childopts", cppaths)) + [
         "-Dlogfile.name=pacemaker.log",
         "-Ddaemon.name=pacemaker",
         "-Dlog4j.configurationFile=" + STORM_DIR + "/log4j2/cluster.xml",
