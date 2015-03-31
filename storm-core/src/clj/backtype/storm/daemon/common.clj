@@ -155,7 +155,6 @@
       (throw (InvalidTopologyException. "Number of executors must be greater than 0 when number of tasks is greater than 0"))
       )))
 
-
 (defn validate-structure! [^StormTopology topology]
   ;; validate all the component subscribe from component+stream which actually exists in the topology
   ;; and if it is a fields grouping, validate the corresponding field exists  
@@ -362,5 +361,5 @@
                  " class:" aznClass
                  " handler:" aznHandler)
     aznHandler
-  ))
-  
+  )) 
+
