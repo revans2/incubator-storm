@@ -21,7 +21,7 @@
   (:import [backtype.storm.task WorkerTopologyContext])
   (:import [backtype.storm Constants])
   (:import [backtype.storm.metric SystemBolt])
-  (:import [backtype.storm.security.auth IAuthorizer])
+  (:import [backtype.storm.security.auth IAuthorizer]) 
   (:require [clojure.set :as set])  
   (:require [backtype.storm.daemon.acker :as acker])
   (:require [backtype.storm.thrift :as thrift])
@@ -125,12 +125,14 @@
               id (-> obj .get_common .get_streams keys)]
         (if (system-id? id)
           (throw (InvalidTopologyException.
-                  (str id " is not a valid stream id"))))))))
+                  (str id " is not a valid stream id"))))))
+    ))
 
 (defn all-components [^StormTopology topology]
   (apply merge {}
          (for [f thrift/STORM-TOPOLOGY-FIELDS]
-           (.getFieldValue topology f))))
+           (.getFieldValue topology f)
+           )))
 
 (defn component-conf [component]
   (->> component
@@ -150,7 +152,8 @@
     (when (and (> (conf TOPOLOGY-TASKS) 0)
                p
                (<= p 0))
-      (throw (InvalidTopologyException. "Number of executors must be greater than 0 when number of tasks is greater than 0")))))
+      (throw (InvalidTopologyException. "Number of executors must be greater than 0 when number of tasks is greater than 0"))
+      )))
 
 
 (defn validate-structure! [^StormTopology topology]
@@ -234,6 +237,7 @@
           :let [common (.get_common component)]]
     (.put_to_streams common SYSTEM-STREAM-ID (thrift/output-fields ["event"]))))
 
+
 (defn map-occurrences [afn coll]
   (->> coll
        (reduce (fn [[counts new-coll] x]
@@ -302,7 +306,8 @@
     (add-metric-streams! ret)
     (add-system-streams! ret)
     (validate-structure! ret)
-    ret))
+    ret
+    ))
 
 (defn has-ackers? [storm-conf]
   (or (nil? (storm-conf TOPOLOGY-ACKER-EXECUTORS)) (> (storm-conf TOPOLOGY-ACKER-EXECUTORS) 0)))
@@ -320,7 +325,8 @@
        (sort-by first)
        (mapcat (fn [[c num-tasks]] (repeat num-tasks c)))
        (map (fn [id comp] [id comp]) (iterate (comp int inc) (int 1)))
-       (into {})))
+       (into {})
+       ))
 
 (defn executor-id->tasks [[first-task-id last-task-id]]
   (->> (range first-task-id (inc last-task-id))
@@ -357,3 +363,4 @@
                  " handler:" aznHandler)
     aznHandler
   ))
+  
