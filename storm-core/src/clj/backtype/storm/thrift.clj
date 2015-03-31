@@ -271,4 +271,3 @@
 (def SPOUT-FIELDS
   [StormTopology$_Fields/SPOUTS
    StormTopology$_Fields/STATE_SPOUTS])
-

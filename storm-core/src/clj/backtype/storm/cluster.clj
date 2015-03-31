@@ -59,7 +59,6 @@
 
 (defnk mk-distributed-cluster-state
   [conf :auth-conf nil :acls nil]
-  (log-message "WORKER-CLUSTER-STATE-STORE: " (conf WORKER-CLUSTER-STATE-STORE))
   (let [clazz (Class/forName (or (conf WORKER-CLUSTER-STATE-STORE)
                                  "backtype.storm.cluster_state.zookeeper_state"))
         state-instance (.newInstance clazz)]

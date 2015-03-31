@@ -20,7 +20,7 @@
   (:import [backtype.storm.testing TestWordCounter TestWordSpout TestGlobalCount TestAggregatesCounter])
   (:import [backtype.storm.scheduler INimbus])
   (:import [backtype.storm.generated Credentials LogConfig LogLevel LogLevelAction])
-  (:use [backtype.storm bootstrap testing thrift])
+  (:use [backtype.storm bootstrap testing])
   (:use [backtype.storm.daemon common])
   (:require [conjure.core])
   (:use [conjure core])
