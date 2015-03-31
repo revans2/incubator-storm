@@ -32,7 +32,7 @@
                                      ClientBlobStore
                                      InputStreamWithMeta
                                      KeyFilter])
-  (:use [backtype.storm bootstrap util thrift])
+  (:use [backtype.storm bootstrap util])
   (:use [backtype.storm.config :only [validate-configs-with-schemas]])
   (:use [backtype.storm.daemon common])
   (:use [clojure.string :only [blank?]])

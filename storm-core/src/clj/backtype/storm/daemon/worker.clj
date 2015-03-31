@@ -15,7 +15,7 @@
 ;; limitations under the License.
 (ns backtype.storm.daemon.worker
   (:use [backtype.storm.daemon common])
-  (:use [backtype.storm bootstrap thrift])
+  (:use [backtype.storm bootstrap])
   (:require [clj-time.core :as time])
   (:require [clj-time.coerce :as coerce])
   (:require [backtype.storm.daemon [executor :as executor]])
