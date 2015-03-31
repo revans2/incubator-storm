@@ -11,25 +11,6 @@
   (:gen-class
    :implements [backtype.storm.cluster.ClusterStateFactory]))
 
-;;(defn sample []
-;;  (try
-;;    (do 
-;;      (def service (service-handler nil))
-;;      (def server (thrift/serve "127.0.0.1:8089" service))
-;;      (def client (thrift/client "127.0.0.1:8089" HBServer))
-;;      
-;;      (let [buff (java.nio.ByteBuffer/wrap (.getBytes "foo_bar"))
-;;            buff2 (java.nio.ByteBuffer/wrap (.getBytes "foo_bar_baz"))]
-;;        (println "Buffer: " buff)
-;;        (println (futures/await (.sendPulse client (Pulse. "/foo" buff))))
-;;        (println (futures/await (.sendPulse client (Pulse. "/foo/bar" buff2))))
-;;        (println (futures/await (.sendPulse client (Pulse. "/foo/baz" buff2))))
-;;        (println (String. (.getDetails (futures/await (.getPulse client "/foo")))))
-;;        (println (String. (.getDetails (futures/await (.getPulse client "/foo/bar")))))
-;;        (println (String. (.getDetails (futures/await (.getPulse client "/foo/baz")))))
-;;        (println (futures/await (.getAllNodesForPath client "/foo")))))
-;;    (catch Exception e (.printStackTrace e))))
-
 (defn -mkState [this conf auth-conf acls]
   (let [zk-client (.mkState (zookeeper_state.) conf auth-conf acls)
         pacemaker-client (PacemakerServerFactory/makeClient (str (conf HBSERVER-HOST) ":" (conf HBSERVER-PORT)))]

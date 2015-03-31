@@ -27,6 +27,7 @@
         [backtype.storm log config])
   (:gen-class))
 
+;; This is the old Thrift service that this server is emulating.
 ;  void createPath(1: string path) throws (1: HBExecutionException e, 2: HBAuthorizationException aze);
 ;  bool exists(1: string path) throws (1: HBExecutionException e, 2: HBAuthorizationException aze);
 ;  void sendPulse(1: Pulse pulse) throws (1: HBExecutionException e, 2: HBAuthorizationException aze);
