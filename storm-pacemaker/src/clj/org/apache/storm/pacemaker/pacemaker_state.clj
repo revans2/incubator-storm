@@ -1,4 +1,4 @@
-(ns org.apache.storm.cluster-state.pacemaker-state
+(ns org.apache.storm.pacemaker.pacemaker-state
   (:require [org.apache.storm pacemaker]
             [backtype.storm.cluster-state [zookeeper-state :as zk-state]]
             [finagle-clojure.futures :as futures])
@@ -6,7 +6,7 @@
             HBExecutionException HBNodes HBRecords
             HBServerMessageType Message MessageData Pulse]
            [backtype.storm.cluster_state zookeeper_state]
-           [org.apache.storm PacemakerServerFactory])
+           [org.apache.storm.pacemaker PacemakerServerFactory])
   (:use [backtype.storm config cluster log])
   (:gen-class
    :implements [backtype.storm.cluster.ClusterStateFactory]))
