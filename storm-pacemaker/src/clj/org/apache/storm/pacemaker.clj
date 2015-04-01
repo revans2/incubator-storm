@@ -16,7 +16,7 @@
 
 (ns org.apache.storm.pacemaker
   (:import [com.twitter.finagle Service]
-           [org.apache.storm PacemakerServerFactory]
+           [org.apache.storm.pacemaker PacemakerServerFactory]
            [java.util.concurrent ConcurrentHashMap ThreadPoolExecutor TimeUnit LinkedBlockingDeque]
            [backtype.storm.generated
             HBAuthorizationException HBExecutionException HBNodes HBRecords
