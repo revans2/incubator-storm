@@ -1,4 +1,4 @@
-(ns org.apache.storm.hbserver-test
+(ns org.apache.storm.pacemaker-test
   (:use [clojure test]))
 
 
