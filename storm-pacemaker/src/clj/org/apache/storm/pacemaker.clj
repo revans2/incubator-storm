@@ -112,7 +112,8 @@
             HBServerMessageType/GET_ALL_NODES_FOR_PATH (get-all-nodes-for-path (.get_path (.get_data request)) heartbeats)
             HBServerMessageType/GET_PULSE              (get-pulse (.get_path (.get_data request)) heartbeats)
             HBServerMessageType/DELETE_PATH            (delete-path (.get_path (.get_data request)) heartbeats)
-            HBServerMessageType/DELETE_PULSE_ID        (delete-pulse-id (.get_path (.get_data request)) heartbeats)))))))
+            HBServerMessageType/DELETE_PULSE_ID        (delete-pulse-id (.get_path (.get_data request)) heartbeats)
+            (.get_type request)                        (log-message "Got Type: " (.get_type request))))))))
     
 (defn launch-server! []
   (log-message "Starting Server.")

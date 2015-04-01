@@ -34,59 +34,60 @@ import org.slf4j.LoggerFactory;
 public class PacemakerServerFactory {
 
     private static class ThriftEncoder extends OneToOneEncoder {
+        private static final Logger LOG = LoggerFactory.getLogger(ThriftDecoder.class);
+        
         @Override
         protected Object encode(ChannelHandlerContext ctx, Channel channel, Object msg) {
-            return ChannelBuffers.wrappedBuffer(
-                Utils.thriftSerialize((TBase)msg)
-                );
+            
+            byte serialized[] = Utils.thriftSerialize((Message)msg);
+           
+            Message m = (Message)Utils.thriftDeserialize(Message.class, serialized);
+            
+            ChannelBuffer ret = ChannelBuffers.directBuffer(serialized.length + 4);
+
+                
+            ret.writeInt(serialized.length);
+            ret.writeBytes(serialized);
+
+            return ret;
+            
         }
     }
 
-    private static class ThriftDecoder extends ReplayingDecoder {
+    private static class ThriftDecoder extends FrameDecoder {
+
         private static final Logger LOG = LoggerFactory.getLogger(ThriftDecoder.class);
-        @Override
-        protected Object decode(ChannelHandlerContext ctx, Channel channel, ChannelBuffer buff, java.lang.Enum voidEnum) throws Exception {
-            try {
-                LOG.info("Have {} bytes.", buff.readableBytes());
-                NettyTTransportAdapter adapter = new NettyTTransportAdapter(buff);
-                TBinaryProtocol prot = new TBinaryProtocol(adapter);
+        
+        protected Object decode(ChannelHandlerContext ctx, Channel channel, ChannelBuffer buf) throws Exception {
 
-                int index = buff.readerIndex();
-                buff.markReaderIndex();
-
-                LOG.info("Got index {}.", index);
-                
-                prot.readMessageBegin();
-                TProtocolUtil.skip(prot, TType.STRUCT);
-                prot.readMessageEnd();
-                
-                int endIndex = buff.readerIndex();
-                buff.resetReaderIndex();
-
-                LOG.info("Got End index {}.", endIndex);
-                
-                return Utils.thriftDeserialize(Message.class, buff.readSlice(endIndex - index).array());
-            } catch (Throwable t) {
-                LOG.info("Decoder Caught: {}", t);
-                throw t;
+            long available = buf.readableBytes();
+            if(available < 2) {
+                return null;
             }
-//            buff.markReaderIndex();
-//            try {
-//                return Utils.thriftDeserialize(Message.class, buff.array());
-//            } catch (RuntimeException e) {
-//                buff.resetReaderIndex();
-//                return null;
-//            }
-        }
 
-        protected Object decodeLast(ChannelHandlerContext ctx, Channel channel, ChannelBuffer buffer, java.lang.Enum voidEnum) throws Exception {
-            try {
-                return decode(ctx, channel, buffer, voidEnum);
-            } catch (Throwable t) {
-                return null; // return null to indicate that not all expected bytes have been received yet
+            buf.markReaderIndex();
+
+            int thriftLen = buf.readInt();
+            available -= 4;
+
+            
+            if(available < thriftLen) {
+                // We haven't received the entire object yet, return and wait for more bytes.
+                buf.resetReaderIndex();
+                return null;
             }
+
+            buf.discardReadBytes();
+
+            byte serialized[] = new byte[thriftLen];
+            buf.readBytes(serialized, 0, thriftLen);
+            
+            Message m = (Message)Utils.thriftDeserialize(Message.class, serialized);
+            
+            return m;
+            
         }
-    }
+    }    
     
     private static AbstractCodec makeCodec() {
         
