@@ -584,7 +584,6 @@
   []
   (let [storm-dir (System/getProperty "storm.home")
         storm-lib-dir (str storm-dir file-path-separator "lib")
-        storm-conf-env (System/getenv "STORM_CONF_DIR")
         storm-conf-dir (if-let [confdir (System/getenv "STORM_CONF_DIR")]
                          confdir 
                          (str storm-dir file-path-separator "conf"))
