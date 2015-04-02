@@ -6,6 +6,7 @@
             HBExecutionException HBNodes HBRecords
             HBServerMessageType Message MessageData Pulse]
            [backtype.storm.cluster_state zookeeper_state]
+           [backtype.storm.cluster ClusterState]
            [org.apache.storm.pacemaker PacemakerServerFactory])
   (:use [backtype.storm config cluster log])
   (:gen-class
@@ -22,18 +23,18 @@
       ;; Let these pass through to the zk-state. We only want to handle heartbeats.
       (register [this callback] (.register zk-state callback))
       (unregister [this callback] (.unregister zk-state callback))
-      (set-ephemeral-node [this path data acls] (.set-ephemeral-node zk-state path data acls))
-      (create-sequential [this path data acls] (.create-sequential zk-state path data acls))
-      (set-data [this path data acls] (.set-data zk-state path data acls))
-      (delete-node [this path] (.delete-node zk-state path))
-      (get-data [this path watch?] (.get-data zk-state path watch?))
-      (get-data-with-version [this path watch?] (.get-data-with-version zk-state path watch?))
-      (get-version [this path watch?] (.get-version zk-state path watch?))
-      (get-children [this path watch?] (.get-children zk-state path watch?))
+      (set_ephemeral_node [this path data acls] (.set_ephemeral_node zk-state path data acls))
+      (create_sequential [this path data acls] (.create_sequential zk-state path data acls))
+      (set_data [this path data acls] (.set_data zk-state path data acls))
+      (delete_node [this path] (.delete_node zk-state path))
+      (get_data [this path watch?] (.get_data zk-state path watch?))
+      (get_data_with_version [this path watch?] (.get_data_with_version zk-state path watch?))
+      (get_version [this path watch?] (.get_version zk-state path watch?))
+      (get_children [this path watch?] (.get_children zk-state path watch?))
       (mkdirs [this path acls] (.mkdirs zk-state path acls))
-      (exists-node? [this path watch?] (.exists-node? zk-state path watch?))
+      (node_exists [this path watch?] (.node_exists zk-state path watch?))
         
-      (set-worker-hb [this path data acls]
+      (set_worker_hb [this path data acls]
         (let [response
               (futures/await
                (.apply pacemaker-client
@@ -46,7 +47,7 @@
             nil
             (throw HBExecutionException "Invalid Response Type"))))
 
-      (delete-worker-hb [this path]
+      (delete_worker_hb [this path]
         (let [response 
               (futures/await
                (.apply pacemaker-client
@@ -56,7 +57,7 @@
             nil
             (throw HBExecutionException "Invalid Response Type"))))
 
-      (get-worker-hb [this path watch?]
+      (get_worker_hb [this path watch?]
         (let [response
               (futures/await
                (.apply pacemaker-client
@@ -66,7 +67,7 @@
             (.get_details (.get_pulse (.get_data response)))
             (throw HBExecutionException "Invalid Response Type"))))
 
-      (get-worker-hb-children [this path watch?]
+      (get_worker_hb_children [this path watch?]
         (let [response
               (futures/await
                (.apply pacemaker-client

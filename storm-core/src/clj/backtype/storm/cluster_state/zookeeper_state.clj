@@ -1,5 +1,6 @@
 (ns backtype.storm.cluster-state.zookeeper-state
-  (:import [org.apache.zookeeper KeeperException KeeperException$NoNodeException ZooDefs ZooDefs$Ids ZooDefs$Perms])
+  (:import [org.apache.zookeeper KeeperException KeeperException$NoNodeException ZooDefs ZooDefs$Ids ZooDefs$Perms]
+           [backtype.storm.cluster ClusterState])
   (:use [backtype.storm cluster config log util])
   (:require [backtype.storm [zookeeper :as zk]])
   (:gen-class
@@ -36,7 +37,7 @@
         [this id]
         (swap! callbacks dissoc id))
       
-      (set-ephemeral-node
+      (set_ephemeral_node
         [this path data acls]
         (zk/mkdirs zk (parent-path path) acls)
         (if (zk/exists zk path false)
@@ -47,11 +48,11 @@
              (zk/create-node zk path data :ephemeral acls)))
           (zk/create-node zk path data :ephemeral acls)))
       
-      (create-sequential
+      (create_sequential
         [this path data acls]
         (zk/create-node zk path data :sequential acls))
       
-      (set-data
+      (set_data
         [this path data acls]
         ;; note: this does not turn off any existing watches
         (if (zk/exists zk path false)
@@ -60,48 +61,48 @@
             (zk/mkdirs zk (parent-path path) acls)
             (zk/create-node zk path data :persistent acls))))
       
-      (set-worker-hb
+      (set_worker_hb
         [this path data acls]
         ;; note: this does not turn off any existing watches
-        (set-data this path data acls))
+        (.set_data this path data acls))
 
-      (delete-node
+      (delete_node
         [this path]
         (zk/delete-recursive zk path))
 
       (delete-worker-hb
         [this path]
-        (delete-node this path))
+        (.delete_node this path))
 
-      (get-data
+      (get_data
         [this path watch?]
         (zk/get-data zk path watch?))
 
-      (get-data-with-version
+      (get_data_with_version
         [this path watch?]
         (zk/get-data-with-version zk path watch?))
 
-      (get-version 
+      (get_version 
         [this path watch?]
         (zk/get-version zk path watch?))
 
-      (get-worker-hb
+      (get_worker_hb
         [this path watch?]
-        (get-data this path watch?))
+        (.get_data this path watch?))
 
-      (get-children
+      (get_children
         [this path watch?]
         (zk/get-children zk path watch?))
 
-      (get-worker-hb-children
+      (get_worker_hb_children
         [this path watch?]
-        (get-children this path watch?))
+        (.get_children this path watch?))
 
       (mkdirs
         [this path acls]
         (zk/mkdirs zk path acls))
 
-      (exists-node?
+      (node_exists
         [this path watch?]
         (zk/exists-node? zk path watch?))
 
