@@ -14,7 +14,7 @@
 ;; See the License for the specific language governing permissions and
 ;; limitations under the License.
 
-(ns org.apache.storm.pacemaker
+(ns org.apache.storm.pacemaker.pacemaker
   (:import [com.twitter.finagle Service]
            [org.apache.storm.pacemaker PacemakerServerFactory]
            [java.util.concurrent ConcurrentHashMap ThreadPoolExecutor TimeUnit LinkedBlockingDeque]
@@ -93,9 +93,9 @@
   (let [min (conf PACEMAKER-BASE-THREADS)
         max (conf PACEMAKER-MAX-THREADS)
         mins-wait (conf PACEMAKER-THREAD-TIMEOUT)
-        _ (log-message "Min: " min)
-        _ (log-message "Max: " max)
-        _ (log-message "Mins-Wait: " mins-wait)
+        _ (log-message "Starting with " min " base threads.")
+        _ (log-message "Will spawn up to " max " worker threads.")
+        _ (log-message "Keep-alive for idle workers (Minutes): " mins-wait)
         heartbeats ^ConcurrentHashMap (hb-data conf)
         pool (future-pool/future-pool
               (ThreadPoolExecutor. min max

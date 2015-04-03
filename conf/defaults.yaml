@@ -139,6 +139,7 @@ worker.gc.childopts: ""
 worker.heartbeat.frequency.secs: 1
 # check whether dynamic log levels can be reset from DEBUG to INFO in workers
 worker.log.level.reset.poll.secs: 30
+# The state store for the worker.
 #worker.cluster.state.store: "org.apache.storm.pacemaker.pacemaker_state"
 worker.cluster.state.store: "backtype.storm.cluster_state.zookeeper_state"
 

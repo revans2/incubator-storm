@@ -1,5 +1,21 @@
+;; Licensed to the Apache Software Foundation (ASF) under one
+;; or more contributor license agreements.  See the NOTICE file
+;; distributed with this work for additional information
+;; regarding copyright ownership.  The ASF licenses this file
+;; to you under the Apache License, Version 2.0 (the
+;; "License"); you may not use this file except in compliance
+;; with the License.  You may obtain a copy of the License at
+;;
+;; http://www.apache.org/licenses/LICENSE-2.0
+;;
+;; Unless required by applicable law or agreed to in writing, software
+;; distributed under the License is distributed on an "AS IS" BASIS,
+;; WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+;; See the License for the specific language governing permissions and
+;; limitations under the License.
+
 (ns org.apache.storm.pacemaker.pacemaker-state
-  (:require [org.apache.storm pacemaker]
+  (:require [org.apache.storm.pacemaker pacemaker]
             [backtype.storm.cluster-state [zookeeper-state :as zk-state]]
             [finagle-clojure.futures :as futures])
   (:import [backtype.storm.generated
@@ -15,11 +31,9 @@
 (defn -mkState [this conf auth-conf acls]
   (let [zk-state (.mkState (zookeeper_state.) conf auth-conf acls)
         pacemaker-client (PacemakerServerFactory/makeClient (str (conf PACEMAKER-HOST) ":" (conf PACEMAKER-PORT)))]
-    
-    
+
     (reify
       ClusterState
-
       ;; Let these pass through to the zk-state. We only want to handle heartbeats.
       (register [this callback] (.register zk-state callback))
       (unregister [this callback] (.unregister zk-state callback))
@@ -33,7 +47,7 @@
       (get_children [this path watch?] (.get_children zk-state path watch?))
       (mkdirs [this path acls] (.mkdirs zk-state path acls))
       (node_exists [this path watch?] (.node_exists zk-state path watch?))
-        
+
       (set_worker_hb [this path data acls]
         (let [response
               (futures/await
@@ -48,7 +62,7 @@
             (throw HBExecutionException "Invalid Response Type"))))
 
       (delete_worker_hb [this path]
-        (let [response 
+        (let [response
               (futures/await
                (.apply pacemaker-client
                        (Message. HBServerMessageType/DELETE_PATH
@@ -58,14 +72,17 @@
             (throw HBExecutionException "Invalid Response Type"))))
 
       (get_worker_hb [this path watch?]
-        (let [response
-              (futures/await
-               (.apply pacemaker-client
-                       (Message. HBServerMessageType/GET_PULSE
-                                 (MessageData/path path))))]
-          (if (= (.get_type response) HBServerMessageType/GET_PULSE_RESPONSE)
-            (.get_details (.get_pulse (.get_data response)))
-            (throw HBExecutionException "Invalid Response Type"))))
+        (try
+          (let [response
+                (futures/await
+                 (.apply pacemaker-client
+                         (Message. HBServerMessageType/GET_PULSE
+                                   (MessageData/path path))))]
+            (if (= (.get_type response) HBServerMessageType/GET_PULSE_RESPONSE)
+              (.get_details (.get_pulse (.get_data response)))
+              (throw HBExecutionException "Invalid Response Type")))
+          (catch Exception e
+            (log-message "Exception in get_worker_hb: " e))))
 
       (get_worker_hb_children [this path watch?]
         (let [response
@@ -76,8 +93,7 @@
           (if (= (.get_type response) HBServerMessageType/GET_ALL_NODES_FOR_PATH_RESPONSE)
             (into [] (.get_pulseIds (.get_nodes (.get_data response))))
             (throw HBExecutionException "Invalid Response Type"))))
-            
+
       (close [this]
         (.close zk-state)
         (futures/await (.close pacemaker-client))))))
-
