@@ -14,7 +14,7 @@
 ;; See the License for the specific language governing permissions and
 ;; limitations under the License.
 
-(ns backtype.storm.cluster-state.zookeeper-state
+(ns backtype.storm.cluster-state.zookeeper-state-factory
   (:import [org.apache.zookeeper KeeperException KeeperException$NoNodeException ZooDefs ZooDefs$Ids ZooDefs$Perms]
            [backtype.storm.cluster ClusterState])
   (:use [backtype.storm cluster config log util])

@@ -14,14 +14,14 @@
 ;; See the License for the specific language governing permissions and
 ;; limitations under the License.
 
-(ns org.apache.storm.pacemaker.pacemaker-state
+(ns org.apache.storm.pacemaker.pacemaker-state-factory
   (:require [org.apache.storm.pacemaker pacemaker]
-            [backtype.storm.cluster-state [zookeeper-state :as zk-state]]
+            [backtype.storm.cluster-state [zookeeper-state-factory :as zk-factory]]
             [finagle-clojure.futures :as futures])
   (:import [backtype.storm.generated
             HBExecutionException HBNodes HBRecords
             HBServerMessageType Message MessageData Pulse]
-           [backtype.storm.cluster_state zookeeper_state]
+           [backtype.storm.cluster_state zookeeper_state_factory]
            [backtype.storm.cluster ClusterState]
            [org.apache.storm.pacemaker PacemakerServerFactory])
   (:use [backtype.storm config cluster log])
@@ -29,7 +29,7 @@
    :implements [backtype.storm.cluster.ClusterStateFactory]))
 
 (defn -mkState [this conf auth-conf acls]
-  (let [zk-state (.mkState (zookeeper_state.) conf auth-conf acls)
+  (let [zk-state (.mkState (zookeeper_state_factory.) conf auth-conf acls)
         pacemaker-client (PacemakerServerFactory/makeClient (str (conf PACEMAKER-HOST) ":" (conf PACEMAKER-PORT)))]
 
     (reify

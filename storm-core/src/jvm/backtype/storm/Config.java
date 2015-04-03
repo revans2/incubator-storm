@@ -302,6 +302,13 @@ public class Config extends HashMap<String, Object> {
     public static final Object STORM_NIMBUS_RETRY_INTERVAL_CEILING_SCHEMA = Number.class;
 
     /**
+     * The ClusterState factory that worker will use to create a ClusterState
+     * to store state in. Defaults to ZooKeeper.
+     */
+    public static final String STORM_CLUSTER_STATE_STORE = "storm.cluster.state.store";
+    public static final Object STORM_CLUSTER_STATE_STORE_SCHEMA = String.class;
+    
+    /**
      * The host that the master server is running on.
      */
     public static final String NIMBUS_HOST = "nimbus.host";
@@ -957,13 +964,6 @@ public class Config extends HashMap<String, Object> {
      */
     public static final String WORKER_HEARTBEAT_FREQUENCY_SECS = "worker.heartbeat.frequency.secs";
     public static final Object WORKER_HEARTBEAT_FREQUENCY_SECS_SCHEMA = Number.class;
-
-    /**
-     * The ClusterState factory that worker will use to create a ClusterState
-     * to store state in. Defaults to ZooKeeper.
-     */
-    public static final String WORKER_CLUSTER_STATE_STORE = "worker.cluster.state.store";
-    public static final Object WORKER_CLUSTER_STATE_STORE_SCHEMA = String.class;
 
     /**
      * How often a task should heartbeat its status to the master.

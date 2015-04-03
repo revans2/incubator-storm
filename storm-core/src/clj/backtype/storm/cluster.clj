@@ -25,19 +25,6 @@
   (:require [backtype.storm [zookeeper :as zk]])
   (:require [backtype.storm.daemon [common :as common]]))
 
-(gen-interface
- :name backtype.storm.cluster.ClusterStateFactory
- :methods [[mkState [clojure.lang.APersistentMap
-                     clojure.lang.APersistentMap
-                     java.util.List] Object]])
-
-;(defprotocol ClusterState
-;  ;; if node does not exist, create persistent with this data
-;  (set-worker-hb [this path data acls])
-;  (get-worker-hb [this path watch?])
-;  (get-worker-hb-children [this path watch?])
-;  (delete-worker-hb [this path])
-
 (defn mk-topo-only-acls
   [topo-conf]
   (let [payload (.get topo-conf STORM-ZOOKEEPER-TOPOLOGY-AUTH-PAYLOAD)]
@@ -47,8 +34,8 @@
 
 (defnk mk-distributed-cluster-state
   [conf :auth-conf nil :acls nil]
-  (let [clazz (Class/forName (or (conf WORKER-CLUSTER-STATE-STORE)
-                                 "backtype.storm.cluster_state.zookeeper_state"))
+  (let [clazz (Class/forName (or (conf STORM-CLUSTER-STATE-STORE)
+                                 "backtype.storm.cluster_state.zookeeper_state_factory"))
         state-instance (.newInstance clazz)]
     (or (.mkState state-instance conf auth-conf acls)
         nil)))

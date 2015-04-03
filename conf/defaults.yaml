@@ -49,6 +49,10 @@ storm.auth.simple-acl.users.commands: []
 storm.auth.simple-acl.admins: []
 storm.blobstore.inputstream.buffer.size.bytes: 65536
 storm.meta.serialization.delegate: "backtype.storm.serialization.DefaultSerializationDelegate"
+# The state store for the cluster.
+#storm.cluster.state.store: "org.apache.storm.pacemaker.pacemaker_state_factory"
+storm.cluster.state.store: "backtype.storm.cluster_state.zookeeper_state_factory"
+
 
 ### nimbus.* configs are for the master
 nimbus.host: "localhost"
@@ -139,9 +143,6 @@ worker.gc.childopts: ""
 worker.heartbeat.frequency.secs: 1
 # check whether dynamic log levels can be reset from DEBUG to INFO in workers
 worker.log.level.reset.poll.secs: 30
-# The state store for the worker.
-#worker.cluster.state.store: "org.apache.storm.pacemaker.pacemaker_state"
-worker.cluster.state.store: "backtype.storm.cluster_state.zookeeper_state"
 
 # control how many worker receiver threads we need per worker
 topology.worker.receiver.thread.count: 1
