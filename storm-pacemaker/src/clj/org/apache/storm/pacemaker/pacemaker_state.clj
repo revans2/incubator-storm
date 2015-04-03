@@ -72,17 +72,14 @@
             (throw HBExecutionException "Invalid Response Type"))))
 
       (get_worker_hb [this path watch?]
-        (try
-          (let [response
-                (futures/await
-                 (.apply pacemaker-client
-                         (Message. HBServerMessageType/GET_PULSE
-                                   (MessageData/path path))))]
-            (if (= (.get_type response) HBServerMessageType/GET_PULSE_RESPONSE)
-              (.get_details (.get_pulse (.get_data response)))
-              (throw HBExecutionException "Invalid Response Type")))
-          (catch Exception e
-            (log-message "Exception in get_worker_hb: " e))))
+        (let [response
+              (futures/await
+               (.apply pacemaker-client
+                       (Message. HBServerMessageType/GET_PULSE
+                                 (MessageData/path path))))]
+          (if (= (.get_type response) HBServerMessageType/GET_PULSE_RESPONSE)
+            (.get_details (.get_pulse (.get_data response)))
+            (throw HBExecutionException "Invalid Response Type"))))
 
       (get_worker_hb_children [this path watch?]
         (let [response
