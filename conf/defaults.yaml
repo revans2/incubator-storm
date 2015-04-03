@@ -49,6 +49,10 @@ storm.auth.simple-acl.users.commands: []
 storm.auth.simple-acl.admins: []
 storm.blobstore.inputstream.buffer.size.bytes: 65536
 storm.meta.serialization.delegate: "backtype.storm.serialization.DefaultSerializationDelegate"
+# The state store for the cluster.
+#storm.cluster.state.store: "org.apache.storm.pacemaker.pacemaker_state_factory"
+storm.cluster.state.store: "backtype.storm.cluster_state.zookeeper_state_factory"
+
 
 ### nimbus.* configs are for the master
 nimbus.host: "localhost"
@@ -210,10 +214,9 @@ blobstore.superuser: "nobody"
 
 dev.zookeeper.path: "/tmp/dev-storm-zookeeper"
 
-### hhserver.* configs are for the master
-hbserver.host: "localhost"
-hbserver.thrift.port: 6699
-hbserver.thrift.threads: 64
-hbserver.thrift.max_buffer_size: 4194304
-hbserver.childopts: "-Xmx1024m"
-hbserver.route.worker.heartbeats: false
+pacemaker.host: "localhost"
+pacemaker.port: 6699
+pacemaker.base.threads: 10
+pacemaker.max.threads: 50
+pacemaker.thread.timeout: 10
+pacemaker.childopts: "-Xmx1024m"

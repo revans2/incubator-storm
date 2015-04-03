@@ -36,6 +36,11 @@
             <artifactId>storm-core</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <dependency>
+          <groupId>org.apache.storm</groupId>
+          <artifactId>pacemaker</artifactId>
+          <version>${project.version}</version>
+        </dependency>
     </dependencies>
 
     <build>
