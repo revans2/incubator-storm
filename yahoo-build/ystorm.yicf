@@ -134,12 +134,16 @@ file 444 - - lib64/jars/storm-starter-topologies.pom ../examples/storm-starter/p
 file 444 - - lib64/jars/storm-kafka.jar ../external/storm-kafka/target/storm-kafka-$(BASE_VERSION).jar
 file 444 - - lib64/jars/storm-kafka-sources.jar ../external/storm-kafka/target/storm-kafka-$(BASE_VERSION)-sources.jar
 file 444 - - lib64/jars/storm-kafka.pom ../external/storm-kafka/pom.xml
+file 444 - - lib64/jars/storm-pacemaker.jar ../storm-pacemaker/target/pacemaker-$(BASE_VERSION).jar
+file 444 - - lib64/jars/storm-pacemaker-sources.jar ../storm-pacemaker/target/pacemaker-$(BASE_VERSION)-sources.jar
+file 444 - - lib64/jars/storm-pacemaker.pom ../storm-pacemaker/pom.xml
 
 file 444 - - lib64/storm/$(BASE_VERSION)/RELEASE ./RELEASE
 file 444 - - lib64/storm/$(BASE_VERSION)/LICENSE ../LICENSE
 file 444 - - lib64/storm/$(BASE_VERSION)/DISCLAIMER ../DISCLAIMER
 file 444 - - lib64/storm/$(BASE_VERSION)/lib/storm-core-$(BASE_VERSION).jar ../storm-core/target/storm-core-$(BASE_VERSION).jar
 file 444 - - lib64/storm/$(BASE_VERSION)/lib/storm_yahoo-$(BASE_VERSION).jar ../storm-yahoo/target/storm_yahoo-$(BASE_VERSION).jar
+file 444 - - lib64/storm/$(BASE_VERSION)/lib/storm-pacemaker-$(BASE_VERSION).jar ../storm-pacemaker/target/pacemaker-$(BASE_VERSION).jar
 file 444 - - lib64/storm/$(BASE_VERSION)/README.yahoo ./README.yahoo
 
 configfile 644 - - lib64/storm/$(BASE_VERSION)/conf/storm.yaml ./conf/config.py template overwrite
