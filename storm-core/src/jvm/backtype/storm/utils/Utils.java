@@ -34,6 +34,7 @@ import java.io.FileReader;
 import java.io.OutputStream;
 import java.io.PrintStream;
 import java.io.RandomAccessFile;
+import java.io.Serializable;
 import java.net.URL;
 import java.net.URLDecoder;
 import java.nio.ByteBuffer;

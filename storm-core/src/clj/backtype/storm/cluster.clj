@@ -16,7 +16,7 @@
 
 (ns backtype.storm.cluster
   (:import [org.apache.zookeeper.data Stat ACL Id]
-           [backtype.storm.generated SupervisorInfo Assignment StormBase ClusterWorkerHeartbeat ErrorInfo Credentials]
+           [backtype.storm.generated SupervisorInfo Assignment StormBase ClusterWorkerHeartbeat ErrorInfo Credentials LogConfig]
            [java.io Serializable])
   (:import [org.apache.zookeeper KeeperException KeeperException$NoNodeException ZooDefs ZooDefs$Ids ZooDefs$Perms])
   (:import [backtype.storm.utils Utils])
@@ -286,7 +286,7 @@
         ;;TODO need to turn this not into thrift
         (when cb 
           (swap! log-config-callback assoc storm-id cb))
-        (maybe-deserialize (.get_data cluster-state (log-config-path storm-id) (not-nil? cb))))
+        (maybe-deserialize (.get_data cluster-state (log-config-path storm-id) (not-nil? cb)) LogConfig))
 
       (set-topology-log-config!
         [this storm-id log-config]
@@ -405,8 +405,8 @@
          [this storm-id component-id]
          (let [path (error-path storm-id component-id)
                errors (if (.node_exists cluster-state path false)
-                        (dofor [c (get-children cluster-state path false)]
-                          (let [data (-> (get-data cluster-state (str path "/" c) false)
+                        (dofor [c (.get_children cluster-state path false)]
+                          (let [data (-> (.get_data cluster-state (str path "/" c) false)
                                        (maybe-deserialize ErrorInfo)
                                        clojurify-error)]
                             (when data

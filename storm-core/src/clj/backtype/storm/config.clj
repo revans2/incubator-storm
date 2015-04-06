@@ -212,7 +212,7 @@
 
 (defn read-supervisor-storm-conf-given-path
   [conf stormconf-path]
-    (merge conf (clojurify-structure (Utils/deserialize (FileUtils/readFileToByteArray (File. stormconf-path))))))
+    (merge conf (clojurify-structure (Utils/deserialize (FileUtils/readFileToByteArray (File. stormconf-path)) java.util.Map))))
 
 (defn read-supervisor-storm-conf
   [conf storm-id]
@@ -225,8 +225,7 @@
   [conf storm-id]
   (let [stormroot (supervisor-stormdist-root conf storm-id)
         topology-path (supervisor-stormcode-path stormroot)]
-    (Utils/deserialize (FileUtils/readFileToByteArray (File. topology-path)) StormTopology)
-    ))
+    (Utils/deserialize (FileUtils/readFileToByteArray (File. topology-path)) StormTopology)))
 
 (defn worker-user-root [conf]
   (str (conf STORM-LOCAL-DIR) "/workers-users"))

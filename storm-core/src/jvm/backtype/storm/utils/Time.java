@@ -37,6 +37,7 @@ public class Time {
     
     public static void startSimulating() {
         synchronized(sleepTimesLock) {
+            LOG.warn("Starting to simulate time", new Exception("JUST FOR THE STACK TRACE"));
             simulating.set(true);
             simulatedCurrTimeMs = new AtomicLong(0);
             threadSleepTimes = new ConcurrentHashMap<Thread, AtomicLong>();
@@ -45,6 +46,7 @@ public class Time {
     
     public static void stopSimulating() {
         synchronized(sleepTimesLock) {
+            LOG.warn("Stopping time simulation");
             simulating.set(false);             
             threadSleepTimes = null;  
         }

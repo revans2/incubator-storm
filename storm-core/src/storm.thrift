@@ -335,16 +335,6 @@ struct BeginDownloadResult {
   2: required string session;
 }
 
-enum NumErrorsChoice {
-  ALL,
-  NONE,
-  ONE
-}
-
-struct GetInfoOptions {
-  1: optional NumErrorsChoice num_err_choice;
-}
-
 enum LogLevelAction {
   UNCHANGED = 1,
   UPDATE    = 2,
@@ -429,6 +419,16 @@ struct ClusterWorkerHeartbeat {
     1: required string storm_id;
     2: required map<ExecutorInfo,ExecutorStats> executor_stats;
     3: required i32 time_secs;
+}
+
+enum NumErrorsChoice {
+  ALL,
+  NONE,
+  ONE
+}
+
+struct GetInfoOptions {
+  1: optional NumErrorsChoice num_err_choice;
 }
 
 service Nimbus {

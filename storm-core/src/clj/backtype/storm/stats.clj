@@ -17,8 +17,8 @@
 (ns backtype.storm.stats
   (:import [backtype.storm.generated Nimbus Nimbus$Processor Nimbus$Iface StormTopology ShellComponent
             NotAliveException AlreadyAliveException InvalidTopologyException GlobalStreamId
-            ClusterSummary TopologyInfo TopologySummary ExecutorSummary ExecutorStats ExecutorSpecificStats
-            SpoutStats BoltStats ErrorInfo SupervisorSummary])
+            ClusterSummary TopologyInfo TopologySummary ExecutorInfo ExecutorSummary ExecutorStats ExecutorSpecificStats
+            SpoutAggregateStats SpoutStats BoltAggregateStats BoltStats ErrorInfo SupervisorSummary])
   (:use [backtype.storm util log])
   (:use [backtype.storm.daemon [common :only [system-id?]]])
   (:use [clojure.math.numeric-tower :only [ceil]]))
@@ -369,10 +369,12 @@
 
 (defn thriftify-executor-stats
   [stats]
-  (let [specific-stats (thriftify-specific-stats stats)]
-    (ExecutorStats. (window-set-converter (:emitted stats))
-                    (window-set-converter (:transferred stats))
-                    specific-stats)))
+  (let [specific-stats (thriftify-specific-stats stats)
+        rate (:rate stats)]
+    (ExecutorStats. (window-set-converter (:emitted stats) str)
+      (window-set-converter (:transferred stats) str)
+      specific-stats
+      rate)))
 
 (defn- to-tasks [^ExecutorInfo e]
   (let [start (.get_task_start e)

@@ -24,7 +24,7 @@
   (:import [backtype.storm.utils TransferDrainer])
   (:import [backtype.storm.grouping LoadMapping])
   (:import [backtype.storm.messaging TransportFactory])
-  (:import [backtype.storm.messaging TaskMessage IContext IConnection ConnectionWithStatus ConnectionWithStatus$Status])
+  (:import [backtype.storm.messaging TaskMessage IContext IConnection])
   (:import [backtype.storm.daemon Shutdownable])
   (:import [backtype.storm.serialization KryoTupleSerializer])
   (:import [backtype.storm.generated StormTopology])

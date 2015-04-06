@@ -80,8 +80,7 @@ public class StormClientHandler extends SimpleChannelUpstreamHandler  {
           if (list.size() != 1) throw new RuntimeException("Expected to only see one message for load metrics ("+client.remote_addr+") "+list);
           TaskMessage tm = ((List<TaskMessage>)message).get(0);
           if (tm.task() != -1) throw new RuntimeException("Metrics messages are sent to the system task ("+client.remote_addr+") "+tm);
-          Object metrics = Utils.deserialize(tm.message());
-          if (!(metrics instanceof Map)) throw new RuntimeException("metrics are expected to be a map ("+client.remote_addr+") "+metrics);
+          Map metrics = Utils.deserialize(tm.message(), Map.class);
           client.setLoadMetrics((Map<Integer, Double>)metrics);
         } else {
           throw new RuntimeException("Don't know how to handle a message of type "+message+" ("+client.remote_addr+")");

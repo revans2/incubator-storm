@@ -51,9 +51,13 @@
     (log-message "storm conf:" conf)
     (log-message "Starting DRPC invocation server ...")
     (.start (Thread. #(.serve invoke-server)))
-    (wait-for-condition #(.isServing invoke-server))
+    ;;(while-timeout 5000 (.isServing invoke-server) (log-message "Waiting for " invoke-server " to start serving "))
+    (wait-for-condition (fn [] (let [val (.isServing invoke-server)]
+                                (log-message "Waiting for " invoke-server " to start serving " val)
+                                val)))
     (log-message "Starting DRPC handler server ...")
     (.start (Thread. #(.serve handler-server)))
+    ;;(while-timeout 5000 (.isServing handler-server) (log-message "Waiting for " handler-server " to start serving "))
     (wait-for-condition #(.isServing handler-server))
     [handler-server invoke-server]))
 

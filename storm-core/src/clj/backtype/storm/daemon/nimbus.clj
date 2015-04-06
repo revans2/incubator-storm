@@ -140,7 +140,7 @@
   (master-inbox (:conf nimbus)))
 
 (defn- read-storm-conf [conf storm-id blob-store]
-  (Utils/deserialize
+  (Utils/javaDeserialize
     (.readBlob blob-store (master-stormconf-key storm-id) nil) java.util.Map))
 
 (defn set-topology-status! [nimbus storm-id status]
@@ -357,7 +357,8 @@
   (if tmp-jar-location ;;in local mode there is no jar
     (.createBlob blob-store (master-stormjar-key storm-id) (FileInputStream. tmp-jar-location) (SettableBlobMeta. BlobStoreAclHandler/WORLD_EVERYTHING) nil))
   (.createBlob blob-store (master-stormcode-key storm-id) (Utils/serialize topology) (SettableBlobMeta. BlobStoreAclHandler/WORLD_EVERYTHING) nil)
-  (.createBlob blob-store (master-stormconf-key storm-id) (Utils/serialize storm-conf) (SettableBlobMeta. BlobStoreAclHandler/WORLD_EVERYTHING) nil))
+  ;;TODO we should shift storm-conf over to YAML or JSON
+  (.createBlob blob-store (master-stormconf-key storm-id) (Utils/javaSerialize storm-conf) (SettableBlobMeta. BlobStoreAclHandler/WORLD_EVERYTHING) nil))
 
 ;;TODO this also needs to switch over to using Thrift
 (defn- read-storm-topology [conf storm-id blob-store]
