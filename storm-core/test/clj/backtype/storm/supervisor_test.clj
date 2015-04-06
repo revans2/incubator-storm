@@ -66,7 +66,7 @@
 
 (defn validate-launched-once [launched supervisor->ports storm-id]
   (let [counts (map count (vals launched))
-        launched-supervisor->ports (apply merge-with concat
+        launched-supervisor->ports (apply merge-with (comp sort concat)
                                      (for [[s p] (keys launched)]
                                        {s [p]}
                                        ))]

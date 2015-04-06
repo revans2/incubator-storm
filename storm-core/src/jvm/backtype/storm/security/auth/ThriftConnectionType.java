@@ -17,7 +17,6 @@
  */
 package backtype.storm.security.auth;
 
-import backtype.storm.generated.HBServer;
 import backtype.storm.utils.Utils;
 import backtype.storm.Config;
 
@@ -29,8 +28,6 @@ import java.util.Map;
 public enum ThriftConnectionType {
     NIMBUS(Config.NIMBUS_THRIFT_TRANSPORT_PLUGIN, Config.NIMBUS_THRIFT_PORT, null,
          Config.NIMBUS_THRIFT_THREADS, Config.NIMBUS_THRIFT_MAX_BUFFER_SIZE),
-    HBSERVER(Config.HBSERVER_THRIFT_TRANSPORT_PLUGIN, Config.HBSERVER_THRIFT_PORT, null,
-            Config.HBSERVER_THRIFT_THREADS, Config.HBSERVER_THRIFT_MAX_BUFFER_SIZE),
     DRPC(Config.DRPC_THRIFT_TRANSPORT_PLUGIN, Config.DRPC_PORT, Config.DRPC_QUEUE_SIZE,
          Config.DRPC_WORKER_THREADS, Config.DRPC_MAX_BUFFER_SIZE),
     DRPC_INVOCATIONS(Config.DRPC_INVOCATIONS_THRIFT_TRANSPORT_PLUGIN, Config.DRPC_INVOCATIONS_PORT, null,

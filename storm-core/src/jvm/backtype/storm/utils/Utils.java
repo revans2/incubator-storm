@@ -146,14 +146,30 @@ public class Utils {
         }
     }
 
+    private static TDeserializer getDes() {
+        TDeserializer des = threadDes.get();
+        if(des == null) {
+            des = new TDeserializer();
+            threadDes.set(des);
+        }
+        return des;
+    }
+
+    public static <T> T thriftDeserialize(Class c, byte[] b, int offset, int length) {
+        try {
+            T ret = (T) c.newInstance();
+            TDeserializer des = getDes();
+            des.deserialize((TBase)ret, b, offset, length);
+            return ret;
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     public static <T> T thriftDeserialize(Class c, byte[] b) {
         try {
             T ret = (T) c.newInstance();
-            TDeserializer des = threadDes.get();
-            if (des == null) {
-                des = new TDeserializer();
-                threadDes.set(des);
-            }
+            TDeserializer des = getDes();
             des.deserialize((TBase) ret, b);
             return ret;
         } catch (Exception e) {

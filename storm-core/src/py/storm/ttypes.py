@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-#
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
 # distributed with this work for additional information
@@ -94,6 +92,62 @@ class LogLevelAction:
     "UNCHANGED": 1,
     "UPDATE": 2,
     "REMOVE": 3,
+  }
+
+class HBServerMessageType:
+  CREATE_PATH = 0
+  CREATE_PATH_RESPONSE = 1
+  EXISTS = 2
+  EXISTS_RESPONSE = 3
+  SEND_PULSE = 4
+  SEND_PULSE_RESPONSE = 5
+  GET_ALL_PULSE_FOR_PATH = 6
+  GET_ALL_PULSE_FOR_PATH_RESPONSE = 7
+  GET_ALL_NODES_FOR_PATH = 8
+  GET_ALL_NODES_FOR_PATH_RESPONSE = 9
+  GET_PULSE = 10
+  GET_PULSE_RESPONSE = 11
+  DELETE_PATH = 12
+  DELETE_PATH_RESPONSE = 13
+  DELETE_PULSE_ID = 14
+  DELETE_PULSE_ID_RESPONSE = 15
+
+  _VALUES_TO_NAMES = {
+    0: "CREATE_PATH",
+    1: "CREATE_PATH_RESPONSE",
+    2: "EXISTS",
+    3: "EXISTS_RESPONSE",
+    4: "SEND_PULSE",
+    5: "SEND_PULSE_RESPONSE",
+    6: "GET_ALL_PULSE_FOR_PATH",
+    7: "GET_ALL_PULSE_FOR_PATH_RESPONSE",
+    8: "GET_ALL_NODES_FOR_PATH",
+    9: "GET_ALL_NODES_FOR_PATH_RESPONSE",
+    10: "GET_PULSE",
+    11: "GET_PULSE_RESPONSE",
+    12: "DELETE_PATH",
+    13: "DELETE_PATH_RESPONSE",
+    14: "DELETE_PULSE_ID",
+    15: "DELETE_PULSE_ID_RESPONSE",
+  }
+
+  _NAMES_TO_VALUES = {
+    "CREATE_PATH": 0,
+    "CREATE_PATH_RESPONSE": 1,
+    "EXISTS": 2,
+    "EXISTS_RESPONSE": 3,
+    "SEND_PULSE": 4,
+    "SEND_PULSE_RESPONSE": 5,
+    "GET_ALL_PULSE_FOR_PATH": 6,
+    "GET_ALL_PULSE_FOR_PATH_RESPONSE": 7,
+    "GET_ALL_NODES_FOR_PATH": 8,
+    "GET_ALL_NODES_FOR_PATH_RESPONSE": 9,
+    "GET_PULSE": 10,
+    "GET_PULSE_RESPONSE": 11,
+    "DELETE_PATH": 12,
+    "DELETE_PATH_RESPONSE": 13,
+    "DELETE_PULSE_ID": 14,
+    "DELETE_PULSE_ID_RESPONSE": 15,
   }
 
 
@@ -8396,6 +8450,275 @@ class DRPCExecutionException(TException):
       oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
       return
     oprot.writeStructBegin('DRPCExecutionException')
+    if self.msg is not None:
+      oprot.writeFieldBegin('msg', TType.STRING, 1)
+      oprot.writeString(self.msg.encode('utf-8'))
+      oprot.writeFieldEnd()
+    oprot.writeFieldStop()
+    oprot.writeStructEnd()
+
+  def validate(self):
+    if self.msg is None:
+      raise TProtocol.TProtocolException(message='Required field msg is unset!')
+    return
+
+
+  def __str__(self):
+    return repr(self)
+
+  def __hash__(self):
+    value = 17
+    value = (value * 31) ^ hash(self.msg)
+    return value
+
+  def __repr__(self):
+    L = ['%s=%r' % (key, value)
+      for key, value in self.__dict__.iteritems()]
+    return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+  def __eq__(self, other):
+    return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+  def __ne__(self, other):
+    return not (self == other)
+
+class MessageData:
+  """
+  Attributes:
+   - path
+   - pulse
+   - boolval
+   - records
+   - nodes
+  """
+
+  thrift_spec = (
+    None, # 0
+    (1, TType.STRING, 'path', None, None, ), # 1
+    (2, TType.STRUCT, 'pulse', (Pulse, Pulse.thrift_spec), None, ), # 2
+    (3, TType.BOOL, 'boolval', None, None, ), # 3
+    (4, TType.STRUCT, 'records', (HBRecords, HBRecords.thrift_spec), None, ), # 4
+    (5, TType.STRUCT, 'nodes', (HBNodes, HBNodes.thrift_spec), None, ), # 5
+  )
+
+  def __init__(self, path=None, pulse=None, boolval=None, records=None, nodes=None,):
+    self.path = path
+    self.pulse = pulse
+    self.boolval = boolval
+    self.records = records
+    self.nodes = nodes
+
+  def read(self, iprot):
+    if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
+      fastbinary.decode_binary(self, iprot.trans, (self.__class__, self.thrift_spec))
+      return
+    iprot.readStructBegin()
+    while True:
+      (fname, ftype, fid) = iprot.readFieldBegin()
+      if ftype == TType.STOP:
+        break
+      if fid == 1:
+        if ftype == TType.STRING:
+          self.path = iprot.readString().decode('utf-8')
+        else:
+          iprot.skip(ftype)
+      elif fid == 2:
+        if ftype == TType.STRUCT:
+          self.pulse = Pulse()
+          self.pulse.read(iprot)
+        else:
+          iprot.skip(ftype)
+      elif fid == 3:
+        if ftype == TType.BOOL:
+          self.boolval = iprot.readBool();
+        else:
+          iprot.skip(ftype)
+      elif fid == 4:
+        if ftype == TType.STRUCT:
+          self.records = HBRecords()
+          self.records.read(iprot)
+        else:
+          iprot.skip(ftype)
+      elif fid == 5:
+        if ftype == TType.STRUCT:
+          self.nodes = HBNodes()
+          self.nodes.read(iprot)
+        else:
+          iprot.skip(ftype)
+      else:
+        iprot.skip(ftype)
+      iprot.readFieldEnd()
+    iprot.readStructEnd()
+
+  def write(self, oprot):
+    if oprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and self.thrift_spec is not None and fastbinary is not None:
+      oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
+      return
+    oprot.writeStructBegin('MessageData')
+    if self.path is not None:
+      oprot.writeFieldBegin('path', TType.STRING, 1)
+      oprot.writeString(self.path.encode('utf-8'))
+      oprot.writeFieldEnd()
+    if self.pulse is not None:
+      oprot.writeFieldBegin('pulse', TType.STRUCT, 2)
+      self.pulse.write(oprot)
+      oprot.writeFieldEnd()
+    if self.boolval is not None:
+      oprot.writeFieldBegin('boolval', TType.BOOL, 3)
+      oprot.writeBool(self.boolval)
+      oprot.writeFieldEnd()
+    if self.records is not None:
+      oprot.writeFieldBegin('records', TType.STRUCT, 4)
+      self.records.write(oprot)
+      oprot.writeFieldEnd()
+    if self.nodes is not None:
+      oprot.writeFieldBegin('nodes', TType.STRUCT, 5)
+      self.nodes.write(oprot)
+      oprot.writeFieldEnd()
+    oprot.writeFieldStop()
+    oprot.writeStructEnd()
+
+  def validate(self):
+    return
+
+
+  def __hash__(self):
+    value = 17
+    value = (value * 31) ^ hash(self.path)
+    value = (value * 31) ^ hash(self.pulse)
+    value = (value * 31) ^ hash(self.boolval)
+    value = (value * 31) ^ hash(self.records)
+    value = (value * 31) ^ hash(self.nodes)
+    return value
+
+  def __repr__(self):
+    L = ['%s=%r' % (key, value)
+      for key, value in self.__dict__.iteritems()]
+    return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+  def __eq__(self, other):
+    return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+  def __ne__(self, other):
+    return not (self == other)
+
+class Message:
+  """
+  Attributes:
+   - type
+   - data
+  """
+
+  thrift_spec = (
+    None, # 0
+    (1, TType.I32, 'type', None, None, ), # 1
+    (2, TType.STRUCT, 'data', (MessageData, MessageData.thrift_spec), None, ), # 2
+  )
+
+  def __init__(self, type=None, data=None,):
+    self.type = type
+    self.data = data
+
+  def read(self, iprot):
+    if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
+      fastbinary.decode_binary(self, iprot.trans, (self.__class__, self.thrift_spec))
+      return
+    iprot.readStructBegin()
+    while True:
+      (fname, ftype, fid) = iprot.readFieldBegin()
+      if ftype == TType.STOP:
+        break
+      if fid == 1:
+        if ftype == TType.I32:
+          self.type = iprot.readI32();
+        else:
+          iprot.skip(ftype)
+      elif fid == 2:
+        if ftype == TType.STRUCT:
+          self.data = MessageData()
+          self.data.read(iprot)
+        else:
+          iprot.skip(ftype)
+      else:
+        iprot.skip(ftype)
+      iprot.readFieldEnd()
+    iprot.readStructEnd()
+
+  def write(self, oprot):
+    if oprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and self.thrift_spec is not None and fastbinary is not None:
+      oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
+      return
+    oprot.writeStructBegin('Message')
+    if self.type is not None:
+      oprot.writeFieldBegin('type', TType.I32, 1)
+      oprot.writeI32(self.type)
+      oprot.writeFieldEnd()
+    if self.data is not None:
+      oprot.writeFieldBegin('data', TType.STRUCT, 2)
+      self.data.write(oprot)
+      oprot.writeFieldEnd()
+    oprot.writeFieldStop()
+    oprot.writeStructEnd()
+
+  def validate(self):
+    return
+
+
+  def __hash__(self):
+    value = 17
+    value = (value * 31) ^ hash(self.type)
+    value = (value * 31) ^ hash(self.data)
+    return value
+
+  def __repr__(self):
+    L = ['%s=%r' % (key, value)
+      for key, value in self.__dict__.iteritems()]
+    return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+  def __eq__(self, other):
+    return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+  def __ne__(self, other):
+    return not (self == other)
+
+class HBAuthorizationException(TException):
+  """
+  Attributes:
+   - msg
+  """
+
+  thrift_spec = (
+    None, # 0
+    (1, TType.STRING, 'msg', None, None, ), # 1
+  )
+
+  def __init__(self, msg=None,):
+    self.msg = msg
+
+  def read(self, iprot):
+    if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
+      fastbinary.decode_binary(self, iprot.trans, (self.__class__, self.thrift_spec))
+      return
+    iprot.readStructBegin()
+    while True:
+      (fname, ftype, fid) = iprot.readFieldBegin()
+      if ftype == TType.STOP:
+        break
+      if fid == 1:
+        if ftype == TType.STRING:
+          self.msg = iprot.readString().decode('utf-8')
+        else:
+          iprot.skip(ftype)
+      else:
+        iprot.skip(ftype)
+      iprot.readFieldEnd()
+    iprot.readStructEnd()
+
+  def write(self, oprot):
+    if oprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and self.thrift_spec is not None and fastbinary is not None:
+      oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
+      return
+    oprot.writeStructBegin('HBAuthorizationException')
     if self.msg is not None:
       oprot.writeFieldBegin('msg', TType.STRING, 1)
       oprot.writeString(self.msg.encode('utf-8'))

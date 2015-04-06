@@ -463,6 +463,44 @@ service DistributedRPCInvocations {
   void failRequest(1: string id) throws (1: AuthorizationException aze);  
 }
 
+
+enum HBServerMessageType {
+  CREATE_PATH,
+  CREATE_PATH_RESPONSE,
+  EXISTS,
+  EXISTS_RESPONSE,
+  SEND_PULSE,
+  SEND_PULSE_RESPONSE,
+  GET_ALL_PULSE_FOR_PATH,
+  GET_ALL_PULSE_FOR_PATH_RESPONSE,
+  GET_ALL_NODES_FOR_PATH,
+  GET_ALL_NODES_FOR_PATH_RESPONSE,
+  GET_PULSE,
+  GET_PULSE_RESPONSE,
+  DELETE_PATH,
+  DELETE_PATH_RESPONSE,
+  DELETE_PULSE_ID,
+  DELETE_PULSE_ID_RESPONSE
+}
+
+union MessageData {
+  1: string path,
+  2: Pulse pulse,
+  3: bool boolval,
+  4: HBRecords records,
+  5: HBNodes nodes
+}
+
+struct Message {
+  1: HBServerMessageType type,
+  2: MessageData data
+}
+
+
+exception HBAuthorizationException {
+  1: required string msg;
+}
+
 exception HBExecutionException {
   1: required string msg;
 }
@@ -479,15 +517,3 @@ struct HBRecords {
 struct HBNodes {
   1: list<string> pulseIds;
 }
-
-service HBServer {
-  void createPath(1: string path) throws (1: HBExecutionException e, 2: AuthorizationException aze);
-  bool exists(1: string path) throws (1: HBExecutionException e, 2: AuthorizationException aze);
-  void sendPulse(1: Pulse pulse) throws (1: HBExecutionException e, 2: AuthorizationException aze);
-  HBRecords getAllPulseForPath(1: string idPrefix) throws (1: HBExecutionException e, 2: AuthorizationException aze);
-  HBNodes getAllNodesForPath(1: string idPrefix) throws (1: HBExecutionException e, 2: AuthorizationException aze);
-  Pulse getPulse(1: string id) throws (1: HBExecutionException e, 2: AuthorizationException aze);
-  void deletePath(1: string idPrefix) throws (1: HBExecutionException e, 2: AuthorizationException aze);
-  void deletePulseId(1: string id) throws (1: HBExecutionException e, 2: AuthorizationException aze);
-}
-
