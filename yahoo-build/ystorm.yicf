@@ -100,6 +100,14 @@ file 444 - - lib64/storm/$(BASE_VERSION)/lib/snakeyaml-1.11.jar ../storm-core/ta
 file 444 - - lib64/storm/$(BASE_VERSION)/lib/tools.cli-0.3.1.jar ../storm-core/target/dependency/tools.cli-0.3.1.jar
 file 444 - - lib64/storm/$(BASE_VERSION)/lib/tools.logging-0.2.3.jar ../storm-core/target/dependency/tools.logging-0.2.3.jar
 file 444 - - lib64/storm/$(BASE_VERSION)/lib/tools.macro-0.1.0.jar ../storm-core/target/dependency/tools.macro-0.1.0.jar
+file 444 - - lib64/storm/$(BASE_VERSION)/lib/util-app_2.10-6.23.0.jar ../storm-pacemaker/target/dependency/util-app_2.10-6.23.0.jar
+file 444 - - lib64/storm/$(BASE_VERSION)/lib/util-codec_2.10-6.23.0.jar ../storm-pacemaker/target/dependency/util-codec_2.10-6.23.0.jar
+file 444 - - lib64/storm/$(BASE_VERSION)/lib/util-collection_2.10-6.23.0.jar ../storm-pacemaker/target/dependency/util-collection_2.10-6.23.0.jar
+file 444 - - lib64/storm/$(BASE_VERSION)/lib/util-core_2.10-6.23.0.jar ../storm-pacemaker/target/dependency/util-core_2.10-6.23.0.jar
+file 444 - - lib64/storm/$(BASE_VERSION)/lib/util-hashing_2.10-6.23.0.jar ../storm-pacemaker/target/dependency/util-hashing_2.10-6.23.0.jar
+file 444 - - lib64/storm/$(BASE_VERSION)/lib/util-jvm_2.10-6.23.0.jar ../storm-pacemaker/target/dependency/util-jvm_2.10-6.23.0.jar
+file 444 - - lib64/storm/$(BASE_VERSION)/lib/util-logging_2.10-6.23.0.jar ../storm-pacemaker/target/dependency/util-logging_2.10-6.23.0.jar
+file 444 - - lib64/storm/$(BASE_VERSION)/lib/util-stats_2.10-6.23.0.jar ../storm-pacemaker/target/dependency/util-stats_2.10-6.23.0.jar
 file 444 - - lib64/storm/$(BASE_VERSION)/lib/xz-1.0.jar ../storm-core/target/dependency/xz-1.0.jar
 file 444 - - lib64/storm/$(BASE_VERSION)/lib/zookeeper-3.4.5.jar ../storm-core/target/dependency/zookeeper-3.4.5.jar
 
