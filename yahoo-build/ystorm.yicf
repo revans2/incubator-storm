@@ -93,6 +93,7 @@ file 444 - - lib64/storm/$(BASE_VERSION)/lib/ring-core-1.1.5.jar ../storm-core/t
 file 444 - - lib64/storm/$(BASE_VERSION)/lib/ring-devel-0.3.11.jar ../storm-core/target/dependency/ring-devel-0.3.11.jar
 file 444 - - lib64/storm/$(BASE_VERSION)/lib/ring-jetty-adapter-0.3.11.jar ../storm-core/target/dependency/ring-jetty-adapter-0.3.11.jar
 file 444 - - lib64/storm/$(BASE_VERSION)/lib/ring-servlet-0.3.11.jar ../storm-core/target/dependency/ring-servlet-0.3.11.jar
+file 444 - - lib64/storm/$(BASE_VERSION)/lib/scala-library-2.10.4.jar ../storm-pacemaker/target/dependency/scala-library-2.10.4.jar
 file 444 - - lib64/storm/$(BASE_VERSION)/lib/servlet-api-2.5.jar ../storm-core/target/dependency/servlet-api-2.5.jar
 file 444 - - lib64/storm/$(BASE_VERSION)/lib/slf4j-api-1.7.7.jar ../storm-core/target/dependency/slf4j-api-1.7.7.jar
 file 444 - - lib64/storm/$(BASE_VERSION)/lib/snakeyaml-1.11.jar ../storm-core/target/dependency/snakeyaml-1.11.jar
