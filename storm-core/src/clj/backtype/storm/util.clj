@@ -584,13 +584,12 @@
         storm-conf-dir (if-let [confdir (System/getenv "STORM_CONF_DIR")]
                          confdir 
                          (str storm-dir file-path-separator "conf"))
-        storm-extlib-dir (if-let [extlib (System/getenv "STORM_EXT_CLASSPATH")]
-                           extlib
-                           (str storm-dir file-path-separator "extlib"))]
+        storm-extlib-dir (str storm-dir file-path-separator "extlib")
+        extcp (System/getenv "STORM_EXT_CLASSPATH")]
     (if (nil? storm-dir) 
       (current-classpath)
       (str/join class-path-separator
-                (concat (get-full-jars storm-lib-dir) (get-full-jars storm-extlib-dir) [storm-conf-dir])))))
+                (concat (get-full-jars storm-lib-dir) (get-full-jars storm-extlib-dir) [extcp] [storm-conf-dir])))))
 
 (defn add-to-classpath
   [classpath paths]
