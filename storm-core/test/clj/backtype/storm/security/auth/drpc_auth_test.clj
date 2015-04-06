@@ -21,7 +21,7 @@
             DistributedRPCInvocations$Processor])
   (:import [backtype.storm Config])
   (:import [backtype.storm.security.auth ReqContext SingleUserPrincipal ThriftServer ThriftConnectionType])
-  (:import [backtype.storm.utils DRPCClient])
+  (:import [backtype.storm.utils DRPCClient Time])
   (:import [backtype.storm.drpc DRPCInvocationsClient])
   (:import [java.util.concurrent TimeUnit])
   (:import [javax.security.auth Subject])
@@ -51,14 +51,10 @@
     (log-message "storm conf:" conf)
     (log-message "Starting DRPC invocation server ...")
     (.start (Thread. #(.serve invoke-server)))
-    ;;(while-timeout 5000 (.isServing invoke-server) (log-message "Waiting for " invoke-server " to start serving "))
-    (wait-for-condition (fn [] (let [val (.isServing invoke-server)]
-                                (log-message "Waiting for " invoke-server " to start serving " val)
-                                val)))
+    (while-timeout 5000 (.isServing invoke-server) (Time/sleep 100))
     (log-message "Starting DRPC handler server ...")
     (.start (Thread. #(.serve handler-server)))
-    ;;(while-timeout 5000 (.isServing handler-server) (log-message "Waiting for " handler-server " to start serving "))
-    (wait-for-condition #(.isServing handler-server))
+    (while-timeout 5000 (.isServing handler-server) (Time/sleep 100))
     [handler-server invoke-server]))
 
 (defmacro with-server [args & body]

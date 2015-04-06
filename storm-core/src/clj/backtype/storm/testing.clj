@@ -79,8 +79,8 @@
   []
   (Time/stopSimulating))
 
-(defmacro with-simulated-time
-  [& body]
+ (defmacro with-simulated-time
+   [& body]
    `(try
      (start-simulating-time!)
      ~@body
