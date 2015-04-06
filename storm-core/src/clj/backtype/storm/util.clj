@@ -575,10 +575,7 @@
 
 (defn get-full-jars
   [dir]
-  (if (exists-file? dir)
-    (let [content-files (.listFiles (File. dir))]
-      (filter #(.endsWith % ".jar") (map #(.getAbsolutePath ^File %) content-files)))
-    []))
+  (map #(str dir file-path-separator %) (filter #(.endsWith % ".jar") (read-dir-contents dir))))
 
 (defn worker-classpath
   []
