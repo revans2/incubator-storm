@@ -82,11 +82,13 @@ public class StormClientHandler extends SimpleChannelUpstreamHandler  {
           try {
             //This should be the metrics, and there should only be one of them
             List<TaskMessage> list = (List<TaskMessage>)message;
-            if (list.size() != 1) throw new RuntimeException("Expected to only see one message for load metrics ("+client.remote_addr+") "+list);
-            TaskMessage tm = ((List<TaskMessage>)message).get(0);
+            if (list.size() < 1) throw new RuntimeException("Didn't see enough load metrics ("+client.remote_addr+") "+list);
+            if (list.size() != 1) LOG.warn("Messages are not being delivered fast enough, got "+list.size()+" metrics messages at once("+client.remote_addr+")");
+            TaskMessage tm = ((List<TaskMessage>)message).get(list.size() - 1);
             if (tm.task() != -1) throw new RuntimeException("Metrics messages are sent to the system task ("+client.remote_addr+") "+tm);
             List metrics = _des.deserialize(tm.message());
-            //TODO need to do some metrics checking
+            if (metrics.size() < 1) throw new RuntimeException("No metrics data in the metrics message ("+client.remote_addr+") "+metrics);
+            if (!(metrics.get(0) instanceof Map)) throw new RuntimeException("The metrics did not have a map in the first slot ("+client.remote_addr+") "+metrics);
             client.setLoadMetrics((Map<Integer, Double>)metrics.get(0));
           } catch (IOException e) {
             throw new RuntimeException(e);
