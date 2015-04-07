@@ -19,11 +19,13 @@ package backtype.storm.messaging.netty;
 
 import backtype.storm.messaging.TaskMessage;
 import backtype.storm.utils.Utils;
+import backtype.storm.serialization.KryoValuesDeserializer;
 
 import java.net.ConnectException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.Map;
 import java.util.List;
+import java.io.IOException;
 
 import org.jboss.netty.channel.Channel;
 import org.jboss.netty.channel.ChannelHandlerContext;
@@ -37,9 +39,11 @@ import org.slf4j.LoggerFactory;
 public class StormClientHandler extends SimpleChannelUpstreamHandler  {
     private static final Logger LOG = LoggerFactory.getLogger(StormClientHandler.class);
     private Client client;
+    private KryoValuesDeserializer _des;
     
-    StormClientHandler(Client client) {
+    StormClientHandler(Client client, Map conf) {
         this.client = client;
+        _des = new KryoValuesDeserializer(conf);
     }
 
     @Override
@@ -75,13 +79,18 @@ public class StormClientHandler extends SimpleChannelUpstreamHandler  {
               client.reconnect();
           }
         } else if (message instanceof List) {
-          //This should be the metrics, and there should only be one of them
-          List<TaskMessage> list = (List<TaskMessage>)message;
-          if (list.size() != 1) throw new RuntimeException("Expected to only see one message for load metrics ("+client.remote_addr+") "+list);
-          TaskMessage tm = ((List<TaskMessage>)message).get(0);
-          if (tm.task() != -1) throw new RuntimeException("Metrics messages are sent to the system task ("+client.remote_addr+") "+tm);
-          Map metrics = Utils.deserialize(tm.message(), Map.class);
-          client.setLoadMetrics((Map<Integer, Double>)metrics);
+          try {
+            //This should be the metrics, and there should only be one of them
+            List<TaskMessage> list = (List<TaskMessage>)message;
+            if (list.size() != 1) throw new RuntimeException("Expected to only see one message for load metrics ("+client.remote_addr+") "+list);
+            TaskMessage tm = ((List<TaskMessage>)message).get(0);
+            if (tm.task() != -1) throw new RuntimeException("Metrics messages are sent to the system task ("+client.remote_addr+") "+tm);
+            List metrics = _des.deserialize(tm.message());
+            //TODO need to do some metrics checking
+            client.setLoadMetrics((Map<Integer, Double>)metrics.get(0));
+          } catch (IOException e) {
+            throw new RuntimeException(e);
+          }
         } else {
           throw new RuntimeException("Don't know how to handle a message of type "+message+" ("+client.remote_addr+")");
         }

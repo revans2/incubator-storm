@@ -254,9 +254,7 @@
         [this storm-id node port]
         (let [worker-hb (.get_worker_hb cluster-state (workerbeat-path storm-id node port) false)]
           (if worker-hb
-            (-> worker-hb
-              (maybe-deserialize ClusterWorkerHeartbeat)
-              clojurify-zk-worker-hb))))
+              (clojurify-zk-worker-hb (maybe-deserialize worker-hb ClusterWorkerHeartbeat)))))
 
       (executor-beats
         [this storm-id executor->node+port]
@@ -406,12 +404,10 @@
          (let [path (error-path storm-id component-id)
                errors (if (.node_exists cluster-state path false)
                         (dofor [c (.get_children cluster-state path false)]
-                          (let [data (-> (.get_data cluster-state (str path "/" c) false)
-                                       (maybe-deserialize ErrorInfo)
-                                       clojurify-error)]
+                          (let [raw (.get_data cluster-state (str path "/" c) false)
+                                data (clojurify-error (maybe-deserialize raw ErrorInfo))]
                             (when data
-                              (struct TaskError (:error data) (:time-secs data) (:host data) (:port data))
-                              )))
+                              (map->TaskError data))))
                         ())
                ]
            (->> (filter not-nil? errors)
@@ -421,9 +417,10 @@
         [this storm-id component-id]
         (let [path (last-error-path storm-id component-id)]
           (if (.node_exists cluster-state path false)
-            (if-let [data (->> (.get_data cluster-state path false)
-                               maybe-deserialize)]
-              (map->TaskError data)))))
+            (let [raw (.get_data cluster-state path false)
+                 data (clojurify-error (maybe-deserialize raw ErrorInfo))]
+              (when data
+                 (map->TaskError data))))))
       
       (disconnect
          [this]

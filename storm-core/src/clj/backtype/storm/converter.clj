@@ -175,19 +175,14 @@
       (.set_time_secs (:time-secs worker-hb)))))
 
 (defn clojurify-error [^ErrorInfo error]
-  (if error
+  (when error
     {
       :error (.get_error error)
       :time-secs (.get_error_time_secs error)
-      :host (.get_host error)
-      :port (.get_port error)
-      }
-    ))
+    }))
 
 (defn thriftify-error [error]
-  (doto (ErrorInfo. (:error error) (:time-secs error))
-    (.set_host (:host error))
-    (.set_port (:port error))))
+  (ErrorInfo. (:error error) (:time-secs error)))
 
 (defn thriftify-credentials [credentials]
     (doto (Credentials.)
