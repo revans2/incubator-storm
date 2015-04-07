@@ -281,14 +281,12 @@
 
       (topology-log-config
         [this storm-id cb]
-        ;;TODO need to turn this not into thrift
         (when cb 
           (swap! log-config-callback assoc storm-id cb))
         (maybe-deserialize (.get_data cluster-state (log-config-path storm-id) (not-nil? cb)) LogConfig))
 
       (set-topology-log-config!
         [this storm-id log-config]
-        ;;TODO need to turn this into thrift
         (.set_data cluster-state (log-config-path storm-id) (Utils/serialize log-config) acls))
 
       (worker-heartbeat!

@@ -360,7 +360,6 @@
   ;;TODO we should shift storm-conf over to YAML or JSON
   (.createBlob blob-store (master-stormconf-key storm-id) (Utils/javaSerialize storm-conf) (SettableBlobMeta. BlobStoreAclHandler/WORLD_EVERYTHING) nil))
 
-;;TODO this also needs to switch over to using Thrift
 (defn- read-storm-topology [conf storm-id blob-store]
   (Utils/deserialize
     (.readBlob blob-store (master-stormcode-key storm-id) nil) StormTopology))
