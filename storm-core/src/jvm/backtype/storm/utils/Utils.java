@@ -28,6 +28,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.FileReader;
@@ -79,6 +80,7 @@ import org.apache.zookeeper.ZooDefs;
 import org.apache.zookeeper.data.ACL;
 import org.apache.zookeeper.data.Id;
 import org.json.simple.JSONValue;
+import org.json.simple.parser.ParseException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.yaml.snakeyaml.Yaml;
@@ -207,6 +209,32 @@ public class Utils {
         } catch(IOException ioe) {
             throw new RuntimeException(ioe);
         } catch(ClassNotFoundException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public static byte[] toCompressedJsonConf(Map<String, Object> stormConf) {
+        try {
+            ByteArrayOutputStream bos = new ByteArrayOutputStream();
+            OutputStreamWriter out = new OutputStreamWriter(new GZIPOutputStream(bos));
+            JSONValue.writeJSONString(stormConf, out);
+            out.close();
+            return bos.toByteArray();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public static Map<String, Object> fromCompressedJsonConf(byte[] serialized) {
+        try {
+            ByteArrayInputStream bis = new ByteArrayInputStream(serialized);
+            InputStreamReader in = new InputStreamReader(new GZIPInputStream(bis));
+            Object ret = JSONValue.parseWithException(in);
+            in.close();
+            return (Map<String,Object>)ret;
+        } catch(IOException ioe) {
+            throw new RuntimeException(ioe);
+        } catch(ParseException e) {
             throw new RuntimeException(e);
         }
     }

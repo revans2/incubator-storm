@@ -140,8 +140,9 @@
   (master-inbox (:conf nimbus)))
 
 (defn- read-storm-conf [conf storm-id blob-store]
-  (Utils/javaDeserialize
-    (.readBlob blob-store (master-stormconf-key storm-id) nil) java.util.Map))
+  (clojurify-structure
+    (Utils/fromCompressedJsonConf
+      (.readBlob blob-store (master-stormconf-key storm-id) nil))))
 
 (defn set-topology-status! [nimbus storm-id status]
   (let [storm-cluster-state (:storm-cluster-state nimbus)]
@@ -358,7 +359,7 @@
     (.createBlob blob-store (master-stormjar-key storm-id) (FileInputStream. tmp-jar-location) (SettableBlobMeta. BlobStoreAclHandler/WORLD_EVERYTHING) nil))
   (.createBlob blob-store (master-stormcode-key storm-id) (Utils/serialize topology) (SettableBlobMeta. BlobStoreAclHandler/WORLD_EVERYTHING) nil)
   ;;TODO we should shift storm-conf over to YAML or JSON
-  (.createBlob blob-store (master-stormconf-key storm-id) (Utils/javaSerialize storm-conf) (SettableBlobMeta. BlobStoreAclHandler/WORLD_EVERYTHING) nil))
+  (.createBlob blob-store (master-stormconf-key storm-id) (Utils/toCompressedJsonConf storm-conf) (SettableBlobMeta. BlobStoreAclHandler/WORLD_EVERYTHING) nil))
 
 (defn- read-storm-topology [conf storm-id blob-store]
   (Utils/deserialize
