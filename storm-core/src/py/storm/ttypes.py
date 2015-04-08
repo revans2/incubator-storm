@@ -8989,6 +8989,7 @@ class ClusterWorkerHeartbeat:
    - storm_id
    - executor_stats
    - time_secs
+   - uptime_secs
   """
 
   thrift_spec = (
@@ -8996,12 +8997,14 @@ class ClusterWorkerHeartbeat:
     (1, TType.STRING, 'storm_id', None, None, ), # 1
     (2, TType.MAP, 'executor_stats', (TType.STRUCT,(ExecutorInfo, ExecutorInfo.thrift_spec),TType.STRUCT,(ExecutorStats, ExecutorStats.thrift_spec)), None, ), # 2
     (3, TType.I32, 'time_secs', None, None, ), # 3
+    (4, TType.I32, 'uptime_secs', None, None, ), # 4
   )
 
-  def __init__(self, storm_id=None, executor_stats=None, time_secs=None,):
+  def __init__(self, storm_id=None, executor_stats=None, time_secs=None, uptime_secs=None,):
     self.storm_id = storm_id
     self.executor_stats = executor_stats
     self.time_secs = time_secs
+    self.uptime_secs = uptime_secs
 
   def read(self, iprot):
     if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
@@ -9035,6 +9038,11 @@ class ClusterWorkerHeartbeat:
           self.time_secs = iprot.readI32();
         else:
           iprot.skip(ftype)
+      elif fid == 4:
+        if ftype == TType.I32:
+          self.uptime_secs = iprot.readI32();
+        else:
+          iprot.skip(ftype)
       else:
         iprot.skip(ftype)
       iprot.readFieldEnd()
@@ -9061,6 +9069,10 @@ class ClusterWorkerHeartbeat:
       oprot.writeFieldBegin('time_secs', TType.I32, 3)
       oprot.writeI32(self.time_secs)
       oprot.writeFieldEnd()
+    if self.uptime_secs is not None:
+      oprot.writeFieldBegin('uptime_secs', TType.I32, 4)
+      oprot.writeI32(self.uptime_secs)
+      oprot.writeFieldEnd()
     oprot.writeFieldStop()
     oprot.writeStructEnd()
 
@@ -9071,6 +9083,8 @@ class ClusterWorkerHeartbeat:
       raise TProtocol.TProtocolException(message='Required field executor_stats is unset!')
     if self.time_secs is None:
       raise TProtocol.TProtocolException(message='Required field time_secs is unset!')
+    if self.uptime_secs is None:
+      raise TProtocol.TProtocolException(message='Required field uptime_secs is unset!')
     return
 
 
@@ -9079,6 +9093,7 @@ class ClusterWorkerHeartbeat:
     value = (value * 31) ^ hash(self.storm_id)
     value = (value * 31) ^ hash(self.executor_stats)
     value = (value * 31) ^ hash(self.time_secs)
+    value = (value * 31) ^ hash(self.uptime_secs)
     return value
 
   def __repr__(self):
