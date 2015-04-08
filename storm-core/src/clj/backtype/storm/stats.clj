@@ -487,7 +487,7 @@
                     (reduce add-pairs
                             [0. 0]) ;; Combine weighted averages and counts.
                     ((fn [[weighted-avg cnt]]
-                      (div weighted-avg (* 1000 (min uptime 600))))))
+                      (div weighted-avg (* 1000 (max 1 (min uptime 600)))))))
         :acked (-> statk->w->sid->num
                    :acked
                    str-key

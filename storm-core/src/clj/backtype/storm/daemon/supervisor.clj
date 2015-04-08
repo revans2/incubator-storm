@@ -660,7 +660,7 @@
 (defn download-blobs-for-topology-succeed?
   "Assert if all blobs are downloaded for the given topology"
   [stormconf-path target-dir]
-  (let [storm-conf (Utils/deserialize (FileUtils/readFileToByteArray (File. stormconf-path)) java.util.Map)
+  (let [storm-conf (clojurify-structure (Utils/fromCompressedJsonConf (FileUtils/readFileToByteArray (File. stormconf-path))))
         blobstore-map (storm-conf TOPOLOGY-BLOBSTORE-MAP)
         file-names (get-blob-file-names blobstore-map)]
     (if (and file-names (> (count file-names) 0))
