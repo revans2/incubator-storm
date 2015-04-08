@@ -398,7 +398,6 @@
                       (current-time-secs)
                       last-nimbus-time
                       )]
-      (log-message "got hb reported-time: " reported-time " last-nimbus-time: " last-nimbus-time " last-reported-time: " last-reported-time " nimbus-time: " nimbus-time)
       {:is-timed-out (and
                        nimbus-time
                        (>= (time-delta nimbus-time) timeout))
