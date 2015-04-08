@@ -45,6 +45,8 @@ OWNER = root
 GROUP = users
 
 dir 3777 - - lib64/storm/$(BASE_VERSION)/logs
+dir 3777 - - lib64/storm/$(BASE_VERSION)/extlib
+dir 3777 - - lib64/storm/$(BASE_VERSION)/extlib-daemon
 dir 3777 - - lib64/storm/$(BASE_VERSION)/logs/metadata
 find 755 - - lib64/storm/$(BASE_VERSION)/bin/ ../bin/ -type f
 file 444 - - lib64/storm/$(BASE_VERSION)/lib/asm-4.0.jar ../storm-core/target/dependency/asm-4.0.jar
