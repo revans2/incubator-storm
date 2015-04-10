@@ -84,7 +84,7 @@
 
 (defn- read-storm-local-dir
   [assignments-snapshot]
-  (map-val :master-local-dir assignments-snapshot))
+  (map-val :master-code-dir assignments-snapshot))
 
 (defn- read-downloaded-storm-ids [conf]
   (map #(url-decode %) (read-dir-contents (supervisor-stormdist-root conf)))
@@ -473,11 +473,11 @@
       ;; This might take awhile
       ;;   - should this be done separately from usual monitoring?
       ;; should we only download when topology is assigned to this supervisor?
-      (doseq [[storm-id master-local-dir] storm-local-map]
+      (doseq [[storm-id master-code-dir] storm-local-map]
         (when (and (not (downloaded-storm-ids storm-id))
                    (assigned-storm-ids storm-id))
           (log-message "Downloading code for storm id " storm-id)
-          (download-storm-code conf storm-id master-local-dir localizer)
+          (download-storm-code conf storm-id master-code-dir localizer)
           (log-message "Finished downloading code for storm id " storm-id)))
 
       (log-debug "Writing new assignment "
@@ -660,7 +660,7 @@
 (defn download-blobs-for-topology-succeed?
   "Assert if all blobs are downloaded for the given topology"
   [stormconf-path target-dir]
-  (let [storm-conf (Utils/deserialize (FileUtils/readFileToByteArray (File. stormconf-path)))
+  (let [storm-conf (clojurify-structure (Utils/fromCompressedJsonConf (FileUtils/readFileToByteArray (File. stormconf-path))))
         blobstore-map (storm-conf TOPOLOGY-BLOBSTORE-MAP)
         file-names (get-blob-file-names blobstore-map)]
     (if (and file-names (> (count file-names) 0))
@@ -669,7 +669,7 @@
 
 ;; distributed implementation
 (defmethod download-storm-code
-  :distributed [conf storm-id master-local-dir localizer]
+  :distributed [conf storm-id master-code-dir localizer]
   ;; Downloading to permanent location is atomic
   (let [tmproot (str (supervisor-tmp-dir conf) file-path-separator (uuid))
         stormroot (supervisor-stormdist-root conf storm-id)
@@ -848,10 +848,10 @@
 
 ;; distributed cache feature does not work in local mode
 (defmethod download-storm-code
-    :local [conf storm-id master-local-dir localizer]
+    :local [conf storm-id master-code-dir localizer]
     (let [tmproot (str (supervisor-tmp-dir conf) file-path-separator (uuid))
           stormroot (supervisor-stormdist-root conf storm-id)
-          blob-store (Utils/getNimbusBlobStore conf master-local-dir)]
+          blob-store (Utils/getNimbusBlobStore conf master-code-dir)]
       (try
         (FileUtils/forceMkdir (File. tmproot))
       

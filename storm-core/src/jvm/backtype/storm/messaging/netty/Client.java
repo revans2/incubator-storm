@@ -102,7 +102,7 @@ class Client implements IConnection, IStatefulObject{
         bootstrap.setOption("keepAlive", true);
 
         // Set up the pipeline factory.
-        bootstrap.setPipelineFactory(new StormClientPipelineFactory(this));
+        bootstrap.setPipelineFactory(new StormClientPipelineFactory(this, storm_conf));
 
         // Start the connection attempt.
         remote_addr = new InetSocketAddress(host, port);

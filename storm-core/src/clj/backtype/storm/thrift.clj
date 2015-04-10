@@ -15,12 +15,14 @@
 ;; limitations under the License.
 
 (ns backtype.storm.thrift
-  (:import [java.util HashMap])
+  (:import [java.util HashMap]
+           [java.io Serializable]
+           [backtype.storm.generated NodeInfo Assignment])
   (:import [backtype.storm.generated JavaObject Grouping Nimbus StormTopology
             StormTopology$_Fields Bolt Nimbus$Client Nimbus$Iface
             ComponentCommon Grouping$_Fields SpoutSpec NullStruct StreamInfo
             GlobalStreamId ComponentObject ComponentObject$_Fields
-            ShellComponent])
+            ShellComponent SupervisorInfo])
   (:import [backtype.storm.utils Utils NimbusClient])
   (:import [backtype.storm Constants])
   (:import [backtype.storm.grouping CustomStreamGrouping])
@@ -120,7 +122,7 @@
 
 (defnk mk-spout-spec*
   [spout outputs :p nil :conf nil]
-  (SpoutSpec. (ComponentObject/serialized_java (Utils/serialize spout))
+  (SpoutSpec. (ComponentObject/serialized_java (Utils/javaSerialize spout))
               (mk-plain-component-common {} outputs p :conf conf)))
 
 (defn mk-shuffle-grouping
@@ -155,11 +157,11 @@
   [^ComponentObject obj]
   (when (not= (.getSetField obj) ComponentObject$_Fields/SERIALIZED_JAVA)
     (throw (RuntimeException. "Cannot deserialize non-java-serialized object")))
-  (Utils/deserialize (.get_serialized_java obj)))
+  (Utils/javaDeserialize (.get_serialized_java obj) Serializable))
 
 (defn serialize-component-object
   [obj]
-  (ComponentObject/serialized_java (Utils/serialize obj)))
+  (ComponentObject/serialized_java (Utils/javaSerialize obj)))
 
 (defn- mk-grouping
   [grouping-spec]
@@ -170,7 +172,7 @@
         grouping-spec
 
         (instance? CustomStreamGrouping grouping-spec)
-        (Grouping/custom_serialized (Utils/serialize grouping-spec))
+        (Grouping/custom_serialized (Utils/javaSerialize grouping-spec))
 
         (instance? JavaObject grouping-spec)
         (Grouping/custom_object grouping-spec)
@@ -210,7 +212,7 @@
 (defnk mk-bolt-spec*
   [inputs bolt outputs :p nil :conf nil]
   (let [common (mk-plain-component-common (mk-inputs inputs) outputs p :conf conf)]
-    (Bolt. (ComponentObject/serialized_java (Utils/serialize bolt))
+    (Bolt. (ComponentObject/serialized_java (Utils/javaSerialize bolt))
            common)))
 
 (defnk mk-spout-spec
@@ -271,3 +273,4 @@
 (def SPOUT-FIELDS
   [StormTopology$_Fields/SPOUTS
    StormTopology$_Fields/STATE_SPOUTS])
+
