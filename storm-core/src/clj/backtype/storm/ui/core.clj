@@ -731,10 +731,6 @@
                                   [(str key) (level-to-dict val)]))]
       {"namedLoggerLevels" named-logger-levels})))
 
-(defn topology-config [topology-id]
-  (with-nimbus nimbus
-     (from-json (.getTopologyConf ^Nimbus$Client nimbus topology-id))))
-
 (defn check-include-sys?
   [sys?]
   (if (or (nil? sys?) (= "false" sys?)) false true))
