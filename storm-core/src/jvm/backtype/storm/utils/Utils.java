@@ -69,8 +69,6 @@ import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
 
 import backtype.storm.serialization.DefaultSerializationDelegate;
 import backtype.storm.serialization.SerializationDelegate;
-import clojure.lang.IFn;
-import clojure.lang.RT;
 import org.apache.commons.lang.StringUtils;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
