@@ -228,7 +228,7 @@
         (when callback
           (swap! assignment-info-with-version-callback assoc storm-id callback))
         (let [{data :data version :version} 
-              (.get-data-with-version cluster-state (assignment-path storm-id) (not-nil? callback))]
+              (.get_data_with_version cluster-state (assignment-path storm-id) (not-nil? callback))]
         {:data (clojurify-assignment (maybe-deserialize data Assignment))
          :version version}))
 
@@ -277,7 +277,7 @@
 
       (supervisor-info
         [this supervisor-id]
-        (clojurify-supervisor-info (maybe-deserialize (.get-data cluster-state (supervisor-path supervisor-id) false) SupervisorInfo)))
+        (clojurify-supervisor-info (maybe-deserialize (.get_data cluster-state (supervisor-path supervisor-id) false) SupervisorInfo)))
 
       (topology-log-config
         [this storm-id cb]
