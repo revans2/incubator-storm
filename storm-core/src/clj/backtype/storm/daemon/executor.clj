@@ -26,7 +26,7 @@
             EmitInfo BoltFailInfo BoltAckInfo BoltExecuteInfo])
   (:import [backtype.storm.metric.api IMetric IMetricsConsumer$TaskInfo IMetricsConsumer$DataPoint])
   (:import [backtype.storm Config])
-  (:import [backtype.storm.grouping LoadAwareCustomStreamGrouping])
+  (:import [backtype.storm.grouping LoadAwareCustomStreamGrouping LoadMapping])
   (:import [java.util.concurrent ConcurrentLinkedQueue])
   (:require [backtype.storm [tuple :as tuple]])
   (:require [backtype.storm.daemon [task :as task]])
@@ -50,13 +50,13 @@
         (acquire-random-range-id choices)))
     (let [rnd (Random.)]
       (fn [task-id tuple load]
-        (let [loads (for [target target-tasks] (int (- 101 (* 100 (.get load target)))))
+        (let [loads (for [target target-tasks] (int (- 101 (* 100 (.get ^LoadMapping load target)))))
               total (reduce + loads)
-              selected (.nextInt rnd total)]
+              selected (.nextInt ^Random rnd total)]
           (loop [index 0 sum 0]
             (let [new-sum (+ sum (.get loads index))]
               (if (< selected new-sum)
-                (.get target-tasks index)
+                (get target-tasks index)
                 (recur (inc index) new-sum)))))))))
 
 (defn- mk-custom-grouper [^CustomStreamGrouping grouping ^WorkerTopologyContext context ^String component-id ^String stream-id target-tasks]
