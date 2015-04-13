@@ -95,10 +95,10 @@
                            2 "1"
                            3 "1"
                            4 "1"}
-                          {[1] ["sup1" 1]
-                           [2] ["sup1" 2]
-                           [3] ["sup1" 3]
-                           [4] ["sup1" 3]
+                          {[1 1] ["sup1" 1]
+                           [2 2] ["sup1" 2]
+                           [3 3] ["sup1" 3]
+                           [4 4] ["sup1" 3]
                            })
                         (advance-cluster-time cluster 2)
                         (heartbeat-workers cluster "sup1" [1 2 3])
@@ -117,7 +117,7 @@
                       (heartbeat-workers cluster "sup1" [1 2])
                       (advance-cluster-time cluster 10)
                       ))
-      (validate-launched-once (:launched changed) {"sup1" [3]} storm-id)
+      (validate-launched-once (:launched changed) {"sup1" [3 3]} storm-id)
       (is (= {["sup1" 3] 1} (:shutdown changed)))
       )))
 
@@ -146,10 +146,10 @@
                            2 "1"
                            3 "1"
                            4 "1"}
-                          {[1] ["sup1" 1]
-                           [2] ["sup1" 2]
-                           [3] ["sup2" 1]
-                           [4] ["sup2" 1]
+                          {[1 1] ["sup1" 1]
+                           [2 2] ["sup1" 2]
+                           [3 3] ["sup2" 1]
+                           [4 4] ["sup2" 1]
                            })
                         (advance-cluster-time cluster 2)
                         (heartbeat-workers cluster "sup1" [1 2])
@@ -167,9 +167,9 @@
                           {1 "1"
                            2 "1"
                            3 "1"}
-                          {[1] ["sup1" 3]
-                           [2] ["sup1" 3]
-                           [3] ["sup2" 2]
+                          {[1 1] ["sup1" 3]
+                           [2 2] ["sup1" 3]
+                           [3 3] ["sup2" 2]
                            })
                         (advance-cluster-time cluster 2)
                         (heartbeat-workers cluster "sup1" [3])
@@ -177,7 +177,7 @@
                         ))
       (bind storm-id2 (get-storm-id (:storm-cluster-state cluster) "test2"))
       (is (empty? (:shutdown changed)))
-      (validate-launched-once (:launched changed) {"sup1" [3] "sup2" [2]} storm-id2)
+      (validate-launched-once (:launched changed) {"sup1" [3 3] "sup2" [2]} storm-id2)
       (bind changed (capture-changed-workers
         (.killTopology (:nimbus cluster) "test")
         (doseq [i (range 4)]
