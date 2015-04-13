@@ -19,13 +19,39 @@
             InvalidTopologyException GlobalStreamId
             LSSupervisorId LSApprovedWorkers
             LSSupervisorAssignments LocalAssignment
-            ExecutorInfo LSWorkerHeartbeat])
+            ExecutorInfo LSWorkerHeartbeat
+            LSTopoHistory LSTopoHistoryList])
   (:import [backtype.storm.utils LocalState]))
 
 (def LS-WORKER-HEARTBEAT "worker-heartbeat")
 (def LS-ID "supervisor-id")
 (def LS-LOCAL-ASSIGNMENTS "local-assignments")
 (def LS-APPROVED-WORKERS "approved-workers")
+(def LS-TOPO-HISTORY "topo-hist")
+
+;;[{:topoid "topologytest-36e2a872-4f16-414a-8db4-55a3898b07ff-1-0", :timestamp 10, :users (), :groups ()}]
+
+(defn ->LSTopoHistory
+  [{topoid :topoid timestamp :timestamp users :users groups :groups}]
+  (LSTopoHistory. topoid timestamp users groups))
+
+(defn ->topo-history
+  [thrift-topo-hist]
+  {
+    :topoid (.get_topology_id thrift-topo-hist)
+    :timestamp (.get_time_stamp thrift-topo-hist)
+    :users (.get_users thrift-topo-hist)
+    :groups (.get_groups thrift-topo-hist)})
+
+(defn ls-topo-hist!
+  [^LocalState local-state hist-list]
+  (.put local-state LS-TOPO-HISTORY 
+    (LSTopoHistoryList. (map ->LSTopoHistory hist-list))))
+
+(defn ls-topo-hist
+  [^LocalState local-state]
+  (if-let [thrift-hist-list (.get local-state LS-TOPO-HISTORY)]
+    (map ->topo-history (.get_topo_history thrift-hist-list))))
 
 (defn ls-supervisor-id!
   [^LocalState local-state ^String id]
@@ -46,10 +72,7 @@
     (into {} (.get_approved_workers tmp))))
 
 (defn ->ExecutorInfo
-  [[low high]] 
-  (if (not (and low high))
-    (log-warn "converting [" low " " high "] to ExecutorInfo"))
-(ExecutorInfo. low high))
+  [[low high]] (ExecutorInfo. low high))
 
 (defn ->ExecutorInfo-list
   [executors]

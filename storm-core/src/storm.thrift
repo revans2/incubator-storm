@@ -455,6 +455,17 @@ struct LSWorkerHeartbeat {
    4: required i32 port;
 }
 
+struct LSTopoHistory {
+   1: required string topology_id;
+   2: required i64 time_stamp;
+   3: required list<string> users;
+   4: required list<string> groups;
+}
+
+struct LSTopoHistoryList {
+  1: required list<LSTopoHistory> topo_history;
+}
+
 enum NumErrorsChoice {
   ALL,
   NONE,

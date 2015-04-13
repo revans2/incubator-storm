@@ -57,9 +57,6 @@
 (defprotocol DaemonCommon
   (waiting? [this]))
 
-;;TODO move to local-state.clj
-(def NIMBUS-LS-TOPO-HISTORY "topo-hist")
-
 (defrecord ExecutorStats [^long processed
                           ^long acked
                           ^long emitted

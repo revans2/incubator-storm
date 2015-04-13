@@ -117,7 +117,7 @@
                       (heartbeat-workers cluster "sup1" [1 2])
                       (advance-cluster-time cluster 10)
                       ))
-      (validate-launched-once (:launched changed) {"sup1" [3 3]} storm-id)
+      (validate-launched-once (:launched changed) {"sup1" [3]} storm-id)
       (is (= {["sup1" 3] 1} (:shutdown changed)))
       )))
 
@@ -177,7 +177,7 @@
                         ))
       (bind storm-id2 (get-storm-id (:storm-cluster-state cluster) "test2"))
       (is (empty? (:shutdown changed)))
-      (validate-launched-once (:launched changed) {"sup1" [3 3] "sup2" [2]} storm-id2)
+      (validate-launched-once (:launched changed) {"sup1" [3] "sup2" [2]} storm-id2)
       (bind changed (capture-changed-workers
         (.killTopology (:nimbus cluster) "test")
         (doseq [i (range 4)]
