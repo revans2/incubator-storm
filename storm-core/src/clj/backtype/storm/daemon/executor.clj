@@ -56,7 +56,7 @@
           (loop [index 0 sum 0]
             (let [new-sum (+ sum (.get loads index))]
               (if (< selected new-sum)
-                (get target-tasks index)
+                (.get ^List target-tasks index)
                 (recur (inc index) new-sum)))))))))
 
 (defn- mk-custom-grouper [^CustomStreamGrouping grouping ^WorkerTopologyContext context ^String component-id ^String stream-id target-tasks]
