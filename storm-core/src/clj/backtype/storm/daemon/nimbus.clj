@@ -39,7 +39,7 @@
                                      ClientBlobStore
                                      InputStreamWithMeta
                                      KeyFilter])
-  (:use [backtype.storm bootstrap util])
+  (:use [backtype.storm bootstrap util local-state])
   (:use [backtype.storm.config :only [validate-configs-with-schemas]])
   (:use [backtype.storm.daemon common])
   (:use [clojure.string :only [blank?]])
@@ -950,10 +950,10 @@
   (locking (:topology-history-lock nimbus)
     (let [cutoff-age (- (current-time-secs) (* mins 60))
           topo-history-state (:topo-history-state nimbus)
-          curr-history (vec (.get topo-history-state NIMBUS-LS-TOPO-HISTORY))
+          curr-history (vec (ls-topo-hist topo-history-state))
           new-history (vec (filter (fn [line]
                                      (> (line :timestamp) cutoff-age)) curr-history))]
-      (.put topo-history-state NIMBUS-LS-TOPO-HISTORY new-history))))
+      (ls-topo-hist! topo-history-state new-history))))
 
 (defn cleanup-corrupt-topologies! [nimbus]
   (let [storm-cluster-state (:storm-cluster-state nimbus)
@@ -1011,10 +1011,10 @@
     (let [topo-history-state (:topo-history-state nimbus)
           users (get-topo-logs-users topology-conf)
           groups (get-topo-logs-groups topology-conf)
-          curr-history (vec (.get topo-history-state NIMBUS-LS-TOPO-HISTORY))
+          curr-history (vec (ls-topo-hist topo-history-state))
           new-history (conj curr-history {:topoid storm-id :timestamp (current-time-secs)
                                           :users users :groups groups})]
-      (.put topo-history-state NIMBUS-LS-TOPO-HISTORY new-history))))
+      (ls-topo-hist! topo-history-state new-history))))
 
 (defn igroup-mapper
   [storm-conf]
@@ -1033,7 +1033,7 @@
 (defn read-topology-history
   [nimbus user admin-users]
   (let [topo-history-state (:topo-history-state nimbus)
-        curr-history (vec (.get topo-history-state NIMBUS-LS-TOPO-HISTORY))
+        curr-history (vec (ls-topo-hist topo-history-state))
         topo-user-can-access (fn [line user storm-conf]
                                (if (nil? user)
                                  (line :topoid)

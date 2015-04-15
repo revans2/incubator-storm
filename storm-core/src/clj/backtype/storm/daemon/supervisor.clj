@@ -20,7 +20,7 @@
   (:import [backtype.storm.scheduler ISupervisor])
   (:import [backtype.storm.blobstore BlobStoreAclHandler])
   (:import [backtype.storm.localizer LocalResource])
-  (:use [backtype.storm bootstrap])
+  (:use [backtype.storm bootstrap local-state])
   (:use [backtype.storm.daemon common])
   (:require [backtype.storm.daemon [worker :as worker]])
   (:import [org.apache.zookeeper data.ACL ZooDefs$Ids ZooDefs$Perms])
@@ -33,9 +33,6 @@
 
 (defmulti download-storm-code cluster-mode)
 (defmulti launch-worker (fn [supervisor & _] (cluster-mode (:conf supervisor))))
-
-;; used as part of a map from port to this
-(defrecord LocalAssignment [storm-id executors])
 
 (defprotocol SupervisorDaemon
   (get-id [this])
@@ -72,7 +69,7 @@
     (into {} (for [[port executors] port-executors]
                ;; need to cast to int b/c it might be a long (due to how yaml parses things)
                ;; doall is to avoid serialization/deserialization problems with lazy seqs
-               [(Integer. port) (LocalAssignment. storm-id (doall executors))]
+               [(Integer. port) (mk-local-assignment storm-id (doall executors))]
                ))))
 
 
@@ -92,7 +89,7 @@
 
 (defn read-worker-heartbeat [conf id]
   (let [local-state (worker-state conf id)]
-    (.get local-state LS-WORKER-HEARTBEAT)
+    (ls-worker-heartbeat local-state)
     ))
 
 
@@ -134,7 +131,7 @@
   (let [conf (:conf supervisor)
         ^LocalState local-state (:local-state supervisor)
         id->heartbeat (read-worker-heartbeats conf)
-        approved-ids (set (keys (.get local-state LS-APPROVED-WORKERS)))]
+        approved-ids (set (keys (ls-approved-workers local-state)))]
     (into
      {}
      (dofor [[id hb] id->heartbeat]
@@ -160,7 +157,7 @@
 (defn- wait-for-worker-launch [conf id start-time]
   (let [state (worker-state conf id)]    
     (loop []
-      (let [hb (.get state LS-WORKER-HEARTBEAT)]
+      (let [hb (ls-worker-heartbeat state)]
         (when (and
                (not hb)
                (<
@@ -171,7 +168,7 @@
           (Time/sleep 500)
           (recur)
           )))
-    (when-not (.get state LS-WORKER-HEARTBEAT)
+    (when-not (ls-worker-heartbeat state)
       (log-message "Worker " id " failed to start")
       )))
 
@@ -298,7 +295,7 @@
 (defn sync-processes [supervisor]
   (let [conf (:conf supervisor)
         ^LocalState local-state (:local-state supervisor)
-        assigned-executors (defaulted (.get local-state LS-LOCAL-ASSIGNMENTS) {})
+        assigned-executors (defaulted (ls-local-assignments local-state) {})
         now (current-time-secs)
         allocated (read-allocated-workers supervisor assigned-executors now)
         keepers (filter-val
@@ -367,9 +364,9 @@
                         " with id "
                         id)
                       nil))))))]
-      (.put local-state LS-APPROVED-WORKERS
+      (ls-approved-workers! local-state
                         (merge
-                          (select-keys (.get local-state LS-APPROVED-WORKERS)
+                          (select-keys (ls-approved-workers local-state)
                             (keys keepers))
                           (zipmap (vals valid-new-worker-ids) (keys valid-new-worker-ids))))
       (wait-for-workers-launch conf (vals valid-new-worker-ids)))))
@@ -383,7 +380,7 @@
 (defn shutdown-disallowed-workers [supervisor]
   (let [conf (:conf supervisor)
         ^LocalState local-state (:local-state supervisor)
-        assigned-executors (defaulted (.get local-state LS-LOCAL-ASSIGNMENTS) {})
+        assigned-executors (defaulted (ls-local-assignments local-state) {})
         now (current-time-secs)
         allocated (read-allocated-workers supervisor assigned-executors now)
         disallowed (keys (filter-val
@@ -461,7 +458,7 @@
           new-assignment (->> all-assignment
                               (filter-key #(.confirmAssigned isupervisor %)))
           assigned-storm-ids (assigned-storm-ids-from-port-assignments new-assignment)
-          existing-assignment (.get local-state LS-LOCAL-ASSIGNMENTS)
+          existing-assignment (ls-local-assignments local-state)
           localizer (:localizer supervisor)]
       (log-debug "Synchronizing supervisor")
       (log-debug "Storm code map: " storm-local-map)
@@ -486,8 +483,7 @@
                                 (set (keys new-assignment)))]
         (.killedWorker isupervisor (int p)))
       (.assigned isupervisor (keys new-assignment))
-      (.put local-state
-            LS-LOCAL-ASSIGNMENTS
+      (ls-local-assignments! local-state
             new-assignment)
       (reset! (:assignment-versions supervisor) versions)
       (reset! (:curr-assignment supervisor) new-assignment)
@@ -904,10 +900,10 @@
       (prepare [this conf local-dir]
         (reset! conf-atom conf)
         (let [state (LocalState. local-dir)
-              curr-id (if-let [id (.get state LS-ID)]
+              curr-id (if-let [id (ls-supervisor-id state)]
                         id
                         (generate-supervisor-id))]
-          (.put state LS-ID curr-id)
+          (ls-supervisor-id! state curr-id)
           (reset! id-atom curr-id))
         )
       (confirmAssigned [this port]
