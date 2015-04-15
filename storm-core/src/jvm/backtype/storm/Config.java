@@ -119,7 +119,13 @@ public class Config extends HashMap<String, Object> {
      */
     public static final String STORM_MESSAGING_NETTY_AUTHENTICATION = "storm.messaging.netty.authentication"; 
     public static final Object STORM_MESSAGING_NETTY_AUTHENTICATION_SCHEMA = Boolean.class;
-    
+
+    /**
+     * The SASL authentication payload for the messaging layer. Similar to STORM_ZOOKEEPER_TOPOLOGY_AUTH_PAYLOAD
+     */
+    public static final String STORM_MESSAGING_NETTY_AUTHENTICATION_PAYLOAD="storm.messaging.netty.authentication.payload";
+    public static final Object STORM_MESSAGING_NETTY_AUTHENTICATION_PAYLOAD_SCHEMA = String.class;
+
     /**
      * A list of hosts of ZooKeeper servers used to manage the cluster.
      */

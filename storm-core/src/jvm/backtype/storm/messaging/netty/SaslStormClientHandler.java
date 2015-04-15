@@ -51,6 +51,7 @@ public class SaslStormClientHandler extends SimpleChannelUpstreamHandler {
             ChannelStateEvent event) {
         // register the newly established channel
         Channel channel = ctx.getChannel();
+        client.setChannel(channel);
 
         LOG.info("Connection established from " + channel.getLocalAddress()
                 + " to " + channel.getRemoteAddress());
@@ -106,6 +107,7 @@ public class SaslStormClientHandler extends SimpleChannelUpstreamHandler {
                             + "we can tell, we are not authenticated yet.");
                 }
                 ctx.getPipeline().remove(this);
+                this.client.tryDeliverMessages(false);
                 // We call fireMessageReceived since the client is allowed to
                 // perform this request. The client's request will now proceed
                 // to the next pipeline component namely StormClientHandler.
@@ -134,6 +136,7 @@ public class SaslStormClientHandler extends SimpleChannelUpstreamHandler {
                 throw new Exception("Server reponse is null, but as far as "
                         + "we can tell, we are not authenticated yet.");
             }
+            this.client.tryDeliverMessages(false);
             return;
         } else {
             LOG.debug("Response to server token has length:"

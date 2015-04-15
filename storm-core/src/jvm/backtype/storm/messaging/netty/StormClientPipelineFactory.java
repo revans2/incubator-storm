@@ -47,7 +47,7 @@ class StormClientPipelineFactory implements ChannelPipelineFactory {
                     client));
         }
         // business logic.
-        pipeline.addLast("handler", new StormClientErrorHandler(client.name()));
+        pipeline.addLast("handler", new StormClientHandler(client));
 
         return pipeline;
     }

@@ -66,7 +66,7 @@ class SaslUtils {
             return null;
 
         String secretPayLoad = (String) conf
-                .get(Config.STORM_ZOOKEEPER_TOPOLOGY_AUTH_PAYLOAD);
+                .get(Config.STORM_MESSAGING_NETTY_AUTHENTICATION_PAYLOAD);
 
         return secretPayLoad;
     }
