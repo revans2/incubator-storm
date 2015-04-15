@@ -29,8 +29,6 @@
 (def LS-APPROVED-WORKERS "approved-workers")
 (def LS-TOPO-HISTORY "topo-hist")
 
-;;[{:topoid "topologytest-36e2a872-4f16-414a-8db4-55a3898b07ff-1-0", :timestamp 10, :users (), :groups ()}]
-
 (defn ->LSTopoHistory
   [{topoid :topoid timestamp :timestamp users :users groups :groups}]
   (LSTopoHistory. topoid timestamp users groups))
