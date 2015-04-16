@@ -646,7 +646,7 @@
       {"component" (.get_componentId s)
        "stream" (.get_streamId s)
        "executeLatency" (float-str (:execute-latencies stats))
-       "processLatency" (float-str (:execute-latencies stats))
+       "processLatency" (float-str (:process-latencies stats))
        "executed" (nil-to-zero (:executed stats))
        "acked" (nil-to-zero (:acked stats))
        "failed" (nil-to-zero (:failed stats))})))
