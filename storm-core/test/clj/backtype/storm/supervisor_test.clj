@@ -252,6 +252,7 @@
     (let [mock-port "42"
           mock-storm-id "fake-storm-id"
           mock-worker-id "fake-worker-id"
+          mock-sensitivity "S3"
           mock-cp "/base:/stormjar.jar"
           exp-args-fn (fn [opts topo-opts classpath]
                        (concat [(supervisor/java-cmd) "-cp" classpath 
@@ -269,6 +270,7 @@
                                ["-Djava.library.path="
                                 (str "-Dlogfile.name=" mock-storm-id "-worker-" mock-port ".log")
                                 "-Dstorm.home="
+                                (str "-Dstorm.sensitivity=" mock-sensitivity)
                                 "-Dlog4j.configurationFile=/log4j2/worker.xml"
                                 "-DLog4jContextSelector=org.apache.logging.log4j.core.selector.BasicContextSelector"
                                 (str "-Dstorm.id=" mock-storm-id)
@@ -363,6 +365,7 @@
     (let [mock-port "42"
           mock-storm-id "fake-storm-id"
           mock-worker-id "fake-worker-id"
+          mock-sensitivity "S3"
           mock-cp "mock-classpath'quote-on-purpose"
           storm-local (str "/tmp/" (UUID/randomUUID))
           worker-script (str storm-local "/workers/" mock-worker-id "/storm-worker-script.sh")
@@ -388,6 +391,7 @@
                                 " '-Djava.library.path='"
                                 " '-Dlogfile.name=" mock-storm-id "-worker-" mock-port ".log'"
                                 " '-Dstorm.home='"
+                                " '-Dstorm.sensitivity=" mock-sensitivity "'"
                                 " '-Dlog4j.configurationFile=/log4j2/worker.xml'"
                                 " '-DLog4jContextSelector=org.apache.logging.log4j.core.selector.BasicContextSelector'"
                                 " '-Dstorm.id=" mock-storm-id "'"
