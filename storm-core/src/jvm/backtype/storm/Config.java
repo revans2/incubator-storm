@@ -1341,7 +1341,7 @@ public class Config extends HashMap<String, Object> {
     public static final Object TOPOLOGY_SHELLBOLT_MAX_PENDING_SCHEMA = Number.class;
 
     /**
-     * Topology central logging sensitivity to determine who has access  to logs in central logging system.
+     * Topology central logging sensitivity to determine who has access to logs in central logging system.
      * The possible values are:
      *   S0 - Public (open to all users on grid)
      *   S1 - Restricted

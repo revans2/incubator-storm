@@ -1057,3 +1057,9 @@
             (do
               (log-error err "Received error in main thread.. terminating server...")
               (.exit (Runtime/getRuntime) -2))))))))
+
+(defn hide-secure-keys [coll k]
+  "Hides value for k in coll for printing coll safely"
+  (if (contains? coll k)
+    (assoc coll k (apply str (repeat (count (coll k)) "#")))
+    coll))
