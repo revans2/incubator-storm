@@ -64,7 +64,7 @@ cat <<XML
     <Syslog name="syslog" format="RFC5424" host="${syslog_host}" port="514"
         protocol="UDP" appName="[\${sys:daemon.name}]" mdcId="mdc" includeMDC="true"
         facility="${syslog_facility}" enterpriseNumber="18060" newLine="true" exceptionPattern="%rEx{full}"
-        messageId="Audit" id="ystorm"/>
+        messageId="[\${sys:user.name}:S0]" id="ystorm"/>
 </appenders>
 <loggers>
 

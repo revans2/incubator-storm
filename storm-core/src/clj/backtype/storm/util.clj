@@ -1057,3 +1057,10 @@
             (do
               (log-error err "Received error in main thread.. terminating server...")
               (.exit (Runtime/getRuntime) -2))))))))
+
+(defn redact-value
+  "Hides value for k in coll for printing coll safely"
+  [coll k]
+  (if (contains? coll k)
+    (assoc coll k (apply str (repeat (count (coll k)) "#")))
+    coll))
