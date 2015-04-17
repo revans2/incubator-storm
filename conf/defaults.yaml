@@ -207,7 +207,7 @@ topology.classpath: null
 topology.environment: null
 topology.bolts.outgoing.overflow.buffer.enable: false
 topology.disable.loadaware.messaging: true
-topology.centrallogging.sensitivity: "S3"
+topology.logging.sensitivity: "S3"
 
 client.blobstore.class: "backtype.storm.blobstore.NimbusBlobStore"
 blobstore.superuser: "nobody"
