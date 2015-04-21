@@ -44,7 +44,8 @@ public enum HBServerMessageType implements org.apache.thrift.TEnum {
   DELETE_PATH(12),
   DELETE_PATH_RESPONSE(13),
   DELETE_PULSE_ID(14),
-  DELETE_PULSE_ID_RESPONSE(15);
+  DELETE_PULSE_ID_RESPONSE(15),
+  CONTROL_MESSAGE(16);
 
   private final int value;
 
@@ -97,6 +98,8 @@ public enum HBServerMessageType implements org.apache.thrift.TEnum {
         return DELETE_PULSE_ID;
       case 15:
         return DELETE_PULSE_ID_RESPONSE;
+      case 16:
+        return CONTROL_MESSAGE;
       default:
         return null;
     }

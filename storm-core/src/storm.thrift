@@ -480,7 +480,8 @@ enum HBServerMessageType {
   DELETE_PATH,
   DELETE_PATH_RESPONSE,
   DELETE_PULSE_ID,
-  DELETE_PULSE_ID_RESPONSE
+  DELETE_PULSE_ID_RESPONSE,
+  CONTROL_MESSAGE
 }
 
 union MessageData {
@@ -488,7 +489,10 @@ union MessageData {
   2: Pulse pulse,
   3: bool boolval,
   4: HBRecords records,
-  5: HBNodes nodes
+  5: HBNodes nodes,
+  // backtype.storm.messaging.netty.ControlMessage
+  // serialized however ControlMessage does it.
+  6: binary control_message; 
 }
 
 struct Message {

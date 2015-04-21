@@ -62,7 +62,7 @@ public class SaslStormServerHandler extends SimpleChannelUpstreamHandler {
             SaslNettyServer saslNettyServer = SaslNettyServerState.getSaslNettyServer
                     .get(channel);
             if (saslNettyServer == null) {
-                LOG.debug("No saslNettyServer for " + channel
+                LOG.info("No saslNettyServer for " + channel
                         + " yet; creating now, with topology token: ");
                 try {
                     saslNettyServer = new SaslNettyServer(topologyName, token);
@@ -77,12 +77,12 @@ public class SaslStormServerHandler extends SimpleChannelUpstreamHandler {
                 SaslNettyServerState.getSaslNettyServer.set(channel,
                         saslNettyServer);
             } else {
-                LOG.debug("Found existing saslNettyServer on server:"
+                LOG.info("Found existing saslNettyServer on server:"
                         + channel.getLocalAddress() + " for client "
                         + channel.getRemoteAddress());
             }
 
-            LOG.debug("processToken:  With nettyServer: " + saslNettyServer
+            LOG.info("processToken:  With nettyServer: " + saslNettyServer
                     + " and token length: " + token.length);
 
             SaslMessageToken saslTokenMessageRequest = null;
@@ -117,10 +117,10 @@ public class SaslStormServerHandler extends SimpleChannelUpstreamHandler {
             if (saslNettyServer.isComplete()) {
                 // If authentication of client is complete, we will also send a
                 // SASL-Complete message to the client.
-                LOG.debug("SASL authentication is complete for client with "
+                LOG.info("SASL authentication is complete for client with "
                         + "username: " + saslNettyServer.getUserName());
                 channel.write(ControlMessage.SASL_COMPLETE_REQUEST);
-                LOG.debug("Removing SaslServerHandler from pipeline since SASL "
+                LOG.info("Removing SaslServerHandler from pipeline since SASL "
                         + "authentication is complete.");
                 ctx.getPipeline().remove(this);
             }
@@ -139,17 +139,24 @@ public class SaslStormServerHandler extends SimpleChannelUpstreamHandler {
 
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, ExceptionEvent e) {
-        server.closeChannel(e.getChannel());
+        if(server != null) server.closeChannel(e.getChannel());
     }
 
     private void getSASLCredentials() throws IOException {
-        topologyName = (String) this.server.storm_conf
-                .get(Config.TOPOLOGY_NAME);
-        String secretKey = SaslUtils.getSecretKey(this.server.storm_conf);
+        String secretKey;
+        if(server != null) {
+            topologyName = (String) this.server.storm_conf
+                    .get(Config.TOPOLOGY_NAME);
+            secretKey = SaslUtils.getSecretKey(this.server.storm_conf);
+        } else {
+            topologyName = "whatever";
+            secretKey = "knusbaum:asdf1234";
+        }
+            
         if (secretKey != null) {
             token = secretKey.getBytes();
         }
-        LOG.debug("SASL credentials for storm topology " + topologyName
+        LOG.info("SASL credentials for storm topology " + topologyName
                 + " is " + secretKey);
     }
 }

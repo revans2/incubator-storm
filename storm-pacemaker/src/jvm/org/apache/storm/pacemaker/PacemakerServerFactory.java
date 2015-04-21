@@ -22,30 +22,43 @@ import com.twitter.finagle.builder.Server;
 import com.twitter.finagle.builder.ClientBuilder;
 import com.twitter.finagle.Service;
 import java.net.InetSocketAddress;
-import org.apache.storm.pacemaker.codec.ThriftNettyCodec;
+import org.apache.storm.pacemaker.codec.ThriftNettyServerCodec;
+import org.apache.storm.pacemaker.codec.ThriftNettyClientCodec;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class PacemakerServerFactory {
 
+    private static final Logger LOG = LoggerFactory
+        .getLogger(PacemakerServerFactory.class);
+    
     public static Server makeServer(String name, int port, Service service) {
 
+        LOG.info("Making Pacemaker Server bound to port: " + Integer.toString(port));
         return ServerBuilder.safeBuild(
             service,
             ServerBuilder.get()
             .name(name)
-            .codec(new ThriftNettyCodec())
+            .codec(new ThriftNettyServerCodec())
             .bindTo(new InetSocketAddress(port)));
     }
 
-    public static Service makeClient(String host) {
+    public static PacemakerClient makeClient(String host) {
 
+        PacemakerClient pmc = new PacemakerClient("whatever", "knusbaum:asdf1234");
+        
+        ThriftNettyClientCodec codec = new ThriftNettyClientCodec(pmc);
+        
+        LOG.info("Making Pacemaker Client.");
         Service client =  ClientBuilder.safeBuild(
             ClientBuilder.get()
-            .codec(new ThriftNettyCodec())
+            .codec(codec)
             .hosts(host)
             .hostConnectionLimit(1)
-            .retryPolicy(new PacemakerRetryPolicy())
-            );
+            .retryPolicy(new PacemakerRetryPolicy()));
+
+        pmc.setClient(client);
         
-        return client;
+        return pmc;
     }
 }

@@ -21,16 +21,50 @@ import org.jboss.netty.handler.codec.oneone.OneToOneEncoder;
 import org.jboss.netty.channel.ChannelHandlerContext;
 import org.jboss.netty.channel.Channel;
 import backtype.storm.generated.Message;
+import backtype.storm.generated.MessageData;
+import backtype.storm.generated.HBServerMessageType;
 import org.jboss.netty.buffer.ChannelBuffers;
 import org.jboss.netty.buffer.ChannelBuffer;
 import backtype.storm.utils.Utils;
+import backtype.storm.messaging.netty.ControlMessage;
+import java.io.IOException;
 
 public class ThriftEncoder extends OneToOneEncoder {
 
     @Override
     protected Object encode(ChannelHandlerContext ctx, Channel channel, Object msg) {
+        if(msg == null) return null;
+        
+        Message m;
+        
+        if(msg instanceof ControlMessage) {
+            ControlMessage control_message = (ControlMessage)msg;
+            MessageData control_message_data = new MessageData();
+            m = new Message();
 
-        byte serialized[] = Utils.thriftSerialize((Message)msg);
+            try {
+                ChannelBuffer cm_buffer = control_message.buffer();
+                if(cm_buffer.hasArray()) {
+                    control_message_data.set_control_message(control_message.buffer().array());
+                }
+                else {
+                    
+                    byte buff[] = new byte[control_message.encodeLength()];
+                    cm_buffer.readBytes(buff, 0, control_message.encodeLength());
+                    control_message_data.set_control_message(buff);
+                }
+                m.set_type(HBServerMessageType.CONTROL_MESSAGE);
+                m.set_data(control_message_data);
+            }
+            catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
+        else {
+            m = (Message)msg;
+        }
+        
+        byte serialized[] = Utils.thriftSerialize(m);
         ChannelBuffer ret = ChannelBuffers.directBuffer(serialized.length + 4);
 
         ret.writeInt(serialized.length);

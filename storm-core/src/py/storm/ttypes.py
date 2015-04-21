@@ -111,6 +111,7 @@ class HBServerMessageType:
   DELETE_PATH_RESPONSE = 13
   DELETE_PULSE_ID = 14
   DELETE_PULSE_ID_RESPONSE = 15
+  CONTROL_MESSAGE = 16
 
   _VALUES_TO_NAMES = {
     0: "CREATE_PATH",
@@ -129,6 +130,7 @@ class HBServerMessageType:
     13: "DELETE_PATH_RESPONSE",
     14: "DELETE_PULSE_ID",
     15: "DELETE_PULSE_ID_RESPONSE",
+    16: "CONTROL_MESSAGE",
   }
 
   _NAMES_TO_VALUES = {
@@ -148,6 +150,7 @@ class HBServerMessageType:
     "DELETE_PATH_RESPONSE": 13,
     "DELETE_PULSE_ID": 14,
     "DELETE_PULSE_ID_RESPONSE": 15,
+    "CONTROL_MESSAGE": 16,
   }
 
 
@@ -8490,6 +8493,7 @@ class MessageData:
    - boolval
    - records
    - nodes
+   - control_message
   """
 
   thrift_spec = (
@@ -8499,14 +8503,16 @@ class MessageData:
     (3, TType.BOOL, 'boolval', None, None, ), # 3
     (4, TType.STRUCT, 'records', (HBRecords, HBRecords.thrift_spec), None, ), # 4
     (5, TType.STRUCT, 'nodes', (HBNodes, HBNodes.thrift_spec), None, ), # 5
+    (6, TType.STRING, 'control_message', None, None, ), # 6
   )
 
-  def __init__(self, path=None, pulse=None, boolval=None, records=None, nodes=None,):
+  def __init__(self, path=None, pulse=None, boolval=None, records=None, nodes=None, control_message=None,):
     self.path = path
     self.pulse = pulse
     self.boolval = boolval
     self.records = records
     self.nodes = nodes
+    self.control_message = control_message
 
   def read(self, iprot):
     if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
@@ -8545,6 +8551,11 @@ class MessageData:
           self.nodes.read(iprot)
         else:
           iprot.skip(ftype)
+      elif fid == 6:
+        if ftype == TType.STRING:
+          self.control_message = iprot.readString();
+        else:
+          iprot.skip(ftype)
       else:
         iprot.skip(ftype)
       iprot.readFieldEnd()
@@ -8575,6 +8586,10 @@ class MessageData:
       oprot.writeFieldBegin('nodes', TType.STRUCT, 5)
       self.nodes.write(oprot)
       oprot.writeFieldEnd()
+    if self.control_message is not None:
+      oprot.writeFieldBegin('control_message', TType.STRING, 6)
+      oprot.writeString(self.control_message)
+      oprot.writeFieldEnd()
     oprot.writeFieldStop()
     oprot.writeStructEnd()
 
@@ -8589,6 +8604,7 @@ class MessageData:
     value = (value * 31) ^ hash(self.boolval)
     value = (value * 31) ^ hash(self.records)
     value = (value * 31) ^ hash(self.nodes)
+    value = (value * 31) ^ hash(self.control_message)
     return value
 
   def __repr__(self):

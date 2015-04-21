@@ -17,19 +17,46 @@
  */
 package org.apache.storm.pacemaker.codec;
 
+import java.io.IOException;
+
 import com.twitter.finagle.AbstractCodec;
 import org.jboss.netty.channel.ChannelPipelineFactory;
 import org.jboss.netty.channel.ChannelPipeline;
 import org.jboss.netty.channel.Channels;
+import backtype.storm.messaging.netty.SaslStormClientHandler;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-public class ThriftNettyCodec extends AbstractCodec{
+import org.apache.storm.pacemaker.PacemakerClient;
 
+public class ThriftNettyClientCodec extends AbstractCodec{
+
+    private static final Logger LOG = LoggerFactory
+        .getLogger(ThriftNettyClientCodec.class);
+
+    private PacemakerClient client;
+    
+    public ThriftNettyClientCodec(PacemakerClient pacemaker_client) {
+        client = pacemaker_client;
+    }
+    
     public ChannelPipelineFactory pipelineFactory() {
         return new ChannelPipelineFactory() {
             public ChannelPipeline getPipeline() {
                 ChannelPipeline pipeline = Channels.pipeline();
                 pipeline.addLast("encoder", new ThriftEncoder());
                 pipeline.addLast("decoder", new ThriftDecoder());
+//                boolean isNettyAuth = (Boolean) this.client.storm_conf
+//                    .get(Config.STORM_MESSAGING_NETTY_AUTHENTICATION);
+//                if (isNettyAuth) {
+                try {
+                    LOG.info("Adding SaslStormClientHandler.");
+                    pipeline.addLast("handler", new SaslStormClientHandler(client));
+                }
+                catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+//                }
                 return pipeline;
             }
         };

@@ -20,9 +20,13 @@ package org.apache.storm.pacemaker.codec;
 import org.jboss.netty.handler.codec.frame.FrameDecoder;
 import org.jboss.netty.channel.ChannelHandlerContext;
 import org.jboss.netty.channel.Channel;
+import backtype.storm.generated.Message;
+import backtype.storm.generated.MessageData;
+import backtype.storm.generated.HBServerMessageType;
 import org.jboss.netty.buffer.ChannelBuffer;
 import backtype.storm.generated.Message;
 import backtype.storm.utils.Utils;
+import backtype.storm.messaging.netty.ControlMessage;
 
 public class ThriftDecoder extends FrameDecoder {
 
@@ -58,6 +62,11 @@ public class ThriftDecoder extends FrameDecoder {
             m = (Message)Utils.thriftDeserialize(Message.class, serialized);
         }
 
-        return m;
+        if(m.get_type() == HBServerMessageType.CONTROL_MESSAGE) {
+            ControlMessage cm = ControlMessage.read(m.get_data().get_control_message());
+            return cm;
+        } else {
+            return m;
+        }
     }
 }

@@ -47,7 +47,7 @@ public class SaslStormServerAuthorizeHandler extends SimpleChannelUpstreamHandle
 			return;
 
 		Channel channel = ctx.getChannel();
-		LOG.debug("messageReceived: Checking whether the client is authorized to send messages to the server ");
+		LOG.info("messageReceived: Checking whether the client is authorized to send messages to the server ");
 
 		// Authorize: client is allowed to doRequest() if and only if the client
 		// has successfully authenticated with this server.
@@ -71,7 +71,7 @@ public class SaslStormServerAuthorizeHandler extends SimpleChannelUpstreamHandle
 			return;
 		}
 
-		LOG.debug("messageReceived: authenticated client: "
+		LOG.info("messageReceived: authenticated client: "
 				+ saslNettyServer.getUserName()
 				+ " is authorized to do request " + "on server.");
 

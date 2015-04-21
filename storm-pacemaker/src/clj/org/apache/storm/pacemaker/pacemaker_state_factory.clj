@@ -51,7 +51,7 @@
       (set_worker_hb [this path data acls]
         (let [response
               (futures/await
-               (.apply pacemaker-client
+               (.send pacemaker-client
                        (Message. HBServerMessageType/SEND_PULSE
                                  (MessageData/pulse
                                   (doto (Pulse.)
@@ -64,7 +64,7 @@
       (delete_worker_hb [this path]
         (let [response
               (futures/await
-               (.apply pacemaker-client
+               (.send pacemaker-client
                        (Message. HBServerMessageType/DELETE_PATH
                                  (MessageData/path path))))]
           (if (= (.get_type response) HBServerMessageType/DELETE_PATH_RESPONSE)
@@ -74,7 +74,7 @@
       (get_worker_hb [this path watch?]
         (let [response
               (futures/await
-               (.apply pacemaker-client
+               (.send pacemaker-client
                        (Message. HBServerMessageType/GET_PULSE
                                  (MessageData/path path))))]
           (if (= (.get_type response) HBServerMessageType/GET_PULSE_RESPONSE)
@@ -84,7 +84,7 @@
       (get_worker_hb_children [this path watch?]
         (let [response
               (futures/await
-               (.apply pacemaker-client
+               (.send pacemaker-client
                        (Message. HBServerMessageType/GET_ALL_NODES_FOR_PATH
                                  (MessageData/path path))))]
           (if (= (.get_type response) HBServerMessageType/GET_ALL_NODES_FOR_PATH_RESPONSE)

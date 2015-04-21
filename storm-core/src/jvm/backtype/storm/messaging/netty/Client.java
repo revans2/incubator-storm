@@ -30,6 +30,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+import java.lang.InterruptedException;
 
 import org.jboss.netty.bootstrap.ClientBootstrap;
 import org.jboss.netty.channel.Channel;
@@ -47,7 +48,7 @@ import backtype.storm.utils.StormBoundedExponentialBackoffRetry;
 import backtype.storm.metric.api.IStatefulObject;
 import backtype.storm.grouping.Load;
 
-class Client implements IConnection, IStatefulObject{
+class Client implements IConnection, IStatefulObject, ISaslClient {
     private static final Logger LOG = LoggerFactory.getLogger(Client.class);
     private static final Timer TIMER = new Timer("netty-client-timer", true);
 
@@ -72,8 +73,7 @@ class Client implements IConnection, IStatefulObject{
     private final StormBoundedExponentialBackoffRetry retryPolicy;
     private volatile Map<Integer, Double> serverLoad = null;
     private Context context;
-
-    Map storm_conf;
+    private Map storm_conf;
 
     @SuppressWarnings("rawtypes")
     Client(Map storm_conf, ChannelFactory factory, String host, int port, Context context) {
@@ -387,5 +387,31 @@ class Client implements IConnection, IStatefulObject{
 
     public String name() {
         return remote_addr.toString();
+    }
+
+    public Map getConfig() {
+        return storm_conf;
+    }
+
+    /** IClient interface **/
+    public void channelConnected(Channel channel) {
+        setChannel(channel);
+    }
+
+    public void channelReady() {
+        try {
+            tryDeliverMessages(false);
+        }
+        catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public String topologyName() {
+        return (String)storm_conf.get(Config.TOPOLOGY_NAME);
+    }
+
+    public String secretKey() {
+        return SaslUtils.getSecretKey(storm_conf);
     }
 }
