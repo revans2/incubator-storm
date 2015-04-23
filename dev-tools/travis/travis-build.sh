@@ -11,16 +11,19 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
-which java
-which python
-which ruby
-which node
-
+echo DEBUG INFO
+echo "ENV: "
+env
+echo "PATH: "
 echo $PATH
+which java
 java -version
-python -version
-ruby -version
-node -version
+which python
+python --version
+which ruby
+ruby --version
+which node
+node --version
 
 STORM_SRC_ROOT_DIR=$1
 
@@ -33,7 +36,9 @@ export LOG_LEVEL=WARN
 # We should concern that Travis CI could be very slow cause it uses VM
 export STORM_TEST_TIMEOUT_MS=100000
 
-mvn clean package
+#mvn clean package
+
+exit
 
 BUILD_RET_VAL=$?
 
