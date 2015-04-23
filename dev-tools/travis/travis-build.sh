@@ -36,9 +36,7 @@ export LOG_LEVEL=WARN
 # We should concern that Travis CI could be very slow cause it uses VM
 export STORM_TEST_TIMEOUT_MS=100000
 
-#mvn clean package
-
-exit
+mvn clean package
 
 BUILD_RET_VAL=$?
 
