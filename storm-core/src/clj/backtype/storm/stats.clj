@@ -475,19 +475,20 @@
                          handle-sys-components
                          vals
                          sum)
-        :capacity (->>
-                    ;; For each stream, create weighted averages and counts.
-                    (merge-with (fn weighted-avg+count-fn
-                                  [avg cnt]
-                                  [(* avg cnt) cnt])
-                                (get (:execute-latencies statk->w->sid->num)
-                                     600)
-                                (get (:executed statk->w->sid->num) 600))
-                    vals ;; Ignore the stream ids.
-                    (reduce add-pairs
-                            [0. 0]) ;; Combine weighted averages and counts.
-                    ((fn [[weighted-avg cnt]]
-                      (div weighted-avg (* 1000 (min uptime 600))))))
+        :capacity (if (and uptime (pos? uptime))
+                    (->>
+                      ;; For each stream, create weighted averages and counts.
+                      (merge-with (fn weighted-avg+count-fn
+                                    [avg cnt]
+                                    [(* avg cnt) cnt])
+                                  (get (:execute-latencies statk->w->sid->num)
+                                       600)
+                                  (get (:executed statk->w->sid->num) 600))
+                      vals ;; Ignore the stream ids.
+                      (reduce add-pairs
+                              [0. 0]) ;; Combine weighted averages and counts.
+                      ((fn [[weighted-avg cnt]]
+                        (div weighted-avg (* 1000 (min uptime 600)))))))
         :acked (-> statk->w->sid->num
                    :acked
                    str-key
@@ -549,34 +550,45 @@
   "Merges all bolt stats from one executor with the given accumulated stats."
   [acc-bolt-stats bolt-stats]
   {:numExecutors (inc (or (:numExecutors acc-bolt-stats) 0))
-   :numTasks (+ (or (:numTasks acc-bolt-stats) 0) (:numTasks bolt-stats))
-   :emitted (+ (or (:emitted acc-bolt-stats) 0) (:emitted bolt-stats))
+   :numTasks (+ (or (:numTasks acc-bolt-stats) 0)
+                (or (:numTasks bolt-stats) 0))
+   :emitted (+ (or (:emitted acc-bolt-stats) 0)
+               (or (:emitted bolt-stats) 0))
    :transferred (+ (or (:transferred acc-bolt-stats) 0)
-                   (:transferred bolt-stats))
-   :capacity (max (or (:capacity acc-bolt-stats) 0) (:capacity bolt-stats))
+                   (or (:transferred bolt-stats) 0))
+   :capacity (max (or (:capacity acc-bolt-stats) 0)
+                  (or (:capacity bolt-stats) 0))
    ;; We sum average latency totals here to avoid dividing at each step.
    ;; Compute the average latencies by dividing the total by the count.
    :executeLatencyTotal (+ (or (:executeLatencyTotal acc-bolt-stats) 0)
-                           (:executeLatencyTotal bolt-stats))
+                           (or (:executeLatencyTotal bolt-stats) 0))
    :processLatencyTotal (+ (or (:processLatencyTotal acc-bolt-stats) 0)
-                           (:processLatencyTotal bolt-stats))
-   :executed (+ (or (:executed acc-bolt-stats) 0) (:executed bolt-stats))
-   :acked (+ (or (:acked acc-bolt-stats) 0) (:acked bolt-stats))
-   :failed (+ (or (:failed acc-bolt-stats) 0) (:failed bolt-stats))})
+                           (or (:processLatencyTotal bolt-stats) 0))
+   :executed (+ (or (:executed acc-bolt-stats) 0)
+                (or (:executed bolt-stats) 0))
+   :acked (+ (or (:acked acc-bolt-stats) 0)
+             (or (:acked bolt-stats) 0))
+   :failed (+ (or (:failed acc-bolt-stats) 0)
+              (or (:failed bolt-stats) 0))})
 
 (defn- merge-spout-executor-stats
   "Merges all spout stats from one executor with the given accumulated stats."
   [acc-spout-stats spout-stats]
   {:numExecutors (inc (or (:numExecutors acc-spout-stats) 0))
-   :numTasks (+ (or (:numTasks acc-spout-stats) 0) (:numTasks spout-stats))
-   :emitted (+ (or (:emitted acc-spout-stats) 0) (:emitted spout-stats))
-   :transferred (+ (or (:transferred acc-spout-stats) 0) (:transferred spout-stats))
+   :numTasks (+ (or (:numTasks acc-spout-stats) 0)
+                (or (:numTasks spout-stats) 0))
+   :emitted (+ (or (:emitted acc-spout-stats) 0)
+               (or (:emitted spout-stats) 0))
+   :transferred (+ (or (:transferred acc-spout-stats) 0)
+                   (or (:transferred spout-stats) 0))
    ;; We sum average latency totals here to avoid dividing at each step.
    ;; Compute the average latencies by dividing the total by the count.
    :compLatWgtAvg (+ (or (:compLatWgtAvg acc-spout-stats) 0)
-                     (:compLatWgtAvg spout-stats))
-   :acked (+ (or (:acked acc-spout-stats) 0) (:acked spout-stats))
-   :failed (+ (or (:failed acc-spout-stats) 0) (:failed spout-stats))})
+                     (or (:compLatWgtAvg spout-stats) 0))
+   :acked (+ (or (:acked acc-spout-stats) 0)
+             (or (:acked spout-stats) 0))
+   :failed (+ (or (:failed acc-spout-stats) 0)
+              (or (:failed spout-stats) 0))})
 
 (defn aggregate-count-streams
   [stats]
@@ -656,7 +668,7 @@
 (defmulti agg-executor-stats 
   "Combines the aggregate stats of one executor with the given map, selecting
   the appropriate window and including system components as specified."
-  (fn dispatch-fn [& args] (:type (:stats (last args)))))
+  (fn dispatch-fn [& args] (:type (last args))))
 
 (defmethod agg-executor-stats :bolt
   [topology window include-sys? acc-stats new-data]
@@ -685,6 +697,16 @@
   (if-let [e (.last-error storm-cluster-state storm-id component-id)]
     (ErrorInfo. (:error e) (:time-secs e))))
 
+(defn component-type
+  "Returns the component type (either :bolt or :spout) for a given
+  topology and component id. Returns nil if not found."
+  [^StormTopology topology id]
+  (let [bolts (.get_bolts topology)
+        spouts (.get_spouts topology)]
+    (cond
+      (.containsKey bolts id) :bolt
+      (.containsKey spouts id) :spout)))
+
 (defn agg-executors-stats
   "Aggregate various statistics for the given executors from the given
   heartbeats."
@@ -698,14 +720,14 @@
   (let [data (for [[[start end :as executor] [node port]] exec->node+port
                    :let [beat (beats executor)
                          id (task->component start)]
-                   :when (and (:type (:stats beat))
-                              (or include-sys? (not (system-id? id))))]
+                   :when (or include-sys? (not (system-id? id)))]
                {:id id
                 :num-tasks (count (range start (inc end)))
                 :host node
                 :port port
                 :uptime (:uptime beat)
-                :stats (:stats beat)})
+                :stats (:stats beat)
+                :type (component-type topology id)})
         reducer-fn (partial agg-executor-stats
                             topology
                             window
