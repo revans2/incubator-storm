@@ -32,12 +32,13 @@ TRAVIS_SCRIPT_DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
 cd ${STORM_SRC_ROOT_DIR}
 
 # Travis CI doesn't allow stdout bigger than 4M, so we have to reduce log while running tests
-export LOG_LEVEL=WARN
+#export LOG_LEVEL=WARN
 # We should concern that Travis CI could be very slow cause it uses VM
 export STORM_TEST_TIMEOUT_MS=100000
 
 #mvn clean install -DskipTests already run by travis-ci
-mvn test
+#mvn test
+./dev-tool/test-ns.py sbacktype.storm.multilang-test
 
 BUILD_RET_VAL=$?
 
