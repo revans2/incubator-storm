@@ -617,11 +617,6 @@
          ~@body
          (finally (.unlock wlock#))))))
 
-(defn wait-for-condition
-  [apredicate]
-  (while (not (apredicate))
-    (Time/sleep 100)))
-
 (defn time-delta
   [time-secs]
   (- (current-time-secs) time-secs))
@@ -1043,4 +1038,16 @@
   (Thread/setDefaultUncaughtExceptionHandler
     (proxy [Thread$UncaughtExceptionHandler] []
       (uncaughtException [thread thrown]
-        (Utils/handleUncaughtException thrown)))))
+        (try
+          (Utils/handleUncaughtException thrown)
+          (catch Error err
+            (do
+              (log-error err "Received error in main thread.. terminating server...")
+              (.exit (Runtime/getRuntime) -2))))))))
+
+(defn redact-value
+  "Hides value for k in coll for printing coll safely"
+  [coll k]
+  (if (contains? coll k)
+    (assoc coll k (apply str (repeat (count (coll k)) "#")))
+    coll))

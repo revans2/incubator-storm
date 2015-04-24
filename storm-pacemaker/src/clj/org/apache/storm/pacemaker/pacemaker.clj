@@ -45,14 +45,14 @@
 
 (defn exists [^String path heartbeats]
   (let [it-does (.containsKey heartbeats path)]
-    (log-message (str "Checking if path [" path "] exists..." it-does "."))
+    (log-debug (str "Checking if path [" path "] exists..." it-does "."))
     (Message. HBServerMessageType/EXISTS_RESPONSE
               (MessageData/boolval it-does))))
 
 (defn send-pulse [^Pulse pulse heartbeats]
   (let [id (.get_id pulse)
         details (.get_details pulse)]
-    (log-message (str "Saving Pulse for id [" id "] data [" + (str details) "]."))
+    (log-debug (str "Saving Pulse for id [" id "] data [" + (str details) "]."))
     (.put heartbeats id details)
     (Message. HBServerMessageType/SEND_PULSE_RESPONSE nil)))
 
@@ -60,7 +60,7 @@
   (Message. HBServerMessageType/GET_ALL_PULSE_FOR_PATH_RESPONSE nil))
 
 (defn get-all-nodes-for-path [^String path ^ConcurrentHashMap heartbeats]
-    (log-message "List all nodes for path " path)
+    (log-debug "List all nodes for path " path)
     (Message. HBServerMessageType/GET_ALL_NODES_FOR_PATH_RESPONSE
               (MessageData/nodes
                (HBNodes. (distinct (for [k (.keySet heartbeats)
@@ -72,13 +72,13 @@
 
 (defn get-pulse [^String path heartbeats]
   (let [details (.get heartbeats path)]
-    (log-message (str "Getting Pulse for path [" path "]...data " (str details) "]."))
+    (log-debug (str "Getting Pulse for path [" path "]...data " (str details) "]."))
     (Message. HBServerMessageType/GET_PULSE_RESPONSE
               (MessageData/pulse
                (doto (Pulse. ) (.set_id path) (.set_details details))))))
 
 (defn delete-pulse-id [^String path heartbeats]
-  (log-message (str "Deleting Pulse for id [" path "]."))
+  (log-debug (str "Deleting Pulse for id [" path "]."))
   (.remove heartbeats path)
   (Message. HBServerMessageType/DELETE_PULSE_ID_RESPONSE nil))
 

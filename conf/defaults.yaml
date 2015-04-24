@@ -48,11 +48,10 @@ storm.auth.simple-acl.users: []
 storm.auth.simple-acl.users.commands: []
 storm.auth.simple-acl.admins: []
 storm.blobstore.inputstream.buffer.size.bytes: 65536
-storm.meta.serialization.delegate: "backtype.storm.serialization.DefaultSerializationDelegate"
+storm.meta.serialization.delegate: "backtype.storm.serialization.GzipThriftSerializationDelegate"
 # The state store for the cluster.
 #storm.cluster.state.store: "org.apache.storm.pacemaker.pacemaker_state_factory"
 storm.cluster.state.store: "backtype.storm.cluster_state.zookeeper_state_factory"
-
 
 ### nimbus.* configs are for the master
 nimbus.host: "localhost"
@@ -208,6 +207,7 @@ topology.classpath: null
 topology.environment: null
 topology.bolts.outgoing.overflow.buffer.enable: false
 topology.disable.loadaware.messaging: true
+topology.logging.sensitivity: "S3"
 
 client.blobstore.class: "backtype.storm.blobstore.NimbusBlobStore"
 blobstore.superuser: "nobody"

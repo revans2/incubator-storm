@@ -28,12 +28,14 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.FileReader;
 import java.io.OutputStream;
 import java.io.PrintStream;
 import java.io.RandomAccessFile;
+import java.io.Serializable;
 import java.net.URL;
 import java.net.URLDecoder;
 import java.nio.ByteBuffer;
@@ -55,6 +57,7 @@ import java.util.UUID;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import java.util.zip.GZIPInputStream;
+import java.util.zip.GZIPOutputStream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
@@ -63,19 +66,18 @@ import backtype.storm.serialization.DefaultSerializationDelegate;
 import backtype.storm.serialization.SerializationDelegate;
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
-import java.util.zip.GZIPOutputStream;
-import java.util.zip.GZIPInputStream;
 
 import backtype.storm.serialization.DefaultSerializationDelegate;
 import backtype.storm.serialization.SerializationDelegate;
+import org.apache.commons.lang.StringUtils;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
-import org.apache.commons.lang.StringUtils;
 import org.apache.thrift.TException;
 import org.apache.zookeeper.ZooDefs;
 import org.apache.zookeeper.data.ACL;
 import org.apache.zookeeper.data.Id;
 import org.json.simple.JSONValue;
+import org.json.simple.parser.ParseException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.yaml.snakeyaml.Yaml;
@@ -178,8 +180,90 @@ public class Utils {
 
     }
 
-    public static Object deserialize(byte[] serialized) {
-        return serializationDelegate.deserialize(serialized);
+    public static <T> T deserialize(byte[] serialized, Class<T> clazz) {
+        return serializationDelegate.deserialize(serialized, clazz);
+    }
+
+    public static byte[] javaSerialize(Object obj) {
+        try {
+            ByteArrayOutputStream bos = new ByteArrayOutputStream();
+            ObjectOutputStream oos = new ObjectOutputStream(bos);
+            oos.writeObject(obj);
+            oos.close();
+            return bos.toByteArray();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public static <T> T javaDeserialize(byte[] serialized, Class<T> clazz) {
+        try {
+            ByteArrayInputStream bis = new ByteArrayInputStream(serialized);
+            ObjectInputStream ois = new ObjectInputStream(bis);
+            Object ret = ois.readObject();
+            ois.close();
+            return (T)ret;
+        } catch(IOException ioe) {
+            throw new RuntimeException(ioe);
+        } catch(ClassNotFoundException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public static byte[] toCompressedJsonConf(Map<String, Object> stormConf) {
+        try {
+            ByteArrayOutputStream bos = new ByteArrayOutputStream();
+            OutputStreamWriter out = new OutputStreamWriter(new GZIPOutputStream(bos));
+            JSONValue.writeJSONString(stormConf, out);
+            out.close();
+            return bos.toByteArray();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public static Map<String, Object> fromCompressedJsonConf(byte[] serialized) {
+        try {
+            ByteArrayInputStream bis = new ByteArrayInputStream(serialized);
+            InputStreamReader in = new InputStreamReader(new GZIPInputStream(bis));
+            Object ret = JSONValue.parseWithException(in);
+            in.close();
+            return (Map<String,Object>)ret;
+        } catch(IOException ioe) {
+            throw new RuntimeException(ioe);
+        } catch(ParseException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public static byte[] gzip(byte[] data) {
+        try {
+            ByteArrayOutputStream bos = new ByteArrayOutputStream();
+            GZIPOutputStream out = new GZIPOutputStream(bos);
+            out.write(data);
+            out.close();
+            return bos.toByteArray();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public static byte[] gunzip(byte[] data) {
+        try {
+            ByteArrayOutputStream bos = new ByteArrayOutputStream();
+            ByteArrayInputStream bis = new ByteArrayInputStream(data);
+            GZIPInputStream in = new GZIPInputStream(bis);
+            byte[] buffer = new byte[1024];
+            int len = 0;
+            while ((len = in.read(buffer)) >= 0) {
+                bos.write(buffer, 0, len);
+            }
+            in.close();
+            bos.close();
+            return bos.toByteArray();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public static <T> String join(Iterable<T> coll, String sep) {
@@ -318,7 +402,7 @@ public class Utils {
 
     public static Object getSetComponentObject(ComponentObject obj) {
         if(obj.getSetField()==ComponentObject._Fields.SERIALIZED_JAVA) {
-            return Utils.deserialize(obj.get_serialized_java());
+            return Utils.javaDeserialize(obj.get_serialized_java(), Serializable.class);
         } else if(obj.getSetField()==ComponentObject._Fields.JAVA_OBJECT) {
             return obj.get_java_object();
         } else {
@@ -1076,15 +1160,20 @@ public class Utils {
         return val;
     }
 
-    public static void handleUncaughtException(Throwable t) {
-        if (t != null && t instanceof OutOfMemoryError) {
-            try {
-                System.err.println("Halting due to Out Of Memory Error..." + Thread.currentThread().getName());
-            } catch (Throwable err) {
-                //Again we don't want to exit because of logging issues.
-            }
-            Runtime.getRuntime().halt(-1);
+  public static void handleUncaughtException(Throwable t) {
+    if (t != null && t instanceof Error) {
+      if (t instanceof OutOfMemoryError) {
+        try {
+          System.err.println("Halting due to Out Of Memory Error..." + Thread.currentThread().getName());
+        } catch (Throwable err) {
+          //Again we don't want to exit because of logging issues.
         }
+        Runtime.getRuntime().halt(-1);
+      } else {
+        //Running in daemon mode, we would pass Error to calling thread.
+        throw (Error) t;
+      }
     }
+  }
 }
 

@@ -646,7 +646,7 @@
       {"component" (.get_componentId s)
        "stream" (.get_streamId s)
        "executeLatency" (float-str (:execute-latencies stats))
-       "processLatency" (float-str (:execute-latencies stats))
+       "processLatency" (float-str (:process-latencies stats))
        "executed" (nil-to-zero (:executed stats))
        "acked" (nil-to-zero (:acked stats))
        "failed" (nil-to-zero (:failed stats))})))
@@ -730,10 +730,6 @@
                                 (for [[key val] (.get_named_logger_level log-config)]
                                   [(str key) (level-to-dict val)]))]
       {"namedLoggerLevels" named-logger-levels})))
-
-(defn topology-config [topology-id]
-  (with-nimbus nimbus
-     (from-json (.getTopologyConf ^Nimbus$Client nimbus topology-id))))
 
 (defn check-include-sys?
   [sys?]

@@ -46,27 +46,16 @@
 ;; the task id is the virtual port
 ;; node->host is here so that tasks know who to talk to just from assignment
 ;; this avoid situation where node goes down and task doesn't know what to do information-wise
-(defrecord Assignment [master-local-dir node->host executor->node+port executor->start-time-secs])
+(defrecord Assignment [master-code-dir node->host executor->node+port executor->start-time-secs])
 
 
 ;; component->executors is a map from spout/bolt id to number of executors for that component
-(defrecord StormBase [storm-name launch-time-secs status num-workers component->executors owner])
+(defrecord StormBase [storm-name launch-time-secs status num-workers component->executors owner topology-action-options prev-status])
 
 (defrecord SupervisorInfo [time-secs hostname assignment-id used-ports meta scheduler-meta uptime-secs])
 
 (defprotocol DaemonCommon
   (waiting? [this]))
-
-(def LS-WORKER-HEARTBEAT "worker-heartbeat")
-
-;; LocalState constants
-(def LS-ID "supervisor-id")
-(def LS-LOCAL-ASSIGNMENTS "local-assignments")
-(def LS-APPROVED-WORKERS "approved-workers")
-
-(def NIMBUS-LS-TOPO-HISTORY "topo-hist")
-
-(defrecord WorkerHeartbeat [time-secs storm-id executors port])
 
 (defrecord ExecutorStats [^long processed
                           ^long acked

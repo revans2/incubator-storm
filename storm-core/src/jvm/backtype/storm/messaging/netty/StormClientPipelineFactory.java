@@ -21,11 +21,15 @@ import org.jboss.netty.channel.ChannelPipeline;
 import org.jboss.netty.channel.ChannelPipelineFactory;
 import org.jboss.netty.channel.Channels;
 
+import java.util.Map;
+
 class StormClientPipelineFactory implements ChannelPipelineFactory {
     private Client client;
+    private Map conf;
 
-    StormClientPipelineFactory(Client client) {
-        this.client = client;        
+    StormClientPipelineFactory(Client client, Map conf) {
+        this.client = client;
+        this.conf = conf;
     }
 
     public ChannelPipeline getPipeline() throws Exception {
@@ -37,7 +41,7 @@ class StormClientPipelineFactory implements ChannelPipelineFactory {
         // Encoder
         pipeline.addLast("encoder", new MessageEncoder());
         // business logic.
-        pipeline.addLast("handler", new StormClientHandler(client));
+        pipeline.addLast("handler", new StormClientHandler(client, conf));
 
         return pipeline;
     }
