@@ -1006,23 +1006,10 @@
   (.getCanonicalPath 
                 (clojure.java.io/file (System/getProperty "storm.home") "logs")))
 
-(defn- logs-rootname [storm-id port]
-  (str storm-id "-worker-" port))
-
 (defn logs-filename [storm-id port]
-  (str (logs-rootname storm-id port) ".log"))
+  (str storm-id file-path-separator port file-path-separator "worker.log"))
 
-(defn logs-metadata-filename [storm-id port]
-  (str (logs-rootname storm-id port) ".yaml"))
-
-(def worker-log-filename-pattern #"^((.*-\d+-\d+)-worker-(\d+))\.log(.*)")
-
-(defn get-log-metadata-file
-  ([fname]
-    (if-let [[_ _ id port] (re-matches worker-log-filename-pattern fname)]
-      (get-log-metadata-file id port)))
-  ([id port]
-    (clojure.java.io/file LOG-DIR "metadata" (logs-metadata-filename id port))))
+(def worker-log-filename-pattern #"worker.log(.*)")
 
 (defn clojure-from-yaml-file [yamlFile]
   (try
