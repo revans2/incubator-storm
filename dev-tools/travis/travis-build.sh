@@ -38,7 +38,7 @@ export STORM_TEST_TIMEOUT_MS=100000
 
 #mvn clean install -DskipTests already run by travis-ci
 #mvn test
-./dev-tool/test-ns.py sbacktype.storm.multilang-test
+./dev-tools/test-ns.py backtype.storm.multilang-test
 
 BUILD_RET_VAL=$?
 
