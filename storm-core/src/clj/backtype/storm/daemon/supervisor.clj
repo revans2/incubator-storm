@@ -796,7 +796,6 @@
           logfilename "worker.log"
           workers-artifacts (worker-artifacts-root conf)
           logging-sensitivity (storm-conf TOPOLOGY-LOGGING-SENSITIVITY "S3")
-          logfilename (logs-filename storm-id port)
 
           worker-childopts (substitute-childopts (conf WORKER-CHILDOPTS) worker-id storm-id port)
           topo-worker-childopts (substitute-childopts (storm-conf TOPOLOGY-WORKER-CHILDOPTS) worker-id storm-id port)

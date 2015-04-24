@@ -829,8 +829,8 @@ Note that if anything goes wrong, this will throw an Error and exit."
               (if (.exists port-dir) 
                 (into [] (.listFiles port-dir))
                 []))))
-        file-strs (for [file file-results]
-                    (get-topo-port-workerlog file))]
+        file-strs (sort (for [file file-results]
+                    (get-topo-port-workerlog file)))]
     (json-response file-strs
                    :headers {"Access-Control-Allow-Origin" origin
                              "Access-Control-Allow-Credentials" "true"})))
