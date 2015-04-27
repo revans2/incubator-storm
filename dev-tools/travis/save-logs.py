@@ -14,6 +14,7 @@
 
 import sys
 import subprocess
+from datetime import datetime, timedelta
 
 def main(file, cmd):
     print cmd, "writing to", file
@@ -23,15 +24,22 @@ def main(file, cmd):
                            stderr=subprocess.STDOUT,
                            stdout=subprocess.PIPE)
 
+    start = datetime.now()
+    nextPrint = datetime.now() + timedelta(seconds=1)
     # wait for the process to terminate
     pout = process.stdout
     line = pout.readline()
+    previousLen = 0
     while line:
         count = count + 1
-        if count > 9:
-            sys.stdout.write(".")
+        if datetime.now() > nextPrint:
+            sys.stdout.write("\b" * previousLen)
+            diff = datetime.now() - start
+            toWrite = "%d seconds %d log lines"%(diff.seconds, count)
+            previousLen = len(toWrite)
+            sys.stdout.write(toWrite)
             sys.stdout.flush()
-            count = 0
+            nextPrint = datetime.now() + timedelta(seconds=10)
         out.write(line)
         line = pout.readline()
     out.close()
