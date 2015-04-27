@@ -29,15 +29,11 @@ def main(file, cmd):
     # wait for the process to terminate
     pout = process.stdout
     line = pout.readline()
-    previousLen = 0
     while line:
         count = count + 1
         if datetime.now() > nextPrint:
-            sys.stdout.write("\b" * previousLen)
             diff = datetime.now() - start
-            toWrite = "%d seconds %d log lines"%(diff.seconds, count)
-            previousLen = len(toWrite)
-            sys.stdout.write(toWrite)
+            sys.stdout.write("\r%d seconds %d log lines"%(diff.seconds, count))
             sys.stdout.flush()
             nextPrint = datetime.now() + timedelta(seconds=10)
         out.write(line)
