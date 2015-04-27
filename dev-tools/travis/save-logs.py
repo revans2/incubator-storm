@@ -13,12 +13,19 @@
 #  limitations under the License.
 
 import sys
+import subprocess
 
-def main(file, info):
-    print info, " writing to ", file
+def main(file, cmd):
+    print cmd, "writing to", file
     out = open(file, "w")
     count = 0
-    line = sys.stdin.readline()
+    process = subprocess.Popen(cmd,
+                           stderr=subprocess.STDOUT,
+                           stdout=subprocess.PIPE)
+
+    # wait for the process to terminate
+    pout = process.stdout
+    line = pout.readline()
     while line:
         count = count + 1
         if count > 9:
@@ -26,14 +33,16 @@ def main(file, info):
             sys.stdout.flush()
             count = 0
         out.write(line)
-        line = sys.stdin.readline()
+        line = pout.readline()
     out.close()
+    errcode = process.wait()
     print
-    print info, " done"
+    print cmd, "done", errcode
+    return errcode
 
 if __name__ == "__main__":
     if sys.argv < 1:
         print "Usage: %s [file info]" % sys.argv[0]
         sys.exit(1)
 
-    main(sys.argv[1], sys.argv[2])
+    sys.exit(main(sys.argv[1], sys.argv[2:]))
