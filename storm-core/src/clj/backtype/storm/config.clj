@@ -254,8 +254,7 @@
 
 (defn worker-artifacts-root
   ([conf]
-   (if (not (conf STORM-LOCAL-DIR)) "/tmp/workers-artifacts"
-     (str (conf STORM-LOCAL-DIR) file-path-separator "workers-artifacts")))
+   (str (conf STORM-LOCAL-DIR) file-path-separator "workers-artifacts"))
   ([conf id]
    (str (worker-artifacts-root conf) file-path-separator id))
   ([conf id port]
@@ -263,7 +262,7 @@
 
 (defn get-log-metadata-file
   ([fname]
-    (if-let [[id port] (drop-last (str/split fname (re-pattern file-path-separator)))]
+    (let [[id port & _] (str/split fname (re-pattern file-path-separator))]
       (get-log-metadata-file (read-storm-config) id port)))
   ([conf id port]
     (clojure.java.io/file (str (worker-artifacts-root conf id) file-path-separator port file-path-separator) "worker.yaml")))

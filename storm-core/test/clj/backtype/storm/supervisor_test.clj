@@ -298,6 +298,7 @@
                      launch-process nil
                      set-worker-user! nil
                      supervisor/jlp nil
+                     worker-artifacts-root "/tmp/workers-artifacts"
                      supervisor/write-log-metadata! nil]
             (supervisor/launch-worker mock-supervisor
                                       mock-storm-id
@@ -319,6 +320,7 @@
                      launch-process nil
                      set-worker-user! nil
                      supervisor/jlp nil
+                     worker-artifacts-root "/tmp/workers-artifacts"
                      supervisor/write-log-metadata! nil]
             (supervisor/launch-worker mock-supervisor
                                       mock-storm-id
@@ -334,6 +336,7 @@
           (stubbing [read-supervisor-storm-conf {TOPOLOGY-CLASSPATH topo-cp}
                      supervisor-stormdist-root nil
                      supervisor/jlp nil
+                     worker-artifacts-root "/tmp/workers-artifacts"
                      launch-process nil
                      set-worker-user! nil
                      current-classpath "/base"]
@@ -351,6 +354,7 @@
           (stubbing [read-supervisor-storm-conf {TOPOLOGY-ENVIRONMENT topo-env}
                      supervisor-stormdist-root nil
                      supervisor/jlp nil
+                     worker-artifacts-root "/tmp/workers-artifacts"
                      launch-process nil
                      set-worker-user! nil
                      current-classpath "/base"]
