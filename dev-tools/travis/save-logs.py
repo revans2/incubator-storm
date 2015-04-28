@@ -40,6 +40,8 @@ def main(file, cmd):
         line = pout.readline()
     out.close()
     errcode = process.wait()
+    diff = datetime.now() - start
+    sys.stdout.write("\r%d seconds %d log lines"%(diff.seconds, count))
     print
     print cmd, "done", errcode
     return errcode
