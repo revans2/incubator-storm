@@ -162,7 +162,6 @@
   (loop [logs logs_]
     (if (> (sum-file-size logs) size)
       (do
-        (log-message "zliu" (.getCanonicalPath (first logs)))
         (log-message "Log sizes too high. Going to delete: " (.getName (first logs)))
         (try (rmr (.getCanonicalPath (first logs)))
              (catch Exception ex (log-error ex)))
@@ -356,10 +355,6 @@ Note that if anything goes wrong, this will throw an Error and exit."
                              (.split log-string "\n"))
                      log-string)])
             (let [pager-data (pager-links fname start length file-length)]
-              (log-message "zliu to call search-file-form, fname is: " fname)
-              (log-message "zliu to call search-file-form, double decoded fname is: " (codec/percent-decode fname))
-              (log-message "zliu to call search-file-form, double encoded fname is: " (codec/percent-encode (codec/percent-encode fname)))
-              (log-message "zliu to call search-file-form, encoded fname is: " (codec/percent-encode fname))
               (html (concat (search-file-form (codec/percent-encode fname)) 
                             (log-file-selection-form files-str) ;display all files in the directory
                             pager-data

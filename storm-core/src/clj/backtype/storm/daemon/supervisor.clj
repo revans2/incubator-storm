@@ -836,7 +836,6 @@
           command (->> command (map str) (filter (complement empty?)))]
 
       (log-message "Launching worker with command: " (shell-cmd command))
-      (log-message "zliu worker-artifacts is " workers-artifacts)
       (write-log-metadata! storm-conf user worker-id storm-id port conf)
       (set-worker-user! conf worker-id user)
       (create-artifacts-link conf storm-id port worker-id)
@@ -938,6 +937,5 @@
         ))))
 
 (defn -main []
-  (log-message "zliu")
   (setup-default-uncaught-exception-handler)
   (-launch (standalone-supervisor)))
