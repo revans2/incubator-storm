@@ -31,8 +31,8 @@ cd ${STORM_SRC_ROOT_DIR}
 export STORM_TEST_TIMEOUT_MS=100000
 
 # We now lean on Travis CI's implicit behavior, ```mvn clean install -DskipTests``` before running script
-#python ${TRAVIS_SCRIPT_DIR}/save-logs.py "test.txt" mvn test -fae -Pnative
-#BUILD_RET_VAL=$?
+python ${TRAVIS_SCRIPT_DIR}/save-logs.py "test.txt" mvn test -fae -Pnative
+BUILD_RET_VAL=$?
 
 if [ ${BUILD_RET_VAL} -ne 0 ]
 then
