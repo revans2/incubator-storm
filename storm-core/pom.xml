@@ -32,6 +32,7 @@
     <properties>
         <worker-launcher.conf.dir>/etc/storm</worker-launcher.conf.dir>
         <worker-launcher.additional_cflags></worker-launcher.additional_cflags>
+        <argLine></argLine>
     </properties>
 
     <dependencies>

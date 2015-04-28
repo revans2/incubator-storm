@@ -31,8 +31,8 @@ cd ${STORM_SRC_ROOT_DIR}
 export STORM_TEST_TIMEOUT_MS=100000
 
 # We now lean on Travis CI's implicit behavior, ```mvn clean install -DskipTests``` before running script
-python ${TRAVIS_SCRIPT_DIR}/save-logs.py "test.txt" mvn test -fae -Pnative
-BUILD_RET_VAL=$?
+#python ${TRAVIS_SCRIPT_DIR}/save-logs.py "test.txt" mvn test -fae -Pnative
+#BUILD_RET_VAL=$?
 
 if [ ${BUILD_RET_VAL} -ne 0 ]
 then
@@ -40,9 +40,10 @@ then
 else
     tail -100 test.txt
 fi
-for dir in `find . -iname \*.xml | grep target | grep report | sed -e 's|/[^/]*.xml$||' | sort -u`;
+for dir in `find . -type d -and -wholename \*/target/\*-reports`;
 do
-  python ${TRAVIS_SCRIPT_DIR}/print-errors-from-clojure-test-reports.py ${STORM_SRC_ROOT_DIR}/storm-core/target/test-reports
+  echo "Looking for errors in ${dir}"
+  python ${TRAVIS_SCRIPT_DIR}/print-errors-from-test-reports.py "${dir}"
 done
 
 exit ${BUILD_RET_VAL}

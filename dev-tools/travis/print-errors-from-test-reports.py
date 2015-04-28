@@ -22,6 +22,14 @@ def print_detail_information(testcase, fail_or_error):
     print "-" * 50
     print "classname: %s / testname: %s" % (testcase.get("classname"), testcase.get("name"))
     print fail_or_error.text
+    stdout = testcase.get("system-out")
+    if stdout != None:
+        print "-" * 20, "system-out", "-"*20
+        print stdout
+    stderr = testcase.get("system-err")
+    if stderr != None:
+        print "-" * 20, "system-err", "-"*20
+        print stderr
     print "-" * 50
 
 
