@@ -22,21 +22,8 @@ import random
 import subprocess as sub
 import re
 import shlex
-try:
-    # python 3
-    from urllib.parse import quote_plus
-except ImportError:
-    # python 2
-    from urllib import quote_plus
-try:
-    # python 3
-    import configparser
-except ImportError:
-    # python 2
-    import ConfigParser as configparser
-
-def is_windows():
-    return sys.platform.startswith('win')
+import urllib
+import ConfigParser
 
 def identity(x):
     return x
@@ -45,7 +32,7 @@ def cygpath(x):
     command = ["cygpath", "-wp", x]
     p = sub.Popen(command,stdout=sub.PIPE)
     output, errors = p.communicate()
-    lines = output.split(os.linesep)
+    lines = output.split("\n")
     return lines[0]
 
 def init_storm_env():
@@ -53,7 +40,7 @@ def init_storm_env():
     ini_file = os.path.join(CLUSTER_CONF_DIR, 'storm_env.ini')
     if not os.path.isfile(ini_file):
         return
-    config = configparser.ConfigParser()
+    config = ConfigParser.ConfigParser()
     config.optionxform = str
     config.read(ini_file)
     options = config.options('environment')
@@ -62,21 +49,17 @@ def init_storm_env():
         os.environ[option] = value
 
 normclasspath = cygpath if sys.platform == 'cygwin' else identity
-STORM_DIR = os.sep.join(os.path.realpath( __file__ ).split(os.sep)[:-2])
-USER_CONF_DIR = os.path.expanduser("~" + os.sep + ".storm")
+STORM_DIR = "/".join(os.path.realpath( __file__ ).split("/")[:-2])
+USER_CONF_DIR = os.path.expanduser("~/.storm")
 STORM_CONF_DIR = os.getenv('STORM_CONF_DIR', None)
 
 if STORM_CONF_DIR == None:
-    CLUSTER_CONF_DIR = os.path.join(STORM_DIR, "conf")
+    CLUSTER_CONF_DIR = STORM_DIR + "/conf"
 else:
     CLUSTER_CONF_DIR = STORM_CONF_DIR
 
-if (not os.path.isfile(os.path.join(USER_CONF_DIR, "storm.yaml"))):
+if (not os.path.isfile(USER_CONF_DIR + "/storm.yaml")):
     USER_CONF_DIR = CLUSTER_CONF_DIR
-
-STORM_LIB_DIR = os.path.join(STORM_DIR, "lib")
-STORM_BIN_DIR = os.path.join(STORM_DIR, "bin")
-STORM_LOGBACK_CONF_DIR = os.path.join(STORM_DIR, "logback")
 
 init_storm_env()
 
@@ -85,16 +68,21 @@ CONFFILE = ""
 JAR_JVM_OPTS = shlex.split(os.getenv('STORM_JAR_JVM_OPTS', ''))
 JAVA_HOME = os.getenv('JAVA_HOME', None)
 JAVA_CMD = 'java' if not JAVA_HOME else os.path.join(JAVA_HOME, 'bin', 'java')
+NIMBUS_EXTRA_CLASSPATHS = os.getenv('NIMBUS_EXTRA_CLASSPATHS', None)
+SUPERVISOR_EXTRA_CLASSPATHS = os.getenv('SUPERVISOR_EXTRA_CLASSPATHS', None)
+STORM_EXT_CLASSPATH = os.getenv('STORM_EXT_CLASSPATH', None)
+STORM_EXT_CLASSPATH_DAEMON = os.getenv('STORM_EXT_CLASSPATH_DAEMON', None)
+
 
 def get_config_opts():
     global CONFIG_OPTS
-    return "-Dstorm.options=" + ','.join(map(quote_plus,CONFIG_OPTS))
+    return "-Dstorm.options=" + ','.join(map(urllib.quote_plus,CONFIG_OPTS))
 
-if not os.path.exists(STORM_LIB_DIR):
-    print("******************************************")
-    print("The storm client can only be run from within a release. You appear to be trying to run the client from a checkout of Storm's source code.")
-    print("\nYou can download a Storm release at http://storm-project.net/downloads.html")
-    print("******************************************")
+if not os.path.exists(STORM_DIR + "/RELEASE"):
+    print "******************************************"
+    print "The storm client can only be run from within a release. You appear to be trying to run the client from a checkout of Storm's source code."
+    print "\nYou can download a Storm release at http://storm-project.net/downloads.html"
+    print "******************************************"
     sys.exit(1)
 
 def get_jars_full(adir):
@@ -102,27 +90,31 @@ def get_jars_full(adir):
     ret = []
     for f in files:
         if f.endswith(".jar"):
-            ret.append(os.path.join(adir, f))
+            ret.append(adir + "/" + f)
     return ret
 
-def get_classpath(extrajars):
+def get_classpath(extrajars, daemon=True):
     ret = get_jars_full(STORM_DIR)
-    ret.extend(get_jars_full(STORM_LIB_DIR))
+    ret.extend(get_jars_full(STORM_DIR + "/lib"))
+    ret.extend(get_jars_full(STORM_DIR + "/extlib"))
+    if daemon:
+        ret.extend(get_jars_full(STORM_DIR + "/extlib-daemon"))
+    if STORM_EXT_CLASSPATH != None:
+        ret.extend(STORM_EXT_CLASSPATH)
+    if daemon and STORM_EXT_CLASSPATH_DAEMON != None:
+        ret.extend(STORM_EXT_CLASSPATH_DAEMON)
     ret.extend(extrajars)
-    return normclasspath(os.pathsep.join(ret))
+    return normclasspath(":".join(ret))
 
-def confvalue(name, extrapaths):
+def confvalue(name, extrapaths, daemon=True):
     global CONFFILE
     command = [
         JAVA_CMD, "-client", get_config_opts(), "-Dstorm.conf.file=" + CONFFILE,
-        "-cp", get_classpath(extrapaths), "backtype.storm.command.config_value", name
+        "-cp", get_classpath(extrapaths, daemon), "backtype.storm.command.config_value", name
     ]
     p = sub.Popen(command, stdout=sub.PIPE)
     output, errors = p.communicate()
-    # python 3
-    if not isinstance(output, str):
-        output = output.decode('utf-8')
-    lines = output.split(os.linesep)
+    lines = output.split("\n")
     for line in lines:
         tokens = line.split(" ")
         if tokens[0] == "VALUE:":
@@ -136,7 +128,7 @@ def print_localconfvalue(name):
     The local Storm configs are the ones in ~/.storm/storm.yaml merged
     in with the configs in defaults.yaml.
     """
-    print(name + ": " + confvalue(name, [USER_CONF_DIR]))
+    print name + ": " + confvalue(name, [USER_CONF_DIR])
 
 def print_remoteconfvalue(name):
     """Syntax: [storm remoteconfvalue conf-name]
@@ -147,7 +139,7 @@ def print_remoteconfvalue(name):
 
     This command must be run on a cluster machine.
     """
-    print(name + ": " + confvalue(name, [CLUSTER_CONF_DIR]))
+    print name + ": " + confvalue(name, [CLUSTER_CONF_DIR])
 
 def parse_args(string):
     r"""Takes a string of whitespace-separated tokens and parses it into a list.
@@ -168,27 +160,21 @@ def parse_args(string):
     args = [re.compile(r"'((?:[^'\\]|\\.)*)'").sub('\\1', x) for x in args]
     return [re.compile(r'\\(.)').sub('\\1', x) for x in args]
 
-def exec_storm_class(klass, jvmtype="-server", jvmopts=[], extrajars=[], args=[], fork=False):
+def exec_storm_class(klass, jvmtype="-server", jvmopts=[], extrajars=[], args=[], fork=False, daemon=True):
     global CONFFILE
-    storm_log_dir = confvalue("storm.log.dir",[CLUSTER_CONF_DIR])
-    if(storm_log_dir == None or storm_log_dir == "nil"):
-        storm_log_dir = os.path.join(STORM_DIR, "logs")
     all_args = [
-        "java", jvmtype, get_config_opts(),
+        JAVA_CMD, jvmtype, get_config_opts(),
         "-Dstorm.home=" + STORM_DIR,
-        "-Dstorm.log.dir=" + storm_log_dir,
-        "-Djava.library.path=" + confvalue("java.library.path", extrajars),
+        "-Djava.library.path=" + confvalue("java.library.path", extrajars, daemon),
         "-Dstorm.conf.file=" + CONFFILE,
-        "-cp", get_classpath(extrajars),
+        "-cp", get_classpath(extrajars, daemon),
     ] + jvmopts + [klass] + list(args)
-    print("Running: " + " ".join(all_args))
+    print "Running: " + " ".join(all_args)
     if fork:
         os.spawnvp(os.P_WAIT, JAVA_CMD, all_args)
-    elif is_windows():
-        # handling whitespaces in JAVA_CMD
-        sub.call(all_args)
     else:
-        os.execvp(JAVA_CMD, all_args)
+        os.execvp(JAVA_CMD, all_args) # replaces the current process and
+        # never returns
 
 def jar(jarfile, klass, *args):
     """Syntax: [storm jar topology-jar-path class ...]
@@ -196,14 +182,15 @@ def jar(jarfile, klass, *args):
     Runs the main method of class with the specified arguments.
     The storm jars and configs in ~/.storm are put on the classpath.
     The process is configured so that StormSubmitter
-    (http://storm.incubator.apache.org/apidocs/backtype/storm/StormSubmitter.html)
+    (http://storm.apache.org/apidocs/backtype/storm/StormSubmitter.html)
     will upload the jar at topology-jar-path when the topology is submitted.
     """
     exec_storm_class(
         klass,
         jvmtype="-client",
-        extrajars=[jarfile, USER_CONF_DIR, STORM_BIN_DIR],
+        extrajars=[jarfile, USER_CONF_DIR, STORM_DIR + "/bin"],
         args=args,
+        daemon=False,
         jvmopts=JAR_JVM_OPTS + ["-Dstorm.jar=" + jarfile])
 
 def kill(*args):
@@ -220,11 +207,11 @@ def kill(*args):
         "backtype.storm.command.kill_topology",
         args=args,
         jvmtype="-client",
-        extrajars=[USER_CONF_DIR, STORM_BIN_DIR])
+        extrajars=[USER_CONF_DIR, STORM_DIR + "/bin"])
 
 
 def upload_credentials(*args):
-    """Syntax: [storm upload_credentials topology-name [credkey credvalue]*]
+    """Syntax: [storm upload-credentials topology-name [credkey credvalue]*]
 
     Uploads a new set of credentials to a running topology
     """
@@ -232,7 +219,42 @@ def upload_credentials(*args):
         "backtype.storm.command.upload_credentials",
         args=args,
         jvmtype="-client",
-        extrajars=[USER_CONF_DIR, STORM_BIN_DIR])
+        extrajars=[USER_CONF_DIR, STORM_DIR + "/bin"])
+
+def blobstore(*args):
+    """Syntax: [storm blobstore [cmd]]
+
+    list [KEY...] - lists blobs currently in the blob store
+    cat [-f FILE] KEY - read a blob and then either write it to a file, or STDOUT (requires read access).
+    create [-f FILE] [-a ACL ...] KEY - create a new blob. Contents comes from a FILE
+         or STDIN. ACL is in the form [uo]:[username]:[r-][w-][a-] can be comma
+         separated list.
+         for example the following would create a mytopo:data.tgz key using the data
+         stored in data.tgz.  User alice would have full access, bob would have
+         read/write access and everyone else would have read access.
+         storm blobstore create mytopo:data.tgz -f data.tgz -a u:alice:rwa,u:bob:rw,o::r
+    update [-f FILE] KEY - update the contents of a blob.  Contents comes from
+         a FILE or STDIN (requires write access).
+    delete KEY - delete an entry from the blob store (requires write access).
+    set-acl [-s ACL] KEY - ACL is in the form [uo]:[username]:[r-][w-][a-] can be comma
+         separated list (requires admin access).
+    """
+    exec_storm_class(
+        "backtype.storm.command.blobstore",
+        args=args,
+        jvmtype="-client",
+        extrajars=[USER_CONF_DIR, STORM_DIR + "/bin"])
+
+def heartbeats(*args):
+    """Syntax: [storm heartbeats [cmd]]
+
+    list [KEY...] - lists heartbeats nodes under KEY currently in pacemaker.
+    """
+    exec_storm_class(
+        "backtype.storm.command.heartbeats",
+        args=args,
+        jvmtype="-client",
+        extrajars=[USER_CONF_DIR, STORM_DIR + "/bin"])
 
 def activate(*args):
     """Syntax: [storm activate topology-name]
@@ -243,7 +265,40 @@ def activate(*args):
         "backtype.storm.command.activate",
         args=args,
         jvmtype="-client",
-        extrajars=[USER_CONF_DIR, STORM_BIN_DIR])
+        extrajars=[USER_CONF_DIR, STORM_DIR + "/bin"])
+
+def set_log_level(*args):
+    """
+    Dynamically change topology log levels
+
+    Syntax: [storm set_log_level -l [logger name]=[log level][:optional timeout] -r [logger name]
+    where log level is one of:
+        ALL, TRACE, DEBUG, INFO, WARN, ERROR, FATAL, OFF
+    and timeout is integer seconds.
+
+    e.g.
+        ./bin/storm set_log_level -l ROOT=DEBUG:30
+
+        Set the root logger's level to DEBUG for 30 seconds
+
+        ./bin/storm set_log_level -l com.myapp=WARN
+
+        Set the com.myapp logger's level to WARN for 30 seconds
+
+        ./bin/storm set_log_level -l com.myapp=WARN -l com.myOtherLogger=ERROR:123
+
+        Set the com.myapp logger's level to WARN indifinitely, and com.myOtherLogger
+        to ERROR for 123 seconds
+
+        ./bin/storm set_log_level -r com.myOtherLogger
+
+        Clears settings, resetting back to the original level
+    """
+    exec_storm_class(
+        "backtype.storm.command.set_log_level",
+        args=args,
+        jvmtype="-client",
+        extrajars=[USER_CONF_DIR, STORM_DIR + "/bin"])
 
 def listtopos(*args):
     """Syntax: [storm list]
@@ -254,7 +309,7 @@ def listtopos(*args):
         "backtype.storm.command.list",
         args=args,
         jvmtype="-client",
-        extrajars=[USER_CONF_DIR, STORM_BIN_DIR])
+        extrajars=[USER_CONF_DIR, STORM_DIR + "/bin"])
 
 def deactivate(*args):
     """Syntax: [storm deactivate topology-name]
@@ -265,7 +320,7 @@ def deactivate(*args):
         "backtype.storm.command.deactivate",
         args=args,
         jvmtype="-client",
-        extrajars=[USER_CONF_DIR, STORM_BIN_DIR])
+        extrajars=[USER_CONF_DIR, STORM_DIR + "/bin"])
 
 def rebalance(*args):
     """Syntax: [storm rebalance topology-name [-w wait-time-secs] [-n new-num-workers] [-e component=parallelism]*]
@@ -292,7 +347,7 @@ def rebalance(*args):
         "backtype.storm.command.rebalance",
         args=args,
         jvmtype="-client",
-        extrajars=[USER_CONF_DIR, STORM_BIN_DIR])
+        extrajars=[USER_CONF_DIR, STORM_DIR + "/bin"])
 
 def shell(resourcesdir, command, *args):
     tmpjarpath = "stormshell" + str(random.randint(0, 10000000)) + ".jar"
@@ -314,14 +369,7 @@ def repl():
     on the classpath. Useful for debugging.
     """
     cppaths = [CLUSTER_CONF_DIR]
-    exec_storm_class("clojure.main", jvmtype="-client", extrajars=cppaths)
-
-def get_logback_conf_dir():
-    cppaths = [CLUSTER_CONF_DIR]
-    storm_logback_conf_dir = confvalue("storm.logback.conf.dir", cppaths)
-    if(storm_logback_conf_dir == None or storm_logback_conf_dir == "nil"):
-        storm_logback_conf_dir = STORM_LOGBACK_CONF_DIR
-    return storm_logback_conf_dir
+    exec_storm_class("clojure.lang.Repl", jvmtype="-client", extrajars=cppaths)
 
 def nimbus(klass="backtype.storm.daemon.nimbus"):
     """Syntax: [storm nimbus]
@@ -330,12 +378,37 @@ def nimbus(klass="backtype.storm.daemon.nimbus"):
     supervision with a tool like daemontools or monit.
 
     See Setting up a Storm cluster for more information.
-    (http://storm.incubator.apache.org/documentation/Setting-up-a-Storm-cluster)
+    (http://storm.apache.org/documentation/Setting-up-a-Storm-cluster)
     """
-    cppaths = [CLUSTER_CONF_DIR]
+    if NIMBUS_EXTRA_CLASSPATHS != None:
+        cppaths = [CLUSTER_CONF_DIR, NIMBUS_EXTRA_CLASSPATHS]
+    else:
+        cppaths = [CLUSTER_CONF_DIR]
     jvmopts = parse_args(confvalue("nimbus.childopts", cppaths)) + [
         "-Dlogfile.name=nimbus.log",
-        "-Dlogback.configurationFile=" + os.path.join(get_logback_conf_dir(), "cluster.xml"),
+        "-Ddaemon.name=nimbus",
+        "-Dlog4j.configurationFile=" + STORM_DIR + "/log4j2/cluster.xml",
+    ]
+    exec_storm_class(
+        klass,
+        jvmtype="-server",
+        extrajars=cppaths,
+        jvmopts=jvmopts)
+
+def pacemaker(klass="org.apache.storm.pacemaker.pacemaker"):
+    """Syntax: [storm pacemaker]
+
+    Launches the Pacemaker daemon. This command should be run under
+    supervision with a tool like daemontools or monit.
+
+    See Setting up a Storm cluster for more information.
+    (http://storm.apache.org/documentation/Setting-up-a-Storm-cluster)
+    """
+    cppaths = [CLUSTER_CONF_DIR]
+    jvmopts = parse_args(confvalue("pacemaker.childopts", cppaths)) + [
+        "-Dlogfile.name=pacemaker.log",
+        "-Ddaemon.name=pacemaker",
+        "-Dlog4j.configurationFile=" + STORM_DIR + "/log4j2/cluster.xml",
     ]
     exec_storm_class(
         klass,
@@ -350,12 +423,16 @@ def supervisor(klass="backtype.storm.daemon.supervisor"):
     under supervision with a tool like daemontools or monit.
 
     See Setting up a Storm cluster for more information.
-    (http://storm.incubator.apache.org/documentation/Setting-up-a-Storm-cluster)
+    (http://storm.apache.org/documentation/Setting-up-a-Storm-cluster)
     """
-    cppaths = [CLUSTER_CONF_DIR]
+    if SUPERVISOR_EXTRA_CLASSPATHS != None:
+        cppaths = [CLUSTER_CONF_DIR, SUPERVISOR_EXTRA_CLASSPATHS]
+    else:
+        cppaths = [CLUSTER_CONF_DIR]
     jvmopts = parse_args(confvalue("supervisor.childopts", cppaths)) + [
         "-Dlogfile.name=supervisor.log",
-        "-Dlogback.configurationFile=" + os.path.join(get_logback_conf_dir(), "cluster.xml"),
+        "-Ddaemon.name=supervisor",
+        "-Dlog4j.configurationFile=" + STORM_DIR + "/log4j2/cluster.xml",
     ]
     exec_storm_class(
         klass,
@@ -371,12 +448,13 @@ def ui():
     should be run under supervision with a tool like daemontools or monit.
 
     See Setting up a Storm cluster for more information.
-    (http://storm.incubator.apache.org/documentation/Setting-up-a-Storm-cluster)
+    (http://storm.apache.org/documentation/Setting-up-a-Storm-cluster)
     """
     cppaths = [CLUSTER_CONF_DIR]
     jvmopts = parse_args(confvalue("ui.childopts", cppaths)) + [
         "-Dlogfile.name=ui.log",
-        "-Dlogback.configurationFile=" + os.path.join(get_logback_conf_dir(), "cluster.xml")
+        "-Ddaemon.name=ui",
+        "-Dlog4j.configurationFile=" + STORM_DIR + "/log4j2/cluster.xml",
     ]
     exec_storm_class(
         "backtype.storm.ui.core",
@@ -392,12 +470,13 @@ def logviewer():
     tool like daemontools or monit.
 
     See Setting up a Storm cluster for more information.
-    (http://storm.incubator.apache.org/documentation/Setting-up-a-Storm-cluster)
+    (http://storm.apache.org/documentation/Setting-up-a-Storm-cluster)
     """
     cppaths = [CLUSTER_CONF_DIR]
     jvmopts = parse_args(confvalue("logviewer.childopts", cppaths)) + [
         "-Dlogfile.name=logviewer.log",
-        "-Dlogback.configurationFile=" + os.path.join(get_logback_conf_dir(), "cluster.xml")
+        "-Ddaemon.name=logviewer",
+        "-Dlog4j.configurationFile=" + STORM_DIR + "/log4j2/cluster.xml",
     ]
     exec_storm_class(
         "backtype.storm.daemon.logviewer",
@@ -412,12 +491,13 @@ def drpc():
     with a tool like daemontools or monit.
 
     See Distributed RPC for more information.
-    (http://storm.incubator.apache.org/documentation/Distributed-RPC)
+    (http://storm.apache.org/documentation/Distributed-RPC)
     """
     cppaths = [CLUSTER_CONF_DIR]
     jvmopts = parse_args(confvalue("drpc.childopts", cppaths)) + [
         "-Dlogfile.name=drpc.log",
-        "-Dlogback.configurationFile=" + os.path.join(get_logback_conf_dir(), "cluster.xml")
+        "-Ddaemon.name=drpc",
+        "-Dlog4j.configurationFile=" + STORM_DIR + "/log4j2/cluster.xml"
     ]
     exec_storm_class(
         "backtype.storm.daemon.drpc",
@@ -443,66 +523,48 @@ def version():
 
   Prints the version number of this Storm release.
   """
-  cppaths = [CLUSTER_CONF_DIR]
-  exec_storm_class(
-       "backtype.storm.utils.VersionInfo",
-       jvmtype="-client",
-       extrajars=[CLUSTER_CONF_DIR])
+  releasefile = STORM_DIR + "/RELEASE"
+  if os.path.exists(releasefile):
+    print open(releasefile).readline().strip()
+  else:
+    print "Unknown"
 
 def print_classpath():
     """Syntax: [storm classpath]
 
     Prints the classpath used by the storm client when running commands.
     """
-    print(get_classpath([]))
-
-def monitor(*args):
-    """Syntax: [storm monitor topology-name [-i interval-secs] [-m component-id] [-s stream-id] [-w [emitted | transferred]]]
-
-    Monitor given topology's throughput interactively.
-    One can specify poll-interval, component-id, stream-id, watch-item[emitted | transferred]
-    By default,
-        poll-interval is 4 seconds;
-        all component-ids will be list;
-        stream-id is 'default';
-        watch-item is 'emitted';
-    """
-    exec_storm_class(
-        "backtype.storm.command.monitor",
-        args=args,
-        jvmtype="-client",
-        extrajars=[USER_CONF_DIR, STORM_BIN_DIR])
-
+    print get_classpath([])
 
 def print_commands():
     """Print all client commands and link to documentation"""
-    print("Commands:\n\t" +  "\n\t".join(sorted(COMMANDS.keys())))
-    print("\nHelp: \n\thelp \n\thelp <command>")
-    print("\nDocumentation for the storm client can be found at http://storm.incubator.apache.org/documentation/Command-line-client.html\n")
-    print("Configs can be overridden using one or more -c flags, e.g. \"storm list -c nimbus.host=nimbus.mycompany.com\"\n")
+    print "Commands:\n\t",  "\n\t".join(sorted(COMMANDS.keys()))
+    print "\nHelp:", "\n\thelp", "\n\thelp <command>"
+    print "\nDocumentation for the storm client can be found at http://storm.apache.org/documentation/Command-line-client.html\n"
+    print "Configs can be overridden using one or more -c flags, e.g. \"storm list -c nimbus.host=nimbus.mycompany.com\"\n"
 
 def print_usage(command=None):
     """Print one help message or list of available commands"""
     if command != None:
-        if command in COMMANDS:
-            print(COMMANDS[command].__doc__ or
+        if COMMANDS.has_key(command):
+            print (COMMANDS[command].__doc__ or
                   "No documentation provided for <%s>" % command)
         else:
-           print("<%s> is not a valid command" % command)
+           print "<%s> is not a valid command" % command
     else:
         print_commands()
 
 def unknown_command(*args):
-    print("Unknown command: [storm %s]" % ' '.join(sys.argv[1:]))
+    print "Unknown command: [storm %s]" % ' '.join(sys.argv[1:])
     print_usage()
-    sys.exit(254)
 
 COMMANDS = {"jar": jar, "kill": kill, "shell": shell, "nimbus": nimbus, "ui": ui, "logviewer": logviewer,
             "drpc": drpc, "supervisor": supervisor, "localconfvalue": print_localconfvalue,
             "remoteconfvalue": print_remoteconfvalue, "repl": repl, "classpath": print_classpath,
             "activate": activate, "deactivate": deactivate, "rebalance": rebalance, "help": print_usage,
-            "list": listtopos, "dev-zookeeper": dev_zookeeper, "version": version, "monitor": monitor,
-            "upload-credentials": upload_credentials}
+            "list": listtopos, "dev-zookeeper": dev_zookeeper, "version": version, 
+            "upload-credentials": upload_credentials, "blobstore": blobstore, "pacemaker": pacemaker,
+            "heartbeats": heartbeats, "set_log_level": set_log_level }
 
 def parse_config(config_list):
     global CONFIG_OPTS
