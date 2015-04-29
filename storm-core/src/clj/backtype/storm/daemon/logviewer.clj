@@ -291,7 +291,7 @@ Note that if anything goes wrong, this will throw an Error and exit."
 (defn log-file-selection-form [log-files]
   [[:form {:action "log" :id "list-of-files"}
     (drop-down "file" log-files )
-    [:input {:type "submit" :value "Switch log file"}]]])
+    [:input {:type "submit" :value "Switch file"}]]])
 
 (defn pager-links [fname start length file-size]
   (let [prev-start (max 0 (- start length))
@@ -321,7 +321,7 @@ Note that if anything goes wrong, this will throw an Error and exit."
                         "Next" :enabled (> next-start start))])]])) 
 
 (defn- download-link [fname]
-  [[:p (link-to (url-format "/download/%s" fname) "Download Full Log")]])
+  [[:p (link-to (url-format "/download/%s" fname) "Download Full File")]])
 
 (def default-bytes-per-page 51200)
 
@@ -336,17 +336,21 @@ Note that if anything goes wrong, this will throw an Error and exit."
           log-files (reduce clojure.set/union
                             (sorted-set)
                             (for [^File port-dir (.listFiles topo-dir)]
-                              (into [] (filter-worker-logs (.listFiles port-dir)))))
+                              (into [] (filter #(.isFile %) (.listFiles port-dir))))) ;all types of files included
           files-str (for [file log-files] 
-                      (get-topo-port-workerlog file))]
+                      (get-topo-port-workerlog file))
+          reordered-files-str (conj (filter #(not= fname %) files-str) fname)]
       (if (.exists file)
         (let [length (if length
                        (min 10485760 length)
                        default-bytes-per-page)
+              is-txt-file (re-find #"\.(log.*|txt|yaml)$" fname)
               log-string (escape-html
-                           (if start
-                             (page-file path start length)
-                             (page-file path length)))
+                           (if is-txt-file
+                             (if start
+                               (page-file path start length)
+                               (page-file path length))
+                             "This is a binary file and cannot display! You may download the full file."))
               start (or start (- file-length length))]
           (if grep
             (html [:pre#logContent
@@ -354,9 +358,9 @@ Note that if anything goes wrong, this will throw an Error and exit."
                      (filter #(.contains % grep)
                              (.split log-string "\n"))
                      log-string)])
-            (let [pager-data (pager-links fname start length file-length)]
+            (let [pager-data (if is-txt-file (pager-links fname start length file-length) nil)]
               (html (concat (search-file-form (codec/percent-encode fname)) 
-                            (log-file-selection-form files-str) ;display all files in the directory
+                            (log-file-selection-form reordered-files-str) ;display all files for this topology
                             pager-data
                             (download-link fname)
                             [[:pre#logContent log-string]]
