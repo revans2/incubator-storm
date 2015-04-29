@@ -763,7 +763,6 @@
     (doseq [file-name blob-file-names]
       (create-symlink! workerroot stormroot file-name file-name))))
 
-;;TODO: zliu; be careful: some worker may restart and use a different port, so we need to redirect the link
 (defn create-artifacts-link
   "Create a symlink from workder directory to its port artifacts directory"
   [conf storm-id port worker-id]

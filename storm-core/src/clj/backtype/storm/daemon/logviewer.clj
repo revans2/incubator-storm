@@ -68,8 +68,7 @@
     (reduce clojure.set/union
             (sorted-set)
             (for [^File topo-dir (.listFiles (File. root-dir))]
-              (into [] (.listFiles (File. topo-dir) file-filter))
-              ))))
+              (into [] (.listFiles (File. topo-dir) file-filter))))))
 
 (defn get-topo-port-workerlog
   "Return the path of the worker log with the format of topoId/port/worker.log.*"

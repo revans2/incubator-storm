@@ -31,7 +31,7 @@
 (defmethod mk-mock-File :file [{file-name :name mtime :mtime length :length
                                 :or {file-name "afile"
                                      mtime 1
-                                     length (* 10 (* 1024 (* 1024 1024))) }}] ; Length 10 MB ?? or 10GB?
+                                     length (* 10 (* 1024 (* 1024 1024))) }}] ; Length 10 GB
   (let [mockFile (Mockito/mock java.io.File)]
     (. (Mockito/when (.getName mockFile)) thenReturn file-name)
     (. (Mockito/when (.lastModified mockFile)) thenReturn mtime)
