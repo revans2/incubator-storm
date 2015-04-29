@@ -158,6 +158,7 @@ file 444 - - lib64/storm/$(BASE_VERSION)/lib/storm_yahoo-$(BASE_VERSION).jar ../
 file 444 - - lib64/storm/$(BASE_VERSION)/README.yahoo ./README.yahoo
 
 configfile 644 - - lib64/storm/$(BASE_VERSION)/conf/storm.yaml ./conf/config.py template overwrite
+configfile 644 - - lib64/storm/$(BASE_VERSION)/conf/storm-env.sh ./conf/storm-env.py template overwrite
 configfile 644 - - lib64/storm/$(BASE_VERSION)/conf/multitenant-scheduler.yaml ./conf/multitenant-scheduler.py template overwrite
 configfile 644 - - lib64/storm/$(BASE_VERSION)/conf/drpc-auth-acl.yaml ./conf/drpc-auth-acl.py template overwrite
 configfile 644 - - lib64/storm/$(BASE_VERSION)/log4j2/cluster.xml ./log4j2/cluster.xml.sh template overwrite
