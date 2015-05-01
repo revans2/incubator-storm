@@ -17,8 +17,6 @@
  */
 package backtype.storm.messaging.netty;
 
-<<<<<<< HEAD
-=======
 import backtype.storm.Config;
 import backtype.storm.grouping.Load;
 import backtype.storm.messaging.IConnection;
@@ -35,7 +33,6 @@ import org.jboss.netty.channel.socket.nio.NioServerSocketChannelFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
->>>>>>> corp/master-security
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -51,21 +48,6 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadFactory;
 import java.io.IOException;
 
-import org.jboss.netty.bootstrap.ServerBootstrap;
-import org.jboss.netty.channel.Channel;
-import org.jboss.netty.channel.ChannelFactory;
-import org.jboss.netty.channel.group.ChannelGroup;
-import org.jboss.netty.channel.group.DefaultChannelGroup;
-import org.jboss.netty.channel.socket.nio.NioServerSocketChannelFactory;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import backtype.storm.Config;
-import backtype.storm.messaging.IConnection;
-import backtype.storm.messaging.TaskMessage;
-import backtype.storm.utils.Utils;
-import backtype.storm.metric.api.IStatefulObject;
-import backtype.storm.grouping.Load;
 
 class Server implements IConnection, IStatefulObject, ISaslServer {
     private static final Logger LOG = LoggerFactory.getLogger(Server.class);
