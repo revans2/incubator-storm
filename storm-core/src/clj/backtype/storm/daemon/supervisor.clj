@@ -700,11 +700,13 @@
   (let [file (get-log-metadata-file conf storm-id port)]
     ;;run worker as user needs the directory to have special permissions
     ;; or it is insecure
-    (when (and (not (conf SUPERVISOR-RUN-WORKER-AS-USER))
-               (not (.exists (.getParentFile file))))
-      (.mkdirs (.getParentFile file)))
+    (when (not (.exists (.getParentFile file)))
+      (if (conf SUPERVISOR-RUN-WORKER-AS-USER)
+        (do (FileUtils/forceMkdir (.getParentFile file))
+            (setup-storm-code-dir conf (read-supervisor-storm-conf conf storm-id) (.getCanonicalPath (.getParentFile file))))
+        (.mkdirs (.getParentFile file))))
     (let [writer (java.io.FileWriter. file)
-        yaml (Yaml.)]
+          yaml (Yaml.)]
       (try
         (.dump yaml data writer)
         (finally
