@@ -98,16 +98,6 @@
       (trim (slurp release-path))
       "Unknown")))
 
-(defn component-type
-  "Returns the component type (either :bolt or :spout) for a given
-  topology and component id. Returns nil if not found."
-  [^StormTopology topology id]
-  (let [bolts (.get_bolts topology)
-        spouts (.get_spouts topology)]
-    (cond
-      (.containsKey bolts id) :bolt
-      (.containsKey spouts id) :spout)))
-
 (defn executor-summary-type
   [topology ^ExecutorSummary s]
   (component-type topology (.get_component_id s)))
@@ -646,7 +636,7 @@
       {"component" (.get_componentId s)
        "stream" (.get_streamId s)
        "executeLatency" (float-str (:execute-latencies stats))
-       "processLatency" (float-str (:execute-latencies stats))
+       "processLatency" (float-str (:process-latencies stats))
        "executed" (nil-to-zero (:executed stats))
        "acked" (nil-to-zero (:acked stats))
        "failed" (nil-to-zero (:failed stats))})))
@@ -730,10 +720,6 @@
                                 (for [[key val] (.get_named_logger_level log-config)]
                                   [(str key) (level-to-dict val)]))]
       {"namedLoggerLevels" named-logger-levels})))
-
-(defn topology-config [topology-id]
-  (with-nimbus nimbus
-     (from-json (.getTopologyConf ^Nimbus$Client nimbus topology-id))))
 
 (defn check-include-sys?
   [sys?]

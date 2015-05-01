@@ -15,7 +15,7 @@
 ;; limitations under the License.
 (ns backtype.storm.daemon.worker
   (:use [backtype.storm.daemon common])
-  (:use [backtype.storm bootstrap])
+  (:use [backtype.storm bootstrap local-state])
   (:require [clj-time.core :as time])
   (:require [clj-time.coerce :as coerce])
   (:require [backtype.storm.daemon [executor :as executor]])
@@ -68,19 +68,9 @@
 
 (defn do-heartbeat [worker]
   (let [conf (:conf worker)
-        hb (WorkerHeartbeat.
-             (current-time-secs)
-             (:storm-id worker)
-             (:executors worker)
-             (:port worker))
         state (worker-state conf (:worker-id worker))]
-    (log-debug "Doing heartbeat " (pr-str hb))
     ;; do the local-file-system heartbeat.
-    (.put state
-        LS-WORKER-HEARTBEAT
-        hb
-        false
-        )
+    (ls-worker-heartbeat! state (current-time-secs) (:storm-id worker) (:executors worker) (:port worker))
     (.cleanup state 60) ; this is just in case supervisor is down so that disk doesn't fill up.
                          ; it shouldn't take supervisor 120 seconds between listing dir and reading it
 
@@ -302,7 +292,7 @@
     (fn this
       ([] 
         (let [^LoadMapping load-mapping (:load-mapping worker)
-              local-pop (map-val (fn [queue] (/ (double (.population queue)) (.capacity queue))) short-executor-receive-queue-map)
+              local-pop (map-val (fn [^DisruptorQueue queue] (/ (double (.population queue)) (.capacity queue))) short-executor-receive-queue-map)
               remote-load (reduce merge (for [[np conn] @(:cached-node+port->socket worker)] (into {} (.getLoad conn remote-tasks))))
               now (System/currentTimeMillis)]
           (.setLocal load-mapping local-pop)
@@ -640,7 +630,7 @@
     (schedule-recurring (:reset-log-levels-timer worker) 0 (conf WORKER-LOG-LEVEL-RESET-POLL-SECS) (fn [] (reset-log-levels latest-log-config)))
     (schedule-recurring (:refresh-active-timer worker) 0 (conf TASK-REFRESH-POLL-SECS) (partial refresh-storm-active worker))
 
-    (log-message "Worker has topology config " (:storm-conf worker))
+    (log-message "Worker has topology config " (redact-value (:storm-conf worker) STORM-ZOOKEEPER-TOPOLOGY-AUTH-PAYLOAD))
     (log-message "Worker " worker-id " for storm " storm-id " on " assignment-id ":" port " has finished loading")
     ret
     ))))))

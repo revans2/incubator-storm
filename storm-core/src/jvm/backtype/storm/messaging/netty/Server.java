@@ -17,6 +17,25 @@
  */
 package backtype.storm.messaging.netty;
 
+<<<<<<< HEAD
+=======
+import backtype.storm.Config;
+import backtype.storm.grouping.Load;
+import backtype.storm.messaging.IConnection;
+import backtype.storm.messaging.TaskMessage;
+import backtype.storm.metric.api.IStatefulObject;
+import backtype.storm.serialization.KryoValuesSerializer;
+import backtype.storm.utils.Utils;
+import org.jboss.netty.bootstrap.ServerBootstrap;
+import org.jboss.netty.channel.Channel;
+import org.jboss.netty.channel.ChannelFactory;
+import org.jboss.netty.channel.group.ChannelGroup;
+import org.jboss.netty.channel.group.DefaultChannelGroup;
+import org.jboss.netty.channel.socket.nio.NioServerSocketChannelFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+>>>>>>> corp/master-security
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -30,6 +49,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadFactory;
+import java.io.IOException;
 
 import org.jboss.netty.bootstrap.ServerBootstrap;
 import org.jboss.netty.channel.Channel;
@@ -71,12 +91,14 @@ class Server implements IConnection, IStatefulObject, ISaslServer {
 	
     boolean closing = false;
     List<TaskMessage> closeMessage = Arrays.asList(new TaskMessage(-1, null));
+    private KryoValuesSerializer _ser;
     
     
     @SuppressWarnings("rawtypes")
     Server(Map storm_conf, int port) {
         this.storm_conf = storm_conf;
         this.port = port;
+        _ser = new KryoValuesSerializer(storm_conf);
         
         queueCount = Utils.getInt(storm_conf.get(Config.WORKER_RECEIVER_THREAD_COUNT), 1);
         roundRobinQueueId = 0;
@@ -265,9 +287,13 @@ class Server implements IConnection, IStatefulObject, ISaslServer {
 
     @Override
     public void sendLoadMetrics(Map<Integer, Double> taskToLoad) {
-        MessageBatch mb = new MessageBatch(1);
-        mb.add(new TaskMessage(-1, Utils.serialize(taskToLoad)));
-        allChannels.write(mb);
+        try {
+            MessageBatch mb = new MessageBatch(1);
+            mb.add(new TaskMessage(-1, _ser.serialize(Arrays.asList((Object)taskToLoad))));
+            allChannels.write(mb);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Override

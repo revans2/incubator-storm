@@ -199,6 +199,7 @@ struct ExecutorStats {
   1: required map<string, map<string, i64>> emitted;
   2: required map<string, map<string, i64>> transferred;
   3: required ExecutorSpecificStats specific;
+  4: required double rate;
 }
 
 struct ExecutorInfo {
@@ -334,16 +335,6 @@ struct BeginDownloadResult {
   2: required string session;
 }
 
-enum NumErrorsChoice {
-  ALL,
-  NONE,
-  ONE
-}
-
-struct GetInfoOptions {
-  1: optional NumErrorsChoice num_err_choice;
-}
-
 enum LogLevelAction {
   UNCHANGED = 1,
   UPDATE    = 2,
@@ -378,6 +369,111 @@ struct LogConfig {
 
 struct TopologyHistoryInfo {
   1: list<string> topo_ids;
+}
+
+struct SupervisorInfo {
+    1: required i64 time_secs;
+    2: required string hostname;
+    3: optional string assignment_id;
+    4: optional list<i64> used_ports;
+    5: optional list<i64> meta;
+    6: optional map<string, string> scheduler_meta;
+    7: optional i64 uptime_secs;
+}
+struct NodeInfo {
+    1: required string node;
+    2: required set<i64> port;
+}
+
+struct Assignment {
+    1: required string master_code_dir;
+    2: optional map<string, string> node_host = {};
+    3: optional map<list<i64>, NodeInfo> executor_node_port = {};
+    4: optional map<list<i64>, i64> executor_start_time_secs = {};
+}
+
+enum TopologyStatus {
+    ACTIVE = 1,
+    INACTIVE = 2,
+    REBALANCING = 3,
+    KILLED = 4
+}
+
+union TopologyActionOptions {
+    1: optional KillOptions kill_options;
+    2: optional RebalanceOptions rebalance_options;
+}
+
+struct StormBase {
+    1: required string name;
+    2: required TopologyStatus status;
+    3: required i32 num_workers;
+    4: optional map<string, i32> component_executors;
+    5: optional i32 launch_time_secs;
+    6: optional string owner;
+    7: optional TopologyActionOptions topology_action_options;
+    8: optional TopologyStatus prev_status;//currently only used during rebalance action.
+}
+
+struct ClusterWorkerHeartbeat {
+    1: required string storm_id;
+    2: required map<ExecutorInfo,ExecutorStats> executor_stats;
+    3: required i32 time_secs;
+    4: required i32 uptime_secs;
+}
+
+struct ThriftSerializedObject {
+  1: required string name;
+  2: required binary bits;
+}
+
+struct LocalStateData {
+   1: required map<string, ThriftSerializedObject> serialized_parts;
+}
+
+struct LocalAssignment {
+  1: required string topology_id;
+  2: required list<ExecutorInfo> executors;
+}
+
+struct LSSupervisorId {
+   1: required string supervisor_id;
+}
+
+struct LSApprovedWorkers {
+   1: required map<string, i32> approved_workers;
+}
+
+struct LSSupervisorAssignments {
+   1: required map<i32, LocalAssignment> assignments; 
+}
+
+struct LSWorkerHeartbeat {
+   1: required i32 time_secs;
+   2: required string topology_id;
+   3: required list<ExecutorInfo> executors
+   4: required i32 port;
+}
+
+struct LSTopoHistory {
+   1: required string topology_id;
+   2: required i64 time_stamp;
+   3: required list<string> users;
+   4: required list<string> groups;
+}
+
+struct LSTopoHistoryList {
+  1: required list<LSTopoHistory> topo_history;
+}
+
+enum NumErrorsChoice {
+  ALL,
+  NONE,
+  ONE
+}
+
+struct GetInfoOptions {
+  1: optional NumErrorsChoice num_err_choice;
 }
 
 service Nimbus {

@@ -20,7 +20,7 @@
   (:import [backtype.storm.scheduler ISupervisor])
   (:import [backtype.storm.blobstore BlobStoreAclHandler])
   (:import [backtype.storm.localizer LocalResource])
-  (:use [backtype.storm bootstrap])
+  (:use [backtype.storm bootstrap local-state])
   (:use [backtype.storm.daemon common])
   (:require [backtype.storm.daemon [worker :as worker]])
   (:import [org.apache.zookeeper data.ACL ZooDefs$Ids ZooDefs$Perms])
@@ -33,9 +33,6 @@
 
 (defmulti download-storm-code cluster-mode)
 (defmulti launch-worker (fn [supervisor & _] (cluster-mode (:conf supervisor))))
-
-;; used as part of a map from port to this
-(defrecord LocalAssignment [storm-id executors])
 
 (defprotocol SupervisorDaemon
   (get-id [this])
@@ -72,7 +69,7 @@
     (into {} (for [[port executors] port-executors]
                ;; need to cast to int b/c it might be a long (due to how yaml parses things)
                ;; doall is to avoid serialization/deserialization problems with lazy seqs
-               [(Integer. port) (LocalAssignment. storm-id (doall executors))]
+               [(Integer. port) (mk-local-assignment storm-id (doall executors))]
                ))))
 
 
@@ -84,7 +81,7 @@
 
 (defn- read-storm-local-dir
   [assignments-snapshot]
-  (map-val :master-local-dir assignments-snapshot))
+  (map-val :master-code-dir assignments-snapshot))
 
 (defn- read-downloaded-storm-ids [conf]
   (map #(url-decode %) (read-dir-contents (supervisor-stormdist-root conf)))
@@ -92,7 +89,7 @@
 
 (defn read-worker-heartbeat [conf id]
   (let [local-state (worker-state conf id)]
-    (.get local-state LS-WORKER-HEARTBEAT)
+    (ls-worker-heartbeat local-state)
     ))
 
 
@@ -134,7 +131,7 @@
   (let [conf (:conf supervisor)
         ^LocalState local-state (:local-state supervisor)
         id->heartbeat (read-worker-heartbeats conf)
-        approved-ids (set (keys (.get local-state LS-APPROVED-WORKERS)))]
+        approved-ids (set (keys (ls-approved-workers local-state)))]
     (into
      {}
      (dofor [[id hb] id->heartbeat]
@@ -160,7 +157,7 @@
 (defn- wait-for-worker-launch [conf id start-time]
   (let [state (worker-state conf id)]    
     (loop []
-      (let [hb (.get state LS-WORKER-HEARTBEAT)]
+      (let [hb (ls-worker-heartbeat state)]
         (when (and
                (not hb)
                (<
@@ -171,7 +168,7 @@
           (Time/sleep 500)
           (recur)
           )))
-    (when-not (.get state LS-WORKER-HEARTBEAT)
+    (when-not (ls-worker-heartbeat state)
       (log-message "Worker " id " failed to start")
       )))
 
@@ -298,7 +295,7 @@
 (defn sync-processes [supervisor]
   (let [conf (:conf supervisor)
         ^LocalState local-state (:local-state supervisor)
-        assigned-executors (defaulted (.get local-state LS-LOCAL-ASSIGNMENTS) {})
+        assigned-executors (defaulted (ls-local-assignments local-state) {})
         now (current-time-secs)
         allocated (read-allocated-workers supervisor assigned-executors now)
         keepers (filter-val
@@ -367,9 +364,9 @@
                         " with id "
                         id)
                       nil))))))]
-      (.put local-state LS-APPROVED-WORKERS
+      (ls-approved-workers! local-state
                         (merge
-                          (select-keys (.get local-state LS-APPROVED-WORKERS)
+                          (select-keys (ls-approved-workers local-state)
                             (keys keepers))
                           (zipmap (vals valid-new-worker-ids) (keys valid-new-worker-ids))))
       (wait-for-workers-launch conf (vals valid-new-worker-ids)))))
@@ -383,7 +380,7 @@
 (defn shutdown-disallowed-workers [supervisor]
   (let [conf (:conf supervisor)
         ^LocalState local-state (:local-state supervisor)
-        assigned-executors (defaulted (.get local-state LS-LOCAL-ASSIGNMENTS) {})
+        assigned-executors (defaulted (ls-local-assignments local-state) {})
         now (current-time-secs)
         allocated (read-allocated-workers supervisor assigned-executors now)
         disallowed (keys (filter-val
@@ -461,7 +458,7 @@
           new-assignment (->> all-assignment
                               (filter-key #(.confirmAssigned isupervisor %)))
           assigned-storm-ids (assigned-storm-ids-from-port-assignments new-assignment)
-          existing-assignment (.get local-state LS-LOCAL-ASSIGNMENTS)
+          existing-assignment (ls-local-assignments local-state)
           localizer (:localizer supervisor)]
       (log-debug "Synchronizing supervisor")
       (log-debug "Storm code map: " storm-local-map)
@@ -473,11 +470,11 @@
       ;; This might take awhile
       ;;   - should this be done separately from usual monitoring?
       ;; should we only download when topology is assigned to this supervisor?
-      (doseq [[storm-id master-local-dir] storm-local-map]
+      (doseq [[storm-id master-code-dir] storm-local-map]
         (when (and (not (downloaded-storm-ids storm-id))
                    (assigned-storm-ids storm-id))
           (log-message "Downloading code for storm id " storm-id)
-          (download-storm-code conf storm-id master-local-dir localizer)
+          (download-storm-code conf storm-id master-code-dir localizer)
           (log-message "Finished downloading code for storm id " storm-id)))
 
       (log-debug "Writing new assignment "
@@ -486,8 +483,7 @@
                                 (set (keys new-assignment)))]
         (.killedWorker isupervisor (int p)))
       (.assigned isupervisor (keys new-assignment))
-      (.put local-state
-            LS-LOCAL-ASSIGNMENTS
+      (ls-local-assignments! local-state
             new-assignment)
       (reset! (:assignment-versions supervisor) versions)
       (reset! (:curr-assignment supervisor) new-assignment)
@@ -660,7 +656,7 @@
 (defn download-blobs-for-topology-succeed?
   "Assert if all blobs are downloaded for the given topology"
   [stormconf-path target-dir]
-  (let [storm-conf (Utils/deserialize (FileUtils/readFileToByteArray (File. stormconf-path)))
+  (let [storm-conf (clojurify-structure (Utils/fromCompressedJsonConf (FileUtils/readFileToByteArray (File. stormconf-path))))
         blobstore-map (storm-conf TOPOLOGY-BLOBSTORE-MAP)
         file-names (get-blob-file-names blobstore-map)]
     (if (and file-names (> (count file-names) 0))
@@ -669,7 +665,7 @@
 
 ;; distributed implementation
 (defmethod download-storm-code
-  :distributed [conf storm-id master-local-dir localizer]
+  :distributed [conf storm-id master-code-dir localizer]
   ;; Downloading to permanent location is atomic
   (let [tmproot (str (supervisor-tmp-dir conf) file-path-separator (uuid))
         stormroot (supervisor-stormdist-root conf storm-id)
@@ -786,6 +782,7 @@
           top-gc-opts (storm-conf TOPOLOGY-WORKER-GC-CHILDOPTS)
           gc-opts (substitute-childopts (if top-gc-opts top-gc-opts (conf WORKER-GC-CHILDOPTS)) worker-id storm-id port)
           user (storm-conf TOPOLOGY-SUBMITTER-USER)
+          logging-sensitivity (storm-conf TOPOLOGY-LOGGING-SENSITIVITY "S3")
           logfilename (logs-filename storm-id port)
 
           worker-childopts (substitute-childopts (conf WORKER-CHILDOPTS) worker-id storm-id port)
@@ -810,6 +807,7 @@
                     [(str "-Djava.library.path=" jlp)
                      (str "-Dlogfile.name=" logfilename)
                      (str "-Dstorm.home=" storm-home)
+                     (str "-Dlogging.sensitivity=" logging-sensitivity)
                      (str "-Dlog4j.configurationFile=" storm-home "/log4j2/worker.xml")
                      (str "-DLog4jContextSelector=org.apache.logging.log4j.core.selector.BasicContextSelector")
                      (str "-Dstorm.id=" storm-id)
@@ -848,10 +846,10 @@
 
 ;; distributed cache feature does not work in local mode
 (defmethod download-storm-code
-    :local [conf storm-id master-local-dir localizer]
+    :local [conf storm-id master-code-dir localizer]
     (let [tmproot (str (supervisor-tmp-dir conf) file-path-separator (uuid))
           stormroot (supervisor-stormdist-root conf storm-id)
-          blob-store (Utils/getNimbusBlobStore conf master-local-dir)]
+          blob-store (Utils/getNimbusBlobStore conf master-code-dir)]
       (try
         (FileUtils/forceMkdir (File. tmproot))
       
@@ -904,10 +902,10 @@
       (prepare [this conf local-dir]
         (reset! conf-atom conf)
         (let [state (LocalState. local-dir)
-              curr-id (if-let [id (.get state LS-ID)]
+              curr-id (if-let [id (ls-supervisor-id state)]
                         id
                         (generate-supervisor-id))]
-          (.put state LS-ID curr-id)
+          (ls-supervisor-id! state curr-id)
           (reset! id-atom curr-id))
         )
       (confirmAssigned [this port]

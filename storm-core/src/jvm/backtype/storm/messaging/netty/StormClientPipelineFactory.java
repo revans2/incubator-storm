@@ -22,12 +22,15 @@ import org.jboss.netty.channel.ChannelPipelineFactory;
 import org.jboss.netty.channel.Channels;
 
 import backtype.storm.Config;
+import java.util.Map;
 
 class StormClientPipelineFactory implements ChannelPipelineFactory {
     private Client client;
+    private Map conf;
 
-    StormClientPipelineFactory(Client client) {
+    StormClientPipelineFactory(Client client, Map conf) {
         this.client = client;
+        this.conf = conf;
     }
 
     public ChannelPipeline getPipeline() throws Exception {
@@ -47,7 +50,7 @@ class StormClientPipelineFactory implements ChannelPipelineFactory {
                     client));
         }
         // business logic.
-        pipeline.addLast("handler", new StormClientHandler(client));
+        pipeline.addLast("handler", new StormClientHandler(client, conf));
 
         return pipeline;
     }

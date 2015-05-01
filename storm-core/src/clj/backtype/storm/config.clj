@@ -15,7 +15,8 @@
 ;; limitations under the License.
 
 (ns backtype.storm.config
-  (:import [java.io FileReader File IOException])
+  (:import [java.io FileReader File IOException]
+           [backtype.storm.generated StormTopology])
   (:import [backtype.storm Config ConfigValidation$FieldValidator])
   (:import [backtype.storm.utils Utils LocalState])
   (:import [org.apache.commons.io FileUtils])
@@ -211,20 +212,19 @@
 
 (defn read-supervisor-storm-conf-given-path
   [conf stormconf-path]
-    (merge conf (clojurify-structure (Utils/deserialize (FileUtils/readFileToByteArray (File. stormconf-path))))))
+    (merge conf (clojurify-structure (Utils/fromCompressedJsonConf (FileUtils/readFileToByteArray (File. stormconf-path))))))
 
 (defn read-supervisor-storm-conf
   [conf storm-id]
   (let [stormroot (supervisor-stormdist-root conf storm-id)
         conf-path (supervisor-stormconf-path stormroot)]
-    (read-supervisor-storm-conf-given-path conf conf-path)))
+    (merge conf (clojurify-structure (Utils/fromCompressedJsonConf (FileUtils/readFileToByteArray (File. conf-path)))))))
 
 (defn read-supervisor-topology
   [conf storm-id]
   (let [stormroot (supervisor-stormdist-root conf storm-id)
         topology-path (supervisor-stormcode-path stormroot)]
-    (Utils/deserialize (FileUtils/readFileToByteArray (File. topology-path)))
-    ))
+    (Utils/deserialize (FileUtils/readFileToByteArray (File. topology-path)) StormTopology)))
 
 (defn worker-user-root [conf]
   (str (conf STORM-LOCAL-DIR) "/workers-users"))
