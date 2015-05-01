@@ -17,10 +17,6 @@
  */
 package org.apache.storm.pacemaker;
 
-import com.twitter.finagle.builder.ServerBuilder;
-import com.twitter.finagle.builder.Server;
-import com.twitter.finagle.builder.ClientBuilder;
-import com.twitter.finagle.Service;
 import java.net.InetSocketAddress;
 import java.util.Map;
 import java.util.HashSet;

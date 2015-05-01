@@ -29,6 +29,8 @@ import org.slf4j.LoggerFactory;
  * Send and receive SASL tokens.
  */
 public class SaslMessageToken implements INettySerializable {
+    public static final short IDENTIFIER = -500;
+
     /** Class logger */
     private static final Logger LOG = LoggerFactory
             .getLogger(SaslMessageToken.class);
@@ -85,12 +87,11 @@ public class SaslMessageToken implements INettySerializable {
     public ChannelBuffer buffer() throws IOException {
         ChannelBufferOutputStream bout = new ChannelBufferOutputStream(
                 ChannelBuffers.directBuffer(encodeLength()));
-        short identifier = -500;
         int payload_len = 0;
         if (token != null)
             payload_len = token.length;
 
-        bout.writeShort((short) identifier);
+        bout.writeShort(IDENTIFIER);
         bout.writeInt((int) payload_len);
         if (payload_len > 0) {
             bout.write(token);

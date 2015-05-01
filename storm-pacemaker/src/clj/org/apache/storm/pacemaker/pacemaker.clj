@@ -15,8 +15,7 @@
 ;; limitations under the License.
 
 (ns org.apache.storm.pacemaker.pacemaker
-  (:import [com.twitter.finagle Service]
-           [org.apache.storm.pacemaker PacemakerServerFactory IServerMessageHandler]
+  (:import [org.apache.storm.pacemaker PacemakerServerFactory IServerMessageHandler]
            [java.util.concurrent ConcurrentHashMap ThreadPoolExecutor TimeUnit LinkedBlockingDeque]
            [backtype.storm.generated
             HBAuthorizationException HBExecutionException HBNodes HBRecords

@@ -16,8 +16,7 @@
 
 (ns org.apache.storm.pacemaker.pacemaker-state-factory
   (:require [org.apache.storm.pacemaker pacemaker]
-            [backtype.storm.cluster-state [zookeeper-state-factory :as zk-factory]]
-            [finagle-clojure.futures :as futures])
+            [backtype.storm.cluster-state [zookeeper-state-factory :as zk-factory]])
   (:import [backtype.storm.generated
             HBExecutionException HBNodes HBRecords
             HBServerMessageType Message MessageData Pulse]

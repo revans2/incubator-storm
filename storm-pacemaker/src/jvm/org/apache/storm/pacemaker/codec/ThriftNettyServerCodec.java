@@ -19,7 +19,6 @@ package org.apache.storm.pacemaker.codec;
 
 import java.io.IOException;
 
-import com.twitter.finagle.AbstractCodec;
 import org.jboss.netty.channel.ChannelPipelineFactory;
 import org.jboss.netty.channel.ChannelPipeline;
 import org.jboss.netty.channel.Channels;
@@ -32,7 +31,7 @@ import org.slf4j.LoggerFactory;
 import backtype.storm.messaging.netty.IServer;
 import backtype.storm.messaging.netty.ISaslServer;
 
-public class ThriftNettyServerCodec extends AbstractCodec{
+public class ThriftNettyServerCodec {
 
     private IServer server;
 

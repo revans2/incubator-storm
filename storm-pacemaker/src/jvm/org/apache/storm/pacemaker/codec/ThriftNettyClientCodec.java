@@ -19,7 +19,6 @@ package org.apache.storm.pacemaker.codec;
 
 import java.io.IOException;
 
-import com.twitter.finagle.AbstractCodec;
 import org.jboss.netty.channel.ChannelPipelineFactory;
 import org.jboss.netty.channel.ChannelPipeline;
 import org.jboss.netty.channel.Channels;
@@ -30,7 +29,7 @@ import org.slf4j.LoggerFactory;
 import org.apache.storm.pacemaker.PacemakerClient;
 import org.apache.storm.pacemaker.PacemakerClientHandler;
 
-public class ThriftNettyClientCodec extends AbstractCodec{
+public class ThriftNettyClientCodec {
 
     private static final Logger LOG = LoggerFactory
         .getLogger(ThriftNettyClientCodec.class);
