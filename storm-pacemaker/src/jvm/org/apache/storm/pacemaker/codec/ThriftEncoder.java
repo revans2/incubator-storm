@@ -27,49 +27,81 @@ import org.jboss.netty.buffer.ChannelBuffers;
 import org.jboss.netty.buffer.ChannelBuffer;
 import backtype.storm.utils.Utils;
 import backtype.storm.messaging.netty.ControlMessage;
+import backtype.storm.messaging.netty.SaslMessageToken;
+import backtype.storm.messaging.netty.INettySerializable;
 import java.io.IOException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ThriftEncoder extends OneToOneEncoder {
+
+    private static final Logger LOG = LoggerFactory
+        .getLogger(ThriftEncoder.class);
+
+    private Message encodeNettySerializable(INettySerializable netty_message,
+                                            HBServerMessageType mType) {
+
+        MessageData message_data = new MessageData();
+        Message m = new Message();
+        try {
+            ChannelBuffer cbuffer = netty_message.buffer();
+            if(cbuffer.hasArray()) {
+                message_data.set_message_blob(cbuffer.array());
+            }
+            else {
+                byte buff[] = new byte[netty_message.encodeLength()];
+                cbuffer.readBytes(buff, 0, netty_message.encodeLength());
+                message_data.set_message_blob(buff);
+            }
+            m.set_type(mType);
+            m.set_data(message_data);
+            return m;
+        }
+        catch( IOException e) {
+            LOG.error("Failed to encode NettySerializable: ", e);
+            throw new RuntimeException(e);
+        }
+    }
 
     @Override
     protected Object encode(ChannelHandlerContext ctx, Channel channel, Object msg) {
         if(msg == null) return null;
-        
-        Message m;
-        
-        if(msg instanceof ControlMessage) {
-            ControlMessage control_message = (ControlMessage)msg;
-            MessageData control_message_data = new MessageData();
-            m = new Message();
 
-            try {
-                ChannelBuffer cm_buffer = control_message.buffer();
-                if(cm_buffer.hasArray()) {
-                    control_message_data.set_control_message(control_message.buffer().array());
-                }
-                else {
-                    
-                    byte buff[] = new byte[control_message.encodeLength()];
-                    cm_buffer.readBytes(buff, 0, control_message.encodeLength());
-                    control_message_data.set_control_message(buff);
-                }
-                m.set_type(HBServerMessageType.CONTROL_MESSAGE);
-                m.set_data(control_message_data);
+        LOG.debug("Trying to encode: " + msg.getClass().toString() + " : " + msg.toString());
+
+        Message m;
+        if(msg instanceof INettySerializable) {
+            INettySerializable nettyMsg = (INettySerializable)msg;
+
+            HBServerMessageType type;
+            if(msg instanceof ControlMessage) {
+                type = HBServerMessageType.CONTROL_MESSAGE;
             }
-            catch (IOException e) {
-                throw new RuntimeException(e);
+            else if(msg instanceof SaslMessageToken) {
+                type = HBServerMessageType.SASL_MESSAGE_TOKEN;
             }
+            else {
+                LOG.error("Didn't recognise INettySerializable: " + nettyMsg.toString());
+                throw new RuntimeException("Unrecognized INettySerializable.");
+            }
+            m = encodeNettySerializable(nettyMsg, type);
         }
         else {
             m = (Message)msg;
         }
-        
-        byte serialized[] = Utils.thriftSerialize(m);
-        ChannelBuffer ret = ChannelBuffers.directBuffer(serialized.length + 4);
 
-        ret.writeInt(serialized.length);
-        ret.writeBytes(serialized);
+        try {
+            byte serialized[] = Utils.thriftSerialize(m);
+            ChannelBuffer ret = ChannelBuffers.directBuffer(serialized.length + 4);
 
-        return ret;
+            ret.writeInt(serialized.length);
+            ret.writeBytes(serialized);
+
+            return ret;
+        }
+        catch (RuntimeException e) {
+            LOG.error("Failed to serialize.", e);
+            throw e;
+        }
     }
 }

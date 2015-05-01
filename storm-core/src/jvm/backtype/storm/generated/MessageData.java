@@ -58,7 +58,7 @@ public class MessageData extends org.apache.thrift.TUnion<MessageData, MessageDa
   private static final org.apache.thrift.protocol.TField BOOLVAL_FIELD_DESC = new org.apache.thrift.protocol.TField("boolval", org.apache.thrift.protocol.TType.BOOL, (short)3);
   private static final org.apache.thrift.protocol.TField RECORDS_FIELD_DESC = new org.apache.thrift.protocol.TField("records", org.apache.thrift.protocol.TType.STRUCT, (short)4);
   private static final org.apache.thrift.protocol.TField NODES_FIELD_DESC = new org.apache.thrift.protocol.TField("nodes", org.apache.thrift.protocol.TType.STRUCT, (short)5);
-  private static final org.apache.thrift.protocol.TField CONTROL_MESSAGE_FIELD_DESC = new org.apache.thrift.protocol.TField("control_message", org.apache.thrift.protocol.TType.STRING, (short)6);
+  private static final org.apache.thrift.protocol.TField MESSAGE_BLOB_FIELD_DESC = new org.apache.thrift.protocol.TField("message_blob", org.apache.thrift.protocol.TType.STRING, (short)7);
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift.TFieldIdEnum {
@@ -67,7 +67,7 @@ public class MessageData extends org.apache.thrift.TUnion<MessageData, MessageDa
     BOOLVAL((short)3, "boolval"),
     RECORDS((short)4, "records"),
     NODES((short)5, "nodes"),
-    CONTROL_MESSAGE((short)6, "control_message");
+    MESSAGE_BLOB((short)7, "message_blob");
 
     private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
 
@@ -92,8 +92,8 @@ public class MessageData extends org.apache.thrift.TUnion<MessageData, MessageDa
           return RECORDS;
         case 5: // NODES
           return NODES;
-        case 6: // CONTROL_MESSAGE
-          return CONTROL_MESSAGE;
+        case 7: // MESSAGE_BLOB
+          return MESSAGE_BLOB;
         default:
           return null;
       }
@@ -146,7 +146,7 @@ public class MessageData extends org.apache.thrift.TUnion<MessageData, MessageDa
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRUCT        , "HBRecords")));
     tmpMap.put(_Fields.NODES, new org.apache.thrift.meta_data.FieldMetaData("nodes", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRUCT        , "HBNodes")));
-    tmpMap.put(_Fields.CONTROL_MESSAGE, new org.apache.thrift.meta_data.FieldMetaData("control_message", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+    tmpMap.put(_Fields.MESSAGE_BLOB, new org.apache.thrift.meta_data.FieldMetaData("message_blob", org.apache.thrift.TFieldRequirementType.OPTIONAL, 
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING        , true)));
     metaDataMap = Collections.unmodifiableMap(tmpMap);
     org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(MessageData.class, metaDataMap);
@@ -197,15 +197,15 @@ public class MessageData extends org.apache.thrift.TUnion<MessageData, MessageDa
     return x;
   }
 
-  public static MessageData control_message(ByteBuffer value) {
+  public static MessageData message_blob(ByteBuffer value) {
     MessageData x = new MessageData();
-    x.set_control_message(value);
+    x.set_message_blob(value);
     return x;
   }
 
-  public static MessageData control_message(byte[] value) {
+  public static MessageData message_blob(byte[] value) {
     MessageData x = new MessageData();
-    x.set_control_message(ByteBuffer.wrap(Arrays.copyOf(value, value.length)));
+    x.set_message_blob(ByteBuffer.wrap(Arrays.copyOf(value, value.length)));
     return x;
   }
 
@@ -238,11 +238,11 @@ public class MessageData extends org.apache.thrift.TUnion<MessageData, MessageDa
           break;
         }
         throw new ClassCastException("Was expecting value of type HBNodes for field 'nodes', but got " + value.getClass().getSimpleName());
-      case CONTROL_MESSAGE:
+      case MESSAGE_BLOB:
         if (value instanceof ByteBuffer) {
           break;
         }
-        throw new ClassCastException("Was expecting value of type ByteBuffer for field 'control_message', but got " + value.getClass().getSimpleName());
+        throw new ClassCastException("Was expecting value of type ByteBuffer for field 'message_blob', but got " + value.getClass().getSimpleName());
       default:
         throw new IllegalArgumentException("Unknown field id " + setField);
     }
@@ -301,11 +301,11 @@ public class MessageData extends org.apache.thrift.TUnion<MessageData, MessageDa
             org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
             return null;
           }
-        case CONTROL_MESSAGE:
-          if (field.type == CONTROL_MESSAGE_FIELD_DESC.type) {
-            ByteBuffer control_message;
-            control_message = iprot.readBinary();
-            return control_message;
+        case MESSAGE_BLOB:
+          if (field.type == MESSAGE_BLOB_FIELD_DESC.type) {
+            ByteBuffer message_blob;
+            message_blob = iprot.readBinary();
+            return message_blob;
           } else {
             org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
             return null;
@@ -342,9 +342,9 @@ public class MessageData extends org.apache.thrift.TUnion<MessageData, MessageDa
         HBNodes nodes = (HBNodes)value_;
         nodes.write(oprot);
         return;
-      case CONTROL_MESSAGE:
-        ByteBuffer control_message = (ByteBuffer)value_;
-        oprot.writeBinary(control_message);
+      case MESSAGE_BLOB:
+        ByteBuffer message_blob = (ByteBuffer)value_;
+        oprot.writeBinary(message_blob);
         return;
       default:
         throw new IllegalStateException("Cannot write union with unknown field " + setField_);
@@ -379,10 +379,10 @@ public class MessageData extends org.apache.thrift.TUnion<MessageData, MessageDa
           nodes = new HBNodes();
           nodes.read(iprot);
           return nodes;
-        case CONTROL_MESSAGE:
-          ByteBuffer control_message;
-          control_message = iprot.readBinary();
-          return control_message;
+        case MESSAGE_BLOB:
+          ByteBuffer message_blob;
+          message_blob = iprot.readBinary();
+          return message_blob;
         default:
           throw new IllegalStateException("setField wasn't null, but didn't match any of the case statements!");
       }
@@ -414,9 +414,9 @@ public class MessageData extends org.apache.thrift.TUnion<MessageData, MessageDa
         HBNodes nodes = (HBNodes)value_;
         nodes.write(oprot);
         return;
-      case CONTROL_MESSAGE:
-        ByteBuffer control_message = (ByteBuffer)value_;
-        oprot.writeBinary(control_message);
+      case MESSAGE_BLOB:
+        ByteBuffer message_blob = (ByteBuffer)value_;
+        oprot.writeBinary(message_blob);
         return;
       default:
         throw new IllegalStateException("Cannot write union with unknown field " + setField_);
@@ -436,8 +436,8 @@ public class MessageData extends org.apache.thrift.TUnion<MessageData, MessageDa
         return RECORDS_FIELD_DESC;
       case NODES:
         return NODES_FIELD_DESC;
-      case CONTROL_MESSAGE:
-        return CONTROL_MESSAGE_FIELD_DESC;
+      case MESSAGE_BLOB:
+        return MESSAGE_BLOB_FIELD_DESC;
       default:
         throw new IllegalArgumentException("Unknown field id " + setField);
     }
@@ -527,27 +527,27 @@ public class MessageData extends org.apache.thrift.TUnion<MessageData, MessageDa
     value_ = value;
   }
 
-  public byte[] get_control_message() {
-    set_control_message(org.apache.thrift.TBaseHelper.rightSize(buffer_for_control_message()));
-    ByteBuffer b = buffer_for_control_message();
+  public byte[] get_message_blob() {
+    set_message_blob(org.apache.thrift.TBaseHelper.rightSize(buffer_for_message_blob()));
+    ByteBuffer b = buffer_for_message_blob();
     return b == null ? null : b.array();
   }
 
-  public ByteBuffer buffer_for_control_message() {
-    if (getSetField() == _Fields.CONTROL_MESSAGE) {
+  public ByteBuffer buffer_for_message_blob() {
+    if (getSetField() == _Fields.MESSAGE_BLOB) {
       return org.apache.thrift.TBaseHelper.copyBinary((ByteBuffer)getFieldValue());
     } else {
-      throw new RuntimeException("Cannot get field 'control_message' because union is currently set to " + getFieldDesc(getSetField()).name);
+      throw new RuntimeException("Cannot get field 'message_blob' because union is currently set to " + getFieldDesc(getSetField()).name);
     }
   }
 
-  public void set_control_message(byte[] value) {
-    set_control_message(ByteBuffer.wrap(Arrays.copyOf(value, value.length)));
+  public void set_message_blob(byte[] value) {
+    set_message_blob(ByteBuffer.wrap(Arrays.copyOf(value, value.length)));
   }
 
-  public void set_control_message(ByteBuffer value) {
+  public void set_message_blob(ByteBuffer value) {
     if (value == null) throw new NullPointerException();
-    setField_ = _Fields.CONTROL_MESSAGE;
+    setField_ = _Fields.MESSAGE_BLOB;
     value_ = value;
   }
 
@@ -576,8 +576,8 @@ public class MessageData extends org.apache.thrift.TUnion<MessageData, MessageDa
   }
 
 
-  public boolean is_set_control_message() {
-    return setField_ == _Fields.CONTROL_MESSAGE;
+  public boolean is_set_message_blob() {
+    return setField_ == _Fields.MESSAGE_BLOB;
   }
 
 

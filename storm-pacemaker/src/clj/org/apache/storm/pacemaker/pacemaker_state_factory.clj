@@ -30,7 +30,7 @@
 
 (defn -mkState [this conf auth-conf acls]
   (let [zk-state (.mkState (zookeeper_state_factory.) conf auth-conf acls)
-        pacemaker-client (PacemakerServerFactory/makeClient (str (conf PACEMAKER-HOST) ":" (conf PACEMAKER-PORT)))]
+        pacemaker-client (PacemakerServerFactory/makeClient conf)]
 
     (reify
       ClusterState
@@ -50,47 +50,43 @@
 
       (set_worker_hb [this path data acls]
         (let [response
-              (futures/await
                (.send pacemaker-client
                        (Message. HBServerMessageType/SEND_PULSE
                                  (MessageData/pulse
                                   (doto (Pulse.)
                                     (.set_id path)
-                                    (.set_details data))))))]
+                                    (.set_details data)))))]
           (if (= (.get_type response) HBServerMessageType/SEND_PULSE_RESPONSE)
             nil
             (throw HBExecutionException "Invalid Response Type"))))
 
       (delete_worker_hb [this path]
         (let [response
-              (futures/await
                (.send pacemaker-client
                        (Message. HBServerMessageType/DELETE_PATH
-                                 (MessageData/path path))))]
+                                 (MessageData/path path)))]
           (if (= (.get_type response) HBServerMessageType/DELETE_PATH_RESPONSE)
             nil
             (throw HBExecutionException "Invalid Response Type"))))
 
       (get_worker_hb [this path watch?]
         (let [response
-              (futures/await
                (.send pacemaker-client
                        (Message. HBServerMessageType/GET_PULSE
-                                 (MessageData/path path))))]
+                                 (MessageData/path path)))]
           (if (= (.get_type response) HBServerMessageType/GET_PULSE_RESPONSE)
             (.get_details (.get_pulse (.get_data response)))
             (throw HBExecutionException "Invalid Response Type"))))
 
       (get_worker_hb_children [this path watch?]
         (let [response
-              (futures/await
                (.send pacemaker-client
                        (Message. HBServerMessageType/GET_ALL_NODES_FOR_PATH
-                                 (MessageData/path path))))]
+                                 (MessageData/path path)))]
           (if (= (.get_type response) HBServerMessageType/GET_ALL_NODES_FOR_PATH_RESPONSE)
             (into [] (.get_pulseIds (.get_nodes (.get_data response))))
             (throw HBExecutionException "Invalid Response Type"))))
 
       (close [this]
         (.close zk-state)
-        (futures/await (.close pacemaker-client))))))
+        (.close pacemaker-client)))))

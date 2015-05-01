@@ -24,34 +24,41 @@ import org.jboss.netty.channel.ChannelPipelineFactory;
 import org.jboss.netty.channel.ChannelPipeline;
 import org.jboss.netty.channel.Channels;
 import backtype.storm.messaging.netty.SaslStormServerHandler;
+import backtype.storm.messaging.netty.StormServerHandler;
 import backtype.storm.messaging.netty.SaslStormServerAuthorizeHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import backtype.storm.messaging.netty.IServer;
+import backtype.storm.messaging.netty.ISaslServer;
+
 public class ThriftNettyServerCodec extends AbstractCodec{
+
+    private IServer server;
 
     private static final Logger LOG = LoggerFactory
         .getLogger(ThriftNettyServerCodec.class);
-    
+
+    public ThriftNettyServerCodec(IServer server) {
+        this.server = server;
+    }
+
     public ChannelPipelineFactory pipelineFactory() {
         return new ChannelPipelineFactory() {
             public ChannelPipeline getPipeline() {
-                LOG.info("Getting Server Pipeline.");
+
                 ChannelPipeline pipeline = Channels.pipeline();
                 pipeline.addLast("encoder", new ThriftEncoder());
                 pipeline.addLast("decoder", new ThriftDecoder());
-//                boolean isNettyAuth = (Boolean) this.client.storm_conf
-//                    .get(Config.STORM_MESSAGING_NETTY_AUTHENTICATION);
-//                if (isNettyAuth) {
                 try {
-                    LOG.info("Adding SaslStormServerHandler.");
-                    pipeline.addLast("handler", new SaslStormServerHandler(null));
-                    pipeline.addLast("authorizer", new SaslStormServerAuthorizeHandler());
+                    LOG.debug("Adding SaslStormServerHandler to pacemaker server pipeline.");
+                    pipeline.addLast("sasl-handler", new SaslStormServerHandler((ISaslServer)server));
                 }
                 catch (IOException e) {
                     throw new RuntimeException(e);
                 }
-//                }
+
+                pipeline.addLast("handler", new StormServerHandler(server));
                 return pipeline;
             }
         };

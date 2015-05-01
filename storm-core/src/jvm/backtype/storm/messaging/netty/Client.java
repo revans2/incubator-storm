@@ -48,7 +48,7 @@ import backtype.storm.utils.StormBoundedExponentialBackoffRetry;
 import backtype.storm.metric.api.IStatefulObject;
 import backtype.storm.grouping.Load;
 
-class Client implements IConnection, IStatefulObject, ISaslClient {
+public class Client implements IConnection, IStatefulObject, ISaslClient {
     private static final Logger LOG = LoggerFactory.getLogger(Client.class);
     private static final Timer TIMER = new Timer("netty-client-timer", true);
 
@@ -76,7 +76,7 @@ class Client implements IConnection, IStatefulObject, ISaslClient {
     private Map storm_conf;
 
     @SuppressWarnings("rawtypes")
-    Client(Map storm_conf, ChannelFactory factory, String host, int port, Context context) {
+    public Client(Map storm_conf, ChannelFactory factory, String host, int port, Context context) {
         this.context = context;
     	this.storm_conf = storm_conf;
         this.factory = factory;

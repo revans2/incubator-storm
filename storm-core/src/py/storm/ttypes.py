@@ -112,6 +112,8 @@ class HBServerMessageType:
   DELETE_PULSE_ID = 14
   DELETE_PULSE_ID_RESPONSE = 15
   CONTROL_MESSAGE = 16
+  SASL_MESSAGE_TOKEN = 17
+  NOT_AUTHORIZED = 18
 
   _VALUES_TO_NAMES = {
     0: "CREATE_PATH",
@@ -131,6 +133,8 @@ class HBServerMessageType:
     14: "DELETE_PULSE_ID",
     15: "DELETE_PULSE_ID_RESPONSE",
     16: "CONTROL_MESSAGE",
+    17: "SASL_MESSAGE_TOKEN",
+    18: "NOT_AUTHORIZED",
   }
 
   _NAMES_TO_VALUES = {
@@ -151,6 +155,8 @@ class HBServerMessageType:
     "DELETE_PULSE_ID": 14,
     "DELETE_PULSE_ID_RESPONSE": 15,
     "CONTROL_MESSAGE": 16,
+    "SASL_MESSAGE_TOKEN": 17,
+    "NOT_AUTHORIZED": 18,
   }
 
 
@@ -8493,7 +8499,7 @@ class MessageData:
    - boolval
    - records
    - nodes
-   - control_message
+   - message_blob
   """
 
   thrift_spec = (
@@ -8503,16 +8509,17 @@ class MessageData:
     (3, TType.BOOL, 'boolval', None, None, ), # 3
     (4, TType.STRUCT, 'records', (HBRecords, HBRecords.thrift_spec), None, ), # 4
     (5, TType.STRUCT, 'nodes', (HBNodes, HBNodes.thrift_spec), None, ), # 5
-    (6, TType.STRING, 'control_message', None, None, ), # 6
+    None, # 6
+    (7, TType.STRING, 'message_blob', None, None, ), # 7
   )
 
-  def __init__(self, path=None, pulse=None, boolval=None, records=None, nodes=None, control_message=None,):
+  def __init__(self, path=None, pulse=None, boolval=None, records=None, nodes=None, message_blob=None,):
     self.path = path
     self.pulse = pulse
     self.boolval = boolval
     self.records = records
     self.nodes = nodes
-    self.control_message = control_message
+    self.message_blob = message_blob
 
   def read(self, iprot):
     if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
@@ -8551,9 +8558,9 @@ class MessageData:
           self.nodes.read(iprot)
         else:
           iprot.skip(ftype)
-      elif fid == 6:
+      elif fid == 7:
         if ftype == TType.STRING:
-          self.control_message = iprot.readString();
+          self.message_blob = iprot.readString();
         else:
           iprot.skip(ftype)
       else:
@@ -8586,9 +8593,9 @@ class MessageData:
       oprot.writeFieldBegin('nodes', TType.STRUCT, 5)
       self.nodes.write(oprot)
       oprot.writeFieldEnd()
-    if self.control_message is not None:
-      oprot.writeFieldBegin('control_message', TType.STRING, 6)
-      oprot.writeString(self.control_message)
+    if self.message_blob is not None:
+      oprot.writeFieldBegin('message_blob', TType.STRING, 7)
+      oprot.writeString(self.message_blob)
       oprot.writeFieldEnd()
     oprot.writeFieldStop()
     oprot.writeStructEnd()
@@ -8604,7 +8611,7 @@ class MessageData:
     value = (value * 31) ^ hash(self.boolval)
     value = (value * 31) ^ hash(self.records)
     value = (value * 31) ^ hash(self.nodes)
-    value = (value * 31) ^ hash(self.control_message)
+    value = (value * 31) ^ hash(self.message_blob)
     return value
 
   def __repr__(self):
@@ -8623,17 +8630,20 @@ class Message:
   Attributes:
    - type
    - data
+   - message_id
   """
 
   thrift_spec = (
     None, # 0
     (1, TType.I32, 'type', None, None, ), # 1
     (2, TType.STRUCT, 'data', (MessageData, MessageData.thrift_spec), None, ), # 2
+    (3, TType.I32, 'message_id', None, -1, ), # 3
   )
 
-  def __init__(self, type=None, data=None,):
+  def __init__(self, type=None, data=None, message_id=thrift_spec[3][4],):
     self.type = type
     self.data = data
+    self.message_id = message_id
 
   def read(self, iprot):
     if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
@@ -8655,6 +8665,11 @@ class Message:
           self.data.read(iprot)
         else:
           iprot.skip(ftype)
+      elif fid == 3:
+        if ftype == TType.I32:
+          self.message_id = iprot.readI32();
+        else:
+          iprot.skip(ftype)
       else:
         iprot.skip(ftype)
       iprot.readFieldEnd()
@@ -8673,6 +8688,10 @@ class Message:
       oprot.writeFieldBegin('data', TType.STRUCT, 2)
       self.data.write(oprot)
       oprot.writeFieldEnd()
+    if self.message_id is not None:
+      oprot.writeFieldBegin('message_id', TType.I32, 3)
+      oprot.writeI32(self.message_id)
+      oprot.writeFieldEnd()
     oprot.writeFieldStop()
     oprot.writeStructEnd()
 
@@ -8684,6 +8703,7 @@ class Message:
     value = 17
     value = (value * 31) ^ hash(self.type)
     value = (value * 31) ^ hash(self.data)
+    value = (value * 31) ^ hash(self.message_id)
     return value
 
   def __repr__(self):

@@ -22,43 +22,86 @@ import com.twitter.finagle.builder.Server;
 import com.twitter.finagle.builder.ClientBuilder;
 import com.twitter.finagle.Service;
 import java.net.InetSocketAddress;
+import java.util.Map;
+import java.util.HashSet;
+import java.io.IOException;
 import org.apache.storm.pacemaker.codec.ThriftNettyServerCodec;
 import org.apache.storm.pacemaker.codec.ThriftNettyClientCodec;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import backtype.storm.Config;
+
+import javax.security.auth.login.Configuration;
+import backtype.storm.security.auth.AuthUtils;
 
 public class PacemakerServerFactory {
 
     private static final Logger LOG = LoggerFactory
         .getLogger(PacemakerServerFactory.class);
-    
-    public static Server makeServer(String name, int port, Service service) {
 
-        LOG.info("Making Pacemaker Server bound to port: " + Integer.toString(port));
-        return ServerBuilder.safeBuild(
-            service,
-            ServerBuilder.get()
-            .name(name)
-            .codec(new ThriftNettyServerCodec())
-            .bindTo(new InetSocketAddress(port)));
+    private static String makePayload(Map config) {
+
+        String username = null;
+        String password = null;
+        try {
+            Configuration login_config = AuthUtils.GetConfiguration(config);
+            HashSet<String> desired = new HashSet<String>();
+            desired.add("username");
+            desired.add("password");
+            Map<String, ?> results = AuthUtils.PullConfig(desired, login_config, "PacemakerConf");
+            username = (String)results.get("username");
+            password = (String)results.get("password");
+        }
+        catch (Exception e) {
+            LOG.error("Failed to pull username/password out of jaas conf", e);
+        }
+
+
+        if(username == null || password == null) {
+            LOG.error("Can't start pacemaker without SASL digest.");
+            throw new RuntimeException("Can't start pacemaker without SASL digest.");
+        }
+
+        return username + ":" + password;
     }
 
-    public static PacemakerClient makeClient(String host) {
+    public static PacemakerServer makeServer(Map config, IServerMessageHandler handler) {
 
-        PacemakerClient pmc = new PacemakerClient("whatever", "knusbaum:asdf1234");
-        
-        ThriftNettyClientCodec codec = new ThriftNettyClientCodec(pmc);
-        
-        LOG.info("Making Pacemaker Client.");
-        Service client =  ClientBuilder.safeBuild(
-            ClientBuilder.get()
-            .codec(codec)
-            .hosts(host)
-            .hostConnectionLimit(1)
-            .retryPolicy(new PacemakerRetryPolicy()));
+        int port = (int)config.get(Config.PACEMAKER_PORT);
+        int maxWorkers = (int)config.get(Config.PACEMAKER_MAX_THREADS);
+        String payload = makePayload(config);
 
-        pmc.setClient(client);
-        
+
+        LOG.info("Making Pacemaker Server bound to port: " + Integer.toString(port));
+
+        PacemakerServer server = new PacemakerServer(port, handler, "pacemaker-server", payload, maxWorkers);
+        return server;
+    }
+
+    public static PacemakerClient makeClient(Map config) {
+
+        String topo_name = (String)config.get(Config.TOPOLOGY_NAME);
+        String host = (String)config.get(Config.PACEMAKER_HOST);
+        int port = (int)config.get(Config.PACEMAKER_PORT);
+        boolean shouldAuthenticate = false;
+
+        if(topo_name == null || topo_name.equals("")) {
+            topo_name = "none";
+        }
+
+        String payload = null;
+        try {
+            payload = makePayload(config);
+        }
+        catch (RuntimeException e) {
+            LOG.info("No payload for: " + topo_name + ". Not going to authenticate.");
+        }
+
+        if(payload != null && !payload.equals("")) {
+            shouldAuthenticate = true;
+        }
+
+        PacemakerClient pmc = new PacemakerClient(topo_name, payload, host, port, shouldAuthenticate);
         return pmc;
     }
 }

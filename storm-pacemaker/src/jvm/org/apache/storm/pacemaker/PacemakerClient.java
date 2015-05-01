@@ -17,50 +17,82 @@
  */
 package org.apache.storm.pacemaker;
 
+import org.jboss.netty.bootstrap.ClientBootstrap;
+import org.jboss.netty.channel.Channel;
+import org.jboss.netty.channel.ChannelFactory;
+import org.jboss.netty.channel.ChannelFuture;
+import org.jboss.netty.channel.ChannelFutureListener;
+import org.jboss.netty.channel.ChannelPipelineFactory;
+import org.jboss.netty.channel.socket.nio.NioClientSocketChannelFactory;
+
 import backtype.storm.messaging.netty.ISaslClient;
 import backtype.storm.generated.Message;
-import java.util.concurrent.LinkedBlockingQueue;
-import org.jboss.netty.channel.Channel;
+import backtype.storm.messaging.netty.NettyRenameThreadFactory;
+import org.apache.storm.pacemaker.codec.ThriftNettyClientCodec;
 
-import com.twitter.finagle.Service;
-import com.twitter.util.Future;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadFactory;
+
+import java.net.InetSocketAddress;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
+import backtype.storm.messaging.netty.Client;
+import backtype.storm.messaging.netty.Context;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.Future;
 
 public class PacemakerClient implements ISaslClient {
 
-    private static class Task {
-        public Message m;
-        public Future f;
-    }
-    
     private static final Logger LOG = LoggerFactory.getLogger(PacemakerClient.class);
-    private LinkedBlockingQueue<Task> message_queue;
+    private LinkedBlockingQueue<Message> message_queue;
 
-    private Service finagle_client;
     private String topo_name;
     private String secret;
     private boolean ready = false;
-    private Object sendCond;
-    
-    public PacemakerClient(String topo_name, String secret) {
+    private final ClientBootstrap bootstrap;
+    private AtomicReference<Channel> channelRef;
+    private AtomicBoolean closing;
+    private InetSocketAddress remote_addr;
+    private int maxPending = 100;
+    private Message outstanding[];
+    private AtomicInteger nextMID;
+
+    public PacemakerClient(String topo_name, String secret, String host, int port, boolean shouldAuthenticate) {
         this.topo_name = topo_name;
         this.secret = secret;
-        message_queue = new LinkedBlockingQueue<Task>();
+        message_queue = new LinkedBlockingQueue<Message>();
+        closing = new AtomicBoolean(false);
+        channelRef = new AtomicReference<Channel>(null);
+        outstanding = new Message[maxPending];
+        nextMID = new AtomicInteger(0);
+
+        ThreadFactory bossFactory = new NettyRenameThreadFactory("client-boss");
+        ThreadFactory workerFactory = new NettyRenameThreadFactory("client-worker");
+        NioClientSocketChannelFactory factory =
+            new NioClientSocketChannelFactory(Executors.newCachedThreadPool(bossFactory),
+                                              Executors.newCachedThreadPool(workerFactory));
+        bootstrap = new ClientBootstrap(factory);
+        bootstrap.setOption("tcpNoDelay", true);
+        bootstrap.setOption("sendBufferSize", 5242880);
+        bootstrap.setOption("keepAlive", true);
+
+        remote_addr = new InetSocketAddress(host, port);
+        ChannelPipelineFactory pipelineFactory = new ThriftNettyClientCodec(this, shouldAuthenticate).pipelineFactory();
+        bootstrap.setPipelineFactory(pipelineFactory);
+        bootstrap.connect(remote_addr);
     }
 
-    public void setClient(Service client) {
-        finagle_client = client;
-    }
-    
     public void channelConnected(Channel channel) {
-        LOG.info("Channel is connected.");
+        LOG.debug("Channel is connected: " + channel.toString());
+        channelRef.set(channel);
     }
-    
+
     public synchronized void channelReady() {
-        LOG.info("Got Channel Ready.");
+        LOG.debug("Got Channel Ready.");
         ready = true;
         this.notifyAll();
     }
@@ -73,14 +105,10 @@ public class PacemakerClient implements ISaslClient {
         return secret;
     }
 
-    public synchronized Future send(Message m) {
-        if(finagle_client == null) {
-            throw new RuntimeException("Tried to send on PacemakerClient without setting the finagle client with setClient(...)");
-        }
-        
+    public synchronized Message send(Message m) {
+
         if(!ready) {
-            finagle_client.apply(null);
-            LOG.info("Waiting for netty channel to be ready.");
+            LOG.debug("Waiting for netty channel to be ready.");
             try {
                 this.wait();
             } catch (java.lang.InterruptedException e) {
@@ -88,11 +116,70 @@ public class PacemakerClient implements ISaslClient {
             }
         }
 
+        LOG.info("Getting Next!");
+        // Standard CAS loop
+        int next;
+        int expect;
+        do {
+            expect = nextMID.get();
+            next = (expect + 1) % maxPending;
+        } while(!nextMID.compareAndSet(expect, next));
+        m.set_message_id(next);
+
         LOG.info("Sending finagle message: " + m.toString());
-        return finagle_client.apply(m);
+        try {
+            channelRef.get().write(m).await();
+            // Wait for other task to finish.
+            if(outstanding[next] != null) {
+                synchronized(outstanding[next]) {
+                    outstanding[next].wait();
+                }
+            }
+
+            outstanding[next] = m;
+            synchronized (m) {
+                m.wait();
+            }
+            Message ret = outstanding[next];
+            outstanding[next] = null;
+            return ret;
+        }
+        catch (InterruptedException e) {
+            LOG.error("PacemakerClient send interrupted: ", e);
+            throw new RuntimeException(e);
+        }
     }
 
-    public Future close() {
-        return finagle_client.close();
+    public void gotMessage(Message m) {
+        int message_id = m.get_message_id();
+        if(message_id >=0 && message_id < maxPending) {
+            LOG.debug("Pacemaker Client got message: " + m.toString());
+            Message request = outstanding[message_id];
+            outstanding[message_id] = m;
+            synchronized(request) {
+                request.notifyAll();
+            }
+        }
+        else {
+            LOG.error("Got Message with bad id: " + m.toString());
+        }
+    }
+
+    public void reconnect() {
+        close_channel();
+        if(closing.get()) return;
+        bootstrap.connect(remote_addr);
+    }
+
+    synchronized void close_channel() {
+        if (channelRef.get() != null) {
+            channelRef.get().close();
+            LOG.debug("channel {} closed",remote_addr);
+            channelRef.set(null);
+        }
+    }
+
+    public void close() {
+        close_channel();
     }
 }

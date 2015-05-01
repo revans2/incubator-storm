@@ -47,7 +47,7 @@ import backtype.storm.utils.Utils;
 import backtype.storm.metric.api.IStatefulObject;
 import backtype.storm.grouping.Load;
 
-class Server implements IConnection, IStatefulObject {
+class Server implements IConnection, IStatefulObject, ISaslServer {
     private static final Logger LOG = LoggerFactory.getLogger(Server.class);
     @SuppressWarnings("rawtypes")
     Map storm_conf;
@@ -247,7 +247,7 @@ class Server implements IConnection, IStatefulObject {
      * close a channel
      * @param channel
      */
-    protected void closeChannel(Channel channel) {
+    public void closeChannel(Channel channel) {
         channel.close().awaitUninterruptibly();
         allChannels.remove(channel);
     }
@@ -313,5 +313,28 @@ class Server implements IConnection, IStatefulObject {
         }
         ret.put("enqueued", enqueued);
         return ret;
+    }
+
+
+    /** Implementing IServer. **/
+    public void channelConnected(Channel c) {
+        addChannel(c);
+    }
+
+    public void received(Object message, String remote, Channel channel)  throws InterruptedException {
+        List<TaskMessage>msgs = (List<TaskMessage>)message;
+        enqueue(msgs, remote);
+    }
+
+    public String topologyName() {
+        return (String)storm_conf.get(Config.TOPOLOGY_NAME);
+    }
+
+    public String secretKey() {
+        return SaslUtils.getSecretKey(storm_conf);
+    }
+
+    public void authenticated(Channel c) {
+        return;
     }
 }

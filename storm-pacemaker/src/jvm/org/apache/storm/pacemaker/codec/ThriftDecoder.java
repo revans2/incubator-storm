@@ -27,6 +27,7 @@ import org.jboss.netty.buffer.ChannelBuffer;
 import backtype.storm.generated.Message;
 import backtype.storm.utils.Utils;
 import backtype.storm.messaging.netty.ControlMessage;
+import backtype.storm.messaging.netty.SaslMessageToken;
 
 public class ThriftDecoder extends FrameDecoder {
 
@@ -63,9 +64,14 @@ public class ThriftDecoder extends FrameDecoder {
         }
 
         if(m.get_type() == HBServerMessageType.CONTROL_MESSAGE) {
-            ControlMessage cm = ControlMessage.read(m.get_data().get_control_message());
+            ControlMessage cm = ControlMessage.read(m.get_data().get_message_blob());
             return cm;
-        } else {
+        }
+        else if(m.get_type() == HBServerMessageType.SASL_MESSAGE_TOKEN) {
+            SaslMessageToken sm = SaslMessageToken.read(m.get_data().get_message_blob());
+            return sm;
+        }
+        else {
             return m;
         }
     }

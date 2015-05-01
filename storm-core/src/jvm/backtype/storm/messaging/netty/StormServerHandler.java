@@ -18,6 +18,7 @@
 package backtype.storm.messaging.netty;
 
 import backtype.storm.messaging.TaskMessage;
+import org.jboss.netty.channel.Channel;
 import org.jboss.netty.channel.ChannelHandlerContext;
 import org.jboss.netty.channel.ChannelStateEvent;
 import org.jboss.netty.channel.ExceptionEvent;
@@ -28,30 +29,37 @@ import org.slf4j.LoggerFactory;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
-class StormServerHandler extends SimpleChannelUpstreamHandler  {
+public class StormServerHandler extends SimpleChannelUpstreamHandler  {
     private static final Logger LOG = LoggerFactory.getLogger(StormServerHandler.class);
-    Server server;
+    IServer server;
     private AtomicInteger failure_count; 
+    private Channel channel;
     
-    StormServerHandler(Server server) {
+    public StormServerHandler(IServer server) {
         this.server = server;
         failure_count = new AtomicInteger(0);
     }
     
     @Override
     public void channelConnected(ChannelHandlerContext ctx, ChannelStateEvent e) {
-        server.addChannel(e.getChannel());
+        //server.addChannel(e.getChannel());
+        server.channelConnected(e.getChannel());
+        if(channel != null) {
+            LOG.debug("Replacing channel with new channel: "
+                      + channel.toString() + " -> " + e.getChannel().toString(););
+        }
+        channel = e.getChannel();
     }
     
     @Override
     public void messageReceived(ChannelHandlerContext ctx, MessageEvent e) {
-      List<TaskMessage> msgs = (List<TaskMessage>) e.getMessage();
+      Object msgs = e.getMessage();  
       if (msgs == null) {
         return;
       }
       
       try {
-        server.enqueue(msgs, e.getRemoteAddress().toString());
+          server.received(msgs, e.getRemoteAddress().toString(), channel);
       } catch (InterruptedException e1) {
         LOG.info("failed to enqueue a request message", e);
         failure_count.incrementAndGet();

@@ -28,6 +28,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import org.apache.storm.pacemaker.PacemakerClient;
+import org.apache.storm.pacemaker.PacemakerClientHandler;
 
 public class ThriftNettyClientCodec extends AbstractCodec{
 
@@ -35,28 +36,30 @@ public class ThriftNettyClientCodec extends AbstractCodec{
         .getLogger(ThriftNettyClientCodec.class);
 
     private PacemakerClient client;
-    
-    public ThriftNettyClientCodec(PacemakerClient pacemaker_client) {
+    private boolean authenticate;
+
+    public ThriftNettyClientCodec(PacemakerClient pacemaker_client, boolean authenticate) {
         client = pacemaker_client;
+        this.authenticate = authenticate;
     }
-    
+
     public ChannelPipelineFactory pipelineFactory() {
         return new ChannelPipelineFactory() {
             public ChannelPipeline getPipeline() {
                 ChannelPipeline pipeline = Channels.pipeline();
                 pipeline.addLast("encoder", new ThriftEncoder());
                 pipeline.addLast("decoder", new ThriftDecoder());
-//                boolean isNettyAuth = (Boolean) this.client.storm_conf
-//                    .get(Config.STORM_MESSAGING_NETTY_AUTHENTICATION);
-//                if (isNettyAuth) {
-                try {
-                    LOG.info("Adding SaslStormClientHandler.");
-                    pipeline.addLast("handler", new SaslStormClientHandler(client));
+                if (authenticate) {
+                    try {
+                        LOG.debug("Adding SaslStormClientHandler to pacemaker client pipeline.");
+                        pipeline.addLast("SaslHandler", new SaslStormClientHandler(client));
+                    }
+                    catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
                 }
-                catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
-//                }
+
+                pipeline.addLast("PacemakerClientHandler", new PacemakerClientHandler(client));
                 return pipeline;
             }
         };

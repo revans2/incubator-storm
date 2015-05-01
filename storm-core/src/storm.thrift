@@ -481,7 +481,9 @@ enum HBServerMessageType {
   DELETE_PATH_RESPONSE,
   DELETE_PULSE_ID,
   DELETE_PULSE_ID_RESPONSE,
-  CONTROL_MESSAGE
+  CONTROL_MESSAGE,
+  SASL_MESSAGE_TOKEN,
+  NOT_AUTHORIZED
 }
 
 union MessageData {
@@ -491,13 +493,15 @@ union MessageData {
   4: HBRecords records,
   5: HBNodes nodes,
   // backtype.storm.messaging.netty.ControlMessage
-  // serialized however ControlMessage does it.
-  6: binary control_message; 
+  // or backtype.storm.messaging.netty.SaslMessageToken
+  // serialized however they do it.
+  7: optional binary message_blob;
 }
 
 struct Message {
   1: HBServerMessageType type,
-  2: MessageData data
+  2: MessageData data,
+  3: optional i32 message_id = -1,
 }
 
 

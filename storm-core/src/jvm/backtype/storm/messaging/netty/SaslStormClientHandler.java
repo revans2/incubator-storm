@@ -51,7 +51,7 @@ public class SaslStormClientHandler extends SimpleChannelUpstreamHandler {
             ChannelStateEvent event) {
         // register the newly established channel
         Channel channel = ctx.getChannel();
-        if(client != null) client.channelConnected(channel);
+        client.channelConnected(channel);
         
         LOG.info("Connection established from " + channel.getLocalAddress()
                 + " to " + channel.getRemoteAddress());
@@ -61,15 +61,16 @@ public class SaslStormClientHandler extends SimpleChannelUpstreamHandler {
                     .get(channel);
 
             if (saslNettyClient == null) {
-                LOG.info("Creating saslNettyClient now " + "for channel: "
+                LOG.debug("Creating saslNettyClient now " + "for channel: "
                         + channel);
                 saslNettyClient = new SaslNettyClient(topologyName, token);
                 SaslNettyClientState.getSaslNettyClient.set(channel,
                         saslNettyClient);
             }
+            LOG.debug("Sending SASL_TOKEN_MESSAGE_REQUEST");
             channel.write(ControlMessage.SASL_TOKEN_MESSAGE_REQUEST);
         } catch (Exception e) {
-            LOG.info("Failed to authenticate with server " + "due to error: ",
+            LOG.error("Failed to authenticate with server " + "due to error: ",
                     e);
         }
         return;
@@ -79,7 +80,7 @@ public class SaslStormClientHandler extends SimpleChannelUpstreamHandler {
     @Override
     public void messageReceived(ChannelHandlerContext ctx, MessageEvent event)
             throws Exception {
-        LOG.info("send/recv time (ms): {}",
+        LOG.debug("send/recv time (ms): {}",
                 (System.currentTimeMillis() - start_time));
 
         Channel channel = ctx.getChannel();
@@ -96,8 +97,8 @@ public class SaslStormClientHandler extends SimpleChannelUpstreamHandler {
         if (event.getMessage() instanceof ControlMessage) {
             ControlMessage msg = (ControlMessage) event.getMessage();
             if (msg == ControlMessage.SASL_COMPLETE_REQUEST) {
-                LOG.info("Server has sent us the SaslComplete "
-                        + "message. Allowing normal work to proceed.");
+                LOG.debug("Server has sent us the SaslComplete "
+                          + "message. Allowing normal work to proceed.");
 
                 if (!saslNettyClient.isComplete()) {
                     LOG.error("Server returned a Sasl-complete message, "
@@ -107,7 +108,7 @@ public class SaslStormClientHandler extends SimpleChannelUpstreamHandler {
                             + "we can tell, we are not authenticated yet.");
                 }
                 ctx.getPipeline().remove(this);
-                if(client != null) this.client.channelReady();
+                this.client.channelReady();
                 
                 // We call fireMessageReceived since the client is allowed to
                 // perform this request. The client's request will now proceed
@@ -118,8 +119,8 @@ public class SaslStormClientHandler extends SimpleChannelUpstreamHandler {
         }
         SaslMessageToken saslTokenMessage = (SaslMessageToken) event
                 .getMessage();
-        LOG.info("Responding to server's token of length: "
-                + saslTokenMessage.getSaslToken().length);
+        LOG.debug("Responding to server's token of length: "
+                  + saslTokenMessage.getSaslToken().length);
 
         // Generate SASL response (but we only actually send the response if
         // it's non-null.
@@ -129,19 +130,19 @@ public class SaslStormClientHandler extends SimpleChannelUpstreamHandler {
             // If we generate a null response, then authentication has completed
             // (if not, warn), and return without sending a response back to the
             // server.
-            LOG.info("Response to server is null: "
-                    + "authentication should now be complete.");
+            LOG.debug("Response to server is null: "
+                      + "authentication should now be complete.");
             if (!saslNettyClient.isComplete()) {
                 LOG.warn("Generated a null response, "
                         + "but authentication is not complete.");
                 throw new Exception("Server reponse is null, but as far as "
                         + "we can tell, we are not authenticated yet.");
             }
-            if(client != null) this.client.channelReady();
+            this.client.channelReady();
             return;
         } else {
-            LOG.info("Response to server token has length:"
-                    + responseToServer.length);
+            LOG.debug("Response to server token has length:"
+                      + responseToServer.length);
         }
         // Construct a message containing the SASL response and send it to the
         // server.
@@ -151,19 +152,13 @@ public class SaslStormClientHandler extends SimpleChannelUpstreamHandler {
 
     private void getSASLCredentials() throws IOException {
         String secretKey;
-        if(client != null) {
-            topologyName = client.topologyName();
-            secretKey = client.secretKey();
-        }
-        else {
-            topologyName = "whatever";
-            secretKey = "knusbaum:asdf1234";
-        }
+        topologyName = client.topologyName();
+        secretKey = client.secretKey();
 
         if (secretKey != null) {
             token = secretKey.getBytes();
         }
-        LOG.info("SASL credentials for storm topology " + topologyName
+        LOG.debug("SASL credentials for storm topology " + topologyName
                 + " is " + secretKey);
     }
 }

@@ -17,6 +17,8 @@
  */
 package backtype.storm.messaging.netty;
 
+import java.io.IOException;
+
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBufferOutputStream;
 import org.jboss.netty.buffer.ChannelBuffers;
@@ -26,7 +28,7 @@ import org.slf4j.LoggerFactory;
 /**
  * Send and receive SASL tokens.
  */
-public class SaslMessageToken {
+public class SaslMessageToken implements INettySerializable {
     /** Class logger */
     private static final Logger LOG = LoggerFactory
             .getLogger(SaslMessageToken.class);
@@ -69,7 +71,7 @@ public class SaslMessageToken {
         this.token = token;
     }
 
-    int encodeLength() {
+    public int encodeLength() {
         return 2 + 4 + token.length;
     }
 
@@ -80,7 +82,7 @@ public class SaslMessageToken {
      * 
      * @throws Exception
      */
-    ChannelBuffer buffer() throws Exception {
+    public ChannelBuffer buffer() throws IOException {
         ChannelBufferOutputStream bout = new ChannelBufferOutputStream(
                 ChannelBuffers.directBuffer(encodeLength()));
         short identifier = -500;
@@ -95,5 +97,17 @@ public class SaslMessageToken {
         }
         bout.close();
         return bout.buffer();
+    }
+
+    public static SaslMessageToken read(byte[] serial) {
+        ChannelBuffer sm_buffer = ChannelBuffers.copiedBuffer(serial);
+        short identifier = sm_buffer.readShort();
+        int payload_len = sm_buffer.readInt();
+        if(identifier != -500) {
+            return null;
+        }
+        byte token[] = new byte[payload_len];
+        sm_buffer.readBytes(token, 0, payload_len);
+        return new SaslMessageToken(token);
     }
 }

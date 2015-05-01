@@ -32,7 +32,7 @@ import backtype.storm.Config;
 
 public class SaslStormServerHandler extends SimpleChannelUpstreamHandler {
 
-    Server server;
+    ISaslServer server;
     /** Used for client or server's token to send or receive from each other. */
     private byte[] token;
     private String topologyName;
@@ -40,7 +40,7 @@ public class SaslStormServerHandler extends SimpleChannelUpstreamHandler {
     private static final Logger LOG = LoggerFactory
             .getLogger(SaslStormServerHandler.class);
 
-    public SaslStormServerHandler(Server server) throws IOException {
+    public SaslStormServerHandler(ISaslServer server) throws IOException {
         this.server = server;
         getSASLCredentials();
     }
@@ -62,7 +62,7 @@ public class SaslStormServerHandler extends SimpleChannelUpstreamHandler {
             SaslNettyServer saslNettyServer = SaslNettyServerState.getSaslNettyServer
                     .get(channel);
             if (saslNettyServer == null) {
-                LOG.info("No saslNettyServer for " + channel
+                LOG.debug("No saslNettyServer for " + channel
                         + " yet; creating now, with topology token: ");
                 try {
                     saslNettyServer = new SaslNettyServer(topologyName, token);
@@ -77,13 +77,13 @@ public class SaslStormServerHandler extends SimpleChannelUpstreamHandler {
                 SaslNettyServerState.getSaslNettyServer.set(channel,
                         saslNettyServer);
             } else {
-                LOG.info("Found existing saslNettyServer on server:"
-                        + channel.getLocalAddress() + " for client "
-                        + channel.getRemoteAddress());
+                LOG.debug("Found existing saslNettyServer on server:"
+                          + channel.getLocalAddress() + " for client "
+                          + channel.getRemoteAddress());
             }
 
-            LOG.info("processToken:  With nettyServer: " + saslNettyServer
-                    + " and token length: " + token.length);
+            LOG.debug("processToken:  With nettyServer: " + saslNettyServer
+                      + " and token length: " + token.length);
 
             SaslMessageToken saslTokenMessageRequest = null;
             saslTokenMessageRequest = new SaslMessageToken(
@@ -118,11 +118,12 @@ public class SaslStormServerHandler extends SimpleChannelUpstreamHandler {
                 // If authentication of client is complete, we will also send a
                 // SASL-Complete message to the client.
                 LOG.info("SASL authentication is complete for client with "
-                        + "username: " + saslNettyServer.getUserName());
+                          + "username: " + saslNettyServer.getUserName());
                 channel.write(ControlMessage.SASL_COMPLETE_REQUEST);
-                LOG.info("Removing SaslServerHandler from pipeline since SASL "
+                LOG.debug("Removing SaslServerHandler from pipeline since SASL "
                         + "authentication is complete.");
                 ctx.getPipeline().remove(this);
+                server.authenticated(channel);
             }
             return;
         } else {
@@ -144,19 +145,14 @@ public class SaslStormServerHandler extends SimpleChannelUpstreamHandler {
 
     private void getSASLCredentials() throws IOException {
         String secretKey;
-        if(server != null) {
-            topologyName = (String) this.server.storm_conf
-                    .get(Config.TOPOLOGY_NAME);
-            secretKey = SaslUtils.getSecretKey(this.server.storm_conf);
-        } else {
-            topologyName = "whatever";
-            secretKey = "knusbaum:asdf1234";
-        }
+        topologyName = server.topologyName();
+        secretKey = server.secretKey();
             
         if (secretKey != null) {
             token = secretKey.getBytes();
         }
-        LOG.info("SASL credentials for storm topology " + topologyName
-                + " is " + secretKey);
+
+        LOG.debug("SASL credentials for storm topology " + topologyName
+                  + " is " + secretKey);
     }
 }
