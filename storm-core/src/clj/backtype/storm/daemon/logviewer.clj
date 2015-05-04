@@ -354,7 +354,7 @@ Note that if anything goes wrong, this will throw an Error and exit."
                              (.split log-string "\n"))
                      log-string)])
             (let [pager-data (pager-links fname start length file-length)]
-              (html (concat (search-file-form (codec/percent-encode fname)) 
+              (html (concat (search-file-form (url-encode fname)) 
                             (log-file-selection-form files-str) ;display all files in the directory
                             pager-data
                             (download-link fname)
@@ -858,7 +858,7 @@ Note that if anything goes wrong, this will throw an Error and exit."
        ;; filter is configured.
        (try
          (let [user (.getUserName http-creds-handler servlet-request)]
-           (search-log-file (codec/percent-decode file)
+           (search-log-file (codec/url-decode file)
                             user
                             log-root
                             (:search-string m)
