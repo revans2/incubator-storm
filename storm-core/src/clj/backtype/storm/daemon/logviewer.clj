@@ -137,7 +137,7 @@
 
 (defn get-all-logs-for-rootdir
   [^File log-dir]
-  (filter-worker-logs
+  (filter-worker-logs    ;; TODO: to deal with gc.log and heapdump file, this filter may be disabled
     (reduce concat
             (for [topo-dir (.listFiles log-dir)]
               (reduce concat
