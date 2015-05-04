@@ -84,8 +84,8 @@ public class AuthUtils {
         }
         AppConfigurationEntry configurationEntries[] = conf.getAppConfigurationEntry(conf_entry);
         if(configurationEntries == null) {
-            String errorMessage = "Could not find a '"+AuthUtils.LOGIN_CONTEXT_CLIENT
-                    + "' entry in this configuration: Client cannot start.";
+            String errorMessage = "Could not find a '" + conf_entry
+                + "' entry in this configuration: Client cannot start.";
             throw new IOException(errorMessage);
         }
 

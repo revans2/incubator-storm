@@ -20,8 +20,7 @@ package backtype.storm.messaging.netty;
 import org.jboss.netty.channel.Channel;
 
 public interface ISaslServer extends IServer {
-    // Sasl Stuff
-    String topologyName();
+    String name();
     String secretKey();
     void authenticated(Channel c);
 }

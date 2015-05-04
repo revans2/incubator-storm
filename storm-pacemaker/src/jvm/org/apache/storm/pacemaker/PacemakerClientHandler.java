@@ -22,6 +22,7 @@ import org.jboss.netty.channel.ChannelHandlerContext;
 import org.jboss.netty.channel.ChannelStateEvent;
 import org.jboss.netty.channel.ExceptionEvent;
 import org.jboss.netty.channel.MessageEvent;
+import org.jboss.netty.channel.Channel;
 import backtype.storm.generated.Message;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,6 +35,18 @@ public class PacemakerClientHandler extends SimpleChannelUpstreamHandler {
 
     public PacemakerClientHandler(PacemakerClient client) {
         this.client = client;
+    }
+
+    @Override
+    public void channelConnected(ChannelHandlerContext ctx,
+				 ChannelStateEvent event) {
+	LOG.info("Channel has connected.");
+        // register the newly established channel
+        Channel channel = ctx.getChannel();
+        client.channelConnected(channel);
+        
+        LOG.info("Connection established from " + channel.getLocalAddress()
+		 + " to " + channel.getRemoteAddress());
     }
 
     @Override

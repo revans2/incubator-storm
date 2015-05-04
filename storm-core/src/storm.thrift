@@ -588,9 +588,6 @@ union MessageData {
   3: bool boolval,
   4: HBRecords records,
   5: HBNodes nodes,
-  // backtype.storm.messaging.netty.ControlMessage
-  // or backtype.storm.messaging.netty.SaslMessageToken
-  // serialized however they do it.
   7: optional binary message_blob;
 }
 

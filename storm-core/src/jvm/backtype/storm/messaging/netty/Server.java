@@ -48,7 +48,6 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadFactory;
 import java.io.IOException;
 
-
 class Server implements IConnection, IStatefulObject, ISaslServer {
     private static final Logger LOG = LoggerFactory.getLogger(Server.class);
     @SuppressWarnings("rawtypes")
@@ -57,7 +56,6 @@ class Server implements IConnection, IStatefulObject, ISaslServer {
     private final ConcurrentHashMap<String, AtomicInteger> messagesEnqueued = new ConcurrentHashMap<String, AtomicInteger>();
     private final AtomicInteger messagesDequeued = new AtomicInteger(0);
     private final AtomicInteger[] pendingMessages;
-    
     
     // Create multiple queues for incoming messages. The size equals the number of receiver threads.
     // For message which is sent to same task, it will be stored in the same queue to preserve the message order.
@@ -74,7 +72,6 @@ class Server implements IConnection, IStatefulObject, ISaslServer {
     boolean closing = false;
     List<TaskMessage> closeMessage = Arrays.asList(new TaskMessage(-1, null));
     private KryoValuesSerializer _ser;
-    
     
     @SuppressWarnings("rawtypes")
     Server(Map storm_conf, int port) {
@@ -97,8 +94,8 @@ class Server implements IConnection, IStatefulObject, ISaslServer {
         int buffer_size = Utils.getInt(storm_conf.get(Config.STORM_MESSAGING_NETTY_BUFFER_SIZE));
         int maxWorkers = Utils.getInt(storm_conf.get(Config.STORM_MESSAGING_NETTY_SERVER_WORKER_THREADS));
 
-        ThreadFactory bossFactory = new NettyRenameThreadFactory(name() + "-boss");
-        ThreadFactory workerFactory = new NettyRenameThreadFactory(name() + "-worker");
+        ThreadFactory bossFactory = new NettyRenameThreadFactory(netty_name() + "-boss");
+        ThreadFactory workerFactory = new NettyRenameThreadFactory(netty_name() + "-worker");
         
         if (maxWorkers > 0) {
             factory = new NioServerSocketChannelFactory(Executors.newCachedThreadPool(bossFactory), 
@@ -108,7 +105,7 @@ class Server implements IConnection, IStatefulObject, ISaslServer {
                 Executors.newCachedThreadPool(workerFactory));
         }
         
-        LOG.info("Create Netty Server " + name() + ", buffer_size: " + buffer_size + ", maxWorkers: " + maxWorkers);
+        LOG.info("Create Netty Server " + netty_name() + ", buffer_size: " + buffer_size + ", maxWorkers: " + maxWorkers);
         
         bootstrap = new ServerBootstrap(factory);
         bootstrap.setOption("child.tcpNoDelay", true);
@@ -182,7 +179,6 @@ class Server implements IConnection, IStatefulObject, ISaslServer {
             i.addAndGet(amount);
         }
     }
-
 
     /**
      * enqueue a received message 
@@ -293,7 +289,7 @@ class Server implements IConnection, IStatefulObject, ISaslServer {
       throw new RuntimeException("Server connection should not send any messages");
     }
 	
-    public String name() {
+    public String netty_name() {
       return "Netty-server-localhost-" + port;
     }
 
@@ -323,7 +319,6 @@ class Server implements IConnection, IStatefulObject, ISaslServer {
         return ret;
     }
 
-
     /** Implementing IServer. **/
     public void channelConnected(Channel c) {
         addChannel(c);
@@ -334,7 +329,7 @@ class Server implements IConnection, IStatefulObject, ISaslServer {
         enqueue(msgs, remote);
     }
 
-    public String topologyName() {
+    public String name() {
         return (String)storm_conf.get(Config.TOPOLOGY_NAME);
     }
 

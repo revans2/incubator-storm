@@ -36,7 +36,6 @@ public class PacemakerServerFactory {
         .getLogger(PacemakerServerFactory.class);
 
     private static String makePayload(Map config) {
-
         String username = null;
         String password = null;
         try {
@@ -52,21 +51,17 @@ public class PacemakerServerFactory {
             LOG.error("Failed to pull username/password out of jaas conf", e);
         }
 
-
         if(username == null || password == null) {
-            LOG.error("Can't start pacemaker without SASL digest.");
-            throw new RuntimeException("Can't start pacemaker without SASL digest.");
+            throw new RuntimeException("No username or password from jaas conf.");
         }
 
         return username + ":" + password;
     }
 
     public static PacemakerServer makeServer(Map config, IServerMessageHandler handler) {
-
         int port = (int)config.get(Config.PACEMAKER_PORT);
         int maxWorkers = (int)config.get(Config.PACEMAKER_MAX_THREADS);
         String payload = makePayload(config);
-
 
         LOG.info("Making Pacemaker Server bound to port: " + Integer.toString(port));
 
@@ -75,7 +70,6 @@ public class PacemakerServerFactory {
     }
 
     public static PacemakerClient makeClient(Map config) {
-
         String topo_name = (String)config.get(Config.TOPOLOGY_NAME);
         String host = (String)config.get(Config.PACEMAKER_HOST);
         int port = (int)config.get(Config.PACEMAKER_PORT);

@@ -38,7 +38,7 @@ public class SaslStormClientHandler extends SimpleChannelUpstreamHandler {
     long start_time;
     /** Used for client or server's token to send or receive from each other. */
     private byte[] token;
-    private String topologyName;
+    private String name;
 
     public SaslStormClientHandler(ISaslClient client) throws IOException {
         this.client = client;
@@ -63,7 +63,7 @@ public class SaslStormClientHandler extends SimpleChannelUpstreamHandler {
             if (saslNettyClient == null) {
                 LOG.debug("Creating saslNettyClient now " + "for channel: "
                         + channel);
-                saslNettyClient = new SaslNettyClient(topologyName, token);
+                saslNettyClient = new SaslNettyClient(name, token);
                 SaslNettyClientState.getSaslNettyClient.set(channel,
                         saslNettyClient);
             }
@@ -152,13 +152,13 @@ public class SaslStormClientHandler extends SimpleChannelUpstreamHandler {
 
     private void getSASLCredentials() throws IOException {
         String secretKey;
-        topologyName = client.topologyName();
+        name = client.name();
         secretKey = client.secretKey();
 
         if (secretKey != null) {
             token = secretKey.getBytes();
         }
-        LOG.debug("SASL credentials for storm topology " + topologyName
+        LOG.debug("SASL credentials for storm topology " + name
                 + " is " + secretKey);
     }
 }

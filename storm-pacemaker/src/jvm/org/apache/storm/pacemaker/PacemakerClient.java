@@ -60,10 +60,12 @@ public class PacemakerClient implements ISaslClient {
     private int maxPending = 100;
     private Message outstanding[];
     private AtomicInteger nextMID;
-
+    private boolean shouldAuthenticate;
+    
     public PacemakerClient(String topo_name, String secret, String host, int port, boolean shouldAuthenticate) {
         this.topo_name = topo_name;
         this.secret = secret;
+	this.shouldAuthenticate = shouldAuthenticate;
         message_queue = new LinkedBlockingQueue<Message>();
         closing = new AtomicBoolean(false);
         channelRef = new AtomicReference<Channel>(null);
@@ -86,9 +88,15 @@ public class PacemakerClient implements ISaslClient {
         bootstrap.connect(remote_addr);
     }
 
-    public void channelConnected(Channel channel) {
+    public synchronized void channelConnected(Channel channel) {
         LOG.debug("Channel is connected: " + channel.toString());
         channelRef.set(channel);
+
+	//If we're not going to authenticate, we can begin sending.
+	if(!shouldAuthenticate) {
+	    ready = true;
+	    this.notifyAll();
+	}
     }
 
     public synchronized void channelReady() {
@@ -97,7 +105,7 @@ public class PacemakerClient implements ISaslClient {
         this.notifyAll();
     }
 
-    public String topologyName() {
+    public String name() {
         return topo_name;
     }
 
@@ -105,18 +113,21 @@ public class PacemakerClient implements ISaslClient {
         return secret;
     }
 
-    public synchronized Message send(Message m) {
-
+    public Message send(Message m) {
+        // Wait for 'ready' (channel connected and maybe authentication)
         if(!ready) {
-            LOG.debug("Waiting for netty channel to be ready.");
-            try {
-                this.wait();
-            } catch (java.lang.InterruptedException e) {
-                throw new RuntimeException(e);
-            }
-        }
+	    synchronized(this) {
+		if(!ready) {
+		    LOG.debug("Waiting for netty channel to be ready.");
+		    try {
+			this.wait();
+		    } catch (java.lang.InterruptedException e) {
+			throw new RuntimeException(e);
+		    }
+		}
+	    }
+	}
 
-        LOG.info("Getting Next!");
         // Standard CAS loop
         int next;
         int expect;
@@ -126,7 +137,7 @@ public class PacemakerClient implements ISaslClient {
         } while(!nextMID.compareAndSet(expect, next));
         m.set_message_id(next);
 
-        LOG.info("Sending finagle message: " + m.toString());
+        LOG.debug("Sending message: {}", m.toString());
         try {
 
             // Wait for other task to finish.
@@ -136,14 +147,16 @@ public class PacemakerClient implements ISaslClient {
                 }
             }
 
-            channelRef.get().write(m).await();
-            outstanding[next] = m;
-            synchronized (m) {
+	    synchronized (m) {
+		outstanding[next] = m;
+		LOG.debug("Put message in slot: {}", Integer.toString(next));
+		channelRef.get().write(m).await();
                 m.wait();
             }
             
             Message ret = outstanding[next];
             outstanding[next] = null;
+            LOG.debug("Got Response: {}", ret.toString());
             return ret;
         }
         catch (InterruptedException e) {
@@ -155,17 +168,21 @@ public class PacemakerClient implements ISaslClient {
     public void gotMessage(Message m) {
         int message_id = m.get_message_id();
         if(message_id >=0 && message_id < maxPending) {
-            LOG.debug("Pacemaker Client got message: " + m.toString());
-            LOG.debug("outstanding size: " + outstanding.size());
+            LOG.debug("Pacemaker Client got message: {}", m.toString());
             Message request = outstanding[message_id];
             outstanding[message_id] = m;
-       
-            synchronized(request) {
-                request.notifyAll();
+
+            if(request == null) {
+                LOG.debug("No message for slot: {}", Integer.toString(message_id));
+            }
+            else {
+                synchronized(request) {
+                    request.notifyAll();
+                }
             }
         }
         else {
-            LOG.error("Got Message with bad id: " + m.toString());
+            LOG.error("Got Message with bad id: {}", m.toString());
         }
     }
 
@@ -178,7 +195,7 @@ public class PacemakerClient implements ISaslClient {
     synchronized void close_channel() {
         if (channelRef.get() != null) {
             channelRef.get().close();
-            LOG.debug("channel {} closed",remote_addr);
+            LOG.debug("channel {} closed", remote_addr);
             channelRef.set(null);
         }
     }

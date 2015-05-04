@@ -32,6 +32,7 @@ import backtype.storm.messaging.netty.INettySerializable;
 import java.io.IOException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.apache.thrift7.TBase;
 
 public class ThriftEncoder extends OneToOneEncoder {
 
@@ -91,7 +92,7 @@ public class ThriftEncoder extends OneToOneEncoder {
         }
 
         try {
-            byte serialized[] = Utils.thriftSerialize(m);
+            byte serialized[] = Utils.thriftSerialize((TBase)m);
             ChannelBuffer ret = ChannelBuffers.directBuffer(serialized.length + 4);
 
             ret.writeInt(serialized.length);

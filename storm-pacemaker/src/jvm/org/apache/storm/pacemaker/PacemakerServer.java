@@ -85,19 +85,20 @@ class PacemakerServer implements ISaslServer {
         bootstrap.setPipelineFactory(pipelineFactory);
         Channel channel = bootstrap.bind(new InetSocketAddress(port));
         allChannels.add(channel);
-        LOG.info("Bound server to port: " + Integer.toString(port));
+        LOG.info("Bound server to port: {}", Integer.toString(port));
     }
 
     /** Implementing IServer. **/
     public void channelConnected(Channel c) {
-        LOG.info("Channel Connected.");
         allChannels.add(c);
     }
     
     public void received(Object mesg, String remote, Channel channel) throws InterruptedException {
         Message m = (Message)mesg;
-        LOG.info("received message. Passing to handler." + handler.toString() + " : " + m.toString() + " : " + channel.toString());
+        LOG.debug("received message. Passing to handler. {} : {} : {}",
+                  handler.toString(), m.toString(), channel.toString());
         Message response = handler.handleMessage(m, authenticated_channels.contains(channel));
+	LOG.debug("Got Response from handler: {}", response.toString());
         channel.write(response).await();
     }
 
@@ -107,7 +108,7 @@ class PacemakerServer implements ISaslServer {
         authenticated_channels.remove(c);
     }
 
-    public String topologyName() {
+    public String name() {
         return topo_name;
     }
 
@@ -116,7 +117,7 @@ class PacemakerServer implements ISaslServer {
     }
 
     public void authenticated(Channel c) {
-        LOG.debug("Pacemaker server authenticated channel: " + c.toString());
+        LOG.debug("Pacemaker server authenticated channel: {}", c.toString());
         authenticated_channels.add(c);
     }
 }

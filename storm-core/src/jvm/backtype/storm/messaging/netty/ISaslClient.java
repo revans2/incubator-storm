@@ -23,6 +23,6 @@ import backtype.storm.Config;
 public interface ISaslClient {
     void channelConnected(Channel channel);
     void channelReady();
-    String topologyName();
+    String name();
     String secretKey();
 }

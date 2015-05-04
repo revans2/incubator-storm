@@ -145,7 +145,7 @@ public class SaslStormServerHandler extends SimpleChannelUpstreamHandler {
 
     private void getSASLCredentials() throws IOException {
         String secretKey;
-        topologyName = server.topologyName();
+        topologyName = server.name();
         secretKey = server.secretKey();
             
         if (secretKey != null) {

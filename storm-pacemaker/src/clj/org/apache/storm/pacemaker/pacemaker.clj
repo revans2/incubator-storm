@@ -127,7 +127,7 @@
                 HBServerMessageType/DELETE_PULSE_ID
                 (delete-pulse-id (.get_path (.get_data request)) heartbeats)
 
-                (.get_type request)
+                ; Otherwise
                 (log-message "Got Unexpected Type: " (.get_type request)))]
 
           (.set_message_id response (.get_message_id request))

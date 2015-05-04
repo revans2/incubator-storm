@@ -78,8 +78,8 @@ public class Client implements IConnection, IStatefulObject, ISaslClient {
     @SuppressWarnings("rawtypes")
     public Client(Map storm_conf, ChannelFactory factory, String host, int port, Context context) {
         this.context = context;
-    	this.storm_conf = storm_conf;
         this.factory = factory;
+        this.storm_conf = storm_conf;
         message_queue = new LinkedBlockingQueue<Object>();
         retries = new AtomicInteger(0);
         channelRef = new AtomicReference<Channel>(null);
@@ -385,15 +385,11 @@ public class Client implements IConnection, IStatefulObject, ISaslClient {
         return ret;
     }
 
-    public String name() {
-        return remote_addr.toString();
-    }
-
     public Map getConfig() {
         return storm_conf;
     }
 
-    /** IClient interface **/
+    /** ISaslClient interface **/
     public void channelConnected(Channel channel) {
         setChannel(channel);
     }
@@ -407,7 +403,7 @@ public class Client implements IConnection, IStatefulObject, ISaslClient {
         }
     }
 
-    public String topologyName() {
+    public String name() {
         return (String)storm_conf.get(Config.TOPOLOGY_NAME);
     }
 
