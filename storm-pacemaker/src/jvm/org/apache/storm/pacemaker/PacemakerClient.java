@@ -128,7 +128,7 @@ public class PacemakerClient implements ISaslClient {
 
         LOG.info("Sending finagle message: " + m.toString());
         try {
-            channelRef.get().write(m).await();
+
             // Wait for other task to finish.
             if(outstanding[next] != null) {
                 synchronized(outstanding[next]) {
@@ -136,10 +136,12 @@ public class PacemakerClient implements ISaslClient {
                 }
             }
 
+            channelRef.get().write(m).await();
             outstanding[next] = m;
             synchronized (m) {
                 m.wait();
             }
+            
             Message ret = outstanding[next];
             outstanding[next] = null;
             return ret;
@@ -154,8 +156,10 @@ public class PacemakerClient implements ISaslClient {
         int message_id = m.get_message_id();
         if(message_id >=0 && message_id < maxPending) {
             LOG.debug("Pacemaker Client got message: " + m.toString());
+            LOG.debug("outstanding size: " + outstanding.size());
             Message request = outstanding[message_id];
             outstanding[message_id] = m;
+       
             synchronized(request) {
                 request.notifyAll();
             }
