@@ -858,7 +858,7 @@ Note that if anything goes wrong, this will throw an Error and exit."
        ;; filter is configured.
        (try
          (let [user (.getUserName http-creds-handler servlet-request)]
-           (search-log-file (codec/url-decode file)
+           (search-log-file (url-decode file)
                             user
                             log-root
                             (:search-string m)
