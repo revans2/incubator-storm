@@ -697,14 +697,16 @@
         (rmr tmproot)))))
 
 (defn write-log-metadata-to-yaml-file! [storm-id port data conf]
-  (let [file (get-log-metadata-file storm-id port)]
+  (let [file (get-log-metadata-file conf storm-id port)]
     ;;run worker as user needs the directory to have special permissions
     ;; or it is insecure
-    (when (and (not (conf SUPERVISOR-RUN-WORKER-AS-USER))
-               (not (.exists (.getParentFile file))))
-      (.mkdirs (.getParentFile file)))
+    (when (not (.exists (.getParentFile file)))
+      (if (conf SUPERVISOR-RUN-WORKER-AS-USER)
+        (do (FileUtils/forceMkdir (.getParentFile file))
+            (setup-storm-code-dir conf (read-supervisor-storm-conf conf storm-id) (.getCanonicalPath (.getParentFile file))))
+        (.mkdirs (.getParentFile file))))
     (let [writer (java.io.FileWriter. file)
-        yaml (Yaml.)]
+          yaml (Yaml.)]
       (try
         (.dump yaml data writer)
         (finally
@@ -764,6 +766,16 @@
     (doseq [file-name blob-file-names]
       (create-symlink! workerroot stormroot file-name file-name))))
 
+(defn create-artifacts-link
+  "Create a symlink from workder directory to its port artifacts directory"
+  [conf storm-id port worker-id]
+  (let [worker-dir (worker-root conf worker-id)
+        topo-dir (worker-artifacts-root conf storm-id)]
+    (log-message "Creating symlinks for worker-id: " worker-id " storm-id: "
+                 storm-id " to its port artifacts directory")
+    (if (.exists (File. worker-dir))
+      (create-symlink! worker-dir topo-dir "artifacts" port))))
+
 (defmethod launch-worker
     :distributed [supervisor storm-id port worker-id]
     (let [conf (:conf supervisor)
@@ -782,8 +794,9 @@
           top-gc-opts (storm-conf TOPOLOGY-WORKER-GC-CHILDOPTS)
           gc-opts (substitute-childopts (if top-gc-opts top-gc-opts (conf WORKER-GC-CHILDOPTS)) worker-id storm-id port)
           user (storm-conf TOPOLOGY-SUBMITTER-USER)
+          logfilename "worker.log"
+          workers-artifacts (worker-artifacts-root conf)
           logging-sensitivity (storm-conf TOPOLOGY-LOGGING-SENSITIVITY "S3")
-          logfilename (logs-filename storm-id port)
 
           worker-childopts (substitute-childopts (conf WORKER-CHILDOPTS) worker-id storm-id port)
           topo-worker-childopts (substitute-childopts (storm-conf TOPOLOGY-WORKER-CHILDOPTS) worker-id storm-id port)
@@ -794,6 +807,7 @@
                     [(java-cmd) "-cp" classpath 
                      (str "-Dlogfile.name=" logfilename)
                      (str "-Dstorm.home=" storm-home)
+                     (str "-Dworkers.artifacts=" workers-artifacts)
                      (str "-Dstorm.id=" storm-id)
                      (str "-Dworker.id=" worker-id)
                      (str "-Dworker.port=" port)
@@ -807,6 +821,7 @@
                     [(str "-Djava.library.path=" jlp)
                      (str "-Dlogfile.name=" logfilename)
                      (str "-Dstorm.home=" storm-home)
+                     (str "-Dworkers.artifacts=" workers-artifacts)
                      (str "-Dlogging.sensitivity=" logging-sensitivity)
                      (str "-Dlog4j.configurationFile=" storm-home "/log4j2/worker.xml")
                      (str "-DLog4jContextSelector=org.apache.logging.log4j.core.selector.BasicContextSelector")
@@ -824,6 +839,7 @@
       (log-message "Launching worker with command: " (shell-cmd command))
       (write-log-metadata! storm-conf user worker-id storm-id port conf)
       (set-worker-user! conf worker-id user)
+      (create-artifacts-link conf storm-id port worker-id)
       (let [log-prefix (str "Worker Process " worker-id)
            callback (fn [exit-code] 
                           (log-message log-prefix " exited with code: " exit-code)

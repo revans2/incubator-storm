@@ -66,8 +66,8 @@ $(document).ready(function() {
              var host = response.hostPortList[index].host;
              var port = response.hostPortList[index].port;
              var elemId = response.hostPortList[index].elemId;
-             var file = id+"-worker-"+port+".log";
-             var searchURL = "http://"+host+":"+logviewerPort+"/search/"+file+"?search-string="+search+"&num-matches="+count;
+             var file = id+"/"+port+"/worker.log";
+             var searchURL = "http://"+host+":"+logviewerPort+"/search/"+encodeURIComponent(file)+"?search-string="+search+"&num-matches="+count;
              if (searchArchived != "") {
                searchURL = "http://"+host+":"+logviewerPort+"/deepSearch/"+id+"?search-string="+search+"&num-matches="+count+"&search-archived=true&port="+port;
              }

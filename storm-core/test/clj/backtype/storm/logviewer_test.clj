@@ -21,6 +21,8 @@
   (:use [clojure test])
   (:use [conjure core])
   (:use [backtype.storm.ui helpers])
+  (:import [java.nio.file Files])
+  (:import [java.nio.file.attribute FileAttribute])
   (:import [java.io File])
   (:import [org.mockito Mockito Matchers]))
 
@@ -29,7 +31,7 @@
 (defmethod mk-mock-File :file [{file-name :name mtime :mtime length :length
                                 :or {file-name "afile"
                                      mtime 1
-                                     length (* 10 (* 1024 (* 1024 1024))) }}] ; Length 10 MB
+                                     length (* 10 (* 1024 (* 1024 1024))) }}] ; Length 10 GB
   (let [mockFile (Mockito/mock java.io.File)]
     (. (Mockito/when (.getName mockFile)) thenReturn file-name)
     (. (Mockito/when (.lastModified mockFile)) thenReturn mtime)
@@ -48,8 +50,9 @@
     (. (Mockito/when (.listFiles mockDir)) thenReturn (into-array File files))
     mockDir))
 
+
 (deftest test-mk-FileFilter-for-log-cleanup
-  (testing "log file filter selects the correct log files for purge"
+  (testing "log file filter selects the correct worker-log dirs for purge"
     (let [now-millis (current-time-millis)
           conf {LOGVIEWER-CLEANUP-AGE-MINS 60
                 LOGVIEWER-CLEANUP-INTERVAL-SECS 300}
@@ -57,21 +60,18 @@
           old-mtime-millis (- cutoff-millis 500)
           new-mtime-millis (+ cutoff-millis 500)
           matching-files (map #(mk-mock-File %)
-                              [{:name "oldlog-1-2-worker-3.log"
-                                :type :file
+                              [{:name "3031"
+                                :type :directory
                                 :mtime old-mtime-millis}
-                               {:name "oldlog-1-2-worker-3.log.8"
-                                :type :file
+                               {:name "3032"
+                                :type :directory
                                 :mtime old-mtime-millis}
-                               {:name "foobar*_topo-1-24242-worker-2834238.log"
-                                :type :file
+                               {:name "7077"
+                                :type :directory
                                 :mtime old-mtime-millis}])
           excluded-files (map #(mk-mock-File %)
                               [{:name "oldlog-1-2-worker-.log"
                                 :type :file
-                                :mtime old-mtime-millis}
-                               {:name "olddir-1-2-worker.log"
-                                :type :directory
                                 :mtime old-mtime-millis}
                                {:name "newlog-1-2-worker.log"
                                 :type :file
@@ -79,10 +79,10 @@
                                {:name "some-old-file.txt"
                                 :type :file
                                 :mtime old-mtime-millis}
-                               {:name "metadata"
+                               {:name "olddir-1-2-worker.log"
                                 :type :directory
-                                :mtime old-mtime-millis}
-                               {:name "newdir-1-2-worker.log"
+                                :mtime new-mtime-millis}
+                               {:name "metadata"
                                 :type :directory
                                 :mtime new-mtime-millis}
                                {:name "newdir"
@@ -97,21 +97,25 @@
 (deftest test-filter-worker-logs
   (testing "log file filter selects the correct log files for purge"
     (let [matching-files (map #(mk-mock-File %)
-                              [{:name "oldlog-1-2-worker-3.log"
+                              [{:name "worker.log"
                                 :type :file}
-                               {:name "oldlog-1-2-worker-3.log.8"
+                               {:name "worker.log.out"
                                 :type :file}
-                               {:name "foobar*_topo-1-24242-worker-2834238.log"
+                               {:name "worker.log.err"
+                                :type :file}
+                               {:name "worker.log.1.gz"
+                                :type :file}
+                               {:name "worker.log.8.gz"
                                 :type :file}])
           excluded-files (map #(mk-mock-File %)
-                              [{:name "oldlog-1-2-worker-.log"
-                                :type :file}
-                               {:name "olddir-1-2-worker.log"
-                                :type :directory}
-                               {:name "newlog-1-2-worker.log"
+                              [{:name "worker.yaml"
                                 :type :file}
                                {:name "some-old-file.txt"
                                 :type :file}
+                               {:name "oldlog-1-2-worker-.log"
+                                :type :file}
+                               {:name "olddir-1-2-worker.log"
+                                :type :directory}
                                {:name "metadata"
                                 :type :directory}
                                {:name "newdir-1-2-worker.log"
@@ -124,14 +128,40 @@
 (deftest test-sort-worker-logs
   (stubbing [logviewer/filter-worker-logs (fn [x] x)]
             (let [now-millis (current-time-millis)
-                  files (into-array File (map #(mk-mock-File {:name (str %)
-                                                              :type :file
-                                                              :mtime (- now-millis (* 100 %))})
-                                              (range 1 16)))
-                  directory (mk-mock-File {:name "/logs"
+                  files1 (into-array File (map #(mk-mock-File {:name (str %)
+                                                               :type :file
+                                                               :mtime (- now-millis (* 100 %))})
+                                               (range 1 6)))
+                  files2 (into-array File (map #(mk-mock-File {:name (str %)
+                                                               :type :file
+                                                               :mtime (- now-millis (* 100 %))})
+                                               (range 6 11)))
+                  files3 (into-array File (map #(mk-mock-File {:name (str %)
+                                                               :type :file
+                                                               :mtime (- now-millis (* 100 %))})
+                                               (range 11 16)))
+                  port1-dir (mk-mock-File {:name "/workers-artifacts/topo1/port1"
                                            :type :directory
-                                           :files files})
-                  sorted-logs (logviewer/sorted-worker-logs directory)
+                                           :files files1})
+                  port2-dir (mk-mock-File {:name "/workers-artifacts/topo1/port2"
+                                           :type :directory
+                                           :files files2})
+                  port3-dir (mk-mock-File {:name "/workers-artifacts/topo2/port3"
+                                           :type :directory
+                                           :files files3})
+                  topo1-files (into-array File [port1-dir port2-dir])
+                  topo2-files (into-array File [port3-dir])
+                  topo1-dir (mk-mock-File {:name "/workers-artifacts/topo1"
+                                           :type :directory
+                                           :files topo1-files})
+                  topo2-dir (mk-mock-File {:name "/workers-artifacts/topo2"
+                                           :type :directory
+                                           :files topo2-files})
+                  root-files (into-array File [topo1-dir topo2-dir])
+                  root-dir (mk-mock-File {:name "/workers-artifacts"
+                                          :type :directory
+                                          :files root-files})
+                  sorted-logs (logviewer/sorted-worker-logs root-dir)
                   sorted-ints (map #(Integer. (.getName %)) sorted-logs)]
               (is (= (count sorted-logs) 15))
               (is (= (count sorted-ints) 15))
@@ -141,80 +171,54 @@
   (testing "delete oldest logs deletes the oldest set of logs when the total size gets too large.")
   (stubbing [rmr nil]
             (let [now-millis (current-time-millis)
-                  files (map #(mk-mock-File {:name (str %)
-                                             :type :file
-                                             :mtime (+ now-millis (* 100 %))
-                                             :length 100 })
-                             (range 0 20))
+                  files (into-array File (map #(mk-mock-File {:name (str %)
+                                                              :type :file
+                                                              :mtime (+ now-millis (* 100 %))
+                                                              :length 100 })
+                                              (range 0 20)))
                   remaining-logs (logviewer/delete-oldest-while-logs-too-large files 501)]
               (is (= (logviewer/sum-file-size files) 2000))
               (is (= (count remaining-logs) 5))
               (is (= (.getName (first remaining-logs)) "15")))))
 
-(deftest test-get-log-root->files-map
-  (testing "returns map of root name to list of files"
-    (let [files (vec (map #(java.io.File. %) ["log-1-2-worker-3.log"
-                                              "log-1-2-worker-3.log.1.gz"
-                                              "log-1-2-worker-3.log.err"
-                                              "log-1-2-worker-3.log.out"
-                                              "log-1-2-worker-3.log.out.1.gz"
-                                              "log-1-2-worker-3.log.1"
-                                              "log-2-4-worker-6.log.1"]))
-          expected {"log-1-2-worker-3" #{(files 0) (files 1) (files 2) (files 3) (files 4) (files 5)}
-                    "log-2-4-worker-6" #{(files 6)}}]
-      (is (= expected (logviewer/get-log-root->files-map files))))))
-
-(deftest test-identify-worker-log-files
-  (testing "Does not include metadata file when there are any log files that
-           should not be cleaned up"
-    (let [cutoff-millis 2000
-          old-logFile (mk-mock-File {:name "mock-1-1-worker-1.log.1"
-                                     :type :file
-                                     :mtime (- cutoff-millis 1000)})
-          mock-metaFile (mk-mock-File {:name "mock-1-1-worker-1.yaml"
-                                       :type :file
-                                       :mtime 1})
-          new-logFile (mk-mock-File {:name "mock-1-1-worker-1.log"
-                                     :type :file
-                                     :mtime (+ cutoff-millis 1000)})
+(deftest test-identify-worker-log-dirs
+  (testing "Build up workerid-workerlogdir map for the old workers' dirs"
+    (let [port1-dir (mk-mock-File {:name "/workers-artifacts/topo1/port1"
+                                   :type :directory})
+          mock-metaFile (mk-mock-File {:name "worker.yaml"
+                                       :type :file})
           exp-id "id12345"
-          exp-user "alice"
-          expected {exp-id {:owner exp-user
-                            :files #{old-logFile}}}]
+          expected {exp-id port1-dir}]
       (stubbing [supervisor/read-worker-heartbeats nil
-                logviewer/get-metadata-file-for-log-root-name mock-metaFile
-                read-dir-contents [(.getName old-logFile) (.getName new-logFile)]
-                logviewer/get-worker-id-from-metadata-file exp-id
-                logviewer/get-topo-owner-from-metadata-file exp-user]
-        (is (= expected (logviewer/identify-worker-log-files [old-logFile] "/tmp/")))))))
+                 logviewer/get-metadata-file-for-wroker-logdir mock-metaFile
+                 logviewer/get-worker-id-from-metadata-file exp-id]
+                (is (= expected (logviewer/identify-worker-log-dirs [port1-dir])))))))
 
-(deftest test-get-dead-worker-files
+(deftest test-get-dead-worker-dirs
   (testing "removes any files of workers that are still alive"
     (let [conf {SUPERVISOR-WORKER-TIMEOUT-SECS 5}
           id->hb {"42" {:time-secs 1}}
           now-secs 2
-          log-files #{:expected-file :unexpected-file}
-          exp-owner "alice"]
-      (stubbing [logviewer/identify-worker-log-files {"42" {:owner exp-owner
-                                                            :files #{:unexpected-file}}
-                                                      "007" {:owner exp-owner
-                                                             :files #{:expected-file}}}
-                 logviewer/get-topo-owner-from-metadata-file "alice"
+          unexpected-dir (mk-mock-File {:name "dir1" :type :directory})
+          expected-dir (mk-mock-File {:name "dir2" :type :directory})
+          log-dirs #{unexpected-dir expected-dir}]
+      (stubbing [logviewer/identify-worker-log-dirs {"42" unexpected-dir,
+                                                     "007" expected-dir}
                  supervisor/read-worker-heartbeats id->hb]
-        (is (= #{:expected-file}
-               (logviewer/get-dead-worker-files conf now-secs log-files "/tmp/")))))))
+                (is (= #{expected-dir}
+                       (logviewer/get-dead-worker-dirs conf now-secs log-dirs)))))))
 
 (deftest test-cleanup-fn
   (testing "cleanup function rmr's files of dead workers"
     (let [mockfile1 (mk-mock-File {:name "delete-me1" :type :file})
           mockfile2 (mk-mock-File {:name "delete-me2" :type :file})]
-      (stubbing [logviewer/select-files-for-cleanup nil
-                 logviewer/get-dead-worker-files (sorted-set mockfile1 mockfile2)
+      (stubbing [logviewer/select-dirs-for-cleanup nil
+                 logviewer/get-dead-worker-dirs (sorted-set mockfile1 mockfile2)
                  rmr nil]
-        (logviewer/cleanup-fn! "/bogus/path")
-        (verify-call-times-for rmr 2)
-        (verify-nth-call-args-for 1 rmr (.getCanonicalPath mockfile1))
-        (verify-nth-call-args-for 2 rmr (.getCanonicalPath mockfile2))))))
+                (logviewer/cleanup-fn! "/bogus/path")
+                (verify-call-times-for rmr 2)
+                (verify-nth-call-args-for 1 rmr (.getCanonicalPath mockfile1))
+                (verify-nth-call-args-for 2 rmr (.getCanonicalPath mockfile2))))))
 
 (deftest test-authorized-log-user
   (testing "allow cluster admin"
@@ -308,7 +312,7 @@
                                                   expected-host
                                                   ":"
                                                   expected-port
-                                                  "/log?file="
+                                                  "/log?file=src%2Fdev%2F"
                                                   (.getName file)
                                                   "&start=0&length=51200")}
                              {"byteOffset" 7
@@ -319,7 +323,7 @@
                                                   expected-host
                                                   ":"
                                                   expected-port
-                                                  "/log?file="
+                                                  "/log?file=src%2Fdev%2F"
                                                   (.getName file)
                                                   "&start=0&length=51200")}
                              {"byteOffset" 127
@@ -330,7 +334,7 @@
                                                   expected-host
                                                   ":"
                                                   expected-port
-                                                  "/log?file="
+                                                  "/log?file=src%2Fdev%2F"
                                                   (.getName file)
                                                   "&start=0&length=51200")}
                              {"byteOffset" 134
@@ -341,7 +345,7 @@
                                                   expected-host
                                                   ":"
                                                   expected-port
-                                                  "/log?file="
+                                                  "/log?file=src%2Fdev%2F"
                                                   (.getName file)
                                                   "&start=0&length=51200")}
                              ]}
@@ -359,7 +363,7 @@
                                                   expected-host
                                                   ":"
                                                   expected-port
-                                                  "/log?file="
+                                                  "/log?file=src%2Fdev%2F"
                                                   (.getName file)
                                                   "&start=0&length=51200")}]}
                    (logviewer/substring-search file pattern)))))
@@ -379,7 +383,7 @@
                                                    expected-host
                                                    ":"
                                                    expected-port
-                                                   "/log?file="
+                                                   "/log?file=src%2Fdev%2F"
                                                    (.getName file)
                                                    "&start=0&length=51200")}]}]
           (is (= expected
@@ -426,7 +430,7 @@
                                                expected-host
                                                ":"
                                                expected-port
-                                               "/log?file="
+                                               "/log?file=src%2Fdev%2F"
                                                (.getName file)
                                                "&start=0&length=51200")}
                          {"byteOffset" 2036
@@ -437,7 +441,7 @@
                                                expected-host
                                                ":"
                                                expected-port
-                                               "/log?file="
+                                               "/log?file=src%2Fdev%2F"
                                                (.getName file)
                                                "&start=0&length=51200")}
                          {"byteOffset" 2046
@@ -448,7 +452,7 @@
                                                expected-host
                                                ":"
                                                expected-port
-                                               "/log?file="
+                                               "/log?file=src%2Fdev%2F"
                                                (.getName file)
                                                "&start=0&length=51200")}
                          {"byteOffset" 3072
@@ -459,7 +463,7 @@
                                                expected-host
                                                ":"
                                                expected-port
-                                               "/log?file="
+                                               "/log?file=src%2Fdev%2F"
                                                (.getName file)
                                                "&start=0&length=51200")}
                          {"byteOffset" 3190
@@ -470,7 +474,7 @@
                                                expected-host
                                                ":"
                                                expected-port
-                                               "/log?file="
+                                               "/log?file=src%2Fdev%2F"
                                                (.getName file)
                                                "&start=0&length=51200")}
                          {"byteOffset" 3196
@@ -481,7 +485,7 @@
                                                expected-host
                                                ":"
                                                expected-port
-                                               "/log?file="
+                                               "/log?file=src%2Fdev%2F"
                                                (.getName file)
                                                "&start=0&length=51200")}
                          {"byteOffset" 6246
@@ -492,7 +496,7 @@
                                                expected-host
                                                ":"
                                                expected-port
-                                               "/log?file="
+                                               "/log?file=src%2Fdev%2F"
                                                (.getName file)
                                                "&start=0&length=51200")}
                          ]}
@@ -511,7 +515,7 @@
                                                     expected-host
                                                     ":"
                                                     expected-port
-                                                    "/log?file="
+                                                    "/log?file=src%2Fdev%2F"
                                                     (.getName file)
                                                     "&start=0&length=51200")}]}
                    (logviewer/substring-search file
@@ -533,7 +537,7 @@
                                                    expected-host
                                                    ":"
                                                    expected-port
-                                                   "/log?file="
+                                                   "/log?file=src%2Fdev%2F"
                                                    (.getName file)
                                                    "&start=0&length=51200")}
                              {"byteOffset" 5159
@@ -544,7 +548,7 @@
                                                    expected-host
                                                    ":"
                                                    expected-port
-                                                   "/log?file="
+                                                   "/log?file=src%2Fdev%2F"
                                                    (.getName file)
                                                    "&start=0&length=51200")}
                              ]}
@@ -564,7 +568,7 @@
                                                    expected-host
                                                    ":"
                                                    expected-port
-                                                   "/log?file="
+                                                   "/log?file=src%2Fdev%2F"
                                                    (.getName file)
                                                    "&start=0&length=51200")}
                              ]}
@@ -582,32 +586,36 @@
 
 (deftest test-list-log-files
   (testing "list-log-files filter selects the correct log files to return"
-    (let [files (map #(mk-mock-File %)
-                           [{:name "log-1-2-worker-6702.log"
-                             :type :file}
-                            {:name "log-1-3-worker-6701.log.8"
-                             :type :file}
-                            {:name "log-1-3-worker-6702.log.12.gz"
-                             :type :file}
-                            {:name "foobar123_topo-1-24242-worker-2834238.log"
-                             :type :file}])
-          origin "www.origin.server.net"
-          expected-all (json-response '("log-1-2-worker-6702.log" "log-1-3-worker-6701.log.8"
-                                         "log-1-3-worker-6702.log.12.gz" "foobar123_topo-1-24242-worker-2834238.log")
-                         :headers {"Access-Control-Allow-Origin" origin
-                                   "Access-Control-Allow-Credentials" "true"})
-          expected-filter-port (json-response '("log-1-2-worker-6702.log" "log-1-3-worker-6702.log.12.gz")
-                         :headers {"Access-Control-Allow-Origin" origin
-                                   "Access-Control-Allow-Credentials" "true"})
-          expected-filter-topoId (json-response '("foobar123_topo-1-24242-worker-2834238.log")
-                         :headers {"Access-Control-Allow-Origin" origin
-                                   "Access-Control-Allow-Credentials" "true"})
-          returned-all (logviewer/list-log-files "user" nil nil files origin)
-          returned-filter-port (logviewer/list-log-files "user" nil "6702" files origin)
-          returned-filter-topoId (logviewer/list-log-files "user" "foobar123_topo-1-24242" nil files origin) ]
-      (is   (= expected-all returned-all))
-      (is   (= expected-filter-port returned-filter-port))
-      (is   (= expected-filter-topoId returned-filter-topoId)))))
+    (stubbing [logviewer/filter-worker-logs (fn [x] x)]
+              (let [attrs (make-array FileAttribute 0)
+                    root-path (.getCanonicalPath (.toFile (Files/createTempDirectory "workers-artifacts" attrs)))
+                    file1 (clojure.java.io/file root-path "topoA" "port1" "worker.log")
+                    file2 (clojure.java.io/file root-path "topoA" "port2" "worker.log") 
+                    file3 (clojure.java.io/file root-path "topoB" "port1" "worker.log") 
+                    _ (clojure.java.io/make-parents file1)
+                    _ (clojure.java.io/make-parents file2)
+                    _ (clojure.java.io/make-parents file3)
+                    _ (.createNewFile file1)
+                    _ (.createNewFile file2)
+                    _ (.createNewFile file3)
+                    origin "www.origin.server.net"
+                    expected-all (json-response '("topoA/port1/worker.log" "topoA/port2/worker.log"
+                                                                           "topoB/port1/worker.log")
+                                                :headers {"Access-Control-Allow-Origin" origin
+                                                          "Access-Control-Allow-Credentials" "true"})
+                    expected-filter-port (json-response '("topoA/port1/worker.log" "topoB/port1/worker.log")
+                                                        :headers {"Access-Control-Allow-Origin" origin
+                                                                  "Access-Control-Allow-Credentials" "true"})
+                    expected-filter-topoId (json-response '("topoB/port1/worker.log")
+                                                          :headers {"Access-Control-Allow-Origin" origin
+                                                                    "Access-Control-Allow-Credentials" "true"})
+                    returned-all (logviewer/list-log-files "user" nil nil root-path origin)
+                    returned-filter-port (logviewer/list-log-files "user" nil "port1" root-path origin)
+                    returned-filter-topoId (logviewer/list-log-files "user" "topoB" nil root-path origin)]
+                (rmr root-path)
+                (is   (= expected-all returned-all))
+                (is   (= expected-filter-port returned-filter-port))
+                (is   (= expected-filter-topoId returned-filter-topoId))))))
 
 (deftest test-find-n-matches
   (testing "find-n-matches looks through logs properly"
@@ -620,84 +628,91 @@
       (is (= 2 (count matches1)))
       (is (= 4 (count ((first matches1) "matches"))))
       (is (= 4 (count ((second matches1) "matches"))))
-      (is (= ((first matches1) "fileName") "logviewer-search-context-tests.log"))
-      (is (= ((second matches1) "fileName") "logviewer-search-context-tests.log.gz"))
-      
+      (is (= ((first matches1) "fileName") "src/dev/logviewer-search-context-tests.log"))
+      (is (= ((second matches1) "fileName") "src/dev/logviewer-search-context-tests.log.gz"))
+
       (is (= 2 (count ((first matches2) "matches"))))
       (is (= 4 (count ((second matches2) "matches"))))
-      
+
       (is (= 1 (count matches3)))
       (is (= 4 (count ((first matches3) "matches")))))))
 
 (deftest test-deep-search-logs-for-topology
   (let [files [(clojure.java.io/file "src" "dev" "logviewer-search-context-tests.log")
-               (clojure.java.io/file "src" "dev" "logviewer-search-context-tests.log.gz")]]
+               (clojure.java.io/file "src" "dev" "logviewer-search-context-tests.log.gz")]
+        attrs (make-array FileAttribute 0)
+        topo-path (.getCanonicalPath (.toFile (Files/createTempDirectory "topoA" attrs)))
+        _ (.createNewFile (clojure.java.io/file topo-path "6400"))
+        _ (.createNewFile (clojure.java.io/file topo-path "6500"))
+        _ (.createNewFile (clojure.java.io/file topo-path "6600"))
+        _ (.createNewFile (clojure.java.io/file topo-path "6700"))] 
     (stubbing
-     [logviewer/logs-for-port files
-      logviewer/find-n-matches nil]
-     (testing "deep-search-logs-for-topology all-ports search-archived = true"
-       (instrumenting
-        [logviewer/find-n-matches
-         logviewer/logs-for-port]
-        (logviewer/deep-search-logs-for-topology "" nil "." "search" "20" "*" "20" "199" true nil)
-        (verify-call-times-for logviewer/find-n-matches 4)
-        (verify-call-times-for logviewer/logs-for-port 4)
-        ; File offset and byte offset should always be zero when searching multiple workers (multiple ports).
-        (verify-nth-call-args-for 1 logviewer/find-n-matches files 20 0 0 "search")
-        (verify-nth-call-args-for 2 logviewer/find-n-matches files 20 0 0 "search")
-        (verify-nth-call-args-for 3 logviewer/find-n-matches files 20 0 0 "search")
-        (verify-nth-call-args-for 4 logviewer/find-n-matches files 20 0 0 "search")))
-     (testing "deep-search-logs-for-topology all-ports search-archived = false"
-       (instrumenting
-        [logviewer/find-n-matches
-         logviewer/logs-for-port]
-        (logviewer/deep-search-logs-for-topology "" nil "." "search" "20" nil "20" "199" nil nil)
-        (verify-call-times-for logviewer/find-n-matches 4)
-        (verify-call-times-for logviewer/logs-for-port 4)
-        ; File offset and byte offset should always be zero when searching multiple workers (multiple ports).
-        (verify-nth-call-args-for 1 logviewer/find-n-matches [(first files)] 20 0 0 "search")
-        (verify-nth-call-args-for 2 logviewer/find-n-matches [(first files)] 20 0 0 "search")
-        (verify-nth-call-args-for 3 logviewer/find-n-matches [(first files)] 20 0 0 "search")
-        (verify-nth-call-args-for 4 logviewer/find-n-matches [(first files)] 20 0 0 "search")))
-     (testing "deep-search-logs-for-topology one-port search-archived = true, no file-offset"
-       (instrumenting
-        [logviewer/find-n-matches
-         logviewer/logs-for-port]
-        (logviewer/deep-search-logs-for-topology "" nil "." "search" "20" "6700" "0" "0" true nil)
-        (verify-call-times-for logviewer/find-n-matches 1)
-        (verify-call-times-for logviewer/logs-for-port 1)
-        (verify-nth-call-args-for 1 logviewer/find-n-matches files 20 0 0 "search")))
-     (testing "deep-search-logs-for-topology one-port search-archived = true, file-offset = 1"
-       (instrumenting
-        [logviewer/find-n-matches
-         logviewer/logs-for-port]
-        (logviewer/deep-search-logs-for-topology "" nil "." "search" "20" "6700" "1" "0" true nil)
-        (verify-call-times-for logviewer/find-n-matches 1)
-        (verify-call-times-for logviewer/logs-for-port 1)
-        (verify-nth-call-args-for 1 logviewer/find-n-matches files 20 1 0 "search")))
-     (testing "deep-search-logs-for-topology one-port search-archived = false, file-offset = 1"
-       (instrumenting
-        [logviewer/find-n-matches
-         logviewer/logs-for-port]
-        (logviewer/deep-search-logs-for-topology "" nil "." "search" "20" "6700" "1" "0" nil nil)
-        (verify-call-times-for logviewer/find-n-matches 1)
-        (verify-call-times-for logviewer/logs-for-port 1)
-        ; File offset should be zero, since search-archived is false.
-        (verify-nth-call-args-for 1 logviewer/find-n-matches [(first files)] 20 0 0 "search")))
-     (testing "deep-search-logs-for-topology one-port search-archived = true, file-offset = 1, byte-offset = 100"
-       (instrumenting
-        [logviewer/find-n-matches
-         logviewer/logs-for-port]
-        (logviewer/deep-search-logs-for-topology "" nil "." "search" "20" "6700" "1" "100" true nil)
-        (verify-call-times-for logviewer/find-n-matches 1)
-        (verify-call-times-for logviewer/logs-for-port 1)
-        ; File offset should be zero, since search-archived is false.
-        (verify-nth-call-args-for 1 logviewer/find-n-matches files 20 1 100 "search")))
+      [logviewer/logs-for-port files
+       logviewer/find-n-matches nil]
+      (testing "deep-search-logs-for-topology all-ports search-archived = true"
+        (instrumenting
+          [logviewer/find-n-matches
+           logviewer/logs-for-port]
+          (logviewer/deep-search-logs-for-topology "" nil topo-path "search" "20" "*" "20" "199" true nil)
+          (verify-call-times-for logviewer/find-n-matches 4)
+          (verify-call-times-for logviewer/logs-for-port 4)
+          ; File offset and byte offset should always be zero when searching multiple workers (multiple ports).
+          (verify-nth-call-args-for 1 logviewer/find-n-matches files 20 0 0 "search")
+          (verify-nth-call-args-for 2 logviewer/find-n-matches files 20 0 0 "search")
+          (verify-nth-call-args-for 3 logviewer/find-n-matches files 20 0 0 "search")
+          (verify-nth-call-args-for 4 logviewer/find-n-matches files 20 0 0 "search")))
+      (testing "deep-search-logs-for-topology all-ports search-archived = false"
+        (instrumenting
+          [logviewer/find-n-matches
+           logviewer/logs-for-port]
+          (logviewer/deep-search-logs-for-topology "" nil topo-path "search" "20" nil "20" "199" nil nil)
+          (verify-call-times-for logviewer/find-n-matches 4)
+          (verify-call-times-for logviewer/logs-for-port 4)
+          ; File offset and byte offset should always be zero when searching multiple workers (multiple ports).
+          (verify-nth-call-args-for 1 logviewer/find-n-matches [(first files)] 20 0 0 "search")
+          (verify-nth-call-args-for 2 logviewer/find-n-matches [(first files)] 20 0 0 "search")
+          (verify-nth-call-args-for 3 logviewer/find-n-matches [(first files)] 20 0 0 "search")
+          (verify-nth-call-args-for 4 logviewer/find-n-matches [(first files)] 20 0 0 "search")))
+      (testing "deep-search-logs-for-topology one-port search-archived = true, no file-offset"
+        (instrumenting
+          [logviewer/find-n-matches
+           logviewer/logs-for-port]
+          (logviewer/deep-search-logs-for-topology "" nil topo-path "search" "20" "6700" "0" "0" true nil)
+          (verify-call-times-for logviewer/find-n-matches 1)
+          (verify-call-times-for logviewer/logs-for-port 2)
+          (verify-nth-call-args-for 1 logviewer/find-n-matches files 20 0 0 "search")))
+      (testing "deep-search-logs-for-topology one-port search-archived = true, file-offset = 1"
+        (instrumenting
+          [logviewer/find-n-matches
+           logviewer/logs-for-port]
+          (logviewer/deep-search-logs-for-topology "" nil topo-path "search" "20" "6700" "1" "0" true nil)
+          (verify-call-times-for logviewer/find-n-matches 1)
+          (verify-call-times-for logviewer/logs-for-port 2)
+          (verify-nth-call-args-for 1 logviewer/find-n-matches files 20 1 0 "search")))
+      (testing "deep-search-logs-for-topology one-port search-archived = false, file-offset = 1"
+        (instrumenting
+          [logviewer/find-n-matches
+           logviewer/logs-for-port]
+          (logviewer/deep-search-logs-for-topology "" nil topo-path "search" "20" "6700" "1" "0" nil nil)
+          (verify-call-times-for logviewer/find-n-matches 1)
+          (verify-call-times-for logviewer/logs-for-port 2)
+          ; File offset should be zero, since search-archived is false.
+          (verify-nth-call-args-for 1 logviewer/find-n-matches [(first files)] 20 0 0 "search")))
+      (testing "deep-search-logs-for-topology one-port search-archived = true, file-offset = 1, byte-offset = 100"
+        (instrumenting
+          [logviewer/find-n-matches
+           logviewer/logs-for-port]
+          (logviewer/deep-search-logs-for-topology "" nil topo-path "search" "20" "6700" "1" "100" true nil)
+          (verify-call-times-for logviewer/find-n-matches 1)
+          (verify-call-times-for logviewer/logs-for-port 2)
+          ; File offset should be zero, since search-archived is false.
+          (verify-nth-call-args-for 1 logviewer/find-n-matches files 20 1 100 "search")))
       (testing "deep-search-logs-for-topology bad-port search-archived = false, file-offset = 1"
-       (instrumenting
-        [logviewer/find-n-matches
-         logviewer/logs-for-port]
-        (logviewer/deep-search-logs-for-topology "" nil "." "search" "20" "2700" "1" "0" nil nil)
-        ; Called with a bad port (not in the config) No searching should be done.
-        (verify-call-times-for logviewer/find-n-matches 0)
-        (verify-call-times-for logviewer/logs-for-port 0))))))
+        (instrumenting
+          [logviewer/find-n-matches
+           logviewer/logs-for-port]
+          (logviewer/deep-search-logs-for-topology "" nil topo-path "search" "20" "2700" "1" "0" nil nil)
+          ; Called with a bad port (not in the config) No searching should be done.
+          (verify-call-times-for logviewer/find-n-matches 0)
+          (verify-call-times-for logviewer/logs-for-port 0)))
+      (rmr topo-path))))

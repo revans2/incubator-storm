@@ -256,8 +256,9 @@
           mock-cp "/base:/stormjar.jar"
           exp-args-fn (fn [opts topo-opts classpath]
                        (concat [(supervisor/java-cmd) "-cp" classpath 
-                               (str "-Dlogfile.name=" mock-storm-id "-worker-" mock-port ".log")
+                               (str "-Dlogfile.name=" "worker.log")
                                "-Dstorm.home="
+                               (str "-Dworkers.artifacts=" "/tmp/workers-artifacts")
                                 (str "-Dstorm.id=" mock-storm-id)
                                 (str "-Dworker.id=" mock-worker-id)
                                 (str "-Dworker.port=" mock-port)
@@ -268,8 +269,9 @@
                                opts
                                topo-opts
                                ["-Djava.library.path="
-                                (str "-Dlogfile.name=" mock-storm-id "-worker-" mock-port ".log")
+                               (str "-Dlogfile.name=" "worker.log")
                                 "-Dstorm.home="
+                               (str "-Dworkers.artifacts=" "/tmp/workers-artifacts")
                                 (str "-Dlogging.sensitivity=" mock-sensitivity)
                                 "-Dlog4j.configurationFile=/log4j2/worker.xml"
                                 "-DLog4jContextSelector=org.apache.logging.log4j.core.selector.BasicContextSelector"
@@ -296,6 +298,7 @@
                      launch-process nil
                      set-worker-user! nil
                      supervisor/jlp nil
+                     worker-artifacts-root "/tmp/workers-artifacts"
                      supervisor/write-log-metadata! nil]
             (supervisor/launch-worker mock-supervisor
                                       mock-storm-id
@@ -317,6 +320,7 @@
                      launch-process nil
                      set-worker-user! nil
                      supervisor/jlp nil
+                     worker-artifacts-root "/tmp/workers-artifacts"
                      supervisor/write-log-metadata! nil]
             (supervisor/launch-worker mock-supervisor
                                       mock-storm-id
@@ -332,6 +336,7 @@
           (stubbing [read-supervisor-storm-conf {TOPOLOGY-CLASSPATH topo-cp}
                      supervisor-stormdist-root nil
                      supervisor/jlp nil
+                     worker-artifacts-root "/tmp/workers-artifacts"
                      launch-process nil
                      set-worker-user! nil
                      current-classpath "/base"]
@@ -349,6 +354,7 @@
           (stubbing [read-supervisor-storm-conf {TOPOLOGY-ENVIRONMENT topo-env}
                      supervisor-stormdist-root nil
                      supervisor/jlp nil
+                     worker-artifacts-root "/tmp/workers-artifacts"
                      launch-process nil
                      set-worker-user! nil
                      current-classpath "/base"]
@@ -377,8 +383,9 @@
           exp-script-fn (fn [opts topo-opts]
                        (str "#!/bin/bash\n'export' 'LD_LIBRARY_PATH=';\n\nexec 'java'"
                                 " '-cp' 'mock-classpath'\"'\"'quote-on-purpose'"
-                                " '-Dlogfile.name=" mock-storm-id "-worker-" mock-port ".log'"
+                                " '-Dlogfile.name=" "worker.log'" 
                                 " '-Dstorm.home='"
+                                " '-Dworkers.artifacts=" (str storm-local "/workers-artifacts'")
                                 " '-Dstorm.id=" mock-storm-id "'"
                                 " '-Dworker.id=" mock-worker-id "'"
                                 " '-Dworker.port=" mock-port "'"
@@ -389,8 +396,9 @@
                                 " " (shell-cmd opts)
                                 " " (shell-cmd topo-opts)
                                 " '-Djava.library.path='"
-                                " '-Dlogfile.name=" mock-storm-id "-worker-" mock-port ".log'"
+                                " '-Dlogfile.name=" "worker.log'" 
                                 " '-Dstorm.home='"
+                                " '-Dworkers.artifacts=" (str storm-local "/workers-artifacts'")
                                 " '-Dlogging.sensitivity=" mock-sensitivity "'"
                                 " '-Dlog4j.configurationFile=/log4j2/worker.xml'"
                                 " '-DLog4jContextSelector=org.apache.logging.log4j.core.selector.BasicContextSelector'"
@@ -543,7 +551,7 @@
     (let [ worker-id "w-01"
            storm-id "s-01"
            port 9999
-           childopts "-Xloggc:/home/y/lib/storm/current/logs/gc.worker-%ID%-%STORM-ID%-%WORKER-ID%-%WORKER-PORT%.log"
+           childopts "-Xloggc:/home/y/lib/storm/current/logs/gc.worker-%ID%-%STORM-ID%-%WORKER-ID%-%WORKER-PORT%.log"   ;;TODO change
            ]
       (def childopts-with-ids (supervisor/substitute-childopts childopts worker-id storm-id port))
       (is (not-found? "%WORKER-ID%" childopts-with-ids))
@@ -561,7 +569,7 @@
     (let [ worker-id "w-01"
            storm-id "s-01"
            port 9999
-           childopts "-Xloggc:/home/y/lib/storm/current/logs/gc.worker-%STORM-ID%.log"]
+           childopts "-Xloggc:/home/y/lib/storm/current/logs/gc.worker-%STORM-ID%.log"]   ;; TODO change
            (def childopts-with-ids (supervisor/substitute-childopts childopts worker-id storm-id port))
            (is (not-found? "%WORKER-ID%" childopts-with-ids))
            (is (not-found? "w-01" childopts-with-ids))
@@ -577,7 +585,7 @@
     (let [ worker-id "w-01"
            storm-id "s-01"
            port 9999
-           childopts "-Xloggc:/home/y/lib/storm/current/logs/gc.worker.log"]
+           childopts "-Xloggc:/home/y/lib/storm/current/logs/gc.worker.log"]               ;;TODO change
            (def childopts-with-ids (supervisor/substitute-childopts childopts worker-id storm-id port))
            (is (not-found? "%WORKER-ID%" childopts-with-ids))
            (is (not-found? "w-01" childopts-with-ids))
@@ -610,7 +618,7 @@
     (let [ worker-id nil
            storm-id "s-01"
            port 9999
-           childopts "-Xloggc:/home/y/lib/storm/current/logs/gc.worker-%ID%-%STORM-ID%-%WORKER-ID%-%WORKER-PORT%.log"]
+           childopts "-Xloggc:/home/y/lib/storm/current/logs/gc.worker-%ID%-%STORM-ID%-%WORKER-ID%-%WORKER-PORT%.log"]     ;;TODO change
       (def childopts-with-ids (supervisor/substitute-childopts childopts worker-id storm-id port))
       (is (not-found? "%WORKER-ID%" childopts-with-ids))
       (is (not-found? "w-01" childopts-with-ids))

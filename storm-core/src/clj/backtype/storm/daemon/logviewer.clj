@@ -16,7 +16,7 @@
 (ns backtype.storm.daemon.logviewer
   (:use compojure.core)
   (:use [clojure.set :only [difference intersection]])
-  (:use [clojure.string :only [blank?]])
+  (:use [clojure.string :only [blank? split]])
   (:use [hiccup core page-helpers form-helpers])
   (:use [backtype.storm config util log timer])
   (:use [backtype.storm.ui helpers])
@@ -35,13 +35,11 @@
   (:import [backtype.storm.ui InvalidRequestException]
            [backtype.storm.security.auth AuthUtils])
   (:require [compojure.route :as route]
-            [compojure.handler :as handler]
-            [ring.middleware.keyword-params]
-            [ring.util.response :as resp])
+            [compojure.handler :as handler])
   (:require [backtype.storm.daemon common [supervisor :as supervisor]])
-  (:require [compojure.route :as route]
-            [compojure.handler :as handler]
-            [ring.util.response :as resp]
+  (:require [ring.middleware.keyword-params]
+            [ring.util.response :as resp] 
+            [ring.util.codec :as codec]
             [clojure.string :as string])
   (:gen-class))
 
@@ -50,17 +48,34 @@
 (defn cleanup-cutoff-age-millis [conf now-millis]
   (- now-millis (* (conf LOGVIEWER-CLEANUP-AGE-MINS) 60 1000)))
 
+(defn- last-modifiedtime-worker-logdir 
+  "Return the last modified time for all log files in a worker's log dir"
+  [log-dir]
+  (apply max
+         (.lastModified log-dir)
+         (for [^File file (.listFiles log-dir)] 
+           (.lastModified file))))
+
 (defn mk-FileFilter-for-log-cleanup [conf now-millis]
   (let [cutoff-age-millis (cleanup-cutoff-age-millis conf now-millis)]
     (reify FileFilter (^boolean accept [this ^File file]
                         (boolean (and
-                          (.isFile file)
-                          (re-find worker-log-filename-pattern (.getName file))
-                          (<= (.lastModified file) cutoff-age-millis)))))))
+                                   (not (.isFile file))
+                                   (<= (last-modifiedtime-worker-logdir file) cutoff-age-millis)))))))
 
-(defn select-files-for-cleanup [conf now-millis root-dir]
+(defn select-dirs-for-cleanup [conf now-millis root-dir]
   (let [file-filter (mk-FileFilter-for-log-cleanup conf now-millis)]
-    (.listFiles (File. root-dir) file-filter)))
+    (reduce clojure.set/union
+            (sorted-set)
+            (for [^File topo-dir (.listFiles (File. root-dir))]
+              (into [] (.listFiles (File. topo-dir) file-filter))))))
+
+(defn get-topo-port-workerlog
+  "Return the path of the worker log with the format of topoId/port/worker.log.*"
+  [^File file]
+  (clojure.string/join file-path-separator
+                       (take-last 3 
+                                  (split (.getCanonicalPath file) (re-pattern file-path-separator)))))
 
 (defn get-metadata-file-for-log-root-name [root-name root-dir]
   (let [metaFile (clojure.java.io/file root-dir "metadata"
@@ -72,50 +87,33 @@
                   " to clean up for " root-name)
         nil))))
 
+(defn get-metadata-file-for-wroker-logdir [logdir]
+  (let [metaFile (clojure.java.io/file logdir "worker.yaml")]
+    (if (.exists metaFile)
+      metaFile
+      (do
+        (log-warn "Could not find " (.getCanonicalPath metaFile)
+                  " to clean up for " logdir)
+        nil))))
+
 (defn get-worker-id-from-metadata-file [metaFile]
   (get (clojure-from-yaml-file metaFile) "worker-id"))
 
 (defn get-topo-owner-from-metadata-file [metaFile]
   (get (clojure-from-yaml-file metaFile) TOPOLOGY-SUBMITTER-USER))
 
-(defn get-log-root->files-map [log-files]
-  "Returns a map of \"root name\" to a the set of files in log-files having the
-  root name.  The \"root name\" of a log file is the part of the name preceding
-  the extension."
-  (reduce #(assoc %1                                      ;; The accumulated map so far
-                  (first %2)                              ;; key: The root name of the log file
-                  (conj (%1 (first %2) #{}) (second %2))) ;; val: The set of log files with the root name
-          {}                                              ;; initial (empty) map
-          (map #(list
-                  (second (re-find worker-log-filename-pattern (.getName %))) ;; The root name of the log file
-                  %)                                                          ;; The log file
-               log-files)))
-
-(defn identify-worker-log-files [log-files root-dir]
-  (into {} (for [log-root-entry (get-log-root->files-map log-files)
-                 :let [metaFile (get-metadata-file-for-log-root-name
-                                  (key log-root-entry) root-dir)
-                       log-root (key log-root-entry)
-                       files (val log-root-entry)]
+(defn identify-worker-log-dirs [log-dirs]
+  "return the workerid to worker-log-dir map"
+  (into {} (for [logdir log-dirs
+                 :let [metaFile (get-metadata-file-for-wroker-logdir logdir)]
                  :when metaFile]
-             {(get-worker-id-from-metadata-file metaFile)
-              {:owner (get-topo-owner-from-metadata-file metaFile)
-               :files
-                 ;; If each log for this root name is to be deleted, then
-                 ;; include the metadata file also.
-                 (if (empty? (difference
-                                  (set (filter #(re-find (re-pattern log-root) %)
-                                               (read-dir-contents root-dir)))
-                                  (set (map #(.getName %) files))))
-                  (conj files metaFile)
-                  ;; Otherwise, keep the list of files as it is.
-                  files)}})))
+             {(get-worker-id-from-metadata-file metaFile) logdir})))
 
-(defn get-dead-worker-files
+(defn get-dead-worker-dirs
   "Return a sorted set of java.io.Files that were written by workers that are
   now dead"
-  [conf now-secs log-files root-dir]
-  (if (empty? log-files)
+  [conf now-secs log-dirs]
+  (if (empty? log-dirs)
     (sorted-set)
     (let [alive-ids (->> 
                       (supervisor/read-worker-heartbeats conf)
@@ -126,22 +124,32 @@
                                                                  conf)))
                       keys
                       set)
-          id->entries (identify-worker-log-files log-files root-dir)]
-      (reduce clojure.set/union
-              (sorted-set)
-              (for [[id {files :files}] id->entries
-                    :when (not (contains? alive-ids id))]
-                files)))))
+          id->dir (identify-worker-log-dirs log-dirs)]
+      (apply sorted-set
+             (for [[id dir] id->dir
+                   :when (not (contains? alive-ids id))]
+               dir)))))
 
 (defn filter-worker-logs [logs]
   (filter #(and (.isFile %)
                 (re-find worker-log-filename-pattern (.getName %)))
           logs))
 
-(defn sorted-worker-logs
-  "Collect the wroker log files in a directory, sorted by decreasing age."
+(defn get-all-logs-for-rootdir
   [^File log-dir]
-  (let [logs (filter-worker-logs (into [] (.listFiles log-dir)))]
+  (filter-worker-logs
+    (reduce concat
+            (for [topo-dir (.listFiles log-dir)]
+              (reduce concat
+                      (for [port-dir (.listFiles topo-dir)]
+                        (into [] (.listFiles port-dir))))))))
+
+;; now we only delete log files; for old-dead, we delete whole dir for each port when applicable
+;; later we may also consider coredump and gclog files for deleting, need to disinclude metadata file
+(defn sorted-worker-logs
+  "Collect the wroker log files recursively, sorted by decreasing age."
+  [^File log-dir]
+  (let [logs (get-all-logs-for-rootdir log-dir)]
     (sort #(compare (.lastModified %1) (.lastModified %2)) logs)))
 
 (defn sum-file-size
@@ -160,24 +168,23 @@
       logs)))
 
 (defn cleanup-fn!
-  "Delete old log files for which the workers are no longer alive"
+  "Delete old log dirs for which the workers are no longer alive"
   [log-root-dir]
   (let [now-secs (current-time-secs)
-        old-log-files (select-files-for-cleanup *STORM-CONF*
-                                                (* now-secs 1000)
-                                                log-root-dir)
-        dead-worker-files (get-dead-worker-files *STORM-CONF*
-                                                 now-secs
-                                                 old-log-files
-                                                 log-root-dir)]
+        old-log-dirs (select-dirs-for-cleanup *STORM-CONF*
+                                              (* now-secs 1000)
+                                              log-root-dir)
+        dead-worker-dirs (get-dead-worker-dirs *STORM-CONF*
+                                               now-secs
+                                               old-log-dirs)]
     (log-debug "log cleanup: now=" now-secs
-               " old log files " (pr-str (map #(.getName %) old-log-files))
+               " old log files " (pr-str (map #(.getName %) old-log-dirs))
                " dead worker files " (pr-str
-                                       (map #(.getName %) dead-worker-files)))
-    (dofor [file dead-worker-files]
-      (let [path (.getCanonicalPath file)]
-        (log-message "Cleaning up: Removing " path)
-        (try (rmr path) (catch Exception ex (log-error ex)))))
+                                       (map #(.getName %) dead-worker-dirs)))
+    (dofor [dir dead-worker-dirs]
+           (let [path (.getCanonicalPath dir)]
+             (log-message "Cleaning up: Removing " path)
+             (try (rmr path) (catch Exception ex (log-error ex)))))
     (let [all-logs (sorted-worker-logs (File. log-root-dir))
           size (* (*STORM-CONF* LOGVIEWER-MAX-SUM-WORKER-LOGS-SIZE-MB) (*  1024 1024))]
       (delete-oldest-while-logs-too-large all-logs size))))
@@ -200,10 +207,8 @@
       (if (< skipped n) (recur skipped)))))
 
 (defn logfile-matches-filter?
-  [topo-id port log-file-name]
-  (let [my-topo-id (if (nil? topo-id) ".*" topo-id)
-        my-port (if (nil? port) ".*" port)
-        regex-string (str my-topo-id "-worker-" my-port ".log.*")
+  [log-file-name]
+  (let [regex-string (str "worker.log.*")
         regex-pattern (re-pattern regex-string)]
     (not= (re-seq regex-pattern (.toString log-file-name)) nil)))
 
@@ -326,15 +331,17 @@ Note that if anything goes wrong, this will throw an Error and exit."
           path (.getCanonicalPath file)
           zip-file? (.endsWith path ".gz")
           file-length (if zip-file? (Utils/zipFileSize (clojure.java.io/file path)) (.length (clojure.java.io/file path)))
-          [topoId m] (string/split fname #"-worker-")
-          log-files (.listFiles (File. root-dir))
-          files-str (for [file log-files] (.getName file))
-          filtered-logs (filter (partial logfile-matches-filter? topoId ".*") files-str)]
-      (if (= (File. root-dir)
-             (.getParentFile file))
+          topo-dir (.getParentFile (.getParentFile file))
+          log-files (reduce clojure.set/union
+                            (sorted-set)
+                            (for [^File port-dir (.listFiles topo-dir)]
+                              (into [] (filter-worker-logs (.listFiles port-dir)))))
+          files-str (for [file log-files] 
+                      (get-topo-port-workerlog file))]
+      (if (.exists file)
         (let [length (if length
                        (min 10485760 length)
-                     default-bytes-per-page)
+                       default-bytes-per-page)
               log-string (escape-html
                            (if start
                              (page-file path start length)
@@ -347,19 +354,19 @@ Note that if anything goes wrong, this will throw an Error and exit."
                              (.split log-string "\n"))
                      log-string)])
             (let [pager-data (pager-links fname start length file-length)]
-              (html (concat (search-file-form fname)
-                            (log-file-selection-form filtered-logs)
+              (html (concat (search-file-form (url-encode fname)) 
+                            (log-file-selection-form files-str) ;display all files in the directory
                             pager-data
                             (download-link fname)
                             [[:pre#logContent log-string]]
-                            pager-data)))))
+                            pager-data)))))  
         (-> (resp/response "Page not found")
             (resp/status 404))))
     (unauthorized-user-html user)))
 
 (defn download-log-file [fname req resp user ^String root-dir]
   (let [file (.getCanonicalFile (File. root-dir fname))]
-    (if (= (File. root-dir) (.getParentFile file))
+    (if (.exists file)
       (if (or (blank? (*STORM-CONF* UI-FILTER))
               (authorized-log-user? user fname *STORM-CONF*))
         (-> (resp/response file)
@@ -379,7 +386,8 @@ Note that if anything goes wrong, this will throw an Error and exit."
 (defn url-to-match-centered-in-log-page
   [needle fname offset port]
   (let [host (local-hostname)
-        port (logviewer-port)]
+        port (logviewer-port)
+        fname (clojure.string/join file-path-separator (take-last 3 (split fname (re-pattern file-path-separator))))]
     (url (str "http://" host ":" port "/log")
          {:file fname
           :start (max 0
@@ -514,7 +522,7 @@ Note that if anything goes wrong, this will throw an Error and exit."
                                      haystack
                                      offset
                                      file-offset
-                                     (.getName file)
+                                     (.getCanonicalPath file)
                                      :before-bytes before-arg
                                      :after-bytes after-arg))))
        (let [before-str-to-offset (min (.limit haystack)
@@ -657,7 +665,7 @@ Note that if anything goes wrong, this will throw an Error and exit."
 (defn search-log-file
   [fname user ^String root-dir search num-matches offset origin]
   (let [file (.getCanonicalFile (File. root-dir fname))]
-    (if (= (File. root-dir) (.getParentFile file))
+    (if (.exists file)
       (if (or (blank? (*STORM-CONF* UI-FILTER))
               (authorized-log-user? user fname *STORM-CONF*))
         (let [num-matches-int (if num-matches
@@ -676,9 +684,9 @@ Note that if anything goes wrong, this will throw an Error and exit."
                 :headers {"Access-Control-Allow-Origin" origin
                           "Access-Control-Allow-Credentials" "true"})
               (throw
-               (InvalidRequestException.
-                (str "Search substring must be between 1 and 1024 UTF-8 "
-                     "bytes in size (inclusive)"))))
+                (InvalidRequestException.
+                  (str "Search substring must be between 1 and 1024 UTF-8 "
+                       "bytes in size (inclusive)"))))
             (catch Exception ex
               (json-response (exception->json ex) :status 500))))
         (json-response (unauthorized-user-json user) :status 401))
@@ -708,11 +716,12 @@ Note that if anything goes wrong, this will throw an Error and exit."
                               (catch InvalidRequestException e
                                 (log-error e "Can't search past end of file.")
                                 {}))
-              file-name (str (.getName (first logs)))
+              file-name (get-topo-port-workerlog (first logs))
               new-matches (conj matches
                                 (merge these-matches
                                        { "fileName" file-name
-                                         "port" (nth (re-matches worker-log-filename-pattern file-name) 3)}))
+                                        "port" (first (take-last 2 (split (.getCanonicalPath (first logs)) (re-pattern file-path-separator))))}))
+              ;"port" (nth (re-matches worker-log-filename-pattern file-name) 3)}))
               new-count (+ match-count (count (these-matches "matches")))]
           (if (empty? these-matches)
             (recur matches (rest logs) 0 (+ file-offset 1) match-count)
@@ -721,49 +730,47 @@ Note that if anything goes wrong, this will throw an Error and exit."
               (recur new-matches (rest logs) 0 (+ file-offset 1) new-count))))))))
 
 (defn logs-for-port
-  "Get the filtered, authorized log files for a port."
-  [user root-dir topology-id log-files port]
+  "Get the filtered, authorized, sorted log files for a port."
+  [user port-dir]
   (let [filter-authorized-fn (fn [user logs]
-                                  (filter #(or
-                                            (blank? (*STORM-CONF* UI-FILTER))
-                                            (authorized-log-user? user % *STORM-CONF*)) logs))]
+                               (filter #(or
+                                          (blank? (*STORM-CONF* UI-FILTER))
+                                          (authorized-log-user? user (get-topo-port-workerlog %) *STORM-CONF*)) logs))]
     (sort #(compare (.lastModified %2) (.lastModified %1))
-          (map #(File. root-dir %)
-               (filter-authorized-fn
-                user
-                (filter (partial logfile-matches-filter? (str topology-id ".*?") (str port))
-                        (map #(.getName %) log-files)))))))
+          (filter-authorized-fn
+            user
+            (filter-worker-logs (.listFiles port-dir))))))
 
 (defn deep-search-logs-for-topology
   [topology-id user ^String root-dir search num-matches port file-offset offset search-archived? origin]
   (json-response
-   (if (not search)
-     []
-     (let [file-offset (if file-offset (Integer/parseInt file-offset) 0)
-           offset (if offset (Integer/parseInt offset) 0)
-           num-matches (or (Integer/parseInt num-matches) 1)
-           log-files (vec (.listFiles (File. root-dir)))
-           logs-for-port-fn (partial logs-for-port user root-dir topology-id log-files)]
-       (if (or (not port) (= "*" port))
-         ;; Check for all ports
-         (let [slot-ports (*STORM-CONF* SUPERVISOR-SLOTS-PORTS)
-               filtered-logs (filter (comp not empty?) (map logs-for-port-fn slot-ports))]
-           (if search-archived?
-             (map #(find-n-matches % num-matches 0 0 search)
-                  filtered-logs)
-             (map #(find-n-matches % num-matches 0 0 search)
-                  (map (comp vector first) filtered-logs))))
-         ;; Check just the one port
-         (if (not (contains? (into #{} (map str (*STORM-CONF* SUPERVISOR-SLOTS-PORTS))) port))
-           []
-           (let [filtered-logs (logs-for-port-fn port)]
-             (if (empty? filtered-logs)
-               []
-               (if search-archived?
-                 (find-n-matches filtered-logs num-matches file-offset offset search)
-                 (find-n-matches [(first filtered-logs)] num-matches 0 offset search))))))))
-   :headers {"Access-Control-Allow-Origin" origin
-             "Access-Control-Allow-Credentials" "true"}))
+    (if (or (not search) (not (.exists (File. (str root-dir file-path-separator topology-id)))))
+      []
+      (let [file-offset (if file-offset (Integer/parseInt file-offset) 0)
+            offset (if offset (Integer/parseInt offset) 0)
+            num-matches (or (Integer/parseInt num-matches) 1)
+            port-dirs (vec (.listFiles (File. (str root-dir file-path-separator topology-id))))
+            logs-for-port-fn (partial logs-for-port user)]
+        (if (or (not port) (= "*" port))
+          ;; Check for all ports
+          (let [filtered-logs (filter (comp not empty?) (map logs-for-port-fn port-dirs))]
+            (if search-archived?
+              (map #(find-n-matches % num-matches 0 0 search)
+                   filtered-logs)
+              (map #(find-n-matches % num-matches 0 0 search)
+                   (map (comp vector first) filtered-logs))))
+          ;; Check just the one port
+          (if (not (contains? (into #{} (map str (*STORM-CONF* SUPERVISOR-SLOTS-PORTS))) port))
+            []
+            (let [port-dir (File. (str root-dir file-path-separator topology-id file-path-separator port))]
+              (if (or (not (.exists port-dir)) (empty? (logs-for-port user port-dir))) 
+                []
+                (let [filtered-logs (logs-for-port user port-dir)]
+                  (if search-archived?
+                    (find-n-matches filtered-logs num-matches file-offset offset search)
+                    (find-n-matches [(first filtered-logs)] num-matches 0 offset search)))))))))
+    :headers {"Access-Control-Allow-Origin" origin
+              "Access-Control-Allow-Credentials" "true"}))
 
 (defn log-template
   ([body] (log-template body nil nil))
@@ -794,12 +801,33 @@ Note that if anything goes wrong, this will throw an Error and exit."
                ex)))))
 
 (defn list-log-files
-  [user topoId port log-files origin]
-  (let [files-str (for [file log-files] (.getName file))
-        filter-results (filter (partial logfile-matches-filter? topoId port) files-str)]
-    (json-response filter-results
-            :headers {"Access-Control-Allow-Origin" origin
-                      "Access-Control-Allow-Credentials" "true"})))
+  [user topoId port log-root origin]
+  (let [file-results
+        (if (nil? topoId)
+          (if (nil? port)
+            (get-all-logs-for-rootdir (File. log-root))
+            (reduce concat
+                    (for [topo-dir (.listFiles (File. log-root))]
+                      (reduce concat
+                              (for [port-dir (.listFiles topo-dir)]
+                                (if (= (str port) (.getName port-dir))
+                                  (into [] (.listFiles port-dir))))))))
+          (if (nil? port)
+            (let [topo-dir (File. (str log-root file-path-separator topoId))]
+              (if (.exists topo-dir)
+                (reduce concat
+                        (for [port-dir (.listFiles topo-dir)]
+                          (into [] (.listFiles port-dir))))
+                []))
+            (let [port-dir (get-worker-dir-from-root log-root topoId port)] 
+              (if (.exists port-dir) 
+                (into [] (.listFiles port-dir))
+                []))))
+        file-strs (sort (for [file file-results]
+                    (get-topo-port-workerlog file)))]
+    (json-response file-strs
+                   :headers {"Access-Control-Allow-Origin" origin
+                             "Access-Control-Allow-Credentials" "true"})))
 
 (defroutes log-routes
   (GET "/log" [:as req & m]
@@ -830,7 +858,7 @@ Note that if anything goes wrong, this will throw an Error and exit."
        ;; filter is configured.
        (try
          (let [user (.getUserName http-creds-handler servlet-request)]
-           (search-log-file file
+           (search-log-file (url-decode file)
                             user
                             log-root
                             (:search-string m)
@@ -864,14 +892,13 @@ Note that if anything goes wrong, this will throw an Error and exit."
       (let [servlet-request (:servlet-request req)
             user (.getUserName http-creds-handler servlet-request)]
         (list-log-files user
-          (:topoId m)
-          (:port m)
-          (.listFiles (File. (:log-root req)))
-          (.getHeader servlet-request "Origin")))
+                        (:topoId m)
+                        (:port m)
+                        (:log-root req)
+                        (.getHeader servlet-request "Origin")))
       (catch InvalidRequestException ex
         (log-error ex)
-         (json-response (exception->json ex) :status 400))))
-
+        (json-response (exception->json ex) :status 400))))
   (GET "/listLogs" [:as req & m]
     (try
       (let [servlet-request (:servlet-request req)
@@ -879,13 +906,14 @@ Note that if anything goes wrong, this will throw an Error and exit."
         (list-log-files user
                         (:topoId m)
                         (:port m)
-                        (.listFiles (File. (:log-root req)))
+                        (:log-root req)
                         (.getHeader servlet-request "Origin")))
       (catch InvalidRequestException ex
         (log-error ex)
         (json-response (exception->json ex) :status 400))))
   (route/resources "/")
   (route/not-found "Page not found"))
+
 
 (defn conf-middleware
   "For passing the storm configuration with each request."
@@ -918,7 +946,7 @@ Note that if anything goes wrong, this will throw an Error and exit."
 
 (defn -main []
   (let [conf (read-storm-config)
-        log-root (log-root-dir (conf LOGVIEWER-APPENDER-NAME))]
+        log-root (worker-artifacts-root conf)]
     (setup-default-uncaught-exception-handler)
     (start-log-cleaner! conf log-root)
     (start-logviewer! conf log-root)))
