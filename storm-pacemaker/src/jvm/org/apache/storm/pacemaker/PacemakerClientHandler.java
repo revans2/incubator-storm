@@ -30,7 +30,7 @@ import backtype.storm.messaging.netty.ControlMessage;
 
 public class PacemakerClientHandler extends SimpleChannelUpstreamHandler {
     private static final Logger LOG = LoggerFactory.getLogger(PacemakerClientHandler.class);
-    
+
     private PacemakerClient client;
 
     public PacemakerClientHandler(PacemakerClient client) {
@@ -39,23 +39,22 @@ public class PacemakerClientHandler extends SimpleChannelUpstreamHandler {
 
     @Override
     public void channelConnected(ChannelHandlerContext ctx,
-				 ChannelStateEvent event) {
-	LOG.info("Channel has connected.");
+                                 ChannelStateEvent event) {
         // register the newly established channel
         Channel channel = ctx.getChannel();
         client.channelConnected(channel);
-        
-        LOG.info("Connection established from " + channel.getLocalAddress()
-		 + " to " + channel.getRemoteAddress());
+
+        LOG.info("Connection established from {} to {}",
+                 channel.getLocalAddress(), channel.getRemoteAddress());
     }
 
     @Override
     public void messageReceived(ChannelHandlerContext ctx, MessageEvent event) {
-        LOG.info("Got Message: " + event.getMessage().toString());
+        LOG.debug("Got Message: {}", event.getMessage().toString());
         Object evm = event.getMessage();
-        
+
         if(evm instanceof ControlMessage) {
-            LOG.info("Got control message: " + evm.toString());
+            LOG.debug("Got control message: {}", evm.toString());
             return;
         }
         client.gotMessage((Message)evm);
@@ -63,8 +62,8 @@ public class PacemakerClientHandler extends SimpleChannelUpstreamHandler {
 
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, ExceptionEvent event) {
-        LOG.info("Connection to pacemaker failed", event.getCause());
+        LOG.debug("Connection to pacemaker failed {}", event.getCause());
         client.reconnect();
     }
-    
+
 }

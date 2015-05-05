@@ -48,7 +48,6 @@
       (node_exists [this path watch?] (.node_exists zk-state path watch?))
 
       (set_worker_hb [this path data acls]
-	(log-message "set_worker_hb")
         (let [response
                (.send pacemaker-client
                        (Message. HBServerMessageType/SEND_PULSE
@@ -61,7 +60,6 @@
             (throw HBExecutionException "Invalid Response Type"))))
 
       (delete_worker_hb [this path]
-	(log-message "delete_worker_hb.")
         (let [response
                (.send pacemaker-client
                        (Message. HBServerMessageType/DELETE_PATH
@@ -71,7 +69,6 @@
             (throw HBExecutionException "Invalid Response Type"))))
 
       (get_worker_hb [this path watch?]
-	(log-message "get_worker_hb.")
         (let [response
                (.send pacemaker-client
                        (Message. HBServerMessageType/GET_PULSE
@@ -81,7 +78,6 @@
             (throw HBExecutionException "Invalid Response Type"))))
 
       (get_worker_hb_children [this path watch?]
-	(log-message "get_worker_hb_children.")
         (let [response
                (.send pacemaker-client
                        (Message. HBServerMessageType/GET_ALL_NODES_FOR_PATH
