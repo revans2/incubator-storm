@@ -739,7 +739,7 @@ Note that if anything goes wrong, this will throw an Error and exit."
   (let [filter-authorized-fn (fn [user logs]
                                (filter #(or
                                           (blank? (*STORM-CONF* UI-FILTER))
-                                          (authorized-log-user? user % *STORM-CONF*)) logs))]
+                                          (authorized-log-user? user (get-topo-port-workerlog %) *STORM-CONF*)) logs))]
     (sort #(compare (.lastModified %2) (.lastModified %1))
           (filter-authorized-fn
             user
@@ -862,7 +862,7 @@ Note that if anything goes wrong, this will throw an Error and exit."
        ;; filter is configured.
        (try
          (let [user (.getUserName http-creds-handler servlet-request)]
-           (search-log-file (codec/percent-decode file)
+           (search-log-file (url-decode file)
                             user
                             log-root
                             (:search-string m)

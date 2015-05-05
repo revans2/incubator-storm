@@ -29,8 +29,8 @@ cat <<XML
 </properties>
 <appenders>
     <RollingFile name="A1"
-                 fileName="\${sys:storm.home}/logs/\${sys:logfile.name}"
-                 filePattern="\${sys:storm.home}/logs/\${sys:logfile.name}.%i.gz">
+                 fileName="\${sys:workers.artifacts}/\${sys:storm.id}/\${sys:worker.port}/\${sys:logfile.name}"
+                 filePattern="\${sys:workers.artifacts}/\${sys:storm.id}/\${sys:worker.port}\${sys:logfile.name}.%i.gz">
         <PatternLayout>
             <pattern>\${pattern}</pattern>
         </PatternLayout>
@@ -40,8 +40,8 @@ cat <<XML
         </Policies>
     </RollingFile>
     <RollingFile name="STDOUT"
-                 fileName="\${sys:storm.home}/logs/\${sys:logfile.name}.out"
-                 filePattern="\${sys:storm.home}/logs/\${sys:logfile.name}.out.%i.gz">
+                 fileName="\${sys:workers.artifacts}/\${sys:storm.id}/\${sys:worker.port}/\${sys:logfile.name}.out"
+                 filePattern="\${sys:workers.artifacts}/\${sys:storm.id}/\${sys:worker.port}\${sys:logfile.name}.out.%i.gz">
         <PatternLayout>
             <pattern>\${patternNoTime}</pattern>
         </PatternLayout>
@@ -51,8 +51,8 @@ cat <<XML
         </Policies>
     </RollingFile>
     <RollingFile name="STDERR"
-                 fileName="\${sys:storm.home}/logs/\${sys:logfile.name}.err"
-                 filePattern="\${sys:storm.home}/logs/\${sys:logfile.name}.err.%i.gz">
+                 fileName="\${sys:workers.artifacts}/\${sys:storm.id}/\${sys:worker.port}/\${sys:logfile.name}.err"
+                 filePattern="\${sys:workers.artifacts}/\${sys:storm.id}/\${sys:worker.port}\${sys:logfile.name}.err.%i.gz">
         <PatternLayout>
             <pattern>\${patternNoTime}</pattern>
         </PatternLayout>
