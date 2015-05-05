@@ -137,19 +137,18 @@
 
 (defn get-all-logs-for-rootdir
   [^File log-dir]
-  (filter-worker-logs    ;; TODO: to deal with gc.log and heapdump file, this filter may be disabled
-    (reduce concat
-            (for [topo-dir (.listFiles log-dir)]
-              (reduce concat
-                      (for [port-dir (.listFiles topo-dir)]
-                        (into [] (.listFiles port-dir))))))))
+  (reduce concat
+          (for [topo-dir (.listFiles log-dir)]
+            (reduce concat
+                    (for [port-dir (.listFiles topo-dir)]
+                      (into [] (.listFiles port-dir)))))))
 
-;; now we only delete log files; for old-dead, we delete whole dir for each port when applicable
-;; later we may also consider coredump and gclog files for deleting, need to disinclude metadata file
+;; we also included headdump and gclog files for deleting and dis-included metadata file
+;; for old-dead workers, we delete whole dir for each port when applicable
 (defn sorted-worker-logs
   "Collect the wroker log files recursively, sorted by decreasing age."
   [^File log-dir]
-  (let [logs (get-all-logs-for-rootdir log-dir)]
+  (let [logs (filter #(not= (.getName %) "worker.yaml") (get-all-logs-for-rootdir log-dir))]
     (sort #(compare (.lastModified %1) (.lastModified %2)) logs)))
 
 (defn sum-file-size
@@ -358,7 +357,7 @@ Note that if anything goes wrong, this will throw an Error and exit."
                              (.split log-string "\n"))
                      log-string)])
             (let [pager-data (if is-txt-file (pager-links fname start length file-length) nil)]
-              (html (concat (search-file-form (codec/percent-encode fname)) 
+              (html (concat (search-file-form (url-encode fname)) 
                             (log-file-selection-form reordered-files-str) ;display all files for this topology
                             pager-data
                             (download-link fname)
