@@ -346,9 +346,11 @@ public class Utils {
                 config = URLDecoder.decode(config);
                 String[] options = config.split("=", 2);
                 if (options.length == 2) {
-                    Object val = JSONValue.parse(options[1]);
-                    if (val == null) {
-                        val = options[1];
+                    Object val = options[1];
+                    try {
+                        val = JSONValue.parseWithException(options[1]);
+                    } catch (ParseException ignored) {
+                        //fall back to string, which is already set
                     }
                     ret.put(options[0], val);
                 }
