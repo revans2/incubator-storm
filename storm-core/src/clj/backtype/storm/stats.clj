@@ -692,6 +692,8 @@
                              merge-spout-executor-stats
                              :spout-id->stats))
 
+(defmethod agg-executor-stats :default [_ _ _ acc-stats _] acc-stats)
+
 (defn get-last-error
   [storm-cluster-state storm-id component-id]
   (if-let [e (.last-error storm-cluster-state storm-id component-id)]
