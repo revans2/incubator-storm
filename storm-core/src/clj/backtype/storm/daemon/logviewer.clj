@@ -68,7 +68,7 @@
     (reduce clojure.set/union
             (sorted-set)
             (for [^File topo-dir (.listFiles (File. root-dir))]
-              (into [] (.listFiles (File. topo-dir) file-filter))))))
+              (into [] (.listFiles topo-dir file-filter))))))
 
 (defn get-topo-port-workerlog
   "Return the path of the worker log with the format of topoId/port/worker.log.*"
@@ -143,8 +143,8 @@
                     (for [port-dir (.listFiles topo-dir)]
                       (into [] (.listFiles port-dir)))))))
 
-;; we also included headdump and gclog files for deleting and dis-included metadata file
-;; for old-dead workers, we delete whole dir for each port when applicable
+;; we also include heapdump and gclog files for deleting and exclude metadata file.
+;; for old-dead workers, we delete the whole dir for each port when applicable.
 (defn sorted-worker-logs
   "Collect the wroker log files recursively, sorted by decreasing age."
   [^File log-dir]
