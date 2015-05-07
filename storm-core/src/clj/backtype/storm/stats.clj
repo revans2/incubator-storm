@@ -692,6 +692,8 @@
                              merge-spout-executor-stats
                              :spout-id->stats))
 
+(defmethod agg-executor-stats :default [_ _ _ acc-stats _] acc-stats)
+
 (defn get-last-error
   [storm-cluster-state storm-id component-id]
   (if-let [e (.last-error storm-cluster-state storm-id component-id)]
@@ -785,31 +787,50 @@
      :window->failed (map-key str (:window->failed acc-data))}))
 
 (defn thriftify-spout-agg-stats
-  [id m]
-  (doto (SpoutAggregateStats. id)
-    (.set_num_executors (:numExecutors m))
-    (.set_num_tasks (:numTasks m))
-    (.set_num_emitted (:emitted m))
-    (.set_num_transferred (:transferred m))
-    (.set_num_acked (:acked m))
-    (.set_num_failed (:failed m))
-    (.set_last_error (:lastError m))
-    (.set_complete_latency (:completeLatency m))))
+  [id {:keys [numExecutors
+              numTasks
+              emitted
+              transferred
+              acked
+              failed
+              lastError
+              completeLatency]}]
+  (let [ret (SpoutAggregateStats. id)]
+    (and numExecutors (.set_num_executors ret numExecutors))
+    (and numTasks (.set_num_tasks ret numTasks))
+    (and emitted (.set_num_emitted ret emitted))
+    (and transferred (.set_num_transferred ret transferred))
+    (and acked (.set_num_acked ret acked))
+    (and failed (.set_num_failed ret failed))
+    (and lastError (.set_last_error ret lastError))
+    (and completeLatency (.set_complete_latency ret completeLatency))
+    ret))
 
 (defn thriftify-bolt-agg-stats
-  [id m]
-  (doto (BoltAggregateStats. id)
-    (.set_num_executors (:numExecutors m))
-    (.set_num_tasks (:numTasks m))
-    (.set_num_emitted (:emitted m))
-    (.set_num_transferred (:transferred m))
-    (.set_num_acked (:acked m))
-    (.set_num_failed (:failed m))
-    (.set_last_error (:lastError m))
-    (.set_execute_latency (:executeLatency m))
-    (.set_process_latency (:processLatency m))
-    (.set_num_executed (:executed m))
-    (.set_capacity (:capacity m))))
+  [id {:keys [numExecutors
+              numTasks
+              emitted
+              transferred
+              acked
+              failed
+              lastError
+              executeLatency
+              processLatency
+              executed
+              capacity]}]
+  (let [ret (BoltAggregateStats. id)]
+    (and numExecutors (.set_num_executors ret numExecutors))
+    (and numTasks (.set_num_tasks ret numTasks))
+    (and emitted (.set_num_emitted ret emitted))
+    (and transferred (.set_num_transferred ret transferred))
+    (and acked (.set_num_acked ret acked))
+    (and failed (.set_num_failed ret failed))
+    (and lastError (.set_last_error ret lastError))
+    (and executeLatency (.set_execute_latency ret executeLatency))
+    (and processLatency (.set_process_latency ret processLatency))
+    (and executed (.set_num_executed ret executed))
+    (and capacity (.set_capacity ret capacity))
+    ret))
 
 (defn expand-averages
   [avg counts]
