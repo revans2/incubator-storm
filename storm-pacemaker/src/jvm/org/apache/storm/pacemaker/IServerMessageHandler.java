@@ -17,9 +17,9 @@
  */
 package org.apache.storm.pacemaker;
 
-import backtype.storm.generated.Message;
+import backtype.storm.generated.HBMessage;
 
 public interface IServerMessageHandler {
 
-    public Message handleMessage(Message m, boolean authenticated);
+    public HBMessage handleMessage(HBMessage m, boolean authenticated);
 }

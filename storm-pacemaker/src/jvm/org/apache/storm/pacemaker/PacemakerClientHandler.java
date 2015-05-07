@@ -23,7 +23,7 @@ import org.jboss.netty.channel.ChannelStateEvent;
 import org.jboss.netty.channel.ExceptionEvent;
 import org.jboss.netty.channel.MessageEvent;
 import org.jboss.netty.channel.Channel;
-import backtype.storm.generated.Message;
+import backtype.storm.generated.HBMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import backtype.storm.messaging.netty.ControlMessage;
@@ -57,7 +57,7 @@ public class PacemakerClientHandler extends SimpleChannelUpstreamHandler {
             LOG.debug("Got control message: {}", evm.toString());
             return;
         }
-        client.gotMessage((Message)evm);
+        client.gotMessage((HBMessage)evm);
     }
 
     @Override

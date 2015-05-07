@@ -20,8 +20,8 @@ package org.apache.storm.pacemaker.codec;
 import org.jboss.netty.handler.codec.oneone.OneToOneEncoder;
 import org.jboss.netty.channel.ChannelHandlerContext;
 import org.jboss.netty.channel.Channel;
-import backtype.storm.generated.Message;
-import backtype.storm.generated.MessageData;
+import backtype.storm.generated.HBMessage;
+import backtype.storm.generated.HBMessageData;
 import backtype.storm.generated.HBServerMessageType;
 import org.jboss.netty.buffer.ChannelBuffers;
 import org.jboss.netty.buffer.ChannelBuffer;
@@ -39,11 +39,11 @@ public class ThriftEncoder extends OneToOneEncoder {
     private static final Logger LOG = LoggerFactory
         .getLogger(ThriftEncoder.class);
 
-    private Message encodeNettySerializable(INettySerializable netty_message,
-                                            HBServerMessageType mType) {
-
-        MessageData message_data = new MessageData();
-        Message m = new Message();
+    private HBMessage encodeNettySerializable(INettySerializable netty_message,
+                                              HBServerMessageType mType) {
+        
+        HBMessageData message_data = new HBMessageData();
+        HBMessage m = new HBMessage();
         try {
             ChannelBuffer cbuffer = netty_message.buffer();
             if(cbuffer.hasArray()) {
@@ -70,7 +70,7 @@ public class ThriftEncoder extends OneToOneEncoder {
 
         LOG.debug("Trying to encode: " + msg.getClass().toString() + " : " + msg.toString());
 
-        Message m;
+        HBMessage m;
         if(msg instanceof INettySerializable) {
             INettySerializable nettyMsg = (INettySerializable)msg;
 
@@ -88,7 +88,7 @@ public class ThriftEncoder extends OneToOneEncoder {
             m = encodeNettySerializable(nettyMsg, type);
         }
         else {
-            m = (Message)msg;
+            m = (HBMessage)msg;
         }
 
         try {

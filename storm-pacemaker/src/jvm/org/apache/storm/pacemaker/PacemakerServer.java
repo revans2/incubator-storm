@@ -28,7 +28,7 @@ import org.jboss.netty.channel.group.DefaultChannelGroup;
 import org.jboss.netty.channel.socket.nio.NioServerSocketChannelFactory;
 
 import backtype.storm.messaging.netty.ISaslServer;
-import backtype.storm.generated.Message;
+import backtype.storm.generated.HBMessage;
 import backtype.storm.messaging.netty.NettyRenameThreadFactory;
 import org.apache.storm.pacemaker.codec.ThriftNettyServerCodec;
 
@@ -94,10 +94,10 @@ class PacemakerServer implements ISaslServer {
     }
     
     public void received(Object mesg, String remote, Channel channel) throws InterruptedException {
-        Message m = (Message)mesg;
+        HBMessage m = (HBMessage)mesg;
         LOG.debug("received message. Passing to handler. {} : {} : {}",
                   handler.toString(), m.toString(), channel.toString());
-        Message response = handler.handleMessage(m, authenticated_channels.contains(channel));
+        HBMessage response = handler.handleMessage(m, authenticated_channels.contains(channel));
 	LOG.debug("Got Response from handler: {}", response.toString());
         channel.write(response).await();
     }

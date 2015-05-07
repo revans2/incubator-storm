@@ -19,7 +19,7 @@
            [java.util.concurrent ConcurrentHashMap ThreadPoolExecutor TimeUnit LinkedBlockingDeque]
            [backtype.storm.generated
             HBAuthorizationException HBExecutionException HBNodes HBRecords
-            HBServerMessageType Message MessageData Pulse])
+            HBServerMessageType HBMessage HBMessageData HBPulse])
   (:use [clojure.string :only [replace-first split]]
         [backtype.storm log config util])
   (:gen-class))
@@ -38,28 +38,28 @@
   (ConcurrentHashMap.))
 
 (defn create-path [^String path heartbeats]
-  (Message. HBServerMessageType/CREATE_PATH_RESPONSE nil))
+  (HBMessage. HBServerMessageType/CREATE_PATH_RESPONSE nil))
 
 (defn exists [^String path heartbeats]
   (let [it-does (.containsKey heartbeats path)]
     (log-debug (str "Checking if path [" path "] exists..." it-does "."))
-    (Message. HBServerMessageType/EXISTS_RESPONSE
-              (MessageData/boolval it-does))))
+    (HBMessage. HBServerMessageType/EXISTS_RESPONSE
+                (HBMessageData/boolval it-does))))
 
-(defn send-pulse [^Pulse pulse heartbeats]
+(defn send-pulse [^HBPulse pulse heartbeats]
   (let [id (.get_id pulse)
         details (.get_details pulse)]
     (log-debug (str "Saving Pulse for id [" id "] data [" + (str details) "]."))
     (.put heartbeats id details)
-    (Message. HBServerMessageType/SEND_PULSE_RESPONSE nil)))
+    (HBMessage. HBServerMessageType/SEND_PULSE_RESPONSE nil)))
 
 (defn get-all-pulse-for-path [^String path heartbeats]
-  (Message. HBServerMessageType/GET_ALL_PULSE_FOR_PATH_RESPONSE nil))
+  (HBMessage. HBServerMessageType/GET_ALL_PULSE_FOR_PATH_RESPONSE nil))
 
 (defn get-all-nodes-for-path [^String path ^ConcurrentHashMap heartbeats]
-    (log-debug "List all nodes for path " path)
-    (Message. HBServerMessageType/GET_ALL_NODES_FOR_PATH_RESPONSE
-              (MessageData/nodes
+  (log-debug "List all nodes for path " path)
+  (HBMessage. HBServerMessageType/GET_ALL_NODES_FOR_PATH_RESPONSE
+              (HBMessageData/nodes
                (HBNodes. (distinct (for [k (.keySet heartbeats)
                                          :let [trimmed-k (second (split (replace-first k path "") #"/"))]
                                          :when (and
@@ -70,29 +70,30 @@
 (defn get-pulse [^String path heartbeats]
   (let [details (.get heartbeats path)]
     (log-debug (str "Getting Pulse for path [" path "]...data " (str details) "]."))
-    (Message. HBServerMessageType/GET_PULSE_RESPONSE
-              (MessageData/pulse
-               (doto (Pulse. ) (.set_id path) (.set_details details))))))
+    (HBMessage. HBServerMessageType/GET_PULSE_RESPONSE
+                (HBMessageData/pulse
+                 (doto (HBPulse. ) (.set_id path) (.set_details details))))))
 
 (defn delete-pulse-id [^String path heartbeats]
   (log-debug (str "Deleting Pulse for id [" path "]."))
   (.remove heartbeats path)
-  (Message. HBServerMessageType/DELETE_PULSE_ID_RESPONSE nil))
+  (HBMessage. HBServerMessageType/DELETE_PULSE_ID_RESPONSE nil))
 
 (defn delete-path [^String path heartbeats]
   (let [prefix (if (= \/ (last path)) path (str path "/"))]
     (doseq [k (.keySet heartbeats)
             :when (= (.indexOf k prefix) 0)]
       (delete-pulse-id k heartbeats)))
-  (Message. HBServerMessageType/DELETE_PATH_RESPONSE nil))
+  (HBMessage. HBServerMessageType/DELETE_PATH_RESPONSE nil))
 
-(def not-authorized (Message. HBServerMessageType/NOT_AUTHORIZED nil))
+(defn not-authorized []
+  (HBMessage. HBServerMessageType/NOT_AUTHORIZED nil))
 
 (defn mk-handler [conf]
   (let [heartbeats ^ConcurrentHashMap (hb-data conf)]
     (reify
       IServerMessageHandler
-      (^Message handleMessage [this ^Message request ^boolean authenticated]
+      (^HBMessage handleMessage [this ^HBMessage request ^boolean authenticated]
         (let [response
               (condp = (.get_type request)
                 HBServerMessageType/CREATE_PATH
@@ -101,7 +102,7 @@
                 HBServerMessageType/EXISTS
                 (if authenticated
                   (exists (.get_path (.get_data request)) heartbeats)
-                  not-authorized)
+                  (not-authorized))
 
                 HBServerMessageType/SEND_PULSE
                 (send-pulse (.get_pulse (.get_data request)) heartbeats)
@@ -109,17 +110,17 @@
                 HBServerMessageType/GET_ALL_PULSE_FOR_PATH
                 (if authenticated
                   (get-all-pulse-for-path (.get_path (.get_data request)) heartbeats)
-                  not-authorized)
+                  (not-authorized))
 
                 HBServerMessageType/GET_ALL_NODES_FOR_PATH
                 (if authenticated
                   (get-all-nodes-for-path (.get_path (.get_data request)) heartbeats)
-                  not-authorized)
+                  (not-authorized))
 
                 HBServerMessageType/GET_PULSE
                 (if authenticated
                   (get-pulse (.get_path (.get_data request)) heartbeats)
-                  not-authorized)
+                  (not-authorized))
 
                 HBServerMessageType/DELETE_PATH
                 (delete-path (.get_path (.get_data request)) heartbeats)
@@ -129,7 +130,7 @@
 
                 ; Otherwise
                 (log-message "Got Unexpected Type: " (.get_type request)))]
-
+          
           (.set_message_id response (.get_message_id request))
           response)))))
 

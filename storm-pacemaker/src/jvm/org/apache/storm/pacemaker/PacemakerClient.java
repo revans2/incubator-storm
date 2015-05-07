@@ -26,7 +26,7 @@ import org.jboss.netty.channel.ChannelPipelineFactory;
 import org.jboss.netty.channel.socket.nio.NioClientSocketChannelFactory;
 
 import backtype.storm.messaging.netty.ISaslClient;
-import backtype.storm.generated.Message;
+import backtype.storm.generated.HBMessage;
 import backtype.storm.messaging.netty.NettyRenameThreadFactory;
 import org.apache.storm.pacemaker.codec.ThriftNettyClientCodec;
 
@@ -48,7 +48,6 @@ import java.util.concurrent.Future;
 public class PacemakerClient implements ISaslClient {
 
     private static final Logger LOG = LoggerFactory.getLogger(PacemakerClient.class);
-    private LinkedBlockingQueue<Message> message_queue;
 
     private String topo_name;
     private String secret;
@@ -58,7 +57,7 @@ public class PacemakerClient implements ISaslClient {
     private AtomicBoolean closing;
     private InetSocketAddress remote_addr;
     private int maxPending = 100;
-    private Message outstanding[];
+    private HBMessage outstanding[];
     private AtomicInteger nextMID;
     private boolean shouldAuthenticate;
     
@@ -66,10 +65,9 @@ public class PacemakerClient implements ISaslClient {
         this.topo_name = topo_name;
         this.secret = secret;
 	this.shouldAuthenticate = shouldAuthenticate;
-        message_queue = new LinkedBlockingQueue<Message>();
         closing = new AtomicBoolean(false);
         channelRef = new AtomicReference<Channel>(null);
-        outstanding = new Message[maxPending];
+        outstanding = new HBMessage[maxPending];
         nextMID = new AtomicInteger(0);
 
         ThreadFactory bossFactory = new NettyRenameThreadFactory("client-boss");
@@ -113,7 +111,7 @@ public class PacemakerClient implements ISaslClient {
         return secret;
     }
 
-    public Message send(Message m) {
+    public HBMessage send(HBMessage m) {
         // Wait for 'ready' (channel connected and maybe authentication)
         if(!ready) {
 	    synchronized(this) {
@@ -154,7 +152,7 @@ public class PacemakerClient implements ISaslClient {
                 m.wait();
             }
             
-            Message ret = outstanding[next];
+            HBMessage ret = outstanding[next];
             outstanding[next] = null;
             LOG.debug("Got Response: {}", ret.toString());
             return ret;
@@ -165,11 +163,11 @@ public class PacemakerClient implements ISaslClient {
         }
     }
 
-    public void gotMessage(Message m) {
+    public void gotMessage(HBMessage m) {
         int message_id = m.get_message_id();
         if(message_id >=0 && message_id < maxPending) {
             LOG.debug("Pacemaker Client got message: {}", m.toString());
-            Message request = outstanding[message_id];
+            HBMessage request = outstanding[message_id];
             outstanding[message_id] = m;
 
             if(request == null) {
