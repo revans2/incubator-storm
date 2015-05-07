@@ -808,6 +808,7 @@
                      (str "-Dlogfile.name=" logfilename)
                      (str "-Dstorm.home=" storm-home)
                      (str "-Dworkers.artifacts=" workers-artifacts)
+                     (str "-Dlogging.sensitivity=" logging-sensitivity)
                      (str "-Dstorm.id=" storm-id)
                      (str "-Dworker.id=" worker-id)
                      (str "-Dworker.port=" port)
