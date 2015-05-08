@@ -576,20 +576,25 @@ enum HBServerMessageType {
   DELETE_PATH,
   DELETE_PATH_RESPONSE,
   DELETE_PULSE_ID,
-  DELETE_PULSE_ID_RESPONSE
+  DELETE_PULSE_ID_RESPONSE,
+  CONTROL_MESSAGE,
+  SASL_MESSAGE_TOKEN,
+  NOT_AUTHORIZED
 }
 
-union MessageData {
+union HBMessageData {
   1: string path,
-  2: Pulse pulse,
+  2: HBPulse pulse,
   3: bool boolval,
   4: HBRecords records,
-  5: HBNodes nodes
+  5: HBNodes nodes,
+  7: optional binary message_blob;
 }
 
-struct Message {
+struct HBMessage {
   1: HBServerMessageType type,
-  2: MessageData data
+  2: HBMessageData data,
+  3: optional i32 message_id = -1,
 }
 
 
@@ -601,13 +606,13 @@ exception HBExecutionException {
   1: required string msg;
 }
 
-struct Pulse {
+struct HBPulse {
   1: required string id;
   2: binary details;
 }
 
 struct HBRecords {
-  1: list<Pulse> pulses;
+  1: list<HBPulse> pulses;
 }
 
 struct HBNodes {

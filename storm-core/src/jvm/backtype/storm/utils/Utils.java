@@ -144,6 +144,7 @@ public class Utils {
             }
             return ser.serialize(t);
         } catch (TException e) {
+            LOG.error("Failed to serialize to thrift: ", e);
             throw new RuntimeException(e);
         }
     }

@@ -32,6 +32,7 @@ import java.net.URI;
 import java.util.Collection;
 import java.util.Set;
 import java.util.HashSet;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 
@@ -66,6 +67,37 @@ public class AuthUtils {
         }
 
         return login_conf;
+    }
+
+    /**
+     * Pull a set of keys out of a Configuration.
+     * @param configs_to_pull A set of config keys that you want the values of.
+     * @param conf The config to pull the key/value pairs out of.
+     * @param conf_entry The app configuration entry name to get stuff from.
+     * @return Return a map of the configs in configs_to_pull to their values.
+     */
+    public static Map<String, ?> PullConfig(Configuration conf,
+                                            String conf_entry) throws IOException {
+        if(conf == null) {
+            return null;
+        }
+        AppConfigurationEntry configurationEntries[] = conf.getAppConfigurationEntry(conf_entry);
+        if(configurationEntries == null) {
+            String errorMessage = "Could not find a '" + conf_entry
+                + "' entry in this configuration: Client cannot start.";
+            throw new IOException(errorMessage);
+        }
+
+        HashMap<String, Object> results = new HashMap();
+        
+
+        for(AppConfigurationEntry entry: configurationEntries) {
+            Map<String, ?> options = entry.getOptions();
+            for(String key : options.keySet()) {
+                results.put(key, options.get(key));
+            }
+        }
+        return results;
     }
 
     /**

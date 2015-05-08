@@ -11,9 +11,20 @@
   <packaging>jar</packaging>
   <name>Pacemaker - Storm Heartbeat Server</name>
   <dependencies>
+    <!-- test deps -->
     <dependency>
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.clojars.runa</groupId>
+      <artifactId>conjure</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.mockito</groupId>
+      <artifactId>mockito-all</artifactId>
       <scope>test</scope>
     </dependency>
     <!-- storm -->
@@ -22,54 +33,6 @@
       <artifactId>storm-core</artifactId>
       <version>${project.version}</version>
       <scope>provided</scope>
-    </dependency>
-    <!-- Logging -->
-    <dependency>
-      <groupId>org.apache.logging.log4j</groupId>
-      <artifactId>log4j-api</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.logging.log4j</groupId>
-      <artifactId>log4j-core</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.logging.log4j</groupId>
-      <artifactId>log4j-slf4j-impl</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.logging.log4j</groupId>
-      <artifactId>log4j-1.2-api</artifactId>
-    </dependency>
-    <!-- Finagle -->
-    <dependency>
-      <groupId>com.google.guava</groupId>
-      <artifactId>guava</artifactId>
-      <version>16.0.1</version>
-    </dependency>
-    <dependency>
-      <groupId>com.twitter</groupId>
-      <artifactId>finagle-core_2.10</artifactId>
-      <version>6.24.0</version>
-    </dependency>
-    <dependency>
-      <groupId>finagle-clojure</groupId>
-      <artifactId>core</artifactId>
-      <version>0.3.0</version>
-    </dependency>
-    <dependency>
-      <groupId>finagle-clojure</groupId>
-      <artifactId>http</artifactId>
-      <version>0.3.0</version>
-    </dependency>
-    <dependency>
-      <groupId>com.twitter</groupId>
-      <artifactId>finagle-http_2.10</artifactId>
-      <version>6.24.0</version>
-    </dependency>
-    <dependency>
-      <groupId>org.clojure</groupId>
-      <artifactId>clojure</artifactId>
-      <version>1.6.0</version>
     </dependency>
   </dependencies>
   <build>

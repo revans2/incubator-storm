@@ -21,6 +21,7 @@ import org.jboss.netty.channel.ChannelPipeline;
 import org.jboss.netty.channel.ChannelPipelineFactory;
 import org.jboss.netty.channel.Channels;
 
+import backtype.storm.Config;
 import java.util.Map;
 
 class StormClientPipelineFactory implements ChannelPipelineFactory {
@@ -40,6 +41,14 @@ class StormClientPipelineFactory implements ChannelPipelineFactory {
         pipeline.addLast("decoder", new MessageDecoder());
         // Encoder
         pipeline.addLast("encoder", new MessageEncoder());
+
+        boolean isNettyAuth = (Boolean) this.client.getConfig()
+                .get(Config.STORM_MESSAGING_NETTY_AUTHENTICATION);
+        if (isNettyAuth) {
+            // Authenticate: Removed after authentication completes
+            pipeline.addLast("saslClientHandler", new SaslStormClientHandler(
+                    client));
+        }
         // business logic.
         pipeline.addLast("handler", new StormClientHandler(client, conf));
 

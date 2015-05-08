@@ -51,13 +51,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @SuppressWarnings({"cast", "rawtypes", "serial", "unchecked"})
-public class MessageData extends org.apache.thrift.TUnion<MessageData, MessageData._Fields> {
-  private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("MessageData");
+public class HBMessageData extends org.apache.thrift.TUnion<HBMessageData, HBMessageData._Fields> {
+  private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("HBMessageData");
   private static final org.apache.thrift.protocol.TField PATH_FIELD_DESC = new org.apache.thrift.protocol.TField("path", org.apache.thrift.protocol.TType.STRING, (short)1);
   private static final org.apache.thrift.protocol.TField PULSE_FIELD_DESC = new org.apache.thrift.protocol.TField("pulse", org.apache.thrift.protocol.TType.STRUCT, (short)2);
   private static final org.apache.thrift.protocol.TField BOOLVAL_FIELD_DESC = new org.apache.thrift.protocol.TField("boolval", org.apache.thrift.protocol.TType.BOOL, (short)3);
   private static final org.apache.thrift.protocol.TField RECORDS_FIELD_DESC = new org.apache.thrift.protocol.TField("records", org.apache.thrift.protocol.TType.STRUCT, (short)4);
   private static final org.apache.thrift.protocol.TField NODES_FIELD_DESC = new org.apache.thrift.protocol.TField("nodes", org.apache.thrift.protocol.TType.STRUCT, (short)5);
+  private static final org.apache.thrift.protocol.TField MESSAGE_BLOB_FIELD_DESC = new org.apache.thrift.protocol.TField("message_blob", org.apache.thrift.protocol.TType.STRING, (short)7);
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift.TFieldIdEnum {
@@ -65,7 +66,8 @@ public class MessageData extends org.apache.thrift.TUnion<MessageData, MessageDa
     PULSE((short)2, "pulse"),
     BOOLVAL((short)3, "boolval"),
     RECORDS((short)4, "records"),
-    NODES((short)5, "nodes");
+    NODES((short)5, "nodes"),
+    MESSAGE_BLOB((short)7, "message_blob");
 
     private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
 
@@ -90,6 +92,8 @@ public class MessageData extends org.apache.thrift.TUnion<MessageData, MessageDa
           return RECORDS;
         case 5: // NODES
           return NODES;
+        case 7: // MESSAGE_BLOB
+          return MESSAGE_BLOB;
         default:
           return null;
       }
@@ -135,59 +139,73 @@ public class MessageData extends org.apache.thrift.TUnion<MessageData, MessageDa
     tmpMap.put(_Fields.PATH, new org.apache.thrift.meta_data.FieldMetaData("path", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
     tmpMap.put(_Fields.PULSE, new org.apache.thrift.meta_data.FieldMetaData("pulse", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-        new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRUCT        , "Pulse")));
+        new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRUCT        , "HBPulse")));
     tmpMap.put(_Fields.BOOLVAL, new org.apache.thrift.meta_data.FieldMetaData("boolval", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.BOOL)));
     tmpMap.put(_Fields.RECORDS, new org.apache.thrift.meta_data.FieldMetaData("records", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRUCT        , "HBRecords")));
     tmpMap.put(_Fields.NODES, new org.apache.thrift.meta_data.FieldMetaData("nodes", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRUCT        , "HBNodes")));
+    tmpMap.put(_Fields.MESSAGE_BLOB, new org.apache.thrift.meta_data.FieldMetaData("message_blob", org.apache.thrift.TFieldRequirementType.OPTIONAL, 
+        new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING        , true)));
     metaDataMap = Collections.unmodifiableMap(tmpMap);
-    org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(MessageData.class, metaDataMap);
+    org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(HBMessageData.class, metaDataMap);
   }
 
-  public MessageData() {
+  public HBMessageData() {
     super();
   }
 
-  public MessageData(_Fields setField, Object value) {
+  public HBMessageData(_Fields setField, Object value) {
     super(setField, value);
   }
 
-  public MessageData(MessageData other) {
+  public HBMessageData(HBMessageData other) {
     super(other);
   }
-  public MessageData deepCopy() {
-    return new MessageData(this);
+  public HBMessageData deepCopy() {
+    return new HBMessageData(this);
   }
 
-  public static MessageData path(String value) {
-    MessageData x = new MessageData();
+  public static HBMessageData path(String value) {
+    HBMessageData x = new HBMessageData();
     x.set_path(value);
     return x;
   }
 
-  public static MessageData pulse(Pulse value) {
-    MessageData x = new MessageData();
+  public static HBMessageData pulse(HBPulse value) {
+    HBMessageData x = new HBMessageData();
     x.set_pulse(value);
     return x;
   }
 
-  public static MessageData boolval(boolean value) {
-    MessageData x = new MessageData();
+  public static HBMessageData boolval(boolean value) {
+    HBMessageData x = new HBMessageData();
     x.set_boolval(value);
     return x;
   }
 
-  public static MessageData records(HBRecords value) {
-    MessageData x = new MessageData();
+  public static HBMessageData records(HBRecords value) {
+    HBMessageData x = new HBMessageData();
     x.set_records(value);
     return x;
   }
 
-  public static MessageData nodes(HBNodes value) {
-    MessageData x = new MessageData();
+  public static HBMessageData nodes(HBNodes value) {
+    HBMessageData x = new HBMessageData();
     x.set_nodes(value);
+    return x;
+  }
+
+  public static HBMessageData message_blob(ByteBuffer value) {
+    HBMessageData x = new HBMessageData();
+    x.set_message_blob(value);
+    return x;
+  }
+
+  public static HBMessageData message_blob(byte[] value) {
+    HBMessageData x = new HBMessageData();
+    x.set_message_blob(ByteBuffer.wrap(Arrays.copyOf(value, value.length)));
     return x;
   }
 
@@ -201,10 +219,10 @@ public class MessageData extends org.apache.thrift.TUnion<MessageData, MessageDa
         }
         throw new ClassCastException("Was expecting value of type String for field 'path', but got " + value.getClass().getSimpleName());
       case PULSE:
-        if (value instanceof Pulse) {
+        if (value instanceof HBPulse) {
           break;
         }
-        throw new ClassCastException("Was expecting value of type Pulse for field 'pulse', but got " + value.getClass().getSimpleName());
+        throw new ClassCastException("Was expecting value of type HBPulse for field 'pulse', but got " + value.getClass().getSimpleName());
       case BOOLVAL:
         if (value instanceof Boolean) {
           break;
@@ -220,6 +238,11 @@ public class MessageData extends org.apache.thrift.TUnion<MessageData, MessageDa
           break;
         }
         throw new ClassCastException("Was expecting value of type HBNodes for field 'nodes', but got " + value.getClass().getSimpleName());
+      case MESSAGE_BLOB:
+        if (value instanceof ByteBuffer) {
+          break;
+        }
+        throw new ClassCastException("Was expecting value of type ByteBuffer for field 'message_blob', but got " + value.getClass().getSimpleName());
       default:
         throw new IllegalArgumentException("Unknown field id " + setField);
     }
@@ -241,8 +264,8 @@ public class MessageData extends org.apache.thrift.TUnion<MessageData, MessageDa
           }
         case PULSE:
           if (field.type == PULSE_FIELD_DESC.type) {
-            Pulse pulse;
-            pulse = new Pulse();
+            HBPulse pulse;
+            pulse = new HBPulse();
             pulse.read(iprot);
             return pulse;
           } else {
@@ -278,6 +301,15 @@ public class MessageData extends org.apache.thrift.TUnion<MessageData, MessageDa
             org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
             return null;
           }
+        case MESSAGE_BLOB:
+          if (field.type == MESSAGE_BLOB_FIELD_DESC.type) {
+            ByteBuffer message_blob;
+            message_blob = iprot.readBinary();
+            return message_blob;
+          } else {
+            org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
+            return null;
+          }
         default:
           throw new IllegalStateException("setField wasn't null, but didn't match any of the case statements!");
       }
@@ -295,7 +327,7 @@ public class MessageData extends org.apache.thrift.TUnion<MessageData, MessageDa
         oprot.writeString(path);
         return;
       case PULSE:
-        Pulse pulse = (Pulse)value_;
+        HBPulse pulse = (HBPulse)value_;
         pulse.write(oprot);
         return;
       case BOOLVAL:
@@ -309,6 +341,10 @@ public class MessageData extends org.apache.thrift.TUnion<MessageData, MessageDa
       case NODES:
         HBNodes nodes = (HBNodes)value_;
         nodes.write(oprot);
+        return;
+      case MESSAGE_BLOB:
+        ByteBuffer message_blob = (ByteBuffer)value_;
+        oprot.writeBinary(message_blob);
         return;
       default:
         throw new IllegalStateException("Cannot write union with unknown field " + setField_);
@@ -325,8 +361,8 @@ public class MessageData extends org.apache.thrift.TUnion<MessageData, MessageDa
           path = iprot.readString();
           return path;
         case PULSE:
-          Pulse pulse;
-          pulse = new Pulse();
+          HBPulse pulse;
+          pulse = new HBPulse();
           pulse.read(iprot);
           return pulse;
         case BOOLVAL:
@@ -343,6 +379,10 @@ public class MessageData extends org.apache.thrift.TUnion<MessageData, MessageDa
           nodes = new HBNodes();
           nodes.read(iprot);
           return nodes;
+        case MESSAGE_BLOB:
+          ByteBuffer message_blob;
+          message_blob = iprot.readBinary();
+          return message_blob;
         default:
           throw new IllegalStateException("setField wasn't null, but didn't match any of the case statements!");
       }
@@ -359,7 +399,7 @@ public class MessageData extends org.apache.thrift.TUnion<MessageData, MessageDa
         oprot.writeString(path);
         return;
       case PULSE:
-        Pulse pulse = (Pulse)value_;
+        HBPulse pulse = (HBPulse)value_;
         pulse.write(oprot);
         return;
       case BOOLVAL:
@@ -373,6 +413,10 @@ public class MessageData extends org.apache.thrift.TUnion<MessageData, MessageDa
       case NODES:
         HBNodes nodes = (HBNodes)value_;
         nodes.write(oprot);
+        return;
+      case MESSAGE_BLOB:
+        ByteBuffer message_blob = (ByteBuffer)value_;
+        oprot.writeBinary(message_blob);
         return;
       default:
         throw new IllegalStateException("Cannot write union with unknown field " + setField_);
@@ -392,6 +436,8 @@ public class MessageData extends org.apache.thrift.TUnion<MessageData, MessageDa
         return RECORDS_FIELD_DESC;
       case NODES:
         return NODES_FIELD_DESC;
+      case MESSAGE_BLOB:
+        return MESSAGE_BLOB_FIELD_DESC;
       default:
         throw new IllegalArgumentException("Unknown field id " + setField);
     }
@@ -426,15 +472,15 @@ public class MessageData extends org.apache.thrift.TUnion<MessageData, MessageDa
     value_ = value;
   }
 
-  public Pulse get_pulse() {
+  public HBPulse get_pulse() {
     if (getSetField() == _Fields.PULSE) {
-      return (Pulse)getFieldValue();
+      return (HBPulse)getFieldValue();
     } else {
       throw new RuntimeException("Cannot get field 'pulse' because union is currently set to " + getFieldDesc(getSetField()).name);
     }
   }
 
-  public void set_pulse(Pulse value) {
+  public void set_pulse(HBPulse value) {
     if (value == null) throw new NullPointerException();
     setField_ = _Fields.PULSE;
     value_ = value;
@@ -481,6 +527,30 @@ public class MessageData extends org.apache.thrift.TUnion<MessageData, MessageDa
     value_ = value;
   }
 
+  public byte[] get_message_blob() {
+    set_message_blob(org.apache.thrift.TBaseHelper.rightSize(buffer_for_message_blob()));
+    ByteBuffer b = buffer_for_message_blob();
+    return b == null ? null : b.array();
+  }
+
+  public ByteBuffer buffer_for_message_blob() {
+    if (getSetField() == _Fields.MESSAGE_BLOB) {
+      return org.apache.thrift.TBaseHelper.copyBinary((ByteBuffer)getFieldValue());
+    } else {
+      throw new RuntimeException("Cannot get field 'message_blob' because union is currently set to " + getFieldDesc(getSetField()).name);
+    }
+  }
+
+  public void set_message_blob(byte[] value) {
+    set_message_blob(ByteBuffer.wrap(Arrays.copyOf(value, value.length)));
+  }
+
+  public void set_message_blob(ByteBuffer value) {
+    if (value == null) throw new NullPointerException();
+    setField_ = _Fields.MESSAGE_BLOB;
+    value_ = value;
+  }
+
   public boolean is_set_path() {
     return setField_ == _Fields.PATH;
   }
@@ -506,20 +576,25 @@ public class MessageData extends org.apache.thrift.TUnion<MessageData, MessageDa
   }
 
 
+  public boolean is_set_message_blob() {
+    return setField_ == _Fields.MESSAGE_BLOB;
+  }
+
+
   public boolean equals(Object other) {
-    if (other instanceof MessageData) {
-      return equals((MessageData)other);
+    if (other instanceof HBMessageData) {
+      return equals((HBMessageData)other);
     } else {
       return false;
     }
   }
 
-  public boolean equals(MessageData other) {
+  public boolean equals(HBMessageData other) {
     return other != null && getSetField() == other.getSetField() && getFieldValue().equals(other.getFieldValue());
   }
 
   @Override
-  public int compareTo(MessageData other) {
+  public int compareTo(HBMessageData other) {
     int lastComparison = org.apache.thrift.TBaseHelper.compareTo(getSetField(), other.getSetField());
     if (lastComparison == 0) {
       return org.apache.thrift.TBaseHelper.compareTo(getFieldValue(), other.getFieldValue());

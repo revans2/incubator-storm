@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-#
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
 # distributed with this work for additional information
@@ -133,6 +131,9 @@ class HBServerMessageType:
   DELETE_PATH_RESPONSE = 13
   DELETE_PULSE_ID = 14
   DELETE_PULSE_ID_RESPONSE = 15
+  CONTROL_MESSAGE = 16
+  SASL_MESSAGE_TOKEN = 17
+  NOT_AUTHORIZED = 18
 
   _VALUES_TO_NAMES = {
     0: "CREATE_PATH",
@@ -151,6 +152,9 @@ class HBServerMessageType:
     13: "DELETE_PATH_RESPONSE",
     14: "DELETE_PULSE_ID",
     15: "DELETE_PULSE_ID_RESPONSE",
+    16: "CONTROL_MESSAGE",
+    17: "SASL_MESSAGE_TOKEN",
+    18: "NOT_AUTHORIZED",
   }
 
   _NAMES_TO_VALUES = {
@@ -170,6 +174,9 @@ class HBServerMessageType:
     "DELETE_PATH_RESPONSE": 13,
     "DELETE_PULSE_ID": 14,
     "DELETE_PULSE_ID_RESPONSE": 15,
+    "CONTROL_MESSAGE": 16,
+    "SASL_MESSAGE_TOKEN": 17,
+    "NOT_AUTHORIZED": 18,
   }
 
 
@@ -10122,7 +10129,7 @@ class DRPCExecutionException(TException):
   def __ne__(self, other):
     return not (self == other)
 
-class MessageData:
+class HBMessageData:
   """
   Attributes:
    - path
@@ -10130,23 +10137,27 @@ class MessageData:
    - boolval
    - records
    - nodes
+   - message_blob
   """
 
   thrift_spec = (
     None, # 0
     (1, TType.STRING, 'path', None, None, ), # 1
-    (2, TType.STRUCT, 'pulse', (Pulse, Pulse.thrift_spec), None, ), # 2
+    (2, TType.STRUCT, 'pulse', (HBPulse, HBPulse.thrift_spec), None, ), # 2
     (3, TType.BOOL, 'boolval', None, None, ), # 3
     (4, TType.STRUCT, 'records', (HBRecords, HBRecords.thrift_spec), None, ), # 4
     (5, TType.STRUCT, 'nodes', (HBNodes, HBNodes.thrift_spec), None, ), # 5
+    None, # 6
+    (7, TType.STRING, 'message_blob', None, None, ), # 7
   )
 
-  def __init__(self, path=None, pulse=None, boolval=None, records=None, nodes=None,):
+  def __init__(self, path=None, pulse=None, boolval=None, records=None, nodes=None, message_blob=None,):
     self.path = path
     self.pulse = pulse
     self.boolval = boolval
     self.records = records
     self.nodes = nodes
+    self.message_blob = message_blob
 
   def read(self, iprot):
     if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
@@ -10164,7 +10175,7 @@ class MessageData:
           iprot.skip(ftype)
       elif fid == 2:
         if ftype == TType.STRUCT:
-          self.pulse = Pulse()
+          self.pulse = HBPulse()
           self.pulse.read(iprot)
         else:
           iprot.skip(ftype)
@@ -10185,6 +10196,11 @@ class MessageData:
           self.nodes.read(iprot)
         else:
           iprot.skip(ftype)
+      elif fid == 7:
+        if ftype == TType.STRING:
+          self.message_blob = iprot.readString();
+        else:
+          iprot.skip(ftype)
       else:
         iprot.skip(ftype)
       iprot.readFieldEnd()
@@ -10194,7 +10210,7 @@ class MessageData:
     if oprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and self.thrift_spec is not None and fastbinary is not None:
       oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
       return
-    oprot.writeStructBegin('MessageData')
+    oprot.writeStructBegin('HBMessageData')
     if self.path is not None:
       oprot.writeFieldBegin('path', TType.STRING, 1)
       oprot.writeString(self.path.encode('utf-8'))
@@ -10215,6 +10231,10 @@ class MessageData:
       oprot.writeFieldBegin('nodes', TType.STRUCT, 5)
       self.nodes.write(oprot)
       oprot.writeFieldEnd()
+    if self.message_blob is not None:
+      oprot.writeFieldBegin('message_blob', TType.STRING, 7)
+      oprot.writeString(self.message_blob)
+      oprot.writeFieldEnd()
     oprot.writeFieldStop()
     oprot.writeStructEnd()
 
@@ -10229,6 +10249,7 @@ class MessageData:
     value = (value * 31) ^ hash(self.boolval)
     value = (value * 31) ^ hash(self.records)
     value = (value * 31) ^ hash(self.nodes)
+    value = (value * 31) ^ hash(self.message_blob)
     return value
 
   def __repr__(self):
@@ -10242,22 +10263,25 @@ class MessageData:
   def __ne__(self, other):
     return not (self == other)
 
-class Message:
+class HBMessage:
   """
   Attributes:
    - type
    - data
+   - message_id
   """
 
   thrift_spec = (
     None, # 0
     (1, TType.I32, 'type', None, None, ), # 1
-    (2, TType.STRUCT, 'data', (MessageData, MessageData.thrift_spec), None, ), # 2
+    (2, TType.STRUCT, 'data', (HBMessageData, HBMessageData.thrift_spec), None, ), # 2
+    (3, TType.I32, 'message_id', None, -1, ), # 3
   )
 
-  def __init__(self, type=None, data=None,):
+  def __init__(self, type=None, data=None, message_id=thrift_spec[3][4],):
     self.type = type
     self.data = data
+    self.message_id = message_id
 
   def read(self, iprot):
     if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
@@ -10275,8 +10299,13 @@ class Message:
           iprot.skip(ftype)
       elif fid == 2:
         if ftype == TType.STRUCT:
-          self.data = MessageData()
+          self.data = HBMessageData()
           self.data.read(iprot)
+        else:
+          iprot.skip(ftype)
+      elif fid == 3:
+        if ftype == TType.I32:
+          self.message_id = iprot.readI32();
         else:
           iprot.skip(ftype)
       else:
@@ -10288,7 +10317,7 @@ class Message:
     if oprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and self.thrift_spec is not None and fastbinary is not None:
       oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
       return
-    oprot.writeStructBegin('Message')
+    oprot.writeStructBegin('HBMessage')
     if self.type is not None:
       oprot.writeFieldBegin('type', TType.I32, 1)
       oprot.writeI32(self.type)
@@ -10296,6 +10325,10 @@ class Message:
     if self.data is not None:
       oprot.writeFieldBegin('data', TType.STRUCT, 2)
       self.data.write(oprot)
+      oprot.writeFieldEnd()
+    if self.message_id is not None:
+      oprot.writeFieldBegin('message_id', TType.I32, 3)
+      oprot.writeI32(self.message_id)
       oprot.writeFieldEnd()
     oprot.writeFieldStop()
     oprot.writeStructEnd()
@@ -10308,6 +10341,7 @@ class Message:
     value = 17
     value = (value * 31) ^ hash(self.type)
     value = (value * 31) ^ hash(self.data)
+    value = (value * 31) ^ hash(self.message_id)
     return value
 
   def __repr__(self):
@@ -10461,7 +10495,7 @@ class HBExecutionException(TException):
   def __ne__(self, other):
     return not (self == other)
 
-class Pulse:
+class HBPulse:
   """
   Attributes:
    - id
@@ -10506,7 +10540,7 @@ class Pulse:
     if oprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and self.thrift_spec is not None and fastbinary is not None:
       oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
       return
-    oprot.writeStructBegin('Pulse')
+    oprot.writeStructBegin('HBPulse')
     if self.id is not None:
       oprot.writeFieldBegin('id', TType.STRING, 1)
       oprot.writeString(self.id.encode('utf-8'))
@@ -10549,7 +10583,7 @@ class HBRecords:
 
   thrift_spec = (
     None, # 0
-    (1, TType.LIST, 'pulses', (TType.STRUCT,(Pulse, Pulse.thrift_spec)), None, ), # 1
+    (1, TType.LIST, 'pulses', (TType.STRUCT,(HBPulse, HBPulse.thrift_spec)), None, ), # 1
   )
 
   def __init__(self, pulses=None,):
@@ -10569,7 +10603,7 @@ class HBRecords:
           self.pulses = []
           (_etype544, _size541) = iprot.readListBegin()
           for _i545 in xrange(_size541):
-            _elem546 = Pulse()
+            _elem546 = HBPulse()
             _elem546.read(iprot)
             self.pulses.append(_elem546)
           iprot.readListEnd()

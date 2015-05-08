@@ -34,7 +34,7 @@ public class NettyRenameThreadFactory  implements ThreadFactory {
     final AtomicInteger index = new AtomicInteger(1);
     final String name;
 
-    NettyRenameThreadFactory(String name) {
+    public NettyRenameThreadFactory(String name) {
         SecurityManager s = System.getSecurityManager();
         group = (s != null)? s.getThreadGroup() :
                              Thread.currentThread().getThreadGroup();

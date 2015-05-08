@@ -113,6 +113,18 @@ public class Config extends HashMap<String, Object> {
      */
     public static final String STORM_META_SERIALIZATION_DELEGATE = "storm.meta.serialization.delegate";
     public static final Object STORM_META_SERIALIZATION_DELEGATE_SCHEMA = String.class;
+    
+    /**
+     * Netty based messaging: Is authentication required for Netty messaging from client worker process to server worker process.
+     */
+    public static final String STORM_MESSAGING_NETTY_AUTHENTICATION = "storm.messaging.netty.authentication"; 
+    public static final Object STORM_MESSAGING_NETTY_AUTHENTICATION_SCHEMA = Boolean.class;
+
+    /**
+     * The SASL authentication payload for the messaging layer. Similar to STORM_ZOOKEEPER_TOPOLOGY_AUTH_PAYLOAD
+     */
+    public static final String STORM_MESSAGING_NETTY_AUTHENTICATION_PAYLOAD="storm.messaging.netty.authentication.payload";
+    public static final Object STORM_MESSAGING_NETTY_AUTHENTICATION_PAYLOAD_SCHEMA = String.class;
 
     /**
      * A list of hosts of ZooKeeper servers used to manage the cluster.
@@ -588,29 +600,12 @@ public class Config extends HashMap<String, Object> {
     public static final Object PACEMAKER_PORT_SCHEMA = Number.class;
 
     /**
-     * The base number of threads that should be used by the Pacemaker.
-     * Pacemaker will always keep at least this many threads waiting to
-     * handle heartbeats.
-     */
-    public static final String PACEMAKER_BASE_THREADS = "pacemaker.base.threads";
-    public static final Object PACEMAKER_BASE_THREADS_SCHEMA = Number.class;
-    
-    /**
      * The maximum number of threads that should be used by the Pacemaker.
      * When Pacemaker gets loaded it will spawn new threads, up to 
      * this many total, to handle the load.
      */
     public static final String PACEMAKER_MAX_THREADS = "pacemaker.max.threads";
     public static final Object PACEMAKER_MAX_THREADS_SCHEMA = Number.class;
-
-    /**
-     * The number of minutes idle Pacemaker Threads wait before shutting down.
-     * At least PACEMAKER_BASE_THREADS threads will always be alive. If there
-     * are more than PACEMAKER_BASE_THREADS and they are idle, they will shut
-     * down after this many minutes.
-     */
-    public static final String PACEMAKER_THREAD_TIMEOUT = "pacemaker.thread.timeout";
-    public static final Object PACEMAKER_THREAD_TIMEOUT_SCHEMA = Number.class;    
 
     /**
      * This parameter is used by the storm-deploy project to configure the
