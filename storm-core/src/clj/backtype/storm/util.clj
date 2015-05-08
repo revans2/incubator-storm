@@ -1005,7 +1005,7 @@
 (defn logs-filename [storm-id port]
   (str storm-id file-path-separator port file-path-separator "worker.log"))
 
-(def worker-log-filename-pattern #"worker.log(.*)")
+(def worker-log-filename-pattern #"^worker.log(.*)")
 
 (defn clojure-from-yaml-file [yamlFile]
   (try
