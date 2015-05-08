@@ -130,9 +130,6 @@
                    :when (not (contains? alive-ids id))]
                dir)))))
 
-(defn filter-worker-logs [logs]
-  (filter #(re-find worker-log-filename-pattern (.getName %)) logs))
-
 (defn get-all-logs-for-rootdir
   [^File log-dir]
   (reduce concat
@@ -741,7 +738,7 @@ Note that if anything goes wrong, this will throw an Error and exit."
     (sort #(compare (.lastModified %2) (.lastModified %1))
           (filter-authorized-fn
             user
-            (filter-worker-logs (.listFiles port-dir))))))
+            (filter #(re-find worker-log-filename-pattern (.getName %)) (.listFiles port-dir))))))
 
 (defn deep-search-logs-for-topology
   [topology-id user ^String root-dir search num-matches port file-offset offset search-archived? origin]
