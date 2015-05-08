@@ -32,6 +32,10 @@ import backtype.storm.security.auth.AuthUtils;
 
 public class PacemakerServerFactory {
 
+    private static final String USERNAME = "username";
+    private static final String PASSWORD = "password";
+    private static final String CONFIG_SECTION = "PacemakerConf";
+    
     private static final Logger LOG = LoggerFactory
         .getLogger(PacemakerServerFactory.class);
 
@@ -40,12 +44,9 @@ public class PacemakerServerFactory {
         String password = null;
         try {
             Configuration login_config = AuthUtils.GetConfiguration(config);
-            HashSet<String> desired = new HashSet<String>();
-            desired.add("username");
-            desired.add("password");
-            Map<String, ?> results = AuthUtils.PullConfig(desired, login_config, "PacemakerConf");
-            username = (String)results.get("username");
-            password = (String)results.get("password");
+            Map<String, ?> results = AuthUtils.PullConfig(login_config, CONFIG_SECTION);
+            username = (String)results.get(USERNAME);
+            password = (String)results.get(PASSWORD);
         }
         catch (Exception e) {
             LOG.error("Failed to pull username/password out of jaas conf", e);

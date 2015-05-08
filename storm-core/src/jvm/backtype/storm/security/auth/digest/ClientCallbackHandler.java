@@ -53,10 +53,7 @@ public class ClientCallbackHandler implements CallbackHandler {
      * @throws IOException
      */
     public ClientCallbackHandler(Configuration configuration) throws IOException {
-        HashSet<String> keys = new HashSet<String>();
-        keys.add(USERNAME);
-        keys.add(PASSWORD);
-        Map<String, ?> vals = AuthUtils.PullConfig(keys, configuration, AuthUtils.LOGIN_CONTEXT_CLIENT);
+        Map<String, ?> vals = AuthUtils.PullConfig(configuration, AuthUtils.LOGIN_CONTEXT_CLIENT);
         _username = (String)vals.get(USERNAME);
         _password = (String)vals.get(PASSWORD);
     }

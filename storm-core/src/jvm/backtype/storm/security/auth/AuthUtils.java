@@ -76,8 +76,7 @@ public class AuthUtils {
      * @param conf_entry The app configuration entry name to get stuff from.
      * @return Return a map of the configs in configs_to_pull to their values.
      */
-    public static Map<String, ?> PullConfig(Set<String> configs_to_pull,
-                                            Configuration conf,
+    public static Map<String, ?> PullConfig(Configuration conf,
                                             String conf_entry) throws IOException {
         if(conf == null) {
             return null;
@@ -95,9 +94,7 @@ public class AuthUtils {
         for(AppConfigurationEntry entry: configurationEntries) {
             Map<String, ?> options = entry.getOptions();
             for(String key : options.keySet()) {
-                if(configs_to_pull.contains(key)) {
-                    results.put(key, options.get(key));
-                }
+                results.put(key, options.get(key));
             }
         }
         return results;

@@ -66,11 +66,6 @@
     )
   ))
 
-;(deftest test-pull-config
-;  (let [good-entry (Mockito/mock AppConfigurationEntry)
-;        config (Mockito/mock Configuration)]
-;    (. (Mockito/when) (.getAppConfigurationEntry "foo") thenReturn (into-array AppConfigurationEntry good-entry))
-
 (deftest test-empty-auto-creds
   (let [result (AuthUtils/GetAutoCredentials {})]
     (is (.isEmpty result))
