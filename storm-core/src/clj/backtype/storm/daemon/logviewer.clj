@@ -131,9 +131,7 @@
                dir)))))
 
 (defn filter-worker-logs [logs]
-  (filter #(and (.isFile %)
-                (re-find worker-log-filename-pattern (.getName %)))
-          logs))
+  (filter #(re-find worker-log-filename-pattern (.getName %)) logs))
 
 (defn get-all-logs-for-rootdir
   [^File log-dir]
@@ -148,7 +146,8 @@
 (defn sorted-worker-logs
   "Collect the wroker log files recursively, sorted by decreasing age."
   [^File log-dir]
-  (let [logs (filter #(not= (.getName %) "worker.yaml") (get-all-logs-for-rootdir log-dir))]
+  (let [logs (filter #(not= (.getName %) "worker.yaml") 
+                     (get-all-logs-for-rootdir log-dir))]
     (sort #(compare (.lastModified %1) (.lastModified %2)) logs)))
 
 (defn sum-file-size
