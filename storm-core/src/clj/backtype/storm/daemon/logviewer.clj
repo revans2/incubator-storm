@@ -68,7 +68,7 @@
     (reduce clojure.set/union
             (sorted-set)
             (for [^File topo-dir (.listFiles (File. root-dir))]
-              (into [] (.listFiles (File. topo-dir) file-filter))))))
+              (into [] (.listFiles topo-dir file-filter))))))
 
 (defn get-topo-port-workerlog
   "Return the path of the worker log with the format of topoId/port/worker.log.*"
@@ -130,26 +130,21 @@
                    :when (not (contains? alive-ids id))]
                dir)))))
 
-(defn filter-worker-logs [logs]
-  (filter #(and (.isFile %)
-                (re-find worker-log-filename-pattern (.getName %)))
-          logs))
-
 (defn get-all-logs-for-rootdir
   [^File log-dir]
-  (filter-worker-logs
-    (reduce concat
-            (for [topo-dir (.listFiles log-dir)]
-              (reduce concat
-                      (for [port-dir (.listFiles topo-dir)]
-                        (into [] (.listFiles port-dir))))))))
+  (reduce concat
+          (for [topo-dir (.listFiles log-dir)]
+            (reduce concat
+                    (for [port-dir (.listFiles topo-dir)]
+                      (into [] (.listFiles port-dir)))))))
 
-;; now we only delete log files; for old-dead, we delete whole dir for each port when applicable
-;; later we may also consider coredump and gclog files for deleting, need to disinclude metadata file
+;; we also include heapdump and gclog files for deleting and exclude metadata file.
+;; for old-dead workers, we delete the whole dir for each port when applicable.
 (defn sorted-worker-logs
   "Collect the wroker log files recursively, sorted by decreasing age."
   [^File log-dir]
-  (let [logs (get-all-logs-for-rootdir log-dir)]
+  (let [logs (filter #(not= (.getName %) "worker.yaml") 
+                     (get-all-logs-for-rootdir log-dir))]
     (sort #(compare (.lastModified %1) (.lastModified %2)) logs)))
 
 (defn sum-file-size
@@ -290,7 +285,7 @@ Note that if anything goes wrong, this will throw an Error and exit."
 (defn log-file-selection-form [log-files]
   [[:form {:action "log" :id "list-of-files"}
     (drop-down "file" log-files )
-    [:input {:type "submit" :value "Switch log file"}]]])
+    [:input {:type "submit" :value "Switch file"}]]])
 
 (defn pager-links [fname start length file-size]
   (let [prev-start (max 0 (- start length))
@@ -320,7 +315,7 @@ Note that if anything goes wrong, this will throw an Error and exit."
                         "Next" :enabled (> next-start start))])]])) 
 
 (defn- download-link [fname]
-  [[:p (link-to (url-format "/download/%s" fname) "Download Full Log")]])
+  [[:p (link-to (url-format "/download/%s" fname) "Download Full File")]])
 
 (def default-bytes-per-page 51200)
 
@@ -335,17 +330,21 @@ Note that if anything goes wrong, this will throw an Error and exit."
           log-files (reduce clojure.set/union
                             (sorted-set)
                             (for [^File port-dir (.listFiles topo-dir)]
-                              (into [] (filter-worker-logs (.listFiles port-dir)))))
+                              (into [] (filter #(.isFile %) (.listFiles port-dir))))) ;all types of files included
           files-str (for [file log-files] 
-                      (get-topo-port-workerlog file))]
+                      (get-topo-port-workerlog file))
+          reordered-files-str (conj (filter #(not= fname %) files-str) fname)]
       (if (.exists file)
         (let [length (if length
                        (min 10485760 length)
                        default-bytes-per-page)
+              is-txt-file (re-find #"\.(log.*|txt|yaml)$" fname)
               log-string (escape-html
-                           (if start
-                             (page-file path start length)
-                             (page-file path length)))
+                           (if is-txt-file
+                             (if start
+                               (page-file path start length)
+                               (page-file path length))
+                             "This is a binary file and cannot display! You may download the full file."))
               start (or start (- file-length length))]
           (if grep
             (html [:pre#logContent
@@ -353,9 +352,9 @@ Note that if anything goes wrong, this will throw an Error and exit."
                      (filter #(.contains % grep)
                              (.split log-string "\n"))
                      log-string)])
-            (let [pager-data (pager-links fname start length file-length)]
+            (let [pager-data (if is-txt-file (pager-links fname start length file-length) nil)]
               (html (concat (search-file-form (url-encode fname)) 
-                            (log-file-selection-form files-str) ;display all files in the directory
+                            (log-file-selection-form reordered-files-str) ;display all files for this topology
                             pager-data
                             (download-link fname)
                             [[:pre#logContent log-string]]
@@ -739,7 +738,7 @@ Note that if anything goes wrong, this will throw an Error and exit."
     (sort #(compare (.lastModified %2) (.lastModified %1))
           (filter-authorized-fn
             user
-            (filter-worker-logs (.listFiles port-dir))))))
+            (filter #(re-find worker-log-filename-pattern (.getName %)) (.listFiles port-dir))))))
 
 (defn deep-search-logs-for-topology
   [topology-id user ^String root-dir search num-matches port file-offset offset search-archived? origin]
