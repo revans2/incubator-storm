@@ -444,11 +444,7 @@
    window
    include-sys?]
   (let [str-key (partial map-key str)
-        handle-sys-components (mk-include-sys-filter include-sys?)
-        ;; FIXME YSTORM-1215 remove this ugliness!
-        statk->w->sid->num (->> statk->w->sid->num
-                                pr-str
-                                read-string)]
+        handle-sys-components (mk-include-sys-filter include-sys?)]
     {id
      (merge
        (agg-bolt-lat-and-count (-> statk->w->sid->num
