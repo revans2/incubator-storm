@@ -323,16 +323,16 @@
   [(.get_componentId global-stream-id) (.get_streamId global-stream-id)])
 
 (defmethod clojurify-specific-stats BoltStats [^BoltStats stats]
-  [(window-set-converter (.get_acked stats) from-global-stream-id symbol)
-   (window-set-converter (.get_failed stats) from-global-stream-id symbol)
-   (window-set-converter (.get_process_ms_avg stats) from-global-stream-id symbol)
-   (window-set-converter (.get_executed stats) from-global-stream-id symbol)
-   (window-set-converter (.get_execute_ms_avg stats) from-global-stream-id symbol)])
+  [(window-set-converter (.get_acked stats) from-global-stream-id identity)
+   (window-set-converter (.get_failed stats) from-global-stream-id identity)
+   (window-set-converter (.get_process_ms_avg stats) from-global-stream-id identity)
+   (window-set-converter (.get_executed stats) from-global-stream-id identity)
+   (window-set-converter (.get_execute_ms_avg stats) from-global-stream-id identity)])
 
 (defmethod clojurify-specific-stats SpoutStats [^SpoutStats stats]
-  [(window-set-converter (.get_acked stats) symbol)
-   (window-set-converter (.get_failed stats) symbol)
-   (window-set-converter (.get_complete_ms_avg stats) symbol)])
+  [(.get_acked stats)
+   (.get_failed stats)
+   (.get_complete_ms_avg stats)])
 
 
 (defn clojurify-executor-stats
@@ -341,7 +341,9 @@
          is_bolt? (.is_set_bolt specific-stats)
          specific-stats (if is_bolt? (.get_bolt specific-stats) (.get_spout specific-stats))
          specific-stats (clojurify-specific-stats specific-stats)
-         common-stats (CommonStats. (window-set-converter (.get_emitted stats) symbol) (window-set-converter (.get_transferred stats) symbol) (.get_rate stats))]
+         common-stats (CommonStats. (.get_emitted stats)
+                                    (.get_transferred stats)
+                                    (.get_rate stats))]
     (if is_bolt?
       ; worker heart beat does not store the BoltExecutorStats or SpoutExecutorStats , instead it stores the result returned by render-stats!
       ; which flattens the BoltExecutorStats/SpoutExecutorStats by extracting values from all atoms and merging all values inside :common to top
@@ -396,9 +398,9 @@
                       [stream-id->exec-avg
                        stream-id->proc-avg
                        stream-id->num-executed]))}
-  (letfn [(weight-avg [[id avg]] (let [num-e (stream-id->num-executed id)]
+  (letfn [(weight-avg [[id avg]] (let [num-e (get stream-id->num-executed id)]
                                    (if (and avg num-e)
-                                     (* avg (stream-id->num-executed id))
+                                     (* avg num-e)
                                      0)))]
     {:executeLatencyTotal (reduce + (map weight-avg stream-id->exec-avg))
      :processLatencyTotal (reduce + (map weight-avg stream-id->proc-avg))
@@ -410,7 +412,7 @@
   {:pre (apply = (map #(set (keys %))
                       [stream-id->comp-avg
                        stream-id->num-acked]))}
-  (letfn [(weight-avg [[id avg]] (* avg (stream-id->num-acked id)))]
+  (letfn [(weight-avg [[id avg]] (* avg (get stream-id->num-acked id)))]
     {:compLatWgtAvg (reduce + (map weight-avg stream-id->comp-avg))
      :acked (reduce + (vals stream-id->num-acked))}))
 
@@ -482,8 +484,8 @@
                                     [avg cnt]
                                     [(* avg cnt) cnt])
                                   (get (:execute-latencies statk->w->sid->num)
-                                       600)
-                                  (get (:executed statk->w->sid->num) 600))
+                                       "600")
+                                  (get (:executed statk->w->sid->num) "600"))
                       vals ;; Ignore the stream ids.
                       (reduce add-pairs
                               [0. 0]) ;; Combine weighted averages and counts.
@@ -633,8 +635,8 @@
               (into {}
                     (for [w (keys (:acked stats))]
                          [w (agg-spout-lat-and-count
-                              ((:complete-latencies stats) w)
-                              ((:acked stats) w))])))
+                              (get (:complete-latencies stats) w)
+                              (get (:acked stats) w))])))
             {:compLatWgtAvg nil
              :acks (aggregate-count-streams (:acked stats))})
         handle-sys-components (mk-include-sys-filter include-sys?)]
