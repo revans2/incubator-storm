@@ -95,45 +95,46 @@
         )))
 
 (deftest test-sort-worker-logs
-  (let [now-millis (current-time-millis)
-        files1 (into-array File (map #(mk-mock-File {:name (str %)
-                                                     :type :file
-                                                     :mtime (- now-millis (* 100 %))})
-                                     (range 1 6)))
-        files2 (into-array File (map #(mk-mock-File {:name (str %)
-                                                     :type :file
-                                                     :mtime (- now-millis (* 100 %))})
-                                     (range 6 11)))
-        files3 (into-array File (map #(mk-mock-File {:name (str %)
-                                                     :type :file
-                                                     :mtime (- now-millis (* 100 %))})
-                                     (range 11 16)))
-        port1-dir (mk-mock-File {:name "/workers-artifacts/topo1/port1"
-                                 :type :directory
-                                 :files files1})
-        port2-dir (mk-mock-File {:name "/workers-artifacts/topo1/port2"
-                                 :type :directory
-                                 :files files2})
-        port3-dir (mk-mock-File {:name "/workers-artifacts/topo2/port3"
-                                 :type :directory
-                                 :files files3})
-        topo1-files (into-array File [port1-dir port2-dir])
-        topo2-files (into-array File [port3-dir])
-        topo1-dir (mk-mock-File {:name "/workers-artifacts/topo1"
-                                 :type :directory
-                                 :files topo1-files})
-        topo2-dir (mk-mock-File {:name "/workers-artifacts/topo2"
-                                 :type :directory
-                                 :files topo2-files})
-        root-files (into-array File [topo1-dir topo2-dir])
-        root-dir (mk-mock-File {:name "/workers-artifacts"
-                                :type :directory
-                                :files root-files})
-        sorted-logs (logviewer/sorted-worker-logs root-dir)
-        sorted-ints (map #(Integer. (.getName %)) sorted-logs)]
-    (is (= (count sorted-logs) 15))
-    (is (= (count sorted-ints) 15))
-    (is (apply #'> sorted-ints))))
+  (stubbing [logviewer/filter-candidate-files (fn [x _] x)]
+            (let [now-millis (current-time-millis)
+                  files1 (into-array File (map #(mk-mock-File {:name (str %)
+                                                               :type :file
+                                                               :mtime (- now-millis (* 100 %))})
+                                               (range 1 6)))
+                  files2 (into-array File (map #(mk-mock-File {:name (str %)
+                                                               :type :file
+                                                               :mtime (- now-millis (* 100 %))})
+                                               (range 6 11)))
+                  files3 (into-array File (map #(mk-mock-File {:name (str %)
+                                                               :type :file
+                                                               :mtime (- now-millis (* 100 %))})
+                                               (range 11 16)))
+                  port1-dir (mk-mock-File {:name "/workers-artifacts/topo1/port1"
+                                           :type :directory
+                                           :files files1})
+                  port2-dir (mk-mock-File {:name "/workers-artifacts/topo1/port2"
+                                           :type :directory
+                                           :files files2})
+                  port3-dir (mk-mock-File {:name "/workers-artifacts/topo2/port3"
+                                           :type :directory
+                                           :files files3})
+                  topo1-files (into-array File [port1-dir port2-dir])
+                  topo2-files (into-array File [port3-dir])
+                  topo1-dir (mk-mock-File {:name "/workers-artifacts/topo1"
+                                           :type :directory
+                                           :files topo1-files})
+                  topo2-dir (mk-mock-File {:name "/workers-artifacts/topo2"
+                                           :type :directory
+                                           :files topo2-files})
+                  root-files (into-array File [topo1-dir topo2-dir])
+                  root-dir (mk-mock-File {:name "/workers-artifacts"
+                                          :type :directory
+                                          :files root-files})
+                  sorted-logs (logviewer/sorted-worker-logs root-dir)
+                  sorted-ints (map #(Integer. (.getName %)) sorted-logs)]
+              (is (= (count sorted-logs) 15))
+              (is (= (count sorted-ints) 15))
+              (is (apply #'> sorted-ints)))))
 
 (deftest test-delete-oldest-log-cleanup
   (testing "delete oldest logs deletes the oldest set of logs when the total size gets too large.")
@@ -182,6 +183,7 @@
           mockfile2 (mk-mock-File {:name "delete-me2" :type :file})]
       (stubbing [logviewer/select-dirs-for-cleanup nil
                  logviewer/get-dead-worker-dirs (sorted-set mockfile1 mockfile2)
+                 logviewer/cleanup-empty-topodir nil
                  rmr nil]
                 (logviewer/cleanup-fn! "/bogus/path")
                 (verify-call-times-for rmr 2)

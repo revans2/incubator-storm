@@ -540,6 +540,12 @@ public class Config extends HashMap<String, Object> {
      */
     public static final String LOGVIEWER_MAX_SUM_WORKER_LOGS_SIZE_MB = "logviewer.max.sum.worker.logs.size.mb";
     public static final Object LOGVIEWER_MAX_SUM_WORKER_LOGS_SIZE_MB_SCHEMA = Number.class;
+    
+	/**
+     * The maximum number of bytes per worker's files can take up in MB
+     */
+    public static final String LOGVIEWER_MAX_PER_WORKER_LOGS_SIZE_MB = "logviewer.max.per.worker.logs.size.mb";
+    public static final Object LOGVIEWER_MAX_PER_WORKER_LOGS_SIZE_MB_SCHEMA = Number.class;
 
     /**
      * Childopts for Storm UI Java process.
