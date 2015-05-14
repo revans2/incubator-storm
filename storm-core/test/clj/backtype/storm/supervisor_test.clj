@@ -259,6 +259,7 @@
                                (str "-Dlogfile.name=" "worker.log")
                                "-Dstorm.home="
                                (str "-Dworkers.artifacts=" "/tmp/workers-artifacts")
+                                (str "-Dlogging.sensitivity=" mock-sensitivity)
                                 (str "-Dstorm.id=" mock-storm-id)
                                 (str "-Dworker.id=" mock-worker-id)
                                 (str "-Dworker.port=" mock-port)
@@ -386,6 +387,7 @@
                                 " '-Dlogfile.name=" "worker.log'" 
                                 " '-Dstorm.home='"
                                 " '-Dworkers.artifacts=" (str storm-local "/workers-artifacts'")
+                                " '-Dlogging.sensitivity=" mock-sensitivity "'"
                                 " '-Dstorm.id=" mock-storm-id "'"
                                 " '-Dworker.id=" mock-worker-id "'"
                                 " '-Dworker.port=" mock-port "'"

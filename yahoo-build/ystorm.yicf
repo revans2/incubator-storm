@@ -68,8 +68,6 @@ file 444 - - lib64/storm/$(BASE_VERSION)/lib/core.incubator-0.1.0.jar ../storm-c
 file 444 - - lib64/storm/$(BASE_VERSION)/lib/curator-client-2.4.0.jar ../storm-core/target/dependency/curator-client-2.4.0.jar
 file 444 - - lib64/storm/$(BASE_VERSION)/lib/curator-framework-2.4.0.jar ../storm-core/target/dependency/curator-framework-2.4.0.jar
 file 444 - - lib64/storm/$(BASE_VERSION)/lib/disruptor-2.10.1.jar ../storm-core/target/dependency/disruptor-2.10.1.jar
-#file 444 - - lib64/storm/$(BASE_VERSION)/lib/finagle-core_2.10-6.24.0.jar ../storm-pacemaker/target/dependency/finagle-core_2.10-6.24.0.jar
-#file 444 - - lib64/storm/$(BASE_VERSION)/lib/finagle-http_2.10-6.24.0.jar ../storm-pacemaker/target/dependency/finagle-http_2.10-6.24.0.jar
 file 444 - - lib64/storm/$(BASE_VERSION)/lib/guava-13.0.jar ../storm-core/target/dependency/guava-13.0.jar
 file 444 - - lib64/storm/$(BASE_VERSION)/lib/hiccup-0.3.6.jar ../storm-core/target/dependency/hiccup-0.3.6.jar
 file 444 - - lib64/storm/$(BASE_VERSION)/lib/httpclient-4.3.3.jar ../storm-core/target/dependency/httpclient-4.3.3.jar
@@ -102,14 +100,6 @@ file 444 - - lib64/storm/$(BASE_VERSION)/lib/snakeyaml-1.11.jar ../storm-core/ta
 file 444 - - lib64/storm/$(BASE_VERSION)/lib/tools.cli-0.3.1.jar ../storm-core/target/dependency/tools.cli-0.3.1.jar
 file 444 - - lib64/storm/$(BASE_VERSION)/lib/tools.logging-0.2.3.jar ../storm-core/target/dependency/tools.logging-0.2.3.jar
 file 444 - - lib64/storm/$(BASE_VERSION)/lib/tools.macro-0.1.0.jar ../storm-core/target/dependency/tools.macro-0.1.0.jar
-#file 444 - - lib64/storm/$(BASE_VERSION)/lib/util-app_2.10-6.23.0.jar ../storm-pacemaker/target/dependency/util-app_2.10-6.23.0.jar
-#file 444 - - lib64/storm/$(BASE_VERSION)/lib/util-codec_2.10-6.23.0.jar ../storm-pacemaker/target/dependency/util-codec_2.10-6.23.0.jar
-#file 444 - - lib64/storm/$(BASE_VERSION)/lib/util-collection_2.10-6.23.0.jar ../storm-pacemaker/target/dependency/util-collection_2.10-6.23.0.jar
-#file 444 - - lib64/storm/$(BASE_VERSION)/lib/util-core_2.10-6.23.0.jar ../storm-pacemaker/target/dependency/util-core_2.10-6.23.0.jar
-#file 444 - - lib64/storm/$(BASE_VERSION)/lib/util-hashing_2.10-6.23.0.jar ../storm-pacemaker/target/dependency/util-hashing_2.10-6.23.0.jar
-#file 444 - - lib64/storm/$(BASE_VERSION)/lib/util-jvm_2.10-6.23.0.jar ../storm-pacemaker/target/dependency/util-jvm_2.10-6.23.0.jar
-#file 444 - - lib64/storm/$(BASE_VERSION)/lib/util-logging_2.10-6.23.0.jar ../storm-pacemaker/target/dependency/util-logging_2.10-6.23.0.jar
-#file 444 - - lib64/storm/$(BASE_VERSION)/lib/util-stats_2.10-6.23.0.jar ../storm-pacemaker/target/dependency/util-stats_2.10-6.23.0.jar
 file 444 - - lib64/storm/$(BASE_VERSION)/lib/xz-1.0.jar ../storm-core/target/dependency/xz-1.0.jar
 file 444 - - lib64/storm/$(BASE_VERSION)/lib/zookeeper-3.4.5.jar ../storm-core/target/dependency/zookeeper-3.4.5.jar
 
@@ -145,19 +135,20 @@ file 444 - - lib64/jars/storm-starter-topologies.pom ../examples/storm-starter/p
 file 444 - - lib64/jars/storm-kafka.jar ../external/storm-kafka/target/storm-kafka-$(BASE_VERSION).jar
 file 444 - - lib64/jars/storm-kafka-sources.jar ../external/storm-kafka/target/storm-kafka-$(BASE_VERSION)-sources.jar
 file 444 - - lib64/jars/storm-kafka.pom ../external/storm-kafka/pom.xml
-#file 444 - - lib64/jars/storm-pacemaker.jar ../storm-pacemaker/target/pacemaker-$(BASE_VERSION).jar
-#file 444 - - lib64/jars/storm-pacemaker-sources.jar ../storm-pacemaker/target/pacemaker-$(BASE_VERSION)-sources.jar
-#file 444 - - lib64/jars/storm-pacemaker.pom ../storm-pacemaker/pom.xml
+file 444 - - lib64/jars/storm-pacemaker.jar ../storm-pacemaker/target/pacemaker-$(BASE_VERSION).jar
+file 444 - - lib64/jars/storm-pacemaker-sources.jar ../storm-pacemaker/target/pacemaker-$(BASE_VERSION)-sources.jar
+file 444 - - lib64/jars/storm-pacemaker.pom ../storm-pacemaker/pom.xml
 
 file 444 - - lib64/storm/$(BASE_VERSION)/RELEASE ./RELEASE
 file 444 - - lib64/storm/$(BASE_VERSION)/LICENSE ../LICENSE
 file 444 - - lib64/storm/$(BASE_VERSION)/DISCLAIMER ../DISCLAIMER
 file 444 - - lib64/storm/$(BASE_VERSION)/lib/storm-core-$(BASE_VERSION).jar ../storm-core/target/storm-core-$(BASE_VERSION).jar
 file 444 - - lib64/storm/$(BASE_VERSION)/lib/storm_yahoo-$(BASE_VERSION).jar ../storm-yahoo/target/storm_yahoo-$(BASE_VERSION).jar
-#file 444 - - lib64/storm/$(BASE_VERSION)/lib/storm-pacemaker-$(BASE_VERSION).jar ../storm-pacemaker/target/pacemaker-$(BASE_VERSION).jar
+file 444 - - lib64/storm/$(BASE_VERSION)/lib/storm-pacemaker-$(BASE_VERSION).jar ../storm-pacemaker/target/pacemaker-$(BASE_VERSION).jar
 file 444 - - lib64/storm/$(BASE_VERSION)/README.yahoo ./README.yahoo
 
 configfile 644 - - lib64/storm/$(BASE_VERSION)/conf/storm.yaml ./conf/config.py template overwrite
+configfile 644 - - lib64/storm/$(BASE_VERSION)/conf/storm-env.sh ./conf/storm-env.py template overwrite
 configfile 644 - - lib64/storm/$(BASE_VERSION)/conf/multitenant-scheduler.yaml ./conf/multitenant-scheduler.py template overwrite
 configfile 644 - - lib64/storm/$(BASE_VERSION)/conf/drpc-auth-acl.yaml ./conf/drpc-auth-acl.py template overwrite
 configfile 644 - - lib64/storm/$(BASE_VERSION)/log4j2/cluster.xml ./log4j2/cluster.xml.sh template overwrite

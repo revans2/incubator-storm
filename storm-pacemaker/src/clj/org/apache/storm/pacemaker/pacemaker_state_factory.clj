@@ -17,20 +17,30 @@
 (ns org.apache.storm.pacemaker.pacemaker-state-factory
   (:require [org.apache.storm.pacemaker pacemaker]
             [backtype.storm.cluster-state [zookeeper-state-factory :as zk-factory]]
-            [finagle-clojure.futures :as futures])
+            [backtype.storm
+             [config :refer :all]
+             [cluster :refer :all]
+             [log :refer :all]
+             [util :as util]])
   (:import [backtype.storm.generated
             HBExecutionException HBNodes HBRecords
-            HBServerMessageType Message MessageData Pulse]
+            HBServerMessageType HBMessage HBMessageData HBPulse]
            [backtype.storm.cluster_state zookeeper_state_factory]
            [backtype.storm.cluster ClusterState]
            [org.apache.storm.pacemaker PacemakerServerFactory])
-  (:use [backtype.storm config cluster log])
   (:gen-class
    :implements [backtype.storm.cluster.ClusterStateFactory]))
 
+;; So we can mock the client for testing
+(defn makeClient [conf]
+  (PacemakerServerFactory/makeClient conf))
+
+(defn makeZKState [conf auth-conf acls]
+  (.mkState (zookeeper_state_factory.) conf auth-conf acls))
+
 (defn -mkState [this conf auth-conf acls]
-  (let [zk-state (.mkState (zookeeper_state_factory.) conf auth-conf acls)
-        pacemaker-client (PacemakerServerFactory/makeClient (str (conf PACEMAKER-HOST) ":" (conf PACEMAKER-PORT)))]
+  (let [zk-state (makeZKState conf auth-conf acls)
+        pacemaker-client (makeClient conf)]
 
     (reify
       ClusterState
@@ -49,48 +59,64 @@
       (node_exists [this path watch?] (.node_exists zk-state path watch?))
 
       (set_worker_hb [this path data acls]
-        (let [response
-              (futures/await
-               (.apply pacemaker-client
-                       (Message. HBServerMessageType/SEND_PULSE
-                                 (MessageData/pulse
-                                  (doto (Pulse.)
-                                    (.set_id path)
-                                    (.set_details data))))))]
-          (if (= (.get_type response) HBServerMessageType/SEND_PULSE_RESPONSE)
-            nil
-            (throw HBExecutionException "Invalid Response Type"))))
+        (try
+          (let [response
+                (.send pacemaker-client
+                       (HBMessage. HBServerMessageType/SEND_PULSE
+                                   (HBMessageData/pulse
+                                    (doto (HBPulse.)
+                                      (.set_id path)
+                                      (.set_details data)))))]
+            (if (= (.get_type response) HBServerMessageType/SEND_PULSE_RESPONSE)
+              nil
+              (throw (HBExecutionException. "Invalid Response Type"))))
+
+          (catch Throwable t
+            (log-error t "Failed to set worker heartbeat: ")
+            (throw (HBExecutionException. (util/stringify-error t))))))
 
       (delete_worker_hb [this path]
-        (let [response
-              (futures/await
-               (.apply pacemaker-client
-                       (Message. HBServerMessageType/DELETE_PATH
-                                 (MessageData/path path))))]
-          (if (= (.get_type response) HBServerMessageType/DELETE_PATH_RESPONSE)
-            nil
-            (throw HBExecutionException "Invalid Response Type"))))
+        (try
+          (let [response
+                (.send pacemaker-client
+                       (HBMessage. HBServerMessageType/DELETE_PATH
+                                   (HBMessageData/path path)))]
+            (if (= (.get_type response) HBServerMessageType/DELETE_PATH_RESPONSE)
+              nil
+              (throw (HBExecutionException. "Invalid Response Type"))))
+
+          (catch Throwable t
+            (log-error t "Failed to delete worker heartbeat: ")
+            (throw (HBExecutionException. (util/stringify-error t))))))
 
       (get_worker_hb [this path watch?]
-        (let [response
-              (futures/await
-               (.apply pacemaker-client
-                       (Message. HBServerMessageType/GET_PULSE
-                                 (MessageData/path path))))]
-          (if (= (.get_type response) HBServerMessageType/GET_PULSE_RESPONSE)
-            (.get_details (.get_pulse (.get_data response)))
-            (throw HBExecutionException "Invalid Response Type"))))
+        (try
+          (let [response
+                (.send pacemaker-client
+                       (HBMessage. HBServerMessageType/GET_PULSE
+                                   (HBMessageData/path path)))]
+            (if (= (.get_type response) HBServerMessageType/GET_PULSE_RESPONSE)
+              (.get_details (.get_pulse (.get_data response)))
+              (throw (HBExecutionException. "Invalid Response Type"))))
+
+          (catch Throwable t
+            (log-error t "Failed to get worker heartbeat: ")
+            (throw (HBExecutionException. (util/stringify-error t))))))
 
       (get_worker_hb_children [this path watch?]
-        (let [response
-              (futures/await
-               (.apply pacemaker-client
-                       (Message. HBServerMessageType/GET_ALL_NODES_FOR_PATH
-                                 (MessageData/path path))))]
-          (if (= (.get_type response) HBServerMessageType/GET_ALL_NODES_FOR_PATH_RESPONSE)
-            (into [] (.get_pulseIds (.get_nodes (.get_data response))))
-            (throw HBExecutionException "Invalid Response Type"))))
+        (try
+          (let [response
+                (.send pacemaker-client
+                       (HBMessage. HBServerMessageType/GET_ALL_NODES_FOR_PATH
+                                   (HBMessageData/path path)))]
+            (if (= (.get_type response) HBServerMessageType/GET_ALL_NODES_FOR_PATH_RESPONSE)
+              (into [] (.get_pulseIds (.get_nodes (.get_data response))))
+              (throw (HBExecutionException. "Invalid Response Type"))))
 
+          (catch Throwable t
+            (log-error t "Failed to get worker heartbeat children: ")
+            (throw (HBExecutionException. (util/stringify-error t))))))
+        
       (close [this]
         (.close zk-state)
-        (futures/await (.close pacemaker-client))))))
+        (.close pacemaker-client)))))

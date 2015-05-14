@@ -13,6 +13,9 @@ whould add the following line to storm.yaml
 
 nimbus.host: host.corp.yahoo.com
 
+If you want to override JAVA_HOME for storm consistently set ystorm.JAVA_HOME
+and storm will use it in place of JAVA_HOME set in the regular environment.
+
 NOTE ABOUT SUPPORT:
 -------------------
 The ystorm yinst packages, ystorm and

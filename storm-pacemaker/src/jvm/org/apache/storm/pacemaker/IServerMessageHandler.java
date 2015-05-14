@@ -15,23 +15,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.storm.pacemaker.codec;
+package org.apache.storm.pacemaker;
 
-import com.twitter.finagle.AbstractCodec;
-import org.jboss.netty.channel.ChannelPipelineFactory;
-import org.jboss.netty.channel.ChannelPipeline;
-import org.jboss.netty.channel.Channels;
+import backtype.storm.generated.HBMessage;
 
-public class ThriftNettyCodec extends AbstractCodec{
+public interface IServerMessageHandler {
 
-    public ChannelPipelineFactory pipelineFactory() {
-        return new ChannelPipelineFactory() {
-            public ChannelPipeline getPipeline() {
-                ChannelPipeline pipeline = Channels.pipeline();
-                pipeline.addLast("encoder", new ThriftEncoder());
-                pipeline.addLast("decoder", new ThriftDecoder());
-                return pipeline;
-            }
-        };
-    }
+    public HBMessage handleMessage(HBMessage m, boolean authenticated);
 }
