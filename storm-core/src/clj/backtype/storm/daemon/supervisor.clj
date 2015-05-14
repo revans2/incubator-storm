@@ -792,6 +792,7 @@
                         (add-to-classpath topo-classpath))
           top-gc-opts (storm-conf TOPOLOGY-WORKER-GC-CHILDOPTS)
           gc-opts (substitute-childopts (if top-gc-opts top-gc-opts (conf WORKER-GC-CHILDOPTS)) worker-id storm-id port)
+          topo-worker-lw-childopts (conf TOPOLOGY-WORKER-LW-CHILDOPTS)
           user (storm-conf TOPOLOGY-SUBMITTER-USER)
           logfilename "worker.log"
           workers-artifacts (worker-artifacts-root conf)
@@ -804,6 +805,7 @@
                                         {"LD_LIBRARY_PATH" jlp})
           command (concat
                     [(java-cmd) "-cp" classpath 
+                     topo-worker-lw-childopts
                      (str "-Dlogfile.name=" logfilename)
                      (str "-Dstorm.home=" storm-home)
                      (str "-Dworkers.artifacts=" workers-artifacts)
