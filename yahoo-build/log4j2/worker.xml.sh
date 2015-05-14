@@ -30,7 +30,7 @@ cat <<XML
 <appenders>
     <RollingFile name="A1"
                  fileName="\${sys:workers.artifacts}/\${sys:storm.id}/\${sys:worker.port}/\${sys:logfile.name}"
-                 filePattern="\${sys:workers.artifacts}/\${sys:storm.id}/\${sys:worker.port}\${sys:logfile.name}.%i.gz">
+                 filePattern="\${sys:workers.artifacts}/\${sys:storm.id}/\${sys:worker.port}/\${sys:logfile.name}.%i.gz">
         <PatternLayout>
             <pattern>\${pattern}</pattern>
         </PatternLayout>
@@ -41,7 +41,7 @@ cat <<XML
     </RollingFile>
     <RollingFile name="STDOUT"
                  fileName="\${sys:workers.artifacts}/\${sys:storm.id}/\${sys:worker.port}/\${sys:logfile.name}.out"
-                 filePattern="\${sys:workers.artifacts}/\${sys:storm.id}/\${sys:worker.port}\${sys:logfile.name}.out.%i.gz">
+                 filePattern="\${sys:workers.artifacts}/\${sys:storm.id}/\${sys:worker.port}/\${sys:logfile.name}.out.%i.gz">
         <PatternLayout>
             <pattern>\${patternNoTime}</pattern>
         </PatternLayout>
@@ -52,7 +52,7 @@ cat <<XML
     </RollingFile>
     <RollingFile name="STDERR"
                  fileName="\${sys:workers.artifacts}/\${sys:storm.id}/\${sys:worker.port}/\${sys:logfile.name}.err"
-                 filePattern="\${sys:workers.artifacts}/\${sys:storm.id}/\${sys:worker.port}\${sys:logfile.name}.err.%i.gz">
+                 filePattern="\${sys:workers.artifacts}/\${sys:storm.id}/\${sys:worker.port}/\${sys:logfile.name}.err.%i.gz">
         <PatternLayout>
             <pattern>\${patternNoTime}</pattern>
         </PatternLayout>
