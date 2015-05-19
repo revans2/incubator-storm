@@ -172,7 +172,7 @@
   (let [alive-worker-dirs (get-alive-worker-dirs *STORM-CONF* log-dir)]
     (filter #(and (not= (.getName %) "worker.yaml")  ; exclude metadata file
                   (not (and (contains? alive-worker-dirs (.getCanonicalPath (.getParentFile %)))
-                            (is-active-log %)))) ; exlude active workers' active logs 
+                            (is-active-log %)))) ; exclude active workers' active logs 
             logs)))
 
 (defn sorted-worker-logs
@@ -198,9 +198,9 @@
       logs)))
 
 (defn per-workerdir-cleanup [root-dir]
-  (doseq [worker-dir (get-all-worker-dirs root-dir)]
+  (dofor [worker-dir (get-all-worker-dirs root-dir)]
     (let [sorted-logs (sort #(compare (.lastModified %1) (.lastModified %2)) (.listFiles worker-dir))
-          size (* (*STORM-CONF* LOGVIEWER-MAX-PER-WORKER-LOGS-SIZE-MB) (*  1024 1024))]
+          size (* ((read-storm-config) LOGVIEWER-MAX-PER-WORKER-LOGS-SIZE-MB) (*  1024 1024))]
       (delete-oldest-while-logs-too-large sorted-logs size))))
 
 (defn cleanup-empty-topodir

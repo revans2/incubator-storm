@@ -95,6 +95,7 @@
         )))
 
 (deftest test-sort-worker-logs
+  (testing "cleaner sorts the log files in ascending ages for deletion"
   (stubbing [logviewer/filter-candidate-files (fn [x _] x)]
             (let [now-millis (current-time-millis)
                   files1 (into-array File (map #(mk-mock-File {:name (str %)
@@ -134,10 +135,56 @@
                   sorted-ints (map #(Integer. (.getName %)) sorted-logs)]
               (is (= (count sorted-logs) 15))
               (is (= (count sorted-ints) 15))
-              (is (apply #'> sorted-ints)))))
+              (is (apply #'> sorted-ints))))))
+
+(deftest test-per-workerdir-cleanup
+  (testing "cleaner deletes oldest files in each worker dir if files are larger than per-dir quota."
+  (stubbing [rmr nil
+             backtype.storm.config/read-storm-config {"logviewer.max.per.worker.logs.size.mb" 1}]
+            (let [now-millis (current-time-millis)
+                  files1 (into-array File (map #(mk-mock-File {:name (str "A" %)
+                                                              :type :file
+                                                              :mtime (+ now-millis (* 100 %))
+                                                              :length 204800 })
+                                              (range 0 10)))
+                  files2 (into-array File (map #(mk-mock-File {:name (str "B" %)
+                                                              :type :file
+                                                              :mtime (+ now-millis (* 100 %))
+                                                              :length 204800 })
+                                              (range 0 10)))
+                  files3 (into-array File (map #(mk-mock-File {:name (str "C" %)
+                                                              :type :file
+                                                              :mtime (+ now-millis (* 100 %))
+                                                              :length 204800 })
+                                              (range 0 10)))
+                  port1-dir (mk-mock-File {:name "/workers-artifacts/topo1/port1"
+                                           :type :directory
+                                           :files files1})
+                  port2-dir (mk-mock-File {:name "/workers-artifacts/topo1/port2"
+                                           :type :directory
+                                           :files files2})
+                  port3-dir (mk-mock-File {:name "/workers-artifacts/topo2/port3"
+                                           :type :directory
+                                           :files files3})
+                  topo1-files (into-array File [port1-dir port2-dir])
+                  topo2-files (into-array File [port3-dir])
+                  topo1-dir (mk-mock-File {:name "/workers-artifacts/topo1"
+                                           :type :directory
+                                           :files topo1-files})
+                  topo2-dir (mk-mock-File {:name "/workers-artifacts/topo2"
+                                           :type :directory
+                                           :files topo2-files})
+                  root-files (into-array File [topo1-dir topo2-dir])
+                  root-dir (mk-mock-File {:name "/workers-artifacts"
+                                          :type :directory
+                                          :files root-files})
+                  remaining-logs (logviewer/per-workerdir-cleanup root-dir)]
+              (is (= (count (first remaining-logs)) 5))
+              (is (= (count (second remaining-logs)) 5))
+              (is (= (count (last remaining-logs)) 5))))))
 
 (deftest test-delete-oldest-log-cleanup
-  (testing "delete oldest logs deletes the oldest set of logs when the total size gets too large.")
+  (testing "delete oldest logs deletes the oldest set of logs when the total size gets too large."
   (stubbing [rmr nil]
             (let [now-millis (current-time-millis)
                   files (into-array File (map #(mk-mock-File {:name (str %)
@@ -148,7 +195,7 @@
                   remaining-logs (logviewer/delete-oldest-while-logs-too-large files 501)]
               (is (= (logviewer/sum-file-size files) 2000))
               (is (= (count remaining-logs) 5))
-              (is (= (.getName (first remaining-logs)) "15")))))
+              (is (= (.getName (first remaining-logs)) "15"))))))
 
 (deftest test-identify-worker-log-dirs
   (testing "Build up workerid-workerlogdir map for the old workers' dirs"
