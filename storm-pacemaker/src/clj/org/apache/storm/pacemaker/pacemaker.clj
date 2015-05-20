@@ -15,7 +15,7 @@
 ;; limitations under the License.
 
 (ns org.apache.storm.pacemaker.pacemaker
-  (:import [org.apache.storm.pacemaker PacemakerServerFactory IServerMessageHandler]
+  (:import [org.apache.storm.pacemaker PacemakerServer IServerMessageHandler]
            [java.util.concurrent ConcurrentHashMap ThreadPoolExecutor TimeUnit LinkedBlockingDeque]
            [backtype.storm.generated
             HBAuthorizationException HBExecutionException HBNodes HBRecords
@@ -94,6 +94,7 @@
     (reify
       IServerMessageHandler
       (^HBMessage handleMessage [this ^HBMessage request ^boolean authenticated]
+        (log-message "Handling Message")
         (let [response
               (condp = (.get_type request)
                 HBServerMessageType/CREATE_PATH
@@ -137,9 +138,7 @@
 (defn launch-server! []
   (log-message "Starting Server.")
   (let [conf (read-storm-config)]
-    (PacemakerServerFactory/makeServer
-     conf
-     (mk-handler conf))))
+    (PacemakerServer. (mk-handler conf) conf)))
 
 (defn -main []
   (redirect-stdio-to-slf4j!)

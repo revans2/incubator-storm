@@ -1,4 +1,4 @@
-/*
+/**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -15,27 +15,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package backtype.storm.messaging.netty;
 
-/* This is example of JAAS Login configuration for digest authentication
+import org.jboss.netty.channel.Channel;
+import org.jboss.netty.channel.ChannelLocal;
 
-StormServer section should contain a list of authorized users and their passwords. 
-StormClient section contains one user name and his/her password.
-*/
-StormServer {
-       org.apache.zookeeper.server.auth.DigestLoginModule required
-       user_super="adminsecret"
-       user_bob="bobsecret"
-       user_john="johnsecret";
-};
+final class KerberosSaslNettyServerState {
 
-StormClient {
-       org.apache.zookeeper.server.auth.DigestLoginModule required
-       username="bob"
-       password="bobsecret";
-};
-
-PacemakerDigest {
-      org.apache.zookeeper.server.auth.DigestLoginModule required
-      username="nimbus"
-      password="secret_nimbus_password";
-};
+    public static final ChannelLocal<KerberosSaslNettyServer> getKerberosSaslNettyServer = new ChannelLocal<KerberosSaslNettyServer>() {
+            protected KerberosSaslNettyServer initialValue(Channel channel) {
+                return null;
+            }
+	};
+}

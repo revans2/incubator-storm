@@ -17,29 +17,41 @@
  */
 package org.apache.storm.pacemaker.codec;
 
-import java.io.IOException;
-
-import org.jboss.netty.channel.ChannelPipelineFactory;
-import org.jboss.netty.channel.ChannelPipeline;
-import org.jboss.netty.channel.Channels;
+import backtype.storm.messaging.netty.ISaslServer;
+import backtype.storm.messaging.netty.IServer;
+import backtype.storm.messaging.netty.KerberosSaslServerHandler;
 import backtype.storm.messaging.netty.SaslStormServerHandler;
 import backtype.storm.messaging.netty.StormServerHandler;
-import backtype.storm.messaging.netty.SaslStormServerAuthorizeHandler;
+import backtype.storm.security.auth.AuthUtils;
+import java.io.IOException;
+import java.util.Map;
+import org.jboss.netty.channel.ChannelPipeline;
+import org.jboss.netty.channel.ChannelPipelineFactory;
+import org.jboss.netty.channel.Channels;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import backtype.storm.messaging.netty.IServer;
-import backtype.storm.messaging.netty.ISaslServer;
-
 public class ThriftNettyServerCodec {
 
+    public static final String SASL_HANDLER = "sasl-handler";
+    public static final String KERBEROS_HANDLER = "kerberos-handler";
+    
+    public enum AuthMethod {
+        DIGEST,
+        KERBEROS
+    };
+    
     private IServer server;
-
+    private AuthMethod authMethod;
+    private Map storm_conf;
+    
     private static final Logger LOG = LoggerFactory
         .getLogger(ThriftNettyServerCodec.class);
 
-    public ThriftNettyServerCodec(IServer server) {
+    public ThriftNettyServerCodec(IServer server, Map storm_conf, AuthMethod authMethod) {
         this.server = server;
+        this.authMethod = authMethod;
+        this.storm_conf = storm_conf;
     }
 
     public ChannelPipelineFactory pipelineFactory() {
@@ -49,12 +61,23 @@ public class ThriftNettyServerCodec {
                 ChannelPipeline pipeline = Channels.pipeline();
                 pipeline.addLast("encoder", new ThriftEncoder());
                 pipeline.addLast("decoder", new ThriftDecoder());
-                try {
-                    LOG.debug("Adding SaslStormServerHandler to pacemaker server pipeline.");
-                    pipeline.addLast("sasl-handler", new SaslStormServerHandler((ISaslServer)server));
+                if(authMethod == AuthMethod.DIGEST) {
+                    try {
+                        LOG.debug("Adding SaslStormServerHandler to pacemaker server pipeline.");
+                        pipeline.addLast(SASL_HANDLER, new SaslStormServerHandler((ISaslServer)server));
+                    }
+                    catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
                 }
-                catch (IOException e) {
-                    throw new RuntimeException(e);
+                else if(authMethod == AuthMethod.KERBEROS) {
+                    try {
+                        LOG.debug("Adding KerberosSaslServerHandler to pacemaker server pipeline.");
+                        pipeline.addLast(KERBEROS_HANDLER, new KerberosSaslServerHandler((ISaslServer)server, storm_conf, AuthUtils.LOGIN_CONTEXT_PACEMAKER_SERVER));
+                    }
+                    catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
                 }
 
                 pipeline.addLast("handler", new StormServerHandler(server));

@@ -44,7 +44,7 @@ listKeys = set(["storm.auth.simple-white-list.users", "supervisor.slots.ports",
  "storm.zookeeper.servers", "topology.kryo.register", "drpc.servers",
  "worker.childopts", "ui.users", "ui.groups", "logs.users", "logs.groups", "nimbus.supervisor.users",
  "nimbus.admins", "topology.users", "topology.groups", "nimbus.credential.renewers.classes",
- "topology.auto-credentials"])
+ "topology.auto-credentials", "pacemaker.kerberos.users"])
 mapKeys = set(["isolation.scheduler.machines", "ui.filter.params", "drpc.http.filter.params",
                "supervisor.scheduler.meta"])
 

@@ -39,6 +39,7 @@
   (let [clazz (Class/forName (or (conf STORM-CLUSTER-STATE-STORE)
                                  "backtype.storm.cluster_state.zookeeper_state_factory"))
         state-instance (.newInstance clazz)]
+    (log-debug "Creating cluster state: " (.toString clazz))
     (or (.mkState state-instance conf auth-conf acls)
         nil)))
 
