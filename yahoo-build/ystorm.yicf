@@ -10,8 +10,7 @@ LONG_DESC = `cat README.yahoo; cat ../README.markdown`
 SRCDIRS = ../
 
 CUSTODIAN = yahoo-storm-team@yahoo-inc.com http://twiki.corp.yahoo.com/view/Grid/StormDocumentation
-YINST bug-product Low Latency
-YINST bug-component General
+YINST bug-product jira-ystorm
 
 YINST requires pkg ypython               2.6.0_2     2.7.9999
 YINST requires pkg yjava_jdk             1.7.0_11.64 1.8.999999
