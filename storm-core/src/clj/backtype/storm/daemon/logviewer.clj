@@ -134,7 +134,7 @@
                    :when (not (contains? alive-ids id))]
                dir)))))
 
-(defn get-all-worker-dirs [root-dir]
+(defn get-all-worker-dirs [^File root-dir]
   (reduce clojure.set/union
           (sorted-set)
           (for [^File topo-dir (.listFiles root-dir)]
@@ -152,22 +152,16 @@
                  :when (contains? alive-ids id)]
              (.getCanonicalPath dir)))))
 
-(defn filter-worker-logs [logs]
-  (filter #(and (.isFile %)
-                (re-find worker-log-filename-pattern (.getName %)))
-          logs))
-
-(defn get-all-logs-for-rootdir
-  [^File log-dir]
+(defn get-all-logs-for-rootdir [^File log-dir]
   (reduce concat
           (for [port-dir (get-all-worker-dirs log-dir)]
             (into [] (.listFiles port-dir)))))
 
-(defn is-active-log
-  [^File file]
-  (re-find #"\.(log|err|out)$" (.getName file)))
+(defn is-active-log [^File file]
+  (re-find #"\.(log|err|out|current)$" (.getName file)))
 
-(defn filter-candidate-files
+(defn filter-candidate-files 
+  "Filter candidate files for global cleanup"
   [logs log-dir]
   (let [alive-worker-dirs (get-alive-worker-dirs *STORM-CONF* log-dir)]
     (filter #(and (not= (.getName %) "worker.yaml")  ; exclude metadata file
@@ -180,7 +174,7 @@
   [^File root-dir]
   (let [files (get-all-logs-for-rootdir root-dir)
         logs (filter-candidate-files files root-dir)]
-    (sort #(compare (.lastModified %1) (.lastModified %2)) logs)))
+    (sort-by #(.lastModified %) logs)))
 
 (defn sum-file-size
   "Given a sequence of Files, sum their sizes."
@@ -197,17 +191,19 @@
         (recur (rest logs)))
       logs)))
 
-(defn per-workerdir-cleanup [root-dir]
+(defn per-workerdir-cleanup 
+  "Delete the oldest files in overloaded worker log dir"
+  [^File root-dir size]
   (dofor [worker-dir (get-all-worker-dirs root-dir)]
-    (let [sorted-logs (sort #(compare (.lastModified %1) (.lastModified %2)) (.listFiles worker-dir))
-          size (* ((read-storm-config) LOGVIEWER-MAX-PER-WORKER-LOGS-SIZE-MB) (*  1024 1024))]
+    (let [sorted-logs (sort-by #(.lastModified %) (.listFiles worker-dir))]
       (delete-oldest-while-logs-too-large sorted-logs size))))
 
 (defn cleanup-empty-topodir
   "Delete the topo dir if it contains zero port dirs"
   [^File dir]
-  (if (empty? (.listFiles (.getParentFile dir)))
-    (rmr (.getCanonicalPath (.getParentFile dir)))))
+  (let [topodir (.getParentFile dir)]
+    (if (empty? (.listFiles topodir))
+      (rmr (.getCanonicalPath topodir)))))
 
 (defn cleanup-fn!
   "Delete old log dirs for which the workers are no longer alive"
@@ -216,6 +212,7 @@
         old-log-dirs (select-dirs-for-cleanup *STORM-CONF*
                                               (* now-secs 1000)
                                               log-root-dir)
+        per-dir-size (*STORM-CONF* LOGVIEWER-MAX-PER-WORKER-LOGS-SIZE-MB)
         dead-worker-dirs (get-dead-worker-dirs *STORM-CONF*
                                                now-secs
                                                old-log-dirs)]
@@ -229,7 +226,7 @@
              (try (rmr path) 
                   (cleanup-empty-topodir dir)
                   (catch Exception ex (log-error ex)))))
-    (per-workerdir-cleanup (File. log-root-dir))
+    (per-workerdir-cleanup (File. log-root-dir) (* per-dir-size (* 1024 1024)))
     (let [all-logs (sorted-worker-logs (File. log-root-dir))
           size (* (*STORM-CONF* LOGVIEWER-MAX-SUM-WORKER-LOGS-SIZE-MB) (*  1024 1024))]
       (delete-oldest-while-logs-too-large all-logs size))))
@@ -993,7 +990,7 @@ Note that if anything goes wrong, this will throw an Error and exit."
     (log-error ex))))
 
 (defn -main []
-  (let [conf (read-storm-config)
+  (let [conf *STORM-CONF*
         log-root (worker-artifacts-root conf)]
     (setup-default-uncaught-exception-handler)
     (start-log-cleaner! conf log-root)
