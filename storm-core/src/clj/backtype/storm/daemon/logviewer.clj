@@ -158,7 +158,7 @@
             (into [] (.listFiles port-dir)))))
 
 (defn is-active-log [^File file]
-  (re-find #"\.(log|err|out|current)$" (.getName file)))
+  (re-find #"\.(log|err|out|current|yaml)$" (.getName file)))
 
 (defn filter-candidate-files 
   "Filter candidate files for global cleanup"
@@ -195,7 +195,8 @@
   "Delete the oldest files in overloaded worker log dir"
   [^File root-dir size]
   (dofor [worker-dir (get-all-worker-dirs root-dir)]
-    (let [sorted-logs (sort-by #(.lastModified %) (.listFiles worker-dir))]
+    (let [filtered-logs (filter #(not (is-active-log %)) (.listFiles worker-dir))
+          sorted-logs (sort-by #(.lastModified %) filtered-logs)]
       (delete-oldest-while-logs-too-large sorted-logs size))))
 
 (defn cleanup-empty-topodir
@@ -212,7 +213,9 @@
         old-log-dirs (select-dirs-for-cleanup *STORM-CONF*
                                               (* now-secs 1000)
                                               log-root-dir)
+        total-size (*STORM-CONF* LOGVIEWER-MAX-SUM-WORKER-LOGS-SIZE-MB)
         per-dir-size (*STORM-CONF* LOGVIEWER-MAX-PER-WORKER-LOGS-SIZE-MB)
+        per-dir-size (min per-dir-size (* total-size 0.5))
         dead-worker-dirs (get-dead-worker-dirs *STORM-CONF*
                                                now-secs
                                                old-log-dirs)]
@@ -228,7 +231,7 @@
                   (catch Exception ex (log-error ex)))))
     (per-workerdir-cleanup (File. log-root-dir) (* per-dir-size (* 1024 1024)))
     (let [all-logs (sorted-worker-logs (File. log-root-dir))
-          size (* (*STORM-CONF* LOGVIEWER-MAX-SUM-WORKER-LOGS-SIZE-MB) (*  1024 1024))]
+          size (* total-size (*  1024 1024))]
       (delete-oldest-while-logs-too-large all-logs size))))
 
 (defn start-log-cleaner! [conf log-root-dir]
