@@ -219,6 +219,7 @@
             <id>yahoo</id>
             <modules>
                 <module>storm-yahoo</module>
+                <module>examples/yahoo-examples</module>
             </modules>
         </profile>
         <profile>
