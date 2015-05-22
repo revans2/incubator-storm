@@ -15,18 +15,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package backtype.storm.topology;
 
+package backtype.storm.scheduler.resource.Strategies;
+
+import java.util.Collection;
 import java.util.Map;
 
-public interface ComponentConfigurationDeclarer<T extends ComponentConfigurationDeclarer> {
-    T addConfigurations(Map conf);
-    T addConfiguration(String config, Object value);
-    T setDebug(boolean debug);
-    T setMaxTaskParallelism(Number val);
-    T setMaxSpoutPending(Number val);
-    T setNumTasks(Number val);
-    T setMemoryLoad(Double onHeap);
-    T setMemoryLoad(Double onHeap, Double offHeap);
-    T setCPULoad(Double amount);
+import backtype.storm.scheduler.Topologies;
+import backtype.storm.scheduler.ExecutorDetails;
+import backtype.storm.scheduler.TopologyDetails;
+import backtype.storm.scheduler.resource.Node;
+
+public interface IStrategy {
+	public Map<Node, Collection<ExecutorDetails>> schedule(Topologies topologies, TopologyDetails td,
+	        Collection<ExecutorDetails> unassignedExecutors);
 }

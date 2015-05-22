@@ -708,7 +708,9 @@
        (scheduler-configuration))
   (GET "/api/v1/cluster/summary" [:as {:keys [cookies servlet-request]}]
        (let [user (.getUserName http-creds-handler servlet-request)]
-         (json-response (cluster-summary user))))
+         (json-response (assoc (cluster-summary user)
+                          "jira-url" (*STORM-CONF* UI-PROJECT-JIRA-URL)
+                          "central-log-url" (*STORM-CONF* UI-CENTRAL-LOGGING-URL)))))
   (GET "/api/v1/history/summary" [:as {:keys [cookies servlet-request]}]
        (let [user (.getUserName http-creds-handler servlet-request)]
          (json-response (topology-history-info user))))

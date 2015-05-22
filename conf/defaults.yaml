@@ -86,7 +86,8 @@ logviewer.port: 8000
 logviewer.childopts: "-Xmx128m"
 logviewer.cleanup.age.mins: 10080
 logviewer.appender.name: "A1"
-logviewer.max.sum.worker.logs.size.mb: 1000
+logviewer.max.sum.worker.logs.size.mb: 4096
+logviewer.max.per.worker.logs.size.mb: 2048
 
 logs.users: null
 
@@ -130,6 +131,13 @@ supervisor.heartbeat.frequency.secs: 5
 supervisor.enable: true
 supervisor.supervisors: []
 supervisor.supervisors.commands: []
+#Same as 4 workers at 768 MB each, could be anything
+supervisor.memory.capacity.mb: 3144.0
+#By convention 1 cpu core should be about 100, but this can be adjusted if needed
+# using 100 makes it simple to set the desired value to the capacity measurement
+# for single threaded bolts
+supervisor.cpu.capacity: 400.0
+
 supervisor.blobstore.class: "backtype.storm.blobstore.NimbusBlobStore"
 supervisor.blobstore.download.thread.count: 5
 supervisor.blobstore.download.max_retries: 3

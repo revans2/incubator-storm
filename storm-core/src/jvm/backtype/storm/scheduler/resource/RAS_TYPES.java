@@ -15,18 +15,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package backtype.storm.topology;
 
-import java.util.Map;
+package backtype.storm.scheduler.resource;
 
-public interface ComponentConfigurationDeclarer<T extends ComponentConfigurationDeclarer> {
-    T addConfigurations(Map conf);
-    T addConfiguration(String config, Object value);
-    T setDebug(boolean debug);
-    T setMaxTaskParallelism(Number val);
-    T setMaxSpoutPending(Number val);
-    T setNumTasks(Number val);
-    T setMemoryLoad(Double onHeap);
-    T setMemoryLoad(Double onHeap, Double offHeap);
-    T setCPULoad(Double amount);
+/**
+ * A class to hold global variables
+ */
+public final class RAS_TYPES {
+
+    public static final String TYPE_MEMORY = "memory";
+    public static final Double DEFAULT_ONHEAP_MEMORY_REQUIREMENT = 100.0;
+    public static final Double DEFAULT_OFFHEAP_MEMORY_REQUIREMENT = 50.0;
+    public static final String TYPE_MEMORY_ONHEAP = "onHeap";
+    public static final String TYPE_MEMORY_OFFHEAP = "offHeap";
+
+    public static final String TYPE_CPU = "cpu";
+    public static final String TYPE_CPU_TOTAL = "total";
+    public static final Double DEFAULT_CPU_REQUIREMENT = 10.0;
+
 }

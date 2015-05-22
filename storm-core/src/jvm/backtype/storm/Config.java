@@ -492,6 +492,18 @@ public class Config extends HashMap<String, Object> {
     public static final Object UI_PORT_SCHEMA = Number.class;
 
     /**
+     * Storm UI Project JIRA Link for reporting issue.
+     */
+    public static final String UI_PROJECT_JIRA_URL = "ui.project.jira.url";
+    public static final Object UI_PROJECT_JIRA_URL_SCHEMA = String.class;
+
+    /**
+     * Storm UI Central Logging URL.
+     */
+    public static final String UI_CENTRAL_LOGGING_URL = "ui.central.logging.url";
+    public static final Object UI_CENTRAL_LOGGING_URL_SCHEMA = String.class;
+
+    /**
      * HTTP UI port for log viewer
      */
     public static final String LOGVIEWER_PORT = "logviewer.port";
@@ -540,6 +552,12 @@ public class Config extends HashMap<String, Object> {
      */
     public static final String LOGVIEWER_MAX_SUM_WORKER_LOGS_SIZE_MB = "logviewer.max.sum.worker.logs.size.mb";
     public static final Object LOGVIEWER_MAX_SUM_WORKER_LOGS_SIZE_MB_SCHEMA = Number.class;
+    
+	/**
+     * The maximum number of bytes per worker's files can take up in MB
+     */
+    public static final String LOGVIEWER_MAX_PER_WORKER_LOGS_SIZE_MB = "logviewer.max.per.worker.logs.size.mb";
+    public static final Object LOGVIEWER_MAX_PER_WORKER_LOGS_SIZE_MB_SCHEMA = Number.class;
 
     /**
      * Childopts for Storm UI Java process.
@@ -917,6 +935,25 @@ public class Config extends HashMap<String, Object> {
     public static final Object SUPERVISOR_WORKER_LAUNCHER_SCHEMA = String.class;
 
     /**
+     * The total amount of memory (in MiB) a supervisor is allowed to give to its workers.
+     *
+     */
+    public static final String SUPERVISOR_MEMORY_CAPACITY_MB = "supervisor.memory.capacity.mb";
+    public static final Object SUPERVISOR_MEMORY_CAPACITY_MB_SCHEMA = ConfigValidation.PositiveIntegerValidator;
+    
+    /**
+     * The total amount of CPU resources a supervisor is allowed to give to its workers.
+     * By convention 1 cpu core should be about 100, but this can be adjusted if needed
+     * using 100 makes it simple to set the desired value to the capacity measurement
+     * for single threaded bolts
+     */
+    public static final String SUPERVISOR_CPU_CAPACITY = "supervisor.cpu.capacity";
+    public static final Object SUPERVISOR_CPU_CAPACITY_SCHEMA = ConfigValidation.PositiveIntegerValidator;
+
+    /**
+     * The jvm opts provided to workers launched by this supervisor. All "%ID%" substrings are replaced
+     * with an identifier for this worker. Also, "%WORKER-ID%", "%STORM-ID%" and "%WORKER-PORT%" are
+     * replaced with appropriate runtime values for this worker.
      * The distributed cache target size in MB. This is a soft limit to the size of the distributed
      * cache contents.
      */
@@ -1048,6 +1085,30 @@ public class Config extends HashMap<String, Object> {
      */
     public static final String TOPOLOGY_TASKS = "topology.tasks";
     public static final Object TOPOLOGY_TASKS_SCHEMA = Number.class;
+
+    /**
+     * The maximum amount of memory an instance of a spout/bolt will take on heap. This enables the scheduler
+     * to allocate slots on machines with enough available memory. 
+     */
+    public static final String TOPOLOGY_RESOURCES_ONHEAP_MEMORY_MB = "topology.resources.memory.heap.mb";
+    public static final Object TOPOLOGY_RESOURCES_ONHEAP_MEMORY_MB_SCHEMA = ConfigValidation.PositiveIntegerValidator;
+
+    /**
+     * The maximum amount of memory an instance of a spout/bolt will take off heap. This enables the scheduler
+     * to allocate slots on machines with enough available memory. 
+     */
+    public static final String TOPOLOGY_RESOURCES_OFFHEAP_MEMORY_MB = "topology.resources.memory.offheap.mb";
+    public static final Object TOPOLOGY_RESOURCES_OFFHEAP_MEMORY_MB_SCHEMA = ConfigValidation.PositiveIntegerValidator;
+
+    public static final String TOPOLOGY_RESOURCES_MEMORY_MB = "topology.resources.memory.mb";
+    public static final Object TOPOLOGY_RESOURCES_MEMORY_MB_SCHEMA = Map.class;
+
+    /**
+     * The maximum amount of cpu an instance of a spout/bolt will take. This enables the scheduler
+     * to allocate slots on machines with enough available cpu. 
+     */
+    public static final String TOPOLOGY_RESOURCES_CPU = "topology.resources.cpu";
+    public static final Object TOPOLOGY_RESOURCES_CPU_SCHEMA = ConfigValidation.PositiveIntegerValidator;
 
     /**
      * How many executors to spawn for ackers.
