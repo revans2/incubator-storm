@@ -228,55 +228,84 @@ struct TopologyInfo {
 514: optional string owner;
 }
 
+struct CommonAggregateStats {
+1: optional i32 num_executors;
+2: optional i32 num_tasks;
+3: optional i64 emitted;
+4: optional i64 transferred;
+5: optional i64 acked;
+6: optional i64 failed;
+}
+
 struct SpoutAggregateStats {
-  1: required string id;
-513: optional i32 num_executors;
-514: optional i32 num_tasks;
-515: optional i64 num_emitted;
-516: optional i64 num_transferred;
-517: optional i64 num_acked;
-518: optional i64 num_failed;
-519: optional ErrorInfo last_error;
-520: optional double complete_latency;
+1: optional double complete_latency_ms;
 }
 
 struct BoltAggregateStats {
-  1: required string id;
-513: optional i32 num_executors;
-514: optional i32 num_tasks;
-515: optional i64 num_emitted;
-516: optional i64 num_transferred;
-517: optional i64 num_acked;
-518: optional i64 num_failed;
-519: optional ErrorInfo last_error;
-520: optional double execute_latency;
-521: optional double process_latency;
-522: optional i64 num_executed;
-523: optional double capacity;
+1: optional double execute_latency_ms;
+2: optional double process_latency_ms;
+3: optional i64    executed;
+4: optional double capacity;
+}
+
+union SpecificAggregateStats {
+1: BoltAggregateStats  bolt;
+2: SpoutAggregateStats spout;
+}
+
+enum ComponentType {
+  BOLT = 1,
+  SPOUT = 2
+}
+
+struct ComponentAggregateStats {
+1: optional ComponentType type;
+2: optional CommonAggregateStats common_stats;
+3: optional SpecificAggregateStats specific_stats;
+4: optional ErrorInfo last_error;
 }
 
 struct TopologyStats {
-513: optional map<string, i64> emitted;
-514: optional map<string, i64> transferred;
-515: optional map<string, double> complete_latencies;
-516: optional map<string, i64> acked;
-517: optional map<string, i64> failed;
+1: optional map<string, i64> window_to_emitted;
+2: optional map<string, i64> window_to_transferred;
+3: optional map<string, double> window_to_complete_latencies_ms;
+4: optional map<string, i64> window_to_acked;
+5: optional map<string, i64> window_to_failed;
 }
 
 struct TopologyPageInfo {
-  1: required string id;
-513: optional string name;
-514: optional i32 uptime_secs;
-515: optional string status;
-516: optional i32 num_tasks;
-517: optional i32 num_workers;
-518: optional i32 num_executors;
-519: optional string topology_conf;
-520: optional list<SpoutAggregateStats> spout_agg_stats;
-521: optional list<BoltAggregateStats> bolt_agg_stats;
-522: optional string sched_status;
-523: optional TopologyStats topology_stats;
-524: optional string owner;
+ 1: required string id;
+ 2: optional string name;
+ 3: optional i32 uptime_secs;
+ 4: optional string status;
+ 5: optional i32 num_tasks;
+ 6: optional i32 num_workers;
+ 7: optional i32 num_executors;
+ 8: optional string topology_conf;
+ 9: optional map<string,ComponentAggregateStats> id_to_spout_agg_stats;
+10: optional map<string,ComponentAggregateStats> id_to_bolt_agg_stats;
+11: optional string sched_status;
+12: optional TopologyStats topology_stats;
+13: optional string owner;
+}
+
+struct ExecutorAggregateStats {
+1: optional ExecutorSummary exec_summary;
+2: optional ComponentAggregateStats stats;
+}
+
+struct ComponentPageInfo {
+ 1: required string component_id;
+ 2: required ComponentType component_type;
+ 3: optional string topology_id;
+ 4: optional string topology_name;
+ 5: optional i32 num_executors;
+ 6: optional i32 num_tasks;
+ 7: optional map<string,ComponentAggregateStats> window_to_stats;
+ 8: optional map<GlobalStreamId,ComponentAggregateStats> gsid_to_input_stats;
+ 9: optional map<string,ComponentAggregateStats> sid_to_output_stats;
+10: optional list<ExecutorAggregateStats> exec_stats;
+11: optional list<ErrorInfo> errors;
 }
 
 struct KillOptions {
@@ -535,6 +564,7 @@ service Nimbus {
   TopologyInfo getTopologyInfo(1: string id) throws (1: NotAliveException e, 2: AuthorizationException aze);
   TopologyInfo getTopologyInfoWithOpts(1: string id, 2: GetInfoOptions options) throws (1: NotAliveException e, 2: AuthorizationException aze);
   TopologyPageInfo getTopologyPageInfo(1: string id, 2: string window, 3: bool is_include_sys) throws (1: NotAliveException e, 2: AuthorizationException aze);
+  ComponentPageInfo getComponentPageInfo(1: string topology_id, 2: string component_id, 3: string window, 4: bool is_include_sys) throws (1: NotAliveException e, 2: AuthorizationException aze);
   //returns json
   string getTopologyConf(1: string id) throws (1: NotAliveException e, 2: AuthorizationException aze);
   StormTopology getTopology(1: string id) throws (1: NotAliveException e, 2: AuthorizationException aze);
