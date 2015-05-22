@@ -161,6 +161,7 @@ struct SupervisorSummary {
   3: required i32 num_workers;
   4: required i32 num_used_workers;
   5: required string supervisor_id;
+  6: optional map<string, double> total_resources;
 }
 
 struct ClusterSummary {
@@ -379,6 +380,7 @@ struct SupervisorInfo {
     5: optional list<i64> meta;
     6: optional map<string, string> scheduler_meta;
     7: optional i64 uptime_secs;
+    8: optional map<string, double> resources_map;
 }
 struct NodeInfo {
     1: required string node;
