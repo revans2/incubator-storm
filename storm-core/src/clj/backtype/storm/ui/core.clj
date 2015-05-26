@@ -445,35 +445,11 @@
   (with-nimbus nimbus
     (distinct (exec-host-port (.get_executors (.getTopologyInfo nimbus id))))))
 
-(defn build-visualization [id window include-sys? user]
+(defn topology-page [id window include-sys? user]
   (with-nimbus nimbus
     (let [topology-conf (from-json (.getTopologyConf ^Nimbus$Client nimbus id))
           _ (assert-authorized-ui-user user *STORM-CONF* topology-conf)
-          window (if window window ":all-time")
-          topology-info (->> (doto
-                               (GetInfoOptions.)
-                               (.set_num_err_choice NumErrorsChoice/ONE))
-                             (.getTopologyInfoWithOpts ^Nimbus$Client nimbus
-                                                       id))
-          storm-topology (.getTopology ^Nimbus$Client nimbus id)
-          spout-executor-summaries (filter (partial spout-summary? storm-topology) (.get_executors topology-info))
-          bolt-executor-summaries (filter (partial bolt-summary? storm-topology) (.get_executors topology-info))
-          spout-comp-id->executor-summaries (group-by-comp spout-executor-summaries)
-          bolt-comp-id->executor-summaries (group-by-comp bolt-executor-summaries)
-          bolt-comp-id->executor-summaries (filter-key (mk-include-sys-fn include-sys?) bolt-comp-id->executor-summaries)
-          id->spout-spec (.get_spouts storm-topology)
-          id->bolt (.get_bolts storm-topology)
-          visualizer-data (visualization-data (merge (hashmap-to-persistent id->spout-spec)
-                                                     (hashmap-to-persistent id->bolt))
-                                              spout-comp-id->executor-summaries
-                                              bolt-comp-id->executor-summaries
-                                              window
-                                              id)]
-       {"visualizationTable" (stream-boxes visualizer-data)})))
-
-(defn topology-page [id window include-sys? user]
-  (with-nimbus nimbus
-    (let [window (or window ":all-time")
+          window (or window ":all-time")
           window-hint (window-hint window)
           topo-page-info (.getTopologyPageInfo ^Nimbus$Client nimbus
                                                id
@@ -732,10 +708,6 @@
         (let [id (url-decode id)
               user (.getUserName http-creds-handler servlet-request)]
           (json-response (build-visualization id (:window m) (check-include-sys? (:sys m)) user))))
-  (GET "/api/v1/topology/:id/visualization-init" [:as {:keys [cookies servlet-request]} id & m]
-        (let [id (url-decode id)
-              user (.getUserName http-creds-handler servlet-request)]
-          (json-response (build-visualization id (:window m) (check-include-sys? (:sys m)) user) (:callback m))))
   (GET "/api/v1/topology/:id/visualization" [:as {:keys [cookies servlet-request]} id & m]
         (let [id (url-decode id)
               user (.getUserName http-creds-handler servlet-request)]
