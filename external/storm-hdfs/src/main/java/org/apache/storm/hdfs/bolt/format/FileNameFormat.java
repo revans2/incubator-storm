@@ -1,4 +1,4 @@
-/*
+/**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -15,23 +15,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package backtype.storm.ui;
+package org.apache.storm.hdfs.bolt.format;
 
-public class InvalidRequestException extends Exception {
+import backtype.storm.task.TopologyContext;
 
-    public InvalidRequestException() {
-        super();
-    }
+import java.io.Serializable;
+import java.util.Map;
 
-    public InvalidRequestException(String msg) {
-        super(msg);
-    }
+/**
+ * Formatter interface for determining HDFS file names.
+ *
+ */
+public interface FileNameFormat extends Serializable {
 
-    public InvalidRequestException(String msg, Throwable cause) {
-        super(msg, cause);
-    }
+    void prepare(Map conf, TopologyContext topologyContext);
 
-    public InvalidRequestException(Throwable cause) {
-        super(cause);
-    }
+    /**
+     * Returns the filename the HdfsBolt will create.
+     * @param rotation the current file rotation number (incremented on every rotation)
+     * @param timeStamp current time in milliseconds when the rotation occurs
+     * @return
+     */
+    String getName(long rotation, long timeStamp);
+
+    String getPath();
 }

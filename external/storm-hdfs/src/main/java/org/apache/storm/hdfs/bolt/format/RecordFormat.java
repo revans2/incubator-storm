@@ -1,4 +1,4 @@
-/*
+/**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -15,23 +15,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package backtype.storm.ui;
+package org.apache.storm.hdfs.bolt.format;
 
-public class InvalidRequestException extends Exception {
 
-    public InvalidRequestException() {
-        super();
-    }
+import backtype.storm.tuple.Tuple;
 
-    public InvalidRequestException(String msg) {
-        super(msg);
-    }
+import java.io.Serializable;
 
-    public InvalidRequestException(String msg, Throwable cause) {
-        super(msg, cause);
-    }
-
-    public InvalidRequestException(Throwable cause) {
-        super(cause);
-    }
+/**
+ * Formats a Tuple object into a byte array
+ * that will be written to HDFS.
+ *
+ */
+public interface RecordFormat extends Serializable {
+    byte[] format(Tuple tuple);
 }
