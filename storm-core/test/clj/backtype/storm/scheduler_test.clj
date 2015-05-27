@@ -90,8 +90,8 @@
   )
 
 (deftest test-cluster
-  (let [supervisor1 (SupervisorDetails. "supervisor1" "192.168.0.1" (list ) (map int (list 1 3 5 7 9)))
-        supervisor2 (SupervisorDetails. "supervisor2" "192.168.0.2" (list ) (map int (list 2 4 6 8 10)))
+  (let [supervisor1 (SupervisorDetails. "supervisor1" "192.168.0.1" (list ) (map int (list 1 3 5 7 9)) {})
+        supervisor2 (SupervisorDetails. "supervisor2" "192.168.0.2" (list ) (map int (list 2 4 6 8 10)) {})
         executor1 (ExecutorDetails. (int 1) (int 5))
         executor2 (ExecutorDetails. (int 6) (int 10))
         executor3 (ExecutorDetails. (int 11) (int 15))

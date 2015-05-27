@@ -18,6 +18,8 @@
 package backtype.storm.topology;
 
 import backtype.storm.Config;
+import backtype.storm.scheduler.resource.RAS_TYPES;
+
 import java.util.HashMap;
 import java.util.Map;
 
@@ -51,4 +53,28 @@ public abstract class BaseConfigurationDeclarer<T extends ComponentConfiguration
         if(val!=null) val = val.intValue();
         return addConfiguration(Config.TOPOLOGY_TASKS, val);
     }
+
+    @Override
+    public T setMemoryLoad(Double onHeap) {
+        return setMemoryLoad(onHeap, RAS_TYPES.DEFAULT_ONHEAP_MEMORY_REQUIREMENT);
+    } 
+
+    @Override
+    public T setMemoryLoad(Double onHeap, Double offHeap) {
+        if (onHeap != null) {
+            onHeap = onHeap.doubleValue();
+        }
+        if (offHeap!=null) {
+            offHeap = offHeap.doubleValue();
+        }
+        Map <String, Number> memoryMap = new HashMap<String, Number>();
+        memoryMap.put(RAS_TYPES.TYPE_MEMORY_ONHEAP, onHeap);
+        memoryMap.put(RAS_TYPES.TYPE_MEMORY_OFFHEAP, offHeap);
+        return addConfiguration(Config.TOPOLOGY_RESOURCES_MEMORY_MB, memoryMap);
+    }
+
+    @Override
+    public T setCPULoad(Double amount) {
+        return addConfiguration(Config.TOPOLOGY_RESOURCES_CPU, amount);
+    } 
 }

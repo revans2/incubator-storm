@@ -23,11 +23,13 @@ import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBufferOutputStream;
 import org.jboss.netty.buffer.ChannelBuffers;
 
-enum ControlMessage {
+public enum ControlMessage implements INettySerializable {
     CLOSE_MESSAGE((short)-100),
     EOB_MESSAGE((short)-201),
     OK_RESPONSE((short)-200),
-    FAILURE_RESPONSE((short)-400);
+    FAILURE_RESPONSE((short)-400),
+    SASL_TOKEN_MESSAGE_REQUEST((short)-202),
+    SASL_COMPLETE_REQUEST((short)-203);
 
     private short code;
 
@@ -41,14 +43,14 @@ enum ControlMessage {
      * @param encoded
      * @return
      */
-    static ControlMessage mkMessage(short encoded) {
+    public static ControlMessage mkMessage(short encoded) {
         for(ControlMessage cm: ControlMessage.values()) {
           if(encoded == cm.code) return cm;
         }
         return null;
     }
 
-    int encodeLength() {
+    public int encodeLength() {
         return 2; //short
     }
     
@@ -56,14 +58,19 @@ enum ControlMessage {
      * encode the current Control Message into a channel buffer
      * @throws Exception
      */
-    ChannelBuffer buffer() throws IOException {
+    public ChannelBuffer buffer() throws IOException {
         ChannelBufferOutputStream bout = new ChannelBufferOutputStream(ChannelBuffers.directBuffer(encodeLength()));      
         write(bout);
         bout.close();
         return bout.buffer();
     }
 
-    void write(ChannelBufferOutputStream bout) throws IOException {
+    public static ControlMessage read(byte[] serial) {
+        ChannelBuffer cm_buffer = ChannelBuffers.copiedBuffer(serial);
+        return mkMessage(cm_buffer.getShort(0));
+    }
+    
+    public void write(ChannelBufferOutputStream bout) throws IOException {
         bout.writeShort(code);        
     } 
 }

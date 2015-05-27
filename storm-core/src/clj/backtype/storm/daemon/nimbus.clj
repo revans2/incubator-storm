@@ -32,7 +32,8 @@
                                      GetInfoOptions NumErrorsChoice
                                      ListBlobsResult ReadableBlobMeta
                                      SettableBlobMeta KeyNotFoundException TopologyHistoryInfo
-                                     TopologyPageInfo TopologyStats LogConfig LogLevel LogLevelAction])
+                                     ComponentPageInfo TopologyPageInfo TopologyStats LogConfig
+                                     LogLevel LogLevelAction])
   (:import [backtype.storm.blobstore AtomicOutputStream
                                      BlobStore
                                      BlobStoreAclHandler
@@ -1104,7 +1105,12 @@
                :beats beats
                :topology topology
                :task->component task->component
-               :base base}))]
+               :base base}))
+        get-last-error (fn [storm-cluster-state storm-id component-id]
+                         (if-let [e (.last-error storm-cluster-state
+                                                 storm-id
+                                                 component-id)]
+                           (ErrorInfo. (:error e) (:time-secs e))))]
 
     (.prepare ^backtype.storm.nimbus.ITopologyValidator (:validator nimbus) conf)
     (cleanup-corrupt-topologies! nimbus)
@@ -1482,62 +1488,56 @@
 
       (^TopologyPageInfo getTopologyPageInfo
         [this ^String storm-id ^String window ^boolean include-sys?]
-        (let [{:keys [storm-name
-                      storm-cluster-state
-                      launch-time-secs
-                      assignment
-                      beats
-                      topology
-                      task->component
-                      base]} (get-common-topo-info storm-id "getTopologyPageInfo")
-              exec->node+port (:executor->node+port assignment)
-              last-err-fn (partial stats/get-last-error storm-cluster-state
-                                                        storm-id)
-              {:keys
-               [num-tasks
-                num-workers
-                num-executors
-                spout-id->stats
-                bolt-id->stats
-                window->emitted
-                window->transferred
-                window->complete-latency
-                window->acked
-                window->failed]} (stats/agg-executors-stats exec->node+port
-                                                            task->component
-                                                            beats
-                                                            topology
-                                                            window
-                                                            include-sys?
-                                                            last-err-fn)
-              spout-agg-stats (for [[id m] spout-id->stats]
-                                (stats/thriftify-spout-agg-stats id m))
-              bolt-agg-stats (for [[id m] bolt-id->stats]
-                               (stats/thriftify-bolt-agg-stats id m))
-              topology-stats
-                (doto (TopologyStats.)
-                  (.set_emitted window->emitted)
-                  (.set_transferred window->transferred)
-                  (.set_complete_latencies window->complete-latency)
-                  (.set_acked window->acked)
-                  (.set_failed window->failed))
-              topology-conf (to-json
-                              (try-read-storm-conf conf storm-id blob-store))
-              topo-page-info (doto (TopologyPageInfo. storm-id)
-                               (.set_name storm-name)
-                               (.set_uptime_secs (time-delta launch-time-secs))
-                               (.set_status (extract-status-str base))
-                               (.set_num_tasks num-tasks)
-                               (.set_num_workers num-workers)
-                               (.set_num_executors num-executors)
-                               (.set_topology_conf topology-conf)
-                               (.set_spout_agg_stats spout-agg-stats)
-                               (.set_bolt_agg_stats bolt-agg-stats)
-                               (.set_topology_stats topology-stats))]
-            (when-let [owner (:owner base)] (.set_owner topo-page-info owner))
-            (when-let [sched-status (.get @(:id->sched-status nimbus) storm-id)]
-              (.set_sched_status topo-page-info sched-status))
-            topo-page-info))
+        (let [info (get-common-topo-info storm-id "getTopologyPageInfo")
+
+              exec->node+port (:executor->node+port (:assignment info))
+              last-err-fn (partial get-last-error
+                                   (:storm-cluster-state info)
+                                   storm-id)
+              topo-page-info (stats/agg-topo-execs-stats storm-id
+                                                         exec->node+port
+                                                         (:task->component info)
+                                                         (:beats info)
+                                                         (:topology info)
+                                                         window
+                                                         include-sys?
+                                                         last-err-fn)]
+          (when-let [owner (:owner (:base info))]
+            (.set_owner topo-page-info owner))
+          (when-let [sched-status (.get @(:id->sched-status nimbus) storm-id)]
+            (.set_sched_status topo-page-info sched-status))
+          (doto topo-page-info
+            (.set_name (:storm-name info))
+            (.set_status (extract-status-str (:base info)))
+            (.set_uptime_secs (time-delta (:launch-time-secs info)))
+            (.set_topology_conf (to-json (try-read-storm-conf conf
+                                                              storm-id
+                                                              blob-store))))))
+
+      (^ComponentPageInfo getComponentPageInfo
+        [this
+         ^String topology-id
+         ^String component-id
+         ^String window
+         ^boolean include-sys?]
+        (let [info (get-common-topo-info topology-id "getComponentPageInfo")
+              {:keys [executor->node+port node->host]} (:assignment info)
+              executor->host+port (map-val (fn [[node port]]
+                                             [(node->host node) port])
+                                           executor->node+port)
+              ret (stats/agg-comp-execs-stats executor->host+port
+                                              (:task->component info)
+                                              (:beats info)
+                                              window
+                                              include-sys?
+                                              topology-id
+                                              (:topology info)
+                                              component-id)]
+          (doto ret
+            (.set_topology_name (:storm-name info))
+            (.set_errors (get-errors (:storm-cluster-state info)
+                                     topology-id
+                                     component-id)))))
 
       (^String beginCreateBlob [this
                                 ^String blob-key

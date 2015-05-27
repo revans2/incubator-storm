@@ -17,23 +17,6 @@
  */
 package backtype.storm.messaging.netty;
 
-import backtype.storm.Config;
-import backtype.storm.grouping.Load;
-import backtype.storm.metric.api.IStatefulObject;
-import backtype.storm.messaging.IConnection;
-import backtype.storm.messaging.TaskMessage;
-import backtype.storm.utils.Utils;
-import backtype.storm.utils.StormBoundedExponentialBackoffRetry;
-
-import org.jboss.netty.bootstrap.ClientBootstrap;
-import org.jboss.netty.channel.Channel;
-import org.jboss.netty.channel.ChannelFactory;
-import org.jboss.netty.channel.socket.nio.NioClientSocketChannelFactory;
-import org.jboss.netty.channel.ChannelFuture;
-import org.jboss.netty.channel.ChannelFutureListener;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.util.Iterator;
@@ -47,8 +30,25 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+import java.lang.InterruptedException;
 
-class Client implements IConnection, IStatefulObject{
+import org.jboss.netty.bootstrap.ClientBootstrap;
+import org.jboss.netty.channel.Channel;
+import org.jboss.netty.channel.ChannelFactory;
+import org.jboss.netty.channel.ChannelFuture;
+import org.jboss.netty.channel.ChannelFutureListener;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import backtype.storm.Config;
+import backtype.storm.messaging.IConnection;
+import backtype.storm.messaging.TaskMessage;
+import backtype.storm.utils.Utils;
+import backtype.storm.utils.StormBoundedExponentialBackoffRetry;
+import backtype.storm.metric.api.IStatefulObject;
+import backtype.storm.grouping.Load;
+
+public class Client implements IConnection, IStatefulObject, ISaslClient {
     private static final Logger LOG = LoggerFactory.getLogger(Client.class);
     private static final Timer TIMER = new Timer("netty-client-timer", true);
 
@@ -73,11 +73,13 @@ class Client implements IConnection, IStatefulObject{
     private final StormBoundedExponentialBackoffRetry retryPolicy;
     private volatile Map<Integer, Double> serverLoad = null;
     private Context context;
+    private Map storm_conf;
 
     @SuppressWarnings("rawtypes")
-    Client(Map storm_conf, ChannelFactory factory, String host, int port, Context context) {
+    public Client(Map storm_conf, ChannelFactory factory, String host, int port, Context context) {
         this.context = context;
         this.factory = factory;
+        this.storm_conf = storm_conf;
         message_queue = new LinkedBlockingQueue<Object>();
         retries = new AtomicInteger(0);
         channelRef = new AtomicReference<Channel>(null);
@@ -381,5 +383,31 @@ class Client implements IConnection, IStatefulObject{
             }
         }
         return ret;
+    }
+
+    public Map getConfig() {
+        return storm_conf;
+    }
+
+    /** ISaslClient interface **/
+    public void channelConnected(Channel channel) {
+        setChannel(channel);
+    }
+
+    public void channelReady() {
+        try {
+            tryDeliverMessages(false);
+        }
+        catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public String name() {
+        return (String)storm_conf.get(Config.TOPOLOGY_NAME);
+    }
+
+    public String secretKey() {
+        return SaslUtils.getSecretKey(storm_conf);
     }
 }

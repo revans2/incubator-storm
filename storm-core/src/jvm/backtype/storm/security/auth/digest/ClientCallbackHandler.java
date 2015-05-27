@@ -17,6 +17,8 @@
  */
 package backtype.storm.security.auth.digest;
 
+import java.util.Map;
+import java.util.HashSet;
 import java.io.IOException;
 import javax.security.auth.callback.Callback;
 import javax.security.auth.callback.CallbackHandler;
@@ -51,23 +53,9 @@ public class ClientCallbackHandler implements CallbackHandler {
      * @throws IOException
      */
     public ClientCallbackHandler(Configuration configuration) throws IOException {
-        if (configuration == null) return;
-        AppConfigurationEntry configurationEntries[] = configuration.getAppConfigurationEntry(AuthUtils.LOGIN_CONTEXT_CLIENT);
-        if (configurationEntries == null) {
-            String errorMessage = "Could not find a '"+AuthUtils.LOGIN_CONTEXT_CLIENT
-                    + "' entry in this configuration: Client cannot start.";
-            throw new IOException(errorMessage);
-        }
-
-        _password = "";
-        for(AppConfigurationEntry entry: configurationEntries) {
-            if (entry.getOptions().get(USERNAME) != null) {
-                _username = (String)entry.getOptions().get(USERNAME);
-            }
-            if (entry.getOptions().get(PASSWORD) != null) {
-                _password = (String)entry.getOptions().get(PASSWORD);
-            }
-        }
+        Map<String, ?> vals = AuthUtils.PullConfig(configuration, AuthUtils.LOGIN_CONTEXT_CLIENT);
+        _username = (String)vals.get(USERNAME);
+        _password = (String)vals.get(PASSWORD);
     }
 
     /**

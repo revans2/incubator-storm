@@ -68,7 +68,7 @@
     (reduce clojure.set/union
             (sorted-set)
             (for [^File topo-dir (.listFiles (File. root-dir))]
-              (into [] (.listFiles (File. topo-dir) file-filter))))))
+              (into [] (.listFiles topo-dir file-filter))))))
 
 (defn get-topo-port-workerlog
   "Return the path of the worker log with the format of topoId/port/worker.log.*"
@@ -109,48 +109,72 @@
                  :when metaFile]
              {(get-worker-id-from-metadata-file metaFile) logdir})))
 
+(defn get-alive-ids 
+  [conf now-secs]
+  (->> 
+    (supervisor/read-worker-heartbeats conf)
+    (remove
+      #(or (not (val %))
+           (supervisor/is-worker-hb-timed-out? now-secs
+                                               (val %)
+                                               conf)))
+    keys
+    set))
+
 (defn get-dead-worker-dirs
   "Return a sorted set of java.io.Files that were written by workers that are
   now dead"
   [conf now-secs log-dirs]
   (if (empty? log-dirs)
     (sorted-set)
-    (let [alive-ids (->> 
-                      (supervisor/read-worker-heartbeats conf)
-                      (remove
-                        #(or (not (val %))
-                             (supervisor/is-worker-hb-timed-out? now-secs
-                                                                 (val %)
-                                                                 conf)))
-                      keys
-                      set)
+    (let [alive-ids (get-alive-ids conf now-secs) 
           id->dir (identify-worker-log-dirs log-dirs)]
       (apply sorted-set
              (for [[id dir] id->dir
                    :when (not (contains? alive-ids id))]
                dir)))))
 
-(defn filter-worker-logs [logs]
-  (filter #(and (.isFile %)
-                (re-find worker-log-filename-pattern (.getName %)))
-          logs))
+(defn get-all-worker-dirs [^File root-dir]
+  (reduce clojure.set/union
+          (sorted-set)
+          (for [^File topo-dir (.listFiles root-dir)]
+            (into [] (.listFiles topo-dir)))))
 
-(defn get-all-logs-for-rootdir
-  [^File log-dir]
-  (filter-worker-logs
-    (reduce concat
-            (for [topo-dir (.listFiles log-dir)]
-              (reduce concat
-                      (for [port-dir (.listFiles topo-dir)]
-                        (into [] (.listFiles port-dir))))))))
+(defn get-alive-worker-dirs 
+  "Return a sorted set of java.io.Files that were written by workers that are
+  now active"
+  [conf root-dir]
+  (let [alive-ids (get-alive-ids conf (current-time-secs)) 
+        log-dirs (get-all-worker-dirs root-dir)
+        id->dir (identify-worker-log-dirs log-dirs)]
+    (apply sorted-set
+           (for [[id dir] id->dir
+                 :when (contains? alive-ids id)]
+             (.getCanonicalPath dir)))))
 
-;; now we only delete log files; for old-dead, we delete whole dir for each port when applicable
-;; later we may also consider coredump and gclog files for deleting, need to disinclude metadata file
+(defn get-all-logs-for-rootdir [^File log-dir]
+  (reduce concat
+          (for [port-dir (get-all-worker-dirs log-dir)]
+            (into [] (.listFiles port-dir)))))
+
+(defn is-active-log [^File file]
+  (re-find #"\.(log|err|out|current|yaml)$" (.getName file)))
+
+(defn filter-candidate-files 
+  "Filter candidate files for global cleanup"
+  [logs log-dir]
+  (let [alive-worker-dirs (get-alive-worker-dirs *STORM-CONF* log-dir)]
+    (filter #(and (not= (.getName %) "worker.yaml")  ; exclude metadata file
+                  (not (and (contains? alive-worker-dirs (.getCanonicalPath (.getParentFile %)))
+                            (is-active-log %)))) ; exclude active workers' active logs 
+            logs)))
+
 (defn sorted-worker-logs
   "Collect the wroker log files recursively, sorted by decreasing age."
-  [^File log-dir]
-  (let [logs (get-all-logs-for-rootdir log-dir)]
-    (sort #(compare (.lastModified %1) (.lastModified %2)) logs)))
+  [^File root-dir]
+  (let [files (get-all-logs-for-rootdir root-dir)
+        logs (filter-candidate-files files root-dir)]
+    (sort-by #(.lastModified %) logs)))
 
 (defn sum-file-size
   "Given a sequence of Files, sum their sizes."
@@ -167,6 +191,21 @@
         (recur (rest logs)))
       logs)))
 
+(defn per-workerdir-cleanup 
+  "Delete the oldest files in overloaded worker log dir"
+  [^File root-dir size]
+  (dofor [worker-dir (get-all-worker-dirs root-dir)]
+    (let [filtered-logs (filter #(not (is-active-log %)) (.listFiles worker-dir))
+          sorted-logs (sort-by #(.lastModified %) filtered-logs)]
+      (delete-oldest-while-logs-too-large sorted-logs size))))
+
+(defn cleanup-empty-topodir
+  "Delete the topo dir if it contains zero port dirs"
+  [^File dir]
+  (let [topodir (.getParentFile dir)]
+    (if (empty? (.listFiles topodir))
+      (rmr (.getCanonicalPath topodir)))))
+
 (defn cleanup-fn!
   "Delete old log dirs for which the workers are no longer alive"
   [log-root-dir]
@@ -174,19 +213,25 @@
         old-log-dirs (select-dirs-for-cleanup *STORM-CONF*
                                               (* now-secs 1000)
                                               log-root-dir)
+        total-size (*STORM-CONF* LOGVIEWER-MAX-SUM-WORKER-LOGS-SIZE-MB)
+        per-dir-size (*STORM-CONF* LOGVIEWER-MAX-PER-WORKER-LOGS-SIZE-MB)
+        per-dir-size (min per-dir-size (* total-size 0.5))
         dead-worker-dirs (get-dead-worker-dirs *STORM-CONF*
                                                now-secs
                                                old-log-dirs)]
     (log-debug "log cleanup: now=" now-secs
-               " old log files " (pr-str (map #(.getName %) old-log-dirs))
-               " dead worker files " (pr-str
+               " old log dirs " (pr-str (map #(.getName %) old-log-dirs))
+               " dead worker dirs " (pr-str
                                        (map #(.getName %) dead-worker-dirs)))
     (dofor [dir dead-worker-dirs]
            (let [path (.getCanonicalPath dir)]
              (log-message "Cleaning up: Removing " path)
-             (try (rmr path) (catch Exception ex (log-error ex)))))
+             (try (rmr path) 
+                  (cleanup-empty-topodir dir)
+                  (catch Exception ex (log-error ex)))))
+    (per-workerdir-cleanup (File. log-root-dir) (* per-dir-size (* 1024 1024)))
     (let [all-logs (sorted-worker-logs (File. log-root-dir))
-          size (* (*STORM-CONF* LOGVIEWER-MAX-SUM-WORKER-LOGS-SIZE-MB) (*  1024 1024))]
+          size (* total-size (*  1024 1024))]
       (delete-oldest-while-logs-too-large all-logs size))))
 
 (defn start-log-cleaner! [conf log-root-dir]
@@ -290,7 +335,7 @@ Note that if anything goes wrong, this will throw an Error and exit."
 (defn log-file-selection-form [log-files]
   [[:form {:action "log" :id "list-of-files"}
     (drop-down "file" log-files )
-    [:input {:type "submit" :value "Switch log file"}]]])
+    [:input {:type "submit" :value "Switch file"}]]])
 
 (defn pager-links [fname start length file-size]
   (let [prev-start (max 0 (- start length))
@@ -320,7 +365,7 @@ Note that if anything goes wrong, this will throw an Error and exit."
                         "Next" :enabled (> next-start start))])]])) 
 
 (defn- download-link [fname]
-  [[:p (link-to (url-format "/download/%s" fname) "Download Full Log")]])
+  [[:p (link-to (url-format "/download/%s" fname) "Download Full File")]])
 
 (def default-bytes-per-page 51200)
 
@@ -335,17 +380,21 @@ Note that if anything goes wrong, this will throw an Error and exit."
           log-files (reduce clojure.set/union
                             (sorted-set)
                             (for [^File port-dir (.listFiles topo-dir)]
-                              (into [] (filter-worker-logs (.listFiles port-dir)))))
+                              (into [] (filter #(.isFile %) (.listFiles port-dir))))) ;all types of files included
           files-str (for [file log-files] 
-                      (get-topo-port-workerlog file))]
+                      (get-topo-port-workerlog file))
+          reordered-files-str (conj (filter #(not= fname %) files-str) fname)]
       (if (.exists file)
         (let [length (if length
                        (min 10485760 length)
                        default-bytes-per-page)
+              is-txt-file (re-find #"\.(log.*|txt|yaml)$" fname)
               log-string (escape-html
-                           (if start
-                             (page-file path start length)
-                             (page-file path length)))
+                           (if is-txt-file
+                             (if start
+                               (page-file path start length)
+                               (page-file path length))
+                             "This is a binary file and cannot display! You may download the full file."))
               start (or start (- file-length length))]
           (if grep
             (html [:pre#logContent
@@ -353,9 +402,9 @@ Note that if anything goes wrong, this will throw an Error and exit."
                      (filter #(.contains % grep)
                              (.split log-string "\n"))
                      log-string)])
-            (let [pager-data (pager-links fname start length file-length)]
+            (let [pager-data (if is-txt-file (pager-links fname start length file-length) nil)]
               (html (concat (search-file-form (url-encode fname)) 
-                            (log-file-selection-form files-str) ;display all files in the directory
+                            (log-file-selection-form reordered-files-str) ;display all files for this topology
                             pager-data
                             (download-link fname)
                             [[:pre#logContent log-string]]
@@ -721,7 +770,6 @@ Note that if anything goes wrong, this will throw an Error and exit."
                                 (merge these-matches
                                        { "fileName" file-name
                                         "port" (first (take-last 2 (split (.getCanonicalPath (first logs)) (re-pattern file-path-separator))))}))
-              ;"port" (nth (re-matches worker-log-filename-pattern file-name) 3)}))
               new-count (+ match-count (count (these-matches "matches")))]
           (if (empty? these-matches)
             (recur matches (rest logs) 0 (+ file-offset 1) match-count)
@@ -739,7 +787,7 @@ Note that if anything goes wrong, this will throw an Error and exit."
     (sort #(compare (.lastModified %2) (.lastModified %1))
           (filter-authorized-fn
             user
-            (filter-worker-logs (.listFiles port-dir))))))
+            (filter #(re-find worker-log-filename-pattern (.getName %)) (.listFiles port-dir))))))
 
 (defn deep-search-logs-for-topology
   [topology-id user ^String root-dir search num-matches port file-offset offset search-archived? origin]
@@ -945,7 +993,7 @@ Note that if anything goes wrong, this will throw an Error and exit."
     (log-error ex))))
 
 (defn -main []
-  (let [conf (read-storm-config)
+  (let [conf *STORM-CONF*
         log-root (worker-artifacts-root conf)]
     (setup-default-uncaught-exception-handler)
     (start-log-cleaner! conf log-root)

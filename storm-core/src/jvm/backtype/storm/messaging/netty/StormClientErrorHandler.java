@@ -15,33 +15,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.storm.pacemaker;
+package backtype.storm.messaging.netty;
 
+import java.net.ConnectException;
+
+import org.jboss.netty.channel.ChannelHandlerContext;
+import org.jboss.netty.channel.ExceptionEvent;
+import org.jboss.netty.channel.SimpleChannelUpstreamHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.concurrent.TimeUnit;
-import com.twitter.util.Duration;
-import com.twitter.util.Try;
-import backtype.storm.utils.StormBoundedExponentialBackoffRetry;
-import com.twitter.finagle.service.SimpleRetryPolicy;
-
-public class PacemakerRetryPolicy extends SimpleRetryPolicy<Try<Void>> {
-
-    private static final Logger LOG = LoggerFactory.getLogger(PacemakerRetryPolicy.class);
-
-    StormBoundedExponentialBackoffRetry backoff;
+public class StormClientErrorHandler extends SimpleChannelUpstreamHandler  {
+    private static final Logger LOG = LoggerFactory.getLogger(StormClientErrorHandler.class);
+    private String name;
     
-    public PacemakerRetryPolicy() {
-        backoff = new StormBoundedExponentialBackoffRetry(1, 2000, 10);
+    StormClientErrorHandler(String name) {
+        this.name = name;
     }
-    
-    public Duration backoffAt(int retry) {
-        LOG.info("Pacemaker Client failed to connect. Retrying:[{}]", retry);
-        return Duration.fromTimeUnit(backoff.getSleepTimeMs(retry, 0), TimeUnit.MILLISECONDS);
-    }
-    
-    public boolean shouldRetry(Try<Void> _) {
-        return true;
+
+    @Override
+    public void exceptionCaught(ChannelHandlerContext ctx, ExceptionEvent event) {
+        Throwable cause = event.getCause();
+        if (!(cause instanceof ConnectException)) {
+            LOG.info("Connection failed " + name, cause);
+        } 
     }
 }

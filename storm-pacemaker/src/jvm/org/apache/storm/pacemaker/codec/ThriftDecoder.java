@@ -20,9 +20,13 @@ package org.apache.storm.pacemaker.codec;
 import org.jboss.netty.handler.codec.frame.FrameDecoder;
 import org.jboss.netty.channel.ChannelHandlerContext;
 import org.jboss.netty.channel.Channel;
+import backtype.storm.generated.HBMessage;
+import backtype.storm.generated.HBMessageData;
+import backtype.storm.generated.HBServerMessageType;
 import org.jboss.netty.buffer.ChannelBuffer;
-import backtype.storm.generated.Message;
 import backtype.storm.utils.Utils;
+import backtype.storm.messaging.netty.ControlMessage;
+import backtype.storm.messaging.netty.SaslMessageToken;
 
 public class ThriftDecoder extends FrameDecoder {
 
@@ -47,17 +51,27 @@ public class ThriftDecoder extends FrameDecoder {
 
         buf.discardReadBytes();
 
-        Message m;
+        HBMessage m;
         if(buf.hasArray()) {
-            m = (Message)Utils.thriftDeserialize(Message.class, buf.array(), 0, thriftLen);
+            m = (HBMessage)Utils.thriftDeserialize(HBMessage.class, buf.array(), 0, thriftLen);
             buf.readerIndex(buf.readerIndex() + thriftLen);
         }
         else {
             byte serialized[] = new byte[thriftLen];
             buf.readBytes(serialized, 0, thriftLen);
-            m = (Message)Utils.thriftDeserialize(Message.class, serialized);
+            m = (HBMessage)Utils.thriftDeserialize(HBMessage.class, serialized);
         }
 
-        return m;
+        if(m.get_type() == HBServerMessageType.CONTROL_MESSAGE) {
+            ControlMessage cm = ControlMessage.read(m.get_data().get_message_blob());
+            return cm;
+        }
+        else if(m.get_type() == HBServerMessageType.SASL_MESSAGE_TOKEN) {
+            SaslMessageToken sm = SaslMessageToken.read(m.get_data().get_message_blob());
+            return sm;
+        }
+        else {
+            return m;
+        }
     }
 }
