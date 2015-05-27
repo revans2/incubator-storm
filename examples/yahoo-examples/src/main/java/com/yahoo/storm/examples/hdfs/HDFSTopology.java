@@ -32,6 +32,9 @@ import org.apache.commons.cli.ParseException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * A simple topology that takes input from either DRPC or generated, and writes the data to HDFS.
+ */
 public class HDFSTopology {
     private static final Logger LOG = LoggerFactory.getLogger(HDFSTopology.class);
 
@@ -49,7 +52,6 @@ public class HDFSTopology {
         try {
             CommandLine line = new DefaultParser().parse(opts, args);
 
-            HDFSTopology app = new HDFSTopology();
             String topologyName = line.getOptionValue("name","default");
             LOG.info("topology: {}", topologyName);
 
@@ -63,16 +65,18 @@ public class HDFSTopology {
             String drpc = line.getOptionValue("drpc");
             float rotate = Float.valueOf(line.getOptionValue("rotateSize","10"));
             LOG.info("rotateSize: {}", rotate);
-            app.setupStorm(outputPath, topologyName, hadoopConf, drpc, rotate);
+            setupStorm(outputPath, topologyName, hadoopConf, drpc, rotate);
         } catch (ParseException e) {
             System.err.println(e.getMessage());
             formatter.printHelp(HDFSTopology.class.getName()+" [options] <output_path>", opts);
+            System.exit(1);
         } catch (Exception ex) {
             LOG.error("Error running topology", ex);
+            System.exit(1);
         }
     }
 
-    public void setupStorm(String outputPath, String topology_name, Map<String, String> hadoopConf, String drpc, float rotate) throws Exception {
+    public static void setupStorm(String outputPath, String topology_name, Map<String, String> hadoopConf, String drpc, float rotate) throws Exception {
         //setup topology
         TopologyBuilder builder = new TopologyBuilder();
         if (drpc != null) {
