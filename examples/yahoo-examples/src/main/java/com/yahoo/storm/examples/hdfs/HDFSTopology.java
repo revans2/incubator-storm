@@ -1,5 +1,6 @@
 package com.yahoo.storm.examples.hdfs;
 
+import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
 
@@ -16,55 +17,74 @@ import org.apache.storm.hdfs.bolt.format.DelimitedRecordFormat;
 import org.apache.storm.hdfs.bolt.format.RecordFormat;
 import org.apache.storm.hdfs.bolt.rotation.FileRotationPolicy;
 import org.apache.storm.hdfs.bolt.rotation.FileSizeRotationPolicy;
-import org.apache.storm.hdfs.bolt.sync.CountSyncPolicy;
+import org.apache.storm.hdfs.bolt.sync.NullSyncPolicy;
 import org.apache.storm.hdfs.bolt.sync.SyncPolicy;
 import org.apache.storm.hdfs.bolt.HdfsBolt;
 
-import org.apache.log4j.Logger;
+import org.apache.commons.cli.Option;
+import org.apache.commons.cli.Options;
+import org.apache.commons.cli.CommandLineParser;
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.DefaultParser;
+import org.apache.commons.cli.HelpFormatter;
+import org.apache.commons.cli.ParseException;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class HDFSTopology {
-    private static Logger LOG = Logger.getLogger(HDFSTopology.class);
+    private static final Logger LOG = LoggerFactory.getLogger(HDFSTopology.class);
 
     public static void main(String args[]) {
-        HDFSTopology app = new HDFSTopology();
+        Options opts = new Options();
+        opts.addOption("drpc", true, "DRPC function to use, defaults to not use DRPC");
+        opts.addOption("name", true, "topology name to use, defaults to \"default\"");
+        opts.addOption(Option.builder("hdfsConf").argName("key=value")
+                                .numberOfArgs(2)
+                                .valueSeparator()
+                                .desc( "use value for given HDFS config")
+                                .build());
+        opts.addOption("rotateSize", true, "rotate every so many MB, defaults to \"10\", set this lower for testing, the default spout is slow to fill this up");
+        HelpFormatter formatter = new HelpFormatter();
         try {
-            String topologyName = args[0];
-            LOG.info("topology: " + topologyName);
+            CommandLine line = new DefaultParser().parse(opts, args);
 
-            String outputPath = args[1];
-            LOG.info("outputPath: " + outputPath);
-            Map<String, String> hadoopConf = new HashMap<String, String>();
-            for (int i = 2; i < args.length; i++) {
-                String [] parts = args[i].split("=",2);
-                if (parts.length != 2) {
-                    throw new IllegalArgumentException("hadoop config "+args[i]+" does not have a '=' in it");
-                }
-                hadoopConf.put(parts[0], parts[1]);
+            HDFSTopology app = new HDFSTopology();
+            String topologyName = line.getOptionValue("name","default");
+            LOG.info("topology: {}", topologyName);
+
+            List<String> more = line.getArgList();
+            if (more.size() < 1) {
+                throw new ParseException("An <output_path> must be supplied");
             }
-
-            app.setupStorm(outputPath, topologyName, hadoopConf);
+            String outputPath = more.get(0);
+            LOG.info("outputPath: {}", outputPath);
+            Map<String, String> hadoopConf = new HashMap<String, String>((Map)line.getOptionProperties("hdfsConf"));
+            String drpc = line.getOptionValue("drpc");
+            float rotate = Float.valueOf(line.getOptionValue("rotateSize","10"));
+            LOG.info("rotateSize: {}", rotate);
+            app.setupStorm(outputPath, topologyName, hadoopConf, drpc, rotate);
+        } catch (ParseException e) {
+            System.err.println(e.getMessage());
+            formatter.printHelp(HDFSTopology.class.getName()+" [options] <output_path>", opts);
         } catch (Exception ex) {
-            ex.printStackTrace();
-            LOG.error(ex.getMessage());
+            LOG.error("Error running topology", ex);
         }
     }
 
-    public void setupStorm(String outputPath, String topology_name, Map<String, String> hadoopConf) throws Exception {
+    public void setupStorm(String outputPath, String topology_name, Map<String, String> hadoopConf, String drpc, float rotate) throws Exception {
         //setup topology
         TopologyBuilder builder = new TopologyBuilder();
-        //This is a bit of a hack, we probably should just use command line arguments instead
-        String drpc = hadoopConf.get("drpc");
         if (drpc != null) {
           builder.setSpout("spout", new DRPCSpout(drpc), 1);
         } else {
           builder.setSpout("spout", new TestWordSpout(), 1);
         }
 
-        // sync the filesystem after every 100 tuples
-        SyncPolicy syncPolicy = new CountSyncPolicy(100);
+        SyncPolicy syncPolicy = new NullSyncPolicy();
 
-        // rotate files every 1 KB
-        FileRotationPolicy rotationPolicy = new FileSizeRotationPolicy(1.0f, FileSizeRotationPolicy.Units.KB);
+        // rotate files every X MB
+        FileRotationPolicy rotationPolicy = new FileSizeRotationPolicy(rotate, FileSizeRotationPolicy.Units.MB);
 
         FileNameFormat fileNameFormat = new DefaultFileNameFormat()
                 .withPath(outputPath)
@@ -89,6 +109,7 @@ public class HDFSTopology {
         Config storm_conf = new Config();
         storm_conf.setDebug(true);
         storm_conf.setNumWorkers(1);
+        LOG.info("Running with hadoop conf overrides of {}", hadoopConf);
         storm_conf.put("hdfs.config.override", hadoopConf);
 
         StormSubmitter.submitTopology(topology_name, storm_conf, builder.createTopology());
