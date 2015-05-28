@@ -1411,7 +1411,7 @@ public class Config extends HashMap<String, Object> {
      *   S3 - Secret (default.)
      */
     public static final String TOPOLOGY_LOGGING_SENSITIVITY="topology.logging.sensitivity";
-    public static final Object TOPOLOGY_LOGGING_SENSITIVITY_SCHEMA = String.class;
+    public static final Object TOPOLOGY_LOGGING_SENSITIVITY_SCHEMA = ConfigValidation.LoggingSensitivityValidator;
 
     /**
      * The root directory in ZooKeeper for metadata about TransactionalSpouts.
