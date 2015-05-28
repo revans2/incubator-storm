@@ -308,12 +308,10 @@ public class ConfigValidation {
    */
   public static Object LoggingSensitivityValidator = new FieldValidator() {
 
-      private FieldValidator fv = listFv(String.class, false);
-
       @Override
       public void validateField(String name, Object o) throws IllegalArgumentException {
-          if (o == null) {
-              // A null value or a String value is acceptable
+          if (o == null || o instanceof LoggingSensitivity) {
+              // A null value or a LoggingSensitivity value is acceptable
               return;
           }
           if (o instanceof String
@@ -321,7 +319,7 @@ public class ConfigValidation {
               //Logging sensitivity is valid
               return;
           }
-          throw new IllegalArgumentException("Field " + name + " must be an have value of Type LoggingSensitivity "
+          throw new IllegalArgumentException("Field " + name + " must be an have one String value out of "
               + Arrays.asList(LoggingSensitivity.values()) + " but it is: " + o.toString());
       }
   };
