@@ -1671,4 +1671,13 @@ public class Config extends HashMap<String, Object> {
         conf.put(Config.TOPOLOGY_KRYO_DECORATORS, ret);
         return ret;
     }
+
+    public void setTopologyLoggingSensitivity(LoggingSensitivity sensitivity) {
+      setTopologyLoggingSensitivity(this, sensitivity);
+    }
+
+    public static void setTopologyLoggingSensitivity(Map conf, LoggingSensitivity sensitivity) {
+        conf.put(Config.TOPOLOGY_LOGGING_SENSITIVITY, sensitivity.toString());
+    }
+
 }
