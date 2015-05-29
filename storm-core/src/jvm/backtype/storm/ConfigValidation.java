@@ -16,6 +16,7 @@
  * limitations under the License.
  */
 package backtype.storm;
+import java.util.Arrays;
 import java.util.Map;
 
 import java.util.Map;
@@ -301,4 +302,26 @@ public class ConfigValidation {
             this.fv.validateField(name, o);
         }
     };
+
+  /**
+   * Validates a Logging Sensitivity
+   */
+  public static Object LoggingSensitivityValidator = new FieldValidator() {
+
+      @Override
+      public void validateField(String name, Object o) throws IllegalArgumentException {
+          if (o == null || o instanceof LoggingSensitivity) {
+              // A null value or a LoggingSensitivity value is acceptable
+              return;
+          }
+          if (o instanceof String
+              && LoggingSensitivity.valueOf(((String) o).toUpperCase()) instanceof LoggingSensitivity) {
+              //Logging sensitivity is valid
+              return;
+          }
+          throw new IllegalArgumentException("Field " + name + " must be an have one String value out of "
+              + Arrays.asList(LoggingSensitivity.values()) + " but it is: " + o.toString());
+      }
+  };
+
 }
