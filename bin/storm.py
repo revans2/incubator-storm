@@ -160,10 +160,12 @@ def parse_args(string):
     args = [re.compile(r"'((?:[^'\\]|\\.)*)'").sub('\\1', x) for x in args]
     return [re.compile(r'\\(.)').sub('\\1', x) for x in args]
 
-def exec_storm_class(klass, jvmtype="-server", jvmopts=[], extrajars=[], args=[], fork=False, daemon=True):
+def exec_storm_class(klass, jvmtype="-server", jvmopts=[], extrajars=[], args=[], fork=False, daemon=True, daemonName=""):
     global CONFFILE
     all_args = [
-        JAVA_CMD, jvmtype, get_config_opts(),
+        JAVA_CMD, jvmtype,
+        "-Ddaemon.name=" + daemonName,
+        get_config_opts(),
         "-Dstorm.home=" + STORM_DIR,
         "-Djava.library.path=" + confvalue("java.library.path", extrajars, daemon),
         "-Dstorm.conf.file=" + CONFFILE,
@@ -386,13 +388,13 @@ def nimbus(klass="backtype.storm.daemon.nimbus"):
         cppaths = [CLUSTER_CONF_DIR]
     jvmopts = parse_args(confvalue("nimbus.childopts", cppaths)) + [
         "-Dlogfile.name=nimbus.log",
-        "-Ddaemon.name=nimbus",
         "-Dlog4j.configurationFile=" + STORM_DIR + "/log4j2/cluster.xml",
     ]
     exec_storm_class(
         klass,
         jvmtype="-server",
         extrajars=cppaths,
+        daemonName="nimbus",
         jvmopts=jvmopts)
 
 def pacemaker(klass="org.apache.storm.pacemaker.pacemaker"):
@@ -407,12 +409,12 @@ def pacemaker(klass="org.apache.storm.pacemaker.pacemaker"):
     cppaths = [CLUSTER_CONF_DIR]
     jvmopts = parse_args(confvalue("pacemaker.childopts", cppaths)) + [
         "-Dlogfile.name=pacemaker.log",
-        "-Ddaemon.name=pacemaker",
         "-Dlog4j.configurationFile=" + STORM_DIR + "/log4j2/cluster.xml",
     ]
     exec_storm_class(
         klass,
         jvmtype="-server",
+        daemonName="pacemaker",
         extrajars=cppaths,
         jvmopts=jvmopts)
 
@@ -431,12 +433,12 @@ def supervisor(klass="backtype.storm.daemon.supervisor"):
         cppaths = [CLUSTER_CONF_DIR]
     jvmopts = parse_args(confvalue("supervisor.childopts", cppaths)) + [
         "-Dlogfile.name=supervisor.log",
-        "-Ddaemon.name=supervisor",
         "-Dlog4j.configurationFile=" + STORM_DIR + "/log4j2/cluster.xml",
     ]
     exec_storm_class(
         klass,
         jvmtype="-server",
+        daemonName="supervisor",
         extrajars=cppaths,
         jvmopts=jvmopts)
 
@@ -453,12 +455,12 @@ def ui():
     cppaths = [CLUSTER_CONF_DIR]
     jvmopts = parse_args(confvalue("ui.childopts", cppaths)) + [
         "-Dlogfile.name=ui.log",
-        "-Ddaemon.name=ui",
         "-Dlog4j.configurationFile=" + STORM_DIR + "/log4j2/cluster.xml",
     ]
     exec_storm_class(
         "backtype.storm.ui.core",
         jvmtype="-server",
+        daemonName="ui",
         jvmopts=jvmopts,
         extrajars=[STORM_DIR, CLUSTER_CONF_DIR])
 
@@ -475,12 +477,12 @@ def logviewer():
     cppaths = [CLUSTER_CONF_DIR]
     jvmopts = parse_args(confvalue("logviewer.childopts", cppaths)) + [
         "-Dlogfile.name=logviewer.log",
-        "-Ddaemon.name=logviewer",
         "-Dlog4j.configurationFile=" + STORM_DIR + "/log4j2/cluster.xml",
     ]
     exec_storm_class(
         "backtype.storm.daemon.logviewer",
         jvmtype="-server",
+        daemonName="logviewer",
         jvmopts=jvmopts,
         extrajars=[STORM_DIR, CLUSTER_CONF_DIR])
 
@@ -496,12 +498,12 @@ def drpc():
     cppaths = [CLUSTER_CONF_DIR]
     jvmopts = parse_args(confvalue("drpc.childopts", cppaths)) + [
         "-Dlogfile.name=drpc.log",
-        "-Ddaemon.name=drpc",
         "-Dlog4j.configurationFile=" + STORM_DIR + "/log4j2/cluster.xml"
     ]
     exec_storm_class(
         "backtype.storm.daemon.drpc",
         jvmtype="-server",
+        daemonName="drpc",
         jvmopts=jvmopts,
         extrajars=[CLUSTER_CONF_DIR])
 
