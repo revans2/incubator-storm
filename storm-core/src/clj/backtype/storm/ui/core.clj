@@ -80,17 +80,24 @@
     ;;TODO need a better exception here so the UI can appear better
     (throw (RuntimeException. (str "User " user " is not authorized.")))))
 
-(defn- ui-actions-enabled?
-  []
-  (= "true" (lower-case (*STORM-CONF* UI-ACTIONS-ENABLED))))
+(defn authorized-topo-user?
+  [user conf topology-conf]
+  (let [groups (user-groups user)
+        topo-users (concat (conf TOPOLOGY-USERS)
+                           (conf NIMBUS-ADMINS)
+                           (topology-conf TOPOLOGY-USERS))
+        topo-groups (concat (conf TOPOLOGY-GROUPS)
+                            (topology-conf TOPOLOGY-GROUPS))]
+    (or (blank? (conf UI-FILTER))
+        (and (not (blank? user))
+          (or (some #(= % user) topo-users)
+            (< 0 (.size (intersection (set groups) (set topo-groups)))))))))
 
 (defn assert-authorized-topology-user
-  [user]
-  ;;TODO eventually we will want to use the Authorizatin handler from nimbus, but for now
-  ;; Disable the calls conditionally
-  (if (not (ui-actions-enabled?))
+  [user conf topology-conf]
+  (if (not (authorized-topo-user? user conf topology-conf))
     ;;TODO need a better exception here so the UI can appear better
-    (throw (RuntimeException. (str "Topology actions for the UI have been disabled")))))
+    (throw (RuntimeException. (str "User " user " is not authorized.")))))
 
 (defn read-storm-version
   "Returns a string containing the Storm version or 'Unknown'."
@@ -718,9 +725,12 @@
              user (.getUserName http-creds-handler servlet-request)]
          (json-response (component-page id component (:window m) (check-include-sys? (:sys m)) user))))
   (GET "/api/v1/topology/:id/logconfig" [:as {:keys [cookies servlet-request]} id & m]
-         (let [user (.getUserName http-creds-handler servlet-request)]
-            (assert-authorized-topology-user user))
-         (json-response (log-config id)))
+       (with-nimbus nimbus
+         (let [user (.getUserName http-creds-handler servlet-request)
+               topology-conf (from-json
+                               (.getTopologyConf ^Nimbus$Client nimbus id))]
+           (assert-authorized-topology-user user *STORM-CONF* topology-conf))
+         (json-response (log-config id))))
   (POST "/api/v1/topology/:id/activate" [:as {:keys [cookies servlet-request]} id]
     (with-nimbus nimbus
       (let [id (url-decode id)
@@ -729,8 +739,10 @@
                         (.set_num_err_choice NumErrorsChoice/NONE))
                       (.getTopologyInfoWithOpts ^Nimbus$Client nimbus id))
             name (.get_name tplg)
-            user (.getUserName http-creds-handler servlet-request)]
-        (assert-authorized-topology-user user)
+            user (.getUserName http-creds-handler servlet-request)
+            topology-conf (from-json
+                            (.getTopologyConf ^Nimbus$Client nimbus id))]
+        (assert-authorized-topology-user user *STORM-CONF* topology-conf)
         (.activate nimbus name)
         (log-message "Activating topology '" name "'")))
     (resp/redirect (str "/api/v1/topology/" id)))
@@ -743,8 +755,10 @@
                         (.set_num_err_choice NumErrorsChoice/NONE))
                       (.getTopologyInfoWithOpts ^Nimbus$Client nimbus id))
             name (.get_name tplg)
-            user (.getUserName http-creds-handler servlet-request)]
-        (assert-authorized-topology-user user)
+            user (.getUserName http-creds-handler servlet-request)
+            topology-conf (from-json
+                            (.getTopologyConf ^Nimbus$Client nimbus id))]
+        (assert-authorized-topology-user user *STORM-CONF* topology-conf)
         (.deactivate nimbus name)
         (log-message "Deactivating topology '" name "'")))
     (resp/redirect (str "/api/v1/topology/" id)))
@@ -757,8 +771,10 @@
                       (.getTopologyInfoWithOpts ^Nimbus$Client nimbus id))
             name (.get_name tplg)
             options (RebalanceOptions.)
-            user (.getUserName http-creds-handler servlet-request)]
-        (assert-authorized-topology-user user)
+            user (.getUserName http-creds-handler servlet-request)
+            topology-conf (from-json
+                            (.getTopologyConf ^Nimbus$Client nimbus id))]
+        (assert-authorized-topology-user user *STORM-CONF* topology-conf)
         (.set_wait_secs options (Integer/parseInt wait-time))
         (.rebalance nimbus name options)
         (log-message "Rebalancing topology '" name "' with wait time: " wait-time " secs")))
@@ -772,8 +788,10 @@
                       (.getTopologyInfoWithOpts ^Nimbus$Client nimbus id))
             name (.get_name tplg)
             options (KillOptions.)
-            user (.getUserName http-creds-handler servlet-request)]
-        (assert-authorized-topology-user user)
+            user (.getUserName http-creds-handler servlet-request)
+            topology-conf (from-json
+                            (.getTopologyConf ^Nimbus$Client nimbus id))]
+        (assert-authorized-topology-user user *STORM-CONF* topology-conf)
         (.set_wait_secs options (Integer/parseInt wait-time))
         (.killTopologyWithOpts nimbus name options)
         (log-message "Killing topology '" name "' with wait time: " wait-time " secs")))
@@ -782,7 +800,9 @@
   (POST "/api/v1/topology/:id/logconfig" [:as {:keys [body cookies servlet-request]} id & m]
     (with-nimbus nimbus
       (let [user (.getUserName http-creds-handler servlet-request)
-            _ (assert-authorized-topology-user user)
+            topology-conf (from-json
+                            (.getTopologyConf ^Nimbus$Client nimbus id))
+            _ (assert-authorized-topology-user user *STORM-CONF* topology-conf)
             log-config-json (from-json (slurp body))
             named-loggers (.get log-config-json "namedLoggerLevels")
             new-log-config (LogConfig.)]
