@@ -121,7 +121,7 @@ function confirmAction(id, name, action, wait, defaultWait) {
     }
 
     $("input[type=button]").attr("disabled", "disabled");
-    $.ajax(opts).always(function () {
+    $.ajax(opts).done(function () {
         window.location.reload();
     }).fail(function () {
         alert("Error while communicating with Nimbus.");
@@ -157,9 +157,8 @@ function renderToggleSys(div) {
     }
 }
 
-function topologyActionJson(id,name,status,msgTimeout, uiActionsEnabled) {
+function topologyActionJson(id,name,status,msgTimeout) {
     var jsonData = {};
-    jsonData["uiActionsEnabled"] = uiActionsEnabled;
     jsonData["id"] = id;
     jsonData["name"] = name;
     jsonData["msgTimeout"] = msgTimeout;

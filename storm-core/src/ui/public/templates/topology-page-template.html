@@ -326,7 +326,6 @@
 </script>
 
 <script id="topology-actions-template" type="text/html">
-  {{#uiActionsEnabled}}
   <h2>Topology actions</h2>
   <p id="topology-actions">
     <input {{activateStatus}} onclick="confirmAction('{{id}}', '{{name}}', 'activate', false, 0)" type="button" value="Activate" class="btn btn-default">
@@ -335,7 +334,6 @@
     <input {{killStatus}} onclick="confirmAction('{{id}}', '{{name}}', 'kill', true, 30)" type="button" value="Kill" class="btn btn-default">
     <input type="button" {{logLevel}} value="Change Log Level" onclick="toggleChangeLogLevel()" class="btn btn-default">
   </p>
-  {{/uiActionsEnabled}}
   <!-- 
     Contents of topology-change-log-level-template will be added to the div below
     once user clicks on "Change Log Level"
