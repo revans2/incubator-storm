@@ -25,12 +25,21 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import backtype.storm.networkTopography.YahooDNSToSwitchMapping;
+import storm.trident.testing.StringLength;
+
+
 public class Cluster {
 
     /**
      * key: supervisor id, value: supervisor details
      */
     private Map<String, SupervisorDetails>   supervisors;
+    /**
+     * key: rack, value: nodes in that rack
+     */
+    private Map<String, List<String>> networkTopography;
+
     /**
      * key: topologyId, value: topology's current assignments.
      */
@@ -436,6 +445,27 @@ public class Cluster {
      */
     public Map<String, SupervisorDetails> getSupervisors() {
         return this.supervisors;
+    }
+
+    public Map<String, List<String>> getNetworkTopography() {
+        if (networkTopography == null) {
+            networkTopography = new HashMap<>();
+            ArrayList<String> supervisorHostNames = new ArrayList<>();
+            supervisorHostNames.addAll(supervisors.keySet());
+            YahooDNSToSwitchMapping cluster = new YahooDNSToSwitchMapping();
+            ArrayList<String> resolvedSuperVisors = (ArrayList<String>)cluster.resolve(supervisorHostNames);
+            for ( int i = 0; i < resolvedSuperVisors.size(); i++ ) {
+                String rack = resolvedSuperVisors.get(i);
+                String hostName = supervisorHostNames.get(i);
+                List<String> nodesForRack = networkTopography.get(rack);
+                if (nodesForRack == null) {
+                    nodesForRack = new ArrayList<>();
+                    networkTopography.put(rack,nodesForRack);
+                }
+                nodesForRack.add(hostName);
+            }
+        }
+        return networkTopography;
     }
 
     public void setStatus(String topologyId, String status) {

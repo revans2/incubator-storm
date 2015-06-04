@@ -28,7 +28,7 @@
 
 (defn gen-supervisors [count]
   (into {} (for [id (range count)
-                :let [supervisor (SupervisorDetails. (str "super" id) (str "host" id) (list ) (map int (list 1 2 3 4))
+                :let [supervisor (SupervisorDetails. (str "gsta" (if (even? id) 411 108) "n" (+ 10 id) ".tan.ygrid.yahoo.com") (str "gsta" (if (even? id) 411 108) "n" (+ 10 id) ".tan.ygrid.yahoo.com") (list ) (map int (list 1 2 3 4))
                                    {RAS_TYPES/TYPE_MEMORY 2000.0
                                     RAS_TYPES/TYPE_CPU 400.0})]]
             {(.getId supervisor) supervisor})))
@@ -52,8 +52,8 @@
         topologies (Topologies. (to-top-map []))
         node-map (Node/getAllNodesFrom cluster topologies)]
     (is (= 5 (.size node-map)))
-    (let [node (.get node-map "super0")]
-      (is (= "super0" (.getId node)))
+    (let [node (.get node-map "gsta411n10.tan.ygrid.yahoo.com")]
+      (is (= "gsta411n10.tan.ygrid.yahoo.com" (.getId node)))
       (is (= true (.isAlive node)))
       (is (= 0 (.size (.getRunningTopologies node))))
       (is (= true (.isTotallyFree node)))

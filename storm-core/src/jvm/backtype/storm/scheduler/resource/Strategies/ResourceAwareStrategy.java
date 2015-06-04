@@ -28,7 +28,7 @@ import java.util.Map.Entry;
 import java.util.Queue;
 import java.util.TreeMap;
 
-import backtype.storm.scheduler.resource.GetNetworkTopography;
+import backtype.storm.networkTopography.YahooDNSToSwitchMapping;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -41,7 +41,6 @@ import backtype.storm.scheduler.resource.Node;
 
 public class ResourceAwareStrategy implements IStrategy {
     protected Logger LOG = null;
-    protected Cluster _cluster;
     protected Topologies _topologies;
     protected TopologyDetails _topo;
     protected Collection<Node> _availNodes;
@@ -51,7 +50,10 @@ public class ResourceAwareStrategy implements IStrategy {
      */
     private Map<String, Node> _nodes;
     private Map<String, List<String>> _clusterInfo;
+    private Map<String, List<String>> _clusterInfo2;
 
+    private YahooDNSToSwitchMapping _yahooCluster;
+    ArrayList<String> _resolvedSuperVisors;
 
     private final Double CPU_WEIGHT = 1.0;
     private final Double MEM_WEIGHT = 1.0;
@@ -59,14 +61,13 @@ public class ResourceAwareStrategy implements IStrategy {
 
     public ResourceAwareStrategy(
             TopologyDetails topo, Cluster cluster, Topologies topologies) {
-        this._cluster = cluster;
         this._topologies = topologies;
         this._topo = topo;
         this._nodes = Node.getAllNodesFrom(cluster, _topologies);
         this._availNodes = this.getAvaiNodes();
-        this._clusterInfo = (new GetNetworkTopography()).getClusterInfo();
-
         this.LOG = LoggerFactory.getLogger(this.getClass());
+        this._clusterInfo = cluster.getNetworkTopography();
+        LOG.info(_clusterInfo.toString());
     }
 
     protected void prepare() {
