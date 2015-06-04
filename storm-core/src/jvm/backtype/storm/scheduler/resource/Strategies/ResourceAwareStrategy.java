@@ -28,7 +28,6 @@ import java.util.Map.Entry;
 import java.util.Queue;
 import java.util.TreeMap;
 
-import backtype.storm.networkTopography.YahooDNSToSwitchMapping;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -50,10 +49,6 @@ public class ResourceAwareStrategy implements IStrategy {
      */
     private Map<String, Node> _nodes;
     private Map<String, List<String>> _clusterInfo;
-    private Map<String, List<String>> _clusterInfo2;
-
-    private YahooDNSToSwitchMapping _yahooCluster;
-    ArrayList<String> _resolvedSuperVisors;
 
     private final Double CPU_WEIGHT = 1.0;
     private final Double MEM_WEIGHT = 1.0;
