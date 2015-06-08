@@ -1090,15 +1090,15 @@ public class Config extends HashMap<String, Object> {
      * The maximum amount of memory an instance of a spout/bolt will take on heap. This enables the scheduler
      * to allocate slots on machines with enough available memory. 
      */
-    public static final String TOPOLOGY_RESOURCES_ONHEAP_MEMORY_MB = "topology.resources.memory.heap.mb";
-    public static final Object TOPOLOGY_RESOURCES_ONHEAP_MEMORY_MB_SCHEMA = ConfigValidation.PositiveIntegerValidator;
+    public static final String TOPOLOGY_RESOURCES_ONHEAP_MEMORY_MB = "topology.resources.onheap.memory.mb";
+    public static final Object TOPOLOGY_RESOURCES_ONHEAP_MEMORY_MB_SCHEMA = ConfigValidation.PositiveDoubleValidator;
 
     /**
      * The maximum amount of memory an instance of a spout/bolt will take off heap. This enables the scheduler
      * to allocate slots on machines with enough available memory. 
      */
-    public static final String TOPOLOGY_RESOURCES_OFFHEAP_MEMORY_MB = "topology.resources.memory.offheap.mb";
-    public static final Object TOPOLOGY_RESOURCES_OFFHEAP_MEMORY_MB_SCHEMA = ConfigValidation.PositiveIntegerValidator;
+    public static final String TOPOLOGY_RESOURCES_OFFHEAP_MEMORY_MB = "topology.resources.offheap.memory.mb";
+    public static final Object TOPOLOGY_RESOURCES_OFFHEAP_MEMORY_MB_SCHEMA = ConfigValidation.PositiveDoubleValidator;
 
     public static final String TOPOLOGY_RESOURCES_MEMORY_MB = "topology.resources.memory.mb";
     public static final Object TOPOLOGY_RESOURCES_MEMORY_MB_SCHEMA = Map.class;
@@ -1109,6 +1109,46 @@ public class Config extends HashMap<String, Object> {
      */
     public static final String TOPOLOGY_RESOURCES_CPU = "topology.resources.cpu";
     public static final Object TOPOLOGY_RESOURCES_CPU_SCHEMA = ConfigValidation.PositiveIntegerValidator;
+
+    /**
+     * The config indicates the type of the memory to be "memory"
+     */
+    public static final String TOPOLOGY_TYPE_MEMORY = "topology.type.memory";
+    public static final Object TOPOLOGY_TYPE_MEMORY_SCHEMA = String.class;
+
+    /**
+     * The config indicates the type of the cpu to be "cpu"
+     */
+    public static final String TOPOLOGY_TYPE_CPU = "topology.type.cpu";
+    public static final Object TOPOLOGY_TYPE_CPU_SCHEMA = String.class;
+
+    public static final String TOPOLOGY_TYPE_CPU_TOTAL = "topology.type.cpu.total";
+    public static final Object TOPOLOGY_TYPE_CPU_TOTAL_SCHEMA = String.class;
+
+    /*
+     * Sets the default cpu weight for Resource Aware Scheduler
+     */
+    public static final String CPU_WEIGHT = "cpu.weight";
+    public static final Object CPU_WEIGHT_SCHEMA = ConfigValidation.PositiveDoubleValidator;
+
+
+    /*
+     * Sets the default memory weight for Resource Aware Scheduler
+     */
+    public static final String MEM_WEIGHT = "mem.weight";
+    public static final Object MEM_WEIGHT_SCHEMA = ConfigValidation.PositiveDoubleValidator;
+
+    /*
+     * Sets the default network requirment for spouts and bolts
+     */
+    public static final String NETWORK_WEIGHT = "network.weight";
+    public static final Object NETWORK_WEIGHT_SCHEMA = ConfigValidation.PositiveDoubleValidator;
+
+    /*
+     * Sets the default cpu requirment for spouts and bolts
+     */
+    public static final String TOPOLOGY_DEFAULT_CPU_REQUIREMENT = "topology.default.cpu.requirement";
+    public static final Object TOPOLOGY_DEFAULT_CPU_REQUIREMENT_SCHEMA = ConfigValidation.PositiveDoubleValidator;
 
     /**
      * How many executors to spawn for ackers.
