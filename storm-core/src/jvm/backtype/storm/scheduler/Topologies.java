@@ -25,7 +25,6 @@ import org.slf4j.LoggerFactory;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
-import backtype.storm.Config;
 
 public class Topologies {
     Map<String, TopologyDetails> topologies;
@@ -79,12 +78,12 @@ public class Topologies {
                         LOG.info(
                                 "Scheduling __acker {} with memory requirement as {} - {} and {} - {} and CPU requirement as {}-{}",
                                 exec,
-                                "on heap",
-                                td.topologyConf.get(Config.TOPOLOGY_RESOURCES_ONHEAP_MEMORY_MB),
-                                "off heap",
-                                td.topologyConf.get(Config.TOPOLOGY_RESOURCES_OFFHEAP_MEMORY_MB),
-                                td.topologyConf.get(Config.TOPOLOGY_TYPE_CPU_TOTAL),
-                                td.topologyConf.get(Config.TOPOLOGY_DEFAULT_CPU_REQUIREMENT));
+                                RAS_TYPES.TYPE_MEMORY_ONHEAP,
+                                RAS_TYPES.DEFAULT_ONHEAP_MEMORY_REQUIREMENT,
+                                RAS_TYPES.TYPE_MEMORY_OFFHEAP,
+                                RAS_TYPES.DEFAULT_OFFHEAP_MEMORY_REQUIREMENT,
+                                RAS_TYPES.TYPE_CPU_TOTAL,
+                                RAS_TYPES.DEFAULT_CPU_REQUIREMENT);
                     } else {
                         LOG.info(
                                 "Executor: {} of Component: {} of topology: {} does not have a set resource requirement!",

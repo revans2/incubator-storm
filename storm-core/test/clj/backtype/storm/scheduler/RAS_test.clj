@@ -45,8 +45,6 @@
         (for [at (range start end)]
           {(ed at) name})))))
 
-
-
 ;; testing resource/Node class
 (deftest test-node
   (let [supers (gen-supervisors 5)
@@ -102,14 +100,7 @@
         storm-topology (.createTopology builder)
         topology1 (TopologyDetails. "topology1"
                       {TOPOLOGY-NAME "topology-name-1"
-                       TOPOLOGY-SUBMITTER-USER "userC"
-                       TOPOLOGY-RESOURCES-ONHEAP-MEMORY-MB 100.0
-                       TOPOLOGY-RESOURCES-OFFHEAP-MEMORY-MB 50.0
-                       TOPOLOGY-DEFAULT-CPU-REQUIREMENT 10.0
-                       TOPOLOGY-TYPE-CPU "cpu"
-                       TOPOLOGY-TYPE-CPU-TOTAL "total"
-                       TOPOLOGY-TYPE-MEMORY "memory"
-                       }
+                       TOPOLOGY-SUBMITTER-USER "userC"}
                        storm-topology
                        4
                        (mk-ed-map [["wordSpout" 0 1]
@@ -127,40 +118,3 @@
       (is (= 1 (.size (into #{} (for [slot assigned-slots] (.getNodeId slot))))))
       (is (= 2 (.size executors))))
     (is (= "topology1 Fully Scheduled" (.get (.getStatusMap cluster) "topology1")))))
-
-(deftest test-topology-set-memory-and-cpu-load
-  (let [builder (TopologyBuilder.)
-        _ (.setSpout builder "wordSpout" (TestWordSpout.) 1)
-        bolt (.setBolt builder "wordCountBolt" (TestWordCounter.) 1)
-        _ (.setMemoryLoad bolt 110.0)
-        _ (.setCPULoad bolt 20.0)
-        _ (.shuffleGrouping bolt "wordSpout")
-        supers (gen-supervisors 3)
-        storm-topology (.createTopology builder)
-        topology2 (TopologyDetails. "topology2"
-                    {TOPOLOGY-NAME "topology-name-2"
-                     TOPOLOGY-SUBMITTER-USER "userC"
-                     TOPOLOGY-RESOURCES-ONHEAP-MEMORY-MB 100.0
-                     TOPOLOGY-RESOURCES-OFFHEAP-MEMORY-MB 50.0
-                     TOPOLOGY-DEFAULT-CPU-REQUIREMENT 10.0
-                     TOPOLOGY-TYPE-CPU "cpu"
-                     TOPOLOGY-TYPE-CPU-TOTAL "total"
-                     TOPOLOGY-TYPE-MEMORY "memory"
-                     }
-                    storm-topology
-                    4
-                    (mk-ed-map [["wordSpout" 0 1]
-                                ["wordCountBolt" 1 2]]))
-        cluster (Cluster. (nimbus/standalone-nimbus) supers {})
-        topologies (Topologies. (to-top-map [topology2]))
-        node-map (Node/getAllNodesFrom cluster topologies)
-        scheduler (ResourceAwareScheduler.)]
-    (.schedule scheduler topologies cluster)
-    (let [assignment (.getAssignmentById cluster "topology2")
-          assigned-slots (.getSlots assignment)
-          executors (.getExecutors assignment)]
-      ;; 4 slots on 1 machine, all executors assigned
-      (is (= 1 (.size assigned-slots)))
-      (is (= 1 (.size (into #{} (for [slot assigned-slots] (.getNodeId slot))))))
-      (is (= 2 (.size executors))))
-    (is (= "topology2 Fully Scheduled" (.get (.getStatusMap cluster) "topology2")))))
