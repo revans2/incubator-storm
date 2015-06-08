@@ -103,12 +103,12 @@
         topology1 (TopologyDetails. "topology1"
                       {TOPOLOGY-NAME "topology-name-1"
                        TOPOLOGY-SUBMITTER-USER "userC"
-                       TOPOLOGY-RESOURCES-ONHEAP-MEMORY-MB 100.0
-                       TOPOLOGY-RESOURCES-OFFHEAP-MEMORY-MB 50.0
-                       TOPOLOGY-DEFAULT-CPU-REQUIREMENT 10.0
-                       TOPOLOGY-TYPE-CPU "cpu"
-                       TOPOLOGY-TYPE-CPU-TOTAL "total"
-                       TOPOLOGY-TYPE-MEMORY "memory"
+                       TOPOLOGY-COMPONENT-RESOURCES-ONHEAP-MEMORY-MB 128.0
+                       TOPOLOGY-COMPONENT-RESOURCES-OFFHEAP-MEMORY-MB 0.0
+                       TOPOLOGY-COMPONENT-CPU-REQUIREMENT 10.0
+                       TOPOLOGY-COMPONENT-TYPE-CPU "cpu"
+                       TOPOLOGY-COMPONENT-TYPE-CPU-TOTAL "total"
+                       TOPOLOGY-COMPONENT-TYPE-MEMORY "memory"
                        }
                        storm-topology
                        4
@@ -140,12 +140,12 @@
         topology2 (TopologyDetails. "topology2"
                     {TOPOLOGY-NAME "topology-name-2"
                      TOPOLOGY-SUBMITTER-USER "userC"
-                     TOPOLOGY-RESOURCES-ONHEAP-MEMORY-MB 100.0
-                     TOPOLOGY-RESOURCES-OFFHEAP-MEMORY-MB 50.0
-                     TOPOLOGY-DEFAULT-CPU-REQUIREMENT 10.0
-                     TOPOLOGY-TYPE-CPU "cpu"
-                     TOPOLOGY-TYPE-CPU-TOTAL "total"
-                     TOPOLOGY-TYPE-MEMORY "memory"
+                     TOPOLOGY-COMPONENT-RESOURCES-ONHEAP-MEMORY-MB 128.0
+                     TOPOLOGY-COMPONENT-RESOURCES-OFFHEAP-MEMORY-MB 0.0
+                     TOPOLOGY-COMPONENT-CPU-REQUIREMENT 10.0
+                     TOPOLOGY-COMPONENT-TYPE-CPU "cpu"
+                     TOPOLOGY-COMPONENT-TYPE-CPU-TOTAL "total"
+                     TOPOLOGY-COMPONENT-TYPE-MEMORY "memory"
                      }
                     storm-topology
                     4

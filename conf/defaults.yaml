@@ -143,7 +143,6 @@ supervisor.blobstore.download.max_retries: 3
 supervisor.localizer.cache.target.size.mb: 10240
 supervisor.localizer.cleanup.interval.ms: 600000
 
-
 ### worker.* configs are for task workers
 worker.childopts: "-Xmx768m -XX:+PrintGCDetails -Xloggc:artifacts/gc.log -XX:+PrintGCDateStamps -XX:+PrintGCTimeStamps -XX:+UseGCLogFileRotation -XX:NumberOfGCLogFiles=10 -XX:GCLogFileSize=10M -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=artifacts/heapdump"
 worker.gc.childopts: ""
@@ -220,16 +219,14 @@ topology.bolts.outgoing.overflow.buffer.enable: false
 topology.disable.loadaware.messaging: false
 topology.logging.sensitivity: "S3"
 
-topology.type.memory: "memory"
-topology.resources.onheap.memory.mb: 100.0
-topology.resources.offheap.memory.mb: 50.0
-topology.type.cpu: "cpu"
-topology.type.cpu.total: "total"
-topology.default.cpu.requirement: 10.0
-
-cpu.weight: 1.0
-mem.weight: 1.0
-network.weight: 1.0
+# Configs for Resource Aware Scheduler
+topology.component.type.memory: "memory"
+topology.component.resources.onheap.memory.mb: 128.0
+topology.component.resources.offheap.memory.mb: 0.0
+topology.component.type.cpu: "cpu"
+topology.component.type.cpu.total: "total"
+# 10.0 implies 10 percent of a cpu core
+topology.component.cpu.requirement: 10.0
 
 client.blobstore.class: "backtype.storm.blobstore.NimbusBlobStore"
 blobstore.superuser: "nobody"

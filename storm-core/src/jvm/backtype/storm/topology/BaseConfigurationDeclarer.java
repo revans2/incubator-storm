@@ -18,7 +18,6 @@
 package backtype.storm.topology;
 
 import backtype.storm.Config;
-import backtype.storm.scheduler.resource.RAS_TYPES;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import backtype.storm.utils.Utils;
@@ -61,7 +60,7 @@ public abstract class BaseConfigurationDeclarer<T extends ComponentConfiguration
 
     @Override
     public void setMemoryLoad(Double onHeap) {
-        setMemoryLoad(onHeap, (Double)conf.get(Config.TOPOLOGY_RESOURCES_OFFHEAP_MEMORY_MB));
+        setMemoryLoad(onHeap, (Double)conf.get(Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB));
     } 
 
     @Override
@@ -73,12 +72,12 @@ public abstract class BaseConfigurationDeclarer<T extends ComponentConfiguration
             offHeap = offHeap.doubleValue();
         }
         Map <String, Number> memoryMap = new HashMap<String, Number>();
-        addConfiguration(Config.TOPOLOGY_RESOURCES_ONHEAP_MEMORY_MB, onHeap);
-        addConfiguration(Config.TOPOLOGY_RESOURCES_OFFHEAP_MEMORY_MB, offHeap);
+        addConfiguration(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB, onHeap);
+        addConfiguration(Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB, offHeap);
     }
 
     @Override
     public T setCPULoad(Double amount) {
-        return addConfiguration(Config.TOPOLOGY_RESOURCES_CPU, amount);
+        return addConfiguration(Config.TOPOLOGY_COMPONENT_RESOURCES_CPU, amount);
     } 
 }

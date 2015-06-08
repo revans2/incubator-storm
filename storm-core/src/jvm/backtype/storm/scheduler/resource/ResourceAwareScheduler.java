@@ -77,7 +77,7 @@ public class ResourceAwareScheduler implements IScheduler {
                                             + entry.getKey().totalSlotsFree(), td.getId(),
                                     entry.getValue());
                         }
-                        LOG.info("Toplogy: {} assigned to {} nodes", td.getId(), taskToNodesMap.keySet().size());
+                        LOG.info("Topology: {} assigned to {} nodes", td.getId(), taskToNodesMap.keySet().size());
                         cluster.setStatus(td.getId(), td.getId() + " Fully Scheduled");
                     } catch (IllegalStateException ex) {
                         LOG.error(ex.toString());

@@ -273,7 +273,7 @@ public class ConfigValidation {
                     return;
                 }
             }
-            throw new IllegalArgumentException("Field " + name + " must be a positive integer.");
+            throw new IllegalArgumentException("Field " + name + " must be a positive double.");
         }
     };
 

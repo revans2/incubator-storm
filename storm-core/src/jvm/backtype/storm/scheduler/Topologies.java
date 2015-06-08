@@ -80,11 +80,11 @@ public class Topologies {
                                 "Scheduling __acker {} with memory requirement as {} - {} and {} - {} and CPU requirement as {}-{}",
                                 exec,
                                 "on heap",
-                                td.topologyConf.get(Config.TOPOLOGY_RESOURCES_ONHEAP_MEMORY_MB),
+                                td.topologyConf.get(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB),
                                 "off heap",
-                                td.topologyConf.get(Config.TOPOLOGY_RESOURCES_OFFHEAP_MEMORY_MB),
-                                td.topologyConf.get(Config.TOPOLOGY_TYPE_CPU_TOTAL),
-                                td.topologyConf.get(Config.TOPOLOGY_DEFAULT_CPU_REQUIREMENT));
+                                td.topologyConf.get(Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB),
+                                td.topologyConf.get(Config.TOPOLOGY_COMPONENT_TYPE_CPU_TOTAL),
+                                td.topologyConf.get(Config.TOPOLOGY_COMPONENT_CPU_REQUIREMENT));
                     } else {
                         LOG.info(
                                 "Executor: {} of Component: {} of topology: {} does not have a set resource requirement!",
