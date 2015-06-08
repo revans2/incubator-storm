@@ -19,11 +19,16 @@ package backtype.storm.topology;
 
 import backtype.storm.Config;
 import backtype.storm.scheduler.resource.RAS_TYPES;
-
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import backtype.storm.utils.Utils;
 import java.util.HashMap;
 import java.util.Map;
 
 public abstract class BaseConfigurationDeclarer<T extends ComponentConfigurationDeclarer> implements ComponentConfigurationDeclarer<T> {
+
+    private static Map conf = Utils.readStormConfig();
+
     @Override
     public T addConfiguration(String config, Object value) {
         Map configMap = new HashMap();
@@ -55,12 +60,12 @@ public abstract class BaseConfigurationDeclarer<T extends ComponentConfiguration
     }
 
     @Override
-    public T setMemoryLoad(Double onHeap) {
-        return setMemoryLoad(onHeap, RAS_TYPES.DEFAULT_ONHEAP_MEMORY_REQUIREMENT);
+    public void setMemoryLoad(Double onHeap) {
+        setMemoryLoad(onHeap, (Double)conf.get(Config.TOPOLOGY_RESOURCES_OFFHEAP_MEMORY_MB));
     } 
 
     @Override
-    public T setMemoryLoad(Double onHeap, Double offHeap) {
+    public void setMemoryLoad(Double onHeap, Double offHeap) {
         if (onHeap != null) {
             onHeap = onHeap.doubleValue();
         }
@@ -68,9 +73,8 @@ public abstract class BaseConfigurationDeclarer<T extends ComponentConfiguration
             offHeap = offHeap.doubleValue();
         }
         Map <String, Number> memoryMap = new HashMap<String, Number>();
-        memoryMap.put(RAS_TYPES.TYPE_MEMORY_ONHEAP, onHeap);
-        memoryMap.put(RAS_TYPES.TYPE_MEMORY_OFFHEAP, offHeap);
-        return addConfiguration(Config.TOPOLOGY_RESOURCES_MEMORY_MB, memoryMap);
+        addConfiguration(Config.TOPOLOGY_RESOURCES_ONHEAP_MEMORY_MB, onHeap);
+        addConfiguration(Config.TOPOLOGY_RESOURCES_OFFHEAP_MEMORY_MB, offHeap);
     }
 
     @Override

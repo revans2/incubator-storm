@@ -110,6 +110,7 @@ public class TopologyDetails {
                 //the json_conf is populated by TopologyBuilder (e.g. bolt.set_memory_load)
                 Map<String, Map<String, Double>> topology_resources = this.parseResources(bolt
                         .getValue().get_common().get_json_conf());
+                LOG.info("Bolt" + bolt);
                 for (Map.Entry<ExecutorDetails, String> anExecutorToComponent : executorToComponent.entrySet()) {
                     if (bolt.getKey().equals(anExecutorToComponent.getValue())) {
                         this.checkIntialization(topology_resources, anExecutorToComponent.getKey(), bolt.getValue().toString());
@@ -125,6 +126,7 @@ public class TopologyDetails {
             for (Map.Entry<String, SpoutSpec> spout : this.topology.get_spouts().entrySet()) {
                 Map<String, Map<String, Double>> topology_resources = this.parseResources(spout
                         .getValue().get_common().get_json_conf());
+                LOG.info("Spout" + spout);
                 for (Map.Entry<ExecutorDetails, String> anExecutorToComponent : executorToComponent.entrySet()) {
                     if (spout.getKey().equals(anExecutorToComponent.getValue())) {
                         this.checkIntialization(topology_resources, anExecutorToComponent.getKey(), spout.getValue().toString());
@@ -152,22 +154,31 @@ public class TopologyDetails {
         Map<String, Map<String, Double>> topology_resources =
                 new HashMap<String, Map<String, Double>>();
         JSONParser parser = new JSONParser();
+        LOG.info("Input" + input);
         try {
             if (input != null) {
                 Object obj = parser.parse(input);
                 JSONObject jsonObject = (JSONObject) obj;
-                Map<String, Double> topoMem =
-                        (Map) jsonObject.get(Config.TOPOLOGY_RESOURCES_MEMORY_MB);
+                Double topoMemOnHeap =
+                        (Double) jsonObject.get(Config.TOPOLOGY_RESOURCES_ONHEAP_MEMORY_MB);
+                Double topoMemOffHeap =
+                        (Double) jsonObject.get(Config.TOPOLOGY_RESOURCES_OFFHEAP_MEMORY_MB);
                 Double topoCPU =
                         (Double) jsonObject.get(Config.TOPOLOGY_RESOURCES_CPU);
-                if (topoMem != null) {
-                    topology_resources.put(RAS_TYPES.TYPE_MEMORY, new HashMap<String, Double>());
-                    topology_resources.get(RAS_TYPES.TYPE_MEMORY).putAll(topoMem);
+                LOG.debug("MemOnHeap" + topoMemOnHeap);
+                LOG.debug("MemOffHeap" + topoMemOffHeap);
+                if (topoMemOnHeap != null) {
+                    topology_resources.put((String) topologyConf.get(Config.TOPOLOGY_TYPE_MEMORY), new HashMap<String, Double>());
+                    topology_resources.get(topologyConf.get(Config.TOPOLOGY_TYPE_MEMORY)).put(Config.TOPOLOGY_RESOURCES_ONHEAP_MEMORY_MB, topoMemOnHeap);
+                }
+                if (topoMemOffHeap != null) {
+                    topology_resources.get(topologyConf.get(Config.TOPOLOGY_TYPE_MEMORY)).put(Config.TOPOLOGY_RESOURCES_OFFHEAP_MEMORY_MB, topoMemOffHeap);
                 }
                 if (topoCPU != null) {
-                    topology_resources.put(RAS_TYPES.TYPE_CPU, new HashMap<String, Double>());
-                    topology_resources.get(RAS_TYPES.TYPE_CPU).put(RAS_TYPES.TYPE_CPU_TOTAL, topoCPU);
+                    topology_resources.put((String)topologyConf.get(Config.TOPOLOGY_TYPE_CPU), new HashMap<String, Double>());
+                    topology_resources.get(topologyConf.get(Config.TOPOLOGY_TYPE_CPU)).put((String)topologyConf.get(Config.TOPOLOGY_TYPE_CPU_TOTAL), topoCPU);
                 }
+                LOG.debug("Topology Resources" + topology_resources);
             }
         } catch (ParseException e) {
             LOG.error(e.toString());
@@ -179,32 +190,34 @@ public class TopologyDetails {
     private void checkIntialization(Map<String, Map<String, Double>> topology_resources,
                                     ExecutorDetails exec, String Com) {
         this.checkInitMem(topology_resources, exec, Com);
+        LOG.debug("Topology Resources in parseResources after checkInit" + topology_resources);
         this.checkInitCPU(topology_resources, exec, Com);
+        LOG.debug("Topology Resources in parseResources after checkCPU" + topology_resources);
     }
 
     private void checkInitMem(Map<String, Map<String, Double>> topology_resources,
                               ExecutorDetails exec, String Com) {
 
         String msg = "";
-        if (topology_resources.size() <= 0 || !topology_resources.containsKey(RAS_TYPES.TYPE_MEMORY)) {
-            topology_resources.put(RAS_TYPES.TYPE_MEMORY, new HashMap<String, Double>());
+        if (topology_resources.size() == 0 || !topology_resources.containsKey(topologyConf.get(Config.TOPOLOGY_TYPE_MEMORY))) {
+            topology_resources.put((String) topologyConf.get(Config.TOPOLOGY_TYPE_MEMORY), new HashMap<String, Double>());
         }
-        if (!topology_resources.get(RAS_TYPES.TYPE_MEMORY).containsKey(RAS_TYPES.TYPE_MEMORY_ONHEAP)) {
-            topology_resources.get(RAS_TYPES.TYPE_MEMORY)
-                    .put(RAS_TYPES.TYPE_MEMORY_ONHEAP, RAS_TYPES.DEFAULT_ONHEAP_MEMORY_REQUIREMENT);
+        if (!topology_resources.get(topologyConf.get(Config.TOPOLOGY_TYPE_MEMORY)).containsKey(Config.TOPOLOGY_RESOURCES_ONHEAP_MEMORY_MB)) {
+            topology_resources.get(topologyConf.get(Config.TOPOLOGY_TYPE_MEMORY))
+                    .put(Config.TOPOLOGY_RESOURCES_ONHEAP_MEMORY_MB, (Double) topologyConf.get(Config.TOPOLOGY_RESOURCES_ONHEAP_MEMORY_MB));
             msg +=
-                    "Resource : " + RAS_TYPES.TYPE_MEMORY +
-                            " Type: " + RAS_TYPES.TYPE_MEMORY_ONHEAP +
-                            " set to default " + RAS_TYPES.DEFAULT_ONHEAP_MEMORY_REQUIREMENT.toString() +
+                    "Resource : " + topologyConf.get(Config.TOPOLOGY_TYPE_MEMORY) +
+                            " Type: " + topologyConf.get(Config.TOPOLOGY_RESOURCES_ONHEAP_MEMORY_MB) +
+                            " set to default " + topologyConf.get(Config.TOPOLOGY_RESOURCES_ONHEAP_MEMORY_MB).toString() +
                             "\n";
         }
-        if (!topology_resources.get(RAS_TYPES.TYPE_MEMORY).containsKey(RAS_TYPES.TYPE_MEMORY_OFFHEAP)) {
-            topology_resources.get(RAS_TYPES.TYPE_MEMORY)
-                    .put(RAS_TYPES.TYPE_MEMORY_OFFHEAP, RAS_TYPES.DEFAULT_OFFHEAP_MEMORY_REQUIREMENT);
+        if (!topology_resources.get(topologyConf.get(Config.TOPOLOGY_TYPE_MEMORY)).containsKey(Config.TOPOLOGY_RESOURCES_OFFHEAP_MEMORY_MB)) {
+            topology_resources.get(topologyConf.get(Config.TOPOLOGY_TYPE_MEMORY))
+                    .put(Config.TOPOLOGY_RESOURCES_OFFHEAP_MEMORY_MB, (Double) topologyConf.get(Config.TOPOLOGY_RESOURCES_OFFHEAP_MEMORY_MB));
             msg +=
-                    "Resource : " + RAS_TYPES.TYPE_MEMORY +
-                            " Type: " + RAS_TYPES.TYPE_MEMORY_OFFHEAP +
-                            " set to default " + RAS_TYPES.DEFAULT_OFFHEAP_MEMORY_REQUIREMENT.toString() +
+                    "Resource : " + topologyConf.get(Config.TOPOLOGY_TYPE_MEMORY) +
+                            " Type: " + topologyConf.get(Config.TOPOLOGY_RESOURCES_OFFHEAP_MEMORY_MB) +
+                            " set to default " + topologyConf.get(Config.TOPOLOGY_RESOURCES_OFFHEAP_MEMORY_MB).toString() +
                             "\n";
         }
         if (msg != "") {
@@ -218,16 +231,16 @@ public class TopologyDetails {
                               ExecutorDetails exec, String Com) {
 
         String msg = "";
-        if (topology_resources.size() <= 0 || !topology_resources.containsKey(RAS_TYPES.TYPE_CPU)) {
-            topology_resources.put(RAS_TYPES.TYPE_CPU, new HashMap<String, Double>());
+        if (topology_resources.size() == 0 || !topology_resources.containsKey(topologyConf.get(Config.TOPOLOGY_TYPE_CPU))) {
+            topology_resources.put((String)topologyConf.get(Config.TOPOLOGY_TYPE_CPU), new HashMap<String, Double>());
         }
-        if (!topology_resources.get(RAS_TYPES.TYPE_CPU).containsKey(RAS_TYPES.TYPE_CPU_TOTAL)) {
-            topology_resources.get(RAS_TYPES.TYPE_CPU)
-                    .put(RAS_TYPES.TYPE_CPU_TOTAL, RAS_TYPES.DEFAULT_CPU_REQUIREMENT);
+        if (!topology_resources.get(topologyConf.get(Config.TOPOLOGY_TYPE_CPU)).containsKey(topologyConf.get(Config.TOPOLOGY_TYPE_CPU_TOTAL))) {
+            topology_resources.get(topologyConf.get(Config.TOPOLOGY_TYPE_CPU))
+                    .put((String) topologyConf.get(Config.TOPOLOGY_TYPE_CPU_TOTAL), (Double) topologyConf.get(Config.TOPOLOGY_DEFAULT_CPU_REQUIREMENT));
             msg +=
-                    "Resource : " + RAS_TYPES.TYPE_CPU +
-                            " Type: " + RAS_TYPES.TYPE_CPU_TOTAL +
-                            " set to default " + RAS_TYPES.DEFAULT_CPU_REQUIREMENT.toString() +
+                    "Resource : " + topologyConf.get(Config.TOPOLOGY_TYPE_CPU) +
+                            " Type: " + topologyConf.get(Config.TOPOLOGY_TYPE_CPU_TOTAL) +
+                            " set to default " + topologyConf.get(Config.TOPOLOGY_DEFAULT_CPU_REQUIREMENT).toString() +
                             "\n";
         }
         if (!msg.equals("")) {
@@ -236,7 +249,6 @@ public class TopologyDetails {
                             exec + " for Component " + Com + "\n" + msg);
         }
     }
-
     private List<ExecutorDetails> componentToExecs(String comp) {
         List<ExecutorDetails> execs = new ArrayList<>();
         for (Map.Entry<ExecutorDetails, String> entry : executorToComponent.entrySet()) {
@@ -297,7 +309,7 @@ public class TopologyDetails {
 
             }
         }
-        // bolt
+        // bolts
         for (Map.Entry<String, Bolt> boltEntry : storm_topo.get_bolts()
                 .entrySet()) {
             if (!Utils.isSystemId(boltEntry.getKey())) {
@@ -348,10 +360,10 @@ public class TopologyDetails {
         Double ret = null;
         if (hasExecInTopo(exec)) {
             ret = _resourceList
-                    .get(exec).get(RAS_TYPES.TYPE_MEMORY)
-                    .get(RAS_TYPES.TYPE_MEMORY_ONHEAP);
+                    .get(exec).get(topologyConf.get(Config.TOPOLOGY_TYPE_MEMORY))
+                    .get(Config.TOPOLOGY_RESOURCES_ONHEAP_MEMORY_MB);
             if (ret == null) {
-                LOG.error("{} not set!" + RAS_TYPES.TYPE_MEMORY_ONHEAP);
+                LOG.error("{} not set!" + topologyConf.get(Config.TOPOLOGY_RESOURCES_ONHEAP_MEMORY_MB));
             }
         }
         return ret;
@@ -370,11 +382,12 @@ public class TopologyDetails {
     public Double getOffHeapMemoryRequirement(ExecutorDetails exec) {
         Double ret = null;
         if (hasExecInTopo(exec)) {
+            LOG.debug("ResourceList" + _resourceList);
             ret = _resourceList
-                    .get(exec).get(RAS_TYPES.TYPE_MEMORY)
-                    .get(RAS_TYPES.TYPE_MEMORY_OFFHEAP);
+                    .get(exec).get(topologyConf.get(Config.TOPOLOGY_TYPE_MEMORY))
+                    .get(Config.TOPOLOGY_RESOURCES_OFFHEAP_MEMORY_MB);
             if (ret == null) {
-                LOG.error("{} not set!" + RAS_TYPES.TYPE_MEMORY_OFFHEAP);
+                LOG.error("{} not set!" + Config.TOPOLOGY_RESOURCES_OFFHEAP_MEMORY_MB);
             }
         }
         return ret;
@@ -421,7 +434,7 @@ public class TopologyDetails {
      */
     public Double getTotalCpuReqTask(ExecutorDetails exec) {
         if (hasExecInTopo(exec)) {
-            return _resourceList.get(exec).get(RAS_TYPES.TYPE_CPU).get(RAS_TYPES.TYPE_CPU_TOTAL);
+            return _resourceList.get(exec).get(topologyConf.get(Config.TOPOLOGY_TYPE_CPU)).get(topologyConf.get(Config.TOPOLOGY_TYPE_CPU_TOTAL));
         }
         LOG.info("cannot find - {}", exec);
         return null;
@@ -467,17 +480,16 @@ public class TopologyDetails {
      */
     public void addDefaultResforExec(ExecutorDetails exec) {
         Map<String, Map<String, Double>> defaultResourceList = new HashMap<String, Map<String, Double>>();
-        defaultResourceList.put(RAS_TYPES.TYPE_CPU, new HashMap<String, Double>());
-        defaultResourceList.get(RAS_TYPES.TYPE_CPU).put(RAS_TYPES.TYPE_CPU_TOTAL, RAS_TYPES.DEFAULT_CPU_REQUIREMENT);
-
-        defaultResourceList.put(RAS_TYPES.TYPE_MEMORY, new HashMap<String, Double>());
-        defaultResourceList.get(RAS_TYPES.TYPE_MEMORY).put(RAS_TYPES.TYPE_MEMORY_OFFHEAP, RAS_TYPES.DEFAULT_OFFHEAP_MEMORY_REQUIREMENT);
-        defaultResourceList.get(RAS_TYPES.TYPE_MEMORY).put(RAS_TYPES.TYPE_MEMORY_ONHEAP, RAS_TYPES.DEFAULT_ONHEAP_MEMORY_REQUIREMENT);
+        defaultResourceList.put((String) topologyConf.get(Config.TOPOLOGY_TYPE_CPU), new HashMap<String, Double>());
+        defaultResourceList.get(topologyConf.get(Config.TOPOLOGY_TYPE_CPU)).put((String)topologyConf.get(Config.TOPOLOGY_TYPE_CPU_TOTAL), (Double)topologyConf.get(Config.TOPOLOGY_DEFAULT_CPU_REQUIREMENT));
+        defaultResourceList.put((String)topologyConf.get(Config.TOPOLOGY_TYPE_MEMORY), new HashMap<String, Double>());
+        defaultResourceList.get(topologyConf.get(Config.TOPOLOGY_TYPE_MEMORY)).put(Config.TOPOLOGY_RESOURCES_OFFHEAP_MEMORY_MB, (Double) topologyConf.get(Config.TOPOLOGY_RESOURCES_OFFHEAP_MEMORY_MB));
+        defaultResourceList.get(topologyConf.get(Config.TOPOLOGY_TYPE_MEMORY)).put(Config.TOPOLOGY_RESOURCES_ONHEAP_MEMORY_MB, (Double) topologyConf.get(Config.TOPOLOGY_RESOURCES_ONHEAP_MEMORY_MB));
         LOG.warn("Scheduling Executor: {} with memory requirement as onHeap: {} - offHeap: {} " +
                         "and CPU requirement: {}",
-                exec, RAS_TYPES.DEFAULT_ONHEAP_MEMORY_REQUIREMENT,
-                RAS_TYPES.DEFAULT_OFFHEAP_MEMORY_REQUIREMENT,
-                RAS_TYPES.DEFAULT_CPU_REQUIREMENT);
+                exec, topologyConf.get(Config.TOPOLOGY_RESOURCES_ONHEAP_MEMORY_MB),
+                topologyConf.get(Config.TOPOLOGY_RESOURCES_OFFHEAP_MEMORY_MB),
+                topologyConf.get(Config.TOPOLOGY_DEFAULT_CPU_REQUIREMENT));
         addResourcesForExec(exec, defaultResourceList);
     }
 }
