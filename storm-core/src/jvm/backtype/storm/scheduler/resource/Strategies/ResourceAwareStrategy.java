@@ -55,7 +55,6 @@ public class ResourceAwareStrategy implements IStrategy {
     private Map<String, Node> _nodes;
     private Map<String, List<String>> _clusterInfo;
     private static Map conf = Utils.readStormConfig();
-
     private final Double CPU_WEIGHT = (Double)conf.get(Config.CPU_WEIGHT);
     private final Double MEM_WEIGHT = (Double)conf.get(Config.MEM_WEIGHT);
     private final Double NETWORK_WEIGHT = (Double)conf.get(Config.NETWORK_WEIGHT);
