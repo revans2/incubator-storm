@@ -463,6 +463,7 @@ public class Node {
     public Double getAvailableMemoryResources() {
         if (this.availMemory == null) {
             return -1.0;
+            /* TODO bug? */
         }
         return this.availMemory;
     }
@@ -476,6 +477,7 @@ public class Node {
             return this.sup.getTotalMemory();
         } else {
             return -1.0;
+            /* TODO bug? should be 0.0 */
         }
     }
 
@@ -500,6 +502,7 @@ public class Node {
     public Double getAvailableCpuResources() {
         if (this.availCPU == null) {
             return -1.0;
+            /* TODO bug? should be 0.0 */
         }
         return this.availCPU;
     }
@@ -513,6 +516,7 @@ public class Node {
             return this.sup.getTotalCPU();
         } else {
             return -1.0;
+            /* TODO bug? should be 0.0 */
         }
     }
 

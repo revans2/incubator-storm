@@ -164,3 +164,52 @@
       (is (= 1 (.size (into #{} (for [slot assigned-slots] (.getNodeId slot))))))
       (is (= 2 (.size executors))))
     (is (= "topology2 Fully Scheduled" (.get (.getStatusMap cluster) "topology2")))))
+
+(deftest test-resource-limitation
+  (let [builder (TopologyBuilder.)
+        _ (doto (.setSpout builder "wordSpout" (TestWordSpout.) 2)
+            (.setMemoryLoad 1000.0 200.0)
+            (.setCPULoad 250.0))
+        _ (doto (.setBolt builder "wordCountBolt" (TestWordCounter.) 1)
+            (.shuffleGrouping  "wordSpout")
+            (.setMemoryLoad 500.0 100.0)
+            (.setCPULoad 100.0))
+        supers (gen-supervisors 3)
+        storm-topology (.createTopology builder)
+        topology1 (TopologyDetails. "topology1"
+                                    {TOPOLOGY-NAME "topology-name-1"
+                                     TOPOLOGY-SUBMITTER-USER "userC"}
+                                    storm-topology
+                                    4
+                                    (mk-ed-map [["wordSpout" 0 2]
+                                                ["wordCountBolt" 2 3]]))
+        cluster (Cluster. (nimbus/standalone-nimbus) supers {})
+        topologies (Topologies. (to-top-map [topology1]))
+        scheduler (ResourceAwareScheduler.)]
+    (.schedule scheduler topologies cluster)
+    (let [assignment (.getAssignmentById cluster "topology1")
+          assigned-slots (.getSlots assignment)
+          node-ids (map #(.getNodeId %) assigned-slots)
+          executors (.getExecutors assignment)
+          ed-to-super (into {}
+                            (for [[ed slot] (.getExecutorToSlot assignment)]
+                              {ed (.getSupervisorById cluster (.getNodeId slot))}))
+          super-to-eds (reverse-map ed-to-super)
+          mem-aval-to-used (into []
+                                 (for [[super eds] super-to-eds]
+                                   [(.getTotalMemory super) (sum (map #(.getTotalMemReqTask topology1 %) eds))]))
+          cpu-aval-to-used (into []
+                                 (for [[super eds] super-to-eds]
+                                   [(.getTotalCPU super) (sum (map #(.getTotalCpuReqTask topology1 %) eds))]))]
+    ;; 4 slots on 1 machine, all executors assigned
+    (is (= 2 (.size assigned-slots)))
+    (is (= 2 (.size (into #{} (for [slot assigned-slots] (.getNodeId slot))))))
+    (is (= 3 (.size executors)))
+    ;; make sure resource (mem/cpu) assigned equals to resource specified`
+    (is (< (Math/abs (- 1200.0 (apply max (map #(.getTotalMemReqTask topology1 %) executors)))) 0.000001))
+    (is (< (Math/abs (- 250.0 (apply max (map #(.getTotalCpuReqTask topology1 %) executors)))) 0.000001))
+    (doseq [[aval used] mem-aval-to-used] ;; for each node, assigned mem smaller than total 
+      (is (>= aval used)))
+    (doseq [[aval used] cpu-aval-to-used] ;; for each node, assigned cpu smaller than total
+      (is (>= aval used))))
+  (is (= "topology1 Fully Scheduled" (.get (.getStatusMap cluster) "topology1")))))
