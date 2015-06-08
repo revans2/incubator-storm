@@ -1,4 +1,4 @@
-/*
+/**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -15,23 +15,32 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package backtype.storm.ui;
+package org.apache.storm.hdfs.bolt.sync;
 
-public class InvalidRequestException extends Exception {
+import backtype.storm.tuple.Tuple;
 
-    public InvalidRequestException() {
-        super();
-    }
+import java.io.Serializable;
 
-    public InvalidRequestException(String msg) {
-        super(msg);
-    }
+/**
+ * Interface for controlling when the HdfsBolt
+ * syncs and flushes the filesystem.
+ *
+ */
+public interface SyncPolicy extends Serializable {
+    /**
+     * Called for every tuple the HdfsBolt executes.
+     *
+     * @param tuple The tuple executed.
+     * @param offset current offset for the file being written
+     * @return true if a sync should be performed
+     */
+    boolean mark(Tuple tuple, long offset);
 
-    public InvalidRequestException(String msg, Throwable cause) {
-        super(msg, cause);
-    }
 
-    public InvalidRequestException(Throwable cause) {
-        super(cause);
-    }
+    /**
+     * Called after the HdfsBolt performs a sync.
+     *
+     */
+    void reset();
+
 }

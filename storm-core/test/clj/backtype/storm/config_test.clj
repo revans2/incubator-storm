@@ -14,7 +14,7 @@
 ;; See the License for the specific language governing permissions and
 ;; limitations under the License.
 (ns backtype.storm.config-test
-  (:import [backtype.storm Config ConfigValidation])
+  (:import [backtype.storm Config ConfigValidation LoggingSensitivity])
   (:import [backtype.storm.scheduler TopologyDetails])
   (:import [backtype.storm.utils Utils])
   (:import [java.nio.file Files])
@@ -135,4 +135,15 @@
         (io/delete-file link-file)
         (io/delete-file tempDir)
         (io/delete-file tempFile))))))
+
+(deftest test-logging-sensitivity-validator
+  (let [validator ConfigValidation/LoggingSensitivityValidator]
+    (doseq [x [1 2 "s8"]]
+      (is (thrown-cause? java.lang.IllegalArgumentException
+            (.validateField validator "test" x))))
+
+    (doseq [x ["s0" "s1" "s2" "s3" "S0" "S1" "S2" "S3" LoggingSensitivity/S0]]
+      (is (nil? (try
+                  (.validateField validator "test" x)
+                  (catch Exception e e)))))))
 

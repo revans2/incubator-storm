@@ -1,4 +1,4 @@
-/*
+/**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -15,23 +15,32 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package backtype.storm.ui;
+package org.apache.storm.hdfs.bolt.sync;
 
-public class InvalidRequestException extends Exception {
 
-    public InvalidRequestException() {
-        super();
+import backtype.storm.tuple.Tuple;
+
+/**
+ * SyncPolicy implementation that will trigger a
+ * file system sync after a certain number of tuples
+ * have been processed.
+ */
+public class CountSyncPolicy implements SyncPolicy {
+    private int count;
+    private int executeCount = 0;
+
+    public CountSyncPolicy(int count){
+        this.count = count;
     }
 
-    public InvalidRequestException(String msg) {
-        super(msg);
+    @Override
+    public boolean mark(Tuple tuple, long offset) {
+        this.executeCount++;
+        return this.executeCount >= this.count;
     }
 
-    public InvalidRequestException(String msg, Throwable cause) {
-        super(msg, cause);
-    }
-
-    public InvalidRequestException(Throwable cause) {
-        super(cause);
+    @Override
+    public void reset() {
+        this.executeCount = 0;
     }
 }

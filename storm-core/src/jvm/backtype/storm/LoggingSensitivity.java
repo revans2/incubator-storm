@@ -1,4 +1,4 @@
-/*
+/**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -15,23 +15,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package backtype.storm.ui;
+package backtype.storm;
 
-public class InvalidRequestException extends Exception {
 
-    public InvalidRequestException() {
-        super();
-    }
-
-    public InvalidRequestException(String msg) {
-        super(msg);
-    }
-
-    public InvalidRequestException(String msg, Throwable cause) {
-        super(msg, cause);
-    }
-
-    public InvalidRequestException(Throwable cause) {
-        super(cause);
-    }
+public enum LoggingSensitivity {
+  S0, S1, S2, S3
 }

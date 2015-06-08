@@ -15,23 +15,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package backtype.storm.ui;
+package org.apache.storm.hdfs.common.rotation;
 
-public class InvalidRequestException extends Exception {
 
-    public InvalidRequestException() {
-        super();
-    }
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 
-    public InvalidRequestException(String msg) {
-        super(msg);
-    }
+import java.io.IOException;
+import java.io.Serializable;
 
-    public InvalidRequestException(String msg, Throwable cause) {
-        super(msg, cause);
-    }
-
-    public InvalidRequestException(Throwable cause) {
-        super(cause);
-    }
+public interface RotationAction extends Serializable {
+    void execute(FileSystem fileSystem, Path filePath) throws IOException;
 }

@@ -1,4 +1,4 @@
-/*
+/**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -15,23 +15,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package backtype.storm.ui;
+package org.apache.storm.hdfs.bolt.rotation;
 
-public class InvalidRequestException extends Exception {
+import backtype.storm.tuple.Tuple;
 
-    public InvalidRequestException() {
-        super();
+/**
+ * File rotation policy that will never rotate...
+ * Just one big file. Intended for testing purposes.
+ */
+public class NoRotationPolicy implements FileRotationPolicy {
+    @Override
+    public boolean mark(Tuple tuple, long offset) {
+        return false;
     }
 
-    public InvalidRequestException(String msg) {
-        super(msg);
-    }
-
-    public InvalidRequestException(String msg, Throwable cause) {
-        super(msg, cause);
-    }
-
-    public InvalidRequestException(Throwable cause) {
-        super(cause);
+    @Override
+    public void reset() {
     }
 }

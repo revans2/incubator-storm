@@ -596,15 +596,6 @@ public class Config extends HashMap<String, Object> {
     public static final Object UI_GROUPS_SCHEMA = ConfigValidation.StringsValidator;
 
     /**
-     * Whether or not actions should be enabled.  When disabled, requests to
-     * modify the state of topologies via HTTP will not be honored.
-     *
-     * Defaults to true.
-     */
-    public static final String UI_ACTIONS_ENABLED = "ui.actions.enabled";
-    public static final Object UI_ACTIONS_ENABLED_SCHEMA = Boolean.class;
-
-    /**
      * The host that the HB server is running on.
      */
     public static final String PACEMAKER_HOST = "pacemaker.host";
@@ -1451,7 +1442,7 @@ public class Config extends HashMap<String, Object> {
      *   S3 - Secret (default.)
      */
     public static final String TOPOLOGY_LOGGING_SENSITIVITY="topology.logging.sensitivity";
-    public static final Object TOPOLOGY_LOGGING_SENSITIVITY_SCHEMA = String.class;
+    public static final Object TOPOLOGY_LOGGING_SENSITIVITY_SCHEMA = ConfigValidation.LoggingSensitivityValidator;
 
     /**
      * The root directory in ZooKeeper for metadata about TransactionalSpouts.
@@ -1711,4 +1702,13 @@ public class Config extends HashMap<String, Object> {
         conf.put(Config.TOPOLOGY_KRYO_DECORATORS, ret);
         return ret;
     }
+
+    public void setTopologyLoggingSensitivity(LoggingSensitivity sensitivity) {
+      setTopologyLoggingSensitivity(this, sensitivity);
+    }
+
+    public static void setTopologyLoggingSensitivity(Map conf, LoggingSensitivity sensitivity) {
+        conf.put(Config.TOPOLOGY_LOGGING_SENSITIVITY, sensitivity.toString());
+    }
+
 }
