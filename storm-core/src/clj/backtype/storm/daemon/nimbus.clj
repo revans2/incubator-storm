@@ -361,7 +361,7 @@
   (.createBlob blob-store (master-stormcode-key storm-id) (Utils/serialize topology) (SettableBlobMeta. BlobStoreAclHandler/WORLD_EVERYTHING) nil)
   (.createBlob blob-store (master-stormconf-key storm-id) (Utils/toCompressedJsonConf storm-conf) (SettableBlobMeta. BlobStoreAclHandler/WORLD_EVERYTHING) nil))
 
-(defn- read-storm-topology [conf storm-id blob-store]
+(defn- read-storm-topology [storm-id blob-store]
   (Utils/deserialize
     (.readBlob blob-store (master-stormcode-key storm-id) nil) StormTopology))
 
@@ -372,7 +372,7 @@
         blob-store (:blob-store nimbus)
         storm-base (.storm-base (:storm-cluster-state nimbus) storm-id nil)
         topology-conf (read-storm-conf conf storm-id blob-store)
-        topology (read-storm-topology conf storm-id blob-store)
+        topology (read-storm-topology storm-id blob-store)
         executor->component (->> (compute-executor->component nimbus storm-id)
                                  (map-key (fn [[start-task end-task]]
                                             (ExecutorDetails. (int start-task) (int end-task)))))]
@@ -469,7 +469,7 @@
         storm-base (.storm-base (:storm-cluster-state nimbus) storm-id nil)
         component->executors (:component->executors storm-base)
         storm-conf (read-storm-conf conf storm-id blob-store)
-        topology (read-storm-topology conf storm-id blob-store)
+        topology (read-storm-topology storm-id blob-store)
         task->component (storm-task-info topology storm-conf)]
     (->> (storm-task-info topology storm-conf)
          reverse-map
@@ -484,7 +484,7 @@
   (let [conf (:conf nimbus)
         blob-store (:blob-store nimbus)
         executors (compute-executors nimbus storm-id)
-        topology (read-storm-topology conf storm-id blob-store)
+        topology (read-storm-topology storm-id blob-store)
         storm-conf (read-storm-conf conf storm-id blob-store)
         task->component (storm-task-info topology storm-conf)
         executor->component (into {} (for [executor executors
@@ -772,7 +772,7 @@
         conf (:conf nimbus)
         blob-store (:blob-store nimbus)
         storm-conf (read-storm-conf conf storm-id blob-store)
-        topology (system-topology! storm-conf (read-storm-topology conf storm-id blob-store))
+        topology (system-topology! storm-conf (read-storm-topology storm-id blob-store))
         num-executors (->> (all-components topology) (map-val num-start-executors))]
     (log-message "Activating " storm-name ": " storm-id)
     (.activate-storm! storm-cluster-state
@@ -997,9 +997,9 @@
         id (get-storm-id storm-cluster-state storm-name)]
    (try-read-storm-conf conf id blob-store)))
 
-(defn try-read-storm-topology [conf storm-id blob-store]
+(defn try-read-storm-topology [storm-id blob-store]
   (try-cause
-    (read-storm-topology conf storm-id blob-store)
+    (read-storm-topology storm-id blob-store)
     (catch KeyNotFoundException e
        (throw (NotAliveException. (str storm-id))))
   )
@@ -1087,7 +1087,7 @@
                                           storm-name
                                           topology-conf
                                           operation)
-                  topology (try-read-storm-topology conf storm-id blob-store)
+                  topology (try-read-storm-topology storm-id blob-store)
                   task->component (storm-task-info topology topology-conf)
                   base (.storm-base storm-cluster-state storm-id nil)
                   launch-time-secs (if base (:launch-time-secs base)
@@ -1378,13 +1378,13 @@
         (let [topology-conf (try-read-storm-conf conf id blob-store)
               storm-name (topology-conf TOPOLOGY-NAME)]
               (check-authorization! nimbus storm-name topology-conf "getTopology")
-              (system-topology! topology-conf (try-read-storm-topology conf id blob-store))))
+              (system-topology! topology-conf (try-read-storm-topology id blob-store))))
 
       (^StormTopology getUserTopology [this ^String id]
         (let [topology-conf (try-read-storm-conf conf id blob-store)
               storm-name (topology-conf TOPOLOGY-NAME)]
               (check-authorization! nimbus storm-name topology-conf "getUserTopology")
-              (try-read-storm-topology topology-conf id blob-store)))
+              (try-read-storm-topology id blob-store)))
 
       (^ClusterSummary getClusterInfo [this]
         (check-authorization! nimbus nil nil "getClusterInfo")
