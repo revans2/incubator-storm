@@ -210,7 +210,9 @@
               }
    :killed {:startup (fn [] (delay-event nimbus
                                          storm-id
-                                         (:delay-secs storm-base)
+                                         (-> storm-base
+                                             :topology-action-options
+                                             :delay-secs)
                                          :remove)
                              nil)
             :kill (kill-transition nimbus storm-id)
@@ -222,7 +224,9 @@
             }
    :rebalancing {:startup (fn [] (delay-event nimbus
                                               storm-id
-                                              (:delay-secs storm-base)
+                                              (-> storm-base
+                                                  :topology-action-options
+                                                  :delay-secs)
                                               :do-rebalance)
                                  nil)
                  :kill (kill-transition nimbus storm-id)
