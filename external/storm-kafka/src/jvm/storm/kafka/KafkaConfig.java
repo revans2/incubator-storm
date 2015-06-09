@@ -38,6 +38,7 @@ public class KafkaConfig implements Serializable {
     public long maxOffsetBehind = 100000;
     public boolean useStartOffsetTimeIfOffsetOutOfRange = true;
     public int metricsTimeBucketSizeInSecs = 60;
+    public String securityProtocol = "PLAINTEXT";
 
     public KafkaConfig(BrokerHosts hosts, String topic) {
         this(hosts, topic, kafka.api.OffsetRequest.DefaultClientId());

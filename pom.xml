@@ -214,7 +214,7 @@
         <clojure-data-codec.version>0.1.0</clojure-data-codec.version>
         <clojure-contrib.version>1.2.0</clojure-contrib.version>
         <metrics-clojure.version>2.5.1</metrics-clojure.version>
-
+        <kafka.version>0.8.2.2.3.0.0-2304</kafka.version>
     </properties>
 
     <profiles>
