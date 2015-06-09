@@ -161,6 +161,12 @@ public class Config extends HashMap<String, Object> {
     public static final Object STORM_CLUSTER_MODE_SCHEMA = String.class;
 
     /**
+     * What Network Topography detection classes should we use.
+     */
+    public static final String STORM_NETWORK_TOPOGRAPHY = "storm.network.topographyDetection.class";
+    public static final Object STORM_NETWORK_TOPOGRAPHY_SCHEMA = String.class;
+
+    /**
      * The hostname the supervisors/workers should report to nimbus. If unset, Storm will
      * get the hostname to report by calling <code>InetAddress.getLocalHost().getCanonicalHostName()</code>.
      *

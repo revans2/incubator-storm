@@ -1,18 +1,12 @@
 package com.yahoo.storm.networkTopography;
-
+import backtype.storm.networkTopography.DNSToSwitchMapping;
+import backtype.storm.networkTopography.CachedDNSToSwitchMapping;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
-//import org.slf4j.Logger;
-//import org.slf4j.LoggerFactory;
-import org.apache.hadoop.util.*;
-import org.apache.hadoop.conf.*;
-
-import backtype.storm.networkTopography.*;
 
 /**
  * This class implements the {@link DNSToSwitchMapping} interface
@@ -36,10 +30,6 @@ public final class YahooDNSToSwitchMapping extends CachedDNSToSwitchMapping {
 
     public YahooDNSToSwitchMapping() {
         super(null);
-    }
-
-    public YahooDNSToSwitchMapping(Configuration conf) {
-        this();
     }
 
     @Override
@@ -69,7 +59,7 @@ public final class YahooDNSToSwitchMapping extends CachedDNSToSwitchMapping {
                 } catch (UnknownHostException e){
                     // host name is unknown, use DEFAULT_RACK instead.
                     // do not cache this.
-                    m.add(NetworkTopology.DEFAULT_RACK);
+                    m.add(DEFAULT_RACK);
                     // continue on to the next host
                     continue;
                 }
@@ -105,7 +95,7 @@ public final class YahooDNSToSwitchMapping extends CachedDNSToSwitchMapping {
             int ipFiled = new Integer(ipf).intValue();
             if ( ipFiled < 0 || ipFiled > 256){
                 // IP filed is out of range [0-255], directly return default rack.
-                return NetworkTopology.DEFAULT_RACK;
+                return DEFAULT_RACK;
             }
             net[i] = ipFiled & subnetMask[i];
             rackip.append(Integer.toString(net[i]));

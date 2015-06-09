@@ -25,6 +25,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import backtype.storm.Config;
+import backtype.storm.networkTopography.DNSToSwitchMapping;
+import backtype.storm.utils.Utils;
 import backtype.storm.networkTopography.YahooDNSToSwitchMapping;
 import storm.trident.testing.StringLength;
 
@@ -452,7 +455,10 @@ public class Cluster {
             networkTopography = new HashMap<>();
             ArrayList<String> supervisorHostNames = new ArrayList<>();
             supervisorHostNames.addAll(supervisors.keySet());
-            YahooDNSToSwitchMapping cluster = new YahooDNSToSwitchMapping();
+            Map config = Utils.readStormConfig();
+            String clazz = (String)config.get(Config.STORM_NETWORK_TOPOGRAPHY);// "com.yahoo.storm.networkTopography.YahooDNSToSwitchMapping"; 
+            DNSToSwitchMapping cluster = (DNSToSwitchMapping) Utils.newInstance(clazz);
+            //YahooDNSToSwitchMapping cluster = new YahooDNSToSwitchMapping();
             ArrayList<String> resolvedSuperVisors = (ArrayList<String>)cluster.resolve(supervisorHostNames);
             for ( int i = 0; i < resolvedSuperVisors.size(); i++ ) {
                 String rack = resolvedSuperVisors.get(i);
