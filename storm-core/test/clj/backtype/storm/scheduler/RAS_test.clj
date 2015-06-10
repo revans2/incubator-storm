@@ -178,7 +178,14 @@
         storm-topology (.createTopology builder)
         topology1 (TopologyDetails. "topology1"
                                     {TOPOLOGY-NAME "topology-name-1"
-                                     TOPOLOGY-SUBMITTER-USER "userC"}
+                                     TOPOLOGY-SUBMITTER-USER "userC"
+                                     TOPOLOGY-COMPONENT-RESOURCES-ONHEAP-MEMORY-MB 128.0
+                                     TOPOLOGY-COMPONENT-RESOURCES-OFFHEAP-MEMORY-MB 0.0
+                                     TOPOLOGY-COMPONENT-CPU-REQUIREMENT 10.0
+                                     TOPOLOGY-COMPONENT-TYPE-CPU "cpu"
+                                     TOPOLOGY-COMPONENT-TYPE-CPU-TOTAL "total"
+                                     TOPOLOGY-COMPONENT-TYPE-MEMORY "memory"
+                                     }
                                     storm-topology
                                     4
                                     (mk-ed-map [["wordSpout" 0 2]
