@@ -53,9 +53,9 @@ public class ResourceAwareStrategy implements IStrategy {
      */
     private Map<String, Node> _nodes;
     private Map<String, List<String>> _clusterInfo;
-    private double CPU_WEIGHT = 1.0;
-    private double MEM_WEIGHT = 1.0;
-    private double NETWORK_WEIGHT = 1.0;
+    private final double CPU_WEIGHT = 1.0;
+    private final double MEM_WEIGHT = 1.0;
+    private final double NETWORK_WEIGHT = 1.0;
 
     public ResourceAwareStrategy(
             TopologyDetails topo, Cluster cluster, Topologies topologies) {
