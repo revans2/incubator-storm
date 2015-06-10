@@ -513,6 +513,8 @@
 
   (let [storm-conf (read-supervisor-storm-conf conf storm-id)
         storm-conf (override-login-config-with-system-property storm-conf)
+        conf (assoc conf PACEMAKER-AUTH-METHOD "NONE")
+        storm-conf (assoc storm-conf PACEMAKER-AUTH-METHOD "NONE")
         acls (Utils/getWorkerACL storm-conf)
         cluster-state (cluster/mk-distributed-cluster-state conf :auth-conf storm-conf :acls acls)
         storm-cluster-state (cluster/mk-storm-cluster-state cluster-state :acls acls)

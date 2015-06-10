@@ -17,7 +17,7 @@
  */
 package backtype.storm.messaging.netty;
 
-import backtype.storm.messaging.TaskMessage;
+import backtype.storm.utils.Utils;
 import org.jboss.netty.channel.Channel;
 import org.jboss.netty.channel.ChannelHandlerContext;
 import org.jboss.netty.channel.ChannelStateEvent;
@@ -26,7 +26,6 @@ import org.jboss.netty.channel.MessageEvent;
 import org.jboss.netty.channel.SimpleChannelUpstreamHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class StormServerHandler extends SimpleChannelUpstreamHandler  {
@@ -42,13 +41,13 @@ public class StormServerHandler extends SimpleChannelUpstreamHandler  {
     
     @Override
     public void channelConnected(ChannelHandlerContext ctx, ChannelStateEvent e) {
-        //server.addChannel(e.getChannel());
         server.channelConnected(e.getChannel());
         if(channel != null) {
             LOG.debug("Replacing channel with new channel: "
                       + channel.toString() + " -> " + e.getChannel().toString());
         }
         channel = e.getChannel();
+        server.channelConnected(channel);
     }
     
     @Override
@@ -69,6 +68,7 @@ public class StormServerHandler extends SimpleChannelUpstreamHandler  {
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, ExceptionEvent e) {
         LOG.error("server errors in handling the request", e.getCause());
+        Utils.handleUncaughtException(e.getCause());
         server.closeChannel(e.getChannel());
     }
 }
