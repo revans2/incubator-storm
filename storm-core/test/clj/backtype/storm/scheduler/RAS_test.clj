@@ -191,14 +191,15 @@
           assigned-slots (.getSlots assignment)
           node-ids (map #(.getNodeId %) assigned-slots)
           executors (.getExecutors assignment)
+          epsilon 0.000001
           ed-to-super (into {}
                             (for [[ed slot] (.getExecutorToSlot assignment)]
                               {ed (.getSupervisorById cluster (.getNodeId slot))}))
           super-to-eds (reverse-map ed-to-super)
-          mem-aval-to-used (into []
+          mem-avail-to-used (into []
                                  (for [[super eds] super-to-eds]
                                    [(.getTotalMemory super) (sum (map #(.getTotalMemReqTask topology1 %) eds))]))
-          cpu-aval-to-used (into []
+          cpu-avail-to-used (into []
                                  (for [[super eds] super-to-eds]
                                    [(.getTotalCPU super) (sum (map #(.getTotalCpuReqTask topology1 %) eds))]))]
     ;; 4 slots on 1 machine, all executors assigned
@@ -206,10 +207,10 @@
     (is (= 2 (.size (into #{} (for [slot assigned-slots] (.getNodeId slot))))))
     (is (= 3 (.size executors)))
     ;; make sure resource (mem/cpu) assigned equals to resource specified`
-    (is (< (Math/abs (- 1200.0 (apply max (map #(.getTotalMemReqTask topology1 %) executors)))) 0.000001))
-    (is (< (Math/abs (- 250.0 (apply max (map #(.getTotalCpuReqTask topology1 %) executors)))) 0.000001))
-    (doseq [[aval used] mem-aval-to-used] ;; for each node, assigned mem smaller than total 
-      (is (>= aval used)))
-    (doseq [[aval used] cpu-aval-to-used] ;; for each node, assigned cpu smaller than total
-      (is (>= aval used))))
+    (is (< (Math/abs (- 1200.0 (apply max (map #(.getTotalMemReqTask topology1 %) executors)))) epsilon))
+    (is (< (Math/abs (- 250.0 (apply max (map #(.getTotalCpuReqTask topology1 %) executors)))) epsilon))
+    (doseq [[avail used] mem-avail-to-used] ;; for each node, assigned mem smaller than total 
+      (is (>= avail used)))
+    (doseq [[avail used] cpu-avail-to-used] ;; for each node, assigned cpu smaller than total
+      (is (>= avail used))))
   (is (= "topology1 Fully Scheduled" (.get (.getStatusMap cluster) "topology1")))))

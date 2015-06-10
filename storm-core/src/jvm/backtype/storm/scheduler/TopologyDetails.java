@@ -139,6 +139,7 @@ public class TopologyDetails {
         }
     }
 
+
     /* Return type is a map of:
      *  Map<String, Map<String, Double>>
      *  First String can be: RAS_Globals.TYPE_CPU   |  RAS_Globals.TYPE_MEMORY
