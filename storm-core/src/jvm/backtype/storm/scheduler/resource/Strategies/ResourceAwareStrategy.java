@@ -201,7 +201,7 @@ public class ResourceAwareStrategy implements IStrategy {
             LOG.debug("refNode: {}", this.refNode.hostname);
         } else {
             n = this.getBestNode(exec);
-            this.refnode = n; // update the refnode every time
+            this.refNode = n; // update the refnode every time
         }
 
         return n;
