@@ -114,7 +114,6 @@ public class ResourceAwareStrategy implements IStrategy {
                         Collection<ExecutorDetails> newExecutorDetailsMap = new LinkedList<ExecutorDetails>();
                         nodeToExecutorDetailsMap.put(scheduledNode, newExecutorDetailsMap);
                     }
-                    /* TODO: should newExecutorDetailsMap be named as nodeExecutorDetailsList? Also see newMap below */
                     nodeToExecutorDetailsMap.get(scheduledNode).add(detail);
                     scheduledNode.consumeResourcesforTask(detail, td);
                     scheduledTasks.add(detail);
@@ -166,7 +165,6 @@ public class ResourceAwareStrategy implements IStrategy {
         return nodeToExecutorDetailsMap;
     }
 
-    /* TODO: should cluster be renamed as? e.g., rack */
     private String getBestClustering() {
         String bestCluster = null;
         Double mostRes = 0.0;
@@ -189,7 +187,6 @@ public class ResourceAwareStrategy implements IStrategy {
                     .getAvailableMemoryResources()
                     + this._nodes.get(this.NodeHostnameToId(node))
                     .getAvailableCpuResources();
-                    /* TODO: Here fixing an important bug */
         }
         return res;
     }
@@ -204,7 +201,7 @@ public class ResourceAwareStrategy implements IStrategy {
             LOG.debug("refNode: {}", this.refNode.hostname);
         } else {
             n = this.getBestNode(exec);
-            /* TODO: should we do "this.refnode = n" here? I think so */
+            this.refnode = n; // update the refnode every time
         }
 
         return n;
@@ -269,7 +266,6 @@ public class ResourceAwareStrategy implements IStrategy {
         Double taskMem = _topo.getTotalMemReqTask(exec);
         Double taskCPU = _topo.getTotalCpuReqTask(exec);
 
-        /* TODO rename NodeMap to nodeList */
         Collection<Node> NodeMap = this.getNodesFromCluster(clus);
         Double shortestDistance = Double.POSITIVE_INFINITY;
         String msg = "";
