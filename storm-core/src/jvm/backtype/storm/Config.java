@@ -1091,9 +1091,6 @@ public class Config extends HashMap<String, Object> {
     public static final String TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB = "topology.component.resources.offheap.memory.mb";
     public static final Object TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB_SCHEMA = ConfigValidation.PositiveDoubleValidator;
 
-    public static final String TOPOLOGY_RESOURCES_MEMORY_MB = "topology.component.resources.memory.mb";
-    public static final Object TOPOLOGY_RESOURCES_MEMORY_MB_SCHEMA = Map.class;
-
     /**
      * The maximum amount of cpu an instance of a spout/bolt will take. This enables the scheduler
      * to allocate slots on machines with enough available cpu. 

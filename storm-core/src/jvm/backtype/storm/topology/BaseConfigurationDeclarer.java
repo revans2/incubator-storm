@@ -26,8 +26,8 @@ import java.util.Map;
 
 public abstract class BaseConfigurationDeclarer<T extends ComponentConfigurationDeclarer> implements ComponentConfigurationDeclarer<T> {
 
-    private static Map conf = Utils.readStormConfig();
-
+    private Map conf = Utils.readStormConfig();
+    private static final Logger LOG = LoggerFactory.getLogger(BaseConfigurationDeclarer.class);
     @Override
     public T addConfiguration(String config, Object value) {
         Map configMap = new HashMap();
@@ -60,7 +60,12 @@ public abstract class BaseConfigurationDeclarer<T extends ComponentConfiguration
 
     @Override
     public void setMemoryLoad(Double onHeap) {
-        setMemoryLoad(onHeap, (Double)conf.get(Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB));
+        try {
+            setMemoryLoad(onHeap, Utils.getDouble(conf.get(Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB)));
+        } catch (IllegalArgumentException e)
+        {
+            LOG.error(e.toString());
+        }
     } 
 
     @Override

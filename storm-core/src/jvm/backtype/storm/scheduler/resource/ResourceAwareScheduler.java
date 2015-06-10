@@ -22,6 +22,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
+import backtype.storm.Config;
 import backtype.storm.utils.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -94,13 +95,12 @@ public class ResourceAwareScheduler implements IScheduler {
         }
     }
 
-    private Map<String, Number> getUserConf() {
-        Map<String, Number> ret = (Map<String, Number>) _conf.get(backtype.storm.Config.TOPOLOGY_RESOURCES_MEMORY_MB);
-        if (ret == null) {
-            ret = new HashMap<String, Number>();
-        } else {
-            ret = new HashMap<String, Number>(ret);
-        }
+    private Map<String, Double> getUserConf() {
+        Map<String, Double> ret = new HashMap<String, Double>();
+        ret.put(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB,
+                (Double)_conf.get(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB));
+        ret.put(Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB,
+                (Double)_conf.get(Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB));
         return ret;
     }
 

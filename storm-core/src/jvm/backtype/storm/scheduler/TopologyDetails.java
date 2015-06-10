@@ -160,11 +160,11 @@ public class TopologyDetails {
                 Object obj = parser.parse(input);
                 JSONObject jsonObject = (JSONObject) obj;
                 Double topoMemOnHeap =
-                        (Double) jsonObject.get(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB);
+                        Utils.getDouble(jsonObject.get(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB));
                 Double topoMemOffHeap =
-                        (Double) jsonObject.get(Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB);
+                        Utils.getDouble(jsonObject.get(Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB));
                 Double topoCPU =
-                        (Double) jsonObject.get(Config.TOPOLOGY_COMPONENT_RESOURCES_CPU);
+                        Utils.getDouble(jsonObject.get(Config.TOPOLOGY_COMPONENT_RESOURCES_CPU));
                 if (topoMemOnHeap != null) {
                     topology_resources.put((String) topologyConf.get(Config.TOPOLOGY_COMPONENT_TYPE_MEMORY), new HashMap<String, Double>());
                     topology_resources.get(topologyConf
@@ -188,6 +188,9 @@ public class TopologyDetails {
         } catch (ParseException e) {
             LOG.error(e.toString());
             return null;
+        } catch(IllegalArgumentException e)
+        {
+            LOG.error(e.toString());
         }
         return topology_resources;
     }
@@ -198,64 +201,91 @@ public class TopologyDetails {
         this.checkInitCPU(topology_resources, exec, Com);
     }
 
-    private void checkInitMem(Map<String, Map<String, Double>> topology_resources,
-                              ExecutorDetails exec, String Com) {
-
+    private String getDebugMessage(String memoryType)
+    {
         String msg = "";
-        if (topology_resources.size() == 0 || !topology_resources.containsKey(topologyConf.get(Config.TOPOLOGY_COMPONENT_TYPE_MEMORY))) {
-            topology_resources.put((String) topologyConf.get(Config.TOPOLOGY_COMPONENT_TYPE_MEMORY), new HashMap<String, Double>());
-        }
-        if (!topology_resources.get(topologyConf.get(Config.TOPOLOGY_COMPONENT_TYPE_MEMORY)).containsKey(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB)) {
-            topology_resources.get(topologyConf.get(Config.TOPOLOGY_COMPONENT_TYPE_MEMORY))
-                    .put(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB, (Double) topologyConf
-                            .get(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB));
+        if (memoryType.equals("ONHEAP"))
+        {
             msg +=
                     "Resource : " + topologyConf.get(Config.TOPOLOGY_COMPONENT_TYPE_MEMORY) +
                             " Type: " + topologyConf.get(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB) +
                             " set to default " + topologyConf.get(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB).toString() +
                             "\n";
         }
-        if (!topology_resources.get(topologyConf.get(Config.TOPOLOGY_COMPONENT_TYPE_MEMORY))
-                               .containsKey(Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB)) {
-            topology_resources.get(topologyConf.get(Config.TOPOLOGY_COMPONENT_TYPE_MEMORY))
-                    .put(Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB, (Double) topologyConf
-                            .get(Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB));
+        else if (memoryType.equals("OFFHEAP"))
+        {
             msg +=
                     "Resource : " + topologyConf.get(Config.TOPOLOGY_COMPONENT_TYPE_MEMORY) +
-                            " Type: " + topologyConf.get(Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB) +
-                            " set to default " + topologyConf.get(Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB).toString() +
+                            " Type: " + topologyConf.get(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB) +
+                            " set to default " + topologyConf.get(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB).toString() +
                             "\n";
         }
-        if (msg != "") {
-            LOG.debug(
-                    "Unable to extract resource requirement of Executor " +
-                            exec + " for Component " + Com + "\n" + msg);
-        }
-    }
-
-    private void checkInitCPU(Map<String, Map<String, Double>> topology_resources,
-                              ExecutorDetails exec, String Com) {
-
-        String msg = "";
-        if (topology_resources.size() == 0 || !topology_resources.containsKey(topologyConf.get(Config.TOPOLOGY_COMPONENT_TYPE_CPU))) {
-            topology_resources.put((String)topologyConf.get(Config.TOPOLOGY_COMPONENT_TYPE_CPU), new HashMap<String, Double>());
-        }
-        if (!topology_resources.get(topologyConf.get(Config.TOPOLOGY_COMPONENT_TYPE_CPU))
-                               .containsKey(topologyConf.get(Config.TOPOLOGY_COMPONENT_TYPE_CPU_TOTAL))) {
-            topology_resources.get(topologyConf.get(Config.TOPOLOGY_COMPONENT_TYPE_CPU))
-                    .put((String) topologyConf
-                            .get(Config.TOPOLOGY_COMPONENT_TYPE_CPU_TOTAL), (Double) topologyConf
-                            .get(Config.TOPOLOGY_COMPONENT_CPU_REQUIREMENT));
+        else
+        {
             msg +=
                     "Resource : " + topologyConf.get(Config.TOPOLOGY_COMPONENT_TYPE_CPU) +
                             " Type: " + topologyConf.get(Config.TOPOLOGY_COMPONENT_TYPE_CPU_TOTAL) +
                             " set to default " + topologyConf.get(Config.TOPOLOGY_COMPONENT_CPU_REQUIREMENT).toString() +
                             "\n";
         }
-        if (!msg.equals("")) {
-            LOG.debug(
-                    "Unable to extract resource requirement of Executor " +
-                            exec + " for Component " + Com + "\n" + msg);
+        return msg;
+    }
+
+    private void checkInitMem(Map<String, Map<String, Double>> topology_resources,
+                              ExecutorDetails exec, String Com) {
+
+        try {
+            String msg = "";
+            if (topology_resources.size() == 0 || !topology_resources.containsKey(topologyConf.get(Config.TOPOLOGY_COMPONENT_TYPE_MEMORY))) {
+                topology_resources.put((String) topologyConf.get(Config.TOPOLOGY_COMPONENT_TYPE_MEMORY), new HashMap<String, Double>());
+            }
+            if (!topology_resources.get(topologyConf.get(Config.TOPOLOGY_COMPONENT_TYPE_MEMORY)).containsKey(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB)) {
+                topology_resources.get(topologyConf.get(Config.TOPOLOGY_COMPONENT_TYPE_MEMORY))
+                        .put(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB, Utils.getDouble(topologyConf
+                                .get(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB)));
+                msg += getDebugMessage("ONHEAP");
+            }
+            if (!topology_resources.get(topologyConf.get(Config.TOPOLOGY_COMPONENT_TYPE_MEMORY))
+                    .containsKey(Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB)) {
+                topology_resources.get(topologyConf.get(Config.TOPOLOGY_COMPONENT_TYPE_MEMORY))
+                        .put(Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB, Utils.getDouble(topologyConf
+                                .get(Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB)));
+                msg += getDebugMessage("OFFHEAP");
+            }
+            if (msg != "") {
+                LOG.debug(
+                        "Unable to extract resource requirement of Executor " +
+                                exec + " for Component " + Com + "\n" + msg);
+            }
+        } catch(IllegalArgumentException e)
+        {
+            LOG.error(e.toString());
+        }
+    }
+
+    private void checkInitCPU(Map<String, Map<String, Double>> topology_resources,
+                              ExecutorDetails exec, String Com) {
+        try {
+            String msg = "";
+            if (topology_resources.size() == 0 || !topology_resources.containsKey(topologyConf.get(Config.TOPOLOGY_COMPONENT_TYPE_CPU))) {
+                topology_resources.put((String) topologyConf.get(Config.TOPOLOGY_COMPONENT_TYPE_CPU), new HashMap<String, Double>());
+            }
+            if (!topology_resources.get(topologyConf.get(Config.TOPOLOGY_COMPONENT_TYPE_CPU))
+                    .containsKey(topologyConf.get(Config.TOPOLOGY_COMPONENT_TYPE_CPU_TOTAL))) {
+                topology_resources.get(topologyConf.get(Config.TOPOLOGY_COMPONENT_TYPE_CPU))
+                        .put((String) topologyConf
+                                .get(Config.TOPOLOGY_COMPONENT_TYPE_CPU_TOTAL), Utils.getDouble(topologyConf
+                                .get(Config.TOPOLOGY_COMPONENT_CPU_REQUIREMENT)));
+                msg += getDebugMessage("CPU");
+            }
+            if (!msg.equals("")) {
+                LOG.debug(
+                        "Unable to extract resource requirement of Executor " +
+                                exec + " for Component " + Com + "\n" + msg);
+            }
+        } catch (IllegalArgumentException e)
+        {
+            LOG.error(e.toString());
         }
     }
 
@@ -372,9 +402,6 @@ public class TopologyDetails {
             ret = _resourceList
                     .get(exec).get(topologyConf.get(Config.TOPOLOGY_COMPONENT_TYPE_MEMORY))
                     .get(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB);
-            if (ret == null) {
-                LOG.error("{} not set!" + topologyConf.get(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB));
-            }
         }
         return ret;
     }
@@ -392,13 +419,9 @@ public class TopologyDetails {
     public Double getOffHeapMemoryRequirement(ExecutorDetails exec) {
         Double ret = null;
         if (hasExecInTopo(exec)) {
-            LOG.debug("ResourceList" + _resourceList);
             ret = _resourceList
                     .get(exec).get(topologyConf.get(Config.TOPOLOGY_COMPONENT_TYPE_MEMORY))
                     .get(Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB);
-            if (ret == null) {
-                LOG.error("{} not set!" + Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB);
-            }
         }
         return ret;
     }
@@ -491,23 +514,28 @@ public class TopologyDetails {
      *       We reserve the right to change them.
      */
     public void addDefaultResforExec(ExecutorDetails exec) {
-        Map<String, Map<String, Double>> defaultResourceList = new HashMap<String, Map<String, Double>>();
-        defaultResourceList.put((String) topologyConf.get(Config.TOPOLOGY_COMPONENT_TYPE_CPU), new HashMap<String, Double>());
-        defaultResourceList.get(topologyConf.get(Config.TOPOLOGY_COMPONENT_TYPE_CPU))
-                                            .put((String)topologyConf.get(Config.TOPOLOGY_COMPONENT_TYPE_CPU_TOTAL), (Double)topologyConf
-                                            .get(Config.TOPOLOGY_COMPONENT_CPU_REQUIREMENT));
-        defaultResourceList.put((String)topologyConf.get(Config.TOPOLOGY_COMPONENT_TYPE_MEMORY), new HashMap<String, Double>());
-        defaultResourceList.get(topologyConf.get(Config.TOPOLOGY_COMPONENT_TYPE_MEMORY))
-                                            .put(Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB, (Double) topologyConf
-                                            .get(Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB));
-        defaultResourceList.get(topologyConf.get(Config.TOPOLOGY_COMPONENT_TYPE_MEMORY))
-                                            .put(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB, (Double) topologyConf
-                                            .get(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB));
-        LOG.warn("Scheduling Executor: {} with memory requirement as onHeap: {} - offHeap: {} " +
-                        "and CPU requirement: {}",
-                exec, topologyConf.get(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB),
-                topologyConf.get(Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB),
-                topologyConf.get(Config.TOPOLOGY_COMPONENT_CPU_REQUIREMENT));
-        addResourcesForExec(exec, defaultResourceList);
+        try {
+            Map<String, Map<String, Double>> defaultResourceList = new HashMap<String, Map<String, Double>>();
+            defaultResourceList.put((String) topologyConf.get(Config.TOPOLOGY_COMPONENT_TYPE_CPU), new HashMap<String, Double>());
+            defaultResourceList.get(topologyConf.get(Config.TOPOLOGY_COMPONENT_TYPE_CPU))
+                    .put((String) topologyConf.get(Config.TOPOLOGY_COMPONENT_TYPE_CPU_TOTAL), Utils.getDouble(topologyConf
+                            .get(Config.TOPOLOGY_COMPONENT_CPU_REQUIREMENT)));
+            defaultResourceList.put((String) topologyConf.get(Config.TOPOLOGY_COMPONENT_TYPE_MEMORY), new HashMap<String, Double>());
+            defaultResourceList.get(topologyConf.get(Config.TOPOLOGY_COMPONENT_TYPE_MEMORY))
+                    .put(Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB, Utils.getDouble(topologyConf
+                            .get(Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB)));
+            defaultResourceList.get(topologyConf.get(Config.TOPOLOGY_COMPONENT_TYPE_MEMORY))
+                    .put(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB, Utils.getDouble(topologyConf
+                            .get(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB)));
+            LOG.warn("Scheduling Executor: {} with memory requirement as onHeap: {} - offHeap: {} " +
+                            "and CPU requirement: {}",
+                    exec, topologyConf.get(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB),
+                    topologyConf.get(Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB),
+                    topologyConf.get(Config.TOPOLOGY_COMPONENT_CPU_REQUIREMENT));
+            addResourcesForExec(exec, defaultResourceList);
+        } catch(IllegalArgumentException e)
+        {
+            LOG.error(e.toString());
+        }
     }
 }

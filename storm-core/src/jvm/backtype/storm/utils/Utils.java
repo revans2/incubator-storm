@@ -617,6 +617,32 @@ public class Utils {
       }
     }
 
+    public static Double getDouble(Object o) {
+        Double result = getDouble(o, null);
+        if (null == result) {
+            throw new IllegalArgumentException("Don't know how to convert null to double");
+        }
+        return result;
+    }
+
+    public static Double getDouble(Object o, Double defaultValue) {
+        if (null == o) {
+            return defaultValue;
+        }
+
+        if (o instanceof Long) {
+            return ((Long) o ).doubleValue();
+        } else if (o instanceof Double) {
+            return (Double) o;
+        } else if (o instanceof Short) {
+            return ((Short) o).doubleValue();
+        } else if (o instanceof String) {
+            return Double.parseDouble((String) o);
+        } else {
+            throw new IllegalArgumentException("Don't know how to convert " + o + " + to double");
+        }
+    }
+
     public static boolean getBoolean(Object o, boolean defaultValue) {
       if (null == o) {
         return defaultValue;
