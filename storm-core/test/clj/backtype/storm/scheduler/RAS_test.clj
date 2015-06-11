@@ -182,7 +182,7 @@
                                      TOPOLOGY-SUBMITTER-USER "userC"
                                      TOPOLOGY-COMPONENT-RESOURCES-ONHEAP-MEMORY-MB 128.0
                                      TOPOLOGY-COMPONENT-RESOURCES-OFFHEAP-MEMORY-MB 0.0
-                                     TOPOLOGY-COMPONENT-CPU-REQUIREMENT 10.0
+                                     TOPOLOGY-COMPONENT-CPU-PCORE-PERCENT 10.0
                                      TOPOLOGY-COMPONENT-TYPE-CPU "cpu"
                                      TOPOLOGY-COMPONENT-TYPE-CPU-TOTAL "total"
                                      TOPOLOGY-COMPONENT-TYPE-MEMORY "memory"
