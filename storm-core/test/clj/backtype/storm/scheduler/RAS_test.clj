@@ -199,6 +199,8 @@
           node-ids (map #(.getNodeId %) assigned-slots)
           executors (.getExecutors assignment)
           epsilon 0.000001
+          assigned-ed-mem (sort (map #(.getTotalMemReqTask topology1 %) executors))
+          assigned-ed-cpu (sort (map #(.getTotalCpuReqTask topology1 %) executors))
           ed-to-super (into {}
                             (for [[ed slot] (.getExecutorToSlot assignment)]
                               {ed (.getSupervisorById cluster (.getNodeId slot))}))
@@ -214,8 +216,12 @@
     (is (= 2 (.size (into #{} (for [slot assigned-slots] (.getNodeId slot))))))
     (is (= 3 (.size executors)))
     ;; make sure resource (mem/cpu) assigned equals to resource specified`
-    (is (< (Math/abs (- 1200.0 (apply max (map #(.getTotalMemReqTask topology1 %) executors)))) epsilon))
-    (is (< (Math/abs (- 250.0 (apply max (map #(.getTotalCpuReqTask topology1 %) executors)))) epsilon))
+    (is (< (Math/abs (- 600.0 (first assigned-ed-mem))) epsilon))
+    (is (< (Math/abs (- 1200.0 (second assigned-ed-mem))) epsilon))
+    (is (< (Math/abs (- 1200.0 (last assigned-ed-mem))) epsilon))
+    (is (< (Math/abs (- 100.0 (first assigned-ed-cpu))) epsilon))
+    (is (< (Math/abs (- 250.0 (second assigned-ed-cpu))) epsilon))
+    (is (< (Math/abs (- 250.0 (last assigned-ed-cpu))) epsilon))
     (doseq [[avail used] mem-avail-to-used] ;; for each node, assigned mem smaller than total 
       (is (>= avail used)))
     (doseq [[avail used] cpu-avail-to-used] ;; for each node, assigned cpu smaller than total
