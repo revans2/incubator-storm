@@ -105,7 +105,9 @@
                        4
                        (mk-ed-map [["wordSpout" 0 1]
                                    ["wordCountBolt" 1 2]]))
-        cluster (Cluster. (nimbus/standalone-nimbus) supers {})
+        cluster (Cluster. (nimbus/standalone-nimbus) supers {}
+                  {STORM-NETWORK-TOPOGRAPHY-CLASS
+                   "backtype.storm.networkTopography.AlternateRackDNSToSwitchMapping"})
         topologies (Topologies. (to-top-map [topology1]))
         node-map (Node/getAllNodesFrom cluster topologies)
         scheduler (ResourceAwareScheduler.)]

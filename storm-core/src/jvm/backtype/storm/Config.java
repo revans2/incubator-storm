@@ -163,8 +163,8 @@ public class Config extends HashMap<String, Object> {
     /**
      * What Network Topography detection classes should we use.
      */
-    public static final String STORM_NETWORK_TOPOGRAPHY = "storm.network.topographyDetection.class";
-    public static final Object STORM_NETWORK_TOPOGRAPHY_SCHEMA = String.class;
+    public static final String STORM_NETWORK_TOPOGRAPHY_CLASS = "storm.network.topography.class";
+    public static final Object STORM_NETWORK_TOPOGRAPHY_CLASS_SCHEMA = String.class;
 
     /**
      * The hostname the supervisors/workers should report to nimbus. If unset, Storm will

@@ -29,13 +29,8 @@ import backtype.storm.Config;
 import backtype.storm.networkTopography.DNSToSwitchMapping;
 import backtype.storm.utils.Utils;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 public class Cluster {
-
-    private static final Logger LOG = LoggerFactory.getLogger(TopologyDetails.class);
-
+    
     /**
      * key: supervisor id, value: supervisor details
      */
@@ -58,6 +53,7 @@ public class Cluster {
      * a map from hostname to supervisor id.
      */
     private Map<String, List<String>>        hostToId;
+    private Map config = null;
     
     private Set<String> blackListedHosts = new HashSet<String>();
     private INimbus inimbus;
@@ -79,7 +75,12 @@ public class Cluster {
             this.hostToId.get(host).add(nodeId);
         }
     }
-    
+
+    public Cluster(INimbus nimbus, Map<String, SupervisorDetails> supervisors, Map<String, SchedulerAssignmentImpl> assignments, Map storm_conf){
+        this(nimbus, supervisors, assignments);
+        this.config = storm_conf;
+    }
+
     public void setBlacklistedHosts(Set<String> hosts) {
         blackListedHosts = hosts;
     }
@@ -460,12 +461,13 @@ public class Cluster {
             networkTopography = new HashMap<>();
             ArrayList<String> supervisorHostNames = new ArrayList<>();
             supervisorHostNames.addAll(supervisors.keySet());
-            Map config = Utils.readStormConfig();
-            String clazz = (String)config.get(Config.STORM_NETWORK_TOPOGRAPHY);
+            String clazz = null;
+            if (config != null) {
+                clazz = (String) config.get(Config.STORM_NETWORK_TOPOGRAPHY_CLASS);
+            }
             if (clazz == null || clazz.equals("")) {
                 clazz = "backtype.storm.networkTopography.DefaultRackDNSToSwitchMapping";
             }
-            LOG.info("Cluster.java is using " + clazz + "to resolve racks");
             DNSToSwitchMapping topographyMapper = (DNSToSwitchMapping) Utils.newInstance(clazz);
             ArrayList<String> resolvedSuperVisors = (ArrayList<String>)topographyMapper.resolve(supervisorHostNames);
             for ( int i = 0; i < resolvedSuperVisors.size(); i++ ) {
