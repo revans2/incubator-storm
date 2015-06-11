@@ -28,11 +28,13 @@ import java.util.Set;
 import backtype.storm.Config;
 import backtype.storm.networkTopography.DNSToSwitchMapping;
 import backtype.storm.utils.Utils;
-import backtype.storm.networkTopography.YahooDNSToSwitchMapping;
-import storm.trident.testing.StringLength;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class Cluster {
+
+    private static final Logger LOG = LoggerFactory.getLogger(TopologyDetails.class);
 
     /**
      * key: supervisor id, value: supervisor details
@@ -450,16 +452,22 @@ public class Cluster {
         return this.supervisors;
     }
 
+    //Calling this function with parameter Alternate = true will force it to use the
+    //alternate rack scheme of the DefaultRackDNSToSwitchMapping class, which is
+    //only intended for testing purpose.
     public Map<String, List<String>> getNetworkTopography() {
         if (networkTopography == null) {
             networkTopography = new HashMap<>();
             ArrayList<String> supervisorHostNames = new ArrayList<>();
             supervisorHostNames.addAll(supervisors.keySet());
             Map config = Utils.readStormConfig();
-            String clazz = (String)config.get(Config.STORM_NETWORK_TOPOGRAPHY);// "com.yahoo.storm.networkTopography.YahooDNSToSwitchMapping"; 
-            DNSToSwitchMapping cluster = (DNSToSwitchMapping) Utils.newInstance(clazz);
-            //YahooDNSToSwitchMapping cluster = new YahooDNSToSwitchMapping();
-            ArrayList<String> resolvedSuperVisors = (ArrayList<String>)cluster.resolve(supervisorHostNames);
+            String clazz = (String)config.get(Config.STORM_NETWORK_TOPOGRAPHY);
+            if (clazz == null || clazz.equals("")) {
+                clazz = "backtype.storm.networkTopography.DefaultRackDNSToSwitchMapping";
+            }
+            LOG.info("Cluster.java is using " + clazz + "to resolve racks");
+            DNSToSwitchMapping topographyMapper = (DNSToSwitchMapping) Utils.newInstance(clazz);
+            ArrayList<String> resolvedSuperVisors = (ArrayList<String>)topographyMapper.resolve(supervisorHostNames);
             for ( int i = 0; i < resolvedSuperVisors.size(); i++ ) {
                 String rack = resolvedSuperVisors.get(i);
                 String hostName = supervisorHostNames.get(i);
