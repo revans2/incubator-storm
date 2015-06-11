@@ -223,7 +223,6 @@ public class ResourceAwareStrategy implements IStrategy {
                         * this.MEM_WEIGHT, 2);
                 Double c = Math.pow(this.distToNode(this.refNode, n)
                         * this.NETWORK_WEIGHT, 2);
-                /* TODO: network distance is either 1 or 2, this makes network weight marginal compared to CPU/mem */
                 Double distance = Math.sqrt(a + b + c);
                 if (shortestDistance > distance) {
                     shortestDistance = distance;
