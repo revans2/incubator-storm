@@ -634,7 +634,7 @@ public class Utils {
         } else if (o instanceof Integer) {
             return ((Integer) o).doubleValue();
         } else if (o instanceof Double) {
-            return ((Double) o);
+            return (Double) o;
         } else if (o instanceof Short) {
             return ((Short) o).doubleValue();
         } else if (o instanceof String) {
