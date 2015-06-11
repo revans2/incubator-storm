@@ -197,7 +197,6 @@ public class TopologyDetails {
 
     private void debugMessage(String memoryType, ExecutorDetails exec, String Com)
     {
-        String msg = "";
         if (memoryType.equals("ONHEAP"))
         {
             LOG.debug(
