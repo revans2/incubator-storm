@@ -186,7 +186,7 @@ public class ResourceAwareStrategy implements IStrategy {
             res += this._nodes.get(this.NodeHostnameToId(node))
                     .getAvailableMemoryResources()
                     + this._nodes.get(this.NodeHostnameToId(node))
-                    .getAvailableMemoryResources();
+                    .getAvailableCpuResources();
         }
         return res;
     }
@@ -201,6 +201,7 @@ public class ResourceAwareStrategy implements IStrategy {
             LOG.debug("refNode: {}", this.refNode.hostname);
         } else {
             n = this.getBestNode(exec);
+            this.refNode = n; // update the refnode every time
         }
 
         return n;

@@ -107,7 +107,7 @@ public class TopologyDetails {
         // Extract bolt memory info
         if (this.topology.get_bolts() != null) {
             for (Map.Entry<String, Bolt> bolt : this.topology.get_bolts().entrySet()) {
-                //the json_conf is populated by TopologyBuilder (e.g. bolt.set_memory_load)
+                //the json_conf is populated by TopologyBuilder (e.g. boltDeclarer.setMemoryLoad)
                 Map<String, Map<String, Double>> topology_resources = this.parseResources(bolt
                         .getValue().get_common().get_json_conf());
                 LOG.debug("Bolt" + bolt);
