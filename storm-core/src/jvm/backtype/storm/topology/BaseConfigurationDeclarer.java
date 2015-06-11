@@ -59,17 +59,12 @@ public abstract class BaseConfigurationDeclarer<T extends ComponentConfiguration
     }
 
     @Override
-    public void setMemoryLoad(Double onHeap) {
-        try {
-            setMemoryLoad(onHeap, Utils.getDouble(conf.get(Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB)));
-        } catch (IllegalArgumentException e)
-        {
-            LOG.error(e.toString());
-        }
+    public T setMemoryLoad(Double onHeap) {
+        return setMemoryLoad(onHeap, Utils.getDouble(conf.get(Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB)));
     } 
 
     @Override
-    public void setMemoryLoad(Double onHeap, Double offHeap) {
+    public T setMemoryLoad(Double onHeap, Double offHeap) {
         if (onHeap != null) {
             onHeap = onHeap.doubleValue();
         }
@@ -78,7 +73,7 @@ public abstract class BaseConfigurationDeclarer<T extends ComponentConfiguration
         }
         Map <String, Number> memoryMap = new HashMap<String, Number>();
         addConfiguration(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB, onHeap);
-        addConfiguration(Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB, offHeap);
+        return addConfiguration(Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB, offHeap);
     }
 
     @Override
