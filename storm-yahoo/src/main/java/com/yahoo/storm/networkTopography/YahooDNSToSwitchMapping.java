@@ -119,6 +119,6 @@ public final class YahooDNSToSwitchMapping extends CachedDNSToSwitchMapping {
 
     @Override
     public String toString() {
-        return "YahooDNSToSwitchMapping (" + mappingCache.size() + " mappings cached)";
+        return "YahooDNSToSwitchMapping (" + mappingCache.size() + " mappings cached)" + dumpTopology();
     }
 }

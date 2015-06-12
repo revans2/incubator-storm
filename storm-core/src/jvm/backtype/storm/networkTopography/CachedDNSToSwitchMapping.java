@@ -169,16 +169,6 @@ public class CachedDNSToSwitchMapping extends AbstractDNSToSwitchMapping {
   public String toString() {
     return "cached switch mapping relaying to " + rawMapping;
   }
-
-  /**
-   * Delegate the switch topology query to the raw mapping, via
-   * {@link AbstractDNSToSwitchMapping#isMappingSingleSwitch(DNSToSwitchMapping)}
-   * @return true iff the raw mapper is considered single-switch.
-   */
-  @Override
-  public boolean isSingleSwitch() {
-    return isMappingSingleSwitch(rawMapping);
-  }
   
   @Override
   public void reloadCachedMappings() {

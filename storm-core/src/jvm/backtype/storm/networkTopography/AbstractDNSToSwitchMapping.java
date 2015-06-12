@@ -98,24 +98,4 @@ public abstract class AbstractDNSToSwitchMapping
     return builder.toString();
   }
 
-//  protected boolean isSingleSwitchByScriptPolicy() {
-//    return conf != null
-//        && conf.get(CommonConfigurationKeys.NET_TOPOLOGY_SCRIPT_FILE_NAME_KEY) == null;
-//  }
-
-  /**
-   * Query for a {@link DNSToSwitchMapping} instance being on a single
-   * switch.
-   * <p/>
-   * This predicate simply assumes that all mappings not derived from
-   * this class are multi-switch.
-   * @param mapping the mapping to query
-   * @return true if the base class says it is single switch, or the mapping
-   * is not derived from this class.
-   */
-  public static boolean isMappingSingleSwitch(DNSToSwitchMapping mapping) {
-    return mapping != null && mapping instanceof org.apache.hadoop.net.AbstractDNSToSwitchMapping
-        && ((org.apache.hadoop.net.AbstractDNSToSwitchMapping) mapping).isSingleSwitch();
-  }
-
 }

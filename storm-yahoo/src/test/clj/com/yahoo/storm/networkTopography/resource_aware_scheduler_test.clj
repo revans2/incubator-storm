@@ -13,7 +13,7 @@
 ;; WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 ;; See the License for the specific language governing permissions and
 ;; limitations under the License.
-(ns clj.com.yahoo.storm.networkTopography.RAS-test
+(ns clj.com.yahoo.storm.networkTopography.resource_aware_scheduler_test
   (:use [clojure test])
   (:use [backtype.storm bootstrap config testing thrift])
   (:require [backtype.storm.daemon [nimbus :as nimbus]])
@@ -92,7 +92,7 @@
       (is (= 4 (.totalSlots node)))
     )))
 
-(deftest test-sanity-RAS-scheduler
+(deftest test-sanity-resource-aware-scheduler
   (let [builder (TopologyBuilder.)
         _ (.setSpout builder "wordSpout" (TestWordSpout.) 1)
         _ (.shuffleGrouping (.setBolt builder "wordCountBolt" (TestWordCounter.) 1) "wordSpout")
@@ -107,7 +107,9 @@
                                    ["wordCountBolt" 1 2]]))
         cluster (Cluster. (nimbus/standalone-nimbus) supers {}
                   {STORM-NETWORK-TOPOGRAPHY-CLASS
+                   ; In tests, we can use different network discovery classes here
                    "backtype.storm.networkTopography.AlternateRackDNSToSwitchMapping"})
+                   ;"com.yahoo.storm.networkTopography.YahooDNSToSwitchMapping"})
         topologies (Topologies. (to-top-map [topology1]))
         node-map (Node/getAllNodesFrom cluster topologies)
         scheduler (ResourceAwareScheduler.)]
