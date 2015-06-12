@@ -166,8 +166,8 @@ public class Config extends HashMap<String, Object> {
      * rack names that correspond to the supervisors. This information is stored in Cluster.java, and
      * is used in the resource aware scheduler.
      */
-    public static final String STORM_NETWORK_TOPOGRAPHY_CLASS = "storm.network.topography.class";
-    public static final Object STORM_NETWORK_TOPOGRAPHY_CLASS_SCHEMA = String.class;
+    public static final String STORM_NETWORK_TOPOGRAPHY_PLUGIN = "storm.network.topography.plugin";
+    public static final Object STORM_NETWORK_TOPOGRAPHY_PLUGIN_SCHEMA = String.class;
 
     /**
      * The hostname the supervisors/workers should report to nimbus. If unset, Storm will

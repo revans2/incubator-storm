@@ -1,6 +1,8 @@
 package backtype.storm.networkTopography;
 
-import java.util.*;
+import java.util.List;
+import java.util.ArrayList;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -32,6 +34,6 @@ public final class DefaultRackDNSToSwitchMapping extends CachedDNSToSwitchMappin
 
     @Override
     public String toString() {
-        return "defaultRackDNSToSwitchMapping (" + mappingCache.size() + " mappings cached)";
+        return "DefaultRackDNSToSwitchMapping (" + mappingCache.size() + " mappings cached)" + dumpTopology();
     }
 }
