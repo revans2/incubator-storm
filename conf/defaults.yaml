@@ -75,7 +75,6 @@ nimbus.blobstore.expiration.secs: 600
 ### ui.* configs are for the master
 ui.port: 8080
 ui.childopts: "-Xmx768m"
-ui.actions.enabled: true
 ui.filter: null
 ui.filter.params: null
 ui.users: null
@@ -131,8 +130,7 @@ supervisor.heartbeat.frequency.secs: 5
 supervisor.enable: true
 supervisor.supervisors: []
 supervisor.supervisors.commands: []
-#Same as 4 workers at 768 MB each, could be anything
-supervisor.memory.capacity.mb: 3144.0
+supervisor.memory.capacity.mb: 3072.0
 #By convention 1 cpu core should be about 100, but this can be adjusted if needed
 # using 100 makes it simple to set the desired value to the capacity measurement
 # for single threaded bolts
@@ -225,6 +223,15 @@ topology.bolts.outgoing.overflow.buffer.enable: false
 topology.disable.loadaware.messaging: false
 topology.logging.sensitivity: "S3"
 
+# Configs for Resource Aware Scheduler
+topology.component.type.memory: "memory"
+topology.component.resources.onheap.memory.mb: 128.0
+topology.component.resources.offheap.memory.mb: 0.0
+topology.component.type.cpu: "cpu"
+topology.component.type.cpu.total: "total"
+# 10.0 implies 10 percent of a cpu core
+topology.component.cpu.requirement: 10.0
+
 client.blobstore.class: "backtype.storm.blobstore.NimbusBlobStore"
 blobstore.superuser: "nobody"
 
@@ -236,3 +243,5 @@ pacemaker.base.threads: 10
 pacemaker.max.threads: 50
 pacemaker.thread.timeout: 10
 pacemaker.childopts: "-Xmx1024m"
+pacemaker.auth.method: "NONE"
+pacemaker.kerberos.users: []

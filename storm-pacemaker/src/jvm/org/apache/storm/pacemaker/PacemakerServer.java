@@ -17,31 +17,31 @@
  */
 package org.apache.storm.pacemaker;
 
-import java.net.InetSocketAddress;
+import backtype.storm.Config;
+import backtype.storm.generated.HBMessage;
+import backtype.storm.messaging.netty.ISaslServer;
+import backtype.storm.messaging.netty.NettyRenameThreadFactory;
+import backtype.storm.security.auth.AuthUtils;
 import java.lang.InterruptedException;
-
+import java.net.InetSocketAddress;
+import java.util.Map;
+import java.util.concurrent.ConcurrentSkipListSet;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadFactory;
+import javax.security.auth.login.Configuration;
+import org.apache.storm.pacemaker.codec.ThriftNettyServerCodec;
 import org.jboss.netty.bootstrap.ServerBootstrap;
 import org.jboss.netty.channel.Channel;
 import org.jboss.netty.channel.ChannelPipelineFactory;
 import org.jboss.netty.channel.group.ChannelGroup;
 import org.jboss.netty.channel.group.DefaultChannelGroup;
 import org.jboss.netty.channel.socket.nio.NioServerSocketChannelFactory;
-
-import backtype.storm.messaging.netty.ISaslServer;
-import backtype.storm.generated.HBMessage;
-import backtype.storm.messaging.netty.NettyRenameThreadFactory;
-import org.apache.storm.pacemaker.codec.ThriftNettyServerCodec;
-
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.ConcurrentSkipListSet;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 class PacemakerServer implements ISaslServer {
+
+    private static final long FIVE_MB_IN_BYTES = 5 * 1024 * 1024;
 
     private static final Logger LOG = LoggerFactory.getLogger(PacemakerServer.class);
 
@@ -52,17 +52,34 @@ class PacemakerServer implements ISaslServer {
     private String topo_name;
     private volatile ChannelGroup allChannels = new DefaultChannelGroup("storm-server");
     private ConcurrentSkipListSet<Channel> authenticated_channels = new ConcurrentSkipListSet<Channel>();
-    
-    
-    public PacemakerServer(int port, IServerMessageHandler handler, String topo_name, String secret, int maxWorkers){
-        this.port = port;
+
+    public PacemakerServer(IServerMessageHandler handler, Map config){
+        int maxWorkers = (int)config.get(Config.PACEMAKER_MAX_THREADS);
+        this.port = (int)config.get(Config.PACEMAKER_PORT);
         this.handler = handler;
-        this.topo_name = topo_name;
-        this.secret = secret;
-        
+        this.topo_name = "pacemaker_server";
+
+        String auth = (String)config.get(Config.PACEMAKER_AUTH_METHOD);
+        ThriftNettyServerCodec.AuthMethod authMethod;
+        if(auth.equals("DIGEST")) {
+            Configuration login_conf = AuthUtils.GetConfiguration(config);
+            authMethod = ThriftNettyServerCodec.AuthMethod.DIGEST;
+            this.secret = AuthUtils.makeDigestPayload(login_conf, AuthUtils.LOGIN_CONTEXT_PACEMAKER_DIGEST);
+            if(this.secret == null) {
+                LOG.error("Can't start pacemaker server without digest secret.");
+                throw new RuntimeException("Can't start pacemaker server without digest secret.");
+            }
+        }
+        else if(auth.equals("KERBEROS")) {
+            authMethod = ThriftNettyServerCodec.AuthMethod.KERBEROS;
+        }
+        else {
+            LOG.error("Can't start pacemaker server without proper PACEMAKER_AUTH_METHOD.");
+            throw new RuntimeException("Can't start pacemaker server without proper PACEMAKER_AUTH_METHOD.");
+        }
+
         ThreadFactory bossFactory = new NettyRenameThreadFactory("server-boss");
         ThreadFactory workerFactory = new NettyRenameThreadFactory("server-worker");
-        
         NioServerSocketChannelFactory factory;
         if(maxWorkers > 0) {
             factory =
@@ -75,13 +92,13 @@ class PacemakerServer implements ISaslServer {
                 new NioServerSocketChannelFactory(Executors.newCachedThreadPool(bossFactory),
                                                   Executors.newCachedThreadPool(workerFactory));
         }
-        
+
         bootstrap = new ServerBootstrap(factory);
         bootstrap.setOption("tcpNoDelay", true);
-        bootstrap.setOption("sendBufferSize", 5242880);
+        bootstrap.setOption("sendBufferSize", FIVE_MB_IN_BYTES);
         bootstrap.setOption("keepAlive", true);
 
-        ChannelPipelineFactory pipelineFactory = new ThriftNettyServerCodec(this).pipelineFactory();
+        ChannelPipelineFactory pipelineFactory = new ThriftNettyServerCodec(this, config, authMethod).pipelineFactory();
         bootstrap.setPipelineFactory(pipelineFactory);
         Channel channel = bootstrap.bind(new InetSocketAddress(port));
         allChannels.add(channel);
@@ -92,13 +109,28 @@ class PacemakerServer implements ISaslServer {
     public void channelConnected(Channel c) {
         allChannels.add(c);
     }
+
+    public void cleanPipeline(Channel channel) {
+        boolean authenticated = authenticated_channels.contains(channel);
+        if(!authenticated) {       
+            if(channel.getPipeline().get(ThriftNettyServerCodec.SASL_HANDLER) != null) {
+                channel.getPipeline().remove(ThriftNettyServerCodec.SASL_HANDLER);
+            }
+            else if(channel.getPipeline().get(ThriftNettyServerCodec.SASL_HANDLER) != null) {
+                channel.getPipeline().remove(ThriftNettyServerCodec.SASL_HANDLER);
+            }
+        }
+    }
     
     public void received(Object mesg, String remote, Channel channel) throws InterruptedException {
+        cleanPipeline(channel);
+        
+        boolean authenticated = authenticated_channels.contains(channel);
         HBMessage m = (HBMessage)mesg;
         LOG.debug("received message. Passing to handler. {} : {} : {}",
                   handler.toString(), m.toString(), channel.toString());
-        HBMessage response = handler.handleMessage(m, authenticated_channels.contains(channel));
-	LOG.debug("Got Response from handler: {}", response.toString());
+        HBMessage response = handler.handleMessage(m, authenticated);
+        LOG.debug("Got Response from handler: {}", response.toString());
         channel.write(response).await();
     }
 

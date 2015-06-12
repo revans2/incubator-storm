@@ -40,6 +40,9 @@ public class AuthUtils {
     private static final Logger LOG = LoggerFactory.getLogger(AuthUtils.class);
     public static final String LOGIN_CONTEXT_SERVER = "StormServer";
     public static final String LOGIN_CONTEXT_CLIENT = "StormClient";
+    public static final String LOGIN_CONTEXT_PACEMAKER_DIGEST = "PacemakerDigest";
+    public static final String LOGIN_CONTEXT_PACEMAKER_SERVER = "PacemakerServer";
+    public static final String LOGIN_CONTEXT_PACEMAKER_CLIENT = "PacemakerClient";
     public static final String SERVICE = "storm_thrift_server";
 
     /**
@@ -288,5 +291,27 @@ public class AuthUtils {
                 return (String)val;
         }
         return null;
+    }
+
+    private static final String USERNAME = "username";
+    private static final String PASSWORD = "password";
+
+    public static String makeDigestPayload(Configuration login_config, String config_section) {
+        String username = null;
+        String password = null;
+        try {
+            Map<String, ?> results = AuthUtils.PullConfig(login_config, config_section);
+            username = (String)results.get(USERNAME);
+            password = (String)results.get(PASSWORD);
+        }
+        catch (Exception e) {
+            LOG.error("Failed to pull username/password out of jaas conf", e);
+        }
+
+        if(username == null || password == null) {
+            return null;
+        }
+
+        return username + ":" + password;
     }
 }

@@ -45,6 +45,8 @@
         (for [at (range start end)]
           {(ed at) name})))))
 
+
+
 ;; testing resource/Node class
 (deftest test-node
   (let [supers (gen-supervisors 5)
@@ -100,7 +102,14 @@
         storm-topology (.createTopology builder)
         topology1 (TopologyDetails. "topology1"
                       {TOPOLOGY-NAME "topology-name-1"
-                       TOPOLOGY-SUBMITTER-USER "userC"}
+                       TOPOLOGY-SUBMITTER-USER "userC"
+                       TOPOLOGY-COMPONENT-RESOURCES-ONHEAP-MEMORY-MB 128.0
+                       TOPOLOGY-COMPONENT-RESOURCES-OFFHEAP-MEMORY-MB 0.0
+                       TOPOLOGY-COMPONENT-CPU-REQUIREMENT 10.0
+                       TOPOLOGY-COMPONENT-TYPE-CPU "cpu"
+                       TOPOLOGY-COMPONENT-TYPE-CPU-TOTAL "total"
+                       TOPOLOGY-COMPONENT-TYPE-MEMORY "memory"
+                       }
                        storm-topology
                        4
                        (mk-ed-map [["wordSpout" 0 1]
@@ -122,3 +131,103 @@
       (is (= 1 (.size (into #{} (for [slot assigned-slots] (.getNodeId slot))))))
       (is (= 2 (.size executors))))
     (is (= "topology1 Fully Scheduled" (.get (.getStatusMap cluster) "topology1")))))
+
+(deftest test-topology-set-memory-and-cpu-load
+  (let [builder (TopologyBuilder.)
+        _ (.setSpout builder "wordSpout" (TestWordSpout.) 1)
+        bolt (.setBolt builder "wordCountBolt" (TestWordCounter.) 1)
+        _ (.setMemoryLoad bolt 110.0)
+        _ (.setCPULoad bolt 20.0)
+        _ (.shuffleGrouping bolt "wordSpout")
+        supers (gen-supervisors 3)
+        storm-topology (.createTopology builder)
+        topology2 (TopologyDetails. "topology2"
+                    {TOPOLOGY-NAME "topology-name-2"
+                     TOPOLOGY-SUBMITTER-USER "userC"
+                     TOPOLOGY-COMPONENT-RESOURCES-ONHEAP-MEMORY-MB 128.0
+                     TOPOLOGY-COMPONENT-RESOURCES-OFFHEAP-MEMORY-MB 0.0
+                     TOPOLOGY-COMPONENT-CPU-REQUIREMENT 10.0
+                     TOPOLOGY-COMPONENT-TYPE-CPU "cpu"
+                     TOPOLOGY-COMPONENT-TYPE-CPU-TOTAL "total"
+                     TOPOLOGY-COMPONENT-TYPE-MEMORY "memory"
+                     }
+                    storm-topology
+                    4
+                    (mk-ed-map [["wordSpout" 0 1]
+                                ["wordCountBolt" 1 2]]))
+        cluster (Cluster. (nimbus/standalone-nimbus) supers {})
+        topologies (Topologies. (to-top-map [topology2]))
+        node-map (Node/getAllNodesFrom cluster topologies)
+        scheduler (ResourceAwareScheduler.)]
+    (.schedule scheduler topologies cluster)
+    (let [assignment (.getAssignmentById cluster "topology2")
+          assigned-slots (.getSlots assignment)
+          executors (.getExecutors assignment)]
+      ;; 4 slots on 1 machine, all executors assigned
+      (is (= 1 (.size assigned-slots)))
+      (is (= 1 (.size (into #{} (for [slot assigned-slots] (.getNodeId slot))))))
+      (is (= 2 (.size executors))))
+    (is (= "topology2 Fully Scheduled" (.get (.getStatusMap cluster) "topology2")))))
+
+(deftest test-resource-limitation
+  (let [builder (TopologyBuilder.)
+        _ (doto (.setSpout builder "wordSpout" (TestWordSpout.) 2)
+            (.setMemoryLoad 1000.0 200.0)
+            (.setCPULoad 250.0))
+        _ (doto (.setBolt builder "wordCountBolt" (TestWordCounter.) 1)
+            (.shuffleGrouping  "wordSpout")
+            (.setMemoryLoad 500.0 100.0)
+            (.setCPULoad 100.0))
+        supers (gen-supervisors 3)
+        storm-topology (.createTopology builder)
+        topology1 (TopologyDetails. "topology1"
+                                    {TOPOLOGY-NAME "topology-name-1"
+                                     TOPOLOGY-SUBMITTER-USER "userC"
+                                     TOPOLOGY-COMPONENT-RESOURCES-ONHEAP-MEMORY-MB 128.0
+                                     TOPOLOGY-COMPONENT-RESOURCES-OFFHEAP-MEMORY-MB 0.0
+                                     TOPOLOGY-COMPONENT-CPU-REQUIREMENT 10.0
+                                     TOPOLOGY-COMPONENT-TYPE-CPU "cpu"
+                                     TOPOLOGY-COMPONENT-TYPE-CPU-TOTAL "total"
+                                     TOPOLOGY-COMPONENT-TYPE-MEMORY "memory"
+                                     }
+                                    storm-topology
+                                    4
+                                    (mk-ed-map [["wordSpout" 0 2]
+                                                ["wordCountBolt" 2 3]]))
+        cluster (Cluster. (nimbus/standalone-nimbus) supers {})
+        topologies (Topologies. (to-top-map [topology1]))
+        scheduler (ResourceAwareScheduler.)]
+    (.schedule scheduler topologies cluster)
+    (let [assignment (.getAssignmentById cluster "topology1")
+          assigned-slots (.getSlots assignment)
+          node-ids (map #(.getNodeId %) assigned-slots)
+          executors (.getExecutors assignment)
+          epsilon 0.000001
+          assigned-ed-mem (sort (map #(.getTotalMemReqTask topology1 %) executors))
+          assigned-ed-cpu (sort (map #(.getTotalCpuReqTask topology1 %) executors))
+          ed-to-super (into {}
+                            (for [[ed slot] (.getExecutorToSlot assignment)]
+                              {ed (.getSupervisorById cluster (.getNodeId slot))}))
+          super-to-eds (reverse-map ed-to-super)
+          mem-avail-to-used (into []
+                                 (for [[super eds] super-to-eds]
+                                   [(.getTotalMemory super) (sum (map #(.getTotalMemReqTask topology1 %) eds))]))
+          cpu-avail-to-used (into []
+                                 (for [[super eds] super-to-eds]
+                                   [(.getTotalCPU super) (sum (map #(.getTotalCpuReqTask topology1 %) eds))]))]
+    ;; 4 slots on 1 machine, all executors assigned
+    (is (= 2 (.size assigned-slots)))
+    (is (= 2 (.size (into #{} (for [slot assigned-slots] (.getNodeId slot))))))
+    (is (= 3 (.size executors)))
+    ;; make sure resource (mem/cpu) assigned equals to resource specified`
+    (is (< (Math/abs (- 600.0 (first assigned-ed-mem))) epsilon))
+    (is (< (Math/abs (- 1200.0 (second assigned-ed-mem))) epsilon))
+    (is (< (Math/abs (- 1200.0 (last assigned-ed-mem))) epsilon))
+    (is (< (Math/abs (- 100.0 (first assigned-ed-cpu))) epsilon))
+    (is (< (Math/abs (- 250.0 (second assigned-ed-cpu))) epsilon))
+    (is (< (Math/abs (- 250.0 (last assigned-ed-cpu))) epsilon))
+    (doseq [[avail used] mem-avail-to-used] ;; for each node, assigned mem smaller than total 
+      (is (>= avail used)))
+    (doseq [[avail used] cpu-avail-to-used] ;; for each node, assigned cpu smaller than total
+      (is (>= avail used))))
+  (is (= "topology1 Fully Scheduled" (.get (.getStatusMap cluster) "topology1")))))

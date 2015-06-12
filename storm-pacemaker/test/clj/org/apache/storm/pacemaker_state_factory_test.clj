@@ -2,8 +2,7 @@
   (:require [clojure.test :refer :all]
             [conjure.core :refer :all]
             [org.apache.storm.pacemaker [pacemaker-state-factory :as psf]])
-  (:import [org.apache.storm.pacemaker PacemakerServerFactory PacemakerClient]
-           [backtype.storm.generated
+  (:import [backtype.storm.generated
             HBExecutionException HBNodes HBRecords
             HBServerMessageType HBMessage HBMessageData HBPulse]
            [org.mockito Mockito Matchers]))
@@ -26,7 +25,6 @@
 
 (defmacro with-mock-pacemaker-client-and-state [client state response & body]
   `(let [~client (make-send-capture ~response)]
-;     (. (Mockito/when (.send ~client (Matchers/anyObject))) thenReturn ~response)
      (stubbing [psf/makeZKState nil
                 psf/makeClient ~client]
                (let [~state (psf/-mkState nil nil nil nil)]

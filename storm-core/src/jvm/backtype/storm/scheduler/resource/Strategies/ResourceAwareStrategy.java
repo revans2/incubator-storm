@@ -37,6 +37,8 @@ import backtype.storm.scheduler.Topologies;
 import backtype.storm.scheduler.TopologyDetails;
 import backtype.storm.scheduler.resource.RAS_Component;
 import backtype.storm.scheduler.resource.Node;
+import backtype.storm.Config;
+import backtype.storm.utils.Utils;
 
 public class ResourceAwareStrategy implements IStrategy {
     protected Logger LOG = null;
@@ -50,9 +52,9 @@ public class ResourceAwareStrategy implements IStrategy {
     private Map<String, Node> _nodes;
     private Map<String, List<String>> _clusterInfo;
 
-    private final Double CPU_WEIGHT = 1.0;
-    private final Double MEM_WEIGHT = 1.0;
-    private final Double NETWORK_WEIGHT = 1.0;
+    private final double CPU_WEIGHT = 1.0;
+    private final double MEM_WEIGHT = 1.0;
+    private final double NETWORK_WEIGHT = 1.0;
 
     public ResourceAwareStrategy(
             TopologyDetails topo, Cluster cluster, Topologies topologies) {
@@ -182,7 +184,7 @@ public class ResourceAwareStrategy implements IStrategy {
             res += this._nodes.get(this.NodeHostnameToId(node))
                     .getAvailableMemoryResources()
                     + this._nodes.get(this.NodeHostnameToId(node))
-                    .getAvailableMemoryResources();
+                    .getAvailableCpuResources();
         }
         return res;
     }
@@ -197,6 +199,7 @@ public class ResourceAwareStrategy implements IStrategy {
             LOG.debug("refNode: {}", this.refNode.hostname);
         } else {
             n = this.getBestNode(exec);
+            this.refNode = n; // update the refnode every time
         }
 
         return n;

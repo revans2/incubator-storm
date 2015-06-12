@@ -284,7 +284,7 @@ $(document).ready(function() {
         var topologyVisualization = $("#topology-visualization")
         var searchForm = $("#search-form")
         var formattedConfig = formatConfigData(response["configuration"]);
-        var buttonJsonData = topologyActionJson(response["id"],response["name"],response["status"],response["msgTimeout"], response["uiActionsEnabled"]);
+        var buttonJsonData = topologyActionJson(response["id"],response["name"],response["status"],response["msgTimeout"]);
         $.ajax ({url: "/templates/topology-page-template.html", success: function(template) {
           toggleChangeLogLevel = function (data) {
               renderLogLevelForm (template, data);

@@ -605,15 +605,6 @@ public class Config extends HashMap<String, Object> {
     public static final Object UI_GROUPS_SCHEMA = ConfigValidation.StringsValidator;
 
     /**
-     * Whether or not actions should be enabled.  When disabled, requests to
-     * modify the state of topologies via HTTP will not be honored.
-     *
-     * Defaults to true.
-     */
-    public static final String UI_ACTIONS_ENABLED = "ui.actions.enabled";
-    public static final Object UI_ACTIONS_ENABLED_SCHEMA = Boolean.class;
-
-    /**
      * The host that the HB server is running on.
      */
     public static final String PACEMAKER_HOST = "pacemaker.host";
@@ -641,6 +632,23 @@ public class Config extends HashMap<String, Object> {
     public static final String PACEMAKER_CHILDOPTS = "pacemaker.childopts";
     public static final Object PACEMAKER_CHILDOPTS_SCHEMA = String.class;
 
+    /**
+     * This should be one of "DIGEST", "KERBEROS", or "NONE"
+     * Determines the mode of authentication the hearbeat server and client use.
+     * The Pacemaker Server must be either "DIGEST" or "KERBEROS". The client must
+     * either match the server, or be NONE. In the case of NONE, no authentication
+     * is performed, and the client can only write to the server (no reads)
+     */
+    public static final String PACEMAKER_AUTH_METHOD = "pacemaker.auth.method";
+    public static final Object PACEMAKER_AUTH_METHOD_SCHEMA = String.class;
+
+    /**
+     * These are the kerberos users who are authorized to read hearbeats from
+     * Pacemaker. 
+     */
+    public static final String PACEMAKER_KERBEROS_USERS = "pacemaker.kerberos.users";
+    public static final Object PACEMAKER_KERBEROS_USERS_SCHEMA = ConfigValidation.StringsValidator;
+    
     /**
      * List of DRPC servers so that the DRPCSpout knows who to talk to.
      */
@@ -1099,25 +1107,43 @@ public class Config extends HashMap<String, Object> {
      * The maximum amount of memory an instance of a spout/bolt will take on heap. This enables the scheduler
      * to allocate slots on machines with enough available memory. 
      */
-    public static final String TOPOLOGY_RESOURCES_ONHEAP_MEMORY_MB = "topology.resources.memory.heap.mb";
-    public static final Object TOPOLOGY_RESOURCES_ONHEAP_MEMORY_MB_SCHEMA = ConfigValidation.PositiveIntegerValidator;
+    public static final String TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB = "topology.component.resources.onheap.memory.mb";
+    public static final Object TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB_SCHEMA = ConfigValidation.PositiveDoubleValidator;
 
     /**
      * The maximum amount of memory an instance of a spout/bolt will take off heap. This enables the scheduler
      * to allocate slots on machines with enough available memory. 
      */
-    public static final String TOPOLOGY_RESOURCES_OFFHEAP_MEMORY_MB = "topology.resources.memory.offheap.mb";
-    public static final Object TOPOLOGY_RESOURCES_OFFHEAP_MEMORY_MB_SCHEMA = ConfigValidation.PositiveIntegerValidator;
-
-    public static final String TOPOLOGY_RESOURCES_MEMORY_MB = "topology.resources.memory.mb";
-    public static final Object TOPOLOGY_RESOURCES_MEMORY_MB_SCHEMA = Map.class;
+    public static final String TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB = "topology.component.resources.offheap.memory.mb";
+    public static final Object TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB_SCHEMA = ConfigValidation.PositiveDoubleValidator;
 
     /**
      * The maximum amount of cpu an instance of a spout/bolt will take. This enables the scheduler
      * to allocate slots on machines with enough available cpu. 
      */
-    public static final String TOPOLOGY_RESOURCES_CPU = "topology.resources.cpu";
-    public static final Object TOPOLOGY_RESOURCES_CPU_SCHEMA = ConfigValidation.PositiveIntegerValidator;
+    public static final String TOPOLOGY_COMPONENT_RESOURCES_CPU = "topology.component.resources.cpu";
+    public static final Object TOPOLOGY_COMPONENT_RESOURCES_CPU_SCHEMA = ConfigValidation.PositiveIntegerValidator;
+
+    /**
+     * The config indicates the type of the memory to be "memory"
+     */
+    public static final String TOPOLOGY_COMPONENT_TYPE_MEMORY = "topology.component.type.memory";
+    public static final Object TOPOLOGY_COMPONENT_TYPE_MEMORY_SCHEMA = String.class;
+
+    /**
+     * The config indicates the type of the cpu to be "cpu"
+     */
+    public static final String TOPOLOGY_COMPONENT_TYPE_CPU = "topology.component.type.cpu";
+    public static final Object TOPOLOGY_COMPONENT_TYPE_CPU_SCHEMA = String.class;
+
+    public static final String TOPOLOGY_COMPONENT_TYPE_CPU_TOTAL = "topology.component.type.cpu.total";
+    public static final Object TOPOLOGY_COMPONENT_TYPE_CPU_TOTAL_SCHEMA = String.class;
+
+    /*
+     * Sets the default cpu requirment for spouts and bolts
+     */
+    public static final String TOPOLOGY_COMPONENT_CPU_REQUIREMENT = "topology.component.cpu.requirement";
+    public static final Object TOPOLOGY_COMPONENT_CPU_REQUIREMENT_SCHEMA = ConfigValidation.PositiveDoubleValidator;
 
     /**
      * How many executors to spawn for ackers.

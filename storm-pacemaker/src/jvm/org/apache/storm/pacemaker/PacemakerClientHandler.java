@@ -33,6 +33,8 @@ public class PacemakerClientHandler extends SimpleChannelUpstreamHandler {
 
     private PacemakerClient client;
 
+
+
     public PacemakerClientHandler(PacemakerClient client) {
         this.client = client;
     }
@@ -57,13 +59,17 @@ public class PacemakerClientHandler extends SimpleChannelUpstreamHandler {
             LOG.debug("Got control message: {}", evm.toString());
             return;
         }
-        client.gotMessage((HBMessage)evm);
+        else if(evm instanceof HBMessage) {
+            client.gotMessage((HBMessage)evm);
+        }
+        else {
+            LOG.warn("Got unexpected message: {} from server.", evm);
+        }
     }
 
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, ExceptionEvent event) {
-        LOG.debug("Connection to pacemaker failed {}", event.getCause());
+        LOG.error("Connection to pacemaker failed", event.getCause());
         client.reconnect();
     }
-
 }

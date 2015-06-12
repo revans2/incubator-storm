@@ -30,7 +30,7 @@ cat <<XML
 <appenders>
     <RollingFile name="A1"
                  fileName="\${sys:storm.home}/logs/\${sys:logfile.name}"
-                 filePattern="\${sys:storm.home}/logs/\${sys:logfile.name}.%i">
+                 filePattern="\${sys:storm.home}/logs/\${sys:logfile.name}.%i.gz">
         <PatternLayout>
             <pattern>\${pattern}</pattern>
         </PatternLayout>
@@ -41,7 +41,7 @@ cat <<XML
     </RollingFile>
     <RollingFile name="ACCESS"
                  fileName="\${sys:storm.home}/logs/access.log"
-                 filePattern="\${sys:storm.home}/logs/access.log.%i">
+                 filePattern="\${sys:storm.home}/logs/access.log.%i.gz">
         <PatternLayout>
             <pattern>\${pattern}</pattern>
         </PatternLayout>
@@ -52,7 +52,7 @@ cat <<XML
     </RollingFile>
     <RollingFile name="METRICS"
                  fileName="\${sys:storm.home}/logs/metrics.log"
-                 filePattern="\${sys:storm.home}/logs/metrics.log.%i">
+                 filePattern="\${sys:storm.home}/logs/metrics.log.%i.gz">
         <PatternLayout>
             <pattern>\${patternMetrics}</pattern>
         </PatternLayout>
