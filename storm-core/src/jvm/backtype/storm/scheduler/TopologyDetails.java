@@ -153,27 +153,24 @@ public class TopologyDetails {
                 new HashMap<String, Map<String, Double>>();
         JSONParser parser = new JSONParser();
         LOG.debug("Input to parseResources {}", input);
-        Double topoMemOnHeap = null;
-        Double topoMemOffHeap = null;
-        Double topoCPU = null;
         try {
             if (input != null) {
                 Object obj = parser.parse(input);
                 JSONObject jsonObject = (JSONObject) obj;
                 if (jsonObject.containsKey(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB)) {
-                    topoMemOnHeap = Utils.getDouble(jsonObject.get(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB));
+                    Double topoMemOnHeap = Utils.getDouble(jsonObject.get(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB));
                     topology_resources.put((String) topologyConf.get(Config.TOPOLOGY_COMPONENT_TYPE_MEMORY), new HashMap<String, Double>());
                     topology_resources.get(topologyConf
                             .get(Config.TOPOLOGY_COMPONENT_TYPE_MEMORY))
                             .put(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB, topoMemOnHeap);
                 }
                 if (jsonObject.containsKey(Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB)) {
-                    topoMemOffHeap = Utils.getDouble(jsonObject.get(Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB));
+                    Double topoMemOffHeap = Utils.getDouble(jsonObject.get(Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB));
                     topology_resources.get(topologyConf.get(Config.TOPOLOGY_COMPONENT_TYPE_MEMORY))
                             .put(Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB, topoMemOffHeap);
                 }
                 if (jsonObject.containsKey(Config.TOPOLOGY_COMPONENT_RESOURCES_CPU)) {
-                    topoCPU = Utils.getDouble(jsonObject.get(Config.TOPOLOGY_COMPONENT_RESOURCES_CPU));
+                    Double topoCPU = Utils.getDouble(jsonObject.get(Config.TOPOLOGY_COMPONENT_RESOURCES_CPU));
                     topology_resources.put((String) topologyConf
                             .get(Config.TOPOLOGY_COMPONENT_TYPE_CPU), new HashMap<String, Double>());
                     topology_resources.get(topologyConf
