@@ -603,7 +603,6 @@ public class Utils {
       if (null == o) {
         return defaultValue;
       }
-      
       if (o instanceof Long) {
           return ((Long) o ).intValue();
       } else if (o instanceof Integer) {
@@ -629,15 +628,8 @@ public class Utils {
         if (null == o) {
             return defaultValue;
         }
-
-        if (o instanceof Long) {
-            return ((Long) o ).doubleValue();
-        } else if (o instanceof Double) {
-            return (Double) o;
-        } else if (o instanceof Short) {
-            return ((Short) o).doubleValue();
-        } else if (o instanceof String) {
-            return Double.parseDouble((String) o);
+        if (o instanceof Number) {
+            return ((Number) o).doubleValue();
         } else {
             throw new IllegalArgumentException("Don't know how to convert " + o + " + to double");
         }

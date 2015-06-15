@@ -105,7 +105,7 @@
                        TOPOLOGY-SUBMITTER-USER "userC"
                        TOPOLOGY-COMPONENT-RESOURCES-ONHEAP-MEMORY-MB 128.0
                        TOPOLOGY-COMPONENT-RESOURCES-OFFHEAP-MEMORY-MB 0.0
-                       TOPOLOGY-COMPONENT-CPU-REQUIREMENT 10.0
+                       TOPOLOGY-COMPONENT-CPU-PCORE-PERCENT 10.0
                        TOPOLOGY-COMPONENT-TYPE-CPU "cpu"
                        TOPOLOGY-COMPONENT-TYPE-CPU-TOTAL "total"
                        TOPOLOGY-COMPONENT-TYPE-MEMORY "memory"
@@ -131,10 +131,11 @@
 (deftest test-topology-set-memory-and-cpu-load
   (let [builder (TopologyBuilder.)
         _ (.setSpout builder "wordSpout" (TestWordSpout.) 1)
-        bolt (.setBolt builder "wordCountBolt" (TestWordCounter.) 1)
-        _ (.setMemoryLoad bolt 110.0)
-        _ (.setCPULoad bolt 20.0)
-        _ (.shuffleGrouping bolt "wordSpout")
+        _ (doto
+            (.setBolt builder "wordCountBolt" (TestWordCounter.) 1)
+            (.setMemoryLoad 110.0)
+            (.setCPULoad 20.0)
+            (.shuffleGrouping "wordSpout"))
         supers (gen-supervisors 3)
         storm-topology (.createTopology builder)
         topology2 (TopologyDetails. "topology2"
@@ -142,7 +143,7 @@
                      TOPOLOGY-SUBMITTER-USER "userC"
                      TOPOLOGY-COMPONENT-RESOURCES-ONHEAP-MEMORY-MB 128.0
                      TOPOLOGY-COMPONENT-RESOURCES-OFFHEAP-MEMORY-MB 0.0
-                     TOPOLOGY-COMPONENT-CPU-REQUIREMENT 10.0
+                     TOPOLOGY-COMPONENT-CPU-PCORE-PERCENT 10.0
                      TOPOLOGY-COMPONENT-TYPE-CPU "cpu"
                      TOPOLOGY-COMPONENT-TYPE-CPU-TOTAL "total"
                      TOPOLOGY-COMPONENT-TYPE-MEMORY "memory"
@@ -181,7 +182,7 @@
                                      TOPOLOGY-SUBMITTER-USER "userC"
                                      TOPOLOGY-COMPONENT-RESOURCES-ONHEAP-MEMORY-MB 128.0
                                      TOPOLOGY-COMPONENT-RESOURCES-OFFHEAP-MEMORY-MB 0.0
-                                     TOPOLOGY-COMPONENT-CPU-REQUIREMENT 10.0
+                                     TOPOLOGY-COMPONENT-CPU-PCORE-PERCENT 10.0
                                      TOPOLOGY-COMPONENT-TYPE-CPU "cpu"
                                      TOPOLOGY-COMPONENT-TYPE-CPU-TOTAL "total"
                                      TOPOLOGY-COMPONENT-TYPE-MEMORY "memory"

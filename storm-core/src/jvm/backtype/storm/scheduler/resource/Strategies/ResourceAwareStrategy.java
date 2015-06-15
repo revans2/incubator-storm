@@ -132,7 +132,7 @@ public class ResourceAwareStrategy implements IStrategy {
         for (ExecutorDetails detail : tasksNotScheduled) {
             Node bestNodeForAnExecutorDetail = this.getBestNode(detail);
             if (bestNodeForAnExecutorDetail != null) {
-                if (nodeToExecutorDetailsMap.containsKey(bestNodeForAnExecutorDetail) == false) {
+                if (!nodeToExecutorDetailsMap.containsKey(bestNodeForAnExecutorDetail)) {
                     Collection<ExecutorDetails> newMap = new LinkedList<ExecutorDetails>();
                     nodeToExecutorDetailsMap.put(bestNodeForAnExecutorDetail, newMap);
                 }

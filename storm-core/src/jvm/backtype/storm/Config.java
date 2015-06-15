@@ -1130,11 +1130,12 @@ public class Config extends HashMap<String, Object> {
     public static final String TOPOLOGY_COMPONENT_TYPE_CPU_TOTAL = "topology.component.type.cpu.total";
     public static final Object TOPOLOGY_COMPONENT_TYPE_CPU_TOTAL_SCHEMA = String.class;
 
-    /*
-     * Sets the default cpu requirment for spouts and bolts
+    /**
+     * The config indicates the percentage of cpu for a core. Assuming the a core value to be 100, a
+     * value of 10 indicates 10% of the core. The P in PCORE represents the term "physical".
      */
-    public static final String TOPOLOGY_COMPONENT_CPU_REQUIREMENT = "topology.component.cpu.requirement";
-    public static final Object TOPOLOGY_COMPONENT_CPU_REQUIREMENT_SCHEMA = ConfigValidation.PositiveDoubleValidator;
+    public static final String TOPOLOGY_COMPONENT_CPU_PCORE_PERCENT = "topology.component.cpu.pcore.percent";
+    public static final Object TOPOLOGY_COMPONENT_CPU_PCORE_PERCENT_SCHEMA = ConfigValidation.PositiveDoubleValidator;
 
     /**
      * How many executors to spawn for ackers.
