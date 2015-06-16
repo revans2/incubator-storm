@@ -27,7 +27,7 @@ import java.util.Map;
 import java.util.Set;
 
 import backtype.storm.Config;
-import backtype.storm.nettopo.DNSToSwitchMapping;
+import backtype.storm.networktopography.DNSToSwitchMapping;
 import backtype.storm.utils.Utils;
 
 public class Cluster {

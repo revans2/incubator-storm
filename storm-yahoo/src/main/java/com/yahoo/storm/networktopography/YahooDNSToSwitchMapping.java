@@ -1,6 +1,6 @@
-package com.yahoo.storm.nettopo;
-import backtype.storm.nettopo.DNSToSwitchMapping;
-import backtype.storm.nettopo.CachedDNSToSwitchMapping;
+package com.yahoo.storm.networktopography;
+import backtype.storm.networktopography.DNSToSwitchMapping;
+import backtype.storm.networktopography.CachedDNSToSwitchMapping;
 import java.net.InetAddress;
 import java.util.Map;
 import java.util.List;

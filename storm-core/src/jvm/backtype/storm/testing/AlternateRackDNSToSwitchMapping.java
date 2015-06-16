@@ -1,7 +1,7 @@
 package backtype.storm.testing;
 
-import backtype.storm.nettopo.CachedDNSToSwitchMapping;
-import backtype.storm.nettopo.DNSToSwitchMapping;
+import backtype.storm.networktopography.CachedDNSToSwitchMapping;
+import backtype.storm.networktopography.DNSToSwitchMapping;
 
 import java.util.ArrayList;
 import java.util.List;

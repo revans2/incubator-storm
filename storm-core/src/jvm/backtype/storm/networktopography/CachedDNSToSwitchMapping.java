@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package backtype.storm.nettopo;
+package backtype.storm.networktopography;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
