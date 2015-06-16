@@ -228,8 +228,7 @@ topology.component.resources.onheap.memory.mb: 128.0
 topology.component.resources.offheap.memory.mb: 0.0
 topology.component.type.cpu: "cpu"
 topology.component.type.cpu.total: "total"
-# 10.0 implies 10 percent of a cpu core
-topology.component.cpu.requirement: 10.0
+topology.component.cpu.pcore.percent: 10.0
 
 client.blobstore.class: "backtype.storm.blobstore.NimbusBlobStore"
 blobstore.superuser: "nobody"

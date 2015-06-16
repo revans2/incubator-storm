@@ -269,7 +269,7 @@ public class ConfigValidation {
             if (o instanceof Number)
             {
                 i = ((Number)o).doubleValue();
-                if (i >= 0) {
+                if (i >= 0.0) {
                     return;
                 }
             }
