@@ -48,7 +48,6 @@
           {(ed at) name})))))
 
 
-
 ;; testing resource/Node class
 (deftest test-node
   (let [supers (gen-supervisors 5)
@@ -198,7 +197,7 @@
                                                 ["wordCountBolt" 2 3]]))
         cluster (Cluster. (nimbus/standalone-nimbus) supers {}
                   {STORM-NETWORK-TOPOGRAPHY-PLUGIN
-                   "backtype.storm.testing.AlternateRackDNSToSwitchMapping"})
+                   "backtype.storm.networktopography.DefaultRackDNSToSwitchMapping"})
         topologies (Topologies. (to-top-map [topology1]))
         scheduler (ResourceAwareScheduler.)]
     (.schedule scheduler topologies cluster)
@@ -209,29 +208,154 @@
           epsilon 0.000001
           assigned-ed-mem (sort (map #(.getTotalMemReqTask topology1 %) executors))
           assigned-ed-cpu (sort (map #(.getTotalCpuReqTask topology1 %) executors))
-          ed-to-super (into {}
+          ed->super (into {}
                             (for [[ed slot] (.getExecutorToSlot assignment)]
                               {ed (.getSupervisorById cluster (.getNodeId slot))}))
-          super-to-eds (reverse-map ed-to-super)
-          mem-avail-to-used (into []
-                                 (for [[super eds] super-to-eds]
+          super->eds (reverse-map ed->super)
+          mem-avail->used (into []
+                                 (for [[super eds] super->eds]
                                    [(.getTotalMemory super) (sum (map #(.getTotalMemReqTask topology1 %) eds))]))
-          cpu-avail-to-used (into []
-                                 (for [[super eds] super-to-eds]
+          cpu-avail->used (into []
+                                 (for [[super eds] super->eds]
                                    [(.getTotalCPU super) (sum (map #(.getTotalCpuReqTask topology1 %) eds))]))]
     ;; 4 slots on 1 machine, all executors assigned
     (is (= 2 (.size assigned-slots)))
     (is (= 2 (.size (into #{} (for [slot assigned-slots] (.getNodeId slot))))))
     (is (= 3 (.size executors)))
-    ;; make sure resource (mem/cpu) assigned equals to resource specified`
+    ;; make sure resource (mem/cpu) assigned equals to resource specified
     (is (< (Math/abs (- 600.0 (first assigned-ed-mem))) epsilon))
     (is (< (Math/abs (- 1200.0 (second assigned-ed-mem))) epsilon))
     (is (< (Math/abs (- 1200.0 (last assigned-ed-mem))) epsilon))
     (is (< (Math/abs (- 100.0 (first assigned-ed-cpu))) epsilon))
     (is (< (Math/abs (- 250.0 (second assigned-ed-cpu))) epsilon))
     (is (< (Math/abs (- 250.0 (last assigned-ed-cpu))) epsilon))
-    (doseq [[avail used] mem-avail-to-used] ;; for each node, assigned mem smaller than total 
+    (doseq [[avail used] mem-avail->used] ;; for each node, assigned mem smaller than total 
       (is (>= avail used)))
-    (doseq [[avail used] cpu-avail-to-used] ;; for each node, assigned cpu smaller than total
+    (doseq [[avail used] cpu-avail->used] ;; for each node, assigned cpu smaller than total
       (is (>= avail used))))
   (is (= "topology1 Fully Scheduled" (.get (.getStatusMap cluster) "topology1")))))
+
+(deftest test-scheduling-resilience
+  (let [supers (gen-supervisors 2)
+         builder1 (TopologyBuilder.)
+         _ (.setSpout builder1 "spout1" (TestWordSpout.) 2)
+         storm-topology1 (.createTopology builder1)
+         topology1 (TopologyDetails. "topology1"
+                      {TOPOLOGY-NAME "topology-name-1"
+                                     TOPOLOGY-SUBMITTER-USER "userC"
+                                     TOPOLOGY-COMPONENT-RESOURCES-ONHEAP-MEMORY-MB 128.0
+                                     TOPOLOGY-COMPONENT-RESOURCES-OFFHEAP-MEMORY-MB 0.0
+                                     TOPOLOGY-COMPONENT-CPU-PCORE-PERCENT 10.0
+                                     TOPOLOGY-COMPONENT-TYPE-CPU "cpu"
+                                     TOPOLOGY-COMPONENT-TYPE-CPU-TOTAL "total"
+                                     TOPOLOGY-COMPONENT-TYPE-MEMORY "memory"}
+                      storm-topology1
+                      3
+                      (mk-ed-map [["spout1" 0 3]]))
+         builder2 (TopologyBuilder.)
+         _ (.setSpout builder2 "spout2" (TestWordSpout.) 2)
+         storm-topology2 (.createTopology builder2)
+          topology2 (TopologyDetails. "topology2"
+                      {TOPOLOGY-NAME "topology-name-2"
+                                     TOPOLOGY-SUBMITTER-USER "userC"
+                                     TOPOLOGY-COMPONENT-RESOURCES-ONHEAP-MEMORY-MB 1280.0 ;; large enough thus two eds can not be fully assigned to one node
+                                     TOPOLOGY-COMPONENT-RESOURCES-OFFHEAP-MEMORY-MB 0.0
+                                     TOPOLOGY-COMPONENT-CPU-PCORE-PERCENT 10.0
+                                     TOPOLOGY-COMPONENT-TYPE-CPU "cpu"
+                                     TOPOLOGY-COMPONENT-TYPE-CPU-TOTAL "total"
+                                     TOPOLOGY-COMPONENT-TYPE-MEMORY "memory"}
+                      storm-topology2
+                      2
+                      (mk-ed-map [["spout2" 0 2]]))
+        scheduler (ResourceAwareScheduler.)]
+
+    (testing "When a worker fails, RAS does not alter existing assignments on healthy workers"
+      (let [cluster (Cluster. (nimbus/standalone-nimbus) supers {}
+           {STORM-NETWORK-TOPOGRAPHY-PLUGIN
+           "backtype.storm.networktopography.DefaultRackDNSToSwitchMapping"})
+            topologies (Topologies. (to-top-map [topology2]))
+            _ (.schedule scheduler topologies cluster)
+            assignment (.getAssignmentById cluster "topology2")
+            failed-worker (first (vec (.getSlots assignment)))  ;; choose a worker to mock as failed
+            ed->slot (.getExecutorToSlot assignment)
+            failed-eds (.get (reverse-map ed->slot) failed-worker)
+            _ (doseq [ed failed-eds] (.remove ed->slot ed))  ;; remove executor details assigned to the worker
+            copy-old-mapping (HashMap. ed->slot)
+            healthy-eds (.keySet copy-old-mapping)
+            _ (.schedule scheduler topologies cluster)
+            new-assignment (.getAssignmentById cluster "topology2")
+            new-ed->slot (.getExecutorToSlot new-assignment)]
+        ;; for each executor that was scheduled on healthy workers, their slots should remain unchanged after a new scheduling
+        (doseq [ed healthy-eds]
+          (is (.equals (.get copy-old-mapping ed) (.get new-ed->slot ed))))
+        (is (= "topology2 Fully Scheduled" (.get (.getStatusMap cluster) "topology2")))))
+    
+    (testing "When a supervisor fails, RAS does not alter existing assignments"
+      (let [existing-assignments {"topology1" (SchedulerAssignmentImpl. "topology1"
+                                                                         {(ExecutorDetails. 0 0) (WorkerSlot. "id0" 0)    ;; worker 0 on the failed super
+                                                                          (ExecutorDetails. 1 1) (WorkerSlot. "id0" 1)    ;; worker 1 on the failed super
+                                                                          (ExecutorDetails. 2 2) (WorkerSlot. "id1" 1)})} ;; worker 2 on the health super
+            cluster (Cluster. (nimbus/standalone-nimbus) supers existing-assignments
+                              {STORM-NETWORK-TOPOGRAPHY-PLUGIN
+                               "backtype.storm.networktopography.DefaultRackDNSToSwitchMapping"})
+            topologies (Topologies. (to-top-map [topology1]))
+            assignment (.getAssignmentById cluster "topology1")
+            ed->slot (.getExecutorToSlot assignment)
+            copy-old-mapping (HashMap. ed->slot)
+            existing-eds (.keySet copy-old-mapping)  ;; all the three eds on three workers
+            new-cluster (Cluster. (nimbus/standalone-nimbus) 
+                                  (dissoc supers "id0")        ;; mock the super0 as a failed supervisor
+                                  (.getAssignments cluster)
+                                  {STORM-NETWORK-TOPOGRAPHY-PLUGIN
+                                   "backtype.storm.networktopography.DefaultRackDNSToSwitchMapping"})
+            _ (.schedule scheduler topologies new-cluster) ;; essentially, the actual schedule for this topo will not run since it is fully assigned
+            new-assignment (.getAssignmentById new-cluster "topology1")
+            new-ed->slot (.getExecutorToSlot new-assignment)]
+        (doseq [ed existing-eds]
+          (is (.equals (.get copy-old-mapping ed) (.get new-ed->slot ed))))
+        (is (= "topology1 Fully Scheduled" (.get (.getStatusMap new-cluster) "topology1")))))
+
+    (testing "When a supervisor and a worker on it fails, RAS does not alter existing assignments"
+      (let [existing-assignments {"topology1" (SchedulerAssignmentImpl. "topology1"
+                                                                         {(ExecutorDetails. 0 0) (WorkerSlot. "id0" 1)    ;; the worker to orphan
+                                                                          (ExecutorDetails. 1 1) (WorkerSlot. "id0" 2)    ;; the worker to kill
+                                                                          (ExecutorDetails. 2 2) (WorkerSlot. "id1" 1)})} ;; the healthy worker
+            cluster (Cluster. (nimbus/standalone-nimbus) supers existing-assignments
+                              {STORM-NETWORK-TOPOGRAPHY-PLUGIN
+                               "backtype.storm.networktopography.DefaultRackDNSToSwitchMapping"})
+            topologies (Topologies. (to-top-map [topology1]))
+            assignment (.getAssignmentById cluster "topology1")
+            ed->slot (.getExecutorToSlot assignment)
+            _ (.remove ed->slot (ExecutorDetails. 1 1))  ;; delete one worker of super0 (failed) from topo1 assignment to enable actual schedule for testing
+            copy-old-mapping (HashMap. ed->slot)
+            existing-eds (.keySet copy-old-mapping)  ;; namely the two eds on the orphaned worker and the healthy worker
+            new-cluster (Cluster. (nimbus/standalone-nimbus) 
+                                  (dissoc supers "id0")        ;; mock the super0 as a failed supervisor
+                                  (.getAssignments cluster)
+                                  {STORM-NETWORK-TOPOGRAPHY-PLUGIN
+                                   "backtype.storm.networktopography.DefaultRackDNSToSwitchMapping"})
+            _ (.schedule scheduler topologies new-cluster)
+            new-assignment (.getAssignmentById new-cluster "topology1")
+            new-ed->slot (.getExecutorToSlot new-assignment)]
+        (doseq [ed existing-eds]
+          (is (.equals (.get copy-old-mapping ed) (.get new-ed->slot ed))))
+        (is (= "topology1 Fully Scheduled" (.get (.getStatusMap new-cluster) "topology1")))))
+
+    (testing "Scheduling a new topology does not disturb other assignments unnecessarily"
+      (let [cluster (Cluster. (nimbus/standalone-nimbus) supers {}
+                              {STORM-NETWORK-TOPOGRAPHY-PLUGIN
+                               "backtype.storm.networktopography.DefaultRackDNSToSwitchMapping"})
+            topologies (Topologies. (to-top-map [topology1]))
+            _ (.schedule scheduler topologies cluster)
+            assignment (.getAssignmentById cluster "topology1")
+            ed->slot (.getExecutorToSlot assignment)
+            copy-old-mapping (HashMap. ed->slot)
+            new-topologies (Topologies. (to-top-map [topology1 topology2]))  ;; a second topology joins
+            _ (.schedule scheduler new-topologies cluster)
+            new-assignment (.getAssignmentById cluster "topology1")
+            new-ed->slot (.getExecutorToSlot new-assignment)]
+        (doseq [ed (.keySet copy-old-mapping)]
+          (is (.equals (.get copy-old-mapping ed) (.get new-ed->slot ed))))  ;; the assignment for topo1 should not change
+        (is (= "topology1 Fully Scheduled" (.get (.getStatusMap cluster) "topology1")))
+        (is (= "topology2 Fully Scheduled" (.get (.getStatusMap cluster) "topology2")))))))
+

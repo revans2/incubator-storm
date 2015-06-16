@@ -275,72 +275,76 @@ public class TopologyDetails {
 
         StormTopology storm_topo = this.topology;
         // spouts
-        for (Map.Entry<String, SpoutSpec> spoutEntry : storm_topo
-                .get_spouts().entrySet()) {
-            if (!Utils.isSystemId(spoutEntry.getKey())) {
-                RAS_Component newComp = null;
-                if (all_comp.containsKey(spoutEntry.getKey())) {
-                    newComp = all_comp.get(spoutEntry.getKey());
-                } else {
-                    newComp = new RAS_Component(spoutEntry.getKey());
-                    newComp.execs = componentToExecs(newComp.id);
-                    all_comp.put(spoutEntry.getKey(), newComp);
-                }
-                newComp.type = RAS_Component.ComponentType.SPOUT;
-
-
-                for (Map.Entry<GlobalStreamId, Grouping> spoutInput : spoutEntry
-                        .getValue().get_common().get_inputs()
-                        .entrySet()) {
-
-                    if (!Utils.isSystemId(spoutInput.getKey().get_componentId())) {
-                        newComp.parents.add(spoutInput.getKey()
-                                .get_componentId());
-                        if (!all_comp.containsKey(spoutInput
-                                .getKey().get_componentId())) {
-                            all_comp.put(spoutInput.getKey()
-                                            .get_componentId(),
-                                    new RAS_Component(spoutInput.getKey()
-                                            .get_componentId()));
-                        }
-                        all_comp.get(spoutInput.getKey()
-                                .get_componentId()).children.add(spoutEntry
-                                .getKey());
+        if (storm_topo.get_spouts() != null) {
+            for (Map.Entry<String, SpoutSpec> spoutEntry : storm_topo
+                    .get_spouts().entrySet()) {
+                if (!Utils.isSystemId(spoutEntry.getKey())) {
+                    RAS_Component newComp = null;
+                    if (all_comp.containsKey(spoutEntry.getKey())) {
+                        newComp = all_comp.get(spoutEntry.getKey());
+                    } else {
+                        newComp = new RAS_Component(spoutEntry.getKey());
+                        newComp.execs = componentToExecs(newComp.id);
+                        all_comp.put(spoutEntry.getKey(), newComp);
                     }
-                }
+                    newComp.type = RAS_Component.ComponentType.SPOUT;
 
+
+                    for (Map.Entry<GlobalStreamId, Grouping> spoutInput : spoutEntry
+                            .getValue().get_common().get_inputs()
+                            .entrySet()) {
+
+                        if (!Utils.isSystemId(spoutInput.getKey().get_componentId())) {
+                            newComp.parents.add(spoutInput.getKey()
+                                    .get_componentId());
+                            if (!all_comp.containsKey(spoutInput
+                                    .getKey().get_componentId())) {
+                                all_comp.put(spoutInput.getKey()
+                                                .get_componentId(),
+                                        new RAS_Component(spoutInput.getKey()
+                                                .get_componentId()));
+                            }
+                            all_comp.get(spoutInput.getKey()
+                                    .get_componentId()).children.add(spoutEntry
+                                    .getKey());
+                        }
+                    }
+
+                }
             }
         }
         // bolts
-        for (Map.Entry<String, Bolt> boltEntry : storm_topo.get_bolts()
-                .entrySet()) {
-            if (!Utils.isSystemId(boltEntry.getKey())) {
-                RAS_Component newComp = null;
-                if (all_comp.containsKey(boltEntry.getKey())) {
-                    newComp = all_comp.get(boltEntry.getKey());
-                } else {
-                    newComp = new RAS_Component(boltEntry.getKey());
-                    newComp.execs = componentToExecs(newComp.id);
-                    all_comp.put(boltEntry.getKey(), newComp);
-                }
-                newComp.type = RAS_Component.ComponentType.BOLT;
+        if (storm_topo.get_bolts() != null) {
+            for (Map.Entry<String, Bolt> boltEntry : storm_topo.get_bolts()
+                    .entrySet()) {
+                if (!Utils.isSystemId(boltEntry.getKey())) {
+                    RAS_Component newComp = null;
+                    if (all_comp.containsKey(boltEntry.getKey())) {
+                        newComp = all_comp.get(boltEntry.getKey());
+                    } else {
+                        newComp = new RAS_Component(boltEntry.getKey());
+                        newComp.execs = componentToExecs(newComp.id);
+                        all_comp.put(boltEntry.getKey(), newComp);
+                    }
+                    newComp.type = RAS_Component.ComponentType.BOLT;
 
-                for (Map.Entry<GlobalStreamId, Grouping> boltInput : boltEntry
-                        .getValue().get_common().get_inputs()
-                        .entrySet()) {
-                    if (!Utils.isSystemId(boltInput.getKey().get_componentId())) {
-                        newComp.parents.add(boltInput.getKey()
-                                .get_componentId());
-                        if (!all_comp.containsKey(boltInput
-                                .getKey().get_componentId())) {
-                            all_comp.put(boltInput.getKey()
-                                            .get_componentId(),
-                                    new RAS_Component(boltInput.getKey()
-                                            .get_componentId()));
+                    for (Map.Entry<GlobalStreamId, Grouping> boltInput : boltEntry
+                            .getValue().get_common().get_inputs()
+                            .entrySet()) {
+                        if (!Utils.isSystemId(boltInput.getKey().get_componentId())) {
+                            newComp.parents.add(boltInput.getKey()
+                                    .get_componentId());
+                            if (!all_comp.containsKey(boltInput
+                                    .getKey().get_componentId())) {
+                                all_comp.put(boltInput.getKey()
+                                                .get_componentId(),
+                                        new RAS_Component(boltInput.getKey()
+                                                .get_componentId()));
+                            }
+                            all_comp.get(boltInput.getKey()
+                                    .get_componentId()).children.add(boltEntry
+                                    .getKey());
                         }
-                        all_comp.get(boltInput.getKey()
-                                .get_componentId()).children.add(boltEntry
-                                .getKey());
                     }
                 }
             }

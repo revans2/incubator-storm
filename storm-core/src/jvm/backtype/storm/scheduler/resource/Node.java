@@ -156,6 +156,7 @@ public class Node {
             }
         }
         _freeSlots.add(ws);
+        slot_to_exec.put(ws, new ArrayList<ExecutorDetails>());
     }
 
     boolean assignInternal(WorkerSlot ws, String topId, boolean dontThrow) {
@@ -321,14 +322,13 @@ public class Node {
             LOG.debug("resources_mem: {}, resources_CPU: {}", sup.getTotalMemory(), sup.getTotalCPU());
             nodeIdToNode.put(sup.getId(), new Node(id, sup.getAllPorts(), isAlive, sup));
         }
-
         for (Entry<String, SchedulerAssignment> entry : cluster.getAssignments().entrySet()) {
             String topId = entry.getValue().getTopologyId();
             for (WorkerSlot workerSlot : entry.getValue().getSlots()) {
                 String id = workerSlot.getNodeId();
                 Node node = nodeIdToNode.get(id);
                 if (node == null) {
-                    LOG.debug("Found an assigned slot on a dead supervisor {} with executors {}",
+                    LOG.info("Found an assigned slot on a dead supervisor {} with executors {}",
                             workerSlot, getExecutors(workerSlot, cluster));
                     node = new Node(id, null, false, null);
                     nodeIdToNode.put(id, node);
@@ -343,34 +343,32 @@ public class Node {
                 }
             }
         }
-
         Node.updateAvailableResources(cluster, topologies, nodeIdToNode);
 
         for (Map.Entry<String, SchedulerAssignment> entry : cluster
                 .getAssignments().entrySet()) {
             for (Map.Entry<ExecutorDetails, WorkerSlot> exec : entry.getValue()
                     .getExecutorToSlot().entrySet()) {
-                if (nodeIdToNode.containsKey(exec.getValue().getNodeId())) {
-                    if (nodeIdToNode.get(exec.getValue().getNodeId()).slot_to_exec
-                            .containsKey(exec.getValue())) {
-                        nodeIdToNode.get(exec.getValue().getNodeId()).slot_to_exec
-                                .get(exec.getValue()).add(exec.getKey());
-                        nodeIdToNode.get(exec.getValue().getNodeId()).execs.add(exec
-                                .getKey());
+                ExecutorDetails ed = exec.getKey();
+                WorkerSlot ws = exec.getValue();
+                String node_id = ws.getNodeId();
+                if (nodeIdToNode.containsKey(node_id)) {
+                    Node node = nodeIdToNode.get(node_id);
+                    if (node.slot_to_exec.containsKey(ws)) {
+                        node.slot_to_exec.get(ws).add(ed);
+                        node.execs.add(ed);
                     } else {
                         LOG.info(
                                 "ERROR: should have node {} should have worker: {}",
-                                exec.getValue().getNodeId(), exec.getValue());
+                                node_id, ed);
                         return null;
                     }
                 } else {
-                    LOG.info("ERROR: should have node {}", exec.getValue()
-                            .getNodeId());
+                    LOG.info("ERROR: should have node {}", node_id);
                     return null;
                 }
             }
         }
-
         return nodeIdToNode;
     }
 
@@ -406,15 +404,14 @@ public class Node {
                                                  Topologies topologies,
                                                  Map<String, Node> nodeIdToNode) {
         //recompute memory
-        Map<WorkerSlot, Node> SlotNeedToBeFreed = new HashMap<WorkerSlot, Node>();
         if (cluster.getAssignments().size() > 0) {
             for (Entry<String, SchedulerAssignment> entry : cluster.getAssignments()
                     .entrySet()) {
                 Map<ExecutorDetails, WorkerSlot> executorToSlot = entry.getValue()
                         .getExecutorToSlot();
-                Map<ExecutorDetails, Double> topoMemoryResourceList = topologies.getByName(entry.getKey()).getTotalMemoryResourceList();
+                Map<ExecutorDetails, Double> topoMemoryResourceList = topologies.getById(entry.getKey()).getTotalMemoryResourceList();
 
-                if (topoMemoryResourceList == null || topoMemoryResourceList.size() <= 0) {
+                if (topoMemoryResourceList == null || topoMemoryResourceList.size() == 0) {
                     continue;
                 }
                 for (Map.Entry<ExecutorDetails, WorkerSlot> execToSlot : executorToSlot
@@ -423,23 +420,21 @@ public class Node {
                     ExecutorDetails exec = execToSlot.getKey();
                     Node node = nodeIdToNode.get(slot.getNodeId());
                     if (!node.isAlive()) {
-                        SlotNeedToBeFreed.put(slot, node);
                         continue;
+                        // We do not free the assigned slots (the orphaned slots) on the inactive supervisors
+                        // The inactive node will be treated as a 0-resource node and not available for other unassigned workers
                     }
                     if (topoMemoryResourceList.containsKey(exec)) {
-                        node.consumeResourcesforTask(exec, topologies.getByName(entry.getKey()));
+                        node.consumeResourcesforTask(exec, topologies.getById(entry.getKey()));
                     } else {
                         LOG.warn("Resource Req not found...Scheduling Task{} with memory requirement as {} - {} and {} - {} and CPU requirement as {}-{}",
                                 exec, RAS_TYPES.TYPE_MEMORY_ONHEAP,
                                 RAS_TYPES.DEFAULT_ONHEAP_MEMORY_REQUIREMENT,
                                 RAS_TYPES.TYPE_MEMORY_OFFHEAP, RAS_TYPES.DEFAULT_OFFHEAP_MEMORY_REQUIREMENT, RAS_TYPES.TYPE_CPU_TOTAL, RAS_TYPES.DEFAULT_CPU_REQUIREMENT);
-                        topologies.getByName(entry.getKey()).addDefaultResforExec(exec);
-                        node.consumeResourcesforTask(exec, topologies.getByName(entry.getKey()));
+                        topologies.getById(entry.getKey()).addDefaultResforExec(exec);
+                        node.consumeResourcesforTask(exec, topologies.getById(entry.getKey()));
                     }
                 }
-            }
-            for (Map.Entry<WorkerSlot, Node> entry : SlotNeedToBeFreed.entrySet()) {
-                entry.getValue().free(entry.getKey(), cluster);
             }
         } else {
             for (Node n : nodeIdToNode.values()) {
