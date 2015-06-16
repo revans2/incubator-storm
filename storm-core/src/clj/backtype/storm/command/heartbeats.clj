@@ -14,7 +14,10 @@
 ;; See the License for the specific language governing permissions and
 ;; limitations under the License.
 (ns backtype.storm.command.heartbeats
-  (:use [backtype.storm config log cluster])
+  (:use [backtype.storm config log cluster converter]
+        [clojure string])
+  (:import [backtype.storm.generated ClusterWorkerHeartbeat]
+           [backtype.storm.utils Utils])
   (:gen-class))
 
 (defn -main [command path & args]
@@ -23,15 +26,26 @@
     (println "Command: [" command "]")
     (condp = command
       "list"
-      (log-message "Heartbeats: " (.get_worker_hb_children cluster path false))
-      
+      (let [message (join " \n" (.get_worker_hb_children cluster path false))]
+        (log-message "list " path ":\n"
+                     message "\n"))
       "get"
-      (log-message "HB: " (.get_worker_hb cluster path false))
-
+;;      (log-message "HB " path ":\n"
+;;                   (map #(format "%02X" (byte %))
+;;                        (vec (.get_worker_hb cluster path false)))
+;;                   "\n")
+      (log-message 
+       (if-let [hb (.get_worker_hb cluster path false)]
+         (clojurify-zk-worker-hb
+          (Utils/deserialize
+           hb
+           ClusterWorkerHeartbeat))
+         "Nothing"))
+                      
+      
       (log-message "Usage: heartbeats [list|get] path"))
     
     (try
-      (log-message "Closing cluster.")
       (.close cluster)
       (catch Exception e
         (log-message "Caught exception: " e " on close."))))

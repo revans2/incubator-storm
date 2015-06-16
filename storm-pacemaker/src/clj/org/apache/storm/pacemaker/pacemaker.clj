@@ -61,7 +61,9 @@
   (HBMessage. HBServerMessageType/GET_ALL_NODES_FOR_PATH_RESPONSE
               (HBMessageData/nodes
                (HBNodes. (distinct (for [k (.keySet heartbeats)
-                                         :let [trimmed-k (second (split (replace-first k path "") #"/"))]
+                                         :let [trimmed-k (first
+                                                          (filter #(not (= "" %))
+                                                                  (split (replace-first k path "") #"/")))]
                                          :when (and
                                                 (not (nil? trimmed-k))
                                                 (= (.indexOf k path) 0))]
