@@ -118,7 +118,7 @@
                                    ["wordCountBolt" 1 2]]))
         cluster (Cluster. (nimbus/standalone-nimbus) supers {}
                   {STORM-NETWORK-TOPOGRAPHY-PLUGIN
-                   "backtype.storm.networkTopography.DefaultRackDNSToSwitchMapping"})
+                   "backtype.storm.nettopo.DefaultRackDNSToSwitchMapping"})
         topologies (Topologies. (to-top-map [topology1]))
         node-map (Node/getAllNodesFrom cluster topologies)
         scheduler (ResourceAwareScheduler.)]
