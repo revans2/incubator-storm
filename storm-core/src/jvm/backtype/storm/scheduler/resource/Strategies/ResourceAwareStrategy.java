@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package backtype.storm.scheduler.resource.Strategies;
+package backtype.storm.scheduler.resource.strategies;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -37,8 +37,6 @@ import backtype.storm.scheduler.Topologies;
 import backtype.storm.scheduler.TopologyDetails;
 import backtype.storm.scheduler.resource.RAS_Component;
 import backtype.storm.scheduler.resource.Node;
-import backtype.storm.Config;
-import backtype.storm.utils.Utils;
 
 public class ResourceAwareStrategy implements IStrategy {
     protected Logger LOG = null;

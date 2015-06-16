@@ -1,4 +1,4 @@
-package backtype.storm.networkTopography;
+package backtype.storm.nettopo;
 
 import java.util.List;
 import java.util.ArrayList;

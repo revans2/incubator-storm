@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package backtype.storm.scheduler.resource.Strategies;
+package backtype.storm.scheduler.resource.strategies;
 
 import java.util.Collection;
 import java.util.Map;

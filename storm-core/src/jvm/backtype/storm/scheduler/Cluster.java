@@ -27,7 +27,7 @@ import java.util.Map;
 import java.util.Set;
 
 import backtype.storm.Config;
-import backtype.storm.networkTopography.DNSToSwitchMapping;
+import backtype.storm.nettopo.DNSToSwitchMapping;
 import backtype.storm.utils.Utils;
 
 public class Cluster {
@@ -461,9 +461,7 @@ public class Cluster {
             for (SupervisorDetails s : supervisors.values()) {
                 supervisorHostNames.add(s.getHost());
             }
-            //supervisorHostNames.addAll(supervisors.keySet());
-            String clazz = null;
-            clazz = (String) conf.get(Config.STORM_NETWORK_TOPOGRAPHY_PLUGIN);
+            String clazz = (String) conf.get(Config.STORM_NETWORK_TOPOGRAPHY_PLUGIN);
             DNSToSwitchMapping topographyMapper = (DNSToSwitchMapping) Utils.newInstance(clazz);
             Collections.sort(supervisorHostNames);
             ArrayList<String> resolvedSuperVisors = (ArrayList<String>)topographyMapper.resolve(supervisorHostNames);

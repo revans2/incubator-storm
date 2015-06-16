@@ -13,7 +13,7 @@
 ;; WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 ;; See the License for the specific language governing permissions and
 ;; limitations under the License.
-(ns clj.com.yahoo.storm.networkTopography.resource-aware-scheduler-test
+(ns clj.com.yahoo.storm.nettopo.resource-aware-scheduler-test
   (:use [clojure test])
   (:use [backtype.storm bootstrap config testing thrift])
   (:require [backtype.storm.daemon [nimbus :as nimbus]])
@@ -118,8 +118,6 @@
                                    ["wordCountBolt" 1 2]]))
         cluster (Cluster. (nimbus/standalone-nimbus) supers {}
                   {STORM-NETWORK-TOPOGRAPHY-PLUGIN
-                   ; In tests, we can use different network discovery classes here
-                   ;"com.yahoo.storm.networkTopography.YahooDNSToSwitchMapping"})
                    "backtype.storm.networkTopography.DefaultRackDNSToSwitchMapping"})
         topologies (Topologies. (to-top-map [topology1]))
         node-map (Node/getAllNodesFrom cluster topologies)

@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package backtype.storm.networkTopography;
+package backtype.storm.nettopo;
 
 import java.util.HashSet;
 import java.util.Map;
