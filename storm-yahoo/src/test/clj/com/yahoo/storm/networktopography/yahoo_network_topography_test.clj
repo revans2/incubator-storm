@@ -22,7 +22,7 @@
            [backtype.storm.topology TopologyBuilder])
   (:import [backtype.storm.scheduler Cluster SupervisorDetails WorkerSlot ExecutorDetails
             SchedulerAssignmentImpl Topologies TopologyDetails])
-  (:import [backtype.storm.scheduler.resource Node ResourceAwareScheduler]))
+  (:import [backtype.storm.scheduler.resource Node ResourceAwareScheduler RAS_TYPES]))
 
 (bootstrap)
 
@@ -53,7 +53,7 @@
   (let [supers (gen-supervisors 4)
         cluster (Cluster. (nimbus/standalone-nimbus) supers {}
                   {STORM-NETWORK-TOPOGRAPHY-PLUGIN
-                   "com.yahoo.storm.networkTopography.YahooDNSToSwitchMapping"})
+                   "com.yahoo.storm.networktopography.YahooDNSToSwitchMapping"})
         network-topography (.getNetworkTopography cluster)
         ;the mocked cluster should have only two racks, each with two hosts
         rack1-info (first network-topography)
@@ -63,15 +63,15 @@
         rack1-node-2 (second rack1-nodes)
         rack2-info (second network-topography)
         rack2 (key rack2-info)
-        rack1-nodes (val rack1-info)
+        rack2-nodes (val rack2-info)
         rack2-node-1 (first rack2-nodes)
         rack2-node-2 (second rack2-nodes)]
     (is (= 2 (.size network-topography)))
     (is (= 2 (.size rack1-nodes)))
     (is (= 2 (.size rack2-nodes)))
-    (is (= "/107.90.138.0" rack1))
-    (is (= "host1" rack1-node-1))
-    (is (= "host3" rack1-node-2))
-    (is (= "/107.90.114.0" rack2))
-    (is (= "host0" rack2-node-1))
-    (is (= "host2" rack2-node-2))))
+    (is (= "/10.216.154.0" rack1))
+    (is (= "gsta411n10.tan.ygrid.yahoo.com" rack1-node-1))
+    (is (= "gsta411n12.tan.ygrid.yahoo.com" rack1-node-2))
+    (is (= "/10.216.7.0" rack2))
+    (is (= "gsta108n11.tan.ygrid.yahoo.com" rack2-node-1))
+    (is (= "gsta108n13.tan.ygrid.yahoo.com" rack2-node-2))))
