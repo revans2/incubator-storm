@@ -254,6 +254,7 @@
           mock-worker-id "fake-worker-id"
           mock-sensitivity "S3"
           mock-cp "/base:/stormjar.jar"
+          storm-local (str "/tmp/")
           exp-args-fn (fn [opts topo-opts classpath]
                        (concat [(supervisor/java-cmd) "-cp" classpath 
                                (str "-Dlogfile.name=" "worker.log")
@@ -285,15 +286,17 @@
                                 mock-storm-id
                                 mock-port
                                 mock-worker-id]))]
-      (testing "testing *.worker.childopts as strings with extra spaces"
-        (let [string-opts "-Dfoo=bar  -Xmx1024m"
-              topo-string-opts "-Dkau=aux   -Xmx2048m"
-              exp-args (exp-args-fn ["-Dfoo=bar" "-Xmx1024m"]
-                                    ["-Dkau=aux" "-Xmx2048m"]
-                                    mock-cp)
-              mock-supervisor {:conf {STORM-CLUSTER-MODE :distributed
-                                      WORKER-CHILDOPTS string-opts}}]
-          (stubbing [read-supervisor-storm-conf {TOPOLOGY-WORKER-CHILDOPTS
+      (.mkdirs (io/file storm-local "workers" mock-worker-id))
+      (try
+        (testing "testing *.worker.childopts as strings with extra spaces"
+          (let [string-opts "-Dfoo=bar  -Xmx1024m"
+                topo-string-opts "-Dkau=aux   -Xmx2048m"
+                exp-args (exp-args-fn ["-Dfoo=bar" "-Xmx1024m"]
+                           ["-Dkau=aux" "-Xmx2048m"]
+                           mock-cp)
+                mock-supervisor {:conf {STORM-CLUSTER-MODE :distributed
+                                        WORKER-CHILDOPTS string-opts}}]
+            (stubbing [read-supervisor-storm-conf {TOPOLOGY-WORKER-CHILDOPTS
                                                    topo-string-opts}
                      add-to-classpath mock-cp
                      supervisor-stormdist-root nil
@@ -370,7 +373,8 @@
                                               mock-worker-id)
                     (verify-first-call-args-for-indices launch-process
                                                         [2]
-                                                        (merge topo-env {"LD_LIBRARY_PATH" nil}))))))))
+                                                        (merge topo-env {"LD_LIBRARY_PATH" nil})))))
+        (finally (rmr storm-local))))))
 
 (deftest test-worker-launch-command-run-as-user
   (testing "*.worker.childopts configuration"
