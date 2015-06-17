@@ -30,10 +30,6 @@
         (log-message "list " path ":\n"
                      message "\n"))
       "get"
-;;      (log-message "HB " path ":\n"
-;;                   (map #(format "%02X" (byte %))
-;;                        (vec (.get_worker_hb cluster path false)))
-;;                   "\n")
       (log-message 
        (if-let [hb (.get_worker_hb cluster path false)]
          (clojurify-zk-worker-hb
