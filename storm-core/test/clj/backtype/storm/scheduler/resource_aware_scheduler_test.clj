@@ -13,7 +13,7 @@
 ;; WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 ;; See the License for the specific language governing permissions and
 ;; limitations under the License.
-(ns clj.com.yahoo.storm.networktopography.resource-aware-scheduler-test
+(ns backtype.storm.scheduler.resource-aware-scheduler-test
   (:use [clojure test])
   (:use [backtype.storm bootstrap config testing thrift])
   (:require [backtype.storm.daemon [nimbus :as nimbus]])
@@ -29,7 +29,7 @@
 (defn gen-supervisors [count]
   (into {} (for [id (range count)
                 :let [supervisor (SupervisorDetails. (str "id" id)
-                                       (str "gsta" (if (even? id) 411 108) "n" (+ 10 id) ".tan.ygrid.yahoo.com")
+                                       (str "host" id)
                                        (list ) (map int (list 1 2 3 4))
                                    {RAS_TYPES/TYPE_MEMORY 2000.0
                                     RAS_TYPES/TYPE_CPU 400.0})]]

@@ -25,7 +25,7 @@ import java.util.Set;
 /**
  * This is a base class for DNS to Switch mappings. <p/> It is not mandatory to
  * derive {@link DNSToSwitchMapping} implementations from it, but it is strongly
- * recommended, as it makes it easy for the Hadoop developers to add new methods
+ * recommended, as it makes it easy for the developers to add new methods
  * to this base class that are automatically picked up by all implementations.
  * <p/>
  *
@@ -49,10 +49,6 @@ public abstract class AbstractDNSToSwitchMapping
    *
    * <p/>
    *
-   * This method is used when parts of Hadoop need know whether to apply
-   * single rack vs multi-rack policies, such as during block placement.
-   * Such algorithms behave differently if they are on multi-switch systems.
-   * </p>
    *
    * @return true if the mapping thinks that it is on a single switch
    */

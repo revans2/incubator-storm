@@ -174,7 +174,6 @@ storm.messaging.netty.transfer.batch.size: 262144
 # We check with this interval that whether the Netty channel is writable and try to write pending messages if it is.
 storm.messaging.netty.flush.check.interval.ms: 10
 
-# storm.network.topography.plugin: com.yahoo.storm.networkTopography.YahooDNSToSwitchMapping
 storm.network.topography.plugin: backtype.storm.networkTopography.DefaultRackDNSToSwitchMapping
 
 # default number of seconds group mapping service will cache user group
