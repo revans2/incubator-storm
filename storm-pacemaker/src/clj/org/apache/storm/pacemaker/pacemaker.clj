@@ -137,7 +137,7 @@
 
 (defn launch-server! []
   (log-message "Starting Server.")
-  (let [conf (read-storm-config)]
+  (let [conf (override-login-config-with-system-property (read-storm-config))]
     (PacemakerServer. (mk-handler conf) conf)))
 
 (defn -main []
