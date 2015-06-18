@@ -18,11 +18,13 @@
   (:import [org.apache.storm.pacemaker PacemakerServer IServerMessageHandler]
            [java.util.concurrent ConcurrentHashMap ThreadPoolExecutor TimeUnit LinkedBlockingDeque]
            [java.util.concurrent.atomic AtomicInteger]
+           [java.util Date]
            [backtype.storm.generated
             HBAuthorizationException HBExecutionException HBNodes HBRecords
             HBServerMessageType HBMessage HBMessageData HBPulse])
   (:use [clojure.string :only [replace-first split]]
         [backtype.storm log config util])
+  (:require [clojure.java.jmx :as jmx])
   (:gen-class))
 
 ;; This is the old Thrift service that this server is emulating.
@@ -35,11 +37,12 @@
 ;  void deletePath(1: string idPrefix) throws (1: HBExecutionException e, 2: HBAuthorizationException aze);
 ;  void deletePulseId(1: string id) throws (1: HBExecutionException e, 2: HBAuthorizationException aze);
 
+
 ;; Stats Functions
 
 (def sleep-seconds 5)
 
-(defn check-largest [stats size]
+(defn- check-largest [stats size]
   (loop []
     (let [largest (.get (:largest stats))]
       (if (> size largest)
@@ -48,14 +51,24 @@
           (recur))
         nil))))
 
-(defn- report-stats [stats]
+(defn- report-stats [stats last-five]
   (loop []
       (let [count (.getAndSet (:count stats) 0)
             largest (.getAndSet (:largest stats) 0)]
-        (log-message "Received " count " heartbeats in the last " sleep-seconds " second(s) with maximum size of " largest " bytes."))
-    (Thread/sleep (* 1000 sleep-seconds))
-    (recur)))
+        (log-message "Received " count " heartbeats in the last " sleep-seconds " second(s) with maximum size of " largest " bytes.")
+        (dosync (ref-set last-five {:count count :largest largest})))
+      (Thread/sleep (* 1000 sleep-seconds))
+      (recur)))
 
+;; JMX stuff
+
+;(def last-five (ref {:count 0 :largest 0}))
+(defn- register [last-five]
+  (jmx/register-mbean
+   (jmx/create-bean
+    last-five)
+   "org.apache.storm.pacemaker.pacemaker:stats=Stats"))
+  
 ;; Pacemaker Functions
 
 (defn hb-data [conf]
@@ -119,9 +132,11 @@
   (let [heartbeats ^ConcurrentHashMap (hb-data conf)
         pacemaker-stats {:count (AtomicInteger.)
                          :largest (AtomicInteger.)}
-        stats-thread (Thread. (fn [] (report-stats pacemaker-stats)))]
+        last-five (ref {:count 0 :largest 0})
+        stats-thread (Thread. (fn [] (report-stats pacemaker-stats last-five)))]
     (.setDaemon stats-thread true)
     (.start stats-thread)
+    (register last-five)
     (reify
       IServerMessageHandler
       (^HBMessage handleMessage [this ^HBMessage request ^boolean authenticated]
