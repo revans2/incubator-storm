@@ -17,6 +17,7 @@
 (ns org.apache.storm.pacemaker.pacemaker
   (:import [org.apache.storm.pacemaker PacemakerServer IServerMessageHandler]
            [java.util.concurrent ConcurrentHashMap ThreadPoolExecutor TimeUnit LinkedBlockingDeque]
+           [java.util.concurrent.atomic AtomicInteger]
            [backtype.storm.generated
             HBAuthorizationException HBExecutionException HBNodes HBRecords
             HBServerMessageType HBMessage HBMessageData HBPulse])
@@ -34,6 +35,29 @@
 ;  void deletePath(1: string idPrefix) throws (1: HBExecutionException e, 2: HBAuthorizationException aze);
 ;  void deletePulseId(1: string id) throws (1: HBExecutionException e, 2: HBAuthorizationException aze);
 
+;; Stats Functions
+
+(def sleep-seconds 5)
+
+(defn check-largest [stats size]
+  (loop []
+    (let [largest (.get (:largest stats))]
+      (if (> size largest)
+        (if (.compareAndSet (:largest stats) largest size)
+          nil
+          (recur))
+        nil))))
+
+(defn- report-stats [stats]
+  (loop []
+      (let [count (.getAndSet (:count stats) 0)
+            largest (.getAndSet (:largest stats) 0)]
+        (log-message "Received " count " heartbeats in the last " sleep-seconds " second(s) with maximum size of " largest " bytes."))
+    (Thread/sleep (* 1000 sleep-seconds))
+    (recur)))
+
+;; Pacemaker Functions
+
 (defn hb-data [conf]
   (ConcurrentHashMap.))
 
@@ -46,10 +70,12 @@
     (HBMessage. HBServerMessageType/EXISTS_RESPONSE
                 (HBMessageData/boolval it-does))))
 
-(defn send-pulse [^HBPulse pulse heartbeats]
+(defn send-pulse [^HBPulse pulse heartbeats pacemaker-stats]
   (let [id (.get_id pulse)
         details (.get_details pulse)]
     (log-debug (str "Saving Pulse for id [" id "] data [" + (str details) "]."))
+    (.incrementAndGet (:count pacemaker-stats))
+    (check-largest pacemaker-stats (alength details))
     (.put heartbeats id details)
     (HBMessage. HBServerMessageType/SEND_PULSE_RESPONSE nil)))
 
@@ -90,11 +116,15 @@
   (HBMessage. HBServerMessageType/NOT_AUTHORIZED nil))
 
 (defn mk-handler [conf]
-  (let [heartbeats ^ConcurrentHashMap (hb-data conf)]
+  (let [heartbeats ^ConcurrentHashMap (hb-data conf)
+        pacemaker-stats {:count (AtomicInteger.)
+                         :largest (AtomicInteger.)}
+        stats-thread (Thread. (fn [] (report-stats pacemaker-stats)))]
+    (.setDaemon stats-thread true)
+    (.start stats-thread)
     (reify
       IServerMessageHandler
       (^HBMessage handleMessage [this ^HBMessage request ^boolean authenticated]
-        (log-message "Handling Message")
         (let [response
               (condp = (.get_type request)
                 HBServerMessageType/CREATE_PATH
@@ -106,7 +136,7 @@
                   (not-authorized))
 
                 HBServerMessageType/SEND_PULSE
-                (send-pulse (.get_pulse (.get_data request)) heartbeats)
+                (send-pulse (.get_pulse (.get_data request)) heartbeats pacemaker-stats)
 
                 HBServerMessageType/GET_ALL_PULSE_FOR_PATH
                 (if authenticated
@@ -131,7 +161,7 @@
 
                 ; Otherwise
                 (log-message "Got Unexpected Type: " (.get_type request)))]
-          
+
           (.set_message_id response (.get_message_id request))
           response)))))
 
