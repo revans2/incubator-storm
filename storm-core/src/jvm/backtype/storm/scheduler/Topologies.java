@@ -18,6 +18,7 @@
 package backtype.storm.scheduler;
 
 import backtype.storm.scheduler.resource.RAS_Component;
+import backtype.storm.scheduler.resource.RAS_TYPES;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
