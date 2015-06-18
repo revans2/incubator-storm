@@ -161,6 +161,7 @@
         <module>external/storm-kafka</module>
         <module>external/storm-hdfs</module>
         <module>storm-pacemaker</module>
+        <module>storm-yahoo</module>
     </modules>
 
     <scm>

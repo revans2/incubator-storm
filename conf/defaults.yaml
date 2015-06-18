@@ -174,6 +174,8 @@ storm.messaging.netty.transfer.batch.size: 262144
 # We check with this interval that whether the Netty channel is writable and try to write pending messages if it is.
 storm.messaging.netty.flush.check.interval.ms: 10
 
+storm.network.topography.plugin: backtype.storm.networktopography.DefaultRackDNSToSwitchMapping
+
 # default number of seconds group mapping service will cache user group
 storm.group.mapping.service.cache.duration.secs: 120
 # By default, the Netty SASL authentication is set to false.  Users can override and set it true for a specific topology.
