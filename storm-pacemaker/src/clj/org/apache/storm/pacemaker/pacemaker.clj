@@ -61,7 +61,7 @@
       (recur)))
 
 ;; JMX stuff
-(defn- register [last-five]
+(defn register [last-five]
   (jmx/register-mbean
    (jmx/create-bean
     last-five)
