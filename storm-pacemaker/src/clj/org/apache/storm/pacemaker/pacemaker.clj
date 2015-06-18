@@ -67,7 +67,7 @@
   (jmx/register-mbean
    (jmx/create-bean
     last-five)
-   "org.apache.storm.pacemaker.pacemaker:stats=Stats"))
+   "org.apache.storm.pacemaker.pacemaker:stats=Stats_Last_5_Seconds"))
   
 ;; Pacemaker Functions
 
