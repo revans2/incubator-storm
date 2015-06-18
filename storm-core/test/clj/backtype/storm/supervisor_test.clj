@@ -284,14 +284,17 @@
                                 mock-storm-id
                                 mock-port
                                 mock-worker-id]))]
-      (testing "testing *.worker.childopts as strings with extra spaces"
+      (.mkdirs (io/file "/tmp/workers" mock-worker-id))
+      (try
+       (testing "testing *.worker.childopts as strings with extra spaces"
         (let [string-opts "-Dfoo=bar  -Xmx1024m"
               topo-string-opts "-Dkau=aux   -Xmx2048m"
               exp-args (exp-args-fn ["-Dfoo=bar" "-Xmx1024m"]
                                     ["-Dkau=aux" "-Xmx2048m"]
                                     mock-cp)
               mock-supervisor {:conf {STORM-CLUSTER-MODE :distributed
-                                      WORKER-CHILDOPTS string-opts}}]
+                                      WORKER-CHILDOPTS string-opts
+                                      STORM-LOCAL-DIR "/tmp"}}]
           (stubbing [read-supervisor-storm-conf {TOPOLOGY-WORKER-CHILDOPTS
                                                    topo-string-opts}
                      add-to-classpath mock-cp
@@ -308,12 +311,16 @@
             (verify-first-call-args-for-indices launch-process
                                                 [0]
                                                 exp-args))))
-      (testing "testing *.worker.childopts as list of strings, with spaces in values"
+        (finally (rmr "/tmp/workers")))
+      (.mkdirs (io/file "/tmp/workers" mock-worker-id))
+      (try
+       (testing "testing *.worker.childopts as list of strings, with spaces in values"
         (let [list-opts '("-Dopt1='this has a space in it'" "-Xmx1024m")
               topo-list-opts '("-Dopt2='val with spaces'" "-Xmx2048m")
               exp-args (exp-args-fn list-opts topo-list-opts mock-cp)
               mock-supervisor {:conf {STORM-CLUSTER-MODE :distributed
-                                      WORKER-CHILDOPTS list-opts}}]
+                                      WORKER-CHILDOPTS list-opts
+                                      STORM-LOCAL-DIR "/tmp"}}]
           (stubbing [read-supervisor-storm-conf {TOPOLOGY-WORKER-CHILDOPTS
                                                    topo-list-opts}
                      add-to-classpath mock-cp
@@ -330,10 +337,14 @@
             (verify-first-call-args-for-indices launch-process
                                                 [0]
                                                 exp-args))))
-      (testing "testing topology.classpath is added to classpath"
+        (finally (rmr "/tmp/workers")))
+      (.mkdirs (io/file "/tmp/workers" mock-worker-id))
+      (try
+       (testing "testing topology.classpath is added to classpath"
         (let [topo-cp "/any/path"
               exp-args (exp-args-fn [] [] (add-to-classpath mock-cp [topo-cp]))
-              mock-supervisor {:conf {STORM-CLUSTER-MODE :distributed}}]
+              mock-supervisor {:conf {STORM-CLUSTER-MODE :distributed
+                                      STORM-LOCAL-DIR "/tmp"}}]
           (stubbing [read-supervisor-storm-conf {TOPOLOGY-CLASSPATH topo-cp}
                      supervisor-stormdist-root nil
                      supervisor/jlp nil
@@ -348,10 +359,14 @@
                     (verify-first-call-args-for-indices launch-process
                                                         [0]
                                                         exp-args))))
-      (testing "testing topology.environment is added to environment for worker launch"
+        (finally (rmr "/tmp/workers")))
+      (.mkdirs (io/file "/tmp/workers" mock-worker-id))
+      (try
+       (testing "testing topology.environment is added to environment for worker launch"
         (let [topo-env {"THISVAR" "somevalue" "THATVAR" "someothervalue"}
               exp-args (exp-args-fn [] [] mock-cp)
-              mock-supervisor {:conf {STORM-CLUSTER-MODE :distributed}}]
+              mock-supervisor {:conf {STORM-CLUSTER-MODE :distributed
+                                      STORM-LOCAL-DIR "/tmp"}}]
           (stubbing [read-supervisor-storm-conf {TOPOLOGY-ENVIRONMENT topo-env}
                      supervisor-stormdist-root nil
                      supervisor/jlp nil
@@ -365,7 +380,8 @@
                                               mock-worker-id)
                     (verify-first-call-args-for-indices launch-process
                                                         [2]
-                                                        (merge topo-env {"LD_LIBRARY_PATH" nil}))))))))
+                                                        (merge topo-env {"LD_LIBRARY_PATH" nil})))))
+        (finally (rmr "/tmp/workers"))))))
 
 (deftest test-worker-launch-command-run-as-user
   (testing "*.worker.childopts configuration"
