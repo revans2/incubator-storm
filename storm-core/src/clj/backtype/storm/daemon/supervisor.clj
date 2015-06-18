@@ -14,12 +14,12 @@
 ;; See the License for the specific language governing permissions and
 ;; limitations under the License.
 (ns backtype.storm.daemon.supervisor
-  (:import [java.io OutputStreamWriter BufferedWriter IOException]
-           [backtype.storm.scheduler.resource RAS_TYPES])
+  (:import [java.io OutputStreamWriter BufferedWriter IOException])
   (:import [java.util.concurrent Executors])
   (:import [java.nio.file Files Path Paths StandardCopyOption])
   (:import [backtype.storm.scheduler ISupervisor])
   (:import [backtype.storm.blobstore BlobStoreAclHandler])
+  (:import [backtype.storm Config])
   (:import [backtype.storm.localizer LocalResource])
   (:use [backtype.storm bootstrap local-state])
   (:use [backtype.storm.daemon common])
@@ -537,8 +537,8 @@
 
 (defn mk-supervisor-capacities
   [conf]
-  {RAS_TYPES/TYPE_MEMORY (conf SUPERVISOR-MEMORY-CAPACITY-MB)
-   RAS_TYPES/TYPE_CPU (conf SUPERVISOR-CPU-CAPACITY)})
+  {Config/SUPERVISOR_MEMORY_CAPACITY_MB (conf SUPERVISOR-MEMORY-CAPACITY-MB)
+   Config/SUPERVISOR_CPU_CAPACITY (conf SUPERVISOR-CPU-CAPACITY)})
 
 (defn setup-blob-permission [conf storm-conf path]
   (if (conf SUPERVISOR-RUN-WORKER-AS-USER)
@@ -885,9 +885,10 @@
                        (add-dead-worker worker-id))
             worker-dir (worker-root conf worker-id)]
         (remove-dead-worker worker-id)
-        (create-blobstore-links conf storm-id port worker-id)
         (if run-worker-as-user
-          (worker-launcher conf user ["worker" worker-dir (write-script worker-dir command :environment topology-worker-environment)] :log-prefix log-prefix :exit-code-callback callback :directory (File. worker-dir))
+          (do
+            (create-blobstore-links conf storm-id port worker-id)
+            (worker-launcher conf user ["worker" worker-dir (write-script worker-dir command :environment topology-worker-environment)] :log-prefix log-prefix :exit-code-callback callback :directory (File. worker-dir)))
           (launch-process command :environment topology-worker-environment :log-prefix log-prefix :exit-code-callback callback :directory (File. worker-dir))))))
 
 ;; local implementation

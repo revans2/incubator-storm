@@ -22,7 +22,8 @@
            [backtype.storm.topology TopologyBuilder])
   (:import [backtype.storm.scheduler Cluster SupervisorDetails WorkerSlot ExecutorDetails
             SchedulerAssignmentImpl Topologies TopologyDetails])
-  (:import [backtype.storm.scheduler.resource Node ResourceAwareScheduler RAS_TYPES]))
+  (:import [backtype.storm.scheduler.resource Node ResourceAwareScheduler])
+  (:import [backtype.storm Config]))
 
 (bootstrap)
 
@@ -32,8 +33,8 @@
                                        ;These mocked up IPs mimic the IP allocation scheme at Yahoo
                                        (str "10.216." (if (even? id) "7" "154") "." id)
                                        (list ) (map int (list 1 2 3 4))
-                                   {RAS_TYPES/TYPE_MEMORY 2000.0
-                                    RAS_TYPES/TYPE_CPU 400.0})]]
+                                   {Config/SUPERVISOR_MEMORY_CAPACITY_MB 2000.0
+                                    Config/SUPERVISOR_CPU_CAPACITY 400.0})]]
             {(.getId supervisor) supervisor})))
 
 (defn to-top-map [topologies]

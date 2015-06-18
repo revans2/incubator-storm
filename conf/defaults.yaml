@@ -221,11 +221,8 @@ topology.disable.loadaware.messaging: false
 topology.logging.sensitivity: "S3"
 
 # Configs for Resource Aware Scheduler
-topology.component.type.memory: "memory"
 topology.component.resources.onheap.memory.mb: 128.0
 topology.component.resources.offheap.memory.mb: 0.0
-topology.component.type.cpu: "cpu"
-topology.component.type.cpu.total: "total"
 topology.component.cpu.pcore.percent: 10.0
 
 client.blobstore.class: "backtype.storm.blobstore.NimbusBlobStore"
