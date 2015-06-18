@@ -29,8 +29,8 @@
 (defn gen-supervisors [count]
   (into {} (for [id (range count)
                 :let [supervisor (SupervisorDetails. (str "id" id)
-                                       ; At Yahoo, gsta411nXYZ are in one rack and gsta408nXYZ are in another
-                                       (str "gsta" (if (even? id) 411 108) "n" (+ 10 id) ".tan.ygrid.yahoo.com")
+                                       ;These mocked up IPs mimic the IP allocation scheme at Yahoo
+                                       (str "10.216." (if (even? id) "7" "154") "." id)
                                        (list ) (map int (list 1 2 3 4))
                                    {RAS_TYPES/TYPE_MEMORY 2000.0
                                     RAS_TYPES/TYPE_CPU 400.0})]]
