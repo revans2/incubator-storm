@@ -61,8 +61,6 @@
       (recur)))
 
 ;; JMX stuff
-
-;(def last-five (ref {:count 0 :largest 0}))
 (defn- register [last-five]
   (jmx/register-mbean
    (jmx/create-bean
