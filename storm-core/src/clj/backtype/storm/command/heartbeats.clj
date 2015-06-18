@@ -14,8 +14,12 @@
 ;; See the License for the specific language governing permissions and
 ;; limitations under the License.
 (ns backtype.storm.command.heartbeats
-  (:use [backtype.storm config log cluster converter]
-        [clojure string])
+  (:require [backtype.storm
+             [config :refer :all]
+             [log :refer :all]
+             [cluster :refer :all]
+             [converter :refer :all]]
+        [clojure.string :refer :all])
   (:import [backtype.storm.generated ClusterWorkerHeartbeat]
            [backtype.storm.utils Utils])
   (:gen-class))
@@ -37,7 +41,6 @@
            hb
            ClusterWorkerHeartbeat))
          "Nothing"))
-                      
       
       (log-message "Usage: heartbeats [list|get] path"))
     
