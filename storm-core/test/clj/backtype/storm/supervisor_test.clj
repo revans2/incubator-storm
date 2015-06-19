@@ -291,8 +291,7 @@
                                     ["-Dkau=aux" "-Xmx2048m"]
                                     mock-cp)
               mock-supervisor {:conf {STORM-CLUSTER-MODE :distributed
-                                      WORKER-CHILDOPTS string-opts
-                                      STORM-LOCAL-DIR "/tmp"}}]
+                                      WORKER-CHILDOPTS string-opts}}]
           (stubbing [read-supervisor-storm-conf {TOPOLOGY-WORKER-CHILDOPTS
                                                    topo-string-opts}
                      add-to-classpath mock-cp
@@ -316,8 +315,7 @@
               topo-list-opts '("-Dopt2='val with spaces'" "-Xmx2048m")
               exp-args (exp-args-fn list-opts topo-list-opts mock-cp)
               mock-supervisor {:conf {STORM-CLUSTER-MODE :distributed
-                                      WORKER-CHILDOPTS list-opts
-                                      STORM-LOCAL-DIR "/tmp"}}]
+                                      WORKER-CHILDOPTS list-opts}}]
           (stubbing [read-supervisor-storm-conf {TOPOLOGY-WORKER-CHILDOPTS
                                                    topo-list-opts}
                      add-to-classpath mock-cp
@@ -339,8 +337,7 @@
       (testing "testing topology.classpath is added to classpath"
         (let [topo-cp "/any/path"
               exp-args (exp-args-fn [] [] (add-to-classpath mock-cp [topo-cp]))
-              mock-supervisor {:conf {STORM-CLUSTER-MODE :distributed
-                                      STORM-LOCAL-DIR "/tmp"}}]
+              mock-supervisor {:conf {STORM-CLUSTER-MODE :distributed}}]
           (stubbing [read-supervisor-storm-conf {TOPOLOGY-CLASSPATH topo-cp}
                      supervisor-stormdist-root nil
                      supervisor/jlp nil
@@ -360,8 +357,7 @@
       (testing "testing topology.environment is added to environment for worker launch"
         (let [topo-env {"THISVAR" "somevalue" "THATVAR" "someothervalue"}
               exp-args (exp-args-fn [] [] mock-cp)
-              mock-supervisor {:conf {STORM-CLUSTER-MODE :distributed
-                                      STORM-LOCAL-DIR "/tmp"}}]
+              mock-supervisor {:conf {STORM-CLUSTER-MODE :distributed}}]
           (stubbing [read-supervisor-storm-conf {TOPOLOGY-ENVIRONMENT topo-env}
                      supervisor-stormdist-root nil
                      supervisor/jlp nil
