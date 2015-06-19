@@ -300,7 +300,8 @@
                      set-worker-user! nil
                      supervisor/jlp nil
                      worker-artifacts-root "/tmp/workers-artifacts"
-                     supervisor/write-log-metadata! nil]
+                     supervisor/write-log-metadata! nil
+                     supervisor/create-blobstore-links nil]
             (supervisor/launch-worker mock-supervisor
                                       mock-storm-id
                                       mock-port
@@ -322,7 +323,8 @@
                      set-worker-user! nil
                      supervisor/jlp nil
                      worker-artifacts-root "/tmp/workers-artifacts"
-                     supervisor/write-log-metadata! nil]
+                     supervisor/write-log-metadata! nil
+                     supervisor/create-blobstore-links nil]
             (supervisor/launch-worker mock-supervisor
                                       mock-storm-id
                                       mock-port
@@ -340,7 +342,8 @@
                      worker-artifacts-root "/tmp/workers-artifacts"
                      launch-process nil
                      set-worker-user! nil
-                     current-classpath "/base"]
+                     current-classpath "/base"
+                     supervisor/create-blobstore-links nil]
                     (supervisor/launch-worker mock-supervisor
                                               mock-storm-id
                                               mock-port
@@ -358,7 +361,8 @@
                      worker-artifacts-root "/tmp/workers-artifacts"
                      launch-process nil
                      set-worker-user! nil
-                     current-classpath "/base"]
+                     current-classpath "/base"
+                     supervisor/create-blobstore-links nil]
                     (supervisor/launch-worker mock-supervisor
                                               mock-storm-id
                                               mock-port
