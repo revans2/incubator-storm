@@ -44,19 +44,19 @@
 
 (defn- check-largest [stats size]
   (loop []
-    (let [largest (.get (:largest stats))]
+    (let [largest (.get (:largest-heartbeat-size stats))]
       (if (> size largest)
-        (if (.compareAndSet (:largest stats) largest size)
+        (if (.compareAndSet (:largest-heartbeat-size stats) largest size)
           nil
           (recur))
         nil))))
 
 (defn- report-stats [stats last-five]
   (loop []
-      (let [count (.getAndSet (:count stats) 0)
-            largest (.getAndSet (:largest stats) 0)]
+      (let [count (.getAndSet (:pulse-count stats) 0)
+            largest (.getAndSet (:largest-heartbeat-size stats) 0)]
         (log-message "Received " count " heartbeats in the last " sleep-seconds " second(s) with maximum size of " largest " bytes.")
-        (dosync (ref-set last-five {:count count :largest largest})))
+        (dosync (ref-set last-five {:pulse-count count :largest-heartbeat-size largest})))
       (Thread/sleep (* 1000 sleep-seconds))
       (recur)))
 
@@ -85,7 +85,7 @@
   (let [id (.get_id pulse)
         details (.get_details pulse)]
     (log-debug (str "Saving Pulse for id [" id "] data [" + (str details) "]."))
-    (.incrementAndGet (:count pacemaker-stats))
+    (.incrementAndGet (:pulse-count pacemaker-stats))
     (check-largest pacemaker-stats (alength details))
     (.put heartbeats id details)
     (HBMessage. HBServerMessageType/SEND_PULSE_RESPONSE nil)))
@@ -128,9 +128,9 @@
 
 (defn mk-handler [conf]
   (let [heartbeats ^ConcurrentHashMap (hb-data conf)
-        pacemaker-stats {:count (AtomicInteger.)
-                         :largest (AtomicInteger.)}
-        last-five (ref {:count 0 :largest 0})
+        pacemaker-stats {:pulse-count (AtomicInteger.)
+                         :largest-heartbeat-size (AtomicInteger.)}
+        last-five (ref {:pulse-count 0 :largest-heartbeat-size 0})
         stats-thread (Thread. (fn [] (report-stats pacemaker-stats last-five)))]
     (.setDaemon stats-thread true)
     (.start stats-thread)
