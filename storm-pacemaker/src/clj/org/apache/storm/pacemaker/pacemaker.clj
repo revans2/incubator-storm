@@ -42,31 +42,69 @@
 
 (def sleep-seconds 5)
 
-(defn- check-largest [stats size]
+
+(defn- check-and-set-loop [stats key new & {:keys [compare new-fn]
+                                            :or {compare (fn [new old] true)
+                                                 new-fn (fn [new old] new)}}]
   (loop []
-    (let [largest (.get (:largest-heartbeat-size stats))]
-      (if (> size largest)
-        (if (.compareAndSet (:largest-heartbeat-size stats) largest size)
+    (let [old (.get (key stats))
+          new (new-fn new old)]
+      (if (compare new old)
+        (if (.compareAndSet (key stats) old new)
           nil
           (recur))
         nil))))
 
-(defn- report-stats [stats last-five]
+(defn- set-average [stats size]
+  (check-and-set-loop
+   stats
+   :average-heartbeat-size
+   size
+   :new-fn (fn [new old]
+            (let [count (.get (:send-pulse-count stats))]
+                                        ; Weighted average
+              (/ (+ new (* count old)) (+ count 1))))))
+
+(defn- set-largest [stats size]
+  (check-and-set-loop
+   stats
+   :largest-heartbeat-size
+   size
+   :compare #'>))
+
+(defn- report-stats [heartbeats stats last-five-s]
   (loop []
-      (let [count (.getAndSet (:pulse-count stats) 0)
-            largest (.getAndSet (:largest-heartbeat-size stats) 0)]
-        (log-message "Received " count " heartbeats in the last " sleep-seconds " second(s) with maximum size of " largest " bytes.")
-        (dosync (ref-set last-five {:pulse-count count :largest-heartbeat-size largest})))
+      (let [send-count (.getAndSet (:send-pulse-count stats) 0)
+            received-size (.getAndSet (:total-received-size stats) 0)
+            get-count (.getAndSet (:get-pulse-count stats) 0)
+            sent-size (.getAndSet (:total-sent-size stats) 0)
+            largest (.getAndSet (:largest-heartbeat-size stats) 0)
+            average (.getAndSet (:average-heartbeat-size stats) 0)
+            total-keys (.size heartbeats)]
+        (log-message "\nReceived " send-count " heartbeats totaling " received-size " bytes,\n"
+                     "Sent " get-count " heartbeats totaling " sent-size " bytes,\n"
+                     "The largest heartbeat was " largest " bytes,\n"
+                     "The average heartbeat was " average " bytes,\n"
+                     "Pacemaker contained " total-keys " total keys\n"
+                     "in the last " sleep-seconds " second(s)")
+        (dosync (ref-set last-five-s
+                         {:send-pulse-count send-count
+                          :total-received-size received-size
+                          :get-pulse-count get-count
+                          :total-sent-size sent-size
+                          :largest-heartbeat-size largest
+                          :average-heartbeat-size average
+                          :total-keys total-keys})))
       (Thread/sleep (* 1000 sleep-seconds))
       (recur)))
 
 ;; JMX stuff
-(defn register [last-five]
+(defn register [last-five-s]
   (jmx/register-mbean
    (jmx/create-bean
-    last-five)
+    last-five-s)
    "org.apache.storm.pacemaker.pacemaker:stats=Stats_Last_5_Seconds"))
-  
+
 ;; Pacemaker Functions
 
 (defn hb-data [conf]
@@ -85,8 +123,12 @@
   (let [id (.get_id pulse)
         details (.get_details pulse)]
     (log-debug (str "Saving Pulse for id [" id "] data [" + (str details) "]."))
-    (.incrementAndGet (:pulse-count pacemaker-stats))
-    (check-largest pacemaker-stats (alength details))
+
+    (.incrementAndGet (:send-pulse-count pacemaker-stats))
+    (.addAndGet (:total-received-size pacemaker-stats) (alength details))
+    (set-largest pacemaker-stats (alength details))
+    (set-average pacemaker-stats (alength details))
+
     (.put heartbeats id details)
     (HBMessage. HBServerMessageType/SEND_PULSE_RESPONSE nil)))
 
@@ -106,9 +148,15 @@
                                                 (= (.indexOf k path) 0))]
                                      trimmed-k))))))
 
-(defn get-pulse [^String path heartbeats]
+(defn get-pulse [^String path heartbeats pacemaker-stats]
   (let [details (.get heartbeats path)]
     (log-debug (str "Getting Pulse for path [" path "]...data " (str details) "]."))
+
+
+    (.incrementAndGet (:get-pulse-count pacemaker-stats))
+    (if details
+      (.addAndGet (:total-sent-size pacemaker-stats) (alength details)))
+
     (HBMessage. HBServerMessageType/GET_PULSE_RESPONSE
                 (HBMessageData/pulse
                  (doto (HBPulse. ) (.set_id path) (.set_details details))))))
@@ -130,10 +178,20 @@
 
 (defn mk-handler [conf]
   (let [heartbeats ^ConcurrentHashMap (hb-data conf)
-        pacemaker-stats {:pulse-count (AtomicInteger.)
-                         :largest-heartbeat-size (AtomicInteger.)}
-        last-five (ref {:pulse-count 0 :largest-heartbeat-size 0})
-        stats-thread (Thread. (fn [] (report-stats pacemaker-stats last-five)))]
+        pacemaker-stats {:send-pulse-count (AtomicInteger.)
+                         :total-received-size (AtomicInteger.)
+                         :get-pulse-count (AtomicInteger.)
+                         :total-sent-size (AtomicInteger.)
+                         :largest-heartbeat-size (AtomicInteger.)
+                         :average-heartbeat-size (AtomicInteger.)}
+        last-five (ref {:send-pulse-count 0
+                        :total-received-size 0
+                        :get-pulse-count 0
+                        :total-sent-size 0
+                        :largest-heartbeat-size 0
+                        :average-heartbeat-size 0
+                        :total-keys 0})
+        stats-thread (Thread. (fn [] (report-stats heartbeats pacemaker-stats last-five)))]
     (.setDaemon stats-thread true)
     (.start stats-thread)
     (register last-five)
@@ -165,7 +223,7 @@
 
                 HBServerMessageType/GET_PULSE
                 (if authenticated
-                  (get-pulse (.get_path (.get_data request)) heartbeats)
+                  (get-pulse (.get_path (.get_data request)) heartbeats pacemaker-stats)
                   (not-authorized))
 
                 HBServerMessageType/DELETE_PATH
