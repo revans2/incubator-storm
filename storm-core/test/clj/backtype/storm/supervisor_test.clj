@@ -301,8 +301,7 @@
                      supervisor/jlp nil
                      worker-artifacts-root "/tmp/workers-artifacts"
                      supervisor/write-log-metadata! nil
-                     supervisor/create-blobstore-links nil
-                     supervisor/worker-launcher nil]
+                     supervisor/create-blobstore-links nil]
             (supervisor/launch-worker mock-supervisor
                                       mock-storm-id
                                       mock-port
@@ -325,8 +324,7 @@
                      supervisor/jlp nil
                      worker-artifacts-root "/tmp/workers-artifacts"
                      supervisor/write-log-metadata! nil
-                     supervisor/create-blobstore-links nil
-                     supervisor/worker-launcher nil]
+                     supervisor/create-blobstore-links nil]
             (supervisor/launch-worker mock-supervisor
                                       mock-storm-id
                                       mock-port
@@ -345,8 +343,7 @@
                      launch-process nil
                      set-worker-user! nil
                      current-classpath "/base"
-                     supervisor/create-blobstore-links nil
-                     supervisor/worker-launcher nil]
+                     supervisor/create-blobstore-links nil]
                     (supervisor/launch-worker mock-supervisor
                                               mock-storm-id
                                               mock-port
@@ -365,8 +362,7 @@
                      launch-process nil
                      set-worker-user! nil
                      current-classpath "/base"
-                     supervisor/create-blobstore-links nil
-                     supervisor/worker-launcher nil]
+                     supervisor/create-blobstore-links nil]
                     (supervisor/launch-worker mock-supervisor
                                               mock-storm-id
                                               mock-port
