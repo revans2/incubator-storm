@@ -17,11 +17,14 @@
 (ns org.apache.storm.pacemaker.pacemaker
   (:import [org.apache.storm.pacemaker PacemakerServer IServerMessageHandler]
            [java.util.concurrent ConcurrentHashMap ThreadPoolExecutor TimeUnit LinkedBlockingDeque]
+           [java.util.concurrent.atomic AtomicInteger]
+           [java.util Date]
            [backtype.storm.generated
             HBAuthorizationException HBExecutionException HBNodes HBRecords
             HBServerMessageType HBMessage HBMessageData HBPulse])
   (:use [clojure.string :only [replace-first split]]
         [backtype.storm log config util])
+  (:require [clojure.java.jmx :as jmx])
   (:gen-class))
 
 ;; This is the old Thrift service that this server is emulating.
@@ -33,6 +36,38 @@
 ;  Pulse getPulse(1: string id) throws (1: HBExecutionException e, 2: HBAuthorizationException aze);
 ;  void deletePath(1: string idPrefix) throws (1: HBExecutionException e, 2: HBAuthorizationException aze);
 ;  void deletePulseId(1: string id) throws (1: HBExecutionException e, 2: HBAuthorizationException aze);
+
+
+;; Stats Functions
+
+(def sleep-seconds 5)
+
+(defn- check-largest [stats size]
+  (loop []
+    (let [largest (.get (:largest-heartbeat-size stats))]
+      (if (> size largest)
+        (if (.compareAndSet (:largest-heartbeat-size stats) largest size)
+          nil
+          (recur))
+        nil))))
+
+(defn- report-stats [stats last-five]
+  (loop []
+      (let [count (.getAndSet (:pulse-count stats) 0)
+            largest (.getAndSet (:largest-heartbeat-size stats) 0)]
+        (log-message "Received " count " heartbeats in the last " sleep-seconds " second(s) with maximum size of " largest " bytes.")
+        (dosync (ref-set last-five {:pulse-count count :largest-heartbeat-size largest})))
+      (Thread/sleep (* 1000 sleep-seconds))
+      (recur)))
+
+;; JMX stuff
+(defn register [last-five]
+  (jmx/register-mbean
+   (jmx/create-bean
+    last-five)
+   "org.apache.storm.pacemaker.pacemaker:stats=Stats_Last_5_Seconds"))
+  
+;; Pacemaker Functions
 
 (defn hb-data [conf]
   (ConcurrentHashMap.))
@@ -46,10 +81,12 @@
     (HBMessage. HBServerMessageType/EXISTS_RESPONSE
                 (HBMessageData/boolval it-does))))
 
-(defn send-pulse [^HBPulse pulse heartbeats]
+(defn send-pulse [^HBPulse pulse heartbeats pacemaker-stats]
   (let [id (.get_id pulse)
         details (.get_details pulse)]
     (log-debug (str "Saving Pulse for id [" id "] data [" + (str details) "]."))
+    (.incrementAndGet (:pulse-count pacemaker-stats))
+    (check-largest pacemaker-stats (alength details))
     (.put heartbeats id details)
     (HBMessage. HBServerMessageType/SEND_PULSE_RESPONSE nil)))
 
@@ -92,11 +129,17 @@
   (HBMessage. HBServerMessageType/NOT_AUTHORIZED nil))
 
 (defn mk-handler [conf]
-  (let [heartbeats ^ConcurrentHashMap (hb-data conf)]
+  (let [heartbeats ^ConcurrentHashMap (hb-data conf)
+        pacemaker-stats {:pulse-count (AtomicInteger.)
+                         :largest-heartbeat-size (AtomicInteger.)}
+        last-five (ref {:pulse-count 0 :largest-heartbeat-size 0})
+        stats-thread (Thread. (fn [] (report-stats pacemaker-stats last-five)))]
+    (.setDaemon stats-thread true)
+    (.start stats-thread)
+    (register last-five)
     (reify
       IServerMessageHandler
       (^HBMessage handleMessage [this ^HBMessage request ^boolean authenticated]
-        (log-message "Handling Message")
         (let [response
               (condp = (.get_type request)
                 HBServerMessageType/CREATE_PATH
@@ -108,7 +151,7 @@
                   (not-authorized))
 
                 HBServerMessageType/SEND_PULSE
-                (send-pulse (.get_pulse (.get_data request)) heartbeats)
+                (send-pulse (.get_pulse (.get_data request)) heartbeats pacemaker-stats)
 
                 HBServerMessageType/GET_ALL_PULSE_FOR_PATH
                 (if authenticated
@@ -133,7 +176,7 @@
 
                 ; Otherwise
                 (log-message "Got Unexpected Type: " (.get_type request)))]
-          
+
           (.set_message_id response (.get_message_id request))
           response)))))
 
