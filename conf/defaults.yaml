@@ -229,7 +229,7 @@ topology.component.type.cpu.total: "total"
 topology.component.cpu.pcore.percent: 10.0
 
 client.blobstore.class: "backtype.storm.blobstore.NimbusBlobStore"
-blobstore.superuser: "nobody"
+# blobstore.superuser: "nobody"
 
 dev.zookeeper.path: "/tmp/dev-storm-zookeeper"
 
