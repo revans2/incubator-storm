@@ -866,6 +866,7 @@
                      (str "-Dstorm.id=" storm-id)
                      (str "-Dworker.id=" worker-id)
                      (str "-Dworker.port=" port)
+                     (str "-Dstorm.local.dir=" (conf STORM-LOCAL-DIR))
                      "-cp" classpath
                      "backtype.storm.daemon.worker"
                      storm-id
@@ -944,7 +945,8 @@
       ))
 
 (defn -launch [supervisor]
-  (let [conf (read-storm-config)]
+  (let [conf (read-storm-config)
+        conf (assoc conf STORM-LOCAL-DIR (. (File. (conf STORM-LOCAL-DIR)) getCanonicalPath))]
     (validate-distributed-mode! conf)
     (mk-supervisor conf nil supervisor)))
 
