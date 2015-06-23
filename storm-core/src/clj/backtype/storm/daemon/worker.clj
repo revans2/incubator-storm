@@ -641,7 +641,10 @@
   (fn [] (halt-process! 1 "Worker died")))
 
 (defn -main [storm-id assignment-id port-str worker-id]  
-  (let [conf (read-storm-config)]
+  (let [conf (read-storm-config)
+        conf (if-let [storm-local-dir (System/getProperty STORM-LOCAL-DIR)]
+               (assoc conf STORM-LOCAL-DIR storm-local-dir)
+               conf)]
     (setup-default-uncaught-exception-handler)
     (validate-distributed-mode! conf)
     (mk-worker conf nil storm-id assignment-id (Integer/parseInt port-str) worker-id)))
