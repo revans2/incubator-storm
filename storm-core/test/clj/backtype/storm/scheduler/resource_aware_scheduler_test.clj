@@ -308,7 +308,7 @@
                                   (.getAssignments cluster)
                                   {STORM-NETWORK-TOPOGRAPHY-PLUGIN
                                    "backtype.storm.networktopography.DefaultRackDNSToSwitchMapping"})
-            _ (.schedule scheduler topologies new-cluster) ;; essentially, the actual schedule for this topo will not run since it is fully assigned
+            _ (.schedule scheduler topologies new-cluster) ;; the actual schedule for this topo will not run since it is fully assigned
             new-assignment (.getAssignmentById new-cluster "topology1")
             new-ed->slot (.getExecutorToSlot new-assignment)]
         (doseq [ed existing-eds]
