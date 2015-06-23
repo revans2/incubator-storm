@@ -93,5 +93,4 @@ public abstract class AbstractDNSToSwitchMapping
     }
     return builder.toString();
   }
-
 }

@@ -102,24 +102,41 @@ public class CachedDNSToSwitchMapping extends AbstractDNSToSwitchMapping {
   }
 
   @Override
-  public List<String> resolve(List<String> names) {
+  public Map<String,String> resolve(List<String> names) {
     // normalize all input names to be in the form of IP addresses
     names = normalizeHostNames(names);
 
-    List <String> result = new ArrayList<String>(names.size());
+    Map<String,String> result = new HashMap();
+    Map<String,String> result = new HashMap<>();
     if (names.isEmpty()) {
       return result;
     }
 
+    // returns a subset of the hostnames provided whose value in the cache is null.
+    // getUncachedHosts assumes every "names" provided will be present in the cache otherwise will cause NullPointerException.
     List<String> uncachedHosts = getUncachedHosts(names);
+    Map<String, String> resolvedUncachedHosts = rawMapping.resolve(uncachedHosts);
+    // update the cache
+    cache.putAll(resolvedUncachedHosts);
+//    = new ArrayList<String>(rawMapping.resolve(uncachedHosts).keySet());
 
-    // Resolve the uncached hosts
-    List<String> resolvedHosts = rawMapping.resolve(uncachedHosts);
-    //cache them
-    cacheResolvedHosts(uncachedHosts, resolvedHosts);
-    //now look up the entire list in the cache
-    return getCachedHosts(names);
+    for (int i = 0; i < resolvedUncachedHosts.size(); i++){
+      resolvedHosts.add(resolvedUncachedHosts.get(uncachedHosts.get(i)));
+    }
 
+    List<String> resolvedHostsFromCache = getCachedHosts(names);
+      result.put(names.get(i), resolvedHostsFromCache.get(i));
+    }
+    return result;
+//    return getCachedHosts(names);
+
+    // query the cache for all the hostnames provided
+    for (String host : names){
+      result.put(host, cache.get(host));
+    }
+
+    // return map of resolved hosts to network paths.
+    return result;
   }
 
   /**

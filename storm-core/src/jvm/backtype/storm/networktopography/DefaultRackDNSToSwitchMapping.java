@@ -1,7 +1,7 @@
 package backtype.storm.networktopography;
 
+import java.util.HashMap;
 import java.util.List;
-import java.util.ArrayList;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -18,15 +18,15 @@ public final class DefaultRackDNSToSwitchMapping extends CachedDNSToSwitchMappin
     }
 
     @Override
-    public List<String> resolve(List<String> names) {
+    public Map<String,String> resolve(List<String> names) {
 
-        List <String> m = new ArrayList<String>(names.size());
+        Map<String, String> m = new HashMap<>();
         if (names.isEmpty()) {
-            //name list is empty, return an empty list
+            //name list is empty, return an empty map
             return m;
         }
         for (String name : names) {
-            m.add(DEFAULT_RACK);
+            m.put(name, DEFAULT_RACK);
             mappingCache.put(name, DEFAULT_RACK);
         }
         return m;

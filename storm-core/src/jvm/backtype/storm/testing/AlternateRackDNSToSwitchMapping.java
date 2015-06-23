@@ -3,7 +3,7 @@ package backtype.storm.testing;
 import backtype.storm.networktopography.CachedDNSToSwitchMapping;
 import backtype.storm.networktopography.DNSToSwitchMapping;
 
-import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -21,22 +21,22 @@ public final class AlternateRackDNSToSwitchMapping extends CachedDNSToSwitchMapp
     }
 
     @Override
-    public List<String> resolve(List<String> names) {
+    public Map<String, String> resolve(List<String> names) {
 
-        List <String> m = new ArrayList<String>(names.size());
+        Map <String, String> m = new HashMap<String, String>();
         if (names.isEmpty()) {
-            //name list is empty, return an empty list
+            //name list is empty, return an empty map
             return m;
         }
 
         Boolean odd = true;
         for (String name : names) {
             if (odd) {
-                m.add("RACK1");
+                m.put(name, "RACK1");
                 mappingCache.put(name, "RACK1");
                 odd = false;
             } else {
-                m.add("RACK2");
+                m.put(name, "RACK2");
                 mappingCache.put(name, "RACK2");
                 odd = true;
             }
