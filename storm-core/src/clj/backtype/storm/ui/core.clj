@@ -134,10 +134,17 @@
   (let [ret (group-by #(.get_component_id ^ExecutorSummary %) summs)]
     (into (sorted-map) ret )))
 
-(defn worker-log-link [host port topology-id]
+(defn worker-log-link [host port topology-id secure?]
   (let [fname (logs-filename topology-id port)]
-    (url-format (str "http://%s:%s/log?file=%s")
-          host (*STORM-CONF* LOGVIEWER-PORT) fname)))
+    (if secure?
+      (url-format "https://%s:%s/log?file=%s"
+                  host
+                  (*STORM-CONF* LOGVIEWER-HTTPS-PORT)
+                  fname)
+      (url-format "http://%s:%s/log?file=%s"
+                  host
+                  (*STORM-CONF* LOGVIEWER-PORT)
+                  fname))))
 
 (defn stats-times
   [stats-map]
@@ -553,10 +560,10 @@
      "failed" (nil-to-zero (.get_failed cas))}))
 
 (defmulti unpack-comp-exec-stat
-  (fn [_ ^ComponentAggregateStats cas] (.get_type (.get_stats ^ExecutorAggregateStats cas))))
+  (fn [_ secure-link? ^ComponentAggregateStats cas] (.get_type (.get_stats ^ExecutorAggregateStats cas))))
 
 (defmethod unpack-comp-exec-stat ComponentType/BOLT
-  [topology-id ^ExecutorAggregateStats eas]
+  [topology-id secure-link? ^ExecutorAggregateStats eas ]
   (let [^ExecutorSummary summ (.get_exec_summary eas)
         ^ExecutorInfo info (.get_executor_info summ)
         ^ComponentAggregateStats stats (.get_stats eas)
@@ -579,10 +586,10 @@
      "processLatency" (float-str (.get_process_latency_ms bas))
      "acked" (nil-to-zero (.get_acked cas))
      "failed" (nil-to-zero (.get_failed cas))
-     "workerLogLink" (worker-log-link host port topology-id)}))
+     "workerLogLink" (worker-log-link host port topology-id secure-link?)}))
 
 (defmethod unpack-comp-exec-stat ComponentType/SPOUT
-  [topology-id ^ExecutorAggregateStats eas]
+  [topology-id secure-link? ^ExecutorAggregateStats eas ]
   (let [^ExecutorSummary summ (.get_exec_summary eas)
         ^ExecutorInfo info (.get_executor_info summ)
         ^ComponentAggregateStats stats (.get_stats eas)
@@ -602,7 +609,7 @@
      "completeLatency" (float-str (.get_complete_latency_ms sas))
      "acked" (nil-to-zero (.get_acked cas))
      "failed" (nil-to-zero (.get_failed cas))
-     "workerLogLink" (worker-log-link host port topology-id)}))
+     "workerLogLink" (worker-log-link host port topology-id secure-link?)}))
 
 (defmulti unpack-component-page-info
   "Unpacks component-specific info to clojure data structures"
@@ -610,26 +617,26 @@
     (.get_component_type info)))
 
 (defmethod unpack-component-page-info ComponentType/BOLT
-  [^ComponentPageInfo info topology-id window include-sys?]
+  [^ComponentPageInfo info topology-id window include-sys? secure?]
   (merge
     {"boltStats" (map unpack-comp-agg-stat (.get_window_to_stats info))
      "inputStats" (map unpack-bolt-input-stat (.get_gsid_to_input_stats info))
      "outputStats" (map unpack-comp-output-stat (.get_sid_to_output_stats info))
-     "executorStats" (map (partial unpack-comp-exec-stat topology-id)
+     "executorStats" (map (partial unpack-comp-exec-stat topology-id secure?)
                           (.get_exec_stats info))}
     (-> info .get_errors component-errors)))
 
 (defmethod unpack-component-page-info ComponentType/SPOUT
-  [^ComponentPageInfo info topology-id window include-sys?]
+  [^ComponentPageInfo info topology-id window include-sys? secure?]
   (merge
     {"spoutSummary" (map unpack-comp-agg-stat (.get_window_to_stats info))
      "outputStats" (map unpack-comp-output-stat (.get_sid_to_output_stats info))
-     "executorStats" (map (partial unpack-comp-exec-stat topology-id)
+     "executorStats" (map (partial unpack-comp-exec-stat topology-id secure?)
                           (.get_exec_stats info))}
     (-> info .get_errors component-errors)))
 
 (defn component-page
-  [topology-id component window include-sys? user]
+  [topology-id component window include-sys? user secure?]
   (with-nimbus nimbus
     (let [topology-conf (from-json (.getTopologyConf ^Nimbus$Client nimbus
                                                      topology-id))
@@ -646,7 +653,8 @@
        (unpack-component-page-info comp-page-info
                                    topology-id
                                    window
-                                   include-sys?)
+                                   include-sys?
+                                   secure?)
        "user" user
        "id" component
        "encodedId" (url-encode component)
@@ -719,11 +727,12 @@
         (let [id (url-decode id)
               user (.getUserName http-creds-handler servlet-request)]
           (json-response (mk-visualization-data id (:window m) (check-include-sys? (:sys m)) user))))
-  (GET "/api/v1/topology/:id/component/:component" [:as {:keys [cookies servlet-request]} id component & m]
+  (GET "/api/v1/topology/:id/component/:component" [:as {:keys [cookies servlet-request scheme]} id component & m]
        (let [id (url-decode id)
              component (url-decode component)
              user (.getUserName http-creds-handler servlet-request)]
-         (json-response (component-page id component (:window m) (check-include-sys? (:sys m)) user))))
+         (json-response
+          (component-page id component (:window m) (check-include-sys? (:sys m)) user (= scheme :https)))))
   (GET "/api/v1/topology/:id/logconfig" [:as {:keys [cookies servlet-request]} id & m]
        (with-nimbus nimbus
          (let [user (.getUserName http-creds-handler servlet-request)
@@ -852,11 +861,20 @@
     (let [conf *STORM-CONF*
           header-buffer-size (int (.get conf UI-HEADER-BUFFER-BYTES))
           filters-confs [{:filter-class (conf UI-FILTER)
-                          :filter-params (conf UI-FILTER-PARAMS)}]]
+                          :filter-params (conf UI-FILTER-PARAMS)}]
+          https-port (int (conf UI-HTTPS-PORT))
+          keystore-path (conf UI-HTTPS-KEYSTORE-PATH)
+          keystore-pass (conf UI-HTTPS-KEYSTORE-PASSWORD)
+          keystore-type (conf UI-HTTPS-KEYSTORE-TYPE)]
       (storm-run-jetty {:port (conf UI-PORT)
                         :configurator (fn [server]
                                         (doseq [connector (.getConnectors server)]
                                           (.setHeaderBufferSize connector header-buffer-size))
+                                        (config-ssl server
+                                                    https-port
+                                                    keystore-path
+                                                    keystore-pass
+                                                    keystore-type)
                                         (config-filter server app filters-confs))}))
    (catch Exception ex
      (log-error ex))))
