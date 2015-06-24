@@ -138,7 +138,7 @@
             (.setMemoryLoad 110.0)
             (.setCPULoad 20.0)
             (.shuffleGrouping "wordSpout"))
-        supers (gen-supervisors 3)
+        supers (gen-supervisors 2)  ;; to test whether two tasks will be assigned to one or two nodes
         storm-topology (.createTopology builder)
         topology2 (TopologyDetails. "topology2"
                     {TOPOLOGY-NAME "topology-name-2"
@@ -151,7 +151,7 @@
                      TOPOLOGY-COMPONENT-TYPE-MEMORY "memory"
                      }
                     storm-topology
-                    4
+                    2
                     (mk-ed-map [["wordSpout" 0 1]
                                 ["wordCountBolt" 1 2]]))
         cluster (Cluster. (nimbus/standalone-nimbus) supers {}
@@ -179,7 +179,7 @@
             (.shuffleGrouping  "wordSpout")
             (.setMemoryLoad 500.0 100.0)
             (.setCPULoad 100.0))
-        supers (gen-supervisors 3)
+        supers (gen-supervisors 2)  ;; need at least two nodes to hold these executors
         storm-topology (.createTopology builder)
         topology1 (TopologyDetails. "topology1"
                                     {TOPOLOGY-NAME "topology-name-1"
@@ -192,7 +192,7 @@
                                      TOPOLOGY-COMPONENT-TYPE-MEMORY "memory"
                                      }
                                     storm-topology
-                                    4
+                                    2 ;; need two workers, each on one node
                                     (mk-ed-map [["wordSpout" 0 2]
                                                 ["wordCountBolt" 2 3]]))
         cluster (Cluster. (nimbus/standalone-nimbus) supers {}
@@ -219,7 +219,7 @@
                                  (for [[super eds] super->eds]
                                    [(.getTotalCPU super) (sum (map #(.getTotalCpuReqTask topology1 %) eds))]))]
     ;; 4 slots on 1 machine, all executors assigned
-    (is (= 2 (.size assigned-slots)))
+    (is (= 2 (.size assigned-slots)))  ;; executor0 resides one one worker (on one), executor1 and executor2 on another worker (on the other node)
     (is (= 2 (.size (into #{} (for [slot assigned-slots] (.getNodeId slot))))))
     (is (= 3 (.size executors)))
     ;; make sure resource (mem/cpu) assigned equals to resource specified
@@ -250,7 +250,7 @@
                                      TOPOLOGY-COMPONENT-TYPE-CPU-TOTAL "total"
                                      TOPOLOGY-COMPONENT-TYPE-MEMORY "memory"}
                       storm-topology1
-                      3
+                      3  ;; three workers to hold three executors
                       (mk-ed-map [["spout1" 0 3]]))
          builder2 (TopologyBuilder.)
          _ (.setSpout builder2 "spout2" (TestWordSpout.) 2)
@@ -265,7 +265,7 @@
                                      TOPOLOGY-COMPONENT-TYPE-CPU-TOTAL "total"
                                      TOPOLOGY-COMPONENT-TYPE-MEMORY "memory"}
                       storm-topology2
-                      2
+                      2  ;; two workers, each holds one executor and resides on one node
                       (mk-ed-map [["spout2" 0 2]]))
         scheduler (ResourceAwareScheduler.)]
 
