@@ -469,9 +469,8 @@ public class Cluster {
                 if (!networkTopography.containsKey(entry.getValue())){
                     networkTopography.put(entry.getValue(),new ArrayList<String>());
                 }
-                    List<String> nodesForRack = networkTopography.get(entry.getValue());
-                    nodesForRack.add(entry.getKey());
-                    networkTopography.put(entry.getValue(),nodesForRack);
+                List<String> nodesForRack = networkTopography.get(entry.getValue());
+                nodesForRack.add(entry.getKey());
             }
         }
         return networkTopography;

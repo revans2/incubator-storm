@@ -106,29 +106,16 @@ public class CachedDNSToSwitchMapping extends AbstractDNSToSwitchMapping {
     // normalize all input names to be in the form of IP addresses
     names = normalizeHostNames(names);
 
-    Map<String,String> result = new HashMap();
-    Map<String,String> result = new HashMap<>();
+    Map<String,String> result = new HashMap<String, String>();
     if (names.isEmpty()) {
       return result;
     }
 
-    // returns a subset of the hostnames provided whose value in the cache is null.
-    // getUncachedHosts assumes every "names" provided will be present in the cache otherwise will cause NullPointerException.
     List<String> uncachedHosts = getUncachedHosts(names);
     Map<String, String> resolvedUncachedHosts = rawMapping.resolve(uncachedHosts);
     // update the cache
     cache.putAll(resolvedUncachedHosts);
-//    = new ArrayList<String>(rawMapping.resolve(uncachedHosts).keySet());
 
-    for (int i = 0; i < resolvedUncachedHosts.size(); i++){
-      resolvedHosts.add(resolvedUncachedHosts.get(uncachedHosts.get(i)));
-    }
-
-    List<String> resolvedHostsFromCache = getCachedHosts(names);
-      result.put(names.get(i), resolvedHostsFromCache.get(i));
-    }
-    return result;
-//    return getCachedHosts(names);
 
     // query the cache for all the hostnames provided
     for (String host : names){

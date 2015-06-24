@@ -29,7 +29,7 @@ public interface DNSToSwitchMapping {
   public final static String DEFAULT_RACK = "/default-rack";
 
   /**
-   * Resolved a list of DNS-names/IP-address and returns back a map of DNS-name->switch information ( network paths).
+   * Resolves a list of DNS-names/IP-address and returns back a map of DNS-name->switch information ( network paths).
    * Consider an element in the argument list - x.y.com. The switch information
    * that is returned must be a network path of the form /foo/rack, 
    * where / is the root, and 'foo' is the switch where 'rack' is connected.
@@ -46,8 +46,7 @@ public interface DNSToSwitchMapping {
    * @return Map of hosts to resolved network paths.
    * If <i>names</i> is empty, then return empty Map
    */
-    public Map<String,String> resolve(List<String> names);
-    public Map<String,String> resolve(List<String> names);
+  public Map<String,String> resolve(List<String> names);
 
   /**
    * Reload all of the cached mappings.

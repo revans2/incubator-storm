@@ -20,7 +20,7 @@ public final class DefaultRackDNSToSwitchMapping extends CachedDNSToSwitchMappin
     @Override
     public Map<String,String> resolve(List<String> names) {
 
-        Map<String, String> m = new HashMap<>();
+        Map<String, String> m = new HashMap<String, String>();
         if (names.isEmpty()) {
             //name list is empty, return an empty map
             return m;

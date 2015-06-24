@@ -6,6 +6,7 @@ import backtype.storm.networktopography.DNSToSwitchMapping;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -22,7 +23,7 @@ public final class AlternateRackDNSToSwitchMapping extends CachedDNSToSwitchMapp
 
     @Override
     public Map<String, String> resolve(List<String> names) {
-
+        TreeSet<String> sortedNames = new TreeSet<String>(names);
         Map <String, String> m = new HashMap<String, String>();
         if (names.isEmpty()) {
             //name list is empty, return an empty map
@@ -30,7 +31,7 @@ public final class AlternateRackDNSToSwitchMapping extends CachedDNSToSwitchMapp
         }
 
         Boolean odd = true;
-        for (String name : names) {
+        for (String name : sortedNames) {
             if (odd) {
                 m.put(name, "RACK1");
                 mappingCache.put(name, "RACK1");

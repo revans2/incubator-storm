@@ -39,12 +39,6 @@ import backtype.storm.scheduler.Topologies;
 import backtype.storm.scheduler.TopologyDetails;
 import backtype.storm.scheduler.resource.RAS_Component;
 import backtype.storm.scheduler.resource.Node;
-import backtype.storm.scheduler.resource.RAS_Component;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.util.*;
-import java.util.Map.Entry;
 
 public class ResourceAwareStrategy implements IStrategy {
     protected Logger LOG = null;
