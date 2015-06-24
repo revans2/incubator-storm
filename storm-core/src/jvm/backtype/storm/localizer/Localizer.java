@@ -480,7 +480,7 @@ public class Localizer {
       PrintWriter writer = null;
       int numTries = 0;
       String localizedPath = localFile.toString();
-      String localFileWithVersion = Utils.constructBlobWithVerionFileName(localFile.toString(),
+      String localFileWithVersion = Utils.constructBlobWithVersionFileName(localFile.toString(),
           nimbusBlobVersion);
       String localVersionFile = Utils.constructVersionFileName(localFile.toString());
       String downloadFile = localFileWithVersion;
@@ -529,7 +529,7 @@ public class Localizer {
             File uuid_symlink = new File(localFile + "." + tmp_uuid_local);
 
             Files.createSymbolicLink(uuid_symlink.toPath(),
-                Paths.get(Utils.constructBlobWithVerionFileName(localFile.toString(),
+                Paths.get(Utils.constructBlobWithVersionFileName(localFile.toString(),
                     nimbusBlobVersion)));
             File current_symlink = new File(Utils.constructBlobCurrentSymlinkName(
                 localFile.toString()));

@@ -163,29 +163,32 @@ public class BlobStoreAclHandler {
 
   protected AccessControl getSuperAcl(Map conf) {
     String user = getBlobStoreSuperUser(conf);
-    AccessControl acl = new AccessControl();
-    if (user == null || user.isEmpty()) {
-      throw new IllegalArgumentException(
-          "Invalid configuration: " + Config.BLOBSTORE_SUPERUSER + " not set.");
+    AccessControl acl = null;
+    if (user != null) {
+      if (!user.isEmpty()) {
+        acl = new AccessControl();
+        acl.set_name(user);
+        acl.set_type(AccessControlType.USER);
+        acl.set_access(READ | WRITE | ADMIN);
+      }
     }
-    acl.set_name(user);
-    acl.set_type(AccessControlType.USER);
-    acl.set_access(READ | WRITE | ADMIN);
+    else
+    {
+      LOG.warn("Configuration: " + Config.BLOBSTORE_SUPERUSER + " not set.");
+    }
     return acl;
   }
 
 
   private Set<String> constructUserFromPrincipals(Subject who) {
     Set<String> user = new HashSet<String>();
-    if (who == null) {
-      LOG.debug("in validate acl who is null");
-    } else {
-      LOG.debug("in validate acl: " + who);
-    }
     if (who != null) {
       for (Principal p : who.getPrincipals()) {
         user.add(_ptol.toLocal(p));
       }
+    }
+    else {
+      LOG.debug("in validate acl: " + who);
     }
     return user;
   }
@@ -285,26 +288,43 @@ public class BlobStoreAclHandler {
   }
 
   private boolean hasSuperACL(List<AccessControl> accessControls) {
-    for (AccessControl control : accessControls) {
-      if (_superACL.equals(control)) {
-        return true;
+      for (AccessControl control : accessControls) {
+        if (_superACL.equals(control)) {
+          return true;
+        }
       }
-    }
     return false;
   }
 
   private final List<AccessControl> normalizeSettableACLs(List<AccessControl> acls, Subject who,
                                                     int opMask) {
-    List<AccessControl> cleanAcls = removeBadACLs(acls, _superACL.get_name());
-    if (!hasSuperACL(cleanAcls)) {
-      LOG.info("Adding Super ACL " + BlobStoreAclHandler.accessControlToString(_superACL));
-      cleanAcls.add(_superACL);
+    List<AccessControl> cleanAcls = removeBadACLs(acls, _superACL != null? _superACL.get_name() : null);
+    if (_superACL != null) {
+      if (!hasSuperACL(cleanAcls)) {
+        LOG.info("Adding Super ACL " + BlobStoreAclHandler.accessControlToString(_superACL));
+        cleanAcls.add(_superACL);
+      }
     }
     Set<String> userNames = getUserNamesFromSubject(who);
     for (String user : userNames) {
       fixACLsForUser(cleanAcls, user, opMask);
     }
+    if (who == null && !worldEverything(cleanAcls))
+    {
+      cleanAcls.add(new AccessControl(AccessControlType.OTHER, READ | WRITE | ADMIN));
+    }
     return cleanAcls;
+  }
+
+  public boolean worldEverything(List<AccessControl> acls)
+  {
+    boolean isWorldEverthing = false;
+    for (AccessControl acl : acls)
+    {
+      if (acl.get_type() == AccessControlType.OTHER)
+        isWorldEverthing = true;
+    }
+    return isWorldEverthing;
   }
 
   private void fixACLsForUser(List<AccessControl> acls, String user, int mask) {

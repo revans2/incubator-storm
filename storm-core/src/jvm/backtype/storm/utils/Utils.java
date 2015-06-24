@@ -532,7 +532,7 @@ public class Utils {
     }
   }
 
-  public static String constructBlobWithVerionFileName(String fileName, long version) {
+  public static String constructBlobWithVersionFileName(String fileName, long version) {
     return fileName + "." + version;
   }
 
