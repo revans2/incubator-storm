@@ -26,11 +26,11 @@
 
 (bootstrap)
 
-(defn gen-supervisors [count]
+(defn gen-supervisors [count ports]
   (into {} (for [id (range count)
                 :let [supervisor (SupervisorDetails. (str "id" id)
                                        (str "host" id)
-                                       (list ) (map int (list 1 2 3 4))
+                                       (list ) (map int (range ports))
                                    {RAS_TYPES/TYPE_MEMORY 2000.0
                                     RAS_TYPES/TYPE_CPU 400.0})]]
             {(.getId supervisor) supervisor})))
@@ -50,7 +50,7 @@
 
 ;; testing resource/Node class
 (deftest test-node
-  (let [supers (gen-supervisors 5)
+  (let [supers (gen-supervisors 5 4)
         cluster (Cluster. (nimbus/standalone-nimbus) supers {} {})
         topologies (Topologies. (to-top-map []))
         node-map (Node/getAllNodesFrom cluster topologies)]
@@ -99,22 +99,21 @@
   (let [builder (TopologyBuilder.)
         _ (.setSpout builder "wordSpout" (TestWordSpout.) 1)
         _ (.shuffleGrouping (.setBolt builder "wordCountBolt" (TestWordCounter.) 1) "wordSpout")
-        supers (gen-supervisors 1)
+        supers (gen-supervisors 1 2)
         storm-topology (.createTopology builder)
         topology1 (TopologyDetails. "topology1"
-                      {TOPOLOGY-NAME "topology-name-1"
-                       TOPOLOGY-SUBMITTER-USER "userC"
-                       TOPOLOGY-COMPONENT-RESOURCES-ONHEAP-MEMORY-MB 128.0
-                       TOPOLOGY-COMPONENT-RESOURCES-OFFHEAP-MEMORY-MB 0.0
-                       TOPOLOGY-COMPONENT-CPU-PCORE-PERCENT 10.0
-                       TOPOLOGY-COMPONENT-TYPE-CPU "cpu"
-                       TOPOLOGY-COMPONENT-TYPE-CPU-TOTAL "total"
-                       TOPOLOGY-COMPONENT-TYPE-MEMORY "memory"
-                       }
-                       storm-topology
-                       1
-                       (mk-ed-map [["wordSpout" 0 1]
-                                   ["wordCountBolt" 1 2]]))
+                    {TOPOLOGY-NAME "topology-name-1"
+                     TOPOLOGY-SUBMITTER-USER "userC"
+                     TOPOLOGY-COMPONENT-RESOURCES-ONHEAP-MEMORY-MB 128.0
+                     TOPOLOGY-COMPONENT-RESOURCES-OFFHEAP-MEMORY-MB 0.0
+                     TOPOLOGY-COMPONENT-CPU-PCORE-PERCENT 10.0
+                     TOPOLOGY-COMPONENT-TYPE-CPU "cpu"
+                     TOPOLOGY-COMPONENT-TYPE-CPU-TOTAL "total"
+                     TOPOLOGY-COMPONENT-TYPE-MEMORY "memory"}
+                    storm-topology
+                    1
+                    (mk-ed-map [["wordSpout" 0 1]
+                                ["wordCountBolt" 1 2]]))
         cluster (Cluster. (nimbus/standalone-nimbus) supers {}
                   {STORM-NETWORK-TOPOGRAPHY-PLUGIN
                    "backtype.storm.networktopography.DefaultRackDNSToSwitchMapping"})
@@ -138,7 +137,7 @@
             (.setMemoryLoad 110.0)
             (.setCPULoad 20.0)
             (.shuffleGrouping "wordSpout"))
-        supers (gen-supervisors 3)
+        supers (gen-supervisors 2 2)  ;; to test whether two tasks will be assigned to one or two nodes
         storm-topology (.createTopology builder)
         topology2 (TopologyDetails. "topology2"
                     {TOPOLOGY-NAME "topology-name-2"
@@ -148,10 +147,9 @@
                      TOPOLOGY-COMPONENT-CPU-PCORE-PERCENT 10.0
                      TOPOLOGY-COMPONENT-TYPE-CPU "cpu"
                      TOPOLOGY-COMPONENT-TYPE-CPU-TOTAL "total"
-                     TOPOLOGY-COMPONENT-TYPE-MEMORY "memory"
-                     }
+                     TOPOLOGY-COMPONENT-TYPE-MEMORY "memory"}
                     storm-topology
-                    4
+                    2
                     (mk-ed-map [["wordSpout" 0 1]
                                 ["wordCountBolt" 1 2]]))
         cluster (Cluster. (nimbus/standalone-nimbus) supers {}
@@ -179,22 +177,21 @@
             (.shuffleGrouping  "wordSpout")
             (.setMemoryLoad 500.0 100.0)
             (.setCPULoad 100.0))
-        supers (gen-supervisors 3)
+        supers (gen-supervisors 2 2)  ;; need at least two nodes to hold these executors
         storm-topology (.createTopology builder)
         topology1 (TopologyDetails. "topology1"
-                                    {TOPOLOGY-NAME "topology-name-1"
-                                     TOPOLOGY-SUBMITTER-USER "userC"
-                                     TOPOLOGY-COMPONENT-RESOURCES-ONHEAP-MEMORY-MB 128.0
-                                     TOPOLOGY-COMPONENT-RESOURCES-OFFHEAP-MEMORY-MB 0.0
-                                     TOPOLOGY-COMPONENT-CPU-PCORE-PERCENT 10.0
-                                     TOPOLOGY-COMPONENT-TYPE-CPU "cpu"
-                                     TOPOLOGY-COMPONENT-TYPE-CPU-TOTAL "total"
-                                     TOPOLOGY-COMPONENT-TYPE-MEMORY "memory"
-                                     }
-                                    storm-topology
-                                    4
-                                    (mk-ed-map [["wordSpout" 0 2]
-                                                ["wordCountBolt" 2 3]]))
+                    {TOPOLOGY-NAME "topology-name-1"
+                     TOPOLOGY-SUBMITTER-USER "userC"
+                     TOPOLOGY-COMPONENT-RESOURCES-ONHEAP-MEMORY-MB 128.0
+                     TOPOLOGY-COMPONENT-RESOURCES-OFFHEAP-MEMORY-MB 0.0
+                     TOPOLOGY-COMPONENT-CPU-PCORE-PERCENT 10.0
+                     TOPOLOGY-COMPONENT-TYPE-CPU "cpu"
+                     TOPOLOGY-COMPONENT-TYPE-CPU-TOTAL "total"
+                     TOPOLOGY-COMPONENT-TYPE-MEMORY "memory"}
+                    storm-topology
+                    2 ;; need two workers, each on one node
+                    (mk-ed-map [["wordSpout" 0 2]
+                                ["wordCountBolt" 2 3]]))
         cluster (Cluster. (nimbus/standalone-nimbus) supers {}
                   {STORM-NETWORK-TOPOGRAPHY-PLUGIN
                    "backtype.storm.networktopography.DefaultRackDNSToSwitchMapping"})
@@ -219,7 +216,7 @@
                                  (for [[super eds] super->eds]
                                    [(.getTotalCPU super) (sum (map #(.getTotalCpuReqTask topology1 %) eds))]))]
     ;; 4 slots on 1 machine, all executors assigned
-    (is (= 2 (.size assigned-slots)))
+    (is (= 2 (.size assigned-slots)))  ;; executor0 resides one one worker (on one), executor1 and executor2 on another worker (on the other node)
     (is (= 2 (.size (into #{} (for [slot assigned-slots] (.getNodeId slot))))))
     (is (= 3 (.size executors)))
     ;; make sure resource (mem/cpu) assigned equals to resource specified
@@ -236,43 +233,43 @@
   (is (= "topology1 Fully Scheduled" (.get (.getStatusMap cluster) "topology1")))))
 
 (deftest test-scheduling-resilience
-  (let [supers (gen-supervisors 2)
+  (let [supers (gen-supervisors 2 2)
          builder1 (TopologyBuilder.)
          _ (.setSpout builder1 "spout1" (TestWordSpout.) 2)
          storm-topology1 (.createTopology builder1)
          topology1 (TopologyDetails. "topology1"
-                      {TOPOLOGY-NAME "topology-name-1"
-                                     TOPOLOGY-SUBMITTER-USER "userC"
-                                     TOPOLOGY-COMPONENT-RESOURCES-ONHEAP-MEMORY-MB 128.0
-                                     TOPOLOGY-COMPONENT-RESOURCES-OFFHEAP-MEMORY-MB 0.0
-                                     TOPOLOGY-COMPONENT-CPU-PCORE-PERCENT 10.0
-                                     TOPOLOGY-COMPONENT-TYPE-CPU "cpu"
-                                     TOPOLOGY-COMPONENT-TYPE-CPU-TOTAL "total"
-                                     TOPOLOGY-COMPONENT-TYPE-MEMORY "memory"}
-                      storm-topology1
-                      3
-                      (mk-ed-map [["spout1" 0 3]]))
+                     {TOPOLOGY-NAME "topology-name-1"
+                      TOPOLOGY-SUBMITTER-USER "userC"
+                      TOPOLOGY-COMPONENT-RESOURCES-ONHEAP-MEMORY-MB 128.0
+                      TOPOLOGY-COMPONENT-RESOURCES-OFFHEAP-MEMORY-MB 0.0
+                      TOPOLOGY-COMPONENT-CPU-PCORE-PERCENT 10.0
+                      TOPOLOGY-COMPONENT-TYPE-CPU "cpu"
+                      TOPOLOGY-COMPONENT-TYPE-CPU-TOTAL "total"
+                      TOPOLOGY-COMPONENT-TYPE-MEMORY "memory"}
+                     storm-topology1
+                     3  ;; three workers to hold three executors
+                     (mk-ed-map [["spout1" 0 3]]))
          builder2 (TopologyBuilder.)
          _ (.setSpout builder2 "spout2" (TestWordSpout.) 2)
          storm-topology2 (.createTopology builder2)
-          topology2 (TopologyDetails. "topology2"
-                      {TOPOLOGY-NAME "topology-name-2"
-                                     TOPOLOGY-SUBMITTER-USER "userC"
-                                     TOPOLOGY-COMPONENT-RESOURCES-ONHEAP-MEMORY-MB 1280.0 ;; large enough thus two eds can not be fully assigned to one node
-                                     TOPOLOGY-COMPONENT-RESOURCES-OFFHEAP-MEMORY-MB 0.0
-                                     TOPOLOGY-COMPONENT-CPU-PCORE-PERCENT 10.0
-                                     TOPOLOGY-COMPONENT-TYPE-CPU "cpu"
-                                     TOPOLOGY-COMPONENT-TYPE-CPU-TOTAL "total"
-                                     TOPOLOGY-COMPONENT-TYPE-MEMORY "memory"}
+         topology2 (TopologyDetails. "topology2"
+                     {TOPOLOGY-NAME "topology-name-2"
+                      TOPOLOGY-SUBMITTER-USER "userC"
+                      TOPOLOGY-COMPONENT-RESOURCES-ONHEAP-MEMORY-MB 1280.0 ;; large enough thus two eds can not be fully assigned to one node
+                      TOPOLOGY-COMPONENT-RESOURCES-OFFHEAP-MEMORY-MB 0.0
+                      TOPOLOGY-COMPONENT-CPU-PCORE-PERCENT 10.0
+                      TOPOLOGY-COMPONENT-TYPE-CPU "cpu"
+                      TOPOLOGY-COMPONENT-TYPE-CPU-TOTAL "total"
+                      TOPOLOGY-COMPONENT-TYPE-MEMORY "memory"}
                       storm-topology2
-                      2
-                      (mk-ed-map [["spout2" 0 2]]))
+                     2  ;; two workers, each holds one executor and resides on one node
+                     (mk-ed-map [["spout2" 0 2]]))
         scheduler (ResourceAwareScheduler.)]
 
     (testing "When a worker fails, RAS does not alter existing assignments on healthy workers"
       (let [cluster (Cluster. (nimbus/standalone-nimbus) supers {}
-           {STORM-NETWORK-TOPOGRAPHY-PLUGIN
-           "backtype.storm.networktopography.DefaultRackDNSToSwitchMapping"})
+                              {STORM-NETWORK-TOPOGRAPHY-PLUGIN
+                               "backtype.storm.networktopography.DefaultRackDNSToSwitchMapping"})
             topologies (Topologies. (to-top-map [topology2]))
             _ (.schedule scheduler topologies cluster)
             assignment (.getAssignmentById cluster "topology2")
@@ -292,9 +289,9 @@
     
     (testing "When a supervisor fails, RAS does not alter existing assignments"
       (let [existing-assignments {"topology1" (SchedulerAssignmentImpl. "topology1"
-                                                                         {(ExecutorDetails. 0 0) (WorkerSlot. "id0" 0)    ;; worker 0 on the failed super
-                                                                          (ExecutorDetails. 1 1) (WorkerSlot. "id0" 1)    ;; worker 1 on the failed super
-                                                                          (ExecutorDetails. 2 2) (WorkerSlot. "id1" 1)})} ;; worker 2 on the health super
+                                                                        {(ExecutorDetails. 0 0) (WorkerSlot. "id0" 0)    ;; worker 0 on the failed super
+                                                                         (ExecutorDetails. 1 1) (WorkerSlot. "id0" 1)    ;; worker 1 on the failed super
+                                                                         (ExecutorDetails. 2 2) (WorkerSlot. "id1" 1)})} ;; worker 2 on the health super
             cluster (Cluster. (nimbus/standalone-nimbus) supers existing-assignments
                               {STORM-NETWORK-TOPOGRAPHY-PLUGIN
                                "backtype.storm.networktopography.DefaultRackDNSToSwitchMapping"})
@@ -317,9 +314,9 @@
 
     (testing "When a supervisor and a worker on it fails, RAS does not alter existing assignments"
       (let [existing-assignments {"topology1" (SchedulerAssignmentImpl. "topology1"
-                                                                         {(ExecutorDetails. 0 0) (WorkerSlot. "id0" 1)    ;; the worker to orphan
-                                                                          (ExecutorDetails. 1 1) (WorkerSlot. "id0" 2)    ;; the worker to kill
-                                                                          (ExecutorDetails. 2 2) (WorkerSlot. "id1" 1)})} ;; the healthy worker
+                                                                        {(ExecutorDetails. 0 0) (WorkerSlot. "id0" 1)    ;; the worker to orphan
+                                                                         (ExecutorDetails. 1 1) (WorkerSlot. "id0" 2)    ;; the worker to kill
+                                                                         (ExecutorDetails. 2 2) (WorkerSlot. "id1" 1)})} ;; the healthy worker
             cluster (Cluster. (nimbus/standalone-nimbus) supers existing-assignments
                               {STORM-NETWORK-TOPOGRAPHY-PLUGIN
                                "backtype.storm.networktopography.DefaultRackDNSToSwitchMapping"})
