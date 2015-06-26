@@ -520,7 +520,7 @@
                 scheduled-topos (if (= "topology1 Fully Scheduled" (.get (.getStatusMap cluster) "topology1")) 1 0)
                 scheduled-topos (+ scheduled-topos (if (= "topology2 Fully Scheduled" (.get (.getStatusMap cluster) "topology2")) 1 0))
                 scheduled-topos (+ scheduled-topos (if (= "topology4 Fully Scheduled" (.get (.getStatusMap cluster) "topology4")) 1 0))]
-            (is (= scheduled-topos 2)))) ;; one of the three topos will get (fully) scheduled
+            (is (= scheduled-topos 2)))) ;; only 2 topos will get (fully) scheduled
 
     (testing "Launch topo5 only, both mem and cpu should be exactly used up"
       (let [cluster (Cluster. (nimbus/standalone-nimbus) supers {}
