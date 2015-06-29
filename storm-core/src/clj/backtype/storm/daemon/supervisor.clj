@@ -885,10 +885,9 @@
                        (add-dead-worker worker-id))
             worker-dir (worker-root conf worker-id)]
         (remove-dead-worker worker-id)
+        (create-blobstore-links conf storm-id port worker-id)
         (if run-worker-as-user
-          (do
-            (create-blobstore-links conf storm-id port worker-id)
-            (worker-launcher conf user ["worker" worker-dir (write-script worker-dir command :environment topology-worker-environment)] :log-prefix log-prefix :exit-code-callback callback :directory (File. worker-dir)))
+          (worker-launcher conf user ["worker" worker-dir (write-script worker-dir command :environment topology-worker-environment)] :log-prefix log-prefix :exit-code-callback callback :directory (File. worker-dir))
           (launch-process command :environment topology-worker-environment :log-prefix log-prefix :exit-code-callback callback :directory (File. worker-dir))))))
 
 ;; local implementation
