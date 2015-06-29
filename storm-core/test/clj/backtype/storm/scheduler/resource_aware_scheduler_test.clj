@@ -283,15 +283,15 @@
          builder2 (TopologyBuilder.)
          _ (.setSpout builder2 "spout2" (TestWordSpout.) 2)
          storm-topology2 (.createTopology builder2)
-          topology2 (TopologyDetails. "topology2"
-                      {TOPOLOGY-NAME "topology-name-2"
-                       TOPOLOGY-SUBMITTER-USER "userC"
-                       TOPOLOGY-COMPONENT-RESOURCES-ONHEAP-MEMORY-MB 1280.0 ;; large enough thus two eds can not be fully assigned to one node
-                       TOPOLOGY-COMPONENT-RESOURCES-OFFHEAP-MEMORY-MB 0.0
-                       TOPOLOGY-COMPONENT-CPU-PCORE-PERCENT 10.0}
-                      storm-topology2
-                      2  ;; two workers, each holds one executor and resides on one node
-                      (mk-ed-map [["spout2" 0 2]]))
+         topology2 (TopologyDetails. "topology2"
+                     {TOPOLOGY-NAME "topology-name-2"
+                      TOPOLOGY-SUBMITTER-USER "userC"
+                      TOPOLOGY-COMPONENT-RESOURCES-ONHEAP-MEMORY-MB 1280.0 ;; large enough thus two eds can not be fully assigned to one node
+                      TOPOLOGY-COMPONENT-RESOURCES-OFFHEAP-MEMORY-MB 0.0
+                      TOPOLOGY-COMPONENT-CPU-PCORE-PERCENT 10.0}
+                     storm-topology2
+                     2  ;; two workers, each holds one executor and resides on one node
+                     (mk-ed-map [["spout2" 0 2]]))
         scheduler (ResourceAwareScheduler.)]
 
     (testing "When a worker fails, RAS does not alter existing assignments on healthy workers"
