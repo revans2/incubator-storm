@@ -432,8 +432,8 @@ public class Node {
                                 exec,
                                 Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB,
                                 Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB, Config.TOPOLOGY_COMPONENT_CPU_PCORE_PERCENT);
-                        topologies.getByName(entry.getKey()).addDefaultResforExec(exec);
-                        node.consumeResourcesforTask(exec, topologies.getByName(entry.getKey()));
+                        topologies.getById(entry.getKey()).addDefaultResforExec(exec);
+                        node.consumeResourcesforTask(exec, topologies.getById(entry.getKey()));
                     }
                 }
             }
