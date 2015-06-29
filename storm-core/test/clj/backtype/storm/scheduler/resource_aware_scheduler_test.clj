@@ -32,7 +32,7 @@
   (into {} (for [id (range count)
                 :let [supervisor (SupervisorDetails. (str "id" id)
                                        (str "host" id)
-                                       (list ) (map int (list 1 2 3 4))
+                                       (list ) (map int (range ports))
                                    {Config/SUPERVISOR_MEMORY_CAPACITY_MB 2000.0
                                     Config/SUPERVISOR_CPU_CAPACITY 400.0})]]
             {(.getId supervisor) supervisor})))
