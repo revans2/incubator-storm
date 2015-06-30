@@ -1064,6 +1064,7 @@
 
 (defn renew-credentials [nimbus]
   (let [storm-cluster-state (:storm-cluster-state nimbus)
+        blob-store (:blob-store nimbus)
         renewers (:cred-renewers nimbus)
         update-lock (:cred-update-lock nimbus)
         assigned-ids (set (.active-storms storm-cluster-state))]
@@ -1071,7 +1072,7 @@
       (doseq [id assigned-ids]
         (locking update-lock
           (let [orig-creds (.credentials storm-cluster-state id nil)
-                topology-conf (try-read-storm-conf (:conf nimbus) id)]
+                topology-conf (try-read-storm-conf (:conf nimbus) id blob-store)]
             (if orig-creds
               (let [new-creds (HashMap. orig-creds)]
                 (doseq [renewer renewers]

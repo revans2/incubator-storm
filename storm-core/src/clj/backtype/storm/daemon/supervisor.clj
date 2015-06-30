@@ -281,7 +281,7 @@
         (try
           (rmpath (worker-pid-path conf id pid))
           (catch Exception e)))) ;; on windows, the supervisor may still holds the lock on the worker directory
-    (try-cleanup-worker conf id user))
+    (try-cleanup-worker conf id))
   (log-message "Shut down " (:supervisor-id supervisor) ":" id))
 
 (def SUPERVISOR-ZK-ACLS
@@ -305,9 +305,13 @@
    :assignment-id (.getAssignmentId isupervisor)
    :my-hostname (hostname conf)
    :curr-assignment (atom nil) ;; used for reporting used ports when heartbeating
+   :event-timer (mk-timer :kill-fn (fn [t]
+                                         (log-error t "Error when processing event")
+                                         (exit-process! 20 "Error when processing an event")
+                                         ))
    :heartbeat-timer (mk-timer :kill-fn (fn [t]
-                               (log-error t "Error when processing event")
-                               (exit-process! 20 "Error when processing an event")
+                               (log-error t "Error when processing heartbeat")
+                               (exit-process! 20 "Error when processing an heartbeat")
                                ))
    :blob-update-timer (mk-timer :kill-fn (fn [t]
                                            (log-error t "Error when processing blob-update")
