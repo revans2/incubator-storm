@@ -58,14 +58,24 @@ public class Time {
         if(simulating.get()) {
             try {
                 synchronized(sleepTimesLock) {
+                    if (threadSleepTimes == null) {
+                        LOG.error("{} is still sleeping after simulated time disabled.", Thread.currentThread());
+                        throw new InterruptedException();
+                    }
                     threadSleepTimes.put(Thread.currentThread(), new AtomicLong(targetTimeMs));
                 }
                 while(simulatedCurrTimeMs.get() < targetTimeMs) {
+                    synchronized(sleepTimesLock) {
+                        if (threadSleepTimes == null) {
+                            LOG.error("{} is still sleeping after simulated time disabled.", Thread.currentThread());
+                            throw new InterruptedException();
+                        }
+                    }
                     Thread.sleep(10);
                 }
             } finally {
                 synchronized(sleepTimesLock) {
-                    if (simulating.get()) {
+                    if (simulating.get() && threadSleepTimes != null) {
                         threadSleepTimes.remove(Thread.currentThread());
                     }
                 }
