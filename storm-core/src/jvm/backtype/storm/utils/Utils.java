@@ -17,58 +17,29 @@
  */
 package backtype.storm.utils;
 
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
-import java.io.BufferedReader;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
-import java.io.FileReader;
-import java.io.OutputStream;
-import java.io.PrintStream;
-import java.io.RandomAccessFile;
-import java.io.Serializable;
-import java.net.URL;
-import java.net.URLDecoder;
-import java.nio.ByteBuffer;
-import java.nio.file.FileSystems;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.attribute.PosixFilePermission;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Enumeration;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.TreeMap;
-import java.util.UUID;
-import java.util.jar.JarEntry;
-import java.util.jar.JarFile;
-import java.util.zip.GZIPInputStream;
-import java.util.zip.GZIPOutputStream;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipFile;
-
+import backtype.storm.Config;
+import backtype.storm.blobstore.BlobStore;
 import backtype.storm.blobstore.BlobStoreAclHandler;
+import backtype.storm.blobstore.ClientBlobStore;
+import backtype.storm.blobstore.LocalFsBlobStore;
+import backtype.storm.blobstore.InputStreamWithMeta;
+import backtype.storm.generated.AccessControl;
+import backtype.storm.generated.AccessControlType;
+import backtype.storm.generated.AuthorizationException;
+import backtype.storm.generated.ComponentCommon;
+import backtype.storm.generated.ComponentObject;
+import backtype.storm.generated.KeyNotFoundException;
+import backtype.storm.generated.ReadableBlobMeta;
+import backtype.storm.generated.SettableBlobMeta;
+import backtype.storm.generated.StormTopology;
+import backtype.storm.localizer.Localizer;
 import backtype.storm.serialization.DefaultSerializationDelegate;
 import backtype.storm.serialization.SerializationDelegate;
+import backtype.storm.utils.ShellUtils.ShellCommandExecutor;
+import clojure.lang.IFn;
+import clojure.lang.RT;
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
-
-import backtype.storm.serialization.DefaultSerializationDelegate;
-import backtype.storm.serialization.SerializationDelegate;
 import org.apache.commons.lang.StringUtils;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
@@ -83,24 +54,24 @@ import org.slf4j.LoggerFactory;
 import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.constructor.SafeConstructor;
 
-import backtype.storm.Config;
-import backtype.storm.blobstore.BlobStore;
-import backtype.storm.blobstore.ClientBlobStore;
-import backtype.storm.blobstore.LocalFsBlobStore;
-import backtype.storm.blobstore.InputStreamWithMeta;
-import backtype.storm.generated.ComponentCommon;
-import backtype.storm.generated.ComponentObject;
-import backtype.storm.generated.StormTopology;
-import backtype.storm.generated.AuthorizationException;
-import backtype.storm.generated.KeyNotFoundException;
-import backtype.storm.generated.AccessControl;
-import backtype.storm.generated.AccessControlType;
-import backtype.storm.generated.ReadableBlobMeta;
-import backtype.storm.generated.SettableBlobMeta;
-import backtype.storm.localizer.Localizer;
-import backtype.storm.utils.ShellUtils.ShellCommandExecutor;
-import clojure.lang.IFn;
-import clojure.lang.RT;
+import java.io.*;
+import java.net.URL;
+import java.net.URLDecoder;
+import java.nio.ByteBuffer;
+import java.nio.channels.Channels;
+import java.nio.channels.WritableByteChannel;
+import java.nio.file.FileSystems;
+import java.nio.file.Files;
+import java.nio.file.attribute.PosixFilePermission;
+import java.io.File;
+import java.io.FileInputStream;
+import java.util.*;
+import java.util.jar.JarEntry;
+import java.util.jar.JarFile;
+import java.util.zip.GZIPInputStream;
+import java.util.zip.GZIPOutputStream;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
 
 import org.apache.thrift.TBase;
 import org.apache.thrift.TDeserializer;
@@ -130,11 +101,15 @@ public class Utils {
             throw new RuntimeException(e);
         }
     }
- 
+
     public static byte[] serialize(Object obj) {
         return serializationDelegate.serialize(obj);
     }
- 
+
+    public static <T> T deserialize(byte[] serialized, Class<T> clazz) {
+        return serializationDelegate.deserialize(serialized, clazz);
+    }
+
     public static byte[] thriftSerialize(TBase t) {
         try {
             TSerializer ser = threadSer.get();
@@ -181,10 +156,6 @@ public class Utils {
 
     }
 
-    public static <T> T deserialize(byte[] serialized, Class<T> clazz) {
-        return serializationDelegate.deserialize(serialized, clazz);
-    }
-
     public static byte[] javaSerialize(Object obj) {
         try {
             ByteArrayOutputStream bos = new ByteArrayOutputStream();
@@ -207,32 +178,6 @@ public class Utils {
         } catch(IOException ioe) {
             throw new RuntimeException(ioe);
         } catch(ClassNotFoundException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    public static byte[] toCompressedJsonConf(Map<String, Object> stormConf) {
-        try {
-            ByteArrayOutputStream bos = new ByteArrayOutputStream();
-            OutputStreamWriter out = new OutputStreamWriter(new GZIPOutputStream(bos));
-            JSONValue.writeJSONString(stormConf, out);
-            out.close();
-            return bos.toByteArray();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    public static Map<String, Object> fromCompressedJsonConf(byte[] serialized) {
-        try {
-            ByteArrayInputStream bis = new ByteArrayInputStream(serialized);
-            InputStreamReader in = new InputStreamReader(new GZIPInputStream(bis));
-            Object ret = JSONValue.parseWithException(in);
-            in.close();
-            return (Map<String,Object>)ret;
-        } catch(IOException ioe) {
-            throw new RuntimeException(ioe);
-        } catch(ParseException e) {
             throw new RuntimeException(e);
         }
     }
@@ -267,6 +212,32 @@ public class Utils {
         }
     }
 
+    public static byte[] toCompressedJsonConf(Map<String, Object> stormConf) {
+        try {
+            ByteArrayOutputStream bos = new ByteArrayOutputStream();
+            OutputStreamWriter out = new OutputStreamWriter(new GZIPOutputStream(bos));
+            JSONValue.writeJSONString(stormConf, out);
+            out.close();
+            return bos.toByteArray();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public static Map<String, Object> fromCompressedJsonConf(byte[] serialized) {
+        try {
+            ByteArrayInputStream bis = new ByteArrayInputStream(serialized);
+            InputStreamReader in = new InputStreamReader(new GZIPInputStream(bis));
+            Object ret = JSONValue.parseWithException(in);
+            in.close();
+            return (Map<String,Object>)ret;
+        } catch(IOException ioe) {
+            throw new RuntimeException(ioe);
+        } catch(ParseException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     public static <T> String join(Iterable<T> coll, String sep) {
         Iterator<T> it = coll.iterator();
         String ret = "";
@@ -286,7 +257,7 @@ public class Utils {
             throw new RuntimeException(e);
         }
     }
-    
+
     public static List<URL> findResources(String name) {
         try {
             Enumeration<URL> resources = Thread.currentThread().getContextClassLoader().getResources(name);
@@ -301,34 +272,67 @@ public class Utils {
     }
 
     public static Map findAndReadConfigFile(String name, boolean mustExist) {
+        InputStream in = null;
+        boolean confFileEmpty = false;
         try {
-            HashSet<URL> resources = new HashSet<URL>(findResources(name));
-            if(resources.isEmpty()) {
-                if(mustExist) throw new RuntimeException("Could not find config file on classpath " + name);
-                else return new HashMap();
+            in = getConfigFileInputStream(name);
+            if (null != in) {
+                Yaml yaml = new Yaml(new SafeConstructor());
+                Map ret = (Map) yaml.load(new InputStreamReader(in));
+                if (null != ret) {
+                    return new HashMap(ret);
+                } else {
+                    confFileEmpty = true;
+                }
             }
-            if(resources.size() > 1) {
-                throw new RuntimeException("Found multiple " + name + " resources. You're probably bundling the Storm jars with your topology jar. "
-                  + resources);
-            }
-            URL resource = resources.iterator().next();
-            Yaml yaml = new Yaml(new SafeConstructor());
-            Map ret = null;
-            InputStream input = resource.openStream();
-            try {
-                ret = (Map) yaml.load(new InputStreamReader(input));
-            } finally {
-                input.close();
-            }
-            if(ret==null) ret = new HashMap();
-            
 
-            return new HashMap(ret);
-            
+            if (mustExist) {
+                if(confFileEmpty)
+                    throw new RuntimeException("Config file " + name + " doesn't have any valid storm configs");
+                else
+                    throw new RuntimeException("Could not find config file on classpath " + name);
+            } else {
+                return new HashMap();
+            }
         } catch (IOException e) {
             throw new RuntimeException(e);
+        } finally {
+            if (null != in) {
+                try {
+                    in.close();
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            }
         }
     }
+
+    private static InputStream getConfigFileInputStream(String configFilePath)
+            throws IOException {
+        if (null == configFilePath) {
+            throw new IOException(
+                    "Could not find config file, name not specified");
+        }
+
+        HashSet<URL> resources = new HashSet<URL>(findResources(configFilePath));
+        if (resources.isEmpty()) {
+            File configFile = new File(configFilePath);
+            if (configFile.exists()) {
+                return new FileInputStream(configFile);
+            }
+        } else if (resources.size() > 1) {
+            throw new IOException(
+                    "Found multiple " + configFilePath
+                            + " resources. You're probably bundling the Storm jars with your topology jar. "
+                            + resources);
+        } else {
+            LOG.info("Using "+configFilePath+" from resources");
+            URL resource = resources.iterator().next();
+            return resource.openStream();
+        }
+        return null;
+    }
+
 
     public static Map findAndReadConfigFile(String name) {
        return findAndReadConfigFile(name, true);
@@ -337,7 +341,7 @@ public class Utils {
     public static Map readDefaultConfig() {
         return findAndReadConfigFile("defaults.yaml", true);
     }
-    
+
     public static Map readCommandLineOpts() {
         Map ret = new HashMap();
         String commandOptions = System.getProperty("storm.options");
@@ -373,7 +377,7 @@ public class Utils {
         ret.putAll(readCommandLineOpts());
         return ret;
     }
-    
+
     private static Object normalizeConf(Object conf) {
         if(conf==null) return new HashMap();
         if(conf instanceof Map) {
@@ -398,7 +402,7 @@ public class Utils {
             return conf;
         }
     }
-    
+
     public static boolean isValidConf(Map<String, Object> stormConf) {
         return normalizeConf(stormConf).equals(normalizeConf((Map) JSONValue.parse(JSONValue.toJSONString(stormConf))));
     }
@@ -420,7 +424,7 @@ public class Utils {
         }
         return ret;
     }
-    
+
     public static List<Object> tuple(Object... values) {
         List<Object> ret = new ArrayList<Object>();
         for(Object v: values) {
@@ -556,20 +560,20 @@ public class Utils {
         throw new RuntimeException(e);
       }
     }
-    
+
     public static IFn loadClojureFn(String namespace, String name) {
         try {
           clojure.lang.Compiler.eval(RT.readString("(require '" + namespace + ")"));
         } catch (Exception e) {
           //if playing from the repl and defining functions, file won't exist
         }
-        return (IFn) RT.var(namespace, name).deref();        
+        return (IFn) RT.var(namespace, name).deref();
     }
-    
+
     public static boolean isSystemId(String id) {
         return id.startsWith("__");
     }
-        
+
     public static <K, V> Map<V, K> reverseMap(Map<K, V> map) {
         Map<V, K> ret = new HashMap<V, K>();
         for(K key: map.keySet()) {
@@ -577,7 +581,7 @@ public class Utils {
         }
         return ret;
     }
-    
+
     public static ComponentCommon getComponentCommon(StormTopology topology, String id) {
         if(topology.get_spouts().containsKey(id)) {
             return topology.get_spouts().get(id).get_common();
@@ -590,30 +594,34 @@ public class Utils {
         }
         throw new IllegalArgumentException("Could not find component with id " + id);
     }
-    
+
     public static Integer getInt(Object o) {
       Integer result = getInt(o, null);
       if (null == result) {
-        throw new IllegalArgumentException("Don't know how to convert null + to int");
+        throw new IllegalArgumentException("Don't know how to convert null to int");
       }
       return result;
     }
-    
+
     public static Integer getInt(Object o, Integer defaultValue) {
       if (null == o) {
         return defaultValue;
       }
-      if (o instanceof Long) {
-          return ((Long) o ).intValue();
-      } else if (o instanceof Integer) {
-          return (Integer) o;
-      } else if (o instanceof Short) {
-          return ((Short) o).intValue();
+
+      if (o instanceof Integer ||
+          o instanceof Short ||
+          o instanceof Byte) {
+          return ((Number) o).intValue();
+      } else if (o instanceof Long) {
+          final long l = (Long) o;
+          if (l <= Integer.MAX_VALUE && l >= Integer.MIN_VALUE) {
+              return (int) l;
+          }
       } else if (o instanceof String) {
           return Integer.parseInt((String) o);
-      } else {
-          throw new IllegalArgumentException("Don't know how to convert " + o + " + to int");
       }
+
+      throw new IllegalArgumentException("Don't know how to convert " + o + " to int");
     }
 
     public static Double getDouble(Object o) {
@@ -639,8 +647,8 @@ public class Utils {
       if (null == o) {
         return defaultValue;
       }
-      
-      if (o instanceof Boolean) {
+
+      if(o instanceof Boolean) {
           return (Boolean) o;
       } else {
           throw new IllegalArgumentException("Don't know how to convert " + o + " + to boolean");
@@ -689,7 +697,7 @@ public class Utils {
         CuratorFrameworkFactory.Builder builder = CuratorFrameworkFactory.builder();
 
         setupBuilder(builder, zkStr, conf, auth);
-        
+
         return builder.build();
     }
 
@@ -699,9 +707,10 @@ public class Utils {
             .connectionTimeoutMs(Utils.getInt(conf.get(Config.STORM_ZOOKEEPER_CONNECTION_TIMEOUT)))
             .sessionTimeoutMs(Utils.getInt(conf.get(Config.STORM_ZOOKEEPER_SESSION_TIMEOUT)))
             .retryPolicy(new StormBoundedExponentialBackoffRetry(
-                            Utils.getInt(conf.get(Config.STORM_ZOOKEEPER_RETRY_INTERVAL)),
-                            Utils.getInt(conf.get(Config.STORM_ZOOKEEPER_RETRY_INTERVAL_CEILING)),
-                            Utils.getInt(conf.get(Config.STORM_ZOOKEEPER_RETRY_TIMES))));
+                        Utils.getInt(conf.get(Config.STORM_ZOOKEEPER_RETRY_INTERVAL)),
+                        Utils.getInt(conf.get(Config.STORM_ZOOKEEPER_RETRY_INTERVAL_CEILING)),
+                        Utils.getInt(conf.get(Config.STORM_ZOOKEEPER_RETRY_TIMES))));
+
         if(auth!=null && auth.scheme!=null && auth.payload!=null) {
             builder = builder.authorization(auth.scheme, auth.payload);
         }
@@ -721,8 +730,8 @@ public class Utils {
         CuratorFramework ret = newCurator(conf, servers, port, auth);
         ret.start();
         return ret;
-    }    
-    
+    }
+
     /**
      *
 (defn integer-divided [sum num-pieces]
@@ -735,9 +744,9 @@ public class Utils {
       )))
      * @param sum
      * @param numPieces
-     * @return 
+     * @return
      */
-    
+
     public static TreeMap<Integer, Integer> integerDivided(int sum, int numPieces) {
         int base = sum / numPieces;
         int numInc = sum % numPieces;

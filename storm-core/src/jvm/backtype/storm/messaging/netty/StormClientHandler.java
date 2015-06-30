@@ -47,22 +47,6 @@ public class StormClientHandler extends SimpleChannelUpstreamHandler  {
     }
 
     @Override
-    public void channelConnected(ChannelHandlerContext ctx, ChannelStateEvent event) {
-        //register the newly established channel
-        Channel channel = event.getChannel();
-        client.setChannel(channel);
-        LOG.info("connection established from "+channel.getLocalAddress()+" to "+channel.getRemoteAddress());
-        
-        //send next batch of requests if any
-        try {
-            client.tryDeliverMessages(false);
-        } catch (Exception ex) {
-            LOG.info("exception when sending messages:", ex.getMessage());
-            client.reconnect();
-        }
-    }
-
-    @Override
     public void messageReceived(ChannelHandlerContext ctx, MessageEvent event) {
         //examine the response message from server
         Object message = event.getMessage();
@@ -71,30 +55,23 @@ public class StormClientHandler extends SimpleChannelUpstreamHandler  {
           if (msg==ControlMessage.FAILURE_RESPONSE)
               LOG.info("failure response:{}", msg);
 
-          //send next batch of requests if any
-          try {
-              client.tryDeliverMessages(false);
-          } catch (Exception ex) {
-              LOG.info("exception when sending messages:", ex.getMessage());
-              client.reconnect();
-          }
         } else if (message instanceof List) {
           try {
             //This should be the metrics, and there should only be one of them
             List<TaskMessage> list = (List<TaskMessage>)message;
-            if (list.size() < 1) throw new RuntimeException("Didn't see enough load metrics ("+client.remote_addr+") "+list);
-            if (list.size() != 1) LOG.warn("Messages are not being delivered fast enough, got "+list.size()+" metrics messages at once("+client.remote_addr+")");
+            if (list.size() < 1) throw new RuntimeException("Didn't see enough load metrics ("+client.dstAddressPrefixedName+") "+list);
+            if (list.size() != 1) LOG.warn("Messages are not being delivered fast enough, got "+list.size()+" metrics messages at once("+client.dstAddressPrefixedName+")");
             TaskMessage tm = ((List<TaskMessage>)message).get(list.size() - 1);
-            if (tm.task() != -1) throw new RuntimeException("Metrics messages are sent to the system task ("+client.remote_addr+") "+tm);
+            if (tm.task() != -1) throw new RuntimeException("Metrics messages are sent to the system task ("+client.dstAddressPrefixedName+") "+tm);
             List metrics = _des.deserialize(tm.message());
-            if (metrics.size() < 1) throw new RuntimeException("No metrics data in the metrics message ("+client.remote_addr+") "+metrics);
-            if (!(metrics.get(0) instanceof Map)) throw new RuntimeException("The metrics did not have a map in the first slot ("+client.remote_addr+") "+metrics);
+            if (metrics.size() < 1) throw new RuntimeException("No metrics data in the metrics message ("+client.dstAddressPrefixedName+") "+metrics);
+            if (!(metrics.get(0) instanceof Map)) throw new RuntimeException("The metrics did not have a map in the first slot ("+client.dstAddressPrefixedName+") "+metrics);
             client.setLoadMetrics((Map<Integer, Double>)metrics.get(0));
           } catch (IOException e) {
             throw new RuntimeException(e);
           }
         } else {
-          throw new RuntimeException("Don't know how to handle a message of type "+message+" ("+client.remote_addr+")");
+          throw new RuntimeException("Don't know how to handle a message of type "+message+" ("+client.dstAddressPrefixedName+")");
         }
     }
 
@@ -102,8 +79,7 @@ public class StormClientHandler extends SimpleChannelUpstreamHandler  {
     public void exceptionCaught(ChannelHandlerContext ctx, ExceptionEvent event) {
         Throwable cause = event.getCause();
         if (!(cause instanceof ConnectException)) {
-            LOG.info("Connection to "+client.remote_addr+" failed:", cause);
+            LOG.info("Connection failed {} ", client.dstAddressPrefixedName, cause);
         }
-        client.reconnect();
     }
 }

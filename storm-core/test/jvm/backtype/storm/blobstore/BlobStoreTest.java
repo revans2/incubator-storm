@@ -164,7 +164,6 @@ public class BlobStoreTest {
     testMultiple(initHdfs("/storm/blobstore2"));
   }
 
-
   public void testBasic(BlobStore store) throws Exception {
 
     assertStoreHasExactly(store);

@@ -26,7 +26,7 @@ Next, make sure you have the storm-starter code available on your machine.  Git/
 following command to download the latest storm-starter code and change to the new directory that contains the downloaded
 code.
 
-    $ git clone git://github.com/apache/incubator-storm.git && cd incubator-storm/examples/storm-starter
+    $ git clone git://github.com/apache/storm.git && cd storm/examples/storm-starter
 
 
 ## storm-starter overview
@@ -45,7 +45,7 @@ After you have familiarized yourself with these topologies, take a look at the o
 for more advanced implementations.
 
 If you want to learn more about how Storm works, please head over to the
-[Storm project page](http://storm.incubator.apache.org).
+[Storm project page](http://storm.apache.org).
 
 
 <a name="maven"></a>
@@ -74,10 +74,12 @@ of Storm in this local Maven repository at `$HOME/.m2/repository`.
 
 ## Running topologies with Maven
 
-storm-starter topologies can be run with the maven-exec-plugin. For example, to
-compile and run `WordCountTopology` in local mode, use the command:
+> Note: All following examples require that you run `cd examples/storm-starter` beforehand.
 
-    $ mvn compile exec:java -Dstorm.topology=storm.starter.WordCountTopology
+storm-starter topologies which don't use multilang feature can be run with the maven-exec-plugin. 
+For example, to compile and run `ExclamationTopology` in local mode, use the command:
+
+    $ mvn compile exec:java -Dstorm.topology=storm.starter.ExclamationTopology
 
 You can also run clojure topologies with Maven:
 
@@ -93,8 +95,35 @@ You can package a jar suitable for submitting to a Storm cluster with the comman
 
     $ mvn package
 
-This will package your code and all the non-Storm dependencies into a single "uberjar" at the path
-`target/storm-starter-{version}-jar-with-dependencies.jar`.
+This will package your code and all the non-Storm dependencies into a single "uberjar" (or "fat jar") at the path
+`target/storm-starter-{version}.jar`.
+
+Example filename of the uberjar:
+
+    >>> target/storm-starter-0.9.3-incubating-SNAPSHOT.jar
+
+You can submit (run) a topology contained in this uberjar to Storm via the `storm` CLI tool:
+
+    # Example 1: Run the RollingTopWords in local mode (LocalCluster)
+    $ storm jar storm-starter-*.jar storm.starter.RollingTopWords
+
+    # Example 2: Run the RollingTopWords in remote/cluster mode,
+    #            under the name "production-topology"
+    $ storm jar storm-starter-*.jar storm.starter.RollingTopWords production-topology remote
+
+With submitting you can run topologies which use multilang, for example, `WordCountTopology`.
+
+_Submitting a topology in local vs. remote mode:_
+It depends on the actual code of a topology how you can or even must tell Storm whether to run the topology locally (in
+an in-memory LocalCluster instance of Storm) or remotely (in a "real" Storm cluster).  In the case of
+[RollingTopWords](src/jvm/storm/starter/RollingTopWords.java), for instance, this can be done by passing command line
+arguments.
+Topologies other than `RollingTopWords` -- such as [ExclamationTopology](src/jvm/storm/starter/ExclamationTopology.java)
+-- may behave differently, e.g. by always submitting to a remote cluster (i.e. hardcoded in a way that you, as a user,
+cannot change without modifying the topology code), or by requiring a customized configuration file that the topology
+code will parse prior submitting the topology to Storm.  Similarly, further options such as the name of the topology may
+be user-configurable or be hardcoded into the topology code.  So make sure you understand how the topology of your
+choice is set up and configured!
 
 
 ## Running unit tests
@@ -115,7 +144,7 @@ The following instructions will import storm-starter as a new project in Intelli
 
 
 * Open _File > Import Project..._ and navigate to the storm-starter directory of your storm clone (e.g.
-  `~/git/incubator-storm/examples/storm-starter`).
+  `~/git/storm/examples/storm-starter`).
 * Select _Import project from external model_, select "Maven", and click _Next_.
 * In the following screen, enable the checkbox _Import Maven projects automatically_.  Leave all other values at their
   defaults.  Click _Next_.

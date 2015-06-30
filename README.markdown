@@ -1,12 +1,14 @@
-Storm is a distributed realtime computation system. Similar to how Hadoop provides a set of general primitives for doing batch processing, Storm provides a set of general primitives for doing realtime computation. Storm is simple, can be used with any programming language, [is used by many companies](https://github.com/nathanmarz/storm/wiki/Powered-By), and is a lot of fun to use!
+Master Branch: [![Travis CI](https://travis-ci.org/apache/storm.svg?branch=master)](https://travis-ci.org/apache/storm)
 
-The [Rationale page](https://github.com/nathanmarz/storm/wiki/Rationale) on the wiki explains what Storm is and why it was built. [This presentation](http://vimeo.com/40972420) is also a good introduction to the project.
+Storm is a distributed realtime computation system. Similar to how Hadoop provides a set of general primitives for doing batch processing, Storm provides a set of general primitives for doing realtime computation. Storm is simple, can be used with any programming language, [is used by many companies](http://storm-project.net/documentation/Powered-By.html), and is a lot of fun to use!
+
+The [Rationale page](http://storm-project.net/documentation/Rationale.html) explains what Storm is and why it was built. [This presentation](http://vimeo.com/40972420) is also a good introduction to the project.
 
 Storm has a website at [storm-project.net](http://storm-project.net). Follow [@stormprocessor](https://twitter.com/stormprocessor) on Twitter for updates on the project.
 
 ## Documentation
 
-Documentation and tutorials can be found on the [Storm wiki](http://github.com/nathanmarz/storm/wiki).
+Documentation and tutorials can be found on the [Storm website](http://storm-project.net/documentation/Home.html).
 
 Developers and contributors should also take a look at our [Developer documentation](DEVELOPER.md).
 
@@ -16,23 +18,23 @@ Developers and contributors should also take a look at our [Developer documentat
 __NOTE:__ The google groups account storm-user@googlegroups.com is now officially deprecated in favor of the Apache-hosted user/dev mailing lists.
 
 ### Storm Users
-Storm users should send messages and subscribe to [user@storm.incubator.apache.org](mailto:user@storm.incubator.apache.org).
+Storm users should send messages and subscribe to [user@storm.apache.org](mailto:user@storm.apache.org).
 
-You can subscribe to this list by sending an email to [user-subscribe@storm.incubator.apache.org](mailto:user-subscribe@storm.incubator.apache.org). Likewise, you can cancel a subscription by sending an email to [user-unsubscribe@storm.incubator.apache.org](mailto:user-unsubscribe@storm.incubator.apache.org).
+You can subscribe to this list by sending an email to [user-subscribe@storm.apache.org](mailto:user-subscribe@storm.apache.org). Likewise, you can cancel a subscription by sending an email to [user-unsubscribe@storm.apache.org](mailto:user-unsubscribe@storm.apache.org).
 
-You can also [browse the archives of the storm-user mailing list](http://mail-archives.apache.org/mod_mbox/incubator-storm-user/).
+You can also [browse the archives of the storm-user mailing list](http://mail-archives.apache.org/mod_mbox/storm-user/).
 
 ### Storm Developers
-Storm developers should send messages and subscribe to [dev@storm.incubator.apache.org](mailto:dev@storm.incubator.apache.org).
+Storm developers should send messages and subscribe to [dev@storm.apache.org](mailto:dev@storm.apache.org).
 
-You can subscribe to this list by sending an email to [dev-subscribe@storm.incubator.apache.org](mailto:dev-subscribe@storm.incubator.apache.org). Likewise, you can cancel a subscription by sending an email to [dev-unsubscribe@storm.incubator.apache.org](mailto:dev-unsubscribe@storm.incubator.apache.org).
+You can subscribe to this list by sending an email to [dev-subscribe@storm.apache.org](mailto:dev-subscribe@storm.apache.org). Likewise, you can cancel a subscription by sending an email to [dev-unsubscribe@storm.apache.org](mailto:dev-unsubscribe@storm.apache.org).
 
-You can also [browse the archives of the storm-dev mailing list](http://mail-archives.apache.org/mod_mbox/incubator-storm-dev/).
+You can also [browse the archives of the storm-dev mailing list](http://mail-archives.apache.org/mod_mbox/storm-dev/).
 
 ### Which list should I send/subscribe to?
-If you are using a pre-built binary distribution of Storm, then chances are you should send questions, comments, storm-related announcements, etc. to [user@storm.apache.incubator.org](user@storm.apache.incubator.org). 
+If you are using a pre-built binary distribution of Storm, then chances are you should send questions, comments, storm-related announcements, etc. to [user@storm.apache.org](user@storm.apache.org).
 
-If you are building storm from source, developing new features, or otherwise hacking storm source code, then [dev@storm.incubator.apache.org](dev@storm.incubator.apache.org) is more appropriate. 
+If you are building storm from source, developing new features, or otherwise hacking storm source code, then [dev@storm.apache.org](dev@storm.apache.org) is more appropriate.
 
 ### What will happen with storm-user@googlegroups.com?
 All existing messages will remain archived there, and can be accessed/searched [here](https://groups.google.com/forum/#!forum/storm-user).
@@ -77,6 +79,11 @@ under the License.
 * Derek Dagit ([@d2r](https://github.com/d2r))
 * Robert Evans ([@revans2](https://github.com/revans2))
 * Michael G. Noll ([@miguno](https://github.com/miguno))
+* Kishor Patil ([@kishorvpatil](https://github.com/kishorvpatil))
+* Sriharsha Chintalapani([@harshach](https://github.com/harshach))
+* Sean Zhong ([@clockfly] (http://github.com/clockfly))
+* Kyle Nusbaum ([@knusbaum](https://github.com/knusbaum))
+* Parth Brahmbhatt ([@Parth-Brahmbhatt](https://github.com/Parth-Brahmbhatt))
 
 ## Contributors
 
@@ -119,7 +126,81 @@ under the License.
 * Sean Melody ([@srmelody](https://github.com/srmelody))
 * Jake Donham ([@jaked](https://github.com/jaked))
 * Ankit Toshniwal ([@ankitoshniwal](https://github.com/ankitoshniwal))
+* Adam Lewis ([@supercargo](https://github.com/supercargo))
+* Alexander Yerenkow ([@yerenkow](https://github.com/yerenkow))
+* Brenden Matthews ([@brndnmtthws](https://github.com/brdnmtthws))
+* Bryan Baugher ([@bbaugher](https://github.com/bbaugher))
+* Danijel Schiavuzzi ([@dschiavu](https://github.com/dschiavu))
+* David James ([@xpe](https://github.com/xpe))
+* David Losada ([@tuxpiper](https://github.com/tuxpiper))
+* Francois Dang Ngoc ([@darthbear](https://github.com/darthbear))
+* Gangrui Li ([@davidlgr](https://github.com/davidlgr))
+* John Gilmore ([@jsgilmore](https://github.com/jsgilmore))
+* Julien Nioche ([@jnioche](https://github.com/jnioche))
+* Muneyuki Noguchi ([@mnogu](https://github.com/mnogu))
+* Niels Basjes ([@nielsbasjes](https://github.com/nielsbasjes))
+* Padma Priya Chitturi ([PadmaCh](https://issues.apache.org/jira/secure/ViewProfile.jspa?name=PadmaCh))
+* Prabeesh K ([@prabeesh](https://github.com/prabeesh))
+* Sean Zhong ([@clockfly](https://github.com/clockfly))
+* Sriharsha Chintalapani ([@harshach](https://github.com/harshach))
+* Srinivas Prasad Gumdelli ([@srinivasgumdelli](https://github.com/srinivasgumdelli))
+* Steven Phung ([@stphung](https://github.com/stphung))
+* Suresh Srinivas ([@sureshms](https://github.com/sureshms))
+* thinker0 ([@thinker0](https://github.com/thinker0))
+* Troy Ding ([@troyding](https://github.com/troyding))
+* Aaron Zimmerman ([@aaronzimmerman](https://github.com/aaronzimmerman))
+* Albert Chu ([@chu11](https://github.com/chu11))
+* Krystian Nowak ([@krystiannowak](https://github.com/krystiannowak))
+* Parth-Brahmbhatt ([@Parth-Brahmbhatt](https://github.com/Parth-Brahmbhatt))
+* Adrian Petrescu ([@apetresc](https://github.com/apetresc))
+* DashengJu ([@dashengju](https://github.com/dashengju))
+* Jungtaek Lim ([@HeartSaVioR](https://github.com/HeartSaVioR))
+* Li Jiahong ([@Gvain](https://github.com/Gvain))
+* Aaron Levin ([@aaronlevin](https://github.com/aaronlevin))
+* Masatake Iwasaki ([@iwasakims](https://github.com/iwasakims))
+* Milad Fatenejad ([@icksa](https://github.com/icksa))
+* Ryan Liu ([@shell0dh](https://github.com/shell0dh))
+* Dave Parfitt ([@metadave](https://github.com/metadave))
+* Jo Liss ([@joliss](https://github.com/joliss))
+* averykhoo ([@averykhoo](https://github.com/averykhoo))
+* Curtis Allen ([@curtisallen](https://github.com/curtisallen))
+* Raghavendra Nandagopal ([@RaghavendraNandagopal](https://github.com/RaghavendraNandagopal))
+* Boris Aksenov ([@miofthena](https://github.com/miofthena))
+* Itai Frenkel ([@itaifrenkel](https://github.com/itaifrenkel))
+* Naresh Kosgi ([@NareshKosgi](https://github.com/NareshKosgi))
+* Sean T Allen ([@SeanTAllen](https://github.com/SeanTAllen))
+* Gabriel Ciuloaica ([@devsprint](https://github.com/devsprint))
+* wurstmeister ([@wurstmeister](https://github.com/wurstmeister))
+* Marc Beitchman ([@mbeitchman](https://github.com/mbeitchman))
+* Dan Blanchard ([@dan-blanchard](https://github.com/dan-blanchard))
+* Mykhailo "Michael" Pershyn ([@pershyn](https://github.com/pershyn))
+* Dave Golombek ([@dgolombek](https://github.com/dgolombek))
+* Edison Xu ([@EdisonXu](https://github.com/EdisonXu))
+* Ariel Valentin ([@arielvalentin](http://blog.arielvalentin.com/))
+* Dane Hammer ([@danehammer](https://github.com/danehammer))
+* Christophe Carre' ([@chrisz](https://github.com/chrisz))
+* Anya Tchernishov ([@anyatch](https://github.com/anyatch))
+* Ahmet DAL ([@javrasya](https://github.com/javrasya))
+* Kai Sasaki ([@Lewuathe](https://github.com/Lewuathe))
+* Matthew Siegel ([@msiegel07](https://github.com/msiegel07))
+* Jun Xia ([@tedxia](https://github.com/tedxia))
+* caofangkun ([@caofangkun](https://github.com/caofangkun))
+* Mansheng Yang ([@lightyang](https://github.com/lightyang))
+* Rick Kilgore ([@rick-kilgore](http://github.com/rick-kilgore))
+* 周向涛 ([@taojoe](https://github.com/taojoe))
+* Gianmarco De Francisci Morales ([@gdfm](https://github.com/gdfm))
+* zhangjinlong ([@BuDongDong](https://github.com/BuDongDong))
+* Paul DelRe ([@pdelre](https://github.com/pdelre))
+* Zhihui Jiao ([@onlychoice](https://github.com/onlychoice))
+* Hari Sekhon ([@harisekhon](https://github.com/harisekhon))
+* iBuddha ([@iBuddha](https://github.com/iBuddha))
+* Dave Katten ([@dkatten](https://github.com/dkatten))
+* Mark Davis ([@markdav](https://github.com/markdav))
+* Zhuo Liu ([@zhuoliu](https://github.com/zhuoliu))
+* jangie ([@jangie](https://github.com/jangie))
+* Hailei Zhang ([@Hailei](https://github.com/Hailei))
 
 ## Acknowledgements
 
 YourKit is kindly supporting open source projects with its full-featured Java Profiler. YourKit, LLC is the creator of innovative and intelligent tools for profiling Java and .NET applications. Take a look at YourKit's leading software products: [YourKit Java Profiler](http://www.yourkit.com/java/profiler/index.jsp) and [YourKit .NET Profiler](http://www.yourkit.com/.net/profiler/index.jsp).
+

@@ -15,24 +15,31 @@
 ;; limitations under the License.
 (ns backtype.storm.daemon.executor
   (:use [backtype.storm.daemon common])
-  (:use [backtype.storm bootstrap])
-  (:import [backtype.storm ICredentialsListener]
-           [backtype.storm.generated Grouping]
+  (:import [backtype.storm.generated Grouping]
            [java.io Serializable])
+  (:use [backtype.storm util config log timer stats])
+  (:import [java.util List Random HashMap ArrayList LinkedList Map])
+  (:import [backtype.storm ICredentialsListener])
   (:import [backtype.storm.hooks ITaskHook])
-  (:import [backtype.storm.tuple Tuple])
-  (:import [backtype.storm.spout ISpoutWaitStrategy])
+  (:import [backtype.storm.tuple Tuple Fields TupleImpl MessageId])
+  (:import [backtype.storm.spout ISpoutWaitStrategy ISpout SpoutOutputCollector ISpoutOutputCollector])
   (:import [backtype.storm.hooks.info SpoutAckInfo SpoutFailInfo
             EmitInfo BoltFailInfo BoltAckInfo BoltExecuteInfo])
-  (:import [backtype.storm.metric.api IMetric IMetricsConsumer$TaskInfo IMetricsConsumer$DataPoint])
-  (:import [backtype.storm Config])
-  (:import [backtype.storm.grouping LoadAwareCustomStreamGrouping LoadMapping])
+  (:import [backtype.storm.grouping CustomStreamGrouping LoadAwareCustomStreamGrouping LoadMapping])
+  (:import [backtype.storm.task WorkerTopologyContext IBolt OutputCollector IOutputCollector])
+  (:import [backtype.storm.generated GlobalStreamId])
+  (:import [backtype.storm.utils Utils MutableObject RotatingMap RotatingMap$ExpiredCallback MutableLong Time])
+  (:import [com.lmax.disruptor InsufficientCapacityException])
+  (:import [backtype.storm.serialization KryoTupleSerializer KryoTupleDeserializer])
+  (:import [backtype.storm.daemon Shutdownable])
+  (:import [backtype.storm.metric.api IMetric IMetricsConsumer$TaskInfo IMetricsConsumer$DataPoint StateMetric])
+  (:import [backtype.storm Config Constants])
   (:import [java.util.concurrent ConcurrentLinkedQueue])
-  (:require [backtype.storm [tuple :as tuple]])
+  (:require [backtype.storm [tuple :as tuple] [thrift :as thrift]
+             [cluster :as cluster] [disruptor :as disruptor] [stats :as stats]])
   (:require [backtype.storm.daemon [task :as task]])
-  (:require [backtype.storm.daemon.builtin-metrics :as builtin-metrics]))
-
-(bootstrap)
+  (:require [backtype.storm.daemon.builtin-metrics :as builtin-metrics])
+  (:require [clojure.set :as set]))
 
 (defn- mk-fields-grouper [^Fields out-fields ^Fields group-fields ^List target-tasks]
   (let [num-tasks (count target-tasks)
@@ -96,7 +103,7 @@
       :none
         (fn [task-id tuple load]
           (let [i (mod (.nextInt random) num-tasks)]
-            (.get target-tasks i)
+            (get target-tasks i)
             ))
       :custom-object
         (let [grouping (thrift/instantiate-java-object (.get_custom_object thrift-grouping))]
@@ -195,7 +202,9 @@
       (swap! interval-errors inc)
 
       (when (<= @interval-errors max-per-interval)
-        (cluster/report-error (:storm-cluster-state executor) (:storm-id executor) (:component-id executor) error)
+        (cluster/report-error (:storm-cluster-state executor) (:storm-id executor) (:component-id executor)
+                              (hostname storm-conf)
+                              (.getThisWorkerPort (:worker-context executor)) error)
         ))))
 
 ;; in its own function so that it can be mocked out by tracked topologies
@@ -304,7 +313,7 @@
         task-id (:task-id task-data)
         name->imetric (-> interval->task->metric-registry (get interval) (get task-id))
         task-info (IMetricsConsumer$TaskInfo.
-                    (. (java.net.InetAddress/getLocalHost) getCanonicalHostName)
+                    (hostname (:storm-conf executor-data))
                     (.getThisWorkerPort worker-context)
                     (:component-id executor-data)
                     task-id
@@ -327,7 +336,7 @@
         context (:worker-context executor-data)]
     (when tick-time-secs
       (if (or (system-id? (:component-id executor-data))
-              (and (not (storm-conf TOPOLOGY-ENABLE-MESSAGE-TIMEOUTS))
+              (and (= false (storm-conf TOPOLOGY-ENABLE-MESSAGE-TIMEOUTS))
                    (= :spout (:type executor-data))))
         (log-message "Timeouts disabled for executor " (:component-id executor-data) ":" (:executor-id executor-data))
         (schedule-recurring

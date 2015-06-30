@@ -1,3 +1,18 @@
+;; Licensed to the Apache Software Foundation (ASF) under one
+;; or more contributor license agreements.  See the NOTICE file
+;; distributed with this work for additional information
+;; regarding copyright ownership.  The ASF licenses this file
+;; to you under the Apache License, Version 2.0 (the
+;; "License"); you may not use this file except in compliance
+;; with the License.  You may obtain a copy of the License at
+;;
+;; http://www.apache.org/licenses/LICENSE-2.0
+;;
+;; Unless required by applicable law or agreed to in writing, software
+;; distributed under the License is distributed on an "AS IS" BASIS,
+;; WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+;; See the License for the specific language governing permissions and
+;; limitations under the License.
 (ns backtype.storm.converter
   (:import [backtype.storm.generated SupervisorInfo NodeInfo Assignment
             StormBase TopologyStatus ClusterWorkerHeartbeat ExecutorInfo ErrorInfo Credentials RebalanceOptions KillOptions TopologyActionOptions])
@@ -13,7 +28,9 @@
     (.set_meta (map long (:meta supervisor-info)))
     (.set_scheduler_meta (:scheduler-meta supervisor-info))
     (.set_uptime_secs (long (:uptime-secs supervisor-info)))
-    (.set_resources_map (:resources-map supervisor-info))))
+    (.set_resources_map (:resources-map supervisor-info))
+    (.set_version (:version supervisor-info))
+    ))
 
 (defn clojurify-supervisor-info [^SupervisorInfo supervisor-info]
   (if supervisor-info
@@ -25,6 +42,7 @@
       (if (.get_meta supervisor-info) (into [] (.get_meta supervisor-info)))
       (if (.get_scheduler_meta supervisor-info) (into {} (.get_scheduler_meta supervisor-info)))
       (.get_uptime_secs supervisor-info)
+      (.get_version supervisor-info)
       (if-let [res-map (.get_resources_map supervisor-info)] (into {} res-map))
       )))
 
@@ -182,14 +200,19 @@
       (.set_time_secs (:time-secs worker-hb)))))
 
 (defn clojurify-error [^ErrorInfo error]
-  (when error
+  (if error
     {
       :error (.get_error error)
       :time-secs (.get_error_time_secs error)
-    }))
+      :host (.get_host error)
+      :port (.get_port error)
+      }
+    ))
 
 (defn thriftify-error [error]
-  (ErrorInfo. (:error error) (:time-secs error)))
+  (doto (ErrorInfo. (:error error) (:time-secs error))
+    (.set_host (:host error))
+    (.set_port (:port error))))
 
 (defn thriftify-credentials [credentials]
     (doto (Credentials.)

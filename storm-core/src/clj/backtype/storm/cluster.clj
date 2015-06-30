@@ -70,7 +70,7 @@
   (remove-storm-base! [this storm-id])
   (set-assignment! [this storm-id info])
   (remove-storm! [this storm-id])
-  (report-error [this storm-id task-id error])
+  (report-error [this storm-id task-id node port error])
   (errors [this storm-id task-id])
   (last-error [this storm-id task-id])
   (set-credentials! [this storm-id creds topo-conf])
@@ -159,7 +159,7 @@
   (when ser
     (Utils/deserialize ser clazz)))
 
-(defrecord TaskError [error time-secs])
+(defrecord TaskError [error time-secs host port])
 
 (defn- parse-error-path
   [^String p]
@@ -199,13 +199,16 @@
                       (condp = subtree
                          ASSIGNMENTS-ROOT (if (empty? args)
                                              (issue-callback! assignments-callback)
-                                             (issue-map-callback! assignment-info-callback (first args)))
+                                             (do
+                                               (issue-map-callback! assignment-info-callback (first args))
+                                               (issue-map-callback! assignment-version-callback (first args))
+                                               (issue-map-callback! assignment-info-with-version-callback (first args))))
                          SUPERVISORS-ROOT (issue-callback! supervisors-callback)
                          STORMS-ROOT (issue-map-callback! storm-base-callback (first args))
                          CREDENTIALS-ROOT (issue-map-callback! credentials-callback (first args))
                          LOGCONFIG-ROOT (issue-map-callback! log-config-callback (first args))
                          ;; this should never happen
-                         (halt-process! 30 "Unknown callback for subtree " subtree args)))))]
+                         (exit-process! 30 "Unknown callback for subtree " subtree args)))))]
     (doseq [p [ASSIGNMENTS-SUBTREE STORMS-SUBTREE SUPERVISORS-SUBTREE WORKERBEATS-SUBTREE ERRORS-SUBTREE
                LOGCONFIG-SUBTREE]]
       (.mkdirs cluster-state p acls))
@@ -382,10 +385,10 @@
         (clojurify-crdentials (maybe-deserialize (.get_data cluster-state (credentials-path storm-id) (not-nil? callback)) Credentials)))
 
       (report-error
-         [this storm-id component-id error]
+         [this storm-id component-id node port error]
          (let [path (error-path storm-id component-id)
                last-error-path (last-error-path storm-id component-id)
-               data (thriftify-error {:time-secs (current-time-secs) :error (stringify-error error)})
+               data (thriftify-error {:time-secs (current-time-secs) :error (stringify-error error) :host node :port port})
                _ (.mkdirs cluster-state path acls)
                ser-data (Utils/serialize data)
                _ (.mkdirs cluster-state path acls)

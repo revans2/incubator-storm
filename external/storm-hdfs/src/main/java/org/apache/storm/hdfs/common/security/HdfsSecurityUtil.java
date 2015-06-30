@@ -44,7 +44,8 @@ public class HdfsSecurityUtil {
     public static void login(Map conf, Configuration hdfsConfig) throws IOException {
         //If AutoHDFS is specified, do not attempt to login using keytabs, only kept for backward compatibility.
         if(conf.get(TOPOLOGY_AUTO_CREDENTIALS) == null ||
-                 !(((List)conf.get(TOPOLOGY_AUTO_CREDENTIALS)).contains(AutoTGT.class.getName()))) {
+                (!(((List)conf.get(TOPOLOGY_AUTO_CREDENTIALS)).contains(AutoHDFS.class.getName())) &&
+                 !(((List)conf.get(TOPOLOGY_AUTO_CREDENTIALS)).contains(AutoTGT.class.getName())))) {
             if (UserGroupInformation.isSecurityEnabled()) {
                 LOG.info("Logging in using keytab as AutoHDFS is not specified for " + TOPOLOGY_AUTO_CREDENTIALS);
                 String keytab = (String) conf.get(STORM_KEYTAB_FILE_KEY);

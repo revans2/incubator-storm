@@ -78,12 +78,12 @@ public class SaslStormServerHandler extends SimpleChannelUpstreamHandler {
                         saslNettyServer);
             } else {
                 LOG.debug("Found existing saslNettyServer on server:"
-                          + channel.getLocalAddress() + " for client "
-                          + channel.getRemoteAddress());
+                        + channel.getLocalAddress() + " for client "
+                        + channel.getRemoteAddress());
             }
 
             LOG.debug("processToken:  With nettyServer: " + saslNettyServer
-                      + " and token length: " + token.length);
+                    + " and token length: " + token.length);
 
             SaslMessageToken saslTokenMessageRequest = null;
             saslTokenMessageRequest = new SaslMessageToken(
@@ -117,8 +117,8 @@ public class SaslStormServerHandler extends SimpleChannelUpstreamHandler {
             if (saslNettyServer.isComplete()) {
                 // If authentication of client is complete, we will also send a
                 // SASL-Complete message to the client.
-                LOG.info("SASL authentication is complete for client with "
-                          + "username: " + saslNettyServer.getUserName());
+                LOG.debug("SASL authentication is complete for client with "
+                        + "username: " + saslNettyServer.getUserName());
                 channel.write(ControlMessage.SASL_COMPLETE_REQUEST);
                 LOG.debug("Removing SaslServerHandler from pipeline since SASL "
                         + "authentication is complete.");

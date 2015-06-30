@@ -20,8 +20,8 @@ package backtype.storm.messaging.netty;
 import org.jboss.netty.channel.socket.nio.NioClientSocketChannelFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.HashMap;
@@ -40,6 +40,9 @@ public class Context implements IContext {
     private Map<String, IConnection> connections;
     private NioClientSocketChannelFactory clientChannelFactory;
     
+    private ScheduledExecutorService clientScheduleService;
+    private final int MAX_CLIENT_SCHEDULER_THREAD_POOL_SIZE = 10;
+
     /**
      * initialization per Storm configuration 
      */
@@ -59,6 +62,10 @@ public class Context implements IContext {
             clientChannelFactory = new NioClientSocketChannelFactory(Executors.newCachedThreadPool(bossFactory),
                     Executors.newCachedThreadPool(workerFactory));
         }
+        
+        int otherWorkers = Utils.getInt(storm_conf.get(Config.TOPOLOGY_WORKERS), 1) - 1;
+        int poolSize = Math.min(Math.max(1, otherWorkers), MAX_CLIENT_SCHEDULER_THREAD_POOL_SIZE);
+        clientScheduleService = Executors.newScheduledThreadPool(poolSize, new NettyRenameThreadFactory("client-schedule-service"));
     }
 
     /**
@@ -80,7 +87,7 @@ public class Context implements IContext {
             return connection;
         }
         IConnection client =  new Client(storm_conf, clientChannelFactory, 
-                host, port, this);
+                clientScheduleService, host, port, this);
         connections.put(key(host, port), client);
         return client;
     }
@@ -93,14 +100,23 @@ public class Context implements IContext {
      * terminate this context
      */
     public synchronized void term() {
+        clientScheduleService.shutdown();        
+        
         for (IConnection conn : connections.values()) {
             conn.close();
+        }
+        
+        try {
+            clientScheduleService.awaitTermination(30, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            LOG.error("Error when shutting down client scheduler", e);
         }
         
         connections = null;
 
         //we need to release resources associated with client channel factory
         clientChannelFactory.releaseExternalResources();
+
     }
 
     private String key(String host, int port) {

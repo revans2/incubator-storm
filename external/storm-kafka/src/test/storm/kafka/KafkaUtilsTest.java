@@ -99,30 +99,28 @@ public class KafkaUtilsTest {
                 new Partition(Broker.fromString(broker.getBrokerConnectionString()), 0), -99);
     }
 
-    @Test
+    @Test(expected = TopicOffsetOutOfRangeException.class)
     public void fetchMessagesWithInvalidOffsetAndDefaultHandlingEnabled() throws Exception {
         config = new KafkaConfig(brokerHosts, "newTopic");
         String value = "test";
         createTopicAndSendMessage(value);
-        ByteBufferMessageSet messageAndOffsets = KafkaUtils.fetchMessages(config, simpleConsumer,
+        KafkaUtils.fetchMessages(config, simpleConsumer,
                 new Partition(Broker.fromString(broker.getBrokerConnectionString()), 0), -99);
-        String message = new String(Utils.toByteArray(messageAndOffsets.iterator().next().message().payload()));
-        assertThat(message, is(equalTo(value)));
     }
 
     @Test
     public void getOffsetFromConfigAndDontForceFromStart() {
-        config.forceFromStart = false;
+        config.ignoreZkOffsets = false;
         config.startOffsetTime = OffsetRequest.EarliestTime();
         createTopicAndSendMessage();
-        long latestOffset = KafkaUtils.getOffset(simpleConsumer, config.topic, 0, OffsetRequest.LatestTime());
+        long latestOffset = KafkaUtils.getOffset(simpleConsumer, config.topic, 0, OffsetRequest.EarliestTime());
         long offsetFromConfig = KafkaUtils.getOffset(simpleConsumer, config.topic, 0, config);
         assertThat(latestOffset, is(equalTo(offsetFromConfig)));
     }
 
     @Test
     public void getOffsetFromConfigAndFroceFromStart() {
-        config.forceFromStart = true;
+        config.ignoreZkOffsets = true;
         config.startOffsetTime = OffsetRequest.EarliestTime();
         createTopicAndSendMessage();
         long earliestOffset = KafkaUtils.getOffset(simpleConsumer, config.topic, 0, OffsetRequest.EarliestTime());
@@ -139,6 +137,7 @@ public class KafkaUtilsTest {
     @Test
     public void generateTuplesWithKeyAndKeyValueScheme() {
         config.scheme = new KeyValueSchemeAsMultiScheme(new StringKeyValueScheme());
+        config.useStartOffsetTimeIfOffsetOutOfRange = false;
         String value = "value";
         String key = "key";
         createTopicAndSendMessage(key, value);

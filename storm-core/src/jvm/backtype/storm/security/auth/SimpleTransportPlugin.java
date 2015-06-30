@@ -90,9 +90,11 @@ public class SimpleTransportPlugin implements ITransportPlugin {
     /**
      * Connect to the specified server via framed transport 
      * @param transport The underlying Thrift transport.
+     * @param serverHost unused.
+     * @param asUser unused.
      */
     @Override
-    public TTransport connect(TTransport transport, String serverHost) throws TTransportException {
+    public TTransport connect(TTransport transport, String serverHost, String asUser) throws TTransportException {
         int maxBufferSize = type.getMaxBufferSize(storm_conf);
         //create a framed transport
         TTransport conn = new TFramedTransport(transport, maxBufferSize);

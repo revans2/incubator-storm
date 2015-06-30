@@ -399,8 +399,9 @@ Note that if anything goes wrong, this will throw an Error and exit."
           (if grep
             (html [:pre#logContent
                    (if grep
-                     (filter #(.contains % grep)
-                             (.split log-string "\n"))
+                     (->> (.split log-string "\n")
+                          (filter #(.contains % grep))
+                          (string/join "\n"))
                      log-string)])
             (let [pager-data (if is-txt-file (pager-links fname start length file-length) nil)]
               (html (concat (search-file-form (url-encode fname)) 
@@ -981,7 +982,7 @@ Note that if anything goes wrong, this will throw an Error and exit."
                             :filter-params (or (conf UI-FILTER-PARAMS) {})}]
                           [])
           filters-confs (concat filters-confs
-                          [{:filter-class "org.mortbay.servlet.GzipFilter"
+                          [{:filter-class "org.eclipse.jetty.servlets.GzipFilter"
                             :filter-name "Gzipper"
                             :filter-params {}}])]
       (storm-run-jetty {:port (int (conf LOGVIEWER-PORT))

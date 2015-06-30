@@ -22,6 +22,7 @@
   (:import [backtype.storm Constants])
   (:import [backtype.storm.metric SystemBolt])
   (:import [backtype.storm.security.auth IAuthorizer]) 
+  (:import [java.io InterruptedIOException])
   (:require [clojure.set :as set])  
   (:require [backtype.storm.daemon.acker :as acker])
   (:require [backtype.storm.thrift :as thrift])
@@ -52,7 +53,7 @@
 ;; component->executors is a map from spout/bolt id to number of executors for that component
 (defrecord StormBase [storm-name launch-time-secs status num-workers component->executors owner topology-action-options prev-status])
 
-(defrecord SupervisorInfo [time-secs hostname assignment-id used-ports meta scheduler-meta uptime-secs resources-map])
+(defrecord SupervisorInfo [time-secs hostname assignment-id used-ports meta scheduler-meta uptime-secs version resources-map])
 
 (defprotocol DaemonCommon
   (waiting? [this]))
@@ -91,11 +92,13 @@
     (defn ~name [& args#]
       (try-cause
         (apply exec-fn# args#)
+      (catch InterruptedIOException e#
+        (throw e#))
       (catch InterruptedException e#
         (throw e#))
       (catch Throwable t#
         (log-error t# "Error on initialization of server " ~(str name))
-        (halt-process! 13 "Error on initialization")
+        (exit-process! 13 "Error on initialization")
         )))))
 
 (defn- validate-ids! [^StormTopology topology]

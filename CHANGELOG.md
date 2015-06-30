@@ -1,3 +1,284 @@
+## 0.10.0
+ * STORM-856: use serialized value of delay secs for topo actions
+ * STORM-852: Replaced Apache Log4j Logger with SLF4J API
+ * STORM-813: Change storm-starter's README so that it explains mvn exec:java cannot run multilang topology
+ * STORM-853: Fix upload API to handle multi-args properly
+ * STORM-850: Convert storm-core's logback-test.xml to log4j2-test.xml
+ * STORM-848: Shade external dependencies
+ * STORM-849: Add storm-redis to storm binary distribution
+ * STORM-760: Use JSON for serialized conf
+ * STORM-833: Logging framework logback -> log4j 2.x
+ * STORM-842: Drop Support for Java 1.6
+ * STORM-835: Netty Client hold batch object until io operation complete
+ * STORM-827: Allow AutoTGT to work with storm-hdfs too.
+ * STORM-821: Adding connection provider interface to decouple jdbc connector from a single connection pooling implementation.
+ * STORM-818: storm-eventhubs configuration improvement and refactoring
+ * STORM-816: maven-gpg-plugin does not work with gpg 2.1
+ * STORM-811: remove old metastor_db before running tests again.
+ * STORM-808: allow null to be parsed as null
+ * STORM-807: quote args to storm.py correctly
+ * STORM-801: Add Travis CI badge to README
+ * STORM-797: DisruptorQueueTest has some race conditions in it.
+ * STORM-796: Add support for "error" command in ShellSpout
+ * STORM-795: Update the user document for the extlib issue
+ * STORM-792: Missing documentation in backtype.storm.generated.Nimbus
+ * STORM-791: Storm UI displays maps in the config incorrectly
+ * STORM-790: Log "task is null" instead of let worker died when task is null in transfer-fn
+ * STORM-789: Send more topology context to Multi-Lang components via initial handshake
+ * STORM-788: UI Fix key for process latencies
+ * STORM-787: test-ns should announce test failures with 'BUILD FAILURE'
+ * STORM-786: KafkaBolt should ack tick tuples
+ * STORM-773: backtype.storm.transactional-test fails periodically with timeout
+ * STORM-772: Tasts fail periodically with InterruptedException or InterruptedIOException
+ * STORM-766: Include version info in the service page
+ * STORM-765: Thrift serialization for local state
+ * STORM-764: Have option to compress thrift heartbeat
+ * STORM-762: uptime for worker heartbeats is lost when converted to thrift
+ * STORM-761: An option for new/updated Redis keys to expire in RedisMapState
+ * STORM-757: Simulated time can leak out on errors
+ * STORM-753: Improve RedisStateQuerier to convert List<Values> from Redis value
+ * STORM-752: [storm-redis] Clarify Redis*StateUpdater's expire is optional
+ * STORM-750: Set Config serialVersionUID
+ * STORM-749: Remove CSRF check from the REST API.
+ * STORM-747: assignment-version-callback/info-with-version-callback are not fired when assignments change
+ * STORM-746: Skip ack init when there are no output tasks
+ * STORM-745: fix storm.cmd to evaluate 'shift' correctly with 'storm jar'
+ * STORM-741: Allow users to pass a config value to perform impersonation.
+ * STORM-740: Simple Transport Client cannot configure thrift buffer size
+ * STORM-737: Check task->node+port with read lock to prevent sending to closed connection
+ * STORM-735: [storm-redis] Upgrade Jedis to 2.7.0
+ * STORM-730: remove extra curly brace
+ * STORM-729: Include Executors (Window Hint) if the component is of Bolt type
+ * STORM-728: Put emitted and transferred stats under correct columns
+ * STORM-727: Storm tests should succeed even if a storm process is running locally.
+ * STORM-724: Document RedisStoreBolt and RedisLookupBolt which is missed.
+ * STORM-723: Remove RedisStateSetUpdater / RedisStateSetCountQuerier which didn't tested and have a bug
+ * STORM-721: Storm UI server should support SSL.
+ * STORM-715: Add a link to AssignableMetric.java in Metrics.md
+ * STORM-714: Make CSS more consistent with self, prev release
+ * STORM-713: Include topic information with Kafka metrics.
+ * STORM-712: Storm daemons shutdown if OutOfMemoryError occurs in any thread
+ * STORM-711: All connectors should use collector.reportError and tuple anchoring.
+ * STORM-708: CORS support for STORM UI.
+ * STORM-707: Client (Netty): improve logging to help troubleshooting connection woes
+ * STORM-704: Apply Travis CI to Apache Storm Project
+ * STORM-703: With hash key option for RedisMapState, only get values for keys in batch
+ * STORM-699: storm-jdbc should support custom insert queries. 
+ * STORM-696: Single Namespace Test Launching
+ * STORM-694: java.lang.ClassNotFoundException: backtype.storm.daemon.common.SupervisorInfo
+ * STORM-693: KafkaBolt exception handling improvement.
+ * STORM-691: Add basic lookup / persist bolts
+ * STORM-690: Return Jedis into JedisPool with marking 'broken' if connection is broken
+ * STORM-689: SimpleACLAuthorizer should provide a way to restrict who can submit topologies.
+ * STORM-688: update Util to compile under JDK8
+ * STORM-687: Storm UI does not display up to date information despite refreshes in IE
+ * STORM-685: wrong output in log when committed offset is too far behind latest offset
+ * STORM-684: In RichSpoutBatchExecutor: underlying spout is not closed when emitter is closed
+ * STORM-683: Make false in a conf really evaluate to false in clojure.
+ * STORM-682: supervisor should handle worker state corruption gracefully.
+ * STORM-681: Auto insert license header with genthrift.sh
+ * STORM-675: Allow users to have storm-env.sh under config dir to set custom JAVA_HOME and other env variables.
+ * STORM-673: Typo 'deamon' in security documentation
+ * STORM-672: Typo in Trident documentation example
+ * STORM-670: restore java 1.6 compatibility (storm-kafka)
+ * STORM-669: Replace links with ones to latest api document
+ * STORM-667: Incorrect capitalization "SHell" in Multilang-protocol.md
+ * STORM-663: Create javadocs for BoltDeclarer
+ * STORM-659: return grep matches each on its own line.
+ * STORM-657: make the shutdown-worker sleep time before kill -9 configurable
+ * STORM-656: Document "external" modules and "Committer Sponsors"
+ * STORM-651: improvements to storm.cmd
+ * STORM-641: Add total number of topologies to api/v1/cluster/summary.
+ * STORM-640: Storm UI vulnerable to poodle attack.
+ * STORM-637: Integrate PartialKeyGrouping into storm API
+ * STORM-636: Faster, optional retrieval of last component error
+ * STORM-635: logviewer returns 404 if storm_home/logs is a symlinked dir.
+ * STORM-634: Storm serialization changed to thrift to support rolling upgrade.
+ * STORM-632: New grouping for better load balancing
+ * STORM-630: Support for Clojure 1.6.0
+ * STORM-629: Place Link to Source Code Repository on Webpage
+ * STORM-627: Storm-hbase configuration error.
+ * STORM-626: Add script to print out the merge command for a given pull request.
+ * STORM-625: Don't leak netty clients when worker moves or reuse netty client.	
+ * STORM-623: Generate latest javadocs
+ * STORM-620: Duplicate maven plugin declaration
+ * STORM-616: Storm JDBC Connector.
+ * STORM-615: Add REST API to upload topology.
+ * STORM-613: Fix wrong getOffset return value
+ * STORM-612: Update the contact address in configure.ac
+ * STORM-611: Remove extra "break"s
+ * STORM-610: Check the return value of fts_close()
+ * STORM-609: Add storm-redis to storm external
+ * STORM-608: Storm UI CSRF escape characters not work correctly.
+ * STORM-607: storm-hbase HBaseMapState should support user to customize the hbase-key & hbase-qualifier
+ * STORM-603: Log errors when required kafka params are missing
+ * STORM-601: Make jira-github-join ignore case.
+ * STORM-600: upgrade jacoco plugin to support jdk8
+ * STORM-599: Use nimbus's cached heartbeats rather than fetching again from ZK
+ * STORM-596: remove config topology.receiver.buffer.size
+ * STORM-595: storm-hdfs can only work with sequence files that use Writables.
+ * STORM-586: Trident kafka spout fails instead of updating offset when kafka offset is out of range.
+ * STORM-585: Performance issue in none grouping
+ * STORM-583: Add Microsoft Azure Event Hub spout implementations
+ * STORM-578: Calls to submit-mocked-assignment in supervisor-test use invalid executor-id format
+ * STORM-577: long time launch worker will block supervisor heartbeat
+ * STORM-575: Ability to specify Jetty host to bind to
+ * STORM-572: Storm UI 'favicon.ico'
+ * STORM-572: Allow Users to pass TEST-TIMEOUT-MS for java
+ * STORM-571: upgrade clj-time.
+ * STORM-570: Switch from tablesorter to datatables jquery plugin.
+ * STORM-569: Add Conf for bolt's outgoing overflow-buffer.
+ * STORM-567: Move Storm Documentation/Website from SVN to git
+ * STORM-565: Fix NPE when topology.groups is null.
+ * STORM-563: Kafka Spout doesn't pick up from the beginning of the queue unless forceFromStart specified.
+ * STORM-561: Add flux as an external module
+ * STORM-557: High Quality Images for presentations
+ * STORM-554: the type of first param "topology" should be ^StormTopology not ^TopologyContext
+ * STORM-552: Add netty socket backlog config
+ * STORM-548: Receive Thread Shutdown hook should connect to local hostname but not Localhost
+ * STORM-541: Build produces maven warnings
+ * STORM-539: Storm Hive Connector.
+ * STORM-533: Add in client and server IConnection metrics.
+ * STORM-527: update worker.clj -- delete "missing-tasks" checking
+ * STORM-525: Add time sorting function to the 2nd col of bolt exec table
+ * STORM-512: KafkaBolt doesn't handle ticks properly
+ * STORM-505: Fix debug string construction
+ * STORM-495: KafkaSpout retries with exponential backoff
+ * STORM-487: Remove storm.cmd, no need to duplicate work python runs on windows too.
+ * STORM-483: provide dedicated directories for classpath extension
+ * STORM-456: Storm UI: cannot navigate to topology page when name contains spaces.
+ * STORM-446: Allow superusers to impersonate other users in secure mode.
+ * STORM-444: Add AutoHDFS like credential fetching for HBase
+ * STORM-442: multilang ShellBolt/ShellSpout die() can be hang when Exception happened
+ * STORM-441: Remove bootstrap macro from Clojure codebase
+ * STORM-410: Add groups support to log-viewer
+ * STORM-400: Thrift upgrade to thrift-0.9.2
+ * STORM-329: fix cascading Storm failure by improving reconnection strategy and buffering messages (thanks tedxia)
+ * STORM-322: Windows script do not handle spaces in JAVA_HOME path
+ * STORM-248: cluster.xml location is hardcoded for workers
+ * STORM-243: Record version and revision information in builds
+ * STORM-188: Allow user to specifiy full configuration path when running storm command
+ * STORM-130: Supervisor getting killed due to java.io.FileNotFoundException: File '../stormconf.ser' does not exist.
+
+
+## 0.9.5
+ * STORM-790: Log "task is null" instead of let worker died when task is null in transfer-fn
+ * STORM-796: Add support for "error" command in ShellSpout
+ * STORM-745: fix storm.cmd to evaluate 'shift' correctly with 'storm jar'
+  * STORM-130: Supervisor getting killed due to java.io.FileNotFoundException: File '../stormconf.ser' does not exist.
+
+## 0.9.4
+ * STORM-559: ZkHosts in README should use 2181 as port.
+ * STORM-682: supervisor should handle worker state corruption gracefully.
+ * STORM-693: when kafka bolt fails to write tuple, it should report error instead of silently acking.
+ * STORM-329: fix cascading Storm failure by improving reconnection strategy and buffering messages
+ * STORM-130: Supervisor getting killed due to java.io.FileNotFoundException: File '../stormconf.ser' does not exist.
+
+
+## 0.9.3-rc2
+ * STORM-558: change "swap!" to "reset!" to fix assignment-versions in supervisor
+ * STORM-555: Storm json response should set charset to UTF-8
+ * STORM-513: check heartbeat from multilang subprocess
+ * STORM-549: "topology.enable.message.timeouts" does nothing
+ * STORM-546: Local hostname configuration ignored by executor
+ * STORM-492: Test timeout should be configurable
+ * STORM-540: Change default time format in logs to ISO8601 in order to include timezone
+ * STORM-511: Storm-Kafka spout keeps sending fetch requests with invalid offset
+ * STORM-538: Guava com.google.thirdparty.publicsuffix is not shaded
+ * STORM-497: don't modify the netty server taskToQueueId mapping while the someone could be reading it.
+ * STORM-537: A worker reconnects infinitely to another dead worker (Sergey Tryuber)
+
+## 0.9.3-rc1
+ * STORM-519: add tuple as an input param to HBaseValueMapper 
+ * STORM-488: Exit with 254 error code if storm CLI is run with unknown command
+ * STORM-506: Do not count bolt acks & fails in total stats
+ * STORM-490: fix build under Windows
+ * STORM-439: Replace purl.js qith jquery URL plugin
+ * STORM-499: Document and clean up shaded dependncy resolution with maven
+ * STORM-210: Add storm-hbase module
+ * STORM-507: Topology visualization should not block ui
+ * STORM-504: Class used by `repl` command is deprecated.
+ * STORM-330: Implement storm exponential backoff stategy for netty client and curator
+ * STORM-461: exit-process! does not always exit the process, but throws an exception
+ * STORM-341: fix assignment sorting
+ * STORM-476: external/storm-kafka: avoid NPE on null message payloads
+ * STORM-424: fix error message related to kafka offsets
+ * STORM-454: correct documentation in STORM-UI-REST-API.md
+ * STORM-474: Reformat UI HTML code
+ * STORM-447: shade/relocate packages of dependencies that are common causes of dependency conflicts
+ * STORM-279: cluster.xml doesn't take in STORM_LOG_DIR values.
+ * STORM-380: Kafka spout: throw RuntimeException if a leader cannot be found for a partition
+ * STORM-435: Improve storm-kafka documentation
+ * STORM-405: Add kafka trident state so messages can be sent to kafka topic
+ * STORM-211: Add module for HDFS integration
+ * STORM-337: Expose managed spout ids publicly
+ * STORM-320: Support STORM_CONF_DIR environment variable to support
+ * STORM-360: Add node details for Error Topology and Component pages
+ * STORM-54: Per-Topology Classpath and Environment for Workers
+ * STORM-355: excluding outdated netty transitively included via curator
+ * STORM-183: Replacing RunTime.halt() with RunTime.exit()
+ * STORM-213: Decouple In-Process ZooKeeper from LocalCluster.
+ * STORM-365: Add support for Python 3 to storm command.
+ * STORM-332: Enable Kryo serialization in storm-kafka
+ * STORM-370: Add check for empty table before sorting dom in UI
+ * STORM-359: add logviewer paging and download
+ * STORM-372: Typo in storm_env.ini
+ * STORM-266: Adding shell process pid and name in the log message
+ * STORM-367: Storm UI REST api documentation.
+ * STORM-200: Proposal for Multilang's Metrics feature
+ * STORM-351: multilang python process fall into endless loop
+ * STORM-375: Smarter downloading of assignments by supervisors and workers
+ * STORM-328: More restrictive Config checks, strict range check within Utils.getInt()
+ * STORM-381: Replace broken jquery.tablesorter.min.js to latest
+ * STORM-312: add storm monitor tools to monitor throughtput interactively
+ * STORM-354: Testing: allow users to pass TEST-TIMEOUT-MS as param for complete-topology
+ * STORM-254: one Spout/Bolt can register metric twice with same name in different timeBucket
+ * STORM-403: heartbeats-to-nimbus in supervisor-test failed due to uninten...
+ * STORM-402: FileNotFoundException when using storm with apache tika
+ * STORM-364: The exception time display as default timezone.
+ * STORM-420: Missing quotes in storm-starter python code
+ * STORM-399: Kafka Spout defaulting to latest offset when current offset is older then 100k
+ * STORM-421: Memoize local hostname lookup in executor
+ * STORM-414: support logging level to multilang protocol spout and bolt
+ * STORM-321: Added a tool to see the current status of STORM JIRA and github pulls.
+ * STORM-415: validate-launched-once in supervisor-test can not handle multiple topologies
+ * STORM-155: Storm rebalancing code causes multiple topologies assigned to a single port
+ * STORM-419: Updated test so sort ordering is very explicit.
+ * STORM-406: Fix for reconnect logic in netty client.
+ * STORM-366: Add color span to most recent error and fix ui templates.
+ * STORM-369: topology summary page displays wrong order.
+ * STORM-239: Allow supervisor to operate in paths with spaces in them
+ * STORM-87: fail fast on ShellBolt exception
+ * STORM-417: Storm UI lost table sort style when tablesorter was updated
+ * STORM-396: Replace NullPointerException with IllegalArgumentExeption
+ * STORM-451: Latest storm does not build due to a pom.xml error in storm-hdfs pom.xml
+ * STORM-453: migrated to curator 2.5.0
+ * STORM-458: sample spout uses incorrect name when connecting bolt
+ * STORM-455: Report error-level messages from ShellBolt children
+ * STORM-443: multilang log's loglevel protocol can cause hang
+ * STORM-449: Updated ShellBolt to not exit when shutting down.
+ * STORM-464: Simulated time advanced after test cluster exits causes intermittent test failures
+ * STORM-463: added static version of metrics helpers for Config
+ * STORM-376: Add compression to serialization
+ * STORM-437: Enforce utf-8 when multilang reads from stdin
+ * STORM-361: Add JSON-P support to Storm UI API
+ * STORM-373: Provide Additional String substitutions for *.worker.childopts
+ * STORM-274: Add support for command remoteconfvalue in storm.cmd
+ * STORM-132: sort supervisor by free slot in desending order
+ * STORM-472: Improve error message for non-completeable testing spouts
+ * STORM-401: handle InterruptedIOException properly.
+ * STORM-461: exit-process! does not always exit the process, but throws an exception instead
+ * STORM-475: Storm UI pages do not use UTF-8
+ * STORM-336: Logback version should be upgraded
+ * STORM-386: nodejs multilang protocol implementation and examples
+ * STORM-500: Add Spinner when UI is loading stats from nimbus
+ * STORM-501: Missing StormSubmitter API
+ * STORM-493: Workers inherit storm.conf.file/storm.options properties of their supervisor
+ * STORM-498: make ZK connection timeout configurable in Kafka spout
+ * STORM-428: extracted ITuple interface
+ * STORM-508: Update DEVELOPER.md now that Storm has graduated from Incubator
+ * STORM-514: Update storm-starter README now that Storm has graduated from Incubator
+
 ## 0.9.2-incubating
  * STORM-66: send taskid on initial handshake
  * STORM-342: Contention in Disruptor Queue which may cause out of order or lost messages

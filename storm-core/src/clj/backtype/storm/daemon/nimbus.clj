@@ -20,28 +20,34 @@
   (:import [org.apache.thrift.transport TNonblockingServerTransport TNonblockingServerSocket])
   (:import [org.apache.commons.io FileUtils])
   (:import [java.nio ByteBuffer]
-           [java.util Collections HashMap])
-  (:import [java.io FileNotFoundException File FileOutputStream])
+           [java.util Collections List HashMap])
+  (:import [java.io FileNotFoundException File FileOutputStream FileInputStream])
   (:import [java.nio.channels Channels WritableByteChannel])
   (:import [java.util Iterator])
   (:import [backtype.storm.security.auth ThriftServer ThriftConnectionType ReqContext AuthUtils])
   (:use [backtype.storm.scheduler.DefaultScheduler])
   (:import [backtype.storm.scheduler INimbus SupervisorDetails WorkerSlot TopologyDetails
             Cluster Topologies SchedulerAssignment SchedulerAssignmentImpl DefaultScheduler ExecutorDetails])
-  (:import [backtype.storm.generated AuthorizationException BeginDownloadResult
-                                     GetInfoOptions NumErrorsChoice
-                                     ListBlobsResult ReadableBlobMeta
-                                     SettableBlobMeta KeyNotFoundException TopologyHistoryInfo
-                                     ComponentPageInfo TopologyPageInfo TopologyStats LogConfig
-                                     LogLevel LogLevelAction])
+  (:import [backtype.storm.utils TimeCacheMap TimeCacheMap$ExpiredCallback Utils ThriftTopologyUtils BufferInputStream])
+  (:import [backtype.storm.generated AuthorizationException AlreadyAliveException BeginDownloadResult
+                                     ClusterSummary ComponentPageInfo ErrorInfo ExecutorInfo ExecutorSummary GetInfoOptions
+                                     InvalidTopologyException KeyNotFoundException KillOptions
+                                     ListBlobsResult LogConfig LogLevel LogLevelAction
+                                     Nimbus$Iface Nimbus$Processor NumErrorsChoice NotAliveException
+                                     ReadableBlobMeta RebalanceOptions SubmitOptions SupervisorSummary StormTopology
+                                     SettableBlobMeta TopologyHistoryInfo TopologyInfo TopologyInitialStatus
+                                     TopologyPageInfo TopologyStats TopologySummary])
   (:import [backtype.storm.blobstore AtomicOutputStream
                                      BlobStore
                                      BlobStoreAclHandler
                                      ClientBlobStore
                                      InputStreamWithMeta
                                      KeyFilter])
-  (:use [backtype.storm bootstrap util local-state])
-  (:use [backtype.storm.config :only [validate-configs-with-schemas]])
+  (:import [backtype.storm.daemon Shutdownable])
+  (:use [backtype.storm util config log timer local-state])
+  (:require [backtype.storm [cluster :as cluster] [stats :as stats]])
+  (:require [clojure.set :as set])
+  (:import [backtype.storm.daemon.common StormBase Assignment])
   (:use [backtype.storm.daemon common])
   (:use [clojure.string :only [blank?]])
   (:use [clojure.set :only [intersection]])
@@ -50,8 +56,6 @@
   (:require [clj-time.coerce :as coerce])
   (:gen-class
     :methods [^{:static true} [launch [backtype.storm.scheduler.INimbus] void]]))
-
-(bootstrap)
 
 (defn mk-file-cache-map
   "Constructs a TimeCacheMap instance with a nimbus file timeout whose expiration
@@ -109,6 +113,7 @@
     {:conf conf
      :inimbus inimbus
      :authorization-handler (mk-authorization-handler (conf NIMBUS-AUTHORIZER) conf)
+     :impersonation-authorization-handler (mk-authorization-handler (conf NIMBUS-IMPERSONATION-AUTHORIZER) conf)
      :submitted-count (atom 0)
      :storm-cluster-state (cluster/mk-storm-cluster-state conf :acls (when
                                                                        (Utils/isZkAuthenticationConfiguredStormServer
@@ -128,13 +133,14 @@
      :validator (new-instance (conf NIMBUS-TOPOLOGY-VALIDATOR))
      :timer (mk-timer :kill-fn (fn [t]
                                  (log-error t "Error when processing event")
-                                 (halt-process! 20 "Error when processing an event")
+                                 (exit-process! 20 "Error when processing an event")
                                  ))
      :scheduler (mk-scheduler conf inimbus)
      :id->sched-status (atom {})
      :cred-renewers (AuthUtils/GetCredentialRenewers conf)
      :topology-history-lock (Object.)
      :topo-history-state (nimbus-topo-history-state conf)
+     :nimbus-autocred-plugins (AuthUtils/getNimbusAutoCredPlugins conf)
      }))
 
 (defn inbox [nimbus]
@@ -666,7 +672,9 @@
     new-topology->executor->node+port))
 
 (defn changed-executors [executor->node+port new-executor->node+port]
-  (let [slot-assigned (reverse-map executor->node+port)
+  (let [executor->node+port (if executor->node+port (sort executor->node+port) nil)
+        new-executor->node+port (if new-executor->node+port (sort new-executor->node+port) nil)
+        slot-assigned (reverse-map executor->node+port)
         new-slot-assigned (reverse-map new-executor->node+port)
         brand-new-slots (map-diff slot-assigned new-slot-assigned)]
     (apply concat (vals brand-new-slots))
@@ -811,8 +819,22 @@
 (defn check-authorization! 
   ([nimbus storm-name storm-conf operation context]
      (let [aclHandler (:authorization-handler nimbus)
+           impersonation-authorizer (:impersonation-authorization-handler nimbus)
            ctx (or context (ReqContext/context))
            check-conf (if storm-conf storm-conf (if storm-name {TOPOLOGY-NAME storm-name}))]
+       (log-message "[req " (.requestID ctx) "] Access from: " (.remoteAddress ctx) " principal:" (.principal ctx) " op:" operation)
+
+       (if (.isImpersonating ctx)
+         (do
+          (log-warn "principal: " (.realPrincipal ctx) " is trying to impersonate principal: " (.principal ctx))
+          (if impersonation-authorizer
+           (if-not (.permit impersonation-authorizer ctx operation check-conf)
+             (throw (AuthorizationException. (str "principal " (.realPrincipal ctx) " is not authorized to impersonate
+                        principal " (.principal ctx) " from host " (.remoteAddress ctx) " Please see SECURITY.MD to learn
+                        how to configure impersonation acls."))))
+           (log-warn "impersonation attempt but " NIMBUS-IMPERSONATION-AUTHORIZER " has no authorizer configured. potential
+                      security risk, please see SECURITY.MD to learn how to configure impersonation authorizer."))))
+
        (if aclHandler
          (if-not (.permit aclHandler ctx operation check-conf)
            (throw (AuthorizationException. (str operation (if storm-name (str " on topology " storm-name)) " is not authorized")))
@@ -916,24 +938,6 @@
           (swap! (:heartbeats-cache nimbus) dissoc id))
         ))))
 
-(defn renew-credentials [nimbus]
-  (let [storm-cluster-state (:storm-cluster-state nimbus)
-        renewers (:cred-renewers nimbus)
-        update-lock (:cred-update-lock nimbus)
-        assigned-ids (set (.active-storms storm-cluster-state))]
-    (when-not (empty? assigned-ids)
-      (doseq [id assigned-ids]
-        (locking update-lock
-          (let [orig-creds (.credentials storm-cluster-state id nil)]
-            (if orig-creds
-              (let [new-creds (HashMap. orig-creds)]
-                (doseq [renewer renewers]
-                  (log-message "Renewing Creds For " id " with " renewer)
-		  (.renew renewer new-creds))
-                (when-not (= orig-creds new-creds)
-                  (.set-credentials! storm-cluster-state id new-creds)
-              )))))))))
-
 (defn- file-older-than? [now seconds file]
   (<= (+ (.lastModified file) (to-millis seconds)) (to-millis now)))
 
@@ -972,7 +976,16 @@
 
 (defn- get-errors [storm-cluster-state storm-id component-id]
   (->> (.errors storm-cluster-state storm-id component-id)
-       (map #(ErrorInfo. (:error %) (:time-secs %)))))
+       (map #(doto (ErrorInfo. (:error %) (:time-secs %))
+                   (.set_host (:host %))
+                   (.set_port (:port %))))))
+
+(defn- get-last-error
+  [storm-cluster-state storm-id component-id]
+  (if-let [e (.last-error storm-cluster-state storm-id component-id)]
+    (doto (ErrorInfo. (:error e) (:time-secs e))
+                      (.set_host (:host e))
+                      (.set_port (:port e)))))
 
 (defn- thriftify-executor-id [[first-task-id last-task-id]]
   (ExecutorInfo. (int first-task-id) (int last-task-id)))
@@ -1048,6 +1061,25 @@
                                    (line :topoid)
                                    nil)))]
     (remove nil? (map #(topo-user-can-access % user (:conf nimbus)) curr-history))))
+
+(defn renew-credentials [nimbus]
+  (let [storm-cluster-state (:storm-cluster-state nimbus)
+        renewers (:cred-renewers nimbus)
+        update-lock (:cred-update-lock nimbus)
+        assigned-ids (set (.active-storms storm-cluster-state))]
+    (when-not (empty? assigned-ids)
+      (doseq [id assigned-ids]
+        (locking update-lock
+          (let [orig-creds (.credentials storm-cluster-state id nil)
+                topology-conf (try-read-storm-conf (:conf nimbus) id)]
+            (if orig-creds
+              (let [new-creds (HashMap. orig-creds)]
+                (doseq [renewer renewers]
+                  (log-message "Renewing Creds For " id " with " renewer)
+                  (.renew renewer new-creds (Collections/unmodifiableMap topology-conf)))
+                (when-not (= orig-creds new-creds)
+                  (.set-credentials! storm-cluster-state id new-creds topology-conf)
+                  )))))))))
 
 (defn validate-topology-size [topo-conf nimbus-conf topology]
   (let [workers-count (get topo-conf TOPOLOGY-WORKERS)
@@ -1193,7 +1225,10 @@
                                 (dissoc storm-conf STORM-ZOOKEEPER-TOPOLOGY-AUTH-SCHEME STORM-ZOOKEEPER-TOPOLOGY-AUTH-PAYLOAD))
                 total-storm-conf (merge conf storm-conf)
                 topology (normalize-topology total-storm-conf topology)
+
                 storm-cluster-state (:storm-cluster-state nimbus)]
+            (when credentials (doseq [nimbus-autocred-plugin (:nimbus-autocred-plugins nimbus)]
+              (.populateCredentials nimbus-autocred-plugin credentials (Collections/unmodifiableMap storm-conf))))
             (if (and (conf SUPERVISOR-RUN-WORKER-AS-USER) (or (nil? submitter-user) (.isEmpty (.trim submitter-user)))) 
               (throw (AuthorizationException. "Could not determine the user to run this topology as.")))
             (system-topology! total-storm-conf topology) ;; this validates the structure of the topology
@@ -1398,12 +1433,14 @@
               ;; in standalone just look at metadata, otherwise just say N/A?
               supervisor-summaries (dofor [[id info] supervisor-infos]
                                           (let [ports (set (:meta info)) ;;TODO: this is only true for standalone
-                                                ]
-                                            (SupervisorSummary. (:hostname info)
+
+                                            sup-sum (SupervisorSummary. (:hostname info)
                                                                 (:uptime-secs info)
                                                                 (count ports)
                                                                 (count (:used-ports info))
-                                                                id )
+                                                                id) ]
+                                            (when-let [version (:version info)] (.set_version sup-sum version))
+                                            sup-sum
                                             ))
               nimbus-uptime ((:uptime nimbus))
               bases (topology-bases storm-cluster-state)
@@ -1716,10 +1753,11 @@
 (defn launch-server! [conf nimbus]
   (validate-distributed-mode! conf)
   (let [service-handler (service-handler conf nimbus)
-        ;;TODO need to honor NIMBUS-THRIFT-MAX-BUFFER-SIZE for different transports
         server (ThriftServer. conf (Nimbus$Processor. service-handler) 
                               ThriftConnectionType/NIMBUS)]
-    (.addShutdownHook (Runtime/getRuntime) (Thread. (fn [] (.shutdown service-handler) (.stop server))))
+    (add-shutdown-hook-with-force-kill-in-1-sec (fn []
+                                                  (.shutdown service-handler)
+                                                  (.stop server)))
     (log-message "Starting Nimbus server...")
     (.serve server)
     service-handler))
