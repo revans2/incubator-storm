@@ -23,7 +23,8 @@
            [backtype.storm.topology TopologyBuilder])
   (:import [backtype.storm.scheduler Cluster SupervisorDetails WorkerSlot ExecutorDetails
             SchedulerAssignmentImpl Topologies TopologyDetails])
-  (:import [backtype.storm.scheduler.resource Node ResourceAwareScheduler RAS_TYPES]))
+  (:import [backtype.storm.scheduler.resource Node ResourceAwareScheduler])
+  (:import [backtype.storm Config]))
 
 (bootstrap)
 
@@ -32,8 +33,8 @@
                 :let [supervisor (SupervisorDetails. (str "id" id)
                                        (str "host" id)
                                        (list ) (map int (range ports))
-                                   {RAS_TYPES/TYPE_MEMORY 2000.0
-                                    RAS_TYPES/TYPE_CPU 400.0})]]
+                                   {Config/SUPERVISOR_MEMORY_CAPACITY_MB 2000.0
+                                    Config/SUPERVISOR_CPU_CAPACITY 400.0})]]
             {(.getId supervisor) supervisor})))
 
 (defn to-top-map [topologies]
@@ -148,10 +149,7 @@
                      TOPOLOGY-SUBMITTER-USER "userC"
                      TOPOLOGY-COMPONENT-RESOURCES-ONHEAP-MEMORY-MB 128.0
                      TOPOLOGY-COMPONENT-RESOURCES-OFFHEAP-MEMORY-MB 0.0
-                     TOPOLOGY-COMPONENT-CPU-PCORE-PERCENT 10.0
-                     TOPOLOGY-COMPONENT-TYPE-CPU "cpu"
-                     TOPOLOGY-COMPONENT-TYPE-CPU-TOTAL "total"
-                     TOPOLOGY-COMPONENT-TYPE-MEMORY "memory"}
+                     TOPOLOGY-COMPONENT-CPU-PCORE-PERCENT 10.0}
                     storm-topology
                     1
                     (mk-ed-map [["wordSpout" 0 1]
@@ -186,10 +184,7 @@
                      TOPOLOGY-SUBMITTER-USER "userC"
                      TOPOLOGY-COMPONENT-RESOURCES-ONHEAP-MEMORY-MB 128.0
                      TOPOLOGY-COMPONENT-RESOURCES-OFFHEAP-MEMORY-MB 0.0
-                     TOPOLOGY-COMPONENT-CPU-PCORE-PERCENT 10.0
-                     TOPOLOGY-COMPONENT-TYPE-CPU "cpu"
-                     TOPOLOGY-COMPONENT-TYPE-CPU-TOTAL "total"
-                     TOPOLOGY-COMPONENT-TYPE-MEMORY "memory"}
+                     TOPOLOGY-COMPONENT-CPU-PCORE-PERCENT 10.0}
                     storm-topology
                     2
                     (mk-ed-map [["wordSpout" 0 1]
@@ -226,10 +221,7 @@
                      TOPOLOGY-SUBMITTER-USER "userC"
                      TOPOLOGY-COMPONENT-RESOURCES-ONHEAP-MEMORY-MB 128.0
                      TOPOLOGY-COMPONENT-RESOURCES-OFFHEAP-MEMORY-MB 0.0
-                     TOPOLOGY-COMPONENT-CPU-PCORE-PERCENT 10.0
-                     TOPOLOGY-COMPONENT-TYPE-CPU "cpu"
-                     TOPOLOGY-COMPONENT-TYPE-CPU-TOTAL "total"
-                     TOPOLOGY-COMPONENT-TYPE-MEMORY "memory"}
+                     TOPOLOGY-COMPONENT-CPU-PCORE-PERCENT 10.0}
                     storm-topology
                     2 ;; need two workers, each on one node
                     (mk-ed-map [["wordSpout" 0 2]
@@ -284,12 +276,9 @@
                       TOPOLOGY-SUBMITTER-USER "userC"
                       TOPOLOGY-COMPONENT-RESOURCES-ONHEAP-MEMORY-MB 128.0
                       TOPOLOGY-COMPONENT-RESOURCES-OFFHEAP-MEMORY-MB 0.0
-                      TOPOLOGY-COMPONENT-CPU-PCORE-PERCENT 10.0
-                      TOPOLOGY-COMPONENT-TYPE-CPU "cpu"
-                      TOPOLOGY-COMPONENT-TYPE-CPU-TOTAL "total"
-                      TOPOLOGY-COMPONENT-TYPE-MEMORY "memory"}
+                      TOPOLOGY-COMPONENT-CPU-PCORE-PERCENT 10.0}
                      storm-topology1
-                     3  ;; three workers to hold three executors
+                     3 ;; three workers to hold three executors
                      (mk-ed-map [["spout1" 0 3]]))
          builder2 (TopologyBuilder.)
          _ (.setSpout builder2 "spout2" (TestWordSpout.) 2)
@@ -299,11 +288,8 @@
                       TOPOLOGY-SUBMITTER-USER "userC"
                       TOPOLOGY-COMPONENT-RESOURCES-ONHEAP-MEMORY-MB 1280.0 ;; large enough thus two eds can not be fully assigned to one node
                       TOPOLOGY-COMPONENT-RESOURCES-OFFHEAP-MEMORY-MB 0.0
-                      TOPOLOGY-COMPONENT-CPU-PCORE-PERCENT 10.0
-                      TOPOLOGY-COMPONENT-TYPE-CPU "cpu"
-                      TOPOLOGY-COMPONENT-TYPE-CPU-TOTAL "total"
-                      TOPOLOGY-COMPONENT-TYPE-MEMORY "memory"}
-                      storm-topology2
+                      TOPOLOGY-COMPONENT-CPU-PCORE-PERCENT 10.0}
+                     storm-topology2
                      2  ;; two workers, each holds one executor and resides on one node
                      (mk-ed-map [["spout2" 0 2]]))
         scheduler (ResourceAwareScheduler.)]
@@ -402,12 +388,12 @@
 (deftest test-heterogeneous-cluster
   (let [supers (into {} (for [super [(SupervisorDetails. (str "id" 0) (str "host" 0) (list ) 
                                                          (map int (list 1 2 3 4))
-                                                         {RAS_TYPES/TYPE_MEMORY 4096.0
-                                                          RAS_TYPES/TYPE_CPU 800.0})
+                                                         {Config/SUPERVISOR_MEMORY_CAPACITY_MB 4096.0
+                                                          Config/SUPERVISOR_CPU_CAPACITY 800.0})
                                      (SupervisorDetails. (str "id" 1) (str "host" 1) (list ) 
                                                          (map int (list 1 2 3 4))
-                                                         {RAS_TYPES/TYPE_MEMORY 1024.0
-                                                          RAS_TYPES/TYPE_CPU 200.0})]]
+                                                         {Config/SUPERVISOR_MEMORY_CAPACITY_MB 1024.0
+                                                          Config/SUPERVISOR_CPU_CAPACITY 200.0})]]
                           {(.getId super) super}))
         builder1 (TopologyBuilder.)  ;; topo1 has one single huge task that can not be handled by the small-super
         _ (doto (.setSpout builder1 "spout1" (TestWordSpout.) 1) 
@@ -419,10 +405,7 @@
                      TOPOLOGY-SUBMITTER-USER "userC"
                      TOPOLOGY-COMPONENT-RESOURCES-ONHEAP-MEMORY-MB 128.0
                      TOPOLOGY-COMPONENT-RESOURCES-OFFHEAP-MEMORY-MB 0.0
-                     TOPOLOGY-COMPONENT-CPU-PCORE-PERCENT 10.0
-                     TOPOLOGY-COMPONENT-TYPE-CPU "cpu"
-                     TOPOLOGY-COMPONENT-TYPE-CPU-TOTAL "total"
-                     TOPOLOGY-COMPONENT-TYPE-MEMORY "memory"}
+                     TOPOLOGY-COMPONENT-CPU-PCORE-PERCENT 10.0}
                     storm-topology1
                     1
                     (mk-ed-map [["spout1" 0 1]]))
@@ -436,10 +419,7 @@
                      TOPOLOGY-SUBMITTER-USER "userC"
                      TOPOLOGY-COMPONENT-RESOURCES-ONHEAP-MEMORY-MB 128.0
                      TOPOLOGY-COMPONENT-RESOURCES-OFFHEAP-MEMORY-MB 0.0
-                     TOPOLOGY-COMPONENT-CPU-PCORE-PERCENT 10.0
-                     TOPOLOGY-COMPONENT-TYPE-CPU "cpu"
-                     TOPOLOGY-COMPONENT-TYPE-CPU-TOTAL "total"
-                     TOPOLOGY-COMPONENT-TYPE-MEMORY "memory"}
+                     TOPOLOGY-COMPONENT-CPU-PCORE-PERCENT 10.0}
                     storm-topology2
                     2 
                     (mk-ed-map [["spout2" 0 4]]))
@@ -453,10 +433,7 @@
                      TOPOLOGY-SUBMITTER-USER "userC"
                      TOPOLOGY-COMPONENT-RESOURCES-ONHEAP-MEMORY-MB 128.0
                      TOPOLOGY-COMPONENT-RESOURCES-OFFHEAP-MEMORY-MB 0.0
-                     TOPOLOGY-COMPONENT-CPU-PCORE-PERCENT 10.0
-                     TOPOLOGY-COMPONENT-TYPE-CPU "cpu"
-                     TOPOLOGY-COMPONENT-TYPE-CPU-TOTAL "total"
-                     TOPOLOGY-COMPONENT-TYPE-MEMORY "memory"}
+                     TOPOLOGY-COMPONENT-CPU-PCORE-PERCENT 10.0}
                     storm-topology3
                     2 
                     (mk-ed-map [["spout3" 0 4]]))

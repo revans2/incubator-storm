@@ -27,6 +27,7 @@ import java.util.Set;
 import java.util.Map.Entry;
 import java.util.ArrayList;
 
+import backtype.storm.Config;
 import backtype.storm.scheduler.Topologies;
 import backtype.storm.scheduler.TopologyDetails;
 import org.slf4j.Logger;
@@ -427,10 +428,10 @@ public class Node {
                     if (topoMemoryResourceList.containsKey(exec)) {
                         node.consumeResourcesforTask(exec, topologies.getById(entry.getKey()));
                     } else {
-                        LOG.warn("Resource Req not found...Scheduling Task{} with memory requirement as {} - {} and {} - {} and CPU requirement as {}-{}",
-                                exec, RAS_TYPES.TYPE_MEMORY_ONHEAP,
-                                RAS_TYPES.DEFAULT_ONHEAP_MEMORY_REQUIREMENT,
-                                RAS_TYPES.TYPE_MEMORY_OFFHEAP, RAS_TYPES.DEFAULT_OFFHEAP_MEMORY_REQUIREMENT, RAS_TYPES.TYPE_CPU_TOTAL, RAS_TYPES.DEFAULT_CPU_REQUIREMENT);
+                        LOG.warn("Resource Req not found...Scheduling Task{} with memory requirement as on heap - {} and off heap - {} and CPU requirement as {}",
+                                exec,
+                                Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB,
+                                Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB, Config.TOPOLOGY_COMPONENT_CPU_PCORE_PERCENT);
                         topologies.getById(entry.getKey()).addDefaultResforExec(exec);
                         node.consumeResourcesforTask(exec, topologies.getById(entry.getKey()));
                     }

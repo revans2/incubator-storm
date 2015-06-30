@@ -78,6 +78,6 @@ public abstract class BaseConfigurationDeclarer<T extends ComponentConfiguration
 
     @Override
     public T setCPULoad(Double amount) {
-        return addConfiguration(Config.TOPOLOGY_COMPONENT_RESOURCES_CPU, amount);
+        return addConfiguration(Config.TOPOLOGY_COMPONENT_CPU_PCORE_PERCENT, amount);
     } 
 }

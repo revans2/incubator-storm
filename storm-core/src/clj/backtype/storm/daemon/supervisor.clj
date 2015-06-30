@@ -14,12 +14,12 @@
 ;; See the License for the specific language governing permissions and
 ;; limitations under the License.
 (ns backtype.storm.daemon.supervisor
-  (:import [java.io OutputStreamWriter BufferedWriter IOException]
-           [backtype.storm.scheduler.resource RAS_TYPES])
+  (:import [java.io OutputStreamWriter BufferedWriter IOException])
   (:import [java.util.concurrent Executors])
   (:import [java.nio.file Files Path Paths StandardCopyOption])
   (:import [backtype.storm.scheduler ISupervisor])
   (:import [backtype.storm.blobstore BlobStoreAclHandler])
+  (:import [backtype.storm Config])
   (:import [backtype.storm.localizer LocalResource])
   (:use [backtype.storm bootstrap local-state])
   (:use [backtype.storm.daemon common])
@@ -537,8 +537,8 @@
 
 (defn mk-supervisor-capacities
   [conf]
-  {RAS_TYPES/TYPE_MEMORY (conf SUPERVISOR-MEMORY-CAPACITY-MB)
-   RAS_TYPES/TYPE_CPU (conf SUPERVISOR-CPU-CAPACITY)})
+  {Config/SUPERVISOR_MEMORY_CAPACITY_MB (conf SUPERVISOR-MEMORY-CAPACITY-MB)
+   Config/SUPERVISOR_CPU_CAPACITY (conf SUPERVISOR-CPU-CAPACITY)})
 
 (defn setup-blob-permission [conf storm-conf path]
   (if (conf SUPERVISOR-RUN-WORKER-AS-USER)
