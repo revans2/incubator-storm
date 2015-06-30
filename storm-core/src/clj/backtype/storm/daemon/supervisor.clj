@@ -305,20 +305,21 @@
    :assignment-id (.getAssignmentId isupervisor)
    :my-hostname (hostname conf)
    :curr-assignment (atom nil) ;; used for reporting used ports when heartbeating
-   :event-timer (mk-timer :kill-fn (fn [t]
-                                         (log-error t "Error when processing event")
-                                         (exit-process! 20 "Error when processing an event")
-                                         ))
    :heartbeat-timer (mk-timer :kill-fn (fn [t]
                                (log-error t "Error when processing heartbeat")
                                (exit-process! 20 "Error when processing an heartbeat")
                                ))
+   :event-timer (mk-timer :kill-fn (fn [t]
+                                         (log-error t "Error when processing event")
+                                         (exit-process! 20 "Error when processing an event")
+                                         ))
    :blob-update-timer (mk-timer :kill-fn (fn [t]
                                            (log-error t "Error when processing blob-update")
                                            (exit-process! 20 "Error when processing a blob-update")
                                            ))
    :localizer (Utils/createLocalizer conf (supervisor-local-dir conf))
-   :assignment-versions (atom {})})
+   :assignment-versions (atom {})
+   :sync-retry (atom 0)})
 
 (defn required-topo-files-exist?
   [conf storm-id]
@@ -511,14 +512,15 @@
                                                                    assignment-versions)
           storm-local-map (read-storm-local-dir assignments-snapshot)
           all-downloaded-storm-ids (set (read-downloaded-storm-ids conf))
-          all-assignment (read-assignments
-                           assignments-snapshot
-                           (:assignment-id supervisor))
+          existing-assignment (ls-local-assignments local-state)
+          all-assignment (read-assignments assignments-snapshot
+                                           (:assignment-id supervisor)
+                                           existing-assignment
+                                           (:sync-retry supervisor))
           new-assignment (->> all-assignment
                               (filter-key #(.confirmAssigned isupervisor %)))
           rm-blob-refs? true
-	        assigned-storm-ids (assigned-storm-ids-from-port-assignments new-assignment)
-          existing-assignment (ls-local-assignments local-state)
+          assigned-storm-ids (assigned-storm-ids-from-port-assignments new-assignment)
           localizer (:localizer supervisor)
           checked-downloaded-storm-ids (set (verify-downloaded-files conf localizer assigned-storm-ids all-downloaded-storm-ids))
           downloaded-storm-ids (set/difference all-downloaded-storm-ids checked-downloaded-storm-ids)]
