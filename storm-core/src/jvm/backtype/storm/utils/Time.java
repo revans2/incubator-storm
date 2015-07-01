@@ -58,8 +58,9 @@ public class Time {
         if(simulating.get()) {
             try {
                 synchronized(sleepTimesLock) {
+                    //TODO we need to file a JIRA for this and push it back.  Simulated Time is not thread safe on shutdown when threads leak
                     if (threadSleepTimes == null) {
-                        LOG.error("{} is still sleeping after simulated time disabled.", Thread.currentThread());
+                        LOG.error("{} is still sleeping after simulated time disabled.", Thread.currentThread(), new RuntimeException("STACK TRACE"));
                         throw new InterruptedException();
                     }
                     threadSleepTimes.put(Thread.currentThread(), new AtomicLong(targetTimeMs));
@@ -67,7 +68,7 @@ public class Time {
                 while(simulatedCurrTimeMs.get() < targetTimeMs) {
                     synchronized(sleepTimesLock) {
                         if (threadSleepTimes == null) {
-                            LOG.error("{} is still sleeping after simulated time disabled.", Thread.currentThread());
+                            LOG.error("{} is still sleeping after simulated time disabled.", Thread.currentThread(), new RuntimeException("STACK TRACE"));
                             throw new InterruptedException();
                         }
                     }

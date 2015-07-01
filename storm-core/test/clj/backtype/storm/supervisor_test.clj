@@ -256,31 +256,30 @@
           mock-cp "/base:/stormjar.jar"
           exp-args-fn (fn [opts topo-opts classpath]
                        (concat [(supervisor/java-cmd) "-cp" classpath 
-                               (str "-Dlogfile.name=" "worker.log")
-                               "-Dstorm.home="
-                               (str "-Dworkers.artifacts=" "/tmp/workers-artifacts")
+                                (str "-Dlogfile.name=" "worker.log")
+                                "-Dstorm.home="
+                                (str "-Dworkers.artifacts=" "/tmp/workers-artifacts")
                                 (str "-Dlogging.sensitivity=" mock-sensitivity)
+                                "-Dstorm.log.dir=/logs"
                                 (str "-Dstorm.id=" mock-storm-id)
                                 (str "-Dworker.id=" mock-worker-id)
                                 (str "-Dworker.port=" mock-port)
-                               "-Dlog4j.configurationFile=/log4j2/worker.xml"
-                               "-DLog4jContextSelector=org.apache.logging.log4j.core.selector.BasicContextSelector"
-                               "backtype.storm.LogWriter"]
+                                "-Dlog4j.configurationFile=/log4j2/worker.xml"
+                                "-DLog4jContextSelector=org.apache.logging.log4j.core.selector.BasicContextSelector"
+                                "backtype.storm.LogWriter"]
                                [(supervisor/java-cmd) "-server"]
                                opts
                                topo-opts
                                ["-Djava.library.path="
-                               (str "-Dlogfile.name=" "worker.log")
+                                (str "-Dlogfile.name=" "worker.log")
                                 "-Dstorm.home="
-                               (str "-Dworkers.artifacts=" "/tmp/workers-artifacts")
-                                (str "-Dlogging.sensitivity=" mock-sensitivity)
-                                "-Dlog4j.configurationFile=/log4j2/worker.xml"
-                                "-DLog4jContextSelector=org.apache.logging.log4j.core.selector.BasicContextSelector"
                                 "-Dstorm.conf.file="
                                 "-Dstorm.options="
                                 (str "-Dstorm.log.dir=" file-path-separator "logs")
+                                (str "-Dworkers.artifacts=" "/tmp/workers-artifacts")
                                 (str "-Dlogging.sensitivity=" mock-sensitivity)
-                                (str "-Dlog4j.configurationFile=" file-path-separator "log4j2" file-path-separator "worker.xml")
+                                "-Dlog4j.configurationFile=/log4j2/worker.xml"
+                                "-DLog4jContextSelector=org.apache.logging.log4j.core.selector.BasicContextSelector"
                                 (str "-Dstorm.id=" mock-storm-id)
                                 (str "-Dworker.id=" mock-worker-id)
                                 (str "-Dworker.port=" mock-port)
@@ -398,10 +397,11 @@
           exp-script-fn (fn [opts topo-opts]
                        (str "#!/bin/bash\n'export' 'LD_LIBRARY_PATH=';\n\nexec 'java'"
                                 " '-cp' 'mock-classpath'\"'\"'quote-on-purpose'"
-                                " '-Dlogfile.name=" mock-storm-id "-worker-" mock-port ".log'"
+                                " '-Dlogfile.name=" "worker.log'"
                                 " '-Dstorm.home='"
                                 " '-Dworkers.artifacts=" (str storm-local "/workers-artifacts'")
                                 " '-Dlogging.sensitivity=" mock-sensitivity "'"
+                                " '-Dstorm.log.dir=/logs'"
                                 " '-Dstorm.id=" mock-storm-id "'"
                                 " '-Dworker.id=" mock-worker-id "'"
                                 " '-Dworker.port=" mock-port "'"
@@ -414,13 +414,13 @@
                                 " '-Djava.library.path='"
                                 " '-Dlogfile.name=" "worker.log'" 
                                 " '-Dstorm.home='"
-                                " '-Dworkers.artifacts=" (str storm-local "/workers-artifacts'")
-                                " '-DLog4jContextSelector=org.apache.logging.log4j.core.selector.BasicContextSelector'"
                                 " '-Dstorm.conf.file='"
                                 " '-Dstorm.options='"
                                 " '-Dstorm.log.dir=/logs'"
+                                " '-Dworkers.artifacts=" (str storm-local "/workers-artifacts'")
                                 " '-Dlogging.sensitivity=" mock-sensitivity "'"
                                 " '-Dlog4j.configurationFile=/log4j2/worker.xml'"
+                                " '-DLog4jContextSelector=org.apache.logging.log4j.core.selector.BasicContextSelector'"
                                 " '-Dstorm.id=" mock-storm-id "'"
                                 " '-Dworker.id=" mock-worker-id "'"
                                 " '-Dworker.port=" mock-port "'"
