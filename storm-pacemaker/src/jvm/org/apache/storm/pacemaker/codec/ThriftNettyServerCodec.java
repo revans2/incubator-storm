@@ -25,9 +25,9 @@ import backtype.storm.messaging.netty.StormServerHandler;
 import backtype.storm.security.auth.AuthUtils;
 import java.io.IOException;
 import java.util.Map;
-import org.jboss.netty.channel.ChannelPipeline;
-import org.jboss.netty.channel.ChannelPipelineFactory;
-import org.jboss.netty.channel.Channels;
+import org.apache.storm.netty.channel.ChannelPipeline;
+import org.apache.storm.netty.channel.ChannelPipelineFactory;
+import org.apache.storm.netty.channel.Channels;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
