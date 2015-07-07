@@ -22,13 +22,13 @@ import java.io.IOException;
 import java.security.Principal;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 import javax.security.auth.Subject;
 import javax.security.auth.callback.CallbackHandler;
 import javax.security.auth.kerberos.KerberosTicket;
-import javax.security.auth.login.AppConfigurationEntry;
 import javax.security.auth.login.Configuration;
 import javax.security.auth.login.LoginException;
 import javax.security.sasl.Sasl;
@@ -48,6 +48,7 @@ import backtype.storm.security.auth.SaslTransportPlugin;
 public class KerberosSaslTransportPlugin extends SaslTransportPlugin {
     public static final String KERBEROS = "GSSAPI"; 
     private static final Logger LOG = LoggerFactory.getLogger(KerberosSaslTransportPlugin.class);
+    private static Map <Configuration, Login> loginCache = new HashMap<>();
 
     public TTransportFactory getServerTransportFactory() throws IOException {
         //create an authentication callback handler
@@ -55,15 +56,22 @@ public class KerberosSaslTransportPlugin extends SaslTransportPlugin {
         
         //login our principal
         Subject subject = null;
-        try {
-            //specify a configuration object to be used
-            Configuration.setConfiguration(login_conf); 
-            //now login
-            Login login = new Login(AuthUtils.LOGIN_CONTEXT_SERVER, server_callback_handler);
+        Login login = null;
+        if (loginCache.containsKey(login_conf)) {
+            login = loginCache.get(login_conf);
             subject = login.getSubject();
-        } catch (LoginException ex) {
-            LOG.error("Server failed to login in principal:" + ex, ex);
-            throw new RuntimeException(ex);
+        } else {
+            try {
+                //specify a configuration object to be used
+                Configuration.setConfiguration(login_conf);
+                //now login
+                login = new Login(AuthUtils.LOGIN_CONTEXT_SERVER, server_callback_handler);
+                subject = login.getSubject();
+                loginCache.put(login_conf, login);
+            } catch (LoginException ex) {
+                LOG.error("Server failed to login in principal:" + ex, ex);
+                throw new RuntimeException(ex);
+            }
         }
 
         //check the credential of our principal
