@@ -21,7 +21,8 @@
   (:use [backtype.storm config util log stats])
   (:use [backtype.storm.ui helpers])
   (:use [backtype.storm.daemon [common :only [ACKER-COMPONENT-ID ACKER-INIT-STREAM-ID
-                                              ACKER-ACK-STREAM-ID ACKER-FAIL-STREAM-ID system-id?]]])
+                                              ACKER-ACK-STREAM-ID ACKER-FAIL-STREAM-ID 
+                                              start-metrics-reporters system-id?]]])
   (:use [clojure.string :only [blank? lower-case trim]])
   (:use [clojure.set :only [intersection]])
   (:import [backtype.storm.utils Utils])
@@ -42,12 +43,15 @@
             [compojure.handler :as handler]
             [ring.util.response :as resp]
             [backtype.storm [thrift :as thrift]])
+  (:require [metrics.meters :refer [defmeter mark!]])
   (:import [org.apache.commons.lang StringEscapeUtils])
   (:import [org.apache.logging.log4j Level])
   (:gen-class))
 
 (def ^:dynamic *STORM-CONF* (read-storm-config))
 (def igroup-mapper (AuthUtils/GetGroupMappingServiceProviderPlugin *STORM-CONF*))
+
+(defmeter num-getTopologyInfo-calls)
 
 (defmacro with-nimbus
   [nimbus-sym & body]
@@ -228,6 +232,14 @@
     (map (fn [row]
            {:row row}) (partition 4 4 nil streams))))
 
+(defn- get-topology-info
+  ([^Nimbus$Client nimbus id]
+   (mark! num-getTopologyInfo-calls)
+   (.getTopologyInfo nimbus id))
+  ([^Nimbus$Client nimbus id options]
+   (mark! num-getTopologyInfo-calls)
+   (.getTopologyInfoWithOpts nimbus id options)))
+
 (defn mk-visualization-data
   [id window include-sys? user]
   (with-nimbus
@@ -242,7 +254,7 @@
           summ (->> (doto
                       (GetInfoOptions.)
                       (.set_num_err_choice NumErrorsChoice/NONE))
-                    (.getTopologyInfoWithOpts ^Nimbus$Client nimbus id))
+                    (get-topology-info nimbus id))
           execs (.get_executors summ)
           spout-summs (filter (partial spout-summary? topology) execs)
           bolt-summs (filter (partial bolt-summary? topology) execs)
@@ -352,8 +364,7 @@
           topology-info (->> (doto
                                (GetInfoOptions.)
                                (.set_num_err_choice NumErrorsChoice/ONE))
-                             (.getTopologyInfoWithOpts ^Nimbus$Client nimbus
-                                                       id))
+                             (get-topology-info nimbus id))
           storm-topology (.getTopology ^Nimbus$Client nimbus id)
           spout-executor-summaries (filter (partial spout-summary? storm-topology) (.get_executors topology-info))
           bolt-executor-summaries (filter (partial bolt-summary? storm-topology) (.get_executors topology-info))
@@ -450,7 +461,7 @@
   "Get the set of all worker host/ports"
   [id]
   (with-nimbus nimbus
-    (distinct (exec-host-port (.get_executors (.getTopologyInfo nimbus id))))))
+    (distinct (exec-host-port (.get_executors (get-topology-info nimbus id))))))
 
 (defn topology-page [id window include-sys? user]
   (with-nimbus nimbus
@@ -737,7 +748,7 @@
             tplg (->> (doto
                         (GetInfoOptions.)
                         (.set_num_err_choice NumErrorsChoice/NONE))
-                      (.getTopologyInfoWithOpts ^Nimbus$Client nimbus id))
+                      (get-topology-info nimbus id))
             name (.get_name tplg)
             user (.getUserName http-creds-handler servlet-request)
             topology-conf (from-json
@@ -753,7 +764,7 @@
             tplg (->> (doto
                         (GetInfoOptions.)
                         (.set_num_err_choice NumErrorsChoice/NONE))
-                      (.getTopologyInfoWithOpts ^Nimbus$Client nimbus id))
+                      (get-topology-info nimbus id))
             name (.get_name tplg)
             user (.getUserName http-creds-handler servlet-request)
             topology-conf (from-json
@@ -768,7 +779,7 @@
             tplg (->> (doto
                         (GetInfoOptions.)
                         (.set_num_err_choice NumErrorsChoice/NONE))
-                      (.getTopologyInfoWithOpts ^Nimbus$Client nimbus id))
+                      (get-topology-info nimbus id))
             name (.get_name tplg)
             options (RebalanceOptions.)
             user (.getUserName http-creds-handler servlet-request)
@@ -785,7 +796,7 @@
             tplg (->> (doto
                         (GetInfoOptions.)
                         (.set_num_err_choice NumErrorsChoice/NONE))
-                      (.getTopologyInfoWithOpts ^Nimbus$Client nimbus id))
+                      (get-topology-info nimbus id))
             name (.get_name tplg)
             options (KillOptions.)
             user (.getUserName http-creds-handler servlet-request)
@@ -844,6 +855,7 @@
 (def app
   (handler/site (-> main-routes
                     (wrap-reload '[backtype.storm.ui.core])
+                    requests-middleware
                     catch-errors)))
 
 (defn start-server!
@@ -853,6 +865,7 @@
           header-buffer-size (int (.get conf UI-HEADER-BUFFER-BYTES))
           filters-confs [{:filter-class (conf UI-FILTER)
                           :filter-params (conf UI-FILTER-PARAMS)}]]
+      (start-metrics-reporters)
       (storm-run-jetty {:port (conf UI-PORT)
                         :configurator (fn [server]
                                         (doseq [connector (.getConnectors server)]

@@ -119,7 +119,7 @@
             <artifactId>data.codec</artifactId>
             <scope>test</scope>
         </dependency>
- 
+
         <!--java-->
         <dependency>
             <groupId>commons-io</groupId>
@@ -242,6 +242,14 @@
             <artifactId>log4j-1.2-api</artifactId>
         </dependency>
         <dependency>
+            <groupId>io.dropwizard.metrics</groupId>
+            <artifactId>metrics-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>metrics-clojure</groupId>
+            <artifactId>metrics-clojure</artifactId>
+        </dependency>
+        <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-all</artifactId>
             <scope>test</scope>
@@ -352,6 +360,8 @@
                         <includes>
                             <include>org.apache.thrift:*</include>
                             <include>org.apache.storm:*</include>
+                            <include>io.dropwizard.metrics:*</include>
+                            <include>metrics-clojure:*</include>
                         </includes>
                     </artifactSet>
 
@@ -359,6 +369,42 @@
                         <relocation>
                             <pattern>org.apache.thrift</pattern>
                             <shadedPattern>org.apache.thrift7</shadedPattern>
+                        </relocation>
+                        <relocation>
+                            <pattern>com.codahale.metrics</pattern>
+                            <shadedPattern>org.apache.storm.codahale.metrics</shadedPattern>
+                        </relocation>
+                        <relocation>
+                            <pattern>metrics.core</pattern>
+                            <shadedPattern>org.apache.storm.codahale.metrics.clojure.core</shadedPattern>
+                        </relocation>
+                        <relocation>
+                            <pattern>metrics.counters</pattern>
+                            <shadedPattern>org.apache.storm.codahale.metrics.clojure.counters</shadedPattern>
+                        </relocation>
+                        <relocation>
+                            <pattern>metrics.gauges</pattern>
+                            <shadedPattern>org.apache.storm.codahale.metrics.clojure.gauges</shadedPattern>
+                        </relocation>
+                        <relocation>
+                            <pattern>metrics.historgrams</pattern>
+                            <shadedPattern>org.apache.storm.codahale.metrics.clojure.histograms</shadedPattern>
+                        </relocation>
+                        <relocation>
+                            <pattern>metrics.meters</pattern>
+                            <shadedPattern>org.apache.storm.codahale.metrics.clojure.meters</shadedPattern>
+                        </relocation>
+                        <relocation>
+                            <pattern>metrics.reporters</pattern>
+                            <shadedPattern>org.apache.storm.codahale.metrics.clojure.reporters</shadedPattern>
+                        </relocation>
+                        <relocation>
+                            <pattern>metrics.timers</pattern>
+                            <shadedPattern>org.apache.storm.codahale.metrics.clojure.timers</shadedPattern>
+                        </relocation>
+                        <relocation>
+                            <pattern>metrics.utils</pattern>
+                            <shadedPattern>org.apache.storm.codahale.metrics.clojure.utils</shadedPattern>
                         </relocation>
                     </relocations>
                     <transformers>
@@ -370,6 +416,20 @@
                             <excludes>
                                 <exclude>META-INF/LICENSE.txt</exclude>
                                 <exclude>META-INF/NOTICE.txt</exclude>
+                            </excludes>
+                        </filter>
+                        <filter>
+                            <artifact>io.dropwizard.metrics:*</artifact>
+                            <excludes>
+                                <exclude>META-INF/LICENSE.txt</exclude>
+                                <exclude>META-INF/NOTICE.txt</exclude>
+                            </excludes>
+                        </filter>
+                        <filter>
+                            <artifact>metrics-clojure:*</artifact>
+                            <excludes>
+                                <exclude>META-INF/NOTICE.txt</exclude>
+                                <exclude>project.clj</exclude>
                             </excludes>
                         </filter>
                     </filters>
