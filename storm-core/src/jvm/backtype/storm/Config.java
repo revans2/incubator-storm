@@ -331,7 +331,13 @@ public class Config extends HashMap<String, Object> {
      */
     public static final String STORM_CLUSTER_STATE_STORE = "storm.cluster.state.store";
     public static final Object STORM_CLUSTER_STATE_STORE_SCHEMA = String.class;
-    
+
+    /**
+     * The directory where storm's health scripts go.
+     */
+    public static final String STORM_HEALTH_DIR = "storm.health.dir";
+    public static final Object STORM_HEALTH_DIR_SCHEMA = String.class;
+
     /**
      * The host that the master server is running on.
      */

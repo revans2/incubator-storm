@@ -52,6 +52,7 @@ storm.meta.serialization.delegate: "backtype.storm.serialization.GzipThriftSeria
 # The state store for the cluster.
 #storm.cluster.state.store: "org.apache.storm.pacemaker.pacemaker_state_factory"
 storm.cluster.state.store: "backtype.storm.cluster_state.zookeeper_state_factory"
+storm.health.dir: "healthchecks"
 
 ### nimbus.* configs are for the master
 nimbus.host: "localhost"

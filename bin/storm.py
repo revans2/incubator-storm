@@ -367,6 +367,17 @@ def get_errors(*args):
         jvmtype="-client",
         extrajars=[USER_CONF_DIR, os.path.join(STORM_DIR, "bin")])
 
+def healthcheck(*args):
+    """Syntax: [storm healthcheck]
+
+    Run healthchecks on the local supervisor.
+    """
+    exec_storm_class(
+        "backtype.storm.command.healthcheck",
+        args=args,
+        jvmtype="-client",
+        extrajars=[USER_CONF_DIR, os.path.join(STORM_DIR, "bin")])
+
 def shell(resourcesdir, command, *args):
     tmpjarpath = "stormshell" + str(random.randint(0, 10000000)) + ".jar"
     os.system("jar cf %s %s" % (tmpjarpath, resourcesdir))
@@ -582,7 +593,8 @@ COMMANDS = {"jar": jar, "kill": kill, "shell": shell, "nimbus": nimbus, "ui": ui
             "activate": activate, "deactivate": deactivate, "rebalance": rebalance, "help": print_usage,
             "list": listtopos, "dev-zookeeper": dev_zookeeper, "version": version, 
             "upload-credentials": upload_credentials, "blobstore": blobstore, "pacemaker": pacemaker,
-            "heartbeats": heartbeats, "set_log_level": set_log_level, "get-errors": get_errors }
+            "heartbeats": heartbeats, "set_log_level": set_log_level, "get-errors": get_errors,
+            "healthcheck":healthcheck }
 
 def parse_config(config_list):
     global CONFIG_OPTS
