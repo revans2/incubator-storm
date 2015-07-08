@@ -368,12 +368,25 @@ def get_errors(*args):
         extrajars=[USER_CONF_DIR, os.path.join(STORM_DIR, "bin")])
 
 def healthcheck(*args):
-    """Syntax: [storm healthcheck]
+    """Syntax: [storm node-health-check]
 
-    Run healthchecks on the local supervisor.
+    Run health checks on the local supervisor.
     """
     exec_storm_class(
         "backtype.storm.command.healthcheck",
+        args=args,
+        jvmtype="-client",
+        extrajars=[USER_CONF_DIR, os.path.join(STORM_DIR, "bin")])
+
+def kill_workers(*args):
+    """Syntax: [storm kill_workers]
+
+    Kill the workers running on this supervisor. This command should be run
+    on a supervisor node. If the cluster is running in secure node, then user needs 
+    to have admin rights on the node to be able to successfully kill all workers.
+    """
+    exec_storm_class(
+        "backtype.storm.command.kill_workers",
         args=args,
         jvmtype="-client",
         extrajars=[USER_CONF_DIR, os.path.join(STORM_DIR, "bin")])
@@ -594,7 +607,12 @@ COMMANDS = {"jar": jar, "kill": kill, "shell": shell, "nimbus": nimbus, "ui": ui
             "list": listtopos, "dev-zookeeper": dev_zookeeper, "version": version, 
             "upload-credentials": upload_credentials, "blobstore": blobstore, "pacemaker": pacemaker,
             "heartbeats": heartbeats, "set_log_level": set_log_level, "get-errors": get_errors,
-            "healthcheck":healthcheck }
+<<<<<<< HEAD
+            "node-health-check": healthcheck }
+=======
+            "kill_workers": kill_workers
+            }
+>>>>>>> 7326f53... YSTORM-1614, implement kill_workers CLI for Summerfix
 
 def parse_config(config_list):
     global CONFIG_OPTS

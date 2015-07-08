@@ -24,6 +24,7 @@
   (:use [backtype.storm bootstrap local-state])
   (:use [backtype.storm.daemon common])
   (:require [backtype.storm.daemon [worker :as worker]])
+  (:require [backtype.storm.command [healthcheck :as healthcheck]])
   (:import [org.apache.zookeeper data.ACL ZooDefs$Ids ZooDefs$Perms])
   (:import [org.yaml.snakeyaml Yaml]
            [org.yaml.snakeyaml.constructor SafeConstructor])
@@ -648,7 +649,17 @@
       (schedule-recurring (:blob-update-timer supervisor)
                           30
                           30
-                          (fn [] (.add event-manager synchronize-blobs-fn))))
+                          (fn [] (.add event-manager synchronize-blobs-fn)))
+      (schedule-recurring (:timer supervisor)
+                          (* 60 5)
+                          (* 60 5)
+                          (fn [] (let [health-code (healthcheck/health-check conf)
+                                       ids (my-worker-ids conf)]
+                                   (if (not (= health-code 0))
+                                     (do
+                                       (doseq [id ids]
+                                         (shutdown-worker supervisor id))
+                                       (throw (RuntimeException. "Supervisor failed health check. Exiting."))))))))
     (log-message "Starting supervisor with id " (:supervisor-id supervisor) " at host " (:my-hostname supervisor))
     (reify
      Shutdownable

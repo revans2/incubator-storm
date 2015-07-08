@@ -199,6 +199,12 @@ public class Config extends HashMap<String, Object> {
     public static final Object STORM_GROUP_MAPPING_SERVICE_CACHE_DURATION_SECS_SCHEMA = Number.class;
 
     /**
+     * User groups mapping plugin parameters
+     */
+    public static final String STORM_GROUP_MAPPING_SERVICE_PARAMS = "storm.group.mapping.service.params";
+    public static final Object STORM_GROUP_MAPPING_SERVICE_PARAMS_SCHEMA = Map.class;
+
+    /**
      * The default transport plug-in for Thrift client/server communication
      */
     public static final String STORM_THRIFT_TRANSPORT_PLUGIN = "storm.thrift.transport";
@@ -335,8 +341,15 @@ public class Config extends HashMap<String, Object> {
     /**
      * The directory where storm's health scripts go.
      */
-    public static final String STORM_HEALTH_DIR = "storm.health.dir";
-    public static final Object STORM_HEALTH_DIR_SCHEMA = String.class;
+    public static final String STORM_HEALTH_CHECK_DIR = "storm.health.check.dir";
+    public static final Object STORM_HEALTH_CHECK_DIR_SCHEMA = String.class;
+
+    /**
+     * The time to allow any given healthcheck script to run before it
+     * is marked failed due to timeout
+     */
+    public static final String STORM_HEALTH_CHECK_TIMEOUT_MS = "storm.health.check.timeout.ms";
+    public static final Object STORM_HEALTH_CHECK_TIMEOUT_MS_SCHEMA = Number.class;
 
     /**
      * The host that the master server is running on.

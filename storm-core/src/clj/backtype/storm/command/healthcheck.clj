@@ -21,58 +21,68 @@
             [clojure [string :refer [split]]])
   (:gen-class))
 
-(defn check-for-errors [] nil)
-
-(defn interrupt-after [thread ms]
-  (let [thread (Thread.
-                (fn []
-                  (try
-                    (Thread/sleep ms)
-                    (.interrupt thread)
-                    (catch InterruptedException e))))]
-    (.start thread)
-    thread))
+(defn interrupter
+  "Interrupt a given thread after ms milliseconds."
+  [thread ms]
+  (let [interrupter (Thread.
+                     (fn []
+                       (try
+                         (Thread/sleep ms)
+                         (.interrupt thread)
+                         (catch InterruptedException e))))]
+    (.start interrupter)
+    interrupter))
 
 (defn check-output [lines]
   (if (some #(.startsWith % "ERROR") lines)
     :failed
     :success))
 
-(defn process-script [script]
-  (let [p (. (Runtime/getRuntime) (exec script))
+(defn process-script [conf script]
+  (let [script-proc (. (Runtime/getRuntime) (exec script))
         curthread (Thread/currentThread)
-        t (interrupt-after curthread 5000)
-        ret (try
-              (.waitFor p)
-              (.interrupt t)
-              (if (not (= (.exitValue p) 0))
-                :failed_with_exit_code
-                (check-output (split
-                               (slurp (.getInputStream p))
-                               #"\n+")))
-              (catch InterruptedException e
-                (println "Script" script "timed out.")
-                :timeout)
-              (catch Exception e
-                (println "Script failed with exception: " e)
-                :failed_with_exception))]
-    (.interrupt t)
-    ret))
+        interrupter-thread (interrupter curthread
+                                        (conf STORM-HEALTH-CHECK-TIMEOUT-MS))]
+    (try
+      (.waitFor script-proc)
+      (.interrupt interrupter-thread)
+      (if (not (= (.exitValue script-proc) 0))
+        :failed_with_exit_code
+        (check-output (split
+                       (slurp (.getInputStream script-proc))
+                       #"\n+")))
+      (catch InterruptedException e
+        (println "Script" script "timed out.")
+        :timeout)
+      (catch Exception e
+        (println "Script failed with exception: " e)
+        :failed_with_exception)
+      (finally (.interrupt interrupter-thread)))))
 
-(defn -main [& args]
-  (let [conf (read-storm-config)
-        health-dir (conf STORM-HEALTH-DIR)
+(defn health-check [conf]
+  (let [health-dir (conf STORM-HEALTH-CHECK-DIR)
         health-files (file-seq (io/file health-dir))
         health-scripts (filter #(and (.canExecute %)
                                      (not (.isDirectory %)))
                                health-files)
         results (->> health-scripts
-                     (map #(do (.getAbsolutePath %)))
-                     (map process-script))]
-    (println (pr-str results))
+                     (map #(.getAbsolutePath %))
+                     (map (partial process-script conf)))]
+    (log-message
+     (pr-str (map #'vector
+                  (map #(.getAbsolutePath %) health-scripts)
+                  results)))
+    ; failed_with_exit_code is OK. We're mimicing Hadoop's health checks.
+    ; We treat non-zero exit codes as indicators that the scripts failed
+    ; to execute properly, not that the system is unhealthy, in which case
+    ; we don't want to start killing things.
+    (if (every? #(or (= % :failed_with_exit_code)
+                     (= % :success))
+                results)
+      0
+      1)))
+
+(defn -main [& args]
+  (let [conf (read-storm-config)]
     (System/exit
-     (if (every? #(or (= % :failed_with_exit_code)
-                      (= % :success))
-                 results)
-       0
-       1))))
+     (health-check conf))))
