@@ -290,7 +290,7 @@ public class Localizer {
   }
 
   protected boolean isLocalizedResourceUpToDate(LocalizedResource lrsrc,
-      ClientBlobStore blobstore) {
+      ClientBlobStore blobstore) throws AuthorizationException, KeyNotFoundException{
     String localFile = lrsrc.getFilePath();
     long nimbusBlobVersion = Utils.nimbusVersionOfBlob(lrsrc.getKey(), blobstore);
     long currentBlobVersion = Utils.localVersionOfBlob(localFile);
@@ -355,6 +355,12 @@ public class Localizer {
         }
         catch (ExecutionException e) {
           LOG.error("Error updating blob: ", e);
+          if (e.getMessage().contains("AuthorizationException")) {
+            throw new AuthorizationException(e.getMessage());
+          }
+          if (e.getMessage().contains("KeyNotFoundException")) {
+            throw new KeyNotFoundException(e.getMessage());
+          }
         }
       }
     } catch (RejectedExecutionException re) {
@@ -430,7 +436,13 @@ public class Localizer {
         results.add(lrsrc);
       }
     } catch (ExecutionException e) {
-      throw new IOException("Error getting blobs", e);
+      if (e.getMessage().contains("AuthorizationException"))
+        throw new AuthorizationException(e.getMessage());
+      else if (e.getMessage().contains("KeyNotFoundException")) {
+        throw new KeyNotFoundException(e.getMessage());
+      } else {
+        throw new IOException("Error getting blobs", e);
+      }
     } catch (RejectedExecutionException re) {
       throw new IOException("RejectedExecutionException: ", re);
     } catch (InterruptedException ie) {
@@ -480,7 +492,7 @@ public class Localizer {
       PrintWriter writer = null;
       int numTries = 0;
       String localizedPath = localFile.toString();
-      String localFileWithVersion = Utils.constructBlobWithVerionFileName(localFile.toString(),
+      String localFileWithVersion = Utils.constructBlobWithVersionFileName(localFile.toString(),
           nimbusBlobVersion);
       String localVersionFile = Utils.constructVersionFileName(localFile.toString());
       String downloadFile = localFileWithVersion;
@@ -529,7 +541,7 @@ public class Localizer {
             File uuid_symlink = new File(localFile + "." + tmp_uuid_local);
 
             Files.createSymbolicLink(uuid_symlink.toPath(),
-                Paths.get(Utils.constructBlobWithVerionFileName(localFile.toString(),
+                Paths.get(Utils.constructBlobWithVersionFileName(localFile.toString(),
                     nimbusBlobVersion)));
             File current_symlink = new File(Utils.constructBlobCurrentSymlinkName(
                 localFile.toString()));

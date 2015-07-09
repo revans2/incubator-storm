@@ -14,12 +14,13 @@
 ;; See the License for the specific language governing permissions and
 ;; limitations under the License.
 (ns backtype.storm.daemon.supervisor
-  (:import [java.io OutputStreamWriter BufferedWriter IOException])
+  (:import [java.io OutputStreamWriter BufferedWriter IOException]
+           [backtype.storm.scheduler.resource RAS_TYPES]
+           [backtype.storm.generated AuthorizationException KeyNotFoundException])
   (:import [java.util.concurrent Executors])
   (:import [java.nio.file Files Path Paths StandardCopyOption])
   (:import [backtype.storm.scheduler ISupervisor])
   (:import [backtype.storm.blobstore BlobStoreAclHandler])
-  (:import [backtype.storm Config])
   (:import [backtype.storm.localizer LocalResource])
   (:use [backtype.storm bootstrap local-state])
   (:use [backtype.storm.daemon common])
@@ -508,7 +509,7 @@
         (when (and (not (downloaded-storm-ids storm-id))
                    (assigned-storm-ids storm-id))
           (log-message "Downloading code for storm id " storm-id)
-          (download-storm-code conf storm-id master-code-dir localizer)
+          (download-storm-code conf storm-id master-code-dir localizer storm-cluster-state)
           (log-message "Finished downloading code for storm id " storm-id)))
 
       (log-debug "Writing new assignment "
@@ -537,8 +538,8 @@
 
 (defn mk-supervisor-capacities
   [conf]
-  {Config/SUPERVISOR_MEMORY_CAPACITY_MB (conf SUPERVISOR-MEMORY-CAPACITY-MB)
-   Config/SUPERVISOR_CPU_CAPACITY (conf SUPERVISOR-CPU-CAPACITY)})
+  {RAS_TYPES/TYPE_MEMORY (conf SUPERVISOR-MEMORY-CAPACITY-MB)
+   RAS_TYPES/TYPE_CPU (conf SUPERVISOR-CPU-CAPACITY)})
 
 (defn setup-blob-permission [conf storm-conf path]
   (if (conf SUPERVISOR-RUN-WORKER-AS-USER)
@@ -548,21 +549,29 @@
   (if (conf SUPERVISOR-RUN-WORKER-AS-USER)
     (worker-launcher-and-wait conf (storm-conf TOPOLOGY-SUBMITTER-USER) ["code-dir" dir] :log-prefix (str "setup conf for " dir))))
 
+(defn get-supervisor-id [storm-id]
+  (str "supervisor-" storm-id))
+
 (defn update-blobs-for-topology!
   "Update each blob listed in the topology configuration if the latest version of the blob
    has not been downloaded."
-  [conf storm-id localizer]
+  [conf storm-id localizer storm-cluster-state]
   (let [storm-conf (read-supervisor-storm-conf conf storm-id)
         blobstore-map (storm-conf TOPOLOGY-BLOBSTORE-MAP)
         user (storm-conf TOPOLOGY-SUBMITTER-USER)
         topo-name (storm-conf TOPOLOGY-NAME)
         user-dir (.getLocalUserFileCacheDir localizer user)
         localresources (blobstore-map-to-localresources blobstore-map)]
-    (.updateBlobs localizer localresources user)))
+    (try
+      (.updateBlobs localizer localresources user)
+      (catch AuthorizationException authExp
+        (log-error authExp))
+      (catch KeyNotFoundException knf
+        (log-error knf)))))
 
 (defn download-blobs-for-topology!
   "Download all blobs listed in the topology configuration for a given topology."
-  [conf stormconf-path localizer tmproot]
+  [conf stormconf-path localizer tmproot storm-id storm-cluster-state]
   (let [storm-conf (read-supervisor-storm-conf-given-path conf stormconf-path)
         blobstore-map (storm-conf TOPOLOGY-BLOBSTORE-MAP)
         user (storm-conf TOPOLOGY-SUBMITTER-USER)
@@ -573,15 +582,20 @@
       (when-not (.exists user-dir)
         (FileUtils/forceMkdir user-dir)
         (setup-blob-permission conf storm-conf (.toString user-dir)))
-      (let [localized-resources (.getBlobs localizer localresources user topo-name user-dir)]
-        (setup-blob-permission conf storm-conf (.toString user-dir))
-        (doseq [local-rsrc localized-resources]
-          (let [rsrc-file-path (File. (.getFilePath local-rsrc))
-                key-name (.getName rsrc-file-path)
-                blob-symlink-target-name (.getName (File. (.getCurrentSymlinkPath local-rsrc)))
-                symlink-name (get-blob-localname (get blobstore-map key-name) key-name)]
-            (create-symlink! tmproot (.getParent rsrc-file-path) symlink-name
-              blob-symlink-target-name)))))))
+      (try
+        (let [localized-resources (.getBlobs localizer localresources user topo-name user-dir)]
+          (setup-blob-permission conf storm-conf (.toString user-dir))
+          (doseq [local-rsrc localized-resources]
+            (let [rsrc-file-path (File. (.getFilePath local-rsrc))
+                  key-name (.getName rsrc-file-path)
+                  blob-symlink-target-name (.getName (File. (.getCurrentSymlinkPath local-rsrc)))
+                  symlink-name (get-blob-localname (get blobstore-map key-name) key-name)]
+              (create-symlink! tmproot (.getParent rsrc-file-path) symlink-name
+                blob-symlink-target-name))))
+        (catch AuthorizationException authExp
+          (log-error authExp))
+        (catch KeyNotFoundException knf
+          (log-error knf))))))
 
 (defn update-blobs-for-all-topologies-fn
   "Returns a function that downloads all blobs listed in the topology configuration for all topologies assigned
@@ -591,6 +605,7 @@
   (fn this []
     (try
       (let [conf (:conf supervisor)
+            storm-cluster-state (:storm-cluster-state supervisor)
             downloaded-storm-ids (set (read-downloaded-storm-ids conf))
             new-assignment @(:curr-assignment supervisor)
             assigned-storm-ids (assigned-storm-ids-from-port-assignments new-assignment)]
@@ -598,7 +613,7 @@
           (let [storm-root (supervisor-stormdist-root conf topology-id)]
             (when (assigned-storm-ids topology-id)
               (log-debug "Checking Blob updates for storm topology id " topology-id " With target_dir: " storm-root)
-              (update-blobs-for-topology! conf topology-id (:localizer supervisor))))))
+              (update-blobs-for-topology! conf topology-id (:localizer supervisor) storm-cluster-state)))))
       (catch Exception e (log-error e "Error updating blobs, will retry again later")))))
 
 ;; in local state, supervisor stores who its current assignments are
@@ -700,7 +715,7 @@
 
 ;; distributed implementation
 (defmethod download-storm-code
-  :distributed [conf storm-id master-code-dir localizer]
+  :distributed [conf storm-id master-code-dir localizer storm-cluster-state]
   ;; Downloading to permanent location is atomic
   (let [tmproot (str (supervisor-tmp-dir conf) file-path-separator (uuid))
         stormroot (supervisor-stormdist-root conf storm-id)
@@ -719,7 +734,7 @@
     (.shutdown blobstore)
     (extract-dir-from-jar (supervisor-stormjar-path tmproot) RESOURCES-SUBDIR tmproot)
     (download-blobs-for-topology! conf (supervisor-stormconf-path tmproot) localizer
-      tmproot)
+      tmproot storm-id storm-cluster-state)
     (if (download-blobs-for-topology-succeed? (supervisor-stormconf-path tmproot) tmproot)
       (do
         (log-message "Successfully downloaded blob resources for storm-id " storm-id)
@@ -900,7 +915,7 @@
 
 ;; distributed cache feature does not work in local mode
 (defmethod download-storm-code
-    :local [conf storm-id master-code-dir localizer]
+    :local [conf storm-id master-code-dir localizer storm-cluster-state]
     (let [tmproot (str (supervisor-tmp-dir conf) file-path-separator (uuid))
           stormroot (supervisor-stormdist-root conf storm-id)
           blob-store (Utils/getNimbusBlobStore conf master-code-dir)]

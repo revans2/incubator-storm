@@ -243,6 +243,10 @@ public class NimbusBlobStore extends ClientBlobStore {
       synchronized(client) {
         return new NimbusUploadAtomicOutputStream(client.getClient().beginCreateBlob(key, meta), this.bufferSize);
       }
+    } catch (AuthorizationException ae) {
+      throw ae;
+    } catch (KeyAlreadyExistsException kae) {
+      throw kae;
     } catch (TException e) {
       throw new RuntimeException(e);
     }
@@ -255,6 +259,10 @@ public class NimbusBlobStore extends ClientBlobStore {
       synchronized(client) {
         return new NimbusUploadAtomicOutputStream(client.getClient().beginUpdateBlob(key), this.bufferSize);
       }
+    } catch (AuthorizationException ae) {
+      throw ae;
+    } catch (KeyNotFoundException knf) {
+      throw knf;
     } catch (TException e) {
       throw new RuntimeException(e);
     }
@@ -266,6 +274,10 @@ public class NimbusBlobStore extends ClientBlobStore {
       synchronized(client) {
         return client.getClient().getBlobMeta(key);
       }
+    } catch (AuthorizationException ae) {
+      throw ae;
+    } catch (KeyNotFoundException knf) {
+      throw knf;
     } catch (TException e) {
       throw new RuntimeException(e);
     }
@@ -278,6 +290,10 @@ public class NimbusBlobStore extends ClientBlobStore {
       synchronized(client) {
         client.getClient().setBlobMeta(key, meta);
       }
+    } catch (AuthorizationException ae) {
+      throw ae;
+    } catch (KeyNotFoundException knf) {
+      throw knf;
     } catch (TException e) {
       throw new RuntimeException(e);
     }
@@ -289,6 +305,10 @@ public class NimbusBlobStore extends ClientBlobStore {
       synchronized(client) {
         client.getClient().deleteBlob(key);
       }
+    } catch (AuthorizationException ae) {
+      throw ae;
+    } catch (KeyNotFoundException knf) {
+      throw knf;
     } catch (TException e) {
       throw new RuntimeException(e);
     }
@@ -300,6 +320,10 @@ public class NimbusBlobStore extends ClientBlobStore {
       synchronized(client) {
         return new NimbusDownloadInputStream(client.getClient().beginBlobDownload(key));
       }
+    } catch (AuthorizationException ae) {
+      throw ae;
+    } catch (KeyNotFoundException knf) {
+      throw knf;
     } catch (TException e) {
       throw new RuntimeException(e);
     }

@@ -9,6 +9,7 @@ import backtype.storm.generated.AccessControlType;
 import backtype.storm.generated.ReadableBlobMeta;
 import backtype.storm.generated.SettableBlobMeta;
 import backtype.storm.utils.Utils;
+import backtype.storm.generated.AuthorizationException;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.junit.After;
@@ -477,7 +478,7 @@ public class LocalizerTest {
     assertFalse("blob not deleted", keyFile3.exists());
   }
 
-  @Test(expected = IOException.class)
+  @Test(expected = AuthorizationException.class)
   public void testFailAcls() throws Exception {
     Map conf = new HashMap();
     // set clean time really high so doesn't kick in
