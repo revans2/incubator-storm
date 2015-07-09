@@ -355,11 +355,11 @@ public class Localizer {
         }
         catch (ExecutionException e) {
           LOG.error("Error updating blob: ", e);
-          if (e.getMessage().contains("AuthorizationException")) {
-            throw new AuthorizationException(e.getMessage());
+          if (e.getCause() instanceof AuthorizationException) {
+            throw (AuthorizationException)e.getCause();
           }
-          if (e.getMessage().contains("KeyNotFoundException")) {
-            throw new KeyNotFoundException(e.getMessage());
+          if (e.getCause() instanceof KeyNotFoundException) {
+            throw (KeyNotFoundException)e.getCause();
           }
         }
       }
@@ -436,10 +436,10 @@ public class Localizer {
         results.add(lrsrc);
       }
     } catch (ExecutionException e) {
-      if (e.getMessage().contains("AuthorizationException"))
-        throw new AuthorizationException(e.getMessage());
-      else if (e.getMessage().contains("KeyNotFoundException")) {
-        throw new KeyNotFoundException(e.getMessage());
+      if (e.getCause() instanceof AuthorizationException)
+        throw (AuthorizationException)e.getCause();
+      else if (e.getCause() instanceof KeyNotFoundException) {
+        throw (KeyNotFoundException)e.getCause();
       } else {
         throw new IOException("Error getting blobs", e);
       }

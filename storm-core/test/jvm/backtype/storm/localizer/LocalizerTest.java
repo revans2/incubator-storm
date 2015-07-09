@@ -4,12 +4,14 @@ import backtype.storm.Config;
 import backtype.storm.blobstore.BlobStoreAclHandler;
 import backtype.storm.blobstore.ClientBlobStore;
 import backtype.storm.blobstore.InputStreamWithMeta;
+import backtype.storm.blobstore.LocalFsBlobStore;
 import backtype.storm.generated.AccessControl;
 import backtype.storm.generated.AccessControlType;
 import backtype.storm.generated.ReadableBlobMeta;
 import backtype.storm.generated.SettableBlobMeta;
-import backtype.storm.utils.Utils;
 import backtype.storm.generated.AuthorizationException;
+import backtype.storm.generated.KeyNotFoundException;
+import backtype.storm.utils.Utils;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.junit.After;
@@ -498,10 +500,21 @@ public class LocalizerTest {
     File user1Dir = localizer.getLocalUserFileCacheDir(user1);
     assertTrue("failed to create user dir", user1Dir.mkdirs());
 
-    // This should throw IOException because auth failed
+    // This should throw AuthorizationException because auth failed
     localizer.getBlob(new LocalResource(key1, false), user1, topo1, user1Dir);
   }
 
+  @Test(expected = KeyNotFoundException.class)
+  public void testKeyNotFoundException() throws Exception {
+    Map conf = new HashMap();
+    String key1 = "key1";
+    conf.put(Config.STORM_LOCAL_DIR, "local");
+    conf.put(Config.BLOBSTORE_SUPERUSER, "superuser");
+    conf.put(Config.STORM_PRINCIPAL_TO_LOCAL_PLUGIN, "backtype.storm.security.auth.DefaultPrincipalToLocal");
+    LocalFsBlobStore bs = new LocalFsBlobStore();
+    bs.prepare(conf,null);
+    bs.getBlob(key1, null);
+  }
 
     @Test
   public void testMultipleUsers() throws Exception {

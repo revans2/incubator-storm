@@ -496,11 +496,9 @@ public class Utils {
     try {
       ReadableBlobMeta metadata = cb.getBlobMeta(key);
       nimbusBlobVersion = metadata.get_version();
-    } catch (AuthorizationException ae) {
-      throw ae;
-    } catch (KeyNotFoundException knf) {
-      throw knf;
-    } catch (Exception e) {
+    } catch (AuthorizationException | KeyNotFoundException exp) {
+      throw exp;
+    } catch (TException e) {
       throw new RuntimeException(e);
     }
     return nimbusBlobVersion;
