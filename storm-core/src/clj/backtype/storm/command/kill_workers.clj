@@ -21,8 +21,9 @@
              [supervisor :as supervisor]])
   (:gen-class))
 
-;; construct the supervisor-data from scratch and kill the workers on this supervisor
-(defn -main [& args]
+(defn -main 
+  "Construct the supervisor-data from scratch and kill the workers on this supervisor"
+  [& args]
   (let [conf (read-storm-config)
         conf (assoc conf STORM-LOCAL-DIR (. (File. (conf STORM-LOCAL-DIR)) getCanonicalPath))
         isupervisor (supervisor/standalone-supervisor)
