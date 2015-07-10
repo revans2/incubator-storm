@@ -1124,28 +1124,6 @@ public class Config extends HashMap<String, Object> {
     public static final Object TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB_SCHEMA = ConfigValidation.PositiveDoubleValidator;
 
     /**
-     * The maximum amount of cpu an instance of a spout/bolt will take. This enables the scheduler
-     * to allocate slots on machines with enough available cpu. 
-     */
-    public static final String TOPOLOGY_COMPONENT_RESOURCES_CPU = "topology.component.resources.cpu";
-    public static final Object TOPOLOGY_COMPONENT_RESOURCES_CPU_SCHEMA = ConfigValidation.PositiveIntegerValidator;
-
-    /**
-     * The config indicates the type of the memory to be "memory"
-     */
-    public static final String TOPOLOGY_COMPONENT_TYPE_MEMORY = "topology.component.type.memory";
-    public static final Object TOPOLOGY_COMPONENT_TYPE_MEMORY_SCHEMA = String.class;
-
-    /**
-     * The config indicates the type of the cpu to be "cpu"
-     */
-    public static final String TOPOLOGY_COMPONENT_TYPE_CPU = "topology.component.type.cpu";
-    public static final Object TOPOLOGY_COMPONENT_TYPE_CPU_SCHEMA = String.class;
-
-    public static final String TOPOLOGY_COMPONENT_TYPE_CPU_TOTAL = "topology.component.type.cpu.total";
-    public static final Object TOPOLOGY_COMPONENT_TYPE_CPU_TOTAL_SCHEMA = String.class;
-
-    /**
      * The config indicates the percentage of cpu for a core. Assuming the a core value to be 100, a
      * value of 10 indicates 10% of the core. The P in PCORE represents the term "physical".
      */
@@ -1221,14 +1199,12 @@ public class Config extends HashMap<String, Object> {
     public static final String TOPOLOGY_METRICS_CONSUMER_REGISTER = "topology.metrics.consumer.register";
     public static final Object TOPOLOGY_METRICS_CONSUMER_REGISTER_SCHEMA = ConfigValidation.MapsValidator;
 
-
     /**
      * The maximum parallelism allowed for a component in this topology. This configuration is
      * typically used in testing to limit the number of threads spawned in local mode.
      */
     public static final String TOPOLOGY_MAX_TASK_PARALLELISM="topology.max.task.parallelism";
     public static final Object TOPOLOGY_MAX_TASK_PARALLELISM_SCHEMA = Number.class;
-
 
     /**
      * The maximum number of tuples that can be pending on a spout task at any given time.

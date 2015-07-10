@@ -279,6 +279,7 @@
                                 (str "-Dstorm.id=" mock-storm-id)
                                 (str "-Dworker.id=" mock-worker-id)
                                 (str "-Dworker.port=" mock-port)
+                                (str "-Dstorm.local.dir=")
                                 "-cp" classpath
                                 "backtype.storm.daemon.worker"
                                 mock-storm-id
@@ -411,6 +412,7 @@
                                 " '-Dstorm.id=" mock-storm-id "'"
                                 " '-Dworker.id=" mock-worker-id "'"
                                 " '-Dworker.port=" mock-port "'"
+                                " '-Dstorm.local.dir=" storm-local "'"
                                 " '-cp' 'mock-classpath'\"'\"'quote-on-purpose'"
                                 " 'backtype.storm.daemon.worker'"
                                 " '" mock-storm-id "'"
