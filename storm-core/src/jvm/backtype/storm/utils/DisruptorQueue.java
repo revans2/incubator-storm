@@ -90,6 +90,8 @@ public class DisruptorQueue implements IStatefulObject {
                 throw new RuntimeException("This code should be unreachable!", e);
             }
         }
+
+        _waitTimeout = timeout;
     }
 
     public String getName() {
