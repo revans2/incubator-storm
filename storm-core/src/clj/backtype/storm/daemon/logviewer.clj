@@ -981,7 +981,7 @@ Note that if anything goes wrong, this will throw an Error and exit."
           filter-class (conf UI-FILTER)
           filter-params (conf UI-FILTER-PARAMS)
           logapp (handler/api (-> log-routes
-                                  requests-middleware)) ;; query params as map
+                                  requests-middleware)) 
           middle (conf-middleware logapp log-root-dir)
           filters-confs (if (conf UI-FILTER)
                           [{:filter-class filter-class
