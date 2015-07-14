@@ -607,17 +607,7 @@ COMMANDS = {"jar": jar, "kill": kill, "shell": shell, "nimbus": nimbus, "ui": ui
             "list": listtopos, "dev-zookeeper": dev_zookeeper, "version": version, 
             "upload-credentials": upload_credentials, "blobstore": blobstore, "pacemaker": pacemaker,
             "heartbeats": heartbeats, "set_log_level": set_log_level, "get-errors": get_errors,
-<<<<<<< HEAD
-<<<<<<< HEAD
-            "node-health-check": healthcheck }
-=======
-            "kill_workers": kill_workers
-            }
->>>>>>> 7326f53... YSTORM-1614, implement kill_workers CLI for Summerfix
-=======
-            "kill_workers": kill_workers
-            }
->>>>>>> master-security
+            "kill_workers": kill_workers, "node-health-check": healthcheck }
 
 def parse_config(config_list):
     global CONFIG_OPTS
