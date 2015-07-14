@@ -18,7 +18,6 @@
 package backtype.storm.scheduler;
 
 import backtype.storm.scheduler.resource.RAS_Component;
-import backtype.storm.scheduler.resource.RAS_TYPES;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -77,11 +76,10 @@ public class Topologies {
                     if (td.getExecutorToComponent().get(exec)
                             .compareTo("__acker") == 0) {
                         LOG.info(
-                                "Scheduling __acker {} with memory requirement as 'on heap' - {} and 'off heap' - {} and CPU requirement as {}-{}",
+                                "Scheduling __acker {} with memory requirement as 'on heap' - {} and 'off heap' - {} and CPU requirement as {}",
                                 exec,
                                 td.topologyConf.get(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB),
                                 td.topologyConf.get(Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB),
-                                td.topologyConf.get(Config.TOPOLOGY_COMPONENT_TYPE_CPU_TOTAL),
                                 td.topologyConf.get(Config.TOPOLOGY_COMPONENT_CPU_PCORE_PERCENT));
                     } else {
                         LOG.info(

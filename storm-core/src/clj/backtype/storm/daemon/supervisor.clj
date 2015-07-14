@@ -14,12 +14,12 @@
 ;; See the License for the specific language governing permissions and
 ;; limitations under the License.
 (ns backtype.storm.daemon.supervisor
-  (:import [java.io OutputStreamWriter BufferedWriter IOException]
-           [backtype.storm.scheduler.resource RAS_TYPES])
+  (:import [java.io OutputStreamWriter BufferedWriter IOException])
   (:import [java.util.concurrent Executors])
   (:import [java.nio.file Files Path Paths StandardCopyOption])
   (:import [backtype.storm.scheduler ISupervisor])
   (:import [backtype.storm.blobstore BlobStoreAclHandler])
+  (:import [backtype.storm Config])
   (:import [backtype.storm.localizer LocalResource])
   (:use [backtype.storm bootstrap local-state])
   (:use [backtype.storm.daemon common])
@@ -27,10 +27,14 @@
   (:import [org.apache.zookeeper data.ACL ZooDefs$Ids ZooDefs$Perms])
   (:import [org.yaml.snakeyaml Yaml]
            [org.yaml.snakeyaml.constructor SafeConstructor])
+  (:require [metrics.gauges :refer [defgauge]])
+  (:require [metrics.meters :refer [defmeter mark!]])
   (:gen-class
     :methods [^{:static true} [launch [backtype.storm.scheduler.ISupervisor] void]]))
 
 (bootstrap)
+
+(defmeter num-workers-launched)
 
 (defmulti download-storm-code cluster-mode)
 (defmulti launch-worker (fn [supervisor & _] (cluster-mode (:conf supervisor))))
@@ -362,6 +366,7 @@
                         (:storm-id assignment)
                         port
                         id)
+                      (mark! num-workers-launched)
                       [port id])
                     (do
                       (log-message "Missing topology storm code, so can't launch worker with assignment "
@@ -537,8 +542,8 @@
 
 (defn mk-supervisor-capacities
   [conf]
-  {RAS_TYPES/TYPE_MEMORY (conf SUPERVISOR-MEMORY-CAPACITY-MB)
-   RAS_TYPES/TYPE_CPU (conf SUPERVISOR-CPU-CAPACITY)})
+  {Config/SUPERVISOR_MEMORY_CAPACITY_MB (conf SUPERVISOR-MEMORY-CAPACITY-MB)
+   Config/SUPERVISOR_CPU_CAPACITY (conf SUPERVISOR-CPU-CAPACITY)})
 
 (defn setup-blob-permission [conf storm-conf path]
   (if (conf SUPERVISOR-RUN-WORKER-AS-USER)
@@ -948,7 +953,9 @@
   (let [conf (read-storm-config)
         conf (assoc conf STORM-LOCAL-DIR (. (File. (conf STORM-LOCAL-DIR)) getCanonicalPath))]
     (validate-distributed-mode! conf)
-    (mk-supervisor conf nil supervisor)))
+    (mk-supervisor conf nil supervisor)
+    (defgauge num-slots-used-gauge #(count (my-worker-ids conf)))
+    (start-metrics-reporters)))
 
 (defn standalone-supervisor []
   (let [conf-atom (atom nil)

@@ -52,7 +52,14 @@ public class BasicDRPCTopology {
   }
 
   public static void main(String[] args) throws Exception {
-    LinearDRPCTopologyBuilder builder = new LinearDRPCTopologyBuilder("exclamation");
+    String functionName = "exclamation";
+
+    if(args !=null && args.length > 1 && !args[1].isEmpty()) {
+      functionName = args[1];
+    }
+    System.out.println("Creating DRPC topology with function name: " + functionName);
+
+    LinearDRPCTopologyBuilder builder = new LinearDRPCTopologyBuilder(functionName);
     builder.addBolt(new ExclaimBolt(), 3);
 
     Config conf = new Config();
@@ -64,7 +71,7 @@ public class BasicDRPCTopology {
       cluster.submitTopology("drpc-demo", conf, builder.createLocalTopology(drpc));
 
       for (String word : new String[]{ "hello", "goodbye" }) {
-        System.out.println("Result for \"" + word + "\": " + drpc.execute("exclamation", word));
+        System.out.println("Result for \"" + word + "\": " + drpc.execute(functionName, word));
       }
 
       cluster.shutdown();

@@ -39,6 +39,7 @@ storm.local.mode.zmq: false
 storm.thrift.transport: "backtype.storm.security.auth.SimpleTransportPlugin"
 storm.principal.tolocal: "backtype.storm.security.auth.DefaultPrincipalToLocal"
 storm.group.mapping.service: "backtype.storm.security.auth.ShellBasedGroupsMapping"
+storm.group.mapping.service.params: null
 storm.messaging.transport: "backtype.storm.messaging.netty.Context"
 storm.nimbus.retry.times: 5
 storm.nimbus.retry.interval.millis: 2000
@@ -221,11 +222,8 @@ topology.disable.loadaware.messaging: false
 topology.logging.sensitivity: "S3"
 
 # Configs for Resource Aware Scheduler
-topology.component.type.memory: "memory"
 topology.component.resources.onheap.memory.mb: 128.0
 topology.component.resources.offheap.memory.mb: 0.0
-topology.component.type.cpu: "cpu"
-topology.component.type.cpu.total: "total"
 topology.component.cpu.pcore.percent: 10.0
 
 client.blobstore.class: "backtype.storm.blobstore.NimbusBlobStore"
