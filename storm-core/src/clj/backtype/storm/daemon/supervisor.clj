@@ -27,10 +27,14 @@
   (:import [org.apache.zookeeper data.ACL ZooDefs$Ids ZooDefs$Perms])
   (:import [org.yaml.snakeyaml Yaml]
            [org.yaml.snakeyaml.constructor SafeConstructor])
+  (:require [metrics.gauges :refer [defgauge]])
+  (:require [metrics.meters :refer [defmeter mark!]])
   (:gen-class
     :methods [^{:static true} [launch [backtype.storm.scheduler.ISupervisor] void]]))
 
 (bootstrap)
+
+(defmeter num-workers-launched)
 
 (defmulti download-storm-code cluster-mode)
 (defmulti launch-worker (fn [supervisor & _] (cluster-mode (:conf supervisor))))
@@ -362,6 +366,7 @@
                         (:storm-id assignment)
                         port
                         id)
+                      (mark! num-workers-launched)
                       [port id])
                     (do
                       (log-message "Missing topology storm code, so can't launch worker with assignment "
@@ -948,7 +953,9 @@
   (let [conf (read-storm-config)
         conf (assoc conf STORM-LOCAL-DIR (. (File. (conf STORM-LOCAL-DIR)) getCanonicalPath))]
     (validate-distributed-mode! conf)
-    (mk-supervisor conf nil supervisor)))
+    (mk-supervisor conf nil supervisor)
+    (defgauge num-slots-used-gauge #(count (my-worker-ids conf)))
+    (start-metrics-reporters)))
 
 (defn standalone-supervisor []
   (let [conf-atom (atom nil)
