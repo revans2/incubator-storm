@@ -563,7 +563,7 @@
   (fn [_ secure-link? ^ComponentAggregateStats cas] (.get_type (.get_stats ^ExecutorAggregateStats cas))))
 
 (defmethod unpack-comp-exec-stat ComponentType/BOLT
-  [topology-id secure-link? ^ExecutorAggregateStats eas ]
+  [topology-id secure-link? ^ExecutorAggregateStats eas]
   (let [^ExecutorSummary summ (.get_exec_summary eas)
         ^ExecutorInfo info (.get_executor_info summ)
         ^ComponentAggregateStats stats (.get_stats eas)
@@ -589,7 +589,7 @@
      "workerLogLink" (worker-log-link host port topology-id secure-link?)}))
 
 (defmethod unpack-comp-exec-stat ComponentType/SPOUT
-  [topology-id secure-link? ^ExecutorAggregateStats eas ]
+  [topology-id secure-link? ^ExecutorAggregateStats eas]
   (let [^ExecutorSummary summ (.get_exec_summary eas)
         ^ExecutorInfo info (.get_executor_info summ)
         ^ComponentAggregateStats stats (.get_stats eas)

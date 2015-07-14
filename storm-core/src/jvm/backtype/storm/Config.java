@@ -516,7 +516,7 @@ public class Config extends HashMap<String, Object> {
      * Storm UI HTTPS port
      */
     public static final String UI_HTTPS_PORT = "ui.https.port";
-    public static final Object UI_HTTPS_PORT_SCHEMA = Number.class;
+    public static final Object UI_HTTPS_PORT_SCHEMA = ConfigValidation.PositiveIntegerValidator;
 
     /**
      * Path to the keystore containing the certs used by Storm UI for HTTPS communications
@@ -541,7 +541,7 @@ public class Config extends HashMap<String, Object> {
      * HTTP UI port for log viewer
      */
     public static final String LOGVIEWER_PORT = "logviewer.port";
-    public static final Object LOGVIEWER_PORT_SCHEMA = Number.class;
+    public static final Object LOGVIEWER_PORT_SCHEMA = ConfigValidation.PositiveIntegerValidator;
 
     /**
      * Childopts for log viewer java process.
@@ -564,7 +564,7 @@ public class Config extends HashMap<String, Object> {
     public static final Object LOGVIEWER_CLEANUP_AGE_MINS_SCHEMA = ConfigValidation.PositiveIntegerValidator;
 
     /**
-     * Storm UI HTTPS port
+     * Storm Logviewer HTTPS port
      */
     public static final String LOGVIEWER_HTTPS_PORT = "logviewer.https.port";
     public static final Object LOGVIEWER_HTTPS_PORT_SCHEMA = Number.class;
