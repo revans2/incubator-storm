@@ -337,7 +337,20 @@ public class Config extends HashMap<String, Object> {
      */
     public static final String STORM_CLUSTER_STATE_STORE = "storm.cluster.state.store";
     public static final Object STORM_CLUSTER_STATE_STORE_SCHEMA = String.class;
-    
+
+    /**
+     * The directory where storm's health scripts go.
+     */
+    public static final String STORM_HEALTH_CHECK_DIR = "storm.health.check.dir";
+    public static final Object STORM_HEALTH_CHECK_DIR_SCHEMA = String.class;
+
+    /**
+     * The time to allow any given healthcheck script to run before it
+     * is marked failed due to timeout
+     */
+    public static final String STORM_HEALTH_CHECK_TIMEOUT_MS = "storm.health.check.timeout.ms";
+    public static final Object STORM_HEALTH_CHECK_TIMEOUT_MS_SCHEMA = Number.class;
+
     /**
      * The host that the master server is running on.
      */

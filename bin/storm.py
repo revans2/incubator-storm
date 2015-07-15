@@ -367,6 +367,17 @@ def get_errors(*args):
         jvmtype="-client",
         extrajars=[USER_CONF_DIR, os.path.join(STORM_DIR, "bin")])
 
+def healthcheck(*args):
+    """Syntax: [storm node-health-check]
+
+    Run health checks on the local supervisor.
+    """
+    exec_storm_class(
+        "backtype.storm.command.healthcheck",
+        args=args,
+        jvmtype="-client",
+        extrajars=[USER_CONF_DIR, os.path.join(STORM_DIR, "bin")])
+
 def kill_workers(*args):
     """Syntax: [storm kill_workers]
 
@@ -596,8 +607,7 @@ COMMANDS = {"jar": jar, "kill": kill, "shell": shell, "nimbus": nimbus, "ui": ui
             "list": listtopos, "dev-zookeeper": dev_zookeeper, "version": version, 
             "upload-credentials": upload_credentials, "blobstore": blobstore, "pacemaker": pacemaker,
             "heartbeats": heartbeats, "set_log_level": set_log_level, "get-errors": get_errors,
-            "kill_workers": kill_workers
-            }
+            "kill_workers": kill_workers, "node-health-check": healthcheck }
 
 def parse_config(config_list):
     global CONFIG_OPTS
