@@ -15,6 +15,7 @@
 ;; limitations under the License.
 (ns backtype.storm.daemon.supervisor
   (:import [java.io OutputStreamWriter BufferedWriter IOException])
+  (:import [backtype.storm.generated AuthorizationException KeyNotFoundException])
   (:import [java.util.concurrent Executors])
   (:import [java.nio.file Files Path Paths StandardCopyOption])
   (:import [backtype.storm.scheduler ISupervisor])
@@ -563,7 +564,12 @@
         topo-name (storm-conf TOPOLOGY-NAME)
         user-dir (.getLocalUserFileCacheDir localizer user)
         localresources (blobstore-map-to-localresources blobstore-map)]
-    (.updateBlobs localizer localresources user)))
+    (try
+      (.updateBlobs localizer localresources user)
+      (catch AuthorizationException authExp
+        (log-error authExp))
+      (catch KeyNotFoundException knf
+        (log-error knf)))))
 
 (defn download-blobs-for-topology!
   "Download all blobs listed in the topology configuration for a given topology."
@@ -578,15 +584,20 @@
       (when-not (.exists user-dir)
         (FileUtils/forceMkdir user-dir)
         (setup-blob-permission conf storm-conf (.toString user-dir)))
-      (let [localized-resources (.getBlobs localizer localresources user topo-name user-dir)]
-        (setup-blob-permission conf storm-conf (.toString user-dir))
-        (doseq [local-rsrc localized-resources]
-          (let [rsrc-file-path (File. (.getFilePath local-rsrc))
-                key-name (.getName rsrc-file-path)
-                blob-symlink-target-name (.getName (File. (.getCurrentSymlinkPath local-rsrc)))
-                symlink-name (get-blob-localname (get blobstore-map key-name) key-name)]
-            (create-symlink! tmproot (.getParent rsrc-file-path) symlink-name
-              blob-symlink-target-name)))))))
+      (try
+        (let [localized-resources (.getBlobs localizer localresources user topo-name user-dir)]
+          (setup-blob-permission conf storm-conf (.toString user-dir))
+          (doseq [local-rsrc localized-resources]
+            (let [rsrc-file-path (File. (.getFilePath local-rsrc))
+                  key-name (.getName rsrc-file-path)
+                  blob-symlink-target-name (.getName (File. (.getCurrentSymlinkPath local-rsrc)))
+                  symlink-name (get-blob-localname (get blobstore-map key-name) key-name)]
+              (create-symlink! tmproot (.getParent rsrc-file-path) symlink-name
+                blob-symlink-target-name))))
+        (catch AuthorizationException authExp
+          (log-error authExp))
+        (catch KeyNotFoundException knf
+          (log-error knf))))))
 
 (defn update-blobs-for-all-topologies-fn
   "Returns a function that downloads all blobs listed in the topology configuration for all topologies assigned
