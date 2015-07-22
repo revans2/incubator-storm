@@ -22,7 +22,6 @@
   (:import [backtype.storm.generated SpoutSpec Bolt StateSpoutSpec])
   (:import [backtype.storm.hooks.info SpoutAckInfo SpoutFailInfo
             EmitInfo BoltFailInfo BoltAckInfo])
-  (:require [backtype.storm [tuple :as tuple]])
   (:require [backtype.storm.daemon.builtin-metrics :as builtin-metrics]))
 
 (bootstrap)
