@@ -367,7 +367,7 @@
         supervisor-infos (all-supervisor-info storm-cluster-state nil)
 
         supervisor-details (dofor [[id info] supervisor-infos]
-                             (SupervisorDetails. id (:meta info)))
+                             (SupervisorDetails. id (:meta info) (:resources-map info)))
 
         ret (.allSlotsAvailableForScheduling inimbus
                      supervisor-details
@@ -575,7 +575,7 @@
                                                     all-ports (-> (get all-scheduling-slots sid)
                                                                   (set/difference dead-ports)
                                                                   ((fn [ports] (map int ports))))
-                                                    supervisor-details (SupervisorDetails. sid hostname scheduler-meta all-ports)]]
+                                                    supervisor-details (SupervisorDetails. sid hostname scheduler-meta all-ports (:resources-map supervisor-info))]]
                                           {sid supervisor-details}))]
     (merge all-supervisor-details
            (into {}
@@ -706,7 +706,7 @@
   (let [infos (all-supervisor-info storm-cluster-state)]
     (->> infos
          (map (fn [[id info]]
-                 [id (SupervisorDetails. id (:hostname info) (:scheduler-meta info) nil)]))
+                 [id (SupervisorDetails. id (:hostname info) (:scheduler-meta info) nil (:resources-map info))]))
          (into {}))))
 
 (defn- to-worker-slot [[node port]]
@@ -1434,12 +1434,13 @@
               supervisor-summaries (dofor [[id info] supervisor-infos]
                                           (let [ports (set (:meta info)) ;;TODO: this is only true for standalone
                                                 ]
-                                            (SupervisorSummary. (:hostname info)
-                                                                (:uptime-secs info)
-                                                                (count ports)
-                                                                (count (:used-ports info))
-                                                                id )
-                                            ))
+                                            (doto
+                                              (SupervisorSummary. (:hostname info)
+                                                                  (:uptime-secs info)
+                                                                  (count ports)
+                                                                  (count (:used-ports info))
+                                                                  id)
+                                              (.set_total_resources (map-val double (:resources-map info))))))
               nimbus-uptime ((:uptime nimbus))
               bases (topology-bases storm-cluster-state)
               topology-summaries (dofor [[id base] bases :when base]
