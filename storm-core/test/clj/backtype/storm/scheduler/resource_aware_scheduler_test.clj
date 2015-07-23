@@ -18,11 +18,13 @@
   (:use [backtype.storm bootstrap config testing thrift])
   (:require [backtype.storm.daemon [nimbus :as nimbus]])
   (:import [backtype.storm.generated StormTopology]
+           [backtype.storm Config]
            [backtype.storm.testing TestWordSpout TestWordCounter]
            [backtype.storm.topology TopologyBuilder])
   (:import [backtype.storm.scheduler Cluster SupervisorDetails WorkerSlot ExecutorDetails
             SchedulerAssignmentImpl Topologies TopologyDetails])
-  (:import [backtype.storm.scheduler.resource Node ResourceAwareScheduler RAS_TYPES]))
+  (:import [backtype.storm.scheduler.resource Node ResourceAwareScheduler])
+  (:import [backtype.storm Config]))
 
 (bootstrap)
 
@@ -31,8 +33,8 @@
                 :let [supervisor (SupervisorDetails. (str "id" id)
                                        (str "host" id)
                                        (list ) (map int (range ports))
-                                   {RAS_TYPES/TYPE_MEMORY 2000.0
-                                    RAS_TYPES/TYPE_CPU 400.0})]]
+                                   {Config/SUPERVISOR_MEMORY_CAPACITY_MB 2000.0
+                                    Config/SUPERVISOR_CPU_CAPACITY 400.0})]]
             {(.getId supervisor) supervisor})))
 
 (defn to-top-map [topologies]
@@ -47,6 +49,47 @@
         (for [at (range start end)]
           {(ed at) name})))))
 
+;; get the super->mem HashMap by counting the eds' mem usage of all topos on each super
+(defn get-super->mem-usage [^Cluster cluster ^Topologies topologies]
+  (let [assignments (.values (.getAssignments cluster))
+        supers (.values (.getSupervisors cluster))
+        super->mem-usage (HashMap.)
+        _ (doseq [super supers] 
+             (.put super->mem-usage super 0))]  ;; initialize the mem-usage as 0 for all supers
+    (doseq [assignment assignments]
+      (let [ed->super (into {}
+                            (for [[ed slot] (.getExecutorToSlot assignment)]
+                              {ed (.getSupervisorById cluster (.getNodeId slot))}))
+            super->eds (reverse-map ed->super)
+            topology (.getById topologies (.getTopologyId assignment))
+            super->mem-pertopo (map-val (fn [eds] 
+                                          (reduce + (map #(.getTotalMemReqTask topology %) eds))) 
+                                        super->eds)]  ;; sum up the one topo's eds' mem usage on a super 
+            (doseq [[super mem] super->mem-pertopo]
+              (.put super->mem-usage 
+                    super (+ mem (.get super->mem-usage super)))))) ;; add all topo's mem usage for each super
+    super->mem-usage))
+
+;; get the super->cpu HashMap by counting the eds' cpu usage of all topos on each super
+(defn get-super->cpu-usage [^Cluster cluster ^Topologies topologies]
+  (let [assignments (.values (.getAssignments cluster))
+        supers (.values (.getSupervisors cluster))
+        super->cpu-usage (HashMap.)
+        _ (doseq [super supers] 
+             (.put super->cpu-usage super 0))] ;; initialize the cpu-usage as 0 for all supers
+    (doseq [assignment assignments]
+      (let [ed->super (into {}
+                            (for [[ed slot] (.getExecutorToSlot assignment)]
+                              {ed (.getSupervisorById cluster (.getNodeId slot))}))
+            super->eds (reverse-map ed->super)
+            topology (.getById topologies (.getTopologyId assignment))
+            super->cpu-pertopo (map-val (fn [eds] 
+                                          (reduce + (map #(.getTotalCpuReqTask topology %) eds))) 
+                                        super->eds)] ;; sum up the one topo's eds' cpu usage on a super 
+            (doseq [[super cpu] super->cpu-pertopo]
+              (.put super->cpu-usage 
+                    super (+ cpu (.get super->cpu-usage super))))))  ;; add all topo's cpu usage for each super
+    super->cpu-usage))
 
 ;; testing resource/Node class
 (deftest test-node
@@ -106,10 +149,7 @@
                      TOPOLOGY-SUBMITTER-USER "userC"
                      TOPOLOGY-COMPONENT-RESOURCES-ONHEAP-MEMORY-MB 128.0
                      TOPOLOGY-COMPONENT-RESOURCES-OFFHEAP-MEMORY-MB 0.0
-                     TOPOLOGY-COMPONENT-CPU-PCORE-PERCENT 10.0
-                     TOPOLOGY-COMPONENT-TYPE-CPU "cpu"
-                     TOPOLOGY-COMPONENT-TYPE-CPU-TOTAL "total"
-                     TOPOLOGY-COMPONENT-TYPE-MEMORY "memory"}
+                     TOPOLOGY-COMPONENT-CPU-PCORE-PERCENT 10.0}
                     storm-topology
                     1
                     (mk-ed-map [["wordSpout" 0 1]
@@ -144,10 +184,7 @@
                      TOPOLOGY-SUBMITTER-USER "userC"
                      TOPOLOGY-COMPONENT-RESOURCES-ONHEAP-MEMORY-MB 128.0
                      TOPOLOGY-COMPONENT-RESOURCES-OFFHEAP-MEMORY-MB 0.0
-                     TOPOLOGY-COMPONENT-CPU-PCORE-PERCENT 10.0
-                     TOPOLOGY-COMPONENT-TYPE-CPU "cpu"
-                     TOPOLOGY-COMPONENT-TYPE-CPU-TOTAL "total"
-                     TOPOLOGY-COMPONENT-TYPE-MEMORY "memory"}
+                     TOPOLOGY-COMPONENT-CPU-PCORE-PERCENT 10.0}
                     storm-topology
                     2
                     (mk-ed-map [["wordSpout" 0 1]
@@ -184,10 +221,7 @@
                      TOPOLOGY-SUBMITTER-USER "userC"
                      TOPOLOGY-COMPONENT-RESOURCES-ONHEAP-MEMORY-MB 128.0
                      TOPOLOGY-COMPONENT-RESOURCES-OFFHEAP-MEMORY-MB 0.0
-                     TOPOLOGY-COMPONENT-CPU-PCORE-PERCENT 10.0
-                     TOPOLOGY-COMPONENT-TYPE-CPU "cpu"
-                     TOPOLOGY-COMPONENT-TYPE-CPU-TOTAL "total"
-                     TOPOLOGY-COMPONENT-TYPE-MEMORY "memory"}
+                     TOPOLOGY-COMPONENT-CPU-PCORE-PERCENT 10.0}
                     storm-topology
                     2 ;; need two workers, each on one node
                     (mk-ed-map [["wordSpout" 0 2]
@@ -242,12 +276,9 @@
                       TOPOLOGY-SUBMITTER-USER "userC"
                       TOPOLOGY-COMPONENT-RESOURCES-ONHEAP-MEMORY-MB 128.0
                       TOPOLOGY-COMPONENT-RESOURCES-OFFHEAP-MEMORY-MB 0.0
-                      TOPOLOGY-COMPONENT-CPU-PCORE-PERCENT 10.0
-                      TOPOLOGY-COMPONENT-TYPE-CPU "cpu"
-                      TOPOLOGY-COMPONENT-TYPE-CPU-TOTAL "total"
-                      TOPOLOGY-COMPONENT-TYPE-MEMORY "memory"}
+                      TOPOLOGY-COMPONENT-CPU-PCORE-PERCENT 10.0}
                      storm-topology1
-                     3  ;; three workers to hold three executors
+                     3 ;; three workers to hold three executors
                      (mk-ed-map [["spout1" 0 3]]))
          builder2 (TopologyBuilder.)
          _ (.setSpout builder2 "spout2" (TestWordSpout.) 2)
@@ -257,11 +288,8 @@
                       TOPOLOGY-SUBMITTER-USER "userC"
                       TOPOLOGY-COMPONENT-RESOURCES-ONHEAP-MEMORY-MB 1280.0 ;; large enough thus two eds can not be fully assigned to one node
                       TOPOLOGY-COMPONENT-RESOURCES-OFFHEAP-MEMORY-MB 0.0
-                      TOPOLOGY-COMPONENT-CPU-PCORE-PERCENT 10.0
-                      TOPOLOGY-COMPONENT-TYPE-CPU "cpu"
-                      TOPOLOGY-COMPONENT-TYPE-CPU-TOTAL "total"
-                      TOPOLOGY-COMPONENT-TYPE-MEMORY "memory"}
-                      storm-topology2
+                      TOPOLOGY-COMPONENT-CPU-PCORE-PERCENT 10.0}
+                     storm-topology2
                      2  ;; two workers, each holds one executor and resides on one node
                      (mk-ed-map [["spout2" 0 2]]))
         scheduler (ResourceAwareScheduler.)]
@@ -356,3 +384,134 @@
         (is (= "topology1 Fully Scheduled" (.get (.getStatusMap cluster) "topology1")))
         (is (= "topology2 Fully Scheduled" (.get (.getStatusMap cluster) "topology2")))))))
 
+;; Automated tests for heterogeneous cluster
+(deftest test-heterogeneous-cluster
+  (let [supers (into {} (for [super [(SupervisorDetails. (str "id" 0) (str "host" 0) (list ) 
+                                                         (map int (list 1 2 3 4))
+                                                         {Config/SUPERVISOR_MEMORY_CAPACITY_MB 4096.0
+                                                          Config/SUPERVISOR_CPU_CAPACITY 800.0})
+                                     (SupervisorDetails. (str "id" 1) (str "host" 1) (list ) 
+                                                         (map int (list 1 2 3 4))
+                                                         {Config/SUPERVISOR_MEMORY_CAPACITY_MB 1024.0
+                                                          Config/SUPERVISOR_CPU_CAPACITY 200.0})]]
+                          {(.getId super) super}))
+        builder1 (TopologyBuilder.)  ;; topo1 has one single huge task that can not be handled by the small-super
+        _ (doto (.setSpout builder1 "spout1" (TestWordSpout.) 1) 
+            (.setMemoryLoad 2000.0 48.0)
+            (.setCPULoad 300.0))
+        storm-topology1 (.createTopology builder1)
+        topology1 (TopologyDetails. "topology1"
+                    {TOPOLOGY-NAME "topology-name-1"
+                     TOPOLOGY-SUBMITTER-USER "userC"
+                     TOPOLOGY-COMPONENT-RESOURCES-ONHEAP-MEMORY-MB 128.0
+                     TOPOLOGY-COMPONENT-RESOURCES-OFFHEAP-MEMORY-MB 0.0
+                     TOPOLOGY-COMPONENT-CPU-PCORE-PERCENT 10.0}
+                    storm-topology1
+                    1
+                    (mk-ed-map [["spout1" 0 1]]))
+        builder2 (TopologyBuilder.)  ;; topo2 has 4 large tasks
+        _ (doto (.setSpout builder2 "spout2" (TestWordSpout.) 4)
+            (.setMemoryLoad 500.0 12.0)
+            (.setCPULoad 100.0))
+        storm-topology2 (.createTopology builder2)
+        topology2 (TopologyDetails. "topology2"
+                    {TOPOLOGY-NAME "topology-name-2"
+                     TOPOLOGY-SUBMITTER-USER "userC"
+                     TOPOLOGY-COMPONENT-RESOURCES-ONHEAP-MEMORY-MB 128.0
+                     TOPOLOGY-COMPONENT-RESOURCES-OFFHEAP-MEMORY-MB 0.0
+                     TOPOLOGY-COMPONENT-CPU-PCORE-PERCENT 10.0}
+                    storm-topology2
+                    2 
+                    (mk-ed-map [["spout2" 0 4]]))
+        builder3 (TopologyBuilder.) ;; topo3 has 4 medium tasks, launching topo 1-3 together requires the same mem as the cluster's mem capacity (5G)
+        _ (doto (.setSpout builder3 "spout3" (TestWordSpout.) 4)
+            (.setMemoryLoad 200.0 56.0)
+            (.setCPULoad 20.0))
+        storm-topology3 (.createTopology builder3)
+        topology3 (TopologyDetails. "topology3"
+                    {TOPOLOGY-NAME "topology-name-3"
+                     TOPOLOGY-SUBMITTER-USER "userC"
+                     TOPOLOGY-COMPONENT-RESOURCES-ONHEAP-MEMORY-MB 128.0
+                     TOPOLOGY-COMPONENT-RESOURCES-OFFHEAP-MEMORY-MB 0.0
+                     TOPOLOGY-COMPONENT-CPU-PCORE-PERCENT 10.0}
+                    storm-topology3
+                    2 
+                    (mk-ed-map [["spout3" 0 4]]))
+        builder4 (TopologyBuilder.) ;; topo4 has 12 small tasks, each's mem req does not exactly divide a node's mem capacity
+        _ (doto (.setSpout builder4 "spout4" (TestWordSpout.) 2)
+            (.setMemoryLoad 100.0 0.0)
+            (.setCPULoad 30.0))
+        storm-topology4 (.createTopology builder4)
+        topology4 (TopologyDetails. "topology4"
+                    {TOPOLOGY-NAME "topology-name-4"
+                     TOPOLOGY-SUBMITTER-USER "userC"
+                     TOPOLOGY-COMPONENT-RESOURCES-ONHEAP-MEMORY-MB 128.0
+                     TOPOLOGY-COMPONENT-RESOURCES-OFFHEAP-MEMORY-MB 0.0
+                     TOPOLOGY-COMPONENT-CPU-PCORE-PERCENT 10.0}
+                    storm-topology4
+                    2 
+                    (mk-ed-map [["spout4" 0 12]]))
+        builder5 (TopologyBuilder.) ;; topo5 has 40 small tasks, it should be able to exactly use up both the cpu and mem in teh cluster
+        _ (doto (.setSpout builder5 "spout5" (TestWordSpout.) 40)
+            (.setMemoryLoad 100.0 28.0)
+            (.setCPULoad 25.0))
+        storm-topology5 (.createTopology builder5)
+        topology5 (TopologyDetails. "topology5"
+                    {TOPOLOGY-NAME "topology-name-5"
+                     TOPOLOGY-SUBMITTER-USER "userC"
+                     TOPOLOGY-COMPONENT-RESOURCES-ONHEAP-MEMORY-MB 128.0
+                     TOPOLOGY-COMPONENT-RESOURCES-OFFHEAP-MEMORY-MB 0.0
+                     TOPOLOGY-COMPONENT-CPU-PCORE-PERCENT 10.0}
+                    storm-topology5
+                    2 
+                    (mk-ed-map [["spout5" 0 40]]))
+        epsilon 0.000001
+        topologies (Topologies. (to-top-map [topology1 topology2]))
+        scheduler (ResourceAwareScheduler.)]
+
+    (testing "Launch topo 1-3 together, it should be able to use up either mem or cpu resource due to exact division"
+      (let [cluster (Cluster. (nimbus/standalone-nimbus) supers {}
+                              {STORM-NETWORK-TOPOGRAPHY-PLUGIN
+                               "backtype.storm.networktopography.DefaultRackDNSToSwitchMapping"})
+            topologies (Topologies. (to-top-map [topology1 topology2 topology3]))
+            _ (.schedule scheduler topologies cluster)
+            super->mem-usage (get-super->mem-usage cluster topologies)
+            super->cpu-usage (get-super->cpu-usage cluster topologies)]
+        (is (= "topology1 Fully Scheduled" (.get (.getStatusMap cluster) "topology1")))
+        (is (= "topology2 Fully Scheduled" (.get (.getStatusMap cluster) "topology2")))
+        (is (= "topology3 Fully Scheduled" (.get (.getStatusMap cluster) "topology3")))
+        (doseq [super (.values supers)] 
+          (let [mem-avail (.getTotalMemory super)
+                mem-used (.get super->mem-usage super)
+                cpu-avail (.getTotalCPU super)
+                cpu-used (.get super->cpu-usage super)]
+            (is (or (<= (Math/abs (- mem-avail mem-used)) epsilon)
+                    (<= (Math/abs (- cpu-avail cpu-used)) epsilon)))))))
+
+    (testing "Launch topo 1, 2 and 4, they together request a little more mem than available, so one of the 3 topos will not be scheduled"
+      (let [cluster (Cluster. (nimbus/standalone-nimbus) supers {}
+                              {STORM-NETWORK-TOPOGRAPHY-PLUGIN
+                               "backtype.storm.networktopography.DefaultRackDNSToSwitchMapping"})
+            topologies (Topologies. (to-top-map [topology1 topology2 topology3]))
+            _ (.schedule scheduler topologies cluster)
+                scheduled-topos (if (= "topology1 Fully Scheduled" (.get (.getStatusMap cluster) "topology1")) 1 0)
+                scheduled-topos (+ scheduled-topos (if (= "topology2 Fully Scheduled" (.get (.getStatusMap cluster) "topology2")) 1 0))
+                scheduled-topos (+ scheduled-topos (if (= "topology4 Fully Scheduled" (.get (.getStatusMap cluster) "topology4")) 1 0))]
+            (is (= scheduled-topos 2)))) ;; only 2 topos will get (fully) scheduled
+
+    (testing "Launch topo5 only, both mem and cpu should be exactly used up"
+      (let [cluster (Cluster. (nimbus/standalone-nimbus) supers {}
+                              {STORM-NETWORK-TOPOGRAPHY-PLUGIN
+                               "backtype.storm.networktopography.DefaultRackDNSToSwitchMapping"})
+            topologies (Topologies. (to-top-map [topology5]))
+            _ (.schedule scheduler topologies cluster)
+            super->mem-usage (get-super->mem-usage cluster topologies)
+            super->cpu-usage (get-super->cpu-usage cluster topologies)]
+        (is (= "topology5 Fully Scheduled" (.get (.getStatusMap cluster) "topology5")))
+        (doseq [super (.values supers)] 
+          (let [mem-avail (.getTotalMemory super)
+                mem-used (.get super->mem-usage super)
+                cpu-avail (.getTotalCPU ^SupervisorDetails super)
+                cpu-used (.get super->cpu-usage super)]
+            (is (and (<= (Math/abs (- mem-avail mem-used)) epsilon)
+                    (<= (Math/abs (- cpu-avail cpu-used)) epsilon)))))))))

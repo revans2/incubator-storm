@@ -36,14 +36,19 @@
            [backtype.storm.security.auth AuthUtils])
   (:require [compojure.route :as route]
             [compojure.handler :as handler])
-  (:require [backtype.storm.daemon common [supervisor :as supervisor]])
+  (:require [backtype.storm.daemon [supervisor :as supervisor]])
   (:require [ring.middleware.keyword-params]
             [ring.util.response :as resp] 
             [ring.util.codec :as codec]
             [clojure.string :as string])
+  (:require [metrics.meters :refer [defmeter mark!]])
+  (:use [backtype.storm.daemon.common :only [start-metrics-reporters]])
   (:gen-class))
 
 (def ^:dynamic *STORM-CONF* (read-storm-config))
+
+;; Coda Hale Metrics
+(defmeter num-file-downloads)
 
 (defn cleanup-cutoff-age-millis [conf now-millis]
   (- now-millis (* (conf LOGVIEWER-CLEANUP-AGE-MINS) 60 1000)))
@@ -895,6 +900,7 @@ Note that if anything goes wrong, this will throw an Error and exit."
        ;; :keys list, or this rule could stop working when an authentication
        ;; filter is configured.
        (try
+         (mark! num-file-downloads)
          (let [user (.getUserName http-creds-handler servlet-request)]
            (download-log-file file servlet-request servlet-response user log-root))
          (catch InvalidRequestException ex
@@ -974,7 +980,8 @@ Note that if anything goes wrong, this will throw an Error and exit."
     (let [header-buffer-size (int (.get conf UI-HEADER-BUFFER-BYTES))
           filter-class (conf UI-FILTER)
           filter-params (conf UI-FILTER-PARAMS)
-          logapp (handler/api log-routes) ;; query params as map
+          logapp (handler/api (-> log-routes
+                                  requests-middleware)) 
           middle (conf-middleware logapp log-root-dir)
           filters-confs (if (conf UI-FILTER)
                           [{:filter-class filter-class
@@ -997,4 +1004,5 @@ Note that if anything goes wrong, this will throw an Error and exit."
         log-root (worker-artifacts-root conf)]
     (setup-default-uncaught-exception-handler)
     (start-log-cleaner! conf log-root)
-    (start-logviewer! conf log-root)))
+    (start-logviewer! conf log-root)
+    (start-metrics-reporters)))

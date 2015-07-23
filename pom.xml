@@ -204,6 +204,7 @@
         <guava.version>13.0</guava.version>
         <log4j.version>2.1</log4j.version>
         <netty.version>3.9.4.Final</netty.version>
+        <metrics.version>3.1.0</metrics.version>
         <clojure.tools.nrepl.version>0.2.3</clojure.tools.nrepl.version>
         <clojure-complete.version>0.2.3</clojure-complete.version>
         <mockito.version>1.9.5</mockito.version>
@@ -212,6 +213,7 @@
         <zookeeper.version>3.4.5</zookeeper.version>
         <clojure-data-codec.version>0.1.0</clojure-data-codec.version>
         <clojure-contrib.version>1.2.0</clojure-contrib.version>
+        <metrics-clojure.version>2.5.1</metrics-clojure.version>
 
     </properties>
 
@@ -479,6 +481,16 @@
                 <artifactId>netty</artifactId>
                 <version>${netty.version}</version>
             </dependency>
+            <dependency>
+                <groupId>io.dropwizard.metrics</groupId>
+                <artifactId>metrics-core</artifactId>
+                <version>${metrics.version}</version>
+           </dependency>
+            <dependency>
+                <groupId>metrics-clojure</groupId>
+                <artifactId>metrics-clojure</artifactId>
+                <version>${metrics-clojure.version}</version>
+           </dependency>
            <dependency>
                <groupId>org.clojars.runa</groupId>
                <artifactId>conjure</artifactId>
