@@ -65,7 +65,7 @@ public class KafkaTestBroker {
         Properties p = new Properties();
         p.setProperty("zookeeper.connect", zookeeperConnectionString);
         p.setProperty("broker.id", "0");
-        p.setProperty("port", port);
+        p.setProperty("port", "" + port);
         p.setProperty("log.dirs", logDir.getAbsolutePath());
         return KafkaConfig.fromProps(p);
     }
