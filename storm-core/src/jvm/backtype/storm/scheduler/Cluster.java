@@ -456,8 +456,8 @@ public class Cluster {
      */
     public Map<String, List<String>> getNetworkTopography() {
         if (networkTopography == null) {
-            networkTopography = new HashMap<>();
-            ArrayList<String> supervisorHostNames = new ArrayList<>();
+            networkTopography = new HashMap<String, List<String>>();
+            ArrayList<String> supervisorHostNames = new ArrayList<String>();
             for (SupervisorDetails s : supervisors.values()) {
                 supervisorHostNames.add(s.getHost());
             }
@@ -465,12 +465,15 @@ public class Cluster {
             String clazz = (String) conf.get(Config.STORM_NETWORK_TOPOGRAPHY_PLUGIN);
             DNSToSwitchMapping topographyMapper = (DNSToSwitchMapping) Utils.newInstance(clazz);
 
-            for(Map.Entry<String,String> entry: topographyMapper.resolve(supervisorHostNames).entrySet()) {
-                if (!networkTopography.containsKey(entry.getValue())){
-                    networkTopography.put(entry.getValue(),new ArrayList<String>());
+            Map <String,String> resolvedSuperVisors = topographyMapper.resolve(supervisorHostNames);
+            for(String hostName: resolvedSuperVisors.keySet()) {
+                String rack = resolvedSuperVisors.get(hostName);
+
+                if (!networkTopography.containsKey(rack)){
+                    networkTopography.put(rack, new ArrayList<String>());
                 }
-                List<String> nodesForRack = networkTopography.get(entry.getValue());
-                nodesForRack.add(entry.getKey());
+                List<String> nodesForRack = networkTopography.get(rack);
+                nodesForRack.add(hostName);
             }
         }
         return networkTopography;
