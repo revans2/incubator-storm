@@ -666,18 +666,16 @@
             <id>clojars</id>
             <url>https://clojars.org/repo/</url>
         </repository>
-    <repository>
-     <id>central-ymaven</id>
-      <url>http://ymaven.corp.yahoo.com:9999/proximity/repository/public</url>
-      <snapshots>
-        <enabled>true</enabled>
-      </snapshots>
-      <releases>
-        <enabled>true</enabled>
-      </releases>
-    </repository>
-
-
+        <repository>
+            <id>central-ymaven</id>
+            <url>http://ymaven.corp.yahoo.com:9999/proximity/repository/public</url>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+            <releases>
+                <enabled>true</enabled>
+            </releases>
+        </repository>
     </repositories>
 
     <build>
