@@ -20,6 +20,13 @@ package backtype.storm.scheduler;
 public class WorkerSlot {
     String nodeId;
     int port;
+    // amount of on-heap memory allocated to it
+    Double memOnHeap = 0.0;
+    // amount of off-heap memory allocated to it
+    Double memOffHeap = 0.0;
+    // amount of cpu allocated to it
+    Double cpu = 0.0;
+
     
     public WorkerSlot(String nodeId, Number port) {
         this.nodeId = nodeId;
@@ -32,6 +39,24 @@ public class WorkerSlot {
     
     public int getPort() {
         return port;
+    }
+
+    public void allocateResource(Double memOnHeap, Double memOffHeap, Double cpu) {
+        this.memOnHeap += memOnHeap;
+        this.memOffHeap += memOffHeap;
+        this.cpu += cpu;
+    }
+
+    public Double getAllocatedOnHeapMem() {
+        return memOnHeap;
+    }
+
+    public Double getAllocatedOffHeapMem() {
+        return memOffHeap;
+    }
+
+    public Double getAllocatedCpu() {
+        return cpu;
     }
 
     @Override
