@@ -133,6 +133,24 @@
             <scope>provided</scope>
         </dependency>
         <dependency>
+            <groupId>yahoo.yinst.ykafka</groupId>
+            <artifactId>metrics-core-2.2.0</artifactId>
+            <version>${kafka.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>yahoo.yinst.ykafka</groupId>
+            <artifactId>zkclient-0.5-1</artifactId>
+            <version>${kafka.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>yahoo.yinst.ykafka</groupId>
+            <artifactId>kafka-clients</artifactId>
+            <version>${kafka.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
             <groupId>org.apache.storm</groupId>
             <artifactId>storm-core</artifactId>
             <version>${project.version}</version>
