@@ -106,9 +106,9 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>org.apache.kafka</groupId>
-            <artifactId>kafka_2.9.2</artifactId>
-            <version>0.8.1.1</version>
+            <groupId>yahoo.yinst.ykafka</groupId>
+            <artifactId>kafka</artifactId>
+            <version>${kafka.version}</version>
             <!-- use provided scope, so users can pull in whichever scala version they choose -->
             <scope>provided</scope>
             <exclusions>
@@ -120,7 +120,35 @@
                     <groupId>log4j</groupId>
                     <artifactId>log4j</artifactId>
                 </exclusion>
+                <exclusion>
+                    <groupId>org.slf4j</groupId>
+                    <artifactId>slf4j-log4j12</artifactId>
+                </exclusion>
             </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>yahoo.yinst.ykafka</groupId>
+            <artifactId>scala-library-2.10.5</artifactId>
+            <version>${kafka.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>yahoo.yinst.ykafka</groupId>
+            <artifactId>metrics-core-2.2.0</artifactId>
+            <version>${kafka.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>yahoo.yinst.ykafka</groupId>
+            <artifactId>zkclient-0.5-1</artifactId>
+            <version>${kafka.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>yahoo.yinst.ykafka</groupId>
+            <artifactId>kafka-clients</artifactId>
+            <version>${kafka.version}</version>
+            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.storm</groupId>
