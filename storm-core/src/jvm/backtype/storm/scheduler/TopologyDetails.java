@@ -280,27 +280,22 @@ public class TopologyDetails {
                     }
                     newComp.type = RAS_Component.ComponentType.SPOUT;
 
-
                     for (Map.Entry<GlobalStreamId, Grouping> spoutInput : spoutEntry
                             .getValue().get_common().get_inputs()
                             .entrySet()) {
-
-                        if (!Utils.isSystemId(spoutInput.getKey().get_componentId())) {
-                            newComp.parents.add(spoutInput.getKey()
-                                    .get_componentId());
-                            if (!all_comp.containsKey(spoutInput
-                                    .getKey().get_componentId())) {
-                                all_comp.put(spoutInput.getKey()
-                                                .get_componentId(),
-                                        new RAS_Component(spoutInput.getKey()
-                                                .get_componentId()));
-                            }
-                            all_comp.get(spoutInput.getKey()
-                                    .get_componentId()).children.add(spoutEntry
-                                    .getKey());
+                        newComp.parents.add(spoutInput.getKey()
+                                .get_componentId());
+                        if (!all_comp.containsKey(spoutInput
+                                .getKey().get_componentId())) {
+                            all_comp.put(spoutInput.getKey()
+                                            .get_componentId(),
+                                    new RAS_Component(spoutInput.getKey()
+                                            .get_componentId()));
                         }
+                        all_comp.get(spoutInput.getKey()
+                                .get_componentId()).children.add(spoutEntry
+                                .getKey());
                     }
-
                 }
             }
         }
@@ -323,20 +318,18 @@ public class TopologyDetails {
                     for (Map.Entry<GlobalStreamId, Grouping> boltInput : boltEntry
                             .getValue().get_common().get_inputs()
                             .entrySet()) {
-                        if (!Utils.isSystemId(boltInput.getKey().get_componentId())) {
-                            newComp.parents.add(boltInput.getKey()
-                                    .get_componentId());
-                            if (!all_comp.containsKey(boltInput
-                                    .getKey().get_componentId())) {
-                                all_comp.put(boltInput.getKey()
-                                                .get_componentId(),
-                                        new RAS_Component(boltInput.getKey()
-                                                .get_componentId()));
-                            }
-                            all_comp.get(boltInput.getKey()
-                                    .get_componentId()).children.add(boltEntry
-                                    .getKey());
+                        newComp.parents.add(boltInput.getKey()
+                                .get_componentId());
+                        if (!all_comp.containsKey(boltInput
+                                .getKey().get_componentId())) {
+                            all_comp.put(boltInput.getKey()
+                                            .get_componentId(),
+                                    new RAS_Component(boltInput.getKey()
+                                            .get_componentId()));
                         }
+                        all_comp.get(boltInput.getKey()
+                                .get_componentId()).children.add(boltEntry
+                                .getKey());
                     }
                 }
             }
