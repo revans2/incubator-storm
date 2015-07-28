@@ -63,6 +63,7 @@ public class TopologyDetails {
             this.executorToComponent.putAll(executorToComponents);
         }
         this.initResourceList();
+        LOG.info("topo: {} getExecutors: {} executorToComponents: {}", this.getName(), this.getExecutors(), executorToComponents);
     }
 
     public String getId() {
@@ -133,6 +134,20 @@ public class TopologyDetails {
             }
         } else {
             LOG.warn("Topology " + topologyId + " does not seem to have any spouts!");
+        }
+        LOG.info("Resource List: {}", _resourceList);
+        //schedule tasks that are neither spout or bolt (sys tasks most likely)
+        for(ExecutorDetails exec : this.getExecutors()) {
+            if (_resourceList.containsKey(exec) == false) {
+                LOG.info(
+                        "Scheduling {} {} with memory requirement as 'on heap' - {} and 'off heap' - {} and CPU requirement as {}",
+                        this.getExecutorToComponent().get(exec),
+                        exec,
+                        this.topologyConf.get(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB),
+                        this.topologyConf.get(Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB),
+                        this.topologyConf.get(Config.TOPOLOGY_COMPONENT_CPU_PCORE_PERCENT));
+                this.addDefaultResforExec(exec);
+            } 
         }
     }
 
