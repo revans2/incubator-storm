@@ -63,7 +63,6 @@ public class TopologyDetails {
             this.executorToComponent.putAll(executorToComponents);
         }
         this.initResourceList();
-        LOG.info("topo: {} getExecutors: {} executorToComponents: {}", this.getName(), this.getExecutors(), executorToComponents);
     }
 
     public String getId() {
@@ -135,7 +134,6 @@ public class TopologyDetails {
         } else {
             LOG.warn("Topology " + topologyId + " does not seem to have any spouts!");
         }
-        LOG.info("Resource List: {}", _resourceList);
         //schedule tasks that are neither spout or bolt (sys tasks most likely)
         for(ExecutorDetails exec : this.getExecutors()) {
             if (_resourceList.containsKey(exec) == false) {
