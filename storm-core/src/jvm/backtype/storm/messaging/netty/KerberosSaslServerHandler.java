@@ -18,6 +18,7 @@
 package backtype.storm.messaging.netty;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Map;
 import org.jboss.netty.channel.Channel;
 import org.jboss.netty.channel.ChannelHandlerContext;
@@ -34,14 +35,16 @@ public class KerberosSaslServerHandler extends SimpleChannelUpstreamHandler {
     /** Used for client or server's token to send or receive from each other. */
     private Map storm_conf;
     private String jaas_section;
+    private List<String> authorizedUsers;
     
     private static final Logger LOG = LoggerFactory
             .getLogger(KerberosSaslServerHandler.class);
 
-    public KerberosSaslServerHandler(ISaslServer server, Map storm_conf, String jaas_section) throws IOException {
+    public KerberosSaslServerHandler(ISaslServer server, Map storm_conf, String jaas_section, List<String> authorizedUsers) throws IOException {
         this.server = server;
         this.storm_conf = storm_conf;
         this.jaas_section = jaas_section;
+        this.authorizedUsers = authorizedUsers;
     }
 
     @Override
@@ -66,7 +69,7 @@ public class KerberosSaslServerHandler extends SimpleChannelUpstreamHandler {
                 if (saslNettyServer == null) {
                     LOG.debug("No saslNettyServer for {}  yet; creating now, with topology token: ", channel);
                     try {
-                        saslNettyServer = new KerberosSaslNettyServer(storm_conf, jaas_section);
+                        saslNettyServer = new KerberosSaslNettyServer(storm_conf, jaas_section, authorizedUsers);
                     } catch (RuntimeException ioe) {
                         LOG.error("Error occurred while creating saslNettyServer on server {} for client {}", 
                                   channel.getLocalAddress(), channel.getRemoteAddress());

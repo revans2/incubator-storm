@@ -52,8 +52,10 @@ class KerberosSaslNettyServer {
     private SaslServer saslServer;
     private Subject subject;
     private String jaas_section;
+    private List<String> authorizedUsers;
     
-    KerberosSaslNettyServer(Map storm_conf, String jaas_section) {
+    KerberosSaslNettyServer(Map storm_conf, String jaas_section, List<String> authorizedUsers) {
+        this.authorizedUsers = authorizedUsers;
         LOG.debug("Getting Configuration.");
         Configuration login_conf;
         try {
@@ -66,7 +68,7 @@ class KerberosSaslNettyServer {
             
         LOG.debug("KerberosSaslNettyServer: authmethod {}", SaslUtils.KERBEROS);
 
-        KerberosSaslCallbackHandler ch = new KerberosSaslNettyServer.KerberosSaslCallbackHandler(storm_conf);
+        KerberosSaslCallbackHandler ch = new KerberosSaslNettyServer.KerberosSaslCallbackHandler(storm_conf, authorizedUsers);
         
         //login our principal
         subject = null;
@@ -148,10 +150,12 @@ class KerberosSaslNettyServer {
 
         /** Used to authenticate the clients */
         private Map config;
+        private List<String> authorizedUsers;
 
-        public KerberosSaslCallbackHandler(Map config) {
+        public KerberosSaslCallbackHandler(Map config, List<String> authorizedUsers) {
             LOG.debug("KerberosSaslCallback: Creating KerberosSaslCallback handler.");
             this.config = config;
+            this.authorizedUsers = authorizedUsers;
         }
 
         @Override
@@ -165,11 +169,21 @@ class KerberosSaslNettyServer {
                         continue;
                     }
                     
-                    List<String> authorizedUsers = (List)config.get(Config.PACEMAKER_KERBEROS_USERS);
-                    LOG.debug("Got: {}", authorizedUsers);
+                    LOG.debug("Authorized Users: {}", authorizedUsers);
+                    LOG.debug("Checking authorization for: {}", ac.getAuthorizationID());
                     for(String user : authorizedUsers) {
-                        LOG.debug("Checking authorization for: {}", user);
-                        if(ac.getAuthorizationID().equals(user) ) {
+                        String requester = ac.getAuthorizationID();
+
+                        int instance = requester.indexOf("/");
+                        if(instance >= 0) {
+                            // This principal contains an 'instance' field.
+                            // We'll cut it out, and only authenticate for primary@realm
+                            String primary = requester.substring(0, instance);
+                            String realm = requester.substring(requester.indexOf("@"));
+                            requester = primary + realm;
+                        }
+
+                        if(requester.equals(user) ) {
                             ac.setAuthorized(true);
                             break;
                         }
