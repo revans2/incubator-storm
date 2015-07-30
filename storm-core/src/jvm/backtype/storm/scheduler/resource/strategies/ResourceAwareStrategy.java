@@ -94,12 +94,15 @@ public class ResourceAwareStrategy implements IStrategy {
         Map<Node, Collection<ExecutorDetails>> nodeToExecutorDetailsMap = new HashMap<Node, Collection<ExecutorDetails>>();
         LOG.debug("ExecutorsNeedScheduling: {}", unassignedExecutors);
         Collection<ExecutorDetails> scheduledTasks = new ArrayList<ExecutorDetails>();
-        RAS_Component rootSpout = this.getSpout(topologies);
-        if (rootSpout == null) {
+        List<RAS_Component> spouts = this.getSpouts(topologies);
+
+        if (spouts.size() == 0) {
             LOG.error("Cannot find a Spout!");
             return null;
         }
-        Queue<RAS_Component> ordered_RAS_Component_list = bfs(topologies, rootSpout);
+
+        Queue<RAS_Component> ordered_RAS_Component_list = bfs(topologies, spouts);
+
         Map<Integer, List<ExecutorDetails>> priorityToExecutorMap = getPriorityToExecutorDetailsListMap(ordered_RAS_Component_list);
         Collection<ExecutorDetails> executorsNotScheduled = new HashSet<ExecutorDetails>(unassignedExecutors);
 
@@ -131,7 +134,7 @@ public class ResourceAwareStrategy implements IStrategy {
         executorsNotScheduled.removeAll(scheduledTasks);
         // schedule left over system tasks
         for (ExecutorDetails detail : executorsNotScheduled) {
-            Node bestNodeForAnExecutorDetail = this.getBestNode(detail);
+            Node bestNodeForAnExecutorDetail = this.scheduleNodeForAnExecutorDetail(detail);
             if (bestNodeForAnExecutorDetail != null) {
                 if (!nodeToExecutorDetailsMap.containsKey(bestNodeForAnExecutorDetail)) {
                     Collection<ExecutorDetails> newMap = new LinkedList<ExecutorDetails>();
@@ -304,48 +307,44 @@ public class ResourceAwareStrategy implements IStrategy {
         return this._nodes.values();
     }
 
-    private Queue<RAS_Component> bfs(Topologies topologies, RAS_Component root) {
+    private Queue<RAS_Component> bfs(Topologies topologies, List<RAS_Component> spouts) {
         // Since queue is a interface
         Queue<RAS_Component> ordered_RAS_Component_list = new LinkedList<RAS_Component>();
         HashMap<String, RAS_Component> visited = new HashMap<String, RAS_Component>();
-        Queue<RAS_Component> temp_queue = new LinkedList<RAS_Component>();
 
-        if (root == null)
-            return null;
-
-        // Adds to end of queue
-        temp_queue.add(root);
-        visited.put(root.id, root);
-        ordered_RAS_Component_list.add(root);
-
-        while (!temp_queue.isEmpty()) {
-            // removes from front of queue
-            RAS_Component topOfQueueRAS_Component = temp_queue.remove();
-
-            // Visit child first before grandchild
-            List<String> neighbors = new ArrayList<String>();
-            neighbors.addAll(topOfQueueRAS_Component.children);
-            neighbors.addAll(topOfQueueRAS_Component.parents);
-            for (String strRAS_ComponentID : neighbors) {
-                if (!visited.containsKey(strRAS_ComponentID)) {
-                    RAS_Component child = topologies.getAllRAS_Components().get(_topo.getId()).get(strRAS_ComponentID);
-                    temp_queue.add(child);
-                    visited.put(child.id, child);
-                    ordered_RAS_Component_list.add(child);
+        /* start from each spout that is not visited, each does a breadth-first traverse */
+        for (RAS_Component spout : spouts) {
+            if (!visited.containsKey(spout.id)) {
+                Queue<RAS_Component> queue = new LinkedList<RAS_Component>();
+                queue.offer(spout);
+                while (!queue.isEmpty()) {
+                    RAS_Component comp = queue.poll();
+                    visited.put(comp.id, comp);
+                    ordered_RAS_Component_list.add(comp);
+                    List<String> neighbors = new ArrayList<String>();
+                    neighbors.addAll(comp.children);
+                    neighbors.addAll(comp.parents);
+                    for (String nbID : neighbors) {
+                        if (!visited.containsKey(nbID)) {
+                            RAS_Component child = topologies.getAllRAS_Components().get(_topo.getId()).get(nbID);
+                            queue.offer(child);
+                        }
+                    }
                 }
             }
         }
         return ordered_RAS_Component_list;
     }
 
-    private RAS_Component getSpout(Topologies topologies) {
+    private List<RAS_Component> getSpouts(Topologies topologies) {
+        List<RAS_Component> spouts = new ArrayList<RAS_Component>();
         for (RAS_Component c : topologies.getAllRAS_Components().get(_topo.getId())
                 .values()) {
             if (c.type == RAS_Component.ComponentType.SPOUT) {
-                return c;
+                spouts.add(c);
             }
         }
-        return null;
+        return spouts;
     }
 
     private String NodeHostnameToId(String hostname) {

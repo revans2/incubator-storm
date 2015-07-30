@@ -169,6 +169,70 @@
       (is (= 2 (.size executors))))
     (is (= "topology1 Fully Scheduled" (.get (.getStatusMap cluster) "topology1")))))
 
+(deftest test-topology-with-multiple-spouts
+  (let [builder1 (TopologyBuilder.)  ;; a topology with multiple spouts
+        _ (.setSpout builder1 "wordSpout1" (TestWordSpout.) 1)
+        _ (.setSpout builder1 "wordSpout2" (TestWordSpout.) 1)
+        _ (doto
+            (.setBolt builder1 "wordCountBolt1" (TestWordCounter.) 1)
+            (.shuffleGrouping "wordSpout1")
+            (.shuffleGrouping "wordSpout2"))
+        _ (.shuffleGrouping (.setBolt builder1 "wordCountBolt2" (TestWordCounter.) 1) "wordCountBolt1")
+        _ (.shuffleGrouping (.setBolt builder1 "wordCountBolt3" (TestWordCounter.) 1) "wordCountBolt1")
+        _ (.shuffleGrouping (.setBolt builder1 "wordCountBolt4" (TestWordCounter.) 1) "wordCountBolt2")
+        _ (.shuffleGrouping (.setBolt builder1 "wordCountBolt5" (TestWordCounter.) 1) "wordSpout2")
+        storm-topology1 (.createTopology builder1)
+        topology1 (TopologyDetails. "topology1"
+                    {TOPOLOGY-NAME "topology-name-1"
+                     TOPOLOGY-SUBMITTER-USER "userC"
+                     TOPOLOGY-COMPONENT-RESOURCES-ONHEAP-MEMORY-MB 128.0
+                     TOPOLOGY-COMPONENT-RESOURCES-OFFHEAP-MEMORY-MB 0.0
+                     TOPOLOGY-COMPONENT-CPU-PCORE-PERCENT 10.0}
+                    storm-topology1
+                    1
+                    (mk-ed-map [["wordSpout1" 0 1]
+                                ["wordSpout2" 1 2]
+                                ["wordCountBolt1" 2 3]
+                                ["wordCountBolt2" 3 4]
+                                ["wordCountBolt3" 4 5]
+                                ["wordCountBolt4" 5 6]
+                                ["wordCountBolt5" 6 7]]))
+        builder2 (TopologyBuilder.)  ;; a topology with two unconnected partitions
+        _ (.setSpout builder2 "wordSpoutX" (TestWordSpout.) 1)
+        _ (.setSpout builder2 "wordSpoutY" (TestWordSpout.) 1)
+        storm-topology2 (.createTopology builder1)
+        topology2 (TopologyDetails. "topology2"
+                    {TOPOLOGY-NAME "topology-name-2"
+                     TOPOLOGY-SUBMITTER-USER "userC"
+                     TOPOLOGY-COMPONENT-RESOURCES-ONHEAP-MEMORY-MB 128.0
+                     TOPOLOGY-COMPONENT-RESOURCES-OFFHEAP-MEMORY-MB 0.0
+                     TOPOLOGY-COMPONENT-CPU-PCORE-PERCENT 10.0}
+                    storm-topology2
+                    1
+                    (mk-ed-map [["wordSpoutX" 0 1]
+                                ["wordSpoutY" 1 2]]))
+        supers (gen-supervisors 2 4)
+        cluster (Cluster. (nimbus/standalone-nimbus) supers {}
+                  {STORM-NETWORK-TOPOGRAPHY-PLUGIN
+                   "backtype.storm.networktopography.DefaultRackDNSToSwitchMapping"})
+        topologies (Topologies. (to-top-map [topology1 topology2]))
+        scheduler (ResourceAwareScheduler.)]
+    (.schedule scheduler topologies cluster)
+    (let [assignment (.getAssignmentById cluster "topology1")
+          assigned-slots (.getSlots assignment)
+          executors (.getExecutors assignment)]
+      (is (= 1 (.size assigned-slots)))
+      (is (= 1 (.size (into #{} (for [slot assigned-slots] (.getNodeId slot))))))
+      (is (= 7 (.size executors))))
+    (is (= "topology1 Fully Scheduled" (.get (.getStatusMap cluster) "topology1")))
+    (let [assignment (.getAssignmentById cluster "topology2")
+          assigned-slots (.getSlots assignment)
+          executors (.getExecutors assignment)]
+      (is (= 1 (.size assigned-slots)))
+      (is (= 1 (.size (into #{} (for [slot assigned-slots] (.getNodeId slot))))))
+      (is (= 2 (.size executors))))
+    (is (= "topology2 Fully Scheduled" (.get (.getStatusMap cluster) "topology2")))))
+
 (deftest test-topology-set-memory-and-cpu-load
   (let [builder (TopologyBuilder.)
         _ (.setSpout builder "wordSpout" (TestWordSpout.) 1)
@@ -193,7 +257,6 @@
                   {STORM-NETWORK-TOPOGRAPHY-PLUGIN
                    "backtype.storm.testing.AlternateRackDNSToSwitchMapping"})
         topologies (Topologies. (to-top-map [topology2]))
-        node-map (Node/getAllNodesFrom cluster topologies)
         scheduler (ResourceAwareScheduler.)]
     (.schedule scheduler topologies cluster)
     (let [assignment (.getAssignmentById cluster "topology2")
