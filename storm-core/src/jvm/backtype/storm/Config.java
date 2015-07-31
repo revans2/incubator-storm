@@ -975,7 +975,7 @@ public class Config extends HashMap<String, Object> {
      *
      */
     public static final String SUPERVISOR_MEMORY_CAPACITY_MB = "supervisor.memory.capacity.mb";
-    public static final Object SUPERVISOR_MEMORY_CAPACITY_MB_SCHEMA = ConfigValidation.PositiveIntegerValidator;
+    public static final Object SUPERVISOR_MEMORY_CAPACITY_MB_SCHEMA = ConfigValidation.PositiveDoubleValidator;
     
     /**
      * The total amount of CPU resources a supervisor is allowed to give to its workers.
@@ -984,7 +984,7 @@ public class Config extends HashMap<String, Object> {
      * for single threaded bolts
      */
     public static final String SUPERVISOR_CPU_CAPACITY = "supervisor.cpu.capacity";
-    public static final Object SUPERVISOR_CPU_CAPACITY_SCHEMA = ConfigValidation.PositiveIntegerValidator;
+    public static final Object SUPERVISOR_CPU_CAPACITY_SCHEMA = ConfigValidation.PositiveDoubleValidator;
 
     /**
      * The jvm opts provided to workers launched by this supervisor. All "%ID%" substrings are replaced
