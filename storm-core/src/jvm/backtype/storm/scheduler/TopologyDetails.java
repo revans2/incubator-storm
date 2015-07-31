@@ -257,6 +257,7 @@ public class TopologyDetails {
                     RAS_Component newComp = null;
                     if (all_comp.containsKey(spoutEntry.getKey())) {
                         newComp = all_comp.get(spoutEntry.getKey());
+                        newComp.execs = componentToExecs(newComp.id);
                     } else {
                         newComp = new RAS_Component(spoutEntry.getKey());
                         newComp.execs = componentToExecs(newComp.id);
@@ -296,6 +297,7 @@ public class TopologyDetails {
                     RAS_Component newComp = null;
                     if (all_comp.containsKey(boltEntry.getKey())) {
                         newComp = all_comp.get(boltEntry.getKey());
+                        newComp.execs = componentToExecs(newComp.id);
                     } else {
                         newComp = new RAS_Component(boltEntry.getKey());
                         newComp.execs = componentToExecs(newComp.id);

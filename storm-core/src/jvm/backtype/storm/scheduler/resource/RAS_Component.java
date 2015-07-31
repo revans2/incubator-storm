@@ -48,7 +48,7 @@ public class RAS_Component {
 
     @Override
     public String toString() {
-        String retVal = "id: " + this.id + " Parents: " + this.parents.toString() + " Children: " + this.children.toString() + " Execs: " + this.execs;
+        String retVal = "{id: " + this.id + " Parents: " + this.parents.toString() + " Children: " + this.children.toString() + " Execs: " + this.execs+"}";
         return retVal;
     }
 }

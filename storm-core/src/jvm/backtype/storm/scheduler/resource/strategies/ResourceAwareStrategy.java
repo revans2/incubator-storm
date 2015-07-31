@@ -28,6 +28,7 @@ import java.util.Map.Entry;
 import java.util.Queue;
 import java.util.TreeMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Set;
 
 import org.slf4j.Logger;
@@ -73,12 +74,16 @@ public class ResourceAwareStrategy implements IStrategy {
 
     //the returned TreeMap keeps the RAS_Components sorted
     protected TreeMap<Integer, List<ExecutorDetails>> getPriorityToExecutorDetailsListMap(
-            Queue<RAS_Component> ordered_RAS_Component_list) {
+            Queue<RAS_Component> ordered_RAS_Component_list, Collection<ExecutorDetails> unassignedExecutors) {
         TreeMap<Integer, List<ExecutorDetails>> retMap = new TreeMap<Integer, List<ExecutorDetails>>();
         Integer rank = 0;
         for (RAS_Component ras_comp : ordered_RAS_Component_list) {
             retMap.put(rank, new ArrayList<ExecutorDetails>());
-            retMap.get(rank).addAll(ras_comp.execs);
+            for(ExecutorDetails exec : ras_comp.execs) {
+                if(unassignedExecutors.contains(exec)) {
+                    retMap.get(rank).add(exec);
+                }
+            }
             rank++;
         }
         return retMap;
@@ -103,35 +108,42 @@ public class ResourceAwareStrategy implements IStrategy {
 
         Queue<RAS_Component> ordered_RAS_Component_list = bfs(topologies, spouts);
 
-        Map<Integer, List<ExecutorDetails>> priorityToExecutorMap = getPriorityToExecutorDetailsListMap(ordered_RAS_Component_list);
+        Map<Integer, List<ExecutorDetails>> priorityToExecutorMap = getPriorityToExecutorDetailsListMap(ordered_RAS_Component_list, unassignedExecutors);
         Collection<ExecutorDetails> executorsNotScheduled = new HashSet<ExecutorDetails>(unassignedExecutors);
-
-        for (Integer priority : priorityToExecutorMap.keySet()) {
-            for (ExecutorDetails detail : priorityToExecutorMap.get(priority)) {
-                if (!executorsNotScheduled.contains(detail)) {
-                    continue;
-                }
-                LOG.info("\n\nAttempting to schedule: {} of component {} with rank {}",
-                        detail, _topo.getExecutorToComponent().get(detail), priority);
-                Node scheduledNode = scheduleNodeForAnExecutorDetail(detail);
-                if (scheduledNode != null) {
-                    if (!nodeToExecutorDetailsMap.containsKey(scheduledNode)) {
-                        Collection<ExecutorDetails> newExecutorDetailsMap = new LinkedList<ExecutorDetails>();
-                        nodeToExecutorDetailsMap.put(scheduledNode, newExecutorDetailsMap);
+        Integer longestPriorityListSize = this.getLongestPriorityListSize(priorityToExecutorMap);
+        //Pick the first executor with priority one, then the 1st exec with priority 2, so on an so forth. 
+        //Once we reach the last priority, we go back to priority 1 and schedule the second task with priority 1.
+        for (int i = 0; i < longestPriorityListSize; i++) {
+            for (Entry<Integer, List<ExecutorDetails>> entry : priorityToExecutorMap.entrySet()) {
+                Iterator<ExecutorDetails> it = entry.getValue().iterator();
+                if (it.hasNext()) {
+                    ExecutorDetails exec = it.next();
+                    LOG.info("\n\nAttempting to schedule: {} of component {}[avail {}] with rank {}",
+                            new Object[] { exec, this._topo.getExecutorToComponent().get(exec),
+                    this._topo.getTaskResourceReqList(exec), entry.getKey() });
+                    Node scheduledNode = this.scheduleNodeForAnExecutorDetail(exec);
+                    if (scheduledNode != null) {
+                        if (nodeToExecutorDetailsMap.containsKey(scheduledNode) == false) {
+                            Collection<ExecutorDetails> newExecutorDetailsMap = new LinkedList<ExecutorDetails>();
+                            nodeToExecutorDetailsMap.put(scheduledNode, newExecutorDetailsMap);
+                        }
+                        nodeToExecutorDetailsMap.get(scheduledNode).add(exec);
+                        scheduledNode.consumeResourcesforTask(exec, td);
+                        scheduledTasks.add(exec);
+                        LOG.info("TASK {} assigned to Node: {} avail [mem: {} cpu: {}] total [mem: {} cpu: {}]", exec,
+                                scheduledNode, scheduledNode.getAvailableMemoryResources(),
+                                scheduledNode.getAvailableCpuResources(), scheduledNode.getTotalMemoryResources(),
+                                scheduledNode.getTotalCpuResources());
+                    } else {
+                        LOG.error("Not Enough Resources to schedule Task {}", exec);
                     }
-                    nodeToExecutorDetailsMap.get(scheduledNode).add(detail);
-                    scheduledNode.consumeResourcesforTask(detail, td);
-                    scheduledTasks.add(detail);
-                    LOG.info("TASK {} assigned to NODE {} -- AvailMem: {} AvailCPU: {}",
-                            detail, scheduledNode, scheduledNode.getAvailableMemoryResources(),
-                            scheduledNode.getAvailableCpuResources());
-                } else {
-                    LOG.error("Not Enough Resources to schedule Task {}", detail);
+                    it.remove();
                 }
             }
         }
 
         executorsNotScheduled.removeAll(scheduledTasks);
+        LOG.info("/* Scheduling left over task (most likely sys tasks) */");
         // schedule left over system tasks
         for (ExecutorDetails detail : executorsNotScheduled) {
             Node bestNodeForAnExecutorDetail = this.scheduleNodeForAnExecutorDetail(detail);
@@ -154,7 +166,7 @@ public class ResourceAwareStrategy implements IStrategy {
 
         executorsNotScheduled.removeAll(scheduledTasks);
         if (executorsNotScheduled.size() > 0) {
-            LOG.error("Resources not successfully scheduled: {}",
+            LOG.error("Not all executors successfully scheduled: {}",
                     executorsNotScheduled);
             nodeToExecutorDetailsMap = null;
         } else {
@@ -201,12 +213,14 @@ public class ResourceAwareStrategy implements IStrategy {
             String clus = this.getBestClustering();
             n = this.getBestNodeInCluster_Mem_CPU(clus, exec);
             this.refNode = n;
-            LOG.debug("refNode: {}", this.refNode.hostname);
         } else {
             n = this.getBestNode(exec);
-            this.refNode = n; // update the refnode every time
+            if(n != null) {
+            	this.refNode = n; // update the refnode every time
+            }
         }
 
+        LOG.debug("reference node for the resource aware scheduler is: {}", this.refNode);
         return n;
     }
 
@@ -360,4 +374,14 @@ public class ResourceAwareStrategy implements IStrategy {
         return null;
     }
 
+    private Integer getLongestPriorityListSize(Map<Integer, List<ExecutorDetails>> priorityToExecutorMap) {
+        Integer mostNum = 0;
+        for (List<ExecutorDetails> execs : priorityToExecutorMap.values()) {
+            Integer numExecs = execs.size();
+            if (mostNum < numExecs) {
+                mostNum = numExecs;
+            }
+        }
+        return mostNum;
+    }
 }
