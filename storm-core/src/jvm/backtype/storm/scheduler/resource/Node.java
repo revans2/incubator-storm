@@ -241,13 +241,22 @@ public class Node {
      * @param slot the slot to allocate resource to
      */
     public void allocateResourceToSlot (TopologyDetails td, Collection<ExecutorDetails> executors, WorkerSlot slot) {
-        Double onHeapMem = 0.0;
-        Double offHeapMem = 0.0;
-        Double cpu = 0.0;
+        double onHeapMem = 0.0;
+        double offHeapMem = 0.0;
+        double cpu = 0.0;
         for (ExecutorDetails exec : executors) {
-            onHeapMem += td.getOnHeapMemoryRequirement(exec);
-            offHeapMem += td.getOffHeapMemoryRequirement(exec);
-            cpu += td.getTotalCpuReqTask(exec);
+            Double onHeapMemForExec = td.getOnHeapMemoryRequirement(exec);
+            if (onHeapMemForExec != null) {
+                onHeapMem += onHeapMemForExec;
+            }
+            Double offHeapMemForExec = td.getOffHeapMemoryRequirement(exec);
+            if (offHeapMemForExec != null) {
+                offHeapMem += offHeapMemForExec;
+            }
+            Double cpuForExec = td.getTotalCpuReqTask(exec);
+            if (cpuForExec != null) {
+                cpu += cpuForExec;
+            }
         }
         slot.allocateResource(onHeapMem, offHeapMem, cpu);
     }

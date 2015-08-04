@@ -338,7 +338,7 @@ public class TopologyDetails {
      * requirement for this exec in topology topoId.
      */
     public Double getOnHeapMemoryRequirement(ExecutorDetails exec) {
-        Double ret = 0.0;
+        Double ret = null;
         if (hasExecInTopo(exec)) {
             ret = _resourceList
                     .get(exec)
@@ -358,7 +358,7 @@ public class TopologyDetails {
      * requirement for this exec in topology topoId.
      */
     public Double getOffHeapMemoryRequirement(ExecutorDetails exec) {
-        Double ret = 0.0;
+        Double ret = null;
         if (hasExecInTopo(exec)) {
             ret = _resourceList
                     .get(exec)
@@ -382,7 +382,7 @@ public class TopologyDetails {
                     + getOnHeapMemoryRequirement(exec);
         }
         LOG.info("cannot find {}", exec);
-        return 0.0;
+        return null;
     }
 
     /**
@@ -413,7 +413,7 @@ public class TopologyDetails {
                       .get(Config.TOPOLOGY_COMPONENT_CPU_PCORE_PERCENT);
         }
         LOG.info("cannot find - {}", exec);
-        return 0.0;
+        return null;
     }
 
     /**

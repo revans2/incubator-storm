@@ -41,7 +41,7 @@ public class WorkerSlot {
         return port;
     }
 
-    public void allocateResource(Double memOnHeap, Double memOffHeap, Double cpu) {
+    public void allocateResource(double memOnHeap, double memOffHeap, double cpu) {
         this.memOnHeap += memOnHeap;
         this.memOffHeap += memOffHeap;
         this.cpu += cpu;
