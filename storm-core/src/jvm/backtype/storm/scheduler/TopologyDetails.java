@@ -437,7 +437,11 @@ public class TopologyDetails {
      * @return Boolean whether or not a certain ExecutorDetail is included in the _resourceList.
      */
     public boolean hasExecInTopo(ExecutorDetails exec) {
-        return _resourceList.containsKey(exec);
+        if (_resourceList != null) { // null is possible if the first constructor of TopologyDetails is used
+            return _resourceList.containsKey(exec);
+        } else {
+            return false;
+        }
     }
 
     /**
