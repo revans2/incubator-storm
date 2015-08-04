@@ -21,11 +21,11 @@ public class WorkerSlot {
     String nodeId;
     int port;
     // amount of on-heap memory allocated to it
-    Double memOnHeap = 0.0;
+    double memOnHeap = 0.0;
     // amount of off-heap memory allocated to it
-    Double memOffHeap = 0.0;
+    double memOffHeap = 0.0;
     // amount of cpu allocated to it
-    Double cpu = 0.0;
+    double cpu = 0.0;
 
     
     public WorkerSlot(String nodeId, Number port) {
@@ -47,15 +47,15 @@ public class WorkerSlot {
         this.cpu += cpu;
     }
 
-    public Double getAllocatedOnHeapMem() {
+    public double getAllocatedOnHeapMem() {
         return memOnHeap;
     }
 
-    public Double getAllocatedOffHeapMem() {
+    public double getAllocatedOffHeapMem() {
         return memOffHeap;
     }
 
-    public Double getAllocatedCpu() {
+    public double getAllocatedCpu() {
         return cpu;
     }
 
