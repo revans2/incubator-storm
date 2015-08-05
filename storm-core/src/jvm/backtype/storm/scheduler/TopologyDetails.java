@@ -134,6 +134,19 @@ public class TopologyDetails {
         } else {
             LOG.warn("Topology " + topologyId + " does not seem to have any spouts!");
         }
+        //schedule tasks that are not part of components returned from topology.get_spout or topology.getbolt (AKA sys tasks most specifically __acker tasks)
+        for(ExecutorDetails exec : this.getExecutors()) {
+            if (_resourceList.containsKey(exec) == false) {
+                LOG.info(
+                        "Scheduling {} {} with memory requirement as 'on heap' - {} and 'off heap' - {} and CPU requirement as {}",
+                        this.getExecutorToComponent().get(exec),
+                        exec,
+                        this.topologyConf.get(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB),
+                        this.topologyConf.get(Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB),
+                        this.topologyConf.get(Config.TOPOLOGY_COMPONENT_CPU_PCORE_PERCENT));
+                this.addDefaultResforExec(exec);
+            } 
+        }
     }
 
 
@@ -265,27 +278,22 @@ public class TopologyDetails {
                     }
                     newComp.type = RAS_Component.ComponentType.SPOUT;
 
-
                     for (Map.Entry<GlobalStreamId, Grouping> spoutInput : spoutEntry
                             .getValue().get_common().get_inputs()
                             .entrySet()) {
-
-                        if (!Utils.isSystemId(spoutInput.getKey().get_componentId())) {
-                            newComp.parents.add(spoutInput.getKey()
-                                    .get_componentId());
-                            if (!all_comp.containsKey(spoutInput
-                                    .getKey().get_componentId())) {
-                                all_comp.put(spoutInput.getKey()
-                                                .get_componentId(),
-                                        new RAS_Component(spoutInput.getKey()
-                                                .get_componentId()));
-                            }
-                            all_comp.get(spoutInput.getKey()
-                                    .get_componentId()).children.add(spoutEntry
-                                    .getKey());
+                        newComp.parents.add(spoutInput.getKey()
+                                .get_componentId());
+                        if (!all_comp.containsKey(spoutInput
+                                .getKey().get_componentId())) {
+                            all_comp.put(spoutInput.getKey()
+                                            .get_componentId(),
+                                    new RAS_Component(spoutInput.getKey()
+                                            .get_componentId()));
                         }
+                        all_comp.get(spoutInput.getKey()
+                                .get_componentId()).children.add(spoutEntry
+                                .getKey());
                     }
-
                 }
             }
         }
@@ -308,20 +316,18 @@ public class TopologyDetails {
                     for (Map.Entry<GlobalStreamId, Grouping> boltInput : boltEntry
                             .getValue().get_common().get_inputs()
                             .entrySet()) {
-                        if (!Utils.isSystemId(boltInput.getKey().get_componentId())) {
-                            newComp.parents.add(boltInput.getKey()
-                                    .get_componentId());
-                            if (!all_comp.containsKey(boltInput
-                                    .getKey().get_componentId())) {
-                                all_comp.put(boltInput.getKey()
-                                                .get_componentId(),
-                                        new RAS_Component(boltInput.getKey()
-                                                .get_componentId()));
-                            }
-                            all_comp.get(boltInput.getKey()
-                                    .get_componentId()).children.add(boltEntry
-                                    .getKey());
+                        newComp.parents.add(boltInput.getKey()
+                                .get_componentId());
+                        if (!all_comp.containsKey(boltInput
+                                .getKey().get_componentId())) {
+                            all_comp.put(boltInput.getKey()
+                                            .get_componentId(),
+                                    new RAS_Component(boltInput.getKey()
+                                            .get_componentId()));
                         }
+                        all_comp.get(boltInput.getKey()
+                                .get_componentId()).children.add(boltEntry
+                                .getKey());
                     }
                 }
             }
