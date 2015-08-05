@@ -83,8 +83,12 @@
       [(.get_task_start exec-info) (.get_task_end exec-info)])))
 
 (defn ->LocalAssignment
-  [{storm-id :storm-id executors :executors}]
-  (LocalAssignment. storm-id (->ExecutorInfo-list executors)))
+  [{storm-id :storm-id executors :executors resurces :resources}]
+  (LocalAssignment. storm-id (->ExecutorInfo-list executors) resources))
+
+(defn mk-local-assignment-with-resources
+  [storm-id executors memonheap-memoffheap-cpu]
+  {:storm-id storm-id :executors executors :resources memonheap-memoffheap-cpu})
 
 (defn mk-local-assignment
   [storm-id executors]

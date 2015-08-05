@@ -36,12 +36,21 @@
                                (fn [node+port]
                                  (NodeInfo. (first node+port) (set (map long (rest node+port)))))
                                (map-key #(map long %)
-                                 (:executor->node+port assignment))))
+                                        (:executor->node+port assignment))))
     (.set_executor_start_time_secs
       (map-val
         long
         (map-key #(map long %)
-          (:executor->start-time-secs assignment))))))
+                 (:executor->start-time-secs assignment)))
+      (.set_worker_resources (map-val 
+                               (fn [mem-on-heap+mem-off-heap+cpu]
+                                 (WorkerResources. (first mem-on-heap+mem-off-heap+cpu) 
+                                                   (second mem-on-heap+mem-off-heap+cpu) 
+                                                   (last mem-on-heap+mem-off-heap+cpu)))
+                               (map-key 
+                                 (fn [node+port]
+                                   (NodeInfo. (first node+port) (set (map long (rest node+port)))))
+                                 (:worker->resources assignment)))))))
 
 (defn clojurify-executor->node_port [executor->node_port]
   (into {}
@@ -53,6 +62,16 @@
           (into [] list-of-executors)) ; list of executors must be coverted to clojure vector to ensure it is sortable.
         executor->node_port))))
 
+(defn clojurify-worker->resources [worker->resources]
+  (into {}
+    (map-val
+      (fn [resources]
+        [(.get_mem_on_heap resources) (.get_mem_off_heap resources) (.get_cpu resources)]) ;resources should be converted to [mem_on_heap mem_off_heap cpu]
+      (map-key
+        (fn [nodeInfo]
+          (concat [(.get_node nodeInfo)] (.get_port nodeInfo))) ;nodeInfo (actually workerInfo) should be converted to [node,port]
+        executor->node_port))))
+
 (defn clojurify-assignment [^Assignment assignment]
   (if assignment
     (backtype.storm.daemon.common.Assignment.
@@ -60,7 +79,8 @@
       (into {} (.get_node_host assignment))
       (clojurify-executor->node_port (into {} (.get_executor_node_port assignment)))
       (map-key (fn [executor] (into [] executor))
-        (into {} (.get_executor_start_time_secs assignment))))))
+        (into {} (.get_executor_start_time_secs assignment)))
+      (clojurify-worker->resources (into {} (.get_worker_resources))))))
 
 (defn convert-to-symbol-from-status [status]
   (condp = status

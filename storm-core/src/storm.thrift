@@ -471,6 +471,7 @@ struct LocalStateData {
 struct LocalAssignment {
   1: required string topology_id;
   2: required list<ExecutorInfo> executors;
+  3: optional WorkerResources;
 }
 
 struct LSSupervisorId {

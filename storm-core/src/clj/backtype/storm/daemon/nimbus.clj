@@ -806,12 +806,12 @@
                                                                         [id now-secs]
                                                                         )))
                                               worker->resources (get new-assigned-worker->resources topology-id)]]
-                                   {topology-id (Assignment.
+                                   {topology-id (Assignment. ;; construct the record common/Assignment, not the java class
                                                  (conf STORM-LOCAL-DIR)
                                                  (select-keys all-node->host all-nodes)
                                                  executor->node+port
                                                  start-times
-                                                 worker-resources)}))]
+                                                 worker->resources)}))]
 
     ;; tasks figure out what tasks to talk to by looking at topology at runtime
     ;; only log/set when there's been a change to the assignment
