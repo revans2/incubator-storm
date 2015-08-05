@@ -134,7 +134,7 @@ public class TopologyDetails {
         } else {
             LOG.warn("Topology " + topologyId + " does not seem to have any spouts!");
         }
-        //schedule tasks that are neither spout or bolt (sys tasks most likely)
+        //schedule tasks that are not part of components returned from topology.get_spout or topology.getbolt (AKA sys tasks most specifically __acker tasks)
         for(ExecutorDetails exec : this.getExecutors()) {
             if (_resourceList.containsKey(exec) == false) {
                 LOG.info(
