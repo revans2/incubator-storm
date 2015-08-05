@@ -176,7 +176,7 @@ public class PacemakerClient implements ISaslClient {
                 messages[next] = m;
                 LOG.debug("Put message in slot: {}", Integer.toString(next));
                 do {
-                    channelRef.get().write(m).await();
+                    channelRef.get().write(m);
                     m.wait(1000);
                 } while (messages[next] == m);
             }
