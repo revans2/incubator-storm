@@ -25,7 +25,7 @@
   (:use [backtype.storm.ui helpers])
   (:use [backtype.storm.daemon [common :only [ACKER-COMPONENT-ID ACKER-INIT-STREAM-ID ACKER-ACK-STREAM-ID
                                               ACKER-FAIL-STREAM-ID system-id? mk-authorization-handler
-                                              system-metrics-reporters]]])
+                                              start-metrics-reporters]]])
   (:use [clojure.string :only [blank? lower-case trim]])
   (:use [clojure.set :only [intersection]])
   (:import [backtype.storm.utils Utils])
@@ -57,6 +57,7 @@
 (def ^:dynamic *UI-IMPERSONATION-HANDLER* (mk-authorization-handler (*STORM-CONF* NIMBUS-IMPERSONATION-AUTHORIZER) *STORM-CONF*))
 
 (def http-creds-handler (AuthUtils/GetUiHttpCredentialsPlugin *STORM-CONF*))
+(defmeter num-getTopologyInfo-calls)
 
 (defmacro with-nimbus
   [nimbus-sym & body]

@@ -16,10 +16,9 @@
 (ns backtype.storm.daemon.supervisor
   (:import [java.io OutputStreamWriter BufferedWriter IOException FileOutputStream])
   (:import [backtype.storm.scheduler ISupervisor]
-           [backtype.storm.scheduler.resource RAS_TYPES]
            [backtype.storm.utils LocalState Time Utils VersionInfo]
            [backtype.storm.daemon Shutdownable]
-           [backtype.storm Constants]
+           [backtype.storm Config Constants]
            [java.net JarURLConnection]
            [java.net URI]
            [org.apache.commons.io FileUtils]
@@ -32,6 +31,7 @@
   (:import [backtype.storm.localizer LocalResource])
   (:use [backtype.storm.daemon common])
   (:require [backtype.storm.daemon [worker :as worker]]
+            [backtype.storm.command [healthcheck :as healthcheck]]
             [backtype.storm [process-simulator :as psim] [cluster :as cluster] [event :as event]]
             [clojure.set :as set])
   (:import [org.apache.zookeeper data.ACL ZooDefs$Ids ZooDefs$Perms])
@@ -1017,7 +1017,7 @@
         conf (assoc conf STORM-LOCAL-DIR (. (File. (conf STORM-LOCAL-DIR)) getCanonicalPath))]
     (validate-distributed-mode! conf)
     (let [supervisor (mk-supervisor conf nil supervisor)]
-      (add-shutdown-hook-with-force-kill-in-1-sec #(.shutdown supervisor)))))
+      (add-shutdown-hook-with-force-kill-in-1-sec #(.shutdown supervisor)))
     (defgauge num-slots-used-gauge #(count (my-worker-ids conf)))
     (start-metrics-reporters)))
 
