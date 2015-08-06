@@ -1,5 +1,5 @@
 (ns backtype.storm.converter
-  (:import [backtype.storm.generated SupervisorInfo NodeInfo Assignment
+  (:import [backtype.storm.generated SupervisorInfo NodeInfo Assignment WorkerResources
             StormBase TopologyStatus ClusterWorkerHeartbeat ExecutorInfo ErrorInfo Credentials RebalanceOptions KillOptions TopologyActionOptions])
   (:use [backtype.storm util stats log])
   (:require [backtype.storm.daemon [common :as common]]))
@@ -29,28 +29,29 @@
       )))
 
 (defn thriftify-assignment [assignment]
-  (doto (Assignment.)
-    (.set_master_code_dir (:master-code-dir assignment))
-    (.set_node_host (:node->host assignment))
-    (.set_executor_node_port (map-val
-                               (fn [node+port]
-                                 (NodeInfo. (first node+port) (set (map long (rest node+port)))))
-                               (map-key #(map long %)
-                                        (:executor->node+port assignment))))
-    (.set_executor_start_time_secs
-      (map-val
-        long
-        (map-key #(map long %)
-                 (:executor->start-time-secs assignment)))
-      (.set_worker_resources (map-val 
-                               (fn [mem-on-heap+mem-off-heap+cpu]
-                                 (WorkerResources. (first mem-on-heap+mem-off-heap+cpu) 
-                                                   (second mem-on-heap+mem-off-heap+cpu) 
-                                                   (last mem-on-heap+mem-off-heap+cpu)))
-                               (map-key 
-                                 (fn [node+port]
-                                   (NodeInfo. (first node+port) (set (map long (rest node+port)))))
-                                 (:worker->resources assignment)))))))
+  (let [thrift-assignment (doto (Assignment.)
+                            (.set_master_code_dir (:master-code-dir assignment))
+                            (.set_node_host (:node->host assignment))
+                            (.set_executor_node_port (into {}
+                                                           (map (fn [[k v]]
+                                                                  [(map long k)
+                                                                   (NodeInfo. (first v) (set (map long (rest v))))])
+                                                                (:executor->node+port assignment))))
+                            (.set_executor_start_time_secs
+                              (into {}
+                                    (map (fn [[k v]]
+                                           [(map long k) (long v)])
+                                         (:executor->start-time-secs assignment)))))]
+    (if (:worker->resources assignment)
+      (.set_worker_resources thrift-assignment (into {} (map
+                                                          (fn [[node+port resources]]
+                                                            [(NodeInfo. (first node+port) (set (map long (rest node+port))))
+                                                             (doto (WorkerResources.)
+                                                               (.set_mem_on_heap (first resources))
+                                                               (.set_mem_off_heap (second resources))
+                                                               (.set_cpu (last resources)))])
+                                                          (:worker->resources assignment)))))
+    thrift-assignment))
 
 (defn clojurify-executor->node_port [executor->node_port]
   (into {}
@@ -63,14 +64,13 @@
         executor->node_port))))
 
 (defn clojurify-worker->resources [worker->resources]
-  (into {}
-    (map-val
-      (fn [resources]
-        [(.get_mem_on_heap resources) (.get_mem_off_heap resources) (.get_cpu resources)]) ;resources should be converted to [mem_on_heap mem_off_heap cpu]
-      (map-key
-        (fn [nodeInfo]
-          (concat [(.get_node nodeInfo)] (.get_port nodeInfo))) ;nodeInfo (actually workerInfo) should be converted to [node,port]
-        executor->node_port))))
+  "convert worker info to be [node, port]
+   convert resources to be mem_on_heap mem_off_heap cpu]"
+  (into {} (map
+             (fn [[nodeInfo resources]]
+               [(concat [(.get_node nodeInfo)] (.get_port nodeInfo))
+                [(.get_mem_on_heap resources) (.get_mem_off_heap resources) (.get_cpu resources)]])
+             worker->resources)))
 
 (defn clojurify-assignment [^Assignment assignment]
   (if assignment
@@ -80,7 +80,7 @@
       (clojurify-executor->node_port (into {} (.get_executor_node_port assignment)))
       (map-key (fn [executor] (into [] executor))
         (into {} (.get_executor_start_time_secs assignment)))
-      (clojurify-worker->resources (into {} (.get_worker_resources))))))
+      (clojurify-worker->resources (into {} (.get_worker_resources assignment))))))
 
 (defn convert-to-symbol-from-status [status]
   (condp = status

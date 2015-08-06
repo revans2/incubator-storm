@@ -66,15 +66,16 @@
   
 (defn- read-my-executors [assignments-snapshot storm-id assignment-id]
   (let [assignment (get assignments-snapshot storm-id)
-        my-slots-resources (filter (fn [[[node _] _]] (= node assignment-id) )
-                  (:worker->resources assignment))
+        my-slots-resources (into {} 
+                                 (filter (fn [[[node _] _]] (= node assignment-id))
+                                         (:worker->resources assignment)))
         my-executors (filter (fn [[_ [node _]]] (= node assignment-id))
-                           (:executor->node+port assignment))
+                             (:executor->node+port assignment))
         port-executors (apply merge-with
-                          concat
-                          (for [[executor [_ port]] my-executors]
-                            {port [executor]}
-                            ))]
+                              concat
+                              (for [[executor [_ port]] my-executors]
+                                {port [executor]}
+                                ))]
     (into {} (for [[port executors] port-executors]
                ;; need to cast to int b/c it might be a long (due to how yaml parses things)
                ;; doall is to avoid serialization/deserialization problems with lazy seqs
@@ -366,7 +367,7 @@
                       (local-mkdirs (worker-pids-root conf id))
                       (local-mkdirs (worker-heartbeats-root conf id))
                       (launch-worker supervisor
-                        (:storm-id assignment) ;; TODO: to add (:resources assignment) here in YSTORM-1546
+                        (:storm-id assignment) ;; to use (:resources assignment) for launching JVM/CGroup here
                         port
                         id)
                       (mark! num-workers-launched)

@@ -642,11 +642,11 @@
     (count (.getSlots scheduler-assignment))
     0 ))
 
-(defn compute-new-worker->resources [new-scheduler-assignments]
+(defn convert-assignments-to-worker->resources [new-scheduler-assignments]
   "convert {topology-id -> SchedulerAssignment} to
            {topology-id -> {[node port] [mem-on-heap mem-off-heap cpu]}}
-   need to be able to deal with other non-RAS schedulers
-   TODO: later we may further support map-for-any-resources"
+   Make sure this can deal with other non-RAS schedulers
+   later we may further support map-for-any-resources"
   (map-val (fn [^SchedulerAssignment assignment]
              (->> assignment
                   .getExecutorToSlot
@@ -658,24 +658,23 @@
            new-scheduler-assignments))
 
 (defn compute-new-topology->executor->node+port [new-scheduler-assignments existing-assignments]
-  ;; add more information to convert SchedulerAssignment to Assignment
-  let[new-topology->executor->node+port (compute-topology->executor->node+port new-scheduler-assignments)]
-  ;; print some useful information.
-  (doseq [[topology-id executor->node+port] new-topology->executor->node+port
-          :let [old-executor->node+port (-> topology-id
-                                            existing-assignments
-                                            :executor->node+port)
-                reassignment (filter (fn [[executor node+port]]
-                                       (and (contains? old-executor->node+port executor)
-                                            (not (= node+port (old-executor->node+port executor)))))
-                                     executor->node+port)]]
-    (when-not (empty? reassignment)
-      (let [new-slots-cnt (count (set (vals executor->node+port)))
-            reassign-executors (keys reassignment)]
-        (log-message "Reassigning " topology-id " to " new-slots-cnt " slots")
-        (log-message "Reassign executors: " (vec reassign-executors)))))
+  (let [new-topology->executor->node+port (compute-topology->executor->node+port new-scheduler-assignments)]
+    ;; print some useful information.
+    (doseq [[topology-id executor->node+port] new-topology->executor->node+port
+            :let [old-executor->node+port (-> topology-id
+                                              existing-assignments
+                                              :executor->node+port)
+                  reassignment (filter (fn [[executor node+port]]
+                                         (and (contains? old-executor->node+port executor)
+                                              (not (= node+port (old-executor->node+port executor)))))
+                                       executor->node+port)]]
+      (when-not (empty? reassignment)
+        (let [new-slots-cnt (count (set (vals executor->node+port)))
+              reassign-executors (keys reassignment)]
+          (log-message "Reassigning " topology-id " to " new-slots-cnt " slots")
+          (log-message "Reassign executors: " (vec reassign-executors)))))
 
-  new-topology->executor->node+port)
+    new-topology->executor->node+port))
 
 ;; public so it can be mocked out
 (defn compute-new-scheduler-assignments [nimbus existing-assignments topologies scratch-topology-id]
@@ -708,9 +707,7 @@
                                                            (< (-> topology->scheduler-assignment
                                                                   (get t)
                                                                   num-used-workers )
-                                                              (-> topologies (.getById t) .getNumWorkers)
-                                                              ))
-                                                       ))))
+                                                              (-> topologies (.getById t) .getNumWorkers)))))))
         all-scheduling-slots (->> (all-scheduling-slots nimbus topologies missing-assignment-topologies)
                                   (map (fn [[node-id port]] {node-id #{port}}))
                                   (apply merge-with set/union))
@@ -721,7 +718,7 @@
         ;; call scheduler.schedule to schedule all the topologies
         ;; the new assignments for all the topologies are in the cluster object.
         _ (.schedule (:scheduler nimbus) topologies cluster)
-        (reset! (:id->sched-status nimbus) (.getStatusMap cluster))]
+        _ (reset! (:id->sched-status nimbus) (.getStatusMap cluster))]
     (.getAssignments cluster)))
 
 (defn changed-executors [executor->node+port new-executor->node+port]
@@ -783,7 +780,7 @@
         topology->executor->node+port (compute-new-topology->executor->node+port new-scheduler-assignments existing-assignments)
 
         topology->executor->node+port (merge (into {} (for [id assigned-topology-ids] {id nil})) topology->executor->node+port)
-        new-assigned-worker->resources (compute-new-worker->resources new-scheduler-assignments)
+        new-assigned-worker->resources (convert-assignments-to-worker->resources new-scheduler-assignments)
         now-secs (current-time-secs)
 
         basic-supervisor-details-map (basic-supervisor-details-map storm-cluster-state)
