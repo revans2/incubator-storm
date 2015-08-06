@@ -66,7 +66,7 @@ public class LocalizedResource {
 
   public String getFilePathWithVersion() {
     long version = Utils.localVersionOfBlob(_localPath);
-    return Utils.constructBlobWithVerionFileName(_localPath, version);
+    return Utils.constructBlobWithVersionFileName(_localPath, version);
   }
 
   public String getFilePath() {

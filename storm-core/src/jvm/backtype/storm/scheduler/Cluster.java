@@ -19,11 +19,16 @@ package backtype.storm.scheduler;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
+import backtype.storm.Config;
+import backtype.storm.networktopography.DNSToSwitchMapping;
+import backtype.storm.utils.Utils;
 
 public class Cluster {
 
@@ -31,6 +36,11 @@ public class Cluster {
      * key: supervisor id, value: supervisor details
      */
     private Map<String, SupervisorDetails>   supervisors;
+    /**
+     * key: rack, value: nodes in that rack
+     */
+    private Map<String, List<String>> networkTopography;
+
     /**
      * key: topologyId, value: topology's current assignments.
      */
@@ -44,11 +54,12 @@ public class Cluster {
      * a map from hostname to supervisor id.
      */
     private Map<String, List<String>>        hostToId;
+    private Map conf = null;
     
     private Set<String> blackListedHosts = new HashSet<String>();
     private INimbus inimbus;
 
-    public Cluster(INimbus nimbus, Map<String, SupervisorDetails> supervisors, Map<String, SchedulerAssignmentImpl> assignments){
+    public Cluster(INimbus nimbus, Map<String, SupervisorDetails> supervisors, Map<String, SchedulerAssignmentImpl> assignments, Map storm_conf){
         this.inimbus = nimbus;
         this.supervisors = new HashMap<String, SupervisorDetails>(supervisors.size());
         this.supervisors.putAll(supervisors);
@@ -64,8 +75,9 @@ public class Cluster {
             }
             this.hostToId.get(host).add(nodeId);
         }
+        this.conf = storm_conf;
     }
-    
+
     public void setBlacklistedHosts(Set<String> hosts) {
         blackListedHosts = hosts;
     }
@@ -436,6 +448,35 @@ public class Cluster {
      */
     public Map<String, SupervisorDetails> getSupervisors() {
         return this.supervisors;
+    }
+
+    /*
+     * Note: Make sure the proper conf was passed into the Cluster constructor before calling this function
+     * It tries to load the proper network topography detection plugin specified in the config.
+     */
+    public Map<String, List<String>> getNetworkTopography() {
+        if (networkTopography == null) {
+            networkTopography = new HashMap<>();
+            ArrayList<String> supervisorHostNames = new ArrayList<>();
+            for (SupervisorDetails s : supervisors.values()) {
+                supervisorHostNames.add(s.getHost());
+            }
+            String clazz = (String) conf.get(Config.STORM_NETWORK_TOPOGRAPHY_PLUGIN);
+            DNSToSwitchMapping topographyMapper = (DNSToSwitchMapping) Utils.newInstance(clazz);
+            Collections.sort(supervisorHostNames);
+            ArrayList<String> resolvedSuperVisors = (ArrayList<String>)topographyMapper.resolve(supervisorHostNames);
+            for ( int i = 0; i < resolvedSuperVisors.size(); i++ ) {
+                String rack = resolvedSuperVisors.get(i);
+                String hostName = supervisorHostNames.get(i);
+                List<String> nodesForRack = networkTopography.get(rack);
+                if (nodesForRack == null) {
+                    nodesForRack = new ArrayList<>();
+                    networkTopography.put(rack,nodesForRack);
+                }
+                nodesForRack.add(hostName);
+            }
+        }
+        return networkTopography;
     }
 
     public void setStatus(String topologyId, String status) {

@@ -24,7 +24,8 @@
   (:use [backtype.storm config util log stats])
   (:use [backtype.storm.ui helpers])
   (:use [backtype.storm.daemon [common :only [ACKER-COMPONENT-ID ACKER-INIT-STREAM-ID ACKER-ACK-STREAM-ID
-                                              ACKER-FAIL-STREAM-ID system-id? mk-authorization-handler]]])
+                                              ACKER-FAIL-STREAM-ID system-id? mk-authorization-handler
+                                              system-metrics-reporters]]])
   (:use [clojure.string :only [blank? lower-case trim]])
   (:use [clojure.set :only [intersection]])
   (:import [backtype.storm.utils Utils])
@@ -46,6 +47,7 @@
             [compojure.handler :as handler]
             [ring.util.response :as resp]
             [backtype.storm [thrift :as thrift]])
+  (:require [metrics.meters :refer [defmeter mark!]])
   (:import [org.apache.commons.lang StringEscapeUtils])
   (:import [org.apache.logging.log4j Level])
   (:gen-class))
@@ -246,6 +248,14 @@
     (map (fn [row]
            {:row row}) (partition 4 4 nil streams))))
 
+(defn- get-topology-info
+  ([^Nimbus$Client nimbus id]
+   (mark! num-getTopologyInfo-calls)
+   (.getTopologyInfo nimbus id))
+  ([^Nimbus$Client nimbus id options]
+   (mark! num-getTopologyInfo-calls)
+   (.getTopologyInfoWithOpts nimbus id options)))
+
 (defn mk-visualization-data
   [id window include-sys?]
   (with-nimbus
@@ -257,7 +267,7 @@
           summ (->> (doto
                       (GetInfoOptions.)
                       (.set_num_err_choice NumErrorsChoice/NONE))
-                    (.getTopologyInfoWithOpts ^Nimbus$Client nimbus id))
+                    (get-topology-info nimbus id))
           execs (.get_executors summ)
           spout-summs (filter (partial spout-summary? topology) execs)
           bolt-summs (filter (partial bolt-summary? topology) execs)
@@ -403,8 +413,7 @@
           topology-info (->> (doto
                                (GetInfoOptions.)
                                (.set_num_err_choice NumErrorsChoice/ONE))
-                             (.getTopologyInfoWithOpts ^Nimbus$Client nimbus
-                                                       id))
+                             (get-topology-info nimbus id))
           storm-topology (.getTopology ^Nimbus$Client nimbus id)
           spout-executor-summaries (filter (partial spout-summary? storm-topology) (.get_executors topology-info))
           bolt-executor-summaries (filter (partial bolt-summary? storm-topology) (.get_executors topology-info))
@@ -501,7 +510,7 @@
   "Get the set of all worker host/ports"
   [id]
   (with-nimbus nimbus
-    (distinct (exec-host-port (.get_executors (.getTopologyInfo nimbus id))))))
+    (distinct (exec-host-port (.get_executors (get-topology-info nimbus id))))))
 
 (defn topology-page [id window include-sys? user]
   (with-nimbus nimbus
@@ -793,7 +802,7 @@
       (let [tplg (->> (doto
                         (GetInfoOptions.)
                         (.set_num_err_choice NumErrorsChoice/NONE))
-                      (.getTopologyInfoWithOpts ^Nimbus$Client nimbus id))
+                      (get-topology-info nimbus id))
             name (.get_name tplg)]
         (.activate nimbus name)
         (log-message "Activating topology '" name "'")))
@@ -804,7 +813,7 @@
       (let [tplg (->> (doto
                         (GetInfoOptions.)
                         (.set_num_err_choice NumErrorsChoice/NONE))
-                      (.getTopologyInfoWithOpts ^Nimbus$Client nimbus id))
+                      (get-topology-info nimbus id))
             name (.get_name tplg)]
         (.deactivate nimbus name)
         (log-message "Deactivating topology '" name "'")))
@@ -815,7 +824,7 @@
       (let [tplg (->> (doto
                         (GetInfoOptions.)
                         (.set_num_err_choice NumErrorsChoice/NONE))
-                      (.getTopologyInfoWithOpts ^Nimbus$Client nimbus id))
+                      (get-topology-info nimbus id))
             name (.get_name tplg)
             rebalance-options (m "rebalanceOptions")
             options (RebalanceOptions.)]
@@ -834,7 +843,7 @@
       (let [tplg (->> (doto
                         (GetInfoOptions.)
                         (.set_num_err_choice NumErrorsChoice/NONE))
-                      (.getTopologyInfoWithOpts ^Nimbus$Client nimbus id))
+                      (get-topology-info nimbus id))
             name (.get_name tplg)
             options (KillOptions.)]
         (.set_wait_secs options (Integer/parseInt wait-time))
@@ -888,6 +897,7 @@
                     (wrap-json-params)
                     (wrap-multipart-params)
                     (wrap-reload '[backtype.storm.ui.core])
+                    requests-middleware
                     catch-errors)))
 
 (defn start-server!
@@ -907,6 +917,7 @@
           https-ts-type (conf UI-HTTPS-TRUSTSTORE-TYPE)
           https-want-client-auth (conf UI-HTTPS-WANT-CLIENT-AUTH)
           https-need-client-auth (conf UI-HTTPS-NEED-CLIENT-AUTH)]
+      (start-metrics-reporters)
       (storm-run-jetty {:port (conf UI-PORT)
                         :host (conf UI-HOST)
                         :https-port https-port

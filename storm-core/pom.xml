@@ -622,6 +622,42 @@
                           <pattern>org.eclipse.jetty</pattern>
                           <shadedPattern>org.apache.storm.jetty</shadedPattern>
                         </relocation>
+                        <relocation>
+                            <pattern>com.codahale.metrics</pattern>
+                            <shadedPattern>org.apache.storm.codahale.metrics</shadedPattern>
+                        </relocation>
+                        <relocation>
+                            <pattern>metrics.core</pattern>
+                            <shadedPattern>org.apache.storm.codahale.metrics.clojure.core</shadedPattern>
+                        </relocation>
+                        <relocation>
+                            <pattern>metrics.counters</pattern>
+                            <shadedPattern>org.apache.storm.codahale.metrics.clojure.counters</shadedPattern>
+                        </relocation>
+                        <relocation>
+                            <pattern>metrics.gauges</pattern>
+                            <shadedPattern>org.apache.storm.codahale.metrics.clojure.gauges</shadedPattern>
+                        </relocation>
+                        <relocation>
+                            <pattern>metrics.historgrams</pattern>
+                            <shadedPattern>org.apache.storm.codahale.metrics.clojure.histograms</shadedPattern>
+                        </relocation>
+                        <relocation>
+                            <pattern>metrics.meters</pattern>
+                            <shadedPattern>org.apache.storm.codahale.metrics.clojure.meters</shadedPattern>
+                        </relocation>
+                        <relocation>
+                            <pattern>metrics.reporters</pattern>
+                            <shadedPattern>org.apache.storm.codahale.metrics.clojure.reporters</shadedPattern>
+                        </relocation>
+                        <relocation>
+                            <pattern>metrics.timers</pattern>
+                            <shadedPattern>org.apache.storm.codahale.metrics.clojure.timers</shadedPattern>
+                        </relocation>
+                        <relocation>
+                            <pattern>metrics.utils</pattern>
+                            <shadedPattern>org.apache.storm.codahale.metrics.clojure.utils</shadedPattern>
+                        </relocation>
                     </relocations>
                     <transformers>
                         <transformer implementation="org.apache.storm.maven.shade.clojure.ClojureTransformer" />

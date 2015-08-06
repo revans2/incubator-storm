@@ -422,11 +422,6 @@
     (.shutdownNow (get dr WorkerTopologyContext/SHARED_EXECUTOR))
     (log-message "Shut down default resources")))
 
-(defn- override-login-config-with-system-property [conf]
-  (if-let [login_conf_file (System/getProperty "java.security.auth.login.config")]
-    (assoc conf "java.security.auth.login.config" login_conf_file)
-    conf))
-
 (defn- get-logger-levels []
   (into {}
     (let [logger-config (.getConfiguration (LogManager/getContext false))]
@@ -667,7 +662,10 @@
   (fn [] (exit-process! 1 "Worker died")))
 
 (defn -main [storm-id assignment-id port-str worker-id]  
-  (let [conf (read-storm-config)]
+  (let [conf (read-storm-config)
+        conf (if-let [storm-local-dir (System/getProperty STORM-LOCAL-DIR)]
+               (assoc conf STORM-LOCAL-DIR storm-local-dir)
+               conf)]
     (setup-default-uncaught-exception-handler)
     (validate-distributed-mode! conf)
     (let [worker (mk-worker conf nil storm-id assignment-id (Integer/parseInt port-str) worker-id)]

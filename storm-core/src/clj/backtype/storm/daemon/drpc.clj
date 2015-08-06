@@ -217,7 +217,8 @@
       (log-message "Starting Distributed RPC servers...")
       (future (.serve invoke-server))
       (when (> drpc-http-port 0)
-        (let [app (webapp drpc-service-handler http-creds-handler)
+        (let [app (-> (webapp drpc-service-handler http-creds-handler)
+                      requests-middleware)
               filter-class (conf DRPC-HTTP-FILTER)
               filter-params (conf DRPC-HTTP-FILTER-PARAMS)
               filters-confs [{:filter-class filter-class
@@ -248,6 +249,7 @@
                                         https-need-client-auth
                                         https-want-client-auth)
                             (config-filter server app filters-confs))})))
+      (start-metrics-reporters)
       (when handler-server
         (.serve handler-server)))))
 

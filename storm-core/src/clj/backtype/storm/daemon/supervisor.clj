@@ -17,7 +17,7 @@
   (:import [java.io OutputStreamWriter BufferedWriter IOException FileOutputStream])
   (:import [backtype.storm.scheduler ISupervisor]
            [backtype.storm.scheduler.resource RAS_TYPES]
-           [backtype.storm.utils LocalState Time Utils]
+           [backtype.storm.utils LocalState Time Utils VersionInfo]
            [backtype.storm.daemon Shutdownable]
            [backtype.storm Constants]
            [java.net JarURLConnection]
@@ -25,7 +25,7 @@
            [org.apache.commons.io FileUtils]
            [java.io File])
   (:use [backtype.storm config util log timer local-state])
-  (:import [backtype.storm.utils VersionInfo])
+  (:import [backtype.storm.generated AuthorizationException KeyNotFoundException])
   (:import [java.util.concurrent Executors])
   (:import [java.nio.file Files Path Paths StandardCopyOption])
   (:import [backtype.storm.blobstore BlobStoreAclHandler])
@@ -37,8 +37,12 @@
   (:import [org.apache.zookeeper data.ACL ZooDefs$Ids ZooDefs$Perms])
   (:import [org.yaml.snakeyaml Yaml]
            [org.yaml.snakeyaml.constructor SafeConstructor])
+  (:require [metrics.gauges :refer [defgauge]])
+  (:require [metrics.meters :refer [defmeter mark!]])
   (:gen-class
     :methods [^{:static true} [launch [backtype.storm.scheduler.ISupervisor] void]]))
+
+(defmeter num-workers-launched)
 
 (defmulti download-storm-code cluster-mode)
 (defmulti launch-worker (fn [supervisor & _] (cluster-mode (:conf supervisor))))
@@ -392,6 +396,7 @@
                         (:storm-id assignment)
                         port
                         id)
+                      (mark! num-workers-launched)
                       [port id])
                     (do
                       (log-message "Missing topology storm code, so can't launch worker with assignment "
@@ -569,8 +574,8 @@
 
 (defn mk-supervisor-capacities
   [conf]
-  {RAS_TYPES/TYPE_MEMORY (conf SUPERVISOR-MEMORY-CAPACITY-MB)
-   RAS_TYPES/TYPE_CPU (conf SUPERVISOR-CPU-CAPACITY)})
+  {Config/SUPERVISOR_MEMORY_CAPACITY_MB (conf SUPERVISOR-MEMORY-CAPACITY-MB)
+   Config/SUPERVISOR_CPU_CAPACITY (conf SUPERVISOR-CPU-CAPACITY)})
 
 (defn setup-blob-permission [conf storm-conf path]
   (if (conf SUPERVISOR-RUN-WORKER-AS-USER)
@@ -590,7 +595,12 @@
         topo-name (storm-conf TOPOLOGY-NAME)
         user-dir (.getLocalUserFileCacheDir localizer user)
         localresources (blobstore-map-to-localresources blobstore-map)]
-    (.updateBlobs localizer localresources user)))
+    (try
+      (.updateBlobs localizer localresources user)
+      (catch AuthorizationException authExp
+        (log-error authExp))
+      (catch KeyNotFoundException knf
+        (log-error knf)))))
 
 (defn download-blobs-for-topology!
   "Download all blobs listed in the topology configuration for a given topology."
@@ -605,15 +615,20 @@
       (when-not (.exists user-dir)
         (FileUtils/forceMkdir user-dir)
         (setup-blob-permission conf storm-conf (.toString user-dir)))
-      (let [localized-resources (.getBlobs localizer localresources user topo-name user-dir)]
-        (setup-blob-permission conf storm-conf (.toString user-dir))
-        (doseq [local-rsrc localized-resources]
-          (let [rsrc-file-path (File. (.getFilePath local-rsrc))
-                key-name (.getName rsrc-file-path)
-                blob-symlink-target-name (.getName (File. (.getCurrentSymlinkPath local-rsrc)))
-                symlink-name (get-blob-localname (get blobstore-map key-name) key-name)]
-            (create-symlink! tmproot (.getParent rsrc-file-path) symlink-name
-              blob-symlink-target-name)))))))
+      (try
+        (let [localized-resources (.getBlobs localizer localresources user topo-name user-dir)]
+          (setup-blob-permission conf storm-conf (.toString user-dir))
+          (doseq [local-rsrc localized-resources]
+            (let [rsrc-file-path (File. (.getFilePath local-rsrc))
+                  key-name (.getName rsrc-file-path)
+                  blob-symlink-target-name (.getName (File. (.getCurrentSymlinkPath local-rsrc)))
+                  symlink-name (get-blob-localname (get blobstore-map key-name) key-name)]
+              (create-symlink! tmproot (.getParent rsrc-file-path) symlink-name
+                blob-symlink-target-name))))
+        (catch AuthorizationException authExp
+          (log-error authExp))
+        (catch KeyNotFoundException knf
+          (log-error knf))))))
 
 (defn update-blobs-for-all-topologies-fn
   "Returns a function that downloads all blobs listed in the topology configuration for all topologies assigned
@@ -682,7 +697,17 @@
       (schedule-recurring (:blob-update-timer supervisor)
                           30
                           30
-                          (fn [] (.add event-manager synchronize-blobs-fn))))
+                          (fn [] (.add event-manager synchronize-blobs-fn)))
+      (schedule-recurring (:timer supervisor)
+                          (* 60 5)
+                          (* 60 5)
+                          (fn [] (let [health-code (healthcheck/health-check conf)
+                                       ids (my-worker-ids conf)]
+                                   (if (not (= health-code 0))
+                                     (do
+                                       (doseq [id ids]
+                                         (shutdown-worker supervisor id))
+                                       (throw (RuntimeException. "Supervisor failed health check. Exiting."))))))))
     (log-message "Starting supervisor with id " (:supervisor-id supervisor) " at host " (:my-hostname supervisor))
     (reify
      Shutdownable
@@ -917,6 +942,7 @@
                      port
                      worker-id])
           command (->> command (map str) (filter (complement empty?)))]
+
       (log-message "Launching worker with command: " (shell-cmd command))
       (write-log-metadata! storm-conf user worker-id storm-id port conf)
       (set-worker-user! conf worker-id user)
@@ -987,10 +1013,13 @@
       ))
 
 (defn -launch [supervisor]
-  (let [conf (read-storm-config)]
+  (let [conf (read-storm-config)
+        conf (assoc conf STORM-LOCAL-DIR (. (File. (conf STORM-LOCAL-DIR)) getCanonicalPath))]
     (validate-distributed-mode! conf)
     (let [supervisor (mk-supervisor conf nil supervisor)]
       (add-shutdown-hook-with-force-kill-in-1-sec #(.shutdown supervisor)))))
+    (defgauge num-slots-used-gauge #(count (my-worker-ids conf)))
+    (start-metrics-reporters)))
 
 (defn standalone-supervisor []
   (let [conf-atom (atom nil)

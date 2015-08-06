@@ -46,9 +46,9 @@ listKeys = set(["storm.auth.simple-white-list.users", "supervisor.slots.ports",
  "nimbus.admins", "topology.users", "topology.groups", "nimbus.credential.renewers.classes",
  "topology.auto-credentials", "pacemaker.kerberos.users"])
 mapKeys = set(["isolation.scheduler.machines", "ui.filter.params", "drpc.http.filter.params",
-               "supervisor.scheduler.meta"])
+               "supervisor.scheduler.meta", "storm.group.mapping.service.params"])
 
-allStringKeys = set(["ui.filter.params", "drpc.http.filter.params"])
+allStringKeys = set(["ui.filter.params", "drpc.http.filter.params", "storm.group.mapping.service.params"])
 
 ignoredKeys = set(["min.user.pid", "storm.zookeeper.auth.payload", "storm.cluster.user", "worker.launcher.group",
  "multitenant.scheduler.user.pools"])

@@ -283,6 +283,7 @@
                                 (str "-Dstorm.id=" mock-storm-id)
                                 (str "-Dworker.id=" mock-worker-id)
                                 (str "-Dworker.port=" mock-port)
+                                (str "-Dstorm.local.dir=")
                                 "-cp" classpath
                                 "backtype.storm.daemon.worker"
                                 mock-storm-id
@@ -304,7 +305,8 @@
                      set-worker-user! nil
                      supervisor/jlp nil
                      worker-artifacts-root "/tmp/workers-artifacts"
-                     supervisor/write-log-metadata! nil]
+                     supervisor/write-log-metadata! nil
+                     supervisor/create-blobstore-links nil]
             (supervisor/launch-worker mock-supervisor
                                       mock-storm-id
                                       mock-port
@@ -326,7 +328,8 @@
                      set-worker-user! nil
                      supervisor/jlp nil
                      worker-artifacts-root "/tmp/workers-artifacts"
-                     supervisor/write-log-metadata! nil]
+                     supervisor/write-log-metadata! nil
+                     supervisor/create-blobstore-links nil]
             (supervisor/launch-worker mock-supervisor
                                       mock-storm-id
                                       mock-port
@@ -345,7 +348,8 @@
                      set-worker-user! nil
                      supervisor/write-log-metadata! nil
                      launch-process nil
-                     current-classpath (str file-path-separator "base")]
+                     current-classpath (str file-path-separator "base")
+                     supervisor/create-blobstore-links nil]
                     (supervisor/launch-worker mock-supervisor
                                               mock-storm-id
                                               mock-port
@@ -365,7 +369,8 @@
                      launch-process nil
                      set-worker-user! nil
                      supervisor/write-log-metadata! nil
-                     current-classpath (str file-path-separator "base")]
+                     current-classpath (str file-path-separator "base")
+                     supervisor/create-blobstore-links nil]
                     (supervisor/launch-worker mock-supervisor
                                               mock-storm-id
                                               mock-port
@@ -424,6 +429,7 @@
                                 " '-Dstorm.id=" mock-storm-id "'"
                                 " '-Dworker.id=" mock-worker-id "'"
                                 " '-Dworker.port=" mock-port "'"
+                                " '-Dstorm.local.dir=" storm-local "'"
                                 " '-cp' 'mock-classpath'\"'\"'quote-on-purpose'"
                                 " 'backtype.storm.daemon.worker'"
                                 " '" mock-storm-id "'"

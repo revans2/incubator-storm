@@ -17,11 +17,14 @@
 (ns org.apache.storm.pacemaker.pacemaker
   (:import [org.apache.storm.pacemaker PacemakerServer IServerMessageHandler]
            [java.util.concurrent ConcurrentHashMap ThreadPoolExecutor TimeUnit LinkedBlockingDeque]
+           [java.util.concurrent.atomic AtomicInteger]
+           [java.util Date]
            [backtype.storm.generated
             HBAuthorizationException HBExecutionException HBNodes HBRecords
             HBServerMessageType HBMessage HBMessageData HBPulse])
   (:use [clojure.string :only [replace-first split]]
         [backtype.storm log config util])
+  (:require [clojure.java.jmx :as jmx])
   (:gen-class))
 
 ;; This is the old Thrift service that this server is emulating.
@@ -33,6 +36,76 @@
 ;  Pulse getPulse(1: string id) throws (1: HBExecutionException e, 2: HBAuthorizationException aze);
 ;  void deletePath(1: string idPrefix) throws (1: HBExecutionException e, 2: HBAuthorizationException aze);
 ;  void deletePulseId(1: string id) throws (1: HBExecutionException e, 2: HBAuthorizationException aze);
+
+
+;; Stats Functions
+
+(def sleep-seconds 5)
+
+
+(defn- check-and-set-loop [stats key new & {:keys [compare new-fn]
+                                            :or {compare (fn [new old] true)
+                                                 new-fn (fn [new old] new)}}]
+  (loop []
+    (let [old (.get (key stats))
+          new (new-fn new old)]
+      (if (compare new old)
+        (if (.compareAndSet (key stats) old new)
+          nil
+          (recur))
+        nil))))
+
+(defn- set-average [stats size]
+  (check-and-set-loop
+   stats
+   :average-heartbeat-size
+   size
+   :new-fn (fn [new old]
+            (let [count (.get (:send-pulse-count stats))]
+                                        ; Weighted average
+              (/ (+ new (* count old)) (+ count 1))))))
+
+(defn- set-largest [stats size]
+  (check-and-set-loop
+   stats
+   :largest-heartbeat-size
+   size
+   :compare #'>))
+
+(defn- report-stats [heartbeats stats last-five-s]
+  (loop []
+      (let [send-count (.getAndSet (:send-pulse-count stats) 0)
+            received-size (.getAndSet (:total-received-size stats) 0)
+            get-count (.getAndSet (:get-pulse-count stats) 0)
+            sent-size (.getAndSet (:total-sent-size stats) 0)
+            largest (.getAndSet (:largest-heartbeat-size stats) 0)
+            average (.getAndSet (:average-heartbeat-size stats) 0)
+            total-keys (.size heartbeats)]
+        (log-message "\nReceived " send-count " heartbeats totaling " received-size " bytes,\n"
+                     "Sent " get-count " heartbeats totaling " sent-size " bytes,\n"
+                     "The largest heartbeat was " largest " bytes,\n"
+                     "The average heartbeat was " average " bytes,\n"
+                     "Pacemaker contained " total-keys " total keys\n"
+                     "in the last " sleep-seconds " second(s)")
+        (dosync (ref-set last-five-s
+                         {:send-pulse-count send-count
+                          :total-received-size received-size
+                          :get-pulse-count get-count
+                          :total-sent-size sent-size
+                          :largest-heartbeat-size largest
+                          :average-heartbeat-size average
+                          :total-keys total-keys})))
+      (Thread/sleep (* 1000 sleep-seconds))
+      (recur)))
+
+;; JMX stuff
+(defn register [last-five-s]
+  (jmx/register-mbean
+   (jmx/create-bean
+    last-five-s)
+   "org.apache.storm.pacemaker.pacemaker:stats=Stats_Last_5_Seconds"))
+
+;; Pacemaker Functions
 
 (defn hb-data [conf]
   (ConcurrentHashMap.))
@@ -46,10 +119,16 @@
     (HBMessage. HBServerMessageType/EXISTS_RESPONSE
                 (HBMessageData/boolval it-does))))
 
-(defn send-pulse [^HBPulse pulse heartbeats]
+(defn send-pulse [^HBPulse pulse heartbeats pacemaker-stats]
   (let [id (.get_id pulse)
         details (.get_details pulse)]
     (log-debug (str "Saving Pulse for id [" id "] data [" + (str details) "]."))
+
+    (.incrementAndGet (:send-pulse-count pacemaker-stats))
+    (.addAndGet (:total-received-size pacemaker-stats) (alength details))
+    (set-largest pacemaker-stats (alength details))
+    (set-average pacemaker-stats (alength details))
+
     (.put heartbeats id details)
     (HBMessage. HBServerMessageType/SEND_PULSE_RESPONSE nil)))
 
@@ -61,15 +140,23 @@
   (HBMessage. HBServerMessageType/GET_ALL_NODES_FOR_PATH_RESPONSE
               (HBMessageData/nodes
                (HBNodes. (distinct (for [k (.keySet heartbeats)
-                                         :let [trimmed-k (second (split (replace-first k path "") #"/"))]
+                                         :let [trimmed-k (first
+                                                          (filter #(not (= "" %))
+                                                                  (split (replace-first k path "") #"/")))]
                                          :when (and
                                                 (not (nil? trimmed-k))
                                                 (= (.indexOf k path) 0))]
                                      trimmed-k))))))
 
-(defn get-pulse [^String path heartbeats]
+(defn get-pulse [^String path heartbeats pacemaker-stats]
   (let [details (.get heartbeats path)]
     (log-debug (str "Getting Pulse for path [" path "]...data " (str details) "]."))
+
+
+    (.incrementAndGet (:get-pulse-count pacemaker-stats))
+    (if details
+      (.addAndGet (:total-sent-size pacemaker-stats) (alength details)))
+
     (HBMessage. HBServerMessageType/GET_PULSE_RESPONSE
                 (HBMessageData/pulse
                  (doto (HBPulse. ) (.set_id path) (.set_details details))))))
@@ -90,11 +177,27 @@
   (HBMessage. HBServerMessageType/NOT_AUTHORIZED nil))
 
 (defn mk-handler [conf]
-  (let [heartbeats ^ConcurrentHashMap (hb-data conf)]
+  (let [heartbeats ^ConcurrentHashMap (hb-data conf)
+        pacemaker-stats {:send-pulse-count (AtomicInteger.)
+                         :total-received-size (AtomicInteger.)
+                         :get-pulse-count (AtomicInteger.)
+                         :total-sent-size (AtomicInteger.)
+                         :largest-heartbeat-size (AtomicInteger.)
+                         :average-heartbeat-size (AtomicInteger.)}
+        last-five (ref {:send-pulse-count 0
+                        :total-received-size 0
+                        :get-pulse-count 0
+                        :total-sent-size 0
+                        :largest-heartbeat-size 0
+                        :average-heartbeat-size 0
+                        :total-keys 0})
+        stats-thread (Thread. (fn [] (report-stats heartbeats pacemaker-stats last-five)))]
+    (.setDaemon stats-thread true)
+    (.start stats-thread)
+    (register last-five)
     (reify
       IServerMessageHandler
       (^HBMessage handleMessage [this ^HBMessage request ^boolean authenticated]
-        (log-message "Handling Message")
         (let [response
               (condp = (.get_type request)
                 HBServerMessageType/CREATE_PATH
@@ -106,7 +209,7 @@
                   (not-authorized))
 
                 HBServerMessageType/SEND_PULSE
-                (send-pulse (.get_pulse (.get_data request)) heartbeats)
+                (send-pulse (.get_pulse (.get_data request)) heartbeats pacemaker-stats)
 
                 HBServerMessageType/GET_ALL_PULSE_FOR_PATH
                 (if authenticated
@@ -120,7 +223,7 @@
 
                 HBServerMessageType/GET_PULSE
                 (if authenticated
-                  (get-pulse (.get_path (.get_data request)) heartbeats)
+                  (get-pulse (.get_path (.get_data request)) heartbeats pacemaker-stats)
                   (not-authorized))
 
                 HBServerMessageType/DELETE_PATH
@@ -131,13 +234,13 @@
 
                 ; Otherwise
                 (log-message "Got Unexpected Type: " (.get_type request)))]
-          
+
           (.set_message_id response (.get_message_id request))
           response)))))
 
 (defn launch-server! []
   (log-message "Starting Server.")
-  (let [conf (read-storm-config)]
+  (let [conf (override-login-config-with-system-property (read-storm-config))]
     (PacemakerServer. (mk-handler conf) conf)))
 
 (defn -main []

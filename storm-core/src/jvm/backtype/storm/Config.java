@@ -166,6 +166,15 @@ public class Config extends HashMap<String, Object> {
     public static final Object STORM_CLUSTER_MODE_SCHEMA = String.class;
 
     /**
+     * What Network Topography detection classes should we use.
+     * Given a list of supervisor hostnames (or IP addresses), this class would return a list of
+     * rack names that correspond to the supervisors. This information is stored in Cluster.java, and
+     * is used in the resource aware scheduler.
+     */
+    public static final String STORM_NETWORK_TOPOGRAPHY_PLUGIN = "storm.network.topography.plugin";
+    public static final Object STORM_NETWORK_TOPOGRAPHY_PLUGIN_SCHEMA = String.class;
+
+    /**
      * The hostname the supervisors/workers should report to nimbus. If unset, Storm will
      * get the hostname to report by calling <code>InetAddress.getLocalHost().getCanonicalHostName()</code>.
      *
@@ -193,6 +202,12 @@ public class Config extends HashMap<String, Object> {
      */
     public static final String STORM_GROUP_MAPPING_SERVICE_CACHE_DURATION_SECS = "storm.group.mapping.service.cache.duration.secs";
     public static final Object STORM_GROUP_MAPPING_SERVICE_CACHE_DURATION_SECS_SCHEMA = Number.class;
+
+    /**
+     * User groups mapping plugin parameters
+     */
+    public static final String STORM_GROUP_MAPPING_SERVICE_PARAMS = "storm.group.mapping.service.params";
+    public static final Object STORM_GROUP_MAPPING_SERVICE_PARAMS_SCHEMA = Map.class;
 
     /**
      * The default transport plug-in for Thrift client/server communication
@@ -327,7 +342,20 @@ public class Config extends HashMap<String, Object> {
      */
     public static final String STORM_CLUSTER_STATE_STORE = "storm.cluster.state.store";
     public static final Object STORM_CLUSTER_STATE_STORE_SCHEMA = String.class;
-    
+
+    /**
+     * The directory where storm's health scripts go.
+     */
+    public static final String STORM_HEALTH_CHECK_DIR = "storm.health.check.dir";
+    public static final Object STORM_HEALTH_CHECK_DIR_SCHEMA = String.class;
+
+    /**
+     * The time to allow any given healthcheck script to run before it
+     * is marked failed due to timeout
+     */
+    public static final String STORM_HEALTH_CHECK_TIMEOUT_MS = "storm.health.check.timeout.ms";
+    public static final Object STORM_HEALTH_CHECK_TIMEOUT_MS_SCHEMA = Number.class;
+
     /**
      * The host that the master server is running on.
      */
@@ -1242,28 +1270,6 @@ public class Config extends HashMap<String, Object> {
     public static final Object TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB_SCHEMA = ConfigValidation.PositiveDoubleValidator;
 
     /**
-     * The maximum amount of cpu an instance of a spout/bolt will take. This enables the scheduler
-     * to allocate slots on machines with enough available cpu. 
-     */
-    public static final String TOPOLOGY_COMPONENT_RESOURCES_CPU = "topology.component.resources.cpu";
-    public static final Object TOPOLOGY_COMPONENT_RESOURCES_CPU_SCHEMA = ConfigValidation.PositiveIntegerValidator;
-
-    /**
-     * The config indicates the type of the memory to be "memory"
-     */
-    public static final String TOPOLOGY_COMPONENT_TYPE_MEMORY = "topology.component.type.memory";
-    public static final Object TOPOLOGY_COMPONENT_TYPE_MEMORY_SCHEMA = String.class;
-
-    /**
-     * The config indicates the type of the cpu to be "cpu"
-     */
-    public static final String TOPOLOGY_COMPONENT_TYPE_CPU = "topology.component.type.cpu";
-    public static final Object TOPOLOGY_COMPONENT_TYPE_CPU_SCHEMA = String.class;
-
-    public static final String TOPOLOGY_COMPONENT_TYPE_CPU_TOTAL = "topology.component.type.cpu.total";
-    public static final Object TOPOLOGY_COMPONENT_TYPE_CPU_TOTAL_SCHEMA = String.class;
-
-    /**
      * The config indicates the percentage of cpu for a core. Assuming the a core value to be 100, a
      * value of 10 indicates 10% of the core. The P in PCORE represents the term "physical".
      */
@@ -1339,14 +1345,12 @@ public class Config extends HashMap<String, Object> {
     public static final String TOPOLOGY_METRICS_CONSUMER_REGISTER = "topology.metrics.consumer.register";
     public static final Object TOPOLOGY_METRICS_CONSUMER_REGISTER_SCHEMA = ConfigValidation.MapsValidator;
 
-
     /**
      * The maximum parallelism allowed for a component in this topology. This configuration is
      * typically used in testing to limit the number of threads spawned in local mode.
      */
     public static final String TOPOLOGY_MAX_TASK_PARALLELISM="topology.max.task.parallelism";
     public static final Object TOPOLOGY_MAX_TASK_PARALLELISM_SCHEMA = ConfigValidation.IntegerValidator;
-
 
     /**
      * The maximum number of tuples that can be pending on a spout task at any given time.

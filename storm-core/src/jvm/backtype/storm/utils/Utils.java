@@ -495,12 +495,14 @@ public class Utils {
     return Files.exists(new File(dir, file).toPath());
   }
 
-  public static long nimbusVersionOfBlob(String key, ClientBlobStore cb) {
+  public static long nimbusVersionOfBlob(String key, ClientBlobStore cb) throws AuthorizationException, KeyNotFoundException{
     long nimbusBlobVersion = 0;
     try {
       ReadableBlobMeta metadata = cb.getBlobMeta(key);
       nimbusBlobVersion = metadata.get_version();
-    } catch (Exception e) {
+    } catch (AuthorizationException | KeyNotFoundException exp) {
+      throw exp;
+    } catch (TException e) {
       throw new RuntimeException(e);
     }
     return nimbusBlobVersion;
@@ -536,7 +538,7 @@ public class Utils {
     }
   }
 
-  public static String constructBlobWithVerionFileName(String fileName, long version) {
+  public static String constructBlobWithVersionFileName(String fileName, long version) {
     return fileName + "." + version;
   }
 

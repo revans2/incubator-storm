@@ -14,8 +14,10 @@ YINST bug-product jira-ystorm
 
 YINST requires pkg ypython               2.6.0_2     2.7.9999
 YINST requires pkg yjava_jdk             1.7.0_11.64 1.8.999999
+YINST requires pkg bouncer_auth_java     0.17.9      *
 YINST requires pkg yjava_servlet_filters 0.22.495    *
 YINST requires pkg yjava_yca             0.23.218    *
+YINST requires pkg bycookieauthkey       1.0.4.1     *
 
 YINST set storm_local_dir                 /home/y/var/storm
 YINST set syslog_facility                 LOCAL5
@@ -112,6 +114,7 @@ find 444 - - lib64/storm/$(BASE_VERSION)/examples/ ../examples/ -type f -not -pa
 
 # Bouncer UI Filter
 symlink - - - lib64/storm/$(BASE_VERSION)/lib/yjava_servlet_filters.jar /home/y/lib/jars/yjava_servlet_filters.jar
+symlink - - - lib64/storm/$(BASE_VERSION)/lib/yjava_ysecure.jar         /home/y/lib/jars/yjava_ysecure.jar
 symlink - - - lib64/storm/$(BASE_VERSION)/lib/yjava_filter_logic.jar    /home/y/lib/jars/yjava_filter_logic.jar
 symlink - - - lib64/storm/$(BASE_VERSION)/lib/yjava_servlet.jar         /home/y/lib/jars/yjava_servlet.jar
 symlink - - - lib64/storm/$(BASE_VERSION)/lib/yjava_byauth.jar          /home/y/lib/jars/yjava_byauth.jar

@@ -22,7 +22,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import backtype.storm.scheduler.resource.RAS_TYPES;
+import backtype.storm.Config;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -116,10 +116,10 @@ public class SupervisorDetails {
     }
 
     public Double getTotalMemory() {
-        return getTotalResource(RAS_TYPES.TYPE_MEMORY);
+        return getTotalResource(Config.SUPERVISOR_MEMORY_CAPACITY_MB);
     }
 
     public Double getTotalCPU() {
-      return getTotalResource(RAS_TYPES.TYPE_CPU);
+      return getTotalResource(Config.SUPERVISOR_CPU_CAPACITY);
     }
 }

@@ -18,7 +18,7 @@
 
   <build>
     <sourceDirectory>src/main/java</sourceDirectory>
-    <testSourceDirectory>src/test/java</testSourceDirectory>
+    <testSourceDirectory>src/test</testSourceDirectory>
     <resources>
       <resource>
         <directory>resources</directory>
@@ -102,6 +102,44 @@
               <!-- avoid warning about recursion -->
               <goal>jar-no-fork</goal>
             </goals>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>com.theoryinpractise</groupId>
+        <artifactId>clojure-maven-plugin</artifactId>
+        <extensions>true</extensions>
+        <configuration>
+          <sourceDirectories>
+            <sourceDirectory>src/main/java</sourceDirectory>
+          </sourceDirectories>
+          <testSourceDirectories>
+            <testSourceDirectory>test/clj</testSourceDirectory>
+          </testSourceDirectories>
+          <warnOnReflection>false</warnOnReflection>
+          <copyDeclaredNamespaceOnly>true</copyDeclaredNamespaceOnly>
+          <copiedNamespaces>
+            <copiedNamespace>none</copiedNamespace>
+          </copiedNamespaces>
+        </configuration>
+        <executions>
+          <execution>
+            <id>compile-clojure</id>
+            <phase>compile</phase>
+            <goals>
+              <goal>compile</goal>
+            </goals>
+          </execution>
+          <execution>
+            <id>test-clojure</id>
+            <phase>test</phase>
+            <goals>
+              <goal>test-with-junit</goal>
+            </goals>
+            <configuration>
+              <!-- argLine is set by JaCoCo for code coverage -->
+              <vmargs>${argLine} ${test.extra.args}</vmargs>
+            </configuration>
           </execution>
         </executions>
       </plugin>

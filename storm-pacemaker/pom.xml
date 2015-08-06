@@ -11,6 +11,11 @@
   <packaging>jar</packaging>
   <name>Pacemaker - Storm Heartbeat Server</name>
   <dependencies>
+    <dependency>
+      <groupId>org.clojure</groupId>
+      <artifactId>java.jmx</artifactId>
+      <version>${java_jmx.version}</version>
+    </dependency>
     <!-- test deps -->
     <dependency>
       <groupId>junit</groupId>

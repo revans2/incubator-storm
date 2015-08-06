@@ -116,8 +116,8 @@ class PacemakerServer implements ISaslServer {
             if(channel.getPipeline().get(ThriftNettyServerCodec.SASL_HANDLER) != null) {
                 channel.getPipeline().remove(ThriftNettyServerCodec.SASL_HANDLER);
             }
-            else if(channel.getPipeline().get(ThriftNettyServerCodec.SASL_HANDLER) != null) {
-                channel.getPipeline().remove(ThriftNettyServerCodec.SASL_HANDLER);
+            else if(channel.getPipeline().get(ThriftNettyServerCodec.KERBEROS_HANDLER) != null) {
+                channel.getPipeline().remove(ThriftNettyServerCodec.KERBEROS_HANDLER);
             }
         }
     }

@@ -15,18 +15,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package backtype.storm.messaging.netty;
 
-package backtype.storm.scheduler.resource.Strategies;
+import backtype.storm.utils.Utils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import java.util.Collection;
-import java.util.Map;
-
-import backtype.storm.scheduler.Topologies;
-import backtype.storm.scheduler.ExecutorDetails;
-import backtype.storm.scheduler.TopologyDetails;
-import backtype.storm.scheduler.resource.Node;
-
-public interface IStrategy {
-	public Map<Node, Collection<ExecutorDetails>> schedule(Topologies topologies, TopologyDetails td,
-	        Collection<ExecutorDetails> unassignedExecutors);
+public class NettyUncaughtExceptionHandler implements Thread.UncaughtExceptionHandler {
+  private static final Logger LOG = LoggerFactory.getLogger(NettyUncaughtExceptionHandler.class);
+  @Override
+  public void uncaughtException(Thread t, Throwable e) {
+    try {
+      Utils.handleUncaughtException(e);
+    } catch (Error error) {
+      LOG.info("Received error in netty thread.. terminating server...");
+      Runtime.getRuntime().exit(1);
+    }
+  }
 }

@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package backtype.storm.scheduler.resource.Strategies;
+package backtype.storm.scheduler.resource.strategies;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -27,8 +27,9 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Queue;
 import java.util.TreeMap;
+import java.util.HashSet;
+import java.util.Set;
 
-import backtype.storm.scheduler.resource.GetNetworkTopography;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -38,12 +39,9 @@ import backtype.storm.scheduler.Topologies;
 import backtype.storm.scheduler.TopologyDetails;
 import backtype.storm.scheduler.resource.RAS_Component;
 import backtype.storm.scheduler.resource.Node;
-import backtype.storm.Config;
-import backtype.storm.utils.Utils;
 
 public class ResourceAwareStrategy implements IStrategy {
     protected Logger LOG = null;
-    protected Cluster _cluster;
     protected Topologies _topologies;
     protected TopologyDetails _topo;
     protected Collection<Node> _availNodes;
@@ -53,20 +51,20 @@ public class ResourceAwareStrategy implements IStrategy {
      */
     private Map<String, Node> _nodes;
     private Map<String, List<String>> _clusterInfo;
+
     private final double CPU_WEIGHT = 1.0;
     private final double MEM_WEIGHT = 1.0;
     private final double NETWORK_WEIGHT = 1.0;
 
     public ResourceAwareStrategy(
             TopologyDetails topo, Cluster cluster, Topologies topologies) {
-        this._cluster = cluster;
         this._topologies = topologies;
         this._topo = topo;
         this._nodes = Node.getAllNodesFrom(cluster, _topologies);
         this._availNodes = this.getAvaiNodes();
-        this._clusterInfo = (new GetNetworkTopography()).getClusterInfo();
-
         this.LOG = LoggerFactory.getLogger(this.getClass());
+        this._clusterInfo = cluster.getNetworkTopography();
+        LOG.info(_clusterInfo.toString());
     }
 
     protected void prepare() {
@@ -102,10 +100,14 @@ public class ResourceAwareStrategy implements IStrategy {
             return null;
         }
         Queue<RAS_Component> ordered_RAS_Component_list = bfs(topologies, rootSpout);
-        TreeMap<Integer, List<ExecutorDetails>> taskPriorityMap = getPriorityToExecutorDetailsListMap(ordered_RAS_Component_list);
+        Map<Integer, List<ExecutorDetails>> priorityToExecutorMap = getPriorityToExecutorDetailsListMap(ordered_RAS_Component_list);
+        Collection<ExecutorDetails> executorsNotScheduled = new HashSet<ExecutorDetails>(unassignedExecutors);
 
-        for (Integer priority : taskPriorityMap.keySet()) {
-            for (ExecutorDetails detail : taskPriorityMap.get(priority)) {
+        for (Integer priority : priorityToExecutorMap.keySet()) {
+            for (ExecutorDetails detail : priorityToExecutorMap.get(priority)) {
+                if (!executorsNotScheduled.contains(detail)) {
+                    continue;
+                }
                 LOG.info("\n\nAttempting to schedule: {} of component {} with rank {}",
                         detail, _topo.getExecutorToComponent().get(detail), priority);
                 Node scheduledNode = scheduleNodeForAnExecutorDetail(detail);
@@ -126,10 +128,9 @@ public class ResourceAwareStrategy implements IStrategy {
             }
         }
 
-        Collection<ExecutorDetails> tasksNotScheduled = new ArrayList<ExecutorDetails>(unassignedExecutors);
-        tasksNotScheduled.removeAll(scheduledTasks);
+        executorsNotScheduled.removeAll(scheduledTasks);
         // schedule left over system tasks
-        for (ExecutorDetails detail : tasksNotScheduled) {
+        for (ExecutorDetails detail : executorsNotScheduled) {
             Node bestNodeForAnExecutorDetail = this.getBestNode(detail);
             if (bestNodeForAnExecutorDetail != null) {
                 if (!nodeToExecutorDetailsMap.containsKey(bestNodeForAnExecutorDetail)) {
@@ -148,11 +149,10 @@ public class ResourceAwareStrategy implements IStrategy {
             }
         }
 
-        tasksNotScheduled = new ArrayList<ExecutorDetails>(unassignedExecutors);
-        tasksNotScheduled.removeAll(scheduledTasks);
-        if (tasksNotScheduled.size() > 0) {
+        executorsNotScheduled.removeAll(scheduledTasks);
+        if (executorsNotScheduled.size() > 0) {
             LOG.error("Resources not successfully scheduled: {}",
-                    tasksNotScheduled);
+                    executorsNotScheduled);
             nodeToExecutorDetailsMap = null;
         } else {
             LOG.debug("All resources successfully scheduled!");
@@ -350,6 +350,9 @@ public class ResourceAwareStrategy implements IStrategy {
 
     private String NodeHostnameToId(String hostname) {
         for (Node n : this._nodes.values()) {
+            if (n.hostname == null) {
+                continue;
+            }
             if (n.hostname.equals(hostname)) {
                 return n.supervisor_id;
             }
