@@ -217,8 +217,13 @@
 (defn read-supervisor-storm-conf
   [conf storm-id]
   (let [stormroot (supervisor-stormdist-root conf storm-id)
-        conf-path (supervisor-stormconf-path stormroot)]
-    (merge conf (clojurify-structure (Utils/fromCompressedJsonConf (FileUtils/readFileToByteArray (File. conf-path)))))))
+        conf-path (supervisor-stormconf-path stormroot)
+        topo-conf-file (File. conf-path)
+        _ (if-not (.exists topo-conf-file) (log-warn (str "The topology configuration file is missing: " conf-path)))
+        topo-conf (if (.exists topo-conf-file)
+                    (clojurify-structure
+                      (Utils/fromCompressedJsonConf (FileUtils/readFileToByteArray topo-conf-file))))]
+    (merge conf topo-conf)))
 
 (defn read-supervisor-topology
   [conf storm-id]
