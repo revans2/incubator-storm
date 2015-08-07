@@ -1,3 +1,6 @@
+## 0.10.x
+ * STORM-968: Adding support to generate the id based on names in Trident
+
 ## 0.9.2-incubating
  * STORM-66: send taskid on initial handshake
  * STORM-342: Contention in Disruptor Queue which may cause out of order or lost messages
