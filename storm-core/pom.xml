@@ -486,6 +486,9 @@
                             <include>org.clojure:tools.macro</include>
                             <include>joda-time:joda-time</include>
                             <include>org.eclipse.jetty:*</include>
+                            <include>org.apache.storm:*</include>
+                            <include>io.dropwizard.metrics:*</include>
+                            <include>metrics-clojure:*</include>
                         </includes>
                     </artifactSet>
 
