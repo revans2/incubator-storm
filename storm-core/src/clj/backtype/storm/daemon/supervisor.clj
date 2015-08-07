@@ -698,7 +698,7 @@
                           30
                           30
                           (fn [] (.add event-manager synchronize-blobs-fn)))
-      (schedule-recurring (:timer supervisor)
+      (schedule-recurring (:event-timer supervisor)
                           (* 60 5)
                           (* 60 5)
                           (fn [] (let [health-code (healthcheck/health-check conf)
