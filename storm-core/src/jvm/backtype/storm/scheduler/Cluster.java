@@ -456,23 +456,23 @@ public class Cluster {
      */
     public Map<String, List<String>> getNetworkTopography() {
         if (networkTopography == null) {
-            networkTopography = new HashMap<>();
-            ArrayList<String> supervisorHostNames = new ArrayList<>();
+            networkTopography = new HashMap<String, List<String>>();
+            ArrayList<String> supervisorHostNames = new ArrayList<String>();
             for (SupervisorDetails s : supervisors.values()) {
                 supervisorHostNames.add(s.getHost());
             }
+
             String clazz = (String) conf.get(Config.STORM_NETWORK_TOPOGRAPHY_PLUGIN);
             DNSToSwitchMapping topographyMapper = (DNSToSwitchMapping) Utils.newInstance(clazz);
-            Collections.sort(supervisorHostNames);
-            ArrayList<String> resolvedSuperVisors = (ArrayList<String>)topographyMapper.resolve(supervisorHostNames);
-            for ( int i = 0; i < resolvedSuperVisors.size(); i++ ) {
-                String rack = resolvedSuperVisors.get(i);
-                String hostName = supervisorHostNames.get(i);
-                List<String> nodesForRack = networkTopography.get(rack);
-                if (nodesForRack == null) {
-                    nodesForRack = new ArrayList<>();
-                    networkTopography.put(rack,nodesForRack);
+
+            Map <String,String> resolvedSuperVisors = topographyMapper.resolve(supervisorHostNames);
+            for(String hostName: resolvedSuperVisors.keySet()) {
+                String rack = resolvedSuperVisors.get(hostName);
+
+                if (!networkTopography.containsKey(rack)){
+                    networkTopography.put(rack, new ArrayList<String>());
                 }
+                List<String> nodesForRack = networkTopography.get(rack);
                 nodesForRack.add(hostName);
             }
         }

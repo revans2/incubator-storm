@@ -228,7 +228,7 @@
         <hadoop.version>2.6.0</hadoop.version>
         <kryo.version>2.21</kryo.version>
         <metrics-clojure.version>2.5.1</metrics-clojure.version>
-
+        <kafka.version>0.8.2.200.4</kafka.version>
     </properties>
 
     <profiles>
@@ -698,6 +698,16 @@
             </snapshots>
             <id>clojars</id>
             <url>https://clojars.org/repo/</url>
+        </repository>
+        <repository>
+            <id>central-ymaven</id>
+            <url>http://ymaven.corp.yahoo.com:9999/proximity/repository/public</url>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+            <releases>
+                <enabled>true</enabled>
+            </releases>
         </repository>
     </repositories>
 

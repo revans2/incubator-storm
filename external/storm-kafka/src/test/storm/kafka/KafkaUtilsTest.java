@@ -192,12 +192,15 @@ public class KafkaUtilsTest {
     }
 
     private void createTopicAndSendMessage(String key, String value) {
-        Properties p = new Properties();
-        p.setProperty("metadata.broker.list", broker.getBrokerConnectionString());
-        p.setProperty("serializer.class", "kafka.serializer.StringEncoder");
-        ProducerConfig producerConfig = new ProducerConfig(p);
-        Producer<String, String> producer = new Producer<String, String>(producerConfig);
-        producer.send(new KeyedMessage<String, String>(config.topic, key, value));
+        try {
+            Properties p = new Properties();
+            p.setProperty("metadata.broker.list", broker.getBrokerConnectionString());
+            p.setProperty("serializer.class", "kafka.serializer.StringEncoder");
+            ProducerConfig producerConfig = new ProducerConfig(p);
+            Producer<String, String> producer = new Producer<String, String>(producerConfig);
+            producer.send(new KeyedMessage<String, String>(config.topic, key, value));
+            Thread.sleep(1);
+        } catch (java.lang.InterruptedException e) {}
     }
 
 

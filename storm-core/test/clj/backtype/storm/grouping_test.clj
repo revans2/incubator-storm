@@ -33,20 +33,9 @@
                                      topology
                                      ;; important for test that
                                      ;; #tuples = multiple of 4 and 6
-                                     :mock-sources {"1" [["a"] ["b"]
-                                                         ["a"] ["b"]
-                                                         ["a"] ["b"]
-                                                         ["a"] ["b"]
-                                                         ["a"] ["b"]
-                                                         ["a"] ["b"]
-                                                         ["a"] ["b"]
-                                                         ["a"] ["b"]
-                                                         ["a"] ["b"]
-                                                         ["a"] ["b"]
-                                                         ["a"] ["b"]
-                                                         ["a"] ["b"]
-                                                       ]}
-                                     )]
+                                     :mock-sources {"1" (->> [["a"] ["b"]]
+                                                             (repeat 12)
+                                                             (apply concat))})]
       (is (= (* 6 4) (.size (read-tuples results "2")))))))
 
 (deftest test-shuffle-load-even
@@ -84,6 +73,30 @@
     (is (<= load1 max1-prcnt))
     (is (>= load2 min2-prcnt))
     (is (<= load2 max2-prcnt))))
+
+(deftest test-field
+  (with-simulated-time-local-cluster [cluster :supervisors 4]
+    (let [spout-phint 4
+          bolt-phint 6
+          topology (thrift/mk-topology
+                    {"1" (thrift/mk-spout-spec (TestWordSpout. true)
+                                               :parallelism-hint spout-phint)}
+                    {"2" (thrift/mk-bolt-spec {"1" ["word"]}
+                                              (TestWordBytesCounter.)
+                                              :parallelism-hint bolt-phint)
+                     })
+          results (complete-topology
+                    cluster
+                    topology
+                    :mock-sources {"1" (->> [[(.getBytes "a")]
+                                             [(.getBytes "b")]]
+                                            (repeat (* spout-phint bolt-phint))
+                                            (apply concat))})]
+      (is (ms= (apply concat
+                      (for [value '("a" "b")
+                            sum (range 1 (inc (* spout-phint bolt-phint)))]
+                        [[value sum]]))
+               (read-tuples results "2"))))))
 
 (defbolt id-bolt ["val"] [tuple collector]
   (emit-bolt! collector (.getValues tuple))

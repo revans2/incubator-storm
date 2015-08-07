@@ -1475,6 +1475,7 @@
                                                                 (count ports)
                                                                 (count (:used-ports info))
                                                                 id) ]
+                                            (.set_total_resources sup-sum (map-val double (:resources-map info))))))
                                             (when-let [version (:version info)] (.set_version sup-sum version))
                                             sup-sum
                                             ))

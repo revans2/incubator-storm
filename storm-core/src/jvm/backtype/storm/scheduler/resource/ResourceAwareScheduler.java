@@ -48,8 +48,6 @@ public class ResourceAwareScheduler implements IScheduler {
     public void schedule(Topologies topologies, Cluster cluster) {
         LOG.info("\n\n\nRerunning ResourceAwareScheduler...");
 
-        topologies.checkAndAddDefaultRes(cluster);
-
         for (TopologyDetails td : topologies.getTopologies()) {
             String topId = td.getId();
             Map<Node, Collection<ExecutorDetails>> taskToNodesMap;
@@ -71,7 +69,7 @@ public class ResourceAwareScheduler implements IScheduler {
                 if (taskToNodesMap != null) {
                     try {
                         for (Map.Entry<Node, Collection<ExecutorDetails>> entry : taskToNodesMap.entrySet()) {
-                            entry.getKey().assign(td.getId(), entry.getValue(), cluster);
+                            entry.getKey().assign(td, entry.getValue(), cluster);
                             LOG.info("ASSIGNMENT    TOPOLOGY: {}  TASKS: {} To Node: "
                                             + entry.getKey().getId() + ", Slots left: "
                                             + entry.getKey().totalSlotsFree(), td.getId(),

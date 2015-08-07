@@ -235,13 +235,40 @@ public class Node {
     }
 
     /**
+     * Allocate Mem and CPU resources to the assigned slot for the topology's executors.
+     * @param td the TopologyDetails that the slot is assigned to.
+     * @param executors the executors to run in that slot.
+     * @param slot the slot to allocate resource to
+     */
+    public void allocateResourceToSlot (TopologyDetails td, Collection<ExecutorDetails> executors, WorkerSlot slot) {
+        double onHeapMem = 0.0;
+        double offHeapMem = 0.0;
+        double cpu = 0.0;
+        for (ExecutorDetails exec : executors) {
+            Double onHeapMemForExec = td.getOnHeapMemoryRequirement(exec);
+            if (onHeapMemForExec != null) {
+                onHeapMem += onHeapMemForExec;
+            }
+            Double offHeapMemForExec = td.getOffHeapMemoryRequirement(exec);
+            if (offHeapMemForExec != null) {
+                offHeapMem += offHeapMemForExec;
+            }
+            Double cpuForExec = td.getTotalCpuReqTask(exec);
+            if (cpuForExec != null) {
+                cpu += cpuForExec;
+            }
+        }
+        slot.allocateResource(onHeapMem, offHeapMem, cpu);
+    }
+
+    /**
      * Assign a free slot on the node to the following topology and executors.
      * This will update the cluster too.
-     * @param topId the topology to assign a free slot to.
+     * @param td the TopologyDetails to assign a free slot to.
      * @param executors the executors to run in that slot.
      * @param cluster the cluster to be updated
      */
-    public void assign(String topId, Collection<ExecutorDetails> executors,
+    public void assign(TopologyDetails td, Collection<ExecutorDetails> executors,
                        Cluster cluster) {
         if (!_isAlive) {
             throw new IllegalStateException("Trying to adding to a dead node " + _nodeId);
@@ -250,11 +277,12 @@ public class Node {
             throw new IllegalStateException("Trying to assign to a full node " + _nodeId);
         }
         if (executors.size() == 0) {
-            LOG.warn("Trying to assign nothing from " + topId + " to " + _nodeId + " (Ignored)");
+            LOG.warn("Trying to assign nothing from " + td.getId() + " to " + _nodeId + " (Ignored)");
         } else {
             WorkerSlot slot = _freeSlots.iterator().next();
-            cluster.assign(slot, topId, executors);
-            assignInternal(slot, topId, false);
+            allocateResourceToSlot(td, executors, slot);
+            cluster.assign(slot, td.getId(), executors);
+            assignInternal(slot, td.getId(), false);
         }
     }
 
