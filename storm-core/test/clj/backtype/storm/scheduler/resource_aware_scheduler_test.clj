@@ -15,7 +15,8 @@
 ;; limitations under the License.
 (ns backtype.storm.scheduler.resource-aware-scheduler-test
   (:use [clojure test])
-  (:use [backtype.storm bootstrap config testing thrift])
+  (:use [backtype.storm config testing thrift])
+  (:require [backtype.storm.util :refer [map-val reverse-map sum]])
   (:require [backtype.storm.daemon [nimbus :as nimbus]])
   (:import [backtype.storm.generated StormTopology]
            [backtype.storm Config]
@@ -24,9 +25,8 @@
   (:import [backtype.storm.scheduler Cluster SupervisorDetails WorkerSlot ExecutorDetails
             SchedulerAssignmentImpl Topologies TopologyDetails])
   (:import [backtype.storm.scheduler.resource Node ResourceAwareScheduler])
-  (:import [backtype.storm Config]))
-
-(bootstrap)
+  (:import [backtype.storm Config])
+  (:import [java.util HashMap]))
 
 (defn gen-supervisors [count ports]
   (into {} (for [id (range count)
