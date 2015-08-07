@@ -17,21 +17,12 @@
  */
 package backtype.storm.messaging.netty;
 
-import java.net.InetSocketAddress;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Executors;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ThreadFactory;
-import java.io.IOException;
-
+import backtype.storm.Config;
+import backtype.storm.grouping.Load;
+import backtype.storm.messaging.TaskMessage;
+import backtype.storm.metric.api.IStatefulObject;
+import backtype.storm.serialization.KryoValuesSerializer;
+import backtype.storm.utils.Utils;
 import org.jboss.netty.bootstrap.ServerBootstrap;
 import org.jboss.netty.channel.Channel;
 import org.jboss.netty.channel.ChannelFactory;
@@ -41,14 +32,22 @@ import org.jboss.netty.channel.socket.nio.NioServerSocketChannelFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import backtype.storm.Config;
-import backtype.storm.grouping.Load;
+import java.net.InetSocketAddress;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Collection;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadFactory;
+import java.io.IOException;
+
 import backtype.storm.messaging.ConnectionWithStatus;
-import backtype.storm.messaging.IConnection;
-import backtype.storm.messaging.TaskMessage;
-import backtype.storm.metric.api.IStatefulObject;
-import backtype.storm.serialization.KryoValuesSerializer;
-import backtype.storm.utils.Utils;
 
 class Server extends ConnectionWithStatus implements IStatefulObject, ISaslServer {
 
@@ -59,8 +58,7 @@ class Server extends ConnectionWithStatus implements IStatefulObject, ISaslServe
     private final ConcurrentHashMap<String, AtomicInteger> messagesEnqueued = new ConcurrentHashMap<String, AtomicInteger>();
     private final AtomicInteger messagesDequeued = new AtomicInteger(0);
     private final AtomicInteger[] pendingMessages;
-    
-    
+
     // Create multiple queues for incoming messages. The size equals the number of receiver threads.
     // For message which is sent to same task, it will be stored in the same queue to preserve the message order.
     private LinkedBlockingQueue<ArrayList<TaskMessage>>[] message_queue;
@@ -186,33 +184,28 @@ class Server extends ConnectionWithStatus implements IStatefulObject, ISaslServe
         }
     }
 
-
     /**
      * enqueue a received message 
      * @throws InterruptedException
      */
     protected void enqueue(List<TaskMessage> msgs, String from) throws InterruptedException {
-        if (null == msgs || msgs.size() == 0 || closing) {
-            return;
+      if (null == msgs || msgs.size() == 0 || closing) {
+        return;
+      }
+      addReceiveCount(from, msgs.size());
+      ArrayList<TaskMessage> messageGroups[] = groupMessages(msgs);
+      
+      if (null == messageGroups || closing) {
+        return;
+      }
+      
+      for (int receiverId = 0; receiverId < messageGroups.length; receiverId++) {
+        ArrayList<TaskMessage> msgGroup = messageGroups[receiverId];
+        if (null != msgGroup) {
+          message_queue[receiverId].put(msgGroup);
+          pendingMessages[receiverId].addAndGet(msgGroup.size());
         }
-        addReceiveCount(from, msgs.size());
-        ArrayList<TaskMessage> messageGroups[] = groupMessages(msgs);
-
-        if (null == messageGroups || closing) {
-            return;
-        }
-
-        for (int receiverId = 0; receiverId < messageGroups.length; receiverId++) {
-            ArrayList<TaskMessage> msgGroup = messageGroups[receiverId];
-            if (null != msgGroup) {
-                message_queue[receiverId].put(msgGroup);
-                pendingMessages[receiverId].addAndGet(msgGroup.size());
-            }
-        }
-    }
-
-    public void received(Object msg, String from, Channel channel) throws InterruptedException {
-        enqueue((List<TaskMessage>)msg, from);
+      }
     }
 
     public Iterator<TaskMessage> recv(int flags, int receiverId) {
@@ -237,7 +230,7 @@ class Server extends ConnectionWithStatus implements IStatefulObject, ISaslServe
                 ret = null;
             }
         }
-
+            
         if (null != ret) {
             messagesDequeued.addAndGet(ret.size());
             pendingMessages[queueId].addAndGet(0 - ret.size());
@@ -333,7 +326,7 @@ class Server extends ConnectionWithStatus implements IStatefulObject, ISaslServe
     }
 
     public Object getState() {
-        LOG.debug("Getting metrics for server on port {}", port);
+        LOG.info("Getting metrics for server on port {}", port);
         HashMap<String, Object> ret = new HashMap<String, Object>();
         ret.put("dequeuedMessages", messagesDequeued.getAndSet(0));
         ArrayList<Integer> pending = new ArrayList<Integer>(pendingMessages.length);
@@ -357,6 +350,16 @@ class Server extends ConnectionWithStatus implements IStatefulObject, ISaslServe
         return ret;
     }
 
+    /** Implementing IServer. **/
+    public void channelConnected(Channel c) {
+        addChannel(c);
+    }
+
+    public void received(Object message, String remote, Channel channel)  throws InterruptedException {
+        List<TaskMessage>msgs = (List<TaskMessage>)message;
+        enqueue(msgs, remote);
+    }
+
     public String name() {
         return (String)storm_conf.get(Config.TOPOLOGY_NAME);
     }
@@ -366,15 +369,12 @@ class Server extends ConnectionWithStatus implements IStatefulObject, ISaslServe
     }
 
     public void authenticated(Channel c) {
-        //Ignored
+        return;
     }
-
-    public void channelConnected(Channel c) {
-        //Ignored
-    }
-
-    @Override public String toString() {
-       return String.format("Netty server listening on port %s", port);
+    
+    @Override
+    public String toString() {
+        return String.format("Netty server listening on port %s", port);
     }
 
 }

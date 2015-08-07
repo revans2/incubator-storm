@@ -28,12 +28,11 @@ import org.jboss.netty.channel.SimpleChannelUpstreamHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import backtype.storm.Config;
-
 public class SaslStormClientHandler extends SimpleChannelUpstreamHandler {
 
     private static final Logger LOG = LoggerFactory
             .getLogger(SaslStormClientHandler.class);
+
     private ISaslClient client;
     long start_time;
     /** Used for client or server's token to send or receive from each other. */
@@ -52,9 +51,6 @@ public class SaslStormClientHandler extends SimpleChannelUpstreamHandler {
         // register the newly established channel
         Channel channel = ctx.getChannel();
         client.channelConnected(channel);
-        
-        LOG.info("Connection established from " + channel.getLocalAddress()
-                + " to " + channel.getRemoteAddress());
 
         try {
             SaslNettyClient saslNettyClient = SaslNettyClientState.getSaslNettyClient
@@ -109,7 +105,7 @@ public class SaslStormClientHandler extends SimpleChannelUpstreamHandler {
                 }
                 ctx.getPipeline().remove(this);
                 this.client.channelReady();
-                
+
                 // We call fireMessageReceived since the client is allowed to
                 // perform this request. The client's request will now proceed
                 // to the next pipeline component namely StormClientHandler.

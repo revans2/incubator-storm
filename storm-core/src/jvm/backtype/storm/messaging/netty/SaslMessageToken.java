@@ -18,7 +18,6 @@
 package backtype.storm.messaging.netty;
 
 import java.io.IOException;
-
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBufferOutputStream;
 import org.jboss.netty.buffer.ChannelBuffers;
@@ -28,6 +27,7 @@ import org.slf4j.LoggerFactory;
 /**
  * Send and receive SASL tokens.
  */
+
 public class SaslMessageToken implements INettySerializable {
     public static final short IDENTIFIER = -500;
 
@@ -73,6 +73,7 @@ public class SaslMessageToken implements INettySerializable {
         this.token = token;
     }
 
+
     public int encodeLength() {
         return 2 + 4 + token.length;
     }
@@ -91,6 +92,7 @@ public class SaslMessageToken implements INettySerializable {
         if (token != null)
             payload_len = token.length;
 
+
         bout.writeShort(IDENTIFIER);
         bout.writeInt((int) payload_len);
         if (payload_len > 0) {
@@ -99,7 +101,7 @@ public class SaslMessageToken implements INettySerializable {
         bout.close();
         return bout.buffer();
     }
-
+    
     public static SaslMessageToken read(byte[] serial) {
         ChannelBuffer sm_buffer = ChannelBuffers.copiedBuffer(serial);
         short identifier = sm_buffer.readShort();

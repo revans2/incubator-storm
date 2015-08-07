@@ -18,9 +18,6 @@
 package backtype.storm.messaging.netty;
 
 import java.io.IOException;
-import java.nio.charset.Charset;
-import java.util.HashMap;
-import java.util.Map;
 
 import javax.security.auth.callback.Callback;
 import javax.security.auth.callback.CallbackHandler;
@@ -33,22 +30,22 @@ import javax.security.sasl.Sasl;
 import javax.security.sasl.SaslException;
 import javax.security.sasl.SaslServer;
 
-import org.apache.commons.codec.binary.Base64;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 class SaslNettyServer {
 
+
     private static final Logger LOG = LoggerFactory
         .getLogger(SaslNettyServer.class);
 
-    private SaslServer saslServer;
+        private SaslServer saslServer;
 
     SaslNettyServer(String topologyName, byte[] token) throws IOException {
         LOG.debug("SaslNettyServer: Topology token is: {} with authmethod {}",
                   topologyName, SaslUtils.AUTH_DIGEST_MD5);
 
-        try {    
+        try {
             SaslDigestCallbackHandler ch = new SaslNettyServer.SaslDigestCallbackHandler(
                 topologyName, token);
 
@@ -140,7 +137,7 @@ class SaslNettyServer {
     /**
      * Used by SaslTokenMessage::processToken() to respond to server SASL
      * tokens.
-     * 
+     *
      * @param token
      *            Server's SASL token
      * @return token to send back to the server.

@@ -28,8 +28,6 @@ import org.jboss.netty.channel.SimpleChannelUpstreamHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import backtype.storm.Config;
-
 public class SaslStormServerHandler extends SimpleChannelUpstreamHandler {
 
     ISaslServer server;
@@ -147,7 +145,7 @@ public class SaslStormServerHandler extends SimpleChannelUpstreamHandler {
         String secretKey;
         topologyName = server.name();
         secretKey = server.secretKey();
-            
+
         if (secretKey != null) {
             token = secretKey.getBytes();
         }
