@@ -15,7 +15,7 @@
 ;; limitations under the License.
 (ns backtype.storm.grouping-test
   (:use [clojure test])
-  (:import [backtype.storm.testing TestWordCounter TestWordSpout TestGlobalCount TestAggregatesCounter NGrouping]
+  (:import [backtype.storm.testing TestWordCounter TestWordSpout TestGlobalCount TestAggregatesCounter TestWordBytesCounter NGrouping]
            [backtype.storm.generated JavaObject JavaObjectArg])
   (:import [backtype.storm.grouping LoadMapping])
   (:use [backtype.storm testing clojure log])
