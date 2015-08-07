@@ -935,6 +935,7 @@
                      (str "-Dstorm.id=" storm-id)
                      (str "-Dworker.id=" worker-id)
                      (str "-Dworker.port=" port)
+                     (str "-Dstorm.local.dir=" (conf STORM-LOCAL-DIR))
                      "-cp" classpath
                      "backtype.storm.daemon.worker"
                      storm-id
