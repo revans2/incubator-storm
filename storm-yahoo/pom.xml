@@ -3,7 +3,7 @@
   <parent>
     <artifactId>storm</artifactId>
     <groupId>org.apache.storm</groupId>
-    <version>0.10.0</version>
+    <version>0.10.0-beta1</version>
   </parent>
   <groupId>yahoo.yinst.ystorm</groupId>
   <artifactId>storm_yahoo</artifactId>
