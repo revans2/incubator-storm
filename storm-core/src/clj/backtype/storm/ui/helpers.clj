@@ -225,10 +225,21 @@
     (configurator s)
     (.start s)))
 
-(defnk json-response [data :status 200 :headers {}]
-  {:status (or status 200)
-   :headers (merge {"Content-Type" "application/json"} headers)
-   :body (to-json data)})
+(defn wrap-json-in-callback [callback response]
+  (str callback "(" response ");"))
+
+(defnk json-response
+  [data callback :serialize-fn to-json :status 200 :headers {}]
+     {:status status
+      :headers (merge {"Cache-Control" "no-cache, no-store"
+                       "Access-Control-Allow-Origin" "*"
+                       "Access-Control-Allow-Headers" "Content-Type, Access-Control-Allow-Headers, Access-Controler-Allow-Origin, X-Requested-By, X-Csrf-Token, Authorization, X-Requested-With"}
+                      (if (not-nil? callback) {"Content-Type" "application/javascript;charset=utf-8"}
+                          {"Content-Type" "application/json;charset=utf-8"})
+                      headers)
+      :body (if (not-nil? callback)
+              (wrap-json-in-callback callback (serialize-fn data))
+              (serialize-fn data))})
 
 (defn exception->json
   [ex]

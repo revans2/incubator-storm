@@ -765,7 +765,7 @@
          (assert-authorized-user servlet-request "getClusterInfo")
          (json-response (assoc (cluster-summary user)
                           "jira-url" (*STORM-CONF* UI-PROJECT-JIRA-URL)
-                          "central-log-url" (*STORM-CONF* UI-CENTRAL-LOGGING-URL) (:callback m)))))
+                          "central-log-url" (*STORM-CONF* UI-CENTRAL-LOGGING-URL)) (:callback m))))
   (GET "/api/v1/history/summary" [:as {:keys [cookies servlet-request]} & m]
        (let [user (.getUserName http-creds-handler servlet-request)]
          (json-response (topology-history-info user) (:callback m))))

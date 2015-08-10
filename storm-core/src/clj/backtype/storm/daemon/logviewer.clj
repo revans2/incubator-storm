@@ -718,7 +718,7 @@ Note that if anything goes wrong, this will throw an Error and exit."
         throw))))
 
 (defn search-log-file
-  [fname user ^String root-dir search num-matches offset origin]
+  [fname user ^String root-dir search num-matches offset callback origin]
   (let [file (.getCanonicalFile (File. root-dir fname))]
     (if (.exists file)
       (if (or (blank? (*STORM-CONF* UI-FILTER))
@@ -736,6 +736,7 @@ Note that if anything goes wrong, this will throw an Error and exit."
                                   search
                                   :num-matches num-matches-int
                                   :start-byte-offset offset-int)
+                callback
                 :headers {"Access-Control-Allow-Origin" origin
                           "Access-Control-Allow-Credentials" "true"})
               (throw
@@ -743,10 +744,11 @@ Note that if anything goes wrong, this will throw an Error and exit."
                   (str "Search substring must be between 1 and 1024 UTF-8 "
                        "bytes in size (inclusive)"))))
             (catch Exception ex
-              (json-response (exception->json ex) :status 500))))
-        (json-response (unauthorized-user-json user) :status 401))
+              (json-response (exception->json ex) callback :status 500))))
+        (json-response (unauthorized-user-json user) callback :status 401))
       (json-response {"error" "Not Found"
                       "errorMessage" "The file was not found on this node."}
+                     callback
                      :status 404))))
 
 (defn find-n-matches [logs n file-offset offset search]
@@ -796,7 +798,7 @@ Note that if anything goes wrong, this will throw an Error and exit."
             (filter #(re-find worker-log-filename-pattern (.getName %)) (.listFiles port-dir))))))
 
 (defn deep-search-logs-for-topology
-  [topology-id user ^String root-dir search num-matches port file-offset offset search-archived? origin]
+  [topology-id user ^String root-dir search num-matches port file-offset offset search-archived? callback origin]
   (json-response
     (if (or (not search) (not (.exists (File. (str root-dir file-path-separator topology-id)))))
       []
@@ -823,6 +825,7 @@ Note that if anything goes wrong, this will throw an Error and exit."
                   (if search-archived?
                     (find-n-matches filtered-logs num-matches file-offset offset search)
                     (find-n-matches [(first filtered-logs)] num-matches 0 offset search)))))))))
+    callback
     :headers {"Access-Control-Allow-Origin" origin
               "Access-Control-Allow-Credentials" "true"}))
 
@@ -855,7 +858,7 @@ Note that if anything goes wrong, this will throw an Error and exit."
                ex)))))
 
 (defn list-log-files
-  [user topoId port log-root origin]
+  [user topoId port log-root callback origin]
   (let [file-results
         (if (nil? topoId)
           (if (nil? port)
@@ -880,6 +883,7 @@ Note that if anything goes wrong, this will throw an Error and exit."
         file-strs (sort (for [file file-results]
                     (get-topo-port-workerlog file)))]
     (json-response file-strs
+                   callback
                    :headers {"Access-Control-Allow-Origin" origin
                              "Access-Control-Allow-Credentials" "true"})))
 
@@ -919,10 +923,11 @@ Note that if anything goes wrong, this will throw an Error and exit."
                             (:search-string m)
                             (:num-matches m)
                             (:start-byte-offset m)
+                            (:callback m)
                             (.getHeader servlet-request "Origin")))
          (catch InvalidRequestException ex
            (log-error ex)
-           (json-response (exception->json ex) :status 400))))
+           (json-response (exception->json ex) (:callback m) :status 400))))
   (GET "/deepSearch/:topo-id" [:as {:keys [servlet-request servlet-response log-root]} topo-id & m]
        ;; We do not use servlet-response here, but do not remove it from the
        ;; :keys list, or this rule could stop working when an authentication
@@ -938,10 +943,11 @@ Note that if anything goes wrong, this will throw an Error and exit."
              (:start-file-offset m)
              (:start-byte-offset m)
              (:search-archived m)
+             (:callback m)
              (.getHeader servlet-request "Origin")))
          (catch InvalidRequestException ex
             (log-error ex)
-            (json-response (exception->json ex) :status 400))))
+            (json-response (exception->json ex) (:callback m) :status 400))))
   (GET "/searchLogs" [:as req & m]
     (try
       (let [servlet-request (:servlet-request req)
@@ -950,10 +956,11 @@ Note that if anything goes wrong, this will throw an Error and exit."
                         (:topoId m)
                         (:port m)
                         (:log-root req)
+                        (:callback m)
                         (.getHeader servlet-request "Origin")))
       (catch InvalidRequestException ex
         (log-error ex)
-        (json-response (exception->json ex) :status 400))))
+        (json-response (exception->json ex) (:callback m) :status 400))))
   (GET "/listLogs" [:as req & m]
     (try
       (let [servlet-request (:servlet-request req)
@@ -962,10 +969,11 @@ Note that if anything goes wrong, this will throw an Error and exit."
                         (:topoId m)
                         (:port m)
                         (:log-root req)
+                        (:callback m)
                         (.getHeader servlet-request "Origin")))
       (catch InvalidRequestException ex
         (log-error ex)
-        (json-response (exception->json ex) :status 400))))
+        (json-response (exception->json ex) (:callback m) :status 400))))
   (route/resources "/")
   (route/not-found "Page not found"))
 
@@ -995,7 +1003,7 @@ Note that if anything goes wrong, this will throw an Error and exit."
       (storm-run-jetty {:port (int (conf LOGVIEWER-PORT))
                         :configurator (fn [server]
                                         (doseq [connector (.getConnectors server)]
-                                          (.setHeaderBufferSize connector header-buffer-size))
+                                          (.setRequestHeaderSize connector header-buffer-size))
                                         (config-filter server middle filters-confs))}))
   (catch Exception ex
     (log-error ex))))
