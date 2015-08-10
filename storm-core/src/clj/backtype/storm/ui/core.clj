@@ -680,7 +680,7 @@
      "outputStats" (map unpack-comp-output-stat (.get_sid_to_output_stats info))
      "executorStats" (map (partial unpack-comp-exec-stat topology-id)
                           (.get_exec_stats info))}
-    (-> info .get_errors component-errors)))
+    (component-errors (.get_errors info) topology-id)))
 
 (defmethod unpack-component-page-info ComponentType/SPOUT
   [^ComponentPageInfo info topology-id window include-sys?]
@@ -689,7 +689,7 @@
      "outputStats" (map unpack-comp-output-stat (.get_sid_to_output_stats info))
      "executorStats" (map (partial unpack-comp-exec-stat topology-id)
                           (.get_exec_stats info))}
-    (-> info .get_errors component-errors)))
+    (component-errors (.get_errors info) topology-id)))
 
 (defn component-page
   [topology-id component window include-sys? user]
