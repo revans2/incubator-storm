@@ -52,6 +52,6 @@ public class KerberosPrincipalToLocal implements IPrincipalToLocal {
           return null;
       }
       String[] parts = principal.getName().split("[/@]");
-      return parts[0] ++ "@" ++ parts[parts.length-1];
+      return parts[0] + "@" + parts[parts.length-1];
     }
 }
