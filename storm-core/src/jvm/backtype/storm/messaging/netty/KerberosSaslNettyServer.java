@@ -19,6 +19,7 @@ package backtype.storm.messaging.netty;
 
 import backtype.storm.Config;
 import backtype.storm.security.auth.AuthUtils;
+import backtype.storm.security.auth.KerberosPrincipalToLocal;
 import java.io.IOException;
 import java.security.Principal;
 import java.security.PrivilegedActionException;
@@ -31,6 +32,7 @@ import javax.security.auth.Subject;
 import javax.security.auth.callback.Callback;
 import javax.security.auth.callback.CallbackHandler;
 import javax.security.auth.callback.UnsupportedCallbackException;
+import javax.security.auth.kerberos.KerberosPrincipal;
 import javax.security.auth.kerberos.KerberosTicket;
 import javax.security.auth.login.Configuration;
 import javax.security.auth.login.LoginException;
