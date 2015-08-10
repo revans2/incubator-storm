@@ -168,20 +168,14 @@ class KerberosSaslNettyServer {
                         LOG.debug("{} != {}", ac.getAuthenticationID(), ac.getAuthorizationID());
                         continue;
                     }
-                    
+
                     LOG.debug("Authorized Users: {}", authorizedUsers);
                     LOG.debug("Checking authorization for: {}", ac.getAuthorizationID());
                     for(String user : authorizedUsers) {
                         String requester = ac.getAuthorizationID();
 
-                        int instance = requester.indexOf("/");
-                        if(instance >= 0) {
-                            // This principal contains an 'instance' field.
-                            // We'll cut it out, and only authenticate for primary@realm
-                            String primary = requester.substring(0, instance);
-                            String realm = requester.substring(requester.indexOf("@"));
-                            requester = primary + realm;
-                        }
+                        KerberosPrincipal principal = new KerberosPrincipal(requester);
+                        requester = KerberosPrincipalToLocal.withoutInstance(principal);
 
                         if(requester.equals(user) ) {
                             ac.setAuthorized(true);

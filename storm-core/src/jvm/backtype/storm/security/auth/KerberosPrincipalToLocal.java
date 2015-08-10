@@ -42,4 +42,16 @@ public class KerberosPrincipalToLocal implements IPrincipalToLocal {
       // long as you don't have any really odd names in your KDC.
       return principal == null ? null : principal.getName().split("[/@]")[0];
     }
+
+    /**
+     * Remove the instance section of a kerberos
+     * principal (the part between the '/' and the '@')
+     */
+    public static String withoutInstance(Principal principal) {
+      if( principal == null ) {
+          return null;
+      }
+      String[] parts = principal.getName().split("[/@]");
+      return parts[0] ++ "@" ++ parts[parts.length-1];
+    }
 }
