@@ -27,7 +27,8 @@
 <script src="/js/jquery.cookies.2.2.0.min.js" type="text/javascript"></script>
 <script src="/js/jquery.mustache.js" type="text/javascript"></script>
 <script src="/js/bootstrap-3.3.1.min.js" type="text/javascript"></script>
-<script src="/js/purl.js" type="text/javascript"></script>
+<script src="/js/jquery.blockUI.min.js" type="text/javascript"></script>
+<script src="/js/url.min.js" type="text/javascript"></script>
 <script src="/js/dataTables.bootstrap.min.js" type="text/javascript"></script>
 <script src="/js/script.js" type="text/javascript"></script>
 </head>
@@ -43,9 +44,9 @@
 </body>
 <script>
 $(document).ready(function() {
-    var file = $.url().param("file");
-    var search = $.url().param("search");
-    var offset = $.url().param("offset") || 0;
+    var file = $.url("?file");
+    var search = $.url("?search");
+    var offset = $.url("?offset") || 0;
 
     $.get("/templates/logviewer-search-page-template.html", function(template) {
         $("#search-form").append(Mustache.render($(template).filter("#search-single-file").html(),{file: file, search: search}));

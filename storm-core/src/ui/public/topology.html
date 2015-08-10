@@ -104,7 +104,7 @@ function clearLoggerLevel(id){
 }
 
 function sendLoggerLevel(id){
-    var topologyId = $.url().param("id");
+    var topologyId = $.url("?id");
     var shouldRemove = $("#loggerRemove-" + id).val() === "true";
     var level = $("#loggerLevel-" + id).val();
     var timeout = parseInt($("#loggerTimeout-" + id).val());
@@ -144,7 +144,7 @@ function sendLoggerLevel(id){
 };
 
 function renderLogLevelForm (template, responseData){
-    var topologyId = $.url().param("id");
+    var topologyId = $.url("?id");
     var container = $("#change-log-level");
 
     var levels = [
@@ -223,7 +223,7 @@ function renderLogLevelForm (template, responseData){
         container.show('fast');
     };
     if (!responseData) {
-        var topologyId = $.url().param("id");
+        var topologyId = $.url("?id");
         $.get ('/api/v1/topology/' + topologyId + '/logconfig', renderImpl);
     } else {
         renderImpl (responseData);
