@@ -760,6 +760,9 @@
   (GET "/api/v1/cluster/configuration" [& m]
        (json-response (cluster-configuration)
                       (:callback m) :serialize-fn identity))
+  (GET "/api/v1/cluster/schedulerConfiguration" [& m]
+       (json-response (scheduler-configuration)
+                      (:callback m) :serialize-fn identity))
   (GET "/api/v1/cluster/summary" [:as {:keys [cookies servlet-request]} & m]
        (let [user (.getUserName http-creds-handler servlet-request)]
          (assert-authorized-user servlet-request "getClusterInfo")
