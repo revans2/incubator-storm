@@ -17,7 +17,6 @@
  */
 package backtype.storm.messaging.netty;
 
-import backtype.storm.messaging.TaskMessage;
 import backtype.storm.utils.Utils;
 import org.jboss.netty.channel.Channel;
 import org.jboss.netty.channel.ChannelHandlerContext;
@@ -27,7 +26,6 @@ import org.jboss.netty.channel.MessageEvent;
 import org.jboss.netty.channel.SimpleChannelUpstreamHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class StormServerHandler extends SimpleChannelUpstreamHandler  {
@@ -54,7 +52,7 @@ public class StormServerHandler extends SimpleChannelUpstreamHandler  {
     
     @Override
     public void messageReceived(ChannelHandlerContext ctx, MessageEvent e) {
-      List<TaskMessage> msgs = (List<TaskMessage>) e.getMessage();
+      Object msgs = e.getMessage();
       if (msgs == null) {
         return;
       }
