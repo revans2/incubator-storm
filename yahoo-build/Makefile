@@ -40,12 +40,19 @@ RELEASE: BASE_VERSION_UNDERSCORE
 		/home/y/bin/auto_increment_version.pl ystorm $(BASE_VERSION_UNDERSCORE) > RELEASE; \
 	fi
 
+define setup-versions
+cd .. && ${MVN} -Pyahoo versions:set -DnewVersion=$(MVN_FULL_VERSION) && \
+	${MVN} -Pyahoo versions:update-child-modules
+endef
+
+define revert-versions
+cd .. && ${MVN} -Pyahoo versions:revert && \
+	${MVN} -Pyahoo versions:update-child-modules
+endef
+
 testpkg: RELEASE BASE_VERSION build
-	cd .. && ${MVN} -Pyahoo versions:set -DnewVersion=$(MVN_FULL_VERSION)
-	cd .. && ${MVN} -Pyahoo versions:update-child-modules
-	yinst_create --buildtype test ystorm.yicf
-	cd .. && ${MVN} -Pyahoo versions:revert
-	cd .. && ${MVN} -Pyahoo versions:update-child-modules
+	$(setup-versions)
+	yinst_create --buildtype test ystorm.yicf && $(revert-versions) || ( $(revert-versions) && false )
 
 ignore-pom-changes:
 	cd .. && find . -name pom.xml | xargs git update-index --assume-unchanged
@@ -53,15 +60,13 @@ ignore-pom-changes:
 # This target is called from screwdriver build and leaves the poms changed for its
 # publish phase
 package-sd: RELEASE build
-	cd .. && ${MVN} -Pyahoo versions:set -DnewVersion=$(MVN_FULL_VERSION)
-	cd .. && ${MVN} -Pyahoo versions:update-child-modules
+	$(setup-versions)
 	cd .. && find . -name pom.xml | xargs git update-index --assume-unchanged
 	yinst_create --buildtype release ystorm.yicf
 	cd .. && find . -name pom.xml | xargs git update-index --no-assume-unchanged
 
 package: package-sd
-	cd .. && ${MVN} -Pyahoo versions:revert
-	cd .. && ${MVN} -Pyahoo versions:update-child-modules
+	$(revert-versions)
 
 
 rhel6_build.state: rhel6_build.yidf rhel6_build.yml
@@ -70,8 +75,7 @@ rhel6_build.state: rhel6_build.yidf rhel6_build.yml
 
 clean:
 	cd .. && $(MVN) -Pyahoo clean ${MVN_MAKE_OPTS}
-	cd .. && ${MVN} -Pyahoo versions:revert
-	cd .. && ${MVN} -Pyahoo versions:update-child-modules
+	$(revert-versions)
 	rm -rf *_build.ruleset ystorm*.tgz BASE_VERSION RELEASE BASE_VERSION_UNDERSCORE
 
 
