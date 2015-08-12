@@ -254,22 +254,21 @@ public class ConfigValidation {
         }
     };
 
-
     /**
-     * Validates a positive double value.
+     * Validates a non negative double value.
      */
-    public static Object PositiveDoubleValidator = new FieldValidator() {
+    public static Object NonNegativeNumberValidator = new FieldValidator() {
         @Override
         public void validateField(String name, Object o) throws IllegalArgumentException {
             if (o == null) {
                 // A null value is acceptable.
                 return;
             }
-            final double i;
+            final double double_value;
             if (o instanceof Number)
             {
-                i = ((Number)o).doubleValue();
-                if (i >= 0.0) {
+                double_value = ((Number)o).doubleValue();
+                if (double_value >= 0.0) {
                     return;
                 }
             }
