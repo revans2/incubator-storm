@@ -88,8 +88,10 @@ following format. A shortcut is to add the configuration item on the command
 line when starting a topology by using the **-c** command:
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
--c topology.blobstore.map='{"[KEY]":{localname:"[VALUE]", uncompress:[true|false]}}'
+-c topology.blobstore.map='{"[KEY]":{"localname":"[VALUE]", "uncompress":"[true|false]"}}'
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Note: Please take care of the quotes.
 
 The cache file would then be accessible to the topology as a local file with the
 name [VALUE].  
@@ -102,8 +104,10 @@ file-name-like format and extension, so it can be uncompressed correctly.
 ###### Example:  
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-storm jar /home/y/lib/storm-starter/current/storm-starter-jar-with-dependencies.jar storm.starter.clj.word_count test_topo -c topology.blobstore.map='{"key1":{localname:"blob_file", uncompress:false},"key2":{}}'
+storm jar /home/y/lib/storm-starter/current/storm-starter-jar-with-dependencies.jar storm.starter.clj.word_count test_topo -c topology.blobstore.map='{"key1":{"localname":"blob_file", "uncompress":"false"},"key2":{}}'
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Note: Please take care of the quotes.
 
 In the above example, we start the *word_count* topology (stored in the
 *storm-starter-jar-with-dependencies.jar* file), and ask it to have access
