@@ -331,6 +331,11 @@
   (with-nimbus nimbus
     (.getSchedulerConf ^Nimbus$Client nimbus)))
 
+(defn- strip-beta1
+  "Removes '.beta1' from a string"
+  [s]
+  (clojure.string/replace s #"[-_]beta1" ""))
+
 (defn cluster-summary
   ([user]
      (with-nimbus nimbus
@@ -348,7 +353,7 @@
                                 (map #(.get_num_executors ^TopologySummary %))
                                 (reduce +))]
        {"user" user
-        "stormVersion" (str (VersionInfo/getVersion))
+        "stormVersion" (strip-beta1 (str (VersionInfo/getVersion)))
         "nimbusUptime" (pretty-uptime-sec (.get_nimbus_uptime_secs summ))
         "supervisors" (count sups)
         "topologies" topologies
@@ -371,7 +376,7 @@
        "uptime" (pretty-uptime-sec (.get_uptime_secs s))
        "slotsTotal" (.get_num_workers s)
        "slotsUsed" (.get_num_used_workers s)
-       "version" (.get_version s)})}))
+       "version" (strip-beta1 (.get_version s))})}))
 
 (defn all-topologies-summary
   ([]
