@@ -388,7 +388,6 @@
                data (thriftify-error {:time-secs (current-time-secs) :error (stringify-error error)})
                _ (.mkdirs cluster-state path acls)
                ser-data (Utils/serialize data)
-               _ (.mkdirs cluster-state path acls)
                _ (.create_sequential cluster-state (str path "/e") ser-data acls)
                _ (.set_data cluster-state last-error-path ser-data acls)
                to-kill (->> (.get_children cluster-state path false)
