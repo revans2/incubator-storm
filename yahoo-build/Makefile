@@ -38,13 +38,13 @@ RELEASE: BASE_VERSION_UNDERSCORE
 	fi
 
 define setup-versions
-cd .. && ${MVN} -Pyahoo versions:set -DnewVersion=$(MVN_FULL_VERSION) && \
-	${MVN} -Pyahoo versions:update-child-modules
+cd .. && ${MVN} -q -Pyahoo versions:set -DnewVersion=$(MVN_FULL_VERSION) ${MVN_MAKE_OPTS} && \
+	${MVN} -q -Pyahoo versions:update-child-modules ${MVN_MAKE_OPTS}
 endef
 
 define revert-versions
-cd .. && ${MVN} -Pyahoo versions:revert && \
-	${MVN} -Pyahoo versions:update-child-modules
+cd .. && ${MVN} -q -Pyahoo versions:revert ${MVN_MAKE_OPTS} && \
+	${MVN} -q -Pyahoo versions:update-child-modules ${MVN_MAKE_OPTS}
 endef
 
 testpkg: RELEASE BASE_VERSION build
