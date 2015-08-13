@@ -80,7 +80,7 @@ public class KerberosSaslTransportPlugin extends SaslTransportPlugin {
 
         @Override
         public boolean equals(Object obj) {
-            return (_keyString.equals(obj.toString()));
+            return (obj instanceof LoginCacheKey) && _keyString.equals(((LoginCacheKey)obj)._keyString);
         }
 
         @Override
