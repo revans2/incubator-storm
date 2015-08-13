@@ -26,7 +26,7 @@
             EmitInfo BoltFailInfo BoltAckInfo BoltExecuteInfo])
   (:import [backtype.storm.metric.api IMetric IMetricsConsumer$TaskInfo IMetricsConsumer$DataPoint])
   (:import [backtype.storm Config])
-  (:import [backtype.storm.grouping LoadAwareCustomStreamGrouping LoadMapping])
+  (:import [backtype.storm.grouping LoadAwareCustomStreamGrouping LoadAwareShuffleGrouping LoadMapping ShuffleGrouping])
   (:import [java.util.concurrent ConcurrentLinkedQueue])
   (:require [backtype.storm [tuple :as tuple]])
   (:require [backtype.storm.daemon [task :as task]])
@@ -43,22 +43,6 @@
           (mod num-tasks)
           task-getter))))
 
-(defn mk-shuffle-grouper [^List target-tasks conf]
-  (if (.get conf TOPOLOGY-DISABLE-LOADAWARE-MESSAGING) 
-    (let [choices (rotating-random-range target-tasks)]
-      (fn [task-id tuple load]
-        (acquire-random-range-id choices)))
-    (let [rnd (Random.)]
-      (fn [task-id tuple load]
-        (let [loads (for [target target-tasks] (int (- 101 (* 100 (.get ^LoadMapping load target)))))
-              total (reduce + loads)
-              selected (.nextInt ^Random rnd total)]
-          (loop [index 0 sum 0]
-            (let [new-sum (+ sum (.get loads index))]
-              (if (< selected new-sum)
-                (.get ^List target-tasks index)
-                (recur (inc index) new-sum)))))))))
-
 (defn- mk-custom-grouper [^CustomStreamGrouping grouping ^WorkerTopologyContext context ^String component-id ^String stream-id target-tasks]
   (.prepare grouping context (GlobalStreamId. component-id stream-id) target-tasks)
   (if (instance? LoadAwareCustomStreamGrouping grouping)
@@ -66,6 +50,11 @@
         (.chooseTasks grouping task-id values load))
     (fn [task-id ^List values load]
       (.chooseTasks grouping task-id values))))
+
+(defn mk-shuffle-grouper [^List target-tasks conf ^WorkerTopologyContext context ^String component-id ^String stream-id]
+  (if (.get conf TOPOLOGY-DISABLE-LOADAWARE-MESSAGING)
+    (mk-custom-grouper (ShuffleGrouping.) context component-id stream-id target-tasks)
+    (mk-custom-grouper (LoadAwareShuffleGrouping.) context component-id stream-id target-tasks)))
 
 (defn- mk-grouper
   "Returns a function that returns a vector of which task indices to send tuple to, or just a single task index."
@@ -85,14 +74,14 @@
       :all
         (fn [task-id tuple load] target-tasks)
       :shuffle
-        (mk-shuffle-grouper target-tasks conf)
+        (mk-shuffle-grouper target-tasks conf context component-id stream-id)
       :local-or-shuffle
         (let [same-tasks (set/intersection
                            (set target-tasks)
                            (set (.getThisWorkerTasks context)))]
           (if-not (empty? same-tasks)
-            (mk-shuffle-grouper (vec same-tasks) conf)
-            (mk-shuffle-grouper target-tasks conf)))
+            (mk-shuffle-grouper (vec same-tasks) conf context component-id stream-id)
+            (mk-shuffle-grouper target-tasks conf context component-id stream-id)))
       :none
         (fn [task-id tuple load]
           (let [i (mod (.nextInt random) num-tasks)]
