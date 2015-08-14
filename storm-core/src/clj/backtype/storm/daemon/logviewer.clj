@@ -409,7 +409,7 @@ Note that if anything goes wrong, this will throw an Error and exit."
                           (string/join "\n"))
                      log-string)])
             (let [pager-data (if is-txt-file (pager-links fname start length file-length) nil)]
-              (html (concat (search-file-form (url-encode fname)) 
+              (html (concat (search-file-form fname)
                             (log-file-selection-form reordered-files-str) ;display all files for this topology
                             pager-data
                             (download-link fname)
@@ -894,9 +894,10 @@ Note that if anything goes wrong, this will throw an Error and exit."
                log-root (:log-root req)
                user (.getUserName http-creds-handler servlet-request)
                start (if (:start m) (parse-long-from-map m :start))
-               length (if (:length m) (parse-long-from-map m :length))]
-           (log-template (log-page (:file m) start length (:grep m) user log-root)
-                         (:file m) user))
+               length (if (:length m) (parse-long-from-map m :length))
+               file (url-decode (:file m))]
+           (log-template (log-page file start length (:grep m) user log-root)
+                         file user))
          (catch InvalidRequestException ex
            (log-error ex)
            (ring-response-from-exception ex))))
