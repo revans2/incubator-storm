@@ -47,7 +47,8 @@ $(document).ready(function() {
     var file = $.url("?file");
     var search = $.url("?search");
     var offset = $.url("?offset") || 0;
-    file = decodeURIComponent(decodeURIComponent(file));
+    file = decodeURIComponent(file);
+    search = decodeURIComponent(search);
 
     $.get("/templates/logviewer-search-page-template.html", function(template) {
         $("#search-form").append(Mustache.render($(template).filter("#search-single-file").html(),{file: file, search: search}));
