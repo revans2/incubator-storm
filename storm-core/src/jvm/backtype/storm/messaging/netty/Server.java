@@ -295,7 +295,7 @@ class Server implements IConnection, IStatefulObject, ISaslServer {
 
     @Override
     public Object getState() {
-        LOG.info("Getting metrics for server on " + port);
+        LOG.debug("Getting metrics for server on " + port);
         HashMap<String, Object> ret = new HashMap<String, Object>();
         ret.put("dequeuedMessages", messagesDequeued.getAndSet(0));
         ArrayList<Integer> pending = new ArrayList<Integer>(pendingMessages.length);
