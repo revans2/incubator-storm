@@ -15,13 +15,14 @@
 ;; limitations under the License.
 (ns backtype.storm.daemon.executor
   (:use [backtype.storm.daemon common])
-  (:use [backtype.storm bootstrap])
-  (:import [backtype.storm ICredentialsListener]
-           [backtype.storm.generated Grouping]
+  (:import [backtype.storm.generated Grouping]
            [java.io Serializable])
+  (:use [backtype.storm util config log timer stats])
+  (:import [java.util List Random HashMap ArrayList LinkedList Map])
+  (:import [backtype.storm ICredentialsListener])
   (:import [backtype.storm.hooks ITaskHook])
-  (:import [backtype.storm.tuple Tuple])
-  (:import [backtype.storm.spout ISpoutWaitStrategy])
+  (:import [backtype.storm.tuple Tuple Fields TupleImpl MessageId])
+  (:import [backtype.storm.spout ISpoutWaitStrategy ISpout SpoutOutputCollector ISpoutOutputCollector])
   (:import [backtype.storm.hooks.info SpoutAckInfo SpoutFailInfo
             EmitInfo BoltFailInfo BoltAckInfo BoltExecuteInfo])
   (:import [backtype.storm.grouping CustomStreamGrouping LoadAwareCustomStreamGrouping LoadAwareShuffleGrouping LoadMapping ShuffleGrouping])
@@ -34,11 +35,11 @@
   (:import [backtype.storm.metric.api IMetric IMetricsConsumer$TaskInfo IMetricsConsumer$DataPoint StateMetric])
   (:import [backtype.storm Config Constants])
   (:import [java.util.concurrent ConcurrentLinkedQueue])
-  (:require [backtype.storm [tuple :as tuple]])
+  (:require [backtype.storm [tuple :as tuple] [thrift :as thrift]
+             [cluster :as cluster] [disruptor :as disruptor] [stats :as stats]])
   (:require [backtype.storm.daemon [task :as task]])
-  (:require [backtype.storm.daemon.builtin-metrics :as builtin-metrics]))
-
-(bootstrap)
+  (:require [backtype.storm.daemon.builtin-metrics :as builtin-metrics])
+  (:require [clojure.set :as set]))
 
 (defn- mk-fields-grouper [^Fields out-fields ^Fields group-fields ^List target-tasks]
   (let [num-tasks (count target-tasks)
@@ -56,6 +57,11 @@
         (.chooseTasks grouping task-id values load))
     (fn [task-id ^List values load]
       (.chooseTasks grouping task-id values))))
+
+(defn mk-shuffle-grouper [^List target-tasks topo-conf ^WorkerTopologyContext context ^String component-id ^String stream-id]
+  (if (.get topo-conf TOPOLOGY-DISABLE-LOADAWARE-MESSAGING)
+    (mk-custom-grouper (ShuffleGrouping.) context component-id stream-id target-tasks)
+    (mk-custom-grouper (LoadAwareShuffleGrouping.) context component-id stream-id target-tasks)))
 
 (defn- mk-grouper
   "Returns a function that returns a vector of which task indices to send tuple to, or just a single task index."
@@ -86,7 +92,7 @@
       :none
         (fn [task-id tuple load]
           (let [i (mod (.nextInt random) num-tasks)]
-            (.get target-tasks i)
+            (get target-tasks i)
             ))
       :custom-object
         (let [grouping (thrift/instantiate-java-object (.get_custom_object thrift-grouping))]
@@ -296,7 +302,7 @@
         task-id (:task-id task-data)
         name->imetric (-> interval->task->metric-registry (get interval) (get task-id))
         task-info (IMetricsConsumer$TaskInfo.
-                    (. (java.net.InetAddress/getLocalHost) getCanonicalHostName)
+                    (hostname (:storm-conf executor-data))
                     (.getThisWorkerPort worker-context)
                     (:component-id executor-data)
                     task-id
@@ -319,7 +325,7 @@
         context (:worker-context executor-data)]
     (when tick-time-secs
       (if (or (system-id? (:component-id executor-data))
-              (and (not (storm-conf TOPOLOGY-ENABLE-MESSAGE-TIMEOUTS))
+              (and (= false (storm-conf TOPOLOGY-ENABLE-MESSAGE-TIMEOUTS))
                    (= :spout (:type executor-data))))
         (log-message "Timeouts disabled for executor " (:component-id executor-data) ":" (:executor-id executor-data))
         (schedule-recurring
