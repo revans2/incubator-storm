@@ -15,7 +15,7 @@
 ;; limitations under the License.
 (ns backtype.storm.daemon.nimbus
   (:import [org.apache.thrift.server THsHaServer THsHaServer$Args]
-           [backtype.storm.security.auth SingleUserPrincipal])
+           [backtype.storm.security.auth SingleUserPrincipal NimbusPrincipal])
   (:import [javax.security.auth Subject])
   (:import [org.apache.thrift.protocol TBinaryProtocol TBinaryProtocol$Factory])
   (:import [org.apache.thrift.exception])
@@ -379,7 +379,7 @@
 
 (defn- get-nimbus-subject []
   (let [nimbus-subject (Subject.)
-        nimbus-principal (SingleUserPrincipal. "nimbus")
+        nimbus-principal (NimbusPrincipal.)
         principals (.getPrincipals nimbus-subject)]
     (.add principals nimbus-principal)
     nimbus-subject))

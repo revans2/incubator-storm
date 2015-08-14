@@ -31,9 +31,9 @@ import backtype.storm.generated.AccessControl;
 import backtype.storm.generated.AccessControlType;
 import backtype.storm.generated.AuthorizationException;
 import backtype.storm.generated.SettableBlobMeta;
+import backtype.storm.security.auth.NimbusPrincipal;
 import backtype.storm.security.auth.AuthUtils;
 import backtype.storm.security.auth.IPrincipalToLocal;
-import backtype.storm.utils.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -195,7 +195,7 @@ public class BlobStoreAclHandler {
         isAdmin = true;
         break;
       }
-      if (u.equals("nimbus")) {
+      if (u.equals(NimbusPrincipal.class.toString())) {
         isNimbus = true;
         break;
       }
