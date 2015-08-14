@@ -22,13 +22,15 @@ import java.io.IOException;
 import java.security.Principal;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
+
 import java.util.Map;
 import java.util.Set;
+import java.util.SortedMap;
 import java.util.TreeMap;
+import java.util.concurrent.ConcurrentHashMap;
 import javax.security.auth.Subject;
 import javax.security.auth.callback.CallbackHandler;
 import javax.security.auth.kerberos.KerberosTicket;
-import javax.security.auth.login.AppConfigurationEntry;
 import javax.security.auth.login.Configuration;
 import javax.security.auth.login.LoginException;
 import javax.security.sasl.Sasl;
@@ -48,6 +50,44 @@ import backtype.storm.security.auth.SaslTransportPlugin;
 public class KerberosSaslTransportPlugin extends SaslTransportPlugin {
     public static final String KERBEROS = "GSSAPI"; 
     private static final Logger LOG = LoggerFactory.getLogger(KerberosSaslTransportPlugin.class);
+    private static Map <LoginCacheKey, Login> loginCache = new ConcurrentHashMap<>();
+
+    private class LoginCacheKey {
+        private String _keyString = null;
+
+        public LoginCacheKey(Configuration conf, String login_context) throws IOException {
+            if (conf == null) {
+                throw new IllegalArgumentException("Configuration should not be null");
+            }
+            SortedMap<String, ?> configsMap = AuthUtils.PullConfig(conf, login_context);
+            if (configsMap!=null) {
+                StringBuilder stringBuilder = new StringBuilder();
+                for (String configKey: configsMap.keySet()) {
+                    String configValue = (String) configsMap.get(configKey);
+                    stringBuilder.append(configKey);
+                    stringBuilder.append(configValue);
+                }
+                _keyString = stringBuilder.toString();
+            } else {
+                throw new RuntimeException("Error in parsing the kerberos login Configuration, returned null");
+            }
+        }
+
+        @Override
+        public int hashCode() {
+            return _keyString.hashCode();
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            return (obj instanceof LoginCacheKey) && _keyString.equals(((LoginCacheKey)obj)._keyString);
+        }
+
+        @Override
+        public String toString() {
+            return (_keyString);
+        }
+    }
 
     public TTransportFactory getServerTransportFactory() throws IOException {
         //create an authentication callback handler
@@ -57,10 +97,11 @@ public class KerberosSaslTransportPlugin extends SaslTransportPlugin {
         Subject subject = null;
         try {
             //specify a configuration object to be used
-            Configuration.setConfiguration(login_conf); 
+            Configuration.setConfiguration(login_conf);
             //now login
             Login login = new Login(AuthUtils.LOGIN_CONTEXT_SERVER, server_callback_handler);
             subject = login.getSubject();
+            login.startThreadIfNeeded();
         } catch (LoginException ex) {
             LOG.error("Server failed to login in principal:" + ex, ex);
             throw new RuntimeException(ex);
@@ -98,14 +139,23 @@ public class KerberosSaslTransportPlugin extends SaslTransportPlugin {
         
         //login our user
         Login login = null;
-        try { 
-            //specify a configuration object to be used
-            Configuration.setConfiguration(login_conf); 
-            //now login
-            login  = new Login(AuthUtils.LOGIN_CONTEXT_CLIENT, client_callback_handler);
-        } catch (LoginException ex) {
-            LOG.error("Server failed to login in principal:" + ex, ex);
-            throw new RuntimeException(ex);
+        LoginCacheKey key = new LoginCacheKey(login_conf, AuthUtils.LOGIN_CONTEXT_CLIENT);
+        if (loginCache.containsKey(key)) {
+            LOG.debug("Found a cached Login item with key string: {}", key.toString());
+            login = loginCache.get(key);
+        } else {
+            LOG.debug("Kerberos Login was not found in the Login Cache, attempting to contact the Kerberos Server");
+            try {
+                //specify a configuration object to be used
+                Configuration.setConfiguration(login_conf);
+                //now login
+                login = new Login(AuthUtils.LOGIN_CONTEXT_CLIENT, client_callback_handler);
+                login.startThreadIfNeeded();
+                loginCache.put(key, login);
+            } catch (LoginException ex) {
+                LOG.error("Server failed to login in principal:" + ex, ex);
+                throw new RuntimeException(ex);
+            }
         }
 
         final Subject subject = login.getSubject();
