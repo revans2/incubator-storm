@@ -367,7 +367,7 @@ public class Client implements IConnection, IStatefulObject, ISaslClient {
 
     @Override
     public Object getState() {
-        LOG.info("Getting metrics for connection to "+remote_addr);
+        LOG.debug("Getting metrics for connection to "+remote_addr);
         HashMap<String, Object> ret = new HashMap<String, Object>();
         ret.put("queue_length", message_queue.size());
         ret.put("reconnects", totalReconnects.getAndSet(0));
