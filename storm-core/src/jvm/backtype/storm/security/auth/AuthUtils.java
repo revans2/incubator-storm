@@ -36,6 +36,8 @@ import java.util.Set;
 import java.util.HashSet;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.SortedMap;
+import java.util.TreeMap;
 import java.util.concurrent.ExecutorService;
 
 public class AuthUtils {
@@ -81,7 +83,7 @@ public class AuthUtils {
      * @param conf_entry The app configuration entry name to get stuff from.
      * @return Return a map of the configs in configs_to_pull to their values.
      */
-    public static Map<String, ?> PullConfig(Configuration conf,
+    public static SortedMap<String, ?> PullConfig(Configuration conf,
                                             String conf_entry) throws IOException {
         if(conf == null) {
             return null;
@@ -93,7 +95,7 @@ public class AuthUtils {
             throw new IOException(errorMessage);
         }
 
-        HashMap<String, Object> results = new HashMap();
+        TreeMap<String, Object> results = new TreeMap<>();
         
 
         for(AppConfigurationEntry entry: configurationEntries) {

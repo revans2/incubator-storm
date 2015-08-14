@@ -131,6 +131,19 @@
                   (.validateField validator "test" x)
                   (catch Exception e e)))))))
 
+(deftest test-non-negative-number-validator
+  (let [validator ConfigValidation/NonNegativeNumberValidator]
+    (is (nil? (try
+      (.validateField validator "test" 0)
+      (catch Exception e e))))
+    (is (nil? (try
+      (.validateField validator "test" 0.0)
+      (catch Exception e e))))
+    (is (thrown-cause? java.lang.IllegalArgumentException
+          (.validateField validator "test" -1)))
+    (is (thrown-cause? java.lang.IllegalArgumentException
+          (.validateField validator "test" -1.0)))))
+
 (deftest test-worker-childopts-is-string-or-string-list
   (let [pass-cases [nil "some string" ["some" "string" "list"]]]
     (testing "worker.childopts validates"

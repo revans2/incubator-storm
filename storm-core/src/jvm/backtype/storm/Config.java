@@ -1108,7 +1108,7 @@ public class Config extends HashMap<String, Object> {
      *
      */
     public static final String SUPERVISOR_MEMORY_CAPACITY_MB = "supervisor.memory.capacity.mb";
-    public static final Object SUPERVISOR_MEMORY_CAPACITY_MB_SCHEMA = ConfigValidation.PositiveIntegerValidator;
+    public static final Object SUPERVISOR_MEMORY_CAPACITY_MB_SCHEMA = ConfigValidation.NonNegativeNumberValidator;
     
     /**
      * The total amount of CPU resources a supervisor is allowed to give to its workers.
@@ -1117,7 +1117,7 @@ public class Config extends HashMap<String, Object> {
      * for single threaded bolts
      */
     public static final String SUPERVISOR_CPU_CAPACITY = "supervisor.cpu.capacity";
-    public static final Object SUPERVISOR_CPU_CAPACITY_SCHEMA = ConfigValidation.PositiveIntegerValidator;
+    public static final Object SUPERVISOR_CPU_CAPACITY_SCHEMA = ConfigValidation.NonNegativeNumberValidator;
 
     /**
      * The jvm opts provided to workers launched by this supervisor. All "%ID%" substrings are replaced
@@ -1260,21 +1260,21 @@ public class Config extends HashMap<String, Object> {
      * to allocate slots on machines with enough available memory. 
      */
     public static final String TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB = "topology.component.resources.onheap.memory.mb";
-    public static final Object TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB_SCHEMA = ConfigValidation.PositiveDoubleValidator;
+    public static final Object TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB_SCHEMA = ConfigValidation.NonNegativeNumberValidator;
 
     /**
      * The maximum amount of memory an instance of a spout/bolt will take off heap. This enables the scheduler
      * to allocate slots on machines with enough available memory. 
      */
     public static final String TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB = "topology.component.resources.offheap.memory.mb";
-    public static final Object TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB_SCHEMA = ConfigValidation.PositiveDoubleValidator;
+    public static final Object TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB_SCHEMA = ConfigValidation.NonNegativeNumberValidator;
 
     /**
      * The config indicates the percentage of cpu for a core. Assuming the a core value to be 100, a
      * value of 10 indicates 10% of the core. The P in PCORE represents the term "physical".
      */
     public static final String TOPOLOGY_COMPONENT_CPU_PCORE_PERCENT = "topology.component.cpu.pcore.percent";
-    public static final Object TOPOLOGY_COMPONENT_CPU_PCORE_PERCENT_SCHEMA = ConfigValidation.PositiveDoubleValidator;
+    public static final Object TOPOLOGY_COMPONENT_CPU_PCORE_PERCENT_SCHEMA = ConfigValidation.NonNegativeNumberValidator;
 
     /**
      * How many executors to spawn for ackers.

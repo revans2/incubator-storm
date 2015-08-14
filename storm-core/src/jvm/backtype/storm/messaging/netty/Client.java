@@ -212,12 +212,12 @@ public class Client extends ConnectionWithStatus implements IStatefulObject, ISa
     @Override
     public Iterator<TaskMessage> recv(int flags, int clientId) {
         throw new UnsupportedOperationException("Client connection should not receive any messages");
-    }
+        }
 
     @Override
     public void sendLoadMetrics(Map<Integer, Double> taskToLoad) {
         throw new RuntimeException("Client connection should not send load metrics");
-    }
+            }
 
     @Override
     public void send(int taskId, byte[] payload) {
@@ -240,7 +240,7 @@ public class Client extends ConnectionWithStatus implements IStatefulObject, ISa
         }
 
         if (!hasMessages(msgs)) {
-            return;
+          return;
         }
 
         Channel channel = getConnectedChannel();
@@ -278,7 +278,7 @@ public class Client extends ConnectionWithStatus implements IStatefulObject, ISa
             // We can rely on `notifyInterestChanged` to push these messages as soon as there is spece in Netty's buffer
             // because we know `Channel.isWritable` was false after the messages were already in the buffer.
         }
-    }
+        }
 
     private Channel getConnectedChannel() {
         Channel channel = channelRef.get();
@@ -293,7 +293,7 @@ public class Client extends ConnectionWithStatus implements IStatefulObject, ISa
             }
             return null;
         }
-    }
+        }
 
     public InetSocketAddress getDstAddress() {
         return dstAddress;
@@ -308,7 +308,7 @@ public class Client extends ConnectionWithStatus implements IStatefulObject, ISa
         // We consume the iterator by traversing and thus "emptying" it.
         int msgCount = iteratorSize(msgs);
         messagesLost.getAndAdd(msgCount);
-    }
+                    }
 
     private int iteratorSize(Iterator<TaskMessage> msgs) {
         int size = 0;
@@ -316,8 +316,8 @@ public class Client extends ConnectionWithStatus implements IStatefulObject, ISa
             while (msgs.hasNext()) {
                 size++;
                 msgs.next();
+                }
             }
-        }
         return size;
     }
 
@@ -330,7 +330,7 @@ public class Client extends ConnectionWithStatus implements IStatefulObject, ISa
         if(batch.isEmpty()){
             return;
         }
-        
+
         final int numMessages = batch.size();
         LOG.debug("writing {} messages to channel {}", batch.size(), channel.toString());
         pendingMessages.addAndGet(numMessages);
@@ -351,7 +351,7 @@ public class Client extends ConnectionWithStatus implements IStatefulObject, ISa
             }
 
         });
-    }
+        }
 
     /**
      * Schedule a reconnect if we closed a non-null channel, and acquired the right to
@@ -391,7 +391,7 @@ public class Client extends ConnectionWithStatus implements IStatefulObject, ISa
         long totalPendingMsgs = pendingMessages.get();
         long startMs = System.currentTimeMillis();
         while (pendingMessages.get() != 0) {
-            try {
+        try {
                 long deltaMs = System.currentTimeMillis() - startMs;
                 if (deltaMs > PENDING_MESSAGES_FLUSH_TIMEOUT_MS) {
                     LOG.error("failed to send all pending messages to {} within timeout, {} of {} messages were not " +
@@ -402,8 +402,8 @@ public class Client extends ConnectionWithStatus implements IStatefulObject, ISa
             }
             catch (InterruptedException e) {
                 break;
-            }
         }
+    }
 
     }
 
@@ -437,7 +437,7 @@ public class Client extends ConnectionWithStatus implements IStatefulObject, ISa
 
     @Override
     public Object getState() {
-        LOG.info("Getting metrics for client connection to {}", dstAddressPrefixedName);
+        LOG.debug("Getting metrics for client connection to {}", dstAddressPrefixedName);
         HashMap<String, Object> ret = new HashMap<String, Object>();
         ret.put("reconnects", totalConnectionAttempts.getAndSet(0));
         ret.put("sent", messagesSent.getAndSet(0));
@@ -458,7 +458,7 @@ public class Client extends ConnectionWithStatus implements IStatefulObject, ISa
     /** ISaslClient interface **/
     public void channelConnected(Channel channel) {
 //        setChannel(channel);
-    }
+        }
 
     public void channelReady() {
 //        try {
@@ -551,7 +551,7 @@ public class Client extends ConnectionWithStatus implements IStatefulObject, ISa
                                     connectionAttempt);
                             if (messagesLost.get() > 0) {
                                 LOG.warn("Re-connection to {} was successful but {} messages has been lost so far", address.toString(), messagesLost.get());
-                            }
+    }
                         } else {
                             Throwable cause = future.getCause();
                             reschedule(cause);
@@ -566,7 +566,7 @@ public class Client extends ConnectionWithStatus implements IStatefulObject, ISa
                 throw new RuntimeException("Giving up to scheduleConnect to " + dstAddressPrefixedName + " after " +
                         connectionAttempts + " failed attempts. " + messagesLost.get() + " messages were lost");
 
-            }
+    }
         }
     }
 }

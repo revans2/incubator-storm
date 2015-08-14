@@ -58,7 +58,7 @@ class Server extends ConnectionWithStatus implements IStatefulObject, ISaslServe
     private final ConcurrentHashMap<String, AtomicInteger> messagesEnqueued = new ConcurrentHashMap<String, AtomicInteger>();
     private final AtomicInteger messagesDequeued = new AtomicInteger(0);
     private final AtomicInteger[] pendingMessages;
-
+    
     // Create multiple queues for incoming messages. The size equals the number of receiver threads.
     // For message which is sent to same task, it will be stored in the same queue to preserve the message order.
     private LinkedBlockingQueue<ArrayList<TaskMessage>>[] message_queue;
@@ -125,45 +125,45 @@ class Server extends ConnectionWithStatus implements IStatefulObject, ISaslServe
     }
     
     private ArrayList<TaskMessage>[] groupMessages(List<TaskMessage> msgs) {
-        ArrayList<TaskMessage> messageGroups[] = new ArrayList[queueCount];
-
-        for (int i = 0; i < msgs.size(); i++) {
-            TaskMessage message = msgs.get(i);
-            int task = message.task();
-
-            if (task == -1) {
-                closing = true;
-                return null;
-            }
-
-            Integer queueId = getMessageQueueId(task);
-
-            if (null == messageGroups[queueId]) {
-                messageGroups[queueId] = new ArrayList<TaskMessage>();
-            }
-            messageGroups[queueId].add(message);
+      ArrayList<TaskMessage> messageGroups[] = new ArrayList[queueCount];
+      
+      for (int i = 0; i < msgs.size(); i++) {
+        TaskMessage message = msgs.get(i);
+        int task = message.task();
+        
+        if (task == -1) {
+          closing = true;
+          return null;
         }
-        return messageGroups;
+        
+        Integer queueId = getMessageQueueId(task);
+        
+        if (null == messageGroups[queueId]) {
+          messageGroups[queueId] = new ArrayList<TaskMessage>();
+        }
+        messageGroups[queueId].add(message);
+      }
+      return messageGroups;
     }
     
     private Integer getMessageQueueId(int task) {
-        // try to construct the map from taskId -> queueId in round robin manner.
-        Integer queueId = taskToQueueId.get(task);
-        if (null == queueId) {
+      // try to construct the map from taskId -> queueId in round robin manner.
+      Integer queueId = taskToQueueId.get(task);
+      if (null == queueId) {
             synchronized (this) {
                 queueId = taskToQueueId.get(task);
                 if (queueId == null) {
-                    queueId = roundRobinQueueId++;
-                    if (roundRobinQueueId == queueCount) {
-                        roundRobinQueueId = 0;
-                    }
+            queueId = roundRobinQueueId++;
+            if (roundRobinQueueId == queueCount) {
+              roundRobinQueueId = 0;
+            }
                     HashMap<Integer, Integer> newRef = new HashMap<Integer, Integer>(taskToQueueId);
                     newRef.put(task, queueId);
                     taskToQueueId = newRef;
-                }
-            }
+          }
         }
-        return queueId;
+      }
+      return queueId;
     }
 
     private void addReceiveCount(String from, int amount) {
@@ -207,15 +207,15 @@ class Server extends ConnectionWithStatus implements IStatefulObject, ISaslServe
         }
       }
     }
-
-    public Iterator<TaskMessage> recv(int flags, int receiverId) {
-        if (closing) {
-            return closeMessage.iterator();
-        }
-
-        ArrayList<TaskMessage> ret = null;
-        int queueId = receiverId % queueCount;
-        if ((flags & 0x01) == 0x01) {
+    
+    public Iterator<TaskMessage> recv(int flags, int receiverId)  {
+      if (closing) {
+        return closeMessage.iterator();
+      }
+      
+      ArrayList<TaskMessage> ret = null; 
+      int queueId = receiverId % queueCount;
+      if ((flags & 0x01) == 0x01) { 
             //non-blocking
             ret = message_queue[queueId].poll();
         }
@@ -230,13 +230,13 @@ class Server extends ConnectionWithStatus implements IStatefulObject, ISaslServe
                 ret = null;
             }
         }
-            
-        if (null != ret) {
-            messagesDequeued.addAndGet(ret.size());
-            pendingMessages[queueId].addAndGet(0 - ret.size());
-            return ret.iterator();
-        }
-        return null;
+      
+      if (null != ret) {
+        messagesDequeued.addAndGet(ret.size());
+        pendingMessages[queueId].addAndGet(0 - ret.size());
+        return ret.iterator();
+      }
+      return null;
     }
    
     /**
@@ -326,7 +326,7 @@ class Server extends ConnectionWithStatus implements IStatefulObject, ISaslServe
     }
 
     public Object getState() {
-        LOG.info("Getting metrics for server on port {}", port);
+        LOG.debug("Getting metrics for server on port {}", port);
         HashMap<String, Object> ret = new HashMap<String, Object>();
         ret.put("dequeuedMessages", messagesDequeued.getAndSet(0));
         ArrayList<Integer> pending = new ArrayList<Integer>(pendingMessages.length);
