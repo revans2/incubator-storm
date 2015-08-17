@@ -522,26 +522,6 @@
                             <shadedPattern>org.apache.storm.curator</shadedPattern>
                         </relocation>
                         <relocation>
-                            <pattern>org.jboss.netty</pattern>
-                            <shadedPattern>org.apache.storm.netty</shadedPattern>
-                        </relocation>
-                        <relocation>
-                            <pattern>com.google.common</pattern>
-                            <shadedPattern>org.apache.storm.guava</shadedPattern>
-                        </relocation>
-                        <relocation>
-                            <pattern>com.google.thirdparty</pattern>
-                            <shadedPattern>org.apache.storm.guava.thirdparty</shadedPattern>
-                        </relocation>
-                        <relocation>
-                            <pattern>org.apache.http</pattern>
-                            <shadedPattern>org.apache.storm.http</shadedPattern>
-                        </relocation>
-                        <relocation>
-                            <pattern>org.apache.zookeeper</pattern>
-                            <shadedPattern>org.apache.storm.zookeeper</shadedPattern>
-                        </relocation>
-                        <relocation>
                             <pattern>org.apache.jute</pattern>
                             <shadedPattern>org.apache.storm.jute</shadedPattern>
                         </relocation>
