@@ -74,7 +74,7 @@ public class LocalFsBlobStore extends BlobStore {
   @Override
   public AtomicOutputStream createBlob(String key, SettableBlobMeta meta, Subject who) throws AuthorizationException, KeyAlreadyExistsException {
     validateKey(key);
-    _aclHandler.normalizeSettableBlobMeta(meta, who, READ | WRITE | ADMIN);
+    _aclHandler.normalizeSettableBlobMeta(key, meta, who, READ | WRITE | ADMIN);
     BlobStoreAclHandler.validateSettableACLs(key, meta.get_acl());
     _aclHandler.validateACL(meta.get_acl(), READ | WRITE | ADMIN, who, key);
     if (fbs.exists(DATA_PREFIX+key)) {
@@ -99,7 +99,7 @@ public class LocalFsBlobStore extends BlobStore {
       }
     }
   }
-  
+
   @Override
   public AtomicOutputStream updateBlob(String key, Subject who) throws AuthorizationException, KeyNotFoundException {
     SettableBlobMeta meta = getStoredBlobMeta(key);
@@ -163,7 +163,7 @@ public class LocalFsBlobStore extends BlobStore {
   @Override
   public void setBlobMeta(String key, SettableBlobMeta meta, Subject who) throws AuthorizationException, KeyNotFoundException {
     validateKey(key);
-    _aclHandler.normalizeSettableBlobMeta(meta, who, ADMIN);
+    _aclHandler.normalizeSettableBlobMeta(key, meta, who, ADMIN);
     BlobStoreAclHandler.validateSettableACLs(key, meta.get_acl());
     SettableBlobMeta orig = getStoredBlobMeta(key);
     _aclHandler.validateACL(orig.get_acl(), ADMIN, who, key);
@@ -196,7 +196,7 @@ public class LocalFsBlobStore extends BlobStore {
       fbs.deleteKey(META_PREFIX+key);
     } catch (IOException e) {
       throw new RuntimeException(e);
-    }    
+    }
   }
 
   @Override
@@ -208,7 +208,7 @@ public class LocalFsBlobStore extends BlobStore {
       return new BlobStoreFileInputStream(fbs.read(DATA_PREFIX+key));
     } catch (IOException e) {
       throw new RuntimeException(e);
-    }   
+    }
   }
 
   @Override

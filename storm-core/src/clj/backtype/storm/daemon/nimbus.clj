@@ -14,7 +14,9 @@
 ;; See the License for the specific language governing permissions and
 ;; limitations under the License.
 (ns backtype.storm.daemon.nimbus
-  (:import [org.apache.thrift.server THsHaServer THsHaServer$Args])
+  (:import [org.apache.thrift.server THsHaServer THsHaServer$Args]
+           [backtype.storm.security.auth SingleUserPrincipal NimbusPrincipal])
+  (:import [javax.security.auth Subject])
   (:import [org.apache.thrift.protocol TBinaryProtocol TBinaryProtocol$Factory])
   (:import [org.apache.thrift.exception])
   (:import [org.apache.thrift.transport TNonblockingServerTransport TNonblockingServerSocket])
@@ -160,10 +162,14 @@
 (defn inbox [nimbus]
   (master-inbox (:conf nimbus)))
 
+(defn- get-subject []
+  (let [req (ReqContext/context)]
+    (.subject req)))
+
 (defn- read-storm-conf [conf storm-id blob-store]
   (clojurify-structure
     (Utils/fromCompressedJsonConf
-      (.readBlob blob-store (master-stormconf-key storm-id) nil))))
+      (.readBlob blob-store (master-stormconf-key storm-id) (get-subject)))))
 
 (defn set-topology-status! [nimbus storm-id status]
   (let [storm-cluster-state (:storm-cluster-state nimbus)]
@@ -172,7 +178,6 @@
                    {:status status})
    (log-message "Updated " storm-id " with status " status)
    ))
-
 (declare delay-event)
 (declare mk-assignments)
 
@@ -380,23 +385,40 @@
       )))
 
 (defn- setup-storm-code [conf storm-id tmp-jar-location storm-conf topology blob-store]
-  (if tmp-jar-location ;;in local mode there is no jar
-    (.createBlob blob-store (master-stormjar-key storm-id) (FileInputStream. tmp-jar-location) (SettableBlobMeta. BlobStoreAclHandler/WORLD_EVERYTHING) nil))
-  (.createBlob blob-store (master-stormcode-key storm-id) (Utils/serialize topology) (SettableBlobMeta. BlobStoreAclHandler/WORLD_EVERYTHING) nil)
-  (.createBlob blob-store (master-stormconf-key storm-id) (Utils/toCompressedJsonConf storm-conf) (SettableBlobMeta. BlobStoreAclHandler/WORLD_EVERYTHING) nil))
+  (let [subject (get-subject)]
+    (if tmp-jar-location ;;in local mode there is no jar
+      (.createBlob blob-store (master-stormjar-key storm-id) (FileInputStream. tmp-jar-location) (SettableBlobMeta. BlobStoreAclHandler/DEFAULT) subject))
+    (.createBlob blob-store (master-stormcode-key storm-id) (Utils/serialize topology) (SettableBlobMeta. BlobStoreAclHandler/DEFAULT) subject)
+    (.createBlob blob-store (master-stormconf-key storm-id) (Utils/toCompressedJsonConf storm-conf) (SettableBlobMeta. BlobStoreAclHandler/DEFAULT) subject)))
 
 (defn- read-storm-topology [storm-id blob-store]
   (Utils/deserialize
-    (.readBlob blob-store (master-stormcode-key storm-id) nil) StormTopology))
+    (.readBlob blob-store (master-stormcode-key storm-id) (get-subject)) StormTopology))
 
 (declare compute-executor->component)
+
+(defn- get-nimbus-subject []
+  (let [nimbus-subject (Subject.)
+        nimbus-principal (NimbusPrincipal.)
+        principals (.getPrincipals nimbus-subject)]
+    (.add principals nimbus-principal)
+    nimbus-subject))
+
+(defn- read-storm-topology-as-nimbus [storm-id blob-store]
+  (Utils/deserialize
+    (.readBlob blob-store (master-stormcode-key storm-id) (get-nimbus-subject)) StormTopology))
+
+(defn read-storm-conf-as-nimbus [conf storm-id blob-store]
+  (clojurify-structure
+    (Utils/fromCompressedJsonConf
+      (.readBlob blob-store (master-stormconf-key storm-id) (get-nimbus-subject)))))
 
 (defn read-topology-details [nimbus storm-id]
   (let [conf (:conf nimbus)
         blob-store (:blob-store nimbus)
         storm-base (.storm-base (:storm-cluster-state nimbus) storm-id nil)
-        topology-conf (read-storm-conf conf storm-id blob-store)
-        topology (read-storm-topology storm-id blob-store)
+        topology-conf (read-storm-conf-as-nimbus conf storm-id blob-store)
+        topology (read-storm-topology-as-nimbus storm-id blob-store)
         executor->component (->> (compute-executor->component nimbus storm-id)
                                  (map-key (fn [[start-task end-task]]
                                             (ExecutorDetails. (int start-task) (int end-task)))))]
@@ -492,8 +514,8 @@
         blob-store (:blob-store nimbus)
         storm-base (.storm-base (:storm-cluster-state nimbus) storm-id nil)
         component->executors (:component->executors storm-base)
-        storm-conf (read-storm-conf conf storm-id blob-store)
-        topology (read-storm-topology storm-id blob-store)
+        storm-conf (read-storm-conf-as-nimbus conf storm-id blob-store)
+        topology (read-storm-topology-as-nimbus storm-id blob-store)
         task->component (storm-task-info topology storm-conf)]
     (->> (storm-task-info topology storm-conf)
          reverse-map
@@ -508,8 +530,8 @@
   (let [conf (:conf nimbus)
         blob-store (:blob-store nimbus)
         executors (compute-executors nimbus storm-id)
-        topology (read-storm-topology storm-id blob-store)
-        storm-conf (read-storm-conf conf storm-id blob-store)
+        topology (read-storm-topology-as-nimbus storm-id blob-store)
+        storm-conf (read-storm-conf-as-nimbus conf storm-id blob-store)
         task->component (storm-task-info topology storm-conf)
         executor->component (into {} (for [executor executors
                                            :let [start-task (first executor)
@@ -911,7 +933,7 @@
 
 (defn blob-rm [blob-store key]
   (try
-    (.deleteBlob blob-store key nil)
+    (.deleteBlob blob-store key (get-nimbus-subject))
   (catch Exception e)))
 
 (defn rm-from-blob-store [id blob-store]
