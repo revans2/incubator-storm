@@ -181,11 +181,9 @@ public class BlobStoreAclHandler {
     return user;
   }
 
-  private boolean isSupervisorOrAdminOrNimbus(Set<String> user, int mask)
-  {
+  private boolean isSupervisorOrAdmin(Set<String> user, int mask) {
     boolean isSupervisor = false;
     boolean isAdmin = false;
-    boolean isNimbus = false;
     for(String u : user) {
       if (_supervisors.contains(u)) {
         isSupervisor = true;
@@ -195,15 +193,25 @@ public class BlobStoreAclHandler {
         isAdmin = true;
         break;
       }
-      if (u.equals(NimbusPrincipal.class.toString())) {
-        isNimbus = true;
-        break;
-      }
     }
     if (mask > 0 && !isAdmin) {
       isSupervisor = (isSupervisor && (mask == 1));
     }
-    return isSupervisor || isAdmin || isNimbus;
+    return isSupervisor || isAdmin;
+  }
+
+  private boolean isNimbus(Subject who) {
+    Set<Principal> principals = null;
+    boolean isNimbusInstance = false;
+    if(who != null) {
+      principals = who.getPrincipals();
+      for (Principal principal : principals) {
+        if (principal instanceof NimbusPrincipal) {
+          isNimbusInstance = true;
+        }
+      }
+    }
+    return isNimbusInstance;
   }
 
   /**
@@ -212,7 +220,10 @@ public class BlobStoreAclHandler {
   public void validateUserCanReadMeta(List<AccessControl> acl, Subject who, String key)
       throws AuthorizationException {
     Set<String> user = constructUserFromPrincipals(who);
-    if (isSupervisorOrAdminOrNimbus(user, -1)) {
+    if (isNimbus(who)) {
+      return;
+    }
+    if (isSupervisorOrAdmin(user, -1)) {
       return;
     }
     for (AccessControl ac : acl) {
@@ -230,7 +241,10 @@ public class BlobStoreAclHandler {
       throws AuthorizationException {
     Set<String> user = constructUserFromPrincipals(who);
     LOG.debug("user {}", user);
-    if(isSupervisorOrAdminOrNimbus(user, mask)) {
+    if (isNimbus(who)) {
+      return;
+    }
+    if(isSupervisorOrAdmin(user, mask)) {
       return;
     }
     for (AccessControl ac : acl) {

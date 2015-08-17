@@ -17,6 +17,7 @@ import java.util.Map;
 import java.util.UUID;
 
 import backtype.storm.generated.AccessControlType;
+import backtype.storm.security.auth.NimbusPrincipal;
 import backtype.storm.security.auth.SingleUserPrincipal;
 import backtype.storm.utils.Utils;
 import org.apache.commons.io.FileUtils;
@@ -44,9 +45,11 @@ public class BlobStoreTest {
   protected static Configuration hadoopConf = null;
   URI base;
   File baseFile;
+  private static Map conf = new HashMap();
 
   @Before
   public void init() {
+    initializeConfigs();
     baseFile = new File("/tmp/blob-store-test-"+UUID.randomUUID());
     base = baseFile.toURI();
   }
@@ -61,6 +64,19 @@ public class BlobStoreTest {
     if (dfscluster != null) {
       dfscluster.shutdown();
     }
+  }
+
+  // Method which initializes nimbus admin
+  public static void initializeConfigs() {
+    conf.put(Config.NIMBUS_ADMINS,"admin");
+    conf.put(Config.NIMBUS_SUPERVISOR_USERS,"supervisor");
+  }
+
+  //Gets Nimbus Subject with NimbusPrincipal set on it
+  public static Subject getNimbusSubject() {
+    Subject nimbus = new Subject();
+    nimbus.getPrincipals().add(new NimbusPrincipal());
+    return nimbus;
   }
 
   // Overloading the assertStoreHasExactly method accomodate Subject in order to check for authorization
@@ -179,14 +195,44 @@ public class BlobStoreTest {
 
   // Check for Blobstore with authentication
   public void testWithAuthentication(BlobStore store) throws Exception {
+    //Test for Nimbus Admin
+    Subject admin = getSubject("admin");
+    assertStoreHasExactly(store);
+    SettableBlobMeta metadata = new SettableBlobMeta(BlobStoreAclHandler.DEFAULT);
+    AtomicOutputStream out = store.createBlob("test", metadata, admin);
+    assertStoreHasExactly(store, "test");
+    out.write(1);
+    out.close();
+    store.deleteBlob("test", admin);
+
+    //Test for Supervisor Admin
+    Subject supervisor = getSubject("supervisor");
+    assertStoreHasExactly(store);
+    metadata = new SettableBlobMeta(BlobStoreAclHandler.DEFAULT);
+    out = store.createBlob("test", metadata, supervisor);
+    assertStoreHasExactly(store, "test");
+    out.write(1);
+    out.close();
+    store.deleteBlob("test", supervisor);
+
+    //Test for Nimbus itself as a user
+    Subject nimbus = getNimbusSubject();
+    assertStoreHasExactly(store);
+    metadata = new SettableBlobMeta(BlobStoreAclHandler.DEFAULT);
+    out = store.createBlob("test", metadata, nimbus);
+    assertStoreHasExactly(store, "test");
+    out.write(1);
+    out.close();
+    store.deleteBlob("test", nimbus);
+
     // Test with a dummy test_subject for cases where subject !=null (security turned on)
     Subject who = getSubject("test_subject");
     assertStoreHasExactly(store);
 
     // Tests for case when subject != null (security turned on) and
     // acls for the blob are set to WORLD_EVERYTHING
-    SettableBlobMeta metadata = new SettableBlobMeta(BlobStoreAclHandler.WORLD_EVERYTHING);
-    AtomicOutputStream out = store.createBlob("test", metadata, who);
+    metadata = new SettableBlobMeta(BlobStoreAclHandler.WORLD_EVERYTHING);
+    out = store.createBlob("test", metadata, who);
     out.write(1);
     out.close();
     assertStoreHasExactly(store, "test");
