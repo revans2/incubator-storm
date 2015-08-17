@@ -47,20 +47,24 @@ cd .. && ${MVN} -q -Pyahoo versions:revert ${MVN_MAKE_OPTS} && \
 	${MVN} -q -Pyahoo versions:update-child-modules ${MVN_MAKE_OPTS}
 endef
 
+define find-tracked-pom-xml
+git ls-files 'pom.xml' '**/pom.xml'
+endef
+
 testpkg: RELEASE BASE_VERSION build
 	$(setup-versions)
 	yinst_create --buildtype test ystorm.yicf && $(revert-versions) || ( $(revert-versions) && false )
 
 ignore-pom-changes:
-	cd .. && find . -name pom.xml | xargs git update-index --assume-unchanged
+	cd .. && $(find-tracked-pom-xml) | xargs git update-index --assume-unchanged
 	
 # This target is called from screwdriver build and leaves the poms changed for its
 # publish phase
 package-sd: RELEASE build
 	$(setup-versions)
-	cd .. && find . -name pom.xml | xargs git update-index --assume-unchanged
+	cd .. && $(find-tracked-pom-xml)| xargs git update-index --assume-unchanged
 	yinst_create --buildtype release ystorm.yicf
-	cd .. && find . -name pom.xml | xargs git update-index --no-assume-unchanged
+	cd .. && $(find-tracked-pom-xml) | xargs git update-index --no-assume-unchanged
 
 package: package-sd
 	$(revert-versions)
