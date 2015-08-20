@@ -1044,7 +1044,7 @@
 
 (defn try-read-storm-conf [conf storm-id blob-store]
   (try-cause
-    (read-storm-conf conf storm-id blob-store)
+    (read-storm-conf-as-nimbus conf storm-id blob-store)
     (catch KeyNotFoundException e
        (throw (NotAliveException. (str storm-id))))
   )
@@ -1058,7 +1058,7 @@
 
 (defn try-read-storm-topology [storm-id blob-store]
   (try-cause
-    (read-storm-topology storm-id blob-store)
+    (read-storm-topology-as-nimbus storm-id blob-store)
     (catch KeyNotFoundException e
        (throw (NotAliveException. (str storm-id))))
   )
