@@ -149,7 +149,7 @@ public class HdfsBlobStore extends BlobStore {
       throws AuthorizationException, KeyAlreadyExistsException {
     who = checkAndGetSubject(who);
     validateKey(key);
-    _aclHandler.normalizeSettableBlobMeta(meta, who, READ | WRITE | ADMIN);
+    _aclHandler.normalizeSettableBlobMeta(key, meta, who, READ | WRITE | ADMIN);
     BlobStoreAclHandler.validateSettableACLs(key, meta.get_acl());
     _aclHandler.validateACL(meta.get_acl(), READ | WRITE | ADMIN, who, key);
     if (_hbs.exists(DATA_PREFIX+key)) {
@@ -244,7 +244,7 @@ public class HdfsBlobStore extends BlobStore {
       throws AuthorizationException, KeyNotFoundException {
     who = checkAndGetSubject(who);
     validateKey(key);
-    _aclHandler.normalizeSettableBlobMeta(meta, who, ADMIN);
+    _aclHandler.normalizeSettableBlobMeta(key,  meta, who, ADMIN);
     BlobStoreAclHandler.validateSettableACLs(key, meta.get_acl());
     SettableBlobMeta orig = getStoredBlobMeta(key);
     _aclHandler.validateACL(orig.get_acl(), ADMIN, who, key);
