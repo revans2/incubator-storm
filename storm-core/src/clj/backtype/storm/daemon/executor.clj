@@ -46,9 +46,9 @@
 (defn- mk-custom-grouper [^CustomStreamGrouping grouping ^WorkerTopologyContext context ^String component-id ^String stream-id target-tasks]
   (.prepare grouping context (GlobalStreamId. component-id stream-id) target-tasks)
   (if (instance? LoadAwareCustomStreamGrouping grouping)
-    (fn [task-id ^List values load]
-        (.chooseTasks grouping task-id values load))
-    (fn [task-id ^List values load]
+    (fn [task-id ^List values ^LoadMapping load]
+        (.chooseTasks ^LoadAwareCustomStreamGrouping grouping task-id values load))
+    (fn [task-id ^List values ^LoadMapping load]
       (.chooseTasks grouping task-id values))))
 
 (defn mk-shuffle-grouper [^List target-tasks topo-conf ^WorkerTopologyContext context ^String component-id ^String stream-id]
