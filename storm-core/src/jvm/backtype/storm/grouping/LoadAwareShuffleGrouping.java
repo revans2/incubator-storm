@@ -30,7 +30,6 @@ import backtype.storm.generated.GlobalStreamId;
 import backtype.storm.task.WorkerTopologyContext;
 
 public class LoadAwareShuffleGrouping implements LoadAwareCustomStreamGrouping, Serializable {
-
     private Random random;
     private Map<Integer, List<Integer>> orig;
     private ArrayList<List<Integer>> choices;

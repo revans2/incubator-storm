@@ -20,10 +20,8 @@ package backtype.storm.grouping;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.Random;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import backtype.storm.generated.GlobalStreamId;
 import backtype.storm.task.WorkerTopologyContext;
