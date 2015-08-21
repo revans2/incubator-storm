@@ -47,11 +47,11 @@ public class WorkerSlot {
         this.cpu += cpu;
     }
 
-    public double getAllocatedOnHeapMem() {
+    public double getAllocatedMemOnHeap() {
         return memOnHeap;
     }
 
-    public double getAllocatedOffHeapMem() {
+    public double getAllocatedMemOffHeap() {
         return memOffHeap;
     }
 
