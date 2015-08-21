@@ -36,8 +36,8 @@ cat <<XML
         </PatternLayout>
         <Policies>
             <SizeBasedTriggeringPolicy size="100 MB"/> <!-- Or every 100 MB -->
-            <DefaultRolloverStrategy max="9"/>
         </Policies>
+        <DefaultRolloverStrategy max="9"/>
     </RollingFile>
     <RollingFile name="STDOUT"
                  fileName="\${sys:workers.artifacts}/\${sys:storm.id}/\${sys:worker.port}/\${sys:logfile.name}.out"
@@ -47,8 +47,8 @@ cat <<XML
         </PatternLayout>
         <Policies>
             <SizeBasedTriggeringPolicy size="100 MB"/> <!-- Or every 100 MB -->
-            <DefaultRolloverStrategy max="4"/>
         </Policies>
+        <DefaultRolloverStrategy max="4"/>
     </RollingFile>
     <RollingFile name="STDERR"
                  fileName="\${sys:workers.artifacts}/\${sys:storm.id}/\${sys:worker.port}/\${sys:logfile.name}.err"
@@ -58,8 +58,8 @@ cat <<XML
         </PatternLayout>
         <Policies>
             <SizeBasedTriggeringPolicy size="100 MB"/> <!-- Or every 100 MB -->
-            <DefaultRolloverStrategy max="4"/>
         </Policies>
+        <DefaultRolloverStrategy max="4"/>
     </RollingFile>
     <Syslog name="syslog" format="RFC5424" host="${syslog_host}" port="514"
         protocol="UDP" appName="[\${sys:storm.id}:\${sys:worker.port}]" mdcId="mdc" includeMDC="true"
