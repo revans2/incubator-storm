@@ -66,22 +66,24 @@
   
 (defn- read-my-executors [assignments-snapshot storm-id assignment-id]
   (let [assignment (get assignments-snapshot storm-id)
+        my-slots-resources (into {} 
+                                 (filter (fn [[[node _] _]] (= node assignment-id))
+                                         (:worker->resources assignment)))
         my-executors (filter (fn [[_ [node _]]] (= node assignment-id))
-                           (:executor->node+port assignment))
+                             (:executor->node+port assignment))
         port-executors (apply merge-with
-                          concat
-                          (for [[executor [_ port]] my-executors]
-                            {port [executor]}
-                            ))]
+                              concat
+                              (for [[executor [_ port]] my-executors]
+                                {port [executor]}
+                                ))]
     (into {} (for [[port executors] port-executors]
                ;; need to cast to int b/c it might be a long (due to how yaml parses things)
                ;; doall is to avoid serialization/deserialization problems with lazy seqs
-               [(Integer. port) (mk-local-assignment storm-id (doall executors))]
+               [(Integer. port) (mk-local-assignment-with-resources storm-id (doall executors) (get my-slots-resources [assignment-id port]))]
                ))))
 
-
 (defn- read-assignments
-  "Returns map from port to struct containing :storm-id and :executors"
+  "Returns map from port to struct containing :storm-id, :executors and :resources"
   [assignments-snapshot assignment-id]
   (->> (dofor [sid (keys assignments-snapshot)] (read-my-executors assignments-snapshot sid assignment-id))
        (apply merge-with (fn [& params] (throw-runtime (str "Should not have multiple topologies assigned to one port " params))))))
@@ -365,7 +367,7 @@
                       (local-mkdirs (worker-pids-root conf id))
                       (local-mkdirs (worker-heartbeats-root conf id))
                       (launch-worker supervisor
-                        (:storm-id assignment)
+                        (:storm-id assignment) ;; to use (:resources assignment) for launching JVM/CGroup here
                         port
                         id)
                       (mark! num-workers-launched)
@@ -494,7 +496,7 @@
           new-assignment (->> all-assignment
                               (filter-key #(.confirmAssigned isupervisor %)))
           rm-blob-refs? true
-	        assigned-storm-ids (assigned-storm-ids-from-port-assignments new-assignment)
+	      assigned-storm-ids (assigned-storm-ids-from-port-assignments new-assignment)
           existing-assignment (ls-local-assignments local-state)
           localizer (:localizer supervisor)
           checked-downloaded-storm-ids (set (verify-downloaded-files conf localizer assigned-storm-ids all-downloaded-storm-ids))

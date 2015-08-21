@@ -169,8 +169,8 @@
 (deftest test-storm-cluster-state-basics
   (with-inprocess-zookeeper zk-port
     (let [state (mk-storm-state zk-port)
-          assignment1 (Assignment. "/aaa" {} {[1] ["1" 1001 1]} {})
-          assignment2 (Assignment. "/aaa" {} {[2] ["2" 2002]} {})
+          assignment1 (Assignment. "/aaa" {} {[1] ["1" 1001 1]} {} {})
+          assignment2 (Assignment. "/aaa" {} {[2] ["2" 2002]} {} {})
           base1 (StormBase. "/tmp/storm1" 1 {:type :active} 2 {} "" nil nil)
           base2 (StormBase. "/tmp/storm2" 2 {:type :active} 2 {} "" nil nil)]
       (is (= [] (.assignments state nil)))
