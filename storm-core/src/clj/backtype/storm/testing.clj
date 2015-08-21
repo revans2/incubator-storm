@@ -27,6 +27,7 @@
   (:import [java.util HashMap ArrayList])
   (:import [java.util.concurrent.atomic AtomicInteger])
   (:import [java.util.concurrent ConcurrentHashMap])
+  (:import [backtype.storm.security.auth ReqContext])
   (:import [backtype.storm.utils Time Utils RegisteredGlobalState])
   (:import [backtype.storm.tuple Fields Tuple TupleImpl])
   (:import [backtype.storm.task TopologyContext])
@@ -254,7 +255,8 @@
                f# (future (while @keep-waiting?# (simulate-wait ~cluster-sym)))]
            (kill-local-storm-cluster ~cluster-sym)
            (reset! keep-waiting?# false)
-            @f#)))))
+            @f#
+           (.setSubject (ReqContext/context) nil))))))
 
 (defmacro with-simulated-time-local-cluster
   [& args]
