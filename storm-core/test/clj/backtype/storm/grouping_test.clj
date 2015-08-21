@@ -18,7 +18,7 @@
   (:import [backtype.storm.testing TestWordCounter TestWordSpout TestGlobalCount TestAggregatesCounter TestWordBytesCounter NGrouping]
            [backtype.storm.generated JavaObject JavaObjectArg])
   (:import [backtype.storm.grouping LoadMapping])
-  (:use [backtype.storm testing clojure log])
+  (:use [backtype.storm testing clojure log config])
   (:use [backtype.storm.daemon common executor])
   (:require [backtype.storm [thrift :as thrift]]))
 
