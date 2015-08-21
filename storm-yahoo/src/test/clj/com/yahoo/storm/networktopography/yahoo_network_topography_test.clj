@@ -15,7 +15,7 @@
 ;; limitations under the License.
 (ns clj.com.yahoo.storm.networktopography.yahoo-network-topography-test
   (:use [clojure test])
-  (:use [backtype.storm bootstrap config testing thrift])
+  (:use [backtype.storm config testing thrift])
   (:require [backtype.storm.daemon [nimbus :as nimbus]])
   (:import [backtype.storm.generated StormTopology]
            [backtype.storm.testing TestWordSpout TestWordCounter]
@@ -24,8 +24,6 @@
             SchedulerAssignmentImpl Topologies TopologyDetails])
   (:import [backtype.storm.scheduler.resource Node ResourceAwareScheduler])
   (:import [backtype.storm Config]))
-
-(bootstrap)
 
 (defn gen-supervisors [count]
   (into {} (for [id (range count)

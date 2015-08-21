@@ -2605,6 +2605,7 @@ class SupervisorSummary:
    - num_workers
    - num_used_workers
    - supervisor_id
+   - version
    - total_resources
   """
 
@@ -2615,15 +2616,17 @@ class SupervisorSummary:
     (3, TType.I32, 'num_workers', None, None, ), # 3
     (4, TType.I32, 'num_used_workers', None, None, ), # 4
     (5, TType.STRING, 'supervisor_id', None, None, ), # 5
-    (6, TType.MAP, 'total_resources', (TType.STRING,None,TType.DOUBLE,None), None, ), # 6
+    (6, TType.STRING, 'version', None, "VERSION_NOT_PROVIDED", ), # 6
+    (7, TType.MAP, 'total_resources', (TType.STRING,None,TType.DOUBLE,None), None, ), # 7
   )
 
-  def __init__(self, host=None, uptime_secs=None, num_workers=None, num_used_workers=None, supervisor_id=None, total_resources=None,):
+  def __init__(self, host=None, uptime_secs=None, num_workers=None, num_used_workers=None, supervisor_id=None, version=thrift_spec[6][4], total_resources=None,):
     self.host = host
     self.uptime_secs = uptime_secs
     self.num_workers = num_workers
     self.num_used_workers = num_used_workers
     self.supervisor_id = supervisor_id
+    self.version = version
     self.total_resources = total_resources
 
   def read(self, iprot):
@@ -2661,6 +2664,11 @@ class SupervisorSummary:
         else:
           iprot.skip(ftype)
       elif fid == 6:
+        if ftype == TType.STRING:
+          self.version = iprot.readString().decode('utf-8')
+        else:
+          iprot.skip(ftype)
+      elif fid == 7:
         if ftype == TType.MAP:
           self.total_resources = {}
           (_ktype67, _vtype68, _size66 ) = iprot.readMapBegin()
@@ -2701,8 +2709,12 @@ class SupervisorSummary:
       oprot.writeFieldBegin('supervisor_id', TType.STRING, 5)
       oprot.writeString(self.supervisor_id.encode('utf-8'))
       oprot.writeFieldEnd()
+    if self.version is not None:
+      oprot.writeFieldBegin('version', TType.STRING, 6)
+      oprot.writeString(self.version.encode('utf-8'))
+      oprot.writeFieldEnd()
     if self.total_resources is not None:
-      oprot.writeFieldBegin('total_resources', TType.MAP, 6)
+      oprot.writeFieldBegin('total_resources', TType.MAP, 7)
       oprot.writeMapBegin(TType.STRING, TType.DOUBLE, len(self.total_resources))
       for kiter73,viter74 in self.total_resources.items():
         oprot.writeString(kiter73.encode('utf-8'))
@@ -2733,6 +2745,7 @@ class SupervisorSummary:
     value = (value * 31) ^ hash(self.num_workers)
     value = (value * 31) ^ hash(self.num_used_workers)
     value = (value * 31) ^ hash(self.supervisor_id)
+    value = (value * 31) ^ hash(self.version)
     value = (value * 31) ^ hash(self.total_resources)
     return value
 
@@ -2867,17 +2880,23 @@ class ErrorInfo:
   Attributes:
    - error
    - error_time_secs
+   - host
+   - port
   """
 
   thrift_spec = (
     None, # 0
     (1, TType.STRING, 'error', None, None, ), # 1
     (2, TType.I32, 'error_time_secs', None, None, ), # 2
+    (3, TType.STRING, 'host', None, None, ), # 3
+    (4, TType.I32, 'port', None, None, ), # 4
   )
 
-  def __init__(self, error=None, error_time_secs=None,):
+  def __init__(self, error=None, error_time_secs=None, host=None, port=None,):
     self.error = error
     self.error_time_secs = error_time_secs
+    self.host = host
+    self.port = port
 
   def read(self, iprot):
     if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
@@ -2898,6 +2917,16 @@ class ErrorInfo:
           self.error_time_secs = iprot.readI32();
         else:
           iprot.skip(ftype)
+      elif fid == 3:
+        if ftype == TType.STRING:
+          self.host = iprot.readString().decode('utf-8')
+        else:
+          iprot.skip(ftype)
+      elif fid == 4:
+        if ftype == TType.I32:
+          self.port = iprot.readI32();
+        else:
+          iprot.skip(ftype)
       else:
         iprot.skip(ftype)
       iprot.readFieldEnd()
@@ -2916,6 +2945,14 @@ class ErrorInfo:
       oprot.writeFieldBegin('error_time_secs', TType.I32, 2)
       oprot.writeI32(self.error_time_secs)
       oprot.writeFieldEnd()
+    if self.host is not None:
+      oprot.writeFieldBegin('host', TType.STRING, 3)
+      oprot.writeString(self.host.encode('utf-8'))
+      oprot.writeFieldEnd()
+    if self.port is not None:
+      oprot.writeFieldBegin('port', TType.I32, 4)
+      oprot.writeI32(self.port)
+      oprot.writeFieldEnd()
     oprot.writeFieldStop()
     oprot.writeStructEnd()
 
@@ -2931,6 +2968,8 @@ class ErrorInfo:
     value = 17
     value = (value * 31) ^ hash(self.error)
     value = (value * 31) ^ hash(self.error_time_secs)
+    value = (value * 31) ^ hash(self.host)
+    value = (value * 31) ^ hash(self.port)
     return value
 
   def __repr__(self):
@@ -6751,6 +6790,7 @@ class SupervisorInfo:
    - meta
    - scheduler_meta
    - uptime_secs
+   - version
    - resources_map
   """
 
@@ -6763,10 +6803,11 @@ class SupervisorInfo:
     (5, TType.LIST, 'meta', (TType.I64,None), None, ), # 5
     (6, TType.MAP, 'scheduler_meta', (TType.STRING,None,TType.STRING,None), None, ), # 6
     (7, TType.I64, 'uptime_secs', None, None, ), # 7
-    (8, TType.MAP, 'resources_map', (TType.STRING,None,TType.DOUBLE,None), None, ), # 8
+    (8, TType.STRING, 'version', None, None, ), # 8
+    (9, TType.MAP, 'resources_map', (TType.STRING,None,TType.DOUBLE,None), None, ), # 9
   )
 
-  def __init__(self, time_secs=None, hostname=None, assignment_id=None, used_ports=None, meta=None, scheduler_meta=None, uptime_secs=None, resources_map=None,):
+  def __init__(self, time_secs=None, hostname=None, assignment_id=None, used_ports=None, meta=None, scheduler_meta=None, uptime_secs=None, version=None, resources_map=None,):
     self.time_secs = time_secs
     self.hostname = hostname
     self.assignment_id = assignment_id
@@ -6774,6 +6815,7 @@ class SupervisorInfo:
     self.meta = meta
     self.scheduler_meta = scheduler_meta
     self.uptime_secs = uptime_secs
+    self.version = version
     self.resources_map = resources_map
 
   def read(self, iprot):
@@ -6837,6 +6879,11 @@ class SupervisorInfo:
         else:
           iprot.skip(ftype)
       elif fid == 8:
+        if ftype == TType.STRING:
+          self.version = iprot.readString().decode('utf-8')
+        else:
+          iprot.skip(ftype)
+      elif fid == 9:
         if ftype == TType.MAP:
           self.resources_map = {}
           (_ktype464, _vtype465, _size463 ) = iprot.readMapBegin()
@@ -6895,8 +6942,12 @@ class SupervisorInfo:
       oprot.writeFieldBegin('uptime_secs', TType.I64, 7)
       oprot.writeI64(self.uptime_secs)
       oprot.writeFieldEnd()
+    if self.version is not None:
+      oprot.writeFieldBegin('version', TType.STRING, 8)
+      oprot.writeString(self.version.encode('utf-8'))
+      oprot.writeFieldEnd()
     if self.resources_map is not None:
-      oprot.writeFieldBegin('resources_map', TType.MAP, 8)
+      oprot.writeFieldBegin('resources_map', TType.MAP, 9)
       oprot.writeMapBegin(TType.STRING, TType.DOUBLE, len(self.resources_map))
       for kiter474,viter475 in self.resources_map.items():
         oprot.writeString(kiter474.encode('utf-8'))
@@ -6923,6 +6974,7 @@ class SupervisorInfo:
     value = (value * 31) ^ hash(self.meta)
     value = (value * 31) ^ hash(self.scheduler_meta)
     value = (value * 31) ^ hash(self.uptime_secs)
+    value = (value * 31) ^ hash(self.version)
     value = (value * 31) ^ hash(self.resources_map)
     return value
 

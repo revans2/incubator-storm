@@ -120,7 +120,7 @@
     <tbody>
       {{#topologyStats}}
       <tr>
-        <td><a href="/topology.html?id={{id}}&window={{window}}">{{windowPretty}}</td>
+        <td><a href="/topology.html?id={{encodedId}}&window={{window}}">{{windowPretty}}</td>
         <td>{{emitted}}</td>
         <td>{{transferred}}</td>
         <td>{{completeLatency}}</td>
@@ -224,6 +224,10 @@
             Failed
           </span>
         </th>
+        <th class="header">Error Host
+        </th>
+        <th class="header">Error Port
+        </th>
         <th class="header">Last error
         </th>
       </tr>
@@ -231,7 +235,7 @@
     <tbody>
       {{#spouts}}
       <tr>
-        <td><a href="/component.html?id={{spoutId}}&topology_id={{id}}">{{spoutId}}</a></td>
+        <td><a href="/component.html?id={{encodedSpoutId}}&topology_id={{encodedId}}">{{spoutId}}</a></td>
         <td>{{executors}}</td>
         <td>{{tasks}}</td>
         <td>{{emitted}}</td>
@@ -239,7 +243,11 @@
         <td>{{completeLatency}}</td>
         <td>{{acked}}</td>
         <td>{{failed}}</td>
-        <td>{{lastError}}</td>
+        <td>{{errorHost}}</td>
+        <td><a href="{{errorWorkerLogLink}}">{{errorPort}}</a></td>
+        <td>
+          <span id="{{errorLapsedSecs}}" class="errorSpan">{{lastError}}</span>
+        </td>
         {{/spouts}}
     </tbody>
   </table>
@@ -303,13 +311,17 @@
             Failed
           </span>
         </th>
+        <th class="header">Error Host
+        </th>
+        <th class="header">Error Port
+        </th>
         <th class="header">Last error
         </th>
     </tr></thead>
     <tbody>
       {{#bolts}}
       <tr>
-        <td><a href="/component.html?id={{boltId}}&topology_id={{id}}">{{boltId}}</a></td>
+        <td><a href="/component.html?id={{encodedBoltId}}&topology_id={{encodedId}}">{{boltId}}</a></td>
         <td>{{executors}}</td>
         <td>{{tasks}}</td>
         <td>{{emitted}}</td>
@@ -320,7 +332,11 @@
         <td>{{processLatency}}</td>
         <td>{{acked}}</td>
         <td>{{failed}}</td>
-        <td>{{lastError}}</td>
+        <td>{{errorHost}}</td>
+        <td><a href="{{errorWorkerLogLink}}">{{errorPort}}</a></td>
+        <td>
+          <span id="{{errorLapsedSecs}}" class="errorSpan">{{lastError}}</span>
+        </td>
         {{/bolts}}
     </tbody>
 </script>
@@ -328,10 +344,10 @@
 <script id="topology-actions-template" type="text/html">
   <h2>Topology actions</h2>
   <p id="topology-actions">
-    <input {{activateStatus}} onclick="confirmAction('{{id}}', '{{name}}', 'activate', false, 0)" type="button" value="Activate" class="btn btn-default">
-    <input {{deactivateStatus}} onclick="confirmAction('{{id}}', '{{name}}', 'deactivate', false, 0)" type="button" value="Deactivate" class="btn btn-default">
-    <input {{rebalanceStatus}} onclick="confirmAction('{{id}}', '{{name}}', 'rebalance', true, {{msgTimeout}})" type="button" value="Rebalance" class="btn btn-default">
-    <input {{killStatus}} onclick="confirmAction('{{id}}', '{{name}}', 'kill', true, 30)" type="button" value="Kill" class="btn btn-default">
+    <input {{activateStatus}} onclick="confirmAction('{{encodedId}}', '{{name}}', 'activate', false, 0)" type="button" value="Activate" class="btn btn-default">
+    <input {{deactivateStatus}} onclick="confirmAction('{{encodedId}}', '{{name}}', 'deactivate', false, 0)" type="button" value="Deactivate" class="btn btn-default">
+    <input {{rebalanceStatus}} onclick="confirmAction('{{encodedId}}', '{{name}}', 'rebalance', true, {{msgTimeout}})" type="button" value="Rebalance" class="btn btn-default">
+    <input {{killStatus}} onclick="confirmAction('{{encodedId}}', '{{name}}', 'kill', true, 30)" type="button" value="Kill" class="btn btn-default">
     <input type="button" {{logLevel}} value="Change Log Level" onclick="toggleChangeLogLevel()" class="btn btn-default">
   </p>
   <!-- 

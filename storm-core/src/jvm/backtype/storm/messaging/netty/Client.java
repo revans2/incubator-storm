@@ -23,304 +23,395 @@ import java.util.Iterator;
 import java.util.Collection;
 import java.util.Map;
 import java.util.HashMap;
-import java.util.Timer;
-import java.util.TimerTask;
-import java.util.Random;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.lang.InterruptedException;
 
+import backtype.storm.Config;
+import backtype.storm.grouping.Load;
+import backtype.storm.messaging.ConnectionWithStatus;
+import backtype.storm.messaging.TaskMessage;
+import backtype.storm.metric.api.IStatefulObject;
+import backtype.storm.utils.StormBoundedExponentialBackoffRetry;
+import backtype.storm.utils.Utils;
 import org.jboss.netty.bootstrap.ClientBootstrap;
 import org.jboss.netty.channel.Channel;
 import org.jboss.netty.channel.ChannelFactory;
 import org.jboss.netty.channel.ChannelFuture;
 import org.jboss.netty.channel.ChannelFutureListener;
+import org.jboss.netty.util.HashedWheelTimer;
+import org.jboss.netty.util.Timeout;
+import org.jboss.netty.util.TimerTask;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import backtype.storm.Config;
-import backtype.storm.messaging.IConnection;
-import backtype.storm.messaging.TaskMessage;
-import backtype.storm.utils.Utils;
-import backtype.storm.utils.StormBoundedExponentialBackoffRetry;
-import backtype.storm.metric.api.IStatefulObject;
-import backtype.storm.grouping.Load;
 
-public class Client implements IConnection, IStatefulObject, ISaslClient {
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
+
+import static com.google.common.base.Preconditions.checkState;
+
+/**
+ * A Netty client for sending task messages to a remote destination (Netty server).
+ *
+ * Implementation details:
+ *
+ * - Sending messages, i.e. writing to the channel, is performed asynchronously.
+ * - Messages are sent in batches to optimize for network throughput at the expense of network latency.  The message
+ *   batch size is configurable.
+ * - Connecting and reconnecting are performed asynchronously.
+ *     - Note: The current implementation drops any messages that are being enqueued for sending if the connection to
+ *       the remote destination is currently unavailable.
+ */
+public class Client extends ConnectionWithStatus implements IStatefulObject, ISaslClient {
+    private static final long PENDING_MESSAGES_FLUSH_TIMEOUT_MS = 600000L;
+    private static final long PENDING_MESSAGES_FLUSH_INTERVAL_MS = 1000L;
+
     private static final Logger LOG = LoggerFactory.getLogger(Client.class);
-    private static final Timer TIMER = new Timer("netty-client-timer", true);
+    private static final String PREFIX = "Netty-Client-";
+    private static final long NO_DELAY_MS = 0L;
 
-    private final int max_retries;
-    private final int base_sleep_ms;
-    private final int max_sleep_ms;
-    private LinkedBlockingQueue<Object> message_queue; //entry should either be TaskMessage or ControlMessage
-    private AtomicReference<Channel> channelRef;
-    private final ClientBootstrap bootstrap;
-    InetSocketAddress remote_addr;
-    private AtomicInteger retries;
-    private AtomicInteger totalReconnects;
-    private AtomicInteger messagesEnqueued;
-    private AtomicInteger messagesSent;
-    private AtomicInteger messagesLostReconnect;
-    private final Random random = new Random();
-    private final ChannelFactory factory;
-    private final int buffer_size;
-    private final AtomicBoolean being_closed;
-    private final AtomicBoolean close_msg_enqueued;
-    private boolean wait_for_requests;
+    private final Map stormConf;
     private final StormBoundedExponentialBackoffRetry retryPolicy;
+    private final ClientBootstrap bootstrap;
+    private final InetSocketAddress dstAddress;
+    protected final String dstAddressPrefixedName;
     private volatile Map<Integer, Double> serverLoad = null;
-    private Context context;
-    private Map storm_conf;
+    
+    /**
+     * The channel used for all write operations from this client to the remote destination.
+     */
+    private final AtomicReference<Channel> channelRef = new AtomicReference<Channel>();
 
-    @SuppressWarnings("rawtypes")
-    public Client(Map storm_conf, ChannelFactory factory, String host, int port, Context context) {
-        this.context = context;
-        this.factory = factory;
-        this.storm_conf = storm_conf;
-        message_queue = new LinkedBlockingQueue<Object>();
-        retries = new AtomicInteger(0);
-        channelRef = new AtomicReference<Channel>(null);
-        being_closed = new AtomicBoolean(false);
-        close_msg_enqueued = new AtomicBoolean(false);
-        wait_for_requests = false;
-        totalReconnects = new AtomicInteger(0);
-        messagesSent = new AtomicInteger(0);
-        messagesEnqueued = new AtomicInteger(0);
-        messagesLostReconnect = new AtomicInteger(0);
-
-        // Configure
-        buffer_size = Utils.getInt(storm_conf.get(Config.STORM_MESSAGING_NETTY_BUFFER_SIZE));
-        max_retries = Math.min(30, Utils.getInt(storm_conf.get(Config.STORM_MESSAGING_NETTY_MAX_RETRIES)));
-        base_sleep_ms = Utils.getInt(storm_conf.get(Config.STORM_MESSAGING_NETTY_MIN_SLEEP_MS));
-        max_sleep_ms = Utils.getInt(storm_conf.get(Config.STORM_MESSAGING_NETTY_MAX_SLEEP_MS));
-        retryPolicy = new StormBoundedExponentialBackoffRetry(base_sleep_ms, max_sleep_ms, max_retries);
-
-        bootstrap = new ClientBootstrap(factory);
-        bootstrap.setOption("tcpNoDelay", true);
-        bootstrap.setOption("sendBufferSize", buffer_size);
-        bootstrap.setOption("keepAlive", true);
-
-        // Set up the pipeline factory.
-        bootstrap.setPipelineFactory(new StormClientPipelineFactory(this, storm_conf));
-
-        // Start the connection attempt.
-        remote_addr = new InetSocketAddress(host, port);
-        bootstrap.connect(remote_addr);
-    }
 
     /**
-     * We will retry connection with exponential back-off policy
+     * Maximum number of reconnection attempts we will perform after a disconnect before giving up.
      */
-    void reconnect() {
-        close_n_release();
+    private final int maxReconnectionAttempts;
 
-        //reconnect only if it's not being closed
-        if (being_closed.get()) return;
+    /**
+     * Total number of connection attempts.
+     */
+    private final AtomicInteger totalConnectionAttempts = new AtomicInteger(0);
 
-        final int tried_count = retries.incrementAndGet();
-        totalReconnects.incrementAndGet();
-        long sleep = retryPolicy.getSleepTimeMs(retries.get(), 0);
-        LOG.info("Waiting {} ms before trying connection to {}", sleep, remote_addr);
-        TIMER.schedule(new TimerTask() {
-            @Override
-            public void run() { 
-                if (being_closed.get()) {
-                    LOG.info(
-                            "Not reconnecting to {} since we are closing [{}]",
-                            remote_addr, tried_count);
-                    return;
-                }
-                LOG.info("Reconnect ... [{}] to {}", tried_count, remote_addr);
-                bootstrap.connect(remote_addr);
-            }}, sleep);
+    /**
+     * Number of connection attempts since the last disconnect.
+     */
+    private final AtomicInteger connectionAttempts = new AtomicInteger(0);
+
+    /**
+     * Number of messages successfully sent to the remote destination.
+     */
+    private final AtomicInteger messagesSent = new AtomicInteger(0);
+
+    /**
+     * Number of messages that could not be sent to the remote destination.
+     */
+    private final AtomicInteger messagesLost = new AtomicInteger(0);
+
+    /**
+     * Number of messages buffered in memory.
+     */
+    private final AtomicLong pendingMessages = new AtomicLong(0);
+
+
+    /**
+     * This flag is set to true if and only if a client instance is being closed.
+     */
+    private volatile boolean closing = false;
+
+    private final Context context;
+
+    private final HashedWheelTimer scheduler;
+
+    private final MessageBuffer batcher;
+
+    @SuppressWarnings("rawtypes")
+    Client(Map stormConf, ChannelFactory factory, HashedWheelTimer scheduler, String host, int port, Context context) {
+        this.stormConf = stormConf;
+        closing = false;
+        this.scheduler = scheduler;
+        this.context = context;
+        int bufferSize = Utils.getInt(stormConf.get(Config.STORM_MESSAGING_NETTY_BUFFER_SIZE));
+        LOG.info("creating Netty Client, connecting to {}:{}, bufferSize: {}", host, port, bufferSize);
+        int messageBatchSize = Utils.getInt(stormConf.get(Config.STORM_NETTY_MESSAGE_BATCH_SIZE), 262144);
+
+        maxReconnectionAttempts = Utils.getInt(stormConf.get(Config.STORM_MESSAGING_NETTY_MAX_RETRIES));
+        int minWaitMs = Utils.getInt(stormConf.get(Config.STORM_MESSAGING_NETTY_MIN_SLEEP_MS));
+        int maxWaitMs = Utils.getInt(stormConf.get(Config.STORM_MESSAGING_NETTY_MAX_SLEEP_MS));
+        retryPolicy = new StormBoundedExponentialBackoffRetry(minWaitMs, maxWaitMs, maxReconnectionAttempts);
+
+        // Initiate connection to remote destination
+        bootstrap = createClientBootstrap(factory, bufferSize, stormConf);
+        dstAddress = new InetSocketAddress(host, port);
+        dstAddressPrefixedName = prefixedName(dstAddress);
+        scheduleConnect(NO_DELAY_MS);
+        batcher = new MessageBuffer(messageBatchSize);
+    }
+
+    private ClientBootstrap createClientBootstrap(ChannelFactory factory, int bufferSize, Map stormConf) {
+        ClientBootstrap bootstrap = new ClientBootstrap(factory);
+        bootstrap.setOption("tcpNoDelay", true);
+        bootstrap.setOption("sendBufferSize", bufferSize);
+        bootstrap.setOption("keepAlive", true);
+        bootstrap.setPipelineFactory(new StormClientPipelineFactory(this, stormConf));
+        return bootstrap;
+    }
+
+    private String prefixedName(InetSocketAddress dstAddress) {
+        if (null != dstAddress) {
+            return PREFIX + dstAddress.toString();
+        }
+        return "";
     }
 
     /**
      * Enqueue a task message to be sent to server
      */
-    @Override
-    public void send(int task, byte[] message) {
-        //throw exception if the client is being closed
-        if (being_closed.get()) {
-            throw new RuntimeException("Client is being closed, and does not take requests any more");
-        }
-
-        try {
-            message_queue.put(new TaskMessage(task, message));
-            messagesEnqueued.incrementAndGet();
-            //resume delivery if it is waiting for requests
-            tryDeliverMessages(true);
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-        }
+    private void scheduleConnect(long delayMs) {
+        scheduler.newTimeout(new Connect(dstAddress), delayMs, TimeUnit.MILLISECONDS);
     }
 
+    private boolean reconnectingAllowed() {
+        return !closing && connectionAttempts.get() <= (maxReconnectionAttempts + 1);
+    }
+
+    private boolean connectionEstablished(Channel channel) {
+        // Because we are using TCP (which is a connection-oriented transport unlike UDP), a connection is only fully
+        // established iff the channel is connected.  That is, a TCP-based channel must be in the CONNECTED state before
+        // anything can be read or written to the channel.
+        //
+        // See:
+        // - http://netty.io/3.9/api/org/jboss/netty/channel/ChannelEvent.html
+        // - http://stackoverflow.com/questions/13356622/what-are-the-netty-channel-state-transitions
+        return channel != null && channel.isConnected();
+    }
+
+    /**
+     * Note:  Storm will check via this method whether a worker can be activated safely during the initial startup of a
+     * topology.  The worker will only be activated once all of the its connections are ready.
+     */
     @Override
-    public void send(Iterator<TaskMessage> msgs) {
-        //throw exception if the client is being closed
-        if (being_closed.get()) {
-            throw new RuntimeException("Client is being closed, and does not take requests any more");
-        }
-
-        try {
-            while(msgs.hasNext()) {
-              message_queue.put(msgs.next());
-              messagesEnqueued.incrementAndGet();
-            }
-
-            //resume delivery if it is waiting for requests
-            tryDeliverMessages(true);
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
+    public Status status() {
+        if (closing) {
+            return Status.Closed;
+        } else if (!connectionEstablished(channelRef.get())) {
+            return Status.Connecting;
+        } else {
+            return Status.Ready;
         }
     }
 
     /**
-     * Retrieve messages from queue, and delivery to server if any
+     * Receiving messages is not supported by a client.
+     *
+     * @throws java.lang.UnsupportedOperationException whenever this method is being called.
      */
-    synchronized void tryDeliverMessages(boolean only_if_waiting) throws InterruptedException {
-        //make sure that channel was not closed
-        Channel channel = channelRef.get();
-        if ((channel == null || !channel.isOpen())
-                && close_msg_enqueued.get()) {
-            LOG.info("Channel to {} fully closed, {} messages not delivered", remote_addr, message_queue.size());
-            being_closed.set(true);
+    @Override
+    public Iterator<TaskMessage> recv(int flags, int clientId) {
+        throw new UnsupportedOperationException("Client connection should not receive any messages");
+        }
+
+    @Override
+    public void sendLoadMetrics(Map<Integer, Double> taskToLoad) {
+        throw new RuntimeException("Client connection should not send load metrics");
+            }
+
+    @Override
+    public void send(int taskId, byte[] payload) {
+        TaskMessage msg = new TaskMessage(taskId, payload);
+        List<TaskMessage> wrapper = new ArrayList<TaskMessage>(1);
+        wrapper.add(msg);
+        send(wrapper.iterator());
+    }
+
+    /**
+     * Enqueue task messages to be sent to the remote destination (cf. `host` and `port`).
+     */
+    @Override
+    public void send(Iterator<TaskMessage> msgs) {
+        if (closing) {
+            int numMessages = iteratorSize(msgs);
+            LOG.error("discarding {} messages because the Netty client to {} is being closed", numMessages,
+                    dstAddressPrefixedName);
             return;
         }
 
-        //just skip if delivery only if waiting, and we are not waiting currently
-        if (only_if_waiting && !wait_for_requests)  {
-          LOG.debug("Cutting out early, not waiting for requests... ({})", message_queue.size());
+        if (!hasMessages(msgs)) {
           return;
         }
 
+        Channel channel = getConnectedChannel();
         if (channel == null) {
-            return;
-        }
-        if (!channel.isOpen()) {
-            LOG.info("Channel to {} is no longer open.",remote_addr);
-            //The channel is not open yet. Reconnect?
-            reconnect();
-            return;
-        }
-
-        final MessageBatch requests = tryTakeMessages();
-        if (requests==null) {
-            wait_for_requests = true;
+            /*
+             * Connection is unavailable. We will drop pending messages and let at-least-once message replay kick in.
+             *
+             * Another option would be to buffer the messages in memory.  But this option has the risk of causing OOM errors,
+             * especially for topologies that disable message acking because we don't know whether the connection recovery will
+             * succeed  or not, and how long the recovery will take.
+             */
+            dropMessages(msgs);
             return;
         }
 
-        //if channel is being closed and we have no outstanding messages,  let's close the channel
-        if (requests.isEmpty() && being_closed.get()) {
-            close_n_release();
-            LOG.info("Channel to {} is fully closed, all messages delivered", remote_addr);
-            return;
+
+        while (msgs.hasNext()) {
+            TaskMessage message = msgs.next();
+            MessageBatch full = batcher.add(message);
+            if(full != null){
+                flushMessages(channel, full);
+            }
         }
 
-        //we are busily delivering messages, and will check queue upon response.
-        //When send() is called by senders, we should not thus call tryDeliverMessages().
-        wait_for_requests = false;
+        if(channel.isWritable()){
+            // Netty's internal buffer is not full and we still have message left in the buffer.
+            // We should write the unfilled MessageBatch immediately to reduce latency
+            MessageBatch batch = batcher.drain();
+            if(batch != null) {
+                flushMessages(channel, batch);
+            }
+        } else {
+            // Channel's buffer is full, meaning that we have time to wait other messages to arrive, and create a bigger
+            // batch. This yields better throughput.
+            // We can rely on `notifyInterestChanged` to push these messages as soon as there is spece in Netty's buffer
+            // because we know `Channel.isWritable` was false after the messages were already in the buffer.
+        }
+        }
 
-        //write request into socket channel
-        ChannelFuture future = channel.write(requests);
-        future.addListener(new ChannelFutureListener() {
-            public void operationComplete(ChannelFuture future)
-                    throws Exception {
-                if (!future.isSuccess()) {
-                    messagesLostReconnect.addAndGet(requests.size());
-                    LOG.info("failed to send "+requests.size()+" requests to "+remote_addr, future.getCause());
-                    reconnect();
-                } else {
-                    messagesSent.addAndGet(requests.size());
-                    //LOG.info("{} request(s) sent", requests.size());
+    private Channel getConnectedChannel() {
+        Channel channel = channelRef.get();
+        if (connectionEstablished(channel)) {
+            return channel;
+        } else {
+            // Closing the channel and reconnecting should be done before handling the messages.
+            boolean reconnectScheduled = closeChannelAndReconnect(channel);
+            if (reconnectScheduled) {
+                // Log the connection error only once
+                LOG.error("connection to {} is unavailable", dstAddressPrefixedName);
+            }
+            return null;
+        }
+        }
 
-                    //Now that our requests have been sent, channel could be closed if needed
-                    if (being_closed.get()) {
-                        close_n_release();
-                    } else {
-                        tryDeliverMessages(false);
+    public InetSocketAddress getDstAddress() {
+        return dstAddress;
+    }
+
+    private boolean hasMessages(Iterator<TaskMessage> msgs) {
+        return msgs != null && msgs.hasNext();
+    }
+
+
+    private void dropMessages(Iterator<TaskMessage> msgs) {
+        // We consume the iterator by traversing and thus "emptying" it.
+        int msgCount = iteratorSize(msgs);
+        messagesLost.getAndAdd(msgCount);
                     }
+
+    private int iteratorSize(Iterator<TaskMessage> msgs) {
+        int size = 0;
+        if (msgs != null) {
+            while (msgs.hasNext()) {
+                size++;
+                msgs.next();
                 }
             }
-        });
+        return size;
     }
 
     /**
-     * Take all enqueued messages from queue
-     * @return  batch of messages
-     * @throws InterruptedException
+     * Asynchronously writes the message batch to the channel.
      *
-     * synchronized ... ensure that messages are delivered in the same order
-     * as they are added into queue
+     * If the write operation fails, then we will close the channel and trigger a reconnect.
      */
-    private MessageBatch tryTakeMessages() throws InterruptedException {
-        //1st message
-        Object msg = message_queue.poll();
-        if (msg == null) return null;
-
-        MessageBatch batch = new MessageBatch(buffer_size);
-        //we will discard any message after CLOSE
-        if (msg == ControlMessage.CLOSE_MESSAGE) {
-            LOG.info("Connection to {} is being closed", remote_addr);
-            being_closed.set(true);
-            return batch;
+    private void flushMessages(Channel channel, final MessageBatch batch) {
+        if(batch.isEmpty()){
+            return;
         }
 
-        batch.add((TaskMessage)msg);
-        while (!batch.isFull() && ((msg = message_queue.peek())!=null)) {
-            //Is it a CLOSE message?
-            if (msg == ControlMessage.CLOSE_MESSAGE) {
-                message_queue.take();
-                LOG.info("Connection to {} is being closed", remote_addr);
-                being_closed.set(true);
-                break;
+        final int numMessages = batch.size();
+        LOG.debug("writing {} messages to channel {}", batch.size(), channel.toString());
+        pendingMessages.addAndGet(numMessages);
+
+        ChannelFuture future = channel.write(batch);
+        future.addListener(new ChannelFutureListener() {
+            public void operationComplete(ChannelFuture future) throws Exception {
+                pendingMessages.addAndGet(0 - numMessages);
+                if (future.isSuccess()) {
+                    LOG.debug("sent {} messages to {}", numMessages, dstAddressPrefixedName);
+                    messagesSent.getAndAdd(batch.size());
+                } else {
+                    LOG.error("failed to send {} messages to {}: {}", numMessages, dstAddressPrefixedName,
+                            future.getCause());
+                    closeChannelAndReconnect(future.getChannel());
+                    messagesLost.getAndAdd(numMessages);
+                }
             }
 
-            //try to add this msg into batch
-            if (!batch.tryAdd((TaskMessage) msg))
-                break;
-
-            //remove this message
-            message_queue.take();
+        });
         }
 
-        return batch;
+    /**
+     * Schedule a reconnect if we closed a non-null channel, and acquired the right to
+     * provide a replacement by successfully setting a null to the channel field
+     * @param channel
+     * @return if the call scheduled a re-connect task
+     */
+    private boolean closeChannelAndReconnect(Channel channel) {
+        if (channel != null) {
+            channel.close();
+            if (channelRef.compareAndSet(channel, null)) {
+                scheduleConnect(NO_DELAY_MS);
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
-     * gracefully close this client.
-     *
-     * We will send all existing requests, and then invoke close_n_release() method
+     * Gracefully close this client.
      */
+    @Override
     public void close() {
-        //enqueue a CLOSE message so that shutdown() will be invoked
-        try {
-            LOG.info("Enqueing close message");
-            message_queue.put(ControlMessage.CLOSE_MESSAGE);
-            close_msg_enqueued.set(true);
-
-            //resume delivery if it is waiting for requests
-            tryDeliverMessages(true);
-            context.removeClient(remote_addr.getHostName(),remote_addr.getPort());
-            context = null;
-        } catch (InterruptedException e) {
-            LOG.info("Interrupted Connection to {} is being closed", remote_addr);
-            being_closed.set(true);
-            close_n_release();
+        if (!closing) {
+            LOG.info("closing Netty Client {}", dstAddressPrefixedName);
+            context.removeClient(dstAddress.getHostName(),dstAddress.getPort());
+            // Set closing to true to prevent any further reconnection attempts.
+            closing = true;
+            waitForPendingMessagesToBeSent();
+            closeChannel();
         }
     }
 
-    /**
-     * close_n_release() is invoked after all messages have been sent.
-     */
-    synchronized void close_n_release() {
-        if (channelRef.get() != null) {
-            channelRef.get().close();
-            LOG.debug("channel {} closed",remote_addr);
-            setChannel(null);
+    private void waitForPendingMessagesToBeSent() {
+        LOG.info("waiting up to {} ms to send {} pending messages to {}",
+                PENDING_MESSAGES_FLUSH_TIMEOUT_MS, pendingMessages.get(), dstAddressPrefixedName);
+        long totalPendingMsgs = pendingMessages.get();
+        long startMs = System.currentTimeMillis();
+        while (pendingMessages.get() != 0) {
+        try {
+                long deltaMs = System.currentTimeMillis() - startMs;
+                if (deltaMs > PENDING_MESSAGES_FLUSH_TIMEOUT_MS) {
+                    LOG.error("failed to send all pending messages to {} within timeout, {} of {} messages were not " +
+                            "sent", dstAddressPrefixedName, pendingMessages.get(), totalPendingMsgs);
+                    break;
+                }
+                Thread.sleep(PENDING_MESSAGES_FLUSH_INTERVAL_MS);
+            }
+            catch (InterruptedException e) {
+                break;
+        }
+    }
+
+    }
+
+    private void closeChannel() {
+        Channel channel = channelRef.get();
+        if (channel != null) {
+            channel.close();
+            LOG.debug("channel to {} closed", dstAddressPrefixedName);
         }
     }
 
@@ -333,7 +424,7 @@ public class Client implements IConnection, IStatefulObject, ISaslClient {
         Map<Integer, Double> loadCache = serverLoad;
         Map<Integer, Load> ret = new HashMap<Integer, Load>();
         if (loadCache != null) {
-            double clientLoad = Math.min(message_queue.size(), 1024)/1024.0;
+            double clientLoad = Math.min(pendingMessages.get(), 1024)/1024.0;
             for (Integer task : tasks) {
                 Double found = loadCache.get(task);
                 if (found != null) {
@@ -345,69 +436,137 @@ public class Client implements IConnection, IStatefulObject, ISaslClient {
     }
 
     @Override
-    public Iterator<TaskMessage> recv(int flags, int clientId) {
-        throw new RuntimeException("Client connection should not receive any messages");
-    }
-
-    @Override
-    public void sendLoadMetrics(Map<Integer, Double> taskToLoad) {
-        throw new RuntimeException("Client connection should not send load metrics");
-    }
-
-    void setChannel(Channel channel) {
-        if (channel != null && channel.isOpen()) {
-            //Assume the most recent connection attempt was successful.
-            retries.set(0);
-        }
-        channelRef.set(channel);
-        //reset retries
-        if (channel != null)
-            retries.set(0);
-    }
-
-    @Override
     public Object getState() {
-        LOG.debug("Getting metrics for connection to "+remote_addr);
+        LOG.debug("Getting metrics for client connection to {}", dstAddressPrefixedName);
         HashMap<String, Object> ret = new HashMap<String, Object>();
-        ret.put("queue_length", message_queue.size());
-        ret.put("reconnects", totalReconnects.getAndSet(0));
-        ret.put("enqueued", messagesEnqueued.getAndSet(0));
+        ret.put("reconnects", totalConnectionAttempts.getAndSet(0));
         ret.put("sent", messagesSent.getAndSet(0));
-        ret.put("lostOnSend", messagesLostReconnect.getAndSet(0));
-        ret.put("dest", remote_addr.toString());
-        Channel c = channelRef.get();
-        if (c != null) {
-            SocketAddress address = c.getLocalAddress();
-            if (address != null) {
-              ret.put("src", address.toString());
-            }
+        ret.put("pending", pendingMessages.get());
+        ret.put("lostOnSend", messagesLost.getAndSet(0));
+        ret.put("dest", dstAddress.toString());
+        String src = srcAddressName();
+        if (src != null) {
+            ret.put("src", src);
         }
         return ret;
     }
 
     public Map getConfig() {
-        return storm_conf;
+        return stormConf;
     }
 
     /** ISaslClient interface **/
     public void channelConnected(Channel channel) {
-        setChannel(channel);
-    }
+//        setChannel(channel);
+        }
 
     public void channelReady() {
-        try {
-            tryDeliverMessages(false);
-        }
-        catch (InterruptedException e) {
-            throw new RuntimeException(e);
-        }
+//        try {
+//            tryDeliverMessages(false);
+//        }
+//        catch (InterruptedException e) {
+//            throw new RuntimeException(e);
+//        }
     }
 
     public String name() {
-        return (String)storm_conf.get(Config.TOPOLOGY_NAME);
+        return (String)stormConf.get(Config.TOPOLOGY_NAME);
     }
 
     public String secretKey() {
-        return SaslUtils.getSecretKey(storm_conf);
+        return SaslUtils.getSecretKey(stormConf);
+    }
+    /** end **/
+
+    private String srcAddressName() {
+        String name = null;
+        Channel channel = channelRef.get();
+        if (channel != null) {
+            SocketAddress address = channel.getLocalAddress();
+            if (address != null) {
+                name = address.toString();
+            }
+        }
+        return name;
+    }
+
+    @Override
+    public String toString() {
+        return String.format("Netty client for connecting to %s", dstAddressPrefixedName);
+    }
+
+    /**
+     * Called by Netty thread on change in channel interest
+     * @param channel
+     */
+    public void notifyInterestChanged(Channel channel) {
+        if(channel.isWritable()){
+            // Channel is writable again, write if there are any messages pending
+            MessageBatch pending = batcher.drain();
+            flushMessages(channel, pending);
+        }
+    }
+
+    /**
+     * Asynchronously establishes a Netty connection to the remote address
+     * This task runs on a single thread shared among all clients, and thus
+     * should not perform operations that block.
+     */
+    private class Connect implements TimerTask {
+
+        private final InetSocketAddress address;
+
+        public Connect(InetSocketAddress address) {
+            this.address = address;
+        }
+
+        private void reschedule(Throwable t) {
+            String baseMsg = String.format("connection attempt %s to %s failed", connectionAttempts,
+                    dstAddressPrefixedName);
+            String failureMsg = (t == null) ? baseMsg : baseMsg + ": " + t.toString();
+            LOG.error(failureMsg);
+            long nextDelayMs = retryPolicy.getSleepTimeMs(connectionAttempts.get(), 0);
+            scheduleConnect(nextDelayMs);
+        }
+
+
+        @Override
+        public void run(Timeout timeout) throws Exception {
+            if (reconnectingAllowed()) {
+                final int connectionAttempt = connectionAttempts.getAndIncrement();
+                totalConnectionAttempts.getAndIncrement();
+
+                LOG.debug("connecting to {} [attempt {}]", address.toString(), connectionAttempt);
+                ChannelFuture future = bootstrap.connect(address);
+                future.addListener(new ChannelFutureListener() {
+                    @Override
+                    public void operationComplete(ChannelFuture future) throws Exception {
+                        // This call returns immediately
+                        Channel newChannel = future.getChannel();
+
+                        if (future.isSuccess() && connectionEstablished(newChannel)) {
+                            boolean setChannel = channelRef.compareAndSet(null, newChannel);
+                            checkState(setChannel);
+                            LOG.debug("successfully connected to {}, {} [attempt {}]", address.toString(), newChannel.toString(),
+                                    connectionAttempt);
+                            if (messagesLost.get() > 0) {
+                                LOG.warn("Re-connection to {} was successful but {} messages has been lost so far", address.toString(), messagesLost.get());
+    }
+                        } else {
+                            Throwable cause = future.getCause();
+                            reschedule(cause);
+                            if (newChannel != null) {
+                                newChannel.close();
+                            }
+                        }
+                    }
+                });
+            } else {
+                close();
+                throw new RuntimeException("Giving up to scheduleConnect to " + dstAddressPrefixedName + " after " +
+                        connectionAttempts + " failed attempts. " + messagesLost.get() + " messages were lost");
+
+    }
+        }
     }
 }

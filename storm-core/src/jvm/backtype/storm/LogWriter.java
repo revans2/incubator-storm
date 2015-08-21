@@ -27,8 +27,7 @@ import org.slf4j.LoggerFactory;
 
 
 /**
- * Launch a sub process and logs stdout and stderr from child process.
- * These logs typically will be written out to separate files the user can read.
+ * Launch a sub process and write files out to logs.
  */
 public class LogWriter extends Thread {
     private Logger logger;

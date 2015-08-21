@@ -36,16 +36,16 @@ public class TBackoffConnect {
 
         _retryTimes = retryTimes;
         waitGrabber = new StormBoundedExponentialBackoffRetry(retryInterval,
-                                                         retryIntervalCeiling,
-                                                         retryTimes);
+                                                              retryIntervalCeiling,
+                                                              retryTimes);
     }
 
-    public TTransport doConnectWithRetry(ITransportPlugin transportPlugin, TTransport underlyingTransport, String host) throws IOException {
+    public TTransport doConnectWithRetry(ITransportPlugin transportPlugin, TTransport underlyingTransport, String host, String asUser) throws IOException {
         boolean connected = false;
         TTransport transportResult = null;
         while(!connected) {
             try {
-                transportResult = transportPlugin.connect(underlyingTransport, host);
+                transportResult = transportPlugin.connect(underlyingTransport, host, asUser);
                 connected = true;
             } catch (TTransportException ex) {
                 retryNext(ex);

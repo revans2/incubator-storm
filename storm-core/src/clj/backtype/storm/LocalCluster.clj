@@ -20,7 +20,7 @@
   (:gen-class
     :init init
     :implements [backtype.storm.ILocalCluster]
-    :constructors {[] [] [java.util.Map] []}
+    :constructors {[] [] [java.util.Map] [] [String Long] []}
     :state state))
 
 (defn -init
@@ -28,6 +28,11 @@
    (let [ret (mk-local-storm-cluster
                :daemon-conf
                {TOPOLOGY-ENABLE-MESSAGE-TIMEOUTS true})]
+     [[] ret]))
+  ([^String zk-host ^Long zk-port]
+   (let [ret (mk-local-storm-cluster :daemon-conf {TOPOLOGY-ENABLE-MESSAGE-TIMEOUTS true
+                                                     STORM-ZOOKEEPER-SERVERS (list zk-host)
+                                                     STORM-ZOOKEEPER-PORT zk-port})]
      [[] ret]))
   ([^Map stateMap]
    [[] stateMap]))

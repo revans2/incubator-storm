@@ -616,17 +616,20 @@
           origin "www.origin.server.net"
           expected-all (json-response '("topoA/port1/worker.log" "topoA/port2/worker.log"
                                                                  "topoB/port1/worker.log")
+                                      nil
                                       :headers {"Access-Control-Allow-Origin" origin
                                                 "Access-Control-Allow-Credentials" "true"})
           expected-filter-port (json-response '("topoA/port1/worker.log" "topoB/port1/worker.log")
+                                              nil
                                               :headers {"Access-Control-Allow-Origin" origin
                                                         "Access-Control-Allow-Credentials" "true"})
           expected-filter-topoId (json-response '("topoB/port1/worker.log")
+                                                nil
                                                 :headers {"Access-Control-Allow-Origin" origin
                                                           "Access-Control-Allow-Credentials" "true"})
-          returned-all (logviewer/list-log-files "user" nil nil root-path origin)
-          returned-filter-port (logviewer/list-log-files "user" nil "port1" root-path origin)
-          returned-filter-topoId (logviewer/list-log-files "user" "topoB" nil root-path origin)]
+          returned-all (logviewer/list-log-files "user" nil nil root-path nil origin)
+          returned-filter-port (logviewer/list-log-files "user" nil "port1" root-path nil origin)
+          returned-filter-topoId (logviewer/list-log-files "user" "topoB" nil root-path nil origin)]
       (rmr root-path)
       (is   (= expected-all returned-all))
       (is   (= expected-filter-port returned-filter-port))
@@ -668,7 +671,7 @@
         (instrumenting
           [logviewer/find-n-matches
            logviewer/logs-for-port]
-          (logviewer/deep-search-logs-for-topology "" nil topo-path "search" "20" "*" "20" "199" true nil)
+          (logviewer/deep-search-logs-for-topology "" nil topo-path "search" "20" "*" "20" "199" true nil nil)
           (verify-call-times-for logviewer/find-n-matches 4)
           (verify-call-times-for logviewer/logs-for-port 4)
           ; File offset and byte offset should always be zero when searching multiple workers (multiple ports).
@@ -680,7 +683,7 @@
         (instrumenting
           [logviewer/find-n-matches
            logviewer/logs-for-port]
-          (logviewer/deep-search-logs-for-topology "" nil topo-path "search" "20" nil "20" "199" nil nil)
+          (logviewer/deep-search-logs-for-topology "" nil topo-path "search" "20" nil "20" "199" nil nil nil)
           (verify-call-times-for logviewer/find-n-matches 4)
           (verify-call-times-for logviewer/logs-for-port 4)
           ; File offset and byte offset should always be zero when searching multiple workers (multiple ports).
@@ -692,7 +695,7 @@
         (instrumenting
           [logviewer/find-n-matches
            logviewer/logs-for-port]
-          (logviewer/deep-search-logs-for-topology "" nil topo-path "search" "20" "6700" "0" "0" true nil)
+          (logviewer/deep-search-logs-for-topology "" nil topo-path "search" "20" "6700" "0" "0" true nil nil)
           (verify-call-times-for logviewer/find-n-matches 1)
           (verify-call-times-for logviewer/logs-for-port 2)
           (verify-nth-call-args-for 1 logviewer/find-n-matches files 20 0 0 "search")))
@@ -700,7 +703,7 @@
         (instrumenting
           [logviewer/find-n-matches
            logviewer/logs-for-port]
-          (logviewer/deep-search-logs-for-topology "" nil topo-path "search" "20" "6700" "1" "0" true nil)
+          (logviewer/deep-search-logs-for-topology "" nil topo-path "search" "20" "6700" "1" "0" true nil nil)
           (verify-call-times-for logviewer/find-n-matches 1)
           (verify-call-times-for logviewer/logs-for-port 2)
           (verify-nth-call-args-for 1 logviewer/find-n-matches files 20 1 0 "search")))
@@ -708,7 +711,7 @@
         (instrumenting
           [logviewer/find-n-matches
            logviewer/logs-for-port]
-          (logviewer/deep-search-logs-for-topology "" nil topo-path "search" "20" "6700" "1" "0" nil nil)
+          (logviewer/deep-search-logs-for-topology "" nil topo-path "search" "20" "6700" "1" "0" nil nil nil)
           (verify-call-times-for logviewer/find-n-matches 1)
           (verify-call-times-for logviewer/logs-for-port 2)
           ; File offset should be zero, since search-archived is false.
@@ -717,7 +720,7 @@
         (instrumenting
           [logviewer/find-n-matches
            logviewer/logs-for-port]
-          (logviewer/deep-search-logs-for-topology "" nil topo-path "search" "20" "6700" "1" "100" true nil)
+          (logviewer/deep-search-logs-for-topology "" nil topo-path "search" "20" "6700" "1" "100" true nil nil)
           (verify-call-times-for logviewer/find-n-matches 1)
           (verify-call-times-for logviewer/logs-for-port 2)
           ; File offset should be zero, since search-archived is false.
@@ -726,7 +729,7 @@
         (instrumenting
           [logviewer/find-n-matches
            logviewer/logs-for-port]
-          (logviewer/deep-search-logs-for-topology "" nil topo-path "search" "20" "2700" "1" "0" nil nil)
+          (logviewer/deep-search-logs-for-topology "" nil topo-path "search" "20" "2700" "1" "0" nil nil nil)
           ; Called with a bad port (not in the config) No searching should be done.
           (verify-call-times-for logviewer/find-n-matches 0)
           (verify-call-times-for logviewer/logs-for-port 0)))

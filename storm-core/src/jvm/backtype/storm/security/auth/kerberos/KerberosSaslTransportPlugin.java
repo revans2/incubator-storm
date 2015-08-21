@@ -34,6 +34,8 @@ import javax.security.auth.kerberos.KerberosTicket;
 import javax.security.auth.login.Configuration;
 import javax.security.auth.login.LoginException;
 import javax.security.sasl.Sasl;
+
+import org.apache.commons.lang.StringUtils;
 import org.apache.thrift.transport.TSaslClientTransport;
 import org.apache.thrift.transport.TSaslServerTransport;
 import org.apache.thrift.transport.TTransport;
@@ -91,7 +93,7 @@ public class KerberosSaslTransportPlugin extends SaslTransportPlugin {
 
     public TTransportFactory getServerTransportFactory() throws IOException {
         //create an authentication callback handler
-        CallbackHandler server_callback_handler = new ServerCallbackHandler(login_conf);
+        CallbackHandler server_callback_handler = new ServerCallbackHandler(login_conf, storm_conf);
         
         //login our principal
         Subject subject = null;
@@ -133,7 +135,8 @@ public class KerberosSaslTransportPlugin extends SaslTransportPlugin {
         return wrapFactory;
     }
 
-    public TTransport connect(TTransport transport, String serverHost) throws TTransportException, IOException {
+    @Override
+    public TTransport connect(TTransport transport, String serverHost, String asUser) throws TTransportException, IOException {
         //create an authentication callback handler
         ClientCallbackHandler client_callback_handler = new ClientCallbackHandler(login_conf);
         
@@ -164,7 +167,7 @@ public class KerberosSaslTransportPlugin extends SaslTransportPlugin {
                         +AuthUtils.LOGIN_CONTEXT_CLIENT+"\" in login configuration file "+ login_conf);
         }
 
-        final String principal = getPrincipal(subject); 
+        final String principal = StringUtils.isBlank(asUser) ? getPrincipal(subject) : asUser;
         String serviceName = AuthUtils.get(login_conf, AuthUtils.LOGIN_CONTEXT_CLIENT, "serviceName");
         if (serviceName == null) {
             serviceName = AuthUtils.SERVICE; 

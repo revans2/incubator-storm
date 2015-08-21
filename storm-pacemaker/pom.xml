@@ -4,7 +4,7 @@
   <parent>
     <artifactId>storm</artifactId>
     <groupId>org.apache.storm</groupId>
-    <version>0.9.2-incubating-security</version>
+    <version>0.10.0-beta1</version>
   </parent>
   <groupId>org.apache.storm</groupId>
   <artifactId>pacemaker</artifactId>

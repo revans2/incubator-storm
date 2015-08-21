@@ -20,13 +20,17 @@
          [string :only [blank? join]]
          [walk :only [keywordize-keys]]])
   (:use [backtype.storm config log])
-  (:use [backtype.storm.util :only [clojurify-structure uuid defnk to-json
-                                    url-encode]])
+  (:use [backtype.storm.util :only [clojurify-structure uuid defnk to-json url-encode not-nil?]])
   (:use [clj-time coerce format])
   (:import [backtype.storm.generated ExecutorInfo ExecutorSummary])
-  (:import [org.mortbay.jetty.security SslSocketConnector])
-  (:import (org.mortbay.jetty Server)
-           (org.mortbay.jetty.bio SocketConnector))
+  (:import [java.util EnumSet])
+  (:import [org.eclipse.jetty.server Server]
+           [org.eclipse.jetty.server.nio SelectChannelConnector]
+           [org.eclipse.jetty.server.ssl SslSocketConnector]
+           [org.eclipse.jetty.servlet ServletHolder FilterMapping]
+	   [org.eclipse.jetty.util.ssl SslContextFactory]
+           [org.eclipse.jetty.server DispatcherType]
+           [org.eclipse.jetty.servlets CrossOriginFilter])
   (:require [ring.util servlet])
   (:require [compojure.route :as route]
             [compojure.handler :as handler])
@@ -106,8 +110,14 @@
     (unparse (:rfc822 formatters) dt)
     ))
 
+(defn float-str [n]
+  (if n
+    (format "%.3f" (float n))
+    "0"
+    ))
+
 (defn url-format [fmt & args]
-  (String/format fmt 
+  (String/format fmt
     (to-array (map #(url-encode (str %)) args))))
 
 (defn to-tasks [^ExecutorInfo e]
@@ -127,65 +137,109 @@
 (defn unauthorized-user-html [user]
   [[:h2 "User '" (escape-html user) "' is not authorized."]])
 
-(defn- mk-ssl-connector [port ks-path ks-password ks-type]
-  (doto (SslSocketConnector.)
-    (.setExcludeCipherSuites (into-array String ["SSL_RSA_WITH_RC4_128_MD5" "SSL_RSA_WITH_RC4_128_SHA"]))
-    (.setAllowRenegotiate false)
-    (.setKeystore ks-path)
-    (.setKeystoreType ks-type)
-    (.setKeyPassword ks-password)
-    (.setPassword ks-password)
-    (.setPort port)))
+(defn- mk-ssl-connector [port ks-path ks-password ks-type key-password
+                         ts-path ts-password ts-type need-client-auth want-client-auth]
+  (let [sslContextFactory (doto (SslContextFactory.)
+                            (.setExcludeCipherSuites (into-array String ["SSL_RSA_WITH_RC4_128_MD5" "SSL_RSA_WITH_RC4_128_SHA"]))
+                            (.setExcludeProtocols (into-array String ["SSLv3"]))
+                            (.setAllowRenegotiate false)
+                            (.setKeyStorePath ks-path)
+                            (.setKeyStoreType ks-type)
+                            (.setKeyStorePassword ks-password)
+                            (.setKeyManagerPassword key-password))]
+    (if (and (not-nil? ts-path) (not-nil? ts-password) (not-nil? ts-type))
+      ((.setTrustStore sslContextFactory ts-path)
+       (.setTrustStoreType sslContextFactory ts-type)
+       (.setTrustStoreType sslContextFactory ts-password)))
+    (if (need-client-auth) (.setNeedClientAuth sslContextFactory true)
+        (if (want-client-auth) (.setWantClientAuth sslContextFactory true)))
+    (doto (SslSocketConnector. sslContextFactory)
+      (.setPort port))))
 
-(defn config-ssl [server port ks-path ks-password ks-type]
+
+(defn config-ssl [server port ks-path ks-password ks-type key-password
+                  ts-path ts-password ts-type need-client-auth want-client-auth]
   (when (> port 0)
-    (.addConnector server (mk-ssl-connector port ks-path ks-password ks-type))))
+    (.addConnector server (mk-ssl-connector port ks-path ks-password ks-type key-password
+                                            ts-path ts-password ts-type need-client-auth want-client-auth))))
+
+(defn cors-filter-handler
+  []
+  (doto (org.eclipse.jetty.servlet.FilterHolder. (CrossOriginFilter.))
+    (.setInitParameter CrossOriginFilter/ALLOWED_ORIGINS_PARAM "*")
+    (.setInitParameter CrossOriginFilter/ALLOWED_METHODS_PARAM "GET, POST, PUT")
+    (.setInitParameter CrossOriginFilter/ALLOWED_HEADERS_PARAM "X-Requested-With, X-Requested-By, Access-Control-Allow-Origin, Content-Type, Content-Length, Accept, Origin")
+    (.setInitParameter CrossOriginFilter/ACCESS_CONTROL_ALLOW_ORIGIN_HEADER "*")
+    ))
 
 (defn config-filter [server handler filters-confs]
   (if filters-confs
-    (let [servlet-holder (org.mortbay.jetty.servlet.ServletHolder.
+    (let [servlet-holder (ServletHolder.
                            (ring.util.servlet/servlet handler))
-          context (doto (org.mortbay.jetty.servlet.Context. server "/")
+          context (doto (org.eclipse.jetty.servlet.ServletContextHandler. server "/")
                     (.addServlet servlet-holder "/"))]
+      (.addFilter context (cors-filter-handler) "/*" (EnumSet/allOf DispatcherType))
       (doseq [{:keys [filter-name filter-class filter-params]} filters-confs]
         (if filter-class
-          (let [filter-holder (doto (org.mortbay.jetty.servlet.FilterHolder.)
+          (let [filter-holder (doto (org.eclipse.jetty.servlet.FilterHolder.)
                                 (.setClassName filter-class)
                                 (.setName (or filter-name filter-class))
                                 (.setInitParameters (or filter-params {})))]
-            (.addFilter context filter-holder "/*" org.mortbay.jetty.Handler/ALL))))
-      (.addHandler server context))))
+            (.addFilter context filter-holder "/*" FilterMapping/ALL))))
+      (.setHandler server context))))
 
 (defn ring-response-from-exception [ex]
   {:headers {}
    :status 400
    :body (.getMessage ex)})
 
-;; Stolen right from ring.adapter.jetty
+(defn- remove-non-ssl-connectors [server]
+  (doseq [c (.getConnectors server)]
+    (when-not (or (nil? c) (instance? SslSocketConnector c))
+      (.removeConnector server c)
+      ))
+  server)
+
+;; Modified from ring.adapter.jetty 1.3.0
 (defn- jetty-create-server
   "Construct a Jetty Server instance."
   [options]
-  (let [connector (doto (SocketConnector.)
-                    (.setPort (options :port))
-                    (.setHost (options :host)))
-        server (doto (Server.)
-                 (.addConnector connector)
-                 (.setSendDateHeader true))]
+  (let [connector (doto (SelectChannelConnector.)
+                    (.setPort (options :port 80))
+                    (.setHost (options :host))
+                    (.setMaxIdleTime (options :max-idle-time 200000)))
+        server    (doto (Server.)
+                    (.addConnector connector)
+                    (.setSendDateHeader true))
+        https-port (options :https-port)]
+    (if (and (not-nil? https-port) (> https-port 0)) (remove-non-ssl-connectors server))
     server))
 
 (defn storm-run-jetty
   "Modified version of run-jetty
-  Must contain configurator, and configurator must set handler."
+  Assumes configurator sets handler."
   [config]
+  {:pre [(:configurator config)]}
   (let [#^Server s (jetty-create-server (dissoc config :configurator))
         configurator (:configurator config)]
     (configurator s)
     (.start s)))
 
-(defnk json-response [data :status 200 :headers {}]
-  {:status (or status 200)
-   :headers (merge {"Content-Type" "application/json"} headers)
-   :body (to-json data)})
+(defn wrap-json-in-callback [callback response]
+  (str callback "(" response ");"))
+
+(defnk json-response
+  [data callback :serialize-fn to-json :status 200 :headers {}]
+     {:status status
+      :headers (merge {"Cache-Control" "no-cache, no-store"
+                       "Access-Control-Allow-Origin" "*"
+                       "Access-Control-Allow-Headers" "Content-Type, Access-Control-Allow-Headers, Access-Controler-Allow-Origin, X-Requested-By, X-Csrf-Token, Authorization, X-Requested-With"}
+                      (if (not-nil? callback) {"Content-Type" "application/javascript;charset=utf-8"}
+                          {"Content-Type" "application/json;charset=utf-8"})
+                      headers)
+      :body (if (not-nil? callback)
+              (wrap-json-in-callback callback (serialize-fn data))
+              (serialize-fn data))})
 
 (defn exception->json
   [ex]
