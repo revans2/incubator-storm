@@ -22,28 +22,27 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
+import java.util.Map;
+import java.util.HashMap;
+import java.util.concurrent.ThreadLocalRandom;
 
 import backtype.storm.generated.GlobalStreamId;
 import backtype.storm.task.WorkerTopologyContext;
 
 public class LoadAwareShuffleGrouping implements LoadAwareCustomStreamGrouping, Serializable {
     private Random random;
-    private List<Integer>[] rets;
-    private int[] targets;
-    private int[] loads;
-    private int total;
+    private Map<Integer, List<Integer>> orig;
+    private ArrayList<List<Integer>> choices;
     private long lastUpdate = 0;
 
     @Override
     public void prepare(WorkerTopologyContext context, GlobalStreamId stream, List<Integer> targetTasks) {
-        random = new Random();
-        rets = (List<Integer>[])new List<?>[targetTasks.size()];
-        targets = new int[targetTasks.size()];
-        for (int i = 0; i < targets.length; i++) {
-            rets[i] = Arrays.asList(targetTasks.get(i));
-            targets[i] = targetTasks.get(i);
+        random = ThreadLocalRandom.current();
+        orig = new HashMap<Integer, List<Integer>>(targetTasks.size());
+        for (Integer target: targetTasks) {
+            orig.put(target, Arrays.asList(target));
         }
-        loads = new int[targets.length];
+        choices = new ArrayList<List<Integer>>(targetTasks.size() * 100);
     }
     
     @Override
@@ -52,25 +51,17 @@ public class LoadAwareShuffleGrouping implements LoadAwareCustomStreamGrouping, 
     }
 
     @Override
-    public List<Integer> chooseTasks(int taskId, List<Object> values, LoadMapping load) {
+    public synchronized List<Integer> chooseTasks(int taskId, List<Object> values, LoadMapping load) {
         if ((lastUpdate + 1000) < System.currentTimeMillis()) {
-            int local_total = 0;
-            for (int i = 0; i < targets.length; i++) {
-                int val = (int)(101 - (load.get(targets[i]) * 100));
-                loads[i] = val;
-                local_total += val;
+            choices.clear();
+            for (Map.Entry<Integer, List<Integer>> target: orig.entrySet()) {
+                int val = (int)(101 - (load.get(target.getKey()) * 100));
+                for (int i = 0; i < val; i++) {
+                    choices.add(target.getValue());
+                }
             }
-            total = local_total;
             lastUpdate = System.currentTimeMillis();
         }
-        int selected = random.nextInt(total);
-        int sum = 0;
-        for (int i = 0; i < targets.length; i++) {
-            sum += loads[i];
-            if (selected < sum) {
-                return rets[i];
-            }
-        }
-        return rets[rets.length-1];
+        return choices.get(random.nextInt(choices.size()));
     }
 }

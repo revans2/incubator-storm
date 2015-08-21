@@ -23,26 +23,25 @@
   (:require [backtype.storm [thrift :as thrift]]))
 
 (deftest test-shuffle
-  (with-simulated-time-local-cluster [cluster :supervisors 4]
-    (let [topology (thrift/mk-topology
-                    {"1" (thrift/mk-spout-spec (TestWordSpout. true) :parallelism-hint 4)}
-                    {"2" (thrift/mk-bolt-spec {"1" :shuffle} (TestGlobalCount.)
-                                            :parallelism-hint 6)
-                     })
-          results (complete-topology cluster
-                                     topology
-                                     ;; important for test that
-                                     ;; #tuples = multiple of 4 and 6
-                                     :mock-sources {"1" (->> [["a"] ["b"]]
-                                                             (repeat 12)
-                                                             (apply concat))})]
-      (is (= (* 6 4) (.size (read-tuples results "2")))))))
+ (let [shuffle-fn (mk-shuffle-grouper [(int 1) (int 2)] {TOPOLOGY-DISABLE-LOADAWARE-MESSAGING true} nil "comp" "stream")
+       num-messages 100000
+       min-prcnt (int (* num-messages 0.49))
+       max-prcnt (int (* num-messages 0.51))
+       data [1 2]
+       freq (frequencies (for [x (range 0 num-messages)] (shuffle-fn (int 1) data nil)))
+       load1 (.get freq [(int 1)])
+       load2 (.get freq [(int 2)])]
+    (log-message "FREQ:" freq)
+    (is (>= load1 min-prcnt))
+    (is (<= load1 max-prcnt))
+    (is (>= load2 min-prcnt))
+    (is (<= load2 max-prcnt))))
 
 (deftest test-shuffle-load-even
  (let [shuffle-fn (mk-shuffle-grouper [(int 1) (int 2)] {} nil "comp" "stream")
-       num-messages 10000
-       min-prcnt (int (* num-messages 0.47))
-       max-prcnt (int (* num-messages 0.53))
+       num-messages 100000
+       min-prcnt (int (* num-messages 0.49))
+       max-prcnt (int (* num-messages 0.51))
        load (LoadMapping.)
        _ (.setLocal load {(int 1) 0.0 (int 2) 0.0})
        data [1 2]
@@ -57,11 +56,11 @@
 
 (deftest test-shuffle-load-uneven
  (let [shuffle-fn (mk-shuffle-grouper [(int 1) (int 2)] {} nil "comp" "stream")
-       num-messages 10000
-       min1-prcnt (int (* num-messages 0.30))
-       max1-prcnt (int (* num-messages 0.36))
-       min2-prcnt (int (* num-messages 0.63))
-       max2-prcnt (int (* num-messages 0.69))
+       num-messages 100000
+       min1-prcnt (int (* num-messages 0.32))
+       max1-prcnt (int (* num-messages 0.34))
+       min2-prcnt (int (* num-messages 0.65))
+       max2-prcnt (int (* num-messages 0.67))
        load (LoadMapping.)
        _ (.setLocal load {(int 1) 0.5 (int 2) 0.0})
        data [1 2]
