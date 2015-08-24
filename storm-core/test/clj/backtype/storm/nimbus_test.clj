@@ -17,16 +17,24 @@
   (:use [clojure test])
   (:require [backtype.storm [util :as util] [stats :as stats]])
   (:require [backtype.storm.daemon [nimbus :as nimbus]])
-  (:import [backtype.storm.testing TestWordCounter TestWordSpout TestGlobalCount TestAggregatesCounter])
+  (:import [backtype.storm.testing TestWordCounter TestWordSpout TestGlobalCount
+            TestAggregatesCounter TestPlannerSpout TestPlannerBolt])
   (:import [backtype.storm.scheduler INimbus])
-  (:import [backtype.storm.generated Credentials LogConfig LogLevel LogLevelAction])
-  (:use [backtype.storm bootstrap testing])
+  (:import [backtype.storm.generated Credentials NotAliveException SubmitOptions
+            TopologyInitialStatus AlreadyAliveException KillOptions RebalanceOptions
+            InvalidTopologyException AuthorizationException
+            LogConfig LogLevel LogLevelAction])
+  (:import [java.util HashMap])
+  (:import [java.io File])
+  (:import [backtype.storm.utils Time Utils])
+  (:import [org.apache.commons.io FileUtils])
+  (:use [backtype.storm testing MockAutoCred util config log timer])
   (:use [backtype.storm.daemon common])
   (:require [conjure.core])
-  (:use [conjure core])
-  )
-
-(bootstrap)
+  (:require [backtype.storm
+             [thrift :as thrift]
+             [cluster :as cluster]])
+  (:use [conjure core]))
 
 (defn storm-component->task-info [cluster storm-name]
   (let [storm-id (get-storm-id (:storm-cluster-state cluster) storm-name)
@@ -34,6 +42,10 @@
     (-> (.getUserTopology nimbus storm-id)
         (storm-task-info (from-json (.getTopologyConf nimbus storm-id)))
         reverse-map)))
+
+(defn getCredentials [cluster storm-name]
+  (let [storm-id (get-storm-id (:storm-cluster-state cluster) storm-name)]
+    (.credentials (:storm-cluster-state cluster) storm-id nil)))
 
 (defn storm-component->executor-info [cluster storm-name]
   (let [storm-id (get-storm-id (:storm-cluster-state cluster) storm-name)
@@ -225,6 +237,37 @@
       (getHostName [this supervisors node-id]
         node-id
       ))))
+
+
+(deftest test-auto-credentials
+  (with-simulated-time-local-cluster [cluster :supervisors 6
+                                      :ports-per-supervisor 3
+                                      :daemon-conf {SUPERVISOR-ENABLE false
+                                                    TOPOLOGY-ACKER-EXECUTORS 0
+                                                    NIMBUS-CREDENTIAL-RENEW-FREQ-SECS 10
+                                                    NIMBUS-CREDENTIAL-RENEWERS (list "backtype.storm.MockAutoCred")
+                                                    NIMBUS-AUTO-CRED-PLUGINS (list "backtype.storm.MockAutoCred")
+                                                    }]
+    (let [state (:storm-cluster-state cluster)
+          nimbus (:nimbus cluster)
+          topology-name "test-auto-cred-storm"
+          submitOptions (SubmitOptions. TopologyInitialStatus/INACTIVE)
+          - (.set_creds submitOptions (Credentials. (HashMap.)))
+          topology (thrift/mk-topology
+                     {"1" (thrift/mk-spout-spec (TestPlannerSpout. false) :parallelism-hint 3)}
+                     {"2" (thrift/mk-bolt-spec {"1" :none} (TestPlannerBolt.) :parallelism-hint 4)
+                      "3" (thrift/mk-bolt-spec {"2" :none} (TestPlannerBolt.))})
+          _ (submit-local-topology-with-opts nimbus topology-name {TOPOLOGY-WORKERS 4
+                                                               TOPOLOGY-AUTO-CREDENTIALS (list "backtype.storm.MockAutoCred")
+                                                               } topology submitOptions)
+          credentials (getCredentials cluster topology-name)]
+      ; check that the credentials have nimbus auto generated cred
+      (is (= (.get credentials nimbus-cred-key) nimbus-cred-val))
+      ;advance cluster time so the renewers can execute
+      (advance-cluster-time cluster 20)
+      ;check that renewed credentials replace the original credential.
+      (is (= (.get (getCredentials cluster topology-name) nimbus-cred-key) nimbus-cred-renew-val))
+      (is (= (.get (getCredentials cluster topology-name) gateway-cred-key) gateway-cred-renew-val)))))
 
 (deftest test-isolated-assignment
   (with-simulated-time-local-cluster [cluster :supervisors 6

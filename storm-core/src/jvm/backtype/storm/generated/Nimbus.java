@@ -124,8 +124,18 @@ public class Nimbus {
 
     public String getTopologyConf(String id) throws NotAliveException, AuthorizationException, org.apache.thrift.TException;
 
+    /**
+     * Returns the compiled topology that contains ackers and metrics consumsers. Compare {@link #getUserTopology(String id)}.
+     * 
+     * @param id
+     */
     public StormTopology getTopology(String id) throws NotAliveException, AuthorizationException, org.apache.thrift.TException;
 
+    /**
+     * Returns the user specified topology as submitted originally. Compare {@link #getTopology(String id)}.
+     * 
+     * @param id
+     */
     public StormTopology getUserTopology(String id) throws NotAliveException, AuthorizationException, org.apache.thrift.TException;
 
     public TopologyHistoryInfo getTopologyHistory(String user) throws AuthorizationException, org.apache.thrift.TException;

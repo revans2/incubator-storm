@@ -26,5 +26,5 @@ final class SaslNettyServerState {
             protected SaslNettyServer initialValue(Channel channel) {
                 return null;
             }
-	};
+        };
 }

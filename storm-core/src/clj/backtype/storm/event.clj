@@ -17,6 +17,7 @@
 (ns backtype.storm.event
   (:use [backtype.storm log util])
   (:import [backtype.storm.utils Time Utils])
+  (:import [java.io InterruptedIOException])
   (:import [java.util.concurrent LinkedBlockingQueue TimeUnit]))
 
 (defprotocol EventManager
@@ -38,11 +39,13 @@
                        (let [r (.take queue)]
                          (r)
                          (swap! processed inc)))
+                     (catch InterruptedIOException t
+                       (log-message "Event manager interrupted while doing IO"))
                      (catch InterruptedException t
                        (log-message "Event manager interrupted"))
                      (catch Throwable t
                        (log-error t "Error when processing event")
-                       (halt-process! 20 "Error when processing an event")))))]
+                       (exit-process! 20 "Error when processing an event")))))]
     (.setDaemon runner daemon?)
     (.start runner)
     (reify

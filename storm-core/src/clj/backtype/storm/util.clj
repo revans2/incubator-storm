@@ -41,6 +41,7 @@
   (:require [clojure [set :as set]])
   (:require [clojure.java.io :as io])
   (:use [clojure walk])
+  (:require [ring.util.codec :as codec])
   (:use [backtype.storm log]))
 
 (defn wrap-in-runtime
@@ -209,6 +210,14 @@
   []
   (.getCanonicalHostName (InetAddress/getLocalHost)))
 
+(def memoized-local-hostname (memoize local-hostname))
+
+;; checks conf for STORM_LOCAL_HOSTNAME.
+;; when unconfigured, falls back to (memoized) guess by `local-hostname`.
+(defn hostname
+  [conf]
+  (conf Config/STORM_LOCAL_HOSTNAME (memoized-local-hostname)))
+
 (letfn [(try-port [port]
                   (with-open [socket (java.net.ServerSocket. port)]
                     (.getLocalPort socket)))]
@@ -320,10 +329,10 @@
   [& vals]
   (byte-array (map byte vals)))
 
-(defn halt-process!
+(defn exit-process!
   [val & msg]
-  (log-message "Halting process: " msg)
-  (.halt (Runtime/getRuntime) val))
+  (log-error (RuntimeException. (str msg)) "Halting process: " msg)
+  (.exit (Runtime/getRuntime) val))
 
 (defn sum
   [vals]
@@ -396,10 +405,24 @@
     (catch IOException e
       (log-message "Could not extract " dir " from " jarpath))))
 
-(defn ensure-process-killed! [pid]
-  ;; TODO: should probably do a ps ax of some sort to make sure it was killed
+(defn sleep-secs [secs]
+  (when (pos? secs)
+    (Time/sleep (* (long secs) 1000))))
+
+(defn sleep-until-secs [target-secs]
+  (Time/sleepUntil (* (long target-secs) 1000)))
+
+(def ^:const sig-kill 9)
+
+(def ^:const sig-term 15)
+
+(defn send-signal-to-process
+  [pid signum]
   (try-cause
-    (exec-command! (str (if on-windows? "taskkill /f /pid " "kill -9 ") pid))
+    (exec-command! (str (if on-windows?
+                          (if (== signum sig-kill) "taskkill /f /pid " "taskkill /pid ")
+                          (str "kill -" signum " "))
+                     pid))
     (catch ExecuteException e
       (log-message "Error when trying to kill " pid ". Process is probably already dead."))))
 
@@ -415,12 +438,22 @@
     (catch IOException e
       (log-warn "Error while trying to log stream" e))))
 
-(defn sleep-secs [secs]
-  (when (pos? secs)
-    (Time/sleep (* (long secs) 1000))))
+(defn force-kill-process
+  [pid]
+  (send-signal-to-process pid sig-kill))
 
-(defn sleep-until-secs [target-secs]
-  (Time/sleepUntil (* (long target-secs) 1000)))
+(defn kill-process-with-sig-term
+  [pid]
+  (send-signal-to-process pid sig-term))
+
+(defn add-shutdown-hook-with-force-kill-in-1-sec
+  "adds the user supplied function as a shutdown hook for cleanup.
+   Also adds a function that sleeps for a second and then sends kill -9 to process to avoid any zombie process in case
+   cleanup function hangs."
+  [func]
+  (.addShutdownHook (Runtime/getRuntime) (Thread. #(func)))
+  (.addShutdownHook (Runtime/getRuntime) (Thread. #((sleep-secs 1)
+                                                    (.halt (Runtime/getRuntime) 20)))))
 
 (defprotocol SmartThread
   (start [this])
@@ -431,7 +464,7 @@
 ;; afn returns amount of time to sleep
 (defnk async-loop [afn
                    :daemon false
-                   :kill-fn (fn [error] (halt-process! 1 "Async loop died!"))
+                   :kill-fn (fn [error] (exit-process! 1 "Async loop died!"))
                    :priority Thread/NORM_PRIORITY
                    :factory? false
                    :start true
@@ -855,11 +888,11 @@
 
 (defn url-encode
   [s]
-  (java.net.URLEncoder/encode s "UTF-8"))
+  (codec/url-encode s))
 
 (defn url-decode
   [s]
-  (java.net.URLDecoder/decode s "UTF-8"))
+  (codec/url-decode s))
 
 (defn join-maps
   [& maps]
@@ -1052,3 +1085,4 @@
   (if (contains? coll k)
     (assoc coll k (apply str (repeat (count (coll k)) "#")))
     coll))
+

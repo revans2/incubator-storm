@@ -281,6 +281,8 @@ class Iface:
 
   def getTopology(self, id):
     """
+    Returns the compiled topology that contains ackers and metrics consumsers. Compare {@link #getUserTopology(String id)}.
+
     Parameters:
      - id
     """
@@ -288,6 +290,8 @@ class Iface:
 
   def getUserTopology(self, id):
     """
+    Returns the user specified topology as submitted originally. Compare {@link #getTopology(String id)}.
+
     Parameters:
      - id
     """
@@ -1462,6 +1466,8 @@ class Client(Iface):
 
   def getTopology(self, id):
     """
+    Returns the compiled topology that contains ackers and metrics consumsers. Compare {@link #getUserTopology(String id)}.
+
     Parameters:
      - id
     """
@@ -1497,6 +1503,8 @@ class Client(Iface):
 
   def getUserTopology(self, id):
     """
+    Returns the user specified topology as submitted originally. Compare {@link #getTopology(String id)}.
+
     Parameters:
      - id
     """

@@ -15,13 +15,12 @@
 ;; limitations under the License.
 (ns backtype.storm.grouping-test
   (:use [clojure test])
-  (:import [backtype.storm.testing TestWordCounter TestWordSpout TestGlobalCount TestAggregatesCounter TestWordBytesCounter NGrouping])
+  (:import [backtype.storm.testing TestWordCounter TestWordSpout TestGlobalCount TestAggregatesCounter TestWordBytesCounter NGrouping]
+           [backtype.storm.generated JavaObject JavaObjectArg])
   (:import [backtype.storm.grouping LoadMapping])
-  (:use [backtype.storm bootstrap testing])
+  (:use [backtype.storm testing clojure log config])
   (:use [backtype.storm.daemon common executor])
-  )
-
-(bootstrap)
+  (:require [backtype.storm [thrift :as thrift]]))
 
 (deftest test-shuffle
  (let [shuffle-fn (mk-shuffle-grouper [(int 1) (int 2)] {TOPOLOGY-DISABLE-LOADAWARE-MESSAGING true} nil "comp" "stream")

@@ -52,17 +52,17 @@ public class StormServerHandler extends SimpleChannelUpstreamHandler  {
     
     @Override
     public void messageReceived(ChannelHandlerContext ctx, MessageEvent e) {
-        Object msgs = e.getMessage();
-        if (msgs == null) {
-            return;
-        }
-
-        try {
-            server.received(msgs, e.getRemoteAddress().toString(), channel);
-        } catch (InterruptedException e1) {
-            LOG.info("failed to enqueue a request message", e);
-            failure_count.incrementAndGet();
-        }
+      Object msgs = e.getMessage();
+      if (msgs == null) {
+        return;
+      }
+      
+      try {
+        server.received(msgs, e.getRemoteAddress().toString(), channel);
+      } catch (InterruptedException e1) {
+        LOG.info("failed to enqueue a request message", e);
+        failure_count.incrementAndGet();
+      }
     }
 
     @Override

@@ -161,7 +161,8 @@ struct SupervisorSummary {
   3: required i32 num_workers;
   4: required i32 num_used_workers;
   5: required string supervisor_id;
-  6: optional map<string, double> total_resources;
+  6: optional string version = "VERSION_NOT_PROVIDED";
+  7: optional map<string, double> total_resources;
 }
 
 struct ClusterSummary {
@@ -173,6 +174,8 @@ struct ClusterSummary {
 struct ErrorInfo {
   1: required string error;
   2: required i32 error_time_secs;
+  3: optional string host;
+  4: optional i32 port;
 }
 
 struct BoltStats {
@@ -409,8 +412,10 @@ struct SupervisorInfo {
     5: optional list<i64> meta;
     6: optional map<string, string> scheduler_meta;
     7: optional i64 uptime_secs;
-    8: optional map<string, double> resources_map;
+    8: optional string version;
+    9: optional map<string, double> resources_map;
 }
+
 struct NodeInfo {
     1: required string node;
     2: required set<i64> port;
@@ -574,7 +579,13 @@ service Nimbus {
   ComponentPageInfo getComponentPageInfo(1: string topology_id, 2: string component_id, 3: string window, 4: bool is_include_sys) throws (1: NotAliveException e, 2: AuthorizationException aze);
   //returns json
   string getTopologyConf(1: string id) throws (1: NotAliveException e, 2: AuthorizationException aze);
+  /**
+   * Returns the compiled topology that contains ackers and metrics consumsers. Compare {@link #getUserTopology(String id)}.
+   */
   StormTopology getTopology(1: string id) throws (1: NotAliveException e, 2: AuthorizationException aze);
+  /**
+   * Returns the user specified topology as submitted originally. Compare {@link #getTopology(String id)}.
+   */
   StormTopology getUserTopology(1: string id) throws (1: NotAliveException e, 2: AuthorizationException aze);
   TopologyHistoryInfo getTopologyHistory(1: string user) throws (1: AuthorizationException aze);
 }

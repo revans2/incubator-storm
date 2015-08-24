@@ -60,7 +60,8 @@ public class SupervisorSummary implements org.apache.thrift.TBase<SupervisorSumm
   private static final org.apache.thrift.protocol.TField NUM_WORKERS_FIELD_DESC = new org.apache.thrift.protocol.TField("num_workers", org.apache.thrift.protocol.TType.I32, (short)3);
   private static final org.apache.thrift.protocol.TField NUM_USED_WORKERS_FIELD_DESC = new org.apache.thrift.protocol.TField("num_used_workers", org.apache.thrift.protocol.TType.I32, (short)4);
   private static final org.apache.thrift.protocol.TField SUPERVISOR_ID_FIELD_DESC = new org.apache.thrift.protocol.TField("supervisor_id", org.apache.thrift.protocol.TType.STRING, (short)5);
-  private static final org.apache.thrift.protocol.TField TOTAL_RESOURCES_FIELD_DESC = new org.apache.thrift.protocol.TField("total_resources", org.apache.thrift.protocol.TType.MAP, (short)6);
+  private static final org.apache.thrift.protocol.TField VERSION_FIELD_DESC = new org.apache.thrift.protocol.TField("version", org.apache.thrift.protocol.TType.STRING, (short)6);
+  private static final org.apache.thrift.protocol.TField TOTAL_RESOURCES_FIELD_DESC = new org.apache.thrift.protocol.TField("total_resources", org.apache.thrift.protocol.TType.MAP, (short)7);
 
   private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
   static {
@@ -73,6 +74,7 @@ public class SupervisorSummary implements org.apache.thrift.TBase<SupervisorSumm
   private int num_workers; // required
   private int num_used_workers; // required
   private String supervisor_id; // required
+  private String version; // optional
   private Map<String,Double> total_resources; // optional
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
@@ -82,7 +84,8 @@ public class SupervisorSummary implements org.apache.thrift.TBase<SupervisorSumm
     NUM_WORKERS((short)3, "num_workers"),
     NUM_USED_WORKERS((short)4, "num_used_workers"),
     SUPERVISOR_ID((short)5, "supervisor_id"),
-    TOTAL_RESOURCES((short)6, "total_resources");
+    VERSION((short)6, "version"),
+    TOTAL_RESOURCES((short)7, "total_resources");
 
     private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
 
@@ -107,7 +110,9 @@ public class SupervisorSummary implements org.apache.thrift.TBase<SupervisorSumm
           return NUM_USED_WORKERS;
         case 5: // SUPERVISOR_ID
           return SUPERVISOR_ID;
-        case 6: // TOTAL_RESOURCES
+        case 6: // VERSION
+          return VERSION;
+        case 7: // TOTAL_RESOURCES
           return TOTAL_RESOURCES;
         default:
           return null;
@@ -153,7 +158,7 @@ public class SupervisorSummary implements org.apache.thrift.TBase<SupervisorSumm
   private static final int __NUM_WORKERS_ISSET_ID = 1;
   private static final int __NUM_USED_WORKERS_ISSET_ID = 2;
   private byte __isset_bitfield = 0;
-  private static final _Fields optionals[] = {_Fields.TOTAL_RESOURCES};
+  private static final _Fields optionals[] = {_Fields.VERSION,_Fields.TOTAL_RESOURCES};
   public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
   static {
     Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
@@ -167,6 +172,8 @@ public class SupervisorSummary implements org.apache.thrift.TBase<SupervisorSumm
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I32)));
     tmpMap.put(_Fields.SUPERVISOR_ID, new org.apache.thrift.meta_data.FieldMetaData("supervisor_id", org.apache.thrift.TFieldRequirementType.REQUIRED, 
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
+    tmpMap.put(_Fields.VERSION, new org.apache.thrift.meta_data.FieldMetaData("version", org.apache.thrift.TFieldRequirementType.OPTIONAL, 
+        new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
     tmpMap.put(_Fields.TOTAL_RESOURCES, new org.apache.thrift.meta_data.FieldMetaData("total_resources", org.apache.thrift.TFieldRequirementType.OPTIONAL, 
         new org.apache.thrift.meta_data.MapMetaData(org.apache.thrift.protocol.TType.MAP, 
             new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING), 
@@ -176,6 +183,8 @@ public class SupervisorSummary implements org.apache.thrift.TBase<SupervisorSumm
   }
 
   public SupervisorSummary() {
+    this.version = "VERSION_NOT_PROVIDED";
+
   }
 
   public SupervisorSummary(
@@ -210,6 +219,9 @@ public class SupervisorSummary implements org.apache.thrift.TBase<SupervisorSumm
     if (other.is_set_supervisor_id()) {
       this.supervisor_id = other.supervisor_id;
     }
+    if (other.is_set_version()) {
+      this.version = other.version;
+    }
     if (other.is_set_total_resources()) {
       Map<String,Double> __this__total_resources = new HashMap<String,Double>(other.total_resources);
       this.total_resources = __this__total_resources;
@@ -230,6 +242,8 @@ public class SupervisorSummary implements org.apache.thrift.TBase<SupervisorSumm
     set_num_used_workers_isSet(false);
     this.num_used_workers = 0;
     this.supervisor_id = null;
+    this.version = "VERSION_NOT_PROVIDED";
+
     this.total_resources = null;
   }
 
@@ -345,6 +359,29 @@ public class SupervisorSummary implements org.apache.thrift.TBase<SupervisorSumm
     }
   }
 
+  public String get_version() {
+    return this.version;
+  }
+
+  public void set_version(String version) {
+    this.version = version;
+  }
+
+  public void unset_version() {
+    this.version = null;
+  }
+
+  /** Returns true if field version is set (has been assigned a value) and false otherwise */
+  public boolean is_set_version() {
+    return this.version != null;
+  }
+
+  public void set_version_isSet(boolean value) {
+    if (!value) {
+      this.version = null;
+    }
+  }
+
   public int get_total_resources_size() {
     return (this.total_resources == null) ? 0 : this.total_resources.size();
   }
@@ -421,6 +458,14 @@ public class SupervisorSummary implements org.apache.thrift.TBase<SupervisorSumm
       }
       break;
 
+    case VERSION:
+      if (value == null) {
+        unset_version();
+      } else {
+        set_version((String)value);
+      }
+      break;
+
     case TOTAL_RESOURCES:
       if (value == null) {
         unset_total_resources();
@@ -449,6 +494,9 @@ public class SupervisorSummary implements org.apache.thrift.TBase<SupervisorSumm
     case SUPERVISOR_ID:
       return get_supervisor_id();
 
+    case VERSION:
+      return get_version();
+
     case TOTAL_RESOURCES:
       return get_total_resources();
 
@@ -473,6 +521,8 @@ public class SupervisorSummary implements org.apache.thrift.TBase<SupervisorSumm
       return is_set_num_used_workers();
     case SUPERVISOR_ID:
       return is_set_supervisor_id();
+    case VERSION:
+      return is_set_version();
     case TOTAL_RESOURCES:
       return is_set_total_resources();
     }
@@ -537,6 +587,15 @@ public class SupervisorSummary implements org.apache.thrift.TBase<SupervisorSumm
         return false;
     }
 
+    boolean this_present_version = true && this.is_set_version();
+    boolean that_present_version = true && that.is_set_version();
+    if (this_present_version || that_present_version) {
+      if (!(this_present_version && that_present_version))
+        return false;
+      if (!this.version.equals(that.version))
+        return false;
+    }
+
     boolean this_present_total_resources = true && this.is_set_total_resources();
     boolean that_present_total_resources = true && that.is_set_total_resources();
     if (this_present_total_resources || that_present_total_resources) {
@@ -577,6 +636,11 @@ public class SupervisorSummary implements org.apache.thrift.TBase<SupervisorSumm
     list.add(present_supervisor_id);
     if (present_supervisor_id)
       list.add(supervisor_id);
+
+    boolean present_version = true && (is_set_version());
+    list.add(present_version);
+    if (present_version)
+      list.add(version);
 
     boolean present_total_resources = true && (is_set_total_resources());
     list.add(present_total_resources);
@@ -644,6 +708,16 @@ public class SupervisorSummary implements org.apache.thrift.TBase<SupervisorSumm
         return lastComparison;
       }
     }
+    lastComparison = Boolean.valueOf(is_set_version()).compareTo(other.is_set_version());
+    if (lastComparison != 0) {
+      return lastComparison;
+    }
+    if (is_set_version()) {
+      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.version, other.version);
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+    }
     lastComparison = Boolean.valueOf(is_set_total_resources()).compareTo(other.is_set_total_resources());
     if (lastComparison != 0) {
       return lastComparison;
@@ -701,6 +775,16 @@ public class SupervisorSummary implements org.apache.thrift.TBase<SupervisorSumm
       sb.append(this.supervisor_id);
     }
     first = false;
+    if (is_set_version()) {
+      if (!first) sb.append(", ");
+      sb.append("version:");
+      if (this.version == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.version);
+      }
+      first = false;
+    }
     if (is_set_total_resources()) {
       if (!first) sb.append(", ");
       sb.append("total_resources:");
@@ -816,7 +900,15 @@ public class SupervisorSummary implements org.apache.thrift.TBase<SupervisorSumm
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
             break;
-          case 6: // TOTAL_RESOURCES
+          case 6: // VERSION
+            if (schemeField.type == org.apache.thrift.protocol.TType.STRING) {
+              struct.version = iprot.readString();
+              struct.set_version_isSet(true);
+            } else { 
+              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+            }
+            break;
+          case 7: // TOTAL_RESOURCES
             if (schemeField.type == org.apache.thrift.protocol.TType.MAP) {
               {
                 org.apache.thrift.protocol.TMap _map74 = iprot.readMapBegin();
@@ -868,6 +960,13 @@ public class SupervisorSummary implements org.apache.thrift.TBase<SupervisorSumm
         oprot.writeString(struct.supervisor_id);
         oprot.writeFieldEnd();
       }
+      if (struct.version != null) {
+        if (struct.is_set_version()) {
+          oprot.writeFieldBegin(VERSION_FIELD_DESC);
+          oprot.writeString(struct.version);
+          oprot.writeFieldEnd();
+        }
+      }
       if (struct.total_resources != null) {
         if (struct.is_set_total_resources()) {
           oprot.writeFieldBegin(TOTAL_RESOURCES_FIELD_DESC);
@@ -906,10 +1005,16 @@ public class SupervisorSummary implements org.apache.thrift.TBase<SupervisorSumm
       oprot.writeI32(struct.num_used_workers);
       oprot.writeString(struct.supervisor_id);
       BitSet optionals = new BitSet();
-      if (struct.is_set_total_resources()) {
+      if (struct.is_set_version()) {
         optionals.set(0);
       }
-      oprot.writeBitSet(optionals, 1);
+      if (struct.is_set_total_resources()) {
+        optionals.set(1);
+      }
+      oprot.writeBitSet(optionals, 2);
+      if (struct.is_set_version()) {
+        oprot.writeString(struct.version);
+      }
       if (struct.is_set_total_resources()) {
         {
           oprot.writeI32(struct.total_resources.size());
@@ -935,8 +1040,12 @@ public class SupervisorSummary implements org.apache.thrift.TBase<SupervisorSumm
       struct.set_num_used_workers_isSet(true);
       struct.supervisor_id = iprot.readString();
       struct.set_supervisor_id_isSet(true);
-      BitSet incoming = iprot.readBitSet(1);
+      BitSet incoming = iprot.readBitSet(2);
       if (incoming.get(0)) {
+        struct.version = iprot.readString();
+        struct.set_version_isSet(true);
+      }
+      if (incoming.get(1)) {
         {
           org.apache.thrift.protocol.TMap _map80 = new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.DOUBLE, iprot.readI32());
           struct.total_resources = new HashMap<String,Double>(2*_map80.size);
