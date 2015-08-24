@@ -59,7 +59,8 @@
             context (.populateContext handler (ReqContext/context) req)]
         (is (= true (.isImpersonating context)))
         (is (.equals exp-name (.getName (.realPrincipal context))))
-        (is (.equals do-as-user-name (.getName (.principal context))))))))
+        (is (.equals do-as-user-name (.getName (.principal context))))
+        (.setSubject (ReqContext/context) nil)))))
 
 (deftest test-populate-req-context-on-null-user
   (let [req (Mockito/mock HttpServletRequest)
