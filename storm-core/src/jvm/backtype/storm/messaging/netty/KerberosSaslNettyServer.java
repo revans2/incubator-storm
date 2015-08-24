@@ -177,7 +177,7 @@ class KerberosSaslNettyServer {
                         String requester = ac.getAuthorizationID();
 
                         KerberosPrincipal principal = new KerberosPrincipal(requester);
-                        requester = KerberosPrincipalToLocal.withoutInstance(principal);
+                        requester = new KerberosPrincipalToLocal().toLocal(principal);
 
                         if(requester.equals(user) ) {
                             ac.setAuthorized(true);
