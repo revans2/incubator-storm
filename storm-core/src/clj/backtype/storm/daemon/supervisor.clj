@@ -14,16 +14,26 @@
 ;; See the License for the specific language governing permissions and
 ;; limitations under the License.
 (ns backtype.storm.daemon.supervisor
-  (:import [java.io OutputStreamWriter BufferedWriter IOException])
+  (:import [java.io OutputStreamWriter BufferedWriter IOException FileOutputStream])
+  (:import [backtype.storm.scheduler ISupervisor]
+           [backtype.storm.utils LocalState Time Utils VersionInfo]
+           [backtype.storm.daemon Shutdownable]
+           [backtype.storm Config Constants]
+           [java.net JarURLConnection]
+           [java.net URI]
+           [org.apache.commons.io FileUtils]
+           [java.io File])
+  (:use [backtype.storm config util log timer local-state])
+  (:import [backtype.storm.generated AuthorizationException KeyNotFoundException])
   (:import [java.util.concurrent Executors])
   (:import [java.nio.file Files Path Paths StandardCopyOption])
-  (:import [backtype.storm.scheduler ISupervisor])
   (:import [backtype.storm.blobstore BlobStoreAclHandler])
-  (:import [backtype.storm Config])
   (:import [backtype.storm.localizer LocalResource])
-  (:use [backtype.storm bootstrap local-state])
   (:use [backtype.storm.daemon common])
-  (:require [backtype.storm.daemon [worker :as worker]])
+  (:require [backtype.storm.daemon [worker :as worker]]
+            [backtype.storm.command [healthcheck :as healthcheck]]
+            [backtype.storm [process-simulator :as psim] [cluster :as cluster] [event :as event]]
+            [clojure.set :as set])
   (:import [org.apache.zookeeper data.ACL ZooDefs$Ids ZooDefs$Perms])
   (:import [org.yaml.snakeyaml Yaml]
            [org.yaml.snakeyaml.constructor SafeConstructor])
@@ -31,8 +41,6 @@
   (:require [metrics.meters :refer [defmeter mark!]])
   (:gen-class
     :methods [^{:static true} [launch [backtype.storm.scheduler.ISupervisor] void]]))
-
-(bootstrap)
 
 (defmeter num-workers-launched)
 
@@ -47,9 +55,9 @@
 
 (defn- assignments-snapshot [storm-cluster-state callback assignment-versions]
   (let [storm-ids (.assignments storm-cluster-state callback)]
-    (let [new-assignments 
+    (let [new-assignments
           (->>
-           (dofor [sid storm-ids] 
+           (dofor [sid storm-ids]
                   (let [recorded-version (:version (get assignment-versions sid))]
                     (if-let [assignment-version (.assignment-version storm-cluster-state sid callback)]
                       (if (= assignment-version recorded-version)
@@ -58,31 +66,41 @@
                       {sid nil})))
            (apply merge)
            (filter-val not-nil?))]
-         
+
       {:assignments (into {} (for [[k v] new-assignments] [k (:data v)]))
        :versions new-assignments})))
-  
+
 (defn- read-my-executors [assignments-snapshot storm-id assignment-id]
   (let [assignment (get assignments-snapshot storm-id)
+        my-slots-resources (into {} 
+                                 (filter (fn [[[node _] _]] (= node assignment-id))
+                                         (:worker->resources assignment)))
         my-executors (filter (fn [[_ [node _]]] (= node assignment-id))
-                           (:executor->node+port assignment))
+                             (:executor->node+port assignment))
         port-executors (apply merge-with
-                          concat
-                          (for [[executor [_ port]] my-executors]
-                            {port [executor]}
-                            ))]
+                              concat
+                              (for [[executor [_ port]] my-executors]
+                                {port [executor]}
+                                ))]
     (into {} (for [[port executors] port-executors]
                ;; need to cast to int b/c it might be a long (due to how yaml parses things)
                ;; doall is to avoid serialization/deserialization problems with lazy seqs
-               [(Integer. port) (mk-local-assignment storm-id (doall executors))]
+               [(Integer. port) (mk-local-assignment-with-resources storm-id (doall executors) (get my-slots-resources [assignment-id port]))]
                ))))
-
 
 (defn- read-assignments
   "Returns map from port to struct containing :storm-id and :executors"
-  [assignments-snapshot assignment-id]
-  (->> (dofor [sid (keys assignments-snapshot)] (read-my-executors assignments-snapshot sid assignment-id))
-       (apply merge-with (fn [& params] (throw-runtime (str "Should not have multiple topologies assigned to one port " params))))))
+  ([assignments-snapshot assignment-id]
+     (->> (dofor [sid (keys assignments-snapshot)] (read-my-executors assignments-snapshot sid assignment-id))
+          (apply merge-with (fn [& ignored] (throw-runtime "Should not have multiple topologies assigned to one port")))))
+  ([assignments-snapshot assignment-id existing-assignment retries]
+     (try (let [assignments (read-assignments assignments-snapshot assignment-id)]
+            (reset! retries 0)
+            assignments)
+          (catch RuntimeException e
+            (if (> @retries 2) (throw e) (swap! retries inc))
+            (log-warn (.getMessage e) ": retrying " @retries " of 3")
+            existing-assignment))))
 
 (defn- read-storm-local-dir
   [assignments-snapshot]
@@ -94,8 +112,11 @@
 
 (defn read-worker-heartbeat [conf id]
   (let [local-state (worker-state conf id)]
-    (ls-worker-heartbeat local-state)
-    ))
+    (try
+      (ls-worker-heartbeat local-state)
+      (catch Exception e
+        (log-warn e "Failed to read local heartbeat for workerId : " id ",Ignoring exception.")
+        nil))))
 
 
 (defn my-worker-ids [conf]
@@ -146,7 +167,7 @@
                          (or (not (contains? approved-ids id))
                              (not (matches-an-assignment? hb assigned-executors)))
                            :disallowed
-                         (or 
+                         (or
                           (when (get (get-dead-workers) id)
                             (log-message "Worker Process " id " has died!")
                             true)
@@ -160,7 +181,7 @@
      )))
 
 (defn- wait-for-worker-launch [conf id start-time]
-  (let [state (worker-state conf id)]    
+  (let [state (worker-state conf id)]
     (loop []
       (let [hb (ls-worker-heartbeat state)]
         (when (and
@@ -246,25 +267,32 @@
   (let [conf (:conf supervisor)
         pids (read-dir-contents (worker-pids-root conf id))
         thread-pid (@(:worker-thread-pids-atom supervisor) id)
+        shutdown-sleep-secs (conf SUPERVISOR-WORKER-SHUTDOWN-SLEEP-SECS)
         as-user (conf SUPERVISOR-RUN-WORKER-AS-USER)
         user (get-worker-user conf id)]
     (when thread-pid
       (psim/kill-process thread-pid))
     (doseq [pid pids]
       (if as-user
+        (worker-launcher-and-wait conf user ["signal" pid "15"] :log-prefix (str "kill -15 " pid))
+        (kill-process-with-sig-term pid)))
+    (when-not (empty? pids)  
+      (log-message "Sleep " shutdown-sleep-secs " seconds for execution of cleanup threads on worker.")
+      (sleep-secs shutdown-sleep-secs))
+    (doseq [pid pids]
+      (if as-user
         (worker-launcher-and-wait conf user ["signal" pid "9"] :log-prefix (str "kill -9 " pid))
-        (ensure-process-killed! pid))
+        (force-kill-process pid))
       (if as-user
         (rmr-as-user conf id (worker-pid-path conf id pid))
         (try
           (rmpath (worker-pid-path conf id pid))
-          (catch Exception e)) ;; on windows, the supervisor may still holds the lock on the worker directory
-      ))
+          (catch Exception e)))) ;; on windows, the supervisor may still holds the lock on the worker directory
     (try-cleanup-worker conf id))
   (log-message "Shut down " (:supervisor-id supervisor) ":" id))
 
 (def SUPERVISOR-ZK-ACLS
-  [(first ZooDefs$Ids/CREATOR_ALL_ACL) 
+  [(first ZooDefs$Ids/CREATOR_ALL_ACL)
    (ACL. (bit-or ZooDefs$Perms/READ ZooDefs$Perms/CREATE) ZooDefs$Ids/ANYONE_ID_UNSAFE)])
 
 (defn supervisor-data [conf shared-context ^ISupervisor isupervisor]
@@ -273,6 +301,7 @@
    :isupervisor isupervisor
    :active (atom true)
    :uptime (uptime-computer)
+   :version (str (VersionInfo/getVersion))
    :worker-thread-pids-atom (atom {})
    :storm-cluster-state (cluster/mk-storm-cluster-state conf :acls (when
                                                                      (Utils/isZkAuthenticationConfiguredStormServer
@@ -281,20 +310,23 @@
    :local-state (supervisor-state conf)
    :supervisor-id (.getSupervisorId isupervisor)
    :assignment-id (.getAssignmentId isupervisor)
-   :my-hostname (if (contains? conf STORM-LOCAL-HOSTNAME)
-                  (conf STORM-LOCAL-HOSTNAME)
-                  (local-hostname))
+   :my-hostname (hostname conf)
    :curr-assignment (atom nil) ;; used for reporting used ports when heartbeating
-   :timer (mk-timer :kill-fn (fn [t]
-                               (log-error t "Error when processing event")
-                               (halt-process! 20 "Error when processing an event")
+   :heartbeat-timer (mk-timer :kill-fn (fn [t]
+                               (log-error t "Error when processing heartbeat")
+                               (exit-process! 20 "Error when processing an heartbeat")
                                ))
+   :event-timer (mk-timer :kill-fn (fn [t]
+                                         (log-error t "Error when processing event")
+                                         (exit-process! 20 "Error when processing an event")
+                                         ))
    :blob-update-timer (mk-timer :kill-fn (fn [t]
                                            (log-error t "Error when processing blob-update")
-                                           (halt-process! 20 "Error when processing a blob-update")
+                                           (exit-process! 20 "Error when processing a blob-update")
                                            ))
    :localizer (Utils/createLocalizer conf (supervisor-local-dir conf))
-   :assignment-versions (atom {})})
+   :assignment-versions (atom {})
+   :sync-retry (atom 0)})
 
 (defn required-topo-files-exist?
   [conf storm-id]
@@ -308,6 +340,7 @@
 
 (defn sync-processes [supervisor]
   (let [conf (:conf supervisor)
+        download-lock (:download-lock supervisor)
         ^LocalState local-state (:local-state supervisor)
         assigned-executors (defaulted (ls-local-assignments local-state) {})
         now (current-time-secs)
@@ -331,7 +364,7 @@
     ;; 5. create local dir for worker id
     ;; 5. launch new workers (give worker-id, port, and supervisor-id)
     ;; 6. wait for workers launch
-  
+
     (log-debug "Syncing processes")
     (log-debug "Assigned executors: " assigned-executors)
     (log-debug "Allocated: " allocated)
@@ -363,7 +396,7 @@
                       (local-mkdirs (worker-pids-root conf id))
                       (local-mkdirs (worker-heartbeats-root conf id))
                       (launch-worker supervisor
-                        (:storm-id assignment)
+                        (:storm-id assignment) ;; to use (:resources assignment) for launching JVM/CGroup here
                         port
                         id)
                       (mark! num-workers-launched)
@@ -476,6 +509,7 @@
 (defn mk-synchronize-supervisor [supervisor sync-processes event-manager processes-event-manager]
   (fn this []
     (let [conf (:conf supervisor)
+          download-lock (:download-lock supervisor)
           storm-cluster-state (:storm-cluster-state supervisor)
           ^ISupervisor isupervisor (:isupervisor supervisor)
           ^LocalState local-state (:local-state supervisor)
@@ -486,13 +520,15 @@
                                                                    assignment-versions)
           storm-local-map (read-storm-local-dir assignments-snapshot)
           all-downloaded-storm-ids (set (read-downloaded-storm-ids conf))
-          all-assignment (read-assignments
-                           assignments-snapshot
-                           (:assignment-id supervisor))
+          existing-assignment (ls-local-assignments local-state)
+          all-assignment (read-assignments assignments-snapshot
+                                           (:assignment-id supervisor)
+                                           existing-assignment
+                                           (:sync-retry supervisor))
           new-assignment (->> all-assignment
                               (filter-key #(.confirmAssigned isupervisor %)))
           rm-blob-refs? true
-	        assigned-storm-ids (assigned-storm-ids-from-port-assignments new-assignment)
+          assigned-storm-ids (assigned-storm-ids-from-port-assignments new-assignment)
           existing-assignment (ls-local-assignments local-state)
           localizer (:localizer supervisor)
           checked-downloaded-storm-ids (set (verify-downloaded-files conf localizer assigned-storm-ids all-downloaded-storm-ids))
@@ -542,8 +578,8 @@
 
 (defn mk-supervisor-capacities
   [conf]
-  {Config/SUPERVISOR_MEMORY_CAPACITY_MB (conf SUPERVISOR-MEMORY-CAPACITY-MB)
-   Config/SUPERVISOR_CPU_CAPACITY (conf SUPERVISOR-CPU-CAPACITY)})
+  {Config/SUPERVISOR_MEMORY_CAPACITY_MB (double (conf SUPERVISOR-MEMORY-CAPACITY-MB))
+   Config/SUPERVISOR_CPU_CAPACITY (double (conf SUPERVISOR-CPU-CAPACITY))})
 
 (defn setup-blob-permission [conf storm-conf path]
   (if (conf SUPERVISOR-RUN-WORKER-AS-USER)
@@ -563,7 +599,12 @@
         topo-name (storm-conf TOPOLOGY-NAME)
         user-dir (.getLocalUserFileCacheDir localizer user)
         localresources (blobstore-map-to-localresources blobstore-map)]
-    (.updateBlobs localizer localresources user)))
+    (try
+      (.updateBlobs localizer localresources user)
+      (catch AuthorizationException authExp
+        (log-error authExp))
+      (catch KeyNotFoundException knf
+        (log-error knf)))))
 
 (defn download-blobs-for-topology!
   "Download all blobs listed in the topology configuration for a given topology."
@@ -578,15 +619,20 @@
       (when-not (.exists user-dir)
         (FileUtils/forceMkdir user-dir)
         (setup-blob-permission conf storm-conf (.toString user-dir)))
-      (let [localized-resources (.getBlobs localizer localresources user topo-name user-dir)]
-        (setup-blob-permission conf storm-conf (.toString user-dir))
-        (doseq [local-rsrc localized-resources]
-          (let [rsrc-file-path (File. (.getFilePath local-rsrc))
-                key-name (.getName rsrc-file-path)
-                blob-symlink-target-name (.getName (File. (.getCurrentSymlinkPath local-rsrc)))
-                symlink-name (get-blob-localname (get blobstore-map key-name) key-name)]
-            (create-symlink! tmproot (.getParent rsrc-file-path) symlink-name
-              blob-symlink-target-name)))))))
+      (try
+        (let [localized-resources (.getBlobs localizer localresources user topo-name user-dir)]
+          (setup-blob-permission conf storm-conf (.toString user-dir))
+          (doseq [local-rsrc localized-resources]
+            (let [rsrc-file-path (File. (.getFilePath local-rsrc))
+                  key-name (.getName rsrc-file-path)
+                  blob-symlink-target-name (.getName (File. (.getCurrentSymlinkPath local-rsrc)))
+                  symlink-name (get-blob-localname (get blobstore-map key-name) key-name)]
+              (create-symlink! tmproot (.getParent rsrc-file-path) symlink-name
+                blob-symlink-target-name))))
+        (catch AuthorizationException authExp
+          (log-error authExp))
+        (catch KeyNotFoundException knf
+          (log-error knf))))))
 
 (defn update-blobs-for-all-topologies-fn
   "Returns a function that downloads all blobs listed in the topology configuration for all topologies assigned
@@ -621,7 +667,7 @@
         heartbeat-fn (fn [] (.supervisor-heartbeat!
                                (:storm-cluster-state supervisor)
                                (:supervisor-id supervisor)
-                               (SupervisorInfo. (current-time-secs)
+                               (->SupervisorInfo (current-time-secs)
                                                 (:my-hostname supervisor)
                                                 (:assignment-id supervisor)
                                                 (keys @(:curr-assignment supervisor))
@@ -629,10 +675,12 @@
                                                 (.getMetadata isupervisor)
                                                 (conf SUPERVISOR-SCHEDULER-META)
                                                 ((:uptime supervisor))
+                                                (:version supervisor)
                                                 (mk-supervisor-capacities conf))))]
     (heartbeat-fn)
+
     ;; should synchronize supervisor so it doesn't launch anything after being down (optimization)
-    (schedule-recurring (:timer supervisor)
+    (schedule-recurring (:heartbeat-timer supervisor)
                         0
                         (conf SUPERVISOR-HEARTBEAT-FREQUENCY-SECS)
                         heartbeat-fn)
@@ -644,8 +692,8 @@
     (when (conf SUPERVISOR-ENABLE)
       ;; This isn't strictly necessary, but it doesn't hurt and ensures that the machine stays up
       ;; to date even if callbacks don't all work exactly right
-      (schedule-recurring (:timer supervisor) 0 10 (fn [] (.add event-manager synchronize-supervisor)))
-      (schedule-recurring (:timer supervisor)
+      (schedule-recurring (:event-timer supervisor) 0 10 (fn [] (.add event-manager synchronize-supervisor)))
+      (schedule-recurring (:event-timer supervisor)
                           0
                           (conf SUPERVISOR-MONITOR-FREQUENCY-SECS)
                           (fn [] (.add processes-event-manager sync-processes)))
@@ -653,14 +701,25 @@
       (schedule-recurring (:blob-update-timer supervisor)
                           30
                           30
-                          (fn [] (.add event-manager synchronize-blobs-fn))))
+                          (fn [] (.add event-manager synchronize-blobs-fn)))
+      (schedule-recurring (:event-timer supervisor)
+                          (* 60 5)
+                          (* 60 5)
+                          (fn [] (let [health-code (healthcheck/health-check conf)
+                                       ids (my-worker-ids conf)]
+                                   (if (not (= health-code 0))
+                                     (do
+                                       (doseq [id ids]
+                                         (shutdown-worker supervisor id))
+                                       (throw (RuntimeException. "Supervisor failed health check. Exiting."))))))))
     (log-message "Starting supervisor with id " (:supervisor-id supervisor) " at host " (:my-hostname supervisor))
     (reify
      Shutdownable
      (shutdown [this]
                (log-message "Shutting down supervisor " (:supervisor-id supervisor))
                (reset! (:active supervisor) false)
-               (cancel-timer (:timer supervisor))
+               (cancel-timer (:heartbeat-timer supervisor))
+               (cancel-timer (:event-timer supervisor))
                (cancel-timer (:blob-update-timer supervisor))
                (.shutdown event-manager)
                (.shutdown processes-event-manager)
@@ -680,7 +739,8 @@
      (waiting? [this]
        (or (not @(:active supervisor))
            (and
-            (timer-waiting? (:timer supervisor))
+            (timer-waiting? (:heartbeat-timer supervisor))
+            (timer-waiting? (:event-timer supervisor))
             (every? (memfn waiting?) managers)))
            ))))
 
@@ -764,25 +824,23 @@
         os (clojure.string/replace (System/getProperty "os.name") #"\s+" "_")
         arch (System/getProperty "os.arch")
         arch-resource-root (str resource-root File/separator os "-" arch)]
-    (str arch-resource-root File/pathSeparator resource-root File/pathSeparator (conf JAVA-LIBRARY-PATH)))) 
+    (str arch-resource-root File/pathSeparator resource-root File/pathSeparator (conf JAVA-LIBRARY-PATH))))
 
 (defn substitute-childopts
-  [childopts worker-id storm-id port]
-  (
-    let [replacement-map {"%ID%"          (str port)
-                          "%WORKER-ID%"   (str worker-id)
-                          "%STORM-ID%"    (str storm-id)
-                          "%WORKER-PORT%" (str port)}
-         sub-fn (fn [s] 
-                  (reduce (fn [string entry]
-                    (apply clojure.string/replace string entry))
-                     s replacement-map))]
-    (if-not (nil? childopts)
-      (if (sequential? childopts)
-        (map sub-fn childopts)
-        (-> childopts sub-fn (.split " ")))
-      nil)
-    ))
+  "Generates runtime childopts by replacing keys with topology-id, worker-id, port"
+  [value worker-id topology-id port]
+  (let [replacement-map {"%ID%"          (str port)
+                         "%WORKER-ID%"   (str worker-id)
+                         "%TOPOLOGY-ID%"    (str topology-id)
+                         "%WORKER-PORT%" (str port)}
+        sub-fn #(reduce (fn [string entry]
+                          (apply clojure.string/replace string entry))
+                        %
+                        replacement-map)]
+    (cond
+      (nil? value) nil
+      (list? value) (map sub-fn value)
+      :else (-> value sub-fn (clojure.string/split #"\s+")))))
 
 (defn java-cmd []
   (let [java-home (.get (System/getenv) "JAVA_HOME")]
@@ -821,6 +879,12 @@
     (let [conf (:conf supervisor)
           run-worker-as-user (conf SUPERVISOR-RUN-WORKER-AS-USER)
           storm-home (System/getProperty "storm.home")
+          storm-options (System/getProperty "storm.options")
+          storm-conf-file (System/getProperty "storm.conf.file")
+          storm-log-dir (or (System/getProperty "storm.log.dir") (str storm-home file-path-separator "logs"))
+          storm-conf (read-storm-config)
+          storm-log-conf-dir (storm-conf "storm.logback.conf.dir")
+          storm-logback-conf-dir (or storm-log-conf-dir (str storm-home file-path-separator "log4j2"))
           stormroot (supervisor-stormdist-root conf storm-id)
           jlp (jlp stormroot conf)
           stormjar (supervisor-stormjar-path stormroot)
@@ -851,10 +915,11 @@
                      (str "-Dstorm.home=" storm-home)
                      (str "-Dworkers.artifacts=" workers-artifacts)
                      (str "-Dlogging.sensitivity=" logging-sensitivity)
+                     (str "-Dstorm.log.dir=" storm-log-dir)
                      (str "-Dstorm.id=" storm-id)
                      (str "-Dworker.id=" worker-id)
                      (str "-Dworker.port=" port)
-                     (str "-Dlog4j.configurationFile=" storm-home "/log4j2/worker.xml")
+                     (str "-Dlog4j.configurationFile=" storm-logback-conf-dir file-path-separator "worker.xml")
                      (str "-DLog4jContextSelector=org.apache.logging.log4j.core.selector.BasicContextSelector")
                      "backtype.storm.LogWriter"]
                     [(java-cmd) "-server"]
@@ -864,9 +929,12 @@
                     [(str "-Djava.library.path=" jlp)
                      (str "-Dlogfile.name=" logfilename)
                      (str "-Dstorm.home=" storm-home)
+                     (str "-Dstorm.conf.file=" storm-conf-file)
+                     (str "-Dstorm.options=" storm-options)
+                     (str "-Dstorm.log.dir=" storm-log-dir)
                      (str "-Dworkers.artifacts=" workers-artifacts)
                      (str "-Dlogging.sensitivity=" logging-sensitivity)
-                     (str "-Dlog4j.configurationFile=" storm-home "/log4j2/worker.xml")
+                     (str "-Dlog4j.configurationFile=" storm-logback-conf-dir file-path-separator "worker.xml")
                      (str "-DLog4jContextSelector=org.apache.logging.log4j.core.selector.BasicContextSelector")
                      (str "-Dstorm.id=" storm-id)
                      (str "-Dworker.id=" worker-id)
@@ -953,7 +1021,8 @@
   (let [conf (read-storm-config)
         conf (assoc conf STORM-LOCAL-DIR (. (File. (conf STORM-LOCAL-DIR)) getCanonicalPath))]
     (validate-distributed-mode! conf)
-    (mk-supervisor conf nil supervisor)
+    (let [supervisor (mk-supervisor conf nil supervisor)]
+      (add-shutdown-hook-with-force-kill-in-1-sec #(.shutdown supervisor)))
     (defgauge num-slots-used-gauge #(count (my-worker-ids conf)))
     (start-metrics-reporters)))
 

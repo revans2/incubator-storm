@@ -4,7 +4,6 @@ import backtype.storm.networktopography.CachedDNSToSwitchMapping;
 import java.net.InetAddress;
 import java.util.Map;
 import java.util.List;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.net.UnknownHostException;
 import java.util.concurrent.ConcurrentHashMap;
@@ -36,9 +35,9 @@ public final class YahooDNSToSwitchMapping extends CachedDNSToSwitchMapping {
     }
 
     @Override
-    public List<String> resolve(List<String> names) {
+    public Map<String, String> resolve(List<String> names) {
 
-        List <String> m = new ArrayList<String>(names.size());
+        Map <String,String> m = new HashMap<String, String>();
         if (names.isEmpty()) {
             //name list is empty, return an empty list
             return m;
@@ -48,7 +47,7 @@ public final class YahooDNSToSwitchMapping extends CachedDNSToSwitchMapping {
             // See whether it's already in the cache.
             String cachedVal = mappingCache.get(name);
             if (cachedVal != null) {
-                m.add(cachedVal);
+                m.put(name, cachedVal);
                 continue;
             }
 
@@ -62,7 +61,7 @@ public final class YahooDNSToSwitchMapping extends CachedDNSToSwitchMapping {
                 } catch (UnknownHostException e){
                     // host name is unknown, use DEFAULT_RACK instead.
                     // do not cache this.
-                    m.add(DEFAULT_RACK);
+                    m.put(name, DEFAULT_RACK);
                     // continue on to the next host
                     continue;
                 }
@@ -73,7 +72,7 @@ public final class YahooDNSToSwitchMapping extends CachedDNSToSwitchMapping {
             }
 
             String resolvedIP = applyMask(name, match);
-            m.add(resolvedIP);
+            m.put(name, resolvedIP);
             mappingCache.put(name, resolvedIP);
         }
         return m;
@@ -83,7 +82,7 @@ public final class YahooDNSToSwitchMapping extends CachedDNSToSwitchMapping {
     // DEFAULT_RACK, so we just call the existing resolve(...) method here
     // @Override: Commented out since not all deployed versions have this method
     // in the interface
-    public List<String> resolveValidHosts(List<String> names)
+    public Map<String, String> resolveValidHosts(List<String> names)
             throws UnknownHostException {
         return this.resolve(names);
     }

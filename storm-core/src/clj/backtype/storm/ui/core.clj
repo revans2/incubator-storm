@@ -16,13 +16,16 @@
 
 (ns backtype.storm.ui.core
   (:use compojure.core)
-  (:use ring.middleware.reload)
+  (:use [clojure.java.shell :only [sh]])
+  (:use ring.middleware.reload
+        ring.middleware.multipart-params)
+  (:use [ring.middleware.json :only [wrap-json-params]])
   (:use [hiccup core page-helpers])
   (:use [backtype.storm config util log stats])
   (:use [backtype.storm.ui helpers])
-  (:use [backtype.storm.daemon [common :only [ACKER-COMPONENT-ID ACKER-INIT-STREAM-ID
-                                              ACKER-ACK-STREAM-ID ACKER-FAIL-STREAM-ID 
-                                              start-metrics-reporters system-id?]]])
+  (:use [backtype.storm.daemon [common :only [ACKER-COMPONENT-ID ACKER-INIT-STREAM-ID ACKER-ACK-STREAM-ID
+                                              ACKER-FAIL-STREAM-ID system-id? mk-authorization-handler
+                                              start-metrics-reporters]]])
   (:use [clojure.string :only [blank? lower-case trim]])
   (:use [clojure.set :only [intersection]])
   (:import [backtype.storm.utils Utils])
@@ -38,6 +41,7 @@
   (:import [backtype.storm.security.auth AuthUtils ReqContext])
   (:import [backtype.storm.generated AuthorizationException])
   (:import [backtype.storm.security.auth AuthUtils])
+  (:import [backtype.storm.utils VersionInfo])
   (:import [java.io File])
   (:require [compojure.route :as route]
             [compojure.handler :as handler]
@@ -49,69 +53,48 @@
   (:gen-class))
 
 (def ^:dynamic *STORM-CONF* (read-storm-config))
-(def igroup-mapper (AuthUtils/GetGroupMappingServiceProviderPlugin *STORM-CONF*))
+(def ^:dynamic *UI-ACL-HANDLER* (mk-authorization-handler (*STORM-CONF* NIMBUS-AUTHORIZER) *STORM-CONF*))
+(def ^:dynamic *UI-IMPERSONATION-HANDLER* (mk-authorization-handler (*STORM-CONF* NIMBUS-IMPERSONATION-AUTHORIZER) *STORM-CONF*))
 
+(def http-creds-handler (AuthUtils/GetUiHttpCredentialsPlugin *STORM-CONF*))
 (defmeter num-getTopologyInfo-calls)
 
 (defmacro with-nimbus
   [nimbus-sym & body]
-  `(thrift/with-nimbus-connection
-     [~nimbus-sym (*STORM-CONF* NIMBUS-HOST) (*STORM-CONF* NIMBUS-THRIFT-PORT)]
-     ~@body))
+  `(let [context# (ReqContext/context)
+         user# (if (.principal context#) (.getName (.principal context#)))]
+    (thrift/with-nimbus-connection-as-user
+       [~nimbus-sym (*STORM-CONF* NIMBUS-HOST) (*STORM-CONF* NIMBUS-THRIFT-PORT) user#]
+       ~@body)))
 
-(defn user-groups
-  [user]
-  (if (blank? user) [] (.getGroups igroup-mapper user)))
+(defn assert-authorized-user
+  ([servlet-request op]
+    (assert-authorized-user servlet-request op nil))
+  ([servlet-request op topology-conf]
+    (let [context (ReqContext/context)]
+      (if http-creds-handler (.populateContext http-creds-handler context servlet-request))
 
-(defn authorized-ui-user?
-  [user conf topology-conf]
-  (let [groups (user-groups user)
-        ui-users (concat (conf UI-USERS)
-                         (conf NIMBUS-ADMINS)
-                         (topology-conf UI-USERS)
-                         (topology-conf TOPOLOGY-USERS))
-        ui-groups (concat (conf UI-GROUPS)
-                         (topology-conf UI-GROUPS)
-                         (topology-conf TOPOLOGY-GROUPS))]
-    (or (blank? (conf UI-FILTER))
-        (and (not (blank? user))
-          (or (some #(= % user) ui-users)
-            (< 0 (.size (intersection (set groups) (set ui-groups)))))))))
+      (if (.isImpersonating context)
+        (if *UI-IMPERSONATION-HANDLER*
+            (if-not (.permit *UI-IMPERSONATION-HANDLER* context op topology-conf)
+              (let [principal (.principal context)
+                    real-principal (.realPrincipal context)
+                    user (if principal (.getName principal) "unknown")
+                    real-user (if real-principal (.getName real-principal) "unknown")
+                    remote-address (.remoteAddress context)]
+                (throw (AuthorizationException.
+                         (str "user '" real-user "' is not authorized to impersonate user '" user "' from host '" remote-address "'. Please
+                         see SECURITY.MD to learn how to configure impersonation ACL.")))))
+          (log-warn " principal " (.realPrincipal context) " is trying to impersonate " (.principal context) " but "
+            NIMBUS-IMPERSONATION-AUTHORIZER " has no authorizer configured. This is a potential security hole.
+            Please see SECURITY.MD to learn how to configure an impersonation authorizer.")))
 
-(defn assert-authorized-ui-user
-  [user conf topology-conf]
-  (if (not (authorized-ui-user? user conf topology-conf))
-    ;;TODO need a better exception here so the UI can appear better
-    (throw (RuntimeException. (str "User " user " is not authorized.")))))
-
-(defn authorized-topo-user?
-  [user conf topology-conf]
-  (let [groups (user-groups user)
-        topo-users (concat (conf TOPOLOGY-USERS)
-                           (conf NIMBUS-ADMINS)
-                           (topology-conf TOPOLOGY-USERS))
-        topo-groups (concat (conf TOPOLOGY-GROUPS)
-                            (topology-conf TOPOLOGY-GROUPS))]
-    (or (blank? (conf UI-FILTER))
-        (and (not (blank? user))
-          (or (some #(= % user) topo-users)
-            (< 0 (.size (intersection (set groups) (set topo-groups)))))))))
-
-(defn assert-authorized-topology-user
-  [user conf topology-conf]
-  (if (not (authorized-topo-user? user conf topology-conf))
-    ;;TODO need a better exception here so the UI can appear better
-    (throw (RuntimeException. (str "User " user " is not authorized.")))))
-
-(defn read-storm-version
-  "Returns a string containing the Storm version or 'Unknown'."
-  []
-  (let [storm-home (System/getProperty "storm.home")
-        release-path (format "%s/RELEASE" storm-home)
-        release-file (File. release-path)]
-    (if (and (.exists release-file) (.isFile release-file))
-      (trim (slurp release-path))
-      "Unknown")))
+      (if *UI-ACL-HANDLER*
+       (if-not (.permit *UI-ACL-HANDLER* context op topology-conf)
+         (let [principal (.principal context)
+               user (if principal (.getName principal) "unknown")]
+           (throw (AuthorizationException.
+                   (str "UI request '" op "' for '" user "' user is not authorized")))))))))
 
 (defn executor-summary-type
   [topology ^ExecutorSummary s]
@@ -138,6 +121,17 @@
   (let [ret (group-by #(.get_component_id ^ExecutorSummary %) summs)]
     (into (sorted-map) ret )))
 
+(defn component-task-summs
+  [^TopologyInfo summ topology id]
+  (let [spout-summs (filter (partial spout-summary? topology) (.get_executors summ))
+        bolt-summs (filter (partial bolt-summary? topology) (.get_executors summ))
+        spout-comp-summs (group-by-comp spout-summs)
+        bolt-comp-summs (group-by-comp bolt-summs)
+        ret (if (contains? spout-comp-summs id)
+              (spout-comp-summs id)
+              (bolt-comp-summs id))]
+    (sort-by #(-> ^ExecutorSummary % .get_executor_info .get_task_start) ret)))
+
 (defn worker-log-link [host port topology-id secure?]
   (let [fname (logs-filename topology-id port)]
     (if secure?
@@ -149,6 +143,29 @@
                   host
                   (*STORM-CONF* LOGVIEWER-PORT)
                   fname))))
+
+(defn get-error-time
+  [error]
+  (if error
+    (time-delta (.get_error_time_secs ^ErrorInfo error))))
+
+(defn get-error-data
+  [error]
+  (if error
+    (error-subset (.get_error ^ErrorInfo error))
+    ""))
+
+(defn get-error-port
+  [error error-host top-id]
+  (if error
+    (.get_port ^ErrorInfo error)
+    ""))
+
+(defn get-error-host
+  [error]
+  (if error
+    (.get_host ^ErrorInfo error)
+    ""))
 
 (defn stats-times
   [stats-map]
@@ -248,13 +265,10 @@
    (.getTopologyInfoWithOpts nimbus id options)))
 
 (defn mk-visualization-data
-  [id window include-sys? user]
+  [id window include-sys?]
   (with-nimbus
     nimbus
-    (let [topology-conf (from-json 
-                          (.getTopologyConf ^Nimbus$Client nimbus id))
-          _ (assert-authorized-ui-user user *STORM-CONF* topology-conf)
-          window (if window window ":all-time")
+    (let [window (if window window ":all-time")
           topology (.getTopology ^Nimbus$Client nimbus id)
           spouts (.get_spouts topology)
           bolts (.get_bolts topology)
@@ -274,6 +288,39 @@
               (hashmap-to-persistent bolts))
        spout-comp-summs bolt-comp-summs window id))))
 
+(defn validate-tplg-submit-params [params]
+  (let [tplg-jar-file (params :topologyJar)
+        tplg-config (if (not-nil? (params :topologyConfig)) (from-json (params :topologyConfig)))]
+    (cond
+     (nil? tplg-jar-file) {:valid false :error "missing topology jar file"}
+     (nil? tplg-config) {:valid false :error "missing topology config"}
+     (nil? (tplg-config "topologyMainClass")) {:valid false :error "topologyMainClass missing in topologyConfig"}
+     :else {:valid true})))
+
+(defn run-tplg-submit-cmd [tplg-jar-file tplg-config user]
+  (let [tplg-main-class (if (not-nil? tplg-config) (trim (tplg-config "topologyMainClass")))
+        tplg-main-class-args (if (not-nil? tplg-config) (tplg-config "topologyMainClassArgs"))
+        storm-home (System/getProperty "storm.home")
+        storm-conf-dir (str storm-home file-path-separator "conf")
+        storm-log-dir (if (not-nil? (*STORM-CONF* "storm.log.dir")) (*STORM-CONF* "storm.log.dir")
+                          (str storm-home file-path-separator "logs"))
+        storm-libs (str storm-home file-path-separator "lib" file-path-separator "*")
+        java-cmd (str (System/getProperty "java.home") file-path-separator "bin" file-path-separator "java")
+        storm-cmd (str storm-home file-path-separator "bin" file-path-separator "storm")
+        tplg-cmd-response (apply sh
+                            (flatten
+                              [storm-cmd "jar" tplg-jar-file tplg-main-class
+                                (if (not-nil? tplg-main-class-args) tplg-main-class-args [])
+                                (if (not= user "unknown") (str "-c storm.doAsUser=" user) [])]))]
+    (log-message "tplg-cmd-response " tplg-cmd-response)
+    (cond
+     (= (tplg-cmd-response :exit) 0) {"status" "success"}
+     (and (not= (tplg-cmd-response :exit) 0)
+          (not-nil? (re-find #"already exists on cluster" (tplg-cmd-response :err)))) {"status" "failed" "error" "Topology with the same name exists in cluster"}
+          (not= (tplg-cmd-response :exit) 0) {"status" "failed" "error" (clojure.string/trim-newline (tplg-cmd-response :err))}
+          :else {"status" "success" "response" "topology deployed"}
+          )))
+
 (defn cluster-configuration []
   (with-nimbus nimbus
     (.getNimbusConf ^Nimbus$Client nimbus)))
@@ -291,25 +338,33 @@
   (with-nimbus nimbus
     (.getSchedulerConf ^Nimbus$Client nimbus)))
 
+(defn- strip-beta1
+  "Removes '.beta1' from a string"
+  [s]
+  (clojure.string/replace s #"[-_]beta1" ""))
+
 (defn cluster-summary
   ([user]
      (with-nimbus nimbus
         (cluster-summary (.getClusterInfo ^Nimbus$Client nimbus) user)))
   ([^ClusterSummary summ user]
      (let [sups (.get_supervisors summ)
-        used-slots (reduce + (map #(.get_num_used_workers ^SupervisorSummary %) sups))
-        total-slots (reduce + (map #(.get_num_workers ^SupervisorSummary %) sups))
-        free-slots (- total-slots used-slots)
-        total-tasks (->> (.get_topologies summ)
-                         (map #(.get_num_tasks ^TopologySummary %))
-                         (reduce +))
-        total-executors (->> (.get_topologies summ)
-                             (map #(.get_num_executors ^TopologySummary %))
-                             (reduce +))]
+           used-slots (reduce + (map #(.get_num_used_workers ^SupervisorSummary %) sups))
+           total-slots (reduce + (map #(.get_num_workers ^SupervisorSummary %) sups))
+           free-slots (- total-slots used-slots)
+           topologies (.get_topologies_size summ)
+           total-tasks (->> (.get_topologies summ)
+                            (map #(.get_num_tasks ^TopologySummary %))
+                            (reduce +))
+           total-executors (->> (.get_topologies summ)
+                                (map #(.get_num_executors ^TopologySummary %))
+                                (reduce +))]
        {"user" user
-        "stormVersion" (read-storm-version)
+        "stormVersion" (strip-beta1 (str (VersionInfo/getVersion)))
         "nimbusUptime" (pretty-uptime-sec (.get_nimbus_uptime_secs summ))
+        "nimbusUptimeSeconds" (.get_nimbus_uptime_secs summ)
         "supervisors" (count sups)
+        "topologies" topologies
         "slotsTotal" total-slots
         "slotsUsed"  used-slots
         "slotsFree" free-slots
@@ -327,8 +382,10 @@
       {"id" (.get_supervisor_id s)
        "host" (.get_host s)
        "uptime" (pretty-uptime-sec (.get_uptime_secs s))
+       "uptimeSeconds" (.get_uptime_secs s)
        "slotsTotal" (.get_num_workers s)
-       "slotsUsed" (.get_num_used_workers s)})}))
+       "slotsUsed" (.get_num_used_workers s)
+       "version" (strip-beta1 (.get_version s))})}))
 
 (defn all-topologies-summary
   ([]
@@ -339,11 +396,14 @@
   ([summs]
    {"topologies"
     (for [^TopologySummary t summs]
-      {"id" (.get_id t)
+      {
+       "id" (.get_id t)
+       "encodedId" (url-encode (.get_id t))
        "owner" (.get_owner t)
        "name" (.get_name t)
        "status" (.get_status t)
        "uptime" (pretty-uptime-sec (.get_uptime_secs t))
+       "uptimeSeconds" (.get_uptime_secs t)
        "tasksTotal" (.get_num_tasks t)
        "workersTotal" (.get_num_workers t)
        "executorsTotal" (.get_num_executors t)
@@ -363,11 +423,9 @@
        "acked" (get-in stats [:acked w])
        "failed" (get-in stats [:failed w])})))
 
-(defn build-visualization [id window include-sys? user]
+(defn build-visualization [id window include-sys?]
   (with-nimbus nimbus
-    (let [topology-conf (from-json (.getTopologyConf ^Nimbus$Client nimbus id))
-          _ (assert-authorized-ui-user user *STORM-CONF* topology-conf)
-          window (if window window ":all-time")
+    (let [window (if window window ":all-time")
           topology-info (->> (doto
                                (GetInfoOptions.)
                                (.set_num_err_choice NumErrorsChoice/ONE))
@@ -447,6 +505,7 @@
      "name" (.get_name topo-info)
      "status" (.get_status topo-info)
      "uptime" (pretty-uptime-sec (.get_uptime_secs topo-info))
+     "uptimeSeconds" (.get_uptime_secs topo-info)
      "tasksTotal" (.get_num_tasks topo-info)
      "workersTotal" (.get_num_workers topo-info)
      "executorsTotal" (.get_num_executors topo-info)
@@ -472,9 +531,7 @@
 
 (defn topology-page [id window include-sys? user]
   (with-nimbus nimbus
-    (let [topology-conf (from-json (.getTopologyConf ^Nimbus$Client nimbus id))
-          _ (assert-authorized-ui-user user *STORM-CONF* topology-conf)
-          window (or window ":all-time")
+    (let [window (or window ":all-time")
           window-hint (window-hint window)
           topo-page-info (.getTopologyPageInfo ^Nimbus$Client nimbus
                                                id
@@ -492,13 +549,17 @@
         "visualizationTable" []}))))
 
 (defn component-errors
-  [errors-list]
+  [errors-list topology-id]
   (let [errors (->> errors-list
                     (sort-by #(.get_error_time_secs ^ErrorInfo %))
                     reverse)]
     {"componentErrors"
      (for [^ErrorInfo e errors]
-       {"time" (date-str (.get_error_time_secs e))
+       {"time" (* 1000 (long (.get_error_time_secs e)))
+        "errorHost" (.get_host e)
+        "errorPort"  (.get_port e)
+        "errorWorkerLogLink"  (worker-log-link (.get_host e) (.get_port e) topology-id)
+        "errorLapsedSecs" (get-error-time e)
         "error" (.get_error e)})}))
 
 (defmulti unpack-comp-agg-stat
@@ -587,6 +648,7 @@
     {"id" exec-id
      "encodedId" (url-encode exec-id)
      "uptime" (pretty-uptime-sec (.get_uptime_secs summ))
+     "uptimeSeconds" (.get_uptime_secs summ)
      "host" host
      "port" port
      "emitted" (nil-to-zero (.get_emitted cas))
@@ -613,6 +675,7 @@
     {"id" exec-id
      "encodedId" (url-encode exec-id)
      "uptime" (pretty-uptime-sec (.get_uptime_secs summ))
+     "uptimeSeconds" (.get_uptime_secs summ)
      "host" host
      "port" port
      "emitted" (nil-to-zero (.get_emitted cas))
@@ -635,7 +698,7 @@
      "outputStats" (map unpack-comp-output-stat (.get_sid_to_output_stats info))
      "executorStats" (map (partial unpack-comp-exec-stat topology-id secure?)
                           (.get_exec_stats info))}
-    (-> info .get_errors component-errors)))
+    (component-errors (.get_errors info) topology-id)))
 
 (defmethod unpack-component-page-info ComponentType/SPOUT
   [^ComponentPageInfo info topology-id window include-sys? secure?]
@@ -644,14 +707,13 @@
      "outputStats" (map unpack-comp-output-stat (.get_sid_to_output_stats info))
      "executorStats" (map (partial unpack-comp-exec-stat topology-id secure?)
                           (.get_exec_stats info))}
-    (-> info .get_errors component-errors)))
+    (component-errors (.get_errors info) topology-id)))
 
 (defn component-page
   [topology-id component window include-sys? user secure?]
   (with-nimbus nimbus
     (let [topology-conf (from-json (.getTopologyConf ^Nimbus$Client nimbus
                                                      topology-id))
-          _ (assert-authorized-ui-user user *STORM-CONF* topology-conf)
           window (or window ":all-time")
           window-hint (window-hint window)
           comp-page-info (.getComponentPageInfo ^Nimbus$Client nimbus
@@ -697,6 +759,16 @@
                                   [(str key) (level-to-dict val)]))]
       {"namedLoggerLevels" named-logger-levels})))
 
+(defn topology-config [topology-id]
+  (with-nimbus nimbus
+    (from-json (.getTopologyConf ^Nimbus$Client nimbus topology-id))))
+
+(defn topology-op-response [topology-id op]
+  {"topologyOperation" op,
+   "topologyId" topology-id,
+   "status" "success"
+   })
+
 (defn check-include-sys?
   [sys?]
   (if (or (nil? sys?) (= "false" sys?)) false true))
@@ -704,126 +776,107 @@
 (def http-creds-handler (AuthUtils/GetUiHttpCredentialsPlugin *STORM-CONF*))
 
 (defroutes main-routes
-  (GET "/api/v1/cluster/configuration" []
-       (cluster-configuration))
-  (GET "/api/v1/cluster/schedulerConfiguration" []
-       (scheduler-configuration))
-  (GET "/api/v1/cluster/summary" [:as {:keys [cookies servlet-request]}]
+  (GET "/api/v1/cluster/configuration" [& m]
+       (json-response (cluster-configuration)
+                      (:callback m) :serialize-fn identity))
+  (GET "/api/v1/cluster/schedulerConfiguration" [& m]
+       (json-response (scheduler-configuration)
+                      (:callback m) :serialize-fn identity))
+  (GET "/api/v1/cluster/summary" [:as {:keys [cookies servlet-request]} & m]
        (let [user (.getUserName http-creds-handler servlet-request)]
+         (assert-authorized-user servlet-request "getClusterInfo")
          (json-response (assoc (cluster-summary user)
                           "jira-url" (*STORM-CONF* UI-PROJECT-JIRA-URL)
-                          "central-log-url" (*STORM-CONF* UI-CENTRAL-LOGGING-URL)))))
-  (GET "/api/v1/history/summary" [:as {:keys [cookies servlet-request]}]
+                          "central-log-url" (*STORM-CONF* UI-CENTRAL-LOGGING-URL)) (:callback m))))
+  (GET "/api/v1/history/summary" [:as {:keys [cookies servlet-request]} & m]
        (let [user (.getUserName http-creds-handler servlet-request)]
-         (json-response (topology-history-info user))))
-  (GET "/api/v1/supervisor/summary" []
+         (json-response (topology-history-info user) (:callback m))))
+  (GET "/api/v1/supervisor/summary" [:as {:keys [cookies servlet-request]} & m]
+       (assert-authorized-user servlet-request "getClusterInfo")
        (json-response (assoc (supervisor-summary)
-                             "logviewerPort" (*STORM-CONF* LOGVIEWER-PORT))))
-  (GET "/api/v1/topology/summary" []
-       (json-response (all-topologies-summary)))
+                             "logviewerPort" (*STORM-CONF* LOGVIEWER-PORT)) (:callback m)))
+  (GET "/api/v1/topology/summary" [:as {:keys [cookies servlet-request]} & m]
+       (assert-authorized-user servlet-request "getClusterInfo")
+       (json-response (all-topologies-summary) (:callback m)))
   (GET  "/api/v1/topology-workers/:id" [:as {:keys [cookies servlet-request]} id & m]
-        (let [id (url-decode id)
-              user (.getUserName http-creds-handler servlet-request)]
+        (let [id (url-decode id)]
           (json-response {"hostPortList" (worker-host-port id)
-                          "logviewerPort" (*STORM-CONF* LOGVIEWER-PORT)})))
+                          "logviewerPort" (*STORM-CONF* LOGVIEWER-PORT)} (:callback m))))
   (GET  "/api/v1/topology/:id" [:as {:keys [cookies servlet-request]} id & m]
-        (let [id (url-decode id)
-              user (.getUserName http-creds-handler servlet-request)]
-          (json-response (topology-page id (:window m) (check-include-sys? (:sys m)) user))))
+        (let [user (.getUserName http-creds-handler servlet-request)]
+          (assert-authorized-user servlet-request "getTopology" (topology-config id))
+          (json-response (topology-page id (:window m) (check-include-sys? (:sys m)) user) (:callback m))))
   (GET "/api/v1/topology/:id/visualization-init" [:as {:keys [cookies servlet-request]} id & m]
-        (let [id (url-decode id)
-              user (.getUserName http-creds-handler servlet-request)]
-          (json-response (build-visualization id (:window m) (check-include-sys? (:sys m)) user))))
+        (assert-authorized-user servlet-request "getTopology" (topology-config id))
+        (json-response (build-visualization id (:window m) (check-include-sys? (:sys m))) (:callback m)))
   (GET "/api/v1/topology/:id/visualization" [:as {:keys [cookies servlet-request]} id & m]
-        (let [id (url-decode id)
-              user (.getUserName http-creds-handler servlet-request)]
-          (json-response (mk-visualization-data id (:window m) (check-include-sys? (:sys m)) user))))
+        (assert-authorized-user servlet-request "getTopology" (topology-config id))
+        (json-response (mk-visualization-data id (:window m) (check-include-sys? (:sys m))) (:callback m)))
   (GET "/api/v1/topology/:id/component/:component" [:as {:keys [cookies servlet-request scheme]} id component & m]
-       (let [id (url-decode id)
-             component (url-decode component)
-             user (.getUserName http-creds-handler servlet-request)]
-         (json-response
-          (component-page id component (:window m) (check-include-sys? (:sys m)) user (= scheme :https)))))
-  (GET "/api/v1/topology/:id/logconfig" [:as {:keys [cookies servlet-request]} id & m]
-       (with-nimbus nimbus
-         (let [user (.getUserName http-creds-handler servlet-request)
-               topology-conf (from-json
-                               (.getTopologyConf ^Nimbus$Client nimbus id))]
-           (assert-authorized-topology-user user *STORM-CONF* topology-conf))
-         (json-response (log-config id))))
-  (POST "/api/v1/topology/:id/activate" [:as {:keys [cookies servlet-request]} id]
+       (let [user (.getUserName http-creds-handler servlet-request)]
+         (assert-authorized-user servlet-request "getTopology" (topology-config id))
+         (json-response (component-page id component (:window m) (check-include-sys? (:sys m)) user (= scheme :https)) (:callback m))))
+(GET "/api/v1/topology/:id/logconfig" [:as {:keys [cookies servlet-request]} id & m]
+       (assert-authorized-user servlet-request "getTopologyConf" (topology-config id))
+       (json-response (log-config id) (:callback m)))
+  (POST "/api/v1/topology/:id/activate" [:as {:keys [cookies servlet-request]} id & m]
+    (assert-authorized-user servlet-request "activate" (topology-config id))
     (with-nimbus nimbus
-      (let [id (url-decode id)
-            tplg (->> (doto
+      (let [tplg (->> (doto
                         (GetInfoOptions.)
                         (.set_num_err_choice NumErrorsChoice/NONE))
                       (get-topology-info nimbus id))
-            name (.get_name tplg)
-            user (.getUserName http-creds-handler servlet-request)
-            topology-conf (from-json
-                            (.getTopologyConf ^Nimbus$Client nimbus id))]
-        (assert-authorized-topology-user user *STORM-CONF* topology-conf)
+            name (.get_name tplg)]
         (.activate nimbus name)
         (log-message "Activating topology '" name "'")))
-    (resp/redirect (str "/api/v1/topology/" id)))
-
-  (POST "/api/v1/topology/:id/deactivate" [:as {:keys [cookies servlet-request]} id]
+    (json-response (topology-op-response id "activate") (m "callback")))
+  (POST "/api/v1/topology/:id/deactivate" [:as {:keys [cookies servlet-request]} id & m]
+    (assert-authorized-user servlet-request "deactivate" (topology-config id))
     (with-nimbus nimbus
-      (let [id (url-decode id)
-            tplg (->> (doto
+      (let [tplg (->> (doto
                         (GetInfoOptions.)
                         (.set_num_err_choice NumErrorsChoice/NONE))
                       (get-topology-info nimbus id))
-            name (.get_name tplg)
-            user (.getUserName http-creds-handler servlet-request)
-            topology-conf (from-json
-                            (.getTopologyConf ^Nimbus$Client nimbus id))]
-        (assert-authorized-topology-user user *STORM-CONF* topology-conf)
+            name (.get_name tplg)]
         (.deactivate nimbus name)
         (log-message "Deactivating topology '" name "'")))
-    (resp/redirect (str "/api/v1/topology/" id)))
-  (POST "/api/v1/topology/:id/rebalance/:wait-time" [:as {:keys [cookies servlet-request]} id wait-time]
+    (json-response (topology-op-response id "deactivate") (m "callback")))
+  (POST "/api/v1/topology/:id/rebalance/:wait-time" [:as {:keys [cookies servlet-request]} id wait-time & m]
+    (assert-authorized-user servlet-request "rebalance" (topology-config id))
     (with-nimbus nimbus
-      (let [id (url-decode id)
-            tplg (->> (doto
+      (let [tplg (->> (doto
                         (GetInfoOptions.)
                         (.set_num_err_choice NumErrorsChoice/NONE))
                       (get-topology-info nimbus id))
             name (.get_name tplg)
-            options (RebalanceOptions.)
-            user (.getUserName http-creds-handler servlet-request)
-            topology-conf (from-json
-                            (.getTopologyConf ^Nimbus$Client nimbus id))]
-        (assert-authorized-topology-user user *STORM-CONF* topology-conf)
+            rebalance-options (m "rebalanceOptions")
+            options (RebalanceOptions.)]
         (.set_wait_secs options (Integer/parseInt wait-time))
+        (if (and (not-nil? rebalance-options) (contains? rebalance-options "numWorkers"))
+          (.set_num_workers options (Integer/parseInt (.toString (rebalance-options "numWorkers")))))
+        (if (and (not-nil? rebalance-options) (contains? rebalance-options "executors"))
+          (doseq [keyval (rebalance-options "executors")]
+            (.put_to_num_executors options (key keyval) (Integer/parseInt (.toString (val keyval))))))
         (.rebalance nimbus name options)
         (log-message "Rebalancing topology '" name "' with wait time: " wait-time " secs")))
-    (resp/redirect (str "/api/v1/topology/" id)))
-  (POST "/api/v1/topology/:id/kill/:wait-time" [:as {:keys [cookies servlet-request]} id wait-time]
+    (json-response (topology-op-response id "rebalance") (m "callback")))
+  (POST "/api/v1/topology/:id/kill/:wait-time" [:as {:keys [cookies servlet-request]} id wait-time & m]
+    (assert-authorized-user servlet-request "killTopology" (topology-config id))
     (with-nimbus nimbus
-      (let [id (url-decode id)
-            tplg (->> (doto
+      (let [tplg (->> (doto
                         (GetInfoOptions.)
                         (.set_num_err_choice NumErrorsChoice/NONE))
                       (get-topology-info nimbus id))
             name (.get_name tplg)
-            options (KillOptions.)
-            user (.getUserName http-creds-handler servlet-request)
-            topology-conf (from-json
-                            (.getTopologyConf ^Nimbus$Client nimbus id))]
-        (assert-authorized-topology-user user *STORM-CONF* topology-conf)
+            options (KillOptions.)]
         (.set_wait_secs options (Integer/parseInt wait-time))
         (.killTopologyWithOpts nimbus name options)
         (log-message "Killing topology '" name "' with wait time: " wait-time " secs")))
-    (resp/redirect (str "/api/v1/topology/" id)))
-
+    (json-response (topology-op-response id "kill") (m "callback")))
   (POST "/api/v1/topology/:id/logconfig" [:as {:keys [body cookies servlet-request]} id & m]
+    (assert-authorized-user servlet-request "setLogConfig" (topology-config id))
     (with-nimbus nimbus
-      (let [user (.getUserName http-creds-handler servlet-request)
-            topology-conf (from-json
-                            (.getTopologyConf ^Nimbus$Client nimbus id))
-            _ (assert-authorized-topology-user user *STORM-CONF* topology-conf)
-            log-config-json (from-json (slurp body))
+      (let [log-config-json (from-json (slurp body))
             named-loggers (.get log-config-json "namedLoggerLevels")
             new-log-config (LogConfig.)]
         (doseq [[key level] named-loggers]
@@ -846,7 +899,7 @@
               (.put_to_named_logger_level new-log-config logger-name named-logger-level)))
         (log-message "Setting topology " id " log config " new-log-config)
         (.setLogConfig nimbus id new-log-config)
-        (json-response (log-config id)))))
+        (json-response (log-config id) (m "callback")))))
 
   (GET "/" [:as {cookies :cookies}]
        (resp/redirect "/index.html"))
@@ -859,10 +912,13 @@
     (try
       (handler request)
       (catch Exception ex
-        (json-response (exception->json ex) :status 500)))))
+        (json-response (exception->json ex) ((:query-params request) "callback") :status 500)))))
+
 
 (def app
   (handler/site (-> main-routes
+                    (wrap-json-params)
+                    (wrap-multipart-params)
                     (wrap-reload '[backtype.storm.ui.core])
                     requests-middleware
                     catch-errors)))
@@ -874,20 +930,34 @@
           header-buffer-size (int (.get conf UI-HEADER-BUFFER-BYTES))
           filters-confs [{:filter-class (conf UI-FILTER)
                           :filter-params (conf UI-FILTER-PARAMS)}]
-          https-port (int (conf UI-HTTPS-PORT))
-          keystore-path (conf UI-HTTPS-KEYSTORE-PATH)
-          keystore-pass (conf UI-HTTPS-KEYSTORE-PASSWORD)
-          keystore-type (conf UI-HTTPS-KEYSTORE-TYPE)]
+          https-port (conf UI-HTTPS-PORT)
+          https-ks-path (conf UI-HTTPS-KEYSTORE-PATH)
+          https-ks-password (conf UI-HTTPS-KEYSTORE-PASSWORD)
+          https-ks-type (conf UI-HTTPS-KEYSTORE-TYPE)
+          https-key-password (conf UI-HTTPS-KEY-PASSWORD)
+          https-ts-path (conf UI-HTTPS-TRUSTSTORE-PATH)
+          https-ts-password (conf UI-HTTPS-TRUSTSTORE-PASSWORD)
+          https-ts-type (conf UI-HTTPS-TRUSTSTORE-TYPE)
+          https-want-client-auth (conf UI-HTTPS-WANT-CLIENT-AUTH)
+          https-need-client-auth (conf UI-HTTPS-NEED-CLIENT-AUTH)]
       (start-metrics-reporters)
       (storm-run-jetty {:port (conf UI-PORT)
+                        :host (conf UI-HOST)
+                        :https-port https-port
                         :configurator (fn [server]
-                                        (doseq [connector (.getConnectors server)]
-                                          (.setHeaderBufferSize connector header-buffer-size))
                                         (config-ssl server
                                                     https-port
-                                                    keystore-path
-                                                    keystore-pass
-                                                    keystore-type)
+                                                    https-ks-path
+                                                    https-ks-password
+                                                    https-ks-type
+                                                    https-key-password
+                                                    https-ts-path
+                                                    https-ts-password
+                                                    https-ts-type
+                                                    https-need-client-auth
+                                                    https-want-client-auth)
+                                        (doseq [connector (.getConnectors server)]
+                                          (.setRequestHeaderSize connector header-buffer-size))
                                         (config-filter server app filters-confs))}))
    (catch Exception ex
      (log-error ex))))

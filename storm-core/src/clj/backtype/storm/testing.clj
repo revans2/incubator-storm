@@ -27,6 +27,7 @@
   (:import [java.util HashMap ArrayList])
   (:import [java.util.concurrent.atomic AtomicInteger])
   (:import [java.util.concurrent ConcurrentHashMap])
+  (:import [backtype.storm.security.auth ReqContext])
   (:import [backtype.storm.utils Time Utils RegisteredGlobalState])
   (:import [backtype.storm.tuple Fields Tuple TupleImpl])
   (:import [backtype.storm.task TopologyContext])
@@ -119,7 +120,8 @@
 ;; if need to customize amt of ports more, can use add-supervisor calls afterwards
 (defnk mk-local-storm-cluster [:supervisors 2 :ports-per-supervisor 3 :daemon-conf {} :inimbus nil :supervisor-slot-port-min 1024]
   (let [zk-tmp (local-temp-path)
-        [zk-port zk-handle] (zk/mk-inprocess-zookeeper zk-tmp)
+        [zk-port zk-handle] (if-not (contains? daemon-conf STORM-ZOOKEEPER-SERVERS)
+                              (zk/mk-inprocess-zookeeper zk-tmp))
         daemon-conf (merge (read-storm-config)
                            {TOPOLOGY-SKIP-MISSING-KRYO-REGISTRATIONS true
                             ZMQ-LINGER-MILLIS 0
@@ -144,7 +146,7 @@
                      :state (mk-distributed-cluster-state daemon-conf)
                      :storm-cluster-state (mk-storm-cluster-state daemon-conf)
                      :tmp-dirs (atom [nimbus-tmp zk-tmp])
-                     :zookeeper zk-handle
+                     :zookeeper (if (not-nil? zk-handle) zk-handle)
                      :shared-context context}
         supervisor-confs (if (sequential? supervisors)
                            supervisors
@@ -175,9 +177,11 @@
     ;; race condition here? will it launch the workers again?
     (supervisor/kill-supervisor s))
   (psim/kill-all-processes)
-  (log-message "Shutting down in process zookeeper")
-  (zk/shutdown-inprocess-zookeeper (:zookeeper cluster-map))
-  (log-message "Done shutting down in process zookeeper")
+  (if (not-nil? (:zookeeper cluster-map))
+    (do
+      (log-message "Shutting down in process zookeeper")
+      (zk/shutdown-inprocess-zookeeper (:zookeeper cluster-map))
+      (log-message "Done shutting down in process zookeeper")))
   (doseq [t @(:tmp-dirs cluster-map)]
     (log-message "Deleting temporary path " t)
     (try
@@ -185,7 +189,9 @@
       ;; on windows, the host process still holds lock on the logfile
       (catch Exception e (log-message (.getMessage e)))) ))
 
-(def TEST-TIMEOUT-MS 5000)
+(def TEST-TIMEOUT-MS
+  (let [timeout (System/getenv "STORM_TEST_TIMEOUT_MS")]
+    (parse-int (if timeout timeout "5000"))))
 
 (defmacro while-timeout [timeout-ms condition & body]
   `(let [end-time# (+ (System/currentTimeMillis) ~timeout-ms)]
@@ -208,7 +214,8 @@
 
 (defn wait-until-cluster-waiting
   "Wait until the cluster is idle. Should be used with time simulation."
-  [cluster-map]
+  ([cluster-map] (wait-until-cluster-waiting cluster-map TEST-TIMEOUT-MS))
+  ([cluster-map timeout-ms]
   ;; wait until all workers, supervisors, and nimbus is waiting
   (let [supervisors @(:supervisors cluster-map)
         workers (filter (partial satisfies? common/DaemonCommon) (psim/all-processes))
@@ -217,12 +224,12 @@
                   supervisors
                   ; because a worker may already be dead
                   workers)]
-    (while-timeout TEST-TIMEOUT-MS (not (every? (memfn waiting?) daemons))
+    (while-timeout timeout-ms (not (every? (memfn waiting?) daemons))
                    (Thread/sleep (rand-int 20))
                    ;;      (doseq [d daemons]
                    ;;        (if-not ((memfn waiting?) d)
                    ;;          (println d)))
-                   )))
+                   ))))
 
 (defn advance-cluster-time
   ([cluster-map secs increment-secs]
@@ -244,7 +251,12 @@
          (log-error t# "Error in cluster")
          (throw t#))
        (finally
-         (kill-local-storm-cluster ~cluster-sym)))))
+         (let [keep-waiting?# (atom true)
+               f# (future (while @keep-waiting?# (simulate-wait ~cluster-sym)))]
+           (kill-local-storm-cluster ~cluster-sym)
+           (reset! keep-waiting?# false)
+            @f#
+           (.setSubject (ReqContext/context) nil))))))
 
 (defmacro with-simulated-time-local-cluster
   [& args]
@@ -272,22 +284,39 @@
     (throw (IllegalArgumentException. "Topology conf is not json-serializable")))
   (.submitTopologyWithOpts nimbus storm-name nil (to-json conf) topology submit-opts))
 
-(defn mocked-compute-new-topology->executor->node+port [storm-name executor->node+port]
-  (fn [nimbus existing-assignments topologies scratch-topology-id]
-    (let [topology (.getByName topologies storm-name)
-          topology-id (.getId topology)
+(defn mocked-convert-assignments-to-worker->resources [storm-cluster-state storm-name worker->resources]
+  (fn [existing-assignments]
+    (let [topology-id (common/get-storm-id storm-cluster-state storm-name)
+          existing-assignments (into {} (for [[tid assignment] existing-assignments]
+                                          {tid (:worker->resources assignment)}))
+          new-assignments (assoc existing-assignments topology-id worker->resources)]
+      new-assignments)))
+
+(defn mocked-compute-new-topology->executor->node+port [storm-cluster-state storm-name executor->node+port]
+  (fn [new-scheduler-assignments existing-assignments]
+    (let [topology-id (common/get-storm-id storm-cluster-state storm-name)
           existing-assignments (into {} (for [[tid assignment] existing-assignments]
                                           {tid (:executor->node+port assignment)}))
           new-assignments (assoc existing-assignments topology-id executor->node+port)]
       new-assignments)))
 
+(defn mocked-compute-new-scheduler-assignments []
+  (fn [nimbus existing-assignments topologies scratch-topology-id]
+    existing-assignments))
+
 (defn submit-mocked-assignment
-  [nimbus storm-name conf topology task->component executor->node+port]
+  [nimbus storm-cluster-state storm-name conf topology task->component executor->node+port worker->resources]
   (with-var-roots [common/storm-task-info (fn [& ignored] task->component)
+                   nimbus/compute-new-scheduler-assignments (mocked-compute-new-scheduler-assignments)
+                   nimbus/convert-assignments-to-worker->resources (mocked-convert-assignments-to-worker->resources
+                                                          storm-cluster-state
+                                                          storm-name
+                                                          worker->resources)
                    nimbus/compute-new-topology->executor->node+port (mocked-compute-new-topology->executor->node+port
+                                                                      storm-cluster-state
                                                                       storm-name
                                                                       executor->node+port)]
-                  (submit-local-topology nimbus storm-name conf topology)))
+    (submit-local-topology nimbus storm-name conf topology)))
 
 (defn mk-capture-launch-fn [capture-atom]
   (fn [supervisor storm-id port worker-id]
@@ -463,7 +492,8 @@
    :mock-sources {}
    :storm-conf {}
    :cleanup-state true
-   :topology-name nil]
+   :topology-name nil
+   :timeout-ms TEST-TIMEOUT-MS]
   ;; TODO: the idea of mocking for transactional topologies should be done an
   ;; abstraction level above... should have a complete-transactional-topology for this
   (let [{topology :topology capturer :capturer} (capture-topology topology)
@@ -482,7 +512,7 @@
         (.set_spout_object spout-spec (serialize-component-object spout))))
     (doseq [spout (spout-objects spouts)]
       (when-not (extends? CompletableSpout (.getClass spout))
-        (throw (RuntimeException. "Cannot complete topology unless every spout is a CompletableSpout (or mocked to be)"))))
+        (throw (RuntimeException. (str "Cannot complete topology unless every spout is a CompletableSpout (or mocked to be); failed by " spout)))))
 
     (doseq [spout (spout-objects spouts)]
       (startup spout))
@@ -493,11 +523,11 @@
       ;;Give the topology time to come up without using it to wait for the spouts to complete
       (simulate-wait cluster-map)
 
-      (while-timeout TEST-TIMEOUT-MS (not (every? exhausted? (spout-objects spouts)))
+      (while-timeout timeout-ms (not (every? exhausted? (spout-objects spouts)))
                      (simulate-wait cluster-map))
 
       (.killTopologyWithOpts (:nimbus cluster-map) storm-name (doto (KillOptions.) (.set_wait_secs 0)))
-      (while-timeout TEST-TIMEOUT-MS (.assignment-info state storm-id nil)
+      (while-timeout timeout-ms (.assignment-info state storm-id nil)
                      (simulate-wait cluster-map))
       (when cleanup-state
         (doseq [spout (spout-objects spouts)]
@@ -592,15 +622,17 @@
 (defn tracked-wait
   "Waits until topology is idle and 'amt' more tuples have been emitted by spouts."
   ([tracked-topology]
-   (tracked-wait tracked-topology 1))
+     (tracked-wait tracked-topology 1 TEST-TIMEOUT-MS))
   ([tracked-topology amt]
+     (tracked-wait tracked-topology amt TEST-TIMEOUT-MS))
+  ([tracked-topology amt timeout-ms]
     (let [target (+ amt @(:last-spout-emit tracked-topology))
           track-id (-> tracked-topology :cluster ::track-id)
           waiting? (fn []
                      (or (not= target (global-amt track-id "spout-emitted"))
                          (not= (global-amt track-id "transferred")                                 
                                (global-amt track-id "processed"))))]
-      (while-timeout TEST-TIMEOUT-MS (waiting?)
+      (while-timeout timeout-ms (waiting?)
                      ;; (println "Spout emitted: " (global-amt track-id "spout-emitted"))
                      ;; (println "Processed: " (global-amt track-id "processed"))
                      ;; (println "Transferred: " (global-amt track-id "transferred"))

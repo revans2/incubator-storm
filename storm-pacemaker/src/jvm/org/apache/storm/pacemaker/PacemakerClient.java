@@ -35,10 +35,10 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import javax.security.auth.login.Configuration;
 import org.apache.storm.pacemaker.codec.ThriftNettyClientCodec;
-import org.jboss.netty.bootstrap.ClientBootstrap;
-import org.jboss.netty.channel.Channel;
-import org.jboss.netty.channel.ChannelPipelineFactory;
-import org.jboss.netty.channel.socket.nio.NioClientSocketChannelFactory;
+import org.apache.storm.netty.bootstrap.ClientBootstrap;
+import org.apache.storm.netty.channel.Channel;
+import org.apache.storm.netty.channel.ChannelPipelineFactory;
+import org.apache.storm.netty.channel.socket.nio.NioClientSocketChannelFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -176,7 +176,7 @@ public class PacemakerClient implements ISaslClient {
                 messages[next] = m;
                 LOG.debug("Put message in slot: {}", Integer.toString(next));
                 do {
-                    channelRef.get().write(m).await();
+                    channelRef.get().write(m);
                     m.wait(1000);
                 } while (messages[next] == m);
             }

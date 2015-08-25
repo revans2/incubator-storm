@@ -404,11 +404,12 @@ Note that if anything goes wrong, this will throw an Error and exit."
           (if grep
             (html [:pre#logContent
                    (if grep
-                     (filter #(.contains % grep)
-                             (.split log-string "\n"))
+                     (->> (.split log-string "\n")
+                          (filter #(.contains % grep))
+                          (string/join "\n"))
                      log-string)])
             (let [pager-data (if is-txt-file (pager-links fname start length file-length) nil)]
-              (html (concat (search-file-form (url-encode fname)) 
+              (html (concat (search-file-form fname)
                             (log-file-selection-form reordered-files-str) ;display all files for this topology
                             pager-data
                             (download-link fname)
@@ -717,7 +718,7 @@ Note that if anything goes wrong, this will throw an Error and exit."
         throw))))
 
 (defn search-log-file
-  [fname user ^String root-dir search num-matches offset origin]
+  [fname user ^String root-dir search num-matches offset callback origin]
   (let [file (.getCanonicalFile (File. root-dir fname))]
     (if (.exists file)
       (if (or (blank? (*STORM-CONF* UI-FILTER))
@@ -735,6 +736,7 @@ Note that if anything goes wrong, this will throw an Error and exit."
                                   search
                                   :num-matches num-matches-int
                                   :start-byte-offset offset-int)
+                callback
                 :headers {"Access-Control-Allow-Origin" origin
                           "Access-Control-Allow-Credentials" "true"})
               (throw
@@ -742,10 +744,11 @@ Note that if anything goes wrong, this will throw an Error and exit."
                   (str "Search substring must be between 1 and 1024 UTF-8 "
                        "bytes in size (inclusive)"))))
             (catch Exception ex
-              (json-response (exception->json ex) :status 500))))
-        (json-response (unauthorized-user-json user) :status 401))
+              (json-response (exception->json ex) callback :status 500))))
+        (json-response (unauthorized-user-json user) callback :status 401))
       (json-response {"error" "Not Found"
                       "errorMessage" "The file was not found on this node."}
+                     callback
                      :status 404))))
 
 (defn find-n-matches [logs n file-offset offset search]
@@ -795,7 +798,7 @@ Note that if anything goes wrong, this will throw an Error and exit."
             (filter #(re-find worker-log-filename-pattern (.getName %)) (.listFiles port-dir))))))
 
 (defn deep-search-logs-for-topology
-  [topology-id user ^String root-dir search num-matches port file-offset offset search-archived? origin]
+  [topology-id user ^String root-dir search num-matches port file-offset offset search-archived? callback origin]
   (json-response
     (if (or (not search) (not (.exists (File. (str root-dir file-path-separator topology-id)))))
       []
@@ -822,6 +825,7 @@ Note that if anything goes wrong, this will throw an Error and exit."
                   (if search-archived?
                     (find-n-matches filtered-logs num-matches file-offset offset search)
                     (find-n-matches [(first filtered-logs)] num-matches 0 offset search)))))))))
+    callback
     :headers {"Access-Control-Allow-Origin" origin
               "Access-Control-Allow-Credentials" "true"}))
 
@@ -854,7 +858,7 @@ Note that if anything goes wrong, this will throw an Error and exit."
                ex)))))
 
 (defn list-log-files
-  [user topoId port log-root origin]
+  [user topoId port log-root callback origin]
   (let [file-results
         (if (nil? topoId)
           (if (nil? port)
@@ -879,6 +883,7 @@ Note that if anything goes wrong, this will throw an Error and exit."
         file-strs (sort (for [file file-results]
                     (get-topo-port-workerlog file)))]
     (json-response file-strs
+                   callback
                    :headers {"Access-Control-Allow-Origin" origin
                              "Access-Control-Allow-Credentials" "true"})))
 
@@ -889,9 +894,10 @@ Note that if anything goes wrong, this will throw an Error and exit."
                log-root (:log-root req)
                user (.getUserName http-creds-handler servlet-request)
                start (if (:start m) (parse-long-from-map m :start))
-               length (if (:length m) (parse-long-from-map m :length))]
-           (log-template (log-page (:file m) start length (:grep m) user log-root)
-                         (:file m) user))
+               length (if (:length m) (parse-long-from-map m :length))
+               file (url-decode (:file m))]
+           (log-template (log-page file start length (:grep m) user log-root)
+                         file user))
          (catch InvalidRequestException ex
            (log-error ex)
            (ring-response-from-exception ex))))
@@ -918,10 +924,11 @@ Note that if anything goes wrong, this will throw an Error and exit."
                             (:search-string m)
                             (:num-matches m)
                             (:start-byte-offset m)
+                            (:callback m)
                             (.getHeader servlet-request "Origin")))
          (catch InvalidRequestException ex
            (log-error ex)
-           (json-response (exception->json ex) :status 400))))
+           (json-response (exception->json ex) (:callback m) :status 400))))
   (GET "/deepSearch/:topo-id" [:as {:keys [servlet-request servlet-response log-root]} topo-id & m]
        ;; We do not use servlet-response here, but do not remove it from the
        ;; :keys list, or this rule could stop working when an authentication
@@ -937,10 +944,11 @@ Note that if anything goes wrong, this will throw an Error and exit."
              (:start-file-offset m)
              (:start-byte-offset m)
              (:search-archived m)
+             (:callback m)
              (.getHeader servlet-request "Origin")))
          (catch InvalidRequestException ex
             (log-error ex)
-            (json-response (exception->json ex) :status 400))))
+            (json-response (exception->json ex) (:callback m) :status 400))))
   (GET "/searchLogs" [:as req & m]
     (try
       (let [servlet-request (:servlet-request req)
@@ -949,10 +957,11 @@ Note that if anything goes wrong, this will throw an Error and exit."
                         (:topoId m)
                         (:port m)
                         (:log-root req)
+                        (:callback m)
                         (.getHeader servlet-request "Origin")))
       (catch InvalidRequestException ex
         (log-error ex)
-        (json-response (exception->json ex) :status 400))))
+        (json-response (exception->json ex) (:callback m) :status 400))))
   (GET "/listLogs" [:as req & m]
     (try
       (let [servlet-request (:servlet-request req)
@@ -961,10 +970,11 @@ Note that if anything goes wrong, this will throw an Error and exit."
                         (:topoId m)
                         (:port m)
                         (:log-root req)
+                        (:callback m)
                         (.getHeader servlet-request "Origin")))
       (catch InvalidRequestException ex
         (log-error ex)
-        (json-response (exception->json ex) :status 400))))
+        (json-response (exception->json ex) (:callback m) :status 400))))
   (route/resources "/")
   (route/not-found "Page not found"))
 
@@ -988,7 +998,7 @@ Note that if anything goes wrong, this will throw an Error and exit."
                             :filter-params (or (conf UI-FILTER-PARAMS) {})}]
                           [])
           filters-confs (concat filters-confs
-                          [{:filter-class "org.mortbay.servlet.GzipFilter"
+                          [{:filter-class "org.eclipse.jetty.servlets.GzipFilter"
                             :filter-name "Gzipper"
                             :filter-params {}}])
           https-port (int (conf LOGVIEWER-HTTPS-PORT))

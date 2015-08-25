@@ -18,6 +18,7 @@
 package backtype.storm.networktopography;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * An interface that must be implemented to allow pluggable
@@ -28,9 +29,7 @@ public interface DNSToSwitchMapping {
   public final static String DEFAULT_RACK = "/default-rack";
 
   /**
-   * Resolves a list of DNS-names/IP-addresses and returns back a list of
-   * switch information (network paths). One-to-one correspondence must be 
-   * maintained between the elements in the lists. 
+   * Resolves a list of DNS-names/IP-address and returns back a map of DNS-name->switch information ( network paths).
    * Consider an element in the argument list - x.y.com. The switch information
    * that is returned must be a network path of the form /foo/rack, 
    * where / is the root, and 'foo' is the switch where 'rack' is connected.
@@ -44,10 +43,10 @@ public interface DNSToSwitchMapping {
    * is what the bundled implementations do, though it is not a formal requirement
    *
    * @param names the list of hosts to resolve (can be empty)
-   * @return list of resolved network paths.
-   * If <i>names</i> is empty, the returned list is also empty
+   * @return Map of hosts to resolved network paths.
+   * If <i>names</i> is empty, then return empty Map
    */
-  public List<String> resolve(List<String> names);
+  public Map<String,String> resolve(List<String> names);
 
   /**
    * Reload all of the cached mappings.

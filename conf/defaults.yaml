@@ -53,6 +53,8 @@ storm.meta.serialization.delegate: "backtype.storm.serialization.GzipThriftSeria
 # The state store for the cluster.
 #storm.cluster.state.store: "org.apache.storm.pacemaker.pacemaker_state_factory"
 storm.cluster.state.store: "backtype.storm.cluster_state.zookeeper_state_factory"
+storm.health.check.dir: "healthchecks"
+storm.health.check.timeout.ms: 5000
 
 ### nimbus.* configs are for the master
 nimbus.host: "localhost"
@@ -74,6 +76,7 @@ nimbus.blobstore.class: "backtype.storm.blobstore.LocalFsBlobStore"
 nimbus.blobstore.expiration.secs: 600
 
 ### ui.* configs are for the master
+ui.host: 0.0.0.0
 ui.port: 8080
 ui.childopts: "-Xmx768m"
 ui.filter: null
@@ -124,6 +127,8 @@ supervisor.run.worker.as.user: false
 supervisor.worker.start.timeout.secs: 120
 #how long between heartbeats until supervisor considers that worker dead and tries to restart it
 supervisor.worker.timeout.secs: 30
+#how many seconds to sleep for before shutting down threads on worker
+supervisor.worker.shutdown.sleep.secs: 1
 #how frequently the supervisor checks on the status of the processes it's monitoring and restarts if necessary
 supervisor.monitor.frequency.secs: 3
 #how frequently the supervisor heartbeats to the cluster state (for nimbus)
@@ -164,14 +169,15 @@ zmq.hwm: 0
 storm.messaging.netty.server_worker_threads: 1
 storm.messaging.netty.client_worker_threads: 1
 storm.messaging.netty.buffer_size: 5242880 #5MB buffer
-# Since nimbus.task.launch.secs and supervisor.worker.start.timeout.secs are 120, other workers should also wait at least that long before giving up on connecting to the other worker.
+# Since nimbus.task.launch.secs and supervisor.worker.start.timeout.secs are 120, other workers should also wait at least that long before giving up on connecting to the other worker. The reconnection period need also be bigger than storm.zookeeper.session.timeout(default is 20s), so that we can abort the reconnection when the target worker is dead.
 storm.messaging.netty.max_retries: 300
 storm.messaging.netty.max_wait_ms: 1000
 storm.messaging.netty.min_wait_ms: 100
 
 # If the Netty messaging layer is busy(netty internal buffer not writable), the Netty client will try to batch message as more as possible up to the size of storm.messaging.netty.transfer.batch.size bytes, otherwise it will try to flush message as soon as possible to reduce latency.
 storm.messaging.netty.transfer.batch.size: 262144
-
+# Sets the backlog value to specify when the channel binds to a local address
+storm.messaging.netty.socket.backlog: 500
 # We check with this interval that whether the Netty channel is writable and try to write pending messages if it is.
 storm.messaging.netty.flush.check.interval.ms: 10
 
@@ -181,6 +187,9 @@ storm.network.topography.plugin: backtype.storm.networktopography.DefaultRackDNS
 storm.group.mapping.service.cache.duration.secs: 120
 # By default, the Netty SASL authentication is set to false.  Users can override and set it true for a specific topology.
 storm.messaging.netty.authentication: false
+
+# default number of seconds group mapping service will cache user group
+storm.group.mapping.service.cache.duration.secs: 120
 
 ### topology.* configs are for specific executing storms
 topology.enable.message.timeouts: true
@@ -202,7 +211,6 @@ topology.worker.childopts: null
 topology.worker.lw.childopts: "-Xmx64m"
 topology.executor.receive.buffer.size: 1024 #batched
 topology.executor.send.buffer.size: 1024 #individual messages
-topology.receiver.buffer.size: 8 # setting it too high causes a lot of problems (heartbeat thread gets starved, throughput plummets)
 topology.transfer.buffer.size: 1024 # batched
 topology.tick.tuple.freq.secs: null
 topology.worker.shared.thread.pool.size: 4
@@ -227,7 +235,6 @@ topology.component.resources.offheap.memory.mb: 0.0
 topology.component.cpu.pcore.percent: 10.0
 
 client.blobstore.class: "backtype.storm.blobstore.NimbusBlobStore"
-blobstore.superuser: "nobody"
 
 dev.zookeeper.path: "/tmp/dev-storm-zookeeper"
 

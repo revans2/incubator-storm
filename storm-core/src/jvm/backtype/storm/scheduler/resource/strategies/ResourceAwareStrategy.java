@@ -28,6 +28,7 @@ import java.util.Map.Entry;
 import java.util.Queue;
 import java.util.TreeMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Set;
 
 import org.slf4j.Logger;
@@ -73,12 +74,16 @@ public class ResourceAwareStrategy implements IStrategy {
 
     //the returned TreeMap keeps the RAS_Components sorted
     protected TreeMap<Integer, List<ExecutorDetails>> getPriorityToExecutorDetailsListMap(
-            Queue<RAS_Component> ordered_RAS_Component_list) {
+            Queue<RAS_Component> ordered_RAS_Component_list, Collection<ExecutorDetails> unassignedExecutors) {
         TreeMap<Integer, List<ExecutorDetails>> retMap = new TreeMap<Integer, List<ExecutorDetails>>();
         Integer rank = 0;
         for (RAS_Component ras_comp : ordered_RAS_Component_list) {
             retMap.put(rank, new ArrayList<ExecutorDetails>());
-            retMap.get(rank).addAll(ras_comp.execs);
+            for(ExecutorDetails exec : ras_comp.execs) {
+                if(unassignedExecutors.contains(exec)) {
+                    retMap.get(rank).add(exec);
+                }
+            }
             rank++;
         }
         return retMap;
@@ -94,44 +99,54 @@ public class ResourceAwareStrategy implements IStrategy {
         Map<Node, Collection<ExecutorDetails>> nodeToExecutorDetailsMap = new HashMap<Node, Collection<ExecutorDetails>>();
         LOG.debug("ExecutorsNeedScheduling: {}", unassignedExecutors);
         Collection<ExecutorDetails> scheduledTasks = new ArrayList<ExecutorDetails>();
-        RAS_Component rootSpout = this.getSpout(topologies);
-        if (rootSpout == null) {
+        List<RAS_Component> spouts = this.getSpouts(topologies);
+
+        if (spouts.size() == 0) {
             LOG.error("Cannot find a Spout!");
             return null;
         }
-        Queue<RAS_Component> ordered_RAS_Component_list = bfs(topologies, rootSpout);
-        Map<Integer, List<ExecutorDetails>> priorityToExecutorMap = getPriorityToExecutorDetailsListMap(ordered_RAS_Component_list);
-        Collection<ExecutorDetails> executorsNotScheduled = new HashSet<ExecutorDetails>(unassignedExecutors);
 
-        for (Integer priority : priorityToExecutorMap.keySet()) {
-            for (ExecutorDetails detail : priorityToExecutorMap.get(priority)) {
-                if (!executorsNotScheduled.contains(detail)) {
-                    continue;
-                }
-                LOG.info("\n\nAttempting to schedule: {} of component {} with rank {}",
-                        detail, _topo.getExecutorToComponent().get(detail), priority);
-                Node scheduledNode = scheduleNodeForAnExecutorDetail(detail);
-                if (scheduledNode != null) {
-                    if (!nodeToExecutorDetailsMap.containsKey(scheduledNode)) {
-                        Collection<ExecutorDetails> newExecutorDetailsMap = new LinkedList<ExecutorDetails>();
-                        nodeToExecutorDetailsMap.put(scheduledNode, newExecutorDetailsMap);
+        Queue<RAS_Component> ordered_RAS_Component_list = bfs(topologies, spouts);
+
+        Map<Integer, List<ExecutorDetails>> priorityToExecutorMap = getPriorityToExecutorDetailsListMap(ordered_RAS_Component_list, unassignedExecutors);
+        Collection<ExecutorDetails> executorsNotScheduled = new HashSet<ExecutorDetails>(unassignedExecutors);
+        Integer longestPriorityListSize = this.getLongestPriorityListSize(priorityToExecutorMap);
+        //Pick the first executor with priority one, then the 1st exec with priority 2, so on an so forth. 
+        //Once we reach the last priority, we go back to priority 1 and schedule the second task with priority 1.
+        for (int i = 0; i < longestPriorityListSize; i++) {
+            for (Entry<Integer, List<ExecutorDetails>> entry : priorityToExecutorMap.entrySet()) {
+                Iterator<ExecutorDetails> it = entry.getValue().iterator();
+                if (it.hasNext()) {
+                    ExecutorDetails exec = it.next();
+                    LOG.info("\n\nAttempting to schedule: {} of component {}[avail {}] with rank {}",
+                            new Object[] { exec, this._topo.getExecutorToComponent().get(exec),
+                    this._topo.getTaskResourceReqList(exec), entry.getKey() });
+                    Node scheduledNode = this.scheduleNodeForAnExecutorDetail(exec);
+                    if (scheduledNode != null) {
+                        if (nodeToExecutorDetailsMap.containsKey(scheduledNode) == false) {
+                            Collection<ExecutorDetails> newExecutorDetailsMap = new LinkedList<ExecutorDetails>();
+                            nodeToExecutorDetailsMap.put(scheduledNode, newExecutorDetailsMap);
+                        }
+                        nodeToExecutorDetailsMap.get(scheduledNode).add(exec);
+                        scheduledNode.consumeResourcesforTask(exec, td);
+                        scheduledTasks.add(exec);
+                        LOG.info("TASK {} assigned to Node: {} avail [mem: {} cpu: {}] total [mem: {} cpu: {}]", exec,
+                                scheduledNode, scheduledNode.getAvailableMemoryResources(),
+                                scheduledNode.getAvailableCpuResources(), scheduledNode.getTotalMemoryResources(),
+                                scheduledNode.getTotalCpuResources());
+                    } else {
+                        LOG.error("Not Enough Resources to schedule Task {}", exec);
                     }
-                    nodeToExecutorDetailsMap.get(scheduledNode).add(detail);
-                    scheduledNode.consumeResourcesforTask(detail, td);
-                    scheduledTasks.add(detail);
-                    LOG.info("TASK {} assigned to NODE {} -- AvailMem: {} AvailCPU: {}",
-                            detail, scheduledNode, scheduledNode.getAvailableMemoryResources(),
-                            scheduledNode.getAvailableCpuResources());
-                } else {
-                    LOG.error("Not Enough Resources to schedule Task {}", detail);
+                    it.remove();
                 }
             }
         }
 
         executorsNotScheduled.removeAll(scheduledTasks);
+        LOG.info("/* Scheduling left over task (most likely sys tasks) */");
         // schedule left over system tasks
         for (ExecutorDetails detail : executorsNotScheduled) {
-            Node bestNodeForAnExecutorDetail = this.getBestNode(detail);
+            Node bestNodeForAnExecutorDetail = this.scheduleNodeForAnExecutorDetail(detail);
             if (bestNodeForAnExecutorDetail != null) {
                 if (!nodeToExecutorDetailsMap.containsKey(bestNodeForAnExecutorDetail)) {
                     Collection<ExecutorDetails> newMap = new LinkedList<ExecutorDetails>();
@@ -151,7 +166,7 @@ public class ResourceAwareStrategy implements IStrategy {
 
         executorsNotScheduled.removeAll(scheduledTasks);
         if (executorsNotScheduled.size() > 0) {
-            LOG.error("Resources not successfully scheduled: {}",
+            LOG.error("Not all executors successfully scheduled: {}",
                     executorsNotScheduled);
             nodeToExecutorDetailsMap = null;
         } else {
@@ -198,12 +213,14 @@ public class ResourceAwareStrategy implements IStrategy {
             String clus = this.getBestClustering();
             n = this.getBestNodeInCluster_Mem_CPU(clus, exec);
             this.refNode = n;
-            LOG.debug("refNode: {}", this.refNode.hostname);
         } else {
             n = this.getBestNode(exec);
-            this.refNode = n; // update the refnode every time
+            if(n != null) {
+            	this.refNode = n; // update the refnode every time
+            }
         }
 
+        LOG.debug("reference node for the resource aware scheduler is: {}", this.refNode);
         return n;
     }
 
@@ -304,48 +321,44 @@ public class ResourceAwareStrategy implements IStrategy {
         return this._nodes.values();
     }
 
-    private Queue<RAS_Component> bfs(Topologies topologies, RAS_Component root) {
+    private Queue<RAS_Component> bfs(Topologies topologies, List<RAS_Component> spouts) {
         // Since queue is a interface
         Queue<RAS_Component> ordered_RAS_Component_list = new LinkedList<RAS_Component>();
         HashMap<String, RAS_Component> visited = new HashMap<String, RAS_Component>();
-        Queue<RAS_Component> temp_queue = new LinkedList<RAS_Component>();
 
-        if (root == null)
-            return null;
-
-        // Adds to end of queue
-        temp_queue.add(root);
-        visited.put(root.id, root);
-        ordered_RAS_Component_list.add(root);
-
-        while (!temp_queue.isEmpty()) {
-            // removes from front of queue
-            RAS_Component topOfQueueRAS_Component = temp_queue.remove();
-
-            // Visit child first before grandchild
-            List<String> neighbors = new ArrayList<String>();
-            neighbors.addAll(topOfQueueRAS_Component.children);
-            neighbors.addAll(topOfQueueRAS_Component.parents);
-            for (String strRAS_ComponentID : neighbors) {
-                if (!visited.containsKey(strRAS_ComponentID)) {
-                    RAS_Component child = topologies.getAllRAS_Components().get(_topo.getId()).get(strRAS_ComponentID);
-                    temp_queue.add(child);
-                    visited.put(child.id, child);
-                    ordered_RAS_Component_list.add(child);
+        /* start from each spout that is not visited, each does a breadth-first traverse */
+        for (RAS_Component spout : spouts) {
+            if (!visited.containsKey(spout.id)) {
+                Queue<RAS_Component> queue = new LinkedList<RAS_Component>();
+                queue.offer(spout);
+                while (!queue.isEmpty()) {
+                    RAS_Component comp = queue.poll();
+                    visited.put(comp.id, comp);
+                    ordered_RAS_Component_list.add(comp);
+                    List<String> neighbors = new ArrayList<String>();
+                    neighbors.addAll(comp.children);
+                    neighbors.addAll(comp.parents);
+                    for (String nbID : neighbors) {
+                        if (!visited.containsKey(nbID)) {
+                            RAS_Component child = topologies.getAllRAS_Components().get(_topo.getId()).get(nbID);
+                            queue.offer(child);
+                        }
+                    }
                 }
             }
         }
         return ordered_RAS_Component_list;
     }
 
-    private RAS_Component getSpout(Topologies topologies) {
+    private List<RAS_Component> getSpouts(Topologies topologies) {
+        List<RAS_Component> spouts = new ArrayList<RAS_Component>();
         for (RAS_Component c : topologies.getAllRAS_Components().get(_topo.getId())
                 .values()) {
             if (c.type == RAS_Component.ComponentType.SPOUT) {
-                return c;
+                spouts.add(c);
             }
         }
-        return null;
+        return spouts;
     }
 
     private String NodeHostnameToId(String hostname) {
@@ -361,4 +374,14 @@ public class ResourceAwareStrategy implements IStrategy {
         return null;
     }
 
+    private Integer getLongestPriorityListSize(Map<Integer, List<ExecutorDetails>> priorityToExecutorMap) {
+        Integer mostNum = 0;
+        for (List<ExecutorDetails> execs : priorityToExecutorMap.values()) {
+            Integer numExecs = execs.size();
+            if (mostNum < numExecs) {
+                mostNum = numExecs;
+            }
+        }
+        return mostNum;
+    }
 }

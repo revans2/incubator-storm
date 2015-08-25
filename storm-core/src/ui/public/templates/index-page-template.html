@@ -128,7 +128,7 @@
     <tbody>
       {{#topologies}}
       <tr>
-        <td><a href="/topology.html?id={{id}}">{{name}}</a></td>
+        <td><a href="/topology.html?id={{encodedId}}">{{name}}</a></td>
         <td>{{id}}</td>
         <td>{{owner}}</td>
         <td>{{status}}</td>
@@ -171,6 +171,11 @@
           Used slots
         </span>
       </th>
+      <th>
+        <span data-toggle="tooltip" data-placement="left" title="Version">
+          Version
+        </span>
+      </th>
     </tr>
   </thead>
   <tbody>
@@ -181,6 +186,7 @@
       <td>{{uptime}}</td>
       <td>{{slotsTotal}}</td>
       <td>{{slotsUsed}}</td>
+      <td>{{version}}</td>
     </tr>
     {{/supervisors}}
   </tbody>

@@ -169,8 +169,8 @@
 (deftest test-storm-cluster-state-basics
   (with-inprocess-zookeeper zk-port
     (let [state (mk-storm-state zk-port)
-          assignment1 (Assignment. "/aaa" {} {[1] ["1" 1001 1]} {})
-          assignment2 (Assignment. "/aaa" {} {[2] ["2" 2002]} {})
+          assignment1 (Assignment. "/aaa" {} {[1] ["1" 1001 1]} {} {})
+          assignment2 (Assignment. "/aaa" {} {[2] ["2" 2002]} {} {})
           base1 (StormBase. "/tmp/storm1" 1 {:type :active} 2 {} "" nil nil)
           base2 (StormBase. "/tmp/storm2" 2 {:type :active} 2 {} "" nil nil)]
       (is (= [] (.assignments state nil)))
@@ -221,17 +221,17 @@
   (with-inprocess-zookeeper zk-port
     (with-simulated-time
       (let [state (mk-storm-state zk-port)]
-        (.report-error state "a" "1" (RuntimeException.))
+        (.report-error state "a" "1" (local-hostname) 6700 (RuntimeException.))
         (validate-errors! state "a" "1" ["RuntimeException"])
         (advance-time-secs! 1)
-        (.report-error state "a" "1" (IllegalArgumentException.))
+        (.report-error state "a" "1" (local-hostname) 6700 (IllegalArgumentException.))
         (validate-errors! state "a" "1" ["IllegalArgumentException" "RuntimeException"])
         (doseq [i (range 10)]
-          (.report-error state "a" "2" (RuntimeException.))
+          (.report-error state "a" "2" (local-hostname) 6700 (RuntimeException.))
           (advance-time-secs! 2))
         (validate-errors! state "a" "2" (repeat 10 "RuntimeException"))
         (doseq [i (range 5)]
-          (.report-error state "a" "2" (IllegalArgumentException.))
+          (.report-error state "a" "2" (local-hostname) 6700 (IllegalArgumentException.))
           (advance-time-secs! 2))
         (validate-errors! state "a" "2" (concat (repeat 5 "IllegalArgumentException")
                                                 (repeat 5 "RuntimeException")
@@ -244,8 +244,8 @@
   (with-inprocess-zookeeper zk-port
     (let [state1 (mk-storm-state zk-port)
           state2 (mk-storm-state zk-port)
-          supervisor-info1 (SupervisorInfo. 10 "hostname-1" "id1" [1 2] [] {} 1000 {} )
-          supervisor-info2 (SupervisorInfo. 10 "hostname-2" "id2" [1 2] [] {} 1000 {} )
+          supervisor-info1 (SupervisorInfo. 10 "hostname-1" "id1" [1 2] [] {} 1000 "0.9.2" {})
+          supervisor-info2 (SupervisorInfo. 10 "hostname-2" "id2" [1 2] [] {} 1000 "0.9.2" {})
           ]
       (is (= [] (.supervisors state1 nil)))
       (.supervisor-heartbeat! state2 "2" supervisor-info2)

@@ -147,6 +147,15 @@ function formatConfigData(data) {
     return mustacheFormattedData;
 }
 
+function formatErrorTimeSecs(response){
+    var errors = response["componentErrors"];
+    for(var i = 0 ; i < errors.length ; i++){
+        var time = errors[i]['time'];
+        errors[i]['time'] = moment.utc(time).local().format("ddd, DD MMM YYYY HH:mm:ss Z");
+    }
+    return response;
+}
+
 
 function renderToggleSys(div) {
     var sys = $.cookies.get("sys") || false;
@@ -157,9 +166,10 @@ function renderToggleSys(div) {
     }
 }
 
-function topologyActionJson(id,name,status,msgTimeout) {
+function topologyActionJson(id, encodedId, name,status,msgTimeout) {
     var jsonData = {};
     jsonData["id"] = id;
+    jsonData["encodedId"] = encodedId;
     jsonData["name"] = name;
     jsonData["msgTimeout"] = msgTimeout;
     jsonData["activateStatus"] = (status === "ACTIVE") ? "disabled" : "enabled";
@@ -179,3 +189,13 @@ function topologyActionButton(id,name,status,actionLabel,command,wait,defaultWai
     return buttonData;
 }
 
+$.blockUI.defaults.css = {
+    border: 'none',
+    padding: '15px',
+    backgroundColor: '#000',
+    '-webkit-border-radius': '10px',
+    '-moz-border-radius': '10px',
+    'border-radius': '10px',
+    opacity: .5,
+    color: '#fff',margin:0,width:"30%",top:"40%",left:"35%",textAlign:"center"
+};
