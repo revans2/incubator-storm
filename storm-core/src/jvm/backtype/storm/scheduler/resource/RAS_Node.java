@@ -38,12 +38,13 @@ import backtype.storm.scheduler.ExecutorDetails;
 import backtype.storm.scheduler.SchedulerAssignment;
 import backtype.storm.scheduler.SupervisorDetails;
 import backtype.storm.scheduler.WorkerSlot;
+import backtype.storm.scheduler.multitenant.Node;
 
 /**
  * Represents a single node in the cluster.
  */
-public class Node {
-    private static final Logger LOG = LoggerFactory.getLogger(Node.class);
+public class RAS_Node{
+    private static final Logger LOG = LoggerFactory.getLogger(RAS_Node.class);
     private Map<String, Set<WorkerSlot>> _topIdToUsedSlots = new HashMap<String, Set<WorkerSlot>>();
     private Set<WorkerSlot> _freeSlots = new HashSet<WorkerSlot>();
     private final String _nodeId;
@@ -57,7 +58,7 @@ public class Node {
     public List<ExecutorDetails> execs;
     public Map<WorkerSlot, List<ExecutorDetails>> slot_to_exec;
 
-    public Node(String nodeId, Set<Integer> allPorts, boolean isAlive) {
+    public RAS_Node(String nodeId, Set<Integer> allPorts, boolean isAlive) {
         _nodeId = nodeId;
         _isAlive = isAlive;
         if (_isAlive && allPorts != null) {
@@ -67,7 +68,7 @@ public class Node {
         }
     }
 
-    public Node(String nodeId, Set<Integer> allPorts, boolean isAlive,
+    public RAS_Node(String nodeId, Set<Integer> allPorts, boolean isAlive,
                 SupervisorDetails sup) {
         this(nodeId, allPorts, isAlive);
         this.slots = new ArrayList<WorkerSlot>();
@@ -288,8 +289,8 @@ public class Node {
 
     @Override
     public boolean equals(Object other) {
-        if (other instanceof Node) {
-            return _nodeId.equals(((Node) other)._nodeId);
+        if (other instanceof RAS_Node) {
+            return _nodeId.equals(((RAS_Node) other)._nodeId);
         }
         return false;
     }
@@ -304,25 +305,25 @@ public class Node {
         return "{Node: " + this.sup.getHost() + ", AvailMem: " + this.availMemory.toString() + ", AvailCPU: " + this.availCPU.toString() + "}";
     }
 
-    public static int countSlotsUsed(String topId, Collection<Node> nodes) {
+    public static int countSlotsUsed(String topId, Collection<RAS_Node> nodes) {
         int total = 0;
-        for (Node n : nodes) {
+        for (RAS_Node n : nodes) {
             total += n.totalSlotsUsed(topId);
         }
         return total;
     }
 
-    public static int countSlotsUsed(Collection<Node> nodes) {
+    public static int countSlotsUsed(Collection<RAS_Node> nodes) {
         int total = 0;
-        for (Node n : nodes) {
+        for (RAS_Node n : nodes) {
             total += n.totalSlotsUsed();
         }
         return total;
     }
 
-    public static int countFreeSlotsAlive(Collection<Node> nodes) {
+    public static int countFreeSlotsAlive(Collection<RAS_Node> nodes) {
         int total = 0;
-        for (Node n : nodes) {
+        for (RAS_Node n : nodes) {
             if (n.isAlive()) {
                 total += n.totalSlotsFree();
             }
@@ -330,9 +331,9 @@ public class Node {
         return total;
     }
 
-    public static int countTotalSlotsAlive(Collection<Node> nodes) {
+    public static int countTotalSlotsAlive(Collection<RAS_Node> nodes) {
         int total = 0;
-        for (Node n : nodes) {
+        for (RAS_Node n : nodes) {
             if (n.isAlive()) {
                 total += n.totalSlots();
             }
@@ -340,8 +341,8 @@ public class Node {
         return total;
     }
 
-    public static Map<String, Node> getAllNodesFrom(Cluster cluster, Topologies topologies) {
-        Map<String, Node> nodeIdToNode = new HashMap<String, Node>();
+    public static Map<String, RAS_Node> getAllNodesFrom(Cluster cluster, Topologies topologies) {
+        Map<String, RAS_Node> nodeIdToNode = new HashMap<String, RAS_Node>();
         for (SupervisorDetails sup : cluster.getSupervisors().values()) {
             //Node ID and supervisor ID are the same.
             String id = sup.getId();
@@ -349,17 +350,17 @@ public class Node {
             LOG.debug("Found a {} Node {} {}",
                     isAlive ? "living" : "dead", id, sup.getAllPorts());
             LOG.debug("resources_mem: {}, resources_CPU: {}", sup.getTotalMemory(), sup.getTotalCPU());
-            nodeIdToNode.put(sup.getId(), new Node(id, sup.getAllPorts(), isAlive, sup));
+            nodeIdToNode.put(sup.getId(), new RAS_Node(id, sup.getAllPorts(), isAlive, sup));
         }
         for (Entry<String, SchedulerAssignment> entry : cluster.getAssignments().entrySet()) {
             String topId = entry.getValue().getTopologyId();
             for (WorkerSlot workerSlot : entry.getValue().getSlots()) {
                 String id = workerSlot.getNodeId();
-                Node node = nodeIdToNode.get(id);
+                RAS_Node node = nodeIdToNode.get(id);
                 if (node == null) {
                     LOG.info("Found an assigned slot on a dead supervisor {} with executors {}",
                             workerSlot, getExecutors(workerSlot, cluster));
-                    node = new Node(id, null, false, null);
+                    node = new RAS_Node(id, null, false, null);
                     nodeIdToNode.put(id, node);
                 }
                 if (!node.isAlive()) {
@@ -372,7 +373,7 @@ public class Node {
                 }
             }
         }
-        Node.updateAvailableResources(cluster, topologies, nodeIdToNode);
+        RAS_Node.updateAvailableResources(cluster, topologies, nodeIdToNode);
 
         for (Map.Entry<String, SchedulerAssignment> entry : cluster
                 .getAssignments().entrySet()) {
@@ -382,7 +383,7 @@ public class Node {
                 WorkerSlot ws = exec.getValue();
                 String node_id = ws.getNodeId();
                 if (nodeIdToNode.containsKey(node_id)) {
-                    Node node = nodeIdToNode.get(node_id);
+                    RAS_Node node = nodeIdToNode.get(node_id);
                     if (node.slot_to_exec.containsKey(ws)) {
                         node.slot_to_exec.get(ws).add(ed);
                         node.execs.add(ed);
@@ -431,7 +432,7 @@ public class Node {
      */
     private static void updateAvailableResources(Cluster cluster,
                                                  Topologies topologies,
-                                                 Map<String, Node> nodeIdToNode) {
+                                                 Map<String, RAS_Node> nodeIdToNode) {
         //recompute memory
         if (cluster.getAssignments().size() > 0) {
             for (Entry<String, SchedulerAssignment> entry : cluster.getAssignments()
@@ -447,7 +448,7 @@ public class Node {
                         .entrySet()) {
                     WorkerSlot slot = execToSlot.getValue();
                     ExecutorDetails exec = execToSlot.getKey();
-                    Node node = nodeIdToNode.get(slot.getNodeId());
+                    RAS_Node node = nodeIdToNode.get(slot.getNodeId());
                     if (!node.isAlive()) {
                         continue;
                         // We do not free the assigned slots (the orphaned slots) on the inactive supervisors
@@ -466,7 +467,7 @@ public class Node {
                 }
             }
         } else {
-            for (Node n : nodeIdToNode.values()) {
+            for (RAS_Node n : nodeIdToNode.values()) {
                 n.setAvailableMemory(n.getAvailableMemoryResources());
             }
         }

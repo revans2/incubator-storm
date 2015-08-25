@@ -22,7 +22,7 @@
            [backtype.storm.topology TopologyBuilder])
   (:import [backtype.storm.scheduler Cluster SupervisorDetails WorkerSlot ExecutorDetails
             SchedulerAssignmentImpl Topologies TopologyDetails])
-  (:import [backtype.storm.scheduler.resource Node ResourceAwareScheduler])
+  (:import [backtype.storm.scheduler.resource RAS_Node ResourceAwareScheduler])
   (:import [backtype.storm Config]))
 
 (defn gen-supervisors [count]

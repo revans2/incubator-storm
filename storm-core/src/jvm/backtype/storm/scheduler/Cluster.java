@@ -486,4 +486,12 @@ public class Cluster {
     public Map<String, String> getStatusMap() {
         return this.status;
     }
+
+    public INimbus getINimbus() {
+        return this.inimbus;
+    }
+
+    public Map getConf() {
+        return this.conf;
+    }
 }

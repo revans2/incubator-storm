@@ -329,7 +329,11 @@ public class Node {
     
     return nodeIdToNode;
   }
-  
+
+  public Collection<WorkerSlot> getFreeSlots() {
+      return _freeSlots;
+  }
+
   /**
    * Used to sort a list of nodes so the node with the most free slots comes
    * first.
