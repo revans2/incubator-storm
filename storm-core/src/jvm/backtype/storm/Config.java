@@ -578,31 +578,6 @@ public class Config extends HashMap<String, Object> {
     public static final Object UI_CENTRAL_LOGGING_URL_SCHEMA = String.class;
 
     /**
-     * Storm UI HTTPS port
-     */
-    public static final String UI_HTTPS_PORT = "ui.https.port";
-    public static final Object UI_HTTPS_PORT_SCHEMA = ConfigValidation.PositiveIntegerValidator;
-
-    /**
-     * Path to the keystore containing the certs used by Storm UI for HTTPS communications
-     */
-    public static final String UI_HTTPS_KEYSTORE_PATH = "ui.https.keystore.path";
-    public static final Object UI_HTTPS_KEYSTORE_PATH_SCHEMA = String.class;
-
-    /**
-     * Password for the keystore for HTTPS for Storm UI
-     */
-    public static final String UI_HTTPS_KEYSTORE_PASSWORD = "ui.https.keystore.password";
-    public static final Object UI_HTTPS_KEYSTORE_PASSWORD_SCHEMA = String.class;
-
-    /**
-     * Type of the keystore for HTTPS for Storm UI.
-     * see http://docs.oracle.com/javase/8/docs/api/java/security/KeyStore.html for more details.
-     */
-    public static final String UI_HTTPS_KEYSTORE_TYPE = "ui.https.keystore.type";
-    public static final Object UI_HTTPS_KEYSTORE_TYPE_SCHEMA = String.class;
-
-    /**
      * HTTP UI port for log viewer
      */
     public static final String LOGVIEWER_PORT = "logviewer.port";
@@ -632,7 +607,7 @@ public class Config extends HashMap<String, Object> {
      * Storm Logviewer HTTPS port
      */
     public static final String LOGVIEWER_HTTPS_PORT = "logviewer.https.port";
-    public static final Object LOGVIEWER_HTTPS_PORT_SCHEMA = Number.class;
+    public static final Object LOGVIEWER_HTTPS_PORT_SCHEMA = ConfigValidation.IntegerValidator;
 
     /**
      * Path to the keystore containing the certs used by Storm UI for HTTPS communications
