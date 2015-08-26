@@ -17,6 +17,8 @@
  */
 package backtype.storm;
 
+import backtype.storm.ConfigValidation;
+import backtype.storm.scheduler.resource.strategies.IStrategy;
 import backtype.storm.serialization.IKryoDecorator;
 import backtype.storm.serialization.IKryoFactory;
 import com.esotericsoftware.kryo.Serializer;
@@ -1277,6 +1279,13 @@ public class Config extends HashMap<String, Object> {
     public static final Object TOPOLOGY_COMPONENT_CPU_PCORE_PERCENT_SCHEMA = ConfigValidation.NonNegativeNumberValidator;
 
     /**
+     * The scheduler to use when scheduling a topology
+     * Current only supports two schedulers: Multitenant and Resource Aware
+     */
+    public static final String TOPOLOGY_SCHEDULER_STRATEGY = "topology.scheduler.strategy";
+    public static final Object TOPOLOGY_SCHEDULER_STRATEGY_SCHEMA = String.class;
+
+    /**
      * How many executors to spawn for ackers.
      *
      * <p>If this is set to 0, then Storm will immediately ack tuples as soon
@@ -1858,4 +1867,14 @@ public class Config extends HashMap<String, Object> {
         conf.put(Config.TOPOLOGY_LOGGING_SENSITIVITY, sensitivity.toString());
     }
 
+    /**
+     * Takes as input the scheduler class name. 
+     * Currently only the Multitenant Scheduler and Resource Aware Scheduler are supported
+     * @param schedulerName
+     */
+    public void setTopologyStrategy(Class<? extends IStrategy> clazz) {
+        if(clazz != null) {
+            this.put(Config.TOPOLOGY_SCHEDULER_STRATEGY, clazz.getName());
+        }
+    }
 }

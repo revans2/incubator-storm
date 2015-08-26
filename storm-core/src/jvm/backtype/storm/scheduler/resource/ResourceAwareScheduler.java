@@ -48,9 +48,11 @@ public class ResourceAwareScheduler implements IScheduler {
     public void schedule(Topologies topologies, Cluster cluster) {
         LOG.info("\n\n\nRerunning ResourceAwareScheduler...");
 
+        ResourceAwareStrategy rs = new ResourceAwareStrategy(cluster, topologies);
+
         for (TopologyDetails td : topologies.getTopologies()) {
             String topId = td.getId();
-            Map<Node, Collection<ExecutorDetails>> taskToNodesMap;
+            Map<RAS_Node, Collection<ExecutorDetails>> taskToNodesMap;
             if (cluster.needsScheduling(td) && cluster.getUnassignedExecutors(td).size() > 0) {
                 LOG.info("/********Scheduling topology {} ************/", topId);
                 int totalTasks = td.getExecutors().size();
@@ -62,13 +64,12 @@ public class ResourceAwareScheduler implements IScheduler {
                 LOG.info("executors that need scheduling: {}",
                         cluster.getUnassignedExecutors(td));
 
-                ResourceAwareStrategy rs = new ResourceAwareStrategy(td, cluster, topologies);
-                taskToNodesMap = rs.schedule(topologies, td, cluster.getUnassignedExecutors(td));
+                taskToNodesMap = rs.schedule(td);
                 LOG.debug("taskToNodesMap: {}", taskToNodesMap);
 
                 if (taskToNodesMap != null) {
                     try {
-                        for (Map.Entry<Node, Collection<ExecutorDetails>> entry : taskToNodesMap.entrySet()) {
+                        for (Map.Entry<RAS_Node, Collection<ExecutorDetails>> entry : taskToNodesMap.entrySet()) {
                             entry.getKey().assign(td, entry.getValue(), cluster);
                             LOG.info("ASSIGNMENT    TOPOLOGY: {}  TASKS: {} To Node: "
                                             + entry.getKey().getId() + ", Slots left: "

@@ -19,7 +19,9 @@
 package backtype.storm.scheduler.multitenant;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,6 +35,7 @@ import backtype.storm.utils.Utils;
 
 public class MultitenantScheduler implements IScheduler {
   private static final Logger LOG = LoggerFactory.getLogger(MultitenantScheduler.class);
+  Set<Node> nodesRasCanUse = new HashSet<Node>();
   @SuppressWarnings("rawtypes")
   private Map _conf;
   
@@ -91,13 +94,31 @@ public class MultitenantScheduler implements IScheduler {
     //Now schedule all of the topologies that need to be scheduled
     for (IsolatedPool pool : userPools.values()) {
       pool.scheduleAsNeeded(freePool, defaultPool);
+      pool.printInfo();
     }
     defaultPool.scheduleAsNeeded(freePool);
+    
+    this.nodesRasCanUse.addAll(defaultPool.getNodesInPool());
+    this.nodesRasCanUse.addAll(freePool.getNodesInPool());
     LOG.debug("Scheduling done...");
   }
 
     @Override
     public Map<String, Object> config() {
         return (Map)getUserConf();
+    }
+
+    /**
+     * returns a list of nodes RAS can use
+     * basically a list of nodes from both free and default pool
+     * since nodes from the isolated pool are the only nodes RAS cannot touch
+     * @return
+     */
+    public Map<String, Node> getNodesRASCanUse() {
+        Map<String, Node> nodeMap = new HashMap<String, Node>();
+        for(Node node : this.nodesRasCanUse) {
+            nodeMap.put(node.getId(), node);
+        }
+        return nodeMap;
     }
 }

@@ -28,6 +28,7 @@ import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import backtype.storm.Config;
 import backtype.storm.scheduler.SchedulerAssignment;
 import backtype.storm.scheduler.TopologyDetails;
 import backtype.storm.scheduler.WorkerSlot;
@@ -134,7 +135,8 @@ public class DefaultPool extends NodePool {
   public void scheduleAsNeeded(NodePool... lesserPools) {
     for (TopologyDetails td : _tds.values()) {
       String topId = td.getId();
-      if (_cluster.needsScheduling(td)) {
+      if (_cluster.needsScheduling(td) && 
+              isTopologyScheduledByMultitenant(td) == true) {
         LOG.debug("Scheduling topology {}",topId);
         int totalTasks = td.getExecutors().size();
         int origRequest = td.getNumWorkers();
@@ -215,5 +217,13 @@ public class DefaultPool extends NodePool {
   @Override
   public String toString() {
     return "DefaultPool  " + _nodes.size() + " nodes " + _tds.size() + " topologies";
+  }
+
+  /**
+   * get nodes in pool
+   * @return
+   */
+  public Set<Node> getNodesInPool() {
+      return _nodes;
   }
 }
