@@ -17,14 +17,14 @@
  */
 package org.apache.storm.pacemaker.codec;
 
-import org.apache.storm.netty.handler.codec.oneone.OneToOneEncoder;
-import org.apache.storm.netty.channel.ChannelHandlerContext;
-import org.apache.storm.netty.channel.Channel;
+import org.jboss.netty.handler.codec.oneone.OneToOneEncoder;
+import org.jboss.netty.channel.ChannelHandlerContext;
+import org.jboss.netty.channel.Channel;
 import backtype.storm.generated.HBMessage;
 import backtype.storm.generated.HBMessageData;
 import backtype.storm.generated.HBServerMessageType;
-import org.apache.storm.netty.buffer.ChannelBuffers;
-import org.apache.storm.netty.buffer.ChannelBuffer;
+import org.jboss.netty.buffer.ChannelBuffers;
+import org.jboss.netty.buffer.ChannelBuffer;
 import backtype.storm.utils.Utils;
 import backtype.storm.messaging.netty.ControlMessage;
 import backtype.storm.messaging.netty.SaslMessageToken;
@@ -32,7 +32,7 @@ import backtype.storm.messaging.netty.INettySerializable;
 import java.io.IOException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.apache.thrift7.TBase;
+import org.apache.thrift.TBase;
 
 public class ThriftEncoder extends OneToOneEncoder {
 

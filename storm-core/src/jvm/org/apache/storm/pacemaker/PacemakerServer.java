@@ -30,12 +30,12 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
 import javax.security.auth.login.Configuration;
 import org.apache.storm.pacemaker.codec.ThriftNettyServerCodec;
-import org.apache.storm.netty.bootstrap.ServerBootstrap;
-import org.apache.storm.netty.channel.Channel;
-import org.apache.storm.netty.channel.ChannelPipelineFactory;
-import org.apache.storm.netty.channel.group.ChannelGroup;
-import org.apache.storm.netty.channel.group.DefaultChannelGroup;
-import org.apache.storm.netty.channel.socket.nio.NioServerSocketChannelFactory;
+import org.jboss.netty.bootstrap.ServerBootstrap;
+import org.jboss.netty.channel.Channel;
+import org.jboss.netty.channel.ChannelPipelineFactory;
+import org.jboss.netty.channel.group.ChannelGroup;
+import org.jboss.netty.channel.group.DefaultChannelGroup;
+import org.jboss.netty.channel.socket.nio.NioServerSocketChannelFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
