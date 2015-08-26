@@ -95,7 +95,6 @@ file 444 - - lib64/storm/$(BASE_VERSION)/lib/ring-core-1.1.5.jar ../storm-core/t
 file 444 - - lib64/storm/$(BASE_VERSION)/lib/ring-devel-1.3.0.jar ../storm-core/target/dependency/ring-devel-1.3.0.jar
 file 444 - - lib64/storm/$(BASE_VERSION)/lib/ring-jetty-adapter-1.3.0.jar ../storm-core/target/dependency/ring-jetty-adapter-1.3.0.jar
 file 444 - - lib64/storm/$(BASE_VERSION)/lib/ring-servlet-1.3.0.jar ../storm-core/target/dependency/ring-servlet-1.3.0.jar
-#REMOVED FOR NOW file 444 - - lib64/storm/$(BASE_VERSION)/lib/scala-library-2.10.4.jar ../storm-pacemaker/target/dependency/scala-library-2.10.4.jar
 file 444 - - lib64/storm/$(BASE_VERSION)/lib/servlet-api-2.5.jar ../storm-core/target/dependency/servlet-api-2.5.jar
 file 444 - - lib64/storm/$(BASE_VERSION)/lib/slf4j-api-1.7.7.jar ../storm-core/target/dependency/slf4j-api-1.7.7.jar
 file 444 - - lib64/storm/$(BASE_VERSION)/lib/snakeyaml-1.11.jar ../storm-core/target/dependency/snakeyaml-1.11.jar
@@ -171,16 +170,12 @@ file 444 - - lib64/jars/flux-core.pom ../external/flux/flux-core/pom.xml
 file 444 - - lib64/jars/flux-wrappers.jar ../external/flux/flux-wrappers/target/flux-wrappers-$(BASE_VERSION).jar
 file 444 - - lib64/jars/flux-wrappers-sources.jar ../external/flux/flux-wrappers/target/flux-wrappers-$(BASE_VERSION)-sources.jar
 file 444 - - lib64/jars/flux-wrappers.pom ../external/flux/flux-wrappers/pom.xml
-file 444 - - lib64/jars/storm-pacemaker.jar ../storm-pacemaker/target/pacemaker-$(BASE_VERSION).jar
-file 444 - - lib64/jars/storm-pacemaker-sources.jar ../storm-pacemaker/target/pacemaker-$(BASE_VERSION)-sources.jar
-file 444 - - lib64/jars/storm-pacemaker.pom ../storm-pacemaker/pom.xml
 
 file 444 - - lib64/storm/$(BASE_VERSION)/RELEASE ./RELEASE
 file 444 - - lib64/storm/$(BASE_VERSION)/LICENSE ../LICENSE
 file 444 - - lib64/storm/$(BASE_VERSION)/DISCLAIMER ../DISCLAIMER
 file 444 - - lib64/storm/$(BASE_VERSION)/lib/storm-core-$(BASE_VERSION).jar ../storm-core/target/storm-core-$(BASE_VERSION).jar
 file 444 - - lib64/storm/$(BASE_VERSION)/lib/storm_yahoo-$(BASE_VERSION).jar ../storm-yahoo/target/storm_yahoo-$(BASE_VERSION).jar
-file 444 - - lib64/storm/$(BASE_VERSION)/lib/storm-pacemaker-$(BASE_VERSION).jar ../storm-pacemaker/target/pacemaker-$(BASE_VERSION).jar
 file 444 - - lib64/storm/$(BASE_VERSION)/README.yahoo ./README.yahoo
 
 configfile 644 - - lib64/storm/$(BASE_VERSION)/conf/storm.yaml ./conf/config.py template overwrite
