@@ -57,6 +57,13 @@ public class SimpleACLAuthorizer implements IAuthorizer {
             "getComponentPageInfo",
             "setLogConfig",
             "getLogConfig",
+            "setWorkerProfiler",
+            "getWorkerProfileActionExpiry",
+            "startProfiling",
+            "stopProfiling",
+            "dumpProfile",
+            "dumpJstack",
+            "dumpHeap",
             "uploadNewCredentials"));
 
     protected Set<String> _admins;

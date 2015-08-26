@@ -109,6 +109,23 @@ class Iface:
     """
     pass
 
+  def setWorkerProfiler(self, id, profileRequest):
+    """
+    Parameters:
+     - id
+     - profileRequest
+    """
+    pass
+
+  def getWorkerProfileActionExpiry(self, id, nodeInfo, action):
+    """
+    Parameters:
+     - id
+     - nodeInfo
+     - action
+    """
+    pass
+
   def uploadNewCredentials(self, name, creds):
     """
     Parameters:
@@ -628,6 +645,72 @@ class Client(Iface):
     if result.success is not None:
       return result.success
     raise TApplicationException(TApplicationException.MISSING_RESULT, "getLogConfig failed: unknown result");
+
+  def setWorkerProfiler(self, id, profileRequest):
+    """
+    Parameters:
+     - id
+     - profileRequest
+    """
+    self.send_setWorkerProfiler(id, profileRequest)
+    self.recv_setWorkerProfiler()
+
+  def send_setWorkerProfiler(self, id, profileRequest):
+    self._oprot.writeMessageBegin('setWorkerProfiler', TMessageType.CALL, self._seqid)
+    args = setWorkerProfiler_args()
+    args.id = id
+    args.profileRequest = profileRequest
+    args.write(self._oprot)
+    self._oprot.writeMessageEnd()
+    self._oprot.trans.flush()
+
+  def recv_setWorkerProfiler(self):
+    iprot = self._iprot
+    (fname, mtype, rseqid) = iprot.readMessageBegin()
+    if mtype == TMessageType.EXCEPTION:
+      x = TApplicationException()
+      x.read(iprot)
+      iprot.readMessageEnd()
+      raise x
+    result = setWorkerProfiler_result()
+    result.read(iprot)
+    iprot.readMessageEnd()
+    return
+
+  def getWorkerProfileActionExpiry(self, id, nodeInfo, action):
+    """
+    Parameters:
+     - id
+     - nodeInfo
+     - action
+    """
+    self.send_getWorkerProfileActionExpiry(id, nodeInfo, action)
+    return self.recv_getWorkerProfileActionExpiry()
+
+  def send_getWorkerProfileActionExpiry(self, id, nodeInfo, action):
+    self._oprot.writeMessageBegin('getWorkerProfileActionExpiry', TMessageType.CALL, self._seqid)
+    args = getWorkerProfileActionExpiry_args()
+    args.id = id
+    args.nodeInfo = nodeInfo
+    args.action = action
+    args.write(self._oprot)
+    self._oprot.writeMessageEnd()
+    self._oprot.trans.flush()
+
+  def recv_getWorkerProfileActionExpiry(self):
+    iprot = self._iprot
+    (fname, mtype, rseqid) = iprot.readMessageBegin()
+    if mtype == TMessageType.EXCEPTION:
+      x = TApplicationException()
+      x.read(iprot)
+      iprot.readMessageEnd()
+      raise x
+    result = getWorkerProfileActionExpiry_result()
+    result.read(iprot)
+    iprot.readMessageEnd()
+    if result.success is not None:
+      return result.success
+    raise TApplicationException(TApplicationException.MISSING_RESULT, "getWorkerProfileActionExpiry failed: unknown result");
 
   def uploadNewCredentials(self, name, creds):
     """
@@ -1585,6 +1668,8 @@ class Processor(Iface, TProcessor):
     self._processMap["rebalance"] = Processor.process_rebalance
     self._processMap["setLogConfig"] = Processor.process_setLogConfig
     self._processMap["getLogConfig"] = Processor.process_getLogConfig
+    self._processMap["setWorkerProfiler"] = Processor.process_setWorkerProfiler
+    self._processMap["getWorkerProfileActionExpiry"] = Processor.process_getWorkerProfileActionExpiry
     self._processMap["uploadNewCredentials"] = Processor.process_uploadNewCredentials
     self._processMap["beginCreateBlob"] = Processor.process_beginCreateBlob
     self._processMap["beginUpdateBlob"] = Processor.process_beginUpdateBlob
@@ -1765,6 +1850,28 @@ class Processor(Iface, TProcessor):
     result = getLogConfig_result()
     result.success = self._handler.getLogConfig(args.id)
     oprot.writeMessageBegin("getLogConfig", TMessageType.REPLY, seqid)
+    result.write(oprot)
+    oprot.writeMessageEnd()
+    oprot.trans.flush()
+
+  def process_setWorkerProfiler(self, seqid, iprot, oprot):
+    args = setWorkerProfiler_args()
+    args.read(iprot)
+    iprot.readMessageEnd()
+    result = setWorkerProfiler_result()
+    self._handler.setWorkerProfiler(args.id, args.profileRequest)
+    oprot.writeMessageBegin("setWorkerProfiler", TMessageType.REPLY, seqid)
+    result.write(oprot)
+    oprot.writeMessageEnd()
+    oprot.trans.flush()
+
+  def process_getWorkerProfileActionExpiry(self, seqid, iprot, oprot):
+    args = getWorkerProfileActionExpiry_args()
+    args.read(iprot)
+    iprot.readMessageEnd()
+    result = getWorkerProfileActionExpiry_result()
+    result.success = self._handler.getWorkerProfileActionExpiry(args.id, args.nodeInfo, args.action)
+    oprot.writeMessageBegin("getWorkerProfileActionExpiry", TMessageType.REPLY, seqid)
     result.write(oprot)
     oprot.writeMessageEnd()
     oprot.trans.flush()
@@ -3601,6 +3708,287 @@ class getLogConfig_result:
     if self.success is not None:
       oprot.writeFieldBegin('success', TType.STRUCT, 0)
       self.success.write(oprot)
+      oprot.writeFieldEnd()
+    oprot.writeFieldStop()
+    oprot.writeStructEnd()
+
+  def validate(self):
+    return
+
+
+  def __hash__(self):
+    value = 17
+    value = (value * 31) ^ hash(self.success)
+    return value
+
+  def __repr__(self):
+    L = ['%s=%r' % (key, value)
+      for key, value in self.__dict__.iteritems()]
+    return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+  def __eq__(self, other):
+    return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+  def __ne__(self, other):
+    return not (self == other)
+
+class setWorkerProfiler_args:
+  """
+  Attributes:
+   - id
+   - profileRequest
+  """
+
+  thrift_spec = (
+    None, # 0
+    (1, TType.STRING, 'id', None, None, ), # 1
+    (2, TType.STRUCT, 'profileRequest', (ProfileRequest, ProfileRequest.thrift_spec), None, ), # 2
+  )
+
+  def __init__(self, id=None, profileRequest=None,):
+    self.id = id
+    self.profileRequest = profileRequest
+
+  def read(self, iprot):
+    if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
+      fastbinary.decode_binary(self, iprot.trans, (self.__class__, self.thrift_spec))
+      return
+    iprot.readStructBegin()
+    while True:
+      (fname, ftype, fid) = iprot.readFieldBegin()
+      if ftype == TType.STOP:
+        break
+      if fid == 1:
+        if ftype == TType.STRING:
+          self.id = iprot.readString().decode('utf-8')
+        else:
+          iprot.skip(ftype)
+      elif fid == 2:
+        if ftype == TType.STRUCT:
+          self.profileRequest = ProfileRequest()
+          self.profileRequest.read(iprot)
+        else:
+          iprot.skip(ftype)
+      else:
+        iprot.skip(ftype)
+      iprot.readFieldEnd()
+    iprot.readStructEnd()
+
+  def write(self, oprot):
+    if oprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and self.thrift_spec is not None and fastbinary is not None:
+      oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
+      return
+    oprot.writeStructBegin('setWorkerProfiler_args')
+    if self.id is not None:
+      oprot.writeFieldBegin('id', TType.STRING, 1)
+      oprot.writeString(self.id.encode('utf-8'))
+      oprot.writeFieldEnd()
+    if self.profileRequest is not None:
+      oprot.writeFieldBegin('profileRequest', TType.STRUCT, 2)
+      self.profileRequest.write(oprot)
+      oprot.writeFieldEnd()
+    oprot.writeFieldStop()
+    oprot.writeStructEnd()
+
+  def validate(self):
+    return
+
+
+  def __hash__(self):
+    value = 17
+    value = (value * 31) ^ hash(self.id)
+    value = (value * 31) ^ hash(self.profileRequest)
+    return value
+
+  def __repr__(self):
+    L = ['%s=%r' % (key, value)
+      for key, value in self.__dict__.iteritems()]
+    return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+  def __eq__(self, other):
+    return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+  def __ne__(self, other):
+    return not (self == other)
+
+class setWorkerProfiler_result:
+
+  thrift_spec = (
+  )
+
+  def read(self, iprot):
+    if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
+      fastbinary.decode_binary(self, iprot.trans, (self.__class__, self.thrift_spec))
+      return
+    iprot.readStructBegin()
+    while True:
+      (fname, ftype, fid) = iprot.readFieldBegin()
+      if ftype == TType.STOP:
+        break
+      else:
+        iprot.skip(ftype)
+      iprot.readFieldEnd()
+    iprot.readStructEnd()
+
+  def write(self, oprot):
+    if oprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and self.thrift_spec is not None and fastbinary is not None:
+      oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
+      return
+    oprot.writeStructBegin('setWorkerProfiler_result')
+    oprot.writeFieldStop()
+    oprot.writeStructEnd()
+
+  def validate(self):
+    return
+
+
+  def __hash__(self):
+    value = 17
+    return value
+
+  def __repr__(self):
+    L = ['%s=%r' % (key, value)
+      for key, value in self.__dict__.iteritems()]
+    return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+  def __eq__(self, other):
+    return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+  def __ne__(self, other):
+    return not (self == other)
+
+class getWorkerProfileActionExpiry_args:
+  """
+  Attributes:
+   - id
+   - nodeInfo
+   - action
+  """
+
+  thrift_spec = (
+    None, # 0
+    (1, TType.STRING, 'id', None, None, ), # 1
+    (2, TType.STRUCT, 'nodeInfo', (NodeInfo, NodeInfo.thrift_spec), None, ), # 2
+    (3, TType.I32, 'action', None, None, ), # 3
+  )
+
+  def __init__(self, id=None, nodeInfo=None, action=None,):
+    self.id = id
+    self.nodeInfo = nodeInfo
+    self.action = action
+
+  def read(self, iprot):
+    if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
+      fastbinary.decode_binary(self, iprot.trans, (self.__class__, self.thrift_spec))
+      return
+    iprot.readStructBegin()
+    while True:
+      (fname, ftype, fid) = iprot.readFieldBegin()
+      if ftype == TType.STOP:
+        break
+      if fid == 1:
+        if ftype == TType.STRING:
+          self.id = iprot.readString().decode('utf-8')
+        else:
+          iprot.skip(ftype)
+      elif fid == 2:
+        if ftype == TType.STRUCT:
+          self.nodeInfo = NodeInfo()
+          self.nodeInfo.read(iprot)
+        else:
+          iprot.skip(ftype)
+      elif fid == 3:
+        if ftype == TType.I32:
+          self.action = iprot.readI32();
+        else:
+          iprot.skip(ftype)
+      else:
+        iprot.skip(ftype)
+      iprot.readFieldEnd()
+    iprot.readStructEnd()
+
+  def write(self, oprot):
+    if oprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and self.thrift_spec is not None and fastbinary is not None:
+      oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
+      return
+    oprot.writeStructBegin('getWorkerProfileActionExpiry_args')
+    if self.id is not None:
+      oprot.writeFieldBegin('id', TType.STRING, 1)
+      oprot.writeString(self.id.encode('utf-8'))
+      oprot.writeFieldEnd()
+    if self.nodeInfo is not None:
+      oprot.writeFieldBegin('nodeInfo', TType.STRUCT, 2)
+      self.nodeInfo.write(oprot)
+      oprot.writeFieldEnd()
+    if self.action is not None:
+      oprot.writeFieldBegin('action', TType.I32, 3)
+      oprot.writeI32(self.action)
+      oprot.writeFieldEnd()
+    oprot.writeFieldStop()
+    oprot.writeStructEnd()
+
+  def validate(self):
+    return
+
+
+  def __hash__(self):
+    value = 17
+    value = (value * 31) ^ hash(self.id)
+    value = (value * 31) ^ hash(self.nodeInfo)
+    value = (value * 31) ^ hash(self.action)
+    return value
+
+  def __repr__(self):
+    L = ['%s=%r' % (key, value)
+      for key, value in self.__dict__.iteritems()]
+    return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+  def __eq__(self, other):
+    return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+  def __ne__(self, other):
+    return not (self == other)
+
+class getWorkerProfileActionExpiry_result:
+  """
+  Attributes:
+   - success
+  """
+
+  thrift_spec = (
+    (0, TType.I64, 'success', None, None, ), # 0
+  )
+
+  def __init__(self, success=None,):
+    self.success = success
+
+  def read(self, iprot):
+    if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
+      fastbinary.decode_binary(self, iprot.trans, (self.__class__, self.thrift_spec))
+      return
+    iprot.readStructBegin()
+    while True:
+      (fname, ftype, fid) = iprot.readFieldBegin()
+      if ftype == TType.STOP:
+        break
+      if fid == 0:
+        if ftype == TType.I64:
+          self.success = iprot.readI64();
+        else:
+          iprot.skip(ftype)
+      else:
+        iprot.skip(ftype)
+      iprot.readFieldEnd()
+    iprot.readStructEnd()
+
+  def write(self, oprot):
+    if oprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and self.thrift_spec is not None and fastbinary is not None:
+      oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
+      return
+    oprot.writeStructBegin('getWorkerProfileActionExpiry_result')
+    if self.success is not None:
+      oprot.writeFieldBegin('success', TType.I64, 0)
+      oprot.writeI64(self.success)
       oprot.writeFieldEnd()
     oprot.writeFieldStop()
     oprot.writeStructEnd()

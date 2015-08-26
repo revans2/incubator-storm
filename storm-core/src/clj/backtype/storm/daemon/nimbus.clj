@@ -38,7 +38,8 @@
                                      Nimbus$Iface Nimbus$Processor NumErrorsChoice NotAliveException
                                      ReadableBlobMeta RebalanceOptions SubmitOptions SupervisorSummary StormTopology
                                      SettableBlobMeta TopologyHistoryInfo TopologyInfo TopologyInitialStatus
-                                     TopologyPageInfo TopologyStats TopologySummary])
+                                     TopologyPageInfo TopologyStats TopologySummary
+                                     ProfileRequest ProfileAction NodeInfo])
   (:import [backtype.storm.blobstore AtomicOutputStream
                                      BlobStore
                                      BlobStoreAclHandler
@@ -994,9 +995,9 @@
           (.teardown-heartbeats! storm-cluster-state id)
           (.teardown-topology-errors! storm-cluster-state id)
           (.teardown-topology-log-config! storm-cluster-state id)
+          (.teardown-topology-profiler-requests storm-cluster-state id)
           (rm-from-blob-store id blob-store)
-          (swap! (:heartbeats-cache nimbus) dissoc id))
-        ))))
+          (swap! (:heartbeats-cache nimbus) dissoc id))))))
 
 (defn- file-older-than? [now seconds file]
   (<= (+ (.lastModified file) (to-millis seconds)) (to-millis now)))
@@ -1376,6 +1377,28 @@
           (check-authorization! nimbus storm-name topology-conf "deactivate"))
         (transition-name! nimbus storm-name :inactivate true))
 
+      (^void setWorkerProfiler
+        [this ^String id ^ProfileRequest profileRequest]
+        (let [topology-conf (try-read-storm-conf conf id blob-store)
+              storm-name (topology-conf TOPOLOGY-NAME)
+              _ (check-authorization! nimbus storm-name topology-conf "setWorkerProfiler")
+              storm-cluster-state (:storm-cluster-state nimbus)]
+              (.set-worker-profile-request storm-cluster-state id profileRequest)))
+
+      (^long getWorkerProfileActionExpiry
+        [this ^String id ^NodeInfo nodeInfo ^ProfileAction action]
+        (let [topology-conf (try-read-storm-conf conf id blob-store)
+              storm-name (topology-conf TOPOLOGY-NAME)
+              _ (check-authorization! nimbus storm-name topology-conf "getWorkerProfileActionExpiry")
+              storm-cluster-state (:storm-cluster-state nimbus)
+              latest-action-request (->> (.get-worker-profile-requests storm-cluster-state id nodeInfo)
+                                      (filter #(= action (:action %)))
+                                      (sort-by :timestamp >)
+                                      first)]
+             (if latest-action-request
+               (:timestamp latest-action-request)
+               0)))
+
       (^void setLogConfig [this ^String id ^LogConfig log-config-msg] 
         (let [topology-conf (try-read-storm-conf conf id blob-store)
               storm-name (topology-conf TOPOLOGY-NAME)
@@ -1400,7 +1423,7 @@
                         (.remove named-loggers logger-name))))))
             (log-message "Setting log config for " storm-name ":" merged-log-config)
             (.set-topology-log-config! storm-cluster-state id merged-log-config)))
-  
+
       (uploadNewCredentials [this storm-name credentials]
         (mark! num-uploadNewCredentials-calls)
         (let [storm-cluster-state (:storm-cluster-state nimbus)

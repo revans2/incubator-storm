@@ -1150,6 +1150,12 @@ public class Config extends HashMap<String, Object> {
     public static final Object WORKER_CHILDOPTS_SCHEMA = ConfigValidation.StringOrStringListValidator;
 
     /**
+     * The jvm profiler opts provided to workers launched by this supervisor.
+     */
+    public static final String WORKER_PROFILER_CHILDOPTS = "worker.profiler.childopts";
+    public static final Object WORKER_PROFILER_CHILDOPTS_SCHEMA = ConfigValidation.StringOrStringListValidator;
+
+    /**
      * The jvm opts provided to workers launched by this supervisor for GC. All "%ID%" substrings are replaced
      * with an identifier for this worker.  Because the JVM complains about multiple GC opts the topology
      * can override this default value by setting topology.worker.gc.childopts.
