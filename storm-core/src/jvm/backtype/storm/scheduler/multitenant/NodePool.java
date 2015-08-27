@@ -328,7 +328,7 @@ public abstract class NodePool {
    * @return
    */
   public Boolean isTopologyScheduledByMultitenant(TopologyDetails td) {
-      return ((backtype.storm.scheduler.resource.strategies.MultitenantStrategy.class.getName().equals(td.getScheduler()) == true) 
-              || (td.getScheduler() == null));
+      return ((backtype.storm.scheduler.resource.strategies.MultitenantStrategy.class.getName().equals(td.getTopologyStrategy())) 
+              || (td.getTopologyStrategy() == null));
   }
 }

@@ -20,7 +20,9 @@ package backtype.storm.scheduler.resource;
 
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 import backtype.storm.Config;
 import org.slf4j.Logger;
@@ -31,6 +33,7 @@ import backtype.storm.scheduler.ExecutorDetails;
 import backtype.storm.scheduler.IScheduler;
 import backtype.storm.scheduler.Topologies;
 import backtype.storm.scheduler.TopologyDetails;
+import backtype.storm.scheduler.WorkerSlot;
 import backtype.storm.scheduler.resource.strategies.ResourceAwareStrategy;
 
 public class ResourceAwareScheduler implements IScheduler {
@@ -48,11 +51,11 @@ public class ResourceAwareScheduler implements IScheduler {
     public void schedule(Topologies topologies, Cluster cluster) {
         LOG.info("\n\n\nRerunning ResourceAwareScheduler...");
 
-        ResourceAwareStrategy rs = new ResourceAwareStrategy(cluster, topologies);
+        ResourceAwareStrategy RAStrategy = new ResourceAwareStrategy(cluster, topologies);
 
         for (TopologyDetails td : topologies.getTopologies()) {
             String topId = td.getId();
-            Map<RAS_Node, Collection<ExecutorDetails>> taskToNodesMap;
+           Map<WorkerSlot, Collection<ExecutorDetails>> schedulerAssignmentMap;
             if (cluster.needsScheduling(td) && cluster.getUnassignedExecutors(td).size() > 0) {
                 LOG.info("/********Scheduling topology {} ************/", topId);
                 int totalTasks = td.getExecutors().size();
@@ -64,28 +67,33 @@ public class ResourceAwareScheduler implements IScheduler {
                 LOG.info("executors that need scheduling: {}",
                         cluster.getUnassignedExecutors(td));
 
-                taskToNodesMap = rs.schedule(td);
-                LOG.debug("taskToNodesMap: {}", taskToNodesMap);
+                schedulerAssignmentMap = RAStrategy.schedule(td);
+                LOG.debug("taskToNodesMap: {}", schedulerAssignmentMap);
 
-                if (taskToNodesMap != null) {
+                if (schedulerAssignmentMap != null) {
                     try {
-                        for (Map.Entry<RAS_Node, Collection<ExecutorDetails>> entry : taskToNodesMap.entrySet()) {
-                            entry.getKey().assign(td, entry.getValue(), cluster);
-                            LOG.info("ASSIGNMENT    TOPOLOGY: {}  TASKS: {} To Node: "
-                                            + entry.getKey().getId() + ", Slots left: "
-                                            + entry.getKey().totalSlotsFree(), td.getId(),
-                                    entry.getValue());
+                        Set<String> nodesUsed = new HashSet<String>();
+                        for (Map.Entry<WorkerSlot, Collection<ExecutorDetails>> taskToWorkerEntry : schedulerAssignmentMap.entrySet()) {
+                            WorkerSlot targetSlot = taskToWorkerEntry.getKey();
+                            Collection<ExecutorDetails> execsNeedScheduling = taskToWorkerEntry.getValue();
+                            RAS_Node targetNode = RAStrategy.idToNode(targetSlot.getNodeId());
+                            targetNode.assign(targetSlot, td, execsNeedScheduling, cluster);
+                            LOG.info("ASSIGNMENT    TOPOLOGY: {}  TASKS: {} To Node: {} on Slot: {}", 
+                                  td.getName(), execsNeedScheduling, targetNode.getHostname(), targetSlot.getPort());
+                            if(!nodesUsed.contains(targetNode.getId())) {
+                                nodesUsed.add(targetNode.getId());
+                            }
                         }
-                        LOG.info("Topology: {} assigned to {} nodes", td.getId(), taskToNodesMap.keySet().size());
+                        LOG.info("Topology: {} assigned to {} nodes on {} workers", td.getId(), nodesUsed.size(), schedulerAssignmentMap.keySet().size());
                         cluster.setStatus(td.getId(), td.getId() + " Fully Scheduled");
                     } catch (IllegalStateException ex) {
                         LOG.error(ex.toString());
-                        LOG.error("Unsuccessfull in scheduling topology {}", td.getId());
-                        cluster.setStatus(td.getId(), "Unsuccessfull in scheduling topology" + td.getId());
+                        LOG.error("Unsuccessfull in scheduling {}", td.getId());
+                        cluster.setStatus(td.getId(), "Unsuccessfull in scheduling " + td.getId());
                     }
                 } else {
                     LOG.error("Unsuccessfull in scheduling topology {}", td.getId());
-                    cluster.setStatus(td.getId(), "Unsuccessfull in scheduling topology" + td.getId());
+                    cluster.setStatus(td.getId(), "Unsuccessfull in scheduling " + td.getId());
                 }
             } else {
                 cluster.setStatus(td.getId(), td.getId() + " Fully Scheduled");
