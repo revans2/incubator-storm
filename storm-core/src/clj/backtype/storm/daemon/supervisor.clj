@@ -902,9 +902,8 @@
                         (add-to-classpath [stormjar])
                         (add-to-classpath topo-classpath))
           top-gc-opts (storm-conf TOPOLOGY-WORKER-GC-CHILDOPTS)
-          epsilon 0.000001
-          mem-onheap (if (and mem-onheap (> mem-onheap epsilon)) ;; not nil and not zero
-                       mem-onheap
+          mem-onheap (if (and mem-onheap (> mem-onheap 0)) ;; not nil and not zero
+                       (int mem-onheap)
                        (storm-conf WORKER-MAX-HEAP-MEMORY-MB))
           gc-opts (substitute-childopts (if top-gc-opts top-gc-opts (conf WORKER-GC-CHILDOPTS)) worker-id storm-id port mem-onheap)
           topo-worker-lw-childopts (conf TOPOLOGY-WORKER-LW-CHILDOPTS)

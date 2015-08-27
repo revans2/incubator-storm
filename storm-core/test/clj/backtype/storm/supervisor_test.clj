@@ -262,6 +262,7 @@
     (let [mock-port "42"
           mock-storm-id "fake-storm-id"
           mock-worker-id "fake-worker-id"
+          mock-mem-onheap 512
           mock-cp (str file-path-separator "base" class-path-separator file-path-separator "stormjar.jar")
           mock-sensitivity "S3"
           mock-cp "/base:/stormjar.jar"
@@ -321,7 +322,8 @@
             (supervisor/launch-worker mock-supervisor
                                       mock-storm-id
                                       mock-port
-                                      mock-worker-id)
+                                      mock-worker-id
+                                      mock-mem-onheap)
             (verify-first-call-args-for-indices launch-process
                                                 [0]
                                                 exp-args))))
@@ -344,7 +346,8 @@
             (supervisor/launch-worker mock-supervisor
                                       mock-storm-id
                                       mock-port
-                                      mock-worker-id)
+                                      mock-worker-id
+                                      mock-mem-onheap)
             (verify-first-call-args-for-indices launch-process
                                                 [0]
                                                 exp-args))))
@@ -364,7 +367,8 @@
                     (supervisor/launch-worker mock-supervisor
                                               mock-storm-id
                                               mock-port
-                                              mock-worker-id)
+                                              mock-worker-id
+                                              mock-mem-onheap)
                     (verify-first-call-args-for-indices launch-process
                                                         [0]
                                                         exp-args))))
@@ -385,7 +389,8 @@
                     (supervisor/launch-worker mock-supervisor
                                               mock-storm-id
                                               mock-port
-                                              mock-worker-id)
+                                              mock-worker-id
+                                              mock-mem-onheap)
                     (verify-first-call-args-for-indices launch-process
                                                         [2]
                                                         full-env)))))))
@@ -401,6 +406,7 @@
     (let [mock-port "42"
           mock-storm-id "fake-storm-id"
           mock-worker-id "fake-worker-id"
+          mock-mem-onheap 512
           mock-sensitivity "S3"
           mock-cp "mock-classpath'quote-on-purpose"
           storm-local (str "/tmp/" (UUID/randomUUID))
@@ -470,7 +476,8 @@
               (supervisor/launch-worker mock-supervisor
                                         mock-storm-id
                                         mock-port
-                                        mock-worker-id)
+                                        mock-worker-id
+                                        mock-mem-onheap)
               (verify-first-call-args-for-indices launch-process
                                                   [0]
                                                   exp-launch))
@@ -499,7 +506,8 @@
               (supervisor/launch-worker mock-supervisor
                                         mock-storm-id
                                         mock-port
-                                        mock-worker-id)
+                                        mock-worker-id
+                                        mock-mem-onheap)
               (verify-first-call-args-for-indices launch-process
                                                   [0]
                                                   exp-launch))
@@ -623,7 +631,7 @@
           mem-onheap 512
           childopts "-Xloggc:/home/y/lib/storm/current/logs/gc.worker.log"
           expected-childopts '("-Xloggc:/home/y/lib/storm/current/logs/gc.worker.log")
-          childopts-with-ids (supervisor/substitute-childopts childopts worker-id topology-id port)]
+          childopts-with-ids (supervisor/substitute-childopts childopts worker-id topology-id port mem-onheap)]
       (is (= expected-childopts childopts-with-ids)))))
 
 (deftest test-substitute-childopts-nil-childopts

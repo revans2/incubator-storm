@@ -1153,10 +1153,10 @@ public class Config extends HashMap<String, Object> {
     public static final Object WORKER_CHILDOPTS_SCHEMA = ConfigValidation.StringOrStringListValidator;
 
     /**
-     * The max heap memory per worker, used in the jvm -Xmx opts for launching the worker
+     * The max heap memory in MB per worker, used in the jvm -Xmx opts for launching the worker
       */
     public static final String WORKER_MAX_HEAP_MEMORY_MB = "worker.max.heap.memory.mb";
-    public static final Object WORKER_MAX_HEAP_MEMORY_MB_SCHEMA = ConfigValidation.NonNegativeNumberValidator;
+    public static final Object WORKER_MAX_HEAP_MEMORY_MB_SCHEMA = ConfigValidation.PositiveIntegerValidator;
 
     /**
      * The jvm opts provided to workers launched by this supervisor for GC. All "%ID%" substrings are replaced
