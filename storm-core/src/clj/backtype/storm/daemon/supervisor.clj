@@ -382,7 +382,11 @@
             (remove nil?
               (dofor [[port assignment] reassign-executors]
                 (let [id (new-worker-ids port)
-                      storm-id (:storm-id assignment)]
+                      storm-id (:storm-id assignment)
+                      resources (:resources assignment)
+                      mem-onheap (if resources
+                                   (first resources)
+                                   nil)]
                   (if (required-topo-files-exist? conf storm-id)
                     (do
                       (log-message "Launching worker with assignment "
@@ -396,9 +400,10 @@
                       (local-mkdirs (worker-pids-root conf id))
                       (local-mkdirs (worker-heartbeats-root conf id))
                       (launch-worker supervisor
-                        (:storm-id assignment) ;; to use (:resources assignment) for launching JVM/CGroup here
+                        (:storm-id assignment)
                         port
-                        id)
+                        id
+                        mem-onheap)
                       (mark! num-workers-launched)
                       [port id])
                     (do
@@ -827,12 +832,13 @@
     (str arch-resource-root File/pathSeparator resource-root File/pathSeparator (conf JAVA-LIBRARY-PATH))))
 
 (defn substitute-childopts
-  "Generates runtime childopts by replacing keys with topology-id, worker-id, port"
-  [value worker-id topology-id port]
+  "Generates runtime childopts by replacing keys with topology-id, worker-id, port, mem-onheap"
+  [value worker-id topology-id port mem-onheap]
   (let [replacement-map {"%ID%"          (str port)
                          "%WORKER-ID%"   (str worker-id)
                          "%TOPOLOGY-ID%"    (str topology-id)
-                         "%WORKER-PORT%" (str port)}
+                         "%WORKER-PORT%" (str port)
+                         "%MAX-HEAP-MEM%" (str mem-onheap)}
         sub-fn #(reduce (fn [string entry]
                           (apply clojure.string/replace string entry))
                         %
@@ -875,7 +881,7 @@
       (create-symlink! worker-dir topo-dir "artifacts" port))))
 
 (defmethod launch-worker
-    :distributed [supervisor storm-id port worker-id]
+    :distributed [supervisor storm-id port worker-id mem-onheap]
     (let [conf (:conf supervisor)
           run-worker-as-user (conf SUPERVISOR-RUN-WORKER-AS-USER)
           storm-home (System/getProperty "storm.home")
@@ -896,15 +902,19 @@
                         (add-to-classpath [stormjar])
                         (add-to-classpath topo-classpath))
           top-gc-opts (storm-conf TOPOLOGY-WORKER-GC-CHILDOPTS)
-          gc-opts (substitute-childopts (if top-gc-opts top-gc-opts (conf WORKER-GC-CHILDOPTS)) worker-id storm-id port)
+          epsilon 0.000001
+          mem-onheap (if (and mem-onheap (> mem-onheap epsilon)) ;; not nil and not zero
+                       mem-onheap
+                       (storm-conf WORKER-MAX-HEAP-MEMORY-MB))
+          gc-opts (substitute-childopts (if top-gc-opts top-gc-opts (conf WORKER-GC-CHILDOPTS)) worker-id storm-id port mem-onheap)
           topo-worker-lw-childopts (conf TOPOLOGY-WORKER-LW-CHILDOPTS)
           user (storm-conf TOPOLOGY-SUBMITTER-USER)
           logfilename "worker.log"
           workers-artifacts (worker-artifacts-root conf)
           logging-sensitivity (storm-conf TOPOLOGY-LOGGING-SENSITIVITY "S3")
 
-          worker-childopts (substitute-childopts (conf WORKER-CHILDOPTS) worker-id storm-id port)
-          topo-worker-childopts (substitute-childopts (storm-conf TOPOLOGY-WORKER-CHILDOPTS) worker-id storm-id port)
+          worker-childopts (substitute-childopts (conf WORKER-CHILDOPTS) worker-id storm-id port mem-onheap)
+          topo-worker-childopts (substitute-childopts (storm-conf TOPOLOGY-WORKER-CHILDOPTS) worker-id storm-id port mem-onheap)
           topology-worker-environment (if-let [env (storm-conf TOPOLOGY-ENVIRONMENT)]
                                         (merge env {"LD_LIBRARY_PATH" jlp})
                                         {"LD_LIBRARY_PATH" jlp})
@@ -1003,7 +1013,7 @@
             )))
 
 (defmethod launch-worker
-    :local [supervisor storm-id port worker-id]
+    :local [supervisor storm-id port worker-id mem-onheap]
     (let [conf (:conf supervisor)
           pid (uuid)
           worker (worker/mk-worker conf
