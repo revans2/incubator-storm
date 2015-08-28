@@ -384,9 +384,7 @@
                 (let [id (new-worker-ids port)
                       storm-id (:storm-id assignment)
                       resources (:resources assignment)
-                      mem-onheap (if resources
-                                   (first resources)
-                                   nil)]
+                      mem-onheap (first resources)]
                   (if (required-topo-files-exist? conf storm-id)
                     (do
                       (log-message "Launching worker with assignment "
@@ -838,7 +836,7 @@
                          "%WORKER-ID%"   (str worker-id)
                          "%TOPOLOGY-ID%"    (str topology-id)
                          "%WORKER-PORT%" (str port)
-                         "%MAX-HEAP-MEM%" (str mem-onheap)}
+                         "%HEAP-MEM%" (str mem-onheap)}
         sub-fn #(reduce (fn [string entry]
                           (apply clojure.string/replace string entry))
                         %
@@ -903,8 +901,8 @@
                         (add-to-classpath topo-classpath))
           top-gc-opts (storm-conf TOPOLOGY-WORKER-GC-CHILDOPTS)
           mem-onheap (if (and mem-onheap (> mem-onheap 0)) ;; not nil and not zero
-                       (int mem-onheap)
-                       (storm-conf WORKER-MAX-HEAP-MEMORY-MB))
+                       (int (Math/ceil mem-onheap)) ;; round up
+                       (storm-conf WORKER-HEAP-MEMORY-MB)) ;; otherwise use default value
           gc-opts (substitute-childopts (if top-gc-opts top-gc-opts (conf WORKER-GC-CHILDOPTS)) worker-id storm-id port mem-onheap)
           topo-worker-lw-childopts (conf TOPOLOGY-WORKER-LW-CHILDOPTS)
           user (storm-conf TOPOLOGY-SUBMITTER-USER)

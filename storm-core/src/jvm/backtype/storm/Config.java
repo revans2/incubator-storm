@@ -1142,21 +1142,21 @@ public class Config extends HashMap<String, Object> {
 
     /**
      * The jvm opts provided to workers launched by this supervisor. All "%ID%", "%WORKER-ID%", "%TOPOLOGY-ID%",
-     * "%WORKER-PORT%" and "%MAX-HEAP-MEM%" substrings are replaced with:
+     * "%WORKER-PORT%" and "%HEAP-MEM%" substrings are replaced with:
      * %ID%          -> port (for backward compatibility),
      * %WORKER-ID%   -> worker-id,
      * %TOPOLOGY-ID%    -> topology-id,
      * %WORKER-PORT% -> port.
-     * %MAX-HEAP-MEM% -> mem-onheap.
+     * %HEAP-MEM% -> mem-onheap.
      */
     public static final String WORKER_CHILDOPTS = "worker.childopts";
     public static final Object WORKER_CHILDOPTS_SCHEMA = ConfigValidation.StringOrStringListValidator;
 
     /**
-     * The max heap memory in MB per worker, used in the jvm -Xmx opts for launching the worker
+     * The default heap memory size in MB per worker, used in the jvm -Xmx opts for launching the worker
       */
-    public static final String WORKER_MAX_HEAP_MEMORY_MB = "worker.max.heap.memory.mb";
-    public static final Object WORKER_MAX_HEAP_MEMORY_MB_SCHEMA = ConfigValidation.PositiveIntegerValidator;
+    public static final String WORKER_HEAP_MEMORY_MB = "worker.heap.memory.mb";
+    public static final Object WORKER_HEAP_MEMORY_MB_SCHEMA = ConfigValidation.PositiveIntegerValidator;
 
     /**
      * The jvm opts provided to workers launched by this supervisor for GC. All "%ID%" substrings are replaced
