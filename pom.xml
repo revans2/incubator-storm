@@ -160,7 +160,6 @@
         <module>storm-multilang/javascript</module>
         <module>storm-multilang/python</module>
         <module>storm-multilang/ruby</module>
-        <module>storm-pacemaker</module>
         <module>storm-core</module>
         <module>examples/storm-starter</module>
         <module>external/storm-kafka</module>

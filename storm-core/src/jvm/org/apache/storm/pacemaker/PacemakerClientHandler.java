@@ -17,12 +17,12 @@
  */
 package org.apache.storm.pacemaker;
 
-import org.apache.storm.netty.channel.SimpleChannelUpstreamHandler;
-import org.apache.storm.netty.channel.ChannelHandlerContext;
-import org.apache.storm.netty.channel.ChannelStateEvent;
-import org.apache.storm.netty.channel.ExceptionEvent;
-import org.apache.storm.netty.channel.MessageEvent;
-import org.apache.storm.netty.channel.Channel;
+import org.jboss.netty.channel.SimpleChannelUpstreamHandler;
+import org.jboss.netty.channel.ChannelHandlerContext;
+import org.jboss.netty.channel.ChannelStateEvent;
+import org.jboss.netty.channel.ExceptionEvent;
+import org.jboss.netty.channel.MessageEvent;
+import org.jboss.netty.channel.Channel;
 import backtype.storm.generated.HBMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
