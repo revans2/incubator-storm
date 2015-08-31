@@ -6435,17 +6435,20 @@ class BeginDownloadResult:
   Attributes:
    - version
    - session
+   - data_size
   """
 
   thrift_spec = (
     None, # 0
     (1, TType.I64, 'version', None, None, ), # 1
     (2, TType.STRING, 'session', None, None, ), # 2
+    (3, TType.I64, 'data_size', None, None, ), # 3
   )
 
-  def __init__(self, version=None, session=None,):
+  def __init__(self, version=None, session=None, data_size=None,):
     self.version = version
     self.session = session
+    self.data_size = data_size
 
   def read(self, iprot):
     if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
@@ -6466,6 +6469,11 @@ class BeginDownloadResult:
           self.session = iprot.readString().decode('utf-8')
         else:
           iprot.skip(ftype)
+      elif fid == 3:
+        if ftype == TType.I64:
+          self.data_size = iprot.readI64();
+        else:
+          iprot.skip(ftype)
       else:
         iprot.skip(ftype)
       iprot.readFieldEnd()
@@ -6484,6 +6492,10 @@ class BeginDownloadResult:
       oprot.writeFieldBegin('session', TType.STRING, 2)
       oprot.writeString(self.session.encode('utf-8'))
       oprot.writeFieldEnd()
+    if self.data_size is not None:
+      oprot.writeFieldBegin('data_size', TType.I64, 3)
+      oprot.writeI64(self.data_size)
+      oprot.writeFieldEnd()
     oprot.writeFieldStop()
     oprot.writeStructEnd()
 
@@ -6499,6 +6511,7 @@ class BeginDownloadResult:
     value = 17
     value = (value * 31) ^ hash(self.version)
     value = (value * 31) ^ hash(self.session)
+    value = (value * 31) ^ hash(self.data_size)
     return value
 
   def __repr__(self):

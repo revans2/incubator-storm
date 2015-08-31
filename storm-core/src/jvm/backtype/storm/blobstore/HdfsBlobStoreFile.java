@@ -20,6 +20,7 @@ package backtype.storm.blobstore;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.file.Files;
 import java.util.regex.Matcher;
 
 import org.apache.hadoop.conf.Configuration;
@@ -170,5 +171,10 @@ public class HdfsBlobStoreFile extends BlobStoreFile {
   @Override
   public String toString() {
     return _path+":"+(_isTmp ? "tmp": BlobStoreFile.BLOBSTORE_DATA_FILE)+":"+_key;
+  }
+
+  @Override
+  public long getFileLength() throws IOException{
+        return _fs.getFileStatus(_path).getLen();
   }
 }

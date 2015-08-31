@@ -366,6 +366,7 @@ struct BeginDownloadResult {
   //Same version as in ReadableBlobMeta
   1: required i64 version;
   2: required string session;
+  3: optional i64 data_size;
 }
 
 enum LogLevelAction {

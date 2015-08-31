@@ -159,6 +159,11 @@ public class NimbusBlobStore extends ClientBlobStore {
     public synchronized int available() {
       return buffer == null ? 0 : (end - offset);
     }
+
+    @Override
+    public long getFileLength() {
+        return beginBlobDownload.get_data_size();
+    }
   }
 
   public class NimbusUploadAtomicOutputStream extends AtomicOutputStream {

@@ -98,6 +98,11 @@ public class LocalizerTest {
       }
       return length;
     }
+
+    @Override
+    public long getFileLength() {
+        return 0;
+    }
   };
 
   @Before
