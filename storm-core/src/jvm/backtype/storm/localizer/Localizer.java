@@ -222,6 +222,8 @@ public class Localizer {
               getCacheDirForArchives(getLocalUserFileCacheDir(user)).getPath(),
               lrsrcSet, true);
         }
+      } else {
+        LOG.warn("No left over resources found for any user during reconstructing of local resources at: {}", getUserCacheDir().getPath());
       }
     } catch (Exception e) {
       LOG.error("ERROR reconstructing localized resources", e);
