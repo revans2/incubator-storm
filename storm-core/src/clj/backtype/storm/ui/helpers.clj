@@ -147,11 +147,10 @@
                             (.setKeyStoreType ks-type)
                             (.setKeyStorePassword ks-password)
                             (.setKeyManagerPassword key-password))]
-    (if (and (not-nil? ts-path) (not-nil? ts-password) (not-nil? ts-type))
-      (do
+    (when (and (not-nil? ts-path) (not-nil? ts-password) (not-nil? ts-type))
        (.setTrustStore sslContextFactory ts-path)
        (.setTrustStoreType sslContextFactory ts-type)
-       (.setTrustStorePassword sslContextFactory ts-password)))
+       (.setTrustStorePassword sslContextFactory ts-password))
     (cond
          need-client-auth (.setNeedClientAuth sslContextFactory true)
          want-client-auth (.setWantClientAuth sslContextFactory true))
