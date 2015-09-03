@@ -30,14 +30,13 @@ cat <<XML
 <appenders>
     <RollingFile name="A1"
                  fileName="\${sys:workers.artifacts}/\${sys:storm.id}/\${sys:worker.port}/\${sys:logfile.name}"
-                 filePattern="\${sys:workers.artifacts}/\${sys:storm.id}/\${sys:worker.port}/\${sys:logfile.name}.%i.gz">
+                 filePattern="\${sys:workers.artifacts}/\${sys:storm.id}/\${sys:worker.port}/\${sys:logfile.name}.%d{yyyy-MM-dd-HH-mm-ss}.gz">
         <PatternLayout>
             <pattern>\${pattern}</pattern>
         </PatternLayout>
         <Policies>
             <SizeBasedTriggeringPolicy size="100 MB"/> <!-- Or every 100 MB -->
         </Policies>
-        <DefaultRolloverStrategy max="9"/>
     </RollingFile>
     <RollingFile name="STDOUT"
                  fileName="\${sys:workers.artifacts}/\${sys:storm.id}/\${sys:worker.port}/\${sys:logfile.name}.out"
