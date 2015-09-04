@@ -23,6 +23,7 @@ import java.util.Iterator;
 import java.util.Collection;
 import java.util.Map;
 import java.util.HashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.lang.InterruptedException;
@@ -116,6 +117,10 @@ public class Client extends ConnectionWithStatus implements IStatefulObject, ISa
      */
     private final AtomicLong pendingMessages = new AtomicLong(0);
 
+    /**
+     * Whether the SASL channel is ready.
+     */
+    private final AtomicBoolean saslChannelReady = new AtomicBoolean(false);
 
     /**
      * This flag is set to true if and only if a client instance is being closed.
@@ -135,6 +140,8 @@ public class Client extends ConnectionWithStatus implements IStatefulObject, ISa
         this.scheduler = scheduler;
         this.context = context;
         int bufferSize = Utils.getInt(stormConf.get(Config.STORM_MESSAGING_NETTY_BUFFER_SIZE));
+        // if SASL authentication is disabled, saslChannelReady is by default true; otherwise false
+        saslChannelReady.set(!Utils.getBoolean(stormConf.get(Config.STORM_MESSAGING_NETTY_AUTHENTICATION), false));
         LOG.info("creating Netty Client, connecting to {}:{}, bufferSize: {}", host, port, bufferSize);
         int messageBatchSize = Utils.getInt(stormConf.get(Config.STORM_NETTY_MESSAGE_BATCH_SIZE), 262144);
 
@@ -200,7 +207,11 @@ public class Client extends ConnectionWithStatus implements IStatefulObject, ISa
         } else if (!connectionEstablished(channelRef.get())) {
             return Status.Connecting;
         } else {
-            return Status.Ready;
+            if (saslChannelReady.get()) {
+                return Status.Ready;
+            } else {
+                return Status.Connecting; // need to wait until sasl channel is also ready
+            }
         }
     }
 
@@ -467,6 +478,7 @@ public class Client extends ConnectionWithStatus implements IStatefulObject, ISa
 //        catch (InterruptedException e) {
 //            throw new RuntimeException(e);
 //        }
+        saslChannelReady.set(true);
     }
 
     public String name() {
