@@ -472,23 +472,49 @@ public class Utils {
     // is changed to also pass a real user.
     public static void downloadResourcesAsSupervisor(Map conf, String key, String localFile, 
         ClientBlobStore cb) throws AuthorizationException, KeyNotFoundException, IOException {
+      final int MAX_RETRY_ATTEMPTS = 2;
+      final int ATTEMPTS_INTERVAL_TIME = 100;
       FileOutputStream out = new FileOutputStream(localFile);
-      try {
-        InputStreamWithMeta in = cb.getBlob(key);
-        byte[] buffer = new byte[1024];
-        int len;
-        while ((len = in.read(buffer)) >= 0) {
-          out.write(buffer, 0, len);
-        }
-        out.close();
-        in.close();
-      } catch (AuthorizationException | KeyNotFoundException | IOException e) {
-        try {
-          out.close();
-          Files.delete(FileSystems.getDefault().getPath(localFile));
-        } catch (Exception ignore) {}
-        throw e;
+      InputStreamWithMeta in = null;
+      int retryAttempts = 0;
+      while (retryAttempts < MAX_RETRY_ATTEMPTS && downloadResourcesAsSupervisorAttempt(in, out, cb, key, localFile) != false) {
+          Utils.sleep(ATTEMPTS_INTERVAL_TIME);
+          retryAttempts++;
       }
+    }
+    
+    private static boolean downloadResourcesAsSupervisorAttempt(InputStreamWithMeta in, FileOutputStream out, 
+            ClientBlobStore cb, String key, String localFile) {
+        boolean isSuccess = true;
+        try {
+            in = cb.getBlob(key);
+            long fileSize = in.getFileLength();
+
+            byte[] buffer = new byte[1024];
+            int len;
+            int downloadFileSize = 0;
+            while ((len = in.read(buffer)) >= 0) {
+                out.write(buffer, 0, len);
+                downloadFileSize += len;
+            }
+
+            if(fileSize != downloadFileSize) {
+                isSuccess = false;
+            }
+        } catch (TException | IOException e) {
+            isSuccess = false;
+        }
+        if(isSuccess == false) {
+            LOG.error("An exception happened while downloading the {} file from Nimbus. Attempting to close the connection delete the corrupted file", localFile);
+            try {
+                out.close();
+                in.close();
+                Files.delete(FileSystems.getDefault().getPath(localFile));
+            } catch (IOException ex) {LOG.error("Failed trying to delete the partially downloaded {}", localFile);}
+            return false;
+        } else {
+            return true;
+        }
     }
 
   public static boolean checkFileExists(String dir, String file) {
