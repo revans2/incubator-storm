@@ -140,7 +140,7 @@ public class LocalFsBlobStoreFile extends BlobStoreFile {
 
 @Override
 public long getFileLength() {
-    return _path.length();
+  return _path.length();
 }
 }
 

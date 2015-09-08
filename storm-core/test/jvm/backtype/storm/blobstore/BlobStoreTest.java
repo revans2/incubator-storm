@@ -474,11 +474,11 @@ public class BlobStoreTest {
 
   @Test
   public void testGetFileLength() throws AuthorizationException, KeyNotFoundException, KeyAlreadyExistsException, IOException {
-      LocalFsBlobStore store = initLocalFs();
-      AtomicOutputStream out = store.createBlob("test", new SettableBlobMeta(BlobStoreAclHandler
-              .WORLD_EVERYTHING), null);
-      out.write(1);
-      out.close();
-      assertEquals(1, store.getBlob("test", null).getFileLength());
+    LocalFsBlobStore store = initLocalFs();
+    AtomicOutputStream out = store.createBlob("test", new SettableBlobMeta(BlobStoreAclHandler
+        .WORLD_EVERYTHING), null);
+    out.write(1);
+    out.close();
+    assertEquals(1, store.getBlob("test", null).getFileLength());
   }
 }
