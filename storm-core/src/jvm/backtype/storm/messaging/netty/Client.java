@@ -140,7 +140,7 @@ public class Client extends ConnectionWithStatus implements IStatefulObject, ISa
         this.scheduler = scheduler;
         this.context = context;
         int bufferSize = Utils.getInt(stormConf.get(Config.STORM_MESSAGING_NETTY_BUFFER_SIZE));
-        // if SASL authentication is disabled, saslChannelReady is by default true; otherwise false
+        // if SASL authentication is disabled, saslChannelReady is initialized as true; otherwise false
         saslChannelReady.set(!Utils.getBoolean(stormConf.get(Config.STORM_MESSAGING_NETTY_AUTHENTICATION), false));
         LOG.info("creating Netty Client, connecting to {}:{}, bufferSize: {}", host, port, bufferSize);
         int messageBatchSize = Utils.getInt(stormConf.get(Config.STORM_NETTY_MESSAGE_BATCH_SIZE), 262144);
@@ -472,12 +472,6 @@ public class Client extends ConnectionWithStatus implements IStatefulObject, ISa
         }
 
     public void channelReady() {
-//        try {
-//            tryDeliverMessages(false);
-//        }
-//        catch (InterruptedException e) {
-//            throw new RuntimeException(e);
-//        }
         saslChannelReady.set(true);
     }
 
