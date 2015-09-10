@@ -62,6 +62,6 @@
         daemon-conf-map-sasl (assoc daemon-conf-map
                                     STORM-MESSAGING-NETTY-AUTHENTICATION true
                                     TOPOLOGY-NAME "topo1-netty-sasl"
-                                    STORM-MESSAGING-NETTY-AUTHENTICATION-PAYLOAD (str (Utils/secureRandomLong) ":" (Utils/secureRandomLong)))]
+                                    STORM-ZOOKEEPER-TOPOLOGY-AUTH-PAYLOAD (str (Utils/secureRandomLong) ":" (Utils/secureRandomLong)))]
     (test-integration-fn daemon-conf-map) ;; test netty without authentication
     (test-integration-fn daemon-conf-map-sasl))) ;; test netty with authentication enabled
