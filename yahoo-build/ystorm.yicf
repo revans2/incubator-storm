@@ -51,58 +51,18 @@ dir 3777 - - lib64/storm/$(BASE_VERSION)/extlib-daemon
 dir 3777 - - lib64/storm/$(BASE_VERSION)/logs/metadata
 find 755 - - lib64/storm/$(BASE_VERSION)/bin/ ../bin/ -type f
 file 444 - - lib64/storm/$(BASE_VERSION)/lib/asm-4.0.jar ../storm-core/target/dependency/asm-4.0.jar
-file 444 - - lib64/storm/$(BASE_VERSION)/lib/carbonite-1.4.0.jar ../storm-core/target/dependency/carbonite-1.4.0.jar
-file 444 - - lib64/storm/$(BASE_VERSION)/lib/chill-java-0.3.5.jar ../storm-core/target/dependency/chill-java-0.3.5.jar
 file 444 - - lib64/storm/$(BASE_VERSION)/lib/clj-stacktrace-0.2.7.jar ../storm-core/target/dependency/clj-stacktrace-0.2.7.jar
-file 444 - - lib64/storm/$(BASE_VERSION)/lib/clj-time-0.8.0.jar ../storm-core/target/dependency/clj-time-0.8.0.jar
 file 444 - - lib64/storm/$(BASE_VERSION)/lib/clojure-1.6.0.jar ../storm-core/target/dependency/clojure-1.6.0.jar
-file 444 - - lib64/storm/$(BASE_VERSION)/lib/clout-1.0.1.jar ../storm-core/target/dependency/clout-1.0.1.jar
-file 444 - - lib64/storm/$(BASE_VERSION)/lib/commons-codec-1.4.jar ../storm-core/target/dependency/commons-codec-1.4.jar
-file 444 - - lib64/storm/$(BASE_VERSION)/lib/commons-compress-1.4.1.jar ../storm-core/target/dependency/commons-compress-1.4.1.jar
-file 444 - - lib64/storm/$(BASE_VERSION)/lib/commons-exec-1.1.jar ../storm-core/target/dependency/commons-exec-1.1.jar
-file 444 - - lib64/storm/$(BASE_VERSION)/lib/commons-fileupload-1.2.1.jar ../storm-core/target/dependency/commons-fileupload-1.2.1.jar
-file 444 - - lib64/storm/$(BASE_VERSION)/lib/commons-io-2.4.jar ../storm-core/target/dependency/commons-io-2.4.jar
-file 444 - - lib64/storm/$(BASE_VERSION)/lib/commons-lang-2.5.jar ../storm-core/target/dependency/commons-lang-2.5.jar
-file 444 - - lib64/storm/$(BASE_VERSION)/lib/commons-logging-1.1.3.jar ../storm-core/target/dependency/commons-logging-1.1.3.jar
-file 444 - - lib64/storm/$(BASE_VERSION)/lib/compojure-1.1.3.jar ../storm-core/target/dependency/compojure-1.1.3.jar
-file 444 - - lib64/storm/$(BASE_VERSION)/lib/core.incubator-0.1.0.jar ../storm-core/target/dependency/core.incubator-0.1.0.jar
-file 444 - - lib64/storm/$(BASE_VERSION)/lib/curator-client-2.5.0.jar ../storm-core/target/dependency/curator-client-2.5.0.jar
-file 444 - - lib64/storm/$(BASE_VERSION)/lib/curator-framework-2.5.0.jar ../storm-core/target/dependency/curator-framework-2.5.0.jar
 file 444 - - lib64/storm/$(BASE_VERSION)/lib/disruptor-2.10.1.jar ../storm-core/target/dependency/disruptor-2.10.1.jar
-file 444 - - lib64/storm/$(BASE_VERSION)/lib/guava-16.0.1.jar ../storm-core/target/dependency/guava-16.0.1.jar
-file 444 - - lib64/storm/$(BASE_VERSION)/lib/hiccup-0.3.6.jar ../storm-core/target/dependency/hiccup-0.3.6.jar
-file 444 - - lib64/storm/$(BASE_VERSION)/lib/httpclient-4.3.3.jar ../storm-core/target/dependency/httpclient-4.3.3.jar
-file 444 - - lib64/storm/$(BASE_VERSION)/lib/httpcore-4.1.2.jar ../storm-core/target/dependency/httpcore-4.1.2.jar
 file 444 - - lib64/storm/$(BASE_VERSION)/lib/jackson-core-2.3.1.jar ../storm-core/target/dependency/jackson-core-2.3.1.jar
 file 444 - - lib64/storm/$(BASE_VERSION)/lib/jackson-dataformat-smile-2.3.1.jar ../storm-core/target/dependency/jackson-dataformat-smile-2.3.1.jar
-file 444 - - lib64/storm/$(BASE_VERSION)/lib/jetty-util-7.6.13.v20130916.jar ../storm-core/target/dependency/jetty-util-7.6.13.v20130916.jar
-file 444 - - lib64/storm/$(BASE_VERSION)/lib/jgrapht-core-0.9.0.jar ../storm-core/target/dependency/jgrapht-core-0.9.0.jar
-file 444 - - lib64/storm/$(BASE_VERSION)/lib/jline-0.9.94.jar ../storm-core/target/dependency/jline-0.9.94.jar
-file 444 - - lib64/storm/$(BASE_VERSION)/lib/joda-time-2.3.jar ../storm-core/target/dependency/joda-time-2.3.jar
-file 444 - - lib64/storm/$(BASE_VERSION)/lib/json-simple-1.1.jar ../storm-core/target/dependency/json-simple-1.1.jar
 file 444 - - lib64/storm/$(BASE_VERSION)/lib/kryo-2.21.jar ../storm-core/target/dependency/kryo-2.21.jar
-file 444 - - lib64/storm/$(BASE_VERSION)/lib/libthrift-0.9.2.jar ../storm-core/target/dependency/libthrift-0.9.2.jar
 file 444 - - lib64/storm/$(BASE_VERSION)/lib/log4j-api-2.1.jar ../storm-core/target/dependency/log4j-api-2.1.jar
 file 444 - - lib64/storm/$(BASE_VERSION)/lib/log4j-core-2.1.jar ../storm-core/target/dependency/log4j-core-2.1.jar
 file 444 - - lib64/storm/$(BASE_VERSION)/lib/log4j-slf4j-impl-2.1.jar ../storm-core/target/dependency/log4j-slf4j-impl-2.1.jar
 file 444 - - lib64/storm/$(BASE_VERSION)/lib/log4j-1.2-api-2.1.jar ../storm-core/target/dependency/log4j-1.2-api-2.1.jar
-file 444 - - lib64/storm/$(BASE_VERSION)/lib/math.numeric-tower-0.0.1.jar ../storm-core/target/dependency/math.numeric-tower-0.0.1.jar
-file 444 - - lib64/storm/$(BASE_VERSION)/lib/minlog-1.2.jar ../storm-core/target/dependency/minlog-1.2.jar
-file 444 - - lib64/storm/$(BASE_VERSION)/lib/netty-3.9.4.Final.jar ../storm-core/target/dependency/netty-3.9.4.Final.jar
-file 444 - - lib64/storm/$(BASE_VERSION)/lib/objenesis-1.2.jar ../storm-core/target/dependency/objenesis-1.2.jar
-file 444 - - lib64/storm/$(BASE_VERSION)/lib/reflectasm-1.07-shaded.jar ../storm-core/target/dependency/reflectasm-1.07-shaded.jar
-file 444 - - lib64/storm/$(BASE_VERSION)/lib/ring-core-1.1.5.jar ../storm-core/target/dependency/ring-core-1.1.5.jar
-file 444 - - lib64/storm/$(BASE_VERSION)/lib/ring-devel-1.3.0.jar ../storm-core/target/dependency/ring-devel-1.3.0.jar
-file 444 - - lib64/storm/$(BASE_VERSION)/lib/ring-jetty-adapter-1.3.0.jar ../storm-core/target/dependency/ring-jetty-adapter-1.3.0.jar
-file 444 - - lib64/storm/$(BASE_VERSION)/lib/ring-servlet-1.3.0.jar ../storm-core/target/dependency/ring-servlet-1.3.0.jar
 file 444 - - lib64/storm/$(BASE_VERSION)/lib/servlet-api-2.5.jar ../storm-core/target/dependency/servlet-api-2.5.jar
 file 444 - - lib64/storm/$(BASE_VERSION)/lib/slf4j-api-1.7.7.jar ../storm-core/target/dependency/slf4j-api-1.7.7.jar
-file 444 - - lib64/storm/$(BASE_VERSION)/lib/snakeyaml-1.11.jar ../storm-core/target/dependency/snakeyaml-1.11.jar
-file 444 - - lib64/storm/$(BASE_VERSION)/lib/tools.cli-0.3.1.jar ../storm-core/target/dependency/tools.cli-0.3.1.jar
-file 444 - - lib64/storm/$(BASE_VERSION)/lib/tools.logging-0.2.3.jar ../storm-core/target/dependency/tools.logging-0.2.3.jar
-file 444 - - lib64/storm/$(BASE_VERSION)/lib/tools.macro-0.1.0.jar ../storm-core/target/dependency/tools.macro-0.1.0.jar
-file 444 - - lib64/storm/$(BASE_VERSION)/lib/xz-1.0.jar ../storm-core/target/dependency/xz-1.0.jar
-file 444 - - lib64/storm/$(BASE_VERSION)/lib/zookeeper-3.4.6.jar ../storm-core/target/dependency/zookeeper-3.4.6.jar
 
 find 444 - - lib64/storm/$(BASE_VERSION)/ ../ -maxdepth 1 -type f -iname '*.md' -or -iname '*.markdown'
 find 444 - - lib64/storm/$(BASE_VERSION)/public/css/ ../storm-core/src/ui/public/css/ -maxdepth 1 -type f -iname '*.css'

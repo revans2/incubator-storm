@@ -62,6 +62,7 @@ import java.nio.channels.Channels;
 import java.nio.channels.WritableByteChannel;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.nio.file.attribute.PosixFilePermission;
 import java.io.File;
 import java.io.FileInputStream;
@@ -468,25 +469,25 @@ public class Utils {
     }
 
     // Meant to be called only by the supervisor for stormjar/stormconf/stormcode files.
-    // TODO need to pass in the real user with real ACLs. Change this when nimbus
-    // is changed to also pass a real user.
     public static void downloadResourcesAsSupervisor(Map conf, String key, String localFile, 
         ClientBlobStore cb) throws AuthorizationException, KeyNotFoundException, IOException {
-      final int MAX_RETRY_ATTEMPTS = 2;
-      final int ATTEMPTS_INTERVAL_TIME = 100;
-      FileOutputStream out = new FileOutputStream(localFile);
-      InputStreamWithMeta in = null;
-      int retryAttempts = 0;
-      while (retryAttempts < MAX_RETRY_ATTEMPTS && downloadResourcesAsSupervisorAttempt(in, out, cb, key, localFile) != false) {
-          Utils.sleep(ATTEMPTS_INTERVAL_TIME);
-          retryAttempts++;
-      }
+        final int MAX_RETRY_ATTEMPTS = 2;
+        final int ATTEMPTS_INTERVAL_TIME = 100;
+        for (int retryAttempts = 0; retryAttempts < MAX_RETRY_ATTEMPTS; retryAttempts++) {
+            if (downloadResourcesAsSupervisorAttempt(cb, key, localFile)) {
+                break;
+            }
+            Utils.sleep(ATTEMPTS_INTERVAL_TIME);
+        }
+        //NO Exception on error the supervisor will try again after a while
     }
     
-    private static boolean downloadResourcesAsSupervisorAttempt(InputStreamWithMeta in, FileOutputStream out, 
-            ClientBlobStore cb, String key, String localFile) {
-        boolean isSuccess = true;
+    private static boolean downloadResourcesAsSupervisorAttempt(ClientBlobStore cb, String key, String localFile) {
+        boolean isSuccess = false;
+        FileOutputStream out = null;
+        InputStreamWithMeta in = null;
         try {
+            out = new FileOutputStream(localFile);
             in = cb.getBlob(key);
             long fileSize = in.getFileLength();
 
@@ -498,23 +499,25 @@ public class Utils {
                 downloadFileSize += len;
             }
 
-            if(fileSize != downloadFileSize) {
-                isSuccess = false;
-            }
+            isSuccess = (fileSize == downloadFileSize);
         } catch (TException | IOException e) {
-            isSuccess = false;
-        }
-        if(isSuccess == false) {
-            LOG.error("An exception happened while downloading the {} file from Nimbus. Attempting to close the connection delete the corrupted file", localFile);
+            LOG.error("An exception happened while downloading {} from blob store.", localFile, e);
+        } finally {
             try {
-                out.close();
-                in.close();
-                Files.delete(FileSystems.getDefault().getPath(localFile));
-            } catch (IOException ex) {LOG.error("Failed trying to delete the partially downloaded {}", localFile);}
-            return false;
-        } else {
-            return true;
+              if (out != null) out.close();
+            } catch (IOException ignored) {}
+            try {
+              if (in != null) in.close();
+            } catch (IOException ignored) {}
         }
+        if (!isSuccess) {
+            try {
+                Files.deleteIfExists(Paths.get(localFile));
+            } catch (IOException ex) {
+                LOG.error("Failed trying to delete the partially downloaded {}", localFile, ex);
+            }
+        }
+        return isSuccess;
     }
 
   public static boolean checkFileExists(String dir, String file) {
