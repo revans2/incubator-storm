@@ -52,13 +52,8 @@ dir 3777 - - lib64/storm/$(BASE_VERSION)/logs/metadata
 find 755 - - lib64/storm/$(BASE_VERSION)/bin/ ../bin/ -type f
 file 444 - - lib64/storm/$(BASE_VERSION)/lib/asm-4.0.jar ../storm-core/target/dependency/asm-4.0.jar
 file 444 - - lib64/storm/$(BASE_VERSION)/lib/clj-stacktrace-0.2.7.jar ../storm-core/target/dependency/clj-stacktrace-0.2.7.jar
-file 444 - - lib64/storm/$(BASE_VERSION)/lib/clj-time-0.8.0.jar ../storm-core/target/dependency/clj-time-0.8.0.jar
 file 444 - - lib64/storm/$(BASE_VERSION)/lib/clojure-1.6.0.jar ../storm-core/target/dependency/clojure-1.6.0.jar
-file 444 - - lib64/storm/$(BASE_VERSION)/lib/clout-1.0.1.jar ../storm-core/target/dependency/clout-1.0.1.jar
-file 444 - - lib64/storm/$(BASE_VERSION)/lib/compojure-1.1.3.jar ../storm-core/target/dependency/compojure-1.1.3.jar
-file 444 - - lib64/storm/$(BASE_VERSION)/lib/core.incubator-0.1.0.jar ../storm-core/target/dependency/core.incubator-0.1.0.jar
 file 444 - - lib64/storm/$(BASE_VERSION)/lib/disruptor-2.10.1.jar ../storm-core/target/dependency/disruptor-2.10.1.jar
-file 444 - - lib64/storm/$(BASE_VERSION)/lib/hiccup-0.3.6.jar ../storm-core/target/dependency/hiccup-0.3.6.jar
 file 444 - - lib64/storm/$(BASE_VERSION)/lib/jackson-core-2.3.1.jar ../storm-core/target/dependency/jackson-core-2.3.1.jar
 file 444 - - lib64/storm/$(BASE_VERSION)/lib/jackson-dataformat-smile-2.3.1.jar ../storm-core/target/dependency/jackson-dataformat-smile-2.3.1.jar
 file 444 - - lib64/storm/$(BASE_VERSION)/lib/kryo-2.21.jar ../storm-core/target/dependency/kryo-2.21.jar
@@ -68,7 +63,6 @@ file 444 - - lib64/storm/$(BASE_VERSION)/lib/log4j-slf4j-impl-2.1.jar ../storm-c
 file 444 - - lib64/storm/$(BASE_VERSION)/lib/log4j-1.2-api-2.1.jar ../storm-core/target/dependency/log4j-1.2-api-2.1.jar
 file 444 - - lib64/storm/$(BASE_VERSION)/lib/servlet-api-2.5.jar ../storm-core/target/dependency/servlet-api-2.5.jar
 file 444 - - lib64/storm/$(BASE_VERSION)/lib/slf4j-api-1.7.7.jar ../storm-core/target/dependency/slf4j-api-1.7.7.jar
-file 444 - - lib64/storm/$(BASE_VERSION)/lib/tools.logging-0.2.3.jar ../storm-core/target/dependency/tools.logging-0.2.3.jar
 
 find 444 - - lib64/storm/$(BASE_VERSION)/ ../ -maxdepth 1 -type f -iname '*.md' -or -iname '*.markdown'
 find 444 - - lib64/storm/$(BASE_VERSION)/public/css/ ../storm-core/src/ui/public/css/ -maxdepth 1 -type f -iname '*.css'
