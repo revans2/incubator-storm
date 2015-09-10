@@ -15,17 +15,15 @@
 ;; limitations under the License.
 (ns clj.com.yahoo.storm.networktopography.yahoo-network-topography-test
   (:use [clojure test])
-  (:use [backtype.storm bootstrap config testing thrift])
+  (:use [backtype.storm config testing thrift])
   (:require [backtype.storm.daemon [nimbus :as nimbus]])
   (:import [backtype.storm.generated StormTopology]
            [backtype.storm.testing TestWordSpout TestWordCounter]
            [backtype.storm.topology TopologyBuilder])
   (:import [backtype.storm.scheduler Cluster SupervisorDetails WorkerSlot ExecutorDetails
             SchedulerAssignmentImpl Topologies TopologyDetails])
-  (:import [backtype.storm.scheduler.resource Node ResourceAwareScheduler])
+  (:import [backtype.storm.scheduler.resource RAS_Node ResourceAwareScheduler])
   (:import [backtype.storm Config]))
-
-(bootstrap)
 
 (defn gen-supervisors [count]
   (into {} (for [id (range count)

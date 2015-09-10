@@ -122,4 +122,12 @@ public class FreePool extends NodePool {
   public String toString() {
     return "FreePool of "+_nodes.size()+" nodes with "+_totalSlots+" slots";
   }
+
+  /**
+   * get nodes in pool
+   * @return
+   */
+  public Set<Node> getNodesInPool() {
+      return _nodes;
+  }
 }

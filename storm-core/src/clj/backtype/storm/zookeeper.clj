@@ -74,7 +74,7 @@
     ;;                     (throw to-throw)
     ;;                     ))
     ;;               (do (log-error error "Unrecoverable Zookeeper error " msg)
-    ;;                   (halt-process! 1 "Unrecoverable Zookeeper error")))
+    ;;                   (exit-process! 1 "Unrecoverable Zookeeper error")))
     ;;             ))))
     (.start fk)
     fk))

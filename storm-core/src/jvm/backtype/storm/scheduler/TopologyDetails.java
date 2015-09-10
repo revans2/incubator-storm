@@ -30,7 +30,7 @@ import backtype.storm.generated.Grouping;
 import backtype.storm.generated.SpoutSpec;
 import backtype.storm.generated.StormTopology;
 import backtype.storm.scheduler.resource.RAS_Component;
-
+import backtype.storm.scheduler.resource.strategies.IStrategy;
 import backtype.storm.utils.Utils;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
@@ -46,6 +46,8 @@ public class TopologyDetails {
     int numWorkers;
     //<ExecutorDetails - Task, Map<String - Type of resource, Map<String - type of that resource, Double - amount>>>
     private Map<ExecutorDetails, Map<String, Double>> _resourceList;
+    //Scheduler this topology should be scheduled with
+    private String scheduler;
 
     private static final Logger LOG = LoggerFactory.getLogger(TopologyDetails.class);
 
@@ -63,6 +65,7 @@ public class TopologyDetails {
             this.executorToComponent.putAll(executorToComponents);
         }
         this.initResourceList();
+        this.initScheduler();
     }
 
     public String getId() {
@@ -109,9 +112,9 @@ public class TopologyDetails {
                 //the json_conf is populated by TopologyBuilder (e.g. boltDeclarer.setMemoryLoad)
                 Map<String, Double> topology_resources = this.parseResources(bolt
                         .getValue().get_common().get_json_conf());
+                this.checkIntialization(topology_resources, bolt.getValue().toString());
                 for (Map.Entry<ExecutorDetails, String> anExecutorToComponent : executorToComponent.entrySet()) {
                     if (bolt.getKey().equals(anExecutorToComponent.getValue())) {
-                        this.checkIntialization(topology_resources, anExecutorToComponent.getKey(), bolt.getValue().toString());
                         _resourceList.put(anExecutorToComponent.getKey(), topology_resources);
                     }
                 }
@@ -124,15 +127,28 @@ public class TopologyDetails {
             for (Map.Entry<String, SpoutSpec> spout : this.topology.get_spouts().entrySet()) {
                 Map<String, Double> topology_resources = this.parseResources(spout
                         .getValue().get_common().get_json_conf());
+                this.checkIntialization(topology_resources, spout.getValue().toString());
                 for (Map.Entry<ExecutorDetails, String> anExecutorToComponent : executorToComponent.entrySet()) {
                     if (spout.getKey().equals(anExecutorToComponent.getValue())) {
-                        this.checkIntialization(topology_resources, anExecutorToComponent.getKey(), spout.getValue().toString());
                         _resourceList.put(anExecutorToComponent.getKey(), topology_resources);
                     }
                 }
             }
         } else {
             LOG.warn("Topology " + topologyId + " does not seem to have any spouts!");
+        }
+        //schedule tasks that are not part of components returned from topology.get_spout or topology.getbolt (AKA sys tasks most specifically __acker tasks)
+        for(ExecutorDetails exec : this.getExecutors()) {
+            if (_resourceList.containsKey(exec) == false) {
+                LOG.info(
+                        "Scheduling {} {} with memory requirement as 'on heap' - {} and 'off heap' - {} and CPU requirement as {}",
+                        this.getExecutorToComponent().get(exec),
+                        exec,
+                        this.topologyConf.get(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB),
+                        this.topologyConf.get(Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB),
+                        this.topologyConf.get(Config.TOPOLOGY_COMPONENT_CPU_PCORE_PERCENT));
+                this.addDefaultResforExec(exec);
+            } 
         }
     }
 
@@ -176,54 +192,51 @@ public class TopologyDetails {
         return topology_resources;
     }
 
-    private void checkIntialization(Map<String, Double> topology_resources,
-                                    ExecutorDetails exec, String Com) {
-        this.checkInitMem(topology_resources, exec, Com);
-        this.checkInitCPU(topology_resources, exec, Com);
+    private void checkIntialization(Map<String, Double> topology_resources, String Com) {
+        this.checkInitMem(topology_resources, Com);
+        this.checkInitCPU(topology_resources, Com);
     }
 
-    private void debugMessage(String memoryType, ExecutorDetails exec, String Com)
+    private void debugMessage(String memoryType, String Com)
     {
         if (memoryType.equals("ONHEAP"))
         {
             LOG.debug(
-                    "Unable to extract resource requirement of Executor {} for Component {} \n Resource : Memory Type : On Heap set to default {}",
-                    exec, Com, topologyConf.get(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB));
+                    "Unable to extract resource requirement for Component {} \n Resource : Memory Type : On Heap set to default {}",
+                    Com, topologyConf.get(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB));
         }
         else if (memoryType.equals("OFFHEAP"))
         {
             LOG.debug(
-                    "Unable to extract resource requirement of Executor {} for Component {} \n Resource : Memory Type : Off Heap set to default {}",
-                    exec, Com, topologyConf.get(Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB));
+                    "Unable to extract resource requirement for Component {} \n Resource : Memory Type : Off Heap set to default {}",
+                    Com, topologyConf.get(Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB));
         }
         else
         {
             LOG.debug(
-                    "Unable to extract resource requirement of Executor {} for Component {} \n Resource : CPU Pcore Percent set to default {}",
-                    exec, Com, topologyConf.get(Config.TOPOLOGY_COMPONENT_CPU_PCORE_PERCENT));
+                    "Unable to extract resource requirement for Component {} \n Resource : CPU Pcore Percent set to default {}",
+                    Com, topologyConf.get(Config.TOPOLOGY_COMPONENT_CPU_PCORE_PERCENT));
         }
     }
 
-    private void checkInitMem(Map<String, Double> topology_resources,
-                              ExecutorDetails exec, String Com) {
+    private void checkInitMem(Map<String, Double> topology_resources, String Com) {
         if (!topology_resources.containsKey(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB)) {
             topology_resources.put(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB,
                     Utils.getDouble(topologyConf.get(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB), null));
-            debugMessage("ONHEAP", exec, Com);
+            debugMessage("ONHEAP", Com);
         }
         if (!topology_resources.containsKey(Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB)) {
             topology_resources.put(Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB,
                     Utils.getDouble(topologyConf.get(Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB), null));
-            debugMessage("OFFHEAP", exec, Com);
+            debugMessage("OFFHEAP", Com);
         }
     }
 
-    private void checkInitCPU(Map<String, Double> topology_resources,
-                              ExecutorDetails exec, String Com) {
+    private void checkInitCPU(Map<String, Double> topology_resources, String Com) {
         if (!topology_resources.containsKey(Config.TOPOLOGY_COMPONENT_CPU_PCORE_PERCENT)) {
             topology_resources.put(Config.TOPOLOGY_COMPONENT_CPU_PCORE_PERCENT,
                             Utils.getDouble(topologyConf.get(Config.TOPOLOGY_COMPONENT_CPU_PCORE_PERCENT), null));
-            debugMessage("CPU", exec, Com);
+            debugMessage("CPU", Com);
         }
     }
 
@@ -257,6 +270,7 @@ public class TopologyDetails {
                     RAS_Component newComp = null;
                     if (all_comp.containsKey(spoutEntry.getKey())) {
                         newComp = all_comp.get(spoutEntry.getKey());
+                        newComp.execs = componentToExecs(newComp.id);
                     } else {
                         newComp = new RAS_Component(spoutEntry.getKey());
                         newComp.execs = componentToExecs(newComp.id);
@@ -264,27 +278,22 @@ public class TopologyDetails {
                     }
                     newComp.type = RAS_Component.ComponentType.SPOUT;
 
-
                     for (Map.Entry<GlobalStreamId, Grouping> spoutInput : spoutEntry
                             .getValue().get_common().get_inputs()
                             .entrySet()) {
-
-                        if (!Utils.isSystemId(spoutInput.getKey().get_componentId())) {
-                            newComp.parents.add(spoutInput.getKey()
-                                    .get_componentId());
-                            if (!all_comp.containsKey(spoutInput
-                                    .getKey().get_componentId())) {
-                                all_comp.put(spoutInput.getKey()
-                                                .get_componentId(),
-                                        new RAS_Component(spoutInput.getKey()
-                                                .get_componentId()));
-                            }
-                            all_comp.get(spoutInput.getKey()
-                                    .get_componentId()).children.add(spoutEntry
-                                    .getKey());
+                        newComp.parents.add(spoutInput.getKey()
+                                .get_componentId());
+                        if (!all_comp.containsKey(spoutInput
+                                .getKey().get_componentId())) {
+                            all_comp.put(spoutInput.getKey()
+                                            .get_componentId(),
+                                    new RAS_Component(spoutInput.getKey()
+                                            .get_componentId()));
                         }
+                        all_comp.get(spoutInput.getKey()
+                                .get_componentId()).children.add(spoutEntry
+                                .getKey());
                     }
-
                 }
             }
         }
@@ -296,6 +305,7 @@ public class TopologyDetails {
                     RAS_Component newComp = null;
                     if (all_comp.containsKey(boltEntry.getKey())) {
                         newComp = all_comp.get(boltEntry.getKey());
+                        newComp.execs = componentToExecs(newComp.id);
                     } else {
                         newComp = new RAS_Component(boltEntry.getKey());
                         newComp.execs = componentToExecs(newComp.id);
@@ -306,20 +316,18 @@ public class TopologyDetails {
                     for (Map.Entry<GlobalStreamId, Grouping> boltInput : boltEntry
                             .getValue().get_common().get_inputs()
                             .entrySet()) {
-                        if (!Utils.isSystemId(boltInput.getKey().get_componentId())) {
-                            newComp.parents.add(boltInput.getKey()
-                                    .get_componentId());
-                            if (!all_comp.containsKey(boltInput
-                                    .getKey().get_componentId())) {
-                                all_comp.put(boltInput.getKey()
-                                                .get_componentId(),
-                                        new RAS_Component(boltInput.getKey()
-                                                .get_componentId()));
-                            }
-                            all_comp.get(boltInput.getKey()
-                                    .get_componentId()).children.add(boltEntry
-                                    .getKey());
+                        newComp.parents.add(boltInput.getKey()
+                                .get_componentId());
+                        if (!all_comp.containsKey(boltInput
+                                .getKey().get_componentId())) {
+                            all_comp.put(boltInput.getKey()
+                                            .get_componentId(),
+                                    new RAS_Component(boltInput.getKey()
+                                            .get_componentId()));
                         }
+                        all_comp.get(boltInput.getKey()
+                                .get_componentId()).children.add(boltEntry
+                                .getKey());
                     }
                 }
             }
@@ -435,7 +443,11 @@ public class TopologyDetails {
      * @return Boolean whether or not a certain ExecutorDetail is included in the _resourceList.
      */
     public boolean hasExecInTopo(ExecutorDetails exec) {
-        return _resourceList.containsKey(exec);
+        if (_resourceList != null) { // null is possible if the first constructor of TopologyDetails is used
+            return _resourceList.containsKey(exec);
+        } else {
+            return false;
+        }
     }
 
     /**
@@ -468,5 +480,24 @@ public class TopologyDetails {
                 topologyConf.get(Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB),
                 topologyConf.get(Config.TOPOLOGY_COMPONENT_CPU_PCORE_PERCENT));
         addResourcesForExec(exec, defaultResourceList);
+    }
+
+    /**
+     * initalizes the scheduler member variable by extracting what scheduler
+     * this topology is going to use from topologyConf
+     */
+    private void initScheduler() {
+        this.scheduler = Utils.getString(this.topologyConf.get(Config.TOPOLOGY_SCHEDULER_STRATEGY), null);
+    }
+
+    public String getScheduler() {
+        return this.scheduler;
+    }
+    
+    public void setTopologyStrategy(Class<? extends IStrategy> clazz) {
+        if(clazz != null) {
+            this.scheduler = clazz.getName();
+        }
+        
     }
 }

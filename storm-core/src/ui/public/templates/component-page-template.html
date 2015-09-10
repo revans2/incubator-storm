@@ -44,7 +44,7 @@
     <tbody>
       <tr>
         <td>{{id}}</td>
-        <td><a href="/topology.html?id={{topologyId}}">{{name}}</a></td>
+        <td><a href="/topology.html?id={{encodedTopologyId}}">{{name}}</a></td>
         <td>{{executors}}</td>
         <td>{{tasks}}</td>
     </tbody>
@@ -90,7 +90,7 @@
     <tbody>
       {{#spoutSummary}}
       <tr>
-        <td><a href="/component.html?id={{id}}&topology_id={{topologyId}}&window={{window}}">{{windowPretty}}</a></td>
+        <td><a href="/component.html?id={{encodedId}}&topology_id={{encodedTopologyId}}&window={{window}}">{{windowPretty}}</a></td>
         <td>{{emitted}}</td>
         <td>{{transferred}}</td>
         <td>{{completeLatency}}</td>
@@ -271,7 +271,7 @@
     <tbody>
       {{#boltStats}}
       <tr>
-        <td><a href="/component.html?id={{id}}&topology_id={{topologyId}}&window={{window}}">{{windowPretty}}</a></td>
+        <td><a href="/component.html?id={{encodedId}}&topology_id={{encodedTopologyId}}&window={{window}}">{{windowPretty}}</a></td>
         <td>{{emitted}}</td>
         <td>{{transferred}}</td>
         <td>{{executeLatency}}</td>
@@ -461,13 +461,14 @@
     </tbody>
   </table>
 </script>
-
 <script id="component-errors-template" type="text/html">
   <h2>Errors</h2>
   <table class="table table-striped compact" id="component-errors-table">
     <thead>
       <tr>
         <th>Time</th>
+        <th>Error Host</th>
+        <th>Error Port</th>
         <th>Error</th>
       </tr>
     </thead>
@@ -475,7 +476,11 @@
       {{#componentErrors}}
       <tr>
         <td>{{time}}</td>
-        <td>{{error}}</td>
+        <td>{{errorHost}}</td>
+        <td><a href="{{errorWorkerLogLink}}">{{errorPort}}</a></td>
+        <td>
+          <span id="{{errorLapsedSecs}}" class="errorSpan">{{error}}</span>
+        </td>
       </tr>
       {{/componentErrors}}
     </tbody>

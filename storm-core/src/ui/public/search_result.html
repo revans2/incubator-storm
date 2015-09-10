@@ -27,7 +27,8 @@
 <script src="/js/jquery.cookies.2.2.0.min.js" type="text/javascript"></script>
 <script src="/js/jquery.mustache.js" type="text/javascript"></script>
 <script src="/js/bootstrap-3.3.1.min.js" type="text/javascript"></script>
-<script src="/js/purl.js" type="text/javascript"></script>
+<script src="/js/jquery.blockUI.min.js" type="text/javascript"></script>
+<script src="/js/url.min.js" type="text/javascript"></script>
 <script src="/js/dataTables.bootstrap.min.js" type="text/javascript"></script>
 <script src="/js/script.js" type="text/javascript"></script>
 </head>
@@ -43,10 +44,10 @@
 </body>
 <script>
 $(document).ready(function() {
-    var id = $.url().param("id");
-    var search = $.url().param("search");
-    var count = $.url().param("count") || 2;
-    var searchArchived = $.url().param("searchArchived") || "";
+    var id = $.url("?id");
+    var search = $.url("?search");
+    var count = $.url("?count") || 2;
+    var searchArchived = $.url("?searchArchived") || "";
 
     $.get("/templates/search-result-page-template.html", function(template) {
         $("#search-form").append(Mustache.render($(template).filter("#search-form-template").html(),{id: id, search: search, count: count, searchArchived: searchArchived}));

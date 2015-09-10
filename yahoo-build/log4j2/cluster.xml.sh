@@ -36,8 +36,8 @@ cat <<XML
         </PatternLayout>
         <Policies>
             <SizeBasedTriggeringPolicy size="100 MB"/> <!-- Or every 100 MB -->
-            <DefaultRolloverStrategy max="9"/>
         </Policies>
+        <DefaultRolloverStrategy max="9"/>
     </RollingFile>
     <RollingFile name="ACCESS"
                  fileName="\${sys:storm.home}/logs/access.log"
@@ -47,8 +47,8 @@ cat <<XML
         </PatternLayout>
         <Policies>
             <SizeBasedTriggeringPolicy size="100 MB"/> <!-- Or every 100 MB -->
-            <DefaultRolloverStrategy max="9"/>
         </Policies>
+        <DefaultRolloverStrategy max="9"/>
     </RollingFile>
     <RollingFile name="METRICS"
                  fileName="\${sys:storm.home}/logs/metrics.log"
@@ -58,13 +58,18 @@ cat <<XML
         </PatternLayout>
         <Policies>
             <SizeBasedTriggeringPolicy size="2 MB"/> <!-- Or every 100 MB -->
-            <DefaultRolloverStrategy max="9"/>
         </Policies>
+        <DefaultRolloverStrategy max="9"/>
     </RollingFile>
     <Syslog name="syslog" format="RFC5424" host="${syslog_host}" port="514"
         protocol="UDP" appName="[\${sys:daemon.name}]" mdcId="mdc" includeMDC="true"
         facility="${syslog_facility}" enterpriseNumber="18060" newLine="true" exceptionPattern="%rEx{full}"
-        messageId="[\${sys:user.name}:S0]" id="ystorm"/>
+        messageId="[\${sys:user.name}:S0]" id="ystorm">
+        <LoggerFields>
+            <KeyValuePair key="ClassName" value="%C{1.}"/>
+        </LoggerFields>
+    </Syslog>
+
 </appenders>
 <loggers>
 

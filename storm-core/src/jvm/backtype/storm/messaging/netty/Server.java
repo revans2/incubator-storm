@@ -19,7 +19,6 @@ package backtype.storm.messaging.netty;
 
 import backtype.storm.Config;
 import backtype.storm.grouping.Load;
-import backtype.storm.messaging.IConnection;
 import backtype.storm.messaging.TaskMessage;
 import backtype.storm.metric.api.IStatefulObject;
 import backtype.storm.serialization.KryoValuesSerializer;
@@ -48,7 +47,10 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadFactory;
 import java.io.IOException;
 
-class Server implements IConnection, IStatefulObject, ISaslServer {
+import backtype.storm.messaging.ConnectionWithStatus;
+
+class Server extends ConnectionWithStatus implements IStatefulObject, ISaslServer {
+
     private static final Logger LOG = LoggerFactory.getLogger(Server.class);
     @SuppressWarnings("rawtypes")
     Map storm_conf;
@@ -66,10 +68,10 @@ class Server implements IConnection, IStatefulObject, ISaslServer {
     final ServerBootstrap bootstrap;
     
     private int queueCount;
-    HashMap<Integer, Integer> taskToQueueId = null;
+    private volatile HashMap<Integer, Integer> taskToQueueId = null;
     int roundRobinQueueId;
 	
-    boolean closing = false;
+    private volatile boolean closing = false;
     List<TaskMessage> closeMessage = Arrays.asList(new TaskMessage(-1, null));
     private KryoValuesSerializer _ser;
     
@@ -92,6 +94,7 @@ class Server implements IConnection, IStatefulObject, ISaslServer {
         
         // Configure the server.
         int buffer_size = Utils.getInt(storm_conf.get(Config.STORM_MESSAGING_NETTY_BUFFER_SIZE));
+        int backlog = Utils.getInt(storm_conf.get(Config.STORM_MESSAGING_NETTY_SOCKET_BACKLOG), 500);
         int maxWorkers = Utils.getInt(storm_conf.get(Config.STORM_MESSAGING_NETTY_SERVER_WORKER_THREADS));
 
         ThreadFactory bossFactory = new NettyRenameThreadFactory(netty_name() + "-boss");
@@ -111,6 +114,7 @@ class Server implements IConnection, IStatefulObject, ISaslServer {
         bootstrap.setOption("child.tcpNoDelay", true);
         bootstrap.setOption("child.receiveBufferSize", buffer_size);
         bootstrap.setOption("child.keepAlive", true);
+        bootstrap.setOption("backlog", backlog);
 
         // Set up the pipeline factory.
         bootstrap.setPipelineFactory(new StormServerPipelineFactory(this));
@@ -144,18 +148,18 @@ class Server implements IConnection, IStatefulObject, ISaslServer {
     
     private Integer getMessageQueueId(int task) {
       // try to construct the map from taskId -> queueId in round robin manner.
-      
       Integer queueId = taskToQueueId.get(task);
       if (null == queueId) {
-        synchronized(taskToQueueId) {
-          //assgin task to queue in round-robin manner
-          if (null == taskToQueueId.get(task)) {
+            synchronized (this) {
+                queueId = taskToQueueId.get(task);
+                if (queueId == null) {
             queueId = roundRobinQueueId++;
-            
-            taskToQueueId.put(task, queueId);
             if (roundRobinQueueId == queueCount) {
               roundRobinQueueId = 0;
             }
+                    HashMap<Integer, Integer> newRef = new HashMap<Integer, Integer>(taskToQueueId);
+                    newRef.put(task, queueId);
+                    taskToQueueId = newRef;
           }
         }
       }
@@ -182,11 +186,9 @@ class Server implements IConnection, IStatefulObject, ISaslServer {
 
     /**
      * enqueue a received message 
-     * @param message
      * @throws InterruptedException
      */
     protected void enqueue(List<TaskMessage> msgs, String from) throws InterruptedException {
-      
       if (null == msgs || msgs.size() == 0 || closing) {
         return;
       }
@@ -216,12 +218,14 @@ class Server implements IConnection, IStatefulObject, ISaslServer {
       if ((flags & 0x01) == 0x01) { 
             //non-blocking
             ret = message_queue[queueId].poll();
-        } else {
+        }
+        else {
             try {
                 ArrayList<TaskMessage> request = message_queue[queueId].take();
                 LOG.debug("request to be processed: {}", request);
                 ret = request;
-            } catch (InterruptedException e) {
+            }
+            catch (InterruptedException e) {
                 LOG.info("exception within msg receiving", e);
                 ret = null;
             }
@@ -281,12 +285,12 @@ class Server implements IConnection, IStatefulObject, ISaslServer {
 
     @Override
     public void send(int task, byte[] message) {
-        throw new RuntimeException("Server connection should not send any messages");
+        throw new UnsupportedOperationException("Server connection should not send any messages");
     }
     
     @Override
     public void send(Iterator<TaskMessage> msgs) {
-      throw new RuntimeException("Server connection should not send any messages");
+      throw new UnsupportedOperationException("Server connection should not send any messages");
     }
 	
     public String netty_name() {
@@ -294,8 +298,35 @@ class Server implements IConnection, IStatefulObject, ISaslServer {
     }
 
     @Override
+    public Status status() {
+        if (closing) {
+          return Status.Closed;
+        }
+        else if (!connectionEstablished(allChannels)) {
+            return Status.Connecting;
+        }
+        else {
+            return Status.Ready;
+        }
+    }
+
+    private boolean connectionEstablished(Channel channel) {
+      return channel != null && channel.isBound();
+    }
+
+    private boolean connectionEstablished(ChannelGroup allChannels) {
+        boolean allEstablished = true;
+        for (Channel channel : allChannels) {
+            if (!(connectionEstablished(channel))) {
+                allEstablished = false;
+                break;
+            }
+        }
+        return allEstablished;
+    }
+
     public Object getState() {
-        LOG.info("Getting metrics for server on " + port);
+        LOG.debug("Getting metrics for server on port {}", port);
         HashMap<String, Object> ret = new HashMap<String, Object>();
         ret.put("dequeuedMessages", messagesDequeued.getAndSet(0));
         ArrayList<Integer> pending = new ArrayList<Integer>(pendingMessages.length);
@@ -340,4 +371,10 @@ class Server implements IConnection, IStatefulObject, ISaslServer {
     public void authenticated(Channel c) {
         return;
     }
+    
+    @Override
+    public String toString() {
+        return String.format("Netty server listening on port %s", port);
+    }
+
 }

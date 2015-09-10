@@ -31,9 +31,9 @@ import backtype.storm.generated.AccessControl;
 import backtype.storm.generated.AccessControlType;
 import backtype.storm.generated.AuthorizationException;
 import backtype.storm.generated.SettableBlobMeta;
+import backtype.storm.security.auth.NimbusPrincipal;
 import backtype.storm.security.auth.AuthUtils;
 import backtype.storm.security.auth.IPrincipalToLocal;
-import backtype.storm.utils.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -44,17 +44,26 @@ import org.slf4j.LoggerFactory;
 public class BlobStoreAclHandler {
   public static final Logger LOG = LoggerFactory.getLogger(BlobStoreAclHandler.class);
   private final IPrincipalToLocal _ptol;
-  private final AccessControl _superACL;
 
   public static final int READ = 0x01;
   public static final int WRITE = 0x02;
   public static final int ADMIN = 0x04;
   public static final List<AccessControl> WORLD_EVERYTHING =
       Arrays.asList(new AccessControl(AccessControlType.OTHER, READ | WRITE | ADMIN));
+  public static final List<AccessControl> DEFAULT = new ArrayList<AccessControl>();
+  private Set<String> _supervisors;
+  private Set<String> _admins;
 
   public BlobStoreAclHandler(Map conf) {
-    _superACL = getSuperAcl(conf);
     _ptol = AuthUtils.GetPrincipalToLocalPlugin(conf);
+    _supervisors = new HashSet<String>();
+    _admins = new HashSet<String>();
+    if (conf.containsKey(Config.NIMBUS_SUPERVISOR_USERS)) {
+      _supervisors.addAll((List<String>)conf.get(Config.NIMBUS_SUPERVISOR_USERS));
+    }
+    if (conf.containsKey(Config.NIMBUS_ADMINS)) {
+      _admins.addAll((List<String>)conf.get(Config.NIMBUS_ADMINS));
+    }
   }
 
   private static AccessControlType parseACLType(String type) {
@@ -157,24 +166,6 @@ public class BlobStoreAclHandler {
     }
   }
 
-  public static String getBlobStoreSuperUser(Map conf) {
-    return (String) conf.get(Config.BLOBSTORE_SUPERUSER);
-  }
-
-  protected AccessControl getSuperAcl(Map conf) {
-    String user = getBlobStoreSuperUser(conf);
-    AccessControl acl = new AccessControl();
-    if (user == null || user.isEmpty()) {
-      throw new IllegalArgumentException(
-          "Invalid configuration: " + Config.BLOBSTORE_SUPERUSER + " not set.");
-    }
-    acl.set_name(user);
-    acl.set_type(AccessControlType.USER);
-    acl.set_access(READ | WRITE | ADMIN);
-    return acl;
-  }
-
-
   private Set<String> constructUserFromPrincipals(Subject who) {
     Set<String> user = new HashSet<String>();
     if (who == null) {
@@ -189,46 +180,87 @@ public class BlobStoreAclHandler {
     }
     return user;
   }
- 
+
+  private boolean isSupervisorOrAdmin(Set<String> user, int mask) {
+    boolean isSupervisor = false;
+    boolean isAdmin = false;
+    for(String u : user) {
+      if (_supervisors.contains(u)) {
+        isSupervisor = true;
+        break;
+      }
+      if (_admins.contains(u)) {
+        isAdmin = true;
+        break;
+      }
+    }
+    if (mask > 0 && !isAdmin) {
+      isSupervisor = (isSupervisor && (mask == 1));
+    }
+    return isSupervisor || isAdmin;
+  }
+
+  private boolean isNimbus(Subject who) {
+    Set<Principal> principals = null;
+    boolean isNimbusInstance = false;
+    if(who != null) {
+      principals = who.getPrincipals();
+      for (Principal principal : principals) {
+        if (principal instanceof NimbusPrincipal) {
+          isNimbusInstance = true;
+        }
+      }
+    }
+    return isNimbusInstance;
+  }
+
   /**
-   * The user should be able to see the metadata if they have any of READ, WRITE, or ADMIN
+   * The user should be able to see the metadata if and only if they have any of READ, WRITE, or ADMIN
    */
   public void validateUserCanReadMeta(List<AccessControl> acl, Subject who, String key)
       throws AuthorizationException {
     Set<String> user = constructUserFromPrincipals(who);
-    boolean hasAccess = false;
+    if (isNimbus(who)) {
+      return;
+    }
+    if (isSupervisorOrAdmin(user, -1)) {
+      return;
+    }
     for (AccessControl ac : acl) {
       int allowed = getAllowed(ac, user);
-      LOG.debug(" user: " + user + " allowed: " + allowed + " key: " + key);
+      LOG.debug(" user: {} allowed: {} key: {}", user, allowed, key);
       if ((allowed & (READ | WRITE | ADMIN)) > 0) {
-        hasAccess = true;
-        break;
+        return;
       }
     }
-    if (!hasAccess) {
-      throw new AuthorizationException(
-          user + " does not have access to " + key);
-    }
+    throw new AuthorizationException(
+            user + " does not have access to " + key);
   }
 
   public void validateACL(List<AccessControl> acl, int mask, Subject who, String key)
       throws AuthorizationException {
     Set<String> user = constructUserFromPrincipals(who);
-
+    LOG.debug("user {}", user);
+    if (isNimbus(who)) {
+      return;
+    }
+    if(isSupervisorOrAdmin(user, mask)) {
+      return;
+    }
     for (AccessControl ac : acl) {
       int allowed = getAllowed(ac, user);
       mask = ~allowed & mask;
-      LOG.debug(" user: " + user + " allowed: " + allowed + " mask: " + mask + " key: " + key);
+      LOG.debug(" user: {} allowed: {} disallowed: {} key: {}", user, allowed, mask, key);
     }
-    if (mask != 0) {
-      throw new AuthorizationException(
-          user + " does not have " + namedPerms(mask) + " access to " + key);
+    if (mask == 0) {
+      return;
     }
-
+    throw new AuthorizationException(
+            user + " does not have " + namedPerms(mask) + " access to " + key);
   }
 
-  public void normalizeSettableBlobMeta(SettableBlobMeta meta, Subject who, int opMask) {
-    meta.set_acl(normalizeSettableACLs(meta.get_acl(), who, opMask));
+  public void normalizeSettableBlobMeta(String key, SettableBlobMeta meta, Subject who, int opMask) {
+    meta.set_acl(normalizeSettableACLs(key, meta.get_acl(), who, opMask));
   }
 
   private String namedPerms(int mask) {
@@ -261,19 +293,9 @@ public class BlobStoreAclHandler {
     }
   }
 
-
-  private List<AccessControl> removeBadACLs(List<AccessControl> accessControls,
-                                              String superUser) {
+  private List<AccessControl> removeBadACLs(List<AccessControl> accessControls) {
     List<AccessControl> resultAcl = new ArrayList<AccessControl>();
     for (AccessControl control : accessControls) {
-      int access = control.get_access();
-      if (control.get_type().equals(AccessControlType.USER) &&
-          control.get_name().equals(superUser) &&
-          (access & ( READ | WRITE | ADMIN)) != ( READ | WRITE | ADMIN )) {
-        LOG.debug("Removing invalid blobstore superuser ACL " +
-            BlobStoreAclHandler.accessControlToString(control));
-        continue;
-      }
       if(control.get_type().equals(AccessControlType.OTHER) && (control.get_access() == 0 )) {
         LOG.debug("Removing invalid blobstore world ACL " +
             BlobStoreAclHandler.accessControlToString(control));
@@ -284,27 +306,31 @@ public class BlobStoreAclHandler {
     return resultAcl;
   }
 
-  private boolean hasSuperACL(List<AccessControl> accessControls) {
-    for (AccessControl control : accessControls) {
-      if (_superACL.equals(control)) {
-        return true;
-      }
-    }
-    return false;
-  }
-
-  private final List<AccessControl> normalizeSettableACLs(List<AccessControl> acls, Subject who,
+  private final List<AccessControl> normalizeSettableACLs(String key, List<AccessControl> acls, Subject who,
                                                     int opMask) {
-    List<AccessControl> cleanAcls = removeBadACLs(acls, _superACL.get_name());
-    if (!hasSuperACL(cleanAcls)) {
-      LOG.info("Adding Super ACL " + BlobStoreAclHandler.accessControlToString(_superACL));
-      cleanAcls.add(_superACL);
-    }
+    List<AccessControl> cleanAcls = removeBadACLs(acls);
     Set<String> userNames = getUserNamesFromSubject(who);
     for (String user : userNames) {
       fixACLsForUser(cleanAcls, user, opMask);
     }
+    if ((who == null || userNames.isEmpty()) && !worldEverything(acls)) {
+        cleanAcls.addAll(BlobStoreAclHandler.WORLD_EVERYTHING);
+      LOG.debug("Access Control for key {} is normalized to world everything {}", key, cleanAcls);
+      if (!acls.isEmpty())
+        LOG.warn("Access control for blob with key {} is normalized to WORLD_EVERYTHING", key);
+    }
     return cleanAcls;
+  }
+
+  private boolean worldEverything(List<AccessControl> acls) {
+    boolean isWorldEverything = false;
+    for (AccessControl acl : acls) {
+      if (acl.get_type() == AccessControlType.OTHER && acl.get_access() == 7) {
+        isWorldEverything = true;
+        break;
+      }
+    }
+    return isWorldEverything;
   }
 
   private void fixACLsForUser(List<AccessControl> acls, String user, int mask) {

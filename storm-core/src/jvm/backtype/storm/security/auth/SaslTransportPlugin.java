@@ -121,7 +121,6 @@ public abstract class SaslTransportPlugin implements ITransportPlugin {
             TTransport trans = inProt.getTransport();
             //Sasl transport
             TSaslServerTransport saslTrans = (TSaslServerTransport)trans;
-
             //remote address
             TSocket tsocket = (TSocket)saslTrans.getUnderlyingTransport();
             Socket socket = tsocket.getSocket();
@@ -133,7 +132,7 @@ public abstract class SaslTransportPlugin implements ITransportPlugin {
             Subject remoteUser = new Subject();
             remoteUser.getPrincipals().add(new User(authId));
             req_context.setSubject(remoteUser);
-            
+
             //invoke service handler
             return wrapped.process(inProt, outProt);
         }

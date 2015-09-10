@@ -61,7 +61,8 @@ public class SaslNettyClient {
                     new SaslClientCallbackHandler(topologyName, token));
 
         } catch (IOException e) {
-            LOG.error("SaslNettyClient: Could not obtain topology token for Netty Client to use to authenticate with a Netty Server.");
+            LOG.error("SaslNettyClient: Could not obtain topology token for Netty "
+                    + "Client to use to authenticate with a Netty Server.");
             saslClient = null;
         }
     }
@@ -83,8 +84,9 @@ public class SaslNettyClient {
                     .getSaslToken());
             return retval;
         } catch (SaslException e) {
-            LOG.error("saslResponse: Failed to respond to SASL server's token:",
-                      e);
+            LOG.error(
+                    "saslResponse: Failed to respond to SASL server's token:",
+                    e);
             return null;
         }
     }
@@ -138,26 +140,19 @@ public class SaslNettyClient {
                 }
             }
             if (nc != null) {
-                if (LOG.isDebugEnabled()) {
-                    LOG.debug("handle: SASL client callback: setting username: {}",
-                              userName);
-                }
+                LOG.debug("handle: SASL client callback: setting username: {}",
+                          userName);
                 nc.setName(userName);
             }
             if (pc != null) {
-                if (LOG.isDebugEnabled()) {
-                    LOG.debug("handle: SASL client callback: setting userPassword");
-                }
+                LOG.debug("handle: SASL client callback: setting userPassword");
                 pc.setPassword(userPassword);
             }
             if (rc != null) {
-                if (LOG.isDebugEnabled()) {
-                    LOG.debug("handle: SASL client callback: setting realm: {}",
-                            rc.getDefaultText());
-                }
+                LOG.debug("handle: SASL client callback: setting realm: {}",
+                        rc.getDefaultText());
                 rc.setText(rc.getDefaultText());
             }
         }
     }
-
 }

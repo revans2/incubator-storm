@@ -23,6 +23,8 @@ import javax.security.auth.login.AppConfigurationEntry;
 import javax.security.auth.Subject;
 import java.security.NoSuchAlgorithmException;
 import java.security.URIParameter;
+
+import backtype.storm.security.INimbusCredentialPlugin;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.io.File;
@@ -34,6 +36,8 @@ import java.util.Set;
 import java.util.HashSet;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.SortedMap;
+import java.util.TreeMap;
 import java.util.concurrent.ExecutorService;
 
 public class AuthUtils {
@@ -79,7 +83,7 @@ public class AuthUtils {
      * @param conf_entry The app configuration entry name to get stuff from.
      * @return Return a map of the configs in configs_to_pull to their values.
      */
-    public static Map<String, ?> PullConfig(Configuration conf,
+    public static SortedMap<String, ?> PullConfig(Configuration conf,
                                             String conf_entry) throws IOException {
         if(conf == null) {
             return null;
@@ -91,7 +95,7 @@ public class AuthUtils {
             throw new IOException(errorMessage);
         }
 
-        HashMap<String, Object> results = new HashMap();
+        TreeMap<String, Object> results = new TreeMap<>();
         
 
         for(AppConfigurationEntry entry: configurationEntries) {
@@ -151,6 +155,28 @@ public class AuthUtils {
             if (clazzes != null) {
                 for (String clazz : clazzes) {
                     ICredentialsRenewer inst = (ICredentialsRenewer)Class.forName(clazz).newInstance();
+                    inst.prepare(conf);
+                    ret.add(inst);
+                }
+            }
+            return ret;
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    /**
+     * Get all the Nimbus Auto cred plugins.
+     * @param conf nimbus configuration to use.
+     * @return nimbus auto credential plugins.
+     */
+    public static Collection<INimbusCredentialPlugin> getNimbusAutoCredPlugins(Map conf) {
+        try {
+            Set<INimbusCredentialPlugin> ret = new HashSet<INimbusCredentialPlugin>();
+            Collection<String> clazzes = (Collection<String>)conf.get(Config.NIMBUS_AUTO_CRED_PLUGINS);
+            if (clazzes != null) {
+                for (String clazz : clazzes) {
+                    INimbusCredentialPlugin inst = (INimbusCredentialPlugin)Class.forName(clazz).newInstance();
                     inst.prepare(conf);
                     ret.add(inst);
                 }

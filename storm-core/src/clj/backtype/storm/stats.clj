@@ -23,7 +23,7 @@
             ComponentPageInfo ComponentType BoltAggregateStats
             ExecutorAggregateStats SpecificAggregateStats
             SpoutAggregateStats TopologyPageInfo TopologyStats])
-  (:use [backtype.storm log util])
+  (:use [backtype.storm util log])
   (:use [clojure.math.numeric-tower :only [ceil]])
   (:use [backtype.storm.daemon [common :only [system-id?]]]))
 
@@ -317,7 +317,6 @@
   [(.get_acked stats)
    (.get_failed stats)
    (.get_complete_ms_avg stats)])
-
 
 (defn clojurify-executor-stats
   [^ExecutorStats stats]
@@ -1567,11 +1566,6 @@
     (if error
       (error-subset (.get_error ^ErrorInfo error))
       "")))
-
-(defn float-str [n]
-  (if n
-    (format "%.3f" (float n))
-    "0"))
 
 (defn compute-bolt-capacity
   [executors]

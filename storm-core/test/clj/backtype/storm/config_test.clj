@@ -68,13 +68,46 @@
                 (.validateField validator "test" x)
                 (catch Exception e e)))))))
 
-(deftest test-topology-workers-is-number
+(deftest test-integer-validator
+  (let [validator ConfigValidation/IntegerValidator]
+    (.validateField validator "test" nil)
+    (.validateField validator "test" 1000)
+    (is (thrown-cause? java.lang.IllegalArgumentException
+          (.validateField validator "test" 1.34)))
+    (is (thrown-cause? java.lang.IllegalArgumentException
+          (.validateField validator "test" (inc Integer/MAX_VALUE))))))
+
+(deftest test-integers-validator
+  (let [validator ConfigValidation/IntegersValidator]
+    (.validateField validator "test" nil)
+    (.validateField validator "test" [1000 0 -1000])
+    (is (thrown-cause? java.lang.IllegalArgumentException
+          (.validateField validator "test" [0 10 1.34])))
+    (is (thrown-cause? java.lang.IllegalArgumentException
+          (.validateField validator "test" [0 nil])))
+    (is (thrown-cause? java.lang.IllegalArgumentException
+          (.validateField validator "test" [-100 (inc Integer/MAX_VALUE)])))))
+
+(deftest test-double-validator
+  (let [validator ConfigValidation/DoubleValidator]
+    (.validateField validator "test" nil)
+    (.validateField validator "test" 10)
+    ;; we can provide lenient way to convert int/long to double with losing precision
+    (.validateField validator "test" Integer/MAX_VALUE)
+    (.validateField validator "test" (inc Integer/MAX_VALUE))
+    (.validateField validator "test" Double/MAX_VALUE)))
+
+(deftest test-topology-workers-is-integer
   (let [validator (CONFIG-SCHEMA-MAP TOPOLOGY-WORKERS)]
     (.validateField validator "test" 42)
-    ;; The float can be rounded down to an int.
-    (.validateField validator "test" 3.14159)
     (is (thrown-cause? java.lang.IllegalArgumentException
-      (.validateField validator "test" "42")))))
+      (.validateField validator "test" 3.14159)))))
+
+(deftest test-topology-stats-sample-rate-is-float
+  (let [validator (CONFIG-SCHEMA-MAP TOPOLOGY-STATS-SAMPLE-RATE)]
+    (.validateField validator "test" 0.5)
+    (.validateField validator "test" 10)
+    (.validateField validator "test" Double/MAX_VALUE)))
 
 (deftest test-isolation-scheduler-machines-is-map
   (let [validator (CONFIG-SCHEMA-MAP ISOLATION-SCHEDULER-MACHINES)]
@@ -97,6 +130,19 @@
       (is (nil? (try
                   (.validateField validator "test" x)
                   (catch Exception e e)))))))
+
+(deftest test-non-negative-number-validator
+  (let [validator ConfigValidation/NonNegativeNumberValidator]
+    (is (nil? (try
+      (.validateField validator "test" 0)
+      (catch Exception e e))))
+    (is (nil? (try
+      (.validateField validator "test" 0.0)
+      (catch Exception e e))))
+    (is (thrown-cause? java.lang.IllegalArgumentException
+          (.validateField validator "test" -1)))
+    (is (thrown-cause? java.lang.IllegalArgumentException
+          (.validateField validator "test" -1.0)))))
 
 (deftest test-worker-childopts-is-string-or-string-list
   (let [pass-cases [nil "some string" ["some" "string" "list"]]]

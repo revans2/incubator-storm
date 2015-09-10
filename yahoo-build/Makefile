@@ -17,11 +17,8 @@ check: test
 	@! egrep -iq '<fail|<error' ../*/target/test-reports/*.xml 
 
 
-build:
-	cd .. && $(MVN) -Pyahoo -Pnative -Dworker-launcher.conf.dir=${EXEC_CONF_DIR} package -DskipTests ${MVN_MAKE_OPTS}
-
-install:
-	cd .. && $(MVN) -Pyahoo -Pnative -Dworker-launcher.conf.dir=${EXEC_CONF_DIR} install -DskipTests ${MVN_MAKE_OPTS}
+build: RELEASE
+	cd .. && $(MVN) -Pyahoo -Pnative -Dworker-launcher.conf.dir=${EXEC_CONF_DIR} package -DskipTests ${MVN_MAKE_OPTS} -Dystorm.build.number=$(shell sed 's;.*\.;;' RELEASE)
 
 dist_tag: RELEASE
 	$(shell echo "ystorm_`cat RELEASE`" | sed 's/\./_/g' > DIST_TAG)
@@ -40,28 +37,37 @@ RELEASE: BASE_VERSION_UNDERSCORE
 		/home/y/bin/auto_increment_version.pl ystorm $(BASE_VERSION_UNDERSCORE) > RELEASE; \
 	fi
 
+define setup-versions
+cd .. && ${MVN} -q -Pyahoo versions:set -DnewVersion=$(MVN_FULL_VERSION) ${MVN_MAKE_OPTS} && \
+	${MVN} -q -Pyahoo versions:update-child-modules ${MVN_MAKE_OPTS}
+endef
+
+define revert-versions
+cd .. && ${MVN} -q -Pyahoo versions:revert ${MVN_MAKE_OPTS} && \
+	${MVN} -q -Pyahoo versions:update-child-modules ${MVN_MAKE_OPTS}
+endef
+
+define find-tracked-pom-xml
+git ls-files 'pom.xml' '**/pom.xml'
+endef
+
 testpkg: RELEASE BASE_VERSION build
-	cd .. && ${MVN} -Pyahoo versions:set -DnewVersion=$(MVN_FULL_VERSION)
-	cd .. && ${MVN} -Pyahoo versions:update-child-modules
-	yinst_create --buildtype test ystorm.yicf
-	cd .. && ${MVN} -Pyahoo versions:revert
-	cd .. && ${MVN} -Pyahoo versions:update-child-modules
+	$(setup-versions)
+	yinst_create --buildtype test ystorm.yicf && $(revert-versions) || ( $(revert-versions) && false )
 
 ignore-pom-changes:
-	cd .. && find . -name pom.xml | xargs git update-index --assume-unchanged
+	cd .. && $(find-tracked-pom-xml) | xargs git update-index --assume-unchanged
 	
 # This target is called from screwdriver build and leaves the poms changed for its
 # publish phase
 package-sd: RELEASE build
-	cd .. && ${MVN} -Pyahoo versions:set -DnewVersion=$(MVN_FULL_VERSION)
-	cd .. && ${MVN} -Pyahoo versions:update-child-modules
-	cd .. && find . -name pom.xml | xargs git update-index --assume-unchanged
+	$(setup-versions)
+	cd .. && $(find-tracked-pom-xml)| xargs git update-index --assume-unchanged
 	yinst_create --buildtype release ystorm.yicf
-	cd .. && find . -name pom.xml | xargs git update-index --no-assume-unchanged
+	cd .. && $(find-tracked-pom-xml) | xargs git update-index --no-assume-unchanged
 
 package: package-sd
-	cd .. && ${MVN} -Pyahoo versions:revert
-	cd .. && ${MVN} -Pyahoo versions:update-child-modules
+	$(revert-versions)
 
 
 rhel6_build.state: rhel6_build.yidf rhel6_build.yml
@@ -70,8 +76,7 @@ rhel6_build.state: rhel6_build.yidf rhel6_build.yml
 
 clean:
 	cd .. && $(MVN) -Pyahoo clean ${MVN_MAKE_OPTS}
-	cd .. && ${MVN} -Pyahoo versions:revert
-	cd .. && ${MVN} -Pyahoo versions:update-child-modules
+	$(revert-versions)
 	rm -rf *_build.ruleset ystorm*.tgz BASE_VERSION RELEASE BASE_VERSION_UNDERSCORE
 
 

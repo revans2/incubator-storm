@@ -64,62 +64,30 @@ public class CachedDNSToSwitchMapping extends AbstractDNSToSwitchMapping {
     return unCachedHosts;
   }
 
-  /**
-   * Caches the resolved host:rack mappings. The two list
-   * parameters must be of equal size.
-   *
-   * @param uncachedHosts a list of hosts that were uncached
-   * @param resolvedHosts a list of resolved host entries where the element
-   * at index(i) is the resolved value for the entry in uncachedHosts[i]
-   */
-  private void cacheResolvedHosts(List<String> uncachedHosts,
-      List<String> resolvedHosts) {
-    // Cache the result
-    if (resolvedHosts != null) {
-      for (int i=0; i<uncachedHosts.size(); i++) {
-        cache.put(uncachedHosts.get(i), resolvedHosts.get(i));
-      }
-    }
-  }
-
-  /**
-   * @param names a list of hostnames to look up (can be be empty)
-   * @return the cached resolution of the list of hostnames/addresses.
-   *  or null if any of the names are not currently in the cache
-   */
-  private List<String> getCachedHosts(List<String> names) {
-    List<String> result = new ArrayList<String>(names.size());
-    // Construct the result
-    for (String name : names) {
-      String networkLocation = cache.get(name);
-      if (networkLocation != null) {
-        result.add(networkLocation);
-      } else {
-        return null;
-      }
-    }
-    return result;
-  }
 
   @Override
-  public List<String> resolve(List<String> names) {
+  public Map<String,String> resolve(List<String> names) {
     // normalize all input names to be in the form of IP addresses
     names = normalizeHostNames(names);
 
-    List <String> result = new ArrayList<String>(names.size());
+    Map<String,String> result = new HashMap<String, String>();
     if (names.isEmpty()) {
       return result;
     }
 
     List<String> uncachedHosts = getUncachedHosts(names);
+    Map<String, String> resolvedUncachedHosts = rawMapping.resolve(uncachedHosts);
+    // update the cache
+    cache.putAll(resolvedUncachedHosts);
 
-    // Resolve the uncached hosts
-    List<String> resolvedHosts = rawMapping.resolve(uncachedHosts);
-    //cache them
-    cacheResolvedHosts(uncachedHosts, resolvedHosts);
-    //now look up the entire list in the cache
-    return getCachedHosts(names);
 
+    // query the cache for all the hostnames provided
+    for (String host : names){
+      result.put(host, cache.get(host));
+    }
+
+    // return map of resolved hosts to network paths.
+    return result;
   }
 
   /**

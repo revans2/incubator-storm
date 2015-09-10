@@ -26,7 +26,11 @@
   (:require [clj-time.coerce :as coerce])
   (:import [org.apache.logging.log4j Level LogManager])
   (:import [org.slf4j Logger])
-  (:use [conjure core]))
+  (:use [conjure core])
+  (:import [backtype.storm.messaging TaskMessage IContext IConnection ConnectionWithStatus ConnectionWithStatus$Status])
+  (:import [org.mockito Mockito])
+  )
+
 
 (deftest test-log-reset-should-not-trigger-for-future-time
   (with-local-cluster [cluster]
@@ -188,3 +192,15 @@
           (verify-nth-call-args-for-indices 1 worker/set-logger-level [1 2] "my_debug_logger" Level/DEBUG)
           (verify-nth-call-args-for-indices 2 worker/set-logger-level [1 2] "my_error_logger" Level/ERROR)
           (verify-nth-call-args-for-indices 3 worker/set-logger-level [1 2] "my_info_logger" Level/INFO)))))
+
+(deftest test-worker-is-connection-ready
+  (let [connection (Mockito/mock ConnectionWithStatus)]
+    (. (Mockito/when (.status connection)) thenReturn ConnectionWithStatus$Status/Ready)
+    (is (= true (worker/is-connection-ready connection)))
+
+    (. (Mockito/when (.status connection)) thenReturn ConnectionWithStatus$Status/Connecting)
+    (is (= false (worker/is-connection-ready connection)))
+
+    (. (Mockito/when (.status connection)) thenReturn ConnectionWithStatus$Status/Closed)
+    (is (= false (worker/is-connection-ready connection)))
+  ))

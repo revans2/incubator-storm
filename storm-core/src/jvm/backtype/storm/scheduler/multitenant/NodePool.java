@@ -321,4 +321,14 @@ public abstract class NodePool {
     }    
     return total;
   }
+
+  /**
+   * checks if multitenant scheduler scheduler or is reponsibled for scheduling a topology
+   * @param td
+   * @return
+   */
+  public Boolean isTopologyScheduledByMultitenant(TopologyDetails td) {
+      return ((backtype.storm.scheduler.resource.strategies.MultitenantStrategy.class.getName().equals(td.getScheduler()) == true) 
+              || (td.getScheduler() == null));
+  }
 }

@@ -67,38 +67,6 @@ public class Topologies {
     /**
      * Note: The public API relevant to resource aware scheduling is unstable as of May 2015.
      *       We reserve the right to change them.
-     * @param cluster the cluster object that maintains a copy of the scheduling state
-     */
-    public void checkAndAddDefaultRes(Cluster cluster) {
-        for (TopologyDetails td : topologies.values()) {
-            for (ExecutorDetails exec : cluster.getUnassignedExecutors(td)) {
-                if (!td.hasExecInTopo(exec)) {
-                    if (td.getExecutorToComponent().get(exec)
-                            .compareTo("__acker") == 0) {
-                        LOG.info(
-                                "Scheduling __acker {} with memory requirement as 'on heap' - {} and 'off heap' - {} and CPU requirement as {}",
-                                exec,
-                                td.topologyConf.get(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB),
-                                td.topologyConf.get(Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB),
-                                td.topologyConf.get(Config.TOPOLOGY_COMPONENT_CPU_PCORE_PERCENT));
-                    } else {
-                        LOG.info(
-                                "Executor: {} of Component: {} of topology: {} does not have a set resource requirement!",
-                                exec, td.getExecutorToComponent().get(exec), td.getId());
-                    }
-                    td.addDefaultResforExec(exec);
-                } else {
-                    LOG.info(
-                            "Executor: {} of Component: {} of topology: {} already has a set memory resource requirement!",
-                            exec, td.getExecutorToComponent().get(exec), td.getId());
-                }
-            }
-        }
-    }
-
-    /**
-     * Note: The public API relevant to resource aware scheduling is unstable as of May 2015.
-     *       We reserve the right to change them.
      */
     public Map<String, Map<String, RAS_Component>> getAllRAS_Components() {
         if (_allRAS_Components == null) {

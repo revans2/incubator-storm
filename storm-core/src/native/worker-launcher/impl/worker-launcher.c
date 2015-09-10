@@ -506,6 +506,10 @@ int setup_stormdist_dir(const char* local_dir, int for_blob_permission) {
       }
     }
     ret = fts_close(tree);
+    if (exit_code == 0 && ret != 0) {
+      fprintf(LOGFILE, "Error in fts_close while setting up %s\n", local_dir);
+      exit_code = -1;
+    }
     free(paths[0]);
     paths[0] = NULL;
   }
@@ -670,7 +674,6 @@ static int delete_path(const char *full_path,
         fprintf(LOGFILE, "Error traversing directory %s - %s\n", 
                 entry->fts_path, strerror(entry->fts_errno));
         exit_code = -1;
-        break;
         break;
       default:
         exit_code = -1;
