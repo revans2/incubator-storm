@@ -140,7 +140,7 @@ public class TopologyDetails {
         //schedule tasks that are not part of components returned from topology.get_spout or topology.getbolt (AKA sys tasks most specifically __acker tasks)
         for(ExecutorDetails exec : this.getExecutors()) {
             if (_resourceList.containsKey(exec) == false) {
-                LOG.info(
+                LOG.debug(
                         "Scheduling {} {} with memory requirement as 'on heap' - {} and 'off heap' - {} and CPU requirement as {}",
                         this.getExecutorToComponent().get(exec),
                         exec,
@@ -474,7 +474,7 @@ public class TopologyDetails {
                         Utils.getDouble(topologyConf.get(Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB), null));
         defaultResourceList.put(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB,
                         Utils.getDouble(topologyConf.get(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB), null));
-        LOG.warn("Scheduling Executor: {} with memory requirement as onHeap: {} - offHeap: {} " +
+        LOG.debug("Scheduling Executor: {} with memory requirement as onHeap: {} - offHeap: {} " +
                         "and CPU requirement: {}",
                 exec, topologyConf.get(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB),
                 topologyConf.get(Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB),
