@@ -659,23 +659,22 @@
 (defn java-cmd []
   (jvm-cmd "java"))
 
-(defn jcmd-cmd []
-  "flight.bash")
+(def PROFILE-CMD "flight.bash")
 
 (defn jmap-dump-cmd [pid target-dir]
-  [(jcmd-cmd) pid "jmap" target-dir])
+  [PROFILE-CMD pid "jmap" target-dir])
 
 (defn jstack-dump-cmd [pid target-dir]
-  [(jcmd-cmd) pid "jstack" target-dir])
+  [PROFILE-CMD pid "jstack" target-dir])
 
 (defn jprofile-start [pid]
-  [(jcmd-cmd) pid "start" ])
+  [PROFILE-CMD pid "start" ])
 
 (defn jprofile-stop [pid target-dir]
-  [(jcmd-cmd) pid "stop" target-dir])
+  [PROFILE-CMD pid "stop" target-dir])
 
 (defn jprofile-dump [pid workers-artifacts-directory]
-  [(jcmd-cmd) pid "dump" workers-artifacts-directory])
+  [PROFILE-CMD pid "dump" workers-artifacts-directory])
 
 (defn- delete-topology-profiler-action [storm-cluster-state storm-id profile-action]
   (log-message "Deleting profiler action.." profile-action)
@@ -734,7 +733,9 @@
                                 (= action ProfileAction/JMAP_DUMP) (jmap-dump-cmd worker-pid target-dir)
                                 (= action ProfileAction/JSTACK_DUMP) (jstack-dump-cmd worker-pid target-dir)
                                 (= action ProfileAction/JPROFILE_DUMP) (jprofile-dump worker-pid target-dir)
-                                (and (not stop?) (= action ProfileAction/JPROFILE_STOP)) (jprofile-start worker-pid)
+                                (and (not stop?)
+                                     (= action ProfileAction/JPROFILE_STOP))
+                                  (jprofile-start worker-pid) ;; Ensure the profiler is still running
                                 (and stop? (= action ProfileAction/JPROFILE_STOP)) (jprofile-stop worker-pid target-dir))
                       log-prefix (str "ProfilerAction process " storm-id ":" port " PROFILER_ACTION: " action " ")
                       action-on-exit (fn [exit-code]

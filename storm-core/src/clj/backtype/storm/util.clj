@@ -522,7 +522,7 @@
   [dir command :environment {}]
   (let [script-src (str "#!/bin/bash\n" (clojure.string/join "" (map (fn [[k v]] (str (shell-cmd ["export" (str k "=" v)]) ";\n")) environment)) "\nexec " (shell-cmd command) ";")
         script-path (script-file-path dir)
-        - (spit script-path script-src)]
+        _ (spit script-path script-src)]
     script-path
   ))
 
