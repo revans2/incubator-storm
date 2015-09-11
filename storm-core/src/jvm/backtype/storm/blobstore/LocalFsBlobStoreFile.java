@@ -137,5 +137,10 @@ public class LocalFsBlobStoreFile extends BlobStoreFile {
   public String toString() {
     return _path+":"+(_isTmp ? "tmp": BlobStoreFile.BLOBSTORE_DATA_FILE)+":"+_key;
   }
+
+@Override
+public long getFileLength() {
+  return _path.length();
+}
 }
 

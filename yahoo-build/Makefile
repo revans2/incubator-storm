@@ -17,8 +17,8 @@ check: test
 	@! egrep -iq '<fail|<error' ../*/target/test-reports/*.xml 
 
 
-build:
-	cd .. && $(MVN) -Pyahoo -Pnative -Dworker-launcher.conf.dir=${EXEC_CONF_DIR} package -DskipTests ${MVN_MAKE_OPTS} -Dystorm.build.number=$(YSTORM_BUILD_NUMBER)
+build: RELEASE
+	cd .. && $(MVN) -Pyahoo -Pnative -Dworker-launcher.conf.dir=${EXEC_CONF_DIR} package -DskipTests ${MVN_MAKE_OPTS} -Dystorm.build.number=$(shell sed 's;.*\.;;' RELEASE)
 
 dist_tag: RELEASE
 	$(shell echo "ystorm_`cat RELEASE`" | sed 's/\./_/g' > DIST_TAG)

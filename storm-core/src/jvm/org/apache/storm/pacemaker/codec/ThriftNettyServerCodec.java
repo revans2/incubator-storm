@@ -17,6 +17,7 @@
  */
 package org.apache.storm.pacemaker.codec;
 
+import backtype.storm.Config;
 import backtype.storm.messaging.netty.ISaslServer;
 import backtype.storm.messaging.netty.IServer;
 import backtype.storm.messaging.netty.KerberosSaslServerHandler;
@@ -24,10 +25,11 @@ import backtype.storm.messaging.netty.SaslStormServerHandler;
 import backtype.storm.messaging.netty.StormServerHandler;
 import backtype.storm.security.auth.AuthUtils;
 import java.io.IOException;
+import java.util.List;
 import java.util.Map;
-import org.apache.storm.netty.channel.ChannelPipeline;
-import org.apache.storm.netty.channel.ChannelPipelineFactory;
-import org.apache.storm.netty.channel.Channels;
+import org.jboss.netty.channel.ChannelPipeline;
+import org.jboss.netty.channel.ChannelPipelineFactory;
+import org.jboss.netty.channel.Channels;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -73,7 +75,10 @@ public class ThriftNettyServerCodec {
                 else if(authMethod == AuthMethod.KERBEROS) {
                     try {
                         LOG.debug("Adding KerberosSaslServerHandler to pacemaker server pipeline.");
-                        pipeline.addLast(KERBEROS_HANDLER, new KerberosSaslServerHandler((ISaslServer)server, storm_conf, AuthUtils.LOGIN_CONTEXT_PACEMAKER_SERVER));
+                        pipeline.addLast(KERBEROS_HANDLER, new KerberosSaslServerHandler((ISaslServer)server,
+                                                                                         storm_conf,
+                                                                                         AuthUtils.LOGIN_CONTEXT_PACEMAKER_SERVER,
+                                                                                         (List)storm_conf.get(Config.PACEMAKER_KERBEROS_USERS)));
                     }
                     catch (IOException e) {
                         throw new RuntimeException(e);

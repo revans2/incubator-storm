@@ -24,7 +24,7 @@
            [backtype.storm.topology TopologyBuilder])
   (:import [backtype.storm.scheduler Cluster SupervisorDetails WorkerSlot ExecutorDetails
             SchedulerAssignmentImpl Topologies TopologyDetails])
-  (:import [backtype.storm.scheduler.resource Node ResourceAwareScheduler])
+  (:import [backtype.storm.scheduler.resource RAS_Node ResourceAwareScheduler])
   (:import [backtype.storm Config])
   (:import [java.util HashMap]))
 
@@ -96,7 +96,7 @@
   (let [supers (gen-supervisors 5 4)
         cluster (Cluster. (nimbus/standalone-nimbus) supers {} {})
         topologies (Topologies. (to-top-map []))
-        node-map (Node/getAllNodesFrom cluster topologies)
+        node-map (RAS_Node/getAllNodesFrom cluster topologies)
         topology1 (TopologyDetails. "topology1" {} nil 0)
         topology2 (TopologyDetails. "topology2" {} nil 0)]
     (is (= 5 (.size node-map)))
@@ -160,7 +160,7 @@
                   {STORM-NETWORK-TOPOGRAPHY-PLUGIN
                    "backtype.storm.networktopography.DefaultRackDNSToSwitchMapping"})
         topologies (Topologies. (to-top-map [topology1]))
-        node-map (Node/getAllNodesFrom cluster topologies)
+        node-map (RAS_Node/getAllNodesFrom cluster topologies)
         scheduler (ResourceAwareScheduler.)]
     (.schedule scheduler topologies cluster)
     (let [assignment (.getAssignmentById cluster "topology1")

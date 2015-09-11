@@ -43,4 +43,5 @@ abstract class BlobStoreFile {
   public abstract OutputStream getOutputStream() throws IOException;
   public abstract void commit() throws IOException;
   public abstract void cancel() throws IOException;
+  public abstract long getFileLength() throws IOException;
 }

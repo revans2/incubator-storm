@@ -1283,10 +1283,11 @@
                 principal (.principal req)
                 submitter-principal (if principal (.toString principal))
                 submitter-user (.toLocal principal-to-local principal)
+                system-user (. System (getProperty "user.name")) ;should only be used for non-secure mode
                 topo-acl (distinct (remove nil? (conj (.get storm-conf-submitted TOPOLOGY-USERS) submitter-principal, submitter-user)))
                 storm-conf (-> storm-conf-submitted
                                (assoc TOPOLOGY-SUBMITTER-PRINCIPAL (if submitter-principal submitter-principal ""))
-                               (assoc TOPOLOGY-SUBMITTER-USER (if submitter-user submitter-user "")) ;Don't let the user set who we launch as
+                               (assoc TOPOLOGY-SUBMITTER-USER (if submitter-user submitter-user system-user)) ;if there is no kerberos principal, then use the user name
                                (assoc TOPOLOGY-USERS topo-acl)
                                (assoc STORM-ZOOKEEPER-SUPERACL (.get conf STORM-ZOOKEEPER-SUPERACL)))
                 storm-conf (if (Utils/isZkAuthenticationConfiguredStormServer conf)
@@ -1775,6 +1776,7 @@
                                                         blob-key))]
           (let [session-id (uuid)
                 ret (BeginDownloadResult. (.getVersion is) (str session-id))]
+            (.set_data_size ret (.getFileLength is))
             (.put (:blob-downloaders nimbus) session-id (BufferInputStream. is ^Integer (Utils/getInt (conf STORM-BLOBSTORE-INPUTSTREAM-BUFFER-SIZE-BYTES) (int 65536))))
             (log-message "Created download session for " blob-key
                          " with id " session-id)

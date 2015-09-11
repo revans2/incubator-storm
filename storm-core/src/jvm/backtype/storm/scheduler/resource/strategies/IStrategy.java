@@ -24,9 +24,9 @@ import java.util.Map;
 import backtype.storm.scheduler.Topologies;
 import backtype.storm.scheduler.ExecutorDetails;
 import backtype.storm.scheduler.TopologyDetails;
-import backtype.storm.scheduler.resource.Node;
+import backtype.storm.scheduler.resource.RAS_Node;
 
 public interface IStrategy {
-	public Map<Node, Collection<ExecutorDetails>> schedule(Topologies topologies, TopologyDetails td,
-	        Collection<ExecutorDetails> unassignedExecutors);
+
+	public Map<RAS_Node, Collection<ExecutorDetails>> schedule(TopologyDetails td);
 }

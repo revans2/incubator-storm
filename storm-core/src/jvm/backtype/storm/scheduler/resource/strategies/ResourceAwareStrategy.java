@@ -39,29 +39,28 @@ import backtype.storm.scheduler.ExecutorDetails;
 import backtype.storm.scheduler.Topologies;
 import backtype.storm.scheduler.TopologyDetails;
 import backtype.storm.scheduler.resource.RAS_Component;
-import backtype.storm.scheduler.resource.Node;
+import backtype.storm.scheduler.resource.RAS_Node;
 
 public class ResourceAwareStrategy implements IStrategy {
-    protected Logger LOG = null;
-    protected Topologies _topologies;
-    protected TopologyDetails _topo;
-    protected Collection<Node> _availNodes;
-    protected Node refNode = null;
+    private Logger LOG = null;
+    private Topologies _topologies;
+    private Cluster _cluster;
+    private Collection<RAS_Node> _availNodes;
+    private RAS_Node refNode = null;
     /**
      * supervisor id -> Node
      */
-    private Map<String, Node> _nodes;
+    private Map<String, RAS_Node> _nodes;
     private Map<String, List<String>> _clusterInfo;
 
     private final double CPU_WEIGHT = 1.0;
     private final double MEM_WEIGHT = 1.0;
     private final double NETWORK_WEIGHT = 1.0;
 
-    public ResourceAwareStrategy(
-            TopologyDetails topo, Cluster cluster, Topologies topologies) {
+    public ResourceAwareStrategy(Cluster cluster, Topologies topologies) {
         this._topologies = topologies;
-        this._topo = topo;
-        this._nodes = Node.getAllNodesFrom(cluster, _topologies);
+        this._cluster = cluster;
+        this._nodes = RAS_Node.getAllNodesFrom(cluster, _topologies);
         this._availNodes = this.getAvaiNodes();
         this.LOG = LoggerFactory.getLogger(this.getClass());
         this._clusterInfo = cluster.getNetworkTopography();
@@ -89,24 +88,23 @@ public class ResourceAwareStrategy implements IStrategy {
         return retMap;
     }
 
-    public Map<Node, Collection<ExecutorDetails>> schedule(Topologies topologies, TopologyDetails td,
-                                                           Collection<ExecutorDetails> unassignedExecutors) {
-        if (_availNodes.size() <= 0) {
+    public Map<RAS_Node, Collection<ExecutorDetails>> schedule(TopologyDetails td) {
+        if (this._availNodes.size() <= 0) {
             LOG.warn("No available nodes to schedule tasks on!");
             return null;
         }
-
-        Map<Node, Collection<ExecutorDetails>> nodeToExecutorDetailsMap = new HashMap<Node, Collection<ExecutorDetails>>();
+        Collection<ExecutorDetails> unassignedExecutors = _cluster.getUnassignedExecutors(td);
+        Map<RAS_Node, Collection<ExecutorDetails>> nodeToExecutorDetailsMap = new HashMap<RAS_Node, Collection<ExecutorDetails>>();
         LOG.debug("ExecutorsNeedScheduling: {}", unassignedExecutors);
         Collection<ExecutorDetails> scheduledTasks = new ArrayList<ExecutorDetails>();
-        List<RAS_Component> spouts = this.getSpouts(topologies);
+        List<RAS_Component> spouts = this.getSpouts(this._topologies, td);
 
         if (spouts.size() == 0) {
             LOG.error("Cannot find a Spout!");
             return null;
         }
 
-        Queue<RAS_Component> ordered_RAS_Component_list = bfs(topologies, spouts);
+        Queue<RAS_Component> ordered_RAS_Component_list = bfs(this._topologies, td, spouts);
 
         Map<Integer, List<ExecutorDetails>> priorityToExecutorMap = getPriorityToExecutorDetailsListMap(ordered_RAS_Component_list, unassignedExecutors);
         Collection<ExecutorDetails> executorsNotScheduled = new HashSet<ExecutorDetails>(unassignedExecutors);
@@ -119,9 +117,9 @@ public class ResourceAwareStrategy implements IStrategy {
                 if (it.hasNext()) {
                     ExecutorDetails exec = it.next();
                     LOG.info("\n\nAttempting to schedule: {} of component {}[avail {}] with rank {}",
-                            new Object[] { exec, this._topo.getExecutorToComponent().get(exec),
-                    this._topo.getTaskResourceReqList(exec), entry.getKey() });
-                    Node scheduledNode = this.scheduleNodeForAnExecutorDetail(exec);
+                            new Object[] { exec, td.getExecutorToComponent().get(exec),
+                    td.getTaskResourceReqList(exec), entry.getKey() });
+                    RAS_Node scheduledNode = this.scheduleNodeForAnExecutorDetail(exec, td);
                     if (scheduledNode != null) {
                         if (nodeToExecutorDetailsMap.containsKey(scheduledNode) == false) {
                             Collection<ExecutorDetails> newExecutorDetailsMap = new LinkedList<ExecutorDetails>();
@@ -146,7 +144,7 @@ public class ResourceAwareStrategy implements IStrategy {
         LOG.info("/* Scheduling left over task (most likely sys tasks) */");
         // schedule left over system tasks
         for (ExecutorDetails detail : executorsNotScheduled) {
-            Node bestNodeForAnExecutorDetail = this.scheduleNodeForAnExecutorDetail(detail);
+            RAS_Node bestNodeForAnExecutorDetail = this.scheduleNodeForAnExecutorDetail(detail, td);
             if (bestNodeForAnExecutorDetail != null) {
                 if (!nodeToExecutorDetailsMap.containsKey(bestNodeForAnExecutorDetail)) {
                     Collection<ExecutorDetails> newMap = new LinkedList<ExecutorDetails>();
@@ -206,15 +204,15 @@ public class ResourceAwareStrategy implements IStrategy {
         return res;
     }
 
-    private Node scheduleNodeForAnExecutorDetail(ExecutorDetails exec) {
+    private RAS_Node scheduleNodeForAnExecutorDetail(ExecutorDetails exec, TopologyDetails td) {
         // first scheduling
-        Node n = null;
+        RAS_Node n = null;
         if (this.refNode == null) {
             String clus = this.getBestClustering();
-            n = this.getBestNodeInCluster_Mem_CPU(clus, exec);
+            n = this.getBestNodeInCluster_Mem_CPU(clus, exec, td);
             this.refNode = n;
         } else {
-            n = this.getBestNode(exec);
+            n = this.getBestNode(exec, td);
             if(n != null) {
             	this.refNode = n; // update the refnode every time
             }
@@ -224,41 +222,45 @@ public class ResourceAwareStrategy implements IStrategy {
         return n;
     }
 
-    private Node getBestNode(ExecutorDetails exec) {
-        Double taskMem = _topo.getTotalMemReqTask(exec);
-        Double taskCPU = _topo.getTotalCpuReqTask(exec);
+    private RAS_Node getBestNode(ExecutorDetails exec, TopologyDetails td) {
+        Double taskMem = td.getTotalMemReqTask(exec);
+        Double taskCPU = td.getTotalCpuReqTask(exec);
 
         Double shortestDistance = Double.POSITIVE_INFINITY;
-        Node closestNode = null;
-        for (Node n : this._availNodes) {
+        RAS_Node closestNode = null;
+        for (RAS_Node n : this._availNodes) {
+            if(n.totalSlotsFree() > 0) {
             // hard constraint
-            if (n.getAvailableMemoryResources() >= taskMem
-                    && n.getAvailableCpuResources() >= taskCPU) {
-                Double a = Math.pow((taskCPU - n.getAvailableCpuResources())
-                        * this.CPU_WEIGHT, 2);
-                Double b = Math.pow((taskMem - n.getAvailableMemoryResources())
-                        * this.MEM_WEIGHT, 2);
-                Double c = Math.pow(this.distToNode(this.refNode, n)
-                        * this.NETWORK_WEIGHT, 2);
-                Double distance = Math.sqrt(a + b + c);
-                if (shortestDistance > distance) {
-                    shortestDistance = distance;
-                    closestNode = n;
+                if (n.getAvailableMemoryResources() >= taskMem
+                        && n.getAvailableCpuResources() >= taskCPU) {
+                    Double a = Math.pow((taskCPU - n.getAvailableCpuResources())
+                            * this.CPU_WEIGHT, 2);
+                    Double b = Math.pow((taskMem - n.getAvailableMemoryResources())
+                            * this.MEM_WEIGHT, 2);
+                    Double c = Math.pow(this.distToNode(this.refNode, n)
+                            * this.NETWORK_WEIGHT, 2);
+                    Double distance = Math.sqrt(a + b + c);
+                    if (shortestDistance > distance) {
+                        shortestDistance = distance;
+                        closestNode = n;
+                    }
                 }
             }
         }
         return closestNode;
     }
 
-    Double distToNode(Node src, Node dest) {
-        if (this.NodeToCluster(src) == this.NodeToCluster(dest)) {
+    Double distToNode(RAS_Node src, RAS_Node dest) {
+        if (src.getId().equals(dest.getId())==true) {
             return 1.0;
-        } else {
+        }else if (this.NodeToCluster(src) == this.NodeToCluster(dest)) {
             return 2.0;
+        } else {
+            return 3.0;
         }
     }
 
-    private String NodeToCluster(Node node) {
+    private String NodeToCluster(RAS_Node node) {
         for (Entry<String, List<String>> entry : this._clusterInfo
                 .entrySet()) {
             if (entry.getValue().contains(node.hostname)) {
@@ -269,8 +271,8 @@ public class ResourceAwareStrategy implements IStrategy {
         return null;
     }
 
-    private List<Node> getNodesFromCluster(String clus) {
-        List<Node> retList = new ArrayList<Node>();
+    private List<RAS_Node> getNodesFromCluster(String clus) {
+        List<RAS_Node> retList = new ArrayList<RAS_Node>();
         for (String node_id : this._clusterInfo.get(clus)) {
             retList.add(this._nodes.get(this
                     .NodeHostnameToId(node_id)));
@@ -278,31 +280,33 @@ public class ResourceAwareStrategy implements IStrategy {
         return retList;
     }
 
-    private Node getBestNodeInCluster_Mem_CPU(String clus, ExecutorDetails exec) {
-        Double taskMem = _topo.getTotalMemReqTask(exec);
-        Double taskCPU = _topo.getTotalCpuReqTask(exec);
+    private RAS_Node getBestNodeInCluster_Mem_CPU(String clus, ExecutorDetails exec, TopologyDetails td) {
+        Double taskMem = td.getTotalMemReqTask(exec);
+        Double taskCPU = td.getTotalCpuReqTask(exec);
 
-        Collection<Node> NodeMap = this.getNodesFromCluster(clus);
+        Collection<RAS_Node> NodeMap = this.getNodesFromCluster(clus);
         Double shortestDistance = Double.POSITIVE_INFINITY;
         String msg = "";
         LOG.info("exec: {} taskMem: {} taskCPU: {}", exec, taskMem, taskCPU);
-        Node closestNode = null;
+        RAS_Node closestNode = null;
         LOG.info("NodeMap.size: {}", NodeMap.size());
         LOG.info("NodeMap: {}", NodeMap);
-        for (Node n : NodeMap) {
-            if (n.getAvailableMemoryResources() >= taskMem
-                    && n.getAvailableCpuResources() >= taskCPU
-                    && n.totalSlotsFree() > 0) {
-                Double distance = Math
-                        .sqrt(Math.pow(
-                                (taskMem - n.getAvailableMemoryResources()), 2)
-                                + Math.pow(
-                                (taskCPU - n.getAvailableCpuResources()),
-                                2));
-                msg = msg + "{" + n.getId() + "-" + distance.toString() + "}";
-                if (distance < shortestDistance) {
-                    closestNode = n;
-                    shortestDistance = distance;
+        for (RAS_Node n : NodeMap) {
+            if(n.totalSlotsFree()>0) {
+                if (n.getAvailableMemoryResources() >= taskMem
+                        && n.getAvailableCpuResources() >= taskCPU
+                        && n.totalSlotsFree() > 0) {
+                    Double distance = Math
+                            .sqrt(Math.pow(
+                                    (taskMem - n.getAvailableMemoryResources()), 2)
+                                    + Math.pow(
+                                    (taskCPU - n.getAvailableCpuResources()),
+                                    2));
+                    msg = msg + "{" + n.getId() + "-" + distance.toString() + "}";
+                    if (distance < shortestDistance) {
+                        closestNode = n;
+                        shortestDistance = distance;
+                    }
                 }
             }
         }
@@ -317,11 +321,11 @@ public class ResourceAwareStrategy implements IStrategy {
         return closestNode;
     }
 
-    protected Collection<Node> getAvaiNodes() {
+    protected Collection<RAS_Node> getAvaiNodes() {
         return this._nodes.values();
     }
 
-    private Queue<RAS_Component> bfs(Topologies topologies, List<RAS_Component> spouts) {
+    private Queue<RAS_Component> bfs(Topologies topologies, TopologyDetails td, List<RAS_Component> spouts) {
         // Since queue is a interface
         Queue<RAS_Component> ordered_RAS_Component_list = new LinkedList<RAS_Component>();
         HashMap<String, RAS_Component> visited = new HashMap<String, RAS_Component>();
@@ -340,7 +344,7 @@ public class ResourceAwareStrategy implements IStrategy {
                     neighbors.addAll(comp.parents);
                     for (String nbID : neighbors) {
                         if (!visited.containsKey(nbID)) {
-                            RAS_Component child = topologies.getAllRAS_Components().get(_topo.getId()).get(nbID);
+                            RAS_Component child = topologies.getAllRAS_Components().get(td.getId()).get(nbID);
                             queue.offer(child);
                         }
                     }
@@ -350,9 +354,9 @@ public class ResourceAwareStrategy implements IStrategy {
         return ordered_RAS_Component_list;
     }
 
-    private List<RAS_Component> getSpouts(Topologies topologies) {
+    private List<RAS_Component> getSpouts(Topologies topologies, TopologyDetails td) {
         List<RAS_Component> spouts = new ArrayList<RAS_Component>();
-        for (RAS_Component c : topologies.getAllRAS_Components().get(_topo.getId())
+        for (RAS_Component c : topologies.getAllRAS_Components().get(td.getId())
                 .values()) {
             if (c.type == RAS_Component.ComponentType.SPOUT) {
                 spouts.add(c);
@@ -362,7 +366,7 @@ public class ResourceAwareStrategy implements IStrategy {
     }
 
     private String NodeHostnameToId(String hostname) {
-        for (Node n : this._nodes.values()) {
+        for (RAS_Node n : this._nodes.values()) {
             if (n.hostname == null) {
                 continue;
             }

@@ -77,7 +77,8 @@ public class IsolatedPool extends NodePool {
     //Only add topologies that are not sharing nodes with other topologies
     String topId = td.getId();
     SchedulerAssignment assignment = _cluster.getAssignmentById(topId);
-    if (assignment != null) {
+    if (assignment != null && 
+            isTopologyScheduledByMultitenant(td) == true) {
       for (WorkerSlot ws: assignment.getSlots()) {
         Node n = _nodeIdToNode.get(ws.getNodeId());
         if (n.getRunningTopologies().size() > 1) {
@@ -92,7 +93,8 @@ public class IsolatedPool extends NodePool {
   public void scheduleAsNeeded(NodePool ... lesserPools) {
     for (String topId : _topologyIdToNodes.keySet()) {
       TopologyDetails td = _tds.get(topId);
-      if (_cluster.needsScheduling(td)) {
+      if (_cluster.needsScheduling(td) && 
+              isTopologyScheduledByMultitenant(td) == true) {
         LOG.debug("Scheduling topology {}",topId);
         Set<Node> allNodes = _topologyIdToNodes.get(topId);
         Number nodesRequested = (Number) td.getConf().get(Config.TOPOLOGY_ISOLATED_MACHINES);
@@ -342,5 +344,15 @@ public class IsolatedPool extends NodePool {
   @Override
   public String toString() {
     return "IsolatedPool... ";
+  }
+  
+  /**
+   * for debugging
+   */
+  public void printInfo() {
+      LOG.info("_isolated: {}", this._isolated);
+      LOG.info("_topologyIdToNodes: {}", this._topologyIdToNodes);
+      LOG.info("_tds: {}", this._tds);
+      LOG.info("_usedNodes: {}", this._usedNodes);
   }
 }

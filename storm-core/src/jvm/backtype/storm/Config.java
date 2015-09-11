@@ -17,6 +17,8 @@
  */
 package backtype.storm;
 
+import backtype.storm.ConfigValidation;
+import backtype.storm.scheduler.resource.strategies.IStrategy;
 import backtype.storm.serialization.IKryoDecorator;
 import backtype.storm.serialization.IKryoFactory;
 import com.esotericsoftware.kryo.Serializer;
@@ -124,12 +126,6 @@ public class Config extends HashMap<String, Object> {
      */
     public static final String STORM_MESSAGING_NETTY_AUTHENTICATION = "storm.messaging.netty.authentication"; 
     public static final Object STORM_MESSAGING_NETTY_AUTHENTICATION_SCHEMA = Boolean.class;
-
-    /**
-     * The SASL authentication payload for the messaging layer. Similar to STORM_ZOOKEEPER_TOPOLOGY_AUTH_PAYLOAD
-     */
-    public static final String STORM_MESSAGING_NETTY_AUTHENTICATION_PAYLOAD="storm.messaging.netty.authentication.payload";
-    public static final Object STORM_MESSAGING_NETTY_AUTHENTICATION_PAYLOAD_SCHEMA = String.class;
 
     /**
      * A list of hosts of ZooKeeper servers used to manage the cluster.
@@ -1139,12 +1135,13 @@ public class Config extends HashMap<String, Object> {
        ConfigValidation.PositiveIntegerValidator;
 
     /**
-     * The jvm opts provided to workers launched by this supervisor. All "%ID%", "%WORKER-ID%", "%TOPOLOGY-ID%"
-     * and "%WORKER-PORT%" substrings are replaced with:
+     * The jvm opts provided to workers launched by this supervisor. All "%ID%", "%WORKER-ID%", "%TOPOLOGY-ID%",
+     * "%WORKER-PORT%" and "%HEAP-MEM%" substrings are replaced with:
      * %ID%          -> port (for backward compatibility),
      * %WORKER-ID%   -> worker-id,
      * %TOPOLOGY-ID%    -> topology-id,
      * %WORKER-PORT% -> port.
+     * %HEAP-MEM% -> mem-onheap.
      */
     public static final String WORKER_CHILDOPTS = "worker.childopts";
     public static final Object WORKER_CHILDOPTS_SCHEMA = ConfigValidation.StringOrStringListValidator;
@@ -1154,6 +1151,12 @@ public class Config extends HashMap<String, Object> {
      */
     public static final String WORKER_PROFILER_CHILDOPTS = "worker.profiler.childopts";
     public static final Object WORKER_PROFILER_CHILDOPTS_SCHEMA = ConfigValidation.StringOrStringListValidator;
+
+    /**
+     * The default heap memory size in MB per worker, used in the jvm -Xmx opts for launching the worker
+      */
+    public static final String WORKER_HEAP_MEMORY_MB = "worker.heap.memory.mb";
+    public static final Object WORKER_HEAP_MEMORY_MB_SCHEMA = ConfigValidation.PositiveIntegerValidator;
 
     /**
      * The jvm opts provided to workers launched by this supervisor for GC. All "%ID%" substrings are replaced
@@ -1281,6 +1284,13 @@ public class Config extends HashMap<String, Object> {
      */
     public static final String TOPOLOGY_COMPONENT_CPU_PCORE_PERCENT = "topology.component.cpu.pcore.percent";
     public static final Object TOPOLOGY_COMPONENT_CPU_PCORE_PERCENT_SCHEMA = ConfigValidation.NonNegativeNumberValidator;
+
+    /**
+     * The scheduler to use when scheduling a topology
+     * Current only supports two schedulers: Multitenant and Resource Aware
+     */
+    public static final String TOPOLOGY_SCHEDULER_STRATEGY = "topology.scheduler.strategy";
+    public static final Object TOPOLOGY_SCHEDULER_STRATEGY_SCHEMA = String.class;
 
     /**
      * How many executors to spawn for ackers.
@@ -1864,4 +1874,14 @@ public class Config extends HashMap<String, Object> {
         conf.put(Config.TOPOLOGY_LOGGING_SENSITIVITY, sensitivity.toString());
     }
 
+    /**
+     * Takes as input the scheduler class name. 
+     * Currently only the Multitenant Scheduler and Resource Aware Scheduler are supported
+     * @param schedulerName
+     */
+    public void setTopologyStrategy(Class<? extends IStrategy> clazz) {
+        if(clazz != null) {
+            this.put(Config.TOPOLOGY_SCHEDULER_STRATEGY, clazz.getName());
+        }
+    }
 }
