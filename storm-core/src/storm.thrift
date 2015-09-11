@@ -548,7 +548,7 @@ service Nimbus {
 
   // dynamic profile actions
   void setWorkerProfiler(1: string id, 2: ProfileRequest  profileRequest);
-  i64 getWorkerProfileActionExpiry(1: string id, 2: NodeInfo nodeInfo, 3: ProfileAction action);
+  list<ProfileRequest> getComponentPendingProfileActions(1: string id, 2: string component_id, 3: ProfileAction action);
 
   void uploadNewCredentials(1: string name, 2: Credentials creds) throws (1: NotAliveException e, 2: InvalidTopologyException ite, 3: AuthorizationException aze);
 

@@ -69,8 +69,8 @@
            (filter-val not-nil?))
           new-profiler-actions
           (->>
-            (dofor [sid storm-ids]
-                   (if-let [topo-profile-actions (.get-topology-profile-requests storm-cluster-state sid)]
+            (dofor [sid (distinct storm-ids)]
+                   (if-let [topo-profile-actions (.get-topology-profile-requests storm-cluster-state sid false)]
                       {sid topo-profile-actions}))
            (apply merge))]
          
@@ -717,7 +717,7 @@
           (when (not (empty? profiler-actions))
             (doseq [pro-action profiler-actions]
               (if (= hostname (:host pro-action))
-                (let [port (first (:port pro-action))
+                (let [port (:port pro-action)
                       action ^ProfileAction (:action pro-action)
                       stop? (> (System/currentTimeMillis) (:timestamp pro-action))
                       target-dir (worker-artifacts-root conf storm-id port)

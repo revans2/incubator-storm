@@ -10,11 +10,11 @@ SETTINGS=profile
 platform='unknown'
 unamestr=`uname`
 if [[ "$unamestr" == 'Linux' ]]; then
-   platform='linux'
+    platform='linux'
 elif [[ "$unamestr" == 'Darwin' ]]; then
-   platform='darwin'
+    platform='darwin'
 elif [[ "$unamestr" == 'FreeBSD' ]]; then
-   platform='freebsd'
+    platform='freebsd'
 fi
 
 if [[ $platform == 'linux' ]]; then
@@ -25,14 +25,14 @@ fi
 
 function start_record {
     # start_record pid
-        already_recording=false
+    already_recording=false
     for rid in `get_recording_ids $1`; do
-             already_recording=true
-             break;
-        done
-        if [ "$already_recording" = false ]; then
-           $BINPATH/jcmd $1 JFR.start settings=${SETTINGS}
-        fi
+        already_recording=true
+        break;
+    done
+    if [ "$already_recording" = false ]; then
+        $BINPATH/jcmd $1 JFR.start settings=${SETTINGS}
+    fi
 }
 
 function dump_record {

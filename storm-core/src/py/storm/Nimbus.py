@@ -117,11 +117,11 @@ class Iface:
     """
     pass
 
-  def getWorkerProfileActionExpiry(self, id, nodeInfo, action):
+  def getComponentPendingProfileActions(self, id, component_id, action):
     """
     Parameters:
      - id
-     - nodeInfo
+     - component_id
      - action
     """
     pass
@@ -677,27 +677,27 @@ class Client(Iface):
     iprot.readMessageEnd()
     return
 
-  def getWorkerProfileActionExpiry(self, id, nodeInfo, action):
+  def getComponentPendingProfileActions(self, id, component_id, action):
     """
     Parameters:
      - id
-     - nodeInfo
+     - component_id
      - action
     """
-    self.send_getWorkerProfileActionExpiry(id, nodeInfo, action)
-    return self.recv_getWorkerProfileActionExpiry()
+    self.send_getComponentPendingProfileActions(id, component_id, action)
+    return self.recv_getComponentPendingProfileActions()
 
-  def send_getWorkerProfileActionExpiry(self, id, nodeInfo, action):
-    self._oprot.writeMessageBegin('getWorkerProfileActionExpiry', TMessageType.CALL, self._seqid)
-    args = getWorkerProfileActionExpiry_args()
+  def send_getComponentPendingProfileActions(self, id, component_id, action):
+    self._oprot.writeMessageBegin('getComponentPendingProfileActions', TMessageType.CALL, self._seqid)
+    args = getComponentPendingProfileActions_args()
     args.id = id
-    args.nodeInfo = nodeInfo
+    args.component_id = component_id
     args.action = action
     args.write(self._oprot)
     self._oprot.writeMessageEnd()
     self._oprot.trans.flush()
 
-  def recv_getWorkerProfileActionExpiry(self):
+  def recv_getComponentPendingProfileActions(self):
     iprot = self._iprot
     (fname, mtype, rseqid) = iprot.readMessageBegin()
     if mtype == TMessageType.EXCEPTION:
@@ -705,12 +705,12 @@ class Client(Iface):
       x.read(iprot)
       iprot.readMessageEnd()
       raise x
-    result = getWorkerProfileActionExpiry_result()
+    result = getComponentPendingProfileActions_result()
     result.read(iprot)
     iprot.readMessageEnd()
     if result.success is not None:
       return result.success
-    raise TApplicationException(TApplicationException.MISSING_RESULT, "getWorkerProfileActionExpiry failed: unknown result");
+    raise TApplicationException(TApplicationException.MISSING_RESULT, "getComponentPendingProfileActions failed: unknown result");
 
   def uploadNewCredentials(self, name, creds):
     """
@@ -1669,7 +1669,7 @@ class Processor(Iface, TProcessor):
     self._processMap["setLogConfig"] = Processor.process_setLogConfig
     self._processMap["getLogConfig"] = Processor.process_getLogConfig
     self._processMap["setWorkerProfiler"] = Processor.process_setWorkerProfiler
-    self._processMap["getWorkerProfileActionExpiry"] = Processor.process_getWorkerProfileActionExpiry
+    self._processMap["getComponentPendingProfileActions"] = Processor.process_getComponentPendingProfileActions
     self._processMap["uploadNewCredentials"] = Processor.process_uploadNewCredentials
     self._processMap["beginCreateBlob"] = Processor.process_beginCreateBlob
     self._processMap["beginUpdateBlob"] = Processor.process_beginUpdateBlob
@@ -1865,13 +1865,13 @@ class Processor(Iface, TProcessor):
     oprot.writeMessageEnd()
     oprot.trans.flush()
 
-  def process_getWorkerProfileActionExpiry(self, seqid, iprot, oprot):
-    args = getWorkerProfileActionExpiry_args()
+  def process_getComponentPendingProfileActions(self, seqid, iprot, oprot):
+    args = getComponentPendingProfileActions_args()
     args.read(iprot)
     iprot.readMessageEnd()
-    result = getWorkerProfileActionExpiry_result()
-    result.success = self._handler.getWorkerProfileActionExpiry(args.id, args.nodeInfo, args.action)
-    oprot.writeMessageBegin("getWorkerProfileActionExpiry", TMessageType.REPLY, seqid)
+    result = getComponentPendingProfileActions_result()
+    result.success = self._handler.getComponentPendingProfileActions(args.id, args.component_id, args.action)
+    oprot.writeMessageBegin("getComponentPendingProfileActions", TMessageType.REPLY, seqid)
     result.write(oprot)
     oprot.writeMessageEnd()
     oprot.trans.flush()
@@ -3857,24 +3857,24 @@ class setWorkerProfiler_result:
   def __ne__(self, other):
     return not (self == other)
 
-class getWorkerProfileActionExpiry_args:
+class getComponentPendingProfileActions_args:
   """
   Attributes:
    - id
-   - nodeInfo
+   - component_id
    - action
   """
 
   thrift_spec = (
     None, # 0
     (1, TType.STRING, 'id', None, None, ), # 1
-    (2, TType.STRUCT, 'nodeInfo', (NodeInfo, NodeInfo.thrift_spec), None, ), # 2
+    (2, TType.STRING, 'component_id', None, None, ), # 2
     (3, TType.I32, 'action', None, None, ), # 3
   )
 
-  def __init__(self, id=None, nodeInfo=None, action=None,):
+  def __init__(self, id=None, component_id=None, action=None,):
     self.id = id
-    self.nodeInfo = nodeInfo
+    self.component_id = component_id
     self.action = action
 
   def read(self, iprot):
@@ -3892,9 +3892,8 @@ class getWorkerProfileActionExpiry_args:
         else:
           iprot.skip(ftype)
       elif fid == 2:
-        if ftype == TType.STRUCT:
-          self.nodeInfo = NodeInfo()
-          self.nodeInfo.read(iprot)
+        if ftype == TType.STRING:
+          self.component_id = iprot.readString().decode('utf-8')
         else:
           iprot.skip(ftype)
       elif fid == 3:
@@ -3911,14 +3910,14 @@ class getWorkerProfileActionExpiry_args:
     if oprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and self.thrift_spec is not None and fastbinary is not None:
       oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
       return
-    oprot.writeStructBegin('getWorkerProfileActionExpiry_args')
+    oprot.writeStructBegin('getComponentPendingProfileActions_args')
     if self.id is not None:
       oprot.writeFieldBegin('id', TType.STRING, 1)
       oprot.writeString(self.id.encode('utf-8'))
       oprot.writeFieldEnd()
-    if self.nodeInfo is not None:
-      oprot.writeFieldBegin('nodeInfo', TType.STRUCT, 2)
-      self.nodeInfo.write(oprot)
+    if self.component_id is not None:
+      oprot.writeFieldBegin('component_id', TType.STRING, 2)
+      oprot.writeString(self.component_id.encode('utf-8'))
       oprot.writeFieldEnd()
     if self.action is not None:
       oprot.writeFieldBegin('action', TType.I32, 3)
@@ -3934,7 +3933,7 @@ class getWorkerProfileActionExpiry_args:
   def __hash__(self):
     value = 17
     value = (value * 31) ^ hash(self.id)
-    value = (value * 31) ^ hash(self.nodeInfo)
+    value = (value * 31) ^ hash(self.component_id)
     value = (value * 31) ^ hash(self.action)
     return value
 
@@ -3949,14 +3948,14 @@ class getWorkerProfileActionExpiry_args:
   def __ne__(self, other):
     return not (self == other)
 
-class getWorkerProfileActionExpiry_result:
+class getComponentPendingProfileActions_result:
   """
   Attributes:
    - success
   """
 
   thrift_spec = (
-    (0, TType.I64, 'success', None, None, ), # 0
+    (0, TType.LIST, 'success', (TType.STRUCT,(ProfileRequest, ProfileRequest.thrift_spec)), None, ), # 0
   )
 
   def __init__(self, success=None,):
@@ -3972,8 +3971,14 @@ class getWorkerProfileActionExpiry_result:
       if ftype == TType.STOP:
         break
       if fid == 0:
-        if ftype == TType.I64:
-          self.success = iprot.readI64();
+        if ftype == TType.LIST:
+          self.success = []
+          (_etype630, _size627) = iprot.readListBegin()
+          for _i631 in xrange(_size627):
+            _elem632 = ProfileRequest()
+            _elem632.read(iprot)
+            self.success.append(_elem632)
+          iprot.readListEnd()
         else:
           iprot.skip(ftype)
       else:
@@ -3985,10 +3990,13 @@ class getWorkerProfileActionExpiry_result:
     if oprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and self.thrift_spec is not None and fastbinary is not None:
       oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
       return
-    oprot.writeStructBegin('getWorkerProfileActionExpiry_result')
+    oprot.writeStructBegin('getComponentPendingProfileActions_result')
     if self.success is not None:
-      oprot.writeFieldBegin('success', TType.I64, 0)
-      oprot.writeI64(self.success)
+      oprot.writeFieldBegin('success', TType.LIST, 0)
+      oprot.writeListBegin(TType.STRUCT, len(self.success))
+      for iter633 in self.success:
+        iter633.write(oprot)
+      oprot.writeListEnd()
       oprot.writeFieldEnd()
     oprot.writeFieldStop()
     oprot.writeStructEnd()

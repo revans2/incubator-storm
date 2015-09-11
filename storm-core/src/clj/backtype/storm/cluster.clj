@@ -51,8 +51,8 @@
   (active-storms [this])
   (storm-base [this storm-id callback])
   (get-worker-heartbeat [this storm-id node port])
-  (get-worker-profile-requests [this storm-id nodeinfo])
-  (get-topology-profile-requests [this storm-id])
+  (get-worker-profile-requests [this storm-id nodeinfo thrift?])
+  (get-topology-profile-requests [this storm-id thrift?])
   (set-worker-profile-request [this storm-id profile-request])
   (delete-topology-profile-requests [this storm-id profile-request])
   (executor-beats [this storm-id executor->node+port])
@@ -310,36 +310,43 @@
         [this storm-id profile-request]
         (let [request-type (.get_action profile-request)
               host (.get_node (.get_nodeInfo profile-request))
-              port (.get_port (.get_nodeInfo profile-request))]
+              port (first (.get_port (.get_nodeInfo profile-request)))]
           (.set_data cluster-state
                      (profiler-config-path storm-id host port request-type)
                      (Utils/serialize profile-request)
                      acls)))
 
       (get-topology-profile-requests
-        [this storm-id]
+        [this storm-id thrift?]
         (let [path (profiler-config-path storm-id)
               requests (if (.node_exists cluster-state path false)
                          (dofor [c (.get_children cluster-state path false)]
-                                (let [raw (.get_data cluster-state (str path "/" c) false)]
-                                      (clojurify-profile-request (maybe-deserialize raw ProfileRequest)))))]
+                                (let [raw (.get_data cluster-state (str path "/" c) false)
+                                      request (maybe-deserialize raw ProfileRequest)]
+                                      (if thrift?
+                                        request
+                                        (clojurify-profile-request request)))))]
           requests))
 
       (delete-topology-profile-requests
         [this storm-id profile-request]
         (let [profile-request-inst (thriftify-profile-request profile-request)
-              request-type (.get_action profile-request-inst)
-              host (.get_node (.get_nodeInfo profile-request-inst))
-              port (.get_port (.get_nodeInfo profile-request-inst))]
+              action (:action profile-request)
+              host (:host profile-request)
+              port (:port profile-request)]
           (.delete_node cluster-state
-           (profiler-config-path storm-id host port request-type))))
+           (profiler-config-path storm-id host port action))))
           
       (get-worker-profile-requests
-        [this storm-id node-info]
-        (let [node (.get_node node-info)
-              port (.get_port node-info)]
-          (filter #(and (= node (:host %)) (= port (:port %)))
-                  (get-topology-profile-requests this storm-id))))
+        [this storm-id node-info thrift?]
+        (let [host (:host node-info)
+              port (:port node-info)
+              profile-requests (get-topology-profile-requests this storm-id thrift?)]
+          (if thrift?
+            (filter #(and (= host (.get_node (.get_nodeInfo %))) (= port (first (.get_port (.get_nodeInfo  %)))))
+                    profile-requests)
+            (filter #(and (= host (:host %)) (= port (:port %)))
+                    profile-requests))))
       
       (worker-heartbeat!
         [this storm-id node port info]

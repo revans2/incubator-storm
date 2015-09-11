@@ -21,7 +21,7 @@
         ring.middleware.multipart-params)
   (:use [ring.middleware.json :only [wrap-json-params]])
   (:use [hiccup core page-helpers])
-  (:use [backtype.storm config util log stats])
+  (:use [backtype.storm config util log converter stats])
   (:use [backtype.storm.ui helpers])
   (:use [backtype.storm.daemon [common :only [ACKER-COMPONENT-ID ACKER-INIT-STREAM-ID ACKER-ACK-STREAM-ID
                                               ACKER-FAIL-STREAM-ID system-id? mk-authorization-handler
@@ -162,10 +162,10 @@
 
 (defn worker-dump-link [host port topology-id]
   (url-format "http://%s:%s/dumps/%s/%s"
-              host
+              (url-encode host)
               (*STORM-CONF* LOGVIEWER-PORT)
               (url-encode topology-id)
-              (str host ":" port)))
+              (str (url-encode host) ":" (url-encode port))))
 
 (defn stats-times
   [stats-map]
@@ -709,37 +709,21 @@
                           (.get_exec_stats info))}
     (component-errors (.get_errors info) topology-id)))
 
-(defn get-profile-active [nimbus topology-id comp-page-info]
-  (let [^ExecutorAggregateStats eas (.get_exec_stats comp-page-info)
-        summaries (map #(.get_exec_summary %) eas)
-        host-port-pairs (distinct (map (fn [summ]
-                                         [(.get_host summ) (.get_port summ)])
-                                       summaries))
-        nodeinfos (map (fn [[host port]]
-                         (NodeInfo. host (set [(.longValue port)])))
-                       host-port-pairs)
-        expiries (map (fn [nodeinfo]
-                        (.getWorkerProfileActionExpiry nimbus
-                          topology-id
-                          nodeinfo
-                          ProfileAction/JPROFILE_STOP))
-                      nodeinfos)
-        host-port-expiry (map vector host-port-pairs expiries)
-        active (filter (fn [[_ timestamp]] (> timestamp 0)) host-port-expiry)
-        active-maps (map (fn [[[host port] timestamp]]
-                           {"host" host
-                            "port" (str port)
-                            "timestamp" (str (- timestamp (System/currentTimeMillis)))})
-                         active)]
-    
-    (log-debug (pr-str host-port-expiry))
-    (log-debug (pr-str active-maps))
-
-    (map #(assoc % "dumplink" (worker-dump-link
-                               (% "host")
-                               (% "port")
-                               topology-id))
-         active-maps)))
+(defn get-active-profile-actions
+  [nimbus topology-id component]
+  (let [profile-actions  (.getComponentPendingProfileActions nimbus
+                                               topology-id
+                                               component
+                                 ProfileAction/JPROFILE_STOP)
+        latest-profile-actions (map clojurify-profile-request profile-actions)
+        active-actions (map (fn [profile-action]
+                              {"host" (:host profile-action)
+                               "port" (str (:port profile-action))
+                               "dumplink" (worker-dump-link (:host profile-action) (str (:port profile-action)) topology-id)
+                               "timestamp" (str (- (:timestamp profile-action) (System/currentTimeMillis)))})
+                            latest-profile-actions)]
+    (log-message "Latest-active actions are: " (pr active-actions))
+    active-actions))
 
 (defn component-page
   [topology-id component window include-sys? user]
@@ -770,7 +754,7 @@
        "window" window
        "componentType" (-> comp-page-info .get_component_type str lower-case)
        "windowHint" window-hint
-       "profilerActive" (get-profile-active nimbus topology-id comp-page-info)))))
+       "profilerActive" (get-active-profile-actions nimbus topology-id component)))))
     
 (defn- level-to-dict [level]
   (if level
@@ -939,7 +923,7 @@
          (let [user (.getUserName http-creds-handler servlet-request)
                topology-conf (from-json
                               (.getTopologyConf ^Nimbus$Client nimbus id))]
-           (assert-authorized-user servlet-request "startProfiling" (topology-config id)))
+           (assert-authorized-user servlet-request "setWorkerProfiler" (topology-config id)))
 
          (let [[host, port] (split host-port #":")
                nodeinfo (NodeInfo. host (set [(Long. port)]))
@@ -963,7 +947,7 @@
          (let [user (.getUserName http-creds-handler servlet-request)
                topology-conf (from-json
                               (.getTopologyConf ^Nimbus$Client nimbus id))]
-           (assert-authorized-user servlet-request "stopProfiling" (topology-config id)))
+           (assert-authorized-user servlet-request "setWorkerProfiler" (topology-config id)))
          (let [[host, port] (split host-port #":")
                nodeinfo (NodeInfo. host (set [(Long. port)]))
                timestamp 0
@@ -981,7 +965,7 @@
          (let [user (.getUserName http-creds-handler servlet-request)
                topology-conf (from-json
                               (.getTopologyConf ^Nimbus$Client nimbus id))]
-           (assert-authorized-user servlet-request "dumpProfile" (topology-config id)))
+           (assert-authorized-user servlet-request "setWorkerProfiler" (topology-config id)))
          (let [[host, port] (split host-port #":")
                nodeinfo (NodeInfo. host (set [(Long. port)]))
                timestamp (System/currentTimeMillis)
@@ -998,7 +982,7 @@
          (let [user (.getUserName http-creds-handler servlet-request)
                topology-conf (from-json
                               (.getTopologyConf ^Nimbus$Client nimbus id))]
-           (assert-authorized-user servlet-request "dumpJstack" (topology-config id)))
+           (assert-authorized-user servlet-request "setWorkerProfiler" (topology-config id)))
          (let [[host, port] (split host-port #":")
                nodeinfo (NodeInfo. host (set [(Long. port)]))
                timestamp (System/currentTimeMillis)
@@ -1016,7 +1000,7 @@
          (let [user (.getUserName http-creds-handler servlet-request)
                topology-conf (from-json
                               (.getTopologyConf ^Nimbus$Client nimbus id))]
-           (assert-authorized-user servlet-request "dumpHeap" (topology-config id)))
+           (assert-authorized-user servlet-request "setWorkerProfiler" (topology-config id)))
          (let [[host, port] (split host-port #":")
                nodeinfo (NodeInfo. host (set [(Long. port)]))
                timestamp (System/currentTimeMillis)

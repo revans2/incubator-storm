@@ -237,8 +237,8 @@
 (defn clojurify-profile-request
   [^ProfileRequest request]
   (when request
-    { :host (.get_node (.get_nodeInfo request))
-     :port (.get_port (.get_nodeInfo request))
+    {:host (.get_node (.get_nodeInfo request))
+     :port (first (.get_port (.get_nodeInfo request)))
      :action     (.get_action request)
      :timestamp  (.get_time_stamp request)}))
 
@@ -246,7 +246,7 @@
   [profile-request]
   (let [nodeinfo (doto (NodeInfo.)
                    (.set_node (:host profile-request))
-                   (.set_port (:port profile-request)))
+                   (.set_port (set [(:port profile-request)])))
         request (ProfileRequest. nodeinfo (:action profile-request))]
     (.set_time_stamp request (:timestamp profile-request))
     request))
