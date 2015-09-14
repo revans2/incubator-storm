@@ -149,6 +149,7 @@ configfile 644 root root conf/storm/worker-launcher.cfg ./conf/worker-launcher.c
 symlink - - - lib64/storm/current $(BASE_VERSION)
 symlink - - - lib/storm/current ../../lib64/storm/$(BASE_VERSION)
 symlink - - - bin/storm /home/y/lib64/storm/current/bin/storm
+symlink - - - bin/flight.bash /home/y/lib64/storm/current/bin/flight.bash
 
 dir 777 - - logs/storm
 dir 777 - - var/storm

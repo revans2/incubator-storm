@@ -24,7 +24,7 @@
            [org.apache.commons.io FileUtils]
            [java.io File])
   (:use [backtype.storm config util log timer local-state])
-  (:import [backtype.storm.generated AuthorizationException KeyNotFoundException])
+  (:import [backtype.storm.generated AuthorizationException KeyNotFoundException ProfileAction])
   (:import [java.util.concurrent Executors])
   (:import [java.nio.file Files Path Paths StandardCopyOption])
   (:import [backtype.storm.blobstore BlobStoreAclHandler])
@@ -36,7 +36,8 @@
             [clojure.set :as set])
   (:import [org.apache.zookeeper data.ACL ZooDefs$Ids ZooDefs$Perms])
   (:import [org.yaml.snakeyaml Yaml]
-           [org.yaml.snakeyaml.constructor SafeConstructor])
+           [org.yaml.snakeyaml.constructor SafeConstructor]
+           [java.util Date])
   (:require [metrics.gauges :refer [defgauge]])
   (:require [metrics.meters :refer [defmeter mark!]])
   (:gen-class
@@ -65,9 +66,16 @@
                         {sid (.assignment-info-with-version storm-cluster-state sid callback)})
                       {sid nil})))
            (apply merge)
-           (filter-val not-nil?))]
-
+           (filter-val not-nil?))
+          new-profiler-actions
+          (->>
+            (dofor [sid (distinct storm-ids)]
+                   (if-let [topo-profile-actions (.get-topology-profile-requests storm-cluster-state sid false)]
+                      {sid topo-profile-actions}))
+           (apply merge))]
+         
       {:assignments (into {} (for [[k v] new-assignments] [k (:data v)]))
+       :profiler-actions new-profiler-actions
        :versions new-assignments})))
 
 (defn- read-my-executors [assignments-snapshot storm-id assignment-id]
@@ -326,7 +334,8 @@
                                            ))
    :localizer (Utils/createLocalizer conf (supervisor-local-dir conf))
    :assignment-versions (atom {})
-   :sync-retry (atom 0)})
+   :sync-retry (atom 0)
+   :stormid->profiler-actions (atom {})})
 
 (defn required-topo-files-exist?
   [conf storm-id]
@@ -518,9 +527,10 @@
           ^LocalState local-state (:local-state supervisor)
           sync-callback (fn [& ignored] (.add event-manager this))
           assignment-versions @(:assignment-versions supervisor)
-          {assignments-snapshot :assignments versions :versions}  (assignments-snapshot
-                                                                   storm-cluster-state sync-callback
-                                                                   assignment-versions)
+          {assignments-snapshot :assignments
+           storm-id->profiler-actions :profiler-actions
+           versions :versions}
+          (assignments-snapshot storm-cluster-state sync-callback assignment-versions)
           storm-local-map (read-storm-local-dir assignments-snapshot)
           all-downloaded-storm-ids (set (read-downloaded-storm-ids conf))
           existing-assignment (ls-local-assignments local-state)
@@ -541,6 +551,7 @@
       (log-debug "All assignment: " all-assignment)
       (log-debug "New assignment: " new-assignment)
       (log-debug "Assigned Storm Ids" assigned-storm-ids)
+      (log-debug "Storm Ids Profiler Actions" storm-id->profiler-actions)
       (log-debug "All Downloaded Ids" all-downloaded-storm-ids)
       (log-debug "Checked Downloaded Ids" checked-downloaded-storm-ids)
       (log-debug "Downloaded Ids" downloaded-storm-ids)
@@ -564,6 +575,8 @@
       (ls-local-assignments! local-state
             new-assignment)
       (reset! (:assignment-versions supervisor) versions)
+      (reset! (:stormid->profiler-actions supervisor) storm-id->profiler-actions)
+
       (reset! (:curr-assignment supervisor) new-assignment)
       ;; remove any downloaded code that's no longer assigned or active
       ;; important that this happens after setting the local assignment so that
@@ -637,6 +650,117 @@
         (catch KeyNotFoundException knf
           (log-error knf))))))
 
+(defn jvm-cmd [cmd]
+  (let [java-home (.get (System/getenv) "JAVA_HOME")]
+    (if (nil? java-home)
+      cmd
+      (str java-home file-path-separator "bin" file-path-separator cmd))))
+
+(defn java-cmd []
+  (jvm-cmd "java"))
+
+(def PROFILE-CMD "flight.bash")
+
+(defn jmap-dump-cmd [pid target-dir]
+  [PROFILE-CMD pid "jmap" target-dir])
+
+(defn jstack-dump-cmd [pid target-dir]
+  [PROFILE-CMD pid "jstack" target-dir])
+
+(defn jprofile-start [pid]
+  [PROFILE-CMD pid "start" ])
+
+(defn jprofile-stop [pid target-dir]
+  [PROFILE-CMD pid "stop" target-dir])
+
+(defn jprofile-dump [pid workers-artifacts-directory]
+  [PROFILE-CMD pid "dump" workers-artifacts-directory])
+
+(defn- delete-topology-profiler-action [storm-cluster-state storm-id profile-action]
+  (log-message "Deleting profiler action.." profile-action)
+  (.delete-topology-profile-requests storm-cluster-state storm-id profile-action))
+
+(defnk launch-profiler-action-for-worker
+  "Launch profiler action for a worker"
+  [conf user target-dir command :environment {} :exit-code-on-profile-action nil :log-prefix nil]
+  (if-let [run-worker-as-user (conf SUPERVISOR-RUN-WORKER-AS-USER)]
+    (let [container-file (container-file-path target-dir)
+          script-file (script-file-path target-dir)]
+      (log-message "Running as user:" user " command:" (shell-cmd command))
+      (if (exists-file? container-file) (rmr-as-user conf container-file container-file))
+      (if (exists-file? script-file) (rmr-as-user conf script-file script-file))
+      (worker-launcher
+        conf
+        user
+        ["profiler" target-dir (write-script target-dir command :environment environment)]
+        :log-prefix log-prefix
+        :exit-code-callback exit-code-on-profile-action
+        :directory (File. target-dir)))
+    (launch-process
+      command
+      :environment environment
+      :log-prefix log-prefix
+      :exit-code-callback exit-code-on-profile-action
+      :directory (File. target-dir))))
+
+(defn mk-run-profiler-actions-for-all-topologies
+  "Returns a function that downloads all profile-actions listed for all topologies assigned
+  to this supervisor, executes those actions as user and deletes them from zookeeper."
+  [supervisor]
+  (fn []
+    (try
+      (let [conf (:conf supervisor)
+            stormid->profiler-actions @(:stormid->profiler-actions supervisor)
+            storm-cluster-state (:storm-cluster-state supervisor)
+            hostname (:my-hostname supervisor)
+            new-assignment @(:curr-assignment supervisor)
+            assigned-storm-ids (assigned-storm-ids-from-port-assignments new-assignment)]
+        (doseq [[storm-id profiler-actions] stormid->profiler-actions]
+          (when (not (empty? profiler-actions))
+            (doseq [pro-action profiler-actions]
+              (if (= hostname (:host pro-action))
+                (let [port (:port pro-action)
+                      action ^ProfileAction (:action pro-action)
+                      stop? (> (System/currentTimeMillis) (:timestamp pro-action))
+                      target-dir (worker-artifacts-root conf storm-id port)
+                      storm-conf (read-supervisor-storm-conf conf storm-id)
+                      user (storm-conf TOPOLOGY-SUBMITTER-USER)
+                      environment (if-let [env (storm-conf TOPOLOGY-ENVIRONMENT)] env {})
+                      worker-pid (slurp (worker-artifacts-pid-path conf storm-id port))
+                      ;; Until PROFILER_STOP action is invalid, keep launching profiler start in case worker restarted
+                      ;; The profiler plugin script validates if JVM is recording before starting another recording.
+                      command (cond
+                                (= action ProfileAction/JMAP_DUMP) (jmap-dump-cmd worker-pid target-dir)
+                                (= action ProfileAction/JSTACK_DUMP) (jstack-dump-cmd worker-pid target-dir)
+                                (= action ProfileAction/JPROFILE_DUMP) (jprofile-dump worker-pid target-dir)
+                                (and (not stop?)
+                                     (= action ProfileAction/JPROFILE_STOP))
+                                  (jprofile-start worker-pid) ;; Ensure the profiler is still running
+                                (and stop? (= action ProfileAction/JPROFILE_STOP)) (jprofile-stop worker-pid target-dir))
+                      log-prefix (str "ProfilerAction process " storm-id ":" port " PROFILER_ACTION: " action " ")
+                      action-on-exit (fn [exit-code]
+                                       (log-message log-prefix " profile-action exited for code: " exit-code)
+                                       (if (and (= exit-code 0) stop?)
+                                         (delete-topology-profiler-action storm-cluster-state storm-id pro-action)))
+                      command (->> command (map str) (filter (complement empty?)))]
+
+                  (try
+                    (launch-profiler-action-for-worker conf
+                      user
+                      target-dir
+                      command
+                      :environment environment
+                      :exit-code-on-profile-action action-on-exit
+                      :log-prefix log-prefix)
+                    (catch IOException ioe
+                      (log-error ioe
+                        (str "Error in processing ProfilerAction '" action "' for " storm-id ":" port ", will retry later.")))
+                    (catch RuntimeException rte
+                      (log-error rte
+                        (str "Error in processing ProfilerAction '" action "' for " storm-id ":" port ", will retry later."))))))))))
+      (catch Exception e
+        (log-error e "Error running profiler actions, will retry again later")))))
+
 (defn update-blobs-for-all-topologies-fn
   "Returns a function that downloads all blobs listed in the topology configuration for all topologies assigned
   to this supervisor, and creates version files with a suffix. The returned function is intended to be run periodically
@@ -666,6 +790,7 @@
         sync-processes (partial sync-processes supervisor)
         synchronize-supervisor (mk-synchronize-supervisor supervisor sync-processes event-manager processes-event-manager)
         synchronize-blobs-fn (update-blobs-for-all-topologies-fn supervisor)
+        run-profiler-actions-fn (mk-run-profiler-actions-for-all-topologies supervisor)
         downloaded-storm-ids (set (read-downloaded-storm-ids conf))
         heartbeat-fn (fn [] (.supervisor-heartbeat!
                                (:storm-cluster-state supervisor)
@@ -700,11 +825,16 @@
                           0
                           (conf SUPERVISOR-MONITOR-FREQUENCY-SECS)
                           (fn [] (.add processes-event-manager sync-processes)))
-      ; Blob update thread. Starts with 30 seconds delay, every 30 seconds
+      ;; Blob update thread. Starts with 30 seconds delay, every 30 seconds
       (schedule-recurring (:blob-update-timer supervisor)
                           30
                           30
                           (fn [] (.add event-manager synchronize-blobs-fn)))
+      ;; Launch a thread that Runs profiler commands . Starts with 30 seconds delay, every 30 seconds
+      (schedule-recurring (:blob-update-timer supervisor)
+                          30
+                          30
+                          (fn [] (.add event-manager run-profiler-actions-fn)))
       (schedule-recurring (:event-timer supervisor)
                           (* 60 5)
                           (* 60 5)
@@ -846,12 +976,6 @@
       (list? value) (map sub-fn value)
       :else (-> value sub-fn (clojure.string/split #"\s+")))))
 
-(defn java-cmd []
-  (let [java-home (.get (System/getenv) "JAVA_HOME")]
-    (if (nil? java-home)
-      "java"
-      (str java-home file-path-separator "bin" file-path-separator "java")
-      )))
 
 (defn create-blobstore-links
   "Create symlinks in worker launch directory for all blobs"
@@ -911,6 +1035,7 @@
           logging-sensitivity (storm-conf TOPOLOGY-LOGGING-SENSITIVITY "S3")
 
           worker-childopts (substitute-childopts (conf WORKER-CHILDOPTS) worker-id storm-id port mem-onheap)
+          worker-profiler-childopts (substitute-childopts (conf WORKER-PROFILER-CHILDOPTS) worker-id storm-id port mem-onheap)
           topo-worker-childopts (substitute-childopts (storm-conf TOPOLOGY-WORKER-CHILDOPTS) worker-id storm-id port mem-onheap)
           topology-worker-environment (if-let [env (storm-conf TOPOLOGY-ENVIRONMENT)]
                                         (merge env {"LD_LIBRARY_PATH" jlp})
@@ -933,6 +1058,7 @@
                     worker-childopts
                     topo-worker-childopts
                     gc-opts
+                    worker-profiler-childopts
                     [(str "-Djava.library.path=" jlp)
                      (str "-Dlogfile.name=" logfilename)
                      (str "-Dstorm.home=" storm-home)

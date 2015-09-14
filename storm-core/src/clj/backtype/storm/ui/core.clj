@@ -21,12 +21,12 @@
         ring.middleware.multipart-params)
   (:use [ring.middleware.json :only [wrap-json-params]])
   (:use [hiccup core page-helpers])
-  (:use [backtype.storm config util log stats])
+  (:use [backtype.storm config util log converter stats])
   (:use [backtype.storm.ui helpers])
   (:use [backtype.storm.daemon [common :only [ACKER-COMPONENT-ID ACKER-INIT-STREAM-ID ACKER-ACK-STREAM-ID
                                               ACKER-FAIL-STREAM-ID system-id? mk-authorization-handler
                                               start-metrics-reporters]]])
-  (:use [clojure.string :only [blank? lower-case trim]])
+  (:use [clojure.string :only [blank? lower-case trim split]])
   (:use [clojure.set :only [intersection]])
   (:import [backtype.storm.utils Utils])
   (:import [backtype.storm.generated ExecutorSpecificStats
@@ -39,7 +39,7 @@
             ExecutorAggregateStats SpecificAggregateStats ComponentPageInfo
             LogConfig LogLevel LogLevelAction])
   (:import [backtype.storm.security.auth AuthUtils ReqContext])
-  (:import [backtype.storm.generated AuthorizationException])
+  (:import [backtype.storm.generated AuthorizationException ProfileRequest ProfileAction NodeInfo])
   (:import [backtype.storm.security.auth AuthUtils])
   (:import [backtype.storm.utils VersionInfo])
   (:import [java.io File])
@@ -159,6 +159,13 @@
   (if error
     (.get_host ^ErrorInfo error)
     ""))
+
+(defn worker-dump-link [host port topology-id]
+  (url-format "http://%s:%s/dumps/%s/%s"
+              (url-encode host)
+              (*STORM-CONF* LOGVIEWER-PORT)
+              (url-encode topology-id)
+              (str (url-encode host) ":" (url-encode port))))
 
 (defn stats-times
   [stats-map]
@@ -702,6 +709,22 @@
                           (.get_exec_stats info))}
     (component-errors (.get_errors info) topology-id)))
 
+(defn get-active-profile-actions
+  [nimbus topology-id component]
+  (let [profile-actions  (.getComponentPendingProfileActions nimbus
+                                               topology-id
+                                               component
+                                 ProfileAction/JPROFILE_STOP)
+        latest-profile-actions (map clojurify-profile-request profile-actions)
+        active-actions (map (fn [profile-action]
+                              {"host" (:host profile-action)
+                               "port" (str (:port profile-action))
+                               "dumplink" (worker-dump-link (:host profile-action) (str (:port profile-action)) topology-id)
+                               "timestamp" (str (- (:timestamp profile-action) (System/currentTimeMillis)))})
+                            latest-profile-actions)]
+    (log-message "Latest-active actions are: " (pr active-actions))
+    active-actions))
+
 (defn component-page
   [topology-id component window include-sys? user]
   (with-nimbus nimbus
@@ -730,8 +753,9 @@
        "encodedTopologyId" (url-encode topology-id)
        "window" window
        "componentType" (-> comp-page-info .get_component_type str lower-case)
-       "windowHint" window-hint))))
-
+       "windowHint" window-hint
+       "profilerActive" (get-active-profile-actions nimbus topology-id component)))))
+    
 (defn- level-to-dict [level]
   (if level
     (let [timeout (.get_reset_log_level_timeout_secs level)
@@ -893,6 +917,101 @@
         (.setLogConfig nimbus id new-log-config)
         (json-response (log-config id) (m "callback")))))
 
+  (GET "/api/v1/topology/:id/profiling/start/:host-port/:timeout"
+       [:as {:keys [servlet-request]} id host-port timeout & m]
+       (with-nimbus nimbus
+         (let [user (.getUserName http-creds-handler servlet-request)
+               topology-conf (from-json
+                              (.getTopologyConf ^Nimbus$Client nimbus id))]
+           (assert-authorized-user servlet-request "setWorkerProfiler" (topology-config id)))
+
+         (let [[host, port] (split host-port #":")
+               nodeinfo (NodeInfo. host (set [(Long. port)]))
+               timestamp (+ (System/currentTimeMillis) (* 60000 (Long. timeout)))
+               request (ProfileRequest. nodeinfo
+                                        ProfileAction/JPROFILE_STOP)]
+           (.set_time_stamp request timestamp)
+           (.setWorkerProfiler nimbus id request)
+           (json-response {"status" "ok"
+                           "id" host-port
+                           "timeout" timeout
+                           "dumplink" (worker-dump-link
+                                       host
+                                       port
+                                       id)}
+                          (m "callback")))))
+
+  (GET "/api/v1/topology/:id/profiling/stop/:host-port"
+       [:as {:keys [servlet-request]} id host-port & m]
+       (with-nimbus nimbus
+         (let [user (.getUserName http-creds-handler servlet-request)
+               topology-conf (from-json
+                              (.getTopologyConf ^Nimbus$Client nimbus id))]
+           (assert-authorized-user servlet-request "setWorkerProfiler" (topology-config id)))
+         (let [[host, port] (split host-port #":")
+               nodeinfo (NodeInfo. host (set [(Long. port)]))
+               timestamp 0
+               request (ProfileRequest. nodeinfo
+                                        ProfileAction/JPROFILE_STOP)]
+           (.set_time_stamp request timestamp)
+           (.setWorkerProfiler nimbus id request)
+           (json-response {"status" "ok"
+                           "id" host-port}
+                          (m "callback")))))
+  
+  (GET "/api/v1/topology/:id/profiling/dumpprofile/:host-port"
+       [:as {:keys [servlet-request]} id host-port & m]
+       (with-nimbus nimbus
+         (let [user (.getUserName http-creds-handler servlet-request)
+               topology-conf (from-json
+                              (.getTopologyConf ^Nimbus$Client nimbus id))]
+           (assert-authorized-user servlet-request "setWorkerProfiler" (topology-config id)))
+         (let [[host, port] (split host-port #":")
+               nodeinfo (NodeInfo. host (set [(Long. port)]))
+               timestamp (System/currentTimeMillis)
+               request (ProfileRequest. nodeinfo
+                                        ProfileAction/JPROFILE_DUMP)]
+           (.set_time_stamp request timestamp)
+           (.setWorkerProfiler nimbus id request)
+           (json-response {"status" "ok"
+                           "id" host-port}
+                          (m "callback")))))
+  (GET "/api/v1/topology/:id/profiling/dumpjstack/:host-port"
+       [:as {:keys [servlet-request]} id host-port & m]
+       (with-nimbus nimbus
+         (let [user (.getUserName http-creds-handler servlet-request)
+               topology-conf (from-json
+                              (.getTopologyConf ^Nimbus$Client nimbus id))]
+           (assert-authorized-user servlet-request "setWorkerProfiler" (topology-config id)))
+         (let [[host, port] (split host-port #":")
+               nodeinfo (NodeInfo. host (set [(Long. port)]))
+               timestamp (System/currentTimeMillis)
+               request (ProfileRequest. nodeinfo
+                                        ProfileAction/JSTACK_DUMP)]
+           (.set_time_stamp request timestamp)
+           (.setWorkerProfiler nimbus id request)
+           (json-response {"status" "ok"
+                           "id" host-port}
+                          (m "callback")))))
+       
+  (GET "/api/v1/topology/:id/profiling/dumpheap/:host-port"
+       [:as {:keys [servlet-request]} id host-port & m]
+       (with-nimbus nimbus
+         (let [user (.getUserName http-creds-handler servlet-request)
+               topology-conf (from-json
+                              (.getTopologyConf ^Nimbus$Client nimbus id))]
+           (assert-authorized-user servlet-request "setWorkerProfiler" (topology-config id)))
+         (let [[host, port] (split host-port #":")
+               nodeinfo (NodeInfo. host (set [(Long. port)]))
+               timestamp (System/currentTimeMillis)
+               request (ProfileRequest. nodeinfo
+                                        ProfileAction/JMAP_DUMP)]
+           (.set_time_stamp request timestamp)
+           (.setWorkerProfiler nimbus id request)
+           (json-response {"status" "ok"
+                           "id" host-port}
+                          (m "callback")))))
+  
   (GET "/" [:as {cookies :cookies}]
        (resp/redirect "/index.html"))
   (route/resources "/")

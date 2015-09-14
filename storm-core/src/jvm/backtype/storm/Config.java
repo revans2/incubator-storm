@@ -1147,6 +1147,12 @@ public class Config extends HashMap<String, Object> {
     public static final Object WORKER_CHILDOPTS_SCHEMA = ConfigValidation.StringOrStringListValidator;
 
     /**
+     * The jvm profiler opts provided to workers launched by this supervisor.
+     */
+    public static final String WORKER_PROFILER_CHILDOPTS = "worker.profiler.childopts";
+    public static final Object WORKER_PROFILER_CHILDOPTS_SCHEMA = ConfigValidation.StringOrStringListValidator;
+
+    /**
      * The default heap memory size in MB per worker, used in the jvm -Xmx opts for launching the worker
       */
     public static final String WORKER_HEAP_MEMORY_MB = "worker.heap.memory.mb";

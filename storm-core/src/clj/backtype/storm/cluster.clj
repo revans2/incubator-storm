@@ -16,7 +16,7 @@
 
 (ns backtype.storm.cluster
   (:import [org.apache.zookeeper.data Stat ACL Id]
-           [backtype.storm.generated SupervisorInfo Assignment StormBase ClusterWorkerHeartbeat ErrorInfo Credentials LogConfig]
+           [backtype.storm.generated SupervisorInfo Assignment StormBase ClusterWorkerHeartbeat ErrorInfo Credentials LogConfig ProfileAction ProfileRequest NodeInfo]
            [java.io Serializable])
   (:import [org.apache.zookeeper KeeperException KeeperException$NoNodeException ZooDefs ZooDefs$Ids ZooDefs$Perms])
   (:import [backtype.storm.utils Utils])
@@ -51,6 +51,10 @@
   (active-storms [this])
   (storm-base [this storm-id callback])
   (get-worker-heartbeat [this storm-id node port])
+  (get-worker-profile-requests [this storm-id nodeinfo thrift?])
+  (get-topology-profile-requests [this storm-id thrift?])
+  (set-worker-profile-request [this storm-id profile-request])
+  (delete-topology-profile-requests [this storm-id profile-request])
   (executor-beats [this storm-id executor->node+port])
   (supervisors [this callback])
   (supervisor-info [this supervisor-id]) ;; returns nil if doesn't exist
@@ -58,6 +62,7 @@
   (teardown-heartbeats! [this storm-id])
   (teardown-topology-errors! [this storm-id])
   (teardown-topology-log-config! [this storm-id])
+  (teardown-topology-profiler-requests [this storm-id])
   (heartbeat-storms [this])
   (error-topologies [this])
   (set-topology-log-config! [this storm-id log-config])
@@ -85,6 +90,7 @@
 (def ERRORS-ROOT "errors")
 (def CREDENTIALS-ROOT "credentials")
 (def LOGCONFIG-ROOT "logconfigs")
+(def PROFILERCONFIG-ROOT "profilerconfigs")
 
 (def ASSIGNMENTS-SUBTREE (str "/" ASSIGNMENTS-ROOT))
 (def STORMS-SUBTREE (str "/" STORMS-ROOT))
@@ -93,6 +99,7 @@
 (def ERRORS-SUBTREE (str "/" ERRORS-ROOT))
 (def CREDENTIALS-SUBTREE (str "/" CREDENTIALS-ROOT))
 (def LOGCONFIG-SUBTREE (str "/" LOGCONFIG-ROOT))
+(def PROFILERCONFIG-SUBTREE (str "/" PROFILERCONFIG-ROOT))
 
 (defn supervisor-path
   [id]
@@ -138,7 +145,13 @@
 
 (defn log-config-path
   [storm-id]
-  (str LOGCONFIG-SUBTREE "/" storm-id)) 
+  (str LOGCONFIG-SUBTREE "/" storm-id))
+
+(defn profiler-config-path
+  ([storm-id]
+   (str PROFILERCONFIG-SUBTREE "/" storm-id))
+  ([storm-id host port request-type]
+   (str (profiler-config-path storm-id) "/" host "_" port "_" request-type)))
 
 (defn- issue-callback!
   [cb-atom]
@@ -293,6 +306,48 @@
         [this storm-id log-config]
         (.set_data cluster-state (log-config-path storm-id) (Utils/serialize log-config) acls))
 
+      (set-worker-profile-request
+        [this storm-id profile-request]
+        (let [request-type (.get_action profile-request)
+              host (.get_node (.get_nodeInfo profile-request))
+              port (first (.get_port (.get_nodeInfo profile-request)))]
+          (.set_data cluster-state
+                     (profiler-config-path storm-id host port request-type)
+                     (Utils/serialize profile-request)
+                     acls)))
+
+      (get-topology-profile-requests
+        [this storm-id thrift?]
+        (let [path (profiler-config-path storm-id)
+              requests (if (.node_exists cluster-state path false)
+                         (dofor [c (.get_children cluster-state path false)]
+                                (let [raw (.get_data cluster-state (str path "/" c) false)
+                                      request (maybe-deserialize raw ProfileRequest)]
+                                      (if thrift?
+                                        request
+                                        (clojurify-profile-request request)))))]
+          requests))
+
+      (delete-topology-profile-requests
+        [this storm-id profile-request]
+        (let [profile-request-inst (thriftify-profile-request profile-request)
+              action (:action profile-request)
+              host (:host profile-request)
+              port (:port profile-request)]
+          (.delete_node cluster-state
+           (profiler-config-path storm-id host port action))))
+          
+      (get-worker-profile-requests
+        [this storm-id node-info thrift?]
+        (let [host (:host node-info)
+              port (:port node-info)
+              profile-requests (get-topology-profile-requests this storm-id thrift?)]
+          (if thrift?
+            (filter #(and (= host (.get_node (.get_nodeInfo %))) (= port (first (.get_port (.get_nodeInfo  %)))))
+                    profile-requests)
+            (filter #(and (= host (:host %)) (= port (:port %)))
+                    profile-requests))))
+      
       (worker-heartbeat!
         [this storm-id node port info]
         (let [thrift-worker-hb (thriftify-zk-worker-hb info)]
@@ -327,6 +382,13 @@
           (.delete_node cluster-state (log-config-path storm-id))
           (catch KeeperException e
             (log-warn-error e "Could not teardown log configs for " storm-id))))
+
+      (teardown-topology-profiler-requests
+        [this storm-id]
+        (try-cause
+          (.delete_node cluster-state (profiler-config-path storm-id))
+          (catch KeeperException e
+            (log-warn-error e "Could not teardown profiler configs for " storm-id))))
 
       (supervisor-heartbeat!
         [this supervisor-id info]
