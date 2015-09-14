@@ -21,7 +21,7 @@
     <parent>
         <artifactId>storm</artifactId>
         <groupId>org.apache.storm</groupId>
-        <version>0.10.0-beta1</version>
+        <version>0.10.0.y</version>
         <relativePath>../../pom.xml</relativePath>
     </parent>
     
@@ -36,26 +36,6 @@
     </properties>
     <build>
         <plugins>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-shade-plugin</artifactId>
-                <version>2.3</version>
-                <executions>
-                    <execution>
-                        <goals>
-                            <goal>shade</goal>
-                        </goals>
-                        <phase>package</phase>
-                    </execution>
-                </executions>
-                <configuration>
-                    <transformers>
-                        <transformer implementation="org.apache.maven.plugins.shade.resource.ApacheLicenseResourceTransformer">
-                        </transformer>
-                    </transformers>
-                    <outputFile>target/${project.artifactId}-${project.version}-jar-with-dependencies.jar</outputFile>
-                </configuration>
-	        </plugin>
             <plugin>
 		        <artifactId>maven-antrun-plugin</artifactId>
 		        <executions>

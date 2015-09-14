@@ -331,11 +331,6 @@
   (with-nimbus nimbus
     (.getSchedulerConf ^Nimbus$Client nimbus)))
 
-(defn- strip-beta1
-  "Removes '.beta1' from a string"
-  [s]
-  (clojure.string/replace s #"[-_]beta1" ""))
-
 (defn cluster-summary
   ([user]
      (with-nimbus nimbus
@@ -353,7 +348,7 @@
                                 (map #(.get_num_executors ^TopologySummary %))
                                 (reduce +))]
        {"user" user
-        "stormVersion" (strip-beta1 (str (VersionInfo/getVersion)))
+        "stormVersion" (str (VersionInfo/getVersion))
         "nimbusUptime" (pretty-uptime-sec (.get_nimbus_uptime_secs summ))
         "nimbusUptimeSeconds" (.get_nimbus_uptime_secs summ)
         "supervisors" (count sups)
@@ -378,7 +373,7 @@
        "uptimeSeconds" (.get_uptime_secs s)
        "slotsTotal" (.get_num_workers s)
        "slotsUsed" (.get_num_used_workers s)
-       "version" (strip-beta1 (.get_version s))})}))
+       "version" (.get_version s)})}))
 
 (defn all-topologies-summary
   ([]
@@ -868,7 +863,9 @@
   (POST "/api/v1/topology/:id/logconfig" [:as {:keys [body cookies servlet-request]} id & m]
     (assert-authorized-user servlet-request "setLogConfig" (topology-config id))
     (with-nimbus nimbus
-      (let [log-config-json (from-json (slurp body))
+      (let [_ (log-message "BODY: " body)
+            log-config-json (from-json (slurp body))
+            _ (log-message "LOG CONFIG " log-config-json)
             named-loggers (.get log-config-json "namedLoggerLevels")
             new-log-config (LogConfig.)]
         (doseq [[key level] named-loggers]

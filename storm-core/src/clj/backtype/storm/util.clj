@@ -682,7 +682,9 @@
   (if str
     (clojurify-structure
       (JSONValue/parse str))
-    nil))
+    (do 
+      (log-message "Trying to convert nil to JSON")
+      nil)))
 
 (defmacro letlocals
   [& body]

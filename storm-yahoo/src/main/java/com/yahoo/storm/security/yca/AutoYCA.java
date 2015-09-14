@@ -29,7 +29,7 @@ import javax.security.auth.Subject;
 import yjava.security.yca.CertDatabase;
 import yjava.security.yca.YCAException;
 
-import org.apache.storm.commons.io.FileUtils;
+import org.apache.storm.shade.org.apache.commons.io.FileUtils;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
