@@ -19,7 +19,6 @@
   (:use [clojure.java.shell :only [sh]])
   (:use ring.middleware.reload
         ring.middleware.multipart-params)
-  (:use [ring.middleware.json :only [wrap-json-params]])
   (:use [hiccup core page-helpers])
   (:use [backtype.storm config util log converter stats])
   (:use [backtype.storm.ui helpers])
@@ -287,39 +286,6 @@
        (merge (hashmap-to-persistent spouts)
               (hashmap-to-persistent bolts))
        spout-comp-summs bolt-comp-summs window id))))
-
-(defn validate-tplg-submit-params [params]
-  (let [tplg-jar-file (params :topologyJar)
-        tplg-config (if (not-nil? (params :topologyConfig)) (from-json (params :topologyConfig)))]
-    (cond
-     (nil? tplg-jar-file) {:valid false :error "missing topology jar file"}
-     (nil? tplg-config) {:valid false :error "missing topology config"}
-     (nil? (tplg-config "topologyMainClass")) {:valid false :error "topologyMainClass missing in topologyConfig"}
-     :else {:valid true})))
-
-(defn run-tplg-submit-cmd [tplg-jar-file tplg-config user]
-  (let [tplg-main-class (if (not-nil? tplg-config) (trim (tplg-config "topologyMainClass")))
-        tplg-main-class-args (if (not-nil? tplg-config) (tplg-config "topologyMainClassArgs"))
-        storm-home (System/getProperty "storm.home")
-        storm-conf-dir (str storm-home file-path-separator "conf")
-        storm-log-dir (if (not-nil? (*STORM-CONF* "storm.log.dir")) (*STORM-CONF* "storm.log.dir")
-                          (str storm-home file-path-separator "logs"))
-        storm-libs (str storm-home file-path-separator "lib" file-path-separator "*")
-        java-cmd (str (System/getProperty "java.home") file-path-separator "bin" file-path-separator "java")
-        storm-cmd (str storm-home file-path-separator "bin" file-path-separator "storm")
-        tplg-cmd-response (apply sh
-                            (flatten
-                              [storm-cmd "jar" tplg-jar-file tplg-main-class
-                                (if (not-nil? tplg-main-class-args) tplg-main-class-args [])
-                                (if (not= user "unknown") (str "-c storm.doAsUser=" user) [])]))]
-    (log-message "tplg-cmd-response " tplg-cmd-response)
-    (cond
-     (= (tplg-cmd-response :exit) 0) {"status" "success"}
-     (and (not= (tplg-cmd-response :exit) 0)
-          (not-nil? (re-find #"already exists on cluster" (tplg-cmd-response :err)))) {"status" "failed" "error" "Topology with the same name exists in cluster"}
-          (not= (tplg-cmd-response :exit) 0) {"status" "failed" "error" (clojure.string/trim-newline (tplg-cmd-response :err))}
-          :else {"status" "success" "response" "topology deployed"}
-          )))
 
 (defn cluster-configuration []
   (with-nimbus nimbus
@@ -887,9 +853,7 @@
   (POST "/api/v1/topology/:id/logconfig" [:as {:keys [body cookies servlet-request]} id & m]
     (assert-authorized-user servlet-request "setLogConfig" (topology-config id))
     (with-nimbus nimbus
-      (let [_ (log-message "BODY: " body)
-            log-config-json (from-json (slurp body))
-            _ (log-message "LOG CONFIG " log-config-json)
+      (let [log-config-json (from-json (slurp body))
             named-loggers (.get log-config-json "namedLoggerLevels")
             new-log-config (LogConfig.)]
         (doseq [[key level] named-loggers]
@@ -1025,7 +989,6 @@
 
 (def app
   (handler/site (-> main-routes
-                    (wrap-json-params)
                     (wrap-multipart-params)
                     (wrap-reload '[backtype.storm.ui.core])
                     requests-middleware
@@ -1048,6 +1011,9 @@
           https-ts-type (conf UI-HTTPS-TRUSTSTORE-TYPE)
           https-want-client-auth (conf UI-HTTPS-WANT-CLIENT-AUTH)
           https-need-client-auth (conf UI-HTTPS-NEED-CLIENT-AUTH)]
+      (if-not (local-mode? conf)
+        (redirect-stdio-to-slf4j!))
+
       (start-metrics-reporters)
       (storm-run-jetty {:port (conf UI-PORT)
                         :host (conf UI-HOST)

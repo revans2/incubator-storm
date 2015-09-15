@@ -687,10 +687,8 @@
   [^String str]
   (if str
     (clojurify-structure
-      (JSONValue/parse str))
-    (do 
-      (log-message "Trying to convert nil to JSON")
-      nil)))
+      (JSONValue/parseWithException str))
+      nil))
 
 (defmacro letlocals
   [& body]
