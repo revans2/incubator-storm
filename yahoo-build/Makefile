@@ -8,9 +8,9 @@ EXEC_CONF_DIR?=/home/y/conf/storm/
 
 all: build
 
-test:
-	cd .. && $(MVN) -Pnative -Pstorm-core -Pcoverage -Dworker-launcher.conf.dir=${EXEC_CONF_DIR} install ${MVN_MAKE_OPTS}
-	cd .. && $(MVN) -Pyahoo -Pstorm-more -Pcoverage -Dworker-launcher.conf.dir=${EXEC_CONF_DIR} package ${MVN_MAKE_OPTS}
+test: RELEASE
+	cd .. && $(MVN) -Pnative -Pstorm-core -Pcoverage -Dworker-launcher.conf.dir=${EXEC_CONF_DIR} install ${MVN_MAKE_OPTS} -Dystorm.build.number=$(shell sed 's;.*\.;;' RELEASE)
+	cd .. && $(MVN) -Pyahoo -Pstorm-more -Pcoverage -Dworker-launcher.conf.dir=${EXEC_CONF_DIR} package ${MVN_MAKE_OPTS} -Dystorm.build.number=$(shell sed 's;.*\.;;' RELEASE)
 
 check: test
 	@echo "Errors or Failures:"
