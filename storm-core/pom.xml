@@ -608,7 +608,8 @@
                         </relocation>
                         <relocation>
                             <pattern>org.apache.thrift</pattern>
-                            <shadedPattern>org.apache.storm.shade.org.apache.thrift</shadedPattern>
+                            <!-- This pattern is inconsistent for backwards compatability purposes. -->
+                            <shadedPattern>org.apache.thrift7</shadedPattern>
                         </relocation>
                         <relocation>
                             <pattern>org.jboss.netty</pattern>
