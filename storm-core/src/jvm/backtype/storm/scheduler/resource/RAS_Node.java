@@ -258,6 +258,7 @@ public class RAS_Node{
             if (cpuForExec != null) {
                 cpu += cpuForExec;
             }
+            LOG.info("zliu for executor: {}, onheap: {}, offheap {}, cpu {}", exec, onHeapMem, offHeapMem, cpu);
         }
         slot.allocateResource(onHeapMem, offHeapMem, cpu);
     }

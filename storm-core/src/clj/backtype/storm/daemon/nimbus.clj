@@ -581,12 +581,21 @@
   (into {} (for [[tid assignment] existing-assignments
                  :let [alive-executors (topology->alive-executors tid)
                        executor->node+port (:executor->node+port assignment)
+                       worker->resources (:worker->resources assignment)
+                       ;; making a map from node+port to WorkerSlot with allocated resources
+                       node+port->slot (into {} (for [[node+port resources] worker->resources]
+                                                  {node+port
+                                                   (doto (WorkerSlot. (first node+port) (second node+port))
+                                                     (.allocateResource
+                                                       (first resources)
+                                                       (second resources)
+                                                       (last resources)))}))
                        executor->slot (into {} (for [[executor [node port]] executor->node+port]
                                                  ;; filter out the dead executors
                                                  (if (contains? alive-executors executor)
                                                    {(ExecutorDetails. (first executor)
                                                                       (second executor))
-                                                    (WorkerSlot. node port)}
+                                                    (get node+port->slot [node port])}
                                                    {})))]]
              {tid (SchedulerAssignmentImpl. tid executor->slot)})))
 
@@ -779,12 +788,14 @@
                                         ;; will be treated as free slot in the scheduler code.
                                         (when (or (nil? scratch-topology-id) (not= tid scratch-topology-id))
                                           {tid (.assignment-info storm-cluster-state tid nil)})))
+        _ (log-message "zliu, existing-assignments is " (pr-str existing-assignments))
         ;; make the new assignments for topologies
         new-scheduler-assignments (compute-new-scheduler-assignments
                                        nimbus
                                        existing-assignments
                                        topologies
                                        scratch-topology-id)
+        _ (log-message "zliu, new-scheduler-assignments is " (pr-str new-scheduler-assignments))
 
         topology->executor->node+port (compute-new-topology->executor->node+port new-scheduler-assignments existing-assignments)
 

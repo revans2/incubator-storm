@@ -24,7 +24,7 @@
            [org.apache.commons.io FileUtils]
            [java.io File])
   (:use [backtype.storm config util log timer local-state])
-  (:import [backtype.storm.generated AuthorizationException KeyNotFoundException ProfileAction])
+  (:import [backtype.storm.generated AuthorizationException KeyNotFoundException ProfileAction WorkerResources])
   (:import [java.util.concurrent Executors])
   (:import [java.nio.file Files Path Paths StandardCopyOption])
   (:import [backtype.storm.blobstore BlobStoreAclHandler])
@@ -80,9 +80,12 @@
 
 (defn- read-my-executors [assignments-snapshot storm-id assignment-id]
   (let [assignment (get assignments-snapshot storm-id)
+        _ (log-message " zliu, assignment is: "  (pr-str assignment))
+        _ (log-message " zliu, worker->resuorce is:  "  (pr-str (:worker->resources assignment)))
         my-slots-resources (into {} 
                                  (filter (fn [[[node _] _]] (= node assignment-id))
                                          (:worker->resources assignment)))
+        _ (log-message " zliu, my-slots-resources is: "  (pr-str my-slots-resources))
         my-executors (filter (fn [[_ [node _]]] (= node assignment-id))
                              (:executor->node+port assignment))
         port-executors (apply merge-with
@@ -351,6 +354,7 @@
   (let [conf (:conf supervisor)
         download-lock (:download-lock supervisor)
         ^LocalState local-state (:local-state supervisor)
+        _ (log-message "zliu local-assignments is: " (pr-str (ls-local-assignments local-state)))
         assigned-executors (defaulted (ls-local-assignments local-state) {})
         now (current-time-secs)
         allocated (read-allocated-workers supervisor assigned-executors now)
@@ -377,6 +381,9 @@
     (log-debug "Syncing processes")
     (log-debug "Assigned executors: " assigned-executors)
     (log-debug "Allocated: " allocated)
+    (log-message "zliu Assigned executors: " (pr-str assigned-executors))
+    (log-message "zliu reassign-executors: " (pr-str reassign-executors))
+    (log-message "zliu Allocated: " (pr-str allocated))
     (doseq [[id [state heartbeat]] allocated]
       (when (not= :valid state)
         (log-message
@@ -392,8 +399,9 @@
               (dofor [[port assignment] reassign-executors]
                 (let [id (new-worker-ids port)
                       storm-id (:storm-id assignment)
-                      resources (:resources assignment)
-                      mem-onheap (first resources)]
+                      ^WorkerResources resources (:resources assignment)
+                      _ (log-message "zliu assignment resources is " (pr-str resources))
+                      mem-onheap (.get_mem_on_heap resources)]
                   (if (required-topo-files-exist? conf storm-id)
                     (do
                       (log-message "Launching worker with assignment "
@@ -406,6 +414,7 @@
                         id)
                       (local-mkdirs (worker-pids-root conf id))
                       (local-mkdirs (worker-heartbeats-root conf id))
+                      (log-message "zliu in supervisor, to launch, mem-onheap is " mem-onheap)
                       (launch-worker supervisor
                         (:storm-id assignment)
                         port
@@ -534,12 +543,15 @@
           storm-local-map (read-storm-local-dir assignments-snapshot)
           all-downloaded-storm-ids (set (read-downloaded-storm-ids conf))
           existing-assignment (ls-local-assignments local-state)
+          _ (log-message "zliu existing assignment: " (pr-str existing-assignment))
           all-assignment (read-assignments assignments-snapshot
                                            (:assignment-id supervisor)
                                            existing-assignment
                                            (:sync-retry supervisor))
+          _ (log-message "zliu all assignment: " (pr-str all-assignment))
           new-assignment (->> all-assignment
                               (filter-key #(.confirmAssigned isupervisor %)))
+          _ (log-message "zliu new assignment: " (pr-str new-assignment))
           rm-blob-refs? true
           assigned-storm-ids (assigned-storm-ids-from-port-assignments new-assignment)
           existing-assignment (ls-local-assignments local-state)
@@ -568,6 +580,7 @@
 
       (log-debug "Writing new assignment "
                  (pr-str new-assignment))
+      (log-message "zliu Writing new assignment " (pr-str new-assignment))
       (doseq [p (set/difference (set (keys existing-assignment))
                                 (set (keys new-assignment)))]
         (.killedWorker isupervisor (int p)))

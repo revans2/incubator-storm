@@ -103,9 +103,10 @@
 
 (defn ->local-assignment
   [^LocalAssignment thrift-local-assignment]
-    (mk-local-assignment
+    (mk-local-assignment-with-resources
       (.get_topology_id thrift-local-assignment)
-      (->executor-list (.get_executors thrift-local-assignment))))
+      (->executor-list (.get_executors thrift-local-assignment))
+      (.get_resources thrift-local-assignment)))
 
 (defn ls-local-assignments!
   [^LocalState local-state assignments]
