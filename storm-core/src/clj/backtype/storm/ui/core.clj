@@ -335,18 +335,25 @@
 (defn supervisor-summary
   ([]
    (with-nimbus nimbus
-                (supervisor-summary
-                  (.get_supervisors (.getClusterInfo ^Nimbus$Client nimbus)))))
+     (supervisor-summary
+       (.get_supervisors (.getClusterInfo ^Nimbus$Client nimbus)))))
   ([summs]
-   {"supervisors"
-    (for [^SupervisorSummary s summs]
-      {"id" (.get_supervisor_id s)
-       "host" (.get_host s)
-       "uptime" (pretty-uptime-sec (.get_uptime_secs s))
-       "uptimeSeconds" (.get_uptime_secs s)
-       "slotsTotal" (.get_num_workers s)
-       "slotsUsed" (.get_num_used_workers s)
-       "version" (.get_version s)})}))
+   (let [bad-supervisors (filter #(= "unknown" (.get_host ^SupervisorSummary %)) summs)
+         good-supervisors (filter #(not= "unknown" (.get_host ^SupervisorSummary %)) summs)]
+     {"supervisors"
+      (for [^SupervisorSummary s good-supervisors]
+        {"id" (.get_supervisor_id s)
+         "host" (.get_host s)
+         "uptime" (pretty-uptime-sec (.get_uptime_secs s))
+         "uptimeSeconds" (.get_uptime_secs s)
+         "slotsTotal" (.get_num_workers s)
+         "slotsUsed" (.get_num_used_workers s)
+         "version" (.get_version s)})
+      "has-bad-supervisors" (not (empty? bad-supervisors))
+      "bad-supervisors"
+      (for [^SupervisorSummary s bad-supervisors]
+        {"id" (.get_supervisor_id s)
+         "error" (.get_version s)})})))
 
 (defn all-topologies-summary
   ([]
