@@ -24,7 +24,7 @@
            [org.apache.commons.io FileUtils]
            [java.io File])
   (:use [backtype.storm config util log timer local-state])
-  (:import [backtype.storm.generated AuthorizationException KeyNotFoundException ProfileAction])
+  (:import [backtype.storm.generated AuthorizationException KeyNotFoundException ProfileAction WorkerResources])
   (:import [java.util.concurrent Executors])
   (:import [java.nio.file Files Path Paths StandardCopyOption])
   (:import [backtype.storm.blobstore BlobStoreAclHandler])
@@ -93,7 +93,7 @@
     (into {} (for [[port executors] port-executors]
                ;; need to cast to int b/c it might be a long (due to how yaml parses things)
                ;; doall is to avoid serialization/deserialization problems with lazy seqs
-               [(Integer. port) (mk-local-assignment-with-resources storm-id (doall executors) (get my-slots-resources [assignment-id port]))]
+               [(Integer. port) (mk-local-assignment storm-id (doall executors) (get my-slots-resources [assignment-id port]))]
                ))))
 
 (defn- read-assignments
@@ -392,8 +392,8 @@
               (dofor [[port assignment] reassign-executors]
                 (let [id (new-worker-ids port)
                       storm-id (:storm-id assignment)
-                      resources (:resources assignment)
-                      mem-onheap (first resources)]
+                      ^WorkerResources resources (:resources assignment)
+                      mem-onheap (.get_mem_on_heap resources)]
                   (if (required-topo-files-exist? conf storm-id)
                     (do
                       (log-message "Launching worker with assignment "
