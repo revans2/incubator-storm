@@ -583,9 +583,9 @@
                        executor->node+port (:executor->node+port assignment)
                        worker->resources (:worker->resources assignment)
                        ;; making a map from node+port to WorkerSlot with allocated resources
-                       node+port->slot (into {} (for [[node+port resources] worker->resources]
-                                                  {node+port
-                                                   (doto (WorkerSlot. (first node+port) (second node+port))
+                       node+port->slot (into {} (for [[[node port] resources] worker->resources]
+                                                  {[node port]
+                                                   (doto (WorkerSlot. node port)
                                                      (.allocateResource
                                                        (first resources)
                                                        (second resources)
