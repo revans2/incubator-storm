@@ -583,13 +583,13 @@
                        executor->node+port (:executor->node+port assignment)
                        worker->resources (:worker->resources assignment)
                        ;; making a map from node+port to WorkerSlot with allocated resources
-                       node+port->slot (into {} (for [[[node port] resources] worker->resources]
+                       node+port->slot (into {} (for [[[node port] [mem-on-heap mem-off-heap cpu]] worker->resources]
                                                   {[node port]
                                                    (doto (WorkerSlot. node port)
                                                      (.allocateResource
-                                                       (first resources)
-                                                       (second resources)
-                                                       (last resources)))}))
+                                                       mem-on-heap
+                                                       mem-off-heap
+                                                       cpu))}))
                        executor->slot (into {} (for [[executor [node port]] executor->node+port]
                                                  ;; filter out the dead executors
                                                  (if (contains? alive-executors executor)
