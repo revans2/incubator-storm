@@ -16,21 +16,14 @@
 (ns backtype.storm.messaging.netty-integration-test
   (:use [clojure test])
   (:import [backtype.storm.messaging TransportFactory])
+  (:import [backtype.storm.utils Utils])
   (:import [backtype.storm.testing TestWordSpout TestGlobalCount])
   (:use [backtype.storm testing util config])
   (:require [backtype.storm [thrift :as thrift]]))
 
-(deftest test-integration
+(defn- test-integration-fn [daemon-conf-map]
   (with-simulated-time-local-cluster [cluster :supervisors 4 :supervisor-slot-port-min 6710
-                                      :daemon-conf {STORM-LOCAL-MODE-ZMQ true 
-                                                    STORM-MESSAGING-TRANSPORT  "backtype.storm.messaging.netty.Context"
-                                                    STORM-MESSAGING-NETTY-AUTHENTICATION false
-                                                    STORM-MESSAGING-NETTY-BUFFER-SIZE 1024000
-                                                    STORM-MESSAGING-NETTY-MAX-RETRIES 10
-                                                    STORM-MESSAGING-NETTY-MIN-SLEEP-MS 1000 
-                                                    STORM-MESSAGING-NETTY-MAX-SLEEP-MS 5000
-                                                    STORM-MESSAGING-NETTY-CLIENT-WORKER-THREADS 1
-                                                    STORM-MESSAGING-NETTY-SERVER-WORKER-THREADS 1}]
+                                      :daemon-conf daemon-conf-map]
     (let [topology (thrift/mk-topology
                      {"1" (thrift/mk-spout-spec (TestWordSpout. true) :parallelism-hint 4)}
                      {"2" (thrift/mk-bolt-spec {"1" :shuffle} (TestGlobalCount.)
@@ -55,3 +48,20 @@
                                                          ]}
                                      )]
         (is (= (* 6 4) (.size (read-tuples results "2")))))))
+
+(deftest test-integration
+  (let [daemon-conf-map {STORM-LOCAL-MODE-ZMQ true
+                         STORM-MESSAGING-TRANSPORT  "backtype.storm.messaging.netty.Context"
+                         STORM-MESSAGING-NETTY-AUTHENTICATION false
+                         STORM-MESSAGING-NETTY-BUFFER-SIZE 1024000
+                         STORM-MESSAGING-NETTY-MAX-RETRIES 10
+                         STORM-MESSAGING-NETTY-MIN-SLEEP-MS 1000
+                         STORM-MESSAGING-NETTY-MAX-SLEEP-MS 5000
+                         STORM-MESSAGING-NETTY-CLIENT-WORKER-THREADS 1
+                         STORM-MESSAGING-NETTY-SERVER-WORKER-THREADS 1}
+        daemon-conf-map-sasl (assoc daemon-conf-map
+                                    STORM-MESSAGING-NETTY-AUTHENTICATION true
+                                    TOPOLOGY-NAME "topo1-netty-sasl"
+                                    STORM-ZOOKEEPER-TOPOLOGY-AUTH-PAYLOAD (str (Utils/secureRandomLong) ":" (Utils/secureRandomLong)))]
+    (test-integration-fn daemon-conf-map) ;; test netty without authentication
+    (test-integration-fn daemon-conf-map-sasl))) ;; test netty with authentication enabled

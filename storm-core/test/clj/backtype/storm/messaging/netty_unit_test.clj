@@ -16,6 +16,7 @@
 (ns backtype.storm.messaging.netty-unit-test
   (:use [clojure test])
   (:import [backtype.storm.messaging TransportFactory])
+  (:import [backtype.storm.utils Utils])
   (:use [backtype.storm testing util config log])
   (:use [backtype.storm.daemon.worker :only [is-connection-ready]])
   (:import [java.util ArrayList]))
@@ -45,22 +46,9 @@
          (log-message "All Netty connections are ready"))))))
 
 
-(deftest test-basic
-  (log-message "11111Should send and receive a basic message")
+(defn- test-basic-fn [storm-conf]
+  (log-message "1. Should send and receive a basic message")
   (let [req_msg (String. "0123456789abcdefghijklmnopqrstuvwxyz")
-        storm-conf {STORM-MESSAGING-TRANSPORT "backtype.storm.messaging.netty.Context"
-                    STORM-MESSAGING-NETTY-AUTHENTICATION false
-                    STORM-MESSAGING-NETTY-BUFFER-SIZE 1024
-                    STORM-MESSAGING-NETTY-MAX-RETRIES 10
-                    STORM-MESSAGING-NETTY-MIN-SLEEP-MS 1000
-                    STORM-MESSAGING-NETTY-MAX-SLEEP-MS 5000
-                    STORM-MESSAGING-NETTY-SERVER-WORKER-THREADS 1
-                    STORM-MESSAGING-NETTY-CLIENT-WORKER-THREADS 1
-                    TOPOLOGY-KRYO-FACTORY "backtype.storm.serialization.DefaultKryoFactory"
-                    TOPOLOGY-TUPLE-SERIALIZER "backtype.storm.serialization.types.ListDelegateSerializer"
-                    TOPOLOGY-FALL-BACK-ON-JAVA-SERIALIZATION false
-                    TOPOLOGY-SKIP-MISSING-KRYO-REGISTRATIONS false
-                    }
         context (TransportFactory/makeContext storm-conf)
         port (available-port 6700)
         server (.bind context nil port)
@@ -75,10 +63,8 @@
     (.close server)
     (.term context)))
 
-(deftest test-load
-  (log-message "22222")
-  (let [req_msg (String. "0123456789abcdefghijklmnopqrstuvwxyz")
-        storm-conf {STORM-MESSAGING-TRANSPORT "backtype.storm.messaging.netty.Context"
+(deftest test-basic
+ (let [storm-conf {STORM-MESSAGING-TRANSPORT "backtype.storm.messaging.netty.Context"
                     STORM-MESSAGING-NETTY-AUTHENTICATION false
                     STORM-MESSAGING-NETTY-BUFFER-SIZE 1024
                     STORM-MESSAGING-NETTY-MAX-RETRIES 10
@@ -89,8 +75,17 @@
                     TOPOLOGY-KRYO-FACTORY "backtype.storm.serialization.DefaultKryoFactory"
                     TOPOLOGY-TUPLE-SERIALIZER "backtype.storm.serialization.types.ListDelegateSerializer"
                     TOPOLOGY-FALL-BACK-ON-JAVA-SERIALIZATION false
-                    TOPOLOGY-SKIP-MISSING-KRYO-REGISTRATIONS false
-                    }
+                    TOPOLOGY-SKIP-MISSING-KRYO-REGISTRATIONS false}
+        storm-conf-sasl (assoc storm-conf
+                                    STORM-MESSAGING-NETTY-AUTHENTICATION true
+                                    TOPOLOGY-NAME "topo1-netty-sasl"
+                                    STORM-ZOOKEEPER-TOPOLOGY-AUTH-PAYLOAD (str (Utils/secureRandomLong) ":" (Utils/secureRandomLong)))]
+   (test-basic-fn storm-conf)          ;; test with sasl authentication disabled
+   (test-basic-fn storm-conf-sasl)))   ;; test with sasl authentication enabled
+
+(defn- test-load-fn [storm-conf]
+  (log-message "2 test load")
+  (let [req_msg (String. "0123456789abcdefghijklmnopqrstuvwxyz")
         context (TransportFactory/makeContext storm-conf)
         port (available-port 6700)
         server (.bind context nil port)
@@ -110,22 +105,29 @@
     (.close server)
     (.term context)))
 
-(deftest test-large-msg
-  (log-message "33333Should send and receive a large message")
-  (let [req_msg (apply str (repeat 2048000 'c'))
-        storm-conf {STORM-MESSAGING-TRANSPORT "backtype.storm.messaging.netty.Context"
+(deftest test-load
+ (let [storm-conf {STORM-MESSAGING-TRANSPORT "backtype.storm.messaging.netty.Context"
                     STORM-MESSAGING-NETTY-AUTHENTICATION false
-                    STORM-MESSAGING-NETTY-BUFFER-SIZE 102400
+                    STORM-MESSAGING-NETTY-BUFFER-SIZE 1024
                     STORM-MESSAGING-NETTY-MAX-RETRIES 10
                     STORM-MESSAGING-NETTY-MIN-SLEEP-MS 1000
                     STORM-MESSAGING-NETTY-MAX-SLEEP-MS 5000
                     STORM-MESSAGING-NETTY-SERVER-WORKER-THREADS 1
                     STORM-MESSAGING-NETTY-CLIENT-WORKER-THREADS 1
                     TOPOLOGY-KRYO-FACTORY "backtype.storm.serialization.DefaultKryoFactory"
-                    TOPOLOGY-TUPLE-SERIALIZER "backtype.storm.serialization.types.ListDelegateSerializer" 
+                    TOPOLOGY-TUPLE-SERIALIZER "backtype.storm.serialization.types.ListDelegateSerializer"
                     TOPOLOGY-FALL-BACK-ON-JAVA-SERIALIZATION false
-                    TOPOLOGY-SKIP-MISSING-KRYO-REGISTRATIONS false
-                    }
+                    TOPOLOGY-SKIP-MISSING-KRYO-REGISTRATIONS false}
+        storm-conf-sasl (assoc storm-conf
+                                    STORM-MESSAGING-NETTY-AUTHENTICATION true
+                                    TOPOLOGY-NAME "topo1-netty-sasl"
+                                    STORM-ZOOKEEPER-TOPOLOGY-AUTH-PAYLOAD (str (Utils/secureRandomLong) ":" (Utils/secureRandomLong)))]
+   (test-load-fn storm-conf)          ;; test with sasl authentication disabled
+   (test-load-fn storm-conf-sasl)))   ;; test with sasl authentication enabled
+
+(defn test-large-msg-fn [storm-conf]
+  (log-message "3 Should send and receive a large message")
+  (let [req_msg (apply str (repeat 2048000 'c'))
         context (TransportFactory/makeContext storm-conf)
         port (available-port 6700)
         server (.bind context nil port)
@@ -139,23 +141,31 @@
     (.close client)
     (.close server)
     (.term context)))    
+
+(deftest test-large-msg
+ (let [storm-conf {STORM-MESSAGING-TRANSPORT "backtype.storm.messaging.netty.Context"
+                    STORM-MESSAGING-NETTY-AUTHENTICATION false
+                    STORM-MESSAGING-NETTY-BUFFER-SIZE 102400
+                    STORM-MESSAGING-NETTY-MAX-RETRIES 10
+                    STORM-MESSAGING-NETTY-MIN-SLEEP-MS 1000
+                    STORM-MESSAGING-NETTY-MAX-SLEEP-MS 5000
+                    STORM-MESSAGING-NETTY-SERVER-WORKER-THREADS 1
+                    STORM-MESSAGING-NETTY-CLIENT-WORKER-THREADS 1
+                    TOPOLOGY-KRYO-FACTORY "backtype.storm.serialization.DefaultKryoFactory"
+                    TOPOLOGY-TUPLE-SERIALIZER "backtype.storm.serialization.types.ListDelegateSerializer"
+                    TOPOLOGY-FALL-BACK-ON-JAVA-SERIALIZATION false
+                    TOPOLOGY-SKIP-MISSING-KRYO-REGISTRATIONS false}
+        storm-conf-sasl (assoc storm-conf
+                                    STORM-MESSAGING-NETTY-AUTHENTICATION true
+                                    TOPOLOGY-NAME "topo1-netty-sasl"
+                                    STORM-ZOOKEEPER-TOPOLOGY-AUTH-PAYLOAD (str (Utils/secureRandomLong) ":" (Utils/secureRandomLong)))]
+   (test-large-msg-fn storm-conf)          ;; test with sasl authentication disabled
+   (test-large-msg-fn storm-conf-sasl)))   ;; test with sasl authentication enabled
+
     
-(deftest test-server-delayed
-  (log-message "44444")
+(defn- test-server-delayed-fn [storm-conf]
+  (log-message "4. test server delayed")
     (let [req_msg (String. "0123456789abcdefghijklmnopqrstuvwxyz")
-          storm-conf {STORM-MESSAGING-TRANSPORT "backtype.storm.messaging.netty.Context"
-                      STORM-MESSAGING-NETTY-AUTHENTICATION false
-                      STORM-MESSAGING-NETTY-BUFFER-SIZE 1024
-                      STORM-MESSAGING-NETTY-MAX-RETRIES 10
-                      STORM-MESSAGING-NETTY-MIN-SLEEP-MS 1000 
-                      STORM-MESSAGING-NETTY-MAX-SLEEP-MS 5000
-                      STORM-MESSAGING-NETTY-SERVER-WORKER-THREADS 1
-                      STORM-MESSAGING-NETTY-CLIENT-WORKER-THREADS 1
-                      TOPOLOGY-KRYO-FACTORY "backtype.storm.serialization.DefaultKryoFactory"
-                      TOPOLOGY-TUPLE-SERIALIZER "backtype.storm.serialization.types.ListDelegateSerializer" 
-                      TOPOLOGY-FALL-BACK-ON-JAVA-SERIALIZATION false
-                      TOPOLOGY-SKIP-MISSING-KRYO-REGISTRATIONS false
-                      }
           context (TransportFactory/makeContext storm-conf)
           port (available-port 6700)
           client (.connect context nil "localhost" port)
@@ -177,15 +187,10 @@
       (.close client)
       (.term context)))
 
-
-(comment
-  ;; Uncomment this test when netty can consistently send messages in-order.
-(deftest test-batch
-  (log-message "55555")
-  (let [num-messages 100000
-        storm-conf {STORM-MESSAGING-TRANSPORT "backtype.storm.messaging.netty.Context"
+(deftest test-server-delayed
+ (let [storm-conf {STORM-MESSAGING-TRANSPORT "backtype.storm.messaging.netty.Context"
                     STORM-MESSAGING-NETTY-AUTHENTICATION false
-                    STORM-MESSAGING-NETTY-BUFFER-SIZE 1024000
+                    STORM-MESSAGING-NETTY-BUFFER-SIZE 1024
                     STORM-MESSAGING-NETTY-MAX-RETRIES 10
                     STORM-MESSAGING-NETTY-MIN-SLEEP-MS 1000
                     STORM-MESSAGING-NETTY-MAX-SLEEP-MS 5000
@@ -194,8 +199,19 @@
                     TOPOLOGY-KRYO-FACTORY "backtype.storm.serialization.DefaultKryoFactory"
                     TOPOLOGY-TUPLE-SERIALIZER "backtype.storm.serialization.types.ListDelegateSerializer"
                     TOPOLOGY-FALL-BACK-ON-JAVA-SERIALIZATION false
-                    TOPOLOGY-SKIP-MISSING-KRYO-REGISTRATIONS false
-                    }
+                    TOPOLOGY-SKIP-MISSING-KRYO-REGISTRATIONS false}
+        storm-conf-sasl (assoc storm-conf
+                                    STORM-MESSAGING-NETTY-AUTHENTICATION true
+                                    TOPOLOGY-NAME "topo1-netty-sasl"
+                                    STORM-ZOOKEEPER-TOPOLOGY-AUTH-PAYLOAD (str (Utils/secureRandomLong) ":" (Utils/secureRandomLong)))]
+   (test-server-delayed-fn storm-conf)          ;; test with sasl authentication disabled
+   (test-server-delayed-fn storm-conf-sasl)))   ;; test with sasl authentication enabled
+
+(comment
+  ;; Uncomment this test when netty can consistently send messages in-order.
+(defn- test-batch-fn
+  (log-message "5. test batch")
+  (let [num-messages 100000
         _ (log-message "Should send and receive many messages (testing with " num-messages " messages)")
         context (TransportFactory/makeContext storm-conf)
         port (available-port 6700)
@@ -222,10 +238,31 @@
 
     (.close client)
     (.close server)
-    (.term context))))
+    (.term context)))
 
-(deftest test-server-always-reconnects
-  (log-message "66666")
+(deftest test-batch
+ (let [storm-conf {STORM-MESSAGING-TRANSPORT "backtype.storm.messaging.netty.Context"
+                    STORM-MESSAGING-NETTY-AUTHENTICATION false
+                    STORM-MESSAGING-NETTY-BUFFER-SIZE 1024000
+                    STORM-MESSAGING-NETTY-MAX-RETRIES 10
+                    STORM-MESSAGING-NETTY-MIN-SLEEP-MS 1000
+                    STORM-MESSAGING-NETTY-MAX-SLEEP-MS 5000
+                    STORM-MESSAGING-NETTY-SERVER-WORKER-THREADS 1
+                    STORM-MESSAGING-NETTY-CLIENT-WORKER-THREADS 1
+                    TOPOLOGY-KRYO-FACTORY "backtype.storm.serialization.DefaultKryoFactory"
+                    TOPOLOGY-TUPLE-SERIALIZER "backtype.storm.serialization.types.ListDelegateSerializer"
+                    TOPOLOGY-FALL-BACK-ON-JAVA-SERIALIZATION false
+                    TOPOLOGY-SKIP-MISSING-KRYO-REGISTRATIONS false}
+        storm-conf-sasl (assoc storm-conf
+                                    STORM-MESSAGING-NETTY-AUTHENTICATION true
+                                    TOPOLOGY-NAME "topo1-netty-sasl"
+                                    STORM-ZOOKEEPER-TOPOLOGY-AUTH-PAYLOAD (str (Utils/secureRandomLong) ":" (Utils/secureRandomLong)))]
+   (test-batch-fn storm-conf)          ;; test with sasl authentication disabled
+   (test-batch-fn storm-conf-sasl)))   ;; test with sasl authentication enabled
+)
+
+(defn- test-server-always-reconnects-fn [storm-conf]
+  (log-message "6. test server always reconnects")
     (let [req_msg (String. "0123456789abcdefghijklmnopqrstuvwxyz")
           storm-conf {STORM-MESSAGING-TRANSPORT "backtype.storm.messaging.netty.Context"
                       STORM-MESSAGING-NETTY-AUTHENTICATION false
@@ -236,14 +273,13 @@
                       STORM-MESSAGING-NETTY-SERVER-WORKER-THREADS 1
                       STORM-MESSAGING-NETTY-CLIENT-WORKER-THREADS 1
                       TOPOLOGY-KRYO-FACTORY "backtype.storm.serialization.DefaultKryoFactory"
-                      TOPOLOGY-TUPLE-SERIALIZER "backtype.storm.serialization.types.ListDelegateSerializer" 
+                      TOPOLOGY-TUPLE-SERIALIZER "backtype.storm.serialization.types.ListDelegateSerializer"
                       TOPOLOGY-FALL-BACK-ON-JAVA-SERIALIZATION false
                       TOPOLOGY-SKIP-MISSING-KRYO-REGISTRATIONS false}
           context (TransportFactory/makeContext storm-conf)
           port (available-port 6700)
           client (.connect context nil "localhost" port)
           _ (.send client task (.getBytes req_msg))
-;          _ (Thread/sleep 1000)
           server (.bind context nil port)
           _ (wait-until-ready [server client])
           _ (.send client task (.getBytes req_msg))
@@ -257,3 +293,24 @@
       (.close client)
       (.close server)
       (.term context)))
+
+(deftest test-server-always-reconnects
+ (let [storm-conf {STORM-MESSAGING-TRANSPORT "backtype.storm.messaging.netty.Context"
+                    STORM-MESSAGING-NETTY-AUTHENTICATION false
+                    STORM-MESSAGING-NETTY-BUFFER-SIZE 1024
+                    STORM-MESSAGING-NETTY-MAX-RETRIES 2
+                    STORM-MESSAGING-NETTY-MIN-SLEEP-MS 10
+                    STORM-MESSAGING-NETTY-MAX-SLEEP-MS 50
+                    STORM-MESSAGING-NETTY-SERVER-WORKER-THREADS 1
+                    STORM-MESSAGING-NETTY-CLIENT-WORKER-THREADS 1
+                    TOPOLOGY-KRYO-FACTORY "backtype.storm.serialization.DefaultKryoFactory"
+                    TOPOLOGY-TUPLE-SERIALIZER "backtype.storm.serialization.types.ListDelegateSerializer"
+                    TOPOLOGY-FALL-BACK-ON-JAVA-SERIALIZATION false
+                    TOPOLOGY-SKIP-MISSING-KRYO-REGISTRATIONS false}
+        storm-conf-sasl (assoc storm-conf
+                                    STORM-MESSAGING-NETTY-AUTHENTICATION true
+                                    TOPOLOGY-NAME "topo1-netty-sasl"
+                                    STORM-ZOOKEEPER-TOPOLOGY-AUTH-PAYLOAD (str (Utils/secureRandomLong) ":" (Utils/secureRandomLong)))]
+   (test-server-always-reconnects-fn storm-conf)          ;; test with sasl authentication disabled
+   (test-server-always-reconnects-fn storm-conf-sasl)))   ;; test with sasl authentication enabled
+
