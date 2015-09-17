@@ -208,7 +208,7 @@
    (test-server-delayed-fn storm-conf-sasl)))   ;; test with sasl authentication enabled
 
 
-(defn- test-batch-fn
+(defn- test-batch-fn [storm-conf]
   (log-message "5. test batch")
   (let [num-messages 100000
         _ (log-message "Should send and receive many messages (testing with " num-messages " messages)")
