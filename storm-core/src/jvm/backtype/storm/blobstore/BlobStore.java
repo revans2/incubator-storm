@@ -219,6 +219,11 @@ public abstract class BlobStore implements Shutdownable {
     public int available() throws IOException {
       return in.available();
     }
+
+    @Override
+    public long getFileLength() throws IOException {
+        return part.getFileLength();
+    }
   }
 
   public static class KeyTranslationIterator implements Iterator<String> {

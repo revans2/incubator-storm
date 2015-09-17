@@ -22,4 +22,5 @@ import java.io.InputStream;
 
 public abstract class InputStreamWithMeta extends InputStream {
   public abstract long getVersion() throws IOException;
+  public abstract long getFileLength() throws IOException;
 }

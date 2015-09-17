@@ -8,8 +8,9 @@ EXEC_CONF_DIR?=/home/y/conf/storm/
 
 all: build
 
-test:
-	cd .. && $(MVN) -Pyahoo -Pnative -Pcoverage -Dworker-launcher.conf.dir=${EXEC_CONF_DIR} package ${MVN_MAKE_OPTS}
+test: RELEASE
+	cd .. && $(MVN) -Pnative -Pstorm-core -Pcoverage -Dworker-launcher.conf.dir=${EXEC_CONF_DIR} install ${MVN_MAKE_OPTS} -Dystorm.build.number=$(shell sed 's;.*\.;;' RELEASE)
+	cd .. && $(MVN) -Pyahoo -Pstorm-more -Pcoverage -Dworker-launcher.conf.dir=${EXEC_CONF_DIR} package ${MVN_MAKE_OPTS} -Dystorm.build.number=$(shell sed 's;.*\.;;' RELEASE)
 
 check: test
 	@echo "Errors or Failures:"
@@ -18,7 +19,8 @@ check: test
 
 
 build: RELEASE
-	cd .. && $(MVN) -Pyahoo -Pnative -Dworker-launcher.conf.dir=${EXEC_CONF_DIR} package -DskipTests ${MVN_MAKE_OPTS} -Dystorm.build.number=$(shell sed 's;.*\.;;' RELEASE)
+	cd .. && $(MVN) -Pnative -Pstorm-core -Dworker-launcher.conf.dir=${EXEC_CONF_DIR} install -DskipTests ${MVN_MAKE_OPTS} -Dystorm.build.number=$(shell sed 's;.*\.;;' RELEASE)
+	cd .. && $(MVN) -Pyahoo -Pnative -Pstorm-more -Dworker-launcher.conf.dir=${EXEC_CONF_DIR} package -DskipTests ${MVN_MAKE_OPTS} -Dystorm.build.number=$(shell sed 's;.*\.;;' RELEASE)
 
 dist_tag: RELEASE
 	$(shell echo "ystorm_`cat RELEASE`" | sed 's/\./_/g' > DIST_TAG)
@@ -38,13 +40,14 @@ RELEASE: BASE_VERSION_UNDERSCORE
 	fi
 
 define setup-versions
-cd .. && ${MVN} -q -Pyahoo versions:set -DnewVersion=$(MVN_FULL_VERSION) ${MVN_MAKE_OPTS} && \
-	${MVN} -q -Pyahoo versions:update-child-modules ${MVN_MAKE_OPTS}
+cd .. && ${MVN} -q -Pyahoo,storm-core,storm-more versions:set -DnewVersion=$(MVN_FULL_VERSION) ${MVN_MAKE_OPTS} && \
+	${MVN} -q -Pyahoo,storm-core,storm-more versions:update-child-modules ${MVN_MAKE_OPTS}
+if [ -e ../storm-core/dependency-reduced-pom.xml ]; then sed -e 's/'"$(BASE_VERSION)"'/'"$(FULL_VERSION)"'/g' ../storm-core/dependency-reduced-pom.xml > storm-core-dependency-reduced-pom.xml; fi
 endef
 
 define revert-versions
-cd .. && ${MVN} -q -Pyahoo versions:revert ${MVN_MAKE_OPTS} && \
-	${MVN} -q -Pyahoo versions:update-child-modules ${MVN_MAKE_OPTS}
+cd .. && ${MVN} -q -Pyahoo,storm-core,storm-more versions:revert ${MVN_MAKE_OPTS} && \
+	${MVN} -q -Pyahoo,storm-core,storm-more versions:update-child-modules ${MVN_MAKE_OPTS}
 endef
 
 define find-tracked-pom-xml
@@ -75,7 +78,7 @@ rhel6_build.state: rhel6_build.yidf rhel6_build.yml
 	statecc --branch test ./rhel6_build.yml
 
 clean:
-	cd .. && $(MVN) -Pyahoo clean ${MVN_MAKE_OPTS}
+	cd .. && $(MVN) -Pyahoo,storm-core,storm-more clean ${MVN_MAKE_OPTS}
 	$(revert-versions)
 	rm -rf *_build.ruleset ystorm*.tgz BASE_VERSION RELEASE BASE_VERSION_UNDERSCORE
 

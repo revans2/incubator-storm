@@ -163,7 +163,7 @@
             (into [] (.listFiles port-dir)))))
 
 (defn is-active-log [^File file]
-  (re-find #"\.(log|err|out|current|yaml)$" (.getName file)))
+  (re-find #"\.(log|err|out|current|yaml|pid)$" (.getName file)))
 
 (defn filter-candidate-files 
   "Filter candidate files for global cleanup"
@@ -929,6 +929,52 @@ Note that if anything goes wrong, this will throw an Error and exit."
          (catch InvalidRequestException ex
            (log-error ex)
            (json-response (exception->json ex) (:callback m) :status 400))))
+    (GET "/dumps/:topo-id/:host-port/:filename"
+         [:as {:keys [servlet-request servlet-response log-root]} topo-id host-port filename &m]
+       (let [port (second (split host-port #":"))]
+         (-> (resp/response (File. (str log-root
+                                        file-path-separator
+                                        topo-id
+                                        file-path-separator
+                                        port
+                                        file-path-separator
+                                        filename)))
+             (resp/content-type "application/octet-stream"))))
+    (GET "/dumps/:topo-id/:host-port"
+         [:as {:keys [servlet-request servlet-response log-root]} topo-id host-port &m]
+       (let [user (.getUserName http-creds-handler servlet-request)
+             port (second (split host-port #":"))
+             dir (File. (str log-root
+                             file-path-separator
+                             topo-id
+                             file-path-separator
+                             port))
+             files (filter (comp not nil?)
+                           (for [f (.listFiles dir)]
+                             (let [name (.getName f)]
+                               (if (or
+                                    (.endsWith name ".txt")
+                                    (.endsWith name ".jfr")
+                                    (.endsWith name ".bin"))
+                                 (.getName f)))))]
+         (if (.exists dir)
+           (if (or (blank? (*STORM-CONF* UI-FILTER))
+                 (authorized-log-user? user "worker.log" *STORM-CONF*))
+             (html4
+               [:head
+                [:title "File Dumps - Storm Log Viewer"]
+                (include-css "/css/bootstrap-3.3.1.min.css")
+                (include-css "/css/jquery.dataTables.1.10.4.min.css")
+                (include-css "/css/style.css")]
+               [:body
+                [:ul
+                 (for [file files]
+                   [:li
+                    [:a {:href (str "/dumps/" topo-id "/" host-port "/" file)} file ]])]])
+             (unauthorized-user-html user))
+           (-> (resp/response "Page not found")
+             (resp/status 404)))))
+         
   (GET "/deepSearch/:topo-id" [:as {:keys [servlet-request servlet-response log-root]} topo-id & m]
        ;; We do not use servlet-response here, but do not remove it from the
        ;; :keys list, or this rule could stop working when an authentication

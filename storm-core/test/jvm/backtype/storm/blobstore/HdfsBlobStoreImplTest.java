@@ -188,4 +188,18 @@ public class HdfsBlobStoreImplTest {
     hbs.deleteKey(validKey2);
     assertFalse("key not deleted", hbs.exists(validKey2));
   }
+
+  @Test
+  public void testGetFileLength() throws IOException {
+    FileSystem fs = dfscluster.getFileSystem();
+    Map conf = new HashMap();
+    String validKey = "validkeyBasic";
+    String testString = "testingblob";
+    TestHdfsBlobStoreImpl hbs = new TestHdfsBlobStoreImpl(blobDir, conf, hadoopConf);
+    BlobStoreFile pfile = hbs.write(validKey, false);
+    OutputStream ios = pfile.getOutputStream();
+    ios.write(testString.getBytes(Charset.forName("UTF-8")));
+    ios.close();
+    assertEquals(testString.getBytes(Charset.forName("UTF-8")).length, pfile.getFileLength());
+  }
 }

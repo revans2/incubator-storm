@@ -19,6 +19,7 @@ package backtype.storm.messaging.netty;
 
 import backtype.storm.Config;
 import backtype.storm.security.auth.AuthUtils;
+import backtype.storm.security.auth.KerberosPrincipalToLocal;
 import java.io.IOException;
 import java.security.Principal;
 import java.security.PrivilegedActionException;
@@ -31,6 +32,7 @@ import javax.security.auth.Subject;
 import javax.security.auth.callback.Callback;
 import javax.security.auth.callback.CallbackHandler;
 import javax.security.auth.callback.UnsupportedCallbackException;
+import javax.security.auth.kerberos.KerberosPrincipal;
 import javax.security.auth.kerberos.KerberosTicket;
 import javax.security.auth.login.Configuration;
 import javax.security.auth.login.LoginException;
@@ -52,8 +54,10 @@ class KerberosSaslNettyServer {
     private SaslServer saslServer;
     private Subject subject;
     private String jaas_section;
+    private List<String> authorizedUsers;
     
-    KerberosSaslNettyServer(Map storm_conf, String jaas_section) {
+    KerberosSaslNettyServer(Map storm_conf, String jaas_section, List<String> authorizedUsers) {
+        this.authorizedUsers = authorizedUsers;
         LOG.debug("Getting Configuration.");
         Configuration login_conf;
         try {
@@ -66,7 +70,7 @@ class KerberosSaslNettyServer {
             
         LOG.debug("KerberosSaslNettyServer: authmethod {}", SaslUtils.KERBEROS);
 
-        KerberosSaslCallbackHandler ch = new KerberosSaslNettyServer.KerberosSaslCallbackHandler(storm_conf);
+        KerberosSaslCallbackHandler ch = new KerberosSaslNettyServer.KerberosSaslCallbackHandler(storm_conf, authorizedUsers);
         
         //login our principal
         subject = null;
@@ -148,10 +152,12 @@ class KerberosSaslNettyServer {
 
         /** Used to authenticate the clients */
         private Map config;
+        private List<String> authorizedUsers;
 
-        public KerberosSaslCallbackHandler(Map config) {
+        public KerberosSaslCallbackHandler(Map config, List<String> authorizedUsers) {
             LOG.debug("KerberosSaslCallback: Creating KerberosSaslCallback handler.");
             this.config = config;
+            this.authorizedUsers = authorizedUsers;
         }
 
         @Override
@@ -164,12 +170,16 @@ class KerberosSaslNettyServer {
                         LOG.debug("{} != {}", ac.getAuthenticationID(), ac.getAuthorizationID());
                         continue;
                     }
-                    
-                    List<String> authorizedUsers = (List)config.get(Config.PACEMAKER_KERBEROS_USERS);
-                    LOG.debug("Got: {}", authorizedUsers);
+
+                    LOG.debug("Authorized Users: {}", authorizedUsers);
+                    LOG.debug("Checking authorization for: {}", ac.getAuthorizationID());
                     for(String user : authorizedUsers) {
-                        LOG.debug("Checking authorization for: {}", user);
-                        if(ac.getAuthorizationID().equals(user) ) {
+                        String requester = ac.getAuthorizationID();
+
+                        KerberosPrincipal principal = new KerberosPrincipal(requester);
+                        requester = new KerberosPrincipalToLocal().toLocal(principal);
+
+                        if(requester.equals(user) ) {
                             ac.setAuthorized(true);
                             break;
                         }

@@ -3,7 +3,7 @@
   <parent>
     <artifactId>storm</artifactId>
     <groupId>org.apache.storm</groupId>
-    <version>0.10.0-beta1</version>
+    <version>0.10.0.y</version>
   </parent>
   <groupId>yahoo.yinst.ystorm</groupId>
   <artifactId>storm_yahoo</artifactId>
@@ -234,23 +234,11 @@
     <dependency>
       <groupId>org.apache.storm</groupId>
       <artifactId>storm-core</artifactId>
-      <version>0.10.0-beta1</version>
+      <version>0.10.0.y</version>
       <exclusions>
         <exclusion>
           <groupId>javax.servlet</groupId>
           <artifactId>servlet-api</artifactId>
-        </exclusion>
-        <exclusion>
-          <groupId>ring</groupId>
-          <artifactId>ring-core</artifactId>
-        </exclusion>
-        <exclusion>
-          <groupId>ring</groupId>
-          <artifactId>ring-jetty-adapter</artifactId>
-        </exclusion>
-        <exclusion>
-          <groupId>org.mortbay.jetty</groupId>
-          <artifactId>jetty</artifactId>
         </exclusion>
       </exclusions>
     </dependency>
@@ -258,6 +246,50 @@
       <groupId>yahoo.yinst.yjava_jetty_core</groupId>
       <artifactId>yjava_jetty</artifactId>
       <version>9.2.1.v20140609_127</version>
+      <exclusions>
+        <exclusion>
+          <groupId>org.slf4j</groupId>
+          <artifactId>slf4j-log4j12</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+    <dependency>
+      <groupId>org.eclipse.jetty</groupId>
+      <artifactId>jetty-servlet</artifactId>
+      <version>9.2.1.v20140609</version>
+      <exclusions>
+        <exclusion>
+          <groupId>org.slf4j</groupId>
+          <artifactId>slf4j-log4j12</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+    <dependency>
+      <groupId>org.eclipse.jetty</groupId>
+      <artifactId>jetty-util</artifactId>
+      <version>9.2.1.v20140609</version>
+      <exclusions>
+        <exclusion>
+          <groupId>org.slf4j</groupId>
+          <artifactId>slf4j-log4j12</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+    <dependency>
+      <groupId>org.eclipse.jetty</groupId>
+      <artifactId>jetty-servlets</artifactId>
+      <version>9.2.1.v20140609</version>
+      <exclusions>
+        <exclusion>
+          <groupId>org.slf4j</groupId>
+          <artifactId>slf4j-log4j12</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+    <dependency>
+      <groupId>org.eclipse.jetty</groupId>
+      <artifactId>jetty-server</artifactId>
+      <version>9.2.1.v20140609</version>
       <exclusions>
         <exclusion>
           <groupId>org.slf4j</groupId>

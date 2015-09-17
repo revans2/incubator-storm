@@ -38,7 +38,8 @@
                                      Nimbus$Iface Nimbus$Processor NumErrorsChoice NotAliveException
                                      ReadableBlobMeta RebalanceOptions SubmitOptions SupervisorSummary StormTopology
                                      SettableBlobMeta TopologyHistoryInfo TopologyInfo TopologyInitialStatus
-                                     TopologyPageInfo TopologyStats TopologySummary])
+                                     TopologyPageInfo TopologyStats TopologySummary
+                                     ProfileRequest ProfileAction NodeInfo])
   (:import [backtype.storm.blobstore AtomicOutputStream
                                      BlobStore
                                      BlobStoreAclHandler
@@ -580,12 +581,21 @@
   (into {} (for [[tid assignment] existing-assignments
                  :let [alive-executors (topology->alive-executors tid)
                        executor->node+port (:executor->node+port assignment)
+                       worker->resources (:worker->resources assignment)
+                       ;; making a map from node+port to WorkerSlot with allocated resources
+                       node+port->slot (into {} (for [[[node port] [mem-on-heap mem-off-heap cpu]] worker->resources]
+                                                  {[node port]
+                                                   (doto (WorkerSlot. node port)
+                                                     (.allocateResource
+                                                       mem-on-heap
+                                                       mem-off-heap
+                                                       cpu))}))
                        executor->slot (into {} (for [[executor [node port]] executor->node+port]
                                                  ;; filter out the dead executors
                                                  (if (contains? alive-executors executor)
                                                    {(ExecutorDetails. (first executor)
                                                                       (second executor))
-                                                    (WorkerSlot. node port)}
+                                                    (get node+port->slot [node port])}
                                                    {})))]]
              {tid (SchedulerAssignmentImpl. tid executor->slot)})))
 
@@ -994,9 +1004,9 @@
           (.teardown-heartbeats! storm-cluster-state id)
           (.teardown-topology-errors! storm-cluster-state id)
           (.teardown-topology-log-config! storm-cluster-state id)
+          (.teardown-topology-profiler-requests storm-cluster-state id)
           (rm-from-blob-store id blob-store)
-          (swap! (:heartbeats-cache nimbus) dissoc id))
-        ))))
+          (swap! (:heartbeats-cache nimbus) dissoc id))))))
 
 (defn- file-older-than? [now seconds file]
   (<= (+ (.lastModified file) (to-millis seconds)) (to-millis now)))
@@ -1282,10 +1292,11 @@
                 principal (.principal req)
                 submitter-principal (if principal (.toString principal))
                 submitter-user (.toLocal principal-to-local principal)
+                system-user (. System (getProperty "user.name")) ;should only be used for non-secure mode
                 topo-acl (distinct (remove nil? (conj (.get storm-conf-submitted TOPOLOGY-USERS) submitter-principal, submitter-user)))
                 storm-conf (-> storm-conf-submitted
                                (assoc TOPOLOGY-SUBMITTER-PRINCIPAL (if submitter-principal submitter-principal ""))
-                               (assoc TOPOLOGY-SUBMITTER-USER (if submitter-user submitter-user "")) ;Don't let the user set who we launch as
+                               (assoc TOPOLOGY-SUBMITTER-USER (if submitter-user submitter-user system-user)) ;if there is no kerberos principal, then use the user name
                                (assoc TOPOLOGY-USERS topo-acl)
                                (assoc STORM-ZOOKEEPER-SUPERACL (.get conf STORM-ZOOKEEPER-SUPERACL)))
                 storm-conf (if (Utils/isZkAuthenticationConfiguredStormServer conf)
@@ -1376,6 +1387,36 @@
           (check-authorization! nimbus storm-name topology-conf "deactivate"))
         (transition-name! nimbus storm-name :inactivate true))
 
+      (^void setWorkerProfiler
+        [this ^String id ^ProfileRequest profileRequest]
+        (let [topology-conf (try-read-storm-conf conf id blob-store)
+              storm-name (topology-conf TOPOLOGY-NAME)
+              _ (check-authorization! nimbus storm-name topology-conf "setWorkerProfiler")
+              storm-cluster-state (:storm-cluster-state nimbus)]
+              (.set-worker-profile-request storm-cluster-state id profileRequest)))
+
+      (^List getComponentPendingProfileActions
+        [this ^String id ^String component_id ^ProfileAction action]
+        (let [info (get-common-topo-info id "getComponentPendingProfileActions")
+              storm-cluster-state (:storm-cluster-state info)
+              task->component (:task->component info)
+              {:keys [executor->node+port node->host]} (:assignment info)
+              executor->host+port (map-val (fn [[node port]]
+                                             [(node->host node) port])
+                                    executor->node+port)
+              nodeinfos (stats/extract-nodeinfos-from-hb-for-comp executor->host+port task->component false component_id)
+              all-pending-actions-for-topology (.get-topology-profile-requests storm-cluster-state id true)
+              latest-profile-actions (remove nil? (map (fn [nodeInfo]
+                                                         (->> all-pending-actions-for-topology
+                                                              (filter #(and (= (:host nodeInfo) (.get_node (.get_nodeInfo %)))
+                                                                         (= (:port nodeInfo) (first (.get_port (.get_nodeInfo  %))))))
+                                                              (filter #(= action (.get_action %)))
+                                                              (sort-by #(.get_time_stamp %) >)
+                                                              first))
+                                                    nodeinfos))]
+          (log-message "Latest profile actions for topology " id " component " component_id " " (pr-str latest-profile-actions))
+          latest-profile-actions))
+
       (^void setLogConfig [this ^String id ^LogConfig log-config-msg] 
         (let [topology-conf (try-read-storm-conf conf id blob-store)
               storm-name (topology-conf TOPOLOGY-NAME)
@@ -1400,7 +1441,7 @@
                         (.remove named-loggers logger-name))))))
             (log-message "Setting log config for " storm-name ":" merged-log-config)
             (.set-topology-log-config! storm-cluster-state id merged-log-config)))
-  
+
       (uploadNewCredentials [this storm-name credentials]
         (mark! num-uploadNewCredentials-calls)
         (let [storm-cluster-state (:storm-cluster-state nimbus)
@@ -1744,6 +1785,7 @@
                                                         blob-key))]
           (let [session-id (uuid)
                 ret (BeginDownloadResult. (.getVersion is) (str session-id))]
+            (.set_data_size ret (.getFileLength is))
             (.put (:blob-downloaders nimbus) session-id (BufferInputStream. is ^Integer (Utils/getInt (conf STORM-BLOBSTORE-INPUTSTREAM-BUFFER-SIZE-BYTES) (int 65536))))
             (log-message "Created download session for " blob-key
                          " with id " session-id)

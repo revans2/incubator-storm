@@ -128,12 +128,6 @@ public class Config extends HashMap<String, Object> {
     public static final Object STORM_MESSAGING_NETTY_AUTHENTICATION_SCHEMA = Boolean.class;
 
     /**
-     * The SASL authentication payload for the messaging layer. Similar to STORM_ZOOKEEPER_TOPOLOGY_AUTH_PAYLOAD
-     */
-    public static final String STORM_MESSAGING_NETTY_AUTHENTICATION_PAYLOAD="storm.messaging.netty.authentication.payload";
-    public static final Object STORM_MESSAGING_NETTY_AUTHENTICATION_PAYLOAD_SCHEMA = String.class;
-
-    /**
      * A list of hosts of ZooKeeper servers used to manage the cluster.
      */
     public static final String STORM_ZOOKEEPER_SERVERS = "storm.zookeeper.servers";
@@ -1151,6 +1145,12 @@ public class Config extends HashMap<String, Object> {
      */
     public static final String WORKER_CHILDOPTS = "worker.childopts";
     public static final Object WORKER_CHILDOPTS_SCHEMA = ConfigValidation.StringOrStringListValidator;
+
+    /**
+     * The jvm profiler opts provided to workers launched by this supervisor.
+     */
+    public static final String WORKER_PROFILER_CHILDOPTS = "worker.profiler.childopts";
+    public static final Object WORKER_PROFILER_CHILDOPTS_SCHEMA = ConfigValidation.StringOrStringListValidator;
 
     /**
      * The default heap memory size in MB per worker, used in the jvm -Xmx opts for launching the worker

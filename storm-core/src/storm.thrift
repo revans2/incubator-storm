@@ -366,6 +366,7 @@ struct BeginDownloadResult {
   //Same version as in ReadableBlobMeta
   1: required i64 version;
   2: required string session;
+  3: optional i64 data_size;
 }
 
 enum LogLevelAction {
@@ -515,6 +516,20 @@ enum NumErrorsChoice {
   ONE
 }
 
+enum ProfileAction {
+  JPROFILE_STOP,
+  JPROFILE_START,
+  JPROFILE_DUMP,
+  JMAP_DUMP,
+  JSTACK_DUMP
+}
+
+struct ProfileRequest {
+  1: required NodeInfo nodeInfo,
+  2: required ProfileAction action,
+  3: optional i64 time_stamp; 
+}
+
 struct GetInfoOptions {
   1: optional NumErrorsChoice num_err_choice;
 }
@@ -531,6 +546,10 @@ service Nimbus {
   // dynamic log levels
   void setLogConfig(1: string id, 2: LogConfig config);
   LogConfig getLogConfig(1: string id);
+
+  // dynamic profile actions
+  void setWorkerProfiler(1: string id, 2: ProfileRequest  profileRequest);
+  list<ProfileRequest> getComponentPendingProfileActions(1: string id, 2: string component_id, 3: ProfileAction action);
 
   void uploadNewCredentials(1: string name, 2: Credentials creds) throws (1: NotAliveException e, 2: InvalidTopologyException ite, 3: AuthorizationException aze);
 

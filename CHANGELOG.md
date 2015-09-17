@@ -1,6 +1,3 @@
-## 0.11.0
- * STORM-837: HdfsState ignores commits
-
 ## 0.10.0-beta1
  * STORM-873: Flux does not handle diamond topologies
  
