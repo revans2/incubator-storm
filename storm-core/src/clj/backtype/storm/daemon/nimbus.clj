@@ -358,18 +358,29 @@
       {})
     ))
 
+(defn- supervisor-info
+  [storm-cluster-state id include-non-readable?]
+  (try
+    (.supervisor-info storm-cluster-state id)
+    (catch RuntimeException
+      rte
+      (log-message (str "The supervisor [" id "] is sending older heartbeat version"))
+      (log-debug-error  rte (str "The supervisor [" id "] is sending older heartbeat version"))
+      (if include-non-readable?
+        (backtype.storm.daemon.common.SupervisorInfo. 0 "unknown" id nil nil nil 0 (.getMessage rte) nil)))))
+
 (defn- all-supervisor-info
-  ([storm-cluster-state] (all-supervisor-info storm-cluster-state nil))
-  ([storm-cluster-state callback]
+  ([storm-cluster-state] (all-supervisor-info storm-cluster-state nil false))
+  ([storm-cluster-state callback]  (all-supervisor-info storm-cluster-state callback false))
+  ([storm-cluster-state callback include-non-readable?]
      (let [supervisor-ids (.supervisors storm-cluster-state callback)]
        (into {}
              (mapcat
               (fn [id]
-                (if-let [info (.supervisor-info storm-cluster-state id)]
+                (if-let [info (supervisor-info storm-cluster-state id include-non-readable?)]
                   [[id info]]
                   ))
-              supervisor-ids))
-       )))
+              supervisor-ids)))))
 
 (defn- all-scheduling-slots
   [nimbus topologies missing-assignment-topologies]
@@ -1545,7 +1556,7 @@
         (mark! num-getClusterInfo-calls)
         (check-authorization! nimbus nil nil "getClusterInfo")
         (let [storm-cluster-state (:storm-cluster-state nimbus)
-              supervisor-infos (all-supervisor-info storm-cluster-state)
+              supervisor-infos (all-supervisor-info storm-cluster-state nil true)
               ;; TODO: need to get the port info about supervisors...
               ;; in standalone just look at metadata, otherwise just say N/A?
               supervisor-summaries (dofor [[id info] supervisor-infos]

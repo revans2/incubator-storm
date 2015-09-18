@@ -19,7 +19,7 @@
            [backtype.storm.utils LocalState Time Utils VersionInfo]
            [backtype.storm.daemon Shutdownable]
            [backtype.storm Config Constants]
-           [java.net JarURLConnection]
+           [java.net JarURLConnection InetAddress]
            [java.net URI]
            [org.apache.commons.io FileUtils]
            [java.io File])
@@ -213,7 +213,7 @@
     ))
 
 (defn generate-supervisor-id []
-  (uuid))
+  (str (uuid) "-"  (.getHostAddress (InetAddress/getLocalHost))))
 
 (defnk worker-launcher [conf user args :environment {} :log-prefix nil :exit-code-callback nil :directory nil]
   (let [_ (when (clojure.string/blank? user)
