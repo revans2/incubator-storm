@@ -207,9 +207,8 @@
    (test-server-delayed-fn storm-conf)          ;; test with sasl authentication disabled
    (test-server-delayed-fn storm-conf-sasl)))   ;; test with sasl authentication enabled
 
-(comment
-  ;; Uncomment this test when netty can consistently send messages in-order.
-(defn- test-batch-fn
+
+(defn- test-batch-fn [storm-conf]
   (log-message "5. test batch")
   (let [num-messages 100000
         _ (log-message "Should send and receive many messages (testing with " num-messages " messages)")
@@ -238,7 +237,7 @@
 
     (.close client)
     (.close server)
-    (.term context)))
+    (.term context))
 
 (deftest test-batch
  (let [storm-conf {STORM-MESSAGING-TRANSPORT "backtype.storm.messaging.netty.Context"
