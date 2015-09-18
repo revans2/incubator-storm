@@ -1518,9 +1518,11 @@ public class Config extends HashMap<String, Object> {
 
 
    /**
+    * @deprecated this is no longer supported
     * Configure the wait strategy used for internal queuing. Can be used to tradeoff latency
     * vs. throughput
     */
+    @Deprecated
     public static final String TOPOLOGY_DISRUPTOR_WAIT_STRATEGY="topology.disruptor.wait.strategy";
     public static final Object TOPOLOGY_DISRUPTOR_WAIT_STRATEGY_SCHEMA = String.class;
 
@@ -1695,6 +1697,13 @@ public class Config extends HashMap<String, Object> {
     public static final String TOPOLOGY_BLOBSTORE_MAP = "topology.blobstore.map";
     public static final Object TOPOLOGY_BLOBSTORE_MAP_SCHEMA =
         ConfigValidation.MapOfStringToMapOfStringToObjectValidator;
+
+    /**
+     * Configure timeout milliseconds used for disruptor queue wait strategy. Can be used to tradeoff latency
+     * vs. CPU usage
+     */
+    public static final String TOPOLOGY_DISRUPTOR_WAIT_TIMEOUT_MILLIS="topology.disruptor.wait.timeout.millis";
+    public static final Object TOPOLOGY_DISRUPTOR_WAIT_TIMEOUT_MILLIS_SCHEMA = ConfigValidation.NotNullIntegerValidator;
 
     public static void setClasspath(Map conf, String cp) {
         conf.put(Config.TOPOLOGY_CLASSPATH, cp);
