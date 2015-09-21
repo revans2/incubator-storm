@@ -299,8 +299,7 @@
   (let [user
         (try 
           (str/trim (slurp (worker-user-file conf worker-id)))
-          (catch IOException e
-            nil))]
+          (catch IOException e))]
     (if (and (not (= user nil))
              (not (= user "")))
       user
@@ -308,8 +307,7 @@
         (let [some-pidfile (.getPath (first (file-seq (io/file (worker-pids-root conf worker-id)))))]
           (get-file-owner some-pidfile))
         (catch IOException e
-          (log-warn-error e "Failed to get worker user for " worker-id ".")
-          nil)))))
+          (log-warn-error e "Failed to get worker user for " worker-id "."))))))
 
 (defn worker-heartbeats-root
   [conf id]
