@@ -1049,6 +1049,12 @@ public class Config extends HashMap<String, Object> {
     public static final String SUPERVISOR_WORKER_TIMEOUT_SECS = "supervisor.worker.timeout.secs";
     public static final Object SUPERVISOR_WORKER_TIMEOUT_SECS_SCHEMA = ConfigValidation.NotNullPosIntegerValidator;
 
+  /**
+   *  Set replication factor for a blob in HDFS Blobstore Implementation
+   */
+  public static final String HDFS_BLOBSTORE_REPLICATION_FACTOR = "hdfs.blobstore.replication.factor";
+  public static final Object HDFS_BLOBSTORE_REPLICATION_FACTOR_SCHEMA = ConfigValidation.IntegerValidator;
+
     /**
      * How many seconds to sleep for before shutting down threads on worker
      */

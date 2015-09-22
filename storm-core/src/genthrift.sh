@@ -15,6 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+cp -r `pwd`/jvm/backtype/storm/generated/ `pwd`/jvm/backtype/storm/generated-tmp/
 rm -rf gen-javabean gen-py py
 rm -rf jvm/backtype/storm/generated
 thrift --gen java:beans,hashcode,nocamel --gen py:utf8strings storm.thrift
@@ -31,3 +32,16 @@ done
 mv gen-javabean/backtype/storm/generated jvm/backtype/storm/generated
 mv gen-py py
 rm -rf gen-javabean
+
+#code comparision here
+for file in `pwd`/jvm/backtype/storm/generated-tmp/* ; do
+    fullpath=${file}
+    base=`echo $fullpath | xargs -n 1 basename`
+    diff_file=`pwd`/jvm/backtype/storm/generated/$base
+    diff_output=`diff $fullpath $diff_file | grep '54c54'`
+    lines=`diff $fullpath $diff_file | wc -l`
+    if [ "$diff_output" = '54c54' ] && [ $lines -lt 6 ]; then
+        cp `pwd`/jvm/backtype/storm/generated-tmp/$base `pwd`/jvm/backtype/storm/generated/$base 
+    fi
+done
+rm -rf `pwd`/jvm/backtype/storm/generated-tmp/

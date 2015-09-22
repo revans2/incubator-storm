@@ -15,13 +15,14 @@
 ;; limitations under the License.
 (ns backtype.storm.command.blobstore
   (:import [java.io InputStream OutputStream])
+  (:use [backtype.storm config])
   (:import [backtype.storm.generated SettableBlobMeta AccessControl AuthorizationException
             KeyNotFoundException])
   (:import [backtype.storm.blobstore BlobStoreAclHandler])
   (:use [clojure.string :only [split]])
   (:use [clojure.tools.cli :only [cli]])
   (:use [clojure.java.io :only [copy input-stream output-stream]])
-  (:use [backtype.storm blobstore log])
+  (:use [backtype.storm blobstore log util])
   (:gen-class))
 
 (defn update-blob-from-stream
@@ -84,9 +85,15 @@
     (log-message "Successfully updated " key)))
 
 (defn create-cli [args]
-  (let [[{file :file acl :acl} [key] _] (cli args ["-f" "--file" :default nil]
-                                                  ["-a" "--acl" :default [] :parse-fn as-acl])
-        meta (SettableBlobMeta. acl)]
+  (let [[{file :file acl :acl repl-fctr :repl-fctr} [key] _] (cli args ["-f" "--file" :default nil]
+                                                  ["-a" "--acl" :default [] :parse-fn as-acl]
+                                                  ["-r" "--repl-fctr" :default 1])
+        meta (doto (SettableBlobMeta. acl)
+                   (.set_replication_factor (parse-int repl-fctr)))
+        conf (read-storm-config)
+        blobstore-class (conf NIMBUS-BLOBSTORE)]
+    (if (and (.contains blobstore-class "LocalFsBlobStore") (> (parse-int repl-fctr) 1))
+      (throw (IllegalArgumentException. "LocalFsBlobstore cannot have a replication factor greater than 1")))
     (log-message "Creating " key " with ACL " (pr-str (map access-control-str acl)))
     (if file
       (with-open [f (input-stream file)]
@@ -126,6 +133,14 @@
         (log-message "Setting ACL for " key " to " (pr-str (map access-control-str new-acl)))
         (.setBlobMeta blobstore key new-meta)))))
 
+(defn read-rep-cli [args]
+  (let [key (first args)]
+    (with-configured-blob-client blobstore
+      (let [blob-replication (.getBlobReplication blobstore key)
+            repl-fctr (.get_replication blob-replication)]
+        (log-message "replication factor " repl-fctr)
+        repl-fctr))))
+
 (defn -main [& args]
   (let [command (first args)
         new-args (rest args)]
@@ -136,4 +151,5 @@
       "delete" (delete-cli new-args)
       "list" (list-cli new-args)
       "set-acl" (set-acl-cli new-args)
+      "replication" (read-rep-cli new-args)
       :else (throw (RuntimeException. (str command " is not a supported blobstore command"))))))

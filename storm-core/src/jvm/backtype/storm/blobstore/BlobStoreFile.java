@@ -22,6 +22,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.regex.Pattern;
 
+import backtype.storm.generated.SettableBlobMeta;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -38,6 +39,8 @@ abstract class BlobStoreFile {
   public abstract void delete() throws IOException;
   public abstract String getKey();
   public abstract boolean isTmp();
+  public abstract void setMetadata(SettableBlobMeta meta);
+  public abstract SettableBlobMeta getMetadata();
   public abstract long getModTime() throws IOException;
   public abstract InputStream getInputStream() throws IOException;
   public abstract OutputStream getOutputStream() throws IOException;

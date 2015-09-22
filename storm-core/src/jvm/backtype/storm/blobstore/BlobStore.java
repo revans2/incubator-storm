@@ -30,15 +30,11 @@ import java.util.regex.Pattern;
 
 import javax.security.auth.Subject;
 
+import backtype.storm.generated.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import backtype.storm.daemon.Shutdownable;
-import backtype.storm.generated.AuthorizationException;
-import backtype.storm.generated.KeyNotFoundException;
-import backtype.storm.generated.KeyAlreadyExistsException;
-import backtype.storm.generated.ReadableBlobMeta;
-import backtype.storm.generated.SettableBlobMeta;
 
 /**
  * Provides a way to store blobs that can be downloaded.
@@ -65,6 +61,7 @@ public abstract class BlobStore implements Shutdownable {
   public abstract void deleteBlob(String key, Subject who) throws AuthorizationException, KeyNotFoundException;
   public abstract InputStreamWithMeta getBlob(String key, Subject who) throws AuthorizationException, KeyNotFoundException;
   public abstract Iterator<String> listKeys(Subject who);
+  public abstract BlobReplication getBlobReplication(String key, Subject who) throws AuthorizationException, KeyNotFoundException, IOException;
   
   public <R> Set<R> filterAndListKeys(KeyFilter<R> filter, Subject who) {
     Set<R> ret = new HashSet<R>();

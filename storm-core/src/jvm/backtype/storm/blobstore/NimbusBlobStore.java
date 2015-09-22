@@ -14,6 +14,7 @@ import backtype.storm.generated.BeginDownloadResult;
 import backtype.storm.generated.ListBlobsResult;
 import backtype.storm.generated.ReadableBlobMeta;
 import backtype.storm.generated.SettableBlobMeta;
+import backtype.storm.generated.BlobReplication;
 import backtype.storm.generated.KeyAlreadyExistsException;
 import backtype.storm.generated.KeyNotFoundException;
 import backtype.storm.utils.NimbusClient;
@@ -342,6 +343,17 @@ public class NimbusBlobStore extends ClientBlobStore {
   @Override
   public void stopWatchingBlob(String key) throws AuthorizationException {
     throw new RuntimeException("Blob watching is not implemented yet");
+  }
+
+  @Override
+  public BlobReplication getBlobReplication(String key) throws AuthorizationException, KeyNotFoundException {
+    try {
+      return client.getClient().getBlobReplication(key);
+    } catch (AuthorizationException | KeyNotFoundException exp) {
+      throw exp;
+    } catch (TException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   @Override

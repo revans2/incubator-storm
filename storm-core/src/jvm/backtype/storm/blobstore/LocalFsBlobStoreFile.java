@@ -17,6 +17,8 @@
  */
 package backtype.storm.blobstore;
 
+import backtype.storm.generated.SettableBlobMeta;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -34,6 +36,7 @@ public class LocalFsBlobStoreFile extends BlobStoreFile {
   private final File _path;
   private Long _modTime = null;
   private final boolean _mustBeNew;
+  private SettableBlobMeta meta;
 
   public LocalFsBlobStoreFile(File base, String name) {
     if (BlobStoreFile.BLOBSTORE_DATA_FILE.equals(name)) {
@@ -131,6 +134,16 @@ public class LocalFsBlobStoreFile extends BlobStoreFile {
       throw new IllegalStateException("Can only write to a temporary part file.");
     }
     delete();
+  }
+
+  @Override
+  public SettableBlobMeta getMetadata () {
+    return meta;
+  }
+
+  @Override
+  public void setMetadata (SettableBlobMeta meta) {
+    this.meta = meta;
   }
 
   @Override

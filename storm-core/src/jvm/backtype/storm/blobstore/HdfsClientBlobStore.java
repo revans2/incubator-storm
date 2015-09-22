@@ -1,10 +1,6 @@
 package backtype.storm.blobstore;
 
-import backtype.storm.generated.AuthorizationException;
-import backtype.storm.generated.KeyAlreadyExistsException;
-import backtype.storm.generated.KeyNotFoundException;
-import backtype.storm.generated.ReadableBlobMeta;
-import backtype.storm.generated.SettableBlobMeta;
+import backtype.storm.generated.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -77,6 +73,10 @@ public class HdfsClientBlobStore extends ClientBlobStore {
   @Override
   public void stopWatchingBlob(String key) throws AuthorizationException {
     throw new RuntimeException("Blob watching is not implemented yet");
+  }
+
+  public BlobReplication getBlobReplication(String key) throws AuthorizationException, KeyNotFoundException {
+    return _blobStore.getBlobReplication(key, null);
   }
 
   @Override

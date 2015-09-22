@@ -1,5 +1,7 @@
 package backtype.storm.blobstore;
 
+import backtype.storm.Config;
+import backtype.storm.generated.SettableBlobMeta;
 import org.apache.commons.io.IOUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
@@ -32,7 +34,9 @@ public class HdfsBlobStoreImplTest {
   // key dir needs to be number 0 to number of buckets, choose one so we know where to look
   private static String KEYDIR = "0";
   private Path blobDir = new Path("/storm/blobstore1");
+  //private Path blobDirReplication = new Path("/storm/blobstoreReplication");
   private Path fullKeyDir = new Path(blobDir, KEYDIR);
+  //private Path fullRepDir =  new Path(blobDirReplication, KEYDIR);
 
   public class TestHdfsBlobStoreImpl extends HdfsBlobStoreImpl {
 
@@ -72,15 +76,34 @@ public class HdfsBlobStoreImplTest {
     }
   }
 
+  /*// Test for replication inside the blobstore and verify it.
+  @Test
+  public void testReplicationFactor() throws Exception {
+    String testString = "testingblob";
+    String validKey = "validkey";
+
+    FileSystem fs = dfscluster.getFileSystem();
+    Map conf = new HashMap();
+
+    TestHdfsBlobStoreImpl hbs = new TestHdfsBlobStoreImpl(blobDirReplication, conf, hadoopConf);
+    BlobStoreFile file = hbs.write(validKey, false);
+    OutputStream ios = file.getOutputStream();
+    ios.write(testString.getBytes(Charset.forName("UTF-8")));
+    ios.close();
+    file.commit();
+    Path dataFile = new Path(new Path(fullRepDir, validKey), BlobStoreFile.BLOBSTORE_DATA_FILE);
+    assertTrue("Blob with wrong replication created", fs.getFileStatus(dataFile).getReplication(), hbs.getReplication(validKey));
+  }*/
+
   // Be careful about adding additional tests as the dfscluster will be shared
 
   @Test
   public void testMultiple() throws Exception {
-    String testString = "testingblob";
-    String validKey = "validkeyBasic";
+      String testString = "testingblob";
+      String validKey = "validkeyBasic";
 
-    FileSystem fs = dfscluster.getFileSystem();
-    Map conf = new HashMap();
+      FileSystem fs = dfscluster.getFileSystem();
+      Map conf = new HashMap();
 
     TestHdfsBlobStoreImpl hbs = new TestHdfsBlobStoreImpl(blobDir, conf, hadoopConf);
     // should have created blobDir
@@ -93,6 +116,9 @@ public class HdfsBlobStoreImplTest {
 
     // test write
     BlobStoreFile pfile = hbs.write(validKey, false);
+    SettableBlobMeta meta = new SettableBlobMeta();
+    meta.set_replication_factor(1);
+    pfile.setMetadata(meta);
     OutputStream ios = pfile.getOutputStream();
     ios.write(testString.getBytes(Charset.forName("UTF-8")));
     ios.close();
@@ -127,6 +153,7 @@ public class HdfsBlobStoreImplTest {
 
     // test write
     pfile = hbs.write(validKey, false);
+    pfile.setMetadata(meta);
     ios = pfile.getOutputStream();
     ios.write(testString.getBytes(Charset.forName("UTF-8")));
     ios.close();
@@ -141,6 +168,7 @@ public class HdfsBlobStoreImplTest {
 
     // test write again
     pfile = hbs.write(validKey2, false);
+    pfile.setMetadata(meta);
     OutputStream ios2 = pfile.getOutputStream();
     ios2.write(testString2.getBytes(Charset.forName("UTF-8")));
     ios2.close();

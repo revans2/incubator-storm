@@ -22,6 +22,8 @@ import backtype.storm.security.auth.SingleUserPrincipal;
 import backtype.storm.utils.Utils;
 import org.apache.commons.io.FileUtils;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hdfs.MiniDFSCluster;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -47,6 +49,7 @@ public class BlobStoreTest {
   URI base;
   File baseFile;
   private static Map conf = new HashMap();
+  private FileSystem fs;
 
   @Before
   public void init() {
@@ -156,7 +159,8 @@ public class BlobStoreTest {
     }
     try {
       if (dfscluster == null) {
-        dfscluster = new MiniDFSCluster.Builder(hadoopConf).build();
+
+        dfscluster = new MiniDFSCluster.Builder(hadoopConf).numDataNodes(3).build();
         dfscluster.waitActive();
       }
     } catch (IOException e) {
@@ -165,14 +169,22 @@ public class BlobStoreTest {
     Map conf = new HashMap();
     conf.put(Config.BLOBSTORE_DIR, dirName);
     conf.put(Config.STORM_PRINCIPAL_TO_LOCAL_PLUGIN,"backtype.storm.security.auth.DefaultPrincipalToLocal");
+    conf.put(Config.HDFS_BLOBSTORE_REPLICATION_FACTOR, 1);
+    fs = dfscluster.getFileSystem();
     HdfsBlobStore store = new HdfsBlobStore();
     store.prepareInternal(conf, null, hadoopConf);
     return store;
   }
 
   @Test
+  public void testHdfsReplication() throws Exception {
+    initHdfs("/storm/blobstoreReplication");
+    testReplication("/storm/blobstoreReplication/test");
+  }
+
+  @Test
   public void testBasicHdfs() throws Exception {
-    testBasic(initHdfs("/storm/blobstore1"));
+   testBasic(initHdfs("/storm/blobstore1"));
   }
 
   @Test
@@ -185,6 +197,12 @@ public class BlobStoreTest {
   public void testHdfsWithAuth() throws Exception {
     // use different blobstore dir so it doesn't conflict with other tests
     testWithAuthentication(initHdfs("/storm/blobstore3"));
+  }
+
+  public void testReplication(String path) throws Exception {
+    Path fileName = new Path(path);
+    fs.create(fileName, (short) 2);
+    assertEquals("replication not matching", fs.getFileStatus(fileName).getReplication(), 2);
   }
 
   public Subject getSubject(String name) {

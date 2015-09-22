@@ -81,6 +81,7 @@ if len(sys.argv) <= 1 or sys.argv[1] == '--help':
   print('  StormTopology getTopology(string id)')
   print('  StormTopology getUserTopology(string id)')
   print('  TopologyHistoryInfo getTopologyHistory(string user)')
+  print('  BlobReplication getBlobReplication(string key)')
   print('')
   sys.exit(0)
 
@@ -370,6 +371,12 @@ elif cmd == 'getTopologyHistory':
     print('getTopologyHistory requires 1 args')
     sys.exit(1)
   pp.pprint(client.getTopologyHistory(args[0],))
+
+elif cmd == 'getBlobReplication':
+  if len(args) != 1:
+    print('getBlobReplication requires 1 args')
+    sys.exit(1)
+  pp.pprint(client.getBlobReplication(args[0],))
 
 else:
   print('Unrecognized method %s' % cmd)

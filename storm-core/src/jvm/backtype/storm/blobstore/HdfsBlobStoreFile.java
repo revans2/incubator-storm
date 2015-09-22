@@ -23,6 +23,7 @@ import java.io.OutputStream;
 import java.nio.file.Files;
 import java.util.regex.Matcher;
 
+import backtype.storm.generated.SettableBlobMeta;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileContext;
 import org.apache.hadoop.fs.Options;
@@ -42,6 +43,7 @@ public class HdfsBlobStoreFile extends BlobStoreFile {
   private final boolean _mustBeNew;
   private final Configuration _hadoopConf;
   private final FileSystem _fs;
+  private SettableBlobMeta meta;
 
   // files are world-wide readable and owner writable
   final public static FsPermission BLOBSTORE_FILE_PERMISSION =
@@ -80,6 +82,7 @@ public class HdfsBlobStoreFile extends BlobStoreFile {
     }
     try {
       _fs = _path.getFileSystem(_hadoopConf);
+      //_fs.setReplication(_path, (short)meta.get_replication_factor());
     } catch (IOException e) {
       throw new RuntimeException("Error getting filesystem for path: " + _path, e);
     }
@@ -133,14 +136,20 @@ public class HdfsBlobStoreFile extends BlobStoreFile {
     OutputStream out = null;
     FsPermission fileperms = new FsPermission(BLOBSTORE_FILE_PERMISSION);
     try {
-      out = FileSystem.create(_fs, _path, fileperms);
+      //out = FileSystem.create(_fs, _path, fileperms);
+      out = _fs.create(_path, (short)this.getMetadata().get_replication_factor());
+      _fs.setPermission(_path, fileperms);
+      _fs.setReplication(_path, (short)this.getMetadata().get_replication_factor());
     } catch (IOException e) {
       //Try to create the parent directory, may not work
       FsPermission dirperms = new FsPermission(HdfsBlobStoreImpl.BLOBSTORE_DIR_PERMISSION);
       if (!_fs.mkdirs(_path.getParent(), dirperms)) {
         LOG.warn("error creating parent dir: " + _path.getParent());
       }
-      out = FileSystem.create(_fs, _path, fileperms);
+      //out = FileSystem.create(_fs, _path, fileperms);
+      out = _fs.create(_path, (short)this.getMetadata().get_replication_factor());
+      _fs.setPermission(_path, fileperms);
+      _fs.setReplication(_path, (short)this.getMetadata().get_replication_factor());
     }
     if (out == null) {
       throw new IOException("Error in creating: " + _path);
@@ -174,7 +183,17 @@ public class HdfsBlobStoreFile extends BlobStoreFile {
   }
 
   @Override
-  public long getFileLength() throws IOException{
-        return _fs.getFileStatus(_path).getLen();
+  public long getFileLength() throws IOException {
+    return _fs.getFileStatus(_path).getLen();
+  }
+
+  @Override
+  public SettableBlobMeta getMetadata() {
+    return meta;
+  }
+
+  @Override
+  public void setMetadata(SettableBlobMeta meta) {
+    this.meta = meta;
   }
 }

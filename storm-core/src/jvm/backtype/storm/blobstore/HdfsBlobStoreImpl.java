@@ -27,6 +27,7 @@ import java.util.Timer;
 import java.util.TimerTask;
 
 import backtype.storm.Config;
+import backtype.storm.generated.BlobReplication;
 import backtype.storm.utils.Utils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
@@ -283,6 +284,12 @@ public class HdfsBlobStoreImpl {
       }
     }
     return ret.iterator();
+  }
+
+  protected BlobReplication getBlobReplication(String key) throws IOException {
+    Path path = getKeyDir(key);
+    LOG.info("path {}", path);
+    return new BlobReplication(_fs.getFileStatus(path).getReplication());
   }
 
   protected void delete(Path path) throws IOException {

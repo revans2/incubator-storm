@@ -1,12 +1,7 @@
 package backtype.storm.blobstore;
 
 import backtype.storm.Config;
-import backtype.storm.generated.AccessControl;
-import backtype.storm.generated.AuthorizationException;
-import backtype.storm.generated.KeyAlreadyExistsException;
-import backtype.storm.generated.KeyNotFoundException;
-import backtype.storm.generated.ReadableBlobMeta;
-import backtype.storm.generated.SettableBlobMeta;
+import backtype.storm.generated.*;
 import backtype.storm.utils.Utils;
 import org.junit.After;
 import org.junit.Before;
@@ -78,6 +73,11 @@ public class ClientBlobStoreTest {
 
     @Override
     public void shutdown() {
+    }
+
+    @Override
+    public BlobReplication getBlobReplication(String key) {
+      return null;
     }
   }
 

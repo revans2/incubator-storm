@@ -15,7 +15,8 @@
 ;; limitations under the License.
 (ns backtype.storm.daemon.nimbus
   (:import [org.apache.thrift.server THsHaServer THsHaServer$Args]
-           [backtype.storm.security.auth SingleUserPrincipal NimbusPrincipal])
+           [backtype.storm.security.auth SingleUserPrincipal NimbusPrincipal]
+           [backtype.storm.generated BlobReplication])
   (:import [javax.security.auth Subject])
   (:import [org.apache.thrift.protocol TBinaryProtocol TBinaryProtocol$Factory])
   (:import [org.apache.thrift.exception])
@@ -1873,6 +1874,11 @@
               active-ids-for-user (filter #(user-group-match-fn % user (:conf nimbus)) assigned-topology-ids)
               topo-history-list (read-topology-history nimbus user admin-users)]
           (TopologyHistoryInfo. (distinct (concat active-ids-for-user topo-history-list)))))
+
+      (^BlobReplication getBlobReplication [this ^String blob-key]
+        (->> (ReqContext/context)
+          (.subject)
+          (.getBlobReplication (:blob-store nimbus) blob-key)))
 
       Shutdownable
       (shutdown [this]
