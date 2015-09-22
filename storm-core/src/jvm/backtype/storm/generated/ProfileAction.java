@@ -33,7 +33,8 @@ public enum ProfileAction implements org.apache.thrift.TEnum {
   JPROFILE_START(1),
   JPROFILE_DUMP(2),
   JMAP_DUMP(3),
-  JSTACK_DUMP(4);
+  JSTACK_DUMP(4),
+  JVM_RESTART(5);
 
   private final int value;
 
@@ -64,6 +65,8 @@ public enum ProfileAction implements org.apache.thrift.TEnum {
         return JMAP_DUMP;
       case 4:
         return JSTACK_DUMP;
+      case 5:
+        return JVM_RESTART;
       default:
         return null;
     }

@@ -136,6 +136,7 @@ class ProfileAction:
   JPROFILE_DUMP = 2
   JMAP_DUMP = 3
   JSTACK_DUMP = 4
+  JVM_RESTART = 5
 
   _VALUES_TO_NAMES = {
     0: "JPROFILE_STOP",
@@ -143,6 +144,7 @@ class ProfileAction:
     2: "JPROFILE_DUMP",
     3: "JMAP_DUMP",
     4: "JSTACK_DUMP",
+    5: "JVM_RESTART",
   }
 
   _NAMES_TO_VALUES = {
@@ -151,6 +153,7 @@ class ProfileAction:
     "JPROFILE_DUMP": 2,
     "JMAP_DUMP": 3,
     "JSTACK_DUMP": 4,
+    "JVM_RESTART": 5,
   }
 
 class HBServerMessageType:
