@@ -16,11 +16,13 @@
 
 (ns backtype.storm.config
   (:import [java.io FileReader File IOException]
+           [java.nio.file Files LinkOption]
            [backtype.storm.generated StormTopology])
   (:import [backtype.storm Config ConfigValidation$FieldValidator])
   (:import [backtype.storm.utils Utils LocalState])
   (:import [org.apache.commons.io FileUtils])
-  (:require [clojure [string :as str]])
+  (:require [clojure [string :as str]]
+            [clojure.java [io :as io]])
   (:use [backtype.storm log util]))
 
 (def RESOURCES-SUBDIR "resources")
@@ -236,25 +238,15 @@
 
 (defn worker-user-file [conf worker-id]
   (str (worker-user-root conf) "/" worker-id))
-
-(defn get-worker-user [conf worker-id]
-  (log-message "GET worker-user " worker-id)
-  (try
-    (str/trim (slurp (worker-user-file conf worker-id)))
-  (catch IOException e
-    (log-warn-error e "Failed to get worker user for " worker-id ".")
-    nil
-    )))
-
   
 (defn set-worker-user! [conf worker-id user]
-  (log-message "SET worker-user " worker-id " " user)
+  (log-debug "SET worker-user " worker-id " " user)
   (let [file (worker-user-file conf worker-id)]
     (.mkdirs (.getParentFile (File. file)))
     (spit (worker-user-file conf worker-id) user)))
 
 (defn remove-worker-user! [conf worker-id]
-  (log-message "REMOVE worker-user " worker-id)
+  (log-debug "REMOVE worker-user " worker-id)
   (.delete (File. (worker-user-file conf worker-id))))
 
 (defn worker-artifacts-root
@@ -293,6 +285,29 @@
 (defn worker-pid-path
   [conf id pid]
   (str (worker-pids-root conf id) file-path-separator pid))
+
+(defn get-file-owner
+  "Get the owner of the file at a path, or throw NoSuchFileException."
+  [^String path]
+  (.getName
+   (Files/getOwner
+    (.toPath (io/file path))
+    (make-array LinkOption 0))))
+
+(defn get-worker-user [conf worker-id]
+  (log-debug "GET worker-user " worker-id)
+  (let [user
+        (try 
+          (str/trim (slurp (worker-user-file conf worker-id)))
+          (catch IOException e))]
+    (if (and (not (= user nil))
+             (not (= user "")))
+      user
+      (try
+        (let [some-pidfile (.getPath (first (file-seq (io/file (worker-pids-root conf worker-id)))))]
+          (get-file-owner some-pidfile))
+        (catch IOException e
+          (log-warn-error e "Failed to get worker user for " worker-id "."))))))
 
 (defn worker-heartbeats-root
   [conf id]
