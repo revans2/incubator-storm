@@ -1052,8 +1052,8 @@ public class Config extends HashMap<String, Object> {
   /**
    *  Set replication factor for a blob in HDFS Blobstore Implementation
    */
-  public static final String HDFS_BLOBSTORE_REPLICATION_FACTOR = "hdfs.blobstore.replication.factor";
-  public static final Object HDFS_BLOBSTORE_REPLICATION_FACTOR_SCHEMA = ConfigValidation.IntegerValidator;
+  public static final String BLOBSTORE_REPLICATION_FACTOR = "blobstore.replication.factor";
+  public static final Object BLOBSTORE_REPLICATION_FACTOR_SCHEMA = ConfigValidation.PositiveIntegerValidator;
 
     /**
      * How many seconds to sleep for before shutting down threads on worker

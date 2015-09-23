@@ -82,7 +82,6 @@ public class HdfsBlobStoreFile extends BlobStoreFile {
     }
     try {
       _fs = _path.getFileSystem(_hadoopConf);
-      //_fs.setReplication(_path, (short)meta.get_replication_factor());
     } catch (IOException e) {
       throw new RuntimeException("Error getting filesystem for path: " + _path, e);
     }
@@ -136,8 +135,7 @@ public class HdfsBlobStoreFile extends BlobStoreFile {
     OutputStream out = null;
     FsPermission fileperms = new FsPermission(BLOBSTORE_FILE_PERMISSION);
     try {
-      //out = FileSystem.create(_fs, _path, fileperms);
-      out = _fs.create(_path, (short)this.getMetadata().get_replication_factor());
+       out = _fs.create(_path, (short)this.getMetadata().get_replication_factor());
       _fs.setPermission(_path, fileperms);
       _fs.setReplication(_path, (short)this.getMetadata().get_replication_factor());
     } catch (IOException e) {
@@ -146,9 +144,8 @@ public class HdfsBlobStoreFile extends BlobStoreFile {
       if (!_fs.mkdirs(_path.getParent(), dirperms)) {
         LOG.warn("error creating parent dir: " + _path.getParent());
       }
-      //out = FileSystem.create(_fs, _path, fileperms);
-      out = _fs.create(_path, (short)this.getMetadata().get_replication_factor());
-      _fs.setPermission(_path, fileperms);
+       out = _fs.create(_path, (short)this.getMetadata().get_replication_factor());
+      _fs.setPermission(_path, dirperms);
       _fs.setReplication(_path, (short)this.getMetadata().get_replication_factor());
     }
     if (out == null) {

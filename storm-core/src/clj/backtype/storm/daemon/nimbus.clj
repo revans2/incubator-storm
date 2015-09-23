@@ -1880,6 +1880,11 @@
           (.subject)
           (.getBlobReplication (:blob-store nimbus) blob-key)))
 
+      (^BlobReplication updateBlobReplication [this ^String blob-key ^int replication]
+        (->> (ReqContext/context)
+          (.subject)
+          (.updateBlobReplication (:blob-store nimbus) blob-key replication)))
+
       Shutdownable
       (shutdown [this]
         (log-message "Shutting down master")

@@ -48,6 +48,7 @@ public abstract class ClientBlobStore implements Shutdownable {
   public abstract void watchBlob(String key, IBlobWatcher watcher) throws AuthorizationException;
   public abstract void stopWatchingBlob(String key) throws AuthorizationException;
   public abstract BlobReplication getBlobReplication(String Key) throws AuthorizationException, KeyNotFoundException;
+  public abstract BlobReplication updateBlobReplication(String Key, int replication) throws AuthorizationException, KeyNotFoundException;
 
   public final AtomicOutputStream createBlob(String key, SettableBlobMeta meta) throws AuthorizationException, KeyAlreadyExistsException {
     if (meta !=null && meta.is_set_acl()) {

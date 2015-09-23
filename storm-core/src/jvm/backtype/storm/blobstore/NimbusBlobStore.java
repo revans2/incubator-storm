@@ -357,6 +357,17 @@ public class NimbusBlobStore extends ClientBlobStore {
   }
 
   @Override
+  public BlobReplication updateBlobReplication(String key, int replication) throws AuthorizationException, KeyNotFoundException {
+    try {
+      return client.getClient().updateBlobReplication(key, replication);
+    } catch (AuthorizationException | KeyNotFoundException exp) {
+      throw exp;
+    } catch (TException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  @Override
   protected void finalize() {
     shutdown();
   }

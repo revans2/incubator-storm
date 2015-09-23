@@ -31,7 +31,6 @@ import java.util.Iterator;
 import java.util.Map;
 import javax.security.auth.Subject;
 
-import backtype.storm.generated.*;
 import backtype.storm.utils.Utils;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.thrift.TBase;
@@ -39,6 +38,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import backtype.storm.Config;
+import backtype.storm.generated.AuthorizationException;
+import backtype.storm.generated.KeyNotFoundException;
+import backtype.storm.generated.KeyAlreadyExistsException;
+import backtype.storm.generated.ReadableBlobMeta;
+import backtype.storm.generated.SettableBlobMeta;
+import backtype.storm.generated.BlobReplication;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
@@ -56,6 +61,7 @@ public class HdfsBlobStore extends BlobStore {
   private HdfsBlobStoreImpl _hbs;
   private Subject _localSubject;
   private Map conf;
+
   /*
    * Get the subject from Hadoop so we can use it to validate the acls. There is no direct
    * interface from UserGroupInformation to get the subject, so do a doAs and get the context.
@@ -145,9 +151,8 @@ public class HdfsBlobStore extends BlobStore {
   @Override
   public AtomicOutputStream createBlob(String key, SettableBlobMeta meta, Subject who)
       throws AuthorizationException, KeyAlreadyExistsException {
-    if (meta.get_replication_factor() <= 1) {
-      meta.set_replication_factor((int)conf.get(Config.HDFS_BLOBSTORE_REPLICATION_FACTOR));
-      LOG.info("set the replication");
+    if (meta.get_replication_factor() <= 0) {
+      meta.set_replication_factor((int)conf.get(Config.BLOBSTORE_REPLICATION_FACTOR));
     }
     who = checkAndGetSubject(who);
     validateKey(key);
@@ -165,7 +170,7 @@ public class HdfsBlobStore extends BlobStore {
       mOut.write(Utils.thriftSerialize((TBase) meta));
       mOut.close();
       mOut = null;
-      BlobStoreFile dataFile = _hbs.write(DATA_PREFIX+key, true);
+      BlobStoreFile dataFile = _hbs.write(DATA_PREFIX + key, true);
       dataFile.setMetadata(meta);
       return new BlobStoreFileOutputStream(dataFile);
     } catch (IOException e) {
@@ -189,7 +194,7 @@ public class HdfsBlobStore extends BlobStore {
     validateKey(key);
     _aclHandler.validateACL(meta.get_acl(), WRITE, who, key);
     try {
-      BlobStoreFile dataFile = _hbs.write(DATA_PREFIX+key, false);
+      BlobStoreFile dataFile = _hbs.write(DATA_PREFIX + key, false);
       dataFile.setMetadata(meta);
       return new BlobStoreFileOutputStream(dataFile);
     } catch (IOException e) {
@@ -250,6 +255,9 @@ public class HdfsBlobStore extends BlobStore {
   @Override
   public void setBlobMeta(String key, SettableBlobMeta meta, Subject who)
       throws AuthorizationException, KeyNotFoundException {
+    if (meta.get_replication_factor() <= 0) {
+      meta.set_replication_factor((int)conf.get(Config.BLOBSTORE_REPLICATION_FACTOR));
+    }
     who = checkAndGetSubject(who);
     validateKey(key);
     _aclHandler.normalizeSettableBlobMeta(key,  meta, who, ADMIN);
@@ -325,11 +333,40 @@ public class HdfsBlobStore extends BlobStore {
     who = checkAndGetSubject(who);
     validateKey(key);
     SettableBlobMeta meta = getStoredBlobMeta(key);
-    _aclHandler.validateACL(meta.get_acl(), READ, who, key);
+    _aclHandler.validateAnyACL(meta.get_acl(), READ | WRITE | ADMIN, who, key);
     try {
       return _hbs.getBlobReplication(DATA_PREFIX + key);
     } catch (IOException exp) {
       throw new RuntimeException(exp);
+    }
+  }
+
+  @Override
+  public BlobReplication updateBlobReplication(String key, int replication, Subject who) throws AuthorizationException, KeyNotFoundException {
+    who = checkAndGetSubject(who);
+    validateKey(key);
+    SettableBlobMeta meta = getStoredBlobMeta(key);
+    meta.set_replication_factor(replication);
+    BlobStoreFileOutputStream mOut = null;
+    _aclHandler.validateAnyACL(meta.get_acl(), WRITE | ADMIN, who, key);
+    try {
+      BlobStoreFile hdfsFile = _hbs.write(META_PREFIX + key, false);
+      hdfsFile.setMetadata(meta);
+      mOut = new BlobStoreFileOutputStream(hdfsFile);
+      mOut.write(Utils.thriftSerialize((TBase) meta));
+      mOut.close();
+      mOut = null;
+      return _hbs.updateBlobReplication(DATA_PREFIX + key, replication);
+    } catch (IOException exp) {
+      throw new RuntimeException(exp);
+    } finally {
+      if (mOut != null) {
+        try {
+          mOut.cancel();
+        } catch (IOException e) {
+          //Ignored
+        }
+      }
     }
   }
 

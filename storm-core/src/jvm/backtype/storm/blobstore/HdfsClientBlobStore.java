@@ -75,8 +75,14 @@ public class HdfsClientBlobStore extends ClientBlobStore {
     throw new RuntimeException("Blob watching is not implemented yet");
   }
 
+  @Override
   public BlobReplication getBlobReplication(String key) throws AuthorizationException, KeyNotFoundException {
     return _blobStore.getBlobReplication(key, null);
+  }
+
+  @Override
+  public BlobReplication updateBlobReplication(String key, int replication) throws AuthorizationException, KeyNotFoundException {
+    return _blobStore.updateBlobReplication(key, replication, null);
   }
 
   @Override

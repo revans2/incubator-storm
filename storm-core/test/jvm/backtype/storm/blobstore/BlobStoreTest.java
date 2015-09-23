@@ -8,13 +8,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Set;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
 import backtype.storm.generated.AccessControlType;
 import backtype.storm.security.auth.NimbusPrincipal;
@@ -49,7 +43,9 @@ public class BlobStoreTest {
   URI base;
   File baseFile;
   private static Map conf = new HashMap();
-  private FileSystem fs;
+  public static final int READ = 0x01;
+  public static final int WRITE = 0x02;
+  public static final int ADMIN = 0x04;
 
   @Before
   public void init() {
@@ -159,7 +155,6 @@ public class BlobStoreTest {
     }
     try {
       if (dfscluster == null) {
-
         dfscluster = new MiniDFSCluster.Builder(hadoopConf).numDataNodes(3).build();
         dfscluster.waitActive();
       }
@@ -169,22 +164,21 @@ public class BlobStoreTest {
     Map conf = new HashMap();
     conf.put(Config.BLOBSTORE_DIR, dirName);
     conf.put(Config.STORM_PRINCIPAL_TO_LOCAL_PLUGIN,"backtype.storm.security.auth.DefaultPrincipalToLocal");
-    conf.put(Config.HDFS_BLOBSTORE_REPLICATION_FACTOR, 1);
-    fs = dfscluster.getFileSystem();
+    conf.put(Config.BLOBSTORE_REPLICATION_FACTOR, 3);
     HdfsBlobStore store = new HdfsBlobStore();
-    store.prepareInternal(conf, null, hadoopConf);
+    store.prepareInternal(conf, null, dfscluster.getConfiguration(0));
     return store;
   }
 
   @Test
   public void testHdfsReplication() throws Exception {
-    initHdfs("/storm/blobstoreReplication");
-    testReplication("/storm/blobstoreReplication/test");
+    BlobStore store = initHdfs("/storm/blobstoreReplication");
+    testReplication("/storm/blobstoreReplication/test", store);
   }
 
   @Test
   public void testBasicHdfs() throws Exception {
-   testBasic(initHdfs("/storm/blobstore1"));
+    testBasic(initHdfs("/storm/blobstore1"));
   }
 
   @Test
@@ -199,10 +193,67 @@ public class BlobStoreTest {
     testWithAuthentication(initHdfs("/storm/blobstore3"));
   }
 
-  public void testReplication(String path) throws Exception {
-    Path fileName = new Path(path);
-    fs.create(fileName, (short) 2);
-    assertEquals("replication not matching", fs.getFileStatus(fileName).getReplication(), 2);
+  // Test for replication.
+  public void testReplication(String path, BlobStore store) throws Exception {
+    SettableBlobMeta metadata = new SettableBlobMeta(BlobStoreAclHandler.WORLD_EVERYTHING);
+    metadata.set_replication_factor(4);
+    AtomicOutputStream out = store.createBlob("test", metadata, null);
+    out.write(1);
+    out.close();
+    assertStoreHasExactly(store, "test");
+    assertEquals("Blobstore replication not matching", store.getBlobReplication("test", null).get_replication(), 4);
+    store.deleteBlob("test", null);
+
+    //Test for replication with NIMBUS as user
+    Subject admin = getSubject("admin");
+    metadata = new SettableBlobMeta(BlobStoreAclHandler.DEFAULT);
+    metadata.set_replication_factor(4);
+    out = store.createBlob("test", metadata, admin);
+    out.write(1);
+    out.close();
+    assertStoreHasExactly(store, "test");
+    assertEquals("Blobstore replication not matching", store.getBlobReplication("test", admin).get_replication(), 4);
+    store.updateBlobReplication("test", 5, admin);
+    assertEquals("Blobstore replication not matching", store.getBlobReplication("test", admin).get_replication(), 5);
+    store.deleteBlob("test", admin);
+
+    //Test for replication using SUPERVISOR access
+    Subject supervisor = getSubject("supervisor");
+    metadata = new SettableBlobMeta(BlobStoreAclHandler.DEFAULT);
+    metadata.set_replication_factor(4);
+    out = store.createBlob("test", metadata, supervisor);
+    out.write(1);
+    out.close();
+    assertStoreHasExactly(store, "test");
+    assertEquals("Blobstore replication not matching", store.getBlobReplication("test", supervisor).get_replication(), 4);
+    store.updateBlobReplication("test", 5, supervisor);
+    assertEquals("Blobstore replication not matching", store.getBlobReplication("test", supervisor).get_replication(), 5);
+    store.deleteBlob("test", supervisor);
+
+    //Test for a user having read or write or admin access to read replication for a blob
+    String createSubject = "createSubject";
+    String writeSubject = "writeSubject";
+    String adminSubject = "adminSubject";
+    Subject who = getSubject(createSubject);
+    AccessControl writeAccess = new AccessControl(AccessControlType.USER, READ);
+    AccessControl adminAccess = new AccessControl(AccessControlType.USER, ADMIN);
+    writeAccess.set_name(writeSubject);
+    adminAccess.set_name(adminSubject);
+    List<AccessControl> acl = Arrays.asList(writeAccess, adminAccess);
+    metadata = new SettableBlobMeta(acl);
+    metadata.set_replication_factor(4);
+    out = store.createBlob("test", metadata, who);
+    out.write(1);
+    out.close();
+    assertStoreHasExactly(store, "test");
+    who = getSubject(writeSubject);
+    assertEquals("Blobstore replication not matching", store.getBlobReplication("test", who).get_replication(), 4);
+
+    //Test for a user having WRITE or ADMIN privileges to change replication of a blob
+    who = getSubject(adminSubject);
+    store.updateBlobReplication("test", 5, who);
+    assertEquals("Blobstore replication not matching", store.getBlobReplication("test", who).get_replication(), 5);
+    store.deleteBlob("test", getSubject(createSubject));
   }
 
   public Subject getSubject(String name) {

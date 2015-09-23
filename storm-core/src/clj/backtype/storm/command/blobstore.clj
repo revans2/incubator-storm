@@ -87,13 +87,10 @@
 (defn create-cli [args]
   (let [[{file :file acl :acl repl-fctr :repl-fctr} [key] _] (cli args ["-f" "--file" :default nil]
                                                   ["-a" "--acl" :default [] :parse-fn as-acl]
-                                                  ["-r" "--repl-fctr" :default 1])
+                                                  ;; default is set here to -1 as we want the blobstore to take care of the default setting if it is not set in the command line
+                                                  ["-r" "--repl-fctr" :default -1 :parse-fn parse-int])
         meta (doto (SettableBlobMeta. acl)
-                   (.set_replication_factor (parse-int repl-fctr)))
-        conf (read-storm-config)
-        blobstore-class (conf NIMBUS-BLOBSTORE)]
-    (if (and (.contains blobstore-class "LocalFsBlobStore") (> (parse-int repl-fctr) 1))
-      (throw (IllegalArgumentException. "LocalFsBlobstore cannot have a replication factor greater than 1")))
+                   (.set_replication_factor repl-fctr))]
     (log-message "Creating " key " with ACL " (pr-str (map access-control-str acl)))
     (if file
       (with-open [f (input-stream file)]
@@ -121,7 +118,6 @@
           (catch KeyNotFoundException knf
             (if-not (empty? args) (log-message key " NOT FOUND"))))))))
 
-
 (defn set-acl-cli [args]
   (let [[{set-acl :set} [key] _]
            (cli args ["-s" "--set" :default [] :parse-fn as-acl])]
@@ -133,13 +129,26 @@
         (log-message "Setting ACL for " key " to " (pr-str (map access-control-str new-acl)))
         (.setBlobMeta blobstore key new-meta)))))
 
-(defn read-rep-cli [args]
-  (let [key (first args)]
+(defn rep-cli [args]
+  (let [sub-command (first args)
+        new-args (rest args)]
     (with-configured-blob-client blobstore
-      (let [blob-replication (.getBlobReplication blobstore key)
-            repl-fctr (.get_replication blob-replication)]
-        (log-message "replication factor " repl-fctr)
-        repl-fctr))))
+      (condp = sub-command
+      "--read" (let [key (first new-args)
+                     blob-replication (.getBlobReplication blobstore key)
+                     repl-fctr (.get_replication blob-replication)]
+                     (log-message "Current replication factor " repl-fctr)
+                     repl-fctr)
+      "--update" (let [[{repl-fctr :repl-fctr} [key] _]
+                        (cli new-args ["-r" "--repl-fctr" :parse-fn parse-int])]
+                     (if (nil? repl-fctr)
+                       (throw (RuntimeException. (str "Please set the replication factor")))
+                       (let [blob-replication (.updateBlobReplication blobstore key repl-fctr)
+                             repl-ftr (.get_replication blob-replication)]
+                         (log-message "Replication factor is set to " repl-ftr)
+                         repl-ftr)))
+      :else (throw (RuntimeException. (str sub-command " is not a supported blobstore command")))
+      ))))
 
 (defn -main [& args]
   (let [command (first args)
@@ -151,5 +160,5 @@
       "delete" (delete-cli new-args)
       "list" (list-cli new-args)
       "set-acl" (set-acl-cli new-args)
-      "replication" (read-rep-cli new-args)
+      "replication" (rep-cli new-args)
       :else (throw (RuntimeException. (str command " is not a supported blobstore command"))))))

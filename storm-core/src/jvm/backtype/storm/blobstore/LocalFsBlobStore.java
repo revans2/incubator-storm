@@ -226,6 +226,11 @@ public class LocalFsBlobStore extends BlobStore {
     return new BlobReplication(1);
   }
 
+  @Override
+  public BlobReplication updateBlobReplication(String key, int replication, Subject who) {
+    return new BlobReplication(1);
+  }
+
   public void fullCleanup(long age) throws IOException {
     fbs.fullCleanup(age);
   }

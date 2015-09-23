@@ -610,10 +610,15 @@ service Nimbus {
   TopologyHistoryInfo getTopologyHistory(1: string user) throws (1: AuthorizationException aze);
 
   /**
-   * Replication factor for HDFS Blobstore.
+   * Replication factor for Blobstore.
    * For Local Blobstore it should return 1.
    */
   BlobReplication getBlobReplication(1: string key) throws (1: AuthorizationException aze, 2: KeyNotFoundException knf);
+
+  /**
+   * Update Blobstore Replication
+   */
+  BlobReplication updateBlobReplication(1: string key, 2: i32 replication) throws (1: AuthorizationException aze, 2: KeyNotFoundException knf);
 }
 
 struct BlobReplication {
