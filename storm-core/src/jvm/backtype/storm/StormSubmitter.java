@@ -188,15 +188,18 @@ public class StormSubmitter {
      * @throws AuthorizationException
      */
     public static void submitTopologyAs(String name, Map stormConf, StormTopology topology, SubmitOptions opts, ProgressListener progressListener, String asUser)
-            throws AlreadyAliveException, InvalidTopologyException, AuthorizationException {
+            throws AlreadyAliveException, InvalidTopologyException, AuthorizationException, IllegalArgumentException {
         if(!Utils.isValidConf(stormConf)) {
             throw new IllegalArgumentException("Storm conf is not valid. Must be json-serializable");
         }
+
         stormConf = new HashMap(stormConf);
         stormConf.putAll(Utils.readCommandLineOpts());
         Map conf = Utils.readStormConfig();
         conf.putAll(stormConf);
         stormConf.putAll(prepareZookeeperAuthentication(conf));
+
+        validateConfs(conf, topology);
 
         Map<String,String> passedCreds = new HashMap<String, String>();
         if (opts != null) {
@@ -442,5 +445,37 @@ public class StormSubmitter {
          * @param totalBytes - total number of bytes of the file
          */
         public void onCompleted(String srcFile, String targetFile, long totalBytes);
+    }
+    
+
+    private static void validateConfs(Map stormConf, StormTopology topology) throws IllegalArgumentException {
+        LOG.info("Validating storm Confs...");
+        double largestMemReq = getMaxExecutorMemoryUsageForTopo(topology, stormConf);
+        Double topologyWorkerMaxHeapSize = Utils.getDouble(stormConf.get(Config.TOPOLOGY_WORKER_MAX_HEAP_SIZE_MB));
+        if(topologyWorkerMaxHeapSize < largestMemReq) {
+            throw new IllegalArgumentException("Topology will not be able to be successfully scheduled: Config " + Config.TOPOLOGY_WORKER_MAX_HEAP_SIZE_MB+": "
+                    +Utils.getDouble(stormConf.get(Config.TOPOLOGY_WORKER_MAX_HEAP_SIZE_MB)) + " < " 
+                            + largestMemReq + " (Largest memory requirement of a component in the topology). Perhaps set " + Config.TOPOLOGY_WORKER_MAX_HEAP_SIZE_MB + " to a larger amount");
+        }
+        
+    }
+
+    private static double getMaxExecutorMemoryUsageForTopo(StormTopology topology, Map topologyConf) {
+        double largestMemoryOperator = 0.0;
+        for(Map<String, Double> entry : backtype.storm.scheduler.resource.Utils.getBoltsResources(topology, topologyConf).values()) {
+            double memoryRequirement = entry.get(Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB)
+                    + entry.get(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB);
+            if(memoryRequirement > largestMemoryOperator) {
+                largestMemoryOperator = memoryRequirement;
+            }
+        }
+        for(Map<String, Double> entry : backtype.storm.scheduler.resource.Utils.getSpoutsResources(topology, topologyConf).values()) {
+            double memoryRequirement = entry.get(Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB)
+                    + entry.get(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB);
+            if(memoryRequirement > largestMemoryOperator) {
+                largestMemoryOperator = memoryRequirement;
+            }
+        }
+        return largestMemoryOperator;
     }
 }

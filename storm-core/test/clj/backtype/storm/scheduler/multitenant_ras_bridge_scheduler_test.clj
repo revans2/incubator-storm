@@ -76,6 +76,7 @@
         _ (.put conf Config/TOPOLOGY_NAME "topology-name-1")
         _ (.put conf Config/TOPOLOGY_SUBMITTER_USER "userPeng")
         _ (.put conf Config/TOPOLOGY_WORKERS 5)
+        _ (.put conf Config/TOPOLOGY_WORKER_MAX_HEAP_SIZE_MB 8192.0)
         storm-topology (.createTopology builder)
         topology1 (TopologyDetails. "topology1"
                     conf
@@ -174,6 +175,7 @@
         _ (.put conf1 Config/TOPOLOGY_SUBMITTER_USER "userPeng")
         _ (.put conf1 Config/TOPOLOGY_WORKERS 5)
         _ (.put conf1 Config/TOPOLOGY_WORKER_CHILDOPTS "-Xmx128m")
+        _ (.put conf1 Config/TOPOLOGY_WORKER_MAX_HEAP_SIZE_MB 8192.0)
                 
         storm-topology1 (.createTopology builder1)
         topology1 (TopologyDetails. "topology1"

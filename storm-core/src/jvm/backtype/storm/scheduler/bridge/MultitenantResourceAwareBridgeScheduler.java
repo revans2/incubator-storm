@@ -43,7 +43,7 @@ public class MultitenantResourceAwareBridgeScheduler implements IScheduler{
     public void prepare(@SuppressWarnings("rawtypes") Map conf) {
       _conf = conf;
     }
-   
+ 
     @Override
     public Map<String, Object> config() {
         return multitenantScheduler.config();
@@ -111,9 +111,9 @@ public class MultitenantResourceAwareBridgeScheduler implements IScheduler{
         Map<String, TopologyDetails> multitenantTopologies = new HashMap<String, TopologyDetails>();
         Map<String, TopologyDetails> rasTopologies = new HashMap<String, TopologyDetails>();
         for(TopologyDetails topo : topologies.getTopologies()) {
-                if(MULTITENANT_STRATEGY.getName().equals(topo.getScheduler()) == true) {
+                if(MULTITENANT_STRATEGY.getName().equals(topo.getTopologyStrategy())) {
                     multitenantTopologies.put(topo.getId(), topo);
-                } else if(RESOURCE_AWARE_STRATEGY.getName().equals(topo.getScheduler()) == true) {
+                } else if(RESOURCE_AWARE_STRATEGY.getName().equals(topo.getTopologyStrategy())) {
                     rasTopologies.put(topo.getId(), topo);
                 } else {
                     LOG.warn("No valid scheduler specified! Topology {} is going to be scheduled via {} by default", topo.getId(), MULTITENANT_STRATEGY.getName());
@@ -371,14 +371,18 @@ public class MultitenantResourceAwareBridgeScheduler implements IScheduler{
         }
         
         for(Entry<String, Map<String, Map<WorkerSlot, Collection<ExecutorDetails>>>> entry : schedulingMap.entrySet()) {
-            str.append("/** Node: "+cluster.getSupervisorById(entry.getKey()).getHost()+"-"+entry.getKey()+" **/\n");
-            for(Entry<String, Map<WorkerSlot, Collection<ExecutorDetails>>> topo_sched : schedulingMap.get(entry.getKey()).entrySet()) {
-                str.append("\t-->Topology: " + topo_sched.getKey()+"\n");
-                for(Map.Entry<WorkerSlot, Collection<ExecutorDetails>> ws : topo_sched.getValue().entrySet()) {
-                    str.append("\t\t->Slot ["+ws.getKey().getPort()+"] -> "+ws.getValue()+"\n");
-                }
-            }
-        }
+            if(cluster.getSupervisorById(entry.getKey()) != null) {
+             str.append("/** Node: " + cluster.getSupervisorById(entry.getKey()).getHost() + "-"+entry.getKey() + " **/\n");
+             } else {
+                 str.append("/** Node: Unknown may be dead -" + entry.getKey() + " **/\n");
+             }
+             for(Entry<String, Map<WorkerSlot, Collection<ExecutorDetails>>> topo_sched : schedulingMap.get(entry.getKey()).entrySet()) {
+                 str.append("\t-->Topology: " + topo_sched.getKey()+"\n");
+                 for(Map.Entry<WorkerSlot, Collection<ExecutorDetails>> ws : topo_sched.getValue().entrySet()) {
+                     str.append("\t\t->Slot [" + ws.getKey().getPort() + "] -> " + ws.getValue() + "\n");
+                 }
+             }
+         }
         LOG.debug("Scheduling of Cluster\n{}", str.toString());
     }
 

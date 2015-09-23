@@ -331,7 +331,7 @@ public class ConfigValidation {
     };
 
     /**
-     * Validates a non negative double value.
+     * Validates a non negative number value.
      */
     public static Object NonNegativeNumberValidator = new FieldValidator() {
         @Override
@@ -348,7 +348,29 @@ public class ConfigValidation {
                     return;
                 }
             }
-            throw new IllegalArgumentException("Field " + name + " must be a positive double.");
+            throw new IllegalArgumentException("Field " + name + " must be a non negative number.");
+        }
+    };
+
+    /**
+     * Validates a positive number value.
+     */
+    public static Object PositiveNumberValidator = new FieldValidator() {
+        @Override
+        public void validateField(String name, Object o) throws IllegalArgumentException {
+            if (o == null) {
+                // A null value is acceptable.
+                return;
+            }
+            final double double_value;
+            if (o instanceof Number)
+            {
+                double_value = ((Number)o).doubleValue();
+                if (double_value > 0.0) {
+                    return;
+                }
+            }
+            throw new IllegalArgumentException("Field " + name + " must be a positive number.");
         }
     };
 

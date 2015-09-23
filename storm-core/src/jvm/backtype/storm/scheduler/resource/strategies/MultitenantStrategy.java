@@ -7,6 +7,7 @@ import backtype.storm.scheduler.Cluster;
 import backtype.storm.scheduler.ExecutorDetails;
 import backtype.storm.scheduler.Topologies;
 import backtype.storm.scheduler.TopologyDetails;
+import backtype.storm.scheduler.WorkerSlot;
 import backtype.storm.scheduler.multitenant.MultitenantScheduler;
 import backtype.storm.scheduler.resource.RAS_Node;
 
@@ -17,7 +18,7 @@ public class MultitenantStrategy implements IStrategy{
      * RESOURCE AWARE SCHEDULING
      */
     @Override
-    public Map<RAS_Node, Collection<ExecutorDetails>> schedule(TopologyDetails td) {
+    public Map<WorkerSlot, Collection<ExecutorDetails>> schedule(TopologyDetails td) {
         throw new IllegalStateException();
     }
 

@@ -25,7 +25,8 @@
   (:import [backtype.storm.scheduler Cluster SupervisorDetails WorkerSlot ExecutorDetails
             SchedulerAssignmentImpl Topologies TopologyDetails])
   (:import [backtype.storm.scheduler.resource RAS_Node ResourceAwareScheduler])
-  (:import [backtype.storm Config])
+  (:import [backtype.storm Config StormSubmitter])
+  (:import [backtype.storm LocalDRPC LocalCluster])
   (:import [java.util HashMap]))
 
 (defn gen-supervisors [count ports]
@@ -151,7 +152,8 @@
                      TOPOLOGY-SUBMITTER-USER "userC"
                      TOPOLOGY-COMPONENT-RESOURCES-ONHEAP-MEMORY-MB 128.0
                      TOPOLOGY-COMPONENT-RESOURCES-OFFHEAP-MEMORY-MB 0.0
-                     TOPOLOGY-COMPONENT-CPU-PCORE-PERCENT 10.0}
+                     TOPOLOGY-COMPONENT-CPU-PCORE-PERCENT 10.0
+                     TOPOLOGY-WORKER-MAX-HEAP-SIZE-MB 8192.0}
                     storm-topology
                     1
                     (mk-ed-map [["wordSpout" 0 1]
@@ -189,7 +191,8 @@
                      TOPOLOGY-SUBMITTER-USER "userC"
                      TOPOLOGY-COMPONENT-RESOURCES-ONHEAP-MEMORY-MB 128.0
                      TOPOLOGY-COMPONENT-RESOURCES-OFFHEAP-MEMORY-MB 0.0
-                     TOPOLOGY-COMPONENT-CPU-PCORE-PERCENT 10.0}
+                     TOPOLOGY-COMPONENT-CPU-PCORE-PERCENT 10.0
+                     TOPOLOGY-WORKER-MAX-HEAP-SIZE-MB 8192.0}
                     storm-topology1
                     1
                     (mk-ed-map [["wordSpout1" 0 1]
@@ -208,7 +211,8 @@
                      TOPOLOGY-SUBMITTER-USER "userC"
                      TOPOLOGY-COMPONENT-RESOURCES-ONHEAP-MEMORY-MB 128.0
                      TOPOLOGY-COMPONENT-RESOURCES-OFFHEAP-MEMORY-MB 0.0
-                     TOPOLOGY-COMPONENT-CPU-PCORE-PERCENT 10.0}
+                     TOPOLOGY-COMPONENT-CPU-PCORE-PERCENT 10.0
+                     TOPOLOGY-WORKER-MAX-HEAP-SIZE-MB 8192.0}
                     storm-topology2
                     1
                     (mk-ed-map [["wordSpoutX" 0 1]
@@ -250,7 +254,8 @@
                      TOPOLOGY-SUBMITTER-USER "userC"
                      TOPOLOGY-COMPONENT-RESOURCES-ONHEAP-MEMORY-MB 128.0
                      TOPOLOGY-COMPONENT-RESOURCES-OFFHEAP-MEMORY-MB 0.0
-                     TOPOLOGY-COMPONENT-CPU-PCORE-PERCENT 10.0}
+                     TOPOLOGY-COMPONENT-CPU-PCORE-PERCENT 10.0
+                     TOPOLOGY-WORKER-MAX-HEAP-SIZE-MB 8192.0}
                     storm-topology
                     2
                     (mk-ed-map [["wordSpout" 0 1]
@@ -286,7 +291,8 @@
                      TOPOLOGY-SUBMITTER-USER "userC"
                      TOPOLOGY-COMPONENT-RESOURCES-ONHEAP-MEMORY-MB 128.0
                      TOPOLOGY-COMPONENT-RESOURCES-OFFHEAP-MEMORY-MB 0.0
-                     TOPOLOGY-COMPONENT-CPU-PCORE-PERCENT 10.0}
+                     TOPOLOGY-COMPONENT-CPU-PCORE-PERCENT 10.0
+                     TOPOLOGY-WORKER-MAX-HEAP-SIZE-MB 8192.0}
                     storm-topology
                     2 ;; need two workers, each on one node
                     (mk-ed-map [["wordSpout" 0 2]
@@ -341,7 +347,8 @@
                       TOPOLOGY-SUBMITTER-USER "userC"
                       TOPOLOGY-COMPONENT-RESOURCES-ONHEAP-MEMORY-MB 128.0
                       TOPOLOGY-COMPONENT-RESOURCES-OFFHEAP-MEMORY-MB 0.0
-                      TOPOLOGY-COMPONENT-CPU-PCORE-PERCENT 10.0}
+                      TOPOLOGY-COMPONENT-CPU-PCORE-PERCENT 10.0
+                      TOPOLOGY-WORKER-MAX-HEAP-SIZE-MB 8192.0}
                      storm-topology1
                      3 ;; three workers to hold three executors
                      (mk-ed-map [["spout1" 0 3]]))
@@ -353,7 +360,8 @@
                       TOPOLOGY-SUBMITTER-USER "userC"
                       TOPOLOGY-COMPONENT-RESOURCES-ONHEAP-MEMORY-MB 1280.0 ;; large enough thus two eds can not be fully assigned to one node
                       TOPOLOGY-COMPONENT-RESOURCES-OFFHEAP-MEMORY-MB 0.0
-                      TOPOLOGY-COMPONENT-CPU-PCORE-PERCENT 10.0}
+                      TOPOLOGY-COMPONENT-CPU-PCORE-PERCENT 10.0
+                      TOPOLOGY-WORKER-MAX-HEAP-SIZE-MB 8192.0}
                      storm-topology2
                      2  ;; two workers, each holds one executor and resides on one node
                      (mk-ed-map [["spout2" 0 2]]))
@@ -470,7 +478,8 @@
                      TOPOLOGY-SUBMITTER-USER "userC"
                      TOPOLOGY-COMPONENT-RESOURCES-ONHEAP-MEMORY-MB 128.0
                      TOPOLOGY-COMPONENT-RESOURCES-OFFHEAP-MEMORY-MB 0.0
-                     TOPOLOGY-COMPONENT-CPU-PCORE-PERCENT 10.0}
+                     TOPOLOGY-COMPONENT-CPU-PCORE-PERCENT 10.0
+                     TOPOLOGY-WORKER-MAX-HEAP-SIZE-MB 8192.0}
                     storm-topology1
                     1
                     (mk-ed-map [["spout1" 0 1]]))
@@ -484,7 +493,8 @@
                      TOPOLOGY-SUBMITTER-USER "userC"
                      TOPOLOGY-COMPONENT-RESOURCES-ONHEAP-MEMORY-MB 128.0
                      TOPOLOGY-COMPONENT-RESOURCES-OFFHEAP-MEMORY-MB 0.0
-                     TOPOLOGY-COMPONENT-CPU-PCORE-PERCENT 10.0}
+                     TOPOLOGY-COMPONENT-CPU-PCORE-PERCENT 10.0
+                     TOPOLOGY-WORKER-MAX-HEAP-SIZE-MB 8192.0}
                     storm-topology2
                     2 
                     (mk-ed-map [["spout2" 0 4]]))
@@ -498,7 +508,8 @@
                      TOPOLOGY-SUBMITTER-USER "userC"
                      TOPOLOGY-COMPONENT-RESOURCES-ONHEAP-MEMORY-MB 128.0
                      TOPOLOGY-COMPONENT-RESOURCES-OFFHEAP-MEMORY-MB 0.0
-                     TOPOLOGY-COMPONENT-CPU-PCORE-PERCENT 10.0}
+                     TOPOLOGY-COMPONENT-CPU-PCORE-PERCENT 10.0
+                     TOPOLOGY-WORKER-MAX-HEAP-SIZE-MB 8192.0}
                     storm-topology3
                     2 
                     (mk-ed-map [["spout3" 0 4]]))
@@ -512,7 +523,8 @@
                      TOPOLOGY-SUBMITTER-USER "userC"
                      TOPOLOGY-COMPONENT-RESOURCES-ONHEAP-MEMORY-MB 128.0
                      TOPOLOGY-COMPONENT-RESOURCES-OFFHEAP-MEMORY-MB 0.0
-                     TOPOLOGY-COMPONENT-CPU-PCORE-PERCENT 10.0}
+                     TOPOLOGY-COMPONENT-CPU-PCORE-PERCENT 10.0
+                     TOPOLOGY-WORKER-MAX-HEAP-SIZE-MB 8192.0}
                     storm-topology4
                     2 
                     (mk-ed-map [["spout4" 0 12]]))
@@ -526,7 +538,8 @@
                      TOPOLOGY-SUBMITTER-USER "userC"
                      TOPOLOGY-COMPONENT-RESOURCES-ONHEAP-MEMORY-MB 128.0
                      TOPOLOGY-COMPONENT-RESOURCES-OFFHEAP-MEMORY-MB 0.0
-                     TOPOLOGY-COMPONENT-CPU-PCORE-PERCENT 10.0}
+                     TOPOLOGY-COMPONENT-CPU-PCORE-PERCENT 10.0
+                     TOPOLOGY-WORKER-MAX-HEAP-SIZE-MB 8192.0}
                     storm-topology5
                     2 
                     (mk-ed-map [["spout5" 0 40]]))
@@ -580,3 +593,79 @@
                 cpu-used (.get super->cpu-usage super)]
             (is (and (<= (Math/abs (- mem-avail mem-used)) epsilon)
                     (<= (Math/abs (- cpu-avail cpu-used)) epsilon)))))))))
+
+(deftest test-topology-worker-max-heap-size
+  (let [supers (gen-supervisors 2 2)]
+    (testing "test if RAS will spread executors across mulitple workers based on the set limit for a worker used by the topology"
+      (let [cluster (Cluster. (nimbus/standalone-nimbus) supers {}
+                                {STORM-NETWORK-TOPOGRAPHY-PLUGIN
+                                 "backtype.storm.networktopography.DefaultRackDNSToSwitchMapping"})
+            scheduler (ResourceAwareScheduler.)
+            builder1 (TopologyBuilder.)
+            _ (.setSpout builder1 "spout1" (TestWordSpout.) 2)
+            storm-topology1 (.createTopology builder1)
+            topology1 (TopologyDetails. "topology1"
+                        {TOPOLOGY-NAME "topology-name-1"
+                         TOPOLOGY-SUBMITTER-USER "userC"
+                         TOPOLOGY-COMPONENT-RESOURCES-ONHEAP-MEMORY-MB 128.0
+                         TOPOLOGY-COMPONENT-RESOURCES-OFFHEAP-MEMORY-MB 0.0
+                         TOPOLOGY-COMPONENT-CPU-PCORE-PERCENT 10.0
+                         TOPOLOGY-WORKER-MAX-HEAP-SIZE-MB 128.0}
+                        storm-topology1
+                        1
+                        (mk-ed-map [["spout1" 0 4]]))
+            topologies (Topologies. (to-top-map [topology1]))]
+        (.schedule scheduler topologies cluster)
+        (is (= (.get (.getStatusMap cluster) "topology1") "topology1 Fully Scheduled"))
+        (is (= (.getAssignedNumWorkers cluster topology1) 4))))
+    (testing "test when no more workers are available due to topology worker max heap size limit but there is memory is still available"
+      (let [cluster (Cluster. (nimbus/standalone-nimbus) supers {}
+                                {STORM-NETWORK-TOPOGRAPHY-PLUGIN
+                                 "backtype.storm.networktopography.DefaultRackDNSToSwitchMapping"})
+            scheduler (ResourceAwareScheduler.)
+            builder1 (TopologyBuilder.)
+            _ (.setSpout builder1 "spout1" (TestWordSpout.) 2)
+            storm-topology1 (.createTopology builder1)
+            topology1 (TopologyDetails. "topology1"
+                        {TOPOLOGY-NAME "topology-name-1"
+                         TOPOLOGY-SUBMITTER-USER "userC"
+                         TOPOLOGY-COMPONENT-RESOURCES-ONHEAP-MEMORY-MB 128.0
+                         TOPOLOGY-COMPONENT-RESOURCES-OFFHEAP-MEMORY-MB 0.0
+                         TOPOLOGY-COMPONENT-CPU-PCORE-PERCENT 10.0
+                         TOPOLOGY-WORKER-MAX-HEAP-SIZE-MB 128.0}
+                        storm-topology1
+                        1
+                        (mk-ed-map [["spout1" 0 5]]))
+            topologies (Topologies. (to-top-map [topology1]))]
+        (.schedule scheduler topologies cluster)
+        ;;spout1 is going to contain 5 executors that needs scheduling. Each of those executors has a memory requirement of 128.0 MB
+        ;;The cluster contains 4 free WorkerSlots. For this topolology each worker is limited to a max heap size of 128.0
+        ;;Thus, one executor not going to be able to get scheduled thus failing the scheduling of this topology and no executors of this topology will be scheduleded
+        (is (= (.size (.getUnassignedExecutors cluster topology1)) 5))
+        (is (= (.get (.getStatusMap cluster) "topology1")  "Unsuccessfull in scheduling topology1"))))
+    (testing "test if StormSubmitter able to detect a unschedulable topology early by throwing an exception"
+      (let [cluster (Cluster. (nimbus/standalone-nimbus) supers {}
+                               {STORM-NETWORK-TOPOGRAPHY-PLUGIN
+                                "backtype.storm.networktopography.DefaultRackDNSToSwitchMapping"})
+            cluster (LocalCluster.)
+            builder1 (TopologyBuilder.)
+            _ (.setSpout builder1 "spout1" (TestWordSpout.) 2)
+            storm-topology1 (.createTopology builder1)
+            ;;set component default on heap memory usage(TOPOLOGY-COMPONENT-RESOURCES-ONHEAP-MEMORY-MB) to 129.0
+            ;;then set TOPOLOGY-WORKER-MAX-HEAP-SIZE-MB to be 128.0.
+            ;; This creates a situation in which the topology absolutely cannot be scheduled.
+            ;; If code works correctly than a exceptions should be thrown immediately when the topology is submitted
+            conf  {TOPOLOGY-NAME "topology-name-1"
+                         TOPOLOGY-SUBMITTER-USER "userC"
+                         TOPOLOGY-COMPONENT-RESOURCES-ONHEAP-MEMORY-MB 129.0
+                         TOPOLOGY-COMPONENT-RESOURCES-OFFHEAP-MEMORY-MB 0.0
+                         TOPOLOGY-COMPONENT-CPU-PCORE-PERCENT 10.0
+                         TOPOLOGY-WORKER-MAX-HEAP-SIZE-MB 128.0}
+            topology1 (TopologyDetails. "topology1"
+                        conf
+                        storm-topology1
+                        1
+                        (mk-ed-map [["spout1" 0 5]]))
+            topologies (Topologies. (to-top-map [topology1]))]
+        (is (thrown? IllegalArgumentException
+              (StormSubmitter/submitTopologyWithProgressBar "test" conf storm-topology1)))))))

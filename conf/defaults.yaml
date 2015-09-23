@@ -235,6 +235,7 @@ topology.logging.sensitivity: "S3"
 topology.component.resources.onheap.memory.mb: 128.0
 topology.component.resources.offheap.memory.mb: 0.0
 topology.component.cpu.pcore.percent: 10.0
+topology.worker.max.heap.size.mb: 768.0
 
 client.blobstore.class: "backtype.storm.blobstore.NimbusBlobStore"
 
