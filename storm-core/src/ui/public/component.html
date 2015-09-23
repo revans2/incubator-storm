@@ -352,6 +352,21 @@ function dump_jstack(id) {
     });
 }
 
+function restart_worker_jvm(id) {
+    var topologyId = $.url("?topology_id");
+    var url = "/api/v1/topology/"+topologyId+"/profiling/restartworker/" + id;
+
+    $("#restart_worker_jvm_" + id).prop('disabled', true);
+    setTimeout(function(){ $("#restart_worker_jvm_" + id).prop('disabled', false); }, 5000);
+
+    $.get(url, function(response,status,jqXHR) {
+        alert("Submitted request for restarting worker...");
+    })
+    .fail(function(response) {
+        alert( "Failed to restart worker for " + id + " failed: \n" + JSON.stringify(response));
+    });
+}
+
 function dump_heap(id) {
     var topologyId = $.url("?topology_id");
     var url = "/api/v1/topology/"+topologyId+"/profiling/dumpheap/" + id;

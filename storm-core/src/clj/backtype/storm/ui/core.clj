@@ -944,6 +944,7 @@
            (json-response {"status" "ok"
                            "id" host-port}
                           (m "callback")))))
+
   (GET "/api/v1/topology/:id/profiling/dumpjstack/:host-port"
        [:as {:keys [servlet-request]} id host-port & m]
        (with-nimbus nimbus
@@ -956,6 +957,24 @@
                timestamp (System/currentTimeMillis)
                request (ProfileRequest. nodeinfo
                                         ProfileAction/JSTACK_DUMP)]
+           (.set_time_stamp request timestamp)
+           (.setWorkerProfiler nimbus id request)
+           (json-response {"status" "ok"
+                           "id" host-port}
+                          (m "callback")))))
+
+  (GET "/api/v1/topology/:id/profiling/restartworker/:host-port"
+       [:as {:keys [servlet-request]} id host-port & m]
+       (with-nimbus nimbus
+         (let [user (.getUserName http-creds-handler servlet-request)
+               topology-conf (from-json
+                              (.getTopologyConf ^Nimbus$Client nimbus id))]
+           (assert-authorized-user servlet-request "setWorkerProfiler" (topology-config id)))
+         (let [[host, port] (split host-port #":")
+               nodeinfo (NodeInfo. host (set [(Long. port)]))
+               timestamp (System/currentTimeMillis)
+               request (ProfileRequest. nodeinfo
+                                        ProfileAction/JVM_RESTART)]
            (.set_time_stamp request timestamp)
            (.setWorkerProfiler nimbus id request)
            (json-response {"status" "ok"

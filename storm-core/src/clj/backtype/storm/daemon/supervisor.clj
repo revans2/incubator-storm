@@ -676,6 +676,9 @@
 (defn jprofile-dump [pid workers-artifacts-directory]
   [PROFILE-CMD pid "dump" workers-artifacts-directory])
 
+(defn jprofile-jvm-restart [pid]
+  [PROFILE-CMD pid "kill" ])
+
 (defn- delete-topology-profiler-action [storm-cluster-state storm-id profile-action]
   (log-message "Deleting profiler action.." profile-action)
   (.delete-topology-profile-requests storm-cluster-state storm-id profile-action))
@@ -727,17 +730,18 @@
                       user (storm-conf TOPOLOGY-SUBMITTER-USER)
                       environment (if-let [env (storm-conf TOPOLOGY-ENVIRONMENT)] env {})
                       worker-pid (slurp (worker-artifacts-pid-path conf storm-id port))
+                      log-prefix (str "ProfilerAction process " storm-id ":" port " PROFILER_ACTION: " action " ")
                       ;; Until PROFILER_STOP action is invalid, keep launching profiler start in case worker restarted
                       ;; The profiler plugin script validates if JVM is recording before starting another recording.
                       command (cond
                                 (= action ProfileAction/JMAP_DUMP) (jmap-dump-cmd worker-pid target-dir)
                                 (= action ProfileAction/JSTACK_DUMP) (jstack-dump-cmd worker-pid target-dir)
                                 (= action ProfileAction/JPROFILE_DUMP) (jprofile-dump worker-pid target-dir)
+                                (= action ProfileAction/JVM_RESTART) (jprofile-jvm-restart worker-pid)
                                 (and (not stop?)
                                      (= action ProfileAction/JPROFILE_STOP))
                                   (jprofile-start worker-pid) ;; Ensure the profiler is still running
                                 (and stop? (= action ProfileAction/JPROFILE_STOP)) (jprofile-stop worker-pid target-dir))
-                      log-prefix (str "ProfilerAction process " storm-id ":" port " PROFILER_ACTION: " action " ")
                       action-on-exit (fn [exit-code]
                                        (log-message log-prefix " profile-action exited for code: " exit-code)
                                        (if (and (= exit-code 0) stop?)
