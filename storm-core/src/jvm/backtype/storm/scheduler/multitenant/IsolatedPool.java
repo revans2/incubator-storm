@@ -93,17 +93,24 @@ public class IsolatedPool extends NodePool {
   public void scheduleAsNeeded(NodePool ... lesserPools) {
     for (String topId : _topologyIdToNodes.keySet()) {
       TopologyDetails td = _tds.get(topId);
-      if (_cluster.needsScheduling(td) && 
-              isTopologyScheduledByMultitenant(td) == true) {
+      Set<Node> allNodes = _topologyIdToNodes.get(topId);
+      Number nodesRequested = (Number) td.getConf().get(Config.TOPOLOGY_ISOLATED_MACHINES);
+      Integer effectiveNodesRequested = null;
+      if (nodesRequested != null) {
+        effectiveNodesRequested = Math.min(td.getExecutors().size(),
+            nodesRequested.intValue());
+      }
+      if (_cluster.needsScheduling(td) ||
+          (effectiveNodesRequested != null &&
+              allNodes.size() != effectiveNodesRequested) &&
+          isTopologyScheduledByMultitenant(td) == true) {
         LOG.debug("Scheduling topology {}",topId);
-        Set<Node> allNodes = _topologyIdToNodes.get(topId);
-        Number nodesRequested = (Number) td.getConf().get(Config.TOPOLOGY_ISOLATED_MACHINES);
         int slotsToUse = 0;
-        if (nodesRequested == null) {
+        if (effectiveNodesRequested == null) {
           slotsToUse = getNodesForNotIsolatedTop(td, allNodes, lesserPools);
         } else {
-          slotsToUse = getNodesForIsolatedTop(td, allNodes, lesserPools, 
-              nodesRequested.intValue());
+          slotsToUse = getNodesForIsolatedTop(td, allNodes, lesserPools,
+              effectiveNodesRequested);
         }
         //No slots to schedule for some reason, so skip it.
         if (slotsToUse <= 0) {

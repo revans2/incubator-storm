@@ -335,13 +335,13 @@ public class Node {
   }
 
   /**
-   * Used to sort a list of nodes so the node with the most free slots comes
-   * first.
+   * Used to sort a list of nodes so the node with the least used slots comes
+   * last.
    */
   public static final Comparator<Node> FREE_NODE_COMPARATOR_DEC = new Comparator<Node>() {
     @Override
     public int compare(Node o1, Node o2) {
-      return o2.totalSlotsFree() - o1.totalSlotsFree();
+      return o1.totalSlotsUsed() - o2.totalSlotsUsed();
     }
   };
 }
