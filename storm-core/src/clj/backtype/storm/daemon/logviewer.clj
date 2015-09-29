@@ -247,9 +247,9 @@
                                     :kill-fn (fn [t]
                                                (log-error t "Error when doing logs cleanup")
                                                (exit-process! 20 "Error when doing log cleanup")))
-                                    0 ;; Start immediately.
-                                    interval-secs
-                                    (fn [] (cleanup-fn! log-root-dir))))))
+                          0 ;; Start immediately.
+                          interval-secs
+                          (fn [] (cleanup-fn! log-root-dir))))))
 
 (defn- skip-bytes
   "FileInputStream#skip may not work the first time, so ensure it successfully
