@@ -68,8 +68,9 @@ public abstract class SaslTransportPlugin implements ITransportPlugin {
     @Override
     public TServer getServer(TProcessor processor) throws IOException, TTransportException {
         int port = type.getPort(storm_conf);
+        int socketTimeout = type.getSocketTimeOut(storm_conf);
         TTransportFactory serverTransportFactory = getServerTransportFactory();
-        TServerSocket serverTransport = new TServerSocket(port);
+        TServerSocket serverTransport = new TServerSocket(port, socketTimeout);
         int numWorkerThreads = type.getNumThreads(storm_conf);
         Integer queueSize = type.getQueueSize(storm_conf);
 

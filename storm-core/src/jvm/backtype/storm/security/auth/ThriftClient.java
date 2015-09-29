@@ -61,7 +61,11 @@ public class ThriftClient {
 
         if (port<=0) {
             throw new IllegalArgumentException("invalid port: "+port);
-        }          
+        }
+
+        if(timeout == null || timeout.intValue() == 0) {
+          timeout = type.getSocketTimeOut(storm_conf);
+        }
 
         _host = host;
         _port = port;
