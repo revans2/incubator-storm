@@ -416,8 +416,8 @@ public class Config extends HashMap<String, Object> {
      * How long before a Thrift Client socket hangs before timeout
      * and restart the socket.
      */
-    public static final String STORM_THRIFT_SOCKET_TIME_MS = "storm.thrift.socket.time.ms";
-    public static final Object STORM_THRIFT_SOCKET_TIME_MS_SCHEMA = ConfigValidation.IntegerValidator;
+    public static final String STORM_THRIFT_SOCKET_TIMEOUT_MS = "storm.thrift.socket.timeout.ms";
+    public static final Object STORM_THRIFT_SOCKET_TIMEOUT_MS_SCHEMA = ConfigValidation.IntegerValidator;
 
     /**
      * This parameter is used by the storm-deploy project to configure the
