@@ -413,6 +413,13 @@ public class Config extends HashMap<String, Object> {
     public static final Object NIMBUS_THRIFT_MAX_BUFFER_SIZE_SCHEMA = ConfigValidation.IntegerValidator;
 
     /**
+     * How long before a Thrift Client socket hangs before timeout
+     * and restart the socket.
+     */
+    public static final String STORM_THRIFT_SOCKET_TIMEOUT_MS = "storm.thrift.socket.timeout.ms";
+    public static final Object STORM_THRIFT_SOCKET_TIMEOUT_MS_SCHEMA = ConfigValidation.IntegerValidator;
+
+    /**
      * This parameter is used by the storm-deploy project to configure the
      * jvm options for the nimbus daemon.
      */

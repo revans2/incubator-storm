@@ -27,25 +27,27 @@ import java.util.Map;
  */
 public enum ThriftConnectionType {
     NIMBUS(Config.NIMBUS_THRIFT_TRANSPORT_PLUGIN, Config.NIMBUS_THRIFT_PORT, null,
-         Config.NIMBUS_THRIFT_THREADS, Config.NIMBUS_THRIFT_MAX_BUFFER_SIZE),
+         Config.NIMBUS_THRIFT_THREADS, Config.NIMBUS_THRIFT_MAX_BUFFER_SIZE, Config.STORM_THRIFT_SOCKET_TIMEOUT_MS),
     DRPC(Config.DRPC_THRIFT_TRANSPORT_PLUGIN, Config.DRPC_PORT, Config.DRPC_QUEUE_SIZE,
-         Config.DRPC_WORKER_THREADS, Config.DRPC_MAX_BUFFER_SIZE),
+         Config.DRPC_WORKER_THREADS, Config.DRPC_MAX_BUFFER_SIZE, Config.STORM_THRIFT_SOCKET_TIMEOUT_MS),
     DRPC_INVOCATIONS(Config.DRPC_INVOCATIONS_THRIFT_TRANSPORT_PLUGIN, Config.DRPC_INVOCATIONS_PORT, null,
-         Config.DRPC_INVOCATIONS_THREADS, Config.DRPC_MAX_BUFFER_SIZE);
+         Config.DRPC_INVOCATIONS_THREADS, Config.DRPC_MAX_BUFFER_SIZE, Config.STORM_THRIFT_SOCKET_TIMEOUT_MS);
 
     private final String _transConf;
     private final String _portConf;
     private final String _qConf;
     private final String _threadsConf;
     private final String _buffConf;
+    private final String _socketTimeoutConf;
 
     ThriftConnectionType(String transConf, String portConf, String qConf,
-                         String threadsConf, String buffConf) {
+                         String threadsConf, String buffConf, String socketTimeoutConf) {
         _transConf = transConf;
         _portConf = portConf;
         _qConf = qConf;
         _threadsConf = threadsConf;
         _buffConf = buffConf;
+        _socketTimeoutConf = socketTimeoutConf;
     }
 
     public String getTransportPlugin(Map conf) {
@@ -73,5 +75,9 @@ public enum ThriftConnectionType {
 
     public int getMaxBufferSize(Map conf) {
         return Utils.getInt(conf.get(_buffConf));
+    }
+
+    public int getSocketTimeOut(Map conf) {
+        return Utils.getInt(conf.get(_socketTimeoutConf));
     }
 }
