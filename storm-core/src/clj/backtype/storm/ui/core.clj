@@ -62,8 +62,8 @@
   [nimbus-sym & body]
   `(let [context# (ReqContext/context)
          user# (if (.principal context#) (.getName (.principal context#)))]
-    (thrift/with-nimbus-connection-as-user
-       [~nimbus-sym (*STORM-CONF* NIMBUS-HOST) (*STORM-CONF* NIMBUS-THRIFT-PORT) user#]
+    (thrift/with-nimbus-connection
+       [~nimbus-sym (*STORM-CONF* NIMBUS-HOST) (*STORM-CONF* NIMBUS-THRIFT-PORT)]
        ~@body)))
 
 (defn assert-authorized-user
