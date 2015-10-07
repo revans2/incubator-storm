@@ -62,7 +62,7 @@
           (is (.equals exp-name (.getName (.realPrincipal context))))
           (is (.equals do-as-user-name (.getName (.principal context)))))
        (finally
-          (.setSubject (ReqContext/context) nil))))))
+          (ReqContext/resetContext))))))
 
 (deftest test-populate-req-context-on-null-user
   (let [req (Mockito/mock HttpServletRequest)
