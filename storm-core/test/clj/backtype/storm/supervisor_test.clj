@@ -276,6 +276,7 @@
                                 (str "-Dstorm.id=" mock-storm-id)
                                 (str "-Dworker.id=" mock-worker-id)
                                 (str "-Dworker.port=" mock-port)
+                                "-Dstorm.log.dir=/logs"
                                 "-Dlog4j.configurationFile=/log4j2/worker.xml"
                                 "-DLog4jContextSelector=org.apache.logging.log4j.core.selector.BasicContextSelector"
                                 "backtype.storm.LogWriter"]
@@ -427,6 +428,7 @@
                                 " '-Dstorm.id=" mock-storm-id "'"
                                 " '-Dworker.id=" mock-worker-id "'"
                                 " '-Dworker.port=" mock-port "'"
+                                " '-Dstorm.log.dir=/logs'"
                                 " '-Dlog4j.configurationFile=/log4j2/worker.xml'"
                                 " '-DLog4jContextSelector=org.apache.logging.log4j.core.selector.BasicContextSelector'"
                                 " 'backtype.storm.LogWriter'"

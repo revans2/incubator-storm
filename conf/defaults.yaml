@@ -182,8 +182,6 @@ storm.messaging.netty.min_wait_ms: 100
 storm.messaging.netty.transfer.batch.size: 262144
 # Sets the backlog value to specify when the channel binds to a local address
 storm.messaging.netty.socket.backlog: 500
-# We check with this interval that whether the Netty channel is writable and try to write pending messages if it is.
-storm.messaging.netty.flush.check.interval.ms: 10
 
 storm.network.topography.plugin: backtype.storm.networktopography.DefaultRackDNSToSwitchMapping
 
@@ -229,6 +227,7 @@ topology.trident.batch.emit.interval.millis: 500
 topology.testing.always.try.serialize: false
 topology.classpath: null
 topology.environment: null
+topology.disruptor.wait.timeout.millis: 1000
 topology.bolts.outgoing.overflow.buffer.enable: false
 topology.disable.loadaware.messaging: false
 topology.logging.sensitivity: "S3"

@@ -20,7 +20,7 @@
     <parent>
         <artifactId>storm</artifactId>
         <groupId>org.apache.storm</groupId>
-        <version>0.10.0.y</version>
+        <version>0.10.1.y</version>
         <relativePath>..</relativePath>
     </parent>
     <groupId>org.apache.storm</groupId>
@@ -395,6 +395,51 @@
              </exclusion>
           </exclusions>
         </dependency>
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.zookeeper</groupId>
+            <artifactId>zookeeper</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>javax.servlet</groupId>
+            <artifactId>servlet-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>joda-time</groupId>
+            <artifactId>joda-time</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.jetty</groupId>
+            <artifactId>jetty-server</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.jetty</groupId>
+            <artifactId>jetty-util</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.dataformat</groupId>
+            <artifactId>jackson-dataformat-smile</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>commons-fileupload</groupId>
+            <artifactId>commons-fileupload</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>commons-codec</groupId>
+            <artifactId>commons-codec</artifactId>
+        </dependency>
     </dependencies>
     <build>
         <sourceDirectory>src/jvm</sourceDirectory>
@@ -548,7 +593,6 @@
                             <include>metrics-clojure:*</include>
                         </includes>
                     </artifactSet>
-
                     <relocations>
                         <relocation>
                             <pattern>cheshire</pattern>
@@ -608,7 +652,7 @@
                         </relocation>
                         <relocation>
                             <pattern>org.apache.thrift</pattern>
-                            <!-- This pattern is inconsistent for backwards compatability purposes. -->
+                            <!-- This pattern is inconsistent for backwards compatibility purposes. -->
                             <shadedPattern>org.apache.thrift7</shadedPattern>
                         </relocation>
                         <relocation>
@@ -760,6 +804,12 @@
                         <transformer implementation="org.apache.storm.maven.shade.clojure.ClojureTransformer" />
                     </transformers>
                     <filters>
+                        <!-- Several of these filters remove the .clj files from the shaded dependencies, even though only .clj files are in these jars.
+                             The reason for this is a bit complex, but intentional.  During the build process all of the dependency .clj files are
+                             compiled down into .class files, and included in storm-core.jar.  The regular shade transformer handles these in 
+                             the majority of cases correctly.  However, the Clojure-Transformer does not shade everything correctly all the
+                             time.  Instead of spending a lot of time to get the Clojure-Transformer to parse Clojure correctly we opted to remove
+                             the .clj files from the uber jar. -->
                         <filter><artifact>metrics-clojure:*</artifact><excludes><exclude>**/*.clj</exclude></excludes></filter>
                         <filter><artifact>org.clojure:core.incubator</artifact><excludes><exclude>**/*.clj</exclude></excludes></filter>
                         <filter><artifact>cheshire:cheshire</artifact><excludes><exclude>**/*.clj</exclude></excludes></filter>

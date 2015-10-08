@@ -1,3 +1,35 @@
+## 0.10.0
+ * STORM-1066: Specify current directory when supervisor launches a worker
+ * STORM-1012: Shaded everything that was not already shaded
+ * STORM-967: Shaded everything that was not already shaded
+ * STORM-922: Shaded everything that was not already shaded
+ * STORM-1042: Shaded everything that was not already shaded
+ * STORM-1026: Adding external classpath elements does not work
+ * STORM-1055: storm-jdbc README needs fixes and context
+ * STORM-1044: Setting dop to zero does not raise an error
+ * STORM-1050: Topologies with same name run on one cluster
+ * STORM-1005: Supervisor do not get running workers after restart.
+ * STORM-803: Cleanup travis-ci build and logs
+ * STORM-1027: Use overflow buffer for emitting metrics
+ * STORM-1024: log4j changes leaving ${sys:storm.log.dir} under STORM_HOME dir
+ * STORM-996: netty-unit-tests/test-batch demonstrates out-of-order delivery
+ * STORM-944: storm-hive pom.xml has a dependency conflict with calcite
+ * STORM-994: Connection leak between nimbus and supervisors
+ * STORM-1001: Undefined STORM_EXT_CLASSPATH adds '::' to classpath of workers
+ * STORM-977: Incorrect signal (-9) when as-user is true
+ * STORM-843: [storm-redis] Add Javadoc to storm-redis
+ * STORM-866: Use storm.log.dir instead of storm.home in log4j2 config
+ * STORM-810: PartitionManager in storm-kafka should commit latest offset before close
+ * STORM-928: Add sources->streams->fields map to Multi-Lang Handshake
+ * STORM-945: <DefaultRolloverStrategy> element is not a policy,and should not be putted in the <Policies> element.
+ * STORM-857: create logs metadata dir when running securely
+ * STORM-793: Made change to logviewer.clj in order to remove the invalid http 500 response
+ * STORM-139: hashCode does not work for byte[]
+ * STORM-860: UI: while topology is transitioned to killed, "Activate" button is enabled but not functioning
+ * STORM-966: ConfigValidation.DoubleValidator doesn't really validate whether the type of the object is a double
+ * STORM-742: Let ShellBolt treat all messages to update heartbeat
+ * STORM-992: A bug in the timer.clj might cause unexpected delay to schedule new event
+
 ## 0.10.0-beta1
  * STORM-873: Flux does not handle diamond topologies
  
@@ -52,7 +84,6 @@
  * STORM-735: [storm-redis] Upgrade Jedis to 2.7.0
  * STORM-730: remove extra curly brace
  * STORM-729: Include Executors (Window Hint) if the component is of Bolt type
- * STORM-728: Put emitted and transferred stats under correct columns
  * STORM-727: Storm tests should succeed even if a storm process is running locally.
  * STORM-724: Document RedisStoreBolt and RedisLookupBolt which is missed.
  * STORM-723: Remove RedisStateSetUpdater / RedisStateSetCountQuerier which didn't tested and have a bug
@@ -163,12 +194,21 @@
  * STORM-188: Allow user to specifiy full configuration path when running storm command
  * STORM-130: Supervisor getting killed due to java.io.FileNotFoundException: File '../stormconf.ser' does not exist.
 
+## 0.9.6
+ * STORM-1056: allow supervisor log filename to be configurable via ENV variable
+ * STORM-1051: Netty Client.java's flushMessages produces a NullPointerException
+ * STORM-763: nimbus reassigned worker A to another machine, but other worker's netty client can't connect to the new worker A
+ * STORM-935: Update Disruptor queue version to 2.10.4
+ * STORM-503: Short disruptor queue wait time leads to high CPU usage when idle
+ * STORM-728: Put emitted and transferred stats under correct columns
+ * STORM-643: KafkaUtils repeatedly fetches messages whose offset is out of range
+ * STORM-933: NullPointerException during KafkaSpout deactivation
 
 ## 0.9.5
  * STORM-790: Log "task is null" instead of let worker died when task is null in transfer-fn
  * STORM-796: Add support for "error" command in ShellSpout
  * STORM-745: fix storm.cmd to evaluate 'shift' correctly with 'storm jar'
-  * STORM-130: Supervisor getting killed due to java.io.FileNotFoundException: File '../stormconf.ser' does not exist.
+ * STORM-130: Supervisor getting killed due to java.io.FileNotFoundException: File '../stormconf.ser' does not exist.
 
 ## 0.9.4
  * STORM-559: ZkHosts in README should use 2181 as port.

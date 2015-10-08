@@ -29,8 +29,8 @@ cat <<XML
 </properties>
 <appenders>
     <RollingFile name="A1"
-                 fileName="\${sys:storm.home}/logs/\${sys:logfile.name}"
-                 filePattern="\${sys:storm.home}/logs/\${sys:logfile.name}.%i.gz">
+                 fileName="\${sys:storm.log.dir}/\${sys:logfile.name}"
+                 filePattern="\${sys:storm.log.dir}/\${sys:logfile.name}.%i.gz">
         <PatternLayout>
             <pattern>\${pattern}</pattern>
         </PatternLayout>
@@ -40,8 +40,8 @@ cat <<XML
         <DefaultRolloverStrategy max="9"/>
     </RollingFile>
     <RollingFile name="ACCESS"
-                 fileName="\${sys:storm.home}/logs/access.log"
-                 filePattern="\${sys:storm.home}/logs/access.log.%i.gz">
+                 fileName="\${sys:storm.log.dir}/access.log"
+                 filePattern="\${sys:storm.log.dir}/access.log.%i.gz">
         <PatternLayout>
             <pattern>\${pattern}</pattern>
         </PatternLayout>
@@ -51,8 +51,8 @@ cat <<XML
         <DefaultRolloverStrategy max="9"/>
     </RollingFile>
     <RollingFile name="METRICS"
-                 fileName="\${sys:storm.home}/logs/metrics.log"
-                 filePattern="\${sys:storm.home}/logs/metrics.log.%i.gz">
+                 fileName="\${sys:storm.log.dir}/metrics.log"
+                 filePattern="\${sys:storm.log.dir}/metrics.log.%i.gz">
         <PatternLayout>
             <pattern>\${patternMetrics}</pattern>
         </PatternLayout>
