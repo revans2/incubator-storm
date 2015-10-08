@@ -1,0 +1,107 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package storm.starter;
+
+import backtype.storm.Config;
+import backtype.storm.LocalCluster;
+import backtype.storm.StormSubmitter;
+import backtype.storm.task.OutputCollector;
+import backtype.storm.task.TopologyContext;
+import backtype.storm.testing.TestWordSpout;
+import backtype.storm.topology.OutputFieldsDeclarer;
+import backtype.storm.topology.TopologyBuilder;
+import backtype.storm.topology.base.BaseRichBolt;
+import backtype.storm.tuple.Fields;
+import backtype.storm.tuple.Tuple;
+import backtype.storm.tuple.Values;
+import backtype.storm.utils.Utils;
+
+import java.util.Map;
+
+/**
+ * This is a basic example of a Storm topology using scheduling constraints.
+ * NOTE: recommend running this example with at least 4 nodes
+ */
+public class TopologyWithConstraintsExample {
+
+    public static class ExclamationBolt extends BaseRichBolt {
+        OutputCollector _collector;
+
+        @Override
+        public void prepare(Map conf, TopologyContext context, OutputCollector collector) {
+            _collector = collector;
+        }
+
+        @Override
+        public void execute(Tuple tuple) {
+            _collector.emit(tuple, new Values(tuple.getString(0) + "!!!"));
+            _collector.ack(tuple);
+        }
+
+        @Override
+        public void declareOutputFields(OutputFieldsDeclarer declarer) {
+            declarer.declare(new Fields("word"));
+        }
+    }
+
+    public static void main(String[] args) throws Exception {
+        TopologyBuilder builder = new TopologyBuilder();
+
+        builder.setSpout("testSpout", new TestWordSpout(), 3);
+        builder.setBolt("testBolt1", new ExclamationBolt(), 8).shuffleGrouping("testSpout");
+        builder.setBolt("testBolt2", new ExclamationBolt(), 8).shuffleGrouping("testBolt1");
+        builder.setBolt("testBolt3", new ExclamationBolt(), 8).shuffleGrouping("testBolt2");
+
+        Config conf = new Config();
+        conf.setDebug(true);
+
+        /**
+         * declares if a component needs to be spread among nodes
+         * In this example, the storm cluster must have at least 3 nodes since the "word" component will have 3 executors
+         */
+        conf.put(Config.TOPOLOGY_SPREAD_COMPONENTS, "testSpout");
+
+        /**
+         * Sets constraints for this topology
+         * Takes Strings as input of the names of components in which executors of those components cannot be on the same worker
+         */
+        //This means executors from testSpout cannot be on the same worker as executors form testBolt1
+        conf.setTopologyComponentWorkerConstraints("testSpout", "testBolt1");
+        //This means executors from testBolt1 cannot be on the same worker as executors form testBolt2
+        conf.setTopologyComponentWorkerConstraints("testBolt1", "testBolt2");
+
+        /**
+         * Set the maximum depth the constraint solver will search in the solution space before giving up
+         * If this value is not set in the topology definition, a default value will be used
+         */
+        conf.put(Config.TOPOLOGY_CONSTRAINTS_MAX_DEPTH_TRAVERSAL, 1000000);
+
+        if (args != null && args.length > 0) {
+            conf.setNumWorkers(16);
+
+            StormSubmitter.submitTopologyWithProgressBar(args[0], conf, builder.createTopology());
+        } else {
+
+            LocalCluster cluster = new LocalCluster();
+            cluster.submitTopology("test", conf, builder.createTopology());
+            Utils.sleep(10000);
+            cluster.killTopology("test");
+            cluster.shutdown();
+        }
+    }
+}

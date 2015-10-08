@@ -17,6 +17,7 @@
  */
 package backtype.storm;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 
 import java.util.Map;
@@ -441,6 +442,37 @@ public class ConfigValidation {
         }
     };
 
+    /**
+     * Validates a list of a list of Strings
+     */
+    public static Object ListOfListOfStringValidator = new FieldValidator() {
+
+        @Override
+        public void validateField(String name, Object o) throws IllegalArgumentException {
+            if(o == null) {
+                return;
+            }
+            if(o instanceof List) {
+                for(Object entry1 : (List) o) {
+                    if(entry1 instanceof List) {
+                        for(Object entry2 : (List) entry1) {
+                            if(!(entry2 instanceof String)) {
+                                throw new IllegalArgumentException(
+                                        "Field " + name + " must be an Iterable containing only List of List of Strings");
+                            }
+                        }
+                    } else {
+                        throw new IllegalArgumentException(
+                                "Field " + name + " must be an Iterable containing only List of List of Strings");
+                    }
+                }
+            } else {
+                throw new IllegalArgumentException(
+                        "Field " + name + " must be an Iterable containing only List of List of Strings");
+            }
+        }
+    };
+
   /**
    * Validates a Logging Sensitivity
    */
@@ -461,5 +493,4 @@ public class ConfigValidation {
               + Arrays.asList(LoggingSensitivity.values()) + " but it is: " + o.toString());
       }
   };
-
 }

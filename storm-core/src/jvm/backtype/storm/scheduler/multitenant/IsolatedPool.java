@@ -24,10 +24,13 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import backtype.storm.scheduler.ExecutorDetails;
+import backtype.storm.utils.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -116,29 +119,62 @@ public class IsolatedPool extends NodePool {
         if (slotsToUse <= 0) {
           continue;
         }
-        
-        RoundRobinSlotScheduler slotSched = 
-          new RoundRobinSlotScheduler(td, slotsToUse, _cluster);
-        
-        LinkedList<Node> sortedNodes = new LinkedList<Node>(allNodes);
-        Collections.sort(sortedNodes, Node.FREE_NODE_COMPARATOR_DEC);
-
-        LOG.debug("Nodes sorted by free space {}", sortedNodes);
-        while (true) {
-          Node n = sortedNodes.remove();
-          if (!slotSched.assignSlotTo(n)) {
-            break;
+        if (td.getConf().get(Config.TOPOLOGY_CONSTRAINTS) != null) {
+          LOG.debug("/* Using Constraint Scheduler */");
+          ConstraintSolverForMultitenant csm = new ConstraintSolverForMultitenant(td, slotsToUse, allNodes);
+          Map<ExecutorDetails, WorkerSlot> execToWorkerScheduling = csm.findScheduling();
+          if (execToWorkerScheduling != null) {
+            Map<WorkerSlot, List<ExecutorDetails>> workerToExecsScheduling = new HashMap<WorkerSlot, List<ExecutorDetails>>();
+            for (Map.Entry<ExecutorDetails, WorkerSlot> entry : execToWorkerScheduling.entrySet()) {
+              WorkerSlot slot = entry.getValue();
+              ExecutorDetails exec = entry.getKey();
+              if (!workerToExecsScheduling.containsKey(slot)) {
+                workerToExecsScheduling.put(slot, new LinkedList<ExecutorDetails>());
+              }
+              workerToExecsScheduling.get(slot).add(exec);
+            }
+            for (Entry<WorkerSlot, List<ExecutorDetails>> entry : workerToExecsScheduling.entrySet()) {
+              WorkerSlot slot = entry.getKey();
+              List<ExecutorDetails> execs = entry.getValue();
+              _nodeIdToNode.get(slot.getNodeId()).assign(td.getId(), execs, _cluster);
+            }
+          } else {
+            if(csm.getTraversalDepth() >= Utils.getInt(td.getConf().get(Config.TOPOLOGY_CONSTRAINTS_MAX_DEPTH_TRAVERSAL))) {
+              LOG.debug("No valid scheduling found within MAX_DEPTH_TRAVERSE: {}", Utils.getInt(td.getConf().get(Config.TOPOLOGY_CONSTRAINTS_MAX_DEPTH_TRAVERSAL)));
+              _cluster.setStatus(topId, "No Scheduling found that satisfy all constraints within the max traversal depth");
+            } else if (csm.getRecursionDepth() >= ConstraintSolverForMultitenant.MAX_RECURSIVE_DEPTH) {
+              LOG.debug("No valid Scheduling found that satisfy all constraints");
+              _cluster.setStatus(topId, "No Scheduling found that satisfy all constraints with in the max recursion depth");
+            } else {
+              LOG.debug("No Scheduling Exists that satisfy all constraints");
+              _cluster.setStatus(topId, "No Scheduling exists that satisfy all constraints");
+            }
+            continue;
           }
-          int freeSlots = n.totalSlotsFree();
-          for (int i = 0; i < sortedNodes.size(); i++) {
-            if (freeSlots >= sortedNodes.get(i).totalSlotsFree()) {
-              sortedNodes.add(i, n);
-              n = null;
+        } else {
+          RoundRobinSlotScheduler slotSched =
+                  new RoundRobinSlotScheduler(td, slotsToUse, _cluster);
+
+          LinkedList<Node> sortedNodes = new LinkedList<Node>(allNodes);
+          Collections.sort(sortedNodes, Node.FREE_NODE_COMPARATOR_DEC);
+
+          LOG.debug("Nodes sorted by free space {}", sortedNodes);
+          while (true) {
+            Node n = sortedNodes.remove();
+            if (!slotSched.assignSlotTo(n)) {
               break;
             }
-          }
-          if (n != null) {
-            sortedNodes.add(n);
+            int freeSlots = n.totalSlotsFree();
+            for (int i = 0; i < sortedNodes.size(); i++) {
+              if (freeSlots >= sortedNodes.get(i).totalSlotsFree()) {
+                sortedNodes.add(i, n);
+                n = null;
+                break;
+              }
+            }
+            if (n != null) {
+              sortedNodes.add(n);
+            }
           }
         }
       }
@@ -357,9 +393,9 @@ public class IsolatedPool extends NodePool {
    * for debugging
    */
   public void printInfo() {
-      LOG.info("_isolated: {}", this._isolated);
-      LOG.info("_topologyIdToNodes: {}", this._topologyIdToNodes);
-      LOG.info("_tds: {}", this._tds);
-      LOG.info("_usedNodes: {}", this._usedNodes);
+      LOG.debug("_isolated: {}", this._isolated);
+      LOG.debug("_topologyIdToNodes: {}", this._topologyIdToNodes);
+      LOG.debug("_tds: {}", this._tds);
+      LOG.debug("_usedNodes: {}", this._usedNodes);
   }
 }
