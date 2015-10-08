@@ -82,7 +82,7 @@ def toYml(data, indent):
             v = data[k]
             ret += "    " * indent + k + ": "+ toYml(v, indent+1)+"\n"
     else:
-        raise "Don't know how to conver %s to YAML %s"%(data, dt)
+        raise "Don't know how to convert %s to YAML type is %s"%(data, dt)
     return ret
 
 def parseValue(value):
