@@ -522,7 +522,8 @@ enum ProfileAction {
   JPROFILE_START,
   JPROFILE_DUMP,
   JMAP_DUMP,
-  JSTACK_DUMP
+  JSTACK_DUMP,
+  JVM_RESTART
 }
 
 struct ProfileRequest {

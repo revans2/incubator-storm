@@ -413,6 +413,13 @@ public class Config extends HashMap<String, Object> {
     public static final Object NIMBUS_THRIFT_MAX_BUFFER_SIZE_SCHEMA = ConfigValidation.IntegerValidator;
 
     /**
+     * How long before a Thrift Client socket hangs before timeout
+     * and restart the socket.
+     */
+    public static final String STORM_THRIFT_SOCKET_TIMEOUT_MS = "storm.thrift.socket.timeout.ms";
+    public static final Object STORM_THRIFT_SOCKET_TIMEOUT_MS_SCHEMA = ConfigValidation.IntegerValidator;
+
+    /**
      * This parameter is used by the storm-deploy project to configure the
      * jvm options for the nimbus daemon.
      */
@@ -1110,16 +1117,16 @@ public class Config extends HashMap<String, Object> {
      *
      */
     public static final String SUPERVISOR_MEMORY_CAPACITY_MB = "supervisor.memory.capacity.mb";
-    public static final Object SUPERVISOR_MEMORY_CAPACITY_MB_SCHEMA = ConfigValidation.NonNegativeNumberValidator;
+    public static final Object SUPERVISOR_MEMORY_CAPACITY_MB_SCHEMA = ConfigValidation.PositiveNumberValidator;
     
     /**
      * The total amount of CPU resources a supervisor is allowed to give to its workers.
      * By convention 1 cpu core should be about 100, but this can be adjusted if needed
      * using 100 makes it simple to set the desired value to the capacity measurement
-     * for single threaded bolts
+     * for single threaded bolts.
      */
     public static final String SUPERVISOR_CPU_CAPACITY = "supervisor.cpu.capacity";
-    public static final Object SUPERVISOR_CPU_CAPACITY_SCHEMA = ConfigValidation.NonNegativeNumberValidator;
+    public static final Object SUPERVISOR_CPU_CAPACITY_SCHEMA = ConfigValidation.PositiveNumberValidator;
 
     /**
      * The jvm opts provided to workers launched by this supervisor. All "%ID%" substrings are replaced
@@ -1290,6 +1297,12 @@ public class Config extends HashMap<String, Object> {
      */
     public static final String TOPOLOGY_COMPONENT_CPU_PCORE_PERCENT = "topology.component.cpu.pcore.percent";
     public static final Object TOPOLOGY_COMPONENT_CPU_PCORE_PERCENT_SCHEMA = ConfigValidation.NonNegativeNumberValidator;
+
+    /**
+     * A per topology config that specifies the maximum amount of memory a worker can use for that specific topology
+     */
+    public static final String TOPOLOGY_WORKER_MAX_HEAP_SIZE_MB = "topology.worker.max.heap.size.mb";
+    public static final Object TOPOLOGY_WORKER_MAX_HEAP_SIZE_MB_SCHEMA = ConfigValidation.PositiveNumberValidator;
 
     /**
      * The scheduler to use when scheduling a topology
@@ -1888,6 +1901,16 @@ public class Config extends HashMap<String, Object> {
     public void setTopologyStrategy(Class<? extends IStrategy> clazz) {
         if(clazz != null) {
             this.put(Config.TOPOLOGY_SCHEDULER_STRATEGY, clazz.getName());
+        }
+    }
+
+    /**
+     * set the max heap size allow per worker for this topology
+     * @param size
+     */
+    public void setTopologyWorkerMaxHeapSize(Number size) {
+        if(size != null) {
+            this.put(Config.TOPOLOGY_WORKER_MAX_HEAP_SIZE_MB, size);
         }
     }
 }

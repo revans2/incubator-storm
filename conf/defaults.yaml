@@ -37,6 +37,7 @@ storm.zookeeper.auth.password: null
 storm.cluster.mode: "distributed" # can be distributed or local
 storm.local.mode.zmq: false
 storm.thrift.transport: "backtype.storm.security.auth.SimpleTransportPlugin"
+storm.thrift.socket.timeout.ms: 600000
 storm.principal.tolocal: "backtype.storm.security.auth.DefaultPrincipalToLocal"
 storm.group.mapping.service: "backtype.storm.security.auth.ShellBasedGroupsMapping"
 storm.group.mapping.service.params: null
@@ -75,6 +76,7 @@ nimbus.credential.renewers.freq.secs: 600
 nimbus.blobstore.class: "backtype.storm.blobstore.LocalFsBlobStore"
 nimbus.blobstore.expiration.secs: 600
 blobstore.replication.factor: 3
+nimbus.impersonation.authorizer: "backtype.storm.security.auth.authorizer.ImpersonationAuthorizer"
 
 ### ui.* configs are for the master
 ui.host: 0.0.0.0
@@ -236,6 +238,7 @@ topology.logging.sensitivity: "S3"
 topology.component.resources.onheap.memory.mb: 128.0
 topology.component.resources.offheap.memory.mb: 0.0
 topology.component.cpu.pcore.percent: 10.0
+topology.worker.max.heap.size.mb: 768.0
 
 client.blobstore.class: "backtype.storm.blobstore.NimbusBlobStore"
 

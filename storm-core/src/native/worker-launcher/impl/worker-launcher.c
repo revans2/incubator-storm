@@ -487,8 +487,6 @@ int setup_stormdist_dir(const char* local_dir, int for_blob_permission) {
         fprintf(LOGFILE, "NOOP: %s\n", entry->fts_path); break;
       case FTS_D:         // A directory in pre-order
       case FTS_F:         // A regular file
-        //TODO it would be good to validate that the file is owned by the correct user first.
-        fprintf(LOGFILE, "visiting: %s, for_blob_flag=%d\n", entry->fts_path,for_blob_permission);
         if (setup_stormdist(entry, euser, for_blob_permission == 0) != 0) {
             exit_code = -1;
         }

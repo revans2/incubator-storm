@@ -775,8 +775,8 @@
                        TOPOLOGY-ISOLATED-MACHINES 2
                        TOPOLOGY-SUBMITTER-USER "userA"}
                       (StormTopology.)
-                      1
-                      (mk-ed-map [["spout11" 1 2]]))
+                      2
+                      (mk-ed-map [["spout11" 1 2] ["bolt11" 3 4]]))
           topology3 (TopologyDetails. "topology3"
                       {TOPOLOGY-NAME "topology-name-3"
                        TOPOLOGY-ISOLATED-MACHINES 1

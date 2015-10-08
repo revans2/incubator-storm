@@ -80,6 +80,8 @@
 (defmeter num-deleteBlob-calls) 
 (defmeter num-listBlobs-calls) 
 (defmeter num-getTopologyHistory-calls) 
+(defmeter num-setWorkerProfiler-calls)
+(defmeter num-getComponentPendingProfileActions-calls)
 
 (defn mk-file-cache-map
   "Constructs a TimeCacheMap instance with a nimbus file timeout whose expiration
@@ -1401,6 +1403,7 @@
 
       (^void setWorkerProfiler
         [this ^String id ^ProfileRequest profileRequest]
+        (mark! num-setWorkerProfiler-calls)
         (let [topology-conf (try-read-storm-conf conf id blob-store)
               storm-name (topology-conf TOPOLOGY-NAME)
               _ (check-authorization! nimbus storm-name topology-conf "setWorkerProfiler")
@@ -1409,6 +1412,7 @@
 
       (^List getComponentPendingProfileActions
         [this ^String id ^String component_id ^ProfileAction action]
+        (mark! num-getComponentPendingProfileActions-calls)
         (let [info (get-common-topo-info id "getComponentPendingProfileActions")
               storm-cluster-state (:storm-cluster-state info)
               task->component (:task->component info)

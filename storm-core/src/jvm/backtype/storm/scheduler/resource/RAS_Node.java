@@ -48,51 +48,47 @@ public class RAS_Node{
     private Map<String, Set<WorkerSlot>> _topIdToUsedSlots = new HashMap<String, Set<WorkerSlot>>();
     private Set<WorkerSlot> _freeSlots = new HashSet<WorkerSlot>();
     private final String _nodeId;
+    private String _hostname;
     private boolean _isAlive;
-    public SupervisorDetails sup;
-    public String supervisor_id;
-    private Double availMemory;
-    private Double availCPU;
-    public String hostname;
-    public List<WorkerSlot> slots;
-    public List<ExecutorDetails> execs;
-    public Map<WorkerSlot, List<ExecutorDetails>> slot_to_exec;
+    private SupervisorDetails _sup;
+    private Double _availMemory;
+    private Double _availCPU;
+    private List<WorkerSlot> _slots;
+    private List<ExecutorDetails> _execs;
+    private Map<WorkerSlot, List<ExecutorDetails>> _slotToExecs;
 
-    public RAS_Node(String nodeId, Set<Integer> allPorts, boolean isAlive) {
+    public RAS_Node(String nodeId, Set<Integer> allPorts, boolean isAlive,
+                SupervisorDetails sup) {
+        _slots = new ArrayList<WorkerSlot>();
+        _execs = new ArrayList<ExecutorDetails>();
+        _slotToExecs = new HashMap<WorkerSlot, List<ExecutorDetails>>();
         _nodeId = nodeId;
         _isAlive = isAlive;
         if (_isAlive && allPorts != null) {
             for (int port : allPorts) {
                 _freeSlots.add(new WorkerSlot(_nodeId, port));
             }
-        }
-    }
-
-    public RAS_Node(String nodeId, Set<Integer> allPorts, boolean isAlive,
-                SupervisorDetails sup) {
-        this(nodeId, allPorts, isAlive);
-        this.slots = new ArrayList<WorkerSlot>();
-        this.execs = new ArrayList<ExecutorDetails>();
-        slot_to_exec = new HashMap<WorkerSlot, List<ExecutorDetails>>();
-
-        if (isAlive) {
-            this.sup = sup;
-            this.supervisor_id = sup.getId();
-            this.availMemory = this.getTotalMemoryResources();
-            this.availCPU = this.getTotalCpuResources();
-            this.hostname = this.sup.getHost();
-
-            this.slots.addAll(this._freeSlots);
-
-            for (WorkerSlot ws : this.slots) {
-                slot_to_exec.put(ws, new ArrayList<ExecutorDetails>());
+            _sup = sup;
+            _hostname = sup.getHost();
+            _availMemory = this.getTotalMemoryResources();
+            _availCPU = this.getTotalCpuResources();
+            _slots.addAll(_freeSlots);
+            for (WorkerSlot ws : _slots) {
+                _slotToExecs.put(ws, new ArrayList<ExecutorDetails>());
             }
         }
-
     }
 
     public String getId() {
         return _nodeId;
+    }
+    
+    public String getHostname() {
+        return _hostname;
+    }
+
+    public Collection<WorkerSlot> getFreeSlots() {
+        return _freeSlots;
     }
 
     public boolean isAlive() {
@@ -158,10 +154,10 @@ public class RAS_Node{
             }
         }
         _freeSlots.add(ws);
-        slot_to_exec.put(ws, new ArrayList<ExecutorDetails>());
+        _slotToExecs.put(ws, new ArrayList<ExecutorDetails>());
     }
 
-    boolean assignInternal(WorkerSlot ws, String topId, boolean dontThrow) {
+    private boolean assignInternal(WorkerSlot ws, String topId, boolean dontThrow) {
         validateSlot(ws);
         if (!_freeSlots.remove(ws)) {
             if (dontThrow) {
@@ -262,6 +258,29 @@ public class RAS_Node{
         slot.allocateResource(onHeapMem, offHeapMem, cpu);
     }
 
+    public void assign(WorkerSlot target, TopologyDetails td, Collection<ExecutorDetails> executors,
+            Cluster cluster)  {
+        if (!_isAlive) {
+            throw new IllegalStateException("Trying to adding to a dead node " + _nodeId);
+        }
+        if (_freeSlots.isEmpty()) {
+            throw new IllegalStateException("Trying to assign to a full node " + _nodeId);
+        }
+        if (executors.size() == 0) {
+            LOG.warn("Trying to assign nothing from " + td.getId() + " to " + _nodeId + " (Ignored)");
+        } 
+
+        if(target == null) {
+            target = _freeSlots.iterator().next();
+        }
+        if(!_freeSlots.contains(target)) {
+            throw new IllegalStateException("Trying to assign already used slot" + target.getPort() + "on node " + _nodeId);
+        } else {
+            allocateResourceToSlot(td, executors, target);
+            cluster.assign(target, td.getId(), executors);
+            assignInternal(target, td.getId(), false);
+        }
+    }
     /**
      * Assign a free slot on the node to the following topology and executors.
      * This will update the cluster too.
@@ -271,20 +290,7 @@ public class RAS_Node{
      */
     public void assign(TopologyDetails td, Collection<ExecutorDetails> executors,
                        Cluster cluster) {
-        if (!_isAlive) {
-            throw new IllegalStateException("Trying to adding to a dead node " + _nodeId);
-        }
-        if (_freeSlots.isEmpty()) {
-            throw new IllegalStateException("Trying to assign to a full node " + _nodeId);
-        }
-        if (executors.size() == 0) {
-            LOG.warn("Trying to assign nothing from " + td.getId() + " to " + _nodeId + " (Ignored)");
-        } else {
-            WorkerSlot slot = _freeSlots.iterator().next();
-            allocateResourceToSlot(td, executors, slot);
-            cluster.assign(slot, td.getId(), executors);
-            assignInternal(slot, td.getId(), false);
-        }
+       this.assign(null, td, executors, cluster);
     }
 
     @Override
@@ -302,7 +308,7 @@ public class RAS_Node{
 
     @Override
     public String toString() {
-        return "{Node: " + this.sup.getHost() + ", AvailMem: " + this.availMemory.toString() + ", AvailCPU: " + this.availCPU.toString() + "}";
+        return "{Node: " + _sup.getHost() + ", AvailMem: " + _availMemory.toString() + ", AvailCPU: " + _availCPU.toString() + "}";
     }
 
     public static int countSlotsUsed(String topId, Collection<RAS_Node> nodes) {
@@ -384,9 +390,9 @@ public class RAS_Node{
                 String node_id = ws.getNodeId();
                 if (nodeIdToNode.containsKey(node_id)) {
                     RAS_Node node = nodeIdToNode.get(node_id);
-                    if (node.slot_to_exec.containsKey(ws)) {
-                        node.slot_to_exec.get(ws).add(ed);
-                        node.execs.add(ed);
+                    if (node._slotToExecs.containsKey(ws)) {
+                        node._slotToExecs.get(ws).add(ed);
+                        node._execs.add(ed);
                     } else {
                         LOG.info(
                                 "ERROR: should have node {} should have worker: {}",
@@ -478,7 +484,7 @@ public class RAS_Node{
      * @param amount the amount to set as available memory
      */
     public void setAvailableMemory(Double amount) {
-        this.availMemory = amount;
+        _availMemory = amount;
     }
 
     /**
@@ -486,10 +492,10 @@ public class RAS_Node{
      * @return the available memory for this node
      */
     public Double getAvailableMemoryResources() {
-        if (this.availMemory == null) {
+        if (_availMemory == null) {
             return 0.0;
         }
-        return this.availMemory;
+        return _availMemory;
     }
 
     /**
@@ -497,8 +503,8 @@ public class RAS_Node{
      * @return the total memory for this node
      */
     public Double getTotalMemoryResources() {
-        if (sup != null && this.sup.getTotalMemory() != null) {
-            return this.sup.getTotalMemory();
+        if (_sup != null && _sup.getTotalMemory() != null) {
+            return _sup.getTotalMemory();
         } else {
             return 0.0;
         }
@@ -510,12 +516,12 @@ public class RAS_Node{
      * @return the current available memory for this node after consumption
      */
     public Double consumeMemory(Double amount) {
-        if (amount > this.availMemory) {
-            LOG.error("Attempting to consume more memory than available! Needed: {}, we only have: {}", amount, this.availMemory);
+        if (amount > _availMemory) {
+            LOG.error("Attempting to consume more memory than available! Needed: {}, we only have: {}", amount, _availMemory);
             return null;
         }
-        this.availMemory = this.availMemory - amount;
-        return this.availMemory;
+        _availMemory = _availMemory - amount;
+        return _availMemory;
     }
 
     /**
@@ -523,10 +529,10 @@ public class RAS_Node{
      * @return the available cpu for this node
      */
     public Double getAvailableCpuResources() {
-        if (this.availCPU == null) {
+        if (_availCPU == null) {
             return 0.0;
         }
-        return this.availCPU;
+        return _availCPU;
     }
 
     /**
@@ -534,8 +540,8 @@ public class RAS_Node{
      * @return the total cpu for this node
      */
     public Double getTotalCpuResources() {
-        if (sup != null && this.sup.getTotalCPU() != null) {
-            return this.sup.getTotalCPU();
+        if (_sup != null && _sup.getTotalCPU() != null) {
+            return _sup.getTotalCPU();
         } else {
             return 0.0;
         }
@@ -547,12 +553,12 @@ public class RAS_Node{
      * @return the current available cpu for this node after consumption
      */
     public Double consumeCPU(Double amount) {
-        if (amount > this.availCPU) {
-            LOG.error("Attempting to consume more CPU than available! Needed: {}, we only have: {}", amount, this.availCPU);
+        if (amount > _availCPU) {
+            LOG.error("Attempting to consume more CPU than available! Needed: {}, we only have: {}", amount, _availCPU);
             return null;
         }
-        this.availCPU = this.availCPU - amount;
-        return this.availCPU;
+        _availCPU = _availCPU - amount;
+        return _availCPU;
     }
 
     /**

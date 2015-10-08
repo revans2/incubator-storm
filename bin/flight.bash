@@ -70,6 +70,7 @@ function usage_and_quit {
     echo "       $0 pid stop target_dir"
     echo "       $0 pid jstack target_dir"
     echo "       $0 pid jmap target_dir"
+    echo "       $0 pid kill"
     exit -1
 }
 
@@ -96,7 +97,7 @@ else
     usage_and_quit
 fi
 
-if [ "$CMD" != "start" ]; then
+if [ "$CMD" != "start" ] && [ "$CMD" != "kill" ]; then
     if [[ $3 ]] && [[ -d $3 ]]
     then
         TARGETDIR="$3"
@@ -110,6 +111,9 @@ fi
 NOW=`date +'%Y%m%d-%H%M%S'`
 if [ "$CMD" = "" ]; then
     usage_and_quit
+elif [ "$CMD" = "kill" ]; then
+    echo "Killing process with pid: $PID"
+    kill -9 ${PID}
 elif [ "$CMD" = "start" ]; then
     if [[ $3 ]]
     then

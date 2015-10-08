@@ -32,9 +32,6 @@ import backtype.storm.generated.StormTopology;
 import backtype.storm.scheduler.resource.RAS_Component;
 import backtype.storm.scheduler.resource.strategies.IStrategy;
 import backtype.storm.utils.Utils;
-import org.json.simple.JSONObject;
-import org.json.simple.parser.JSONParser;
-import org.json.simple.parser.ParseException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -48,6 +45,8 @@ public class TopologyDetails {
     private Map<ExecutorDetails, Map<String, Double>> _resourceList;
     //Scheduler this topology should be scheduled with
     private String scheduler;
+    //Max heap size for a worker used by topology
+    private Double topologyWorkerMaxHeapSize;
 
     private static final Logger LOG = LoggerFactory.getLogger(TopologyDetails.class);
 
@@ -65,7 +64,7 @@ public class TopologyDetails {
             this.executorToComponent.putAll(executorToComponents);
         }
         this.initResourceList();
-        this.initScheduler();
+        this.initConfigs();
     }
 
     public String getId() {
@@ -110,9 +109,9 @@ public class TopologyDetails {
         if (this.topology.get_bolts() != null) {
             for (Map.Entry<String, Bolt> bolt : this.topology.get_bolts().entrySet()) {
                 //the json_conf is populated by TopologyBuilder (e.g. boltDeclarer.setMemoryLoad)
-                Map<String, Double> topology_resources = this.parseResources(bolt
+                Map<String, Double> topology_resources = backtype.storm.scheduler.resource.Utils.parseResources(bolt
                         .getValue().get_common().get_json_conf());
-                this.checkIntialization(topology_resources, bolt.getValue().toString());
+                backtype.storm.scheduler.resource.Utils.checkIntialization(topology_resources, bolt.getValue().toString(), this.topologyConf);
                 for (Map.Entry<ExecutorDetails, String> anExecutorToComponent : executorToComponent.entrySet()) {
                     if (bolt.getKey().equals(anExecutorToComponent.getValue())) {
                         _resourceList.put(anExecutorToComponent.getKey(), topology_resources);
@@ -125,9 +124,9 @@ public class TopologyDetails {
         // Extract spout memory info
         if (this.topology.get_spouts() != null) {
             for (Map.Entry<String, SpoutSpec> spout : this.topology.get_spouts().entrySet()) {
-                Map<String, Double> topology_resources = this.parseResources(spout
+                Map<String, Double> topology_resources = backtype.storm.scheduler.resource.Utils.parseResources(spout
                         .getValue().get_common().get_json_conf());
-                this.checkIntialization(topology_resources, spout.getValue().toString());
+                backtype.storm.scheduler.resource.Utils.checkIntialization(topology_resources, spout.getValue().toString(), this.topologyConf);
                 for (Map.Entry<ExecutorDetails, String> anExecutorToComponent : executorToComponent.entrySet()) {
                     if (spout.getKey().equals(anExecutorToComponent.getValue())) {
                         _resourceList.put(anExecutorToComponent.getKey(), topology_resources);
@@ -149,94 +148,6 @@ public class TopologyDetails {
                         this.topologyConf.get(Config.TOPOLOGY_COMPONENT_CPU_PCORE_PERCENT));
                 this.addDefaultResforExec(exec);
             } 
-        }
-    }
-
-
-    /* Return type is a map of:
-     *  Map<String, Map<String, Double>>
-     *  First String can be: RAS_Globals.TYPE_CPU   |  RAS_Globals.TYPE_MEMORY
-     *  If First String == RAS_Globals.TYPE_CPU
-     *      Second string = RAS_Globals.TYPE_CPU_TOTAL, a single "Double" value parsed from JSON from Config.TOPOLOGY_RESOURCES_CPU
-     *      Therefore the inner map in this case will have only one member
-     *  If First String == RAS_Globals.TYPE_MEMORY
-     *      Map<String, Double> parsed from JSON from Config.TOPOLOGY_RESOURCES_MEMORY_MB
-     *      The inner map can have more than one member. Possibly on-heap and off-heap, etc.
-     */
-    private Map<String, Double> parseResources(String input) {
-        Map<String, Double> topology_resources = new HashMap<String, Double>();
-        JSONParser parser = new JSONParser();
-        LOG.debug("Input to parseResources {}", input);
-        try {
-            if (input != null) {
-                Object obj = parser.parse(input);
-                JSONObject jsonObject = (JSONObject) obj;
-                if (jsonObject.containsKey(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB)) {
-                    Double topoMemOnHeap = Utils.getDouble(jsonObject.get(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB), null);
-                    topology_resources.put(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB, topoMemOnHeap);
-                }
-                if (jsonObject.containsKey(Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB)) {
-                    Double topoMemOffHeap = Utils.getDouble(jsonObject.get(Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB), null);
-                    topology_resources.put(Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB, topoMemOffHeap);
-                }
-                if (jsonObject.containsKey(Config.TOPOLOGY_COMPONENT_CPU_PCORE_PERCENT)) {
-                    Double topoCPU = Utils.getDouble(jsonObject.get(Config.TOPOLOGY_COMPONENT_CPU_PCORE_PERCENT), null);
-                    topology_resources.put(Config.TOPOLOGY_COMPONENT_CPU_PCORE_PERCENT, topoCPU);
-                }
-                LOG.debug("Topology Resources {}", topology_resources);
-            }
-        } catch (ParseException e) {
-            LOG.error("Failed to parse component resources is:" + e.toString(), e);
-            return null;
-        }
-        return topology_resources;
-    }
-
-    private void checkIntialization(Map<String, Double> topology_resources, String Com) {
-        this.checkInitMem(topology_resources, Com);
-        this.checkInitCPU(topology_resources, Com);
-    }
-
-    private void debugMessage(String memoryType, String Com)
-    {
-        if (memoryType.equals("ONHEAP"))
-        {
-            LOG.debug(
-                    "Unable to extract resource requirement for Component {} \n Resource : Memory Type : On Heap set to default {}",
-                    Com, topologyConf.get(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB));
-        }
-        else if (memoryType.equals("OFFHEAP"))
-        {
-            LOG.debug(
-                    "Unable to extract resource requirement for Component {} \n Resource : Memory Type : Off Heap set to default {}",
-                    Com, topologyConf.get(Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB));
-        }
-        else
-        {
-            LOG.debug(
-                    "Unable to extract resource requirement for Component {} \n Resource : CPU Pcore Percent set to default {}",
-                    Com, topologyConf.get(Config.TOPOLOGY_COMPONENT_CPU_PCORE_PERCENT));
-        }
-    }
-
-    private void checkInitMem(Map<String, Double> topology_resources, String Com) {
-        if (!topology_resources.containsKey(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB)) {
-            topology_resources.put(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB,
-                    Utils.getDouble(topologyConf.get(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB), null));
-            debugMessage("ONHEAP", Com);
-        }
-        if (!topology_resources.containsKey(Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB)) {
-            topology_resources.put(Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB,
-                    Utils.getDouble(topologyConf.get(Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB), null));
-            debugMessage("OFFHEAP", Com);
-        }
-    }
-
-    private void checkInitCPU(Map<String, Double> topology_resources, String Com) {
-        if (!topology_resources.containsKey(Config.TOPOLOGY_COMPONENT_CPU_PCORE_PERCENT)) {
-            topology_resources.put(Config.TOPOLOGY_COMPONENT_CPU_PCORE_PERCENT,
-                            Utils.getDouble(topologyConf.get(Config.TOPOLOGY_COMPONENT_CPU_PCORE_PERCENT), null));
-            debugMessage("CPU", Com);
         }
     }
 
@@ -486,18 +397,35 @@ public class TopologyDetails {
      * initalizes the scheduler member variable by extracting what scheduler
      * this topology is going to use from topologyConf
      */
-    private void initScheduler() {
+    private void initConfigs() {
         this.scheduler = Utils.getString(this.topologyConf.get(Config.TOPOLOGY_SCHEDULER_STRATEGY), null);
+        this.topologyWorkerMaxHeapSize = Utils.getDouble(this.topologyConf.get(Config.TOPOLOGY_WORKER_MAX_HEAP_SIZE_MB), null);
     }
 
-    public String getScheduler() {
+    /**
+     * get the scheduler for this topology
+     * @return the scheduler for this topology
+     */
+    public String getTopologyStrategy() {
         return this.scheduler;
     }
-    
+
+    /**
+     * Set the topology strategy for this topology
+     * @param clazz
+     */
     public void setTopologyStrategy(Class<? extends IStrategy> clazz) {
         if(clazz != null) {
             this.scheduler = clazz.getName();
         }
         
+    }
+
+    /**
+     * Get the max heap size for a worker used by this topology
+     * @return the worker max heap size
+     */
+    public Double getTopologyWorkerMaxHeapSize() {
+        return this.topologyWorkerMaxHeapSize;
     }
 }
