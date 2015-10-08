@@ -194,7 +194,7 @@
         <snakeyaml.version>1.11</snakeyaml.version>
         <httpclient.version>4.3.3</httpclient.version>
         <clojure.tools.cli.version>0.3.1</clojure.tools.cli.version>
-        <disruptor.version>2.10.4</disruptor.version>
+        <disruptor.version>3.3.2</disruptor.version>
         <jgrapht.version>0.9.0</jgrapht.version>
         <guava.version>16.0.1</guava.version>
         <netty.version>3.9.4.Final</netty.version>
@@ -577,7 +577,7 @@
                 <version>${clojure.tools.cli.version}</version>
             </dependency>
             <dependency>
-                <groupId>com.googlecode.disruptor</groupId>
+                <groupId>com.lmax</groupId>
                 <artifactId>disruptor</artifactId>
                 <version>${disruptor.version}</version>
             </dependency>
@@ -785,6 +785,12 @@
             <url>http://repo1.maven.org/maven2/</url>
         </repository>
         <repository>
+            <id>clojars</id>
+            <name>clojars</name>
+            <url>http://edge.artifactory.yahoo.com:8000/artifactory/clojars</url>
+        </repository>
+        <!--
+        <repository>
             <releases>
                 <enabled>true</enabled>
             </releases>
@@ -794,6 +800,7 @@
             <id>clojars</id>
             <url>https://clojars.org/repo/</url>
         </repository>
+        -->
         <repository>
             <id>central-ymaven</id>
             <url>http://ymaven.corp.yahoo.com:9999/proximity/repository/public</url>

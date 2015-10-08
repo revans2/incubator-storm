@@ -1525,9 +1525,11 @@ public class Config extends HashMap<String, Object> {
 
 
    /**
+    * @deprecated this is no longer supported
     * Configure the wait strategy used for internal queuing. Can be used to tradeoff latency
     * vs. throughput
     */
+    @Deprecated
     public static final String TOPOLOGY_DISRUPTOR_WAIT_STRATEGY="topology.disruptor.wait.strategy";
     public static final Object TOPOLOGY_DISRUPTOR_WAIT_STRATEGY_SCHEMA = String.class;
 
