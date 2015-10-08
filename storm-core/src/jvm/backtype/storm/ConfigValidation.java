@@ -187,6 +187,24 @@ public class ConfigValidation {
         mapFv(String.class, Object.class, true), true);
 
     /**
+     * Validates a non null Integer
+     */
+    public static Object NotNullIntegerValidator = new FieldValidator() {
+        @Override
+        public void validateField(String name, Object o) throws IllegalArgumentException {
+            final long i;
+            if (o instanceof Number &&
+                    (i = ((Number)o).longValue()) == ((Number)o).doubleValue()) {
+                if (i <= Integer.MAX_VALUE && i >= Integer.MIN_VALUE) {
+                    return;
+                }
+            }
+
+            throw new IllegalArgumentException("Field " + name + " must be an Integer");
+        }
+    };
+
+    /**
      * Validates a non null Integer > 0
      */
     public static Object NotNullPosIntegerValidator = new FieldValidator() {

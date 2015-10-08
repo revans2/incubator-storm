@@ -218,7 +218,6 @@ topology.executor.send.buffer.size: 1024 #individual messages
 topology.transfer.buffer.size: 1024 # batched
 topology.tick.tuple.freq.secs: null
 topology.worker.shared.thread.pool.size: 4
-topology.disruptor.wait.strategy: "com.lmax.disruptor.BlockingWaitStrategy"
 topology.spout.wait.strategy: "backtype.storm.spout.SleepSpoutWaitStrategy"
 topology.sleep.spout.wait.strategy.time.ms: 1
 topology.error.throttle.interval.secs: 10
@@ -232,6 +231,7 @@ topology.environment: null
 topology.bolts.outgoing.overflow.buffer.enable: false
 topology.disable.loadaware.messaging: false
 topology.logging.sensitivity: "S3"
+topology.disruptor.wait.timeout.millis: 10
 
 # Configs for Resource Aware Scheduler
 topology.component.resources.onheap.memory.mb: 128.0
