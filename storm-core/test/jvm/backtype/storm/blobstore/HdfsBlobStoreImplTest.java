@@ -1,5 +1,7 @@
 package backtype.storm.blobstore;
 
+import backtype.storm.Config;
+import backtype.storm.generated.SettableBlobMeta;
 import org.apache.commons.io.IOUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
@@ -93,6 +95,10 @@ public class HdfsBlobStoreImplTest {
 
     // test write
     BlobStoreFile pfile = hbs.write(validKey, false);
+    // Adding metadata to avoid null pointer exception
+    SettableBlobMeta meta = new SettableBlobMeta();
+    meta.set_replication_factor(1);
+    pfile.setMetadata(meta);
     OutputStream ios = pfile.getOutputStream();
     ios.write(testString.getBytes(Charset.forName("UTF-8")));
     ios.close();
@@ -127,6 +133,7 @@ public class HdfsBlobStoreImplTest {
 
     // test write
     pfile = hbs.write(validKey, false);
+    pfile.setMetadata(meta);
     ios = pfile.getOutputStream();
     ios.write(testString.getBytes(Charset.forName("UTF-8")));
     ios.close();
@@ -141,6 +148,7 @@ public class HdfsBlobStoreImplTest {
 
     // test write again
     pfile = hbs.write(validKey2, false);
+    pfile.setMetadata(meta);
     OutputStream ios2 = pfile.getOutputStream();
     ios2.write(testString2.getBytes(Charset.forName("UTF-8")));
     ios2.close();
@@ -197,6 +205,10 @@ public class HdfsBlobStoreImplTest {
     String testString = "testingblob";
     TestHdfsBlobStoreImpl hbs = new TestHdfsBlobStoreImpl(blobDir, conf, hadoopConf);
     BlobStoreFile pfile = hbs.write(validKey, false);
+    // Adding metadata to avoid null pointer exception
+    SettableBlobMeta meta = new SettableBlobMeta();
+    meta.set_replication_factor(1);
+    pfile.setMetadata(meta);
     OutputStream ios = pfile.getOutputStream();
     ios.write(testString.getBytes(Charset.forName("UTF-8")));
     ios.close();

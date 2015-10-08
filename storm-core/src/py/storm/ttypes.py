@@ -6211,15 +6211,18 @@ class SettableBlobMeta:
   """
   Attributes:
    - acl
+   - replication_factor
   """
 
   thrift_spec = (
     None, # 0
     (1, TType.LIST, 'acl', (TType.STRUCT,(AccessControl, AccessControl.thrift_spec)), None, ), # 1
+    (2, TType.I32, 'replication_factor', None, None, ), # 2
   )
 
-  def __init__(self, acl=None,):
+  def __init__(self, acl=None, replication_factor=None,):
     self.acl = acl
+    self.replication_factor = replication_factor
 
   def read(self, iprot):
     if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
@@ -6241,6 +6244,11 @@ class SettableBlobMeta:
           iprot.readListEnd()
         else:
           iprot.skip(ftype)
+      elif fid == 2:
+        if ftype == TType.I32:
+          self.replication_factor = iprot.readI32();
+        else:
+          iprot.skip(ftype)
       else:
         iprot.skip(ftype)
       iprot.readFieldEnd()
@@ -6258,6 +6266,10 @@ class SettableBlobMeta:
         iter420.write(oprot)
       oprot.writeListEnd()
       oprot.writeFieldEnd()
+    if self.replication_factor is not None:
+      oprot.writeFieldBegin('replication_factor', TType.I32, 2)
+      oprot.writeI32(self.replication_factor)
+      oprot.writeFieldEnd()
     oprot.writeFieldStop()
     oprot.writeStructEnd()
 
@@ -6270,6 +6282,7 @@ class SettableBlobMeta:
   def __hash__(self):
     value = 17
     value = (value * 31) ^ hash(self.acl)
+    value = (value * 31) ^ hash(self.replication_factor)
     return value
 
   def __repr__(self):
@@ -8740,6 +8753,73 @@ class GetInfoOptions:
   def __hash__(self):
     value = 17
     value = (value * 31) ^ hash(self.num_err_choice)
+    return value
+
+  def __repr__(self):
+    L = ['%s=%r' % (key, value)
+      for key, value in self.__dict__.iteritems()]
+    return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+  def __eq__(self, other):
+    return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+  def __ne__(self, other):
+    return not (self == other)
+
+class BlobReplication:
+  """
+  Attributes:
+   - replication
+  """
+
+  thrift_spec = (
+    None, # 0
+    (1, TType.I32, 'replication', None, None, ), # 1
+  )
+
+  def __init__(self, replication=None,):
+    self.replication = replication
+
+  def read(self, iprot):
+    if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
+      fastbinary.decode_binary(self, iprot.trans, (self.__class__, self.thrift_spec))
+      return
+    iprot.readStructBegin()
+    while True:
+      (fname, ftype, fid) = iprot.readFieldBegin()
+      if ftype == TType.STOP:
+        break
+      if fid == 1:
+        if ftype == TType.I32:
+          self.replication = iprot.readI32();
+        else:
+          iprot.skip(ftype)
+      else:
+        iprot.skip(ftype)
+      iprot.readFieldEnd()
+    iprot.readStructEnd()
+
+  def write(self, oprot):
+    if oprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and self.thrift_spec is not None and fastbinary is not None:
+      oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
+      return
+    oprot.writeStructBegin('BlobReplication')
+    if self.replication is not None:
+      oprot.writeFieldBegin('replication', TType.I32, 1)
+      oprot.writeI32(self.replication)
+      oprot.writeFieldEnd()
+    oprot.writeFieldStop()
+    oprot.writeStructEnd()
+
+  def validate(self):
+    if self.replication is None:
+      raise TProtocol.TProtocolException(message='Required field replication is unset!')
+    return
+
+
+  def __hash__(self):
+    value = 17
+    value = (value * 31) ^ hash(self.replication)
     return value
 
   def __repr__(self):

@@ -256,9 +256,10 @@ def blobstore(*args):
 
     list [KEY...] - lists blobs currently in the blob store
     cat [-f FILE] KEY - read a blob and then either write it to a file, or STDOUT (requires read access).
-    create [-f FILE] [-a ACL ...] KEY - create a new blob. Contents comes from a FILE
+    create [-f FILE] [-a ACL ...] [--repl-fctr NUMBER] KEY - create a new blob. Contents comes from a FILE
          or STDIN. ACL is in the form [uo]:[username]:[r-][w-][a-] can be comma
          separated list.
+         --repl-fctr refers to replication factor for the blob. Here NUMBER > 0.
          for example the following would create a mytopo:data.tgz key using the data
          stored in data.tgz.  User alice would have full access, bob would have
          read/write access and everyone else would have read access.
@@ -268,6 +269,10 @@ def blobstore(*args):
     delete KEY - delete an entry from the blob store (requires write access).
     set-acl [-s ACL] KEY - ACL is in the form [uo]:[username]:[r-][w-][a-] can be comma
          separated list (requires admin access).
+    replication --read KEY - Used to read the replication factor of the blob. In local mode
+        it always returns 1.
+    replication --update --repl-fctr NUMBER KEY - NUMBER > 0. It is used to update the
+        replication factor of a blob. In local mode the update always returns 1.
     """
     exec_storm_class(
         "backtype.storm.command.blobstore",
@@ -407,7 +412,7 @@ def kill_workers(*args):
     """Syntax: [storm kill_workers]
 
     Kill the workers running on this supervisor. This command should be run
-    on a supervisor node. If the cluster is running in secure node, then user needs 
+    on a supervisor node. If the cluster is running in secure node, then user needs
     to have admin rights on the node to be able to successfully kill all workers.
     """
     exec_storm_class(
@@ -655,7 +660,7 @@ COMMANDS = {"jar": jar, "kill": kill, "shell": shell, "nimbus": nimbus, "ui": ui
             "drpc": drpc, "supervisor": supervisor, "localconfvalue": print_localconfvalue,
             "remoteconfvalue": print_remoteconfvalue, "repl": repl, "classpath": print_classpath,
             "activate": activate, "deactivate": deactivate, "rebalance": rebalance, "help": print_usage,
-            "list": listtopos, "dev-zookeeper": dev_zookeeper, "version": version, "monitor": monitor, 
+            "list": listtopos, "dev-zookeeper": dev_zookeeper, "version": version, "monitor": monitor,
             "upload-credentials": upload_credentials, "blobstore": blobstore, "pacemaker": pacemaker,
             "heartbeats": heartbeats, "set_log_level": set_log_level, "get-errors": get_errors,
             "kill_workers": kill_workers, "node-health-check": healthcheck }

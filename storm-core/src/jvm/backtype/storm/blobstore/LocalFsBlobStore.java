@@ -31,17 +31,13 @@ import java.util.Map;
 
 import javax.security.auth.Subject;
 
+import backtype.storm.generated.*;
 import backtype.storm.utils.Utils;
 import org.apache.thrift.TBase;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import backtype.storm.Config;
-import backtype.storm.generated.AuthorizationException;
-import backtype.storm.generated.KeyAlreadyExistsException;
-import backtype.storm.generated.KeyNotFoundException;
-import backtype.storm.generated.ReadableBlobMeta;
-import backtype.storm.generated.SettableBlobMeta;
 
 /**
  * Provides a local file system backed blob store implementation for Nimbus.
@@ -223,6 +219,16 @@ public class LocalFsBlobStore extends BlobStore {
   @Override
   public void shutdown() {
     //Empty
+  }
+
+  @Override
+  public BlobReplication getBlobReplication(String key, Subject who) {
+    return new BlobReplication(1);
+  }
+
+  @Override
+  public BlobReplication updateBlobReplication(String key, int replication, Subject who) {
+    return new BlobReplication(1);
   }
 
   public void fullCleanup(long age) throws IOException {

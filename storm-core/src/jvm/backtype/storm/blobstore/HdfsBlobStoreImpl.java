@@ -27,6 +27,7 @@ import java.util.Timer;
 import java.util.TimerTask;
 
 import backtype.storm.Config;
+import backtype.storm.generated.BlobReplication;
 import backtype.storm.utils.Utils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
@@ -46,6 +47,7 @@ public class HdfsBlobStoreImpl {
   private static final long FULL_CLEANUP_FREQ = 60 * 60 * 1000l;
   private static final int BUCKETS = 1024;
   private static final Timer timer = new Timer("HdfsBlobStore cleanup thread", true);
+  private static final String BLOBSTORE_DATA = "data";
 
   public class KeyInHashDirIterator implements Iterator<String> {
     private int currentBucket = 0;
@@ -283,6 +285,19 @@ public class HdfsBlobStoreImpl {
       }
     }
     return ret.iterator();
+  }
+
+  protected BlobReplication getBlobReplication(String key) throws IOException {
+    Path path = getKeyDir(key);
+    Path dest = new Path(path, BLOBSTORE_DATA);
+    return new BlobReplication(_fs.getFileStatus(dest).getReplication());
+  }
+
+  protected BlobReplication updateBlobReplication(String key, int replication) throws IOException {
+    Path path = getKeyDir(key);
+    Path dest = new Path(path, BLOBSTORE_DATA);
+    _fs.setReplication(dest, (short) replication);
+    return new BlobReplication(_fs.getFileStatus(dest).getReplication());
   }
 
   protected void delete(Path path) throws IOException {

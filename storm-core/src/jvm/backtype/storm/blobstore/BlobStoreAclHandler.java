@@ -237,6 +237,27 @@ public class BlobStoreAclHandler {
             user + " does not have access to " + key);
   }
 
+  public void validateAnyACL(List<AccessControl> acl, int validPermissions, Subject who, String key) throws AuthorizationException {
+    Set<String> user = constructUserFromPrincipals(who);
+    LOG.debug("user {}", user);
+    if (isNimbus(who)) {
+      return;
+    }
+    if(isSupervisorOrAdmin(user, validPermissions)) {
+      return;
+    }
+    for (AccessControl ac : acl) {
+      int allowed = getAllowed(ac, user);
+      LOG.debug(" user: {} allowed: {} key: {}", user, allowed, key);
+      if ((allowed & validPermissions) > 0) {
+        return;
+      }
+    }
+    throw new AuthorizationException(
+            user + " does not have access to " + key);
+  }
+
+  //Here all acls must match
   public void validateACL(List<AccessControl> acl, int mask, Subject who, String key)
       throws AuthorizationException {
     Set<String> user = constructUserFromPrincipals(who);

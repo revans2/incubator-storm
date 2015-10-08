@@ -7,6 +7,7 @@ import backtype.storm.generated.KeyAlreadyExistsException;
 import backtype.storm.generated.KeyNotFoundException;
 import backtype.storm.generated.ReadableBlobMeta;
 import backtype.storm.generated.SettableBlobMeta;
+import backtype.storm.generated.BlobReplication;
 import backtype.storm.utils.Utils;
 import org.junit.After;
 import org.junit.Before;
@@ -78,6 +79,16 @@ public class ClientBlobStoreTest {
 
     @Override
     public void shutdown() {
+    }
+
+    @Override
+    public BlobReplication getBlobReplication(String key) {
+      return null;
+    }
+
+    @Override
+    public BlobReplication updateBlobReplication(String key, int replication) {
+      return null;
     }
   }
 

@@ -321,6 +321,26 @@ class Iface:
     """
     pass
 
+  def getBlobReplication(self, key):
+    """
+    Replication factor for Blobstore.
+    For Local Blobstore it should return 1.
+
+    Parameters:
+     - key
+    """
+    pass
+
+  def updateBlobReplication(self, key, replication):
+    """
+    Update Blobstore Replication
+
+    Parameters:
+     - key
+     - replication
+    """
+    pass
+
 
 class Client(Iface):
   def __init__(self, iprot, oprot=None):
@@ -1654,6 +1674,83 @@ class Client(Iface):
       raise result.aze
     raise TApplicationException(TApplicationException.MISSING_RESULT, "getTopologyHistory failed: unknown result");
 
+  def getBlobReplication(self, key):
+    """
+    Replication factor for Blobstore.
+    For Local Blobstore it should return 1.
+
+    Parameters:
+     - key
+    """
+    self.send_getBlobReplication(key)
+    return self.recv_getBlobReplication()
+
+  def send_getBlobReplication(self, key):
+    self._oprot.writeMessageBegin('getBlobReplication', TMessageType.CALL, self._seqid)
+    args = getBlobReplication_args()
+    args.key = key
+    args.write(self._oprot)
+    self._oprot.writeMessageEnd()
+    self._oprot.trans.flush()
+
+  def recv_getBlobReplication(self):
+    iprot = self._iprot
+    (fname, mtype, rseqid) = iprot.readMessageBegin()
+    if mtype == TMessageType.EXCEPTION:
+      x = TApplicationException()
+      x.read(iprot)
+      iprot.readMessageEnd()
+      raise x
+    result = getBlobReplication_result()
+    result.read(iprot)
+    iprot.readMessageEnd()
+    if result.success is not None:
+      return result.success
+    if result.aze is not None:
+      raise result.aze
+    if result.knf is not None:
+      raise result.knf
+    raise TApplicationException(TApplicationException.MISSING_RESULT, "getBlobReplication failed: unknown result");
+
+  def updateBlobReplication(self, key, replication):
+    """
+    Update Blobstore Replication
+
+    Parameters:
+     - key
+     - replication
+    """
+    self.send_updateBlobReplication(key, replication)
+    return self.recv_updateBlobReplication()
+
+  def send_updateBlobReplication(self, key, replication):
+    self._oprot.writeMessageBegin('updateBlobReplication', TMessageType.CALL, self._seqid)
+    args = updateBlobReplication_args()
+    args.key = key
+    args.replication = replication
+    args.write(self._oprot)
+    self._oprot.writeMessageEnd()
+    self._oprot.trans.flush()
+
+  def recv_updateBlobReplication(self):
+    iprot = self._iprot
+    (fname, mtype, rseqid) = iprot.readMessageBegin()
+    if mtype == TMessageType.EXCEPTION:
+      x = TApplicationException()
+      x.read(iprot)
+      iprot.readMessageEnd()
+      raise x
+    result = updateBlobReplication_result()
+    result.read(iprot)
+    iprot.readMessageEnd()
+    if result.success is not None:
+      return result.success
+    if result.aze is not None:
+      raise result.aze
+    if result.knf is not None:
+      raise result.knf
+    raise TApplicationException(TApplicationException.MISSING_RESULT, "updateBlobReplication failed: unknown result");
+
 
 class Processor(Iface, TProcessor):
   def __init__(self, handler):
@@ -1698,6 +1795,8 @@ class Processor(Iface, TProcessor):
     self._processMap["getTopology"] = Processor.process_getTopology
     self._processMap["getUserTopology"] = Processor.process_getUserTopology
     self._processMap["getTopologyHistory"] = Processor.process_getTopologyHistory
+    self._processMap["getBlobReplication"] = Processor.process_getBlobReplication
+    self._processMap["updateBlobReplication"] = Processor.process_updateBlobReplication
 
   def process(self, iprot, oprot):
     (name, type, seqid) = iprot.readMessageBegin()
@@ -2291,6 +2390,38 @@ class Processor(Iface, TProcessor):
     except AuthorizationException, aze:
       result.aze = aze
     oprot.writeMessageBegin("getTopologyHistory", TMessageType.REPLY, seqid)
+    result.write(oprot)
+    oprot.writeMessageEnd()
+    oprot.trans.flush()
+
+  def process_getBlobReplication(self, seqid, iprot, oprot):
+    args = getBlobReplication_args()
+    args.read(iprot)
+    iprot.readMessageEnd()
+    result = getBlobReplication_result()
+    try:
+      result.success = self._handler.getBlobReplication(args.key)
+    except AuthorizationException, aze:
+      result.aze = aze
+    except KeyNotFoundException, knf:
+      result.knf = knf
+    oprot.writeMessageBegin("getBlobReplication", TMessageType.REPLY, seqid)
+    result.write(oprot)
+    oprot.writeMessageEnd()
+    oprot.trans.flush()
+
+  def process_updateBlobReplication(self, seqid, iprot, oprot):
+    args = updateBlobReplication_args()
+    args.read(iprot)
+    iprot.readMessageEnd()
+    result = updateBlobReplication_result()
+    try:
+      result.success = self._handler.updateBlobReplication(args.key, args.replication)
+    except AuthorizationException, aze:
+      result.aze = aze
+    except KeyNotFoundException, knf:
+      result.knf = knf
+    oprot.writeMessageBegin("updateBlobReplication", TMessageType.REPLY, seqid)
     result.write(oprot)
     oprot.writeMessageEnd()
     oprot.trans.flush()
@@ -8194,6 +8325,335 @@ class getTopologyHistory_result:
     value = 17
     value = (value * 31) ^ hash(self.success)
     value = (value * 31) ^ hash(self.aze)
+    return value
+
+  def __repr__(self):
+    L = ['%s=%r' % (key, value)
+      for key, value in self.__dict__.iteritems()]
+    return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+  def __eq__(self, other):
+    return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+  def __ne__(self, other):
+    return not (self == other)
+
+class getBlobReplication_args:
+  """
+  Attributes:
+   - key
+  """
+
+  thrift_spec = (
+    None, # 0
+    (1, TType.STRING, 'key', None, None, ), # 1
+  )
+
+  def __init__(self, key=None,):
+    self.key = key
+
+  def read(self, iprot):
+    if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
+      fastbinary.decode_binary(self, iprot.trans, (self.__class__, self.thrift_spec))
+      return
+    iprot.readStructBegin()
+    while True:
+      (fname, ftype, fid) = iprot.readFieldBegin()
+      if ftype == TType.STOP:
+        break
+      if fid == 1:
+        if ftype == TType.STRING:
+          self.key = iprot.readString().decode('utf-8')
+        else:
+          iprot.skip(ftype)
+      else:
+        iprot.skip(ftype)
+      iprot.readFieldEnd()
+    iprot.readStructEnd()
+
+  def write(self, oprot):
+    if oprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and self.thrift_spec is not None and fastbinary is not None:
+      oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
+      return
+    oprot.writeStructBegin('getBlobReplication_args')
+    if self.key is not None:
+      oprot.writeFieldBegin('key', TType.STRING, 1)
+      oprot.writeString(self.key.encode('utf-8'))
+      oprot.writeFieldEnd()
+    oprot.writeFieldStop()
+    oprot.writeStructEnd()
+
+  def validate(self):
+    return
+
+
+  def __hash__(self):
+    value = 17
+    value = (value * 31) ^ hash(self.key)
+    return value
+
+  def __repr__(self):
+    L = ['%s=%r' % (key, value)
+      for key, value in self.__dict__.iteritems()]
+    return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+  def __eq__(self, other):
+    return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+  def __ne__(self, other):
+    return not (self == other)
+
+class getBlobReplication_result:
+  """
+  Attributes:
+   - success
+   - aze
+   - knf
+  """
+
+  thrift_spec = (
+    (0, TType.STRUCT, 'success', (BlobReplication, BlobReplication.thrift_spec), None, ), # 0
+    (1, TType.STRUCT, 'aze', (AuthorizationException, AuthorizationException.thrift_spec), None, ), # 1
+    (2, TType.STRUCT, 'knf', (KeyNotFoundException, KeyNotFoundException.thrift_spec), None, ), # 2
+  )
+
+  def __init__(self, success=None, aze=None, knf=None,):
+    self.success = success
+    self.aze = aze
+    self.knf = knf
+
+  def read(self, iprot):
+    if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
+      fastbinary.decode_binary(self, iprot.trans, (self.__class__, self.thrift_spec))
+      return
+    iprot.readStructBegin()
+    while True:
+      (fname, ftype, fid) = iprot.readFieldBegin()
+      if ftype == TType.STOP:
+        break
+      if fid == 0:
+        if ftype == TType.STRUCT:
+          self.success = BlobReplication()
+          self.success.read(iprot)
+        else:
+          iprot.skip(ftype)
+      elif fid == 1:
+        if ftype == TType.STRUCT:
+          self.aze = AuthorizationException()
+          self.aze.read(iprot)
+        else:
+          iprot.skip(ftype)
+      elif fid == 2:
+        if ftype == TType.STRUCT:
+          self.knf = KeyNotFoundException()
+          self.knf.read(iprot)
+        else:
+          iprot.skip(ftype)
+      else:
+        iprot.skip(ftype)
+      iprot.readFieldEnd()
+    iprot.readStructEnd()
+
+  def write(self, oprot):
+    if oprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and self.thrift_spec is not None and fastbinary is not None:
+      oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
+      return
+    oprot.writeStructBegin('getBlobReplication_result')
+    if self.success is not None:
+      oprot.writeFieldBegin('success', TType.STRUCT, 0)
+      self.success.write(oprot)
+      oprot.writeFieldEnd()
+    if self.aze is not None:
+      oprot.writeFieldBegin('aze', TType.STRUCT, 1)
+      self.aze.write(oprot)
+      oprot.writeFieldEnd()
+    if self.knf is not None:
+      oprot.writeFieldBegin('knf', TType.STRUCT, 2)
+      self.knf.write(oprot)
+      oprot.writeFieldEnd()
+    oprot.writeFieldStop()
+    oprot.writeStructEnd()
+
+  def validate(self):
+    return
+
+
+  def __hash__(self):
+    value = 17
+    value = (value * 31) ^ hash(self.success)
+    value = (value * 31) ^ hash(self.aze)
+    value = (value * 31) ^ hash(self.knf)
+    return value
+
+  def __repr__(self):
+    L = ['%s=%r' % (key, value)
+      for key, value in self.__dict__.iteritems()]
+    return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+  def __eq__(self, other):
+    return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+  def __ne__(self, other):
+    return not (self == other)
+
+class updateBlobReplication_args:
+  """
+  Attributes:
+   - key
+   - replication
+  """
+
+  thrift_spec = (
+    None, # 0
+    (1, TType.STRING, 'key', None, None, ), # 1
+    (2, TType.I32, 'replication', None, None, ), # 2
+  )
+
+  def __init__(self, key=None, replication=None,):
+    self.key = key
+    self.replication = replication
+
+  def read(self, iprot):
+    if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
+      fastbinary.decode_binary(self, iprot.trans, (self.__class__, self.thrift_spec))
+      return
+    iprot.readStructBegin()
+    while True:
+      (fname, ftype, fid) = iprot.readFieldBegin()
+      if ftype == TType.STOP:
+        break
+      if fid == 1:
+        if ftype == TType.STRING:
+          self.key = iprot.readString().decode('utf-8')
+        else:
+          iprot.skip(ftype)
+      elif fid == 2:
+        if ftype == TType.I32:
+          self.replication = iprot.readI32();
+        else:
+          iprot.skip(ftype)
+      else:
+        iprot.skip(ftype)
+      iprot.readFieldEnd()
+    iprot.readStructEnd()
+
+  def write(self, oprot):
+    if oprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and self.thrift_spec is not None and fastbinary is not None:
+      oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
+      return
+    oprot.writeStructBegin('updateBlobReplication_args')
+    if self.key is not None:
+      oprot.writeFieldBegin('key', TType.STRING, 1)
+      oprot.writeString(self.key.encode('utf-8'))
+      oprot.writeFieldEnd()
+    if self.replication is not None:
+      oprot.writeFieldBegin('replication', TType.I32, 2)
+      oprot.writeI32(self.replication)
+      oprot.writeFieldEnd()
+    oprot.writeFieldStop()
+    oprot.writeStructEnd()
+
+  def validate(self):
+    return
+
+
+  def __hash__(self):
+    value = 17
+    value = (value * 31) ^ hash(self.key)
+    value = (value * 31) ^ hash(self.replication)
+    return value
+
+  def __repr__(self):
+    L = ['%s=%r' % (key, value)
+      for key, value in self.__dict__.iteritems()]
+    return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+  def __eq__(self, other):
+    return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+  def __ne__(self, other):
+    return not (self == other)
+
+class updateBlobReplication_result:
+  """
+  Attributes:
+   - success
+   - aze
+   - knf
+  """
+
+  thrift_spec = (
+    (0, TType.STRUCT, 'success', (BlobReplication, BlobReplication.thrift_spec), None, ), # 0
+    (1, TType.STRUCT, 'aze', (AuthorizationException, AuthorizationException.thrift_spec), None, ), # 1
+    (2, TType.STRUCT, 'knf', (KeyNotFoundException, KeyNotFoundException.thrift_spec), None, ), # 2
+  )
+
+  def __init__(self, success=None, aze=None, knf=None,):
+    self.success = success
+    self.aze = aze
+    self.knf = knf
+
+  def read(self, iprot):
+    if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
+      fastbinary.decode_binary(self, iprot.trans, (self.__class__, self.thrift_spec))
+      return
+    iprot.readStructBegin()
+    while True:
+      (fname, ftype, fid) = iprot.readFieldBegin()
+      if ftype == TType.STOP:
+        break
+      if fid == 0:
+        if ftype == TType.STRUCT:
+          self.success = BlobReplication()
+          self.success.read(iprot)
+        else:
+          iprot.skip(ftype)
+      elif fid == 1:
+        if ftype == TType.STRUCT:
+          self.aze = AuthorizationException()
+          self.aze.read(iprot)
+        else:
+          iprot.skip(ftype)
+      elif fid == 2:
+        if ftype == TType.STRUCT:
+          self.knf = KeyNotFoundException()
+          self.knf.read(iprot)
+        else:
+          iprot.skip(ftype)
+      else:
+        iprot.skip(ftype)
+      iprot.readFieldEnd()
+    iprot.readStructEnd()
+
+  def write(self, oprot):
+    if oprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and self.thrift_spec is not None and fastbinary is not None:
+      oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
+      return
+    oprot.writeStructBegin('updateBlobReplication_result')
+    if self.success is not None:
+      oprot.writeFieldBegin('success', TType.STRUCT, 0)
+      self.success.write(oprot)
+      oprot.writeFieldEnd()
+    if self.aze is not None:
+      oprot.writeFieldBegin('aze', TType.STRUCT, 1)
+      self.aze.write(oprot)
+      oprot.writeFieldEnd()
+    if self.knf is not None:
+      oprot.writeFieldBegin('knf', TType.STRUCT, 2)
+      self.knf.write(oprot)
+      oprot.writeFieldEnd()
+    oprot.writeFieldStop()
+    oprot.writeStructEnd()
+
+  def validate(self):
+    return
+
+
+  def __hash__(self):
+    value = 17
+    value = (value * 31) ^ hash(self.success)
+    value = (value * 31) ^ hash(self.aze)
+    value = (value * 31) ^ hash(self.knf)
     return value
 
   def __repr__(self):

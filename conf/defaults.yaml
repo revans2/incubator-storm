@@ -75,6 +75,7 @@ nimbus.topology.validator: "backtype.storm.nimbus.DefaultTopologyValidator"
 nimbus.credential.renewers.freq.secs: 600
 nimbus.blobstore.class: "backtype.storm.blobstore.LocalFsBlobStore"
 nimbus.blobstore.expiration.secs: 600
+blobstore.replication.factor: 3
 nimbus.impersonation.authorizer: "backtype.storm.security.auth.authorizer.ImpersonationAuthorizer"
 
 ### ui.* configs are for the master
