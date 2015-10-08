@@ -78,7 +78,8 @@ def toYml(data, indent):
             ret += "    " * indent + "- " + toYml(part, indent+1)+"\n"
     elif dt is types.DictType:
         ret = "\n"
-        for k,v in data.iteritems():
+        for k in sorted(data.iterkeys()):
+            v = data[k]
             ret += "    " * indent + k + ": "+ toYml(v, indent+1)+"\n"
     else:
         raise "Don't know how to conver %s to YAML %s"%(data, dt)
