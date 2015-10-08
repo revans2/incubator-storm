@@ -766,6 +766,12 @@
             <url>http://repo1.maven.org/maven2/</url>
         </repository>
         <repository>
+            <id>clojars</id>
+            <name>clojars</name>
+            <url>http://edge.artifactory.yahoo.com:8000/artifactory/clojars</url>
+        </repository>
+        <!--
+        <repository>
             <releases>
                 <enabled>true</enabled>
             </releases>
@@ -775,6 +781,7 @@
             <id>clojars</id>
             <url>https://clojars.org/repo/</url>
         </repository>
+        -->
         <repository>
             <id>central-ymaven</id>
             <url>http://ymaven.corp.yahoo.com:9999/proximity/repository/public</url>
