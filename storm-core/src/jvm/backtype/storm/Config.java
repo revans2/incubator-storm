@@ -17,13 +17,13 @@
  */
 package backtype.storm;
 
-import backtype.storm.ConfigValidation;
 import backtype.storm.scheduler.resource.strategies.IStrategy;
 import backtype.storm.serialization.IKryoDecorator;
 import backtype.storm.serialization.IKryoFactory;
 import com.esotericsoftware.kryo.Serializer;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
@@ -1312,6 +1312,18 @@ public class Config extends HashMap<String, Object> {
     public static final Object TOPOLOGY_SCHEDULER_STRATEGY_SCHEMA = String.class;
 
     /**
+     * Declare scheduling constraints for a topology
+     */
+    public static final String TOPOLOGY_CONSTRAINTS = "topology.constraints";
+    public static final Object TOPOLOGY_CONSTRAINTS_SCHEMA = ConfigValidation.ListOfListOfStringValidator;
+
+    /**
+     * Declare max traversal depth for find solutions that satisfy constraints
+     */
+    public static final String TOPOLOGY_CONSTRAINTS_MAX_DEPTH_TRAVERSAL = "topology.constraints.max.depth.traversal";
+    public static final Object TOPOLOGY_CONSTRAINTS_MAX_DEPTH_TRAVERSAL_SCHEMA = ConfigValidation.PositiveIntegerValidator;
+
+    /**
      * How many executors to spawn for ackers.
      *
      * <p>If this is set to 0, then Storm will immediately ack tuples as soon
@@ -1921,5 +1933,36 @@ public class Config extends HashMap<String, Object> {
         if(size != null) {
             this.put(Config.TOPOLOGY_WORKER_MAX_HEAP_SIZE_MB, size);
         }
+    }
+
+    /**
+     * Declares executors of component1 cannot be on the same worker as executors of component2
+     * Function is additive.
+     * Thus a user can setTopologyComponentWorkerConstraints("A", "B")
+     * and then setTopologyComponentWorkerConstraints("B", "C")
+     * Which means executors form component A cannot be on the same worker with executors of component B
+     * and executors of Component B cannot be on workers with executors of component C
+     * @param component1
+     * @param component2
+     */
+    public void setTopologyComponentWorkerConstraints(String component1, String component2) {
+        if(component1 != null && component2 != null) {
+            List<String> constraintPair = new LinkedList<String>();
+            constraintPair.add(component1);
+            constraintPair.add(component2);
+            if(!this.containsKey(Config.TOPOLOGY_CONSTRAINTS)) {
+                this.put(Config.TOPOLOGY_CONSTRAINTS, new LinkedList<List<String>> ());
+            }
+            List<List<String>> constraints = (List<List<String>>) this.get(Config.TOPOLOGY_CONSTRAINTS);
+            constraints.add(constraintPair);
+        }
+    }
+
+    /**
+     * sets the max traversal depth for finding solutions that satisfy constraints
+     * @param depth
+     */
+    public void setTopologyConstraintsMaxDepthTraversal(int depth) {
+        this.put(Config.TOPOLOGY_CONSTRAINTS_MAX_DEPTH_TRAVERSAL, depth);
     }
 }
