@@ -285,22 +285,21 @@ public class ConfigValidation {
     };
 
     /**
-     * Validates a Double.
+     * Validates a Positive Number
      */
-    public static Object DoubleValidator = new FieldValidator() {
+    public static Object PositiveNumberValidator = new FieldValidator() {
         @Override
         public void validateField(String name, Object o) throws IllegalArgumentException {
             if (o == null) {
                 // A null value is acceptable.
                 return;
             }
-
-            // we can provide a lenient way to convert int/long to double with losing some precision
-            if (o instanceof Number) {
-                return;
+            if(o instanceof Number) {
+                if(((Number)o).doubleValue() > 0.0) {
+                    return;
+                }
             }
-
-            throw new IllegalArgumentException("Field " + name + " must be an Double.");
+            throw new IllegalArgumentException("Field " + name + " must be a Positive Number");
         }
     };
 
@@ -368,28 +367,6 @@ public class ConfigValidation {
                 }
             }
             throw new IllegalArgumentException("Field " + name + " must be a non negative number.");
-        }
-    };
-
-    /**
-     * Validates a positive number value.
-     */
-    public static Object PositiveNumberValidator = new FieldValidator() {
-        @Override
-        public void validateField(String name, Object o) throws IllegalArgumentException {
-            if (o == null) {
-                // A null value is acceptable.
-                return;
-            }
-            final double double_value;
-            if (o instanceof Number)
-            {
-                double_value = ((Number)o).doubleValue();
-                if (double_value > 0.0) {
-                    return;
-                }
-            }
-            throw new IllegalArgumentException("Field " + name + " must be a positive number.");
         }
     };
 

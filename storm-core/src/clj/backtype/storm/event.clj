@@ -18,6 +18,7 @@
   (:use [backtype.storm log util])
   (:import [backtype.storm.utils Time Utils])
   (:import [java.io InterruptedIOException])
+  (:import [java.nio.channels ClosedByInterruptException])
   (:import [java.util.concurrent LinkedBlockingQueue TimeUnit]))
 
 (defprotocol EventManager
@@ -41,6 +42,8 @@
                          (swap! processed inc)))
                      (catch InterruptedIOException t
                        (log-message "Event manager interrupted while doing IO"))
+                     (catch ClosedByInterruptException t
+                       (log-message "Event manager interrupted while doing NIO"))
                      (catch InterruptedException t
                        (log-message "Event manager interrupted"))
                      (catch Throwable t

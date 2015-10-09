@@ -224,7 +224,8 @@
         wl (if wl-initial wl-initial (str storm-home "/bin/worker-launcher"))
         command (concat [wl user] args)]
     (log-message "Running as user:" user " command:" (pr-str command))
-    (launch-process command :environment environment :log-prefix log-prefix :exit-code-callback exit-code-callback :directory directory)))
+    (launch-process command :environment environment :log-prefix log-prefix :exit-code-callback exit-code-callback :directory directory)
+  ))
 
 (defnk worker-launcher-and-wait [conf user args :environment {} :log-prefix nil]
   (let [process (worker-launcher conf user args :environment environment)]
@@ -1055,6 +1056,7 @@
                      (str "-Dstorm.id=" storm-id)
                      (str "-Dworker.id=" worker-id)
                      (str "-Dworker.port=" port)
+                     (str "-Dstorm.log.dir=" storm-log-dir)
                      (str "-Dlog4j.configurationFile=" storm-logback-conf-dir file-path-separator "worker.xml")
                      (str "-DLog4jContextSelector=org.apache.logging.log4j.core.selector.BasicContextSelector")
                      "backtype.storm.LogWriter"]
@@ -1090,7 +1092,7 @@
       (set-worker-user! conf worker-id user)
       (create-artifacts-link conf storm-id port worker-id)
       (let [log-prefix (str "Worker Process " worker-id)
-            callback (fn [exit-code] 
+            callback (fn [exit-code]
                        (log-message log-prefix " exited with code: " exit-code)
                        (add-dead-worker worker-id))
             worker-dir (worker-root conf worker-id)]
@@ -1098,7 +1100,8 @@
         (create-blobstore-links conf storm-id port worker-id)
         (if run-worker-as-user
           (worker-launcher conf user ["worker" worker-dir (write-script worker-dir command :environment topology-worker-environment)] :log-prefix log-prefix :exit-code-callback callback :directory (File. worker-dir))
-          (launch-process command :environment topology-worker-environment :log-prefix log-prefix :exit-code-callback callback :directory (File. worker-dir))))))
+          (launch-process command :environment topology-worker-environment :log-prefix log-prefix :exit-code-callback callback :directory (File. worker-dir)))
+        )))
 
 ;; local implementation
 

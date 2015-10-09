@@ -15,10 +15,12 @@ PYTHON_VERSION_TO_FILE=`python -V > /tmp/python_version 2>&1`
 PYTHON_VERSION=`cat /tmp/python_version`
 RUBY_VERSION=`ruby -v`
 NODEJS_VERSION=`node -v`
+MVN_VERSION=`mvn -v`
 
 echo "Python version : $PYTHON_VERSION"
 echo "Ruby version : $RUBY_VERSION"
 echo "NodeJs version : $NODEJS_VERSION"
+echo "mvn version : $MVN_VERSION"
 
 STORM_SRC_ROOT_DIR=$1
 
@@ -26,23 +28,12 @@ TRAVIS_SCRIPT_DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
 
 cd ${STORM_SRC_ROOT_DIR}
 
-python ${TRAVIS_SCRIPT_DIR}/save-logs.py "install-storm-core.txt" mvn clean install -DskipTests -Pnative -Pstorm-core
+python ${TRAVIS_SCRIPT_DIR}/save-logs.py "install.txt" mvn clean install -DskipTests -Pnative --batch-mode
 BUILD_RET_VAL=$?
 
 if [[ "$BUILD_RET_VAL" != "0" ]];
 then
-  cat "install-storm-core.txt"
-  exit ${BUILD_RET_VAL}
-fi
-
-exit ${BUILD_RET_VAL}
-
-python ${TRAVIS_SCRIPT_DIR}/save-logs.py "install-storm-more.txt" mvn clean install -DskipTests -Pstorm-more
-BUILD_RET_VAL=$?
-
-if [[ "$BUILD_RET_VAL" != "0" ]];
-then
-  cat "install-storm-more.txt"
+  cat "install.txt"
 fi
 
 exit ${BUILD_RET_VAL}

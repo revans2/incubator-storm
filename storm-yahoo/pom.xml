@@ -3,7 +3,7 @@
   <parent>
     <artifactId>storm</artifactId>
     <groupId>org.apache.storm</groupId>
-    <version>0.10.0.y</version>
+    <version>0.10.1.y</version>
   </parent>
   <groupId>yahoo.yinst.ystorm</groupId>
   <artifactId>storm_yahoo</artifactId>
@@ -234,7 +234,7 @@
     <dependency>
       <groupId>org.apache.storm</groupId>
       <artifactId>storm-core</artifactId>
-      <version>0.10.0.y</version>
+      <version>0.10.1.y</version>
       <exclusions>
         <exclusion>
           <groupId>javax.servlet</groupId>

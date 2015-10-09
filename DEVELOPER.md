@@ -195,6 +195,7 @@ To pull in a merge request you should generally follow the command line instruct
 3. Merge the pull request into your local test branch.
 
         $ git pull <remote_repo_url> <remote_branch>
+    You can use `./dev-tools/storm-merge.py <pull-number>` to produce the above command most of the time.
 
 4.  Assuming that the pull request merges without any conflicts:
     Update the top-level `CHANGELOG.md`, and add in the JIRA ticket number (example: `STORM-1234`) and ticket
@@ -225,36 +226,29 @@ To pull in a merge request you should generally follow the command line instruct
 
 # Build the code and run the tests
 
-Storm has some oddities with packaging and plugin dependencies.  We build our own plugins and shade storm-core,
-but have sub-modules that depend on storm-core.  Because of this the build needs to be split into two parts.
-You can still build in a single step, but the resulting packages may not be completely correct, or you might get
-compilation or test errors with missing classes, etc.
+## Prerequisites
+Firt of all you need to make sure you are using maven 3.2.5 or below.  There is a bug in later versions of maven as linked to from https://issues.apache.org/jira/browse/MSHADE-206 that
+cause shaded dependencies to not be packaged correctly.  Also please be aware that because we are shading dependencies mvn dependency:tree will not always show the dependencies correctly. 
 
-The first step is to build/install the plugins and storm-core
+In order to build `storm` you need `python`, `ruby` and `nodejs`. In order to avoid an overful page we don't provide platform/OS specific installation instructions for those here. Please refer to you platform's/OS' documentation for support.
 
-`mvn clean install -Pstorm-core`
+The `ruby` package manager `rvm` and `nodejs` package manager `nvm` are for convenience and are used in the tests which run on [travis](https://travis-ci.org/apache/storm). They can be installed using `curl -L https://get.rvm.io | bash -s stable --autolibs=enabled && source ~/.profile` (see the [rvm installation instructions](https://github.com/rvm/rvm) for details) and `wget -qO- https://raw.githubusercontent.com/creationix/nvm/v0.26.1/install.sh | bash && source ~/.bashrc` (see the [nvm installation instructions](https://github.com/creationix/nvm) for details).
 
-If you wish to skip the unit tests you can do this by adding `-DskipTests` to the command line. Once this
-completes successfully you may run
-
-`mvn clean install -Pstorm-more`
-
-to build and test all of the external libraries and examples.  Again if you want to include `-DskipTests` you can.
-
-In case you modified `storm.thrift`, you have to regenerate thrift code as java and python code before compiling whole project.
+With `rvm` and `nvm` installed you can run
 
 ```sh
-cd storm-core/src
-sh genthrift.sh
+rvm use 2.1.5 --install
+nvm install 0.12.2
+nvm use 0.12.2
 ```
 
 You can also run tests selectively with `-Dtest=<test_name>`.  This works for both clojure and junit tests.
-
 
 > Tip: IDEs such as IntelliJ IDEA support a built-in Clojure REPL, which you can also use to run tests selectively.
 > Sometimes you may find that tests pass/fail depending on which REPL you use, which -- although frustrating --
 > can be helpful to narrow down errors.
 
+Unfortunately you might experience failures in clojure tests which are wrapped in the `maven-clojure-plugin` and thus doesn't provide too much useful output at first sight - you might end up with a maven test failure with an error message as unhelpful as `Clojure failed.`. In this case it's recommended to look into `target/test-reports` of the failed project to see what actual tests have failed or scroll through the maven output looking for obvious issues like missing binaries.
 
 <a name="packaging"></a>
 
@@ -264,8 +258,7 @@ You can create a _distribution_ (like what you can download from Apache) as foll
 do not use the Maven release plugin because creating an official release is the task of our release manager.
 
     # First, build the code.
-    $ mvn clean install -Pstorm-core # you may skip tests with `-DskipTests=true` to save time
-    $ mvn clean install -Pstorm-more # you may skip tests with `-DskipTests=true` to save time
+    $ mvn clean install # you may skip tests with `-DskipTests=true` to save time
 
     # Create the binary distribution.
     $ cd storm-dist/binary && mvn package

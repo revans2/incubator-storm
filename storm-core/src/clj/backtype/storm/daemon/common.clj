@@ -22,6 +22,7 @@
   (:import [backtype.storm Constants])
   (:import [backtype.storm.metric SystemBolt])
   (:import [backtype.storm.security.auth IAuthorizer]) 
+  (:import [java.nio.channels ClosedByInterruptException])
   (:import [java.io InterruptedIOException])
   (:require [clojure.set :as set])  
   (:require [backtype.storm.daemon.acker :as acker])
@@ -98,6 +99,8 @@
       (catch InterruptedIOException e#
         (throw e#))
       (catch InterruptedException e#
+        (throw e#))
+      (catch ClosedByInterruptException e#
         (throw e#))
       (catch Throwable t#
         (log-error t# "Error on initialization of server " ~(str name))
