@@ -2,6 +2,8 @@
 
 import os
 import re
+import json
+import types
 
 print """
 # This configuration file is controlled by yinst set variables.
@@ -57,89 +59,88 @@ config = dict((k[8:].replace("_", "."), v) for k, v in os.environ.items() \
         if k.startswith("ystorm__") \
         and not k.startswith("ystorm__drpc_auth_acl"))
 
-qq_string = re.compile("^\".*\"$")
-numeric = re.compile("^-?([0-9]*\.)?[0-9]*$")
-bool_re = re.compile("^(true)|(false)$",re.I)
+def toYml(data, indent):
+    dt = type(data)
+    if dt is types.NoneType:
+        ret = "null"
+    elif dt is types.BooleanType:
+        if data:
+            ret = "true"
+        else:
+            ret = "false"
+    elif dt is types.IntType or dt is types.LongType or dt is types.FloatType:
+        ret = str(data)
+    elif dt is types.StringType or dt is types.UnicodeType:
+        ret = "\"" + data.replace("\\","\\\\").replace("\"","\\\"") + "\""
+    elif dt is types.TupleType or dt is types.ListType:
+        ret = "\n"
+        for part in data:
+            ret += "    " * indent + "- " + toYml(part, indent+1)+"\n"
+    elif dt is types.DictType:
+        ret = "\n"
+        for k in sorted(data.iterkeys()):
+            v = data[k]
+            ret += "    " * indent + k + ": "+ toYml(v, indent+1)+"\n"
+    else:
+        raise "Don't know how to convert %s to YAML type is %s"%(data, dt)
+    return ret
 
-def double_quote_if_needed(str):
-    if qq_string.search(str):
-        return str
-    return "\"" + str + "\""
-
-def normalize(value):
+def parseValue(value):
     str = value.strip()
-    if numeric.search(str):
+    try:
+        return json.loads(value)
+    except:
         return str
-    elif bool_re.search(str):
-        return str
-    else:
-        return double_quote_if_needed(str)
 
-def printJavaLibPath(platform):
+def getJavaLibPath(platform):
     if platform.startswith("x86_64"):
-        print "java.library.path: \"/home/y/lib64:/usr/local/lib64:/usr/lib64:/lib64:\""
+        return "/home/y/lib64:/usr/local/lib64:/usr/lib64:/lib64:"
     else:
-        print "java.library.path: \"/home/y/lib:/usr/local/lib:/usr/lib:/lib:\""
+        return "/home/y/lib:/usr/local/lib:/usr/lib:/lib:"
 
 def splitListValue(v):
     return re.split("[,\s]", v)
 
-def handleListKey(k,v,norm_fn):
-    if k == "supervisor.slots.ports":
-#        print "in elif 1"
-        print k + ":"
-        numPorts = os.environ["ystorm__supervisor_slots_ports"]
-#        print "***** got numPorts", numPorts
-        for num in range(0, int(numPorts)):
-            portValue = 6700 + num
-            print "    -", portValue
-
-    elif k == "worker.childopts":
-#        print "in elif 2"
-        v_without_quotes = norm_fn(v)
-        print k + ":", "\"", v, "\""
-
-    else:
-#        print "in else"
-        print k + ":"
-        for item in splitListValue(v):
-            print "    -", norm_fn(item)
-
-def handleMapKey(k,v,norm_fn):
-    print k + ":"
-    items = splitListValue(v)
-    for subkey,subval in zip(items[0::2],items[1::2]):
-        print "    %s: %s" % (norm_fn(subkey),norm_fn(subval))
-
-
+result = {}
 for k, v in config.items():
-#    print "___________Processing: ", k,v
     if k in ignoredKeys:
         continue
 
     if k in remappedKeys:
         k = remappedKeys[k]
 
-    my_normalize = normalize
-    if k in allStringKeys:
-        my_normalize = double_quote_if_needed
+    result[k] = parseValue(v)
 
-    if k not in listKeys and k not in mapKeys:
-#        print "k not in listkeys"
-        print k + ":", my_normalize(v)
-    if k in listKeys:
-        handleListKey(k,v,my_normalize)
-    elif k in mapKeys:
-        handleMapKey(k,v, my_normalize)
 
-if "java.library.path" not in config:
+for listKey in listKeys: 
+    if listKey in result:
+        val = result[listKey]
+        if type(val) in types.StringTypes:
+            val = splitListValue(val)
+            if not listKey in allStringKeys:
+                val = map(parseValue, val)
+            result[listKey] = val
+
+for mapKey in mapKeys:
+    if mapKey in result:
+        val = result[mapKey]
+        if type(val) in types.StringTypes:
+            items = splitListValue(val)
+            val = {}
+            for subkey,subval in zip(items[0::2], items[1::2]):
+                if mapKey in allStringKeys:
+                    val[subkey] = subval
+                else:
+                    val[subKey] = parseValue(subval)
+            result[mapKey] = val
+
+if "supervisor.slots.ports" in result and isinstance(result["supervisor.slots.ports"], int):
+    result["supervisor.slots.ports"] = [6700 + x for x in range(0, result["supervisor.slots.ports"])]
+
+if "java.library.path" not in result:
     if "root__platform" in os.environ:
-        printJavaLibPath(os.environ["root__platform"])
+        result["java.library.path"] = getJavaLibPath(os.environ["root__platform"])
     elif "yjava_jdk__platform" in os.environ:
-        printJavaLibPath(os.environ["yjava_jdk__platform"])
+        result["java.library.path"] = getJavaLibPath(os.environ["yjava_jdk__platform"])
 
-if "storm.zookeeper.servers" not in config:
-    if "zookeeper_server__quorum" in os.environ:
-        print k + ":"
-        for item in os.environ["zookeeper_server__quorum"].split(","):
-            print "    -", normalize(item)
+print toYml(result, 0)
