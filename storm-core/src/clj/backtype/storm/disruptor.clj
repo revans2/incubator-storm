@@ -15,16 +15,15 @@
 ;; limitations under the License.
 
 (ns backtype.storm.disruptor
-  (:import [backtype.storm.utils DisruptorQueue])
-  (:import [com.lmax.disruptor.dsl ProducerType])
+  (:import [backtype.storm.utils DisruptorQueue DisruptorQueue$ProducerType])
   (:require [clojure [string :as str]])
   (:require [clojure [set :as set]])
   (:use [clojure walk])
   (:use [backtype.storm util log]))
 
 (def PRODUCER-TYPE
-  {:multi-threaded ProducerType/MULTI
-   :single-threaded ProducerType/SINGLE})
+  {:multi-threaded DisruptorQueue$ProducerType/MULTI
+   :single-threaded DisruptorQueue$ProducerType/SINGLE})
 
 (defnk disruptor-queue
   [^String queue-name buffer-size timeout :producer-type :multi-threaded]
