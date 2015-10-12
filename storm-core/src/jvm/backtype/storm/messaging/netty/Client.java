@@ -184,7 +184,7 @@ public class Client extends ConnectionWithStatus implements IStatefulObject, ISa
     }
 
     private boolean reconnectingAllowed() {
-        return !closing && connectionAttempts.get() <= (maxReconnectionAttempts + 1);
+        return !closing;
     }
 
     private boolean connectionEstablished(Channel channel) {
