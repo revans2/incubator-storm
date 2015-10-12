@@ -86,12 +86,6 @@ public class Client extends ConnectionWithStatus implements IStatefulObject, ISa
      */
     private final AtomicReference<Channel> channelRef = new AtomicReference<Channel>();
 
-
-    /**
-     * Maximum number of reconnection attempts we will perform after a disconnect before giving up.
-     */
-    private final int maxReconnectionAttempts;
-
     /**
      * Total number of connection attempts.
      */
@@ -147,7 +141,7 @@ public class Client extends ConnectionWithStatus implements IStatefulObject, ISa
         LOG.info("creating Netty Client, connecting to {}:{}, bufferSize: {}", host, port, bufferSize);
         int messageBatchSize = Utils.getInt(stormConf.get(Config.STORM_NETTY_MESSAGE_BATCH_SIZE), 262144);
 
-        maxReconnectionAttempts = Utils.getInt(stormConf.get(Config.STORM_MESSAGING_NETTY_MAX_RETRIES));
+        int maxReconnectionAttempts = Utils.getInt(stormConf.get(Config.STORM_MESSAGING_NETTY_MAX_RETRIES));
         int minWaitMs = Utils.getInt(stormConf.get(Config.STORM_MESSAGING_NETTY_MIN_SLEEP_MS));
         int maxWaitMs = Utils.getInt(stormConf.get(Config.STORM_MESSAGING_NETTY_MAX_SLEEP_MS));
         retryPolicy = new StormBoundedExponentialBackoffRetry(minWaitMs, maxWaitMs, maxReconnectionAttempts);
