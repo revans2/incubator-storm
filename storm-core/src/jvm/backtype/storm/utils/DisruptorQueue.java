@@ -41,11 +41,15 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import backtype.storm.metric.api.IStatefulObject;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
  * A single consumer queue that uses the LMAX Disruptor. They key to the performance is
  * the ability to catch up to the producer by processing tuples in batches.
  */
 public class DisruptorQueue implements IStatefulObject {
+    private static final Logger LOG = LoggerFactory.getLogger(DisruptorQueue.class);
     private static final Object FLUSH_CACHE = new Object();
     private static final Object INTERRUPT = new Object();
     private static final String PREFIX = "disruptor-";
@@ -132,7 +136,9 @@ public class DisruptorQueue implements IStatefulObject {
                 MutableObject mo = _buffer.get(curr);
                 Object o = mo.getObject();
                 mo.setObject(null);
-                if (o == FLUSH_CACHE) {
+                if (o == null) {
+                    LOG.warn("Tuple Dropped null found in {}", this.getName());
+                } else if (o == FLUSH_CACHE) {
                     Object c = null;
                     while (true) {
                         c = _cache.poll();
