@@ -200,6 +200,9 @@ public class DisruptorQueue implements IStatefulObject {
     }
 
     private void publishDirect(Object obj, boolean block) throws InsufficientCapacityException {
+        if (obj == null) {
+            LOG.warn("Trying to insert null into {}", this.getName());
+        }
         final long id;
         if (block) {
             id = _buffer.next();
