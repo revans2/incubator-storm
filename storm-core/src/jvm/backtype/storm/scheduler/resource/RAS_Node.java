@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
+ * <p>
  * http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -38,12 +38,11 @@ import backtype.storm.scheduler.ExecutorDetails;
 import backtype.storm.scheduler.SchedulerAssignment;
 import backtype.storm.scheduler.SupervisorDetails;
 import backtype.storm.scheduler.WorkerSlot;
-import backtype.storm.scheduler.multitenant.Node;
 
 /**
  * Represents a single node in the cluster.
  */
-public class RAS_Node{
+public class RAS_Node {
     private static final Logger LOG = LoggerFactory.getLogger(RAS_Node.class);
     private Map<String, Set<WorkerSlot>> _topIdToUsedSlots = new HashMap<String, Set<WorkerSlot>>();
     private Set<WorkerSlot> _freeSlots = new HashSet<WorkerSlot>();
@@ -58,7 +57,7 @@ public class RAS_Node{
     private Map<WorkerSlot, List<ExecutorDetails>> _slotToExecs;
 
     public RAS_Node(String nodeId, Set<Integer> allPorts, boolean isAlive,
-                SupervisorDetails sup) {
+                    SupervisorDetails sup) {
         _slots = new ArrayList<WorkerSlot>();
         _execs = new ArrayList<ExecutorDetails>();
         _slotToExecs = new HashMap<WorkerSlot, List<ExecutorDetails>>();
@@ -82,7 +81,7 @@ public class RAS_Node{
     public String getId() {
         return _nodeId;
     }
-    
+
     public String getHostname() {
         return _hostname;
     }
@@ -157,7 +156,7 @@ public class RAS_Node{
         _slotToExecs.put(ws, new ArrayList<ExecutorDetails>());
     }
 
-    private boolean assignInternal(WorkerSlot ws, String topId, boolean dontThrow) {
+    boolean assignInternal(WorkerSlot ws, String topId, boolean dontThrow) {
         validateSlot(ws);
         if (!_freeSlots.remove(ws)) {
             if (dontThrow) {
@@ -259,7 +258,7 @@ public class RAS_Node{
     }
 
     public void assign(WorkerSlot target, TopologyDetails td, Collection<ExecutorDetails> executors,
-            Cluster cluster)  {
+                       Cluster cluster) {
         if (!_isAlive) {
             throw new IllegalStateException("Trying to adding to a dead node " + _nodeId);
         }
@@ -268,12 +267,12 @@ public class RAS_Node{
         }
         if (executors.size() == 0) {
             LOG.warn("Trying to assign nothing from " + td.getId() + " to " + _nodeId + " (Ignored)");
-        } 
+        }
 
-        if(target == null) {
+        if (target == null) {
             target = _freeSlots.iterator().next();
         }
-        if(!_freeSlots.contains(target)) {
+        if (!_freeSlots.contains(target)) {
             throw new IllegalStateException("Trying to assign already used slot" + target.getPort() + "on node " + _nodeId);
         } else {
             allocateResourceToSlot(td, executors, target);
@@ -281,6 +280,7 @@ public class RAS_Node{
             assignInternal(target, td.getId(), false);
         }
     }
+
     /**
      * Assign a free slot on the node to the following topology and executors.
      * This will update the cluster too.
@@ -290,7 +290,7 @@ public class RAS_Node{
      */
     public void assign(TopologyDetails td, Collection<ExecutorDetails> executors,
                        Cluster cluster) {
-       this.assign(null, td, executors, cluster);
+        this.assign(null, td, executors, cluster);
     }
 
     @Override

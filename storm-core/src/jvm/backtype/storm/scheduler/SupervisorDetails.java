@@ -19,8 +19,8 @@ package backtype.storm.scheduler;
 
 import java.util.Collection;
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Set;
+import java.util.Map;
 
 import backtype.storm.Config;
 import org.slf4j.Logger;
@@ -43,42 +43,45 @@ public class SupervisorDetails {
      * all the ports of the supervisor
      */
     Set<Integer> allPorts;
-
+    /**
+     * Map containing a manifest of resources for the node the superivsor resides
+     */
     private Map<String, Double> _total_resources;
 
-    public SupervisorDetails(String id, String host, Object meta, Object schedulerMeta, 
-          Collection<Number> allPorts, Map<String, Double> total_resources){
-      
+    public SupervisorDetails(String id, String host, Object meta, Object schedulerMeta,
+                             Collection<Number> allPorts, Map<String, Double> total_resources){
+
         this.id = id;
         this.host = host;
         this.meta = meta;
         this.schedulerMeta = schedulerMeta;
         if(allPorts!=null) {
-          setAllPorts(allPorts);
+            setAllPorts(allPorts);
         } else {
-          this.allPorts = new HashSet();
+            this.allPorts = new HashSet();
         }
         this._total_resources = total_resources;
-        LOG.debug("Creating a new supervisor with resources: {}", total_resources);
-    }
-    public SupervisorDetails(String id, Object meta){
-        this(id, null,meta, null, null, null);
+        LOG.debug("Creating a new supervisor ({}-{}) with resources: {}", this.host, this.id, total_resources);
     }
 
-    public SupervisorDetails(String id, Object meta, Map<String, Double> total_resources){
+    public SupervisorDetails(String id, Object meta){
+        this(id, null, meta, null, null, null);
+    }
+
+    public SupervisorDetails(String id, Object meta, Map<String, Double> total_resources) {
         this(id, null, meta, null, null, total_resources);
     }
-    
+
     public SupervisorDetails(String id, Object meta, Collection<Number> allPorts){
         this(id, null, meta, null, allPorts, null);
     }
 
-    public SupervisorDetails(String id, String host, Object schedulerMeta, Collection<Number> allPorts){
+    public SupervisorDetails(String id, String host, Object schedulerMeta, Collection<Number> allPorts) {
         this(id, host, null, schedulerMeta, allPorts, null);
     }
 
     public SupervisorDetails(String id, String host, Object schedulerMeta,
-        Collection<Number> allPorts, Map<String, Double> total_resources){
+                             Collection<Number> allPorts, Map<String, Double> total_resources) {
         this(id, host, null, schedulerMeta, allPorts, total_resources);
     }
 
@@ -120,6 +123,6 @@ public class SupervisorDetails {
     }
 
     public Double getTotalCPU() {
-      return getTotalResource(Config.SUPERVISOR_CPU_CAPACITY);
+        return getTotalResource(Config.SUPERVISOR_CPU_CAPACITY);
     }
 }

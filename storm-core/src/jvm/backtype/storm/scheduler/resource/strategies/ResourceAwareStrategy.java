@@ -38,7 +38,7 @@ import backtype.storm.scheduler.ExecutorDetails;
 import backtype.storm.scheduler.Topologies;
 import backtype.storm.scheduler.TopologyDetails;
 import backtype.storm.scheduler.WorkerSlot;
-import backtype.storm.scheduler.resource.RAS_Component;
+import backtype.storm.scheduler.resource.Component;
 import backtype.storm.scheduler.resource.RAS_Node;
 
 public class ResourceAwareStrategy implements IStrategy {
@@ -65,15 +65,15 @@ public class ResourceAwareStrategy implements IStrategy {
         _availNodes = this.getAvailNodes();
         this.LOG = LoggerFactory.getLogger(this.getClass());
         _clusterInfo = cluster.getNetworkTopography();
-        LOG.info(this.getClusterInfo());
+        LOG.debug(this.getClusterInfo());
     }
 
-    //the returned TreeMap keeps the RAS_Components sorted
+    //the returned TreeMap keeps the Components sorted
     private TreeMap<Integer, List<ExecutorDetails>> getPriorityToExecutorDetailsListMap(
-            Queue<RAS_Component> ordered_RAS_Component_list, Collection<ExecutorDetails> unassignedExecutors) {
+            Queue<Component> ordered__Component_list, Collection<ExecutorDetails> unassignedExecutors) {
         TreeMap<Integer, List<ExecutorDetails>> retMap = new TreeMap<Integer, List<ExecutorDetails>>();
         Integer rank = 0;
-        for (RAS_Component ras_comp : ordered_RAS_Component_list) {
+        for (Component ras_comp : ordered__Component_list) {
             retMap.put(rank, new ArrayList<ExecutorDetails>());
             for(ExecutorDetails exec : ras_comp.execs) {
                 if(unassignedExecutors.contains(exec)) {
@@ -94,16 +94,16 @@ public class ResourceAwareStrategy implements IStrategy {
         Map<WorkerSlot, Collection<ExecutorDetails>> schedulerAssignmentMap = new HashMap<WorkerSlot, Collection<ExecutorDetails>>();
         LOG.debug("ExecutorsNeedScheduling: {}", unassignedExecutors);
         Collection<ExecutorDetails> scheduledTasks = new ArrayList<ExecutorDetails>();
-        List<RAS_Component> spouts = this.getSpouts(_topologies, td);
+        List<Component> spouts = this.getSpouts(_topologies, td);
 
         if (spouts.size() == 0) {
             LOG.error("Cannot find a Spout!");
             return null;
         }
 
-        Queue<RAS_Component> ordered_RAS_Component_list = bfs(_topologies, td, spouts);
+        Queue<Component> orderedComponentlist = bfs(_topologies, td, spouts);
 
-        Map<Integer, List<ExecutorDetails>> priorityToExecutorMap = getPriorityToExecutorDetailsListMap(ordered_RAS_Component_list, unassignedExecutors);
+        Map<Integer, List<ExecutorDetails>> priorityToExecutorMap = getPriorityToExecutorDetailsListMap(orderedComponentlist, unassignedExecutors);
         Collection<ExecutorDetails> executorsNotScheduled = new HashSet<ExecutorDetails>(unassignedExecutors);
         Integer longestPriorityListSize = this.getLongestPriorityListSize(priorityToExecutorMap);
         //Pick the first executor with priority one, then the 1st exec with priority 2, so on an so forth. 
@@ -113,7 +113,7 @@ public class ResourceAwareStrategy implements IStrategy {
                 Iterator<ExecutorDetails> it = entry.getValue().iterator();
                 if (it.hasNext()) {
                     ExecutorDetails exec = it.next();
-                    LOG.info("\n\nAttempting to schedule: {} of component {}[avail {}] with rank {}",
+                    LOG.debug("\n\nAttempting to schedule: {} of component {}[avail {}] with rank {}",
                             new Object[] { exec, td.getExecutorToComponent().get(exec),
                     td.getTaskResourceReqList(exec), entry.getKey() });
                     WorkerSlot targetSlot = this.findWorkerForExec(exec, td, schedulerAssignmentMap);
@@ -126,7 +126,7 @@ public class ResourceAwareStrategy implements IStrategy {
                         schedulerAssignmentMap.get(targetSlot).add(exec);
                         targetNode.consumeResourcesforTask(exec, td);
                         scheduledTasks.add(exec);
-                        LOG.info("TASK {} assigned to Node: {} avail [mem: {} cpu: {}] total [mem: {} cpu: {}] on slot: {}", exec,
+                        LOG.debug("TASK {} assigned to Node: {} avail [mem: {} cpu: {}] total [mem: {} cpu: {}] on slot: {}", exec,
                                 targetNode, targetNode.getAvailableMemoryResources(),
                                 targetNode.getAvailableCpuResources(), targetNode.getTotalMemoryResources(),
                                 targetNode.getTotalCpuResources(), targetSlot);
@@ -139,7 +139,7 @@ public class ResourceAwareStrategy implements IStrategy {
         }
 
         executorsNotScheduled.removeAll(scheduledTasks);
-        LOG.info("/* Scheduling left over task (most likely sys tasks) */");
+        LOG.debug("/* Scheduling left over task (most likely sys tasks) */");
         // schedule left over system tasks
         for (ExecutorDetails exec : executorsNotScheduled) {
             WorkerSlot targetSlot = this.findWorkerForExec(exec, td, schedulerAssignmentMap);
@@ -152,7 +152,7 @@ public class ResourceAwareStrategy implements IStrategy {
                 schedulerAssignmentMap.get(targetSlot).add(exec);
                 targetNode.consumeResourcesforTask(exec, td);
                 scheduledTasks.add(exec);
-                LOG.info("TASK {} assigned to Node: {} avail [mem: {} cpu: {}] total [mem: {} cpu: {}] on slot: {}", exec,
+                LOG.debug("TASK {} assigned to Node: {} avail [mem: {} cpu: {}] total [mem: {} cpu: {}] on slot: {}", exec,
                         targetNode, targetNode.getAvailableMemoryResources(),
                         targetNode.getAvailableCpuResources(), targetNode.getTotalMemoryResources(),
                         targetNode.getTotalCpuResources(), targetSlot);
@@ -204,6 +204,7 @@ public class ResourceAwareStrategy implements IStrategy {
         } else {
             nodes = this.getAvailableNodes();
         }
+        //First sort nodes by distance
         TreeMap<Double, RAS_Node> nodeRankMap = new TreeMap<Double, RAS_Node>();
         for (RAS_Node n : nodes) {
             if(n.getFreeSlots().size()>0) {
@@ -223,7 +224,7 @@ public class ResourceAwareStrategy implements IStrategy {
                 }
             }
         }
-        
+        //Then, pick worker from closest node that satisfy constraints
         for(Map.Entry<Double, RAS_Node> entry : nodeRankMap.entrySet()) {
             RAS_Node n = entry.getValue();
             for(WorkerSlot ws : n.getFreeSlots()) {
@@ -329,40 +330,40 @@ public class ResourceAwareStrategy implements IStrategy {
      * @param spouts
      * @return A partial ordering of components
      */
-    private Queue<RAS_Component> bfs(Topologies topologies, TopologyDetails td, List<RAS_Component> spouts) {
+    private Queue<Component> bfs(Topologies topologies, TopologyDetails td, List<Component> spouts) {
         // Since queue is a interface
-        Queue<RAS_Component> ordered_RAS_Component_list = new LinkedList<RAS_Component>();
-        HashMap<String, RAS_Component> visited = new HashMap<String, RAS_Component>();
+        Queue<Component> ordered__Component_list = new LinkedList<Component>();
+        HashMap<String, Component> visited = new HashMap<String, Component>();
 
         /* start from each spout that is not visited, each does a breadth-first traverse */
-        for (RAS_Component spout : spouts) {
+        for (Component spout : spouts) {
             if (!visited.containsKey(spout.id)) {
-                Queue<RAS_Component> queue = new LinkedList<RAS_Component>();
+                Queue<Component> queue = new LinkedList<Component>();
                 queue.offer(spout);
                 while (!queue.isEmpty()) {
-                    RAS_Component comp = queue.poll();
+                    Component comp = queue.poll();
                     visited.put(comp.id, comp);
-                    ordered_RAS_Component_list.add(comp);
+                    ordered__Component_list.add(comp);
                     List<String> neighbors = new ArrayList<String>();
                     neighbors.addAll(comp.children);
                     neighbors.addAll(comp.parents);
                     for (String nbID : neighbors) {
                         if (!visited.containsKey(nbID)) {
-                            RAS_Component child = topologies.getAllRAS_Components().get(td.getId()).get(nbID);
+                            Component child = topologies.getAllComponents().get(td.getId()).get(nbID);
                             queue.offer(child);
                         }
                     }
                 }
             }
         }
-        return ordered_RAS_Component_list;
+        return ordered__Component_list;
     }
 
-    private List<RAS_Component> getSpouts(Topologies topologies, TopologyDetails td) {
-        List<RAS_Component> spouts = new ArrayList<RAS_Component>();
-        for (RAS_Component c : topologies.getAllRAS_Components().get(td.getId())
+    private List<Component> getSpouts(Topologies topologies, TopologyDetails td) {
+        List<Component> spouts = new ArrayList<Component>();
+        for (Component c : topologies.getAllComponents().get(td.getId())
                 .values()) {
-            if (c.type == RAS_Component.ComponentType.SPOUT) {
+            if (c.type == Component.ComponentType.SPOUT) {
                 spouts.add(c);
             }
         }
@@ -412,6 +413,7 @@ public class ResourceAwareStrategy implements IStrategy {
 
     /**
      * Checks whether we can schedule an Executor exec on the worker slot ws
+     * Only considers memory currenlty.  May include CPU in the future
      * @param exec
      * @param ws
      * @param td

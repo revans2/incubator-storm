@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
+ * <p>
  * http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -23,7 +23,7 @@ import java.util.List;
 
 import backtype.storm.scheduler.ExecutorDetails;
 
-public class RAS_Component {
+public class Component {
     public enum ComponentType {
         SPOUT(1), BOLT(2);
         private int value;
@@ -39,7 +39,7 @@ public class RAS_Component {
     public List<ExecutorDetails> execs = null;
     public ComponentType type = null;
 
-    public RAS_Component(String id) {
+    public Component(String id) {
         this.parents = new ArrayList<String>();
         this.children = new ArrayList<String>();
         this.execs = new ArrayList<ExecutorDetails>();
@@ -48,7 +48,7 @@ public class RAS_Component {
 
     @Override
     public String toString() {
-        String retVal = "{id: " + this.id + " Parents: " + this.parents.toString() + " Children: " + this.children.toString() + " Execs: " + this.execs+"}";
+        String retVal = "{id: " + this.id + " Parents: " + this.parents.toString() + " Children: " + this.children.toString() + " Execs: " + this.execs + "}";
         return retVal;
     }
 }
