@@ -64,11 +64,6 @@ Note: The replication right now is configurable for a hdfs blobstore but for a
 local blobstore the replication always stays at 1. For a hdfs blobstore
 the default replication is set to 3.
 
-### Config for setting the replication factor for a blob in a hdfs blobstore
-
-In storm.yaml, we can set "blobstore.replication" config for the topology
-specific code to be replicated during the launching of a topology.
-
 ###### Example:  
 
 
