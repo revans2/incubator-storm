@@ -193,7 +193,7 @@ ACL is in the form [uo]:[username]:[r-][w-][a-] can be comma  separated list
 ### Update the replication factor for a blob
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-storm blobstore replication --update  --repl-fctr 5 key1
+storm blobstore replication --update --repl-fctr 5 key1
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 ### Read the replication factor of a blob
