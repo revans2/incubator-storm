@@ -141,10 +141,9 @@ public class DisruptorQueue implements IStatefulObject {
                 MutableObject mo = _buffer.get(curr);
                 Object o = mo.getObject();
                 mo.setObject(null);
-                //if (o == null) {
-                //    LOG.warn("Tuple Dropped null found in {}", this.getName());
-                //} else 
-                if (o == FLUSH_CACHE) {
+                if (o == null) {
+                    LOG.warn("Tuple Dropped null found in {}", this.getName());
+                } else if (o == FLUSH_CACHE) {
                     Object c = null;
                     while (true) {
                         c = _cache.poll();
@@ -202,6 +201,7 @@ public class DisruptorQueue implements IStatefulObject {
     private void publishDirect(Object obj, boolean block) throws InsufficientCapacityException {
         if (obj == null) {
             LOG.warn("Trying to insert null into {}", this.getName());
+            return;
         }
         final long id;
         if (block) {
