@@ -61,7 +61,7 @@ cat <<XML
         </Policies>
         <DefaultRolloverStrategy max="4"/>
     </RollingFile>
-    <Syslog name="syslog" format="RFC5424" host="${syslog_host}" port="514"
+    <Syslog name="syslog" format="RFC5424" charset="UTF-8" host="${syslog_host}" port="514"
         protocol="UDP" appName="[\${sys:storm.id}:\${sys:worker.port}]" mdcId="mdc" includeMDC="true"
         facility="${syslog_facility}" enterpriseNumber="18060" newLine="true" exceptionPattern="%rEx{full}"
         messageId="[\${sys:user.name}:\${sys:logging.sensitivity}]" id="ystorm">
