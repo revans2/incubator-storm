@@ -179,6 +179,32 @@ set-acl [-s ACL] KEY
 ACL is in the form [uo]:[username]:[r-][w-][a-] can be comma  separated list
 (requires admin access).
 
+### Creating a blob with replication
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+storm blobstore create --file README.txt --acl o::rwa --repl-fctr 4 key1  
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+### Update the replication factor for a blob
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+storm blobstore replication --update  --repl-fctr 5 key1
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+### Read the replication factor of a blob
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+storm blobstore replication --read key1
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Note: Right now the replication works only with hdfs blobstore and does not work with local blobstore.
+For local blobstore the replication is always set to 1.
+
+### Config for setting the replication factor for blob using hdfs blobstore
+
+In storm.yaml, we can set "blobstore.replication" config for the topology
+specific code to be replicated during the launching of a topology.
+
 ### Command line help
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -219,6 +245,7 @@ AccessControl blobACL = BlobStoreAclHandler.parseAccessControl(stringBlobACL);
 List<AccessControl> acls = new LinkedList<AccessControl>();
 acls.add(blobACL); // more ACLs can be added here
 SettableBlobMeta settableBlobMeta = new SettableBlobMeta(acls);
+settableBlobMeta.set_replication_factor(4); // Here we can set the replication factor
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The settableBlobMeta object is what we need to create a blob in the next step. 
@@ -262,6 +289,16 @@ updateAcls.add(updateAcl);
 modifiedSettableBlobMeta = new SettableBlobMeta(updateAcls);
 clientBlobStore.setBlobMeta(blobKey, modifiedSettableBlobMeta);
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+### Updating and Reading the replication of a blob
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+String blobKey = "some_key";
+BlobReplication replication = clientBlobStore.updateBlobReplication(blobKey, 5);
+int replication_factor = replication.get_replication();
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Note: The replication factor gets updated and reflected only for hdfs blobstore
 
 ### Reading a blob
 
