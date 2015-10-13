@@ -36,7 +36,7 @@ that need to be cached and bind them to key strings. To achieve this, the user
 uses the "blobstore create" command of the storm executable, as follows:
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-storm blobstore create [-f|--file FILE] [-a|--acl ACL1,ACL2,...] [keyname]
+storm blobstore create [-f|--file FILE] [-a|--acl ACL1,ACL2,...] [--repl-fctr NUMBER] [keyname]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The contents come from a FILE, if provided by -f or --file option, otherwise
@@ -58,17 +58,28 @@ where:
 * a = admin access  
 * _ = ignored  
 
+The replication factor can be set to a value greater than 1 using --repl-fctr.
+
+Note: The replication right now is configurable for a hdfs blobstore but for a
+local blobstore the replication always stays at 1. For a hdfs blobstore
+the default replication is set to 3.
+
+### Config for setting the replication factor for a blob in a hdfs blobstore
+
+In storm.yaml, we can set "blobstore.replication" config for the topology
+specific code to be replicated during the launching of a topology.
+
 ###### Example:  
 
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-storm blobstore create --file README.txt --acl o::rwa key1  
+storm blobstore create --file README.txt --acl o::rwa --repl-fctr 4 key1
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 In the above example, the *README.txt* file is added to the distributed cache.
 It can be accessed using the key string "*key1*" for any topology that needs
 it. The file is set to have read/write/admin access for others, a.k.a world
-everything.
+everything and the replication is set to 4.
 
 ###### Example:  
 
@@ -179,12 +190,6 @@ set-acl [-s ACL] KEY
 ACL is in the form [uo]:[username]:[r-][w-][a-] can be comma  separated list
 (requires admin access).
 
-### Creating a blob with replication
-
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-storm blobstore create --file README.txt --acl o::rwa --repl-fctr 4 key1  
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
 ### Update the replication factor for a blob
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -196,14 +201,6 @@ storm blobstore replication --update  --repl-fctr 5 key1
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 storm blobstore replication --read key1
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Note: Right now the replication works only with hdfs blobstore and does not work with local blobstore.
-For local blobstore the replication is always set to 1.
-
-### Config for setting the replication factor for blob using hdfs blobstore
-
-In storm.yaml, we can set "blobstore.replication" config for the topology
-specific code to be replicated during the launching of a topology.
 
 ### Command line help
 
