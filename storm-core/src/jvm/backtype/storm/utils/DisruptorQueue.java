@@ -21,14 +21,15 @@ import com.lmax.disruptor.AlertException;
 import com.lmax.disruptor.EventFactory;
 import com.lmax.disruptor.EventHandler;
 import com.lmax.disruptor.InsufficientCapacityException;
-import com.lmax.disruptor.LiteBlockingWaitStrategy;
+import com.lmax.disruptor.BlockingWaitStrategy;
 import com.lmax.disruptor.RingBuffer;
 import com.lmax.disruptor.Sequence;
 import com.lmax.disruptor.SequenceBarrier;
-import com.lmax.disruptor.TimeoutBlockingWaitStrategy;
 import com.lmax.disruptor.TimeoutException;
 import com.lmax.disruptor.WaitStrategy;
-import com.lmax.disruptor.dsl.ProducerType;
+import com.lmax.disruptor.ClaimStrategy;
+import com.lmax.disruptor.SingleThreadedClaimStrategy;
+import com.lmax.disruptor.MultiThreadedClaimStrategy;
 
 import java.util.Collection;
 import java.util.HashMap;
@@ -49,6 +50,10 @@ import org.slf4j.LoggerFactory;
  * the ability to catch up to the producer by processing tuples in batches.
  */
 public class DisruptorQueue implements IStatefulObject {
+    public static enum ProducerType {
+        SINGLE,
+        MULTI
+    }
     private static final Logger LOG = LoggerFactory.getLogger(DisruptorQueue.class);
     private static final Object FLUSH_CACHE = new Object();
     private static final Object INTERRUPT = new Object();
@@ -66,22 +71,25 @@ public class DisruptorQueue implements IStatefulObject {
     private final Lock writeLock = cacheLock.writeLock();
 
     private String _queueName = "";
+    private long _waitTimeout;
 
     private final QueueMetrics _metrics;
 
     public DisruptorQueue(String queueName, ProducerType type, int size, long timeout) {
+        this._waitTimeout = timeout;
         this._queueName = PREFIX + queueName;
-        WaitStrategy wait = null;
-        if (timeout <= 0) {
-            wait = new LiteBlockingWaitStrategy();
+        WaitStrategy wait = new BlockingWaitStrategy();
+        ClaimStrategy claim;
+        if (type == ProducerType.SINGLE) {
+            claim = new SingleThreadedClaimStrategy((int)size);
         } else {
-            wait = new TimeoutBlockingWaitStrategy(timeout, TimeUnit.MILLISECONDS);
+            claim = new MultiThreadedClaimStrategy((int)size);
         }
 
-        _buffer = RingBuffer.create(type, new ObjectEventFactory(), size, wait);
+        _buffer = new RingBuffer<MutableObject>(new ObjectEventFactory(), claim, wait);
         _consumer = new Sequence();
         _barrier = _buffer.newBarrier();
-        _buffer.addGatingSequences(_consumer);
+        _buffer.setGatingSequences(_consumer);
         _metrics = new QueueMetrics();
 
         if (type == ProducerType.SINGLE) {
@@ -113,12 +121,9 @@ public class DisruptorQueue implements IStatefulObject {
     public void consumeBatchWhenAvailable(EventHandler<Object> handler) {
         try {
             final long nextSequence = _consumer.get() + 1;
-            long availableSequence = 0;
-            try {
-                availableSequence = _barrier.waitFor(nextSequence);
-            } catch (TimeoutException te) {
-                availableSequence = _barrier.getCursor();
-            }
+            final long availableSequence =
+                    _waitTimeout == 0L ? _barrier.waitFor(nextSequence) : _barrier.waitFor(nextSequence, _waitTimeout,
+                            TimeUnit.MILLISECONDS);
 
             if (availableSequence >= nextSequence) {
                 consumeBatchToCursor(availableSequence, handler);
@@ -194,6 +199,10 @@ public class DisruptorQueue implements IStatefulObject {
     }
 
     private void publishDirect(Object obj, boolean block) throws InsufficientCapacityException {
+        if (obj == null) {
+            LOG.warn("Trying to insert null into {}", this.getName());
+            return;
+        }
         final long id;
         if (block) {
             id = _buffer.next();

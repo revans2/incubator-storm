@@ -52,7 +52,7 @@ dir 3777 - - lib64/storm/$(BASE_VERSION)/logs/metadata
 find 755 - - lib64/storm/$(BASE_VERSION)/bin/ ../bin/ -type f
 file 444 - - lib64/storm/$(BASE_VERSION)/lib/asm-4.0.jar ../storm-core/target/dependency/asm-4.0.jar
 file 444 - - lib64/storm/$(BASE_VERSION)/lib/clojure-1.6.0.jar ../storm-core/target/dependency/clojure-1.6.0.jar
-file 444 - - lib64/storm/$(BASE_VERSION)/lib/disruptor-3.3.2.jar ../storm-core/target/dependency/disruptor-3.3.2.jar
+file 444 - - lib64/storm/$(BASE_VERSION)/lib/disruptor-2.10.4.jar ../storm-core/target/dependency/disruptor-2.10.4.jar
 file 444 - - lib64/storm/$(BASE_VERSION)/lib/kryo-2.21.jar ../storm-core/target/dependency/kryo-2.21.jar
 file 444 - - lib64/storm/$(BASE_VERSION)/lib/log4j-api-2.1.jar ../storm-core/target/dependency/log4j-api-2.1.jar
 file 444 - - lib64/storm/$(BASE_VERSION)/lib/log4j-core-2.1.jar ../storm-core/target/dependency/log4j-core-2.1.jar
