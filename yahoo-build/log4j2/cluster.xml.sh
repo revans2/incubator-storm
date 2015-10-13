@@ -61,6 +61,17 @@ cat <<XML
         </Policies>
         <DefaultRolloverStrategy max="9"/>
     </RollingFile>
+    <RollingFile name="SCHEDULER"
+                 fileName="\${sys:storm.log.dir}/scheduler.log"
+                 filePattern="\${sys:storm.log.dir}/scheduler.log.%i.gz">
+        <PatternLayout>
+            <pattern>\${pattern}</pattern>
+        </PatternLayout>
+        <Policies>
+            <SizeBasedTriggeringPolicy size="100 MB"/> <!-- Or every 100 MB -->
+        </Policies>
+        <DefaultRolloverStrategy max="9"/>
+    </RollingFile>
     <Syslog name="syslog" format="RFC5424" host="${syslog_host}" port="514"
         protocol="UDP" appName="[\${sys:daemon.name}]" mdcId="mdc" includeMDC="true"
         facility="${syslog_facility}" enterpriseNumber="18060" newLine="true" exceptionPattern="%rEx{full}"
@@ -78,6 +89,10 @@ cat <<XML
     </Logger>
     <Logger name="backtype.storm.metric.LoggingMetricsConsumer" level="info">
         <AppenderRef ref="METRICS"/>
+    </Logger>
+    <Logger name="backtype.storm.scheduler" level="debug" additivity="false">
+        <AppenderRef ref="SCHEDULER"/>
+        <appender-ref ref="syslog"/>
     </Logger>
     <root level="info"> <!-- We log everything -->
         <appender-ref ref="A1"/>
