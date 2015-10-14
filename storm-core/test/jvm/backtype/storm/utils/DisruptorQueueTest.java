@@ -21,6 +21,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
 import com.lmax.disruptor.EventHandler;
+import com.lmax.disruptor.dsl.ProducerType;
 import com.lmax.disruptor.InsufficientCapacityException;
 import org.junit.Assert;
 import org.junit.Test;
@@ -200,6 +201,6 @@ public class DisruptorQueueTest extends TestCase {
     };
 
     private static DisruptorQueue createQueue(String name, int queueSize) {
-        return new DisruptorQueue(name, DisruptorQueue.ProducerType.MULTI, queueSize, 0L);
+        return new DisruptorQueue(name, ProducerType.MULTI, queueSize, 0L);
     }
 }
