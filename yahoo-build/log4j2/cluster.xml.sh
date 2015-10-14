@@ -41,7 +41,7 @@ cat <<XML
     </RollingFile>
     <RollingFile name="WEB-ACCESS"
                  fileName="\${sys:storm.log.dir}/access-web.log"
-                 filePattern="\${sys:storm.log.dir}/access-web.log.%i.gz">
+                 filePattern="\${sys:storm.log.dir}/access-web-\${sys:daemon.name}.log.%i.gz">
         <PatternLayout>
             <pattern>\${pattern}</pattern>
         </PatternLayout>
