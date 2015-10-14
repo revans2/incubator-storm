@@ -26,6 +26,7 @@
   (:import [java.util ArrayList HashMap])
   (:import [backtype.storm.grouping LoadMapping])
   (:import [backtype.storm.utils DisruptorQueue Utils TransferDrainer ThriftTopologyUtils])
+  (:import [backtype.storm.utils WorkerBackpressureThread])
   (:import [backtype.storm.messaging TransportFactory])
   (:import [backtype.storm.messaging TaskMessage IContext IConnection ConnectionWithStatus ConnectionWithStatus$Status])
   (:import [backtype.storm.daemon Shutdownable])
@@ -121,12 +122,43 @@
   (fast-list-iter [[task tuple :as pair] tuple-batch]
     (.serialize serializer tuple)))
 
+(defn- mk-backpressure-handler [executors]
+  "make a handler that checks and updates worker's backpressure flag"
+  (disruptor/worker-backpressure-handler
+    (fn [worker]
+      (let [storm-id (:storm-id worker)
+            assignment-id (:assignment-id worker)
+            port (:port worker)
+            storm-cluster-state (:storm-cluster-state worker)
+            prev-backpressure-flag @(:backpressure worker)]
+        (when executors
+          (reset! (:backpressure worker)
+                  (or @(:transfer-backpressure worker)
+                      (reduce #(or %1 %2) (map #(.get-backpressure-flag %1) executors)))))
+        ;; update the worker's backpressure flag to zookeeper only when it has changed
+        (log-debug "BP " @(:backpressure worker) " WAS " prev-backpressure-flag)
+        (when (not= prev-backpressure-flag @(:backpressure worker))
+          (.worker-backpressure! storm-cluster-state storm-id assignment-id port @(:backpressure worker)))
+        ))))
+
+(defn- mk-disruptor-backpressure-handler [worker]
+  "make a handler for the worker's send disruptor queue to
+  check highWaterMark and lowWaterMark for backpressure"
+  (disruptor/disruptor-backpressure-handler
+    (fn []
+      (reset! (:transfer-backpressure worker) true)
+      (WorkerBackpressureThread/notifyBackpressureChecker (:backpressure-trigger worker)))
+    (fn []
+      (reset! (:transfer-backpressure worker) false)
+      (WorkerBackpressureThread/notifyBackpressureChecker (:backpressure-trigger worker)))))
+
 (defn mk-transfer-fn [worker]
   (let [local-tasks (-> worker :task-ids set)
         local-transfer (:transfer-local-fn worker)
         ^DisruptorQueue transfer-queue (:transfer-queue worker)
         task->node+port (:cached-task->node+port worker)
         try-serialize-local ((:storm-conf worker) TOPOLOGY-TESTING-ALWAYS-TRY-SERIALIZE)
+
         transfer-fn
           (fn [^KryoTupleSerializer serializer tuple-batch]
             (let [local (ArrayList.)
@@ -144,9 +176,9 @@
                         (.add remote (TaskMessage. task (.serialize serializer tuple)))
                         (log-warn "Can't transfer tuple - task value is nil. tuple type: " (pr-str (type tuple)) " and information: " (pr-str tuple)))
                      ))))
-                (local-transfer local)
-                (disruptor/publish transfer-queue remoteMap)
-              ))]
+
+              (when (not (.isEmpty local)) (local-transfer local))
+              (when (not (.isEmpty remoteMap)) (disruptor/publish transfer-queue remoteMap))))]
     (if try-serialize-local
       (do 
         (log-warn "WILL TRY TO SERIALIZE ALL TUPLES (Turn off " TOPOLOGY-TESTING-ALWAYS-TRY-SERIALIZE " for production)")
@@ -263,6 +295,10 @@
       :transfer-fn (mk-transfer-fn <>)
       :load-mapping (LoadMapping.)
       :assignment-versions assignment-versions
+      :backpressure (atom false) ;; whether this worker is going slow
+      :transfer-backpressure (atom false) ;; if the transfer queue is backed-up
+      :backpressure-trigger (atom false) ;; a trigger for synchronization with executors
+      :throttle-on (atom false) ;; whether throttle is activated for spouts
       )))
 
 (defn- endpoint->string [[node port]]
@@ -564,7 +600,23 @@
 
         transfer-tuples (mk-transfer-tuples-handler worker)
         
-        transfer-thread (disruptor/consume-loop* (:transfer-queue worker) transfer-tuples)                                       
+        transfer-thread (disruptor/consume-loop* (:transfer-queue worker) transfer-tuples)               
+
+        disruptor-handler (mk-disruptor-backpressure-handler worker)
+        _ (.registerBackpressureCallback (:transfer-queue worker) disruptor-handler)
+        _ (-> (.setHighWaterMark (:transfer-queue worker) ((:storm-conf worker) BACKPRESSURE-DISRUPTOR-HIGH-WATERMARK))
+              (.setLowWaterMark ((:storm-conf worker) BACKPRESSURE-DISRUPTOR-LOW-WATERMARK))
+              (.setEnableBackpressure ((:storm-conf worker) TOPOLOGY-BACKPRESSURE-ENABLE)))
+        backpressure-handler (mk-backpressure-handler @executors)        
+        backpressure-thread (WorkerBackpressureThread. (:backpressure-trigger worker) worker backpressure-handler)
+        _ (if ((:storm-conf worker) TOPOLOGY-BACKPRESSURE-ENABLE) 
+            (.start backpressure-thread))
+        callback (fn cb [& ignored]
+                   (let [throttle-on (.topology-backpressure storm-cluster-state storm-id cb)]
+                     (reset! (:throttle-on worker) throttle-on)))
+        _ (if ((:storm-conf worker) TOPOLOGY-BACKPRESSURE-ENABLE)
+            (.topology-backpressure storm-cluster-state storm-id callback))
+
         shutdown* (fn []
                     (log-message "Shutting down worker " storm-id " " assignment-id " " port)
                     (doseq [[_ socket] @(:cached-node+port->socket worker)]
@@ -588,6 +640,9 @@
                     (.interrupt transfer-thread)
                     (.join transfer-thread)
                     (log-message "Shut down transfer thread")
+                    (.interrupt backpressure-thread)
+                    (.join backpressure-thread)
+                    (log-message "Shut down backpressure thread")
                     (cancel-timer (:heartbeat-timer worker))
                     (cancel-timer (:refresh-connections-timer worker))
                     (cancel-timer (:refresh-credentials-timer worker))
@@ -633,7 +688,13 @@
         check-log-config-changed (fn []
                                   (let [log-config (.topology-log-config (:storm-cluster-state worker) storm-id nil)]
                                     (process-log-config-change latest-log-config original-log-levels log-config)
-                                    (establish-log-setting-callback)))]
+                                    (establish-log-setting-callback)))
+        check-throttle-changed (fn []
+                                 (let [callback (fn cb [& ignored]
+                                                 (let [throttle-on (.topology-backpressure (:storm-cluster-state worker) storm-id cb)]
+                                                   (reset! (:throttle-on worker) throttle-on)))
+                                      new-throttle-on (.topology-backpressure (:storm-cluster-state worker) storm-id callback)]
+                                    (reset! (:throttle-on worker) new-throttle-on)))]
     (reset! original-log-levels (get-logger-levels))
     (log-message "Started with log levels: " @original-log-levels)
   
@@ -642,7 +703,11 @@
 
     (establish-log-setting-callback)
     (.credentials (:storm-cluster-state worker) storm-id (fn [args] (check-credentials-changed)))
-    (schedule-recurring (:refresh-credentials-timer worker) 0 (conf TASK-CREDENTIALS-POLL-SECS) check-credentials-changed)
+    (schedule-recurring (:refresh-credentials-timer worker) 0 (conf TASK-CREDENTIALS-POLL-SECS)
+                        (fn [& args]
+                          (check-credentials-changed)
+                          (if ((:storm-conf worker) TOPOLOGY-BACKPRESSURE-ENABLE)
+                            (check-throttle-changed))))
     ;; The jitter allows the clients to get the data at different times, and avoids thundering herd
     (when-not (storm-conf TOPOLOGY-DISABLE-LOADAWARE-MESSAGING)
       (schedule-recurring-with-jitter (:refresh-load-timer worker) 0 1 500 refresh-load))

@@ -74,6 +74,11 @@ public class DisruptorQueue implements IStatefulObject {
     private long _waitTimeout;
 
     private final QueueMetrics _metrics;
+    private DisruptorBackpressureCallback _cb = null;
+    private int _highWaterMark = 0;
+    private int _lowWaterMark = 0;
+    private boolean _enableBackpressure = false;
+    private volatile boolean _throttleOn = false;
 
     public DisruptorQueue(String queueName, ProducerType type, int size, long timeout) {
         this._waitTimeout = timeout;
@@ -154,6 +159,16 @@ public class DisruptorQueue implements IStatefulObject {
                     throw new InterruptedException("Disruptor processing interrupted");
                 } else {
                     handler.onEvent(o, curr, curr == cursor);
+                    if (_enableBackpressure && _cb != null && _metrics.writePos() - curr <= _lowWaterMark) {
+                        try {
+                            if (_throttleOn) {
+                                _throttleOn = false;
+                                _cb.lowWaterMark();
+                            }
+                        } catch (Exception e) {
+                            throw new RuntimeException("Exception during calling lowWaterMark callback!");
+                        }
+                    }
                 }
             } catch (Exception e) {
                 throw new RuntimeException(e);
@@ -161,6 +176,10 @@ public class DisruptorQueue implements IStatefulObject {
         }
         //TODO: only set this if the consumer cursor has changed?
         _consumer.set(cursor);
+    }
+
+    public void registerBackpressureCallback(DisruptorBackpressureCallback cb) {
+        this._cb = cb;
     }
 
     /*
@@ -213,6 +232,16 @@ public class DisruptorQueue implements IStatefulObject {
         m.setObject(obj);
         _buffer.publish(id);
         _metrics.notifyArrivals(1);
+        if (_enableBackpressure && _cb != null && _metrics.population() >= _highWaterMark) {
+           try {
+               if (!_throttleOn) {
+                   _cb.highWaterMark();
+                   _throttleOn = true;
+               }
+           } catch (Exception e) {
+               throw new RuntimeException("Exception during calling highWaterMark callback!");
+           }
+        }
     }
 
     public void consumerStarted() {
@@ -226,6 +255,29 @@ public class DisruptorQueue implements IStatefulObject {
     @Override
     public Object getState() {
         return _metrics.getState();
+    }
+
+    public DisruptorQueue setHighWaterMark(double highWaterMark) {
+        this._highWaterMark = (int)(_metrics.capacity() * highWaterMark);
+        return this;
+    }
+
+    public DisruptorQueue setLowWaterMark(double lowWaterMark) {
+        this._lowWaterMark = (int)(_metrics.capacity() * lowWaterMark);
+        return this;
+    }
+
+    public int getHighWaterMark() {
+        return this._highWaterMark;
+    }
+
+    public int getLowWaterMark() {
+        return this._lowWaterMark;
+    }
+
+    public DisruptorQueue setEnableBackpressure(boolean enableBackpressure) {
+        this._enableBackpressure = enableBackpressure;
+        return this;
     }
 
     public static class ObjectEventFactory implements EventFactory<MutableObject> {

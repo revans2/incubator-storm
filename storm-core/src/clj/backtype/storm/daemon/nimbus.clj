@@ -1341,6 +1341,7 @@
               (.set-credentials! storm-cluster-state storm-id credentials total-storm-conf)
               (setup-storm-code conf storm-id uploadedJarLocation total-storm-conf topology (:blob-store nimbus))
               (.setup-heartbeats! storm-cluster-state storm-id)
+              (.setup-backpressure! storm-cluster-state storm-id)
               (let [thrift-status->kw-status {TopologyInitialStatus/INACTIVE :inactive
                                               TopologyInitialStatus/ACTIVE :active}]
                 (start-storm nimbus storm-name storm-id (thrift-status->kw-status (.get_initial_status submitOptions))))
