@@ -29,11 +29,14 @@ import backtype.storm.generated.GlobalStreamId;
 import backtype.storm.generated.Grouping;
 import backtype.storm.generated.SpoutSpec;
 import backtype.storm.generated.StormTopology;
-import backtype.storm.scheduler.resource.RAS_Component;
+import backtype.storm.scheduler.resource.Component;
+import backtype.storm.scheduler.resource.ResourceUtils;
 import backtype.storm.scheduler.resource.strategies.IStrategy;
 import backtype.storm.utils.Utils;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 
 public class TopologyDetails {
     String topologyId;
@@ -109,24 +112,22 @@ public class TopologyDetails {
         if (this.topology.get_bolts() != null) {
             for (Map.Entry<String, Bolt> bolt : this.topology.get_bolts().entrySet()) {
                 //the json_conf is populated by TopologyBuilder (e.g. boltDeclarer.setMemoryLoad)
-                Map<String, Double> topology_resources = backtype.storm.scheduler.resource.Utils.parseResources(bolt
+                Map<String, Double> topology_resources = ResourceUtils.parseResources(bolt
                         .getValue().get_common().get_json_conf());
-                backtype.storm.scheduler.resource.Utils.checkIntialization(topology_resources, bolt.getValue().toString(), this.topologyConf);
+                ResourceUtils.checkIntialization(topology_resources, bolt.getValue().toString(), this.topologyConf);
                 for (Map.Entry<ExecutorDetails, String> anExecutorToComponent : executorToComponent.entrySet()) {
                     if (bolt.getKey().equals(anExecutorToComponent.getValue())) {
                         _resourceList.put(anExecutorToComponent.getKey(), topology_resources);
                     }
                 }
             }
-        } else {
-            LOG.warn("Topology " + topologyId + " does not seem to have any bolts!");
         }
         // Extract spout memory info
         if (this.topology.get_spouts() != null) {
             for (Map.Entry<String, SpoutSpec> spout : this.topology.get_spouts().entrySet()) {
-                Map<String, Double> topology_resources = backtype.storm.scheduler.resource.Utils.parseResources(spout
+                Map<String, Double> topology_resources = ResourceUtils.parseResources(spout
                         .getValue().get_common().get_json_conf());
-                backtype.storm.scheduler.resource.Utils.checkIntialization(topology_resources, spout.getValue().toString(), this.topologyConf);
+                ResourceUtils.checkIntialization(topology_resources, spout.getValue().toString(), this.topologyConf);
                 for (Map.Entry<ExecutorDetails, String> anExecutorToComponent : executorToComponent.entrySet()) {
                     if (spout.getKey().equals(anExecutorToComponent.getValue())) {
                         _resourceList.put(anExecutorToComponent.getKey(), topology_resources);
@@ -166,11 +167,11 @@ public class TopologyDetails {
      *       We reserve the right to change them.
      *
      *  Returns a representation of the non-system components of the topology graph
-     *  Each RAS_Component object in the returning map is populated with the list of its
+     *  Each Component object in the returning map is populated with the list of its
      *  parents, children and execs assigned to that component.
      */
-    public Map<String, RAS_Component> getRAS_Components() {
-        Map<String, RAS_Component> all_comp = new HashMap<String, RAS_Component>();
+    public Map<String, Component> getComponents() {
+        Map<String, Component> all_comp = new HashMap<String, Component>();
 
         StormTopology storm_topo = this.topology;
         // spouts
@@ -178,16 +179,16 @@ public class TopologyDetails {
             for (Map.Entry<String, SpoutSpec> spoutEntry : storm_topo
                     .get_spouts().entrySet()) {
                 if (!Utils.isSystemId(spoutEntry.getKey())) {
-                    RAS_Component newComp = null;
+                    Component newComp = null;
                     if (all_comp.containsKey(spoutEntry.getKey())) {
                         newComp = all_comp.get(spoutEntry.getKey());
                         newComp.execs = componentToExecs(newComp.id);
                     } else {
-                        newComp = new RAS_Component(spoutEntry.getKey());
+                        newComp = new Component(spoutEntry.getKey());
                         newComp.execs = componentToExecs(newComp.id);
                         all_comp.put(spoutEntry.getKey(), newComp);
                     }
-                    newComp.type = RAS_Component.ComponentType.SPOUT;
+                    newComp.type = Component.ComponentType.SPOUT;
 
                     for (Map.Entry<GlobalStreamId, Grouping> spoutInput : spoutEntry
                             .getValue().get_common().get_inputs()
@@ -198,7 +199,7 @@ public class TopologyDetails {
                                 .getKey().get_componentId())) {
                             all_comp.put(spoutInput.getKey()
                                             .get_componentId(),
-                                    new RAS_Component(spoutInput.getKey()
+                                    new Component(spoutInput.getKey()
                                             .get_componentId()));
                         }
                         all_comp.get(spoutInput.getKey()
@@ -213,16 +214,16 @@ public class TopologyDetails {
             for (Map.Entry<String, Bolt> boltEntry : storm_topo.get_bolts()
                     .entrySet()) {
                 if (!Utils.isSystemId(boltEntry.getKey())) {
-                    RAS_Component newComp = null;
+                    Component newComp = null;
                     if (all_comp.containsKey(boltEntry.getKey())) {
                         newComp = all_comp.get(boltEntry.getKey());
                         newComp.execs = componentToExecs(newComp.id);
                     } else {
-                        newComp = new RAS_Component(boltEntry.getKey());
+                        newComp = new Component(boltEntry.getKey());
                         newComp.execs = componentToExecs(newComp.id);
                         all_comp.put(boltEntry.getKey(), newComp);
                     }
-                    newComp.type = RAS_Component.ComponentType.BOLT;
+                    newComp.type = Component.ComponentType.BOLT;
 
                     for (Map.Entry<GlobalStreamId, Grouping> boltInput : boltEntry
                             .getValue().get_common().get_inputs()
@@ -233,7 +234,7 @@ public class TopologyDetails {
                                 .getKey().get_componentId())) {
                             all_comp.put(boltInput.getKey()
                                             .get_componentId(),
-                                    new RAS_Component(boltInput.getKey()
+                                    new Component(boltInput.getKey()
                                             .get_componentId()));
                         }
                         all_comp.get(boltInput.getKey()
@@ -300,7 +301,6 @@ public class TopologyDetails {
             return getOffHeapMemoryRequirement(exec)
                     + getOnHeapMemoryRequirement(exec);
         }
-        LOG.info("cannot find {}", exec);
         return null;
     }
 

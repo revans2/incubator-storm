@@ -25,6 +25,7 @@ import java.util.regex.Pattern;
 import java.util.HashMap;
 import java.util.Map;
 
+import backtype.storm.scheduler.resource.ResourceUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.thrift.TException;
 import org.json.simple.JSONValue;
@@ -462,14 +463,14 @@ public class StormSubmitter {
 
     private static double getMaxExecutorMemoryUsageForTopo(StormTopology topology, Map topologyConf) {
         double largestMemoryOperator = 0.0;
-        for(Map<String, Double> entry : backtype.storm.scheduler.resource.Utils.getBoltsResources(topology, topologyConf).values()) {
+        for(Map<String, Double> entry : ResourceUtils.getBoltsResources(topology, topologyConf).values()) {
             double memoryRequirement = entry.get(Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB)
                     + entry.get(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB);
             if(memoryRequirement > largestMemoryOperator) {
                 largestMemoryOperator = memoryRequirement;
             }
         }
-        for(Map<String, Double> entry : backtype.storm.scheduler.resource.Utils.getSpoutsResources(topology, topologyConf).values()) {
+        for(Map<String, Double> entry : ResourceUtils.getSpoutsResources(topology, topologyConf).values()) {
             double memoryRequirement = entry.get(Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB)
                     + entry.get(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB);
             if(memoryRequirement > largestMemoryOperator) {

@@ -17,31 +17,25 @@
  */
 package backtype.storm.scheduler;
 
-import backtype.storm.scheduler.resource.RAS_Component;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
-import backtype.storm.Config;
+
+import backtype.storm.scheduler.resource.Component;
 
 public class Topologies {
     Map<String, TopologyDetails> topologies;
     Map<String, String> nameToId;
-    Map<String, Map<String, RAS_Component>> _allRAS_Components;
+    Map<String, Map<String, Component>> _allComponents;
 
-    private static final Logger LOG = LoggerFactory.getLogger(Topologies.class);
-
-
-    public Topologies(Map<String, TopologyDetails> _topologies) {
-        if (_topologies == null) _topologies = new HashMap<String, TopologyDetails>();
-        this.topologies = new HashMap<String, TopologyDetails>(_topologies.size());
-        this.topologies.putAll(_topologies);
-        this.nameToId = new HashMap<String, String>(_topologies.size());
-
-        for (String topologyId : _topologies.keySet()) {
-            TopologyDetails topology = _topologies.get(topologyId);
+    public Topologies(Map<String, TopologyDetails> topologies) {
+        if(topologies==null) topologies = new HashMap();
+        this.topologies = new HashMap<String, TopologyDetails>(topologies.size());
+        this.topologies.putAll(topologies);
+        this.nameToId = new HashMap<String, String>(topologies.size());
+        
+        for (String topologyId : topologies.keySet()) {
+            TopologyDetails topology = topologies.get(topologyId);
             this.nameToId.put(topology.getName(), topologyId);
         }
     }
@@ -68,13 +62,13 @@ public class Topologies {
      * Note: The public API relevant to resource aware scheduling is unstable as of May 2015.
      *       We reserve the right to change them.
      */
-    public Map<String, Map<String, RAS_Component>> getAllRAS_Components() {
-        if (_allRAS_Components == null) {
-            _allRAS_Components = new HashMap<>();
+    public Map<String, Map<String, Component>> getAllComponents() {
+        if (_allComponents == null) {
+            _allComponents = new HashMap<>();
             for (Map.Entry<String, TopologyDetails> entry : this.topologies.entrySet()) {
-                _allRAS_Components.put(entry.getKey(), entry.getValue().getRAS_Components());
+                _allComponents.put(entry.getKey(), entry.getValue().getComponents());
             }
         }
-        return _allRAS_Components;
+        return _allComponents;
     }
 }

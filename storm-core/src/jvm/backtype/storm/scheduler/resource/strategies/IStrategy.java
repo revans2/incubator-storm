@@ -27,7 +27,11 @@ import backtype.storm.scheduler.TopologyDetails;
 import backtype.storm.scheduler.WorkerSlot;
 import backtype.storm.scheduler.resource.RAS_Node;
 
+/**
+ * An interface to for implementing different scheduling strategies for the resource aware scheduling
+ * In the future stategies will be pluggable
+ */
 public interface IStrategy {
 
-	public Map<WorkerSlot, Collection<ExecutorDetails>> schedule(TopologyDetails td);
+    public Map<WorkerSlot, Collection<ExecutorDetails>> schedule(TopologyDetails td);
 }
