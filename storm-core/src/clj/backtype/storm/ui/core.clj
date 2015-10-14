@@ -23,7 +23,7 @@
   (:use [backtype.storm config util log converter stats])
   (:use [backtype.storm.ui helpers])
   (:use [backtype.storm.daemon [common :only [ACKER-COMPONENT-ID ACKER-INIT-STREAM-ID ACKER-ACK-STREAM-ID
-                                              ACKER-FAIL-STREAM-ID system-id? mk-authorization-handler
+                                              ACKER-FAIL-STREAM-ID mk-authorization-handler
                                               start-metrics-reporters]]])
   (:use [clojure.string :only [blank? lower-case trim split]])
   (:use [clojure.set :only [intersection]])

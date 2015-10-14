@@ -23,9 +23,9 @@
             ComponentPageInfo ComponentType BoltAggregateStats
             ExecutorAggregateStats SpecificAggregateStats
             SpoutAggregateStats TopologyPageInfo TopologyStats])
+  (:import [backtype.storm.utils Utils])
   (:use [backtype.storm util log])
-  (:use [clojure.math.numeric-tower :only [ceil]])
-  (:use [backtype.storm.daemon [common :only [system-id?]]]))
+  (:use [clojure.math.numeric-tower :only [ceil]]))
 
 ;;TODO: consider replacing this with some sort of RRD
 
@@ -396,7 +396,7 @@
   [include-sys?]
   (if include-sys?
     (fn [_] true)
-    (fn [stream] (and (string? stream) (not (system-id? stream))))))
+    (fn [stream] (and (string? stream) (not (Utils/isSystemId stream))))))
 
 (defn mk-include-sys-filter
   "Returns a function that includes or excludes map entries whose keys are
@@ -888,7 +888,7 @@
    (distinct (for [[[start end :as executor] [host port]] exec->host+port
          :let [id (task->component start)]
          :when (and (or (nil? comp-id) (= comp-id id))
-                 (or include-sys? (not (system-id? id))))]
+                 (or include-sys? (not (Utils/isSystemId id))))]
      {:host host
       :port port}))))
 
@@ -898,7 +898,7 @@
          :let [beat (beats executor)
                id (task->component start)]
          :when (and (or (nil? comp-id) (= comp-id id))
-                    (or include-sys? (not (system-id? id))))]
+                    (or include-sys? (not (Utils/isSystemId id))))]
      {:exec-id executor
       :comp-id id
       :num-tasks (count (range start (inc end)))

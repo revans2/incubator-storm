@@ -29,9 +29,6 @@
   (:require [backtype.storm.thrift :as thrift])
   (:require [metrics.reporters.jmx :as jmx]))
 
-(defn system-id? [id]
-  (Utils/isSystemId id))
-
 (defn start-metrics-reporters []
   (jmx/start (jmx/reporter {})))
 
@@ -116,12 +113,12 @@
     (doseq [f thrift/STORM-TOPOLOGY-FIELDS
             :let [obj-map (.getFieldValue topology f)]]
       (doseq [id (keys obj-map)]
-        (if (system-id? id)
+        (if (Utils/isSystemId id)
           (throw (InvalidTopologyException.
                   (str id " is not a valid component id")))))
       (doseq [obj (vals obj-map)
               id (-> obj .get_common .get_streams keys)]
-        (if (system-id? id)
+        (if (Utils/isSystemId id)
           (throw (InvalidTopologyException.
                   (str id " is not a valid stream id"))))))
     ))
