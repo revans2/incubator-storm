@@ -23,6 +23,7 @@
   (:use [backtype.storm.util :only [clojurify-structure uuid defnk to-json url-encode not-nil?]])
   (:use [clj-time coerce format])
   (:import [backtype.storm.generated ExecutorInfo ExecutorSummary])
+  (:import [backtype.storm.logging.filters AccessLoggingFilter])
   (:import [java.util EnumSet])
   (:import [org.eclipse.jetty.server Server]
            [org.eclipse.jetty.server.nio SelectChannelConnector]
@@ -173,6 +174,9 @@
     (.setInitParameter CrossOriginFilter/ACCESS_CONTROL_ALLOW_ORIGIN_HEADER "*")
     ))
 
+(defn mk-access-logging-filter-handler []
+  (org.eclipse.jetty.servlet.FilterHolder. (AccessLoggingFilter.)))
+
 (defn config-filter [server handler filters-confs]
   (if filters-confs
     (let [servlet-holder (ServletHolder.
@@ -187,6 +191,7 @@
                                 (.setName (or filter-name filter-class))
                                 (.setInitParameters (or filter-params {})))]
             (.addFilter context filter-holder "/*" FilterMapping/ALL))))
+      (.addFilter context (mk-access-logging-filter-handler) "/*" (EnumSet/allOf DispatcherType))
       (.setHandler server context))))
 
 (defn ring-response-from-exception [ex]

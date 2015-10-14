@@ -39,14 +39,25 @@ cat <<XML
         </Policies>
         <DefaultRolloverStrategy max="9"/>
     </RollingFile>
-    <RollingFile name="ACCESS"
-                 fileName="\${sys:storm.log.dir}/access.log"
-                 filePattern="\${sys:storm.log.dir}/access.log.%i.gz">
+    <RollingFile name="WEB-ACCESS"
+                 fileName="\${sys:storm.log.dir}/access-web.log"
+                 filePattern="\${sys:storm.log.dir}/access-web.log.%i.gz">
         <PatternLayout>
             <pattern>\${pattern}</pattern>
         </PatternLayout>
         <Policies>
             <SizeBasedTriggeringPolicy size="100 MB"/> <!-- Or every 100 MB -->
+        </Policies>
+        <DefaultRolloverStrategy max="9"/>
+    </RollingFile>
+    <RollingFile name="THRIFT-ACCESS"
+                 fileName="\${sys:storm.log.dir}/access-\${sys:logfile.name}"
+                 filePattern="\${sys:storm.log.dir}/access-\${sys:logfile.name}.%i.gz">
+        <PatternLayout>
+           <pattern>\${pattern}</pattern>
+        </PatternLayout>
+        <Policies>
+           <SizeBasedTriggeringPolicy size="100 MB"/> <!-- Or every 100 MB -->
         </Policies>
         <DefaultRolloverStrategy max="9"/>
     </RollingFile>
@@ -84,8 +95,13 @@ cat <<XML
 </appenders>
 <loggers>
 
-    <Logger name="backtype.storm.security.auth.authorizer" level="info">
-        <AppenderRef ref="ACCESS"/>
+    <Logger name="backtype.storm.logging.filters.AccessLoggingFilter" level="info" additivity="false">
+        <AppenderRef ref="WEB-ACCESS"/>
+        <AppenderRef ref="syslog"/>
+    </Logger>
+    <Logger name="backtype.storm.logging.ThriftAccessLogger" level="info" additivity="false">
+            <AppenderRef ref="THRIFT-ACCESS"/>
+            <AppenderRef ref="syslog"/>
     </Logger>
     <Logger name="backtype.storm.metric.LoggingMetricsConsumer" level="info">
         <AppenderRef ref="METRICS"/>
