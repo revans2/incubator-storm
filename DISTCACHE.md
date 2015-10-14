@@ -36,7 +36,7 @@ that need to be cached and bind them to key strings. To achieve this, the user
 uses the "blobstore create" command of the storm executable, as follows:
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-storm blobstore create [-f|--file FILE] [-a|--acl ACL1,ACL2,...] [keyname]
+storm blobstore create [-f|--file FILE] [-a|--acl ACL1,ACL2,...] [--repl-fctr NUMBER] [keyname]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The contents come from a FILE, if provided by -f or --file option, otherwise
@@ -58,17 +58,22 @@ where:
 * a = admin access  
 * _ = ignored  
 
+The replication factor can be set to a value greater than 1 using --repl-fctr.
+
+Note: The replication right now is configurable for a hdfs blobstore but for a
+local blobstore the replication always stays at 1. For a hdfs blobstore
+the default replication is set to 3.
+
 ###### Example:  
 
-
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-storm blobstore create --file README.txt --acl o::rwa key1  
+storm blobstore create --file README.txt --acl o::rwa --repl-fctr 4 key1
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 In the above example, the *README.txt* file is added to the distributed cache.
 It can be accessed using the key string "*key1*" for any topology that needs
 it. The file is set to have read/write/admin access for others, a.k.a world
-everything.
+everything and the replication is set to 4.
 
 ###### Example:  
 
@@ -179,6 +184,18 @@ set-acl [-s ACL] KEY
 ACL is in the form [uo]:[username]:[r-][w-][a-] can be comma  separated list
 (requires admin access).
 
+### Update the replication factor for a blob
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+storm blobstore replication --update --repl-fctr 5 key1
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+### Read the replication factor of a blob
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+storm blobstore replication --read key1
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 ### Command line help
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -219,6 +236,7 @@ AccessControl blobACL = BlobStoreAclHandler.parseAccessControl(stringBlobACL);
 List<AccessControl> acls = new LinkedList<AccessControl>();
 acls.add(blobACL); // more ACLs can be added here
 SettableBlobMeta settableBlobMeta = new SettableBlobMeta(acls);
+settableBlobMeta.set_replication_factor(4); // Here we can set the replication factor
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The settableBlobMeta object is what we need to create a blob in the next step. 
@@ -262,6 +280,16 @@ updateAcls.add(updateAcl);
 modifiedSettableBlobMeta = new SettableBlobMeta(updateAcls);
 clientBlobStore.setBlobMeta(blobKey, modifiedSettableBlobMeta);
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+### Updating and Reading the replication of a blob
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+String blobKey = "some_key";
+BlobReplication replication = clientBlobStore.updateBlobReplication(blobKey, 5);
+int replication_factor = replication.get_replication();
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Note: The replication factor gets updated and reflected only for hdfs blobstore
 
 ### Reading a blob
 
