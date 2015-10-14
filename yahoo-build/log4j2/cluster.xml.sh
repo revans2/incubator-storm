@@ -40,7 +40,7 @@ cat <<XML
         <DefaultRolloverStrategy max="9"/>
     </RollingFile>
     <RollingFile name="WEB-ACCESS"
-                 fileName="\${sys:storm.log.dir}/access-web.log"
+                 fileName="\${sys:storm.log.dir}/access-web-\${sys:daemon.name}.log"
                  filePattern="\${sys:storm.log.dir}/access-web-\${sys:daemon.name}.log.%i.gz">
         <PatternLayout>
             <pattern>\${pattern}</pattern>
