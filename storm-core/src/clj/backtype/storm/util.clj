@@ -33,6 +33,7 @@
   (:import [java.nio.file.attribute FileAttribute])
   (:import [org.apache.commons.exec DefaultExecutor CommandLine])
   (:import [org.apache.commons.io FileUtils])
+  (:import [backtype.storm.logging ThriftAccessLogger])
   (:import [org.apache.commons.exec ExecuteException])
   (:import [org.json.simple JSONValue])
   (:import [org.yaml.snakeyaml Yaml]
@@ -1096,3 +1097,7 @@
     (assoc coll k (apply str (repeat (count (coll k)) "#")))
     coll))
 
+(defn log-thrift-access [request-id remoteAddress principal operation]
+  (doto
+    (ThriftAccessLogger.)
+    (.log (str "Request ID: " request-id " access from: " remoteAddress " principal: " principal " operation: " operation))))
