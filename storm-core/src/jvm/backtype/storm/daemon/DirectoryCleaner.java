@@ -45,9 +45,9 @@ import org.slf4j.LoggerFactory;
 public class DirectoryCleaner {
     private static final Logger LOG = LoggerFactory.getLogger(DirectoryCleaner.class);
     // used to recognize the pattern of active log files, we may remove the "current" from this list
-    private static final Pattern active_log_pattern = Pattern.compile(".*\\.(log|err|out|current|yaml|pid)$");
+    private static final Pattern ACTIVE_LOG_PATTERN = Pattern.compile(".*\\.(log|err|out|current|yaml|pid)$");
     // used to recognize the pattern of some meta files in a worker log directory
-    private static Pattern meta_log_pattern = Pattern.compile(".*\\.(yaml|pid)$");
+    private static final Pattern META_LOG_PATTERN= Pattern.compile(".*\\.(yaml|pid)$");
 
     // not defining this as static is to allow for mocking in tests
     public DirectoryStream<Path> getStreamForDirectory(File dir) throws IOException {
@@ -104,16 +104,16 @@ public class DirectoryCleaner {
                 for (Path path : stream) {
                     File file = path.toFile();
                     if (for_per_dir) {
-                        if (active_log_pattern.matcher(file.getName()).matches()) {
+                        if (ACTIVE_LOG_PATTERN.matcher(file.getName()).matches()) {
                             continue; // skip active log files
                         }
                     } else { // for global cleanup
                         if (active_dirs.contains(dir.getCanonicalPath())) { // for an active worker's dir, make sure for the last "/"
-                            if (active_log_pattern.matcher(file.getName()).matches()) {
+                            if (ACTIVE_LOG_PATTERN.matcher(file.getName()).matches()) {
                                 continue; // skip active log files
                             }
                         } else {
-                            if (meta_log_pattern.matcher(file.getName()).matches()) {
+                            if (META_LOG_PATTERN.matcher(file.getName()).matches()) {
                                 continue; // skip yaml and pid files
                             }
                         }

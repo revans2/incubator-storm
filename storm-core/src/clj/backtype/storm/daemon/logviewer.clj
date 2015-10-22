@@ -198,13 +198,13 @@
   (reduce #(+ %1 (.length %2)) 0 files))
 
 (defn per-workerdir-cleanup
-  "Delete the oldest files in overloaded worker log dir"
+  "Delete the oldest files in each overloaded worker log dir"
   [^File root-dir size ^DirectoryCleaner cleaner]
   (dofor [worker-dir (get-all-worker-dirs root-dir)]
     (.deleteOldestWhileTooLarge cleaner (ArrayList. [worker-dir]) size true nil)))
 
 (defn global-log-cleanup
-  "Delete the oldest files in overloaded worker log dir"
+  "Delete the oldest files in overloaded worker-artifacts globally"
   [^File root-dir size ^DirectoryCleaner cleaner]
   (let [worker-dirs (ArrayList. (get-all-worker-dirs root-dir))
         alive-worker-dirs (HashSet. (get-alive-worker-dirs *STORM-CONF* root-dir))]
