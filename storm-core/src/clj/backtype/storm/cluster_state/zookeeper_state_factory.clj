@@ -22,13 +22,18 @@
   (:gen-class
    :implements [backtype.storm.cluster.ClusterStateFactory]))
 
+(defn is-nimbus?
+  []
+  (= (System/getProperty "daemon.name") "nimbus"))
+
 (defn -mkState [this conf auth-conf acls]
-  (let [zk (zk/mk-client conf (conf STORM-ZOOKEEPER-SERVERS) (conf STORM-ZOOKEEPER-PORT) :auth-conf auth-conf)]
-    (zk/mkdirs zk (conf STORM-ZOOKEEPER-ROOT) acls)
-    (.close zk))
+  (let [zk-writer (zk/mk-client conf (conf STORM-ZOOKEEPER-SERVERS) (conf STORM-ZOOKEEPER-PORT) :auth-conf auth-conf)]
+    (zk/mkdirs zk-writer (conf STORM-ZOOKEEPER-ROOT) acls)
+    (.close zk-writer))
   (let [callbacks (atom {})
+
         active (atom true)
-        zk (zk/mk-client conf
+        zk-writer (zk/mk-client conf
                          (conf STORM-ZOOKEEPER-SERVERS)
                          (conf STORM-ZOOKEEPER-PORT)
                          :auth-conf auth-conf
@@ -36,10 +41,24 @@
                          :watcher (fn [state type path]
                                     (when @active
                                       (when-not (= :connected state)
-                                        (log-warn "Received event " state ":" type ":" path " with disconnected Zookeeper."))
+                                        (log-warn "Received event " state ":" type ":" path " with disconnected Writer Zookeeper."))
                                       (when-not (= :none type)
                                         (doseq [callback (vals @callbacks)]
-                                          (callback type path))))))]
+                                          (callback type path))))))
+        zk-reader (if (is-nimbus?)
+                    (zk/mk-client conf
+                        (conf STORM-ZOOKEEPER-SERVERS)
+                        (conf STORM-ZOOKEEPER-PORT)
+                        :auth-conf auth-conf
+                        :root (conf STORM-ZOOKEEPER-ROOT)
+                        :watcher (fn [state type path]
+                                   (when @active
+                                     (when-not (= :connected state)
+                                       (log-warn "Received event " state ":" type ":" path " with disconnected Reader Zookeeper."))
+                                     (when-not (= :none type)
+                                       (doseq [callback (vals @callbacks)]
+                                         (callback type path))))))
+                    zk-writer)]
     (reify
       ClusterState
       
@@ -55,27 +74,27 @@
       
       (set_ephemeral_node
         [this path data acls]
-        (zk/mkdirs zk (parent-path path) acls)
-        (if (zk/exists zk path false)
+        (zk/mkdirs zk-writer (parent-path path) acls)
+        (if (zk/exists zk-writer path false)
           (try-cause
-           (zk/set-data zk path data) ; should verify that it's ephemeral
+           (zk/set-data zk-writer path data) ; should verify that it's ephemeral
            (catch KeeperException$NoNodeException e
              (log-warn-error e "Ephemeral node disappeared between checking for existing and setting data")
-             (zk/create-node zk path data :ephemeral acls)))
-          (zk/create-node zk path data :ephemeral acls)))
+             (zk/create-node zk-writer path data :ephemeral acls)))
+          (zk/create-node zk-writer path data :ephemeral acls)))
       
       (create_sequential
         [this path data acls]
-        (zk/create-node zk path data :sequential acls))
+        (zk/create-node zk-writer path data :sequential acls))
       
       (set_data
         [this path data acls]
         ;; note: this does not turn off any existing watches
-        (if (zk/exists zk path false)
-          (zk/set-data zk path data)
+        (if (zk/exists zk-writer path false)
+          (zk/set-data zk-writer path data)
           (do
-            (zk/mkdirs zk (parent-path path) acls)
-            (zk/create-node zk path data :persistent acls))))
+            (zk/mkdirs zk-writer (parent-path path) acls)
+            (zk/create-node zk-writer path data :persistent acls))))
       
       (set_worker_hb
         [this path data acls]
@@ -84,7 +103,7 @@
 
       (delete_node
         [this path]
-        (zk/delete-recursive zk path))
+        (zk/delete-recursive zk-writer path))
 
       (delete-worker-hb
         [this path]
@@ -92,15 +111,15 @@
 
       (get_data
         [this path watch?]
-        (zk/get-data zk path watch?))
+        (zk/get-data zk-reader path watch?))
 
       (get_data_with_version
         [this path watch?]
-        (zk/get-data-with-version zk path watch?))
+        (zk/get-data-with-version zk-reader path watch?))
 
       (get_version 
         [this path watch?]
-        (zk/get-version zk path watch?))
+        (zk/get-version zk-reader path watch?))
 
       (get_worker_hb
         [this path watch?]
@@ -108,7 +127,7 @@
 
       (get_children
         [this path watch?]
-        (zk/get-children zk path watch?))
+        (zk/get-children zk-reader path watch?))
 
       (get_worker_hb_children
         [this path watch?]
@@ -116,13 +135,14 @@
 
       (mkdirs
         [this path acls]
-        (zk/mkdirs zk path acls))
+        (zk/mkdirs zk-writer path acls))
 
       (node_exists
         [this path watch?]
-        (zk/exists-node? zk path watch?))
+        (zk/exists-node? zk-reader path watch?))
 
       (close
         [this]
         (reset! active false)
-        (.close zk)))))
+        (.close zk-writer)
+        (if (is-nimbus?) (.close zk-reader))))))
