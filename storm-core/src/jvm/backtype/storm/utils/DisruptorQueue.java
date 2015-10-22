@@ -44,6 +44,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import backtype.storm.metric.api.IStatefulObject;
+import backtype.storm.metric.internal.RateTracker;
 
 /**
  * A single consumer queue that uses the LMAX Disruptor. They key to the performance is
