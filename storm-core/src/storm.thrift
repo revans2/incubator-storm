@@ -229,6 +229,13 @@ struct TopologyInfo {
   6: required map<string, list<ErrorInfo>> errors;
 513: optional string sched_status;
 514: optional string owner;
+515: optional string scheduler; // do we need this??
+520: optional double requested_memonheap;
+521: optional double requested_memoffheap;
+522: optional double requested_cpu;
+530: optional double assigned_memonheap;
+531: optional double assigned_memoffheap;
+532: optional double assigned_cpu;
 }
 
 struct CommonAggregateStats {

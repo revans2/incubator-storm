@@ -166,6 +166,7 @@
                                  ))
      :scheduler (mk-scheduler conf inimbus)
      :id->sched-status (atom {})
+     :id->resources (atom {})
      :cred-renewers (AuthUtils/GetCredentialRenewers conf)
      :topology-history-lock (Object.)
      :topo-history-state (nimbus-topo-history-state conf)
@@ -751,7 +752,8 @@
         ;; call scheduler.schedule to schedule all the topologies
         ;; the new assignments for all the topologies are in the cluster object.
         _ (.schedule (:scheduler nimbus) topologies cluster)
-        _ (reset! (:id->sched-status nimbus) (.getStatusMap cluster))]
+        _ (reset! (:id->sched-status nimbus) (.getStatusMap cluster))
+        _ (reset! (:id->resources nimbus) (.getResourcesMap cluster))]
     (.getAssignments cluster)))
 
 (defn changed-executors [executor->node+port new-executor->node+port]
@@ -1600,6 +1602,13 @@
                                                             (extract-status-str base))]
                                                (when-let [owner (:owner base)] (.set_owner topo-summ owner))
                                                (when-let [sched-status (.get @(:id->sched-status nimbus) id)] (.set_sched_status topo-summ sched-status))
+                                               (when-let [resources (.get @(:id->resources nimbus) id)]
+                                                 (.set_requested_memonheap topo-summ (get sched-status 0))
+                                                 (.set_requested_memoffheap topo-summ (get sched-status 1))
+                                                 (.set_requested_cpu topo-summ (get sched-status 2))
+                                                 (.set_assigned_memonheap topo-summ (get sched-status 3))
+                                                 (.set_assigned_memoffheap topo-summ (get sched-status 4))
+                                                 (.set_assigned_cpu topo-summ (get sched-status 5)))
                                                topo-summ
                                           ))]
           (ClusterSummary. supervisor-summaries

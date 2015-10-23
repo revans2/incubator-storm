@@ -382,7 +382,13 @@
        "tasksTotal" (.get_num_tasks t)
        "workersTotal" (.get_num_workers t)
        "executorsTotal" (.get_num_executors t)
-       "schedulerInfo" (.get_sched_status t)})}))
+       "schedulerInfo" (.get_sched_status t)
+       "requestedMemOnHeap" (.get_requsted_memonheap t)
+       "requestedMemOffHeap" (.get_requsted_memoffheap t)
+       "requestedCpu" (.get_requsted_cpu t)
+       "assignedMemOnHeap" (.get_assigned_memonheap t)
+       "assignedMemOffHeap" (.get_assigned_memoffheap t)
+       "assignedCpu" (.get_assigned_cpu t)})}))
 
 (defn topology-stats [window stats]
   (let [times (stats-times (:emitted stats))
@@ -485,6 +491,12 @@
      "workersTotal" (.get_num_workers topo-info)
      "executorsTotal" (.get_num_executors topo-info)
      "schedulerInfo" (.get_sched_status topo-info)
+     "requestedMemOnHeap" (.get_requsted_memonheap t)
+     "requestedMemOffHeap" (.get_requsted_memoffheap t)
+     "requestedCpu" (.get_requsted_cpu t)
+     "assignedMemOnHeap" (.get_assigned_memonheap t)
+     "assignedMemOffHeap" (.get_assigned_memoffheap t)
+     "assignedCpu" (.get_assigned_cpu t)
      "topologyStats" topo-stats
      "spouts" (map (partial comp-agg-stats-json id)
                    (.get_id_to_spout_agg_stats topo-info))

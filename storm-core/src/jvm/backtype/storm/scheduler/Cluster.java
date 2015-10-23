@@ -49,11 +49,15 @@ public class Cluster {
      * key topologyId, Value: scheduler's status.
      */  
     private Map<String, String> status;
+    /**
+     * key topologyId, Value: requested and assigned resources for each topology.
+     */
+    private Map<String, Double[]> resources;
 
     /**
      * a map from hostname to supervisor id.
      */
-    private Map<String, List<String>>        hostToId;
+    private Map<String, List<String>> hostToId;
     private Map conf = null;
     
     private Set<String> blackListedHosts = new HashSet<String>();
@@ -66,6 +70,7 @@ public class Cluster {
         this.assignments = new HashMap<String, SchedulerAssignmentImpl>(assignments.size());
         this.assignments.putAll(assignments);
         this.status = new HashMap<String, String>();
+        this.resources = new HashMap<String, Double[]>();
         this.hostToId = new HashMap<String, List<String>>();
         for (String nodeId : supervisors.keySet()) {
             SupervisorDetails supervisor = supervisors.get(nodeId);
@@ -485,6 +490,14 @@ public class Cluster {
 
     public Map<String, String> getStatusMap() {
         return this.status;
+    }
+
+    public void setResources(String topologyId, Double[] resources) {
+        this.resources.put(topologyId, resources);
+    }
+
+    public Map<String, Double[]> getResourcesMap() {
+        return this.resources;
     }
 
     public INimbus getINimbus() {

@@ -66,9 +66,16 @@ public class ResourceAwareScheduler implements IScheduler {
                 if (schedulerAssignmentMap != null) {
                     try {
                         Set<String> nodesUsed = new HashSet<String>();
-                        for (Map.Entry<WorkerSlot, Collection<ExecutorDetails>> taskToWorkerEntry : schedulerAssignmentMap.entrySet()) {
-                            WorkerSlot targetSlot = taskToWorkerEntry.getKey();
-                            Collection<ExecutorDetails> execsNeedScheduling = taskToWorkerEntry.getValue();
+                        double requestedMemOnHeap = td.getTotalRequestedMemOnHeap();
+                        double requestedMemOffHeap = td.getTotalRequestedMemOffHeap();
+                        double requestedCpu = td.getTotalRequestedCpu();
+                        double assignedMemOnHeap = 0.0;
+                        double assignedMemOffHeap = 0.0;
+                        double assignedCpu = 0.0;
+                        int assignedWorkers = schedulerAssignmentMap.keySet().size();
+                        for (Map.Entry<WorkerSlot, Collection<ExecutorDetails>> workerToTasksEntry : schedulerAssignmentMap.entrySet()) {
+                            WorkerSlot targetSlot = workerToTasksEntry.getKey();
+                            Collection<ExecutorDetails> execsNeedScheduling = workerToTasksEntry.getValue();
                             RAS_Node targetNode = RAStrategy.idToNode(targetSlot.getNodeId());
                             targetNode.assign(targetSlot, td, execsNeedScheduling, cluster);
                             LOG.debug("ASSIGNMENT    TOPOLOGY: {}  TASKS: {} To Node: {} on Slot: {}",
@@ -76,17 +83,24 @@ public class ResourceAwareScheduler implements IScheduler {
                             if (!nodesUsed.contains(targetNode.getId())) {
                                 nodesUsed.add(targetNode.getId());
                             }
+                            assignedMemOnHeap += targetSlot.getAllocatedMemOnHeap();
+                            assignedMemOffHeap += targetSlot.getAllocatedMemOffHeap();
+                            assignedCpu += targetSlot.getAllocatedCpu();
                         }
-                        LOG.debug("Topology: {} assigned to {} nodes on {} workers", td.getId(), nodesUsed.size(), schedulerAssignmentMap.keySet().size());
+                        LOG.debug("Topology: {} assigned to {} nodes on {} workers", td.getId(), nodesUsed.size(), assignedWorkers);
+
+                        Double[] resources = {requestedMemOnHeap, requestedMemOffHeap, requestedCpu,
+                                assignedMemOnHeap, assignedMemOffHeap, assignedCpu};
                         cluster.setStatus(td.getId(), td.getId() + " Fully Scheduled");
+                        cluster.setResources(td.getId(), resources);
                     } catch (IllegalStateException ex) {
                         LOG.error(ex.toString());
-                        LOG.error("Unsuccessfull in scheduling {}", td.getId());
-                        cluster.setStatus(td.getId(), "Unsuccessfull in scheduling " + td.getId());
+                        LOG.error("Unsuccessful in scheduling {}", td.getId());
+                        cluster.setStatus(td.getId(), "Unsuccessful in scheduling " + td.getId());
                     }
                 } else {
-                    LOG.error("Unsuccessfull in scheduling topology {}", td.getId());
-                    cluster.setStatus(td.getId(), "Unsuccessfull in scheduling " + td.getId());
+                    LOG.error("Unsuccessful in scheduling topology {}", td.getId());
+                    cluster.setStatus(td.getId(), "Unsuccessful in scheduling " + td.getId());
                 }
             } else {
                 cluster.setStatus(td.getId(), td.getId() + " Fully Scheduled");
