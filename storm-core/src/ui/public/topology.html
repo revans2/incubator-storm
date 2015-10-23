@@ -58,6 +58,12 @@
     </div>
   </div>
   <div class="row">
+    <div class="col-md-12">
+      <h2>Topology resources</h2>
+      <div id="topology-resources"></div>
+    </div>
+  </div>
+  <div class="row">
     <div id="topology-actions" class="col-md-12"></div>
   </div>
   <div class="row">
@@ -284,6 +290,7 @@ $(document).ready(function() {
         });
 
         var topologySummary = $("#topology-summary");
+        var topologyResources = $("#topology-resources");
         var topologyStats = $("#topology-stats");
         var spoutStats = $("#spout-stats");
         var boltStats = $("#bolt-stats");
@@ -302,6 +309,9 @@ $(document).ready(function() {
           });
           jsError(function() {
             topologySummary.append(Mustache.render($(template).filter("#topology-summary-template").html(),response));
+          });
+          jsError(function() {
+            topologyResources.append(Mustache.render($(template).filter("#topology-resources-template").html(),response));
           });
           jsError(function() {
             topologyActions.append(Mustache.render($(template).filter("#topology-actions-template").html(),buttonJsonData));

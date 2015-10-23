@@ -55,6 +55,12 @@
   </div>
   <div class="row">
     <div class="col-md-12">
+      <h2>Topology Resources</h2>
+      <div id="topology-resources"></div>
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-md-12">
       <h2>Supervisor Summary</h2>
       <div id="supervisor-summary"></div>
     </div>
@@ -118,6 +124,7 @@ $(document).ready(function() {
     var uiUser = $("#ui-user");
     var clusterSummary = $("#cluster-summary");
     var topologySummary = $("#topology-summary");
+    var topologyResources = $("#topology-resources");
     var supervisorSummary = $("#supervisor-summary");
     var badSupervisorSummary = $("#bad-supervisor-summary");
     var config = $("#nimbus-configuration");
@@ -150,6 +157,21 @@ $(document).ready(function() {
             ]
           });
           $('#topology-summary [data-toggle="tooltip"]').tooltip();
+        });
+      });
+    });
+    $.getJSON("/api/v1/topology/summary",function(response,status,jqXHR) {
+      $.get("/templates/index-page-template.html", function(template) {
+        jsError(function() {
+          topologySummary.append(Mustache.render($(template).filter("#topology-resources-template").html(),response));
+          //name, id, requested-memonheap, requested-memoffheap, requested-cpu, assigned-memonheap, assigned-memoffheap, assigned-cpu
+          dtAutoPage("#topology-resources-table", {
+            columnDefs: [
+              {type: "num", targets: [2, 3, 4, 5, 6, 7]},
+              {type: "time-str", targets: [1]}
+            ]
+          });
+          $('#topology-resources [data-toggle="tooltip"]').tooltip();
         });
       });
     });

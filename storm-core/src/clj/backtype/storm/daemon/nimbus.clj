@@ -1603,12 +1603,12 @@
                                                (when-let [owner (:owner base)] (.set_owner topo-summ owner))
                                                (when-let [sched-status (.get @(:id->sched-status nimbus) id)] (.set_sched_status topo-summ sched-status))
                                                (when-let [resources (.get @(:id->resources nimbus) id)]
-                                                 (.set_requested_memonheap topo-summ (get sched-status 0))
-                                                 (.set_requested_memoffheap topo-summ (get sched-status 1))
-                                                 (.set_requested_cpu topo-summ (get sched-status 2))
-                                                 (.set_assigned_memonheap topo-summ (get sched-status 3))
-                                                 (.set_assigned_memoffheap topo-summ (get sched-status 4))
-                                                 (.set_assigned_cpu topo-summ (get sched-status 5)))
+                                                 (.set_requested_memonheap topo-summ (get resources 0))
+                                                 (.set_requested_memoffheap topo-summ (get resources 1))
+                                                 (.set_requested_cpu topo-summ (get resources 2))
+                                                 (.set_assigned_memonheap topo-summ (get resources 3))
+                                                 (.set_assigned_memoffheap topo-summ (get resources 4))
+                                                 (.set_assigned_cpu topo-summ (get resources 5)))
                                                topo-summ
                                           ))]
           (ClusterSummary. supervisor-summaries
@@ -1666,6 +1666,13 @@
                            )]
             (when-let [owner (:owner base)] (.set_owner topo-info owner))
             (when-let [sched-status (.get @(:id->sched-status nimbus) storm-id)] (.set_sched_status topo-info sched-status))
+            (when-let [resources (.get @(:id->resources nimbus) storm-id)]
+              (.set_requested_memonheap topo-summ (get resources 0))
+              (.set_requested_memoffheap topo-summ (get resources 1))
+              (.set_requested_cpu topo-summ (get resources 2))
+              (.set_assigned_memonheap topo-summ (get resources 3))
+              (.set_assigned_memoffheap topo-summ (get resources 4))
+              (.set_assigned_cpu topo-summ (get resources 5)))
             topo-info
           ))
 
@@ -1695,6 +1702,13 @@
             (.set_owner topo-page-info owner))
           (when-let [sched-status (.get @(:id->sched-status nimbus) storm-id)]
             (.set_sched_status topo-page-info sched-status))
+          (when-let [resources (.get @(:id->resources nimbus) storm-id)]
+            (.set_requested_memonheap topo-summ (get resources 0))
+            (.set_requested_memoffheap topo-summ (get resources 1))
+            (.set_requested_cpu topo-summ (get resources 2))
+            (.set_assigned_memonheap topo-summ (get resources 3))
+            (.set_assigned_memoffheap topo-summ (get resources 4))
+            (.set_assigned_cpu topo-summ (get resources 5)))
           (doto topo-page-info
             (.set_name (:storm-name info))
             (.set_status (extract-status-str (:base info)))
