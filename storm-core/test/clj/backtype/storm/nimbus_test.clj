@@ -186,7 +186,7 @@
       )))
 
 (deftest test-assignment
-  (with-local-cluster [cluster :supervisors 4 :ports-per-supervisor 3 :daemon-conf {SUPERVISOR-ENABLE false TOPOLOGY-ACKER-EXECUTORS 0}]
+  (with-simulated-time-local-cluster [cluster :supervisors 4 :ports-per-supervisor 3 :daemon-conf {SUPERVISOR-ENABLE false TOPOLOGY-ACKER-EXECUTORS 0}]
     (let [state (:storm-cluster-state cluster)
           nimbus (:nimbus cluster)
           topology (thrift/mk-topology
@@ -200,6 +200,7 @@
                       "4" (thrift/mk-bolt-spec {"1" :global "2" :none} (TestPlannerBolt.) :parallelism-hint 4)}
                      )
           _ (submit-local-topology nimbus "mystorm" {TOPOLOGY-WORKERS 4} topology)
+          _ (advance-cluster-time cluster 11)
           task-info (storm-component->task-info cluster "mystorm")]
       (check-consistency cluster "mystorm")
       ;; 3 should be assigned once (if it were optimized, we'd have
@@ -210,6 +211,7 @@
       (is (= 1 (count (task-info "3"))))
       (is (= 4 (storm-num-workers state "mystorm")))
       (submit-local-topology nimbus "storm2" {TOPOLOGY-WORKERS 20} topology2)
+      (advance-cluster-time cluster 11)
       (check-consistency cluster "storm2")
       (is (= 2 (count (.assignments state nil))))
       (let [task-info (storm-component->task-info cluster "storm2")]
@@ -288,13 +290,13 @@
                        "3" (thrift/mk-bolt-spec {"2" :none} (TestPlannerBolt.))}))
           
       (submit-local-topology nimbus "noniso" {TOPOLOGY-WORKERS 4} topology)
-      (advance-cluster-time cluster 1)
+      (advance-cluster-time cluster 11)
       (is (= 4 (topology-num-nodes state "noniso")))
       (is (= 4 (storm-num-workers state "noniso")))
 
       (submit-local-topology nimbus "tester1" {TOPOLOGY-WORKERS 6} topology)
       (submit-local-topology nimbus "tester2" {TOPOLOGY-WORKERS 6} topology)
-      (advance-cluster-time cluster 1)
+      (advance-cluster-time cluster 11)
     
       (bind task-info-tester1 (storm-component->task-info cluster "tester1"))
       (bind task-info-tester2 (storm-component->task-info cluster "tester2"))
@@ -324,7 +326,7 @@
       )))
 
 (deftest test-zero-executor-or-tasks
-  (with-local-cluster [cluster :daemon-conf {SUPERVISOR-ENABLE false TOPOLOGY-ACKER-EXECUTORS 0}]
+  (with-simulated-time-local-cluster [cluster :daemon-conf {SUPERVISOR-ENABLE false TOPOLOGY-ACKER-EXECUTORS 0}]
     (let [state (:storm-cluster-state cluster)
           nimbus (:nimbus cluster)
           topology (thrift/mk-topology
@@ -332,6 +334,7 @@
                     {"2" (thrift/mk-bolt-spec {"1" :none} (TestPlannerBolt.) :parallelism-hint 1 :conf {TOPOLOGY-TASKS 2})
                      "3" (thrift/mk-bolt-spec {"2" :none} (TestPlannerBolt.) :conf {TOPOLOGY-TASKS 5})})
           _ (submit-local-topology nimbus "mystorm" {TOPOLOGY-WORKERS 4} topology)
+          _ (advance-cluster-time cluster 11)
           task-info (storm-component->task-info cluster "mystorm")]
       (check-consistency cluster "mystorm")
       (is (= 0 (count (task-info "1"))))
@@ -341,13 +344,14 @@
       )))
 
 (deftest test-executor-assignments
-  (with-local-cluster [cluster :daemon-conf {SUPERVISOR-ENABLE false TOPOLOGY-ACKER-EXECUTORS 0}]
+  (with-simulated-time-local-cluster [cluster :daemon-conf {SUPERVISOR-ENABLE false TOPOLOGY-ACKER-EXECUTORS 0}]
     (let [nimbus (:nimbus cluster)
           topology (thrift/mk-topology
                     {"1" (thrift/mk-spout-spec (TestPlannerSpout. true) :parallelism-hint 3 :conf {TOPOLOGY-TASKS 5})}
                     {"2" (thrift/mk-bolt-spec {"1" :none} (TestPlannerBolt.) :parallelism-hint 8 :conf {TOPOLOGY-TASKS 2})
                      "3" (thrift/mk-bolt-spec {"2" :none} (TestPlannerBolt.) :parallelism-hint 3)})
           _ (submit-local-topology nimbus "mystorm" {TOPOLOGY-WORKERS 4} topology)
+          _ (advance-cluster-time cluster 11)
           task-info (storm-component->task-info cluster "mystorm")
           executor-info (->> (storm-component->executor-info cluster "mystorm")
                              (map-val #(map executor-id->tasks %)))]
@@ -363,7 +367,7 @@
       )))
 
 (deftest test-over-parallelism-assignment
-  (with-local-cluster [cluster :supervisors 2 :ports-per-supervisor 5 :daemon-conf {SUPERVISOR-ENABLE false TOPOLOGY-ACKER-EXECUTORS 0}]
+  (with-simulated-time-local-cluster [cluster :supervisors 2 :ports-per-supervisor 5 :daemon-conf {SUPERVISOR-ENABLE false TOPOLOGY-ACKER-EXECUTORS 0}]
     (let [state (:storm-cluster-state cluster)
           nimbus (:nimbus cluster)
           topology (thrift/mk-topology
@@ -373,6 +377,7 @@
                       "4" (thrift/mk-bolt-spec {"1" :none} (TestPlannerBolt.) :parallelism-hint 10)}
                      )
           _ (submit-local-topology nimbus "test" {TOPOLOGY-WORKERS 7} topology)
+          _ (advance-cluster-time cluster 11)
           task-info (storm-component->task-info cluster "test")]
       (check-consistency cluster "test")
       (is (= 21 (count (task-info "1"))))
@@ -433,16 +438,19 @@
 
         ;; active topology can read
         (submit-local-topology (:nimbus cluster) "2test" {TOPOLOGY-MESSAGE-TIMEOUT-SECS 10, LOGS-USERS ["alice", (System/getProperty "user.name")]} topology)
+        (advance-cluster-time cluster 11)
         (bind storm-id2 (get-storm-id state "2test"))
         (is (not-nil? (.storm-base state storm-id2 nil)))
         (is (not-nil? (.assignment-info state storm-id2 nil)))
         ;; active topology can not read
         (submit-local-topology (:nimbus cluster) "testnoread" {TOPOLOGY-MESSAGE-TIMEOUT-SECS 10, LOGS-USERS ["alice"]} topology)
+        (advance-cluster-time cluster 11)
         (bind storm-id3 (get-storm-id state "testnoread"))
         (is (not-nil? (.storm-base state storm-id3 nil)))
         (is (not-nil? (.assignment-info state storm-id3 nil)))
         ;; active topology can read based on group
         (submit-local-topology (:nimbus cluster) "testreadgroup" {TOPOLOGY-MESSAGE-TIMEOUT-SECS 10, LOGS-GROUPS ["alice-group"]} topology)
+        (advance-cluster-time cluster 11)
         (bind storm-id4 (get-storm-id state "testreadgroup"))
         (is (not-nil? (.storm-base state storm-id4 nil)))
         (is (not-nil? (.assignment-info state storm-id4 nil)))
@@ -492,7 +500,7 @@
       (bind state (:storm-cluster-state cluster))
       (submit-local-topology (:nimbus cluster) "test" {TOPOLOGY-MESSAGE-TIMEOUT-SECS 20} topology)
       (bind storm-id (get-storm-id state "test"))
-      (advance-cluster-time cluster 5)
+      (advance-cluster-time cluster 15)
       (is (not-nil? (.storm-base state storm-id nil)))
       (is (not-nil? (.assignment-info state storm-id nil)))
       (.killTopology (:nimbus cluster) "test")
@@ -513,12 +521,14 @@
 
       (is (thrown? NotAliveException (.killTopology (:nimbus cluster) "lalala")))
       (submit-local-topology (:nimbus cluster) "2test" {TOPOLOGY-MESSAGE-TIMEOUT-SECS 10} topology)
+      (advance-cluster-time cluster 11)
       (is (thrown? AlreadyAliveException (submit-local-topology (:nimbus cluster) "2test" {} topology)))
+      (advance-cluster-time cluster 11)
       (bind storm-id (get-storm-id state "2test"))
       (is (not-nil? (.storm-base state storm-id nil)))
       (.killTopology (:nimbus cluster) "2test")
       (is (thrown? AlreadyAliveException (submit-local-topology (:nimbus cluster) "2test" {} topology)))
-      (advance-cluster-time cluster 5)
+      (advance-cluster-time cluster 11)
       (is (= 1 (count (.heartbeat-storms state))))
       
       (advance-cluster-time cluster 6)
@@ -529,7 +539,7 @@
       
       (submit-local-topology (:nimbus cluster) "test3" {TOPOLOGY-MESSAGE-TIMEOUT-SECS 5} topology)
       (bind storm-id3 (get-storm-id state "test3"))
-      (advance-cluster-time cluster 1)
+      (advance-cluster-time cluster 11)
       (.remove-storm! state storm-id3)
       (is (nil? (.storm-base state storm-id3 nil)))
       (is (nil? (.assignment-info state storm-id3 nil)))
@@ -544,6 +554,7 @@
       (submit-local-topology (:nimbus cluster) "test3" {TOPOLOGY-MESSAGE-TIMEOUT-SECS 5} topology)
       (bind storm-id3 (get-storm-id state "test3"))
 
+      (advance-cluster-time cluster 11)
       (bind executor-id (first (topology-executors cluster storm-id3)))
       
       (do-executor-heartbeat cluster storm-id3 executor-id)
@@ -556,6 +567,7 @@
 
       ;; test kill with opts
       (submit-local-topology (:nimbus cluster) "test4" {TOPOLOGY-MESSAGE-TIMEOUT-SECS 100} topology)
+      (advance-cluster-time cluster 11)
       (.killTopologyWithOpts (:nimbus cluster) "test4" (doto (KillOptions.) (.set_wait_secs 10)))
       (bind storm-id4 (get-storm-id state "test4"))
       (advance-cluster-time cluster 9)
@@ -580,13 +592,14 @@
                        ))
       (bind state (:storm-cluster-state cluster))
       (submit-local-topology (:nimbus cluster) "test" {TOPOLOGY-WORKERS 2} topology)
+      (advance-cluster-time cluster 11)
       (check-consistency cluster "test")
       (bind storm-id (get-storm-id state "test"))
       (bind [executor-id1 executor-id2]  (topology-executors cluster storm-id))
       (bind ass1 (executor-assignment cluster storm-id executor-id1))
       (bind ass2 (executor-assignment cluster storm-id executor-id2))
 
-      (advance-cluster-time cluster 59)
+      (advance-cluster-time cluster 30)
       (do-executor-heartbeat cluster storm-id executor-id1)
       (do-executor-heartbeat cluster storm-id executor-id2)
 
@@ -677,13 +690,14 @@
                        ))
       (bind state (:storm-cluster-state cluster))
       (submit-local-topology (:nimbus cluster) "test" {TOPOLOGY-WORKERS 2} topology)
+      (advance-cluster-time cluster 11)
       (check-consistency cluster "test")
       (bind storm-id (get-storm-id state "test"))
       (bind [executor-id1 executor-id2]  (topology-executors cluster storm-id))
       (bind ass1 (executor-assignment cluster storm-id executor-id1))
       (bind ass2 (executor-assignment cluster storm-id executor-id2))
       
-      (advance-cluster-time cluster 59)
+      (advance-cluster-time cluster 30)
       (do-executor-heartbeat cluster storm-id executor-id1)
       (do-executor-heartbeat cluster storm-id executor-id2)
 
@@ -730,6 +744,7 @@
                         {}))
       (bind state (:storm-cluster-state cluster))
       (submit-local-topology (:nimbus cluster) "test" {TOPOLOGY-WORKERS 4} topology)  ; distribution should be 2, 2, 2, 3 ideally
+      (advance-cluster-time cluster 11)
       (bind storm-id (get-storm-id state "test"))
       (bind slot-executors (slot-assignments cluster storm-id))
       (check-executor-distribution slot-executors [9])
@@ -779,11 +794,12 @@
                              "test"
                              {TOPOLOGY-WORKERS 3
                               TOPOLOGY-MESSAGE-TIMEOUT-SECS 60} topology)
+      (advance-cluster-time cluster 11)
       (bind storm-id (get-storm-id state "test"))
       (add-supervisor cluster :ports 3)
       (add-supervisor cluster :ports 3)
 
-      (advance-cluster-time cluster 91)
+      (advance-cluster-time cluster 11)
 
       (bind slot-executors (slot-assignments cluster storm-id))
       ;; check that all workers are on one machine
@@ -791,7 +807,7 @@
       (check-num-nodes slot-executors 1)
       (.rebalance (:nimbus cluster) "test" (RebalanceOptions.))
 
-      (advance-cluster-time cluster 31)
+      (advance-cluster-time cluster 30)
       (check-executor-distribution slot-executors [1 1 1])
       (check-num-nodes slot-executors 1)
 
@@ -824,6 +840,7 @@
                              "test"
                              {TOPOLOGY-WORKERS 3
                               TOPOLOGY-MESSAGE-TIMEOUT-SECS 30} topology)
+      (advance-cluster-time cluster 11)
       (bind storm-id (get-storm-id state "test"))
       (bind checker (fn [distribution]
                       (check-executor-distribution
@@ -913,7 +930,7 @@
                              {TOPOLOGY-WORKERS 3
                               TOPOLOGY-MESSAGE-TIMEOUT-SECS 90} topology3)
 
-      (advance-cluster-time cluster 31)
+      (advance-cluster-time cluster 11)
 
       (check-for-collisions state)
       (.rebalance (:nimbus cluster) "test" (doto (RebalanceOptions.)
