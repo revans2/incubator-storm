@@ -27,7 +27,7 @@
   `(let [~client (make-send-capture ~response)]
      (stubbing [psf/makeZKState nil
                 psf/makeClient ~client]
-               (let [~state (psf/-mkState nil nil nil nil)]
+               (let [~state (psf/-mkState nil nil nil nil false)]
                  ~@body))))
 
 
