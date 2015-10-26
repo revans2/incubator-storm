@@ -145,7 +145,7 @@ public class DirectoryCleaner {
             round++;
             if (round >= MAX_ROUNDS) {
                 if (for_per_dir) {
-                    LOG.warn("Reach the MAX_ROUNDS: {} during per-dir deletion, you may have too many files " +
+                    LOG.warn("Reach the MAX_ROUNDS: {} during per-dir deletion, you may have too many files in " +
                             "a single directory : {}, will delete the rest files in next interval.",
                             MAX_ROUNDS, dirs.get(0).getCanonicalPath());
                 } else {

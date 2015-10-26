@@ -121,7 +121,7 @@
         (is (not-any? #(.accept file-filter %) excluded-files))
         ))))
 
-(deftest test-per-workerdir-cleanup
+(deftest test-per-workerdir-cleanup!
   (testing "cleaner deletes oldest files in each worker dir if files are larger than per-dir quota."
     (stubbing [rmr nil]
               (let [cleaner (proxy [backtype.storm.daemon.DirectoryCleaner] []
@@ -167,12 +167,12 @@
                     root-dir (mk-mock-File {:name "/workers-artifacts"
                                             :type :directory
                                             :files root-files})
-                    deletedFiles (logviewer/per-workerdir-cleanup root-dir 1200 cleaner)]
+                    deletedFiles (logviewer/per-workerdir-cleanup! root-dir 1200 cleaner)]
                 (is (= (first deletedFiles) 4))
                 (is (= (second deletedFiles) 4))
                 (is (= (last deletedFiles) 4))))))
 
-(deftest test-global-log-cleanup
+(deftest test-global-log-cleanup!
   (testing "cleaner deletes oldest when files' sizes are larger than the global quota."
     (stubbing [rmr nil
                logviewer/get-alive-worker-dirs ["/workers-artifacts/topo1/port1"]]
@@ -219,7 +219,7 @@
                     root-dir (mk-mock-File {:name "/workers-artifacts"
                                             :type :directory
                                             :files root-files})
-                    deletedFiles (logviewer/global-log-cleanup root-dir 2400 cleaner)]
+                    deletedFiles (logviewer/global-log-cleanup! root-dir 2400 cleaner)]
                 (is (= deletedFiles 18))))))
 
 (deftest test-identify-worker-log-dirs
@@ -255,7 +255,7 @@
           mockfile2 (mk-mock-File {:name "delete-me2" :type :file})]
       (stubbing [logviewer/select-dirs-for-cleanup nil
                  logviewer/get-dead-worker-dirs (sorted-set mockfile1 mockfile2)
-                 logviewer/cleanup-empty-topodir nil
+                 logviewer/cleanup-empty-topodir! nil
                  rmr nil]
                 (logviewer/cleanup-fn! "/bogus/path")
                 (verify-call-times-for rmr 2)

@@ -197,20 +197,20 @@
   [files]
   (reduce #(+ %1 (.length %2)) 0 files))
 
-(defn per-workerdir-cleanup
+(defn per-workerdir-cleanup!
   "Delete the oldest files in each overloaded worker log dir"
   [^File root-dir size ^DirectoryCleaner cleaner]
   (dofor [worker-dir (get-all-worker-dirs root-dir)]
     (.deleteOldestWhileTooLarge cleaner (ArrayList. [worker-dir]) size true nil)))
 
-(defn global-log-cleanup
+(defn global-log-cleanup!
   "Delete the oldest files in overloaded worker-artifacts globally"
   [^File root-dir size ^DirectoryCleaner cleaner]
   (let [worker-dirs (ArrayList. (get-all-worker-dirs root-dir))
         alive-worker-dirs (HashSet. (get-alive-worker-dirs *STORM-CONF* root-dir))]
     (.deleteOldestWhileTooLarge cleaner worker-dirs size false alive-worker-dirs)))
 
-(defn cleanup-empty-topodir
+(defn cleanup-empty-topodir!
   "Delete the topo dir if it contains zero port dirs"
   [^File dir]
   (let [topodir (.getParentFile dir)]
@@ -239,11 +239,11 @@
            (let [path (.getCanonicalPath dir)]
              (log-message "Cleaning up: Removing " path)
              (try (rmr path) 
-                  (cleanup-empty-topodir dir)
+                  (cleanup-empty-topodir! dir)
                   (catch Exception ex (log-error ex)))))
-    (per-workerdir-cleanup (File. log-root-dir) (* per-dir-size (* 1024 1024)) cleaner)
+    (per-workerdir-cleanup! (File. log-root-dir) (* per-dir-size (* 1024 1024)) cleaner)
     (let [size (* total-size (* 1024 1024))]
-      (global-log-cleanup (File. log-root-dir) size cleaner))))
+      (global-log-cleanup! (File. log-root-dir) size cleaner))))
 
 (defn start-log-cleaner! [conf log-root-dir]
   (let [interval-secs (conf LOGVIEWER-CLEANUP-INTERVAL-SECS)]
@@ -351,7 +351,7 @@ Note that if anything goes wrong, this will throw an Error and exit."
 
 (defn log-file-selection-form [log-files]
   [[:form {:action "log" :id "list-of-files"}
-    (drop-down "file" log-files )
+    (drop-down "file" log-files)
     [:input {:type "submit" :value "Switch file"}]]])
 
 (defn pager-links [fname start length file-size]
@@ -405,7 +405,7 @@ Note that if anything goes wrong, this will throw an Error and exit."
         (let [length (if length
                        (min 10485760 length)
                        default-bytes-per-page)
-              is-txt-file (re-find #"\.(log.*|txt|yaml)$" fname)
+              is-txt-file (re-find #"\.(log.*|txt|yaml|pid)$" fname)
               log-string (escape-html
                            (if is-txt-file
                              (if start
@@ -857,6 +857,7 @@ Note that if anything goes wrong, this will throw an Error and exit."
      [:body
       (concat
         (when (not (blank? user)) [[:div.ui-user [:p "User: " user]]])
+        [[:div.ui-note [:p "Note: the drop-list shows at most 1024 files for each worker directory."]]]
         [[:h3 (escape-html fname)]]
         (seq body))
       ])))
