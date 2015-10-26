@@ -40,8 +40,8 @@
 
 (def max-retries 10)
 
-(defn -mkState [this conf auth-conf acls]
-  (let [zk-state (makeZKState conf auth-conf acls)
+(defn -mkState [this conf auth-conf acls separateZkWriter]
+  (let [zk-state (makeZKState conf auth-conf acls separateZkWriter)
         pacemaker-client (makeClient conf)]
 
     (reify

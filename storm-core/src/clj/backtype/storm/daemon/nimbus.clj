@@ -144,7 +144,7 @@
      :storm-cluster-state (cluster/mk-storm-cluster-state conf :acls (when
                                                                        (Utils/isZkAuthenticationConfiguredStormServer
                                                                          conf)
-                                                                       NIMBUS-ZK-ACLS))
+                                                                       NIMBUS-ZK-ACLS) :separate-zk-writer? true)
      :submit-lock (Object.)
      :cred-update-lock (Object.)
      :log-update-lock (Object.)

@@ -22,11 +22,7 @@
   (:gen-class
    :implements [backtype.storm.cluster.ClusterStateFactory]))
 
-(defn is-nimbus?
-  []
-  (= (System/getProperty "daemon.name") "nimbus"))
-
-(defn -mkState [this conf auth-conf acls]
+(defn -mkState [this conf auth-conf acls separateZkWriter]
   (let [zk-writer (zk/mk-client conf (conf STORM-ZOOKEEPER-SERVERS) (conf STORM-ZOOKEEPER-PORT) :auth-conf auth-conf)]
     (zk/mkdirs zk-writer (conf STORM-ZOOKEEPER-ROOT) acls)
     (.close zk-writer))
@@ -45,7 +41,7 @@
                                       (when-not (= :none type)
                                         (doseq [callback (vals @callbacks)]
                                           (callback type path))))))
-        zk-reader (if (is-nimbus?)
+        zk-reader (if separateZkWriter
                     (zk/mk-client conf
                         (conf STORM-ZOOKEEPER-SERVERS)
                         (conf STORM-ZOOKEEPER-PORT)
@@ -145,4 +141,4 @@
         [this]
         (reset! active false)
         (.close zk-writer)
-        (if (is-nimbus?) (.close zk-reader))))))
+        (if separateZkWriter (.close zk-reader))))))
