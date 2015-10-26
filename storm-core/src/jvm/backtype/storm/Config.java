@@ -483,16 +483,8 @@ public class Config extends HashMap<String, Object> {
     public static final Object NIMBUS_TASK_LAUNCH_SECS_SCHEMA = ConfigValidation.IntegerValidator;
 
     /**
-     * Whether or not nimbus should reassign tasks if it detects that a task goes down.
-     * Defaults to true, and it's not recommended to change this value.
-     */
-    public static final String NIMBUS_REASSIGN = "nimbus.reassign";
-    public static final Object NIMBUS_REASSIGN_SCHEMA = Boolean.class;
-
-    /**
-     * During file upload/download with the master, how long an upload or
-     * download connection is idle before nimbus considers it dead and drops
-     * the connection.
+     * During upload/download with the master, how long an upload or download connection is idle
+     * before nimbus considers it dead and drops the connection.
      */
     public static final String NIMBUS_FILE_COPY_EXPIRATION_SECS = "nimbus.file.copy.expiration.secs";
     public static final Object NIMBUS_FILE_COPY_EXPIRATION_SECS_SCHEMA = ConfigValidation.PositiveIntegerValidator;
