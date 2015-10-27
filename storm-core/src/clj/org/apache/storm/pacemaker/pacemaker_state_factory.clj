@@ -35,13 +35,13 @@
 (defn makeClient [conf]
   (PacemakerClient. conf))
 
-(defn makeZKState [conf auth-conf acls]
-  (.mkState (zookeeper_state_factory.) conf auth-conf acls))
+(defn makeZKState [conf auth-conf acls context]
+  (.mkState (zookeeper_state_factory.) conf auth-conf acls context))
 
 (def max-retries 10)
 
-(defn -mkState [this conf auth-conf acls separateZkWriter]
-  (let [zk-state (makeZKState conf auth-conf acls separateZkWriter)
+(defn -mkState [this conf auth-conf acls context]
+  (let [zk-state (makeZKState conf auth-conf acls context)
         pacemaker-client (makeClient conf)]
 
     (reify

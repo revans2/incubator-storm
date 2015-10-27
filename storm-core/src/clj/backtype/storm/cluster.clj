@@ -20,7 +20,7 @@
            [java.io Serializable])
   (:import [org.apache.zookeeper KeeperException KeeperException$NoNodeException ZooDefs ZooDefs$Ids ZooDefs$Perms])
   (:import [backtype.storm.utils Utils])
-  (:import [backtype.storm.cluster ClusterState])
+  (:import [backtype.storm.cluster ClusterState ClusterStateContext])
   (:import [java.security MessageDigest])
   (:import [org.apache.zookeeper.server.auth DigestAuthenticationProvider])
   (:use [backtype.storm util log config converter])
@@ -35,12 +35,12 @@
        (ACL. ZooDefs$Perms/READ (Id. "digest" (DigestAuthenticationProvider/generateDigest payload)))])))
 
 (defnk mk-distributed-cluster-state
-  [conf :auth-conf nil :acls nil :separate-zk-writer? false]
+  [conf :auth-conf nil :acls nil :context (ClusterStateContext.)]
   (let [clazz (Class/forName (or (conf STORM-CLUSTER-STATE-STORE)
                                  "backtype.storm.cluster_state.zookeeper_state_factory"))
         state-instance (.newInstance clazz)]
     (log-debug "Creating cluster state: " (.toString clazz))
-    (or (.mkState state-instance conf auth-conf acls separate-zk-writer?)
+    (or (.mkState state-instance conf auth-conf acls context)
         nil)))
 
 (defprotocol StormClusterState
@@ -207,10 +207,10 @@
 
 ;; Watches should be used for optimization. When ZK is reconnecting, they're not guaranteed to be called.
 (defnk mk-storm-cluster-state
-  [cluster-state-spec :acls nil :separate-zk-writer? false]
+  [cluster-state-spec :acls nil :context (ClusterStateContext.)]
   (let [[solo? cluster-state] (if (instance? ClusterState cluster-state-spec)
                                 [false cluster-state-spec]
-                                [true (mk-distributed-cluster-state cluster-state-spec :auth-conf cluster-state-spec :acls acls :separate-zk-writer? separate-zk-writer?)])
+                                [true (mk-distributed-cluster-state cluster-state-spec :auth-conf cluster-state-spec :acls acls :context context)])
         assignment-info-callback (atom {})
         assignment-info-with-version-callback (atom {})
         assignment-version-callback (atom {})
