@@ -751,21 +751,22 @@ public class Config extends HashMap<String, Object> {
 
     /**
      * This should be one of "DIGEST", "KERBEROS", or "NONE"
-     * Determines the mode of authentication the hearbeat server and client use.
-     * The Pacemaker Server must be either "DIGEST" or "KERBEROS". The client must
-     * either match the server, or be NONE. In the case of NONE, no authentication
-     * is performed, and the client can only write to the server (no reads)
+     * Determines the mode of authentication the pacemaker server and client use.
+     * The client must either match the server, or be NONE. In the case of NONE,
+     * no authentication is performed for the client, and if the server is running with
+     * DIGEST or KERBEROS, the client can only write to the server (no reads).
+     * This is intended to provide a primitive form of access-control.
      */
     public static final String PACEMAKER_AUTH_METHOD = "pacemaker.auth.method";
     public static final Object PACEMAKER_AUTH_METHOD_SCHEMA = String.class;
 
     /**
      * These are the kerberos users who are authorized to read hearbeats from
-     * Pacemaker. 
+     * Pacemaker.
      */
     public static final String PACEMAKER_KERBEROS_USERS = "pacemaker.kerberos.users";
     public static final Object PACEMAKER_KERBEROS_USERS_SCHEMA = ConfigValidation.StringsValidator;
-    
+
     /**
      * List of DRPC servers so that the DRPCSpout knows who to talk to.
      */
