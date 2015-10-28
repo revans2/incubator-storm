@@ -753,7 +753,7 @@
         ;; the new assignments for all the topologies are in the cluster object.
         _ (.schedule (:scheduler nimbus) topologies cluster)
         _ (reset! (:id->sched-status nimbus) (.getStatusMap cluster))
-        _ (reset! (:id->resources nimbus) (.getResourcesMap cluster))]
+        _ (reset! (:id->resources nimbus) (merge @(:id->resources nimbus) (.getResourcesMap cluster)))]
     (.getAssignments cluster)))
 
 (defn changed-executors [executor->node+port new-executor->node+port]
@@ -1584,7 +1584,7 @@
               nimbus-uptime ((:uptime nimbus))
               bases (topology-bases storm-cluster-state)
               topology-summaries (dofor [[id base] bases :when base]
-	                                  (let [assignment (.assignment-info storm-cluster-state id nil)
+	                                     (let [assignment (.assignment-info storm-cluster-state id nil)
                                                 topo-summ (TopologySummary. id
                                                             (:storm-name base)
                                                             (->> (:executor->node+port assignment)
@@ -1667,12 +1667,12 @@
             (when-let [owner (:owner base)] (.set_owner topo-info owner))
             (when-let [sched-status (.get @(:id->sched-status nimbus) storm-id)] (.set_sched_status topo-info sched-status))
             (when-let [resources (.get @(:id->resources nimbus) storm-id)]
-              (.set_requested_memonheap topo-summ (get resources 0))
-              (.set_requested_memoffheap topo-summ (get resources 1))
-              (.set_requested_cpu topo-summ (get resources 2))
-              (.set_assigned_memonheap topo-summ (get resources 3))
-              (.set_assigned_memoffheap topo-summ (get resources 4))
-              (.set_assigned_cpu topo-summ (get resources 5)))
+              (.set_requested_memonheap topo-info (get resources 0))
+              (.set_requested_memoffheap topo-info (get resources 1))
+              (.set_requested_cpu topo-info (get resources 2))
+              (.set_assigned_memonheap topo-info (get resources 3))
+              (.set_assigned_memoffheap topo-info (get resources 4))
+              (.set_assigned_cpu topo-info (get resources 5)))
             topo-info
           ))
 
@@ -1703,12 +1703,12 @@
           (when-let [sched-status (.get @(:id->sched-status nimbus) storm-id)]
             (.set_sched_status topo-page-info sched-status))
           (when-let [resources (.get @(:id->resources nimbus) storm-id)]
-            (.set_requested_memonheap topo-summ (get resources 0))
-            (.set_requested_memoffheap topo-summ (get resources 1))
-            (.set_requested_cpu topo-summ (get resources 2))
-            (.set_assigned_memonheap topo-summ (get resources 3))
-            (.set_assigned_memoffheap topo-summ (get resources 4))
-            (.set_assigned_cpu topo-summ (get resources 5)))
+            (.set_requested_memonheap topo-page-info (get resources 0))
+            (.set_requested_memoffheap topo-page-info (get resources 1))
+            (.set_requested_cpu topo-page-info (get resources 2))
+            (.set_assigned_memonheap topo-page-info (get resources 3))
+            (.set_assigned_memoffheap topo-page-info (get resources 4))
+            (.set_assigned_cpu topo-page-info (get resources 5)))
           (doto topo-page-info
             (.set_name (:storm-name info))
             (.set_status (extract-status-str (:base info)))

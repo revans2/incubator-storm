@@ -95,33 +95,33 @@
           </span>
         </th>
         <th>
-          <span data-toggle="tooltip" data-placement="above" title="Requested Total On-Heap Memory by User.">
-            Requested On-Heap Memory
-          </span>
-        </th>
-        <th>
-          <span data-toggle="tooltip" data-placement="above" title="Requested Total Off-Heap Memory by User.">
-            Requested Off-Heap Memory
-          </span>
-        </th>
-        <th>
-          <span data-toggle="tooltip" data-placement="above" title="Requested Total CPU by User.">
-            Requested CPU
+          <span data-toggle="tooltip" data-placement="above" title="Requested Total On-Heap Memory by Scheduler.">
+            Requested On-Heap Memory (MB)
           </span>
         </th>
         <th>
           <span data-toggle="tooltip" data-placement="above" title="Assigned Total On-Heap Memory by Scheduler.">
-            Assigned On-Heap Memory
+            Assigned On-Heap Memory (MB)
+          </span>
+        </th>
+        <th>
+          <span data-toggle="tooltip" data-placement="above" title="Requested Total Off-Heap Memory by Scheduler.">
+            Requested Off-Heap Memory (MB)
           </span>
         </th>
         <th>
           <span data-toggle="tooltip" data-placement="above" title="Assigned Total Off-Heap Memory by Scheduler.">
-            Assigned Off-Heap Memory
+            Assigned Off-Heap Memory (MB)
           </span>
         </th>
         <th>
-          <span data-toggle="tooltip" data-placement="left" title="Assigned Total CPU by Scheduler.">
-            Assigned CPU
+          <span data-toggle="tooltip" data-placement="above" title="Requested Total CPU by Scheduler. Every 100 means 1 core.">
+            Requested CPU (%)
+          </span>
+        </th>
+        <th>
+          <span data-toggle="tooltip" data-placement="left" title="Assigned Total CPU by Scheduler. Every 100 means 1 core.">
+            Assigned CPU (%)
           </span>
         </th>
       </tr>
@@ -131,10 +131,10 @@
         <td>{{name}}</td>
         <td>{{id}}</td>
         <td>{{requestedMemOnHeap}}</td>
-        <td>{{requestedMemOffHeap}}</td>
-        <td>{{requestedCpu}}</td>
         <td>{{assignedMemOnHeap}}</td>
+        <td>{{requestedMemOffHeap}}</td>
         <td>{{assignedMemOffHeap}}</td>
+        <td>{{requestedCpu}}</td>
         <td>{{assignedCpu}}</td>
       </tr>
     </tbody>
