@@ -19,7 +19,7 @@
            [backtype.storm.utils LocalState Time Utils VersionInfo]
            [backtype.storm.daemon Shutdownable]
            [backtype.storm Config Constants]
-           [backtype.storm.cluster ClusterStateContext ClusterStateContext$DaemonType]
+           [backtype.storm.cluster ClusterStateContext DaemonType]
            [java.net JarURLConnection InetAddress]
            [java.net URI]
            [org.apache.commons.io FileUtils]
@@ -318,7 +318,7 @@
                                                                   (Utils/isZkAuthenticationConfiguredStormServer
                                                                    conf)
                                                                 SUPERVISOR-ZK-ACLS)
-                                                        :context (ClusterStateContext. ClusterStateContext$DaemonType/SUPERVISOR))
+                                                        :context (ClusterStateContext. DaemonType/SUPERVISOR))
    :local-state (supervisor-state conf)
    :supervisor-id (.getSupervisorId isupervisor)
    :assignment-id (.getAssignmentId isupervisor)

@@ -16,14 +16,14 @@
 
 (ns backtype.storm.cluster-state.zookeeper-state-factory
   (:import [org.apache.zookeeper KeeperException KeeperException$NoNodeException ZooDefs ZooDefs$Ids ZooDefs$Perms]
-           [backtype.storm.cluster ClusterState ClusterStateContext ClusterStateContext$DaemonType])
+           [backtype.storm.cluster ClusterState ClusterStateContext DaemonType])
   (:use [backtype.storm cluster config log util])
   (:require [backtype.storm [zookeeper :as zk]])
   (:gen-class
    :implements [backtype.storm.cluster.ClusterStateFactory]))
 
 (defn- is-nimbus? [context]
-  (= (.getDaemonType context) ClusterStateContext$DaemonType/NIMBUS))
+  (= (.getDaemonType context) DaemonType/NIMBUS))
 
 (defn -mkState [this conf auth-conf acls context]
   (let [zk-writer (zk/mk-client conf (conf STORM-ZOOKEEPER-SERVERS) (conf STORM-ZOOKEEPER-PORT) :auth-conf auth-conf)]
@@ -43,7 +43,7 @@
                                       (when-not (= :none type)
                                         (doseq [callback (vals @callbacks)]
                                           (callback type path))))))
-        is-nimbus? (= (.getDaemonType context) ClusterStateContext$DaemonType/NIMBUS)
+        is-nimbus? (= (.getDaemonType context) DaemonType/NIMBUS)
         zk-reader (if is-nimbus?
                     (zk/mk-client conf
                         (conf STORM-ZOOKEEPER-SERVERS)

@@ -48,7 +48,7 @@
                                      InputStreamWithMeta
                                      KeyFilter])
   (:import [backtype.storm.daemon Shutdownable])
-  (:import [backtype.storm.cluster ClusterStateContext ClusterStateContext$DaemonType])
+  (:import [backtype.storm.cluster ClusterStateContext DaemonType])
   (:use [backtype.storm util config log timer local-state])
   (:require [backtype.storm [cluster :as cluster] [stats :as stats]])
   (:require [clojure.set :as set])
@@ -147,7 +147,7 @@
                                                                     (Utils/isZkAuthenticationConfiguredStormServer
                                                                      conf)
                                                                   NIMBUS-ZK-ACLS)
-                                                          :context (ClusterStateContext. ClusterStateContext$DaemonType/NIMBUS))
+                                                          :context (ClusterStateContext. DaemonType/NIMBUS))
      :submit-lock (Object.)
      :cred-update-lock (Object.)
      :log-update-lock (Object.)

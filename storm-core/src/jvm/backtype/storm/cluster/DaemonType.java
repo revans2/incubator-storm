@@ -18,24 +18,10 @@
 
 package backtype.storm.cluster;
 
-/**
- * This class is intended to provide runtime-context to ClusterStateFactory
- * implementors, giving information such as what daemon is creating it.
- */
-public class ClusterStateContext {
-    
-    private DaemonType daemonType;
-
-    public ClusterStateContext() {
-        daemonType = DaemonType.UNKNOWN;
-    }
-    
-    public ClusterStateContext(DaemonType daemonType) {
-        this.daemonType = daemonType;
-    }
-    
-    public DaemonType getDaemonType() {
-        return daemonType;
-    }
-    
+public enum DaemonType {
+    SUPERVISOR,
+    NIMBUS,
+    WORKER,
+    PACEMAKER,
+    UNKNOWN
 }
