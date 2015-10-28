@@ -15,14 +15,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package backtype.storm.cluster;
 
-import clojure.lang.APersistentMap;
-import java.util.List;
-import org.apache.zookeeper.data.ACL;
-
-public interface ClusterStateFactory {
-    
-    public ClusterState mkState(APersistentMap config, APersistentMap auth_conf, List<ACL> acls, ClusterStateContext context);
-
+public enum DaemonType {
+    SUPERVISOR,
+    NIMBUS,
+    WORKER,
+    PACEMAKER,
+    UNKNOWN
 }

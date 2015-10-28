@@ -16,18 +16,20 @@
 
 (ns backtype.storm.cluster-state.zookeeper-state-factory
   (:import [org.apache.zookeeper KeeperException KeeperException$NoNodeException ZooDefs ZooDefs$Ids ZooDefs$Perms]
-           [backtype.storm.cluster ClusterState])
+           [backtype.storm.cluster ClusterState ClusterStateContext DaemonType])
   (:use [backtype.storm cluster config log util])
   (:require [backtype.storm [zookeeper :as zk]])
   (:gen-class
    :implements [backtype.storm.cluster.ClusterStateFactory]))
 
-(defn -mkState [this conf auth-conf acls separateZkWriter]
+(defn- is-nimbus? [context]
+  (= (.getDaemonType context) DaemonType/NIMBUS))
+
+(defn -mkState [this conf auth-conf acls context]
   (let [zk-writer (zk/mk-client conf (conf STORM-ZOOKEEPER-SERVERS) (conf STORM-ZOOKEEPER-PORT) :auth-conf auth-conf)]
     (zk/mkdirs zk-writer (conf STORM-ZOOKEEPER-ROOT) acls)
     (.close zk-writer))
   (let [callbacks (atom {})
-
         active (atom true)
         zk-writer (zk/mk-client conf
                          (conf STORM-ZOOKEEPER-SERVERS)
@@ -41,7 +43,8 @@
                                       (when-not (= :none type)
                                         (doseq [callback (vals @callbacks)]
                                           (callback type path))))))
-        zk-reader (if separateZkWriter
+        is-nimbus? (= (.getDaemonType context) DaemonType/NIMBUS)
+        zk-reader (if is-nimbus?
                     (zk/mk-client conf
                         (conf STORM-ZOOKEEPER-SERVERS)
                         (conf STORM-ZOOKEEPER-PORT)
@@ -141,4 +144,5 @@
         [this]
         (reset! active false)
         (.close zk-writer)
-        (if separateZkWriter (.close zk-reader))))))
+        (if is-nimbus?
+          (.close zk-reader))))))

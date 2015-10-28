@@ -5,6 +5,7 @@
   (:import [backtype.storm.generated
             HBExecutionException HBNodes HBRecords
             HBServerMessageType HBMessage HBMessageData HBPulse]
+           [backtype.storm.cluster ClusterStateContext]
            [org.mockito Mockito Matchers]))
 
 (defn- string-to-bytes [string]
@@ -27,7 +28,7 @@
   `(let [~client (make-send-capture ~response)]
      (stubbing [psf/makeZKState nil
                 psf/makeClient ~client]
-               (let [~state (psf/-mkState nil nil nil nil false)]
+               (let [~state (psf/-mkState nil nil nil nil (ClusterStateContext.))]
                  ~@body))))
 
 

@@ -15,14 +15,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package backtype.storm.cluster;
 
-import clojure.lang.APersistentMap;
-import java.util.List;
-import org.apache.zookeeper.data.ACL;
-
-public interface ClusterStateFactory {
+/**
+ * This class is intended to provide runtime-context to ClusterStateFactory
+ * implementors, giving information such as what daemon is creating it.
+ */
+public class ClusterStateContext {
     
-    public ClusterState mkState(APersistentMap config, APersistentMap auth_conf, List<ACL> acls, ClusterStateContext context);
+    private DaemonType daemonType;
 
+    public ClusterStateContext() {
+        daemonType = DaemonType.UNKNOWN;
+    }
+    
+    public ClusterStateContext(DaemonType daemonType) {
+        this.daemonType = daemonType;
+    }
+    
+    public DaemonType getDaemonType() {
+        return daemonType;
+    }
+    
 }
