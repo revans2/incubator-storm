@@ -40,7 +40,8 @@ public class ThriftNettyServerCodec {
     
     public enum AuthMethod {
         DIGEST,
-        KERBEROS
+        KERBEROS,
+        NONE
     };
     
     private IServer server;
@@ -83,6 +84,9 @@ public class ThriftNettyServerCodec {
                     catch (IOException e) {
                         throw new RuntimeException(e);
                     }
+                }
+                else if(authMethod == AuthMethod.NONE) {
+                    LOG.debug("Not authenticating any clients. AuthMethod is NONE");
                 }
 
                 pipeline.addLast("handler", new StormServerHandler(server));

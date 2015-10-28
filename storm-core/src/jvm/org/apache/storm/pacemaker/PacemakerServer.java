@@ -52,6 +52,7 @@ class PacemakerServer implements ISaslServer {
     private String topo_name;
     private volatile ChannelGroup allChannels = new DefaultChannelGroup("storm-server");
     private ConcurrentSkipListSet<Channel> authenticated_channels = new ConcurrentSkipListSet<Channel>();
+    private ThriftNettyServerCodec.AuthMethod authMethod;
 
     public PacemakerServer(IServerMessageHandler handler, Map config){
         int maxWorkers = (int)config.get(Config.PACEMAKER_MAX_THREADS);
@@ -60,7 +61,6 @@ class PacemakerServer implements ISaslServer {
         this.topo_name = "pacemaker_server";
 
         String auth = (String)config.get(Config.PACEMAKER_AUTH_METHOD);
-        ThriftNettyServerCodec.AuthMethod authMethod;
         if(auth.equals("DIGEST")) {
             Configuration login_conf = AuthUtils.GetConfiguration(config);
             authMethod = ThriftNettyServerCodec.AuthMethod.DIGEST;
@@ -72,6 +72,9 @@ class PacemakerServer implements ISaslServer {
         }
         else if(auth.equals("KERBEROS")) {
             authMethod = ThriftNettyServerCodec.AuthMethod.KERBEROS;
+        }
+        else if(auth.equals("NONE")) {
+            authMethod = ThriftNettyServerCodec.AuthMethod.NONE;
         }
         else {
             LOG.error("Can't start pacemaker server without proper PACEMAKER_AUTH_METHOD.");
@@ -125,7 +128,7 @@ class PacemakerServer implements ISaslServer {
     public void received(Object mesg, String remote, Channel channel) throws InterruptedException {
         cleanPipeline(channel);
         
-        boolean authenticated = authenticated_channels.contains(channel);
+        boolean authenticated = (authMethod == ThriftNettyServerCodec.AuthMethod.NONE) || authenticated_channels.contains(channel);
         HBMessage m = (HBMessage)mesg;
         LOG.debug("received message. Passing to handler. {} : {} : {}",
                   handler.toString(), m.toString(), channel.toString());
