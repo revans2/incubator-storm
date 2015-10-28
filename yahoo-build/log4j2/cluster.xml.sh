@@ -99,6 +99,10 @@ cat <<XML
         <AppenderRef ref="WEB-ACCESS"/>
         <AppenderRef ref="syslog"/>
     </Logger>
+    <Logger name="backtype.storm.security.auth" level="info" additivity="false">
+            <AppenderRef ref="THRIFT-ACCESS"/>
+            <AppenderRef ref="syslog"/>
+    </Logger>
     <Logger name="backtype.storm.logging.ThriftAccessLogger" level="info" additivity="false">
             <AppenderRef ref="THRIFT-ACCESS"/>
             <AppenderRef ref="syslog"/>
