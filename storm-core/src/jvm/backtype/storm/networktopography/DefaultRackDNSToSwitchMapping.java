@@ -9,13 +9,9 @@ import java.util.concurrent.ConcurrentHashMap;
  * This class implements the {@link DNSToSwitchMapping} interface
  *    It returns the DEFAULT_RACK for every host.
  */
-public final class DefaultRackDNSToSwitchMapping extends CachedDNSToSwitchMapping {
+public final class DefaultRackDNSToSwitchMapping extends AbstractDNSToSwitchMapping {
 
     private Map<String, String> mappingCache = new ConcurrentHashMap<String, String>();
-
-    public DefaultRackDNSToSwitchMapping() {
-        super(null);
-    }
 
     @Override
     public Map<String,String> resolve(List<String> names) {

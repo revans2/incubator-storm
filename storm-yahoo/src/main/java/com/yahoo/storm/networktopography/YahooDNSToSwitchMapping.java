@@ -1,6 +1,7 @@
 package com.yahoo.storm.networktopography;
+import backtype.storm.networktopography.AbstractDNSToSwitchMapping;
 import backtype.storm.networktopography.DNSToSwitchMapping;
-import backtype.storm.networktopography.CachedDNSToSwitchMapping;
+
 import java.net.InetAddress;
 import java.util.Map;
 import java.util.List;
@@ -16,23 +17,13 @@ import java.util.regex.Pattern;
  * the rack number.
  * In case of not resolvable IP address or unknown host name,
  * /default-rack is returned.
- *
- * This implementation caches DNS lookup results and the mapping.
- * Since CachedDNSToSwitchMapping causes a DNS lookup for each mapping
- * lookup, we override all of its public methods. This is a bit strange
- * since CachedDNSToSwitchMapping is supposed to be a wrapper class, but
- * to work correctly with RackResolver, we need to do this.
  */
-public final class YahooDNSToSwitchMapping extends CachedDNSToSwitchMapping {
+public final class YahooDNSToSwitchMapping extends AbstractDNSToSwitchMapping {
     private static int subnetMask[] = {255, 255, 255, 192};
     private static Pattern ipPattern =
             Pattern.compile("^(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})$");
 
     private Map<String, String> mappingCache = new ConcurrentHashMap<String, String>();
-
-    public YahooDNSToSwitchMapping() {
-        super(null);
-    }
 
     @Override
     public Map<String, String> resolve(List<String> names) {
