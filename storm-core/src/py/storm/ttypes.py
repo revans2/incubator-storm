@@ -2476,19 +2476,13 @@ class TopologySummary:
     None, # 517
     None, # 518
     None, # 519
-    (520, TType.DOUBLE, 'requested_memonheap', None, None, ), # 520
-    (521, TType.DOUBLE, 'requested_memoffheap', None, None, ), # 521
-    (522, TType.DOUBLE, 'requested_cpu', None, None, ), # 522
-    None, # 523
-    None, # 524
-    None, # 525
-    None, # 526
-    None, # 527
-    None, # 528
-    None, # 529
-    (530, TType.DOUBLE, 'assigned_memonheap', None, None, ), # 530
-    (531, TType.DOUBLE, 'assigned_memoffheap', None, None, ), # 531
-    (532, TType.DOUBLE, 'assigned_cpu', None, None, ), # 532
+    None, # 520
+    (521, TType.DOUBLE, 'requested_memonheap', None, None, ), # 521
+    (522, TType.DOUBLE, 'requested_memoffheap', None, None, ), # 522
+    (523, TType.DOUBLE, 'requested_cpu', None, None, ), # 523
+    (524, TType.DOUBLE, 'assigned_memonheap', None, None, ), # 524
+    (525, TType.DOUBLE, 'assigned_memoffheap', None, None, ), # 525
+    (526, TType.DOUBLE, 'assigned_cpu', None, None, ), # 526
   )
 
   def __init__(self, id=None, name=None, num_tasks=None, num_executors=None, num_workers=None, uptime_secs=None, status=None, sched_status=None, owner=None, requested_memonheap=None, requested_memoffheap=None, requested_cpu=None, assigned_memonheap=None, assigned_memoffheap=None, assigned_cpu=None,):
@@ -2562,32 +2556,32 @@ class TopologySummary:
           self.owner = iprot.readString().decode('utf-8')
         else:
           iprot.skip(ftype)
-      elif fid == 520:
+      elif fid == 521:
         if ftype == TType.DOUBLE:
           self.requested_memonheap = iprot.readDouble();
         else:
           iprot.skip(ftype)
-      elif fid == 521:
+      elif fid == 522:
         if ftype == TType.DOUBLE:
           self.requested_memoffheap = iprot.readDouble();
         else:
           iprot.skip(ftype)
-      elif fid == 522:
+      elif fid == 523:
         if ftype == TType.DOUBLE:
           self.requested_cpu = iprot.readDouble();
         else:
           iprot.skip(ftype)
-      elif fid == 530:
+      elif fid == 524:
         if ftype == TType.DOUBLE:
           self.assigned_memonheap = iprot.readDouble();
         else:
           iprot.skip(ftype)
-      elif fid == 531:
+      elif fid == 525:
         if ftype == TType.DOUBLE:
           self.assigned_memoffheap = iprot.readDouble();
         else:
           iprot.skip(ftype)
-      elif fid == 532:
+      elif fid == 526:
         if ftype == TType.DOUBLE:
           self.assigned_cpu = iprot.readDouble();
         else:
@@ -2639,27 +2633,27 @@ class TopologySummary:
       oprot.writeString(self.owner.encode('utf-8'))
       oprot.writeFieldEnd()
     if self.requested_memonheap is not None:
-      oprot.writeFieldBegin('requested_memonheap', TType.DOUBLE, 520)
+      oprot.writeFieldBegin('requested_memonheap', TType.DOUBLE, 521)
       oprot.writeDouble(self.requested_memonheap)
       oprot.writeFieldEnd()
     if self.requested_memoffheap is not None:
-      oprot.writeFieldBegin('requested_memoffheap', TType.DOUBLE, 521)
+      oprot.writeFieldBegin('requested_memoffheap', TType.DOUBLE, 522)
       oprot.writeDouble(self.requested_memoffheap)
       oprot.writeFieldEnd()
     if self.requested_cpu is not None:
-      oprot.writeFieldBegin('requested_cpu', TType.DOUBLE, 522)
+      oprot.writeFieldBegin('requested_cpu', TType.DOUBLE, 523)
       oprot.writeDouble(self.requested_cpu)
       oprot.writeFieldEnd()
     if self.assigned_memonheap is not None:
-      oprot.writeFieldBegin('assigned_memonheap', TType.DOUBLE, 530)
+      oprot.writeFieldBegin('assigned_memonheap', TType.DOUBLE, 524)
       oprot.writeDouble(self.assigned_memonheap)
       oprot.writeFieldEnd()
     if self.assigned_memoffheap is not None:
-      oprot.writeFieldBegin('assigned_memoffheap', TType.DOUBLE, 531)
+      oprot.writeFieldBegin('assigned_memoffheap', TType.DOUBLE, 525)
       oprot.writeDouble(self.assigned_memoffheap)
       oprot.writeFieldEnd()
     if self.assigned_cpu is not None:
-      oprot.writeFieldBegin('assigned_cpu', TType.DOUBLE, 532)
+      oprot.writeFieldBegin('assigned_cpu', TType.DOUBLE, 526)
       oprot.writeDouble(self.assigned_cpu)
       oprot.writeFieldEnd()
     oprot.writeFieldStop()
@@ -3957,7 +3951,6 @@ class TopologyInfo:
    - errors
    - sched_status
    - owner
-   - scheduler
    - requested_memonheap
    - requested_memoffheap
    - requested_cpu
@@ -4482,27 +4475,21 @@ class TopologyInfo:
     None, # 512
     (513, TType.STRING, 'sched_status', None, None, ), # 513
     (514, TType.STRING, 'owner', None, None, ), # 514
-    (515, TType.STRING, 'scheduler', None, None, ), # 515
+    None, # 515
     None, # 516
     None, # 517
     None, # 518
     None, # 519
-    (520, TType.DOUBLE, 'requested_memonheap', None, None, ), # 520
-    (521, TType.DOUBLE, 'requested_memoffheap', None, None, ), # 521
-    (522, TType.DOUBLE, 'requested_cpu', None, None, ), # 522
-    None, # 523
-    None, # 524
-    None, # 525
-    None, # 526
-    None, # 527
-    None, # 528
-    None, # 529
-    (530, TType.DOUBLE, 'assigned_memonheap', None, None, ), # 530
-    (531, TType.DOUBLE, 'assigned_memoffheap', None, None, ), # 531
-    (532, TType.DOUBLE, 'assigned_cpu', None, None, ), # 532
+    None, # 520
+    (521, TType.DOUBLE, 'requested_memonheap', None, None, ), # 521
+    (522, TType.DOUBLE, 'requested_memoffheap', None, None, ), # 522
+    (523, TType.DOUBLE, 'requested_cpu', None, None, ), # 523
+    (524, TType.DOUBLE, 'assigned_memonheap', None, None, ), # 524
+    (525, TType.DOUBLE, 'assigned_memoffheap', None, None, ), # 525
+    (526, TType.DOUBLE, 'assigned_cpu', None, None, ), # 526
   )
 
-  def __init__(self, id=None, name=None, uptime_secs=None, executors=None, status=None, errors=None, sched_status=None, owner=None, scheduler=None, requested_memonheap=None, requested_memoffheap=None, requested_cpu=None, assigned_memonheap=None, assigned_memoffheap=None, assigned_cpu=None,):
+  def __init__(self, id=None, name=None, uptime_secs=None, executors=None, status=None, errors=None, sched_status=None, owner=None, requested_memonheap=None, requested_memoffheap=None, requested_cpu=None, assigned_memonheap=None, assigned_memoffheap=None, assigned_cpu=None,):
     self.id = id
     self.name = name
     self.uptime_secs = uptime_secs
@@ -4511,7 +4498,6 @@ class TopologyInfo:
     self.errors = errors
     self.sched_status = sched_status
     self.owner = owner
-    self.scheduler = scheduler
     self.requested_memonheap = requested_memonheap
     self.requested_memoffheap = requested_memoffheap
     self.requested_cpu = requested_cpu
@@ -4586,37 +4572,32 @@ class TopologyInfo:
           self.owner = iprot.readString().decode('utf-8')
         else:
           iprot.skip(ftype)
-      elif fid == 515:
-        if ftype == TType.STRING:
-          self.scheduler = iprot.readString().decode('utf-8')
-        else:
-          iprot.skip(ftype)
-      elif fid == 520:
+      elif fid == 521:
         if ftype == TType.DOUBLE:
           self.requested_memonheap = iprot.readDouble();
         else:
           iprot.skip(ftype)
-      elif fid == 521:
+      elif fid == 522:
         if ftype == TType.DOUBLE:
           self.requested_memoffheap = iprot.readDouble();
         else:
           iprot.skip(ftype)
-      elif fid == 522:
+      elif fid == 523:
         if ftype == TType.DOUBLE:
           self.requested_cpu = iprot.readDouble();
         else:
           iprot.skip(ftype)
-      elif fid == 530:
+      elif fid == 524:
         if ftype == TType.DOUBLE:
           self.assigned_memonheap = iprot.readDouble();
         else:
           iprot.skip(ftype)
-      elif fid == 531:
+      elif fid == 525:
         if ftype == TType.DOUBLE:
           self.assigned_memoffheap = iprot.readDouble();
         else:
           iprot.skip(ftype)
-      elif fid == 532:
+      elif fid == 526:
         if ftype == TType.DOUBLE:
           self.assigned_cpu = iprot.readDouble();
         else:
@@ -4673,32 +4654,28 @@ class TopologyInfo:
       oprot.writeFieldBegin('owner', TType.STRING, 514)
       oprot.writeString(self.owner.encode('utf-8'))
       oprot.writeFieldEnd()
-    if self.scheduler is not None:
-      oprot.writeFieldBegin('scheduler', TType.STRING, 515)
-      oprot.writeString(self.scheduler.encode('utf-8'))
-      oprot.writeFieldEnd()
     if self.requested_memonheap is not None:
-      oprot.writeFieldBegin('requested_memonheap', TType.DOUBLE, 520)
+      oprot.writeFieldBegin('requested_memonheap', TType.DOUBLE, 521)
       oprot.writeDouble(self.requested_memonheap)
       oprot.writeFieldEnd()
     if self.requested_memoffheap is not None:
-      oprot.writeFieldBegin('requested_memoffheap', TType.DOUBLE, 521)
+      oprot.writeFieldBegin('requested_memoffheap', TType.DOUBLE, 522)
       oprot.writeDouble(self.requested_memoffheap)
       oprot.writeFieldEnd()
     if self.requested_cpu is not None:
-      oprot.writeFieldBegin('requested_cpu', TType.DOUBLE, 522)
+      oprot.writeFieldBegin('requested_cpu', TType.DOUBLE, 523)
       oprot.writeDouble(self.requested_cpu)
       oprot.writeFieldEnd()
     if self.assigned_memonheap is not None:
-      oprot.writeFieldBegin('assigned_memonheap', TType.DOUBLE, 530)
+      oprot.writeFieldBegin('assigned_memonheap', TType.DOUBLE, 524)
       oprot.writeDouble(self.assigned_memonheap)
       oprot.writeFieldEnd()
     if self.assigned_memoffheap is not None:
-      oprot.writeFieldBegin('assigned_memoffheap', TType.DOUBLE, 531)
+      oprot.writeFieldBegin('assigned_memoffheap', TType.DOUBLE, 525)
       oprot.writeDouble(self.assigned_memoffheap)
       oprot.writeFieldEnd()
     if self.assigned_cpu is not None:
-      oprot.writeFieldBegin('assigned_cpu', TType.DOUBLE, 532)
+      oprot.writeFieldBegin('assigned_cpu', TType.DOUBLE, 526)
       oprot.writeDouble(self.assigned_cpu)
       oprot.writeFieldEnd()
     oprot.writeFieldStop()
@@ -4730,7 +4707,6 @@ class TopologyInfo:
     value = (value * 31) ^ hash(self.errors)
     value = (value * 31) ^ hash(self.sched_status)
     value = (value * 31) ^ hash(self.owner)
-    value = (value * 31) ^ hash(self.scheduler)
     value = (value * 31) ^ hash(self.requested_memonheap)
     value = (value * 31) ^ hash(self.requested_memoffheap)
     value = (value * 31) ^ hash(self.requested_cpu)
@@ -5948,19 +5924,13 @@ class TopologyPageInfo:
     None, # 517
     None, # 518
     None, # 519
-    (520, TType.DOUBLE, 'requested_memonheap', None, None, ), # 520
-    (521, TType.DOUBLE, 'requested_memoffheap', None, None, ), # 521
-    (522, TType.DOUBLE, 'requested_cpu', None, None, ), # 522
-    None, # 523
-    None, # 524
-    None, # 525
-    None, # 526
-    None, # 527
-    None, # 528
-    None, # 529
-    (530, TType.DOUBLE, 'assigned_memonheap', None, None, ), # 530
-    (531, TType.DOUBLE, 'assigned_memoffheap', None, None, ), # 531
-    (532, TType.DOUBLE, 'assigned_cpu', None, None, ), # 532
+    None, # 520
+    (521, TType.DOUBLE, 'requested_memonheap', None, None, ), # 521
+    (522, TType.DOUBLE, 'requested_memoffheap', None, None, ), # 522
+    (523, TType.DOUBLE, 'requested_cpu', None, None, ), # 523
+    (524, TType.DOUBLE, 'assigned_memonheap', None, None, ), # 524
+    (525, TType.DOUBLE, 'assigned_memoffheap', None, None, ), # 525
+    (526, TType.DOUBLE, 'assigned_cpu', None, None, ), # 526
   )
 
   def __init__(self, id=None, name=None, uptime_secs=None, status=None, num_tasks=None, num_workers=None, num_executors=None, topology_conf=None, id_to_spout_agg_stats=None, id_to_bolt_agg_stats=None, sched_status=None, topology_stats=None, owner=None, requested_memonheap=None, requested_memoffheap=None, requested_cpu=None, assigned_memonheap=None, assigned_memoffheap=None, assigned_cpu=None,):
@@ -6073,32 +6043,32 @@ class TopologyPageInfo:
           self.owner = iprot.readString().decode('utf-8')
         else:
           iprot.skip(ftype)
-      elif fid == 520:
+      elif fid == 521:
         if ftype == TType.DOUBLE:
           self.requested_memonheap = iprot.readDouble();
         else:
           iprot.skip(ftype)
-      elif fid == 521:
+      elif fid == 522:
         if ftype == TType.DOUBLE:
           self.requested_memoffheap = iprot.readDouble();
         else:
           iprot.skip(ftype)
-      elif fid == 522:
+      elif fid == 523:
         if ftype == TType.DOUBLE:
           self.requested_cpu = iprot.readDouble();
         else:
           iprot.skip(ftype)
-      elif fid == 530:
+      elif fid == 524:
         if ftype == TType.DOUBLE:
           self.assigned_memonheap = iprot.readDouble();
         else:
           iprot.skip(ftype)
-      elif fid == 531:
+      elif fid == 525:
         if ftype == TType.DOUBLE:
           self.assigned_memoffheap = iprot.readDouble();
         else:
           iprot.skip(ftype)
-      elif fid == 532:
+      elif fid == 526:
         if ftype == TType.DOUBLE:
           self.assigned_cpu = iprot.readDouble();
         else:
@@ -6174,27 +6144,27 @@ class TopologyPageInfo:
       oprot.writeString(self.owner.encode('utf-8'))
       oprot.writeFieldEnd()
     if self.requested_memonheap is not None:
-      oprot.writeFieldBegin('requested_memonheap', TType.DOUBLE, 520)
+      oprot.writeFieldBegin('requested_memonheap', TType.DOUBLE, 521)
       oprot.writeDouble(self.requested_memonheap)
       oprot.writeFieldEnd()
     if self.requested_memoffheap is not None:
-      oprot.writeFieldBegin('requested_memoffheap', TType.DOUBLE, 521)
+      oprot.writeFieldBegin('requested_memoffheap', TType.DOUBLE, 522)
       oprot.writeDouble(self.requested_memoffheap)
       oprot.writeFieldEnd()
     if self.requested_cpu is not None:
-      oprot.writeFieldBegin('requested_cpu', TType.DOUBLE, 522)
+      oprot.writeFieldBegin('requested_cpu', TType.DOUBLE, 523)
       oprot.writeDouble(self.requested_cpu)
       oprot.writeFieldEnd()
     if self.assigned_memonheap is not None:
-      oprot.writeFieldBegin('assigned_memonheap', TType.DOUBLE, 530)
+      oprot.writeFieldBegin('assigned_memonheap', TType.DOUBLE, 524)
       oprot.writeDouble(self.assigned_memonheap)
       oprot.writeFieldEnd()
     if self.assigned_memoffheap is not None:
-      oprot.writeFieldBegin('assigned_memoffheap', TType.DOUBLE, 531)
+      oprot.writeFieldBegin('assigned_memoffheap', TType.DOUBLE, 525)
       oprot.writeDouble(self.assigned_memoffheap)
       oprot.writeFieldEnd()
     if self.assigned_cpu is not None:
-      oprot.writeFieldBegin('assigned_cpu', TType.DOUBLE, 532)
+      oprot.writeFieldBegin('assigned_cpu', TType.DOUBLE, 526)
       oprot.writeDouble(self.assigned_cpu)
       oprot.writeFieldEnd()
     oprot.writeFieldStop()
