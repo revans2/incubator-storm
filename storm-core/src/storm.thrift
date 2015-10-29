@@ -153,6 +153,12 @@ struct TopologySummary {
   7: required string status;
 513: optional string sched_status;
 514: optional string owner;
+521: optional double requested_memonheap;
+522: optional double requested_memoffheap;
+523: optional double requested_cpu;
+524: optional double assigned_memonheap;
+525: optional double assigned_memoffheap;
+526: optional double assigned_cpu;
 }
 
 struct SupervisorSummary {
@@ -229,6 +235,12 @@ struct TopologyInfo {
   6: required map<string, list<ErrorInfo>> errors;
 513: optional string sched_status;
 514: optional string owner;
+521: optional double requested_memonheap;
+522: optional double requested_memoffheap;
+523: optional double requested_cpu;
+524: optional double assigned_memonheap;
+525: optional double assigned_memoffheap;
+526: optional double assigned_cpu;
 }
 
 struct CommonAggregateStats {
@@ -290,6 +302,12 @@ struct TopologyPageInfo {
 11: optional string sched_status;
 12: optional TopologyStats topology_stats;
 13: optional string owner;
+521: optional double requested_memonheap;
+522: optional double requested_memoffheap;
+523: optional double requested_cpu;
+524: optional double assigned_memonheap;
+525: optional double assigned_memoffheap;
+526: optional double assigned_cpu;
 }
 
 struct ExecutorAggregateStats {
