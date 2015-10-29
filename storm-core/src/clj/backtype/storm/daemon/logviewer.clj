@@ -1062,11 +1062,20 @@ Note that if anything goes wrong, this will throw an Error and exit."
           filters-confs (concat filters-confs
                           [{:filter-class "org.eclipse.jetty.servlets.GzipFilter"
                             :filter-name "Gzipper"
-                            :filter-params {}}])]
+                            :filter-params {}}])
+          https-port (int (conf LOGVIEWER-HTTPS-PORT))
+          keystore-path (conf LOGVIEWER-HTTPS-KEYSTORE-PATH)
+          keystore-pass (conf LOGVIEWER-HTTPS-KEYSTORE-PASSWORD)
+          keystore-type (conf LOGVIEWER-HTTPS-KEYSTORE-TYPE)]
       (storm-run-jetty {:port (int (conf LOGVIEWER-PORT))
                         :configurator (fn [server]
                                         (doseq [connector (.getConnectors server)]
-                                          (.setRequestHeaderSize connector header-buffer-size))
+                                          (.setHeaderBufferSize connector header-buffer-size))
+                                        (config-ssl server
+                                                    https-port
+                                                    keystore-path
+                                                    keystore-pass
+                                                    keystore-type)
                                         (config-filter server middle filters-confs))}))
   (catch Exception ex
     (log-error ex))))

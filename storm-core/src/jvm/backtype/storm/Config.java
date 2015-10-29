@@ -601,6 +601,31 @@ public class Config extends HashMap<String, Object> {
     public static final Object LOGVIEWER_CLEANUP_AGE_MINS_SCHEMA = ConfigValidation.PositiveIntegerValidator;
 
     /**
+     * Storm Logviewer HTTPS port
+     */
+    public static final String LOGVIEWER_HTTPS_PORT = "logviewer.https.port";
+    public static final Object LOGVIEWER_HTTPS_PORT_SCHEMA = ConfigValidation.IntegerValidator;
+
+    /**
+     * Path to the keystore containing the certs used by Storm UI for HTTPS communications
+     */
+    public static final String LOGVIEWER_HTTPS_KEYSTORE_PATH = "logviewer.https.keystore.path";
+    public static final Object LOGVIEWER_HTTPS_KEYSTORE_PATH_SCHEMA = String.class;
+
+    /**
+     * Password for the keystore for HTTPS for Storm UI
+     */
+    public static final String LOGVIEWER_HTTPS_KEYSTORE_PASSWORD = "logviewer.https.keystore.password";
+    public static final Object LOGVIEWER_HTTPS_KEYSTORE_PASSWORD_SCHEMA = String.class;
+
+    /**
+     * Type of the keystore for HTTPS for Storm UI.
+     * see http://docs.oracle.com/javase/8/docs/api/java/security/KeyStore.html for more details.
+     */
+    public static final String LOGVIEWER_HTTPS_KEYSTORE_TYPE = "logviewer.https.keystore.type";
+    public static final Object LOGVIEWER_HTTPS_KEYSTORE_TYPE_SCHEMA = String.class;
+
+    /**
      * A list of users allowed to view logs via the Log Viewer
      */
     public static final String LOGS_USERS = "logs.users";

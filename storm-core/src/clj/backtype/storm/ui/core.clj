@@ -131,10 +131,17 @@
               (bolt-comp-summs id))]
     (sort-by #(-> ^ExecutorSummary % .get_executor_info .get_task_start) ret)))
 
-(defn worker-log-link [host port topology-id]
+(defn worker-log-link [host port topology-id secure?]
   (let [fname (logs-filename topology-id port)]
-    (url-format (str "http://%s:%s/log?file=%s")
-          host (*STORM-CONF* LOGVIEWER-PORT) fname)))
+    (if secure?
+      (url-format "https://%s:%s/log?file=%s"
+                  host
+                  (*STORM-CONF* LOGVIEWER-HTTPS-PORT)
+                  fname)
+      (url-format "http://%s:%s/log?file=%s"
+                  host
+                  (*STORM-CONF* LOGVIEWER-PORT)
+                  fname))))
 
 (defn get-error-time
   [error]
@@ -600,10 +607,10 @@
      "failed" (nil-to-zero (.get_failed cas))}))
 
 (defmulti unpack-comp-exec-stat
-  (fn [_ ^ComponentAggregateStats cas] (.get_type (.get_stats ^ExecutorAggregateStats cas))))
+  (fn [_ secure-link? ^ComponentAggregateStats cas] (.get_type (.get_stats ^ExecutorAggregateStats cas))))
 
 (defmethod unpack-comp-exec-stat ComponentType/BOLT
-  [topology-id ^ExecutorAggregateStats eas]
+  [topology-id secure-link? ^ExecutorAggregateStats eas]
   (let [^ExecutorSummary summ (.get_exec_summary eas)
         ^ExecutorInfo info (.get_executor_info summ)
         ^ComponentAggregateStats stats (.get_stats eas)
@@ -627,10 +634,10 @@
      "processLatency" (float-str (.get_process_latency_ms bas))
      "acked" (nil-to-zero (.get_acked cas))
      "failed" (nil-to-zero (.get_failed cas))
-     "workerLogLink" (worker-log-link host port topology-id)}))
+     "workerLogLink" (worker-log-link host port topology-id secure-link?)}))
 
 (defmethod unpack-comp-exec-stat ComponentType/SPOUT
-  [topology-id ^ExecutorAggregateStats eas]
+  [topology-id secure-link? ^ExecutorAggregateStats eas]
   (let [^ExecutorSummary summ (.get_exec_summary eas)
         ^ExecutorInfo info (.get_executor_info summ)
         ^ComponentAggregateStats stats (.get_stats eas)
@@ -651,7 +658,7 @@
      "completeLatency" (float-str (.get_complete_latency_ms sas))
      "acked" (nil-to-zero (.get_acked cas))
      "failed" (nil-to-zero (.get_failed cas))
-     "workerLogLink" (worker-log-link host port topology-id)}))
+     "workerLogLink" (worker-log-link host port topology-id secure-link?)}))
 
 (defmulti unpack-component-page-info
   "Unpacks component-specific info to clojure data structures"
@@ -659,21 +666,21 @@
     (.get_component_type info)))
 
 (defmethod unpack-component-page-info ComponentType/BOLT
-  [^ComponentPageInfo info topology-id window include-sys?]
+  [^ComponentPageInfo info topology-id window include-sys? secure?]
   (merge
     {"boltStats" (map unpack-comp-agg-stat (.get_window_to_stats info))
      "inputStats" (map unpack-bolt-input-stat (.get_gsid_to_input_stats info))
      "outputStats" (map unpack-comp-output-stat (.get_sid_to_output_stats info))
-     "executorStats" (map (partial unpack-comp-exec-stat topology-id)
+     "executorStats" (map (partial unpack-comp-exec-stat topology-id secure?)
                           (.get_exec_stats info))}
     (component-errors (.get_errors info) topology-id)))
 
 (defmethod unpack-component-page-info ComponentType/SPOUT
-  [^ComponentPageInfo info topology-id window include-sys?]
+  [^ComponentPageInfo info topology-id window include-sys? secure?]
   (merge
     {"spoutSummary" (map unpack-comp-agg-stat (.get_window_to_stats info))
      "outputStats" (map unpack-comp-output-stat (.get_sid_to_output_stats info))
-     "executorStats" (map (partial unpack-comp-exec-stat topology-id)
+     "executorStats" (map (partial unpack-comp-exec-stat topology-id secure?)
                           (.get_exec_stats info))}
     (component-errors (.get_errors info) topology-id)))
 
@@ -694,7 +701,7 @@
     active-actions))
 
 (defn component-page
-  [topology-id component window include-sys? user]
+  [topology-id component window include-sys? user secure?]
   (with-nimbus nimbus
     (let [topology-conf (from-json (.getTopologyConf ^Nimbus$Client nimbus
                                                      topology-id))
@@ -710,7 +717,8 @@
        (unpack-component-page-info comp-page-info
                                    topology-id
                                    window
-                                   include-sys?)
+                                   include-sys?
+                                   secure?)
        "user" user
        "id" component
        "encodedId" (url-encode component)
@@ -796,11 +804,11 @@
   (GET "/api/v1/topology/:id/visualization" [:as {:keys [cookies servlet-request]} id & m]
         (assert-authorized-user servlet-request "getTopology" (topology-config id))
         (json-response (mk-visualization-data id (:window m) (check-include-sys? (:sys m))) (:callback m)))
-  (GET "/api/v1/topology/:id/component/:component" [:as {:keys [cookies servlet-request]} id component & m]
+  (GET "/api/v1/topology/:id/component/:component" [:as {:keys [cookies servlet-request scheme]} id component & m]
        (let [user (.getUserName http-creds-handler servlet-request)]
          (assert-authorized-user servlet-request "getTopology" (topology-config id))
-         (json-response (component-page id component (:window m) (check-include-sys? (:sys m)) user) (:callback m))))
-  (GET "/api/v1/topology/:id/logconfig" [:as {:keys [cookies servlet-request]} id & m]
+         (json-response (component-page id component (:window m) (check-include-sys? (:sys m)) user (= scheme :https)) (:callback m))))
+(GET "/api/v1/topology/:id/logconfig" [:as {:keys [cookies servlet-request]} id & m]
        (assert-authorized-user servlet-request "getTopologyConf" (topology-config id))
        (json-response (log-config id) (:callback m)))
   (POST "/api/v1/topology/:id/activate" [:as {:keys [cookies servlet-request]} id & m]
@@ -1027,7 +1035,7 @@
           header-buffer-size (int (.get conf UI-HEADER-BUFFER-BYTES))
           filters-confs [{:filter-class (conf UI-FILTER)
                           :filter-params (conf UI-FILTER-PARAMS)}]
-          https-port (if (not-nil? (conf UI-HTTPS-PORT)) (conf UI-HTTPS-PORT) 0)
+          https-port (conf UI-HTTPS-PORT)
           https-ks-path (conf UI-HTTPS-KEYSTORE-PATH)
           https-ks-password (conf UI-HTTPS-KEYSTORE-PASSWORD)
           https-ks-type (conf UI-HTTPS-KEYSTORE-TYPE)
