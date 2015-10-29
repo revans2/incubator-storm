@@ -339,7 +339,7 @@ public class TopologyDetails {
      * Note: The public API relevant to resource aware scheduling is unstable as of May 2015.
      *       We reserve the right to change them.
      *
-     * @return the total on-heap memory requested for this topology
+     * @return the total on-heap memory requested for this topology.
      */
     public Double getTotalRequestedMemOnHeap() {
         Double total_memonheap = 0.0;
@@ -356,7 +356,7 @@ public class TopologyDetails {
      * Note: The public API relevant to resource aware scheduling is unstable as of May 2015.
      *       We reserve the right to change them.
      *
-     * @return the total off-heap memory requested for this topology
+     * @return the total off-heap memory requested for this topology.
      */
     public Double getTotalRequestedMemOffHeap() {
         Double total_memoffheap = 0.0;
@@ -373,7 +373,7 @@ public class TopologyDetails {
      * Note: The public API relevant to resource aware scheduling is unstable as of May 2015.
      *       We reserve the right to change them.
      *
-     * @return the total cpu requested for this topology
+     * @return the total cpu requested for this topology.
      */
     public Double getTotalRequestedCpu() {
         Double total_cpu = 0.0;
