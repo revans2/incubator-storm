@@ -180,14 +180,14 @@ Sample response:
             "uptimeSeconds": 365,
             "tasksTotal": 28,
             "workersTotal": 3,
-            "executorsTotal": 28
-            "requestedMemOnHeap": 640
-            "requestedMemOffHeap": 128
-            "requestedTotalMem": 768
-            "requestedCpu": 80
-            "assignedMemOnHeap": 640
-            "assignedMemOffHeap": 128
-            "assignedTotalMem": 768
+            "executorsTotal": 28,
+            "requestedMemOnHeap": 640,
+            "requestedMemOffHeap": 128,
+            "requestedTotalMem": 768,
+            "requestedCpu": 80,
+            "assignedMemOnHeap": 640,
+            "assignedMemOffHeap": 128,
+            "assignedTotalMem": 768,
             "assignedCpu": 80
         }
     ]
