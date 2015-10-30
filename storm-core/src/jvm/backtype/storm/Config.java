@@ -607,23 +607,57 @@ public class Config extends HashMap<String, Object> {
     public static final Object LOGVIEWER_HTTPS_PORT_SCHEMA = ConfigValidation.IntegerValidator;
 
     /**
-     * Path to the keystore containing the certs used by Storm UI for HTTPS communications
+     * Path to the keystore containing the certs used by Logviewer for HTTPS communications
      */
     public static final String LOGVIEWER_HTTPS_KEYSTORE_PATH = "logviewer.https.keystore.path";
     public static final Object LOGVIEWER_HTTPS_KEYSTORE_PATH_SCHEMA = String.class;
 
     /**
-     * Password for the keystore for HTTPS for Storm UI
+     * Password for the keystore for HTTPS for Logviewer
      */
     public static final String LOGVIEWER_HTTPS_KEYSTORE_PASSWORD = "logviewer.https.keystore.password";
     public static final Object LOGVIEWER_HTTPS_KEYSTORE_PASSWORD_SCHEMA = String.class;
 
     /**
-     * Type of the keystore for HTTPS for Storm UI.
+     * Type of the keystore for HTTPS for Logviewer.
      * see http://docs.oracle.com/javase/8/docs/api/java/security/KeyStore.html for more details.
      */
     public static final String LOGVIEWER_HTTPS_KEYSTORE_TYPE = "logviewer.https.keystore.type";
     public static final Object LOGVIEWER_HTTPS_KEYSTORE_TYPE_SCHEMA = String.class;
+
+    /**
+     * Password to the private key in the keystore for settting up HTTPS (SSL).
+     */
+    public static final String LOGVIEWER_HTTPS_KEY_PASSWORD = "logviewer.https.key.password";
+    public static final Object LOGVIEWER_HTTPS_KEY_PASSWORD_SCHEMA = String.class;
+
+    /**
+     * Path to the truststore used by Storm Logviewer settting up HTTPS (SSL).
+     */
+    public static final String LOGVIEWER_HTTPS_TRUSTSTORE_PATH = "logviewer.https.truststore.path";
+    public static final Object LOGVIEWER_HTTPS_TRUSTSTORE_PATH_SCHEMA = String.class;
+
+    /**
+     * Password to the truststore used by Storm Logviewer settting up HTTPS (SSL).
+     */
+    public static final String LOGVIEWER_HTTPS_TRUSTSTORE_PASSWORD = "logviewer.https.truststore.password";
+    public static final Object LOGVIEWER_HTTPS_TRUSTSTORE_PASSWORD_SCHEMA = String.class;
+
+    /**
+     * Type of truststore used by Storm Logviewer for setting up HTTPS (SSL).
+     * see http://docs.oracle.com/javase/7/docs/api/java/security/KeyStore.html for more details.
+     */
+    public static final String LOGVIEWER_HTTPS_TRUSTSTORE_TYPE = "logviewer.https.truststore.type";
+    public static final Object LOGVIEWER_HTTPS_TRUSTSTORE_TYPE_SCHEMA = String.class;
+
+    /**
+     * Password to the truststore used by Storm Logviewer for settting up HTTPS (SSL).
+     */
+    public static final String LOGVIEWER_HTTPS_WANT_CLIENT_AUTH = "logviewer.https.want.client.auth";
+    public static final Object LOGVIEWER_HTTPS_WANT_CLIENT_AUTH_SCHEMA = Boolean.class;
+
+    public static final String LOGVIEWER_HTTPS_NEED_CLIENT_AUTH = "logviewer.https.need.client.auth";
+    public static final Object LOGVIEWER_HTTPS_NEED_CLIENT_AUTH_SCHEMA = Boolean.class;
 
     /**
      * A list of users allowed to view logs via the Log Viewer
@@ -751,7 +785,7 @@ public class Config extends HashMap<String, Object> {
     public static final Object UI_HTTPS_TRUSTSTORE_TYPE_SCHEMA = String.class;
 
     /**
-     * Password to the truststore used by Storm DRPC settting up HTTPS (SSL).
+     * Password to the truststore used by Storm UI for settting up HTTPS (SSL).
      */
     public static final String UI_HTTPS_WANT_CLIENT_AUTH = "ui.https.want.client.auth";
     public static final Object UI_HTTPS_WANT_CLIENT_AUTH_SCHEMA = Boolean.class;

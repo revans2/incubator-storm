@@ -1066,16 +1066,28 @@ Note that if anything goes wrong, this will throw an Error and exit."
           https-port (int (conf LOGVIEWER-HTTPS-PORT))
           keystore-path (conf LOGVIEWER-HTTPS-KEYSTORE-PATH)
           keystore-pass (conf LOGVIEWER-HTTPS-KEYSTORE-PASSWORD)
-          keystore-type (conf LOGVIEWER-HTTPS-KEYSTORE-TYPE)]
+          keystore-type (conf LOGVIEWER-HTTPS-KEYSTORE-TYPE)
+          key-password (conf UI-HTTPS-KEY-PASSWORD)
+          truststore-path (conf UI-HTTPS-TRUSTSTORE-PATH)
+          truststore-password (conf UI-HTTPS-TRUSTSTORE-PASSWORD)
+          truststore-type (conf UI-HTTPS-TRUSTSTORE-TYPE)
+          want-client-auth (conf UI-HTTPS-WANT-CLIENT-AUTH)
+          need-client-auth (conf UI-HTTPS-NEED-CLIENT-AUTH)]
       (storm-run-jetty {:port (int (conf LOGVIEWER-PORT))
                         :configurator (fn [server]
                                         (doseq [connector (.getConnectors server)]
-                                          (.setHeaderBufferSize connector header-buffer-size))
+                                          (.setRequestHeaderSize connector header-buffer-size))
                                         (config-ssl server
                                                     https-port
                                                     keystore-path
                                                     keystore-pass
-                                                    keystore-type)
+                                                    keystore-type
+                                                    key-password
+                                                    truststore-path
+                                                    truststore-password
+                                                    truststore-type
+                                                    need-client-auth
+                                                    want-client-auth)
                                         (config-filter server middle filters-confs))}))
   (catch Exception ex
     (log-error ex))))
