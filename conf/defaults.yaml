@@ -239,6 +239,8 @@ topology.disable.loadaware.messaging: false
 topology.logging.sensitivity: "S3"
 topology.disruptor.wait.timeout.millis: 10
 topology.constraints.max.depth.traversal: 1000000
+topology.disruptor.batch.size: 100
+topology.disruptor.batch.timeout.millis: 1
 
 # Configs for Resource Aware Scheduler
 topology.component.resources.onheap.memory.mb: 128.0
