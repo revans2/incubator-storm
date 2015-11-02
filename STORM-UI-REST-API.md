@@ -158,6 +158,14 @@ Response fields:
 |tasksTotal| Integer |Total number of tasks for this topology|
 |workersTotal| Integer |Number of workers used for this topology|
 |executorsTotal| Integer |Number of executors used for this topology|
+|requestedMemOnHeap| Double|Requested On-Heap Memory by User (MB)
+|requestedMemOffHeap| Double|Requested Off-Heap Memory by User (MB)|
+|requestedTotalMem| Double|Requested Total Memory by User (MB)|
+|requestedCpu| Double|Requested CPU by User (%)|
+|assignedMemOnHeap| Double|Assigned On-Heap Memory by Scheduler (MB)|
+|assignedMemOffHeap| Double|Assigned Off-Heap Memory by Scheduler (MB)|
+|assignedTotalMem| Double|Assigned Total Memory by Scheduler (MB)|
+|assignedCpu| Double|Assigned CPU by Scheduler (%)|
 
 Sample response:
 
@@ -172,7 +180,15 @@ Sample response:
             "uptimeSeconds": 365,
             "tasksTotal": 28,
             "workersTotal": 3,
-            "executorsTotal": 28
+            "executorsTotal": 28,
+            "requestedMemOnHeap": 640,
+            "requestedMemOffHeap": 128,
+            "requestedTotalMem": 768,
+            "requestedCpu": 80,
+            "assignedMemOnHeap": 640,
+            "assignedMemOffHeap": 128,
+            "assignedTotalMem": 768,
+            "assignedCpu": 80
         }
     ]
 }
