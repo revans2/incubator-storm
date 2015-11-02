@@ -86,6 +86,7 @@ ui.filter.params: null
 ui.users: null
 ui.header.buffer.bytes: 4096
 ui.http.creds.plugin: backtype.storm.security.auth.DefaultHttpCredentialsPlugin
+ui.https.port: -1
 
 logviewer.port: 8000
 logviewer.childopts: "-Xmx128m"
@@ -93,6 +94,7 @@ logviewer.cleanup.age.mins: 10080
 logviewer.appender.name: "A1"
 logviewer.max.sum.worker.logs.size.mb: 4096
 logviewer.max.per.worker.logs.size.mb: 2048
+logviewer.https.port: -1
 
 logs.users: null
 
