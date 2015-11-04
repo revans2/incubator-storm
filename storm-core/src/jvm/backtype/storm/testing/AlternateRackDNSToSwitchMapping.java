@@ -1,6 +1,6 @@
 package backtype.storm.testing;
 
-import backtype.storm.networktopography.CachedDNSToSwitchMapping;
+import backtype.storm.networktopography.AbstractDNSToSwitchMapping;
 import backtype.storm.networktopography.DNSToSwitchMapping;
 
 import java.util.HashMap;
@@ -13,13 +13,9 @@ import java.util.concurrent.ConcurrentHashMap;
  * This class implements the {@link DNSToSwitchMapping} interface
  *    It alternates bewteen RACK1 and RACK2 for the hosts.
  */
-public final class AlternateRackDNSToSwitchMapping extends CachedDNSToSwitchMapping {
+public final class AlternateRackDNSToSwitchMapping extends AbstractDNSToSwitchMapping {
 
     private Map<String, String> mappingCache = new ConcurrentHashMap<String, String>();
-
-    public AlternateRackDNSToSwitchMapping() {
-        super(null);
-    }
 
     @Override
     public Map<String, String> resolve(List<String> names) {

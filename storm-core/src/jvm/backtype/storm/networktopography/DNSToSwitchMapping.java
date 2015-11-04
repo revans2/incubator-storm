@@ -47,20 +47,4 @@ public interface DNSToSwitchMapping {
    * If <i>names</i> is empty, then return empty Map
    */
   public Map<String,String> resolve(List<String> names);
-
-  /**
-   * Reload all of the cached mappings.
-   *
-   * If there is a cache, this method will clear it, so that future accesses
-   * will get a chance to see the new data.
-   */
-  public void reloadCachedMappings();
-  
-  /**
-   * Reload cached mappings on specific nodes.
-   *
-   * If there is a cache on these nodes, this method will clear it, so that 
-   * future accesses will see updated data.
-   */
-  public void reloadCachedMappings(List<String> names);
 }
