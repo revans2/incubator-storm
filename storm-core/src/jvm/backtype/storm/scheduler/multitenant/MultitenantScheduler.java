@@ -18,11 +18,16 @@
 
 package backtype.storm.scheduler.multitenant;
 
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.Map;
 import java.util.Set;
 
+import backtype.storm.scheduler.ExecutorDetails;
+import backtype.storm.scheduler.WorkerSlot;
+import backtype.storm.scheduler.resource.ResourceUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -64,6 +69,8 @@ public class MultitenantScheduler implements IScheduler {
   @Override
   public void schedule(Topologies topologies, Cluster cluster) {
     LOG.debug("Rerunning scheduling...");
+    LOG.debug(printScheduling(cluster, topologies));
+
     Map<String, Node> nodeIdToNode = Node.getAllNodesFrom(cluster);
     
     Map<String, Number> userConf = getUserConf();
@@ -121,4 +128,48 @@ public class MultitenantScheduler implements IScheduler {
         }
         return nodeMap;
     }
+
+  /**
+   * print scheduling for debug purposes
+   * @param cluster
+   * @param topologies
+   */
+  public String printScheduling(Cluster cluster, Topologies topologies) {
+    StringBuilder str = new StringBuilder();
+    Map<String, Map<String, Map<WorkerSlot, Collection<ExecutorDetails>>>> schedulingMap = new HashMap<String, Map<String, Map<WorkerSlot, Collection<ExecutorDetails>>>>();
+    for (TopologyDetails topo : topologies.getTopologies()) {
+      if (cluster.getAssignmentById(topo.getId()) != null) {
+        for (Map.Entry<ExecutorDetails, WorkerSlot> entry : cluster.getAssignmentById(topo.getId()).getExecutorToSlot().entrySet()) {
+          WorkerSlot slot = entry.getValue();
+          String nodeId = slot.getNodeId();
+          ExecutorDetails exec = entry.getKey();
+          if (schedulingMap.containsKey(nodeId) == false) {
+            schedulingMap.put(nodeId, new HashMap<String, Map<WorkerSlot, Collection<ExecutorDetails>>>());
+          }
+          if (schedulingMap.get(nodeId).containsKey(topo.getId()) == false) {
+            schedulingMap.get(nodeId).put(topo.getId(), new HashMap<WorkerSlot, Collection<ExecutorDetails>>());
+          }
+          if (schedulingMap.get(nodeId).get(topo.getId()).containsKey(slot) == false) {
+            schedulingMap.get(nodeId).get(topo.getId()).put(slot, new LinkedList<ExecutorDetails>());
+          }
+          schedulingMap.get(nodeId).get(topo.getId()).get(slot).add(exec);
+        }
+      }
+    }
+
+    for (Map.Entry<String, Map<String, Map<WorkerSlot, Collection<ExecutorDetails>>>> entry : schedulingMap.entrySet()) {
+      if (cluster.getSupervisorById(entry.getKey()) != null) {
+        str.append("/** Node: " + cluster.getSupervisorById(entry.getKey()).getHost() + "-" + entry.getKey() + " **/\n");
+      } else {
+        str.append("/** Node: Unknown may be dead -" + entry.getKey() + " **/\n");
+      }
+      for (Map.Entry<String, Map<WorkerSlot, Collection<ExecutorDetails>>> topo_sched : schedulingMap.get(entry.getKey()).entrySet()) {
+        str.append("\t-->Topology: " + topo_sched.getKey() + "\n");
+        for (Map.Entry<WorkerSlot, Collection<ExecutorDetails>> ws : topo_sched.getValue().entrySet()) {
+          str.append("\t\t->Slot [" + ws.getKey().getPort() + "] -> " + ws.getValue() + "\n");
+        }
+      }
+    }
+    return str.toString();
+  }
 }

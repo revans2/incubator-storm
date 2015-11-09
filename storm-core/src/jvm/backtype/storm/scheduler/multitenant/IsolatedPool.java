@@ -96,18 +96,21 @@ public class IsolatedPool extends NodePool {
   public void scheduleAsNeeded(NodePool ... lesserPools) {
     for (String topId : _topologyIdToNodes.keySet()) {
       TopologyDetails td = _tds.get(topId);
+      LOG.debug("Scheduling topology {} unassigned executors: {}", td.getName(), _cluster.getUnassignedExecutors(td));
       Set<Node> allNodes = _topologyIdToNodes.get(topId);
+      LOG.debug("allNodes: {}", allNodes);
       Number nodesRequested = (Number) td.getConf().get(Config.TOPOLOGY_ISOLATED_MACHINES);
+      LOG.debug("isolated nodesRequested: {}", nodesRequested);
       Integer effectiveNodesRequested = null;
       if (nodesRequested != null) {
         effectiveNodesRequested = Math.min(td.getExecutors().size(),
             nodesRequested.intValue());
       }
+      LOG.debug(" effectiveNodesRequested: {}", effectiveNodesRequested);
       if (_cluster.needsScheduling(td) ||
           (effectiveNodesRequested != null &&
               allNodes.size() != effectiveNodesRequested) &&
           isTopologyScheduledByMultitenant(td) == true) {
-        LOG.debug("Scheduling topology {}",topId);
         int slotsToUse = 0;
         if (effectiveNodesRequested == null) {
           slotsToUse = getNodesForNotIsolatedTop(td, allNodes, lesserPools);
@@ -115,6 +118,7 @@ public class IsolatedPool extends NodePool {
           slotsToUse = getNodesForIsolatedTop(td, allNodes, lesserPools,
               effectiveNodesRequested);
         }
+        LOG.debug("slotsToUse: {}", slotsToUse);
         //No slots to schedule for some reason, so skip it.
         if (slotsToUse <= 0) {
           continue;
@@ -158,8 +162,8 @@ public class IsolatedPool extends NodePool {
           LinkedList<Node> sortedNodes = new LinkedList<Node>(allNodes);
           Collections.sort(sortedNodes, Node.FREE_NODE_COMPARATOR_DEC);
 
-          LOG.debug("Nodes sorted by free space {}", sortedNodes);
           while (true) {
+            LOG.debug("Nodes sorted by free space {}", Node.getNodesDebugInfo(sortedNodes));
             Node n = sortedNodes.remove();
             if (!slotSched.assignSlotTo(n)) {
               break;
@@ -202,10 +206,13 @@ public class IsolatedPool extends NodePool {
     int nodesUsed = _topologyIdToNodes.get(topId).size();
     int nodesNeeded = nodesRequested - nodesUsed;
     LOG.debug("Nodes... requested {} used {} available from us {} " +
-        "avail from other {} needed {}", new Object[] {nodesRequested, 
+        "avail from other {} needed {}", new Object[] {nodesRequested,
         nodesUsed, nodesFromUsAvailable, nodesFromOthersAvailable,
         nodesNeeded});
     if ((nodesNeeded - nodesFromUsAvailable) > (_maxNodes - _usedNodes)) {
+      LOG.debug("Max Nodes(" + _maxNodes + ") for this user would be exceeded. "
+              + ((nodesNeeded - nodesFromUsAvailable) - (_maxNodes - _usedNodes))
+              + " more nodes needed to run topology.");
       _cluster.setStatus(topId,"Max Nodes("+_maxNodes+") for this user would be exceeded. "
         + ((nodesNeeded - nodesFromUsAvailable) - (_maxNodes - _usedNodes)) 
         + " more nodes needed to run topology.");
@@ -218,19 +225,22 @@ public class IsolatedPool extends NodePool {
     int nodesNeededFromOthers = Math.min(Math.min(_maxNodes - _usedNodes, 
         nodesFromOthersAvailable), nodesNeeded);
     int nodesNeededFromUs = nodesNeeded - nodesNeededFromOthers; 
-    LOG.debug("Nodes... needed from us {} needed from others {}", 
+    LOG.debug("Nodes... needed from us {} needed from others {}",
         nodesNeededFromUs, nodesNeededFromOthers);
 
     if (nodesNeededFromUs > nodesFromUsAvailable) {
+      LOG.debug("Not Enough Nodes Available to Schedule Topology");
       _cluster.setStatus(topId, "Not Enough Nodes Available to Schedule Topology");
       return 0;
     }
 
     //Get the nodes
     Collection<Node> found = NodePool.takeNodes(nodesNeededFromOthers, lesserPools);
+    LOG.debug("nodes taken from others: {}", Node.getNodesDebugInfo(found));
     _usedNodes += found.size();
     allNodes.addAll(found);
     Collection<Node> foundMore = takeNodes(nodesNeededFromUs);
+    LOG.debug("nodes taken from others: {}", Node.getNodesDebugInfo(foundMore));
     _usedNodes += foundMore.size();
     allNodes.addAll(foundMore);
 
@@ -286,6 +296,7 @@ public class IsolatedPool extends NodePool {
     }
     
     Collection<Node> found = NodePool.takeNodesBySlot(slotsNeeded, lesserPools);
+    LOG.debug("nodes taken from others: {}", Node.getNodesDebugInfo(found));
     _usedNodes += found.size();
     allNodes.addAll(found);
     return slotsToUse;

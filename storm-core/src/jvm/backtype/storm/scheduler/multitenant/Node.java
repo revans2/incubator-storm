@@ -225,6 +225,7 @@ public class Node {
    */
   public void assign(String topId, Collection<ExecutorDetails> executors, 
       Cluster cluster) {
+    LOG.debug("topo: {} assign execs: {} to node: {} free slots: {}", topId, executors, this.getId(), this._freeSlots);
     if (!_isAlive) {
       throw new IllegalStateException("Trying to adding to a dead node " + _nodeId);
     }
@@ -344,4 +345,14 @@ public class Node {
       return o1.totalSlotsUsed() - o2.totalSlotsUsed();
     }
   };
+
+  public static String getNodesDebugInfo(Collection<Node> nodes) {
+    String ret = "\n";
+    for (Node node : nodes) {
+      ret += "Node: " + node.getId() + "\n";
+      ret += "-> # of total Slots: " + node.totalSlots()
+              + "# of Free Slots: " + node.totalSlotsFree() + "# of Used Slots " + node.totalSlotsUsed() + "\n";
+    }
+    return ret;
+  }
 }
