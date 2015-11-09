@@ -75,7 +75,7 @@
         <Policies>
             <SizeBasedTriggeringPolicy size="100 MB"/> <!-- Or every 100 MB -->
         </Policies>
-        <DefaultRolloverStrategy max="9"/>
+        <DefaultRolloverStrategy max="18"/>
     </RollingFile>
     <Syslog name="syslog" format="RFC5424" charset="UTF-8" host="localhost" port="514"
             protocol="UDP" appName="[${sys:daemon.name}]" mdcId="mdc" includeMDC="true"
