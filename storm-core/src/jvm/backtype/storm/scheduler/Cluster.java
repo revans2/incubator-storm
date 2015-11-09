@@ -19,7 +19,6 @@ package backtype.storm.scheduler;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -35,7 +34,11 @@ public class Cluster {
     /**
      * key: supervisor id, value: supervisor details
      */
-    private Map<String, SupervisorDetails>   supervisors;
+    private Map<String, SupervisorDetails> supervisors;
+    /**
+     * key: supervisor id, value: supervisor's total and available resources
+     */
+    private Map<String, Double[]> supervisorsResources;
     /**
      * key: rack, value: nodes in that rack
      */
@@ -71,6 +74,7 @@ public class Cluster {
         this.assignments.putAll(assignments);
         this.status = new HashMap<String, String>();
         this.resources = new HashMap<String, Double[]>();
+        this.supervisorsResources = new HashMap<String, Double[]>();
         this.hostToId = new HashMap<String, List<String>>();
         for (String nodeId : supervisors.keySet()) {
             SupervisorDetails supervisor = supervisors.get(nodeId);
@@ -498,6 +502,14 @@ public class Cluster {
 
     public Map<String, Double[]> getResourcesMap() {
         return this.resources;
+    }
+
+    public void setSupervisorsResources(Map<String, Double[]> supervisors_resources) {
+        this.supervisorsResources.putAll(supervisors_resources);
+    }
+
+    public Map<String, Double[]> getSupervisorsResourcesMap() {
+        return this.supervisorsResources;
     }
 
     public INimbus getINimbus() {
