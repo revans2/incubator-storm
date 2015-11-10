@@ -94,6 +94,7 @@ public class IsolatedPool extends NodePool {
   
   @Override
   public void scheduleAsNeeded(NodePool ... lesserPools) {
+    LOG.debug("Topology assigned to Nodes:\n{}", this.getNodeToTopology());
     for (String topId : _topologyIdToNodes.keySet()) {
       TopologyDetails td = _tds.get(topId);
       LOG.debug("Scheduling topology {} unassigned executors: {}", td.getName(), _cluster.getUnassignedExecutors(td));
@@ -279,7 +280,7 @@ public class IsolatedPool extends NodePool {
       slotsAvailable = NodePool.slotsAvailable(lesserPools);
     }
     int slotsToUse = Math.min(slotsRequested - slotsUsed, slotsFree + slotsAvailable);
-    LOG.debug("Slots... requested {} used {} free {} available {} to be used {}", 
+    LOG.debug("Slots... requested {} used {} free {} available {} to be used {}",
         new Object[] {slotsRequested, slotsUsed, slotsFree, slotsAvailable, slotsToUse});
     if (slotsToUse <= 0) {
       _cluster.setStatus(topId, "Not Enough Slots Available to Schedule Topology");
@@ -408,5 +409,23 @@ public class IsolatedPool extends NodePool {
       LOG.debug("_topologyIdToNodes: {}", this._topologyIdToNodes);
       LOG.debug("_tds: {}", this._tds);
       LOG.debug("_usedNodes: {}", this._usedNodes);
+  }
+
+  public Map<Node, List<String>> getNodeToTopology() {
+    Map<Node, List<String>> nodeToTopoMapping = new HashMap<Node, List<String>>();
+    for(Entry<String, Set<Node>> entry : this._topologyIdToNodes.entrySet()) {
+      String topoId = entry.getKey();
+      Set<Node> nodes = entry.getValue();
+      for (Node node : nodes) {
+        if (!nodeToTopoMapping.containsKey(node)) {
+          nodeToTopoMapping.put(node, new LinkedList<String>());
+        }
+        nodeToTopoMapping.get(node).add(topoId);
+        if(nodeToTopoMapping.get(node).size() > 1) {
+          LOG.error("More than one Topology marked as isolated assigned to Node: {}", node);
+        }
+      }
+    }
+    return nodeToTopoMapping;
   }
 }

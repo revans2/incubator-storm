@@ -69,7 +69,7 @@ public class MultitenantScheduler implements IScheduler {
   @Override
   public void schedule(Topologies topologies, Cluster cluster) {
     LOG.debug("Rerunning scheduling...");
-    LOG.debug(printScheduling(cluster, topologies));
+    LOG.debug("Cluster Scheduling:\n{}", printScheduling(cluster, topologies));
 
     Map<String, Node> nodeIdToNode = Node.getAllNodesFrom(cluster);
     

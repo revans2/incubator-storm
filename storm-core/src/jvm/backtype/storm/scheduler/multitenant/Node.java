@@ -22,6 +22,8 @@ import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.Map.Entry;
@@ -230,6 +232,9 @@ public class Node {
       throw new IllegalStateException("Trying to adding to a dead node " + _nodeId);
     }
     if (_freeSlots.isEmpty()) {
+      LOG.error("Trying to assign to a full node {}", _nodeId);
+      LOG.error(Node.getNodeDebugInfo(this));
+      LOG.error("WorkerSlot to Topology Mapping:\n{}", this.getWorkerToTopo());
       throw new IllegalStateException("Trying to assign to a full node " + _nodeId);
     }
     if (executors.size() == 0) {
@@ -349,10 +354,33 @@ public class Node {
   public static String getNodesDebugInfo(Collection<Node> nodes) {
     String ret = "\n";
     for (Node node : nodes) {
-      ret += "Node: " + node.getId() + "\n";
-      ret += "-> # of total Slots: " + node.totalSlots()
-              + "# of Free Slots: " + node.totalSlotsFree() + "# of Used Slots " + node.totalSlotsUsed() + "\n";
+      ret += Node.getNodeDebugInfo(node);
     }
     return ret;
+  }
+
+  public static String getNodeDebugInfo(Node node) {
+    String ret = "Node: " + node.getId() + "\n-> # of total Slots: " + node.totalSlots()
+            + "# of Free Slots: " + node.totalSlotsFree() + "# of Used Slots " + node.totalSlotsUsed()
+            + "\nrunning Topologies: " + node.getRunningTopologies() + "\n";
+    return ret;
+  }
+
+  public Map<WorkerSlot, List<String>> getWorkerToTopo() {
+    Map<WorkerSlot, List<String>> workerToTopo = new HashMap<WorkerSlot, List<String>>();
+    for (Entry<String, Set<WorkerSlot>> entry : this._topIdToUsedSlots.entrySet()) {
+      String topoId = entry.getKey();
+      Set<WorkerSlot> slots = entry.getValue();
+      for (WorkerSlot ws : slots) {
+        if (!workerToTopo.containsKey(ws)) {
+          workerToTopo.put(ws, new LinkedList<String>());
+        }
+        workerToTopo.get(ws).add(topoId);
+        if (workerToTopo.get(ws).size() > 1) {
+          LOG.error("Worker: {} has executors from more than one topology assigned to it!");
+        }
+      }
+    }
+    return workerToTopo;
   }
 }
