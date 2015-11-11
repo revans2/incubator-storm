@@ -40,7 +40,7 @@ public class DisruptorQueueTest extends TestCase {
       LOG.info("testFirstMessageFirst");
       for (int i = 0; i < 100; i++) {
         LOG.info("testFirstMessageFirst {}", i);
-        DisruptorQueue queue = createQueue("firstMessageOrder", 16);
+        DisruptorQueue queue = createQueue("firstMessageOrder "+i, 16);
 
         LOG.info("got q {}", queue);
         queue.publish("FIRST");
@@ -62,8 +62,7 @@ public class DisruptorQueueTest extends TestCase {
             }
         });
 
-        run(producer, consumer);
-        queue.haltWithInterrupt();
+        run(producer, consumer, queue);
         Assert.assertEquals("We expect to receive first published message first, but received " + result.get(),
                 "FIRST", result.get());
         LOG.info("testFirstMessageFirst {} DONE", i);
@@ -90,8 +89,7 @@ public class DisruptorQueueTest extends TestCase {
             }
         });
 
-        run(producer, consumer, 1000, 1);
-        queue.haltWithInterrupt();
+        run(producer, consumer, queue, 1000, 1);
         Assert.assertTrue("Messages delivered out of order",
                 allInOrder.get());
     }
@@ -116,19 +114,18 @@ public class DisruptorQueueTest extends TestCase {
             }
         });
 
-        run(producer, consumer, 1000, 1);
-        queue.haltWithInterrupt();
+        run(producer, consumer, queue, 1000, 1);
         Assert.assertTrue("Messages delivered out of order",
                 allInOrder.get());
     }
 
 
-    private void run(Runnable producer, Runnable consumer)
+    private void run(Runnable producer, Runnable consumer, DisruptorQueue queue)
             throws InterruptedException {
-        run(producer, consumer, 10, PRODUCER_NUM);
+        run(producer, consumer, queue, 10, PRODUCER_NUM);
     }
 
-    private void run(Runnable producer, Runnable consumer, int sleepMs, int producerNum)
+    private void run(Runnable producer, Runnable consumer, DisruptorQueue queue, int sleepMs, int producerNum)
             throws InterruptedException {
 
         LOG.info("Starting {} producers and 1 consumer...", producerNum);
@@ -144,7 +141,6 @@ public class DisruptorQueueTest extends TestCase {
         for (int i = 0; i < producerNum; i++) {
             producerThreads[i].interrupt();
         }
-        consumerThread.interrupt();
         
         for (int i = 0; i < producerNum; i++) {
             LOG.info("Joining producer {}",i);
@@ -152,6 +148,7 @@ public class DisruptorQueueTest extends TestCase {
             assertFalse("producer "+i+" is still alive", producerThreads[i].isAlive());
             LOG.info("DONE");
         }
+        queue.haltWithInterrupt();
         LOG.info("Joining consumer");
         consumerThread.join(TIMEOUT);
         assertFalse("consumer is still alive", consumerThread.isAlive());

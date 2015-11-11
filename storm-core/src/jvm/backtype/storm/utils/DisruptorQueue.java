@@ -69,7 +69,7 @@ public class DisruptorQueue implements IStatefulObject {
         private HashMap<Long, TimerTask> _tt = new HashMap<>();
 
         public synchronized void start(Flusher flusher, final long flushInterval) {
-            LOG.info("Start flusher...");
+            LOG.info("Start {} ...", flusher);
             ArrayList<Flusher> pending = _pendingFlush.get(flushInterval);
             if (pending == null) {
                 pending = new ArrayList<>();
@@ -84,13 +84,13 @@ public class DisruptorQueue implements IStatefulObject {
                 _tt.put(flushInterval, t);
             }
             pending.add(flusher);
-            LOG.info("Start flusher DONE...");
+            LOG.info("Start {} DONE...", flusher);
         }
 
         private synchronized void invokeAll(long flushInterval) {
             ArrayList<Flusher> tasks = _pendingFlush.get(flushInterval);
             if (tasks != null) {
-                LOG.info("invoke all {}",tasks.size());
+                LOG.info("invoke all {}",tasks);
                 for (Flusher f: tasks) {
                     _exec.submit(f);
                 }
@@ -99,14 +99,14 @@ public class DisruptorQueue implements IStatefulObject {
         }
 
         public synchronized void stop(Flusher flusher, long flushInterval) {
-            LOG.info("Stop flusher...");
+            LOG.info("Stop {} ...", flusher);
             ArrayList<Flusher> pending = _pendingFlush.get(flushInterval);
             pending.remove(flusher);
             if (pending.size() == 0) {
                 _pendingFlush.remove(flushInterval);
                 _tt.remove(flushInterval).cancel();
             }
-            LOG.info("Stop flusher DONE...");
+            LOG.info("Stop {} DONE...", flusher);
         }
     }
 
@@ -266,6 +266,10 @@ public class DisruptorQueue implements IStatefulObject {
         private AtomicBoolean _isFlushing = new AtomicBoolean(false);
         private final long _flushInterval;
 
+        public String toString() {
+            return "flusher "+getName();
+        }
+
         public Flusher(long flushInterval, String name) {
             _flushInterval = flushInterval;
         }
@@ -286,8 +290,9 @@ public class DisruptorQueue implements IStatefulObject {
         }
 
         public void close() {
-            LOG.info("close...");
+            LOG.info("close... {}", this);
             FLUSHER.stop(this, _flushInterval);
+            LOG.info("close {} DONE...", this);
         }
     }
 
@@ -393,14 +398,18 @@ public class DisruptorQueue implements IStatefulObject {
         return _queueName;
     }
 
+    public String toString() {
+        return getName();
+    }
+
     public boolean isFull() {
         return (_metrics.population() + _overflowCount.get()) >= _metrics.capacity();
     }
 
     public void haltWithInterrupt() {
         try {
-            publishDirect(new ArrayList<Object>(Arrays.asList(INTERRUPT)), true);
             _flusher.close();
+            publishDirect(new ArrayList<Object>(Arrays.asList(INTERRUPT)), true);
         } catch (InsufficientCapacityException e) {
             //This should be impossible
             throw new RuntimeException(e);
