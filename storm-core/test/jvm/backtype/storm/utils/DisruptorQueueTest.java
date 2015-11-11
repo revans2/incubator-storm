@@ -42,7 +42,9 @@ public class DisruptorQueueTest extends TestCase {
         LOG.info("testFirstMessageFirst {}", i);
         DisruptorQueue queue = createQueue("firstMessageOrder", 16);
 
+        LOG.info("got q {}", queue);
         queue.publish("FIRST");
+        LOG.info("published...");
 
         Runnable producer = new IncProducer(queue, i+100);
 
@@ -59,6 +61,7 @@ public class DisruptorQueueTest extends TestCase {
                 }
             }
         });
+        LOG.info("about to run...");
 
         run(producer, consumer);
         Assert.assertEquals("We expect to receive first published message first, but received " + result.get(),

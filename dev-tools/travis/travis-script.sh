@@ -33,7 +33,7 @@ export STORM_TEST_TIMEOUT_MS=100000
 export LOG_LEVEL=DEBUG
 
 # We now lean on Travis CI's implicit behavior, ```mvn clean install -DskipTests``` before running script
-mvn surefire:test -Dtest=backtype.storm.utils.DisruptorQueueTest -DfailIfNoTests=false
+mvn surefire:test -Dtest=backtype.storm.utils.DisruptorQueueTest#testFirstMessageFirst -DfailIfNoTests=false
 #mvn --batch-mode install -fae -Pnative
 BUILD_RET_VAL=$?
 
