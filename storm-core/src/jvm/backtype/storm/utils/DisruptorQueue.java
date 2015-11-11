@@ -37,7 +37,6 @@ import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -89,15 +88,13 @@ public class DisruptorQueue implements IStatefulObject {
         }
 
         private synchronized void invokeAll(long flushInterval) {
-            try {
-                ArrayList<Flusher> tasks = _pendingFlush.get(flushInterval);
-                if (tasks != null) {
-                    LOG.info("invoke all {}",tasks.size());
-                    _exec.invokeAll(tasks);
-                    LOG.info("invoke all DONE");
+            ArrayList<Flusher> tasks = _pendingFlush.get(flushInterval);
+            if (tasks != null) {
+                LOG.info("invoke all {}",tasks.size());
+                for (Flusher f: tasks) {
+                    _exec.submit(f);
                 }
-            } catch (InterruptedException e) {
-               //Ignored
+                LOG.info("invoke all DONE");
             }
         }
 
@@ -265,7 +262,7 @@ public class DisruptorQueue implements IStatefulObject {
         }
     }
 
-    private class Flusher implements Callable<Void> {
+    private class Flusher implements Runnable {
         private AtomicBoolean _isFlushing = new AtomicBoolean(false);
         private final long _flushInterval;
 
@@ -273,7 +270,7 @@ public class DisruptorQueue implements IStatefulObject {
             _flushInterval = flushInterval;
         }
 
-        public Void call() {
+        public void run() {
             if (_isFlushing.compareAndSet(false, true)) {
                 for (ThreadLocalInserter batcher: _batchers.values()) {
                     batcher.forceBatch();
@@ -281,7 +278,6 @@ public class DisruptorQueue implements IStatefulObject {
                 }
                 _isFlushing.set(false);
             }
-            return null;
         }
 
         public void start() {
