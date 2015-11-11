@@ -34,7 +34,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Random;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -46,8 +45,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.concurrent.locks.ReentrantLock;
 
 import org.slf4j.Logger;
@@ -68,7 +65,7 @@ public class DisruptorQueue implements IStatefulObject {
 
     private static class FlusherPool { 
         private Timer _timer = new Timer("disruptor-flush-trigger", true);
-        private ThreadPoolExecutor _exec = new ThreadPoolExecutor(1, 100, 10, TimeUnit.SECONDS, new ArrayBlockingQueue<Runnable>(1024));
+        private ThreadPoolExecutor _exec = new ThreadPoolExecutor(1, 100, 10, TimeUnit.SECONDS, new ArrayBlockingQueue<Runnable>(1024), new ThreadPoolExecutor.DiscardPolicy());
         private HashMap<Long, ArrayList<Flusher>> _pendingFlush = new HashMap<>();
         private HashMap<Long, TimerTask> _tt = new HashMap<>();
 
@@ -95,8 +92,8 @@ public class DisruptorQueue implements IStatefulObject {
                 if (tasks != null) {
                     _exec.invokeAll(tasks);
                 }
-            } catch (Exception e) {
-               LOG.error("Could not invoke all ", e); 
+            } catch (InterruptedException e) {
+               //Ignored
             }
         }
 
@@ -368,7 +365,7 @@ public class DisruptorQueue implements IStatefulObject {
 
     public DisruptorQueue(String queueName, ProducerType type, int size, long readTimeout, int inputBatchSize, long flushInterval) {
         this._queueName = PREFIX + queueName;
-        WaitStrategy wait = null;
+        WaitStrategy wait;
         if (readTimeout <= 0) {
             wait = new LiteBlockingWaitStrategy();
         } else {

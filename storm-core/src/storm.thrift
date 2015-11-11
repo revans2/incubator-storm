@@ -174,6 +174,8 @@ struct NimbusSummary {
 
 struct ClusterSummary {
   1: required list<SupervisorSummary> supervisors;
+  //@deprecated, please use nimbuses.uptime_secs instead.
+  2: optional i32 nimbus_uptime_secs = 0;
   3: required list<TopologySummary> topologies;
   4: required list<NimbusSummary> nimbuses;
 }
@@ -461,6 +463,17 @@ struct LSWorkerHeartbeat {
    4: required i32 port;
 }
 
+struct LSTopoHistory {
+   1: required string topology_id;
+   2: required i64 time_stamp;
+   3: required list<string> users;
+   4: required list<string> groups;
+}
+
+struct LSTopoHistoryList {
+  1: required list<LSTopoHistory> topo_history;
+}
+
 enum NumErrorsChoice {
   ALL,
   NONE,
@@ -518,6 +531,10 @@ struct LogConfig {
   2: optional map<string, LogLevel> named_logger_level;
 }
 
+struct TopologyHistoryInfo {
+  1: list<string> topo_ids;
+}
+
 service Nimbus {
   void submitTopology(1: string name, 2: string uploadedJarLocation, 3: string jsonConf, 4: StormTopology topology) throws (1: AlreadyAliveException e, 2: InvalidTopologyException ite, 3: AuthorizationException aze);
   void submitTopologyWithOpts(1: string name, 2: string uploadedJarLocation, 3: string jsonConf, 4: StormTopology topology, 5: SubmitOptions options) throws (1: AlreadyAliveException e, 2: InvalidTopologyException ite, 3: AuthorizationException aze);
@@ -573,6 +590,7 @@ service Nimbus {
    * Returns the user specified topology as submitted originally. Compare {@link #getTopology(String id)}.
    */
   StormTopology getUserTopology(1: string id) throws (1: NotAliveException e, 2: AuthorizationException aze);
+  TopologyHistoryInfo getTopologyHistory(1: string user) throws (1: AuthorizationException aze);
 }
 
 struct DRPCRequest {
