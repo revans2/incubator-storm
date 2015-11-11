@@ -61,7 +61,6 @@ public class DisruptorQueueTest extends TestCase {
                 }
             }
         });
-        LOG.info("about to run...");
 
         run(producer, consumer);
         Assert.assertEquals("We expect to receive first published message first, but received " + result.get(),

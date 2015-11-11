@@ -70,6 +70,7 @@ public class DisruptorQueue implements IStatefulObject {
         private HashMap<Long, TimerTask> _tt = new HashMap<>();
 
         public synchronized void start(Flusher flusher, final long flushInterval) {
+            LOG.info("Start flusher...");
             ArrayList<Flusher> pending = _pendingFlush.get(flushInterval);
             if (pending == null) {
                 pending = new ArrayList<>();
@@ -84,13 +85,16 @@ public class DisruptorQueue implements IStatefulObject {
                 _tt.put(flushInterval, t);
             }
             pending.add(flusher);
+            LOG.info("Start flusher DONE...");
         }
 
         private synchronized void invokeAll(long flushInterval) {
             try {
                 ArrayList<Flusher> tasks = _pendingFlush.get(flushInterval);
                 if (tasks != null) {
+                    LOG.info("invoke all {}",tasks.size());
                     _exec.invokeAll(tasks);
+                    LOG.info("invoke all DONE");
                 }
             } catch (InterruptedException e) {
                //Ignored
@@ -98,12 +102,14 @@ public class DisruptorQueue implements IStatefulObject {
         }
 
         public synchronized void stop(Flusher flusher, long flushInterval) {
+            LOG.info("Stop flusher...");
             ArrayList<Flusher> pending = _pendingFlush.get(flushInterval);
             pending.remove(flusher);
             if (pending.size() == 0) {
                 _pendingFlush.remove(flushInterval);
                 _tt.remove(flushInterval).cancel();
             }
+            LOG.info("Stop flusher DONE...");
         }
     }
 
@@ -279,10 +285,12 @@ public class DisruptorQueue implements IStatefulObject {
         }
 
         public void start() {
+            LOG.info("start...");
             FLUSHER.start(this, _flushInterval);
         }
 
         public void close() {
+            LOG.info("close...");
             FLUSHER.stop(this, _flushInterval);
         }
     }
