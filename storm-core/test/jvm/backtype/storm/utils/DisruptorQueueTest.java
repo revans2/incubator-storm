@@ -26,14 +26,20 @@ import org.junit.Assert;
 import org.junit.Test;
 import junit.framework.TestCase;
 
-public class DisruptorQueueTest extends TestCase {
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+public class DisruptorQueueTest extends TestCase {
+    private static final Logger LOG = LoggerFactory.getLogger(DisruptorQueueTest.class);
+    
     private final static int TIMEOUT = 1000; // MS
     private final static int PRODUCER_NUM = 4;
 
     @Test
     public void testFirstMessageFirst() throws InterruptedException {
+      LOG.info("testFirstMessageFirst");
       for (int i = 0; i < 100; i++) {
+        LOG.info("testFirstMessageFirst {}", i);
         DisruptorQueue queue = createQueue("firstMessageOrder", 16);
 
         queue.publish("FIRST");
@@ -57,11 +63,13 @@ public class DisruptorQueueTest extends TestCase {
         run(producer, consumer);
         Assert.assertEquals("We expect to receive first published message first, but received " + result.get(),
                 "FIRST", result.get());
+        LOG.info("testFirstMessageFirst {} DONE", i);
       }
     }
    
     @Test 
     public void testInOrder() throws InterruptedException {
+        LOG.info("testInOrder");
         final AtomicBoolean allInOrder = new AtomicBoolean(true);
 
         DisruptorQueue queue = createQueue("consumerHang", 1024);
@@ -86,6 +94,7 @@ public class DisruptorQueueTest extends TestCase {
 
     @Test 
     public void testInOrderBatch() throws InterruptedException {
+        LOG.info("testInOrderBatch");
         final AtomicBoolean allInOrder = new AtomicBoolean(true);
 
         DisruptorQueue queue = createQueue("consumerHang", 10, 1024);
@@ -117,6 +126,7 @@ public class DisruptorQueueTest extends TestCase {
     private void run(Runnable producer, Runnable consumer, int sleepMs, int producerNum)
             throws InterruptedException {
 
+        LOG.info("Starting {} producers and 1 consumer...", producerNum);
         Thread[] producerThreads = new Thread[producerNum];
         for (int i = 0; i < producerNum; i++) {
             producerThreads[i] = new Thread(producer);
@@ -132,11 +142,15 @@ public class DisruptorQueueTest extends TestCase {
         consumerThread.interrupt();
         
         for (int i = 0; i < producerNum; i++) {
+            LOG.info("Joining producer {}",i);
             producerThreads[i].join(TIMEOUT);
             assertFalse("producer "+i+" is still alive", producerThreads[i].isAlive());
+            LOG.info("DONE");
         }
+        LOG.info("Joining consumer");
         consumerThread.join(TIMEOUT);
         assertFalse("consumer is still alive", consumerThread.isAlive());
+        LOG.info("DONE");
     }
 
     private static class IncProducer implements Runnable {

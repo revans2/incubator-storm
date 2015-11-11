@@ -30,6 +30,7 @@ cd ${STORM_SRC_ROOT_DIR}
 
 # We should concern that Travis CI could be very slow cause it uses VM
 export STORM_TEST_TIMEOUT_MS=100000
+export LOG_LEVEL=DEBUG
 
 # We now lean on Travis CI's implicit behavior, ```mvn clean install -DskipTests``` before running script
 mvn surefire:test -Dtest=backtype.storm.utils.DisruptorQueueTest -DfailIfNoTests=false
