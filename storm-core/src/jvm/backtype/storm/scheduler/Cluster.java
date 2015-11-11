@@ -36,7 +36,7 @@ public class Cluster {
      */
     private Map<String, SupervisorDetails> supervisors;
     /**
-     * key: supervisor id, value: supervisor's total and available resources
+     * key: supervisor id, value: supervisor's total and used resources
      */
     private Map<String, Double[]> supervisorsResources;
     /**
