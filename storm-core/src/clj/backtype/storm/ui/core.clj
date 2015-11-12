@@ -538,7 +538,7 @@
         "visualizationTable" []}))))
 
 (defn component-errors
-  [errors-list topology-id]
+  [errors-list topology-id secure?]
   (let [errors (->> errors-list
                     (sort-by #(.get_error_time_secs ^ErrorInfo %))
                     reverse)]
@@ -547,7 +547,7 @@
        {"time" (* 1000 (long (.get_error_time_secs e)))
         "errorHost" (.get_host e)
         "errorPort"  (.get_port e)
-        "errorWorkerLogLink"  (worker-log-link (.get_host e) (.get_port e) topology-id)
+        "errorWorkerLogLink"  (worker-log-link (.get_host e) (.get_port e) topology-id secure?)
         "errorLapsedSecs" (get-error-time e)
         "error" (.get_error e)})}))
 
@@ -687,7 +687,7 @@
      "outputStats" (map unpack-comp-output-stat (.get_sid_to_output_stats info))
      "executorStats" (map (partial unpack-comp-exec-stat topology-id secure?)
                           (.get_exec_stats info))}
-    (component-errors (.get_errors info) topology-id)))
+    (component-errors (.get_errors info) topology-id secure?)))
 
 (defmethod unpack-component-page-info ComponentType/SPOUT
   [^ComponentPageInfo info topology-id window include-sys? secure?]
@@ -696,7 +696,7 @@
      "outputStats" (map unpack-comp-output-stat (.get_sid_to_output_stats info))
      "executorStats" (map (partial unpack-comp-exec-stat topology-id secure?)
                           (.get_exec_stats info))}
-    (component-errors (.get_errors info) topology-id)))
+    (component-errors (.get_errors info) topology-id secure?)))
 
 (defn get-active-profile-actions
   [nimbus topology-id component]
