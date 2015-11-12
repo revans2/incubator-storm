@@ -946,7 +946,7 @@ Note that if anything goes wrong, this will throw an Error and exit."
            (log-error ex)
            (json-response (exception->json ex) (:callback m) :status 400))))
     (GET "/dumps/:topo-id/:host-port/:filename"
-         [:as {:keys [servlet-request servlet-response log-root]} topo-id host-port filename &m]
+         [:as {:keys [servlet-request servlet-response log-root]} topo-id host-port filename & m]
        (let [port (second (split host-port #":"))]
          (-> (resp/response (File. (str log-root
                                         file-path-separator
@@ -957,7 +957,7 @@ Note that if anything goes wrong, this will throw an Error and exit."
                                         filename)))
              (resp/content-type "application/octet-stream"))))
     (GET "/dumps/:topo-id/:host-port"
-         [:as {:keys [servlet-request servlet-response log-root]} topo-id host-port &m]
+         [:as {:keys [servlet-request servlet-response log-root]} topo-id host-port & m]
        (let [user (.getUserName http-creds-handler servlet-request)
              port (second (split host-port #":"))
              dir (File. (str log-root
@@ -975,7 +975,9 @@ Note that if anything goes wrong, this will throw an Error and exit."
                                  (.getName f)))))]
          (if (.exists dir)
            (if (or (blank? (*STORM-CONF* UI-FILTER))
-                 (authorized-log-user? user "worker.log" *STORM-CONF*))
+                 (authorized-log-user? user 
+                                       (str topo-id file-path-separator port file-path-separator "worker.log")
+                                       *STORM-CONF*))
              (html4
                [:head
                 [:title "File Dumps - Storm Log Viewer"]
