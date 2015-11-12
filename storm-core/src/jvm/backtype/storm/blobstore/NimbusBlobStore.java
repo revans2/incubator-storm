@@ -263,8 +263,10 @@ public class NimbusBlobStore extends ClientBlobStore {
       synchronized(client) {
         return new NimbusUploadAtomicOutputStream(client.getClient().beginUpdateBlob(key), this.bufferSize);
       }
-    } catch (AuthorizationException | KeyNotFoundException exp) {
+    } catch (AuthorizationException exp) {
       throw exp;
+    } catch (KeyNotFoundException knf) {
+      throw KeyNotFoundMessageException.maybeWrapKeyNotFoundException(knf);
     } catch (TException e) {
       throw new RuntimeException(e);
     }
@@ -276,8 +278,10 @@ public class NimbusBlobStore extends ClientBlobStore {
       synchronized(client) {
         return client.getClient().getBlobMeta(key);
       }
-    } catch (AuthorizationException | KeyNotFoundException exp) {
+    } catch (AuthorizationException exp) {
       throw exp;
+    } catch (KeyNotFoundException knf) {
+      throw KeyNotFoundMessageException.maybeWrapKeyNotFoundException(knf);
     } catch (TException e) {
       throw new RuntimeException(e);
     }
@@ -290,8 +294,10 @@ public class NimbusBlobStore extends ClientBlobStore {
       synchronized(client) {
         client.getClient().setBlobMeta(key, meta);
       }
-    } catch (AuthorizationException | KeyNotFoundException exp) {
+    } catch (AuthorizationException exp) {
       throw exp;
+    } catch (KeyNotFoundException knf) {
+      throw KeyNotFoundMessageException.maybeWrapKeyNotFoundException(knf);
     } catch (TException e) {
       throw new RuntimeException(e);
     }
@@ -303,8 +309,10 @@ public class NimbusBlobStore extends ClientBlobStore {
       synchronized(client) {
         client.getClient().deleteBlob(key);
       }
-    } catch (AuthorizationException | KeyNotFoundException exp) {
+    } catch (AuthorizationException exp) {
       throw exp;
+    } catch (KeyNotFoundException knf) {
+      throw KeyNotFoundMessageException.maybeWrapKeyNotFoundException(knf);
     } catch (TException e) {
       throw new RuntimeException(e);
     }
@@ -316,8 +324,10 @@ public class NimbusBlobStore extends ClientBlobStore {
       synchronized(client) {
         return new NimbusDownloadInputStream(client.getClient().beginBlobDownload(key));
       }
-    } catch (AuthorizationException | KeyNotFoundException exp) {
+    } catch (AuthorizationException exp) {
       throw exp;
+    } catch (KeyNotFoundException knf) {
+      throw KeyNotFoundMessageException.maybeWrapKeyNotFoundException(knf);
     } catch (TException e) {
       throw new RuntimeException(e);
     }
@@ -349,8 +359,10 @@ public class NimbusBlobStore extends ClientBlobStore {
   public BlobReplication getBlobReplication(String key) throws AuthorizationException, KeyNotFoundException {
     try {
       return client.getClient().getBlobReplication(key);
-    } catch (AuthorizationException | KeyNotFoundException exp) {
+    } catch (AuthorizationException exp) {
       throw exp;
+    } catch (KeyNotFoundException knf) {
+      throw KeyNotFoundMessageException.maybeWrapKeyNotFoundException(knf);
     } catch (TException e) {
       throw new RuntimeException(e);
     }
@@ -360,8 +372,10 @@ public class NimbusBlobStore extends ClientBlobStore {
   public BlobReplication updateBlobReplication(String key, int replication) throws AuthorizationException, KeyNotFoundException {
     try {
       return client.getClient().updateBlobReplication(key, replication);
-    } catch (AuthorizationException | KeyNotFoundException exp) {
+    } catch (AuthorizationException exp) {
       throw exp;
+    } catch (KeyNotFoundException knf) {
+      throw KeyNotFoundMessageException.maybeWrapKeyNotFoundException(knf);
     } catch (TException e) {
       throw new RuntimeException(e);
     }
