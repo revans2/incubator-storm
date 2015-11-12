@@ -1234,12 +1234,6 @@ public class Config extends HashMap<String, Object> {
     public static final Object WORKER_GC_CHILDOPTS_SCHEMA = ConfigValidation.StringOrStringListValidator;
 
     /**
-     * control how many worker receiver threads we need per worker
-     */
-    public static final String WORKER_RECEIVER_THREAD_COUNT = "topology.worker.receiver.thread.count";
-    public static final Object WORKER_RECEIVER_THREAD_COUNT_SCHEMA = ConfigValidation.IntegerValidator;
-
-    /**
      * How often this worker should heartbeat to the supervisor.
      */
     public static final String WORKER_HEARTBEAT_FREQUENCY_SECS = "worker.heartbeat.frequency.secs";
