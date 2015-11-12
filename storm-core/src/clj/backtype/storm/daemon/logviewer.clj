@@ -902,6 +902,16 @@ Note that if anything goes wrong, this will throw an Error and exit."
                    callback
                    :headers {"Access-Control-Allow-Origin" origin
                              "Access-Control-Allow-Credentials" "true"})))
+(defn get-profiler-dump-files
+  [dir]
+  (filter (comp not nil?)
+        (for [f (DirectoryCleaner/getFilesForDir dir)]
+          (let [name (.getName f)]
+            (if (or
+                  (.endsWith name ".txt")
+                  (.endsWith name ".jfr")
+                  (.endsWith name ".bin"))
+              (.getName f))))))
 
 (defroutes log-routes
   (GET "/log" [:as req & m]
@@ -964,15 +974,7 @@ Note that if anything goes wrong, this will throw an Error and exit."
                              file-path-separator
                              topo-id
                              file-path-separator
-                             port))
-             files (filter (comp not nil?)
-                           (for [f (DirectoryCleaner/getFilesForDir dir)]
-                             (let [name (.getName f)]
-                               (if (or
-                                    (.endsWith name ".txt")
-                                    (.endsWith name ".jfr")
-                                    (.endsWith name ".bin"))
-                                 (.getName f)))))]
+                             port))]
          (if (.exists dir)
            (if (or (blank? (*STORM-CONF* UI-FILTER))
                  (authorized-log-user? user 
@@ -986,7 +988,7 @@ Note that if anything goes wrong, this will throw an Error and exit."
                 (include-css "/css/style.css")]
                [:body
                 [:ul
-                 (for [file files]
+                 (for [file (get-profiler-dump-files dir)]
                    [:li
                     [:a {:href (str "/dumps/" topo-id "/" host-port "/" file)} file ]])]])
              (unauthorized-user-html user))
