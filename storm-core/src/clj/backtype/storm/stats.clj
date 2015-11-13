@@ -284,16 +284,18 @@
       specific-stats
       rate)))
 
+(defn valid-number?
+  "Returns true if x is a number that is not NaN, false otherwise"
+  [x]
+  (and (number? x)
+       (not (Double/isNaN x))))
+
 (defn- agg-bolt-lat-and-count
   "Aggregates number executed, process latency, and execute latency across all
   streams."
   [idk->exec-avg idk->proc-avg idk->num-executed]
-  {:pre (apply = (map #(set (keys %))
-                      [idk->exec-avg
-                       idk->proc-avg
-                       idk->num-executed]))}
   (letfn [(weight-avg [[id avg]] (let [num-e (get idk->num-executed id)]
-                                   (if (and avg num-e)
+                                   (if (and (valid-number? avg) num-e)
                                      (* avg num-e)
                                      0)))]
     {:executeLatencyTotal (sum (map weight-avg idk->exec-avg))
@@ -303,10 +305,9 @@
 (defn- agg-spout-lat-and-count
   "Aggregates number acked and complete latencies across all streams."
   [sid->comp-avg sid->num-acked]
-  {:pre (apply = (map #(set (keys %))
-                      [sid->comp-avg
-                       sid->num-acked]))}
-  (letfn [(weight-avg [[id avg]] (* avg (get sid->num-acked id)))]
+  (letfn [(weight-avg [[id avg]] (if (valid-number? avg)
+                                   (* avg (get sid->num-acked id))
+                                   0))]
     {:completeLatencyTotal (sum (map weight-avg sid->comp-avg))
      :acked (sum (vals sid->num-acked))}))
 
@@ -332,28 +333,21 @@
 (defn- agg-bolt-streams-lat-and-count
   "Aggregates number executed and process & execute latencies."
   [idk->exec-avg idk->proc-avg idk->executed]
-  {:pre (apply = (map #(set (keys %))
-                      [idk->exec-avg
-                       idk->proc-avg
-                       idk->executed]))}
   (letfn [(weight-avg [id avg] (let [num-e (idk->executed id)]
-                                   (if (and avg num-e)
+                                   (if (and (valid-number? avg) num-e)
                                      (* avg num-e)
                                      0)))]
     (into {}
       (for [k (keys idk->exec-avg)]
-        [k {:executeLatencyTotal (weight-avg k (idk->exec-avg k))
-            :processLatencyTotal (weight-avg k (idk->proc-avg k))
+        [k {:executeLatencyTotal (weight-avg k (get idk->exec-avg k))
+            :processLatencyTotal (weight-avg k (get idk->proc-avg k))
             :executed (idk->executed k)}]))))
 
 (defn- agg-spout-streams-lat-and-count
   "Aggregates number acked and complete latencies."
   [idk->comp-avg idk->acked]
-  {:pre (apply = (map #(set (keys %))
-                      [idk->comp-avg
-                       idk->acked]))}
   (letfn [(weight-avg [id avg] (let [num-e (get idk->acked id)]
-                                   (if (and avg num-e)
+                                   (if (and (valid-number? avg) num-e)
                                      (* avg num-e)
                                      0)))]
     (into {}
@@ -599,7 +593,10 @@
 
 (defn apply-or-0
   [f & args]
-  (apply apply-default f #(or % 0) args))
+  (apply apply-default
+         f
+         #(if (valid-number? %) % 0)
+         args))
 
 (defn sum-or-0
   [& args]
