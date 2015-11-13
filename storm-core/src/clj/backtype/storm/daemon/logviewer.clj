@@ -902,6 +902,16 @@ Note that if anything goes wrong, this will throw an Error and exit."
                    callback
                    :headers {"Access-Control-Allow-Origin" origin
                              "Access-Control-Allow-Credentials" "true"})))
+(defn get-profiler-dump-files
+  [dir]
+  (filter (comp not nil?)
+        (for [f (DirectoryCleaner/getFilesForDir dir)]
+          (let [name (.getName f)]
+            (if (or
+                  (.endsWith name ".txt")
+                  (.endsWith name ".jfr")
+                  (.endsWith name ".bin"))
+              (.getName f))))))
 
 (defroutes log-routes
   (GET "/log" [:as req & m]
@@ -946,7 +956,7 @@ Note that if anything goes wrong, this will throw an Error and exit."
            (log-error ex)
            (json-response (exception->json ex) (:callback m) :status 400))))
     (GET "/dumps/:topo-id/:host-port/:filename"
-         [:as {:keys [servlet-request servlet-response log-root]} topo-id host-port filename &m]
+         [:as {:keys [servlet-request servlet-response log-root]} topo-id host-port filename & m]
        (let [port (second (split host-port #":"))]
          (-> (resp/response (File. (str log-root
                                         file-path-separator
@@ -957,25 +967,19 @@ Note that if anything goes wrong, this will throw an Error and exit."
                                         filename)))
              (resp/content-type "application/octet-stream"))))
     (GET "/dumps/:topo-id/:host-port"
-         [:as {:keys [servlet-request servlet-response log-root]} topo-id host-port &m]
+         [:as {:keys [servlet-request servlet-response log-root]} topo-id host-port & m]
        (let [user (.getUserName http-creds-handler servlet-request)
              port (second (split host-port #":"))
              dir (File. (str log-root
                              file-path-separator
                              topo-id
                              file-path-separator
-                             port))
-             files (filter (comp not nil?)
-                           (for [f (DirectoryCleaner/getFilesForDir dir)]
-                             (let [name (.getName f)]
-                               (if (or
-                                    (.endsWith name ".txt")
-                                    (.endsWith name ".jfr")
-                                    (.endsWith name ".bin"))
-                                 (.getName f)))))]
+                             port))]
          (if (.exists dir)
            (if (or (blank? (*STORM-CONF* UI-FILTER))
-                 (authorized-log-user? user "worker.log" *STORM-CONF*))
+                 (authorized-log-user? user 
+                                       (str topo-id file-path-separator port file-path-separator "worker.log")
+                                       *STORM-CONF*))
              (html4
                [:head
                 [:title "File Dumps - Storm Log Viewer"]
@@ -984,7 +988,7 @@ Note that if anything goes wrong, this will throw an Error and exit."
                 (include-css "/css/style.css")]
                [:body
                 [:ul
-                 (for [file files]
+                 (for [file (get-profiler-dump-files dir)]
                    [:li
                     [:a {:href (str "/dumps/" topo-id "/" host-port "/" file)} file ]])]])
              (unauthorized-user-html user))
