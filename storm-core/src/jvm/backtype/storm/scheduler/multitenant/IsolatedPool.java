@@ -413,7 +413,7 @@ public class IsolatedPool extends NodePool {
 
   public Map<Node, List<String>> getNodeToTopology() {
     Map<Node, List<String>> nodeToTopoMapping = new HashMap<Node, List<String>>();
-    for(Entry<String, Set<Node>> entry : this._topologyIdToNodes.entrySet()) {
+    for (Entry<String, Set<Node>> entry : this._topologyIdToNodes.entrySet()) {
       String topoId = entry.getKey();
       Set<Node> nodes = entry.getValue();
       for (Node node : nodes) {
@@ -421,7 +421,7 @@ public class IsolatedPool extends NodePool {
           nodeToTopoMapping.put(node, new LinkedList<String>());
         }
         nodeToTopoMapping.get(node).add(topoId);
-        if(nodeToTopoMapping.get(node).size() > 1) {
+        if (nodeToTopoMapping.get(node).size() > 1) {
           LOG.error("More than one Topology marked as isolated assigned to Node: {}", node);
         }
       }
