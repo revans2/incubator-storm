@@ -15,7 +15,7 @@ YINST bug-product jira-ystorm
 YINST requires pkg ypython               2.6.0_2     2.7.9999
 YINST requires pkg yjava_jdk             1.7.0_11.64 1.8.999999
 YINST requires pkg bouncer_auth_java     0.17.9      *
-YINST requires pkg yjava_servlet_filters 0.43.27    *
+YINST requires pkg yjava_servlet_filters 0.22.495    *
 YINST requires pkg yjava_yca             0.23.218    *
 YINST requires pkg bycookieauthkey       1.0.4.1     *
 
