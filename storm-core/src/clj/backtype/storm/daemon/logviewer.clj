@@ -957,16 +957,31 @@ Note that if anything goes wrong, this will throw an Error and exit."
            (json-response (exception->json ex) (:callback m) :status 400))))
     (GET "/dumps/:topo-id/:host-port/:filename"
          [:as {:keys [servlet-request servlet-response log-root]} topo-id host-port filename & m]
-       (let [port (second (split host-port #":"))]
-         (-> (resp/response (File. (str log-root
-                                        file-path-separator
-                                        topo-id
-                                        file-path-separator
-                                        port
-                                        file-path-separator
-                                        filename)))
-             (resp/content-type "application/octet-stream"))))
-    (GET "/dumps/:topo-id/:host-port"
+         (let [user (.getUserName http-creds-handler servlet-request)
+               port (second (split host-port #":"))
+               dir (File. (str log-root
+                            file-path-separator
+                            topo-id
+                            file-path-separator
+                            port))
+               file (File. (str log-root
+                            file-path-separator
+                            topo-id
+                            file-path-separator
+                            port
+                            file-path-separator
+                            filename))]
+           (if (and (.exists dir) (.exists file))
+             (if (or (blank? (*STORM-CONF* UI-FILTER))
+                   (authorized-log-user? user
+                     (str topo-id file-path-separator port file-path-separator "worker.log")
+                     *STORM-CONF*))
+               (-> (resp/response file)
+                 (resp/content-type "application/octet-stream"))
+               (unauthorized-user-html user))
+             (-> (resp/response "Page not found")
+               (resp/status 404)))))
+(GET "/dumps/:topo-id/:host-port"
          [:as {:keys [servlet-request servlet-response log-root]} topo-id host-port & m]
        (let [user (.getUserName http-creds-handler servlet-request)
              port (second (split host-port #":"))
