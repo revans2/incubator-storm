@@ -94,7 +94,7 @@ public class IsolatedPool extends NodePool {
   
   @Override
   public void scheduleAsNeeded(NodePool ... lesserPools) {
-    LOG.debug("Topology assigned to Nodes:\n{}", this.getNodeToTopology());
+    LOG.debug("Existing Assignments PRIOR to new schedulings:\n{}", this.getNodeToTopology());
     for (String topId : _topologyIdToNodes.keySet()) {
       TopologyDetails td = _tds.get(topId);
       LOG.debug("Scheduling topology {} unassigned executors: {}", td.getName(), _cluster.getUnassignedExecutors(td));
