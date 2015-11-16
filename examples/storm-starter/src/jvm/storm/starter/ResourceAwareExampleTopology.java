@@ -84,6 +84,11 @@ public class ResourceAwareExampleTopology {
          */
         conf.setTopologyWorkerMaxHeapSize(512.0);
 
+        /**
+         * set to use the default resource aware strategy when using the MultitenantResourceAwareBridgeScheduler
+         */
+        conf.setTopologyStrategy(backtype.storm.scheduler.resource.strategies.ResourceAwareStrategy.class);
+
         if (args != null && args.length > 0) {
             conf.setNumWorkers(3);
 
