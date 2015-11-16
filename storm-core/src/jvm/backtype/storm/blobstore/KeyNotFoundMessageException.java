@@ -49,10 +49,6 @@ public class KeyNotFoundMessageException extends KeyNotFoundException {
      */
     public static KeyNotFoundException maybeWrapKeyNotFoundException(
             KeyNotFoundException e) {
-        if (!(e instanceof KeyNotFoundMessageException)) {
-            return new KeyNotFoundMessageException(e);
-        } else {
-            return e;
-        }
+      return new KeyNotFoundMessageException(e);
     }
 }
