@@ -40,15 +40,4 @@ public class KeyNotFoundMessageException extends KeyNotFoundException {
     public String getMessage() {
         return this.message;
     }
-
-    /**
-     * Creates a KeyNotFoundMessageException from the given exception if
-     * necessary.
-     * @param e a KeyNotFoundException
-     * @return the original exception if it was an instance of this class otherwise returns a new instance of this class created from e
-     */
-    public static KeyNotFoundException maybeWrapKeyNotFoundException(
-            KeyNotFoundException e) {
-      return new KeyNotFoundMessageException(e);
-    }
 }

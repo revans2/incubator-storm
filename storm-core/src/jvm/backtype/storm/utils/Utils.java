@@ -557,8 +557,7 @@ public class Utils {
             ReadableBlobMeta metadata = cb.getBlobMeta(key);
             nimbusBlobVersion = metadata.get_version();
         } catch (KeyNotFoundException knf) {
-            throw KeyNotFoundMessageException
-                    .maybeWrapKeyNotFoundException(knf);
+            throw new KeyNotFoundMessageException(knf);
         }
         return nimbusBlobVersion;
     }

@@ -363,7 +363,7 @@ public class Localizer {
           }
           if (e.getCause() instanceof KeyNotFoundException) {
             KeyNotFoundException knf = (KeyNotFoundException) e.getCause();
-            throw KeyNotFoundMessageException.maybeWrapKeyNotFoundException(knf);
+            throw new KeyNotFoundMessageException(knf);
           }
         }
       }
@@ -444,7 +444,7 @@ public class Localizer {
         throw (AuthorizationException)e.getCause();
       else if (e.getCause() instanceof KeyNotFoundException) {
         KeyNotFoundException knf = (KeyNotFoundException) e.getCause();
-        throw KeyNotFoundMessageException.maybeWrapKeyNotFoundException(knf);
+        throw new KeyNotFoundMessageException(knf);
       } else {
         throw new IOException("Error getting blobs", e);
       }
@@ -611,8 +611,7 @@ public class Localizer {
             LOG.error("Failed to download blob for key '{}', retrying", key, e);
           } else {
             if (e instanceof KeyNotFoundException) {
-              throw KeyNotFoundMessageException
-                      .maybeWrapKeyNotFoundException((KeyNotFoundException) e);
+              throw new KeyNotFoundMessageException((KeyNotFoundException)e);
             } else {
               throw e;
             }

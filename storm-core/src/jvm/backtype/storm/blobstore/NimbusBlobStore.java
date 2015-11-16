@@ -266,7 +266,7 @@ public class NimbusBlobStore extends ClientBlobStore {
     } catch (AuthorizationException exp) {
       throw exp;
     } catch (KeyNotFoundException knf) {
-      throw KeyNotFoundMessageException.maybeWrapKeyNotFoundException(knf);
+      throw new KeyNotFoundMessageException(knf);
     } catch (TException e) {
       throw new RuntimeException(e);
     }
@@ -281,7 +281,7 @@ public class NimbusBlobStore extends ClientBlobStore {
     } catch (AuthorizationException exp) {
       throw exp;
     } catch (KeyNotFoundException knf) {
-      throw KeyNotFoundMessageException.maybeWrapKeyNotFoundException(knf);
+      throw new KeyNotFoundMessageException(knf);
     } catch (TException e) {
       throw new RuntimeException(e);
     }
@@ -297,7 +297,7 @@ public class NimbusBlobStore extends ClientBlobStore {
     } catch (AuthorizationException exp) {
       throw exp;
     } catch (KeyNotFoundException knf) {
-      throw KeyNotFoundMessageException.maybeWrapKeyNotFoundException(knf);
+      throw new KeyNotFoundMessageException(knf);
     } catch (TException e) {
       throw new RuntimeException(e);
     }
@@ -312,7 +312,7 @@ public class NimbusBlobStore extends ClientBlobStore {
     } catch (AuthorizationException exp) {
       throw exp;
     } catch (KeyNotFoundException knf) {
-      throw KeyNotFoundMessageException.maybeWrapKeyNotFoundException(knf);
+      throw new KeyNotFoundMessageException(knf);
     } catch (TException e) {
       throw new RuntimeException(e);
     }
@@ -327,7 +327,7 @@ public class NimbusBlobStore extends ClientBlobStore {
     } catch (AuthorizationException exp) {
       throw exp;
     } catch (KeyNotFoundException knf) {
-      throw KeyNotFoundMessageException.maybeWrapKeyNotFoundException(knf);
+      throw new KeyNotFoundMessageException(knf);
     } catch (TException e) {
       throw new RuntimeException(e);
     }
@@ -362,7 +362,7 @@ public class NimbusBlobStore extends ClientBlobStore {
     } catch (AuthorizationException exp) {
       throw exp;
     } catch (KeyNotFoundException knf) {
-      throw KeyNotFoundMessageException.maybeWrapKeyNotFoundException(knf);
+      throw new KeyNotFoundMessageException(knf);
     } catch (TException e) {
       throw new RuntimeException(e);
     }
@@ -375,7 +375,7 @@ public class NimbusBlobStore extends ClientBlobStore {
     } catch (AuthorizationException exp) {
       throw exp;
     } catch (KeyNotFoundException knf) {
-      throw KeyNotFoundMessageException.maybeWrapKeyNotFoundException(knf);
+      throw new KeyNotFoundMessageException(knf);
     } catch (TException e) {
       throw new RuntimeException(e);
     }
