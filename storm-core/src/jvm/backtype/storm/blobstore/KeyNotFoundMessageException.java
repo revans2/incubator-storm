@@ -27,7 +27,12 @@ public class KeyNotFoundMessageException extends KeyNotFoundException {
     // Copy constructor that preserves the exception message for {@link #getMessage()}
     public KeyNotFoundMessageException(KeyNotFoundException knf) {
         super(knf); // Deep Copy
-        this.message = knf.get_msg();
+        if (knf != null) {
+          this.message = knf.get_msg();
+        }
+        else {
+          this.message = null;
+        }
     }
 
     /**
