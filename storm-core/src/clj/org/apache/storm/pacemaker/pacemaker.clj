@@ -81,7 +81,7 @@
             largest (.getAndSet (:largest-heartbeat-size stats) 0)
             average (.getAndSet (:average-heartbeat-size stats) 0)
             total-keys (.size heartbeats)]
-        (log-message "\nReceived " send-count " heartbeats totaling " received-size " bytes,\n"
+        (log-debug "\nReceived " send-count " heartbeats totaling " received-size " bytes,\n"
                      "Sent " get-count " heartbeats totaling " sent-size " bytes,\n"
                      "The largest heartbeat was " largest " bytes,\n"
                      "The average heartbeat was " average " bytes,\n"
