@@ -284,7 +284,7 @@
                                 (str "-Dworker.port=" mock-port)
                                 "-Dstorm.log.dir=/logs"
                                 "-Dlog4j.configurationFile=/log4j2/worker.xml"
-                                "-DLog4jContextSelector=org.apache.logging.log4j.core.async.AsyncLoggerContextSelector"
+                                "-DLog4jContextSelector=org.apache.logging.log4j.core.selector.BasicContextSelector"
                                 "backtype.storm.LogWriter"]
                                [(supervisor/java-cmd) "-server"]
                                opts
@@ -298,7 +298,7 @@
                                 (str "-Dworkers.artifacts=" "/tmp/workers-artifacts")
                                 (str "-Dlogging.sensitivity=" mock-sensitivity)
                                 "-Dlog4j.configurationFile=/log4j2/worker.xml"
-                                "-DLog4jContextSelector=org.apache.logging.log4j.core.async.AsyncLoggerContextSelector"
+                                "-DLog4jContextSelector=org.apache.logging.log4j.core.selector.BasicContextSelector"
                                 (str "-Dstorm.id=" mock-storm-id)
                                 (str "-Dworker.id=" mock-worker-id)
                                 (str "-Dworker.port=" mock-port)
@@ -436,7 +436,7 @@
                                 " '-Dworker.port=" mock-port "'"
                                 " '-Dstorm.log.dir=/logs'"
                                 " '-Dlog4j.configurationFile=/log4j2/worker.xml'"
-                                " '-DLog4jContextSelector=org.apache.logging.log4j.core.async.AsyncLoggerContextSelector'"
+                                " '-DLog4jContextSelector=org.apache.logging.log4j.core.selector.BasicContextSelector'"
                                 " 'backtype.storm.LogWriter'"
                                 " 'java' '-server'"
                                 " " (shell-cmd opts)
@@ -450,7 +450,7 @@
                                 " '-Dworkers.artifacts=" (str storm-local "/workers-artifacts'")
                                 " '-Dlogging.sensitivity=" mock-sensitivity "'"
                                 " '-Dlog4j.configurationFile=/log4j2/worker.xml'"
-                                " '-DLog4jContextSelector=org.apache.logging.log4j.core.async.AsyncLoggerContextSelector'"
+                                " '-DLog4jContextSelector=org.apache.logging.log4j.core.selector.BasicContextSelector'"
                                 " '-Dstorm.id=" mock-storm-id "'"
                                 " '-Dworker.id=" mock-worker-id "'"
                                 " '-Dworker.port=" mock-port "'"
