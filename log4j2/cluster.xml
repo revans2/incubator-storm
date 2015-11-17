@@ -105,11 +105,9 @@
         <AppenderRef ref="METRICS"/>
     </Logger>
     <Logger name="backtype.storm.scheduler" level="debug" additivity="false">
-        <AppenderRef ref="SCHEDULER"/>
-    </Logger>
-    <Logger name="backtype.storm.scheduler" level="info" additivity="false">
-        <AppenderRef ref="A1"/>
-        <AppenderRef ref="syslog"/>
+        <AppenderRef ref="SCHEDULER" level="debug"/>
+        <AppenderRef ref="A1" level="info"/>
+        <AppenderRef ref="syslog" level="info"/>
     </Logger>
     <root level="info"> <!-- We log everything -->
         <appender-ref ref="A1"/>
