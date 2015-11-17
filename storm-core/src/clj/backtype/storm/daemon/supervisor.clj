@@ -1061,7 +1061,7 @@
                      (str "-Dworker.port=" port)
                      (str "-Dstorm.log.dir=" storm-log-dir)
                      (str "-Dlog4j.configurationFile=" storm-logback-conf-dir file-path-separator "worker.xml")
-                     (str "-DLog4jContextSelector=org.apache.logging.log4j.core.selector.BasicContextSelector")
+                     (str "-DLog4jContextSelector=org.apache.logging.log4j.core.async.AsyncLoggerContextSelector")
                      "backtype.storm.LogWriter"]
                     [(java-cmd) "-server"]
                     worker-childopts
@@ -1077,7 +1077,7 @@
                      (str "-Dworkers.artifacts=" workers-artifacts)
                      (str "-Dlogging.sensitivity=" logging-sensitivity)
                      (str "-Dlog4j.configurationFile=" storm-logback-conf-dir file-path-separator "worker.xml")
-                     (str "-DLog4jContextSelector=org.apache.logging.log4j.core.selector.BasicContextSelector")
+                     (str "-DLog4jContextSelector=org.apache.logging.log4j.core.async.AsyncLoggerContextSelector")
                      (str "-Dstorm.id=" storm-id)
                      (str "-Dworker.id=" worker-id)
                      (str "-Dworker.port=" port)
