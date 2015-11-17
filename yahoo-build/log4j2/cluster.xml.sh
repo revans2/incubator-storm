@@ -28,7 +28,7 @@ cat <<XML
     <property name="patternMetrics">%d %-8r %m%n</property>
 </properties>
 <appenders>
-    <RollingFile name="A1"
+    <RollingFile name="A1" immediateFlush="false"
                  fileName="\${sys:storm.log.dir}/\${sys:logfile.name}"
                  filePattern="\${sys:storm.log.dir}/\${sys:logfile.name}.%i.gz">
         <PatternLayout>
@@ -39,7 +39,7 @@ cat <<XML
         </Policies>
         <DefaultRolloverStrategy max="9"/>
     </RollingFile>
-    <RollingFile name="WEB-ACCESS"
+    <RollingFile name="WEB-ACCESS" immediateFlush="false"
                  fileName="\${sys:storm.log.dir}/access-web-\${sys:daemon.name}.log"
                  filePattern="\${sys:storm.log.dir}/access-web-\${sys:daemon.name}.log.%i.gz">
         <PatternLayout>
@@ -50,7 +50,7 @@ cat <<XML
         </Policies>
         <DefaultRolloverStrategy max="9"/>
     </RollingFile>
-    <RollingFile name="THRIFT-ACCESS"
+    <RollingFile name="THRIFT-ACCESS" immediateFlush="false"
                  fileName="\${sys:storm.log.dir}/access-\${sys:logfile.name}"
                  filePattern="\${sys:storm.log.dir}/access-\${sys:logfile.name}.%i.gz">
         <PatternLayout>
@@ -61,7 +61,7 @@ cat <<XML
         </Policies>
         <DefaultRolloverStrategy max="9"/>
     </RollingFile>
-    <RollingFile name="METRICS"
+    <RollingFile name="METRICS" immediateFlush="false"
                  fileName="\${sys:storm.log.dir}/metrics.log"
                  filePattern="\${sys:storm.log.dir}/metrics.log.%i.gz">
         <PatternLayout>
@@ -72,7 +72,7 @@ cat <<XML
         </Policies>
         <DefaultRolloverStrategy max="9"/>
     </RollingFile>
-    <RollingFile name="SCHEDULER"
+    <RollingFile name="SCHEDULER" immediateFlush="false"
                  fileName="\${sys:storm.log.dir}/scheduler.log"
                  filePattern="\${sys:storm.log.dir}/scheduler.log.%i.gz">
         <PatternLayout>
@@ -86,7 +86,7 @@ cat <<XML
     <Syslog name="syslog" format="RFC5424" charset="UTF-8" host="${syslog_host}" port="514"
         protocol="UDP" appName="[\${sys:daemon.name}]" mdcId="mdc" includeMDC="true"
         facility="${syslog_facility}" enterpriseNumber="18060" newLine="true" exceptionPattern="%rEx{full}"
-        messageId="[\${sys:user.name}:S0]" id="ystorm">
+        messageId="[\${sys:user.name}:S0]" id="ystorm" immediateFlush="false" immediateFail="false">
         <LoggerFields>
             <KeyValuePair key="ClassName" value="%C{1.}"/>
         </LoggerFields>
