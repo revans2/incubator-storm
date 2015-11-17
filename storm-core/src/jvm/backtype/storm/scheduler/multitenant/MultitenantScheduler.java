@@ -74,11 +74,12 @@ public class MultitenantScheduler implements IScheduler {
     Map<String, Node> nodeIdToNode = Node.getAllNodesFrom(cluster);
     
     Map<String, Number> userConf = getUserConf();
-    
+    LOG.debug("user confs: {}", userConf);
     Map<String, IsolatedPool> userPools = new HashMap<String, IsolatedPool>();
     for (Map.Entry<String, Number> entry : userConf.entrySet()) {
       userPools.put(entry.getKey(), new IsolatedPool(entry.getValue().intValue()));
     }
+    LOG.debug("user pools: {}", userPools);
     DefaultPool defaultPool = new DefaultPool();
     FreePool freePool = new FreePool();
     
@@ -91,6 +92,7 @@ public class MultitenantScheduler implements IScheduler {
     for (TopologyDetails td: topologies.getTopologies()) {
       String user = (String)td.getConf().get(Config.TOPOLOGY_SUBMITTER_USER);
       LOG.debug("Found top {} run by user {}",td.getId(), user);
+      LOG.debug("User {} has pool {}", user, userPools.get(user));
       NodePool pool = userPools.get(user);
       if (pool == null || !pool.canAdd(td)) {
         pool = defaultPool;

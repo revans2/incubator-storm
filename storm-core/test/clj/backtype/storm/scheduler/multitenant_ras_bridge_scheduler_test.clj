@@ -36,8 +36,8 @@
         (for [at (range start end)]
           {(ed at) name})))))
 
-;; test scheduling a topology with only using multitenant scheduler
-;; check if scheduling is correct
+; test scheduling a topology with only using multitenant scheduler
+; check if scheduling is correct
 (deftest test-schedule-multitenant
   (let [supers (gen-supervisors 5 4)
          cluster (Cluster. (nimbus/standalone-nimbus) supers {} {})
@@ -64,11 +64,11 @@
 ;; test scheduling a topology with only using resource aware scheduler
 (deftest test-schedule-resource-aware
   (let [supers (gen-supervisors 5 4)
-        cluster (Cluster. (nimbus/standalone-nimbus) supers {} 
+        cluster (Cluster. (nimbus/standalone-nimbus) supers {}
                    {STORM-NETWORK-TOPOGRAPHY-PLUGIN
                    "backtype.storm.networktopography.DefaultRackDNSToSwitchMapping"})
         builder (TopologyBuilder.)
-        _ (doto (.setSpout builder "spout1" (TestWordSpout.) 5) 
+        _ (doto (.setSpout builder "spout1" (TestWordSpout.) 5)
             (.setMemoryLoad 500.0 12.0)
             (.setCPULoad 10.0))
         conf (Config.)
@@ -83,17 +83,17 @@
                     storm-topology
                     5
                     (mk-ed-map [["spout1" 0 5]]))
-        
+
         topologies (Topologies. (to-top-map [topology1]))
         scheduler (MultitenantResourceAwareBridgeScheduler.)]
     (.prepare scheduler {})
     (.schedule scheduler topologies cluster)
     (is (= "Fully Scheduled" (.get (.getStatusMap cluster) "topology1")))))
 
-;; test multiple schedulings with scheduling multitenant topologies first 
+;; test multiple schedulings with scheduling multitenant topologies first
 (deftest test-consecutive-scheduling-multitenant-first
   (let [supers (gen-supervisors 5 4)
-        cluster (Cluster. (nimbus/standalone-nimbus) supers {} 
+        cluster (Cluster. (nimbus/standalone-nimbus) supers {}
                    {STORM-NETWORK-TOPOGRAPHY-PLUGIN
                    "backtype.storm.networktopography.DefaultRackDNSToSwitchMapping"})
         builder1 (TopologyBuilder.)
@@ -104,14 +104,14 @@
        _ (.put conf1 Config/TOPOLOGY_NAME "topology-name-1")
        _ (.put conf1 Config/TOPOLOGY_SUBMITTER_USER "userJerry")
        _ (.put conf1 Config/TOPOLOGY_WORKERS 1)
-                
+
         storm-topology1 (.createTopology builder1)
         topology1 (TopologyDetails. "topology1"
                     conf1
                     storm-topology1
                     1
                     (mk-ed-map [["spout1" 0 1]]))
-        
+
          builder2 (TopologyBuilder.)
         _ (doto (.setSpout builder2 "spout1" (TestWordSpout.) 5))
         conf2 (Config.)
@@ -120,16 +120,16 @@
        _ (.put conf2 Config/TOPOLOGY_SUBMITTER_USER "userPeng")
        _ (.put conf2 Config/TOPOLOGY_WORKERS 5)
        _ (.put conf2 Config/TOPOLOGY_WORKER_CHILDOPTS "-Xmx128m")
-                
+
         storm-topology2 (.createTopology builder2)
         topology2 (TopologyDetails. "topology2"
                     conf2
                     storm-topology2
                     5
                     (mk-ed-map [["spout1" 0 5]]))
-        
+
          builder3 (TopologyBuilder.)
-        _ (doto (.setSpout builder3 "spout1" (TestWordSpout.) 5) 
+        _ (doto (.setSpout builder3 "spout1" (TestWordSpout.) 5)
             (.setMemoryLoad 500.0 12.0)
             (.setCPULoad 10.0))
         conf3 (Config.)
@@ -138,14 +138,14 @@
        _ (.put conf3 Config/TOPOLOGY_SUBMITTER_USER "userPeng")
        _ (.put conf3 Config/TOPOLOGY_WORKERS 5)
        _ (.put conf3 Config/TOPOLOGY_WORKER_CHILDOPTS "-Xmx128m")
-                
+
         storm-topology3 (.createTopology builder3)
         topology3 (TopologyDetails. "topology3"
                     conf3
                     storm-topology3
                     5
                     (mk-ed-map [["spout1" 0 5]]))
-        
+
         topologies (Topologies. (to-top-map [topology1 topology2 topology3]))
         scheduler (MultitenantResourceAwareBridgeScheduler.)]
     (.prepare scheduler conf_scheduler)
@@ -161,12 +161,12 @@
 ;; test multiple schedulings with scheduling resource aware topology first
 (deftest test-consecutive-scheduling-resource-aware-first
   (let [supers (gen-supervisors 5 4)
-        cluster (Cluster. (nimbus/standalone-nimbus) supers {} 
+        cluster (Cluster. (nimbus/standalone-nimbus) supers {}
                    {STORM-NETWORK-TOPOGRAPHY-PLUGIN
                    "backtype.storm.networktopography.DefaultRackDNSToSwitchMapping"})
         conf_scheduler {MULTITENANT-SCHEDULER-USER-POOLS {"userJerry" 1}}
         builder1 (TopologyBuilder.)
-        _ (doto (.setSpout builder1 "spout1" (TestWordSpout.) 5) 
+        _ (doto (.setSpout builder1 "spout1" (TestWordSpout.) 5)
             (.setMemoryLoad 500.0 12.0)
             (.setCPULoad 10.0))
         conf1 (Config.)
@@ -176,7 +176,7 @@
         _ (.put conf1 Config/TOPOLOGY_WORKERS 5)
         _ (.put conf1 Config/TOPOLOGY_WORKER_CHILDOPTS "-Xmx128m")
         _ (.put conf1 Config/TOPOLOGY_WORKER_MAX_HEAP_SIZE_MB 8192.0)
-                
+
         storm-topology1 (.createTopology builder1)
         topology1 (TopologyDetails. "topology1"
                     conf1
@@ -201,7 +201,7 @@
                     storm-topology2
                     1
                     (mk-ed-map [["spout1" 0 1]]))
-      
+
         builder3 (TopologyBuilder.)
         _ (doto (.setSpout builder3 "spout1" (TestWordSpout.) 5))
         conf3 (Config.)
@@ -210,7 +210,7 @@
         _ (.put conf3 Config/TOPOLOGY_SUBMITTER_USER "userPeng")
         _ (.put conf3 Config/TOPOLOGY_WORKERS 5)
         _ (.put conf3 Config/TOPOLOGY_WORKER_CHILDOPTS "-Xmx128m")
-                
+
         storm-topology3 (.createTopology builder3)
         topology3 (TopologyDetails. "topology3"
                     conf3
@@ -229,3 +229,65 @@
     (is (= "Fully Scheduled" (.get (.getStatusMap cluster) "topology1")))
     (is (= "Scheduled Isolated on 1 Nodes" (.get (.getStatusMap cluster) "topology2")))
     (is (= "Fully Scheduled" (.get (.getStatusMap cluster) "topology3")))))
+
+;;If resource aware scheduler is actually used the topology in this test should not be able to get scheduled
+;;since it uses more resource than available on nodes
+(deftest test-ras-topology-that-cannot-be-scheduled
+  (let [supers (gen-supervisors 4 4)
+        cluster (Cluster. (nimbus/standalone-nimbus) supers {}
+                  {STORM-NETWORK-TOPOGRAPHY-PLUGIN
+                   "backtype.storm.networktopography.DefaultRackDNSToSwitchMapping"})
+        builder (TopologyBuilder.)
+        _ (doto (.setSpout builder "spout1" (TestWordSpout.) 5)
+            (.setMemoryLoad 500.0 0.0)
+            (.setCPULoad 400.0))
+        conf (Config.)
+        _ (.setTopologyStrategy conf RESOURCE-AWARE-SCHEDULER)
+        _ (.put conf Config/TOPOLOGY_NAME "topology-name-1")
+        _ (.put conf Config/TOPOLOGY_SUBMITTER_USER "userPeng")
+        _ (.put conf Config/TOPOLOGY_WORKERS 5)
+        _ (.put conf Config/TOPOLOGY_WORKER_MAX_HEAP_SIZE_MB 8192.0)
+        storm-topology (.createTopology builder)
+        topology1 (TopologyDetails. "topology1"
+                    conf
+                    storm-topology
+                    5
+                    (mk-ed-map [["spout1" 0 5]]))
+
+        topologies (Topologies. (to-top-map [topology1]))
+        scheduler (MultitenantResourceAwareBridgeScheduler.)]
+    (.prepare scheduler {})
+    (.schedule scheduler topologies cluster)
+    (println (str "status: " (.getStatusMap cluster)))
+    (is (not= "Fully Scheduled" (.get (.getStatusMap cluster) "topology1")))))
+
+(deftest test-isolated-pool-with-ras
+  (let [supers (gen-supervisors 4 4)
+        cluster (Cluster. (nimbus/standalone-nimbus) supers {}
+                  {STORM-NETWORK-TOPOGRAPHY-PLUGIN
+                   "backtype.storm.networktopography.DefaultRackDNSToSwitchMapping"})
+        builder (TopologyBuilder.)
+        _ (doto (.setSpout builder "spout1" (TestWordSpout.) 5)
+            (.setMemoryLoad 500.0 0.0)
+            (.setCPULoad 400.0))
+        conf (Config.)
+        _ (.setTopologyStrategy conf RESOURCE-AWARE-SCHEDULER)
+        _ (.put conf Config/TOPOLOGY_NAME "topology-name-1")
+        _ (.put conf Config/TOPOLOGY_SUBMITTER_USER "userPeng")
+        _ (.put conf Config/TOPOLOGY_WORKERS 5)
+        _ (.put conf Config/TOPOLOGY_WORKER_MAX_HEAP_SIZE_MB 8192.0)
+        _ (.put conf Config/TOPOLOGY_ISOLATED_MACHINES 4)
+        storm-topology (.createTopology builder)
+        topology1 (TopologyDetails. "topology1"
+                    conf
+                    storm-topology
+                    5
+                    (mk-ed-map [["spout1" 0 5]]))
+
+        topologies (Topologies. (to-top-map [topology1]))
+        scheduler (MultitenantResourceAwareBridgeScheduler.)]
+    (.prepare scheduler {Config/MULTITENANT_SCHEDULER_USER_POOLS {"userPeng" 4}})
+    (.schedule scheduler topologies cluster)
+    (println (str "status: " (.getStatusMap cluster)))
+    (is (not= "Fully Scheduled" (.get (.getStatusMap cluster) "topology1")))))
+

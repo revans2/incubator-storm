@@ -330,6 +330,12 @@ public class MultitenantResourceAwareBridgeScheduler implements IScheduler{
                     target.assign(ws, topoId, execs);
                 }
             }
+            //merge scheduler set status
+            for (Entry<String, String> statusEntry : ephemeral.getStatusMap().entrySet()) {
+                String topoId = statusEntry.getKey();
+                String status = statusEntry.getValue();
+                target.setStatus(topoId, status);
+            }
         }
     }
 
