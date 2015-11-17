@@ -22,16 +22,13 @@ import backtype.storm.generated.KeyNotFoundException;
 // Thrift Exceptions may not store the message where Throwable#getMessage can
 // retrieve it. This class provides a {@link #getMessage()} that works.
 public class KeyNotFoundMessageException extends KeyNotFoundException {
-    private final String message;
+    private String message;
 
     // Copy constructor that preserves the exception message for {@link #getMessage()}
     public KeyNotFoundMessageException(KeyNotFoundException knf) {
         super(knf); // Deep Copy
         if (knf != null) {
           this.message = knf.get_msg();
-        }
-        else {
-          this.message = null;
         }
     }
 
