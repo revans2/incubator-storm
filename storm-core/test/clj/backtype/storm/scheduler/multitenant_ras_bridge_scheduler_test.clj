@@ -36,8 +36,8 @@
         (for [at (range start end)]
           {(ed at) name})))))
 
-; test scheduling a topology with only using multitenant scheduler
-; check if scheduling is correct
+;; test scheduling a topology with only using multitenant scheduler
+;; check if scheduling is correct
 (deftest test-schedule-multitenant
   (let [supers (gen-supervisors 5 4)
          cluster (Cluster. (nimbus/standalone-nimbus) supers {} {})
@@ -261,6 +261,7 @@
     (println (str "status: " (.getStatusMap cluster)))
     (is (not= "Fully Scheduled" (.get (.getStatusMap cluster) "topology1")))))
 
+;;Test isolated pool with topologies running with RAS
 (deftest test-isolated-pool-with-ras
   (let [supers (gen-supervisors 4 4)
         cluster (Cluster. (nimbus/standalone-nimbus) supers {}
@@ -290,6 +291,7 @@
     (.schedule scheduler topologies cluster)
     (is (not= "Fully Scheduled" (.get (.getStatusMap cluster) "topology1")))))
 
+;;Simulate nimbus crash
 (deftest test-nimbus-crash
   (let [supers (gen-supervisors 1 4)
         builder (TopologyBuilder.)

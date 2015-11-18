@@ -464,8 +464,6 @@ public class RAS_Node {
                         node.consumeResourcesforTask(exec, topologies.getById(entry.getKey()));
                     } else {
                         TopologyDetails td = topologies.getById(entry.getKey());
-                        LOG.info("td: {}", td);
-                        LOG.info("exec resource: {}",td.getTaskResourceReqList(exec));
                         LOG.warn("Resource Req not found...Scheduling Task {} with memory requirement as on heap - {} and off heap - {} and CPU requirement as {}",
                                 exec,
                                 td.getConf().get(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB),
