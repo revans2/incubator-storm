@@ -262,7 +262,7 @@ public class ResourceAwareStrategy implements IStrategy {
     }
 
     private Double distToNode(RAS_Node src, RAS_Node dest) {
-        if (src.getId().equals(dest.getId()) == true) {
+        if (src.getId().equals(dest.getId())) {
             return 0.0;
         }else if (this.NodeToCluster(src) == this.NodeToCluster(dest)) {
             return 0.5;
