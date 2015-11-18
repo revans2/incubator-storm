@@ -1246,5 +1246,9 @@ public class Utils {
             }
         }
     }
+
+    public static double zeroIfNaNOrInf(double x) {
+        return (Double.isNaN(x) || Double.isInfinite(x)) ? 0.0 : x;
+    }
 }
 
