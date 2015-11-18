@@ -35,7 +35,8 @@ import backtype.storm.utils.Utils;
 
 import java.util.Map;
 
-public class ResourceAwareExampleTopology {
+public class
+        ResourceAwareExampleTopology {
     public static class ExclamationBolt extends BaseRichBolt {
         OutputCollector _collector;
 
@@ -78,15 +79,12 @@ public class ResourceAwareExampleTopology {
         Config conf = new Config();
         conf.setDebug(true);
 
-        /**
-         * Use to limit the maximum amount of memory (in MB) allocated to one worker process.
-         * Can be used to spread executors to to multiple workers
-         */
+        //Use to limit the maximum amount of memory (in MB) allocated to one worker process.
+        //Can be used to spread executors to to multiple workers
         conf.setTopologyWorkerMaxHeapSize(512.0);
 
-        /**
-         * set to use the default resource aware strategy when using the MultitenantResourceAwareBridgeScheduler
-         */
+
+         //set to use the default resource aware strategy when using the MultitenantResourceAwareBridgeScheduler
         conf.setTopologyStrategy(backtype.storm.scheduler.resource.strategies.ResourceAwareStrategy.class);
 
         if (args != null && args.length > 0) {
