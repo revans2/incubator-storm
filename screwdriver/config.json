@@ -28,7 +28,7 @@
 		    ]
                 },
                  "remote_trigger": {
-                                    "url": "http://jenkins.screwdriver.corp.yahoo.com:9999/jenkins/job/61235-ystorm-test-topologies-trunk-component/",
+                                    "url": "http://jenkins.screwdriver.corp.yahoo.com:9999/jenkins/job/61235-ystorm_test_topologies-trunk-component/",
 					"params": { }
                 }
             }
