@@ -20,13 +20,16 @@ package backtype.storm;
 import java.io.File;
 import java.io.FileInputStream;
 import java.nio.ByteBuffer;
-import java.util.*;
+
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import backtype.storm.blobstore.NimbusBlobStore;
 import backtype.storm.scheduler.resource.ResourceUtils;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import org.apache.commons.lang.StringUtils;
 import org.apache.thrift.TException;
