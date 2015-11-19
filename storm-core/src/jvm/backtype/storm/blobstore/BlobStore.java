@@ -44,142 +44,31 @@ import backtype.storm.generated.BlobReplication;
 /**
  * Provides a way to store blobs that can be downloaded.
  * Blobs must be able to be uploaded and listed from Nimbus,
- * and downloaded from the Supervisors. It is a key value based
- * store. Key being a string and value being the blob data.
+ * and downloaded from the Supervisors.
+ *
+ * In the future it would be nice to have blobs uploaded
+ * directly by the end users.
  *
  * ACL checking must take place against the provided subject.
  * If the blob store does not support Security it must validate
  * that all ACLs set are always WORLD, everything.
- *
- * The users can upload their blobs through the blob store command
- * line utility. The command line utilty also allows us to update,
- * delete.
- *
- * Modifying the replication factor only works for HdfsBlobStore
- * as for the LocalFsBlobStore the replication is dependent on
- * the number of Nimbodes available.
  */
 public abstract class BlobStore implements Shutdownable {
   public static final Logger LOG = LoggerFactory.getLogger(BlobStore.class);
   private static final Pattern KEY_PATTERN = Pattern.compile("^[\\w \\t\\.:_-]+$");
   protected static final String BASE_BLOBS_DIR_NAME = "blobs";
 
-  /**
-   * Allows us to initialize the blob store
-   * @param conf
-   * @param baseDir
-   */
   public abstract void prepare(Map conf, String baseDir);
-
-  /**
-   * Creates the blob.
-   * @param key Key for the blob.
-   * @param meta Metadata which contains the acls information
-   * @param who Is the subject creating the blob.
-   * @return AtomicOutputStream returns a stream into which the data
-   * can be written into.
-   * @throws AuthorizationException
-   * @throws KeyAlreadyExistsException
-   */
   public abstract AtomicOutputStream createBlob(String key, SettableBlobMeta meta, Subject who) throws AuthorizationException, KeyAlreadyExistsException;
-
-  /**
-   * Updates the blob data.
-   * @param key Key for the blob.
-   * @param who Is the subject creating the blob.
-   * @return AtomicOutputStream returns a stream into which the data
-   * can be written into.
-   * @throws AuthorizationException
-   * @throws KeyNotFoundException
-   */
   public abstract AtomicOutputStream updateBlob(String key, Subject who) throws AuthorizationException, KeyNotFoundException;
-
-  /**
-   * Gets the current version of metadata for a blob
-   * to be viewed by the user or downloaded by the supervisor.
-   * @param key Key for the blob.
-   * @param who Is the subject creating the blob.
-   * @return AtomicOutputStream returns a stream into which the data
-   * can be written into.
-   * @throws AuthorizationException
-   * @throws KeyNotFoundException
-   */
   public abstract ReadableBlobMeta getBlobMeta(String key, Subject who) throws AuthorizationException, KeyNotFoundException;
-
-  /**
-   * Sets the metadata with renewed acls for the blob.
-   * @param key Key for the blob.
-   * @param meta Metadata which contains the updated
-   * acls information.
-   * @param who Is the subject creating the blob.
-   * @throws AuthorizationException
-   * @throws KeyNotFoundException
-   */
   public abstract void setBlobMeta(String key, SettableBlobMeta meta, Subject who) throws AuthorizationException, KeyNotFoundException;
-
-  /**
-   * Deletes the blob data and metadata.
-   * @param key Key for the blob.
-   * @param who Is the subject creating the blob.
-   * @throws AuthorizationException
-   * @throws KeyNotFoundException
-   */
   public abstract void deleteBlob(String key, Subject who) throws AuthorizationException, KeyNotFoundException;
-
-  /**
-   * Gets the current version of metadata for a blob
-   * to be viewed by the user or downloaded by the supervisor.
-   * @param key Key for the blob.
-   * @param who Is the subject creating the blob.
-   * @return InputStreamWithMeta has the additional
-   * file length and version information.
-   * @throws AuthorizationException
-   * @throws KeyNotFoundException
-   */
   public abstract InputStreamWithMeta getBlob(String key, Subject who) throws AuthorizationException, KeyNotFoundException;
-
-  /**
-   * Returns an iterator with all the list of
-   * keys currently available on the blob store.
-   * @param who Is the subject creating the blob.
-   * @return Iterator<String>
-   */
   public abstract Iterator<String> listKeys(Subject who);
-
-  /**
-   * Gets the replication factor of the blob.
-   * @param key Key for the blob.
-   * @param who Is the subject creating the blob.
-   * @return BlobReplication object containing the
-   * replication factor for the blob.
-   * @throws AuthorizationException
-   * @throws KeyNotFoundException
-   * @throws IOException
-   */
   public abstract BlobReplication getBlobReplication(String key, Subject who) throws AuthorizationException, KeyNotFoundException, IOException;
-
-  /**
-   * Modifies the replication factor of the blob.
-   * @param key Key for the blob.
-   * @param replication The replication factor the
-   * blob has to be set to.
-   * @param who Is the subject creating the blob.
-   * @return BlobReplication object containing the
-   * updated replication factor for the blob.
-   * @throws AuthorizationException
-   * @throws KeyNotFoundException
-   * @throws IOException
-   */
   public abstract BlobReplication updateBlobReplication(String key, int replication, Subject who) throws AuthorizationException, KeyNotFoundException, IOException;
 
-  /**
-   * Filters keys based on the KeyFilter
-   * passed as the argument.
-   * @param filter Filter passed as the
-   * @param who Is the subject creating the blob.
-   * @param <R> Type
-   * @return Set of filtered keys
-   */
   public <R> Set<R> filterAndListKeys(KeyFilter<R> filter, Subject who) {
     Set<R> ret = new HashSet<R>();
     Iterator<String> keys = listKeys(who);
@@ -193,11 +82,6 @@ public abstract class BlobStore implements Shutdownable {
     return ret;
   }
 
-  /**
-   * Validates key checking for potentially harmful patterns
-   * @param key Key for the blob.
-   * @throws AuthorizationException
-   */
   public static final void validateKey(String key) throws AuthorizationException {
     if (key == null || key.isEmpty() || "..".equals(key) || ".".equals(key) || !KEY_PATTERN.matcher(key).matches()) {
       LOG.error("'{}' does not appear to be valid {}", key, KEY_PATTERN);
@@ -205,17 +89,6 @@ public abstract class BlobStore implements Shutdownable {
     }
   }
 
-  /**
-   * Wrapper called to create the blob which contains
-   * the byte data
-   * @param key Key for the blob.
-   * @param data Byte data that needs to be uploaded.
-   * @param meta Metadata which contains the acls information
-   * @param who Is the subject creating the blob.
-   * @throws AuthorizationException
-   * @throws KeyAlreadyExistsException
-   * @throws IOException
-   */
   public void createBlob(String key, byte [] data, SettableBlobMeta meta, Subject who) throws AuthorizationException, KeyAlreadyExistsException, IOException {
     AtomicOutputStream out = null;
     try {
@@ -229,19 +102,7 @@ public abstract class BlobStore implements Shutdownable {
       }
     }
   }
-
-  /**
-   * Wrapper called to create the blob which contains
-   * the byte data
-   * @param key Key for the blob.
-   * @param in InputStream from which the data is read to be
-   * written as a part of the blob.
-   * @param meta Metadata which contains the acls information
-   * @param who Is the subject creating the blob.
-   * @throws AuthorizationException
-   * @throws KeyAlreadyExistsException
-   * @throws IOException
-   */
+  
   public void createBlob(String key, InputStream in, SettableBlobMeta meta, Subject who) throws AuthorizationException, KeyAlreadyExistsException, IOException {
     AtomicOutputStream out = null;
     try {
@@ -258,18 +119,7 @@ public abstract class BlobStore implements Shutdownable {
       in.close();
     }
   }
-
-  /**
-   * Reads the blob from the blob store
-   * and writes it into the output stream.
-   * @param key Key for the blob.
-   * @param out Output stream
-   * @param who Is the subject creating
-   * the blob.
-   * @throws IOException
-   * @throws KeyNotFoundException
-   * @throws AuthorizationException
-   */
+  
   public void readBlobTo(String key, OutputStream out, Subject who) throws IOException, KeyNotFoundException, AuthorizationException {
     InputStreamWithMeta in = getBlob(key, who);
     if (in == null) {
@@ -286,28 +136,13 @@ public abstract class BlobStore implements Shutdownable {
       out.flush();
     }
   }
-
-  /**
-   * Wrapper around readBlobTo which
-   * returns a ByteArray output stream.
-   * @param key  Key for the blob.
-   * @param who Is the subject creating
-   * the blob.
-   * @return ByteArrayOutputStream
-   * @throws IOException
-   * @throws KeyNotFoundException
-   * @throws AuthorizationException
-   */
+  
   public byte[] readBlob(String key, Subject who) throws IOException, KeyNotFoundException, AuthorizationException {
     ByteArrayOutputStream out = new ByteArrayOutputStream();
     readBlobTo(key, out, who);
     return out.toByteArray();
   }
 
-  /**
-   * Output stream implemetation used for reading the
-   * metadata and data information.
-   */
   protected class BlobStoreFileOutputStream extends AtomicOutputStream {
     private BlobStoreFile part;
     private OutputStream out;
@@ -354,11 +189,6 @@ public abstract class BlobStore implements Shutdownable {
     }
   }
 
-  /**
-   * Input stream implementation used for writing
-   * both the metadata containing the acl information
-   * and the blob data.
-   */
   protected class BlobStoreFileInputStream extends InputStreamWithMeta {
     private BlobStoreFile part;
     private InputStream in;
@@ -399,10 +229,6 @@ public abstract class BlobStore implements Shutdownable {
     }
   }
 
-  /**
-   * Blob store implements its own version of iterator
-   * to list the blobs
-   */
   public static class KeyTranslationIterator implements Iterator<String> {
     private Iterator<String> it = null;
     private String next = null;
