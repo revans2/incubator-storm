@@ -1721,10 +1721,9 @@ public class Config extends HashMap<String, Object> {
      */
     public static final String TRANSACTIONAL_ZOOKEEPER_SERVERS="transactional.zookeeper.servers";
     public static final Object TRANSACTIONAL_ZOOKEEPER_SERVERS_SCHEMA = ConfigValidation.StringsValidator;
-
+    
     /**
-     * The port to use to connect to the transactional zookeeper servers. If null (which is default),
-     * will use storm.zookeeper.port
+     *
      */
     public static final String TRANSACTIONAL_ZOOKEEPER_PORT="transactional.zookeeper.port";
     public static final Object TRANSACTIONAL_ZOOKEEPER_PORT_SCHEMA = ConfigValidation.IntegerValidator;
@@ -1799,7 +1798,7 @@ public class Config extends HashMap<String, Object> {
      * launch directory to the blob by local file name and uncompress flag. Both localname and
      * uncompress flag are optional. It uses the key is localname is not specified. Each topology
      * will have different map of blobs.  Example: topology.blobstore.map: {"blobstorekey" :
-     * {"localname": "myblob", "uncompress": false}, {"blobstorearchivekey" :
+     * {"localname": "myblob", "uncompress": false}}, {"blobstorearchivekey" :
      * {"localname": "myarchive", "uncompress": true}}
      */
     public static final String TOPOLOGY_BLOBSTORE_MAP = "topology.blobstore.map";

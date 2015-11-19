@@ -180,10 +180,28 @@
   (let [req (ReqContext/context)]
     (.subject req)))
 
+(def user-subject
+  (get-subject))
+
+(defn get-nimbus-subject
+  []
+  (let [subject (Subject.)
+        principal (NimbusPrincipal.)
+        principals (.getPrincipals subject)]
+    (.add principals principal)
+    subject))
+
+(def nimbus-subject
+  (get-nimbus-subject))
+
+(defn get-key-seq-from-blob-store [blob-store]
+  (let [key-iter (.listKeys blob-store nimbus-subject)]
+    (iterator-seq key-iter)))
+
 (defn- read-storm-conf [conf storm-id blob-store]
   (clojurify-structure
     (Utils/fromCompressedJsonConf
-      (.readBlob blob-store (master-stormconf-key storm-id) (get-subject)))))
+      (.readBlob blob-store (master-stormconf-key storm-id) user-subject))))
 
 (defn set-topology-status! [nimbus storm-id status]
   (let [storm-cluster-state (:storm-cluster-state nimbus)]
@@ -410,7 +428,7 @@
       )))
 
 (defn- setup-storm-code [conf storm-id tmp-jar-location storm-conf topology blob-store]
-  (let [subject (get-subject)]
+  (let [subject user-subject]
     (if tmp-jar-location ;;in local mode there is no jar
       (.createBlob blob-store (master-stormjar-key storm-id) (FileInputStream. tmp-jar-location) (SettableBlobMeta. BlobStoreAclHandler/DEFAULT) subject))
     (.createBlob blob-store (master-stormcode-key storm-id) (Utils/serialize topology) (SettableBlobMeta. BlobStoreAclHandler/DEFAULT) subject)
@@ -418,7 +436,7 @@
 
 (defn- read-storm-topology [storm-id blob-store]
   (Utils/deserialize
-    (.readBlob blob-store (master-stormcode-key storm-id) (get-subject)) StormTopology))
+    (.readBlob blob-store (master-stormcode-key storm-id) user-subject) StormTopology))
 
 (declare compute-executor->component)
 
@@ -1294,7 +1312,9 @@
             (.validate ^backtype.storm.nimbus.ITopologyValidator (:validator nimbus)
                        storm-name
                        topo-conf
-                       topology))
+                       topology)
+            ;; server side validation for the blobstore map set
+            (validate-topology-blob-store-map topo-conf (set (get-key-seq-from-blob-store blob-store))))
           (swap! (:submitted-count nimbus) inc)
           (let [storm-id (str storm-name "-" @(:submitted-count nimbus) "-" (current-time-secs))
                 credentials (.get_creds submitOptions)

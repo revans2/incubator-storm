@@ -20,12 +20,14 @@ package backtype.storm;
 import java.io.File;
 import java.io.FileInputStream;
 import java.nio.ByteBuffer;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.HashMap;
-import java.util.Map;
 
+import backtype.storm.blobstore.NimbusBlobStore;
 import backtype.storm.scheduler.resource.ResourceUtils;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 import org.apache.commons.lang.StringUtils;
 import org.apache.thrift.TException;
 import org.json.simple.JSONValue;
@@ -447,30 +449,29 @@ public class StormSubmitter {
          */
         public void onCompleted(String srcFile, String targetFile, long totalBytes);
     }
-    
 
     private static void validateConfs(Map stormConf, StormTopology topology) throws IllegalArgumentException {
         LOG.info("Validating storm Confs...");
         double largestMemReq = getMaxExecutorMemoryUsageForTopo(topology, stormConf);
         Double topologyWorkerMaxHeapSize = Utils.getDouble(stormConf.get(Config.TOPOLOGY_WORKER_MAX_HEAP_SIZE_MB));
-        if(topologyWorkerMaxHeapSize < largestMemReq) {
+        if (topologyWorkerMaxHeapSize < largestMemReq) {
             throw new IllegalArgumentException("Topology will not be able to be successfully scheduled: Config " + Config.TOPOLOGY_WORKER_MAX_HEAP_SIZE_MB+": "
-                    +Utils.getDouble(stormConf.get(Config.TOPOLOGY_WORKER_MAX_HEAP_SIZE_MB)) + " < " 
-                            + largestMemReq + " (Largest memory requirement of a component in the topology). Perhaps set " + Config.TOPOLOGY_WORKER_MAX_HEAP_SIZE_MB + " to a larger amount");
+                    +Utils.getDouble(stormConf.get(Config.TOPOLOGY_WORKER_MAX_HEAP_SIZE_MB)) + " < "
+                    + largestMemReq + " (Largest memory requirement of a component in the topology). Perhaps set " + Config.TOPOLOGY_WORKER_MAX_HEAP_SIZE_MB + " to a larger amount");
         }
-        
+        validateTopologyBlobStoreMap(stormConf);
     }
 
     private static double getMaxExecutorMemoryUsageForTopo(StormTopology topology, Map topologyConf) {
         double largestMemoryOperator = 0.0;
-        for(Map<String, Double> entry : ResourceUtils.getBoltsResources(topology, topologyConf).values()) {
+        for (Map<String, Double> entry : ResourceUtils.getBoltsResources(topology, topologyConf).values()) {
             double memoryRequirement = entry.get(Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB)
                     + entry.get(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB);
             if(memoryRequirement > largestMemoryOperator) {
                 largestMemoryOperator = memoryRequirement;
             }
         }
-        for(Map<String, Double> entry : ResourceUtils.getSpoutsResources(topology, topologyConf).values()) {
+        for (Map<String, Double> entry : ResourceUtils.getSpoutsResources(topology, topologyConf).values()) {
             double memoryRequirement = entry.get(Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB)
                     + entry.get(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB);
             if(memoryRequirement > largestMemoryOperator) {
@@ -478,5 +479,25 @@ public class StormSubmitter {
             }
         }
         return largestMemoryOperator;
+    }
+
+    private static void validateTopologyBlobStoreMap(Map stormConf) {
+        boolean containsAllBlobs = true;
+        Map blobStoreMap = (Map)stormConf.get(Config.TOPOLOGY_BLOBSTORE_MAP);
+        Set<String> mapKeys = blobStoreMap.keySet();
+        NimbusBlobStore client = new NimbusBlobStore();
+        client.prepare(stormConf);
+        Set<String> blobstoreKeys = Sets.newHashSet(client.listKeys());
+        Set<String> missingKeys = new HashSet<>();
+        for (String key : mapKeys) {
+            if (!blobstoreKeys.contains(key)) {
+                containsAllBlobs = false;
+                missingKeys.add(key);
+            }
+        }
+        if (!containsAllBlobs) {
+            throw new IllegalArgumentException("The topology blob store map does not " +
+                    "contain the valid keys to launch the topology " + missingKeys);
+        }
     }
 }

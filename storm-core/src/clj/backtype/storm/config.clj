@@ -17,12 +17,14 @@
 (ns backtype.storm.config
   (:import [java.io FileReader File IOException]
            [java.nio.file Files LinkOption]
-           [backtype.storm.generated StormTopology])
-  (:import [backtype.storm Config ConfigValidation$FieldValidator])
-  (:import [backtype.storm.utils Utils LocalState])
-  (:import [org.apache.commons.io FileUtils])
+           [backtype.storm.generated StormTopology]
+           [backtype.storm Config ConfigValidation$FieldValidator]
+           [backtype.storm.utils Utils LocalState]
+           [org.apache.commons.io FileUtils]
+           [backtype.storm.generated InvalidTopologyException])
   (:require [clojure [string :as str]]
-            [clojure.java [io :as io]])
+            [clojure.java [io :as io]]
+            [clojure.set :as set])
   (:use [backtype.storm log util]))
 
 (def RESOURCES-SUBDIR "resources")
@@ -112,6 +114,20 @@
 (defn read-default-config
   []
   (clojurify-structure (Utils/readDefaultConfig)))
+
+(defn get-keys-from-blob-store-map
+  [blobstore-map]
+  (for [[k v] blobstore-map]
+    k))
+
+(defn validate-topology-blob-store-map
+  [storm-conf blob-store-key-set]
+  (let [map-key-set (set (get-keys-from-blob-store-map (storm-conf TOPOLOGY-BLOBSTORE-MAP)))
+        common-blobs (set/intersection blob-store-key-set map-key-set)
+        missing-blobs (set/difference map-key-set common-blobs)]
+    (if (not (empty? missing-blobs))
+      (throw (InvalidTopologyException. (str "Blob store does not contain the keys "
+                                          missing-blobs " mentioned in the map"))))))
 
 (defn validate-configs-with-schemas
   [conf]

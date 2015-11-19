@@ -26,9 +26,7 @@
            [java.io File])
   (:use [backtype.storm config util log timer local-state])
   (:import [backtype.storm.generated AuthorizationException KeyNotFoundException ProfileAction WorkerResources])
-  (:import [java.util.concurrent Executors])
   (:import [java.nio.file Files Path Paths StandardCopyOption])
-  (:import [backtype.storm.blobstore BlobStoreAclHandler])
   (:import [backtype.storm.localizer LocalResource])
   (:use [backtype.storm.daemon common])
   (:require [backtype.storm.daemon [worker :as worker]]
@@ -37,8 +35,7 @@
             [clojure.set :as set])
   (:import [org.apache.zookeeper data.ACL ZooDefs$Ids ZooDefs$Perms])
   (:import [org.yaml.snakeyaml Yaml]
-           [org.yaml.snakeyaml.constructor SafeConstructor]
-           [java.util Date])
+           [org.yaml.snakeyaml.constructor SafeConstructor])
   (:require [metrics.gauges :refer [defgauge]])
   (:require [metrics.meters :refer [defmeter mark!]])
   (:gen-class
@@ -499,7 +496,8 @@
         user (storm-conf TOPOLOGY-SUBMITTER-USER)
         topo-name (storm-conf TOPOLOGY-NAME)
         localresources (blobstore-map-to-localresources blobstore-map)]
-    (if blobstore-map (.addReferences localizer localresources user topo-name))))
+    (if blobstore-map
+      (.addReferences localizer localresources user topo-name))))
 
 (defn rm-topo-files
   [conf storm-id localizer rm-blob-refs?]
@@ -509,7 +507,8 @@
     (if (conf SUPERVISOR-RUN-WORKER-AS-USER)
       (rmr-as-user conf storm-id (supervisor-stormdist-root conf storm-id))
       (rmr (supervisor-stormdist-root conf storm-id)))
-    (catch Exception e (log-message e (str "Exception removing: " storm-id)))))
+    (catch Exception e
+      (log-message e (str "Exception removing: " storm-id)))))
 
 (defn verify-downloaded-files [conf localizer assigned-storm-ids all-downloaded-storm-ids]
   (remove nil?
