@@ -146,7 +146,7 @@ Sample response:
             "usedMem": 1280,
             "usedCPU": 160
         }
-    ]
+    ],
     "schedulerDisplayResource": true
 }
 ```
@@ -199,7 +199,7 @@ Sample response:
             "assignedTotalMem": 768,
             "assignedCpu": 80
         }
-    ]
+    ],
     "schedulerDisplayResource": true
 }
 ```
