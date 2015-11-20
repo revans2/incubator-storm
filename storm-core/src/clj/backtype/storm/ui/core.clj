@@ -361,6 +361,7 @@
          "usedMem" (.get_used_mem s)
          "usedCpu" (.get_used_cpu s)
          "version" (.get_version s)})
+      "schedulerDisplayResource" (*STORM-CONF* Config/SCHEDULER_DISPLAY_RESOURCE)
       "has-bad-supervisors" (not (empty? bad-supervisors))
       "bad-supervisors"
       (for [^SupervisorSummary s bad-supervisors]
@@ -390,12 +391,13 @@
        "schedulerInfo" (.get_sched_status t)
        "requestedMemOnHeap" (.get_requested_memonheap t)
        "requestedMemOffHeap" (.get_requested_memoffheap t)
-       "requestedMem" (+ (.get_requested_memonheap t) (.get_requested_memoffheap t))
+       "requestedTotalMem" (+ (.get_requested_memonheap t) (.get_requested_memoffheap t))
        "requestedCpu" (.get_requested_cpu t)
        "assignedMemOnHeap" (.get_assigned_memonheap t)
        "assignedMemOffHeap" (.get_assigned_memoffheap t)
        "assignedTotalMem" (+ (.get_assigned_memonheap t) (.get_assigned_memoffheap t))
-       "assignedCpu" (.get_assigned_cpu t)})}))
+       "assignedCpu" (.get_assigned_cpu t)})
+    "schedulerDisplayResource" (*STORM-CONF* Config/SCHEDULER_DISPLAY_RESOURCE)}))
 
 (defn topology-stats [window stats]
   (let [times (stats-times (:emitted stats))
@@ -503,6 +505,7 @@
      "requestedCpu" (.get_requested_cpu topo-info)
      "assignedMemOnHeap" (.get_assigned_memonheap topo-info)
      "assignedMemOffHeap" (.get_assigned_memoffheap topo-info)
+     "assignedTotalMem" (+ (.get_assigned_memonheap topo-info) (.get_assigned_memoffheap topo-info))
      "assignedCpu" (.get_assigned_cpu topo-info)
      "topologyStats" topo-stats
      "spouts" (map (partial comp-agg-stats-json id)
@@ -540,7 +543,8 @@
         "windowHint" window-hint
         "msgTimeout" msg-timeout
         "configuration" topology-conf
-        "visualizationTable" []}))))
+        "visualizationTable" []
+        "schedulerDisplayResource" (*STORM-CONF* Config/SCHEDULER_DISPLAY_RESOURCE)}))))
 
 (defn component-errors
   [errors-list topology-id secure?]

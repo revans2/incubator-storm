@@ -82,6 +82,8 @@ import java.io.RandomAccessFile;
 import java.io.IOException;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 import java.util.zip.ZipEntry;
@@ -1244,6 +1246,31 @@ public class Utils {
                 //Running in daemon mode, we would pass Error to calling thread.
                 throw (Error) t;
             }
+        }
+    }
+
+    /**
+     * parses the arguments to extract jvm heap memory size.
+     * @param input
+     * @param defaultValue
+     * @return the value of the JVM heap memory setting in a java command.
+     */
+    public static Double parseWorkerChildOpts(String input, Double defaultValue) {
+        if (input != null) {
+            Pattern optsPattern = Pattern.compile("Xmx[0-9]+m");
+            Matcher m = optsPattern.matcher(input);
+            String memoryOpts = null;
+            while (m.find()) {
+                memoryOpts = m.group();
+            }
+            if(memoryOpts != null) {
+                memoryOpts = memoryOpts.replaceAll("[a-zA-Z]", "");
+                return Double.parseDouble(memoryOpts);
+            } else {
+                return defaultValue;
+            }
+        } else {
+            return defaultValue;
         }
     }
 }
