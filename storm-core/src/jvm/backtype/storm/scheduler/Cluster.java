@@ -507,9 +507,9 @@ public class Cluster {
             totalWorkerMemory += Utils.getInt(topConf.get(Config.WORKER_HEAP_MEMORY_MB));
         }
 
-        String topology_worker_lw_childiopts = Utils.getString(topConf.get(Config.TOPOLOGY_WORKER_LW_CHILDOPTS), null);
-        if (topology_worker_lw_childiopts != null) {
-            totalWorkerMemory += Utils.parseWorkerChildOpts(topology_worker_lw_childiopts, 0.0);
+        String topo_worker_lw_childiopts = Utils.getString(topConf.get(Config.TOPOLOGY_WORKER_LOGWRITER_CHILDOPTS), null);
+        if (topo_worker_lw_childiopts != null) {
+            totalWorkerMemory += Utils.parseWorkerChildOpts(topo_worker_lw_childiopts, 0.0);
         }
         return totalWorkerMemory;
     }

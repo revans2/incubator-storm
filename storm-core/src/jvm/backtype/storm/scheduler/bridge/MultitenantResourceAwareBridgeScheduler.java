@@ -254,7 +254,7 @@ public class MultitenantResourceAwareBridgeScheduler implements IScheduler{
                     
                     String topologyWorkerLwChildopts = Utils
                             .getString(allTopologies.getById(topoId)
-                                    .getConf().get(Config.TOPOLOGY_WORKER_LW_CHILDOPTS), null);
+                                    .getConf().get(Config.TOPOLOGY_WORKER_LOGWRITER_CHILDOPTS), null);
                     if (topologyWorkerLwChildopts != null) {
                         totalWorkerMemory += parseWorkerChildOpts(topologyWorkerLwChildopts, 0.0);
                     }

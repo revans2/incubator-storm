@@ -1036,7 +1036,7 @@
                        (int (Math/ceil mem-onheap)) ;; round up
                        (storm-conf WORKER-HEAP-MEMORY-MB)) ;; otherwise use default value
           gc-opts (substitute-childopts (if top-gc-opts top-gc-opts (conf WORKER-GC-CHILDOPTS)) worker-id storm-id port mem-onheap)
-          topo-worker-lw-childopts (conf TOPOLOGY-WORKER-LW-CHILDOPTS)
+          topo-worker-lw-childopts (conf TOPOLOGY-WORKER-LOGWRITER-CHILDOPTS)
           user (storm-conf TOPOLOGY-SUBMITTER-USER)
           logfilename "worker.log"
           workers-artifacts (worker-artifacts-root conf)
