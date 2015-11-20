@@ -17,6 +17,7 @@
   (:import [backtype.storm Config ConfigValidation LoggingSensitivity]
            [backtype.storm.scheduler TopologyDetails]
            [backtype.storm.utils Utils]
+           [backtype.storm.generated InvalidTopologyException]
            [java.nio.file Files]
            [java.nio.file.attribute FileAttribute])
   (:require [clojure.java.io :as io])
@@ -200,9 +201,8 @@
 
 (deftest test-validate-topology-blob-store-map
   (testing "validate topology blob store map"
-    (let [storm-conf {}]
-    (stubbing [config/get-keys-from-blob-store-map #{"key1" "key2"}]
-      (config/validate-topology-blob-store-map storm-conf #{"key1" "key2"})
-      (is (thrown-cause? java.lang.IllegalArgumentException
-            (config/validate-topology-blob-store-map #{"key1"})))))))
+    (let [storm-conf {TOPOLOGY-BLOBSTORE-MAP {"key1" {} "key2" {}}}]
+      (Utils/validateTopologyBlobStoreMap storm-conf #{"key1" "key2"})
+      (is (thrown-cause? InvalidTopologyException
+            (Utils/validateTopologyBlobStoreMap storm-conf #{"key1"}))))))
 

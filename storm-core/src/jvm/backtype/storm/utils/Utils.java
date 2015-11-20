@@ -23,15 +23,7 @@ import backtype.storm.blobstore.BlobStoreAclHandler;
 import backtype.storm.blobstore.ClientBlobStore;
 import backtype.storm.blobstore.LocalFsBlobStore;
 import backtype.storm.blobstore.InputStreamWithMeta;
-import backtype.storm.generated.AccessControl;
-import backtype.storm.generated.AccessControlType;
-import backtype.storm.generated.AuthorizationException;
-import backtype.storm.generated.ComponentCommon;
-import backtype.storm.generated.ComponentObject;
-import backtype.storm.generated.KeyNotFoundException;
-import backtype.storm.generated.ReadableBlobMeta;
-import backtype.storm.generated.SettableBlobMeta;
-import backtype.storm.generated.StormTopology;
+import backtype.storm.generated.*;
 import backtype.storm.localizer.Localizer;
 import backtype.storm.serialization.DefaultSerializationDelegate;
 import backtype.storm.serialization.SerializationDelegate;
@@ -1243,6 +1235,26 @@ public class Utils {
             } else {
                 //Running in daemon mode, we would pass Error to calling thread.
                 throw (Error) t;
+            }
+        }
+    }
+
+    public static void validateTopologyBlobStoreMap(Map stormConf, Set<String> blobStoreKeys) throws InvalidTopologyException {
+        boolean containsAllBlobs = true;
+        Map blobStoreMap = (Map) stormConf.get(Config.TOPOLOGY_BLOBSTORE_MAP);
+        if (blobStoreMap != null) {
+            Set<String> mapKeys = blobStoreMap.keySet();
+            Set<String> missingKeys = new HashSet<>();
+
+            for (String key : mapKeys) {
+                if (!blobStoreKeys.contains(key)) {
+                    containsAllBlobs = false;
+                    missingKeys.add(key);
+                }
+            }
+            if (!containsAllBlobs) {
+                throw new InvalidTopologyException("The topology blob store map does not " +
+                        "contain the valid keys to launch the topology " + missingKeys);
             }
         }
     }

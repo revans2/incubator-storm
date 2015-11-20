@@ -1313,8 +1313,8 @@
                        storm-name
                        topo-conf
                        topology)
-            ;; server side validation for the blobstore map set
-            (validate-topology-blob-store-map topo-conf (set (get-key-seq-from-blob-store blob-store))))
+          ;; server side validation for the blobstore map set
+          (Utils/validateTopologyBlobStoreMap topo-conf (set (get-key-seq-from-blob-store blob-store))))
           (swap! (:submitted-count nimbus) inc)
           (let [storm-id (str storm-name "-" @(:submitted-count nimbus) "-" (current-time-secs))
                 credentials (.get_creds submitOptions)
