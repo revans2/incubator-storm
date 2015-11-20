@@ -1,6 +1,7 @@
 package backtype.storm.localizer;
 
 import backtype.storm.Config;
+import backtype.storm.blobstore.KeyNotFoundMessageException;
 import backtype.storm.utils.Utils;
 import backtype.storm.utils.ShellUtils.ShellCommandExecutor;
 import backtype.storm.utils.ShellUtils.ExitCodeException;
@@ -361,7 +362,8 @@ public class Localizer {
             throw (AuthorizationException)e.getCause();
           }
           if (e.getCause() instanceof KeyNotFoundException) {
-            throw (KeyNotFoundException)e.getCause();
+            KeyNotFoundException knf = (KeyNotFoundException) e.getCause();
+            throw new KeyNotFoundMessageException(knf);
           }
         }
       }
@@ -441,7 +443,8 @@ public class Localizer {
       if (e.getCause() instanceof AuthorizationException)
         throw (AuthorizationException)e.getCause();
       else if (e.getCause() instanceof KeyNotFoundException) {
-        throw (KeyNotFoundException)e.getCause();
+        KeyNotFoundException knf = (KeyNotFoundException) e.getCause();
+        throw new KeyNotFoundMessageException(knf);
       } else {
         throw new IOException("Error getting blobs", e);
       }
@@ -605,9 +608,13 @@ public class Localizer {
           }
 
           if (numTries < _blobDownloadRetries) {
-            LOG.error("Failed to download blob, retrying", e);
+            LOG.error("Failed to download blob for key '{}', retrying", key, e);
           } else {
-            throw e;
+            if (e instanceof KeyNotFoundException) {
+              throw new KeyNotFoundMessageException((KeyNotFoundException)e);
+            } else {
+              throw e;
+            }
           }
         }
       }
