@@ -46,7 +46,8 @@
                                      BlobStoreAclHandler
                                      ClientBlobStore
                                      InputStreamWithMeta
-                                     KeyFilter])
+                                     KeyFilter
+                                     KeyNotFoundMessageException])
   (:import [backtype.storm.daemon Shutdownable])
   (:import [backtype.storm.cluster ClusterStateContext DaemonType])
   (:use [backtype.storm util config log timer local-state])
@@ -1779,16 +1780,15 @@
 
       (^String beginUpdateBlob [this ^String blob-key]
         (mark! num-beginUpdateBlob-calls)
-        (if-let [^AtomicOutputStream os (->> (ReqContext/context)
-                                             (.subject)
-                                             (.updateBlob (:blob-store nimbus)
-                                                          blob-key))]
+        (let [^AtomicOutputStream os (->> (ReqContext/context)
+                                       (.subject)
+                                       (.updateBlob (:blob-store nimbus)
+                                         blob-key))]
           (let [session-id (uuid)]
             (.put (:blob-uploaders nimbus) session-id os)
             (log-message "Created upload session for " blob-key
-                         " with id " session-id)
-            (str session-id))
-          (throw-runtime "Could not find blob for key " blob-key)))
+              " with id " session-id)
+            (str session-id))))
 
       (^void uploadBlobChunk [this ^String session ^ByteBuffer blob-chunk]
         (let [uploaders (:blob-uploaders nimbus)]
@@ -1828,12 +1828,11 @@
                          " does not exist (or timed out)")))
 
       (^ReadableBlobMeta getBlobMeta [this ^String blob-key]
-        (if-let [^ReadableBlobMeta ret (->> (ReqContext/context)
-                                            (.subject)
-                                            (.getBlobMeta (:blob-store nimbus)
-                                                          blob-key))]
-          ret
-          (throw-runtime "Could not find blob metadata for key " blob-key)))
+        (let [^ReadableBlobMeta ret (->> (ReqContext/context)
+                                         (.subject)
+                                         (.getBlobMeta (:blob-store nimbus)
+                                                        blob-key))]
+          ret))
 
       (^void setBlobMeta [this ^String blob-key ^SettableBlobMeta blob-meta]
         (->> (ReqContext/context)
@@ -1841,18 +1840,17 @@
              (.setBlobMeta (:blob-store nimbus) blob-key blob-meta)))
 
       (^BeginDownloadResult beginBlobDownload [this ^String blob-key]
-        (if-let [^InputStreamWithMeta is (->> (ReqContext/context)
-                                              (.subject)
-                                              (.getBlob (:blob-store nimbus)
-                                                        blob-key))]
+        (let [^InputStreamWithMeta is (->> (ReqContext/context)
+                                           (.subject)
+                                           (.getBlob (:blob-store nimbus)
+                                                      blob-key))]
           (let [session-id (uuid)
                 ret (BeginDownloadResult. (.getVersion is) (str session-id))]
             (.set_data_size ret (.getFileLength is))
             (.put (:blob-downloaders nimbus) session-id (BufferInputStream. is ^Integer (Utils/getInt (conf STORM-BLOBSTORE-INPUTSTREAM-BUFFER-SIZE-BYTES) (int 65536))))
             (log-message "Created download session for " blob-key
                          " with id " session-id)
-            ret)
-          (throw-runtime "Could not find blob for key " blob-key)))
+            ret)))
 
       (^ByteBuffer downloadBlobChunk [this ^String session]
         (let [downloaders (:blob-downloaders nimbus)

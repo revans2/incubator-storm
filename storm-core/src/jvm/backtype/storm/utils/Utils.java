@@ -21,9 +21,21 @@ import backtype.storm.Config;
 import backtype.storm.blobstore.BlobStore;
 import backtype.storm.blobstore.BlobStoreAclHandler;
 import backtype.storm.blobstore.ClientBlobStore;
-import backtype.storm.blobstore.LocalFsBlobStore;
 import backtype.storm.blobstore.InputStreamWithMeta;
-import backtype.storm.generated.*;
+
+import backtype.storm.blobstore.KeyNotFoundMessageException;
+import backtype.storm.blobstore.LocalFsBlobStore;
+import backtype.storm.generated.AccessControl;
+import backtype.storm.generated.AccessControlType;
+import backtype.storm.generated.AuthorizationException;
+import backtype.storm.generated.ComponentCommon;
+import backtype.storm.generated.ComponentObject;
+import backtype.storm.generated.KeyNotFoundException;
+import backtype.storm.generated.ReadableBlobMeta;
+import backtype.storm.generated.SettableBlobMeta;
+import backtype.storm.generated.StormTopology;
+import backtype.storm.generated.InvalidTopologyException;
+
 import backtype.storm.localizer.Localizer;
 import backtype.storm.serialization.DefaultSerializationDelegate;
 import backtype.storm.serialization.SerializationDelegate;
@@ -547,10 +559,8 @@ public class Utils {
         try {
             ReadableBlobMeta metadata = cb.getBlobMeta(key);
             nimbusBlobVersion = metadata.get_version();
-        } catch (AuthorizationException | KeyNotFoundException exp) {
-            throw exp;
-        } catch (TException e) {
-            throw new RuntimeException(e);
+        } catch (KeyNotFoundException knf) {
+            throw new KeyNotFoundMessageException(knf);
         }
         return nimbusBlobVersion;
     }

@@ -615,15 +615,13 @@
   (let [storm-conf (read-supervisor-storm-conf conf storm-id)
         blobstore-map (storm-conf TOPOLOGY-BLOBSTORE-MAP)
         user (storm-conf TOPOLOGY-SUBMITTER-USER)
-        topo-name (storm-conf TOPOLOGY-NAME)
-        user-dir (.getLocalUserFileCacheDir localizer user)
         localresources (blobstore-map-to-localresources blobstore-map)]
     (try
       (.updateBlobs localizer localresources user)
       (catch AuthorizationException authExp
         (log-error authExp))
       (catch KeyNotFoundException knf
-        (log-error knf)))))
+        (log-error knf (.get_msg knf))))))
 
 (defn download-blobs-for-topology!
   "Download all blobs listed in the topology configuration for a given topology."
@@ -651,7 +649,7 @@
         (catch AuthorizationException authExp
           (log-error authExp))
         (catch KeyNotFoundException knf
-          (log-error knf))))))
+          (log-error knf (.get_msg knf)))))))
 
 (defn jvm-cmd [cmd]
   (let [java-home (.get (System/getenv) "JAVA_HOME")]
