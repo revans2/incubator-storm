@@ -28,7 +28,7 @@ cat <<XML
     <property name="patternNoTime">%msg%n</property>
 </properties>
 <appenders>
-    <RollingFile name="A1"
+    <RollingFile name="A1" immediateFlush="false"
                  fileName="\${sys:workers.artifacts}/\${sys:storm.id}/\${sys:worker.port}/\${sys:logfile.name}"
                  filePattern="\${sys:workers.artifacts}/\${sys:storm.id}/\${sys:worker.port}/\${sys:logfile.name}.%i.gz">
         <PatternLayout>
@@ -39,7 +39,7 @@ cat <<XML
         </Policies>
         <DefaultRolloverStrategy max="9"/>
     </RollingFile>
-    <RollingFile name="STDOUT"
+    <RollingFile name="STDOUT" immediateFlush="false"
                  fileName="\${sys:workers.artifacts}/\${sys:storm.id}/\${sys:worker.port}/\${sys:logfile.name}.out"
                  filePattern="\${sys:workers.artifacts}/\${sys:storm.id}/\${sys:worker.port}/\${sys:logfile.name}.out.%i.gz">
         <PatternLayout>
@@ -50,7 +50,7 @@ cat <<XML
         </Policies>
         <DefaultRolloverStrategy max="4"/>
     </RollingFile>
-    <RollingFile name="STDERR"
+    <RollingFile name="STDERR" immediateFlush="false"
                  fileName="\${sys:workers.artifacts}/\${sys:storm.id}/\${sys:worker.port}/\${sys:logfile.name}.err"
                  filePattern="\${sys:workers.artifacts}/\${sys:storm.id}/\${sys:worker.port}/\${sys:logfile.name}.err.%i.gz">
         <PatternLayout>
@@ -64,7 +64,7 @@ cat <<XML
     <Syslog name="syslog" format="RFC5424" charset="UTF-8" host="${syslog_host}" port="514"
         protocol="UDP" appName="[\${sys:storm.id}:\${sys:worker.port}]" mdcId="mdc" includeMDC="true"
         facility="${syslog_facility}" enterpriseNumber="18060" newLine="true" exceptionPattern="%rEx{full}"
-        messageId="[\${sys:user.name}:\${sys:logging.sensitivity}]" id="ystorm">
+        messageId="[\${sys:user.name}:\${sys:logging.sensitivity}]" id="ystorm" immediateFlush="false" immediateFail="true">
         <LoggerFields>
             <KeyValuePair key="ClassName" value="%C{1.}"/>
         </LoggerFields>
