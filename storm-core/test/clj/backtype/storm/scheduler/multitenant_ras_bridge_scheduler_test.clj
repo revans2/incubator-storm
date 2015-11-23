@@ -288,6 +288,41 @@
         scheduler (MultitenantResourceAwareBridgeScheduler.)]
     (.prepare scheduler {Config/MULTITENANT_SCHEDULER_USER_POOLS {"userPeng" 4}})
     (.schedule scheduler topologies cluster)
-    (println (str "status: " (.getStatusMap cluster)))
     (is (not= "Fully Scheduled" (.get (.getStatusMap cluster) "topology1")))))
+
+(deftest test-nimbus-crash
+  (let [supers (gen-supervisors 1 4)
+        builder (TopologyBuilder.)
+        _ (doto (.setSpout builder "spout1" (TestWordSpout.) 5)
+            (.setMemoryLoad 2000.0 0.0)
+            (.setCPULoad 400.0))
+        conf (Config.)
+        _ (.setTopologyStrategy conf RESOURCE-AWARE-SCHEDULER)
+        _ (.put conf Config/TOPOLOGY_NAME "topology-name-1")
+        _ (.put conf Config/TOPOLOGY_SUBMITTER_USER "userPeng")
+        _ (.put conf Config/TOPOLOGY_WORKERS 5)
+        _ (.put conf Config/TOPOLOGY_WORKER_MAX_HEAP_SIZE_MB 8192.0)
+        _ (.put conf Config/TOPOLOGY_ISOLATED_MACHINES 4)
+        _ (.put conf Config/TOPOLOGY_COMPONENT_CPU_PCORE_PERCENT 400.0)
+        _ (.put conf Config/TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB 2000.0)
+        _ (.put conf Config/TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB 0.0)
+        storm-topology (.createTopology builder)
+        topology1 (TopologyDetails. "topology1"
+                    conf
+                    storm-topology
+                    5
+                    (mk-ed-map [["spout1" 0 0]]))
+
+        _ (println (.getTotalMemoryResourceList topology1))
+        topologies (Topologies. (to-top-map [topology1]))
+        scheduler (MultitenantResourceAwareBridgeScheduler.)
+        worker-slot-with-multiple-assignments (WorkerSlot. "id0" 1)
+        existing-assignments {"topology1" (SchedulerAssignmentImpl. "topology1" {(ExecutorDetails. 0 0) worker-slot-with-multiple-assignments})}
+        cluster (Cluster. (nimbus/standalone-nimbus) supers existing-assignments
+                  {STORM-NETWORK-TOPOGRAPHY-PLUGIN
+                   "backtype.storm.networktopography.DefaultRackDNSToSwitchMapping"})
+    _ (.prepare scheduler {Config/MULTITENANT_SCHEDULER_USER_POOLS {"userPeng" 4}})
+    _ (.schedule scheduler topologies cluster)
+    _ (println (str "status: " (.getStatusMap cluster)))
+    _ (is (= "Fully Scheduled" (.get (.getStatusMap cluster) "topology1")))]))
 
