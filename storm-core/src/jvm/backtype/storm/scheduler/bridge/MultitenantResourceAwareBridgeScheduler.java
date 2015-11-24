@@ -153,7 +153,7 @@ public class MultitenantResourceAwareBridgeScheduler implements IScheduler{
     Map<String, SupervisorDetails> getRASClusterSups(Cluster cluster, Topologies rasTopologies, Topologies allTopologies, Map<String, Node> nodesRASCanUse) {
         Map<String, SupervisorDetails> rasClusterSups = new HashMap<String, SupervisorDetails>();
         for(SupervisorDetails sup : cluster.getSupervisors().values()) {
-            if(nodesRASCanUse.containsKey(sup.getId()) == true) {
+            if(nodesRASCanUse.containsKey(sup.getId())) {
                 LOG.debug("RAS Supervisor: {}-{}", sup.getHost(), sup.getId());
                 Set<Number> availPorts = new HashSet<Number>();
                 Set<Integer> allPorts = cluster.getAssignablePorts(sup);
@@ -213,7 +213,7 @@ public class MultitenantResourceAwareBridgeScheduler implements IScheduler{
                 Set<WorkerSlot> usedSlots = assignment.getSlots();
                 LOG.debug("->usedSlots: {})", usedSlots);
                 for (WorkerSlot ws : usedSlots) {
-                    if (sup.getId().equals(ws.getNodeId()) == true) {
+                    if (sup.getId().equals(ws.getNodeId())) {
                         Double totalWorkerMemory = 0.0;
                         Map<String, Double> configMap = new HashMap<String, Double>();
                         String worker_gc_childopts = Utils

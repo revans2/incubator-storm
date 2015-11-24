@@ -74,6 +74,7 @@ public class MultitenantScheduler implements IScheduler {
     Map<String, Node> nodeIdToNode = Node.getAllNodesFrom(cluster);
     
     Map<String, Number> userConf = getUserConf();
+    
     Map<String, IsolatedPool> userPools = new HashMap<String, IsolatedPool>();
     for (Map.Entry<String, Number> entry : userConf.entrySet()) {
       userPools.put(entry.getKey(), new IsolatedPool(entry.getValue().intValue()));
