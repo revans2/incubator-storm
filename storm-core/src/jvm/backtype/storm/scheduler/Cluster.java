@@ -502,6 +502,7 @@ public class Cluster {
     * */
     public Double getAssignedMemoryForSlot(Map topConf) {
         Double totalWorkerMemory = 0.0;
+        final Integer TOPOLOGY_WORKER_DEFAULT_MEMORY_ALLOCATION = 768;
 
         String topologyWorkerGcChildopts = null;
         if (topConf.get(Config.TOPOLOGY_WORKER_GC_CHILDOPTS) instanceof List) {
@@ -546,7 +547,7 @@ public class Cluster {
         } else if (memWorkerChildopts != null) {
             totalWorkerMemory += memWorkerChildopts;
         } else {
-            totalWorkerMemory += Utils.getInt(topConf.get(Config.WORKER_HEAP_MEMORY_MB));
+            totalWorkerMemory += Utils.getInt(topConf.get(Config.WORKER_HEAP_MEMORY_MB), TOPOLOGY_WORKER_DEFAULT_MEMORY_ALLOCATION);
         }
 
         String topoWorkerLwChildopts = null;
