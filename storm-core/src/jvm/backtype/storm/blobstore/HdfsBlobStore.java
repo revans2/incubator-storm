@@ -62,7 +62,7 @@ public class HdfsBlobStore extends BlobStore {
   private Subject _localSubject;
   private Map conf;
 
-  /*
+  /**
    * Get the subject from Hadoop so we can use it to validate the acls. There is no direct
    * interface from UserGroupInformation to get the subject, so do a doAs and get the context.
    * We could probably run everything in the doAs but for now just grab the subject.
@@ -83,9 +83,11 @@ public class HdfsBlobStore extends BlobStore {
     return subj;
   }
 
-  // If who is null then we want to use the user hadoop says we are.
-  // Required for the supervisor to call these routines as its not
-  // logged in as anyone.
+  /**
+   * If who is null then we want to use the user hadoop says we are.
+   * Required for the supervisor to call these routines as its not
+   * logged in as anyone.
+   */
   private Subject checkAndGetSubject(Subject who) {
     if (who == null) {
       return _localSubject;
@@ -99,7 +101,7 @@ public class HdfsBlobStore extends BlobStore {
     prepareInternal(conf, overrideBase, null);
   }
 
-  /*
+  /**
    * Allow a Hadoop Configuration to be passed for testing. If it's null then the hadoop configs
    * must be in your classpath.
    */

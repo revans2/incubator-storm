@@ -20,12 +20,27 @@ package backtype.storm;
 import java.io.File;
 import java.io.FileInputStream;
 import java.nio.ByteBuffer;
+
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.HashMap;
-import java.util.Map;
 
+import backtype.storm.blobstore.NimbusBlobStore;
+import backtype.storm.generated.AlreadyAliveException;
+import backtype.storm.generated.AuthorizationException;
+import backtype.storm.generated.ClusterSummary;
+import backtype.storm.generated.Credentials;
+import backtype.storm.generated.InvalidTopologyException;
+import backtype.storm.generated.NotAliveException;
+import backtype.storm.generated.StormTopology;
+import backtype.storm.generated.SubmitOptions;
+import backtype.storm.generated.TopologyInitialStatus;
+import backtype.storm.generated.TopologySummary;
 import backtype.storm.scheduler.resource.ResourceUtils;
+import com.google.common.collect.Sets;
 import org.apache.commons.lang.StringUtils;
 import org.apache.thrift.TException;
 import org.json.simple.JSONValue;
@@ -34,7 +49,7 @@ import org.slf4j.LoggerFactory;
 
 import backtype.storm.security.auth.IAutoCredentials;
 import backtype.storm.security.auth.AuthUtils;
-import backtype.storm.generated.*;
+
 import backtype.storm.utils.BufferInputStream;
 import backtype.storm.utils.NimbusClient;
 import backtype.storm.utils.Utils;
@@ -447,30 +462,25 @@ public class StormSubmitter {
          */
         public void onCompleted(String srcFile, String targetFile, long totalBytes);
     }
-    
 
-    private static void validateConfs(Map stormConf, StormTopology topology) throws IllegalArgumentException {
+    private static void validateConfs(Map stormConf, StormTopology topology) throws IllegalArgumentException, InvalidTopologyException {
         LOG.info("Validating storm Confs...");
-        double largestMemReq = getMaxExecutorMemoryUsageForTopo(topology, stormConf);
-        Double topologyWorkerMaxHeapSize = Utils.getDouble(stormConf.get(Config.TOPOLOGY_WORKER_MAX_HEAP_SIZE_MB));
-        if(topologyWorkerMaxHeapSize < largestMemReq) {
-            throw new IllegalArgumentException("Topology will not be able to be successfully scheduled: Config " + Config.TOPOLOGY_WORKER_MAX_HEAP_SIZE_MB+": "
-                    +Utils.getDouble(stormConf.get(Config.TOPOLOGY_WORKER_MAX_HEAP_SIZE_MB)) + " < " 
-                            + largestMemReq + " (Largest memory requirement of a component in the topology). Perhaps set " + Config.TOPOLOGY_WORKER_MAX_HEAP_SIZE_MB + " to a larger amount");
-        }
-        
+        validateTopologyWorkerMaxHeapSize(stormConf, topology);
+        /* validateTopologyBlobStoreMap written within utils so that it can be used on the server side
+         for validation. */
+        Utils.validateTopologyBlobStoreMap(stormConf, getListOfKeysFromBlobStore(stormConf));
     }
 
     private static double getMaxExecutorMemoryUsageForTopo(StormTopology topology, Map topologyConf) {
         double largestMemoryOperator = 0.0;
-        for(Map<String, Double> entry : ResourceUtils.getBoltsResources(topology, topologyConf).values()) {
+        for (Map<String, Double> entry : ResourceUtils.getBoltsResources(topology, topologyConf).values()) {
             double memoryRequirement = entry.get(Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB)
                     + entry.get(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB);
             if(memoryRequirement > largestMemoryOperator) {
                 largestMemoryOperator = memoryRequirement;
             }
         }
-        for(Map<String, Double> entry : ResourceUtils.getSpoutsResources(topology, topologyConf).values()) {
+        for (Map<String, Double> entry : ResourceUtils.getSpoutsResources(topology, topologyConf).values()) {
             double memoryRequirement = entry.get(Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB)
                     + entry.get(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB);
             if(memoryRequirement > largestMemoryOperator) {
@@ -478,5 +488,21 @@ public class StormSubmitter {
             }
         }
         return largestMemoryOperator;
+    }
+
+    private static Set<String> getListOfKeysFromBlobStore(Map stormConf) {
+        NimbusBlobStore client = new NimbusBlobStore();
+        client.prepare(stormConf);
+        return Sets.newHashSet(client.listKeys());
+    }
+
+    private static void validateTopologyWorkerMaxHeapSize(Map stormConf, StormTopology topology) {
+        double largestMemReq = getMaxExecutorMemoryUsageForTopo(topology, stormConf);
+        Double topologyWorkerMaxHeapSize = Utils.getDouble(stormConf.get(Config.TOPOLOGY_WORKER_MAX_HEAP_SIZE_MB));
+        if (topologyWorkerMaxHeapSize < largestMemReq) {
+            throw new IllegalArgumentException("Topology will not be able to be successfully scheduled: Config " + Config.TOPOLOGY_WORKER_MAX_HEAP_SIZE_MB+": "
+                    +Utils.getDouble(stormConf.get(Config.TOPOLOGY_WORKER_MAX_HEAP_SIZE_MB)) + " < "
+                    + largestMemReq + " (Largest memory requirement of a component in the topology). Perhaps set " + Config.TOPOLOGY_WORKER_MAX_HEAP_SIZE_MB + " to a larger amount");
+        }
     }
 }
