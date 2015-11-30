@@ -500,8 +500,28 @@ public class Cluster {
     /*
     * Get heap memory usage for a worker's main process and logwriter process
     * */
-    private Double getAssignedMemoryForSlot(Map topConf) {
+    public Double getAssignedMemoryForSlot(Map topConf) {
         Double totalWorkerMemory = 0.0;
+
+        String topologyWorkerGcChildopts = null;
+        if (topConf.get(Config.TOPOLOGY_WORKER_GC_CHILDOPTS) instanceof List) {
+            topologyWorkerGcChildopts = getStringFromStringList(topConf.get(Config.TOPOLOGY_WORKER_GC_CHILDOPTS));
+        } else {
+            topologyWorkerGcChildopts = Utils.getString(topConf.get(Config.TOPOLOGY_WORKER_GC_CHILDOPTS), null);
+        }
+
+        String workerGcChildopts = null;
+        if (topConf.get(Config.WORKER_GC_CHILDOPTS) instanceof List) {
+            workerGcChildopts = getStringFromStringList(topConf.get(Config.WORKER_GC_CHILDOPTS));
+        } else {
+            workerGcChildopts = Utils.getString(topConf.get(Config.WORKER_GC_CHILDOPTS), null);
+        }
+
+        Double memGcChildopts = null;
+        memGcChildopts = Utils.parseJvmHeapMemByChildOpts(topologyWorkerGcChildopts, null);
+        if (memGcChildopts == null) {
+            memGcChildopts = Utils.parseJvmHeapMemByChildOpts(workerGcChildopts, null);
+        }
 
         String topologyWorkerChildopts = null;
         if (topConf.get(Config.TOPOLOGY_WORKER_CHILDOPTS) instanceof List) {
@@ -519,7 +539,9 @@ public class Cluster {
         }
         Double memWorkerChildopts = Utils.parseJvmHeapMemByChildOpts(workerChildopts, null);
 
-        if (memTopologyWorkerChildopts != null) {
+        if (memGcChildopts != null) {
+            totalWorkerMemory += memGcChildopts;
+        } else if (memTopologyWorkerChildopts != null) {
             totalWorkerMemory += memTopologyWorkerChildopts;
         } else if (memWorkerChildopts != null) {
             totalWorkerMemory += memWorkerChildopts;

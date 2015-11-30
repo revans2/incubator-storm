@@ -212,93 +212,25 @@ public class MultitenantResourceAwareBridgeScheduler implements IScheduler{
         Map<String, Double> resourceList = new HashMap<String, Double>();
         LOG.debug("->Topologies running on Node: {}", node.getRunningTopologies());
         for(String topoId : node.getRunningTopologies()) {
+            Map topConf = allTopologies.getById(topoId).getConf();
+            Double topologyWorkerMemory = cluster.getAssignedMemoryForSlot(topConf);
             if (!RESOURCE_AWARE_STRATEGY.getName().equals(allTopologies.getById(topoId).getTopologyStrategy())) {
                 SchedulerAssignment assignment = cluster.getAssignmentById(topoId);
                 Set<WorkerSlot> usedSlots = assignment.getSlots();
                 LOG.debug("->usedSlots: {})", usedSlots);
                 for (WorkerSlot ws : usedSlots) {
                     if (sup.getId().equals(ws.getNodeId())) {
-                        Double totalWorkerMemory = 0.0;
-                        Map<String, Double> configMap = new HashMap<String, Double>();
-                        String worker_gc_childopts = Utils
-                                .getString(allTopologies.getById(topoId)
-                                        .getConf().get(Config.WORKER_GC_CHILDOPTS), null);
-                        String topology_worker_gc_childopts = Utils
-                                .getString(allTopologies.getById(topoId)
-                                        .getConf().get(Config.TOPOLOGY_WORKER_GC_CHILDOPTS), null);
-                        String topology_worker_childopts = Utils
-                                .getString(allTopologies.getById(topoId)
-                                        .getConf().get(Config.TOPOLOGY_WORKER_CHILDOPTS), null);
-                        String worker_childopts = Utils
-                                .getString(allTopologies.getById(topoId)
-                                        .getConf().get(Config.WORKER_CHILDOPTS), null);
-
-                        configMap.put(Config.WORKER_GC_CHILDOPTS, parseWorkerChildOpts(worker_gc_childopts, null));
-                        configMap.put(Config.TOPOLOGY_WORKER_GC_CHILDOPTS, parseWorkerChildOpts(topology_worker_gc_childopts, null));
-                        configMap.put(Config.TOPOLOGY_WORKER_CHILDOPTS, parseWorkerChildOpts(topology_worker_childopts, null));
-                        configMap.put(Config.WORKER_CHILDOPTS, parseWorkerChildOpts(worker_childopts, null));
-
-                        if (configMap.get(Config.TOPOLOGY_WORKER_GC_CHILDOPTS) != null) {
-                            totalWorkerMemory += configMap.get(Config.TOPOLOGY_WORKER_GC_CHILDOPTS);
-                        } else {
-                            if (configMap.get(Config.WORKER_GC_CHILDOPTS) != null) {
-                                totalWorkerMemory += configMap.get(Config.WORKER_GC_CHILDOPTS);
-                            } else {
-                                if (configMap.get(Config.TOPOLOGY_WORKER_CHILDOPTS) != null) {
-                                    totalWorkerMemory += configMap.get(Config.TOPOLOGY_WORKER_CHILDOPTS);
-                                } else {
-                                    if (configMap.get(Config.WORKER_CHILDOPTS) != null) {
-                                        totalWorkerMemory += configMap.get(Config.WORKER_CHILDOPTS);
-                                    } else {
-                                        //If no valid values can be found in all configs, than use hardcoded default
-                                        totalWorkerMemory += TOPOLOGY_WORKER_DEFAULT_MEMORY_ALLOCATION;
-                                    }
-                                }
-                            }
-                        }
-
-                        String topologyWorkerLwChildopts = Utils
-                                .getString(allTopologies.getById(topoId)
-                                        .getConf().get(Config.TOPOLOGY_WORKER_LOGWRITER_CHILDOPTS), null);
-                        if (topologyWorkerLwChildopts != null) {
-                            totalWorkerMemory += parseWorkerChildOpts(topologyWorkerLwChildopts, 0.0);
-                        }
-                        memoryUsedOnNode += totalWorkerMemory;
+                        memoryUsedOnNode += topologyWorkerMemory;
                     }
                 }
             }
         }
 
         LOG.debug("->memoryUsedOnNode: {}", memoryUsedOnNode);
-        LOG.debug("->sup totol memory: {}", sup.getTotalMemory() );
+        LOG.debug("->supervisor total memory: {}", sup.getTotalMemory() );
         resourceList.put(Config.SUPERVISOR_MEMORY_CAPACITY_MB, sup.getTotalMemory() - memoryUsedOnNode);
         resourceList.put(Config.SUPERVISOR_CPU_CAPACITY, sup.getTotalCPU());
         return resourceList;
-    }
-
-    /**
-     * parses the arguments to extract jvm heap memory size.
-     * @param input
-     * @param defaultValue
-     * @return the value of the JVM heap memory setting in a java command.
-     */
-    static Double parseWorkerChildOpts(String input, Double defaultValue) {
-        if(input != null) {
-            Pattern optsPattern = Pattern.compile("Xmx[0-9]+m");
-            Matcher m = optsPattern.matcher(input);
-            String memoryOpts = null;
-            while (m.find()) {
-                memoryOpts = m.group();
-            }
-            if(memoryOpts!=null) {
-                memoryOpts = memoryOpts.replaceAll("[a-zA-Z]", "");
-                return Double.parseDouble(memoryOpts);
-            } else {
-                return defaultValue;
-            }
-        } else {
-            return defaultValue;
-        }
     }
 
     /**
