@@ -22,7 +22,6 @@ import backtype.storm.blobstore.BlobStore;
 import backtype.storm.blobstore.BlobStoreAclHandler;
 import backtype.storm.blobstore.ClientBlobStore;
 import backtype.storm.blobstore.InputStreamWithMeta;
-
 import backtype.storm.blobstore.KeyNotFoundMessageException;
 import backtype.storm.blobstore.LocalFsBlobStore;
 import backtype.storm.generated.AccessControl;
@@ -35,7 +34,6 @@ import backtype.storm.generated.ReadableBlobMeta;
 import backtype.storm.generated.SettableBlobMeta;
 import backtype.storm.generated.StormTopology;
 import backtype.storm.generated.InvalidTopologyException;
-
 import backtype.storm.localizer.Localizer;
 import backtype.storm.serialization.DefaultSerializationDelegate;
 import backtype.storm.serialization.SerializationDelegate;
@@ -1269,6 +1267,10 @@ public class Utils {
                         "contain the valid keys to launch the topology " + missingKeys);
             }
         }
+    }
+
+    public static double zeroIfNaNOrInf(double x) {
+        return (Double.isNaN(x) || Double.isInfinite(x)) ? 0.0 : x;
     }
 
     /**
