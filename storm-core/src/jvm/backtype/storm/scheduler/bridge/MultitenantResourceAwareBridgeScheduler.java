@@ -73,6 +73,7 @@ public class MultitenantResourceAwareBridgeScheduler implements IScheduler{
         //Even though all the topologies are passed into the multitenant scheduler
         //Topologies marked as RAS will be skipped by the multitenant scheduler
         multitenantScheduler.schedule(topologies, cluster);
+        cluster.updateAssignedMemoryForTopologyAndSupervisor(topologies);
         
         this.printScheduling(cluster, topologies);
         
@@ -274,6 +275,9 @@ public class MultitenantResourceAwareBridgeScheduler implements IScheduler{
                 String status = statusEntry.getValue();
                 target.setStatus(topoId, status);
             }
+            //merge resources map for supervisors and topologies
+            target.setResourcesMap(ephemeral.getResourcesMap());
+            target.setSupervisorsResources(ephemeral.getSupervisorsResourcesMap());
         }
     }
 
