@@ -616,15 +616,13 @@
   (let [storm-conf (read-supervisor-storm-conf conf storm-id)
         blobstore-map (storm-conf TOPOLOGY-BLOBSTORE-MAP)
         user (storm-conf TOPOLOGY-SUBMITTER-USER)
-        topo-name (storm-conf TOPOLOGY-NAME)
-        user-dir (.getLocalUserFileCacheDir localizer user)
         localresources (blobstore-map-to-localresources blobstore-map)]
     (try
       (.updateBlobs localizer localresources user)
       (catch AuthorizationException authExp
         (log-error authExp))
       (catch KeyNotFoundException knf
-        (log-error knf)))))
+        (log-error knf (.get_msg knf))))))
 
 (defn download-blobs-for-topology!
   "Download all blobs listed in the topology configuration for a given topology."
@@ -652,7 +650,7 @@
         (catch AuthorizationException authExp
           (log-error authExp))
         (catch KeyNotFoundException knf
-          (log-error knf))))))
+          (log-error knf (.get_msg knf)))))))
 
 (defn jvm-cmd [cmd]
   (let [java-home (.get (System/getenv) "JAVA_HOME")]
@@ -1036,7 +1034,7 @@
                        (int (Math/ceil mem-onheap)) ;; round up
                        (storm-conf WORKER-HEAP-MEMORY-MB)) ;; otherwise use default value
           gc-opts (substitute-childopts (if top-gc-opts top-gc-opts (conf WORKER-GC-CHILDOPTS)) worker-id storm-id port mem-onheap)
-          topo-worker-lw-childopts (conf TOPOLOGY-WORKER-LW-CHILDOPTS)
+          topo-worker-lw-childopts (conf TOPOLOGY-WORKER-LOGWRITER-CHILDOPTS)
           user (storm-conf TOPOLOGY-SUBMITTER-USER)
           logfilename "worker.log"
           workers-artifacts (worker-artifacts-root conf)

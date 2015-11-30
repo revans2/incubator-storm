@@ -58,7 +58,7 @@ public class ResourceAwareScheduler implements IScheduler {
         for (TopologyDetails td : topologies.getTopologies()) {
             String topId = td.getId();
             Map<WorkerSlot, Collection<ExecutorDetails>> schedulerAssignmentMap;
-            if (cluster.needsScheduling(td) && cluster.getUnassignedExecutors(td).size() > 0) {
+            if (cluster.getUnassignedExecutors(td).size() > 0) {
                 LOG.debug("/********Scheduling topology {} ************/", topId);
 
                 schedulerAssignmentMap = RAStrategy.schedule(td);
@@ -109,6 +109,22 @@ public class ResourceAwareScheduler implements IScheduler {
                 cluster.setStatus(td.getId(), "Fully Scheduled");
             }
         }
+        updateSupervisorsResources(cluster, topologies);
+    }
+
+    private void updateSupervisorsResources(Cluster cluster, Topologies topologies) {
+        Map<String, Double[]> supervisors_resources = new HashMap<String, Double[]>();
+        Map<String, RAS_Node> nodes = RAS_Node.getAllNodesFrom(cluster, topologies);
+        for (Map.Entry<String, RAS_Node> entry : nodes.entrySet()) {
+            RAS_Node node = entry.getValue();
+            Double totalMem = node.getTotalMemoryResources();
+            Double totalCpu = node.getTotalCpuResources();
+            Double usedMem = totalMem - node.getAvailableMemoryResources();
+            Double usedCpu = totalCpu - node.getAvailableCpuResources();
+            Double[] resources = {totalMem, totalCpu, usedMem, usedCpu};
+            supervisors_resources.put(entry.getKey(), resources);
+        }
+        cluster.setSupervisorsResources(supervisors_resources);
     }
 
     @Override

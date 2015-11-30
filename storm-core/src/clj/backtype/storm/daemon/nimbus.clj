@@ -46,7 +46,8 @@
                                      BlobStoreAclHandler
                                      ClientBlobStore
                                      InputStreamWithMeta
-                                     KeyFilter])
+                                     KeyFilter
+                                     KeyNotFoundMessageException])
   (:import [backtype.storm.daemon Shutdownable])
   (:import [backtype.storm.cluster ClusterStateContext DaemonType])
   (:use [backtype.storm util config log timer local-state])
@@ -166,7 +167,8 @@
                                  ))
      :scheduler (mk-scheduler conf inimbus)
      :id->sched-status (atom {})
-     :id->resources (atom {})
+     :node-id->resources (atom {}) ; resources of supervisors
+     :id->resources (atom {}) ; resources of topologies
      :cred-renewers (AuthUtils/GetCredentialRenewers conf)
      :topology-history-lock (Object.)
      :topo-history-state (nimbus-topo-history-state conf)
@@ -752,8 +754,11 @@
         ;; call scheduler.schedule to schedule all the topologies
         ;; the new assignments for all the topologies are in the cluster object.
         _ (.schedule (:scheduler nimbus) topologies cluster)
+        _ (.setResourcesMap cluster @(:id->resources nimbus))
+        _ (if-not (conf SCHEDULER-DISPLAY-RESOURCE) (.updateAssignedMemoryForTopologyAndSupervisor cluster topologies))
         _ (reset! (:id->sched-status nimbus) (.getStatusMap cluster))
-        _ (reset! (:id->resources nimbus) (merge @(:id->resources nimbus) (.getResourcesMap cluster)))]
+        _ (reset! (:node-id->resources nimbus) (.getSupervisorsResourcesMap cluster))
+        _ (reset! (:id->resources nimbus) (.getResourcesMap cluster))]
     (.getAssignments cluster)))
 
 (defn changed-executors [executor->node+port new-executor->node+port]
@@ -1578,6 +1583,9 @@
                                                                 (count (:used-ports info))
                                                                 id) ]
                                             (.set_total_resources sup-sum (map-val double (:resources-map info)))
+                                            (when-let [[total-mem total-cpu used-mem used-cpu] (.get @(:node-id->resources nimbus) id)]
+                                              (.set_used_mem sup-sum used-mem)
+                                              (.set_used_cpu sup-sum used-cpu))
                                             (when-let [version (:version info)] (.set_version sup-sum version))
                                             sup-sum
                                             ))
@@ -1759,16 +1767,15 @@
 
       (^String beginUpdateBlob [this ^String blob-key]
         (mark! num-beginUpdateBlob-calls)
-        (if-let [^AtomicOutputStream os (->> (ReqContext/context)
-                                             (.subject)
-                                             (.updateBlob (:blob-store nimbus)
-                                                          blob-key))]
+        (let [^AtomicOutputStream os (->> (ReqContext/context)
+                                       (.subject)
+                                       (.updateBlob (:blob-store nimbus)
+                                         blob-key))]
           (let [session-id (uuid)]
             (.put (:blob-uploaders nimbus) session-id os)
             (log-message "Created upload session for " blob-key
-                         " with id " session-id)
-            (str session-id))
-          (throw-runtime "Could not find blob for key " blob-key)))
+              " with id " session-id)
+            (str session-id))))
 
       (^void uploadBlobChunk [this ^String session ^ByteBuffer blob-chunk]
         (let [uploaders (:blob-uploaders nimbus)]
@@ -1808,12 +1815,11 @@
                          " does not exist (or timed out)")))
 
       (^ReadableBlobMeta getBlobMeta [this ^String blob-key]
-        (if-let [^ReadableBlobMeta ret (->> (ReqContext/context)
-                                            (.subject)
-                                            (.getBlobMeta (:blob-store nimbus)
-                                                          blob-key))]
-          ret
-          (throw-runtime "Could not find blob metadata for key " blob-key)))
+        (let [^ReadableBlobMeta ret (->> (ReqContext/context)
+                                         (.subject)
+                                         (.getBlobMeta (:blob-store nimbus)
+                                                        blob-key))]
+          ret))
 
       (^void setBlobMeta [this ^String blob-key ^SettableBlobMeta blob-meta]
         (->> (ReqContext/context)
@@ -1821,18 +1827,17 @@
              (.setBlobMeta (:blob-store nimbus) blob-key blob-meta)))
 
       (^BeginDownloadResult beginBlobDownload [this ^String blob-key]
-        (if-let [^InputStreamWithMeta is (->> (ReqContext/context)
-                                              (.subject)
-                                              (.getBlob (:blob-store nimbus)
-                                                        blob-key))]
+        (let [^InputStreamWithMeta is (->> (ReqContext/context)
+                                           (.subject)
+                                           (.getBlob (:blob-store nimbus)
+                                                      blob-key))]
           (let [session-id (uuid)
                 ret (BeginDownloadResult. (.getVersion is) (str session-id))]
             (.set_data_size ret (.getFileLength is))
             (.put (:blob-downloaders nimbus) session-id (BufferInputStream. is ^Integer (Utils/getInt (conf STORM-BLOBSTORE-INPUTSTREAM-BUFFER-SIZE-BYTES) (int 65536))))
             (log-message "Created download session for " blob-key
                          " with id " session-id)
-            ret)
-          (throw-runtime "Could not find blob for key " blob-key)))
+            ret)))
 
       (^ByteBuffer downloadBlobChunk [this ^String session]
         (let [downloaders (:blob-downloaders nimbus)

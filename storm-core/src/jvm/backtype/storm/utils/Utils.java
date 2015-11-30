@@ -21,8 +21,9 @@ import backtype.storm.Config;
 import backtype.storm.blobstore.BlobStore;
 import backtype.storm.blobstore.BlobStoreAclHandler;
 import backtype.storm.blobstore.ClientBlobStore;
-import backtype.storm.blobstore.LocalFsBlobStore;
 import backtype.storm.blobstore.InputStreamWithMeta;
+import backtype.storm.blobstore.KeyNotFoundMessageException;
+import backtype.storm.blobstore.LocalFsBlobStore;
 import backtype.storm.generated.AccessControl;
 import backtype.storm.generated.AccessControlType;
 import backtype.storm.generated.AuthorizationException;
@@ -82,6 +83,8 @@ import java.io.RandomAccessFile;
 import java.io.IOException;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 import java.util.zip.ZipEntry;
@@ -555,10 +558,8 @@ public class Utils {
         try {
             ReadableBlobMeta metadata = cb.getBlobMeta(key);
             nimbusBlobVersion = metadata.get_version();
-        } catch (AuthorizationException | KeyNotFoundException exp) {
-            throw exp;
-        } catch (TException e) {
-            throw new RuntimeException(e);
+        } catch (KeyNotFoundException knf) {
+            throw new KeyNotFoundMessageException(knf);
         }
         return nimbusBlobVersion;
     }
@@ -1249,6 +1250,40 @@ public class Utils {
 
     public static double zeroIfNaNOrInf(double x) {
         return (Double.isNaN(x) || Double.isInfinite(x)) ? 0.0 : x;
+    }
+
+    /**
+     * parses the arguments to extract jvm heap memory size in MB.
+     * @param input
+     * @param defaultValue
+     * @return the value of the JVM heap memory setting (in MB) in a java command.
+     */
+    public static Double parseJvmHeapMemByChildOpts(String input, Double defaultValue) {
+        if (input != null) {
+            Pattern optsPattern = Pattern.compile("Xmx[0-9]+[mkgMKG]");
+            Matcher m = optsPattern.matcher(input);
+            String memoryOpts = null;
+            while (m.find()) {
+                memoryOpts = m.group();
+            }
+            if (memoryOpts != null) {
+                int unit = 1;
+                if (memoryOpts.toLowerCase().endsWith("k")) {
+                    unit = 1024;
+                } else if (memoryOpts.toLowerCase().endsWith("m")) {
+                    unit = 1024 * 1024;
+                } else if (memoryOpts.toLowerCase().endsWith("g")) {
+                    unit = 1024 * 1024 * 1024;
+                }
+                memoryOpts = memoryOpts.replaceAll("[a-zA-Z]", "");
+                Double result =  Double.parseDouble(memoryOpts) * unit / 1024.0 / 1024.0;
+                return (result < 1.0) ? 1.0 : result;
+            } else {
+                return defaultValue;
+            }
+        } else {
+            return defaultValue;
+        }
     }
 }
 

@@ -463,10 +463,11 @@ public class RAS_Node {
                     if (topoMemoryResourceList.containsKey(exec)) {
                         node.consumeResourcesforTask(exec, topologies.getById(entry.getKey()));
                     } else {
-                        LOG.warn("Resource Req not found...Scheduling Task{} with memory requirement as on heap - {} and off heap - {} and CPU requirement as {}",
+                        TopologyDetails td = topologies.getById(entry.getKey());
+                        LOG.warn("Resource Req not found...Scheduling Task {} with memory requirement as on heap - {} and off heap - {} and CPU requirement as {}",
                                 exec,
-                                Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB,
-                                Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB, Config.TOPOLOGY_COMPONENT_CPU_PCORE_PERCENT);
+                                td.getConf().get(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB),
+                                td.getConf().get(Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB), td.getConf().get(Config.TOPOLOGY_COMPONENT_CPU_PCORE_PERCENT));
                         topologies.getById(entry.getKey()).addDefaultResforExec(exec);
                         node.consumeResourcesforTask(exec, topologies.getById(entry.getKey()));
                     }
