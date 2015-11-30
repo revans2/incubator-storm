@@ -178,12 +178,10 @@
 (defn inbox [nimbus]
   (master-inbox (:conf nimbus)))
 
-(defn- get-subject []
+(defn- get-subject
+  []
   (let [req (ReqContext/context)]
     (.subject req)))
-
-(def user-subject
-  (get-subject))
 
 (defn get-nimbus-subject
   []
@@ -203,7 +201,7 @@
 (defn- read-storm-conf [conf storm-id blob-store]
   (clojurify-structure
     (Utils/fromCompressedJsonConf
-      (.readBlob blob-store (master-stormconf-key storm-id) user-subject))))
+      (.readBlob blob-store (master-stormconf-key storm-id) (get-subject)))))
 
 (defn set-topology-status! [nimbus storm-id status]
   (let [storm-cluster-state (:storm-cluster-state nimbus)]
@@ -430,7 +428,7 @@
       )))
 
 (defn- setup-storm-code [conf storm-id tmp-jar-location storm-conf topology blob-store]
-  (let [subject user-subject]
+  (let [subject (get-subject)]
     (if tmp-jar-location ;;in local mode there is no jar
       (.createBlob blob-store (master-stormjar-key storm-id) (FileInputStream. tmp-jar-location) (SettableBlobMeta. BlobStoreAclHandler/DEFAULT) subject))
     (.createBlob blob-store (master-stormcode-key storm-id) (Utils/serialize topology) (SettableBlobMeta. BlobStoreAclHandler/DEFAULT) subject)
@@ -438,7 +436,7 @@
 
 (defn- read-storm-topology [storm-id blob-store]
   (Utils/deserialize
-    (.readBlob blob-store (master-stormcode-key storm-id) user-subject) StormTopology))
+    (.readBlob blob-store (master-stormcode-key storm-id) (get-subject)) StormTopology))
 
 (declare compute-executor->component)
 
