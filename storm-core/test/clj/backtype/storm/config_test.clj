@@ -14,15 +14,16 @@
 ;; See the License for the specific language governing permissions and
 ;; limitations under the License.
 (ns backtype.storm.config-test
-  (:import [backtype.storm Config ConfigValidation LoggingSensitivity])
-  (:import [backtype.storm.scheduler TopologyDetails])
-  (:import [backtype.storm.utils Utils])
-  (:import [java.nio.file Files])
-  (:import [java.nio.file.attribute FileAttribute])
+  (:import [backtype.storm Config ConfigValidation LoggingSensitivity]
+           [backtype.storm.scheduler TopologyDetails]
+           [backtype.storm.utils Utils]
+           [backtype.storm.generated InvalidTopologyException]
+           [java.nio.file Files]
+           [java.nio.file.attribute FileAttribute])
   (:require [clojure.java.io :as io])
-  (:use [clojure test])
-  (:use [backtype.storm config util])
-  )
+  (:use [clojure test]
+        [backtype.storm [config :as config] util]
+        [conjure core]))
 
 (deftest test-validity
   (is (Utils/isValidConf {TOPOLOGY-DEBUG true "q" "asasdasd" "aaa" (Integer. "123") "bbb" (Long. "456") "eee" [1 2 (Integer. "3") (Long. "4")]}))
@@ -197,4 +198,11 @@
       (is (nil? (try
                   (.validateField validator "test" x)
                   (catch Exception e e)))))))
+
+(deftest test-validate-topology-blob-store-map
+  (testing "validate topology blob store map"
+    (let [storm-conf {TOPOLOGY-BLOBSTORE-MAP {"key1" {} "key2" {}}}]
+      (Utils/validateTopologyBlobStoreMap storm-conf #{"key1" "key2"})
+      (is (thrown-cause? InvalidTopologyException
+            (Utils/validateTopologyBlobStoreMap storm-conf #{"key1"}))))))
 

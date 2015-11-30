@@ -17,12 +17,14 @@
 (ns backtype.storm.config
   (:import [java.io FileReader File IOException]
            [java.nio.file Files LinkOption]
-           [backtype.storm.generated StormTopology])
-  (:import [backtype.storm Config ConfigValidation$FieldValidator])
-  (:import [backtype.storm.utils Utils LocalState])
-  (:import [org.apache.commons.io FileUtils])
+           [backtype.storm.generated StormTopology]
+           [backtype.storm Config ConfigValidation$FieldValidator]
+           [backtype.storm.utils Utils LocalState]
+           [org.apache.commons.io FileUtils]
+           [backtype.storm.generated InvalidTopologyException])
   (:require [clojure [string :as str]]
-            [clojure.java [io :as io]])
+            [clojure.java [io :as io]]
+            [clojure.set :as set])
   (:use [backtype.storm log util]))
 
 (def RESOURCES-SUBDIR "resources")
