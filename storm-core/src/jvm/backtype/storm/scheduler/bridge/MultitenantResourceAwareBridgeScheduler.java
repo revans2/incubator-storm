@@ -34,7 +34,6 @@ public class MultitenantResourceAwareBridgeScheduler implements IScheduler{
     private static final Logger LOG = LoggerFactory.getLogger(MultitenantResourceAwareBridgeScheduler.class);
     @SuppressWarnings("rawtypes")
     private Map _conf;
-    private static final Double TOPOLOGY_WORKER_DEFAULT_MEMORY_ALLOCATION = 768.0;
     private static final Class<MultitenantStrategy> MULTITENANT_STRATEGY = backtype.storm.scheduler.resource.strategies.MultitenantStrategy.class;
     private static final Class<ResourceAwareStrategy> RESOURCE_AWARE_STRATEGY = backtype.storm.scheduler.resource.strategies.ResourceAwareStrategy.class;
     private MultitenantScheduler multitenantScheduler = new MultitenantScheduler();
