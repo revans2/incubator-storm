@@ -7,8 +7,6 @@ import java.util.LinkedList;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,7 +24,6 @@ import backtype.storm.scheduler.WorkerSlot;
 import backtype.storm.scheduler.resource.ResourceAwareScheduler;
 import backtype.storm.scheduler.resource.strategies.MultitenantStrategy;
 import backtype.storm.scheduler.resource.strategies.ResourceAwareStrategy;
-import backtype.storm.utils.Utils;
 import backtype.storm.scheduler.multitenant.MultitenantScheduler;
 import backtype.storm.scheduler.multitenant.Node;
 
@@ -67,13 +64,26 @@ public class MultitenantResourceAwareBridgeScheduler implements IScheduler{
         }
         
         Topologies rasTopologies = dividedTopologies.get(RESOURCE_AWARE_STRATEGY.getName());
-
+        Topologies mtTopologies = dividedTopologies.get(MULTITENANT_STRATEGY.getName());
+        
         LOG.debug("/* running Multitenant scheduler */");
 
         //Even though all the topologies are passed into the multitenant scheduler
         //Topologies marked as RAS will be skipped by the multitenant scheduler
         multitenantScheduler.schedule(topologies, cluster);
-        cluster.updateAssignedMemoryForTopologyAndSupervisor(topologies);
+        cluster.updateAssignedMemoryForTopologyAndSupervisor(mtTopologies); // you can not just use mt topo here, because the function is also based on assignments!!!
+        LOG.info("zliu number of mt topos is {}, num of ras topos is {}. After MT update:", mtTopologies.getTopologies().size(), rasTopologies.getTopologies().size());
+        for (Map.Entry<String, Double[]> entry : cluster.getResourcesMap().entrySet()) {
+            LOG.info("zliu topo {}, assigned memory is ", entry.getKey(), entry.getValue()[3]);
+        }
+        for (Map.Entry<String, Double[]> entry : cluster.getSupervisorsResourcesMap().entrySet()) {
+            LOG.info("zliu supervisor {}, assigned memory is ", entry.getKey(), entry.getValue()[2]);
+        }
+        // that is why you see weird number in you results
+        // if (mtTopologies != null) {
+        //    LOG.info("zliu num of mtTopos is " + mtTopologies.getTopologies().size());
+        //    cluster.updateAssignedMemoryForTopologyAndSupervisor(mtTopologies);
+        //}
         
         this.printScheduling(cluster, topologies);
         
@@ -99,6 +109,13 @@ public class MultitenantResourceAwareBridgeScheduler implements IScheduler{
         LOG.debug("/* Merge RAS Cluster with actual cluster */");
         
         this.mergeCluster(cluster, rasCluster);
+        LOG.info("zliu number of mt topos is {}, num of ras topos is {}. After mergeCluster update:", mtTopologies.getTopologies().size(), rasTopologies.getTopologies().size());
+        for (Map.Entry<String, Double[]> entry : cluster.getResourcesMap().entrySet()) {
+            LOG.info("zliu topo {}, assigned memory is ", entry.getKey(), entry.getValue()[3]);
+        }
+        for (Map.Entry<String, Double[]> entry : cluster.getSupervisorsResourcesMap().entrySet()) {
+            LOG.info("zliu supervisor {}, assigned memory is ", entry.getKey(), entry.getValue()[2]);
+        }
         this.printScheduling(cluster, topologies);
     }
 
@@ -115,6 +132,7 @@ public class MultitenantResourceAwareBridgeScheduler implements IScheduler{
         Map<String, TopologyDetails> multitenantTopologies = new HashMap<String, TopologyDetails>();
         Map<String, TopologyDetails> rasTopologies = new HashMap<String, TopologyDetails>();
         for(TopologyDetails topo : topologies.getTopologies()) {
+                LOG.info("zliu in divideTopos: {} 's strategy is: {}", topo.getId(), topo.getTopologyStrategy());
                 if(MULTITENANT_STRATEGY.getName().equals(topo.getTopologyStrategy())) {
                     multitenantTopologies.put(topo.getId(), topo);
                 } else if(RESOURCE_AWARE_STRATEGY.getName().equals(topo.getTopologyStrategy())) {
@@ -122,6 +140,7 @@ public class MultitenantResourceAwareBridgeScheduler implements IScheduler{
                 } else {
                     LOG.warn("No valid scheduler specified! Topology {} is going to be scheduled via {} by default", topo.getId(), MULTITENANT_STRATEGY.getName());
                     topo.setTopologyStrategy(MULTITENANT_STRATEGY);
+                    multitenantTopologies.put(topo.getId(), topo);
             }
         }
         dividedTopos.put(MULTITENANT_STRATEGY.getName(), new Topologies(multitenantTopologies));
@@ -266,6 +285,7 @@ public class MultitenantResourceAwareBridgeScheduler implements IScheduler{
                 for(Entry<WorkerSlot, Collection<ExecutorDetails>> execToWs : schedEntry.getValue().entrySet()) {
                     WorkerSlot ws = execToWs.getKey();
                     Collection<ExecutorDetails> execs = execToWs.getValue();
+                    LOG.info("For topoId {}, assign slot with {} {}", topoId, ws.getNodeId(), ws.getPort());
                     target.assign(ws, topoId, execs);
                 }
             }
@@ -275,9 +295,22 @@ public class MultitenantResourceAwareBridgeScheduler implements IScheduler{
                 String status = statusEntry.getValue();
                 target.setStatus(topoId, status);
             }
-            //merge resources map for supervisors and topologies
+            //merge resources map of MT and RAS for all topologies
             target.setResourcesMap(ephemeral.getResourcesMap());
-            target.setSupervisorsResources(ephemeral.getSupervisorsResourcesMap());
+            //merge resources map of MT and RAS for all supervisors, considering that one node may run topologies with both strategies
+            for (Map.Entry<String, Double[]> supervisorResource : ephemeral.getSupervisorsResourcesMap().entrySet()) {
+                String supervisorId = supervisorResource.getKey();
+                Double[] ras_resources = supervisorResource.getValue();
+                if (!target.getSupervisorsResourcesMap().containsKey(supervisorId)) {
+                    target.setSupervisorResources(supervisorId, ras_resources);
+                } else {
+                    Double[] mt_resources = target.getSupervisorsResourcesMap().get(supervisorId);
+                    for (int i = 0; i < mt_resources.length; i++) {
+                        mt_resources[i] += ras_resources[i];
+                    }
+                    target.setSupervisorResources(supervisorId, mt_resources);
+                }
+            }
         }
     }
 

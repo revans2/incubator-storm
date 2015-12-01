@@ -124,7 +124,7 @@ public class ResourceAwareScheduler implements IScheduler {
             Double[] resources = {totalMem, totalCpu, usedMem, usedCpu};
             supervisors_resources.put(entry.getKey(), resources);
         }
-        cluster.setSupervisorsResources(supervisors_resources);
+        cluster.setSupervisorsResourcesMap(supervisors_resources);
     }
 
     @Override

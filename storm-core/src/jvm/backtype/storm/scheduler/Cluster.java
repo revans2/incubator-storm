@@ -570,6 +570,9 @@ public class Cluster {
 
         for (Map.Entry<String, SchedulerAssignment> entry : this.getAssignments().entrySet()) {
             String topId = entry.getValue().getTopologyId();
+            if (topologies.getById(topId) == null) {
+                continue;
+            }
             Map topConf = topologies.getById(topId).getConf();
             Double assignedMemForTopology = 0.0;
             Double assignedMemPerSlot = getAssignedMemoryForSlot(topConf);
@@ -625,7 +628,11 @@ public class Cluster {
         return this.resources;
     }
 
-    public void setSupervisorsResources(Map<String, Double[]> supervisors_resources) {
+    public void setSupervisorResources(String supervisorId, Double[] resources) {
+        this.supervisorsResources.put(supervisorId, resources);
+    }
+
+    public void setSupervisorsResourcesMap(Map<String, Double[]> supervisors_resources) {
         this.supervisorsResources.putAll(supervisors_resources);
     }
 
