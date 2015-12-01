@@ -188,7 +188,8 @@ public class MultitenantResourceAwareBridgeScheduler implements IScheduler{
         Map<String, SchedulerAssignmentImpl> rasClusterAssignments =  new HashMap<String, SchedulerAssignmentImpl>();
         for(String topoId : cluster.getAssignments().keySet()) {
             if(rasTopologies.getById(topoId) != null) {
-                rasClusterAssignments.put(topoId, (SchedulerAssignmentImpl) cluster.getAssignments().get(topoId));
+                //rasClusterAssignments.put(topoId, (SchedulerAssignmentImpl) cluster.getAssignments().get(topoId));
+                rasClusterAssignments.put(topoId, new SchedulerAssignmentImpl(topoId, cluster.getAssignments().get(topoId).getExecutorToSlot()));
             }
         }
         printAssignment(rasClusterAssignments);
