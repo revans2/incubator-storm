@@ -18,7 +18,11 @@
 package backtype.storm;
 
 import java.io.File;
+<<<<<<< HEAD
 import java.io.FileInputStream;
+=======
+import java.lang.reflect.InvocationTargetException;
+>>>>>>> 17df052... adding config validation during the topology submission process so that incorrect configs can be detected early
 import java.nio.ByteBuffer;
 
 import java.util.HashMap;
@@ -40,7 +44,11 @@ import backtype.storm.generated.SubmitOptions;
 import backtype.storm.generated.TopologyInitialStatus;
 import backtype.storm.generated.TopologySummary;
 import backtype.storm.scheduler.resource.ResourceUtils;
+<<<<<<< HEAD
 import com.google.common.collect.Sets;
+=======
+import backtype.storm.validation.ConfigValidation;
+>>>>>>> 17df052... adding config validation during the topology submission process so that incorrect configs can be detected early
 import org.apache.commons.lang.StringUtils;
 import org.apache.thrift.TException;
 import org.json.simple.JSONValue;
@@ -169,8 +177,8 @@ public class StormSubmitter {
      * @throws InvalidTopologyException if an invalid topology was submitted
      * @throws AuthorizationException if authorization is failed
      */
-    public static void submitTopology(String name, Map stormConf, StormTopology topology) 
-            throws AlreadyAliveException, InvalidTopologyException, AuthorizationException {
+    public static void submitTopology(String name, Map stormConf, StormTopology topology)
+            throws AlreadyAliveException, InvalidTopologyException, AuthorizationException, InvocationTargetException, NoSuchMethodException, InstantiationException, IllegalAccessException, NoSuchFieldException {
         submitTopology(name, stormConf, topology, null, null);
     }    
 
@@ -186,8 +194,8 @@ public class StormSubmitter {
      * @throws InvalidTopologyException if an invalid topology was submitted
      * @throws AuthorizationException if authorization is failed
      */
-    public static void submitTopology(String name, Map stormConf, StormTopology topology, SubmitOptions opts) 
-            throws AlreadyAliveException, InvalidTopologyException, AuthorizationException {
+    public static void submitTopology(String name, Map stormConf, StormTopology topology, SubmitOptions opts)
+            throws AlreadyAliveException, InvalidTopologyException, AuthorizationException, InvocationTargetException, NoSuchMethodException, InstantiationException, IllegalAccessException, NoSuchFieldException {
         submitTopology(name, stormConf, topology, opts, null);
     }
 
@@ -204,7 +212,7 @@ public class StormSubmitter {
      * @throws AuthorizationException
      */
     public static void submitTopologyAs(String name, Map stormConf, StormTopology topology, SubmitOptions opts, ProgressListener progressListener, String asUser)
-            throws AlreadyAliveException, InvalidTopologyException, AuthorizationException, IllegalArgumentException {
+            throws AlreadyAliveException, InvalidTopologyException, AuthorizationException, IllegalArgumentException, InvocationTargetException, NoSuchMethodException, NoSuchFieldException, InstantiationException, IllegalAccessException {
         if(!Utils.isValidConf(stormConf)) {
             throw new IllegalArgumentException("Storm conf is not valid. Must be json-serializable");
         }
@@ -287,7 +295,7 @@ public class StormSubmitter {
      */
     @SuppressWarnings("unchecked")
     public static void submitTopology(String name, Map stormConf, StormTopology topology, SubmitOptions opts,
-             ProgressListener progressListener) throws AlreadyAliveException, InvalidTopologyException, AuthorizationException {
+             ProgressListener progressListener) throws AlreadyAliveException, InvalidTopologyException, AuthorizationException, NoSuchMethodException, NoSuchFieldException, InstantiationException, IllegalAccessException, InvocationTargetException {
         submitTopologyAs(name, stormConf, topology, opts, progressListener, null);
     }
 
@@ -304,7 +312,7 @@ public class StormSubmitter {
      * @throws AuthorizationException if authorization is failed
      */
 
-    public static void submitTopologyWithProgressBar(String name, Map stormConf, StormTopology topology) throws AlreadyAliveException, InvalidTopologyException, AuthorizationException {
+    public static void submitTopologyWithProgressBar(String name, Map stormConf, StormTopology topology) throws AlreadyAliveException, InvalidTopologyException, AuthorizationException, NoSuchMethodException, NoSuchFieldException, InstantiationException, IllegalAccessException, InvocationTargetException {
         submitTopologyWithProgressBar(name, stormConf, topology, null);
     }
 
@@ -322,7 +330,7 @@ public class StormSubmitter {
      * @throws AuthorizationException if authorization is failed
      */
 
-    public static void submitTopologyWithProgressBar(String name, Map stormConf, StormTopology topology, SubmitOptions opts) throws AlreadyAliveException, InvalidTopologyException, AuthorizationException {
+    public static void submitTopologyWithProgressBar(String name, Map stormConf, StormTopology topology, SubmitOptions opts) throws AlreadyAliveException, InvalidTopologyException, AuthorizationException, InvocationTargetException, NoSuchMethodException, InstantiationException, IllegalAccessException, NoSuchFieldException {
         // show a progress bar so we know we're not stuck (especially on slow connections)
         submitTopology(name, stormConf, topology, opts, new StormSubmitter.ProgressListener() {
             @Override

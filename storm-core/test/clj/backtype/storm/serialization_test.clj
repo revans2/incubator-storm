@@ -40,19 +40,19 @@
     (deserialize (serialize vals conf) conf)))
 
 (deftest validate-kryo-conf-basic
-  (.validateField (ConfigValidation$KryoRegValidator. ) "test" ["a" "b" "c" {"d" "e"} {"f" "g"}]))
+  (.validateField (ConfigValidation$KryoRegValidator.) "test" ["a" "b" "c" {"d" "e"} {"f" "g"}]))
 
 (deftest validate-kryo-conf-fail
   (try
-    (.validateField (ConfigValidation$KryoRegValidator. ) "test" {"f" "g"})
+    (.validateField (ConfigValidation$KryoRegValidator.) "test" {"f" "g"})
     (assert false)
     (catch IllegalArgumentException e))
   (try
-    (.validateField (ConfigValidation$KryoRegValidator. ) "test" [1])
+    (.validateField (ConfigValidation$KryoRegValidator.) "test" [1])
     (assert false)
     (catch IllegalArgumentException e))
   (try
-    (.validateField (ConfigValidation$KryoRegValidator. ) "test" [{"a" 1}])
+    (.validateField (ConfigValidation$KryoRegValidator.) "test" [{"a" 1}])
     (assert false)
     (catch IllegalArgumentException e))
 )

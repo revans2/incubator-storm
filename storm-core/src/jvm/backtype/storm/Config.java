@@ -43,6 +43,7 @@ import backtype.storm.validation.ConfigValidation.PowerOf2Validator;
 import backtype.storm.validation.ConfigValidation.MetricRegistryValidator;
 import backtype.storm.validation.ConfigValidation.ImpersonationAclUserEntryValidator;
 import backtype.storm.validation.ConfigValidation.StringValidator;
+import backtype.storm.validation.ConfigValidation.ListOfListOfStringValidator;
 import com.esotericsoftware.kryo.Serializer;
 
 import java.util.ArrayList;
@@ -1500,8 +1501,8 @@ public class Config extends HashMap<String, Object> {
     /**
      * Declare scheduling constraints for a topology
      */
+    @ConfigValidationAnnotations.CustomValidator(validatorClass = ListOfListOfStringValidator.class)
     public static final String TOPOLOGY_CONSTRAINTS = "topology.constraints";
-    public static final Object TOPOLOGY_CONSTRAINTS_SCHEMA = ConfigValidation.ListOfListOfStringValidator;
 
     /**
      * Declare max traversal depth for find solutions that satisfy constraints

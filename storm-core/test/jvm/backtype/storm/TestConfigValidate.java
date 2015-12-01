@@ -18,10 +18,24 @@
 
 package backtype.storm;
 
+import backtype.storm.generated.InvalidTopologyException;
 import backtype.storm.utils.Utils;
 import backtype.storm.validation.ConfigValidation;
-import backtype.storm.validation.ConfigValidation.*;
-import backtype.storm.validation.ConfigValidationAnnotations.*;
+import backtype.storm.validation.ConfigValidation.ImpersonationAclUserEntryValidator;
+import backtype.storm.validation.ConfigValidation.IntegerValidator;
+import backtype.storm.validation.ConfigValidation.ListEntryTypeValidator;
+import backtype.storm.validation.ConfigValidation.NoDuplicateInListValidator;
+import backtype.storm.validation.ConfigValidation.NotNullValidator;
+import backtype.storm.validation.ConfigValidation.PositiveNumberValidator;
+import backtype.storm.validation.ConfigValidation.PowerOf2Validator;
+import backtype.storm.validation.ConfigValidation.StringValidator;
+import backtype.storm.validation.ConfigValidationAnnotations.NotNull;
+import backtype.storm.validation.ConfigValidationAnnotations.isListEntryCustom;
+import backtype.storm.validation.ConfigValidationAnnotations.isListEntryType;
+import backtype.storm.validation.ConfigValidationAnnotations.isMapEntryCustom;
+import backtype.storm.validation.ConfigValidationAnnotations.isMapEntryType;
+import backtype.storm.validation.ConfigValidationAnnotations.isNoDuplicateInList;
+import backtype.storm.validation.ConfigValidationAnnotations.isString;
 import org.junit.Test;
 import org.junit.Assert;
 import org.slf4j.Logger;
@@ -32,9 +46,10 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
+import java.util.Map;;
 
 public class TestConfigValidate {
 
@@ -60,6 +75,21 @@ public class TestConfigValidate {
         conf.put(Config.STORM_MESSAGING_NETTY_AUTHENTICATION, "invalid");
 
         ConfigValidation.validateFields(conf);
+    }
+
+    @Test(expected = InvalidTopologyException.class)
+    public void testValidateTopologyBlobStoreMap() throws InvalidTopologyException {
+        Map<String,Map> stormConf = new HashMap<>();
+        Map<String,Map> topologyMap = new HashMap<>();
+        topologyMap.put("key1", new HashMap<String,String>());
+        topologyMap.put("key2", new HashMap<String,String>());
+        stormConf.put(Config.TOPOLOGY_BLOBSTORE_MAP, topologyMap);
+        HashSet<String> keySet = new HashSet<>();
+        keySet.add("key1");
+        keySet.add("key2");
+        Utils.validateTopologyBlobStoreMap(stormConf, keySet);
+        keySet.remove("key2");
+        Utils.validateTopologyBlobStoreMap(stormConf, keySet);
     }
 
     @Test
@@ -544,7 +574,7 @@ public class TestConfigValidate {
     }
 
     @Test
-    public void TestAcceptedStrings() throws InvocationTargetException, NoSuchMethodException, NoSuchFieldException, InstantiationException, IllegalAccessException {
+    public void testAcceptedStrings() throws InvocationTargetException, NoSuchMethodException, NoSuchFieldException, InstantiationException, IllegalAccessException {
         TestConfig config = new TestConfig();
         String[] passCases = {"aaa", "bbb", "ccc"};
 
@@ -565,7 +595,7 @@ public class TestConfigValidate {
     }
 
     @Test
-    public void TestImpersonationAclUserEntryValidator() throws InvocationTargetException, NoSuchMethodException, NoSuchFieldException, InstantiationException, IllegalAccessException {
+    public void testImpersonationAclUserEntryValidator() throws InvocationTargetException, NoSuchMethodException, NoSuchFieldException, InstantiationException, IllegalAccessException {
         TestConfig config = new TestConfig();
         Collection<Object> passCases = new LinkedList<Object>();
         Collection<Object> failCases = new LinkedList<Object>();
@@ -610,9 +640,6 @@ public class TestConfigValidate {
             } catch (IllegalArgumentException Ex) {
             }
         }
-
-
-
     }
 
     public class TestConfig extends HashMap<String, Object> {
