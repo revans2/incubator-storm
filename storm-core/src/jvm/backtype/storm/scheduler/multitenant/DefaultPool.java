@@ -200,6 +200,7 @@ public class DefaultPool extends NodePool {
             break;
           }
         }
+        LOG.info("nodes: {}", Node.getNodesDebugInfo(nodes));
         int afterSchedSlotsUsed = Node.countSlotsUsed(topId, _nodes);
         if (afterSchedSlotsUsed < slotsRequested) {
           _cluster.setStatus(topId,"Running with fewer slots than requested ("+afterSchedSlotsUsed+"/"+origRequest+")");
@@ -211,6 +212,7 @@ public class DefaultPool extends NodePool {
       } else {
         _cluster.setStatus(topId,"Fully Scheduled");
       }
+      LOG.info("_nodes: {}", Node.getNodesDebugInfo(_nodes));
     }
   }
   

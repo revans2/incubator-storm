@@ -40,7 +40,7 @@ import backtype.storm.utils.Utils;
 
 public class MultitenantScheduler implements IScheduler {
   private static final Logger LOG = LoggerFactory.getLogger(MultitenantScheduler.class);
-  Set<Node> nodesRasCanUse = new HashSet<Node>();
+  Set<Node> nodesRasCanUse;
   @SuppressWarnings("rawtypes")
   private Map _conf;
   
@@ -104,9 +104,25 @@ public class MultitenantScheduler implements IScheduler {
       pool.printInfo();
     }
     defaultPool.scheduleAsNeeded(freePool);
-    
+
+    this.nodesRasCanUse = new HashSet<Node>();
+    java.util.List<Node> nodesRasCanUseTest = new java.util.LinkedList<Node>();
+    nodesRasCanUseTest.addAll(defaultPool.getNodesInPool());
+    LOG.info("nodesRasCanUseTest: {}", Node.getNodesDebugInfo(nodesRasCanUseTest));
+
+    LOG.info("nodes RAS can use: {}", Node.getNodesDebugInfo(this.nodesRasCanUse));
+    LOG.info("adding nodes {} from default pool to nodesRasCanUse", Node.getNodesDebugInfo(defaultPool.getNodesInPool()));
     this.nodesRasCanUse.addAll(defaultPool.getNodesInPool());
+    LOG.info("nodes RAS can use: {}", Node.getNodesDebugInfo(this.nodesRasCanUse));
+    LOG.info("nodes from default pool: {}", Node.getNodesDebugInfo(defaultPool.getNodesInPool()));
+
+
+
+
+    LOG.info("adding nodes {} from free pool to nodesRasCanUse", Node.getNodesDebugInfo(freePool.getNodesInPool()));
     this.nodesRasCanUse.addAll(freePool.getNodesInPool());
+
+    LOG.info("nodes RAS can use: {}", Node.getNodesDebugInfo(this.nodesRasCanUse));
     LOG.debug("Scheduling done...");
   }
 

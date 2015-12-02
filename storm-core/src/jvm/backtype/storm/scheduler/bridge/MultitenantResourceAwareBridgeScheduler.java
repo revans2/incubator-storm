@@ -41,7 +41,8 @@ public class MultitenantResourceAwareBridgeScheduler implements IScheduler{
 
     @Override
     public void prepare(@SuppressWarnings("rawtypes") Map conf) {
-      _conf = conf;
+        _conf = conf;
+        multitenantScheduler.prepare(_conf);
     }
  
     @Override
@@ -64,13 +65,13 @@ public class MultitenantResourceAwareBridgeScheduler implements IScheduler{
                     LOG.debug("-> {}-{}", topo.getName(), topo.getId());
                 }
             }
-            }
+        }
         
         Topologies rasTopologies = dividedTopologies.get(RESOURCE_AWARE_STRATEGY.getName());
-        
+
         LOG.debug("/* running Multitenant scheduler */");
-        
-        multitenantScheduler.prepare(_conf);
+
+
         //Even though all the topologies are passed into the multitenant scheduler
         //Topologies marked as RAS will be skipped by the multitenant scheduler
         multitenantScheduler.schedule(topologies, cluster);
@@ -81,6 +82,7 @@ public class MultitenantResourceAwareBridgeScheduler implements IScheduler{
         
         LOG.debug("/* Translating to RAS cluster */");
         LOG.info("nodesRASCanUse: {}", multitenantScheduler.getNodesRASCanUse());
+        LOG.debug(Node.getNodesDebugInfo(multitenantScheduler.getNodesRASCanUse().values()));
         Cluster rasCluster = translateToRASCluster(cluster, rasTopologies, topologies,
                 multitenantScheduler.getNodesRASCanUse());
         
@@ -89,6 +91,7 @@ public class MultitenantResourceAwareBridgeScheduler implements IScheduler{
         LOG.debug("/* running RAS scheduler */");
         if(rasTopologies.getTopologies().size() > 0) {
             ResourceAwareScheduler ras = new ResourceAwareScheduler();
+            ras.prepare(_conf);
             ras.schedule(rasTopologies, rasCluster);
         }
         
@@ -155,6 +158,8 @@ public class MultitenantResourceAwareBridgeScheduler implements IScheduler{
         for(SupervisorDetails sup : cluster.getSupervisors().values()) {
             if(nodesRASCanUse.containsKey(sup.getId())) {
                 LOG.debug("RAS Supervisor: {}-{}", sup.getHost(), sup.getId());
+                LOG.debug("node info: {}", Node.getNodeDebugInfo(nodesRASCanUse.get(sup.getId())));
+                LOG.debug("free slots: {}", nodesRASCanUse.get(sup.getId()).getFreeSlots());
                 Set<Number> availPorts = new HashSet<Number>();
                 Set<Integer> allPorts = cluster.getAssignablePorts(sup);
                 for(Integer port : allPorts) {
@@ -260,6 +265,7 @@ public class MultitenantResourceAwareBridgeScheduler implements IScheduler{
                         if (topologyWorkerLwChildopts != null) {
                             totalWorkerMemory += parseWorkerChildOpts(topologyWorkerLwChildopts, 0.0);
                         }
+                        memoryUsedOnNode += totalWorkerMemory;
                     }
                 }
             }
