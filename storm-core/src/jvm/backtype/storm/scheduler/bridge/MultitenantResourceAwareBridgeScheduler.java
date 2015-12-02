@@ -71,7 +71,6 @@ public class MultitenantResourceAwareBridgeScheduler implements IScheduler{
 
         LOG.debug("/* running Multitenant scheduler */");
 
-
         //Even though all the topologies are passed into the multitenant scheduler
         //Topologies marked as RAS will be skipped by the multitenant scheduler
         multitenantScheduler.schedule(topologies, cluster);
@@ -81,8 +80,7 @@ public class MultitenantResourceAwareBridgeScheduler implements IScheduler{
         this.printClusterInfo(cluster);
         
         LOG.debug("/* Translating to RAS cluster */");
-        LOG.info("nodesRASCanUse: {}", multitenantScheduler.getNodesRASCanUse());
-        LOG.debug(Node.getNodesDebugInfo(multitenantScheduler.getNodesRASCanUse().values()));
+        LOG.info("nodesRASCanUse: {}", Node.getNodesDebugInfo(multitenantScheduler.getNodesRASCanUse().values()));
         Cluster rasCluster = translateToRASCluster(cluster, rasTopologies, topologies,
                 multitenantScheduler.getNodesRASCanUse());
         
@@ -158,8 +156,6 @@ public class MultitenantResourceAwareBridgeScheduler implements IScheduler{
         for(SupervisorDetails sup : cluster.getSupervisors().values()) {
             if(nodesRASCanUse.containsKey(sup.getId())) {
                 LOG.debug("RAS Supervisor: {}-{}", sup.getHost(), sup.getId());
-                LOG.debug("node info: {}", Node.getNodeDebugInfo(nodesRASCanUse.get(sup.getId())));
-                LOG.debug("free slots: {}", nodesRASCanUse.get(sup.getId()).getFreeSlots());
                 Set<Number> availPorts = new HashSet<Number>();
                 Set<Integer> allPorts = cluster.getAssignablePorts(sup);
                 for(Integer port : allPorts) {
@@ -193,7 +189,6 @@ public class MultitenantResourceAwareBridgeScheduler implements IScheduler{
         Map<String, SchedulerAssignmentImpl> rasClusterAssignments =  new HashMap<String, SchedulerAssignmentImpl>();
         for(String topoId : cluster.getAssignments().keySet()) {
             if(rasTopologies.getById(topoId) != null) {
-                //rasClusterAssignments.put(topoId, (SchedulerAssignmentImpl) cluster.getAssignments().get(topoId));
                 rasClusterAssignments.put(topoId, new SchedulerAssignmentImpl(topoId, cluster.getAssignments().get(topoId).getExecutorToSlot()));
             }
         }

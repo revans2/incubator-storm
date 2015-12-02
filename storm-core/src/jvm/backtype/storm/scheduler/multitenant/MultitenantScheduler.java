@@ -106,18 +106,9 @@ public class MultitenantScheduler implements IScheduler {
     defaultPool.scheduleAsNeeded(freePool);
 
     this.nodesRasCanUse = new HashSet<Node>();
-    java.util.List<Node> nodesRasCanUseTest = new java.util.LinkedList<Node>();
-    nodesRasCanUseTest.addAll(defaultPool.getNodesInPool());
-    LOG.info("nodesRasCanUseTest: {}", Node.getNodesDebugInfo(nodesRasCanUseTest));
 
-    LOG.info("nodes RAS can use: {}", Node.getNodesDebugInfo(this.nodesRasCanUse));
-    LOG.info("adding nodes {} from default pool to nodesRasCanUse", Node.getNodesDebugInfo(defaultPool.getNodesInPool()));
+    LOG.debug("adding nodes {} from default pool to nodesRasCanUse", Node.getNodesDebugInfo(defaultPool.getNodesInPool()));
     this.nodesRasCanUse.addAll(defaultPool.getNodesInPool());
-    LOG.info("nodes RAS can use: {}", Node.getNodesDebugInfo(this.nodesRasCanUse));
-    LOG.info("nodes from default pool: {}", Node.getNodesDebugInfo(defaultPool.getNodesInPool()));
-
-
-
 
     LOG.info("adding nodes {} from free pool to nodesRasCanUse", Node.getNodesDebugInfo(freePool.getNodesInPool()));
     this.nodesRasCanUse.addAll(freePool.getNodesInPool());
