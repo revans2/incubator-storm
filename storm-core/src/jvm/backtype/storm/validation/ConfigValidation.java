@@ -475,7 +475,7 @@ public class ConfigValidation {
         @Override
         public  void validateField(String name, Object o) {
             ConfigValidationUtils.NestableFieldValidator validator = ConfigValidationUtils.mapFv(ConfigValidationUtils.fv(String.class, false),
-                    ConfigValidationUtils.mapFv(String.class, Object.class,true), true);
+                    ConfigValidationUtils.mapFv(String.class, Object.class, true), true);
             validator.validateField(name, o);
         }
     }
