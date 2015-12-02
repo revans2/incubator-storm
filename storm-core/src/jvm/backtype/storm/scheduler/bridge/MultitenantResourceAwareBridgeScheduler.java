@@ -213,12 +213,12 @@ public class MultitenantResourceAwareBridgeScheduler implements IScheduler{
         Map<String, Double> resourceList = new HashMap<String, Double>();
         LOG.debug("->Topologies running on Node: {}", node.getRunningTopologies());
         for(String topoId : node.getRunningTopologies()) {
-            Map topConf = allTopologies.getById(topoId).getConf();
-            Double topologyWorkerMemory = cluster.getAssignedMemoryForSlot(topConf);
             if (!RESOURCE_AWARE_STRATEGY.getName().equals(allTopologies.getById(topoId).getTopologyStrategy())) {
                 SchedulerAssignment assignment = cluster.getAssignmentById(topoId);
                 Set<WorkerSlot> usedSlots = assignment.getSlots();
                 LOG.debug("->usedSlots: {})", usedSlots);
+                Map topConf = allTopologies.getById(topoId).getConf();
+                Double topologyWorkerMemory = cluster.getAssignedMemoryForSlot(topConf);
                 for (WorkerSlot ws : usedSlots) {
                     if (sup.getId().equals(ws.getNodeId())) {
                         memoryUsedOnNode += topologyWorkerMemory;
