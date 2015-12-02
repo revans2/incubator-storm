@@ -149,6 +149,7 @@ public class Node {
       _topIdToUsedSlots.put(topId, usedSlots);
     }
     usedSlots.add(ws);
+    LOG.debug("Assign internal - slot {} to topology {} remaining free slots {}", ws, topId, _freeSlots);
     return false;
   }
   

@@ -41,7 +41,8 @@ public class MultitenantResourceAwareBridgeScheduler implements IScheduler{
 
     @Override
     public void prepare(@SuppressWarnings("rawtypes") Map conf) {
-      _conf = conf;
+        _conf = conf;
+        multitenantScheduler.prepare(_conf);
     }
  
     @Override
@@ -64,13 +65,12 @@ public class MultitenantResourceAwareBridgeScheduler implements IScheduler{
                     LOG.debug("-> {}-{}", topo.getName(), topo.getId());
                 }
             }
-            }
+        }
         
         Topologies rasTopologies = dividedTopologies.get(RESOURCE_AWARE_STRATEGY.getName());
-        
+
         LOG.debug("/* running Multitenant scheduler */");
-        
-        multitenantScheduler.prepare(_conf);
+
         //Even though all the topologies are passed into the multitenant scheduler
         //Topologies marked as RAS will be skipped by the multitenant scheduler
         multitenantScheduler.schedule(topologies, cluster);
@@ -80,15 +80,19 @@ public class MultitenantResourceAwareBridgeScheduler implements IScheduler{
         this.printClusterInfo(cluster);
         
         LOG.debug("/* Translating to RAS cluster */");
-        LOG.info("nodesRASCanUse: {}", multitenantScheduler.getNodesRASCanUse());
+        LOG.info("nodesRASCanUse: {}", Node.getNodesDebugInfo(multitenantScheduler.getNodesRASCanUse().values()));
         Cluster rasCluster = translateToRASCluster(cluster, rasTopologies, topologies,
                 multitenantScheduler.getNodesRASCanUse());
-        
+
+        LOG.debug("RAS cluster scheduling: ");
+        this.printScheduling(rasCluster, topologies);
+        LOG.debug("RAS cluster info: ");
         this.printClusterInfo(rasCluster);
         
         LOG.debug("/* running RAS scheduler */");
         if(rasTopologies.getTopologies().size() > 0) {
             ResourceAwareScheduler ras = new ResourceAwareScheduler();
+            ras.prepare(_conf);
             ras.schedule(rasTopologies, rasCluster);
         }
         
@@ -188,7 +192,7 @@ public class MultitenantResourceAwareBridgeScheduler implements IScheduler{
         Map<String, SchedulerAssignmentImpl> rasClusterAssignments =  new HashMap<String, SchedulerAssignmentImpl>();
         for(String topoId : cluster.getAssignments().keySet()) {
             if(rasTopologies.getById(topoId) != null) {
-                rasClusterAssignments.put(topoId, (SchedulerAssignmentImpl) cluster.getAssignments().get(topoId));
+                rasClusterAssignments.put(topoId, new SchedulerAssignmentImpl(topoId, cluster.getAssignments().get(topoId).getExecutorToSlot()));
             }
         }
         printAssignment(rasClusterAssignments);
@@ -259,6 +263,7 @@ public class MultitenantResourceAwareBridgeScheduler implements IScheduler{
                         if (topologyWorkerLwChildopts != null) {
                             totalWorkerMemory += parseWorkerChildOpts(topologyWorkerLwChildopts, 0.0);
                         }
+                        memoryUsedOnNode += totalWorkerMemory;
                     }
                 }
             }
@@ -310,9 +315,10 @@ public class MultitenantResourceAwareBridgeScheduler implements IScheduler{
                 for(Map.Entry<ExecutorDetails, WorkerSlot> execToWs : entry.getValue().getExecutorToSlot().entrySet()) {
                     ExecutorDetails exec = execToWs.getKey();
                     WorkerSlot ws = execToWs.getValue();
-                    if(target.getAssignmentById(topoId) == null || 
-                            ((target.getAssignmentById(topoId).getExecutorToSlot().containsKey(exec) == false) &&
-                                    (target.getAssignmentById(topoId).getExecutorToSlot().get(exec).hashCode() != ws.hashCode()))){
+
+                    if((target.getAssignmentById(topoId) == null) || (target.getAssignmentById(topoId).getExecutorToSlot().containsKey(exec) == false)
+                            && ((target.getAssignmentById(topoId).getExecutorToSlot().get(exec) != null) &&
+                                    (target.getAssignmentById(topoId).getExecutorToSlot().get(exec).hashCode() != ws.hashCode()))) {
                         if(schedMap.containsKey(topoId) == false) {
                             schedMap.put(topoId, new HashMap<WorkerSlot, Collection<ExecutorDetails>>());
                         }
@@ -413,5 +419,4 @@ public class MultitenantResourceAwareBridgeScheduler implements IScheduler{
             LOG.debug("Topology: {} Assignments: {}", entry.getKey(),  entry.getValue().getExecutorToSlot());
         }
     }
-    
 }
