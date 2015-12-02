@@ -83,7 +83,10 @@ public class MultitenantResourceAwareBridgeScheduler implements IScheduler{
         LOG.info("nodesRASCanUse: {}", Node.getNodesDebugInfo(multitenantScheduler.getNodesRASCanUse().values()));
         Cluster rasCluster = translateToRASCluster(cluster, rasTopologies, topologies,
                 multitenantScheduler.getNodesRASCanUse());
-        
+
+        LOG.debug("RAS cluster scheduling: ");
+        this.printScheduling(rasCluster, topologies);
+        LOG.debug("RAS cluster info: ");
         this.printClusterInfo(rasCluster);
         
         LOG.debug("/* running RAS scheduler */");
@@ -312,9 +315,10 @@ public class MultitenantResourceAwareBridgeScheduler implements IScheduler{
                 for(Map.Entry<ExecutorDetails, WorkerSlot> execToWs : entry.getValue().getExecutorToSlot().entrySet()) {
                     ExecutorDetails exec = execToWs.getKey();
                     WorkerSlot ws = execToWs.getValue();
-                    if(target.getAssignmentById(topoId) == null || 
-                            ((target.getAssignmentById(topoId).getExecutorToSlot().containsKey(exec) == false) &&
-                                    (target.getAssignmentById(topoId).getExecutorToSlot().get(exec).hashCode() != ws.hashCode()))){
+
+                    if((target.getAssignmentById(topoId) == null) || (target.getAssignmentById(topoId).getExecutorToSlot().containsKey(exec) == false)
+                            && ((target.getAssignmentById(topoId).getExecutorToSlot().get(exec) != null) &&
+                                    (target.getAssignmentById(topoId).getExecutorToSlot().get(exec).hashCode() != ws.hashCode()))) {
                         if(schedMap.containsKey(topoId) == false) {
                             schedMap.put(topoId, new HashMap<WorkerSlot, Collection<ExecutorDetails>>());
                         }
@@ -415,5 +419,4 @@ public class MultitenantResourceAwareBridgeScheduler implements IScheduler{
             LOG.debug("Topology: {} Assignments: {}", entry.getKey(),  entry.getValue().getExecutorToSlot());
         }
     }
-    
 }
