@@ -71,19 +71,8 @@ public class MultitenantResourceAwareBridgeScheduler implements IScheduler{
         //Even though all the topologies are passed into the multitenant scheduler
         //Topologies marked as RAS will be skipped by the multitenant scheduler
         multitenantScheduler.schedule(topologies, cluster);
-        cluster.updateAssignedMemoryForTopologyAndSupervisor(mtTopologies); // you can not just use mt topo here, because the function is also based on assignments!!!
-        LOG.info("zliu number of mt topos is {}, num of ras topos is {}. After MT update:", mtTopologies.getTopologies().size(), rasTopologies.getTopologies().size());
-        for (Map.Entry<String, Double[]> entry : cluster.getResourcesMap().entrySet()) {
-            LOG.info("zliu topo {}, assigned memory is ", entry.getKey(), entry.getValue()[3]);
-        }
-        for (Map.Entry<String, Double[]> entry : cluster.getSupervisorsResourcesMap().entrySet()) {
-            LOG.info("zliu supervisor {}, assigned memory is ", entry.getKey(), entry.getValue()[2]);
-        }
-        // that is why you see weird number in you results
-        // if (mtTopologies != null) {
-        //    LOG.info("zliu num of mtTopos is " + mtTopologies.getTopologies().size());
-        //    cluster.updateAssignedMemoryForTopologyAndSupervisor(mtTopologies);
-        //}
+        //Update memory assignment information for each multitenant topology and supervisor nodes
+        cluster.updateAssignedMemoryForTopologyAndSupervisor(mtTopologies);
         
         this.printScheduling(cluster, topologies);
         
@@ -109,13 +98,7 @@ public class MultitenantResourceAwareBridgeScheduler implements IScheduler{
         LOG.debug("/* Merge RAS Cluster with actual cluster */");
         
         this.mergeCluster(cluster, rasCluster);
-        LOG.info("zliu number of mt topos is {}, num of ras topos is {}. After mergeCluster update:", mtTopologies.getTopologies().size(), rasTopologies.getTopologies().size());
-        for (Map.Entry<String, Double[]> entry : cluster.getResourcesMap().entrySet()) {
-            LOG.info("zliu topo {}, assigned memory is ", entry.getKey(), entry.getValue()[3]);
-        }
-        for (Map.Entry<String, Double[]> entry : cluster.getSupervisorsResourcesMap().entrySet()) {
-            LOG.info("zliu supervisor {}, assigned memory is ", entry.getKey(), entry.getValue()[2]);
-        }
+
         this.printScheduling(cluster, topologies);
     }
 
@@ -132,7 +115,6 @@ public class MultitenantResourceAwareBridgeScheduler implements IScheduler{
         Map<String, TopologyDetails> multitenantTopologies = new HashMap<String, TopologyDetails>();
         Map<String, TopologyDetails> rasTopologies = new HashMap<String, TopologyDetails>();
         for(TopologyDetails topo : topologies.getTopologies()) {
-                LOG.info("zliu in divideTopos: {} 's strategy is: {}", topo.getId(), topo.getTopologyStrategy());
                 if(MULTITENANT_STRATEGY.getName().equals(topo.getTopologyStrategy())) {
                     multitenantTopologies.put(topo.getId(), topo);
                 } else if(RESOURCE_AWARE_STRATEGY.getName().equals(topo.getTopologyStrategy())) {
