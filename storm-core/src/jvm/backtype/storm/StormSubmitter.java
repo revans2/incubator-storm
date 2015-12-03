@@ -22,7 +22,6 @@ import java.io.FileInputStream;
 import java.nio.ByteBuffer;
 
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.regex.Matcher;
@@ -169,7 +168,7 @@ public class StormSubmitter {
      * @throws InvalidTopologyException if an invalid topology was submitted
      * @throws AuthorizationException if authorization is failed
      */
-    public static void submitTopology(String name, Map stormConf, StormTopology topology) 
+    public static void submitTopology(String name, Map stormConf, StormTopology topology)
             throws AlreadyAliveException, InvalidTopologyException, AuthorizationException {
         submitTopology(name, stormConf, topology, null, null);
     }    
@@ -186,7 +185,7 @@ public class StormSubmitter {
      * @throws InvalidTopologyException if an invalid topology was submitted
      * @throws AuthorizationException if authorization is failed
      */
-    public static void submitTopology(String name, Map stormConf, StormTopology topology, SubmitOptions opts) 
+    public static void submitTopology(String name, Map stormConf, StormTopology topology, SubmitOptions opts)
             throws AlreadyAliveException, InvalidTopologyException, AuthorizationException {
         submitTopology(name, stormConf, topology, opts, null);
     }
@@ -501,7 +500,7 @@ public class StormSubmitter {
         Double topologyWorkerMaxHeapSize = Utils.getDouble(stormConf.get(Config.TOPOLOGY_WORKER_MAX_HEAP_SIZE_MB));
         if (topologyWorkerMaxHeapSize < largestMemReq) {
             throw new IllegalArgumentException("Topology will not be able to be successfully scheduled: Config " + Config.TOPOLOGY_WORKER_MAX_HEAP_SIZE_MB+": "
-                    +Utils.getDouble(stormConf.get(Config.TOPOLOGY_WORKER_MAX_HEAP_SIZE_MB)) + " < "
+                    + Utils.getDouble(stormConf.get(Config.TOPOLOGY_WORKER_MAX_HEAP_SIZE_MB)) + " < "
                     + largestMemReq + " (Largest memory requirement of a component in the topology). Perhaps set " + Config.TOPOLOGY_WORKER_MAX_HEAP_SIZE_MB + " to a larger amount");
         }
     }
