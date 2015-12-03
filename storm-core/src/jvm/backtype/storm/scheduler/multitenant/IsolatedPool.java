@@ -97,11 +97,13 @@ public class IsolatedPool extends NodePool {
   @Override
   public void scheduleAsNeeded(NodePool ... lesserPools) {
     LOG.debug("Existing Assignments PRIOR to new schedulings:\n{}", this.getNodeToTopology());
+
     for (String topId : _topologyIdToNodes.keySet()) {
       TopologyDetails td = _tds.get(topId);
       LOG.debug("Scheduling topology {} unassigned executors: {}", td.getName(), _cluster.getUnassignedExecutors(td));
       Set<Node> allNodes = _topologyIdToNodes.get(topId);
-      LOG.debug("allNodes: {}", allNodes);
+      LOG.debug("allNodes: {}", Node.getNodesDebugInfo(allNodes));
+
       Number nodesRequested = (Number) td.getConf().get(Config.TOPOLOGY_ISOLATED_MACHINES);
       LOG.debug("isolated nodesRequested: {}", nodesRequested);
       Integer effectiveNodesRequested = null;
@@ -161,7 +163,6 @@ public class IsolatedPool extends NodePool {
         } else {
           RoundRobinSlotScheduler slotSched =
                   new RoundRobinSlotScheduler(td, slotsToUse, _cluster);
-
           while (true) {
             LOG.debug("Nodes sorted by free space {}", Node.getNodesDebugInfo(allNodes));
             Node n = findNodeWithMostFreeSlots(allNodes);
@@ -182,10 +183,22 @@ public class IsolatedPool extends NodePool {
   }
 
   private Node findNodeWithMostFreeSlots(Collection<Node> nodes) {
-    Node ret = nodes.iterator().next();
+    Node ret = null;
     for(Node node : nodes) {
-      if(node.totalSlotsFree() > ret.totalSlotsFree()) {
-        ret = node;
+      if(ret == null ) {
+        if(node.totalSlotsFree() > 0) {
+          ret = node;
+        }
+      } else {
+        if (node.totalSlotsFree() > 0) {
+          if (node.totalSlotsUsed() < ret.totalSlotsUsed()) {
+            ret = node;
+          } else if (node.totalSlotsUsed() == ret.totalSlotsUsed()) {
+            if(node.totalSlotsFree() > ret.totalSlotsFree()) {
+              ret = node;
+            }
+          }
+        }
       }
     }
     return ret;
