@@ -167,7 +167,7 @@ public class IsolatedPool extends NodePool {
             LOG.debug("Nodes sorted by free space {}", Node.getNodesDebugInfo(allNodes));
             Node n = findNodeWithMostFreeSlots(allNodes);
             if (n == null) {
-              LOG.error("Not nodes to use to assign topology {}", td.getName());
+              LOG.error("No nodes to use to assign topology {}", td.getName());
               break;
             }
             if (!slotSched.assignSlotTo(n)) {
