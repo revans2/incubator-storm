@@ -162,25 +162,15 @@ public class IsolatedPool extends NodePool {
           RoundRobinSlotScheduler slotSched =
                   new RoundRobinSlotScheduler(td, slotsToUse, _cluster);
 
-          LinkedList<Node> sortedNodes = new LinkedList<Node>(allNodes);
-          Collections.sort(sortedNodes, Node.FREE_NODE_COMPARATOR_DEC);
-
           while (true) {
-            LOG.debug("Nodes sorted by free space {}", Node.getNodesDebugInfo(sortedNodes));
-            Node n = sortedNodes.remove();
-            if (!slotSched.assignSlotTo(n)) {
+            LOG.debug("Nodes sorted by free space {}", Node.getNodesDebugInfo(allNodes));
+            Node n = findNodeWithMostFreeSlots(allNodes);
+            if (n == null) {
+              LOG.error("Not nodes to use to assign topology {}", td.getName());
               break;
             }
-            int freeSlots = n.totalSlotsFree();
-            for (int i = 0; i < sortedNodes.size(); i++) {
-              if (freeSlots >= sortedNodes.get(i).totalSlotsFree()) {
-                sortedNodes.add(i, n);
-                n = null;
-                break;
-              }
-            }
-            if (n != null) {
-              sortedNodes.add(n);
+            if (!slotSched.assignSlotTo(n)) {
+              break;
             }
           }
         }
@@ -189,6 +179,16 @@ public class IsolatedPool extends NodePool {
       int nc = found == null ? 0 : found.size();
       _cluster.setStatus(topId,"Scheduled Isolated on "+nc+" Nodes");
     }
+  }
+
+  private Node findNodeWithMostFreeSlots(Collection<Node> nodes) {
+    Node ret = nodes.iterator().next();
+    for(Node node : nodes) {
+      if(node.totalSlotsFree() > ret.totalSlotsFree()) {
+        ret = node;
+      }
+    }
+    return ret;
   }
   
   /**
