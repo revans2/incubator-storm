@@ -22,7 +22,6 @@ import java.io.FileInputStream;
 import java.nio.ByteBuffer;
 
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.regex.Matcher;
@@ -287,7 +286,7 @@ public class StormSubmitter {
      */
     @SuppressWarnings("unchecked")
     public static void submitTopology(String name, Map stormConf, StormTopology topology, SubmitOptions opts,
-             ProgressListener progressListener) throws AlreadyAliveException, InvalidTopologyException, AuthorizationException{
+             ProgressListener progressListener) throws AlreadyAliveException, InvalidTopologyException, AuthorizationException {
         submitTopologyAs(name, stormConf, topology, opts, progressListener, null);
     }
 
