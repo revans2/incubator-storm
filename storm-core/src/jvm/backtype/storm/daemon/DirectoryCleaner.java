@@ -78,6 +78,7 @@ public class DirectoryCleaner {
                 File file = path.toFile();
                 totalSize += file.length();
             }
+            stream.close();
         }
         long toDeleteSize = totalSize - quota;
         if (toDeleteSize <= 0) {
@@ -127,6 +128,7 @@ public class DirectoryCleaner {
                         }
                     }
                 }
+                stream.close();
             }
             // need to reverse the order of elements in PQ to delete files from oldest to newest
             Stack<File> stack = new Stack<File>();
@@ -170,6 +172,7 @@ public class DirectoryCleaner {
                 break;
             }
         }
+        stream.close();
         return files;
     }
 }

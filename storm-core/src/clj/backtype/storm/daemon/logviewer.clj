@@ -61,19 +61,21 @@
 
 (defn- last-modifiedtime-worker-logdir 
   "Return the last modified time for all log files in a worker's log dir.
-   Using stream rather than File.listFiles is to avoid large mem usage
-   when a directory has too many files"
+  Using stream rather than File.listFiles is to avoid large mem usage
+  when a directory has too many files"
   [^File log-dir]
   (let [^DirectoryStream stream (get-stream-for-dir log-dir)
-        last-modified (.lastModified log-dir)]
-    (reduce
-      (fn [maximum path]
-        (let [curr (.lastModified (.toFile path))]
-          (if (> curr maximum)
-            curr
-            maximum)))
-      last-modified
-      stream)))
+        dir-modified (.lastModified log-dir)
+        last-modified (reduce
+                        (fn [maximum path]
+                          (let [curr (.lastModified (.toFile path))]
+                            (if (> curr maximum)
+                              curr
+                              maximum)))
+                        dir-modified
+                        stream)]
+    (.close stream)
+    last-modified))
 
 (defn get-size-for-logdir
   "Return the sum of lengths for all log files in a worker's log dir.
@@ -441,7 +443,12 @@ Note that if anything goes wrong, this will throw an Error and exit."
               (authorized-log-user? user fname *STORM-CONF*))
         (-> (resp/response file)
             (resp/content-type "application/octet-stream"))
-        (unauthorized-user-html user))
+        (do (supervisor/worker-launcher-and-wait *STORM-CONF* (*STORM-CONF* TOPOLOGY-SUBMITTER-USER) ["blob" (.getCanonicalPath file)] :log-prefix (str "setup group read permissions for file: " fname))
+            (if (or (blank? (*STORM-CONF* UI-FILTER))
+                    (authorized-log-user? user fname *STORM-CONF*))
+              (-> (resp/response file)
+                  (resp/content-type "application/octet-stream"))
+              (unauthorized-user-html user))))
       (-> (resp/response "Page not found")
           (resp/status 404)))))
 
