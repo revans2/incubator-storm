@@ -20,9 +20,10 @@
   (:use [hiccup core page-helpers form-helpers])
   (:use [backtype.storm config util log timer])
   (:use [backtype.storm.ui helpers])
+  (:import [backtype.storm.utils Utils VersionInfo])
+  (:import [org.slf4j LoggerFactory])
   (:import [java.util Arrays ArrayList HashSet])
   (:import [java.util.zip GZIPInputStream])
-  (:import [org.slf4j LoggerFactory])
   (:import [org.apache.logging.log4j LogManager])
   (:import [org.apache.logging.log4j.core Appender LoggerContext])
   (:import [org.apache.logging.log4j.core.appender RollingFileAppender])
@@ -48,6 +49,7 @@
   (:gen-class))
 
 (def ^:dynamic *STORM-CONF* (read-storm-config))
+(def STORM-VERSION (VersionInfo/getVersion))
 
 ;; Coda Hale Metrics
 (defmeter num-file-downloads)
@@ -1116,5 +1118,8 @@ Note that if anything goes wrong, this will throw an Error and exit."
         log-root (worker-artifacts-root conf)]
     (setup-default-uncaught-exception-handler)
     (start-log-cleaner! conf log-root)
+    (log-message "Starting logviewer server for storm version '"
+                 STORM-VERSION
+                 "'")
     (start-logviewer! conf log-root)
     (start-metrics-reporters)))

@@ -58,6 +58,7 @@
   (:use [clojure.string :only [blank?]])
   (:use [clojure.set :only [intersection]])
   (:import [org.apache.zookeeper data.ACL ZooDefs$Ids ZooDefs$Perms])
+  (:import [backtype.storm.utils VersionInfo])
   (:require [clj-time.core :as time])
   (:require [clj-time.coerce :as coerce])
   (:require [metrics.meters :refer [defmeter mark!]])
@@ -84,6 +85,8 @@
 (defmeter num-getTopologyHistory-calls) 
 (defmeter num-setWorkerProfiler-calls)
 (defmeter num-getComponentPendingProfileActions-calls)
+
+(def STORM-VERSION (VersionInfo/getVersion))
 
 (defn mk-file-cache-map
   "Constructs a TimeCacheMap instance with a nimbus file timeout whose expiration
@@ -1960,7 +1963,9 @@
     (add-shutdown-hook-with-force-kill-in-1-sec (fn []
                                                   (.shutdown service-handler)
                                                   (.stop server)))
-    (log-message "Starting Nimbus server...")
+    (log-message "Starting nimbus server for storm version '"
+                 STORM-VERSION
+                 "'")
     (.serve server)
     service-handler))
 
