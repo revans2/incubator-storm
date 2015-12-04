@@ -74,7 +74,7 @@
                               maximum)))
                         dir-modified
                         stream)]
-    (.close stream)
+    (if (instance? DirectoryStream stream) (.close stream))
     last-modified))
 
 (defn get-size-for-logdir
