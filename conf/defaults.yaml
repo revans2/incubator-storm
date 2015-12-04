@@ -156,7 +156,7 @@ supervisor.localizer.cleanup.interval.ms: 600000
 
 ### worker.* configs are for task workers
 worker.heap.memory.mb: 768
-worker.childopts: "-Xmx%HEAP-MEM%m -XX:+PrintGCDetails -Xloggc:artifacts/gc.%p.log -XX:+PrintGCDateStamps -XX:+PrintGCTimeStamps -XX:+UseGCLogFileRotation -XX:NumberOfGCLogFiles=10 -XX:GCLogFileSize=10M -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=artifacts/heapdump"
+worker.childopts: "-Xmx%HEAP-MEM%m -XX:+PrintGCDetails -Xloggc:artifacts/gc.%p.log -XX:+PrintGCDateStamps -XX:+PrintGCTimeStamps -XX:+UseGCLogFileRotation -XX:NumberOfGCLogFiles=10 -XX:GCLogFileSize=10M -XX:+HeapDumpOnOutOfMemoryError -XX:OnOutOfMemoryError="chmod g+r *.hprof" -XX:HeapDumpPath=artifacts/heapdump"
 worker.gc.childopts: ""
 worker.profiler.childopts: "-XX:+UnlockCommercialFeatures -XX:+FlightRecorder"
 worker.heartbeat.frequency.secs: 1
