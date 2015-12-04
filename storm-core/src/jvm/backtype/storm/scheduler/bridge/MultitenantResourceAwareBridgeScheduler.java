@@ -7,8 +7,6 @@ import java.util.LinkedList;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,7 +24,6 @@ import backtype.storm.scheduler.WorkerSlot;
 import backtype.storm.scheduler.resource.ResourceAwareScheduler;
 import backtype.storm.scheduler.resource.strategies.MultitenantStrategy;
 import backtype.storm.scheduler.resource.strategies.ResourceAwareStrategy;
-import backtype.storm.utils.Utils;
 import backtype.storm.scheduler.multitenant.MultitenantScheduler;
 import backtype.storm.scheduler.multitenant.Node;
 
@@ -34,7 +31,6 @@ public class MultitenantResourceAwareBridgeScheduler implements IScheduler{
     private static final Logger LOG = LoggerFactory.getLogger(MultitenantResourceAwareBridgeScheduler.class);
     @SuppressWarnings("rawtypes")
     private Map _conf;
-    private static final Double TOPOLOGY_WORKER_DEFAULT_MEMORY_ALLOCATION = 768.0;
     private static final Class<MultitenantStrategy> MULTITENANT_STRATEGY = backtype.storm.scheduler.resource.strategies.MultitenantStrategy.class;
     private static final Class<ResourceAwareStrategy> RESOURCE_AWARE_STRATEGY = backtype.storm.scheduler.resource.strategies.ResourceAwareStrategy.class;
     private MultitenantScheduler multitenantScheduler = new MultitenantScheduler();
@@ -68,12 +64,15 @@ public class MultitenantResourceAwareBridgeScheduler implements IScheduler{
         }
         
         Topologies rasTopologies = dividedTopologies.get(RESOURCE_AWARE_STRATEGY.getName());
-
+        Topologies mtTopologies = dividedTopologies.get(MULTITENANT_STRATEGY.getName());
+        
         LOG.debug("/* running Multitenant scheduler */");
 
         //Even though all the topologies are passed into the multitenant scheduler
         //Topologies marked as RAS will be skipped by the multitenant scheduler
         multitenantScheduler.schedule(topologies, cluster);
+        //Update memory assignment information for each multitenant topology and supervisor nodes
+        cluster.updateAssignedMemoryForTopologyAndSupervisor(mtTopologies);
         
         this.printScheduling(cluster, topologies);
         
@@ -99,6 +98,7 @@ public class MultitenantResourceAwareBridgeScheduler implements IScheduler{
         LOG.debug("/* Merge RAS Cluster with actual cluster */");
         
         this.mergeCluster(cluster, rasCluster);
+
         this.printScheduling(cluster, topologies);
     }
 
@@ -122,6 +122,7 @@ public class MultitenantResourceAwareBridgeScheduler implements IScheduler{
                 } else {
                     LOG.warn("No valid scheduler specified! Topology {} is going to be scheduled via {} by default", topo.getId(), MULTITENANT_STRATEGY.getName());
                     topo.setTopologyStrategy(MULTITENANT_STRATEGY);
+                    multitenantTopologies.put(topo.getId(), topo);
             }
         }
         dividedTopos.put(MULTITENANT_STRATEGY.getName(), new Topologies(multitenantTopologies));
@@ -216,89 +217,21 @@ public class MultitenantResourceAwareBridgeScheduler implements IScheduler{
                 SchedulerAssignment assignment = cluster.getAssignmentById(topoId);
                 Set<WorkerSlot> usedSlots = assignment.getSlots();
                 LOG.debug("->usedSlots: {})", usedSlots);
+                Map topConf = allTopologies.getById(topoId).getConf();
+                Double topologyWorkerMemory = cluster.getAssignedMemoryForSlot(topConf);
                 for (WorkerSlot ws : usedSlots) {
                     if (sup.getId().equals(ws.getNodeId())) {
-                        Double totalWorkerMemory = 0.0;
-                        Map<String, Double> configMap = new HashMap<String, Double>();
-                        String worker_gc_childopts = Utils
-                                .getString(allTopologies.getById(topoId)
-                                        .getConf().get(Config.WORKER_GC_CHILDOPTS), null);
-                        String topology_worker_gc_childopts = Utils
-                                .getString(allTopologies.getById(topoId)
-                                        .getConf().get(Config.TOPOLOGY_WORKER_GC_CHILDOPTS), null);
-                        String topology_worker_childopts = Utils
-                                .getString(allTopologies.getById(topoId)
-                                        .getConf().get(Config.TOPOLOGY_WORKER_CHILDOPTS), null);
-                        String worker_childopts = Utils
-                                .getString(allTopologies.getById(topoId)
-                                        .getConf().get(Config.WORKER_CHILDOPTS), null);
-
-                        configMap.put(Config.WORKER_GC_CHILDOPTS, parseWorkerChildOpts(worker_gc_childopts, null));
-                        configMap.put(Config.TOPOLOGY_WORKER_GC_CHILDOPTS, parseWorkerChildOpts(topology_worker_gc_childopts, null));
-                        configMap.put(Config.TOPOLOGY_WORKER_CHILDOPTS, parseWorkerChildOpts(topology_worker_childopts, null));
-                        configMap.put(Config.WORKER_CHILDOPTS, parseWorkerChildOpts(worker_childopts, null));
-
-                        if (configMap.get(Config.TOPOLOGY_WORKER_GC_CHILDOPTS) != null) {
-                            totalWorkerMemory += configMap.get(Config.TOPOLOGY_WORKER_GC_CHILDOPTS);
-                        } else {
-                            if (configMap.get(Config.WORKER_GC_CHILDOPTS) != null) {
-                                totalWorkerMemory += configMap.get(Config.WORKER_GC_CHILDOPTS);
-                            } else {
-                                if (configMap.get(Config.TOPOLOGY_WORKER_CHILDOPTS) != null) {
-                                    totalWorkerMemory += configMap.get(Config.TOPOLOGY_WORKER_CHILDOPTS);
-                                } else {
-                                    if (configMap.get(Config.WORKER_CHILDOPTS) != null) {
-                                        totalWorkerMemory += configMap.get(Config.WORKER_CHILDOPTS);
-                                    } else {
-                                        //If no valid values can be found in all configs, than use hardcoded default
-                                        totalWorkerMemory += TOPOLOGY_WORKER_DEFAULT_MEMORY_ALLOCATION;
-                                    }
-                                }
-                            }
-                        }
-
-                        String topologyWorkerLwChildopts = Utils
-                                .getString(allTopologies.getById(topoId)
-                                        .getConf().get(Config.TOPOLOGY_WORKER_LOGWRITER_CHILDOPTS), null);
-                        if (topologyWorkerLwChildopts != null) {
-                            totalWorkerMemory += parseWorkerChildOpts(topologyWorkerLwChildopts, 0.0);
-                        }
-                        memoryUsedOnNode += totalWorkerMemory;
+                        memoryUsedOnNode += topologyWorkerMemory;
                     }
                 }
             }
         }
 
         LOG.debug("->memoryUsedOnNode: {}", memoryUsedOnNode);
-        LOG.debug("->sup totol memory: {}", sup.getTotalMemory() );
+        LOG.debug("->supervisor total memory: {}", sup.getTotalMemory() );
         resourceList.put(Config.SUPERVISOR_MEMORY_CAPACITY_MB, sup.getTotalMemory() - memoryUsedOnNode);
         resourceList.put(Config.SUPERVISOR_CPU_CAPACITY, sup.getTotalCPU());
         return resourceList;
-    }
-
-    /**
-     * parses the arguments to extract jvm heap memory size.
-     * @param input
-     * @param defaultValue
-     * @return the value of the JVM heap memory setting in a java command.
-     */
-    static Double parseWorkerChildOpts(String input, Double defaultValue) {
-        if(input != null) {
-            Pattern optsPattern = Pattern.compile("Xmx[0-9]+m");
-            Matcher m = optsPattern.matcher(input);
-            String memoryOpts = null;
-            while (m.find()) {
-                memoryOpts = m.group();
-            }
-            if(memoryOpts!=null) {
-                memoryOpts = memoryOpts.replaceAll("[a-zA-Z]", "");
-                return Double.parseDouble(memoryOpts);
-            } else {
-                return defaultValue;
-            }
-        } else {
-            return defaultValue;
-        }
     }
 
     /**
@@ -334,6 +267,7 @@ public class MultitenantResourceAwareBridgeScheduler implements IScheduler{
                 for(Entry<WorkerSlot, Collection<ExecutorDetails>> execToWs : schedEntry.getValue().entrySet()) {
                     WorkerSlot ws = execToWs.getKey();
                     Collection<ExecutorDetails> execs = execToWs.getValue();
+                    LOG.info("For topoId {}, assign slot with {} {}", topoId, ws.getNodeId(), ws.getPort());
                     target.assign(ws, topoId, execs);
                 }
             }
@@ -342,6 +276,22 @@ public class MultitenantResourceAwareBridgeScheduler implements IScheduler{
                 String topoId = statusEntry.getKey();
                 String status = statusEntry.getValue();
                 target.setStatus(topoId, status);
+            }
+            //merge resources map of MT and RAS for all topologies
+            target.setResourcesMap(ephemeral.getResourcesMap());
+            //merge resources map of MT and RAS for all supervisors, considering that one node may run topologies with both strategies
+            for (Map.Entry<String, Double[]> supervisorResource : ephemeral.getSupervisorsResourcesMap().entrySet()) {
+                String supervisorId = supervisorResource.getKey();
+                Double[] ras_resources = supervisorResource.getValue();
+                if (!target.getSupervisorsResourcesMap().containsKey(supervisorId)) {
+                    target.setSupervisorResources(supervisorId, ras_resources);
+                } else {
+                    Double[] mt_resources = target.getSupervisorsResourcesMap().get(supervisorId);
+                    for (int i = 0; i < mt_resources.length; i++) {
+                        mt_resources[i] += ras_resources[i];
+                    }
+                    target.setSupervisorResources(supervisorId, mt_resources);
+                }
             }
         }
     }

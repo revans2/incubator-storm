@@ -500,8 +500,29 @@ public class Cluster {
     /*
     * Get heap memory usage for a worker's main process and logwriter process
     * */
-    private Double getAssignedMemoryForSlot(Map topConf) {
+    public Double getAssignedMemoryForSlot(Map topConf) {
         Double totalWorkerMemory = 0.0;
+        final Integer TOPOLOGY_WORKER_DEFAULT_MEMORY_ALLOCATION = 768;
+
+        String topologyWorkerGcChildopts = null;
+        if (topConf.get(Config.TOPOLOGY_WORKER_GC_CHILDOPTS) instanceof List) {
+            topologyWorkerGcChildopts = getStringFromStringList(topConf.get(Config.TOPOLOGY_WORKER_GC_CHILDOPTS));
+        } else {
+            topologyWorkerGcChildopts = Utils.getString(topConf.get(Config.TOPOLOGY_WORKER_GC_CHILDOPTS), null);
+        }
+
+        String workerGcChildopts = null;
+        if (topConf.get(Config.WORKER_GC_CHILDOPTS) instanceof List) {
+            workerGcChildopts = getStringFromStringList(topConf.get(Config.WORKER_GC_CHILDOPTS));
+        } else {
+            workerGcChildopts = Utils.getString(topConf.get(Config.WORKER_GC_CHILDOPTS), null);
+        }
+
+        Double memGcChildopts = null;
+        memGcChildopts = Utils.parseJvmHeapMemByChildOpts(topologyWorkerGcChildopts, null);
+        if (memGcChildopts == null) {
+            memGcChildopts = Utils.parseJvmHeapMemByChildOpts(workerGcChildopts, null);
+        }
 
         String topologyWorkerChildopts = null;
         if (topConf.get(Config.TOPOLOGY_WORKER_CHILDOPTS) instanceof List) {
@@ -519,12 +540,14 @@ public class Cluster {
         }
         Double memWorkerChildopts = Utils.parseJvmHeapMemByChildOpts(workerChildopts, null);
 
-        if (memTopologyWorkerChildopts != null) {
+        if (memGcChildopts != null) {
+            totalWorkerMemory += memGcChildopts;
+        } else if (memTopologyWorkerChildopts != null) {
             totalWorkerMemory += memTopologyWorkerChildopts;
         } else if (memWorkerChildopts != null) {
             totalWorkerMemory += memWorkerChildopts;
         } else {
-            totalWorkerMemory += Utils.getInt(topConf.get(Config.WORKER_HEAP_MEMORY_MB));
+            totalWorkerMemory += Utils.getInt(topConf.get(Config.WORKER_HEAP_MEMORY_MB), TOPOLOGY_WORKER_DEFAULT_MEMORY_ALLOCATION);
         }
 
         String topoWorkerLwChildopts = null;
@@ -547,6 +570,9 @@ public class Cluster {
 
         for (Map.Entry<String, SchedulerAssignment> entry : this.getAssignments().entrySet()) {
             String topId = entry.getValue().getTopologyId();
+            if (topologies.getById(topId) == null) {
+                continue;
+            }
             Map topConf = topologies.getById(topId).getConf();
             Double assignedMemForTopology = 0.0;
             Double assignedMemPerSlot = getAssignedMemoryForSlot(topConf);
@@ -602,7 +628,11 @@ public class Cluster {
         return this.resources;
     }
 
-    public void setSupervisorsResources(Map<String, Double[]> supervisors_resources) {
+    public void setSupervisorResources(String supervisorId, Double[] resources) {
+        this.supervisorsResources.put(supervisorId, resources);
+    }
+
+    public void setSupervisorsResourcesMap(Map<String, Double[]> supervisors_resources) {
         this.supervisorsResources.putAll(supervisors_resources);
     }
 
