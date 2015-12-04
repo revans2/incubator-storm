@@ -16,7 +16,7 @@
 (ns backtype.storm.daemon.supervisor
   (:import [java.io OutputStreamWriter BufferedWriter IOException FileOutputStream])
   (:import [backtype.storm.scheduler ISupervisor]
-           [backtype.storm.utils LocalState Time Utils VersionInfo]
+           [backtype.storm.utils LocalState Time Utils]
            [backtype.storm.daemon Shutdownable]
            [backtype.storm Config Constants]
            [backtype.storm.cluster ClusterStateContext DaemonType]
@@ -25,6 +25,7 @@
            [org.apache.commons.io FileUtils]
            [java.io File])
   (:use [backtype.storm config util log timer local-state])
+  (:import [backtype.storm.utils VersionInfo])
   (:import [backtype.storm.generated AuthorizationException KeyNotFoundException ProfileAction WorkerResources])
   (:import [java.nio.file Files Path Paths StandardCopyOption])
   (:import [backtype.storm.localizer LocalResource])
@@ -45,6 +46,8 @@
 
 (defmulti download-storm-code cluster-mode)
 (defmulti launch-worker (fn [supervisor & _] (cluster-mode (:conf supervisor))))
+
+(def STORM-VERSION (VersionInfo/getVersion))
 
 (defprotocol SupervisorDaemon
   (get-id [this])
@@ -308,7 +311,7 @@
    :isupervisor isupervisor
    :active (atom true)
    :uptime (uptime-computer)
-   :version (str (VersionInfo/getVersion))
+   :version STORM-VERSION
    :worker-thread-pids-atom (atom {})
    :storm-cluster-state (cluster/mk-storm-cluster-state conf
                                                         :acls (when
@@ -1157,7 +1160,9 @@
       (swap! (:worker-thread-pids-atom supervisor) assoc worker-id pid)
       ))
 
-(defn -launch [supervisor]
+(defn -launch
+  [supervisor]
+  (log-message "Starting supervisor for storm version '" STORM-VERSION "'")
   (let [conf (read-storm-config)
         conf (assoc conf STORM-LOCAL-DIR (. (File. (conf STORM-LOCAL-DIR)) getCanonicalPath))]
     (validate-distributed-mode! conf)

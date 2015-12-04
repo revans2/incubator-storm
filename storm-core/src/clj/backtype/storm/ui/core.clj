@@ -58,6 +58,7 @@
 
 (def http-creds-handler (AuthUtils/GetUiHttpCredentialsPlugin *STORM-CONF*))
 (defmeter num-getTopologyInfo-calls)
+(def STORM-VERSION (VersionInfo/getVersion))
 
 (defmacro with-nimbus
   [nimbus-sym & body]
@@ -329,7 +330,7 @@
                                 (map #(.get_num_executors ^TopologySummary %))
                                 (reduce +))]
        {"user" user
-        "stormVersion" (str (VersionInfo/getVersion))
+        "stormVersion" STORM-VERSION
         "nimbusUptime" (pretty-uptime-sec (.get_nimbus_uptime_secs summ))
         "nimbusUptimeSeconds" (.get_nimbus_uptime_secs summ)
         "supervisors" (count sups)
@@ -1093,4 +1094,7 @@
    (catch Exception ex
      (log-error ex))))
 
-(defn -main [] (start-server!))
+(defn -main
+  []
+  (log-message "Starting ui server for storm version '" STORM-VERSION "'")
+  (start-server!))

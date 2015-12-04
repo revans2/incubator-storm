@@ -21,7 +21,8 @@
            [java.util Date]
            [backtype.storm.generated
             HBAuthorizationException HBExecutionException HBNodes HBRecords
-            HBServerMessageType HBMessage HBMessageData HBPulse])
+            HBServerMessageType HBMessage HBMessageData HBPulse]
+           [backtype.storm.utils VersionInfo])
   (:use [clojure.string :only [replace-first split]]
         [backtype.storm log config util])
   (:require [clojure.java.jmx :as jmx])
@@ -37,6 +38,7 @@
 ;  void deletePath(1: string idPrefix) throws (1: HBExecutionException e, 2: HBAuthorizationException aze);
 ;  void deletePulseId(1: string id) throws (1: HBExecutionException e, 2: HBAuthorizationException aze);
 
+(def STORM-VERSION (VersionInfo/getVersion))
 
 ;; Stats Functions
 
@@ -239,7 +241,9 @@
           response)))))
 
 (defn launch-server! []
-  (log-message "Starting Server.")
+  (log-message "Starting pacemaker server for storm version '"
+               STORM-VERSION
+               "'")
   (let [conf (override-login-config-with-system-property (read-storm-config))]
     (PacemakerServer. (mk-handler conf) conf)))
 
