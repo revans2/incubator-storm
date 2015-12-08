@@ -28,11 +28,8 @@
 		    ]
                 },
                  "remote_trigger": {
-                                    "url": "http://re101.ygrid.corp.gq1.yahoo.com:9999/yhudson/job/ystorm_qe_assembly",
-					"params": {
-						"token": "HDP",
-						"DIST_TAG": "ystorm_$(_package_version)"
-					}
+                                    "url": "http://jenkins.screwdriver.corp.yahoo.com:9999/jenkins/job/61235-ystorm_test_topologies-trunk-component/",
+					"params": { }
                 }
             }
         }
