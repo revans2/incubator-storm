@@ -620,7 +620,7 @@
           childopts-with-ids (supervisor/substitute-childopts childopts worker-id topology-id port mem-onheap)]
       (is (= expected-childopts childopts-with-ids)))))
 
-(deftest test-substitute-childopts-happy-path-arraylist
+(deftest test-substitute-childopts-happy-path-list-arraylist
   (testing "worker-launcher replaces ids in childopts from arraylist"
     (let [worker-id "w-01"
           topology-id "s-01"

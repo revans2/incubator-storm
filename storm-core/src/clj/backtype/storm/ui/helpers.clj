@@ -148,13 +148,15 @@
                             (.setKeyStoreType ks-type)
                             (.setKeyStorePassword ks-password)
                             (.setKeyManagerPassword key-password))]
-    (when (and (not-nil? ts-path) (not-nil? ts-password) (not-nil? ts-type))
-       (.setTrustStore sslContextFactory ts-path)
-       (.setTrustStoreType sslContextFactory ts-type)
-       (.setTrustStorePassword sslContextFactory ts-password))
+    (when (and (not-nil? ts-path)
+               (not-nil? ts-password)
+               (not-nil? ts-type))
+      (.setTrustStore sslContextFactory ts-path)
+      (.setTrustStoreType sslContextFactory ts-type)
+      (.setTrustStorePassword sslContextFactory ts-password))
     (cond
-         need-client-auth (.setNeedClientAuth sslContextFactory true)
-         want-client-auth (.setWantClientAuth sslContextFactory true))
+      need-client-auth (.setNeedClientAuth sslContextFactory true)
+      want-client-auth (.setWantClientAuth sslContextFactory true))
     (doto (SslSocketConnector. sslContextFactory)
       (.setPort port))))
 

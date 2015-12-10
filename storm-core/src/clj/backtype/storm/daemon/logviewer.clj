@@ -1084,16 +1084,16 @@ Note that if anything goes wrong, this will throw an Error and exit."
                           [{:filter-class "org.eclipse.jetty.servlets.GzipFilter"
                             :filter-name "Gzipper"
                             :filter-params {}}])
-          https-port (int (conf LOGVIEWER-HTTPS-PORT))
+          https-port (int (or (conf LOGVIEWER-HTTPS-PORT) 0))
           keystore-path (conf LOGVIEWER-HTTPS-KEYSTORE-PATH)
           keystore-pass (conf LOGVIEWER-HTTPS-KEYSTORE-PASSWORD)
           keystore-type (conf LOGVIEWER-HTTPS-KEYSTORE-TYPE)
-          key-password (conf UI-HTTPS-KEY-PASSWORD)
-          truststore-path (conf UI-HTTPS-TRUSTSTORE-PATH)
-          truststore-password (conf UI-HTTPS-TRUSTSTORE-PASSWORD)
-          truststore-type (conf UI-HTTPS-TRUSTSTORE-TYPE)
-          want-client-auth (conf UI-HTTPS-WANT-CLIENT-AUTH)
-          need-client-auth (conf UI-HTTPS-NEED-CLIENT-AUTH)]
+          key-password (conf LOGVIEWER-HTTPS-KEY-PASSWORD)
+          truststore-path (conf LOGVIEWER-HTTPS-TRUSTSTORE-PATH)
+          truststore-password (conf LOGVIEWER-HTTPS-TRUSTSTORE-PASSWORD)
+          truststore-type (conf LOGVIEWER-HTTPS-TRUSTSTORE-TYPE)
+          want-client-auth (conf LOGVIEWER-HTTPS-WANT-CLIENT-AUTH)
+          need-client-auth (conf LOGVIEWER-HTTPS-NEED-CLIENT-AUTH)]
       (storm-run-jetty {:port (int (conf LOGVIEWER-PORT))
                         :configurator (fn [server]
                                         (doseq [connector (.getConnectors server)]
@@ -1107,8 +1107,8 @@ Note that if anything goes wrong, this will throw an Error and exit."
                                                     truststore-path
                                                     truststore-password
                                                     truststore-type
-                                                    need-client-auth
-                                                    want-client-auth)
+                                                    want-client-auth
+                                                    need-client-auth)
                                         (config-filter server middle filters-confs))}))
   (catch Exception ex
     (log-error ex))))

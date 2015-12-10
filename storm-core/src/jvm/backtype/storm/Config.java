@@ -104,7 +104,6 @@ public class Config extends HashMap<String, Object> {
      *@deprecated "Since netty clients should never stop reconnecting - this does not make sense anymore.
      */
     @Deprecated
-    @isInteger
     public static final String STORM_MESSAGING_NETTY_MAX_RETRIES = "storm.messaging.netty.max_retries";
 
     /**
@@ -509,7 +508,7 @@ public class Config extends HashMap<String, Object> {
 
     /**
      * How often nimbus should wake the cleanup thread to clean the inbox.
-     * @see NIMBUS_INBOX_JAR_EXPIRATION_SECS
+     * @see backtype.storm.Config#NIMBUS_INBOX_JAR_EXPIRATION_SECS
      */
     @isInteger
     @isPositiveNumber
@@ -522,7 +521,7 @@ public class Config extends HashMap<String, Object> {
      * Note that the time it takes to delete an inbox jar file is going to be somewhat more than
      * NIMBUS_CLEANUP_INBOX_JAR_EXPIRATION_SECS (depending on how often NIMBUS_CLEANUP_FREQ_SECS
      * is set to).
-     * @see NIMBUS_CLEANUP_FREQ_SECS
+     * @see backtype.storm.Config#NIMBUS_CLEANUP_INBOX_FREQ_SECS
      */
     @isInteger
     public static final String NIMBUS_INBOX_JAR_EXPIRATION_SECS = "nimbus.inbox.jar.expiration.secs";
@@ -549,8 +548,10 @@ public class Config extends HashMap<String, Object> {
     /**
 ]     * Whether or not nimbus should reassign tasks if it detects that a task goes down.
      * Defaults to true, and it's not recommended to change this value.
+     * @deprecated - This configuration is for unit testing. Please never set this to false on real cluster.
      */
     @isBoolean
+    @Deprecated
     public static final String NIMBUS_REASSIGN = "nimbus.reassign";
 
     /**
@@ -988,14 +989,14 @@ public class Config extends HashMap<String, Object> {
 
     /**
      * The Access Control List for the DRPC Authorizer.
-     * @see DRPCSimpleAclAuthorizer
+     * @see backtype.storm.security.auth.authorizer.DRPCSimpleACLAuthorizer
      */
     @isType(type=Map.class)
     public static final String DRPC_AUTHORIZER_ACL = "drpc.authorizer.acl";
 
     /**
      * File name of the DRPC Authorizer ACL.
-     * @see DRPCSimpleAclAuthorizer
+     * @see backtype.storm.security.auth.authorizer.DRPCSimpleACLAuthorizer
      */
     @isString
     public static final String DRPC_AUTHORIZER_ACL_FILENAME = "drpc.authorizer.acl.filename";
@@ -1007,7 +1008,7 @@ public class Config extends HashMap<String, Object> {
      * permitted, which is appropriate for a development environment. When set
      * to true, explicit ACL entries are required for every DRPC function, and
      * any request for functions will be denied.
-     * @see DRPCSimpleAclAuthorizer
+     * @see backtype.storm.security.auth.authorizer.DRPCSimpleACLAuthorizer
      */
     @isBoolean
     public static final String DRPC_AUTHORIZER_ACL_STRICT = "drpc.authorizer.acl.strict";
@@ -1305,13 +1306,12 @@ public class Config extends HashMap<String, Object> {
     public static final String SUPERVISOR_LOCALIZER_CACHE_CLEANUP_INTERVAL_MS = "supervisor.localizer.cleanup.interval.ms";
 
     /**
-     * The jvm opts provided to workers launched by this supervisor. All "%ID%", "%WORKER-ID%", "%TOPOLOGY-ID%",
-     * "%WORKER-PORT%" and "%HEAP-MEM%" substrings are replaced with:
-     * %ID%          -> port (for backward compatibility),
-     * %WORKER-ID%   -> worker-id,
-     * %TOPOLOGY-ID%    -> topology-id,
-     * %WORKER-PORT% -> port.
-     * %HEAP-MEM% -> mem-onheap.
+     * The jvm opts provided to workers launched by this supervisor. All "%ID%", "%WORKER-ID%", "%TOPOLOGY-ID%"
+     * and "%WORKER-PORT%" substrings are replaced with:
+     * %ID%          -&gt; port (for backward compatibility),
+     * %WORKER-ID%   -&gt; worker-id,
+     * %TOPOLOGY-ID%    -&gt; topology-id,
+     * %WORKER-PORT% -&gt; port.
      */
     @isStringOrStringList
     public static final String WORKER_CHILDOPTS = "worker.childopts";

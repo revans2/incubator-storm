@@ -58,7 +58,6 @@ public class Time {
         if(simulating.get()) {
             try {
                 synchronized(sleepTimesLock) {
-                    //TODO we need to file a JIRA for this and push it back.  Simulated Time is not thread safe on shutdown when threads leak
                     if (threadSleepTimes == null) {
                         LOG.debug("{} is still sleeping after simulated time disabled.", Thread.currentThread(), new RuntimeException("STACK TRACE"));
                         throw new InterruptedException();
