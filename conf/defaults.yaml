@@ -156,7 +156,6 @@ supervisor.localizer.cleanup.interval.ms: 600000
 
 ### worker.* configs are for task workers
 worker.heap.memory.mb: 768
-
 worker.childopts:
 - -Xmx%HEAP-MEM%m
 - -XX:+PrintGCDetails
