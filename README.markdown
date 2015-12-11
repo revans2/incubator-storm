@@ -201,6 +201,7 @@ under the License.
 * Hailei Zhang ([@Hailei](https://github.com/Hailei))
 * Arun Mahadevan ([@arunmahadevan](https://github.com/arunmahadevan))
 * Gabor Liptak ([@gliptak](https://github.com/glibtak))
+* Chuck Burgess ([@ashnazg](https://github.com/ashnazg))
 
 ## Acknowledgements
 

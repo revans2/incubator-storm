@@ -61,12 +61,15 @@
           (is (= true (.isImpersonating context)))
           (is (.equals exp-name (.getName (.realPrincipal context))))
           (is (.equals do-as-user-name (.getName (.principal context)))))
-       (finally
-          (ReqContext/resetContext))))))
+        (finally
+          (ReqContext/reset))))))
 
 (deftest test-populate-req-context-on-null-user
-  (let [req (Mockito/mock HttpServletRequest)
-        handler (doto (DefaultHttpCredentialsPlugin.) (.prepare {}))
-        subj (Subject. false (set [(SingleUserPrincipal. "test")]) (set []) (set []))
-        context (ReqContext. subj)]
-    (is (= 0 (-> handler (.populateContext context req) (.subject) (.getPrincipals) (.size))))))
+  (try
+    (let [req (Mockito/mock HttpServletRequest)
+          handler (doto (DefaultHttpCredentialsPlugin.) (.prepare {}))
+          subj (Subject. false (set [(SingleUserPrincipal. "test")]) (set []) (set []))
+          context (ReqContext. subj)]
+      (is (= 0 (-> handler (.populateContext context req) (.subject) (.getPrincipals) (.size)))))
+    (finally
+      (ReqContext/reset))))

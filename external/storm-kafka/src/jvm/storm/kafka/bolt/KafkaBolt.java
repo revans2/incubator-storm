@@ -40,17 +40,13 @@ import java.util.Properties;
 
 
 /**
- * Bolt implementation that can send Tuple data to Kafka
- * <p/>
- * It expects the producer configuration and topic in storm config under
- * <p/>
- * 'kafka.broker.properties' and 'topic'
- * <p/>
- * respectively.
- * <p/>
- * This bolt uses 0.8.2 Kafka Producer API.
- * <p/>
- * It works for sending tuples to older Kafka version (0.8.1).
+ * <p>Bolt implementation that can send Tuple data to Kafka</p>
+ *
+ * <p>It expects the producer configuration and topic in storm config under</p>
+ *
+ * <p>'kafka.broker.properties' and 'topic'</p>
+ *
+ * <p>respectively.</p>
  */
 public class KafkaBolt<K, V> extends BaseRichBolt {
 

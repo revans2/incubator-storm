@@ -86,6 +86,18 @@ import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.io.BufferedReader;
+import java.io.Serializable;
+import java.io.IOException;
+import java.util.Map;
+import java.util.Iterator;
+import java.util.Enumeration;
+import java.util.List;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.HashMap;
+import java.util.TreeMap;
+import java.util.UUID;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 import java.util.zip.ZipEntry;
@@ -206,9 +218,9 @@ public class Utils {
             Object ret = ois.readObject();
             ois.close();
             return (T)ret;
-        } catch(IOException ioe) {
+        } catch (IOException ioe) {
             throw new RuntimeException(ioe);
-        } catch(ClassNotFoundException e) {
+        } catch (ClassNotFoundException e) {
             throw new RuntimeException(e);
         }
     }
@@ -376,7 +388,7 @@ public class Utils {
     public static Map readCommandLineOpts() {
         Map ret = new HashMap();
         String commandOptions = System.getProperty("storm.options");
-        if(commandOptions != null) {
+        if (commandOptions != null) {
             String[] configs = commandOptions.split(",");
             for (String config : configs) {
                 config = URLDecoder.decode(config);
@@ -413,14 +425,14 @@ public class Utils {
         if (conf == null) return new HashMap();
         if (conf instanceof Map) {
             Map confMap = new HashMap((Map) conf);
-            for (Object key: confMap.keySet()) {
+            for (Object key : confMap.keySet()) {
                 Object val = confMap.get(key);
                 confMap.put(key, normalizeConf(val));
             }
             return confMap;
         } else if (conf instanceof List) {
             List confList =  new ArrayList((List) conf);
-            for(int i = 0; i < confList.size(); i++) {
+            for (int i = 0; i < confList.size(); i++) {
                 Object val = confList.get(i);
                 confList.set(i, normalizeConf(val));
             }
@@ -458,7 +470,7 @@ public class Utils {
 
     public static List<Object> tuple(Object... values) {
         List<Object> ret = new ArrayList<Object>();
-        for (Object v: values) {
+        for (Object v : values) {
             ret.add(v);
         }
         return ret;
@@ -706,7 +718,6 @@ public class Utils {
         if (null == o) {
             return defaultValue;
         }
-
         if (o instanceof Boolean) {
             return (Boolean) o;
         } else {
@@ -797,7 +808,7 @@ public class Utils {
         TreeMap<Integer, Integer> ret = new TreeMap<Integer, Integer>();
         ret.put(base, numBases);
         if (numInc != 0) {
-            ret.put(base + 1, numInc);
+            ret.put(base+1, numInc);
         }
         return ret;
     }
@@ -822,7 +833,7 @@ public class Utils {
 
     public static boolean exceptionCauseIsInstanceOf(Class klass, Throwable throwable) {
         Throwable t = throwable;
-        while(t != null) {
+        while (t != null) {
             if (klass.isInstance(t)) {
                 return true;
             }
@@ -841,7 +852,7 @@ public class Utils {
         return null != System.getProperty("java.security.auth.login.config")
                 || (conf != null
                 && conf.get(Config.STORM_ZOOKEEPER_AUTH_SCHEME) != null
-                && ! ((String)conf.get(Config.STORM_ZOOKEEPER_AUTH_SCHEME)).isEmpty());
+                && !((String)conf.get(Config.STORM_ZOOKEEPER_AUTH_SCHEME)).isEmpty());
     }
 
     /**
@@ -852,7 +863,7 @@ public class Utils {
     public static boolean isZkAuthenticationConfiguredTopology(Map conf) {
         return (conf != null
                 && conf.get(Config.STORM_ZOOKEEPER_TOPOLOGY_AUTH_SCHEME) != null
-                && ! ((String)conf.get(Config.STORM_ZOOKEEPER_TOPOLOGY_AUTH_SCHEME)).isEmpty());
+                && !((String)conf.get(Config.STORM_ZOOKEEPER_TOPOLOGY_AUTH_SCHEME)).isEmpty());
     }
 
     public static List<ACL> getWorkerACL(Map conf) {

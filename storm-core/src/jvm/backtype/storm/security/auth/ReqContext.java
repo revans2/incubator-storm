@@ -58,7 +58,7 @@ public class ReqContext {
     /**
      * Reset the context back to a default.  used for testing.
      */
-    public static void resetContext() {
+    public static void reset() {
         ctxt.remove();
     }
 

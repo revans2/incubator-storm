@@ -109,7 +109,7 @@ public class AuthUtils {
 
     /**
      * Construct a principal to local plugin
-     * @param conf storm configuration
+     * @param storm_conf storm configuration
      * @return the plugin
      */
     public static IPrincipalToLocal GetPrincipalToLocalPlugin(Map storm_conf) {
@@ -127,7 +127,7 @@ public class AuthUtils {
 
     /**
      * Construct a group mapping service provider plugin
-     * @param conf storm configuration
+     * @param storm_conf storm configuration
      * @return the plugin
      */
     public static IGroupMappingServiceProvider GetGroupMappingServiceProviderPlugin(Map storm_conf) {
@@ -145,7 +145,7 @@ public class AuthUtils {
 
     /**
      * Get all of the configured Credential Renwer Plugins.
-     * @param storm_conf the storm configuration to use.
+     * @param conf the storm configuration to use.
      * @return the configured credential renewers.
      */
     public static Collection<ICredentialsRenewer> GetCredentialRenewers(Map conf) {
@@ -253,7 +253,7 @@ public class AuthUtils {
 
     /**
      * Construct a transport plugin per storm configuration
-     * @param conf storm configuration
+     * @param storm_conf storm configuration
      * @return
      */
     public static ITransportPlugin GetTransportPlugin(ThriftConnectionType type, Map storm_conf, Configuration login_conf) {

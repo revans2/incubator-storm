@@ -153,7 +153,7 @@ public class Cluster {
     }
 
     /**
-     * Gets a executor -> component-id map which needs scheduling in this topology.
+     * Gets a executor -&gt; component-id map which needs scheduling in this topology.
      * 
      * @param topology
      * @return
@@ -171,7 +171,7 @@ public class Cluster {
     }
     
     /**
-     * Gets a component-id -> executors map which needs scheduling in this topology.
+     * Gets a component-id -&gt; executors map which needs scheduling in this topology.
      * 
      * @param topology
      * @return
@@ -195,7 +195,7 @@ public class Cluster {
     /**
      * Get all the used ports of this supervisor.
      * 
-     * @param cluster
+     * @param supervisor
      * @return
      */
     public Set<Integer> getUsedPorts(SupervisorDetails supervisor) {
@@ -216,7 +216,7 @@ public class Cluster {
     /**
      * Return the available ports of this supervisor.
      * 
-     * @param cluster
+     * @param supervisor
      * @return
      */
     public Set<Integer> getAvailablePorts(SupervisorDetails supervisor) {
@@ -237,7 +237,7 @@ public class Cluster {
     /**
      * Return all the available slots on this supervisor.
      * 
-     * @param cluster
+     * @param supervisor
      * @return
      */
     public List<WorkerSlot> getAvailableSlots(SupervisorDetails supervisor) {
