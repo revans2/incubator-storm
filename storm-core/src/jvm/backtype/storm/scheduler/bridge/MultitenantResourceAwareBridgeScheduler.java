@@ -34,6 +34,7 @@ public class MultitenantResourceAwareBridgeScheduler implements IScheduler{
     private static final Class<MultitenantStrategy> MULTITENANT_STRATEGY = backtype.storm.scheduler.resource.strategies.MultitenantStrategy.class;
     private static final Class<ResourceAwareStrategy> RESOURCE_AWARE_STRATEGY = backtype.storm.scheduler.resource.strategies.ResourceAwareStrategy.class;
     private MultitenantScheduler multitenantScheduler = new MultitenantScheduler();
+    private static final Double PER_WORKER_CPU_SWAG = 100.0;
 
     @Override
     public void prepare(@SuppressWarnings("rawtypes") Map conf) {
@@ -207,7 +208,6 @@ public class MultitenantResourceAwareBridgeScheduler implements IScheduler{
      */
     void updateAssignedCpuForTopologyAndSupervisor(Topologies topologies, Cluster cluster) {
         Map<String, Double> supervisorToAssignedCpu = new HashMap<String, Double>();
-        final Double PER_WORKER_CPU_SWAG = 100.0;
 
         for (Map.Entry<String, SchedulerAssignment> entry : cluster.getAssignments().entrySet()) {
             String topId = entry.getValue().getTopologyId();
@@ -257,7 +257,6 @@ public class MultitenantResourceAwareBridgeScheduler implements IScheduler{
      * @return a map of estimated resources available for a supervisor.
      */
     Map<String, Double> swagMultitenantResourceUsageForRAS(Cluster cluster, Topologies allTopologies, Node node, SupervisorDetails sup) {
-        final Double PER_WORKER_CPU_SWAG = 100.0;
         Double memoryUsedOnNode = 0.0;
         Double cpuUsedOnNode = 0.0;
         Map<String, Double> resourceList = new HashMap<String, Double>();
