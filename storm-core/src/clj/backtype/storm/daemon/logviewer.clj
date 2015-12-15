@@ -443,12 +443,7 @@ Note that if anything goes wrong, this will throw an Error and exit."
               (authorized-log-user? user fname *STORM-CONF*))
         (-> (resp/response file)
             (resp/content-type "application/octet-stream"))
-        (do (supervisor/worker-launcher-and-wait *STORM-CONF* (*STORM-CONF* TOPOLOGY-SUBMITTER-USER) ["blob" (.getCanonicalPath file)] :log-prefix (str "setup group read permissions for file: " fname))
-            (if (or (blank? (*STORM-CONF* UI-FILTER))
-                    (authorized-log-user? user fname *STORM-CONF*))
-              (-> (resp/response file)
-                  (resp/content-type "application/octet-stream"))
-              (unauthorized-user-html user))))
+        (unauthorized-user-html user))
       (-> (resp/response "Page not found")
           (resp/status 404)))))
 
