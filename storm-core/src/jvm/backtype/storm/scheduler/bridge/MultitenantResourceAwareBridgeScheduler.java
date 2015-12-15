@@ -73,6 +73,8 @@ public class MultitenantResourceAwareBridgeScheduler implements IScheduler{
         multitenantScheduler.schedule(topologies, cluster);
         //Update memory assignment information for each multitenant topology and supervisor nodes
         cluster.updateAssignedMemoryForTopologyAndSupervisor(mtTopologies);
+        //Update Cpu assignment information for each multitenant topology and supervisor nodes
+        updateAssignedCpuForTopologyAndSupervisor(mtTopologies, cluster);
         
         this.printScheduling(cluster, topologies);
         
@@ -201,6 +203,52 @@ public class MultitenantResourceAwareBridgeScheduler implements IScheduler{
     }
 
     /**
+     * Update CPU usage for each topology and each supervisor node
+     */
+    void updateAssignedCpuForTopologyAndSupervisor(Topologies topologies, Cluster cluster) {
+        Map<String, Double> supervisorToAssignedCpu = new HashMap<String, Double>();
+        final Double PER_WORKER_CPU_SWAG = 100.0;
+
+        for (Map.Entry<String, SchedulerAssignment> entry : cluster.getAssignments().entrySet()) {
+            String topId = entry.getValue().getTopologyId();
+            if (topologies.getById(topId) == null) {
+                continue;
+            }
+            Map topConf = topologies.getById(topId).getConf();
+            Double assignedCpuForTopology = 0.0;
+            for (WorkerSlot ws: entry.getValue().getSlots()) {
+                assignedCpuForTopology += PER_WORKER_CPU_SWAG;
+                String nodeId = ws.getNodeId();
+                if (supervisorToAssignedCpu.containsKey(nodeId)) {
+                    supervisorToAssignedCpu.put(nodeId, supervisorToAssignedCpu.get(nodeId) + PER_WORKER_CPU_SWAG);
+                } else {
+                    supervisorToAssignedCpu.put(nodeId, PER_WORKER_CPU_SWAG);
+                }
+            }
+            if (cluster.getResourcesMap().containsKey(topId)) {
+                Double[] topo_resources = cluster.getResourcesMap().get(topId);
+                topo_resources[5] = assignedCpuForTopology;
+            } else {
+                Double[] topo_resources = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+                topo_resources[5] = assignedCpuForTopology;
+                cluster.setResources(topId, topo_resources);
+            }
+        }
+
+        for (Map.Entry<String, Double> entry : supervisorToAssignedCpu.entrySet()) {
+            String nodeId = entry.getKey();
+            if (cluster.getSupervisorsResourcesMap().containsKey(nodeId)) {
+                Double[] supervisor_resources = cluster.getSupervisorsResourcesMap().get(nodeId);
+                supervisor_resources[3] = entry.getValue();
+            } else {
+                Double[] supervisor_resources = {0.0, 0.0, 0.0, 0.0};
+                supervisor_resources[3] = entry.getValue();
+                cluster.getSupervisorsResourcesMap().put(nodeId, supervisor_resources);
+            }
+        }
+    }
+
+    /**
      * estimate the resource usage on a node where multitenant has already scheduled something
      * @param cluster
      * @param allTopologies
@@ -209,8 +257,11 @@ public class MultitenantResourceAwareBridgeScheduler implements IScheduler{
      * @return a map of estimated resources available for a supervisor.
      */
     Map<String, Double> swagMultitenantResourceUsageForRAS(Cluster cluster, Topologies allTopologies, Node node, SupervisorDetails sup) {
+        final Double PER_WORKER_CPU_SWAG = 100.0;
         Double memoryUsedOnNode = 0.0;
+        Double cpuUsedOnNode = 0.0;
         Map<String, Double> resourceList = new HashMap<String, Double>();
+
         LOG.debug("->Topologies running on Node: {}", node.getRunningTopologies());
         for(String topoId : node.getRunningTopologies()) {
             if (!RESOURCE_AWARE_STRATEGY.getName().equals(allTopologies.getById(topoId).getTopologyStrategy())) {
@@ -222,6 +273,7 @@ public class MultitenantResourceAwareBridgeScheduler implements IScheduler{
                 for (WorkerSlot ws : usedSlots) {
                     if (sup.getId().equals(ws.getNodeId())) {
                         memoryUsedOnNode += topologyWorkerMemory;
+                        cpuUsedOnNode += PER_WORKER_CPU_SWAG;
                     }
                 }
             }
@@ -230,7 +282,7 @@ public class MultitenantResourceAwareBridgeScheduler implements IScheduler{
         LOG.debug("->memoryUsedOnNode: {}", memoryUsedOnNode);
         LOG.debug("->supervisor total memory: {}", sup.getTotalMemory() );
         resourceList.put(Config.SUPERVISOR_MEMORY_CAPACITY_MB, sup.getTotalMemory() - memoryUsedOnNode);
-        resourceList.put(Config.SUPERVISOR_CPU_CAPACITY, sup.getTotalCPU());
+        resourceList.put(Config.SUPERVISOR_CPU_CAPACITY, sup.getTotalCPU() - cpuUsedOnNode);
         return resourceList;
     }
 

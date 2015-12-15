@@ -36,7 +36,8 @@ public class Cluster {
      */
     private Map<String, SupervisorDetails> supervisors;
     /**
-     * key: supervisor id, value: supervisor's total and used resources
+     * key: supervisor id,
+     * value: supervisor's total and used resources, i.e. {totalMem, totalCpu, usedMem, usedCpu}
      */
     private Map<String, Double[]> supervisorsResources;
     /**
@@ -54,6 +55,7 @@ public class Cluster {
     private Map<String, String> status;
     /**
      * key topologyId, Value: requested and assigned resources for each topology.
+     * value: {requestedMemOnHeap, requestedMemOffHeap, requestedCpu, assignedMemOnHeap, assignedMemOffHeap, assignedCpu}
      */
     private Map<String, Double[]> resources;
 
