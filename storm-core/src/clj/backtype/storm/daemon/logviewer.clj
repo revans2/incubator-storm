@@ -57,7 +57,8 @@
 
 (defn get-stream-for-dir
   [^File f]
-  (Files/newDirectoryStream (.toPath f)))
+  (try (Files/newDirectoryStream (.toPath f))
+    (catch Exception ex (log-error ex) nil)))
 
 (defn- last-modifiedtime-worker-logdir 
   "Return the last modified time for all log files in a worker's log dir.

@@ -73,12 +73,12 @@ public class DirectoryCleaner {
         int deletedFiles = 0;
 
         for (File dir : dirs) {
-            DirectoryStream<Path> stream = getStreamForDirectory(dir);
-            for (Path path : stream) {
-                File file = path.toFile();
-                totalSize += file.length();
+            try(DirectoryStream<Path> stream = getStreamForDirectory(dir)) {
+                for (Path path : stream) {
+                    File file = path.toFile();
+                    totalSize += file.length();
+                }
             }
-            stream.close();
         }
         long toDeleteSize = totalSize - quota;
         if (toDeleteSize <= 0) {
@@ -96,39 +96,38 @@ public class DirectoryCleaner {
         };
         // the oldest pq_size files in this directory will be placed in PQ, with the newest at the root
         PriorityQueue<File> pq = new PriorityQueue<File>(PQ_SIZE, comparator);
-
         int round = 0;
         while (toDeleteSize > 0) {
             LOG.debug("To delete size is {}, start a new round of deletion, round: {}", toDeleteSize, round);
             for (File dir : dirs) {
-                DirectoryStream<Path> stream = getStreamForDirectory(dir);
-                for (Path path : stream) {
-                    File file = path.toFile();
-                    if (for_per_dir) {
-                        if (ACTIVE_LOG_PATTERN.matcher(file.getName()).matches()) {
-                            continue; // skip active log files
-                        }
-                    } else { // for global cleanup
-                        if (active_dirs.contains(dir.getCanonicalPath())) { // for an active worker's dir, make sure for the last "/"
+                try(DirectoryStream<Path> stream = getStreamForDirectory(dir)) {
+                    for (Path path : stream) {
+                        File file = path.toFile();
+                        if (for_per_dir) {
                             if (ACTIVE_LOG_PATTERN.matcher(file.getName()).matches()) {
                                 continue; // skip active log files
                             }
+                        } else { // for global cleanup
+                            if (active_dirs.contains(dir.getCanonicalPath())) { // for an active worker's dir, make sure for the last "/"
+                                if (ACTIVE_LOG_PATTERN.matcher(file.getName()).matches()) {
+                                    continue; // skip active log files
+                                }
+                            } else {
+                                if (META_LOG_PATTERN.matcher(file.getName()).matches()) {
+                                    continue; // skip yaml and pid files
+                                }
+                            }
+                        }
+                        if (pq.size() < PQ_SIZE) {
+                            pq.offer(file);
                         } else {
-                            if (META_LOG_PATTERN.matcher(file.getName()).matches()) {
-                                continue; // skip yaml and pid files
+                            if (file.lastModified() < pq.peek().lastModified()) {
+                                pq.poll();
+                                pq.offer(file);
                             }
                         }
                     }
-                    if (pq.size() < PQ_SIZE) {
-                        pq.offer(file);
-                    } else {
-                        if (file.lastModified() < pq.peek().lastModified()) {
-                            pq.poll();
-                            pq.offer(file);
-                        }
-                    }
                 }
-                stream.close();
             }
             // need to reverse the order of elements in PQ to delete files from oldest to newest
             Stack<File> stack = new Stack<File>();
@@ -165,14 +164,14 @@ public class DirectoryCleaner {
         List<File> files = new ArrayList<File>();
         final int MAX_NUM = 1024;
 
-        DirectoryStream<Path> stream = Files.newDirectoryStream(dir.toPath());
-        for (Path path : stream) {
-            files.add(path.toFile());
-            if (files.size() >= MAX_NUM) {
-                break;
+        try(DirectoryStream<Path> stream = Files.newDirectoryStream(dir.toPath())) {
+            for (Path path : stream) {
+                files.add(path.toFile());
+                if (files.size() >= MAX_NUM) {
+                    break;
+                }
             }
         }
-        stream.close();
         return files;
     }
 }
