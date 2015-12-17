@@ -73,7 +73,7 @@ public class DirectoryCleaner {
         int deletedFiles = 0;
 
         for (File dir : dirs) {
-            try(DirectoryStream<Path> stream = getStreamForDirectory(dir)) {
+            try (DirectoryStream<Path> stream = getStreamForDirectory(dir)) {
                 for (Path path : stream) {
                     File file = path.toFile();
                     totalSize += file.length();
@@ -100,7 +100,7 @@ public class DirectoryCleaner {
         while (toDeleteSize > 0) {
             LOG.debug("To delete size is {}, start a new round of deletion, round: {}", toDeleteSize, round);
             for (File dir : dirs) {
-                try(DirectoryStream<Path> stream = getStreamForDirectory(dir)) {
+                try (DirectoryStream<Path> stream = getStreamForDirectory(dir)) {
                     for (Path path : stream) {
                         File file = path.toFile();
                         if (for_per_dir) {
@@ -164,7 +164,7 @@ public class DirectoryCleaner {
         List<File> files = new ArrayList<File>();
         final int MAX_NUM = 1024;
 
-        try(DirectoryStream<Path> stream = Files.newDirectoryStream(dir.toPath())) {
+        try (DirectoryStream<Path> stream = Files.newDirectoryStream(dir.toPath())) {
             for (Path path : stream) {
                 files.add(path.toFile());
                 if (files.size() >= MAX_NUM) {
