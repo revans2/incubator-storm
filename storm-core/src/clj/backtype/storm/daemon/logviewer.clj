@@ -67,15 +67,19 @@
   [^File log-dir]
   (let [^DirectoryStream stream (get-stream-for-dir log-dir)
         dir-modified (.lastModified log-dir)
-        last-modified (reduce
+        last-modified (try (reduce
                         (fn [maximum path]
                           (let [curr (.lastModified (.toFile path))]
                             (if (> curr maximum)
                               curr
                               maximum)))
                         dir-modified
-                        stream)]
-    (if (instance? DirectoryStream stream) (.close stream))
+                        stream)
+                        (catch Exception ex
+                          (log-error ex) dir-modified)
+                        (finally
+                          (if (instance? DirectoryStream stream)
+                            (.close stream))))]
     last-modified))
 
 (defn get-size-for-logdir
