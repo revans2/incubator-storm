@@ -59,23 +59,30 @@
 
 (defn get-stream-for-dir
   [^File f]
-  (Files/newDirectoryStream (.toPath f)))
+  (try (Files/newDirectoryStream (.toPath f))
+    (catch Exception ex (log-error ex) nil)))
 
 (defn- last-modifiedtime-worker-logdir 
   "Return the last modified time for all log files in a worker's log dir.
-   Using stream rather than File.listFiles is to avoid large mem usage
-   when a directory has too many files"
+  Using stream rather than File.listFiles is to avoid large mem usage
+  when a directory has too many files"
   [^File log-dir]
   (let [^DirectoryStream stream (get-stream-for-dir log-dir)
-        last-modified (.lastModified log-dir)]
-    (reduce
-      (fn [maximum path]
-        (let [curr (.lastModified (.toFile path))]
-          (if (> curr maximum)
-            curr
-            maximum)))
-      last-modified
-      stream)))
+        dir-modified (.lastModified log-dir)
+        last-modified (try (reduce
+                        (fn [maximum path]
+                          (let [curr (.lastModified (.toFile path))]
+                            (if (> curr maximum)
+                              curr
+                              maximum)))
+                        dir-modified
+                        stream)
+                        (catch Exception ex
+                          (log-error ex) dir-modified)
+                        (finally
+                          (if (instance? DirectoryStream stream)
+                            (.close stream))))]
+    last-modified))
 
 (defn get-size-for-logdir
   "Return the sum of lengths for all log files in a worker's log dir.

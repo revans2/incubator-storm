@@ -35,6 +35,7 @@
 
 (defn mk-DirectoryStream [^ArrayList list-of-paths]
   (reify DirectoryStream
+    (close [this])
     (iterator [this]
       (.iterator list-of-paths))))
 
