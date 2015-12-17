@@ -437,7 +437,7 @@ Response fields:
 |windowHint| String | window param value in "hh mm ss" format. Default value is "All Time"|
 |executors| Integer |Number of executor tasks in the component|
 |componentErrors| Array of Errors | List of component errors|
-|componentErrors.time| Long | Timestamp when the exception occurred |
+|componentErrors.time| String | Timestamp when the exception occurred |
 |componentErrors.errorHost| String | host name for the error|
 |componentErrors.errorPort| String | port for the error|
 |componentErrors.error| String |Shows the error happened in a component|
