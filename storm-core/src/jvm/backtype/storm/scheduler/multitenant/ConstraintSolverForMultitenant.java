@@ -287,11 +287,23 @@ public class ConstraintSolverForMultitenant {
      * check if constraints are satisfied
      */
     private boolean checkConstraintsSatisfied(Map<ExecutorDetails, WorkerSlot> result) {
-        for (Map.Entry<WorkerSlot, HashSet<String>> entry : this.workerCompAssignment.entrySet()) {
-            for (String comp : entry.getValue()) {
-                for (String checkComp : entry.getValue()) {
-                    if (this.constraintMatrix.get(comp).get(checkComp) == 1) {
-                        LOG.error("Incorrect Scheduling: worker exclusion for Component {} and {} not satisfied on WorkerSlot: {}", comp, checkComp, entry.getKey());
+        Map<WorkerSlot, HashSet<String>> workerCompMap = new HashMap<WorkerSlot, HashSet<String>>();
+        for (Map.Entry<ExecutorDetails, WorkerSlot> entry : result.entrySet()) {
+            WorkerSlot worker = entry.getValue();
+            ExecutorDetails exec = entry.getKey();
+            String comp = this.execToComp.get(exec);
+            if (!workerCompMap.containsKey(worker)) {
+                workerCompMap.put(worker, new HashSet<String>());
+            }
+            workerCompMap.get(worker).add(comp);
+        }
+        LOG.info("this.workerCompAssignment: {}", workerCompMap);
+        for (Map.Entry<WorkerSlot, HashSet<String>> entry : workerCompMap.entrySet()) {
+            String[] comps = entry.getValue().toArray(new String[entry.getValue().size()]);
+            for (int i=0; i<comps.length; i++) {
+                for (int j=0; j<comps.length; j++) {
+                    if (i != j && this.constraintMatrix.get(comps[i]).get(comps[j]) == 1) {
+                        LOG.error("Incorrect Scheduling: worker exclusion for Component {} and {} not satisfied on WorkerSlot: {}", comps[i], comps[j], entry.getKey());
                         return false;
                     }
                 }
