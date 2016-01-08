@@ -32,8 +32,6 @@ import backtype.storm.tuple.Values;
 import backtype.storm.utils.Utils;
 
 import java.util.Arrays;
-import java.util.LinkedList;
-import java.util.List;
 import java.util.Map;
 
 /**

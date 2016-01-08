@@ -32,6 +32,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -287,23 +288,22 @@ public class ConstraintSolverForMultitenant {
      * check if constraints are satisfied
      */
     private boolean checkConstraintsSatisfied(Map<ExecutorDetails, WorkerSlot> result) {
-        Map<WorkerSlot, HashSet<String>> workerCompMap = new HashMap<WorkerSlot, HashSet<String>>();
+        Map<WorkerSlot, List<String>> workerCompMap = new HashMap<WorkerSlot, List<String>>();
         for (Map.Entry<ExecutorDetails, WorkerSlot> entry : result.entrySet()) {
             WorkerSlot worker = entry.getValue();
             ExecutorDetails exec = entry.getKey();
             String comp = this.execToComp.get(exec);
             if (!workerCompMap.containsKey(worker)) {
-                workerCompMap.put(worker, new HashSet<String>());
+                workerCompMap.put(worker, new LinkedList<String>());
             }
             workerCompMap.get(worker).add(comp);
         }
-        LOG.info("this.workerCompAssignment: {}", workerCompMap);
-        for (Map.Entry<WorkerSlot, HashSet<String>> entry : workerCompMap.entrySet()) {
-            String[] comps = entry.getValue().toArray(new String[entry.getValue().size()]);
-            for (int i=0; i<comps.length; i++) {
-                for (int j=0; j<comps.length; j++) {
-                    if (i != j && this.constraintMatrix.get(comps[i]).get(comps[j]) == 1) {
-                        LOG.error("Incorrect Scheduling: worker exclusion for Component {} and {} not satisfied on WorkerSlot: {}", comps[i], comps[j], entry.getKey());
+        for (Map.Entry<WorkerSlot, List<String>> entry : workerCompMap.entrySet()) {
+            List<String> comps = entry.getValue();
+            for (int i=0; i<comps.size(); i++) {
+                for (int j=0; j<comps.size(); j++) {
+                    if (i != j && this.constraintMatrix.get(comps.get(i)).get(comps.get(j)) == 1) {
+                        LOG.error("Incorrect Scheduling: worker exclusion for Component {} and {} not satisfied on WorkerSlot: {}", comps.get(i), comps.get(j), entry.getKey());
                         return false;
                     }
                 }
