@@ -471,6 +471,7 @@
         spouts (ArrayList. (map :object (vals task-datas)))
         rand (Random. (Utils/secureRandomLong))
         ^DisruptorQueue transfer-queue (executor-data :batch-transfer-queue)
+        debug? (= true (storm-conf TOPOLOGY-DEBUG))
 
         pending (RotatingMap.
                  2 ;; microoptimize for performance of .size method
@@ -543,7 +544,8 @@
                                            (do
                                              (.put pending root-id [task-id
                                                                     message-id
-                                                                    {:stream out-stream-id :values values}
+                                                                    {:stream out-stream-id 
+                                                                     :values (if debug? values nil)}
                                                                     (if (sampler) (System/currentTimeMillis))])
                                              (task/send-unanchored task-data
                                                                    ACKER-INIT-STREAM-ID
