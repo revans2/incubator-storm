@@ -31,6 +31,7 @@ import backtype.storm.tuple.Tuple;
 import backtype.storm.tuple.Values;
 import backtype.storm.utils.Utils;
 
+import java.util.Arrays;
 import java.util.Map;
 
 /**
@@ -74,7 +75,8 @@ public class TopologyWithConstraintsExample {
          * declares if a component needs to be spread among nodes
          * In this example, the storm cluster must have at least 3 nodes since the "word" component will have 3 executors
          */
-        conf.put(Config.TOPOLOGY_SPREAD_COMPONENTS, "testSpout");
+
+        conf.put(Config.TOPOLOGY_SPREAD_COMPONENTS, Arrays.asList("testSpout"));
 
         /**
          * Sets constraints for this topology
