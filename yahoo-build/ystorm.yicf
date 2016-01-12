@@ -12,7 +12,7 @@ SRCDIRS = ../
 CUSTODIAN = yahoo-storm-team@yahoo-inc.com http://twiki.corp.yahoo.com/view/Grid/StormDocumentation
 YINST bug-product jira-ystorm
 
-YINST requires pkg ypython               2.6.0_2     2.7.9999
+YINST requires pkg python27              2.7.10.41   2.7.9999.9999
 YINST requires pkg yjava_jdk             1.7.0_11.64 1.8.999999
 YINST requires pkg bouncer_auth_java     0.17.9      *
 YINST requires pkg yjava_servlet_filters 0.22.495    *
