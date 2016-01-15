@@ -40,6 +40,7 @@ public class ThriftClient {
     private Map _conf;
     private ThriftConnectionType _type;
     private String _asUser;
+    protected boolean _retryForever = false;
 
     public ThriftClient(Map storm_conf, ThriftConnectionType type, String host) {
         this(storm_conf, type, host, null, null, null);
@@ -103,7 +104,8 @@ public class ThriftClient {
                 = new TBackoffConnect(
                                       Utils.getInt(_conf.get(Config.STORM_NIMBUS_RETRY_TIMES)),
                                       Utils.getInt(_conf.get(Config.STORM_NIMBUS_RETRY_INTERVAL)),
-                                      Utils.getInt(_conf.get(Config.STORM_NIMBUS_RETRY_INTERVAL_CEILING)));
+                                      Utils.getInt(_conf.get(Config.STORM_NIMBUS_RETRY_INTERVAL_CEILING)),
+                                      _retryForever);
             _transport = connectionRetry.doConnectWithRetry(transportPlugin, underlyingTransport, _host, _asUser);
         } catch (IOException ex) {
             throw new RuntimeException(ex);
