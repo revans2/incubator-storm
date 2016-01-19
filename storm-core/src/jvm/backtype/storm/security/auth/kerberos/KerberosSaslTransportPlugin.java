@@ -35,7 +35,7 @@ import javax.security.auth.login.Configuration;
 import javax.security.auth.login.LoginException;
 import javax.security.sasl.Sasl;
 
-import backtype.storm.messaging.netty.ZookeeperSaslLogin;
+import backtype.storm.messaging.netty.Login;
 import org.apache.commons.lang.StringUtils;
 import org.apache.thrift.transport.TSaslClientTransport;
 import org.apache.thrift.transport.TSaslServerTransport;
@@ -52,7 +52,7 @@ import backtype.storm.security.auth.SaslTransportPlugin;
 public class KerberosSaslTransportPlugin extends SaslTransportPlugin {
     public static final String KERBEROS = "GSSAPI"; 
     private static final Logger LOG = LoggerFactory.getLogger(KerberosSaslTransportPlugin.class);
-    private static Map <LoginCacheKey, ZookeeperSaslLogin> loginCache = new ConcurrentHashMap<>();
+    private static Map <LoginCacheKey, Login> loginCache = new ConcurrentHashMap<>();
 
     private class LoginCacheKey {
         private String _keyString = null;
@@ -101,7 +101,7 @@ public class KerberosSaslTransportPlugin extends SaslTransportPlugin {
             //specify a configuration object to be used
             Configuration.setConfiguration(login_conf);
             //now login
-            ZookeeperSaslLogin login = new ZookeeperSaslLogin(AuthUtils.LOGIN_CONTEXT_SERVER, server_callback_handler);
+            Login login = new Login(AuthUtils.LOGIN_CONTEXT_SERVER, server_callback_handler);
             subject = login.getSubject();
             login.startThreadIfNeeded();
         } catch (LoginException ex) {
@@ -141,7 +141,7 @@ public class KerberosSaslTransportPlugin extends SaslTransportPlugin {
         ClientCallbackHandler client_callback_handler = new ClientCallbackHandler(login_conf);
         
         //login our user
-        ZookeeperSaslLogin login = null;
+        Login login = null;
         LoginCacheKey key = new LoginCacheKey(login_conf, AuthUtils.LOGIN_CONTEXT_CLIENT);
         if (loginCache.containsKey(key)) {
             LOG.debug("Found a cached Login item with key string: {}", key.toString());
@@ -152,7 +152,7 @@ public class KerberosSaslTransportPlugin extends SaslTransportPlugin {
                 //specify a configuration object to be used
                 Configuration.setConfiguration(login_conf);
                 //now login
-                login = new ZookeeperSaslLogin(AuthUtils.LOGIN_CONTEXT_CLIENT, client_callback_handler);
+                login = new Login(AuthUtils.LOGIN_CONTEXT_CLIENT, client_callback_handler);
                 login.startThreadIfNeeded();
                 loginCache.put(key, login);
             } catch (LoginException ex) {
