@@ -60,10 +60,6 @@ public class DynamicPartitionConnections {
                 // 0.8.x and is here to keep backwards compatibility. If this constructor 
                 // exists use it, otherwise fallback.
                 LOG.debug("Try using SimpleConsumer api with security");
-                Constructor[] clist =  c.getConstructors();
-                for (int i = 0; i < clist.length; i++) {
-                   LOG.info("constructor " + i + " is: " + clist[i].toString());
-                }
                 _simpleConsumerConstr = c.getDeclaredConstructor(String.class, int.class, int.class, 
                     int.class, String.class, String.class);
                 useSecurityParamSimpleConsumer = true;
