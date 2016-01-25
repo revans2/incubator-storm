@@ -49,14 +49,16 @@ public class StaticPartitionConnections {
                 // This version of the constructor exists in our early Security version in 
                 // 0.8.x and is here to keep backwards compatibility. If this constructor 
                 // exists use it, otherwise fallback.
+                LOG.debug("Try using SimpleConsumer api with security");
                 _simpleConsumerConstr = c.getDeclaredConstructor(String.class, int.class, int.class,
                     int.class, String.class,
                     org.apache.kafka.common.protocol.SecurityProtocol.class);
                 useSecurityParamSimpleConsumer = true;
             } catch (NoSuchMethodException e) {
                 try {
-                    // This is the constructor that exists in the open source kafka 0.8 
-                    // and 0.9 versions
+                     // This is the constructor that exists in the open source kafka 0.8 
+                     // and 0.9 versions
+                     LOG.debug("Fall back to using open source SimpleConsumer api");
                      _simpleConsumerConstr = c.getDeclaredConstructor(String.class, int.class, int.class,
                          int.class, String.class);
                      useSecurityParamSimpleConsumer = false;
