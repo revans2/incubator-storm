@@ -217,7 +217,7 @@
         <thrift.version>0.9.3</thrift.version>
         <junit.version>4.11</junit.version>
         <metrics-clojure.version>2.5.1</metrics-clojure.version>
-        <kafka.version>0.8.2.200.4</kafka.version>
+        <kafka.version>0.9.0.13</kafka.version>
         <hdrhistogram.version>2.1.7</hdrhistogram.version>
     </properties>
 

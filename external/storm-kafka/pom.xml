@@ -165,7 +165,7 @@
         </dependency>
         <dependency>
             <groupId>yahoo.yinst.ykafka</groupId>
-            <artifactId>zkclient-0.5-1</artifactId>
+            <artifactId>zkclient-0.7</artifactId>
             <version>${kafka.version}</version>
             <scope>provided</scope>
         </dependency>
