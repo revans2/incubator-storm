@@ -124,6 +124,12 @@ public class PacemakerClient implements ISaslClient {
     }
 
     public synchronized void channelConnected(Channel channel) {
+        Channel oldChannel = channelRef.get();
+        if (oldChannel != null) {
+            LOG.debug("Closing oldChannel is connected: {}", oldChannel.toString());
+            close_channel();
+        }
+
         LOG.debug("Channel is connected: {}", channel.toString());
         channelRef.set(channel);
 
@@ -194,7 +200,7 @@ public class PacemakerClient implements ISaslClient {
                     LOG.debug("Waiting for netty channel to be ready.");
                     try {
                         this.wait(1000);
-                        if(!ready) {
+                        if(!ready || channelRef.get() == null) {
                             throw new RuntimeException("Timed out waiting for channel ready.");
                         }
                     } catch (InterruptedException e) {
