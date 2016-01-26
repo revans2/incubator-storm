@@ -33,7 +33,7 @@ public class StaticPartitionConnections {
     KafkaConfig _config;
     StaticHosts hosts;
     Constructor<SimpleConsumer> _simpleConsumerConstr;
-    boolean useSecurityParamSimpleConsumer = false;
+    final boolean useSecurityParamSimpleConsumer; 
 
     public StaticPartitionConnections(KafkaConfig conf) {
         _config = conf;

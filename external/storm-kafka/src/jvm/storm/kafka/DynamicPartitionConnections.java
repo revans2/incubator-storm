@@ -46,7 +46,7 @@ public class DynamicPartitionConnections {
     KafkaConfig _config;
     IBrokerReader _reader;
     Constructor<SimpleConsumer> _simpleConsumerConstr;
-    boolean useSecurityParamSimpleConsumer = false;
+    final boolean useSecurityParamSimpleConsumer; 
 
     public DynamicPartitionConnections(KafkaConfig config, IBrokerReader brokerReader) {
         _config = config;
