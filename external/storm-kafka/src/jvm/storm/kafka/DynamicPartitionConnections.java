@@ -46,7 +46,7 @@ public class DynamicPartitionConnections {
     KafkaConfig _config;
     IBrokerReader _reader;
     Constructor<SimpleConsumer> _simpleConsumerConstr;
-    final boolean useSecurityParamSimpleConsumer; 
+    boolean useSecurityParamSimpleConsumer = false; 
 
     public DynamicPartitionConnections(KafkaConfig config, IBrokerReader brokerReader) {
         _config = config;
@@ -70,7 +70,6 @@ public class DynamicPartitionConnections {
                     LOG.debug("Fall back to using open source SimpleConsumer api");
                      _simpleConsumerConstr = c.getDeclaredConstructor(String.class, int.class, 
                          int.class, int.class, String.class);
-                     useSecurityParamSimpleConsumer = false;
                 } catch (NoSuchMethodException ne) {
                     LOG.error("Error finding constructor for kafka.javaapi.consumer.SimpleConsumer");
                 }
