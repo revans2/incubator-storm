@@ -29,39 +29,35 @@ public class Topologies {
     Map<String, Map<String, Component>> _allComponents;
 
     public Topologies(Map<String, TopologyDetails> topologies) {
-        if(topologies==null) topologies = new HashMap();
-        this.topologies = new HashMap<String, TopologyDetails>(topologies.size());
+        if(topologies==null) topologies = new HashMap<>();
+        this.topologies = new HashMap<>(topologies.size());
         this.topologies.putAll(topologies);
-        this.nameToId = new HashMap<String, String>(topologies.size());
+        this.nameToId = new HashMap<>(topologies.size());
         
-        for (String topologyId : topologies.keySet()) {
-            TopologyDetails topology = topologies.get(topologyId);
-            this.nameToId.put(topology.getName(), topologyId);
+        for (Map.Entry<String, TopologyDetails> entry : topologies.entrySet()) {
+            TopologyDetails topology = entry.getValue();
+            this.nameToId.put(topology.getName(), entry.getKey());
         }
     }
-
+    
     public TopologyDetails getById(String topologyId) {
         return this.topologies.get(topologyId);
     }
-
+    
     public TopologyDetails getByName(String topologyName) {
         String topologyId = this.nameToId.get(topologyName);
-
+        
         if (topologyId == null) {
             return null;
         } else {
             return this.getById(topologyId);
         }
     }
-
+    
     public Collection<TopologyDetails> getTopologies() {
         return this.topologies.values();
     }
 
-    /**
-     * Note: The public API relevant to resource aware scheduling is unstable as of May 2015.
-     *       We reserve the right to change them.
-     */
     public Map<String, Map<String, Component>> getAllComponents() {
         if (_allComponents == null) {
             _allComponents = new HashMap<>();
@@ -70,5 +66,19 @@ public class Topologies {
             }
         }
         return _allComponents;
+    }
+
+    public static Topologies getCopy(Topologies topologies) {
+        return new Topologies(topologies.topologies);
+    }
+
+    @Override
+    public String toString() {
+        StringBuilder ret = new StringBuilder();
+        ret.append("Topologies:\n");
+        for (TopologyDetails td : this.getTopologies()) {
+            ret.append(td.toString()).append("\n");
+        }
+        return ret.toString();
     }
 }

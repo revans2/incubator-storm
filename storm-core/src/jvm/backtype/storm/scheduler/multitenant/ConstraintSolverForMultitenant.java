@@ -32,7 +32,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -288,22 +287,11 @@ public class ConstraintSolverForMultitenant {
      * check if constraints are satisfied
      */
     private boolean checkConstraintsSatisfied(Map<ExecutorDetails, WorkerSlot> result) {
-        Map<WorkerSlot, List<String>> workerCompMap = new HashMap<WorkerSlot, List<String>>();
-        for (Map.Entry<ExecutorDetails, WorkerSlot> entry : result.entrySet()) {
-            WorkerSlot worker = entry.getValue();
-            ExecutorDetails exec = entry.getKey();
-            String comp = this.execToComp.get(exec);
-            if (!workerCompMap.containsKey(worker)) {
-                workerCompMap.put(worker, new LinkedList<String>());
-            }
-            workerCompMap.get(worker).add(comp);
-        }
-        for (Map.Entry<WorkerSlot, List<String>> entry : workerCompMap.entrySet()) {
-            List<String> comps = entry.getValue();
-            for (int i=0; i<comps.size(); i++) {
-                for (int j=0; j<comps.size(); j++) {
-                    if (i != j && this.constraintMatrix.get(comps.get(i)).get(comps.get(j)) == 1) {
-                        LOG.error("Incorrect Scheduling: worker exclusion for Component {} and {} not satisfied on WorkerSlot: {}", comps.get(i), comps.get(j), entry.getKey());
+        for (Map.Entry<WorkerSlot, HashSet<String>> entry : this.workerCompAssignment.entrySet()) {
+            for (String comp : entry.getValue()) {
+                for (String checkComp : entry.getValue()) {
+                    if (this.constraintMatrix.get(comp).get(checkComp) == 1) {
+                        LOG.error("Incorrect Scheduling: worker exclusion for Component {} and {} not satisfied on WorkerSlot: {}", comp, checkComp, entry.getKey());
                         return false;
                     }
                 }

@@ -97,7 +97,6 @@ public class TestConstraintSolver {
     List<List<String>> constraints = new LinkedList<>();
     addContraints("spout-0", "bolt-0", constraints);
     addContraints("spout-0", "bolt-1", constraints);
-    addContraints("bolt-1", "bolt-1", constraints);
     addContraints("bolt-1", "bolt-2", constraints);
 
     List<String> spread = new LinkedList<String>();
@@ -113,6 +112,8 @@ public class TestConstraintSolver {
     config.put(Config.TOPOLOGY_CONSTRAINTS_MAX_DEPTH_TRAVERSAL, MAX_TRAVERSAL_DEPTH);
     config.put(Config.TOPOLOGY_SUBMITTER_USER, TOPOLOGY_SUBMITTER);
     config.put(Config.TOPOLOGY_WORKERS, NUM_WORKERS);
+    config.put(Config.TOPOLOGY_WORKER_MAX_HEAP_SIZE_MB, 100000);
+    config.put(Config.TOPOLOGY_PRIORITY, 1);
 
     TopologyDetails topo = getTopology(config, 5, 15, 15, 30);
     Map<String, TopologyDetails> topoMap = new HashMap<String, TopologyDetails>();
@@ -136,7 +137,7 @@ public class TestConstraintSolver {
   public void testConstraintSolver() {
     List<List<String>> constraints = new LinkedList<>();
     addContraints("spout-0", "bolt-0", constraints);
-    addContraints("bolt-1", "bolt-1", constraints);
+    addContraints("spout-0", "bolt-1", constraints);
     addContraints("bolt-1", "bolt-2", constraints);
 
     List<String> spread = new LinkedList<String>();
@@ -153,6 +154,8 @@ public class TestConstraintSolver {
     config.put(Config.TOPOLOGY_CONSTRAINTS_MAX_DEPTH_TRAVERSAL, MAX_TRAVERSAL_DEPTH);
     config.put(Config.TOPOLOGY_SUBMITTER_USER, TOPOLOGY_SUBMITTER);
     config.put(Config.TOPOLOGY_WORKERS, NUM_WORKERS);
+    config.put(Config.TOPOLOGY_WORKER_MAX_HEAP_SIZE_MB, 100000);
+    config.put(Config.TOPOLOGY_PRIORITY, 1);
 
     TopologyDetails topo = getTopology(config, 5, 15, 15, 30);
 
@@ -163,6 +166,7 @@ public class TestConstraintSolver {
 
     LOG.info("Results: {}", results);
 
+    Assert.assertTrue("Valid Scheduling?", cs.validateSolution(results));
 
     Map<WorkerSlot, HashSet<ExecutorDetails>> workerExecMap = new HashMap<WorkerSlot, HashSet<ExecutorDetails>>();
     Map<WorkerSlot, ArrayList<String>> workerCompMap = new HashMap<WorkerSlot, ArrayList<String>>();
@@ -176,7 +180,6 @@ public class TestConstraintSolver {
     }
     LOG.info("Size: " + workerCompMap.size() + " workerCompMap:\n" + workerCompMap);
     LOG.info("# backtrack: " + cs.getNumBacktrack() + " depth: " + cs.getTraversalDepth());
-    Assert.assertTrue("Valid Scheduling?", cs.validateSolution(results));
   }
 
   public static void addContraints(String comp1, String comp2, List<List<String>> constraints) {

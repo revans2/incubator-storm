@@ -85,7 +85,7 @@ public class
 
 
          //set to use the default resource aware strategy when using the MultitenantResourceAwareBridgeScheduler
-        conf.setTopologyStrategy(backtype.storm.scheduler.resource.strategies.ResourceAwareStrategy.class);
+        conf.setTopologyStrategy(backtype.storm.scheduler.resource.strategies.scheduling.DefaultResourceAwareStrategy.class);
 
         if (args != null && args.length > 0) {
             conf.setNumWorkers(3);
