@@ -97,6 +97,7 @@ public class TestConstraintSolver {
     List<List<String>> constraints = new LinkedList<>();
     addContraints("spout-0", "bolt-0", constraints);
     addContraints("spout-0", "bolt-1", constraints);
+    addContraints("bolt-1", "bolt-1", constraints);
     addContraints("bolt-1", "bolt-2", constraints);
 
     List<String> spread = new LinkedList<String>();
@@ -137,10 +138,10 @@ public class TestConstraintSolver {
   public void testConstraintSolver() {
     List<List<String>> constraints = new LinkedList<>();
     addContraints("spout-0", "bolt-0", constraints);
-    addContraints("spout-0", "bolt-1", constraints);
+    addContraints("bolt-1", "bolt-1", constraints);
     addContraints("bolt-1", "bolt-2", constraints);
 
-    List<String> spread = new LinkedList<String>();
+      List<String> spread = new LinkedList<String>();
     spread.add("spout-0");
     spread.add("spout-1");
 
@@ -162,11 +163,10 @@ public class TestConstraintSolver {
     List<Node> nodes = getNodes(genSupervisors(NUM_SUPS, NUM_WORKERS_PER_SUP));
 
     ConstraintSolverForMultitenant cs = new ConstraintSolverForMultitenant(topo, NUM_WORKERS, new HashSet<Node>(nodes));
-    Map<ExecutorDetails, WorkerSlot> results = cs.findScheduling();
+      Map<ExecutorDetails, WorkerSlot> results = cs.findScheduling();
 
     LOG.info("Results: {}", results);
 
-    Assert.assertTrue("Valid Scheduling?", cs.validateSolution(results));
 
     Map<WorkerSlot, HashSet<ExecutorDetails>> workerExecMap = new HashMap<WorkerSlot, HashSet<ExecutorDetails>>();
     Map<WorkerSlot, ArrayList<String>> workerCompMap = new HashMap<WorkerSlot, ArrayList<String>>();
@@ -180,6 +180,7 @@ public class TestConstraintSolver {
     }
     LOG.info("Size: " + workerCompMap.size() + " workerCompMap:\n" + workerCompMap);
     LOG.info("# backtrack: " + cs.getNumBacktrack() + " depth: " + cs.getTraversalDepth());
+    Assert.assertTrue("Valid Scheduling?", cs.validateSolution(results));
   }
 
   public static void addContraints(String comp1, String comp2, List<List<String>> constraints) {
