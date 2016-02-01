@@ -88,7 +88,7 @@ cat <<XML
         facility="${syslog_facility}" enterpriseNumber="18060" newLine="true" exceptionPattern="%rEx{full}"
         messageId="[\${sys:user.name}:S0]" id="ystorm" immediateFlush="false" immediateFail="true">
         <LoggerFields>
-            <KeyValuePair key="ClassName" value="%C{1.}"/>
+            <KeyValuePair key="ClassName" value="%c{1.}"/>
         </LoggerFields>
     </Syslog>
 
