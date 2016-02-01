@@ -24,36 +24,33 @@
 <appenders>
     <RollingFile name="A1"
 		fileName="${sys:workers.artifacts}/${sys:storm.id}/${sys:worker.port}/${sys:logfile.name}"
-		filePattern="${sys:workers.artifacts}/${sys:storm.id}/${sys:worker.port}/${sys:logfile.name}.%i.gz">
+		filePattern="${sys:workers.artifacts}/${sys:storm.id}/${sys:worker.port}/${sys:logfile.name}.%d{yyyy-MM-dd-HH-mm-ss}.gz">
         <PatternLayout>
             <pattern>${pattern}</pattern>
         </PatternLayout>
         <Policies>
             <SizeBasedTriggeringPolicy size="100 MB"/> <!-- Or every 100 MB -->
         </Policies>
-        <DefaultRolloverStrategy max="9"/>
     </RollingFile>
     <RollingFile name="STDOUT"
 		fileName="${sys:workers.artifacts}/${sys:storm.id}/${sys:worker.port}/${sys:logfile.name}.out"
-		filePattern="${sys:workers.artifacts}/${sys:storm.id}/${sys:worker.port}/${sys:logfile.name}.out.%i.gz">
+		filePattern="${sys:workers.artifacts}/${sys:storm.id}/${sys:worker.port}/${sys:logfile.name}.out.%d{yyyy-MM-dd-HH-mm-ss}.gz">
         <PatternLayout>
             <pattern>${patternNoTime}</pattern>
         </PatternLayout>
         <Policies>
             <SizeBasedTriggeringPolicy size="100 MB"/> <!-- Or every 100 MB -->
         </Policies>
-        <DefaultRolloverStrategy max="4"/>
     </RollingFile>
     <RollingFile name="STDERR"
 		fileName="${sys:workers.artifacts}/${sys:storm.id}/${sys:worker.port}/${sys:logfile.name}.err"
-		filePattern="${sys:workers.artifacts}/${sys:storm.id}/${sys:worker.port}/${sys:logfile.name}.err.%i.gz">
+		filePattern="${sys:workers.artifacts}/${sys:storm.id}/${sys:worker.port}/${sys:logfile.name}.err.%d{yyyy-MM-dd-HH-mm-ss}.gz">
         <PatternLayout>
             <pattern>${patternNoTime}</pattern>
         </PatternLayout>
         <Policies>
             <SizeBasedTriggeringPolicy size="100 MB"/> <!-- Or every 100 MB -->
         </Policies>
-        <DefaultRolloverStrategy max="4"/>
     </RollingFile>
     <Syslog name="syslog" format="RFC5424" charset="UTF-8" host="localhost" port="514"
         protocol="UDP" appName="[${sys:storm.id}:${sys:worker.port}]" mdcId="mdc" includeMDC="true"
