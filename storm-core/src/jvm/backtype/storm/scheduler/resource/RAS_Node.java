@@ -462,7 +462,6 @@ public class RAS_Node {
     public Double consumeMemory(Double amount) {
         if (amount > _availMemory) {
             LOG.error("Attempting to consume more memory than available! Needed: {}, we only have: {}", amount, _availMemory);
-            throw new IllegalStateException("Attempting to consume more memory than available");
         }
         _availMemory = _availMemory - amount;
         return _availMemory;
@@ -499,7 +498,6 @@ public class RAS_Node {
     public Double consumeCPU(Double amount) {
         if (amount > _availCPU) {
             LOG.error("Attempting to consume more CPU than available! Needed: {}, we only have: {}", amount, _availCPU);
-            throw new IllegalStateException("Attempting to consume more memory than available");
         }
         _availCPU = _availCPU - amount;
         return _availCPU;
