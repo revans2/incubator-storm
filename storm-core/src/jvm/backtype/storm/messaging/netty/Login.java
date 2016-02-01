@@ -43,11 +43,11 @@ import java.util.Date;
 import java.util.Random;
 import java.util.Set;
 
-public class ZookeeperSaslLogin {
-    Logger LOG = Logger.getLogger(ZookeeperSaslLogin.class);
+public class Login {
+    Logger LOG = Logger.getLogger(Login.class);
     public CallbackHandler callbackHandler;
 
-    // LoginThread will sleep until 80% of time from last refresh to
+    // Login will sleep until 80% of time from last refresh to
     // ticket's expiry has been reached, at which time it will wake
     // and try to renew the ticket.
     private static final float TICKET_RENEW_WINDOW = 0.80f;
@@ -79,7 +79,7 @@ public class ZookeeperSaslLogin {
     private long lastLogin = 0;
 
     /**
-     * LoginThread constructor. The constructor starts the thread used
+     * Login constructor. The constructor starts the thread used
      * to periodically re-login to the Kerberos Ticket Granting Server.
      * @param loginContextName
      *               name of section in JAAS file that will be use to login.
@@ -90,7 +90,7 @@ public class ZookeeperSaslLogin {
      * @throws javax.security.auth.login.LoginException
      *               Thrown if authentication fails.
      */
-    public ZookeeperSaslLogin(final String loginContextName, CallbackHandler callbackHandler)
+    public Login(final String loginContextName, CallbackHandler callbackHandler)
         throws LoginException {
         this.callbackHandler = callbackHandler;
         login = login(loginContextName);
@@ -395,7 +395,7 @@ public class ZookeeperSaslLogin {
         }
         sleepUntilSufficientTimeElapsed();
         LOG.info("Initiating logout for " + principal);
-        synchronized (ZookeeperSaslLogin.class) {
+        synchronized (Login.class) {
             //clear up the kerberos state. But the tokens are not cleared! As per
             //the Java kerberos login module code, only the kerberos credentials
             //are cleared
