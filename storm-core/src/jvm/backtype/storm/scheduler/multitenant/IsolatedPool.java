@@ -223,8 +223,8 @@ public class IsolatedPool extends NodePool {
     int nodesNeeded = nodesRequested - nodesUsed;
     LOG.debug("Nodes... requested {} used {} available from us {} " +
         "avail from other {} needed {}", nodesRequested,
-            nodesUsed, nodesFromUsAvailable, nodesFromOthersAvailable,
-            nodesNeeded);
+        nodesUsed, nodesFromUsAvailable, nodesFromOthersAvailable,
+        nodesNeeded);
     if ((nodesNeeded - nodesFromUsAvailable) > (_maxNodes - _usedNodes)) {
       LOG.debug("Max Nodes(" + _maxNodes + ") for this user would be exceeded. "
               + ((nodesNeeded - nodesFromUsAvailable) - (_maxNodes - _usedNodes))
