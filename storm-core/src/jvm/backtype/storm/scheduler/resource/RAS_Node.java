@@ -47,7 +47,7 @@ public class RAS_Node {
 
     //A map consisting of all workers on the node.
     //The key of the map is the worker id and the value is the corresponding workerslot object
-    Map<String, WorkerSlot> _slots = new HashMap<String, WorkerSlot> ();
+    Map<String, WorkerSlot> _slots = new HashMap<String, WorkerSlot>();
 
     // A map describing which topologies are using which slots on this node.  The format of the map is the following:
     // {TopologyId -> {WorkerId -> {Executors}}}

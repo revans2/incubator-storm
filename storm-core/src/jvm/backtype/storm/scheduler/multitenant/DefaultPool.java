@@ -183,7 +183,7 @@ public class DefaultPool extends NodePool {
         
         LinkedList<Node> nodes = new LinkedList<>(_nodes);
         while (true) {
-          Node n;
+          Node n = null;
           do {
             if (nodes.isEmpty()) {
               throw new IllegalStateException("This should not happen, we" +
