@@ -1,7 +1,7 @@
 
 # Introduction
 
-The purpose of this document is to provide a description of the Resource Aware Scheduler for the Storm distributed real-time computation system.  This document will provide you with both a high level description of the resource aware scheduler in Storm
+The purpose of this document is to provide a description of the Resource Aware Scheduler for the Storm distributed real-time computation system.  This document will provide you with both a high level description of the resource aware scheduler in Storm.
 
 ## Using Resource Aware Scheduler
 
@@ -11,13 +11,13 @@ The user can switch to using the Resource Aware Scheduler by setting the followi
     
 ## Using Resource Aware Scheduler with Bridge Scheduler (Yahoo Internal)
 
-When the bridge scheduler is used to accomadate both the Multitenant Scheduler and Resource Aware Scheduler, please use the following API in the topology to specify which scheduler to use:
+When the bridge scheduler is used to accommodate both the Multitenant Scheduler and Resource Aware Scheduler, please use the following API in the topology to specify which scheduler to use:
 
 
     public void setTopologyStrategy(Class<? extends IStrategy> clazz)
 
 Parameters:
-* Class<? extends IStrategy> clazz - Specify which scheduling strategy to use. Pass "backtype.storm.scheduler.resource.scheduling.DefaultResourceAwareStrategy" as paramemter to use the Resource Aware Scheduler to schedule the topology.  Pass "backtype.storm.scheduler.resource.scheduling.MultitenantStrategy" as parameter to use Multitenant Scheduler to schedule the topology.  If the topology strategy is not set, the topology will be scheduled by the Multitenant Scheduler by default.
+* Class<? extends IStrategy> clazz - Specify which scheduling strategy to use. Pass "backtype.storm.scheduler.resource.scheduling.DefaultResourceAwareStrategy" as parameter to use the Resource Aware Scheduler to schedule the topology.  Pass "backtype.storm.scheduler.resource.scheduling.MultitenantStrategy" as parameter to use Multitenant Scheduler to schedule the topology.  If the topology strategy is not set, the topology will be scheduled by the Multitenant Scheduler by default.
 
 Example Usage:
 
@@ -26,7 +26,7 @@ Example Usage:
 
 ## API Overview
 
-For a Storm Topology, the user can now specify the amount of resources a topology component (i.e. Spout or Bolt) is required to run a single instance of the component.  The user can specify the resource requirement for a topology component by using the following API calls.
+For a Storm Topology, the user can now specify the amount of resources a topology component (i.e. Spout or Bolt) is required to run a single instance (or executor) of the component.  The user can specify the resource requirement for a topology component by using the following API calls.
 
 ### Setting Memory Requirement
 
@@ -35,7 +35,7 @@ API to set component memory requirement:
     public T setMemoryLoad(Number onHeap, Number offHeap)
 
 Parameters:
-* Number onHeap – The amount of on heap memory an instance of this component will consume in megabytes
+* Number onHeap – The amount of heap memory an instance of this component will consume in megabytes
 * Number offHeap – The amount of off heap memory an instance of this component will consume in megabytes
 
 The user also has to option to just specify the on heap memory requirement if the component does not have an off heap memory need.
@@ -43,7 +43,7 @@ The user also has to option to just specify the on heap memory requirement if th
     public T setMemoryLoad(Number onHeap)
 
 Parameters:
-* Number onHeap – The amount of on heap memory an instance of this component will consume
+* Number onHeap – The amount of heap memory an instance of this component will consume
 
 If no value is provided for offHeap, 0.0 will be used. If no value is provided for onHeap, or if the API is never called for a component, the default value will be used.
 
@@ -64,7 +64,7 @@ API to set component CPU requirement:
     public T setCPULoad(Double amount)
 
 Parameters:
-* Number amount – The amount of on CPU an instance of this component will consume.
+* Number amount – The amount of CPU an instance of this component will consume.
 
 Currently, the amount of CPU resources a component requires or is available on a node is represented by a point system. CPU usage is a difficult concept to define. Different CPU architectures perform differently depending on the task at hand. They are so complex that expressing all of that in a single precise portable number is impossible. Instead we take a convention over configuration approach and are primarily concerned with rough level of CPU usage while still providing the possibility to specify amounts more fine grained.
 
@@ -133,7 +133,7 @@ The user can set some default configurations for the Resource Aware Scheduler in
 
 # Topology Priorities and Per User Resource 
 
-The Resource Aware Scheduler or RAS also has multitenant capabilities since many Storm users typically share a Storm cluster.  Resource Aware Scheduler can allocate resources on a per user basis.  Each user can be guaranteed a certain amount of resources to run his or her topologies and the Resource Aware Scheduler will meet those guarantees when possible.  When the Storm cluster has extra free resources, Resource Aware Scheduler will to be able allocate additional resources to user in a fair manner. The importance of topologies can also vary.  Topologies can be used for actual production or just experimentation, thus Resource Aware Scheduler will take into account the importance of a topology when determining the order in which to schedule topologies or when to evict topologies
+The Resource Aware Scheduler or RAS also has multitenant capabilities since many Storm users typically share a Storm cluster.  Resource Aware Scheduler can allocate resources on a per user basis.  Each user can be guaranteed a certain amount of resources to run his or her topologies and the Resource Aware Scheduler will meet those guarantees when possible.  When the Storm cluster has extra free resources, Resource Aware Scheduler will to be able allocate additional resources to user in a fair manner. The importance of topologies can also vary.  Topologies can be used for actual production or just experimentation, thus Resource Aware Scheduler will take into account the importance of a topology when determining the order in which to schedule topologies or when to evict topologies.
 
 ## Setup
 
@@ -157,11 +157,11 @@ An example of what *user-resource-pools.yaml* can look like:
             cpu: 5000.0
             memory: 16384.0
 
-Please note that the specified amount of Guaranteed CPU and Memory can be either a integer or double
+Please note that the specified amount of Guaranteed CPU and Memory can be either an integer or double
 
 ## API Overview
 ### Specifying Topology Priority
-The range of topology priorities can range form 0-29.  The topologies priorities will be partitioned into several priority levels that may contain a range of priorities. 
+The range of topology priorities can range between 0-29.  The topologies priorities will be partitioned into several priority levels that may contain a range of priorities. 
 For example we can create a priority level mapping:
 
     PRODUCTION => 0 – 9
@@ -175,7 +175,7 @@ Thus, each priority level contains 10 sub priorities. Users can set the priority
 Parameters:
 * priority – an integer representing the priority of the topology
 
-Please note that the 0-29 range is not a hard limit.  Thus, a user can set a priority number that is higher than 29. However, the property of higher the priority number, lower the importance still holds
+Please note that the 0-29 range is not a hard limit.  Thus, a user can set a priority number that is higher than 29. However, the property of higher the priority number, lower the importance still holds.
 
 ### Specifying Topology Prioritization Strategy
 
