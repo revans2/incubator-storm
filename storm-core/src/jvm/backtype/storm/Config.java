@@ -1463,6 +1463,7 @@ public class Config extends HashMap<String, Object> {
      */
     @isInteger
     @isPositiveNumber
+    @Deprecated
     public static final String WORKER_RECEIVER_THREAD_COUNT = "topology.worker.receiver.thread.count";
 
     /**
@@ -1914,6 +1915,7 @@ public class Config extends HashMap<String, Object> {
      * The maximum number of messages to batch from the thread receiving off the network to the
      * executor queues. Must be a power of 2.
      */
+    @Deprecated
     @CustomValidator(validatorClass = PowerOf2Validator.class)
     public static final String TOPOLOGY_RECEIVER_BUFFER_SIZE="topology.receiver.buffer.size";
 
