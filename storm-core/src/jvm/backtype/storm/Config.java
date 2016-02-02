@@ -22,6 +22,8 @@ import backtype.storm.scheduler.resource.strategies.priority.ISchedulingPriority
 import backtype.storm.scheduler.resource.strategies.scheduling.IStrategy;
 import backtype.storm.serialization.IKryoDecorator;
 import backtype.storm.serialization.IKryoFactory;
+import backtype.storm.validation.ConfigValidation;
+import backtype.storm.validation.ConfigValidation.PowerOf2Validator;
 import backtype.storm.validation.ConfigValidation.ImpersonationAclUserEntryValidator;
 import backtype.storm.validation.ConfigValidation.IntegerValidator;
 import backtype.storm.validation.ConfigValidation.ListOfListOfStringValidator;
@@ -31,6 +33,7 @@ import backtype.storm.validation.ConfigValidation.PositiveNumberValidator;
 import backtype.storm.validation.ConfigValidation.StringValidator;
 import backtype.storm.validation.ConfigValidation.PacemakerAuthTypeValidator;
 import backtype.storm.validation.ConfigValidation.UserResourcePoolEntryValidator;
+import backtype.storm.validation.ConfigValidationAnnotations;
 import backtype.storm.validation.ConfigValidationAnnotations.CustomValidator;
 import backtype.storm.validation.ConfigValidationAnnotations.NotNull;
 import backtype.storm.validation.ConfigValidationAnnotations.isBoolean;
@@ -613,6 +616,15 @@ public class Config extends HashMap<String, Object> {
     @isInteger
     @isPositiveNumber
     public static final String NIMBUS_TASK_LAUNCH_SECS = "nimbus.task.launch.secs";
+
+    /**
+     * Whether or not nimbus should reassign tasks if it detects that a task goes down.
+     * Defaults to true, and it's not recommended to change this value.
+     * @deprecated - This configuration is for unit testing. Please never set this to false on real cluster.
+     */
+    @isBoolean
+    @Deprecated
+    public static final String NIMBUS_REASSIGN = "nimbus.reassign";
 
     /**
      * During upload/download with the master, how long an upload or download connection is idle
@@ -1447,6 +1459,13 @@ public class Config extends HashMap<String, Object> {
     public static final String WORKER_GC_CHILDOPTS = "worker.gc.childopts";
 
     /**
+     * control how many worker receiver threads we need per worker
+     */
+    @isInteger
+    @isPositiveNumber
+    public static final String WORKER_RECEIVER_THREAD_COUNT = "topology.worker.receiver.thread.count";
+
+    /**
      * How often this worker should heartbeat to the supervisor.
      */
     @isInteger
@@ -1890,6 +1909,13 @@ public class Config extends HashMap<String, Object> {
      */
     @isPowerOf2
     public static final String TOPOLOGY_EXECUTOR_RECEIVE_BUFFER_SIZE="topology.executor.receive.buffer.size";
+
+    /**
+     * The maximum number of messages to batch from the thread receiving off the network to the
+     * executor queues. Must be a power of 2.
+     */
+    @CustomValidator(validatorClass = PowerOf2Validator.class)
+    public static final String TOPOLOGY_RECEIVER_BUFFER_SIZE="topology.receiver.buffer.size";
 
     /**
      * The size of the Disruptor send queue for each executor. Must be a power of 2.
