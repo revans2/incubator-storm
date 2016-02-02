@@ -22,8 +22,8 @@ import backtype.storm.scheduler.Topologies;
 import backtype.storm.scheduler.TopologyDetails;
 import backtype.storm.scheduler.WorkerSlot;
 import backtype.storm.scheduler.resource.ResourceAwareScheduler;
-import backtype.storm.scheduler.resource.strategies.MultitenantStrategy;
-import backtype.storm.scheduler.resource.strategies.ResourceAwareStrategy;
+import backtype.storm.scheduler.resource.strategies.scheduling.MultitenantStrategy;
+import backtype.storm.scheduler.resource.strategies.scheduling.DefaultResourceAwareStrategy;
 import backtype.storm.scheduler.multitenant.MultitenantScheduler;
 import backtype.storm.scheduler.multitenant.Node;
 
@@ -31,8 +31,8 @@ public class MultitenantResourceAwareBridgeScheduler implements IScheduler{
     private static final Logger LOG = LoggerFactory.getLogger(MultitenantResourceAwareBridgeScheduler.class);
     @SuppressWarnings("rawtypes")
     private Map _conf;
-    private static final Class<MultitenantStrategy> MULTITENANT_STRATEGY = backtype.storm.scheduler.resource.strategies.MultitenantStrategy.class;
-    private static final Class<ResourceAwareStrategy> RESOURCE_AWARE_STRATEGY = backtype.storm.scheduler.resource.strategies.ResourceAwareStrategy.class;
+    private static final Class<MultitenantStrategy> MULTITENANT_STRATEGY = MultitenantStrategy.class;
+    private static final Class<DefaultResourceAwareStrategy> RESOURCE_AWARE_STRATEGY = DefaultResourceAwareStrategy.class;
     private MultitenantScheduler multitenantScheduler = new MultitenantScheduler();
     private static final Double PER_WORKER_CPU_SWAG = 100.0;
 
@@ -66,7 +66,7 @@ public class MultitenantResourceAwareBridgeScheduler implements IScheduler{
         
         Topologies rasTopologies = dividedTopologies.get(RESOURCE_AWARE_STRATEGY.getName());
         Topologies mtTopologies = dividedTopologies.get(MULTITENANT_STRATEGY.getName());
-        
+
         LOG.debug("/* running Multitenant scheduler */");
 
         //Even though all the topologies are passed into the multitenant scheduler
@@ -80,7 +80,7 @@ public class MultitenantResourceAwareBridgeScheduler implements IScheduler{
         this.printScheduling(cluster, topologies);
         
         this.printClusterInfo(cluster);
-        
+
         LOG.debug("/* Translating to RAS cluster */");
         LOG.info("nodesRASCanUse: {}", Node.getNodesDebugInfo(multitenantScheduler.getNodesRASCanUse().values()));
         Cluster rasCluster = translateToRASCluster(cluster, rasTopologies, topologies,
@@ -90,14 +90,14 @@ public class MultitenantResourceAwareBridgeScheduler implements IScheduler{
         this.printScheduling(rasCluster, topologies);
         LOG.debug("RAS cluster info: ");
         this.printClusterInfo(rasCluster);
-        
+
         LOG.debug("/* running RAS scheduler */");
         if(rasTopologies.getTopologies().size() > 0) {
             ResourceAwareScheduler ras = new ResourceAwareScheduler();
             ras.prepare(_conf);
             ras.schedule(rasTopologies, rasCluster);
         }
-        
+
         LOG.debug("/* Merge RAS Cluster with actual cluster */");
         
         this.mergeCluster(cluster, rasCluster);
@@ -225,13 +225,13 @@ public class MultitenantResourceAwareBridgeScheduler implements IScheduler{
                     supervisorToAssignedCpu.put(nodeId, PER_WORKER_CPU_SWAG);
                 }
             }
-            if (cluster.getResourcesMap().containsKey(topId)) {
-                Double[] topo_resources = cluster.getResourcesMap().get(topId);
+            if (cluster.getTopologyResourcesMap().containsKey(topId)) {
+                Double[] topo_resources = cluster.getTopologyResourcesMap().get(topId);
                 topo_resources[5] = assignedCpuForTopology;
             } else {
                 Double[] topo_resources = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
                 topo_resources[5] = assignedCpuForTopology;
-                cluster.setResources(topId, topo_resources);
+                cluster.setTopologyResources(topId, topo_resources);
             }
         }
 
@@ -329,7 +329,7 @@ public class MultitenantResourceAwareBridgeScheduler implements IScheduler{
                 target.setStatus(topoId, status);
             }
             //merge resources map of MT and RAS for all topologies
-            target.setResourcesMap(ephemeral.getResourcesMap());
+            target.setTopologyResourcesMap(ephemeral.getTopologyResourcesMap());
             //merge resources map of MT and RAS for all supervisors, considering that one node may run topologies with both strategies
             for (Map.Entry<String, Double[]> supervisorResource : ephemeral.getSupervisorsResourcesMap().entrySet()) {
                 String supervisorId = supervisorResource.getKey();

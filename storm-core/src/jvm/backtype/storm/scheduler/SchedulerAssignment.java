@@ -17,6 +17,7 @@
  */
 package backtype.storm.scheduler;
 
+import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
 
@@ -43,7 +44,7 @@ public interface SchedulerAssignment {
     public String getTopologyId();
 
     /**
-     * get the executor -&gt; slot map.
+     * get the executor -> slot map.
      * @return
      */
     public Map<ExecutorDetails, WorkerSlot> getExecutorToSlot();
@@ -55,4 +56,6 @@ public interface SchedulerAssignment {
     public Set<ExecutorDetails> getExecutors();
     
     public Set<WorkerSlot> getSlots();
+
+    public Map<WorkerSlot, Collection<ExecutorDetails>> getSlotToExecutors();
 }

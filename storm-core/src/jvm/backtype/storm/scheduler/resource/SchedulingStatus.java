@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
+ * <p>
  * http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -16,22 +16,25 @@
  * limitations under the License.
  */
 
-package backtype.storm.scheduler.resource.strategies;
+package backtype.storm.scheduler.resource;
 
-import java.util.Collection;
-import java.util.Map;
+import java.util.EnumSet;
 
-import backtype.storm.scheduler.Topologies;
-import backtype.storm.scheduler.ExecutorDetails;
-import backtype.storm.scheduler.TopologyDetails;
-import backtype.storm.scheduler.WorkerSlot;
-import backtype.storm.scheduler.resource.RAS_Node;
+public enum SchedulingStatus {
+    SUCCESS,
+    FAIL_NOT_ENOUGH_RESOURCES,
+    FAIL_INVALID_TOPOLOGY,
+    FAIL_OTHER;
 
-/**
- * An interface to for implementing different scheduling strategies for the resource aware scheduling
- * In the future stategies will be pluggable
- */
-public interface IStrategy {
+    public static EnumSet<SchedulingStatus> success = EnumSet.of(SUCCESS);
+    public static EnumSet<SchedulingStatus> failure = EnumSet.of(FAIL_INVALID_TOPOLOGY, FAIL_NOT_ENOUGH_RESOURCES, FAIL_OTHER);
 
-    public Map<WorkerSlot, Collection<ExecutorDetails>> schedule(TopologyDetails td);
+    public static boolean isStatusSuccess(SchedulingStatus status) {
+        return success.contains(status);
+    }
+
+    public static boolean isStatusFailure(SchedulingStatus status) {
+        return failure.contains(status);
+    }
+
 }

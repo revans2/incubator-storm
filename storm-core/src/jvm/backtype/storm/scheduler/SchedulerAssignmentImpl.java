@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -38,7 +39,7 @@ public class SchedulerAssignmentImpl implements SchedulerAssignment {
     
     public SchedulerAssignmentImpl(String topologyId, Map<ExecutorDetails, WorkerSlot> executorToSlots) {
         this.topologyId = topologyId;
-        this.executorToSlot = new HashMap<ExecutorDetails, WorkerSlot>(0);
+        this.executorToSlot = new HashMap<>(0);
         if (executorToSlots != null) {
             this.executorToSlot.putAll(executorToSlots);
         }
@@ -46,13 +47,11 @@ public class SchedulerAssignmentImpl implements SchedulerAssignment {
 
     @Override
     public Set<WorkerSlot> getSlots() {
-        return new HashSet(executorToSlot.values());
+        return new HashSet<>(executorToSlot.values());
     }    
     
     /**
      * Assign the slot to executors.
-     * @param slot
-     * @param executors
      */
     public void assign(WorkerSlot slot, Collection<ExecutorDetails> executors) {
         for (ExecutorDetails executor : executors) {
@@ -62,10 +61,9 @@ public class SchedulerAssignmentImpl implements SchedulerAssignment {
     
     /**
      * Release the slot occupied by this assignment.
-     * @param slot
      */
     public void unassignBySlot(WorkerSlot slot) {
-        List<ExecutorDetails> executors = new ArrayList<ExecutorDetails>();
+        List<ExecutorDetails> executors = new ArrayList<>();
         for (ExecutorDetails executor : this.executorToSlot.keySet()) {
             WorkerSlot ws = this.executorToSlot.get(executor);
             if (ws.equals(slot)) {
@@ -80,9 +78,8 @@ public class SchedulerAssignmentImpl implements SchedulerAssignment {
     }
 
     /**
-     * Does this slot occupied by this assignment?
      * @param slot
-     * @return
+     * @return true if slot is occupied by this assignment
      */
     public boolean isSlotOccupied(WorkerSlot slot) {
         return this.executorToSlot.containsValue(slot);
@@ -101,10 +98,22 @@ public class SchedulerAssignmentImpl implements SchedulerAssignment {
     }
 
     /**
-     * Return the executors covered by this assignments
-     * @return
+     * @return the executors covered by this assignments
      */
     public Set<ExecutorDetails> getExecutors() {
         return this.executorToSlot.keySet();
+    }
+
+    public Map<WorkerSlot, Collection<ExecutorDetails>> getSlotToExecutors() {
+        Map<WorkerSlot, Collection<ExecutorDetails>> ret = new HashMap<WorkerSlot, Collection<ExecutorDetails>>();
+        for (Map.Entry<ExecutorDetails, WorkerSlot> entry : executorToSlot.entrySet()) {
+            ExecutorDetails exec = entry.getKey();
+            WorkerSlot ws = entry.getValue();
+            if (!ret.containsKey(ws)) {
+                ret.put(ws, new LinkedList<ExecutorDetails>());
+            }
+            ret.get(ws).add(exec);
+        }
+        return ret;
     }
 }
