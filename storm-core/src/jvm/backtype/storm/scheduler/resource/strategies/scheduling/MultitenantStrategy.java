@@ -1,4 +1,4 @@
-package backtype.storm.scheduler.resource.strategies;
+package backtype.storm.scheduler.resource.strategies.scheduling;
 
 import java.util.Map;
 
@@ -19,10 +19,6 @@ public class MultitenantStrategy implements IStrategy{
      */
     @Override
     public void prepare(ClusterStateData clusterStateData) {
-        throw new IllegalStateException();
-    }
-
-    public void prepare(Topologies topologies, Cluster cluster, Map<String, User> userMap, RAS_Nodes nodes) {
         throw new IllegalStateException();
     }
 

@@ -22,7 +22,7 @@ import backtype.storm.scheduler.Topologies;
 import backtype.storm.scheduler.TopologyDetails;
 import backtype.storm.scheduler.WorkerSlot;
 import backtype.storm.scheduler.resource.ResourceAwareScheduler;
-import backtype.storm.scheduler.resource.strategies.MultitenantStrategy;
+import backtype.storm.scheduler.resource.strategies.scheduling.MultitenantStrategy;
 import backtype.storm.scheduler.resource.strategies.scheduling.DefaultResourceAwareStrategy;
 import backtype.storm.scheduler.multitenant.MultitenantScheduler;
 import backtype.storm.scheduler.multitenant.Node;

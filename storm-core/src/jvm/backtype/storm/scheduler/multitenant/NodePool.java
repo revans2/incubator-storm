@@ -30,6 +30,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import backtype.storm.scheduler.resource.strategies.scheduling.MultitenantStrategy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -328,7 +329,7 @@ public abstract class NodePool {
    * @return
    */
   public Boolean isTopologyScheduledByMultitenant(TopologyDetails td) {
-      return ((backtype.storm.scheduler.resource.strategies.MultitenantStrategy.class.getName().equals(td.getTopologyStrategy())) 
+      return ((MultitenantStrategy.class.getName().equals(td.getTopologyStrategy()))
               || (td.getTopologyStrategy() == null));
   }
 }

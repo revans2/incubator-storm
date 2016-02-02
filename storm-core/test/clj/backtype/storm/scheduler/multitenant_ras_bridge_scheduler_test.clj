@@ -15,7 +15,7 @@
   (:import [backtype.storm.scheduler.bridge MultitenantResourceAwareBridgeScheduler])
   (:import [java.util HashMap]))
 
-(def MULTITENANT-SCHEDULER (Class/forName "backtype.storm.scheduler.resource.strategies.MultitenantStrategy"))
+(def MULTITENANT-SCHEDULER (Class/forName "backtype.storm.scheduler.resource.strategies.scheduling.MultitenantStrategy"))
 (def RESOURCE-AWARE-SCHEDULER (Class/forName "backtype.storm.scheduler.resource.strategies.scheduling.DefaultResourceAwareStrategy"))
 
 (defn gen-supervisors [count ports]
