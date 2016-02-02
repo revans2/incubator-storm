@@ -193,8 +193,8 @@ For example:
 
 |User|Resource Guarantee|Resource Allocated|
 |----|------------------|------------------|
-|A|<10 CPU, 50GB>|<2 CPU, 40 GB>|
-|B|< 20 CPU, 25GB>|<15 CPU, 10 GB>|
+|A|< 10 CPU, 50GB >|< 2 CPU, 40 GB >|
+|B|< 20 CPU, 25GB >|< 15 CPU, 10 GB >|
 
 User A’s average percentage satisfied of resource guarantee: 
 
