@@ -110,10 +110,10 @@ public class MultitenantScheduler implements IScheduler {
     LOG.debug("adding nodes {} from default pool to nodesRasCanUse", Node.getNodesDebugInfo(defaultPool.getNodesInPool()));
     this.nodesRasCanUse.addAll(defaultPool.getNodesInPool());
 
-    LOG.info("adding nodes {} from free pool to nodesRasCanUse", Node.getNodesDebugInfo(freePool.getNodesInPool()));
+    LOG.debug("adding nodes {} from free pool to nodesRasCanUse", Node.getNodesDebugInfo(freePool.getNodesInPool()));
     this.nodesRasCanUse.addAll(freePool.getNodesInPool());
 
-    LOG.info("nodes RAS can use: {}", Node.getNodesDebugInfo(this.nodesRasCanUse));
+    LOG.debug("nodes RAS can use: {}", Node.getNodesDebugInfo(this.nodesRasCanUse));
     LOG.debug("Scheduling done...");
   }
 
