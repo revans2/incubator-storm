@@ -82,7 +82,7 @@ public class MultitenantResourceAwareBridgeScheduler implements IScheduler{
         this.printClusterInfo(cluster);
 
         LOG.debug("/* Translating to RAS cluster */");
-        LOG.info("nodesRASCanUse: {}", Node.getNodesDebugInfo(multitenantScheduler.getNodesRASCanUse().values()));
+        LOG.debug("nodesRASCanUse: {}", Node.getNodesDebugInfo(multitenantScheduler.getNodesRASCanUse().values()));
         Cluster rasCluster = translateToRASCluster(cluster, rasTopologies, topologies,
                 multitenantScheduler.getNodesRASCanUse());
 
