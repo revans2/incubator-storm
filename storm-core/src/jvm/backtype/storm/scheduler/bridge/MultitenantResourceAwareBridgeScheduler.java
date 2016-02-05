@@ -49,7 +49,7 @@ public class MultitenantResourceAwareBridgeScheduler implements IScheduler{
 
     @Override
     public void schedule(Topologies topologies, Cluster cluster) {
-        LOG.info("\n\n\n/** Rerunning CombinedScheduler... **/");
+        LOG.debug("\n\n\n/** Rerunning CombinedScheduler... **/");
         this.printScheduling(cluster, topologies);
         
         LOG.debug("/* dividing topologies */");
