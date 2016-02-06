@@ -260,6 +260,7 @@
             (rmr (worker-heartbeats-root conf id))
             ;; this avoids a race condition with worker or subprocess writing pid around same time
             (rmpath (worker-pids-root conf id))
+            (rmpath (worker-tmp-root conf id))
             (rmr (worker-root conf id))))
         (remove-worker-user! conf id)
         (remove-dead-worker id)
@@ -409,6 +410,7 @@
                         " with id "
                         id)
                       (local-mkdirs (worker-pids-root conf id))
+                      (local-mkdirs (worker-tmp-root conf id))
                       (local-mkdirs (worker-heartbeats-root conf id))
                       (launch-worker supervisor
                         (:storm-id assignment)
@@ -1017,6 +1019,7 @@
           storm-home (System/getProperty "storm.home")
           storm-options (System/getProperty "storm.options")
           storm-conf-file (System/getProperty "storm.conf.file")
+          worker-tmp-dir (worker-tmp-root conf worker-id)
           storm-log-dir (or (System/getProperty "storm.log.dir") (str storm-home file-path-separator "logs"))
           storm-conf (read-storm-config)
           storm-log-conf-dir (storm-conf "storm.logback.conf.dir")
@@ -1074,6 +1077,7 @@
                      (str "-Dstorm.conf.file=" storm-conf-file)
                      (str "-Dstorm.options=" storm-options)
                      (str "-Dstorm.log.dir=" storm-log-dir)
+                     (str "-Djava.io.tmpdir=" worker-tmp-dir)
                      (str "-Dworkers.artifacts=" workers-artifacts)
                      (str "-Dlogging.sensitivity=" logging-sensitivity)
                      (str "-Dlog4j.configurationFile=" storm-logback-conf-dir file-path-separator "worker.xml")
