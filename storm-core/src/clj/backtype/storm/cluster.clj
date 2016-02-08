@@ -36,7 +36,8 @@
 
 (defnk mk-distributed-cluster-state
   [conf :auth-conf nil :acls nil :context (ClusterStateContext.)]
-  (let [clazz (Class/forName (or (conf STORM-CLUSTER-STATE-STORE)
+  (let [clazz (Class/forName (or (if (= (conf STORM-CLUSTER-STATE-STORE) "pacemaker")
+                                   "org.apache.storm.pacemaker.pacemaker_state_factory")
                                  "backtype.storm.cluster_state.zookeeper_state_factory"))
         state-instance (.newInstance clazz)]
     (log-debug "Creating cluster state: " (.toString clazz))

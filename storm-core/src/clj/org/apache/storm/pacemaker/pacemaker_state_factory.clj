@@ -21,28 +21,136 @@
              [config :refer :all]
              [cluster :refer :all]
              [log :refer :all]
+             [timer :refer :all]
+             [converter :refer :all]
              [util :as util]])
   (:import [backtype.storm.generated
             HBExecutionException HBNodes HBRecords
-            HBServerMessageType HBMessage HBMessageData HBPulse]
+            HBServerMessageType HBMessage HBMessageData HBPulse
+            ClusterWorkerHeartbeat]
            [backtype.storm.cluster_state zookeeper_state_factory]
            [backtype.storm.cluster ClusterState]
+           [backtype.storm.utils Utils]
            [org.apache.storm.pacemaker PacemakerClient])
   (:gen-class
    :implements [backtype.storm.cluster.ClusterStateFactory]))
 
+(def pacemaker-client-pool (atom []))
+
+(defn- maybe-deserialize
+  [ser clazz]
+  (when ser
+    (Utils/deserialize ser clazz)))
+
+(defn clojurify-details [details]
+  (clojurify-zk-worker-hb (maybe-deserialize details ClusterWorkerHeartbeat)))
+
+(defn get-wk-hb-time-secs-pair
+  [details-set]
+  (into []
+    (for [details details-set]
+      (let [_ (log-message "ret-whb" details)
+            wk-hb (if details
+                    (clojurify-details details))
+            time-secs (:time-secs wk-hb)]
+        [time-secs details]))))
+
 ;; So we can mock the client for testing
-(defn makeClient [conf]
-  (PacemakerClient. conf))
+(defn makeClientPool [conf]
+  (dosync
+    (let [servers (conf PACEMAKER-SERVERS)]
+      (reset! pacemaker-client-pool (for [host servers]
+                                      (try
+                                        (PacemakerClient. conf host)
+                                        (catch Exception exp
+                                          (log-message "Error attempting connection to host" host))
+                                        ))))))
 
 (defn makeZKState [conf auth-conf acls context]
   (.mkState (zookeeper_state_factory.) conf auth-conf acls context))
 
 (def max-retries 10)
 
+(defn- delete-worker-hb  [path pacemaker-client]
+  (util/retry-on-exception
+    max-retries
+    "delete-worker-hb"
+    #(let [response
+           (.send pacemaker-client
+                  (HBMessage. HBServerMessageType/DELETE_PATH
+                              (HBMessageData/path path)))]
+       (if (= (.get_type response) HBServerMessageType/DELETE_PATH_RESPONSE)
+         :ok
+         (throw (HBExecutionException. "Invalid Response Type"))))))
+
+(defn- get-worker-hb [path pacemaker-client]
+  (util/retry-on-exception
+    max-retries
+    "get-worker-hb"
+    #(let [response (.send pacemaker-client
+                           (HBMessage. HBServerMessageType/GET_PULSE
+                                       (HBMessageData/path path)))]
+       (if (= (.get_type response) HBServerMessageType/GET_PULSE_RESPONSE)
+         (try
+           (.get_details (.get_pulse (.get_data response)))
+           (catch Exception e
+             (throw (HBExecutionException. (.toString e)))))
+         (throw (HBExecutionException. "Invalid Response Type"))))))
+
+(defn- get-worker-hb-children [path pacemaker-client]
+  (util/retry-on-exception
+    max-retries
+    "get_worker_hb_children"
+    #(let [response
+           (.send pacemaker-client
+             (HBMessage. HBServerMessageType/GET_ALL_NODES_FOR_PATH
+               (HBMessageData/path path)))]
+       (if (= (.get_type response) HBServerMessageType/GET_ALL_NODES_FOR_PATH_RESPONSE)
+         (try
+           (into [] (.get_pulseIds (.get_nodes (.get_data response))))
+           (catch Exception e
+             (throw (HBExecutionException. (.toString e)))))
+         (throw (HBExecutionException. "Invalid Response Type"))))))
+
+(defn delete-stale-heartbeats []
+  (doseq [pacemaker-client pacemaker-client-pool]
+    (if (not (nil? pacemaker-client))
+      (let [hb-paths (get-worker-hb-children WORKERBEATS-SUBTREE pacemaker-client)
+          _ (log-message "heartbeat paths" hb-paths)]
+      (doseq [path hb-paths]
+        (let [wk-hb (clojurify-details (get-worker-hb path pacemaker-client))]
+          (when (> 60 (- (util/current-time-secs) (:time-secs wk-hb)))
+            (log-message "deleting" wk-hb "path" path)
+            (delete-worker-hb path pacemaker-client))))))))
+
+(defn launch-client-pool-refresh-thread [conf]
+  (let [timer (mk-timer :kill-fn (fn [t]
+                                   (log-error t "Error when processing event")
+                                   (util/exit-process! 20 "Error when processing an event")
+                                   ))]
+    (schedule-recurring timer
+                        0
+                        120 ;; do we want to change this into a config
+                        (fn []
+                          (makeClientPool conf)))))
+
+(defn launch-cleanup-hb-thread [conf]
+  (let [timer (mk-timer :kill-fn (fn [t]
+                                   (log-error t "Error when processing event")
+                                   (util/exit-process! 20 "Error when processing an event")
+                                   ))]
+    (schedule-recurring timer
+                        0
+                        120 ;; do we want to change this into a config
+                        (fn []
+                          (delete-stale-heartbeats conf)))))
+
 (defn -mkState [this conf auth-conf acls context]
   (let [zk-state (makeZKState conf auth-conf acls context)
-        pacemaker-client (makeClient conf)]
+        _ (launch-client-pool-refresh-thread conf)
+        _ (launch-cleanup-hb-thread conf)
+        servers (conf PACEMAKER-SERVERS)
+        num-servers (.length servers)]
 
     (reify
       ClusterState
@@ -65,7 +173,9 @@
          max-retries
          "set_worker_hb"
          #(let [response
-                (.send pacemaker-client
+                ;; connecting to a single client, might want to
+                ;; remove once reimplemented
+                (.send (nth @pacemaker-client-pool 0)
                        (HBMessage. HBServerMessageType/SEND_PULSE
                                    (HBMessageData/pulse
                                     (doto (HBPulse.)
@@ -76,47 +186,45 @@
               (throw (HBExecutionException. "Invalid Response Type"))))))
 
       (delete_worker_hb [this path]
-        (util/retry-on-exception
-         max-retries
-         "delete_worker_hb"
-         #(let [response
-                (.send pacemaker-client
-                       (HBMessage. HBServerMessageType/DELETE_PATH
-                                   (HBMessageData/path path)))]
-            (if (= (.get_type response) HBServerMessageType/DELETE_PATH_RESPONSE)
-              :ok
-              (throw (HBExecutionException. "Invalid Response Type"))))))
-      
+        ;; connecting to a single client, might want to
+        ;; remove once reimplemented
+        (delete-worker-hb path (nth @pacemaker-client-pool 0)))
+
+      ;; aggregating worker heartbeat details
       (get_worker_hb [this path watch?]
-        (util/retry-on-exception
-         max-retries
-         "get_worker_hb"
-         #(let [response
-                (.send pacemaker-client
-                       (HBMessage. HBServerMessageType/GET_PULSE
-                                   (HBMessageData/path path)))]
-            (if (= (.get_type response) HBServerMessageType/GET_PULSE_RESPONSE)
-              (try 
-                (.get_details (.get_pulse (.get_data response)))
-                (catch Exception e
-                  (throw (HBExecutionException. (.toString e)))))
-              (throw (HBExecutionException. "Invalid Response Type"))))))
-      
+        (let [count 0
+              _ (log-message "servers" num-servers)
+              _ (log-message "client" (nth @pacemaker-client-pool count))
+              details-set (try
+                            (into #{}
+                              (for [pacemaker-client @pacemaker-client-pool]
+                                (get-worker-hb path pacemaker-client)))
+                                (catch Exception e
+                                  ;; try for other servers, if it does not connect to any
+                                  ;; of the servers throw exception
+                                  (if (= (inc count) num-servers)
+                                    (throw e))))
+              _ (log-message "details set" details-set)
+              wk-hb-time-secs-pair (get-wk-hb-time-secs-pair details-set)
+              sorted-map (into {} (sort-by first wk-hb-time-secs-pair))]
+          (last (vals sorted-map))))
+
+      ;; aggregating worker heartbeat children across all servers
       (get_worker_hb_children [this path watch?]
-        (util/retry-on-exception
-         max-retries
-         "get_worker_hb_children"
-         #(let [response
-                (.send pacemaker-client
-                       (HBMessage. HBServerMessageType/GET_ALL_NODES_FOR_PATH
-                                   (HBMessageData/path path)))]
-            (if (= (.get_type response) HBServerMessageType/GET_ALL_NODES_FOR_PATH_RESPONSE)
-              (try
-                (into [] (.get_pulseIds (.get_nodes (.get_data response))))
-                (catch Exception e
-                  (throw (HBExecutionException. (.toString e)))))
-              (throw (HBExecutionException. "Invalid Response Type"))))))
-      
+        (let [count 0
+              hb-paths (try
+                         (into []
+                           (for [pacemaker-client @pacemaker-client-pool]
+                             (get-worker-hb-children path pacemaker-client)))
+                         (catch Exception e
+                           ;; try for other servers, if it does not connect to any
+                           ;; of the servers throw exception
+                           (if (= (inc count) num-servers)
+                             (throw e))))]
+            (into[]
+              (set (flatten hb-paths)))))
+
       (close [this]
         (.close zk-state)
-        (.close pacemaker-client)))))
+        (for [pacemaker-client @pacemaker-client-pool]
+          (.close pacemaker-client))))))
