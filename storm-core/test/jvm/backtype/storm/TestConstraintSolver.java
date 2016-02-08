@@ -113,6 +113,8 @@ public class TestConstraintSolver {
     config.put(Config.TOPOLOGY_CONSTRAINTS_MAX_DEPTH_TRAVERSAL, MAX_TRAVERSAL_DEPTH);
     config.put(Config.TOPOLOGY_SUBMITTER_USER, TOPOLOGY_SUBMITTER);
     config.put(Config.TOPOLOGY_WORKERS, NUM_WORKERS);
+    config.put(Config.TOPOLOGY_WORKER_MAX_HEAP_SIZE_MB, 100000);
+    config.put(Config.TOPOLOGY_PRIORITY, 1);
 
     TopologyDetails topo = getTopology(config, 5, 15, 15, 30);
     Map<String, TopologyDetails> topoMap = new HashMap<String, TopologyDetails>();
@@ -139,7 +141,7 @@ public class TestConstraintSolver {
     addContraints("bolt-1", "bolt-1", constraints);
     addContraints("bolt-1", "bolt-2", constraints);
 
-    List<String> spread = new LinkedList<String>();
+      List<String> spread = new LinkedList<String>();
     spread.add("spout-0");
     spread.add("spout-1");
 
@@ -153,13 +155,15 @@ public class TestConstraintSolver {
     config.put(Config.TOPOLOGY_CONSTRAINTS_MAX_DEPTH_TRAVERSAL, MAX_TRAVERSAL_DEPTH);
     config.put(Config.TOPOLOGY_SUBMITTER_USER, TOPOLOGY_SUBMITTER);
     config.put(Config.TOPOLOGY_WORKERS, NUM_WORKERS);
+    config.put(Config.TOPOLOGY_WORKER_MAX_HEAP_SIZE_MB, 100000);
+    config.put(Config.TOPOLOGY_PRIORITY, 1);
 
     TopologyDetails topo = getTopology(config, 5, 15, 15, 30);
 
     List<Node> nodes = getNodes(genSupervisors(NUM_SUPS, NUM_WORKERS_PER_SUP));
 
     ConstraintSolverForMultitenant cs = new ConstraintSolverForMultitenant(topo, NUM_WORKERS, new HashSet<Node>(nodes));
-    Map<ExecutorDetails, WorkerSlot> results = cs.findScheduling();
+      Map<ExecutorDetails, WorkerSlot> results = cs.findScheduling();
 
     LOG.info("Results: {}", results);
 

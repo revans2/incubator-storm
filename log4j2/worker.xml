@@ -55,7 +55,7 @@
     <Syslog name="syslog" format="RFC5424" charset="UTF-8" host="localhost" port="514"
         protocol="UDP" appName="[${sys:storm.id}:${sys:worker.port}]" mdcId="mdc" includeMDC="true"
         facility="LOCAL5" enterpriseNumber="18060" newLine="true" exceptionPattern="%rEx{full}"
-        messageId="[${sys:user.name}:${sys:logging.sensitivity}]" id="ystorm" immediateFail="true">
+        messageId="[${sys:user.name}:${sys:logging.sensitivity}]" id="ystorm" immediateFail="true" immediateFlush="true">
         <LoggerFields>
             <KeyValuePair key="ClassName" value="%c{1.}"/>
         </LoggerFields>

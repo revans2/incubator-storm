@@ -127,6 +127,12 @@ file 444 - - lib64/jars/flux-core.pom ../external/flux/flux-core/pom.xml
 file 444 - - lib64/jars/flux-wrappers.jar ../external/flux/flux-wrappers/target/flux-wrappers-$(BASE_VERSION).jar
 file 444 - - lib64/jars/flux-wrappers-sources.jar ../external/flux/flux-wrappers/target/flux-wrappers-$(BASE_VERSION)-sources.jar
 file 444 - - lib64/jars/flux-wrappers.pom ../external/flux/flux-wrappers/pom.xml
+file 444 - - lib64/jars/storm-jdbc.jar ../external/storm-jdbc/target/storm-jdbc-$(BASE_VERSION).jar
+file 444 - - lib64/jars/storm-jdbc-sources.jar ../external/storm-jdbc/target/storm-jdbc-$(BASE_VERSION)-sources.jar
+file 444 - - lib64/jars/storm-jdbc.pom ../external/storm-jdbc/pom.xml
+file 444 - - lib64/jars/storm-metrics.jar ../external/storm-metrics/target/storm-metrics-$(BASE_VERSION).jar
+file 444 - - lib64/jars/storm-metrics-sources.jar ../external/storm-metrics/target/storm-metrics-$(BASE_VERSION)-sources.jar
+file 444 - - lib64/jars/storm-metrics.pom ../external/storm-metrics/pom.xml
 
 file 444 - - lib64/storm/$(BASE_VERSION)/RELEASE ./RELEASE
 file 444 - - lib64/storm/$(BASE_VERSION)/LICENSE ../LICENSE
