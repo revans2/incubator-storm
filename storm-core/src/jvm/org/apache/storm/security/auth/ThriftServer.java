@@ -70,7 +70,7 @@ public class ThriftServer {
             //start accepting requests
             _server.serve();
         } catch (Exception ex) {
-            LOG.error("ThriftServer is being stopped due to: " + ex, ex);
+            LOG.error("Halting Process due to: " + ex, ex);
             if (_server != null) _server.stop();
             Runtime.getRuntime().halt(1); //shutdown server process since we could not handle Thrift requests any more
         }

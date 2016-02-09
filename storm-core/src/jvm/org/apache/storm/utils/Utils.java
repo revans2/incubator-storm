@@ -1211,7 +1211,8 @@ public class Utils {
         if (t != null && t instanceof Error) {
             if (t instanceof OutOfMemoryError) {
                 try {
-                    System.err.println("Halting due to Out Of Memory Error..." + Thread.currentThread().getName());
+                    System.err.println("Halting process due to Out Of Memory Error..." + Thread.currentThread().getName());
+                    System.err.println("OOM "+t);
                 } catch (Throwable err) {
                     //Again we don't want to exit because of logging issues.
                 }

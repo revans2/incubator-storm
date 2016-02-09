@@ -182,7 +182,7 @@ public class Login {
                                 return;
                             }
                         } else {
-                            LOG.error("nextRefresh:" + new Date(nextRefresh) + " is in the past: exiting refresh thread. Check"
+                            LOG.error("Halting Process: nextRefresh:" + new Date(nextRefresh) + " is in the past: exiting refresh thread. Check"
                                 + " clock sync between this host and KDC - (KDC's clock is likely ahead of this host)."
                                 + " Manual intervention will be required for this client to successfully authenticate."
                                 + " Exiting worker!.");
@@ -339,7 +339,7 @@ public class Login {
             try {
                 Thread.sleep(MIN_TIME_BEFORE_RELOGIN - (now - getLastLogin()));
             } catch (InterruptedException e) {
-                LOG.warn("TGT renewal thread has been interrupted and will exit.");
+                LOG.error("Halting Process: TGT renewal thread has been interrupted and will exit.");
                 Runtime.getRuntime().exit(-2);
             }
         }

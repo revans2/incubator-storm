@@ -28,7 +28,7 @@ public class NettyUncaughtExceptionHandler implements Thread.UncaughtExceptionHa
         try {
             Utils.handleUncaughtException(e);
         } catch (Error error) {
-            LOG.info("Received error in netty thread.. terminating server...");
+            LOG.error("Halting Process: Received error in netty thread..", error);
             Runtime.getRuntime().exit(1);
         }
     }
