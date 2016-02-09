@@ -27,13 +27,12 @@
 (defmacro with-mock-pacemaker-client-and-state [client state conf response & body]
   `(let [~client (make-send-capture ~response)]
      (stubbing [psf/makeZKState nil
-                psf/makeClientPool nil
-                psf/launch-client-pool-refresh-thread nil
                 psf/launch-cleanup-hb-thread nil
-                psf/clojurify-details {:time-secs 1056}]
+                psf/clojurify-details {:time-secs 1056}
+                psf/try-reconnect nil
+                psf/get-clients [~client]]
                (let [~conf {"pacemaker.servers" ["host"]}
                      ~state (psf/-mkState nil ~conf nil nil (ClusterStateContext.))]
-                 (reset! psf/pacemaker-client-pool [~client])
                  ~@body))))
 
 (deftest pacemaker_state_set_worker_hb

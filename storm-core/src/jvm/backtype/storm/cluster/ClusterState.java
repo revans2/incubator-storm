@@ -20,8 +20,6 @@ package backtype.storm.cluster;
 import clojure.lang.APersistentMap;
 import clojure.lang.IFn;
 import java.util.List;
-
-import org.apache.storm.pacemaker.PacemakerClient;
 import org.apache.zookeeper.data.ACL;
 
 /**
