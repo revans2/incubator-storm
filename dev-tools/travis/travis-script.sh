@@ -27,8 +27,13 @@ export STORM_TEST_TIMEOUT_MS=150000
 # Travis only has 3GB of memory, lets use 1GB for build, and 1.5GB for forked JVMs
 #export MAVEN_OPTS="-Xmx1024m"
 
-mvn --batch-mode test -fae -Pnative,all-tests -Prat -pl "$2" -Dtest=org.apache.storm.nimbus-test -DfailIfNoTests=false
+python ${TRAVIS_SCRIPT_DIR}/save-logs.py "test.txt" mvn --batch-mode test -fae -Pnative,all-tests -Prat -pl "$2"
 BUILD_RET_VAL=$?
+
+if [[ "$BUILD_RET_VAL" != "0" ]];
+then
+  tail -1000 "test.txt"
+fi
 
 for dir in `find . -type d -and -wholename \*/target/\*-reports`;
 do
