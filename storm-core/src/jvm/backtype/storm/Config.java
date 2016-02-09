@@ -927,7 +927,6 @@ public class Config extends HashMap<String, Object> {
      * The host that Pacemaker is running on.
      */
     @isString
-    @isBoolean
     public static final String PACEMAKER_HOST = "pacemaker.host";
 
     /**

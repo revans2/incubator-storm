@@ -43,13 +43,14 @@
     (Utils/deserialize ser clazz)))
 
 (defn clojurify-details [details]
-  (clojurify-zk-worker-hb (maybe-deserialize details ClusterWorkerHeartbeat)))
+  (if details
+    (clojurify-zk-worker-hb (maybe-deserialize details ClusterWorkerHeartbeat))))
 
 (defn get-wk-hb-time-secs-pair
   [details-set]
   (into []
     (for [details details-set]
-      (let [_ (log-message "ret-whb" details)
+      (let [_ (log-debug "details" details)
             wk-hb (if details
                     (clojurify-details details))
             time-secs (:time-secs wk-hb)]
@@ -63,8 +64,7 @@
                                       (try
                                         (PacemakerClient. conf host)
                                         (catch Exception exp
-                                          (log-message "Error attempting connection to host" host))
-                                        ))))))
+                                          (log-message "Error attempting connection to host" host))))))))
 
 (defn makeZKState [conf auth-conf acls context]
   (.mkState (zookeeper_state_factory.) conf auth-conf acls context))
@@ -103,8 +103,8 @@
     "get_worker_hb_children"
     #(let [response
            (.send pacemaker-client
-             (HBMessage. HBServerMessageType/GET_ALL_NODES_FOR_PATH
-               (HBMessageData/path path)))]
+                  (HBMessage. HBServerMessageType/GET_ALL_NODES_FOR_PATH
+                              (HBMessageData/path path)))]
        (if (= (.get_type response) HBServerMessageType/GET_ALL_NODES_FOR_PATH_RESPONSE)
          (try
            (into [] (.get_pulseIds (.get_nodes (.get_data response))))
@@ -113,15 +113,20 @@
          (throw (HBExecutionException. "Invalid Response Type"))))))
 
 (defn delete-stale-heartbeats []
-  (doseq [pacemaker-client pacemaker-client-pool]
+  (doseq [pacemaker-client @pacemaker-client-pool]
     (if (not (nil? pacemaker-client))
-      (let [hb-paths (get-worker-hb-children WORKERBEATS-SUBTREE pacemaker-client)
-          _ (log-message "heartbeat paths" hb-paths)]
-      (doseq [path hb-paths]
-        (let [wk-hb (clojurify-details (get-worker-hb path pacemaker-client))]
-          (when (> 60 (- (util/current-time-secs) (:time-secs wk-hb)))
-            (log-message "deleting" wk-hb "path" path)
-            (delete-worker-hb path pacemaker-client))))))))
+      (let [storm-ids (get-worker-hb-children WORKERBEATS-SUBTREE pacemaker-client)
+          _ (log-debug "storm ids" storm-ids)]
+        (doseq [id storm-ids]
+          (let[hb-paths (get-worker-hb-children
+                          (str WORKERBEATS-SUBTREE "/" id) pacemaker-client)
+               _ (log-debug "hb-paths" hb-paths)]
+            (doseq [path hb-paths]
+              (let [wk-hb (clojurify-details (get-worker-hb path pacemaker-client))
+                    _ (log-debug "wk-hb" wk-hb)]
+                (when (and wk-hb (> 60 (- (util/current-time-secs) (:time-secs wk-hb))))
+                  (log-message "deleting" wk-hb "path" path)
+                  (delete-worker-hb path pacemaker-client))))))))))
 
 (defn launch-client-pool-refresh-thread [conf]
   (let [timer (mk-timer :kill-fn (fn [t]
@@ -143,7 +148,7 @@
                         0
                         120 ;; do we want to change this into a config
                         (fn []
-                          (delete-stale-heartbeats conf)))))
+                          (delete-stale-heartbeats)))))
 
 (defn -mkState [this conf auth-conf acls context]
   (let [zk-state (makeZKState conf auth-conf acls context)
@@ -193,8 +198,6 @@
       ;; aggregating worker heartbeat details
       (get_worker_hb [this path watch?]
         (let [count 0
-              _ (log-message "servers" num-servers)
-              _ (log-message "client" (nth @pacemaker-client-pool count))
               details-set (try
                             (into #{}
                               (for [pacemaker-client @pacemaker-client-pool]
@@ -204,7 +207,7 @@
                                   ;; of the servers throw exception
                                   (if (= (inc count) num-servers)
                                     (throw e))))
-              _ (log-message "details set" details-set)
+              _ (log-debug "details set" details-set)
               wk-hb-time-secs-pair (get-wk-hb-time-secs-pair details-set)
               sorted-map (into {} (sort-by first wk-hb-time-secs-pair))]
           (last (vals sorted-map))))
