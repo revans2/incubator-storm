@@ -436,7 +436,7 @@
                         </goals>
                         <configuration>
                             <junitOutput>true</junitOutput>
-                            <testScript>test/resources/test_runner.clj</testScript>
+                            <!--<testScript>test/resources/test_runner.clj</testScript>-->
                             <!-- argLine is set by JaCoCo for code coverage -->
                             <vmargs>${argLine} ${test.extra.args}</vmargs>
                             <!-- Run clojure unit tests or all tests (including integration tests) depending on the profile enabled -->
