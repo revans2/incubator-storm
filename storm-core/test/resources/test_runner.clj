@@ -26,8 +26,12 @@
 (import `java.io.OutputStreamWriter)
 (import `java.io.PrintStream)
 (import `java.io.PrintWriter)
+(import `org.apache.storm.HackSecurityManager)
+(import `java.lang.System)
 (use 'clojure.test)
 (use 'clojure.test.junit)
+
+(System/setSecurityManager (HackSecurityManager. ))
 
 (def props (Properties.))
 (.load props (FileInputStream. (first *command-line-args*)))
