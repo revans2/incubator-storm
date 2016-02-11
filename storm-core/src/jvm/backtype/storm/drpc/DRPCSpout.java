@@ -184,6 +184,8 @@ public class DRPCSpout extends BaseRichSpout {
                     client = _clients.get(i);
                 }
                 if (!client.isConnected()) {
+                    LOG.warn("DRPCInvocationsClient [{}:{}] is not connected.", client.getHost(), client.getPort());
+                    reconnect(client);
                     continue;
                 }
                 try {
