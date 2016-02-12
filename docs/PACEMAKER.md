@@ -9,7 +9,7 @@ The following are the ones that must be set to get pacemaker working:
 
  * `pacemaker.host` - The host your Pacemaker instance is running on
 
- * `storm.cluster.state.store` - Must be set to `"org.apache.storm.pacemaker.pacemaker-state-factory"`
+ * `storm.cluster.state.store` - Must be set to `"org.apache.storm.pacemaker.pacemaker_state_factory"`
  * `pacemaker.auth.method` - Can be `"DIGEST"` or `"KERBEROS"` on the server. Client must match server or be `"NONE"` (further explanation below)
  * `java.security.auth.login.config` - Must be a JAAS conf with the proper sections.
 

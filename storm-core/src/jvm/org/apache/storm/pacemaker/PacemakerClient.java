@@ -19,7 +19,6 @@ package org.apache.storm.pacemaker;
 
 import backtype.storm.Config;
 import backtype.storm.generated.HBMessage;
-import backtype.storm.messaging.netty.Client;
 import backtype.storm.messaging.netty.ISaslClient;
 import backtype.storm.messaging.netty.NettyRenameThreadFactory;
 import backtype.storm.security.auth.AuthUtils;
@@ -61,9 +60,8 @@ public class PacemakerClient implements ISaslClient {
     private StormBoundedExponentialBackoffRetry backoff = new StormBoundedExponentialBackoffRetry(100, 5000, 20);
     private int retryTimes = 0;
     
-    public PacemakerClient(Map config) {
-
-        String host = (String)config.get(Config.PACEMAKER_HOST);
+    public PacemakerClient(Map config, String host) {
+        
         int port = (int)config.get(Config.PACEMAKER_PORT);
         topo_name = (String)config.get(Config.TOPOLOGY_NAME);
         if(topo_name == null) {
@@ -91,7 +89,7 @@ public class PacemakerClient implements ISaslClient {
             if(!auth.equals("NONE")) {
                 LOG.warn("Invalid auth scheme: '{}'. Falling back to 'NONE'", auth);
             }
-            
+
             authMethod = ThriftNettyClientCodec.AuthMethod.NONE;
         }
 
