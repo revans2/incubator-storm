@@ -295,6 +295,8 @@
                                 "-Dstorm.conf.file="
                                 "-Dstorm.options="
                                 (str "-Dstorm.log.dir=" file-path-separator "logs")
+                                (str "-Djava.io.tmpdir=" file-path-separator "storm-local" file-path-separator
+                                     "workers" file-path-separator mock-worker-id file-path-separator "tmp")
                                 (str "-Dworkers.artifacts=" "/tmp/workers-artifacts")
                                 (str "-Dlogging.sensitivity=" mock-sensitivity)
                                 "-Dlog4j.configurationFile=/log4j2/worker.xml"
@@ -447,6 +449,7 @@
                                 " '-Dstorm.conf.file='"
                                 " '-Dstorm.options='"
                                 " '-Dstorm.log.dir=/logs'"
+                                " '-Djava.io.tmpdir=" (str  storm-local "/workers/" mock-worker-id "/tmp'")
                                 " '-Dworkers.artifacts=" (str storm-local "/workers-artifacts'")
                                 " '-Dlogging.sensitivity=" mock-sensitivity "'"
                                 " '-Dlog4j.configurationFile=/log4j2/worker.xml'"
