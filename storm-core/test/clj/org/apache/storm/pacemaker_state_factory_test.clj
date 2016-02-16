@@ -24,21 +24,18 @@
       (send [this something] (reset! captured something) response)
       (check-captured [this] @captured))))
 
-(defmacro with-mock-pacemaker-client-and-state [client state conf response & body]
+(defmacro with-mock-pacemaker-client-and-state [client state response & body]
   `(let [~client (make-send-capture ~response)]
      (stubbing [psf/makeZKState nil
-                psf/launch-cleanup-hb-thread nil
-                psf/clojurify-details {:time-secs 1056}
-                psf/try-reconnect nil
-                psf/get-clients [~client]]
-               (let [~conf {"pacemaker.servers" ["host"]}
-                     ~state (psf/-mkState nil ~conf nil nil (ClusterStateContext.))]
+                psf/makeClient ~client]
+               (let [~state (psf/-mkState nil nil nil nil (ClusterStateContext.))]
                  ~@body))))
+
 
 (deftest pacemaker_state_set_worker_hb
   (testing "set_worker_hb"
     (with-mock-pacemaker-client-and-state
-      client state conf
+      client state
       (HBMessage. HBServerMessageType/SEND_PULSE_RESPONSE nil)
 
       (.set_worker_hb state "/foo" (string-to-bytes "data") nil)
@@ -50,16 +47,18 @@
 
   (testing "set_worker_hb"
     (with-mock-pacemaker-client-and-state
-      client state conf
+      client state
       (HBMessage. HBServerMessageType/SEND_PULSE nil)
 
-      (is (thrown? HBExecutionException
+      (is (thrown? HBExecutionException      
                    (.set_worker_hb state "/foo" (string-to-bytes "data") nil))))))
+
+      
 
 (deftest pacemaker_state_delete_worker_hb
   (testing "delete_worker_hb"
     (with-mock-pacemaker-client-and-state
-      client state conf
+      client state
       (HBMessage. HBServerMessageType/DELETE_PATH_RESPONSE nil)
 
       (.delete_worker_hb state "/foo/bar")
@@ -69,16 +68,16 @@
 
     (testing "delete_worker_hb"
       (with-mock-pacemaker-client-and-state
-        client state conf
+        client state
         (HBMessage. HBServerMessageType/DELETE_PATH nil)
-
+        
         (is (thrown? HBExecutionException
                      (.delete_worker_hb state "/foo/bar"))))))
 
 (deftest pacemaker_state_get_worker_hb
   (testing "get_worker_hb"
     (with-mock-pacemaker-client-and-state
-      client state conf
+      client state
       (HBMessage. HBServerMessageType/GET_PULSE_RESPONSE
                 (HBMessageData/pulse
                  (doto (HBPulse.)
@@ -92,24 +91,24 @@
 
   (testing "get_worker_hb - fail (bad response)"
     (with-mock-pacemaker-client-and-state
-      client state conf
+      client state
       (HBMessage. HBServerMessageType/GET_PULSE nil)
-
+      
       (is (thrown? HBExecutionException
                    (.get_worker_hb state "/foo" false)))))
-
+  
   (testing "get_worker_hb - fail (bad data)"
     (with-mock-pacemaker-client-and-state
-      client state conf
+      client state
       (HBMessage. HBServerMessageType/GET_PULSE_RESPONSE nil)
-
+      
       (is (thrown? HBExecutionException
                    (.get_worker_hb state "/foo" false))))))
 
 (deftest pacemaker_state_get_worker_hb_children
   (testing "get_worker_hb_children"
     (with-mock-pacemaker-client-and-state
-      client state conf
+      client state
       (HBMessage. HBServerMessageType/GET_ALL_NODES_FOR_PATH_RESPONSE
                 (HBMessageData/nodes
                  (HBNodes. [])))
@@ -121,7 +120,7 @@
 
   (testing "get_worker_hb_children - fail (bad response)"
     (with-mock-pacemaker-client-and-state
-      client state conf
+      client state
       (HBMessage. HBServerMessageType/DELETE_PATH nil)
 
       (is (thrown? HBExecutionException
@@ -129,14 +128,8 @@
 
     (testing "get_worker_hb_children - fail (bad data)"
     (with-mock-pacemaker-client-and-state
-      client state conf
+      client state
       (HBMessage. HBServerMessageType/GET_ALL_NODES_FOR_PATH_RESPONSE nil)
-
+      
       (is (thrown? HBExecutionException
                    (.get_worker_hb_children state "/foo" false))))))
-
-(deftest get_worker_hb_time_secs
-  (testing "get_worker_hb_time_secs"
-    (stubbing [psf/clojurify-details {:time-secs 1056}]
-      (let [list (psf/get-wk-hb-time-secs-pair #{"details"})]
-        (is (= list [[1056 "details"]]))))))
