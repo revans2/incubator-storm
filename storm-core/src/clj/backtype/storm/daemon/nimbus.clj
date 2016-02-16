@@ -1290,6 +1290,7 @@
                         (fn []
                           (renew-credentials nimbus)))
 
+
     (defgauge num-supervisors
       (fn [] (.size (.supervisors (:storm-cluster-state nimbus) nil))))
 
