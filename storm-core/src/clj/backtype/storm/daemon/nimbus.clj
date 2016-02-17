@@ -1388,15 +1388,17 @@
       (^void killTopologyWithOpts [this ^String storm-name ^KillOptions options]
         (mark! num-killTopology-calls)
         (check-storm-active! nimbus storm-name true)
-        (let [topology-conf (try-read-storm-conf-from-name conf storm-name nimbus)]
+        (let [topology-conf (try-read-storm-conf-from-name conf storm-name nimbus)
+              storm-id (topology-conf STORM-ID)]
           (check-authorization! nimbus storm-name topology-conf "killTopology")
-        (let [wait-amt (if (.is_set_wait_secs options)
+          (let [wait-amt (if (.is_set_wait_secs options)
                          (.get_wait_secs options)                         
                          )]
-          (transition-name! nimbus storm-name [:kill wait-amt] true)
-          )
-        (add-topology-to-history-log (get-storm-id (:storm-cluster-state nimbus) storm-name)
-          nimbus topology-conf)))
+          (transition-name! nimbus storm-name [:kill wait-amt] true))
+          (log-message "zliu, to call remove backpressure dir for " storm-id)
+          (.remove-backpressure! (:storm-cluster-state nimbus) storm-id)
+          (add-topology-to-history-log (get-storm-id (:storm-cluster-state nimbus) storm-name)
+            nimbus topology-conf)))
 
       (^void rebalance [this ^String storm-name ^RebalanceOptions options]
         (mark! num-rebalance-calls)
