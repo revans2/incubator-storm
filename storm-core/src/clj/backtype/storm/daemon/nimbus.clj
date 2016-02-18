@@ -1395,7 +1395,6 @@
                          (.get_wait_secs options)                         
                          )]
           (transition-name! nimbus storm-name [:kill wait-amt] true))
-          (log-message "zliu, to call remove backpressure dir for " storm-id)
           (.remove-backpressure! (:storm-cluster-state nimbus) storm-id)
           (add-topology-to-history-log (get-storm-id (:storm-cluster-state nimbus) storm-name)
             nimbus topology-conf)))
