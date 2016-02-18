@@ -34,6 +34,8 @@ public class WorkerBackpressureThread extends Thread {
         this.workerData = workerData;
         this.callback = callback;
         this.setName("WorkerBackpressureThread");
+        this.setDaemon(true);
+        this.setUncaughtExceptionHandler(new BackpressureUncaughtExceptionHandler());
     }
 
     static public void notifyBackpressureChecker(Object trigger) {
@@ -54,12 +56,23 @@ public class WorkerBackpressureThread extends Thread {
                 }
                 callback.onEvent(workerData); // check all executors and update zk backpressure throttle for the worker if needed
             }
-        } catch (InterruptedException e) {
-            LOG.info("WorkerBackpressureThread gets interrupted! Exception ignored.");
-        } catch (Throwable t) {
-            LOG.error("Halting Process due to ", t);
-            System.exit(-1);
+        } catch (InterruptedException interEx) {
+            LOG.info("WorkerBackpressureThread gets interrupted! Ignoring Exception: ", interEx);
+        } catch (RuntimeException runEx) {
+            LOG.error("Ignoring the failure in processing backpressure event: ", runEx);
         }
     }
 }
 
+class BackpressureUncaughtExceptionHandler implements Thread.UncaughtExceptionHandler {
+    private static final Logger LOG = LoggerFactory.getLogger(BackpressureUncaughtExceptionHandler.class);
+    @Override
+    public void uncaughtException(Thread t, Throwable e) {
+        try {
+            Utils.handleUncaughtException(e);
+        } catch (Error error) {
+            LOG.info("Received error in WorkerBackpressureThread.. terminating the worker...");
+            Runtime.getRuntime().exit(1);
+        }
+    }
+}
