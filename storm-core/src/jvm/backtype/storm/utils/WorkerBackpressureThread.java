@@ -19,10 +19,12 @@
 
 package backtype.storm.utils;
 
-import java.util.Map;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class WorkerBackpressureThread extends Thread {
 
+    private static final Logger LOG = LoggerFactory.getLogger(WorkerBackpressureThread.class);
     Object trigger;
     Object workerData;
     WorkerBackpressureCallback callback;
@@ -31,6 +33,7 @@ public class WorkerBackpressureThread extends Thread {
         this.trigger = trigger;
         this.workerData = workerData;
         this.callback = callback;
+        this.setName("WorkerBackpressureThread");
     }
 
     static public void notifyBackpressureChecker(Object trigger) {
@@ -51,8 +54,11 @@ public class WorkerBackpressureThread extends Thread {
                 }
                 callback.onEvent(workerData); // check all executors and update zk backpressure throttle for the worker if needed
             }
-        } catch (Exception e) {
-            throw new RuntimeException(e);
+        } catch (InterruptedException e) {
+            LOG.info("WorkerBackpressureThread gets interrupted!");
+        } catch (Throwable t) {
+            LOG.error("Halting Process due to " + t);
+            System.exit(-1);
         }
     }
 }
