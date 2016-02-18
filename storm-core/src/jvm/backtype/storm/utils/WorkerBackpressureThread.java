@@ -55,9 +55,9 @@ public class WorkerBackpressureThread extends Thread {
                 callback.onEvent(workerData); // check all executors and update zk backpressure throttle for the worker if needed
             }
         } catch (InterruptedException e) {
-            LOG.info("WorkerBackpressureThread gets interrupted!");
+            LOG.info("WorkerBackpressureThread gets interrupted! Exception ignored.");
         } catch (Throwable t) {
-            LOG.error("Halting Process due to " + t);
+            LOG.error("Halting Process due to ", t);
             System.exit(-1);
         }
     }

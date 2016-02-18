@@ -73,7 +73,7 @@
   (worker-backpressure! [this storm-id node port info])
   (topology-backpressure [this storm-id callback])
   (setup-backpressure! [this storm-id])
-  (remove-backpressure! [this strom-id])
+  (remove-backpressure! [this storm-id])
   (remove-worker-backpressure! [this storm-id node port])
   (activate-storm! [this storm-id storm-base])
   (update-storm! [this storm-id new-elems])
