@@ -1369,7 +1369,8 @@
               (.set-credentials! storm-cluster-state storm-id credentials total-storm-conf)
               (setup-storm-code conf storm-id uploadedJarLocation total-storm-conf topology (:blob-store nimbus))
               (.setup-heartbeats! storm-cluster-state storm-id)
-              (.setup-backpressure! storm-cluster-state storm-id)
+              (if (total-storm-conf TOPOLOGY-BACKPRESSURE-ENABLE)
+                (.setup-backpressure! storm-cluster-state storm-id))
               (let [thrift-status->kw-status {TopologyInitialStatus/INACTIVE :inactive
                                               TopologyInitialStatus/ACTIVE :active}]
                 (start-storm nimbus storm-name storm-id (thrift-status->kw-status (.get_initial_status submitOptions))))))
@@ -1395,7 +1396,8 @@
                          (.get_wait_secs options)                         
                          )]
           (transition-name! nimbus storm-name [:kill wait-amt] true))
-          (.remove-backpressure! (:storm-cluster-state nimbus) storm-id)
+          (if (topology-conf TOPOLOGY-BACKPRESSURE-ENABLE)
+            (.remove-backpressure! (:storm-cluster-state nimbus) storm-id))
           (add-topology-to-history-log (get-storm-id (:storm-cluster-state nimbus) storm-name)
             nimbus topology-conf)))
 
