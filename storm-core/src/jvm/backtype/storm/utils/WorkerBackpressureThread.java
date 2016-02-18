@@ -49,17 +49,17 @@ public class WorkerBackpressureThread extends Thread {
     }
 
     public void run() {
-        try {
-            while (true) {
+        while (true) {
+            try {
                 synchronized(trigger) {
                     trigger.wait(100);
                 }
                 callback.onEvent(workerData); // check all executors and update zk backpressure throttle for the worker if needed
+            } catch (InterruptedException interEx) {
+                LOG.info("WorkerBackpressureThread gets interrupted! Ignoring Exception: ", interEx);
+            } catch (RuntimeException runEx) {
+                LOG.error("Ignoring the failure in processing backpressure event: ", runEx);
             }
-        } catch (InterruptedException interEx) {
-            LOG.info("WorkerBackpressureThread gets interrupted! Ignoring Exception: ", interEx);
-        } catch (RuntimeException runEx) {
-            LOG.error("Ignoring the failure in processing backpressure event: ", runEx);
         }
     }
 }
