@@ -524,6 +524,16 @@
             (log-debug "Files not present in topology directory")
             (rm-topo-files conf storm-id localizer rm-blob-refs?) storm-id))))))
 
+(defn kill-existing-workers-with-change-in-components [supervisor existing-assignment new-assignment]
+  (let [assigned-executors (defaulted (ls-local-assignments (:local-state supervisor)) {})
+        allocated (read-allocated-workers supervisor assigned-executors (current-time-secs))
+        valid-allocated (filter-val (fn [[state _]] (= state :valid)) allocated)
+        port->worker-id (clojure.set/map-invert (map-val #((nth % 1) :port) valid-allocated))]
+    (doseq [p (set/intersection (set (keys existing-assignment))
+                                (set (keys new-assignment)))]
+      (if (not= (:executors (existing-assignment p)) (:executors (new-assignment p)))
+        (shutdown-worker supervisor (port->worker-id p))))))
+
 (defn mk-synchronize-supervisor [supervisor sync-processes event-manager processes-event-manager]
   (fn this []
     (let [conf (:conf supervisor)
@@ -551,12 +561,7 @@
           existing-assignment (ls-local-assignments local-state)
           localizer (:localizer supervisor)
           checked-downloaded-storm-ids (set (verify-downloaded-files conf localizer assigned-storm-ids all-downloaded-storm-ids))
-          downloaded-storm-ids (set/difference all-downloaded-storm-ids checked-downloaded-storm-ids)
-          assigned-executors (defaulted (ls-local-assignments local-state) {})
-          allocated (read-allocated-workers supervisor assigned-executors (current-time-secs))
-          valid-allocated (filter-val
-                            (fn [[state _]] (= state :valid)) allocated)
-          port->worker-id (clojure.set/map-invert  (map-val #( (nth % 1) :port) valid-allocated))]
+          downloaded-storm-ids (set/difference all-downloaded-storm-ids checked-downloaded-storm-ids)]
       (log-debug "Synchronizing supervisor")
       (log-debug "Storm code map: " storm-local-map)
       (log-debug "All assignment: " all-assignment)
@@ -582,10 +587,7 @@
       (doseq [p (set/difference (set (keys existing-assignment))
                                 (set (keys new-assignment)))]
         (.killedWorker isupervisor (int p)))
-      (doseq [p (set/intersection (set (keys existing-assignment))
-                                  (set (keys new-assignment)))]
-        (if (not= (:executors (existing-assignment p)) (:executors (new-assignment p)))
-          (shutdown-worker supervisor (port->worker-id p))))
+      (kill-existing-workers-with-change-in-components supervisor existing-assignment new-assignment)
       (.assigned isupervisor (keys new-assignment))
       (ls-local-assignments! local-state
             new-assignment)
