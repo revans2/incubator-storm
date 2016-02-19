@@ -17,13 +17,12 @@
  */
 package backtype.storm;
 
-import backtype.storm.container.ResourceIsolationInterface;
+import org.apache.storm.container.ResourceIsolationInterface;
 import backtype.storm.scheduler.resource.strategies.eviction.IEvictionStrategy;
 import backtype.storm.scheduler.resource.strategies.priority.ISchedulingPriorityStrategy;
 import backtype.storm.scheduler.resource.strategies.scheduling.IStrategy;
 import backtype.storm.serialization.IKryoDecorator;
 import backtype.storm.serialization.IKryoFactory;
-import backtype.storm.validation.ConfigValidation;
 import backtype.storm.validation.ConfigValidation.PowerOf2Validator;
 import backtype.storm.validation.ConfigValidation.ImpersonationAclUserEntryValidator;
 import backtype.storm.validation.ConfigValidation.IntegerValidator;
@@ -34,7 +33,6 @@ import backtype.storm.validation.ConfigValidation.PositiveNumberValidator;
 import backtype.storm.validation.ConfigValidation.StringValidator;
 import backtype.storm.validation.ConfigValidation.PacemakerAuthTypeValidator;
 import backtype.storm.validation.ConfigValidation.UserResourcePoolEntryValidator;
-import backtype.storm.validation.ConfigValidationAnnotations;
 import backtype.storm.validation.ConfigValidationAnnotations.CustomValidator;
 import backtype.storm.validation.ConfigValidationAnnotations.NotNull;
 import backtype.storm.validation.ConfigValidationAnnotations.isBoolean;

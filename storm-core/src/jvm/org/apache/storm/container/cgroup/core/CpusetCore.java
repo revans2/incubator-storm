@@ -15,10 +15,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package backtype.storm.container.cgroup.core;
+package org.apache.storm.container.cgroup.core;
 
-import backtype.storm.container.cgroup.CgroupUtils;
-import backtype.storm.container.cgroup.SubSystemType;
+import org.apache.storm.container.cgroup.CgroupUtils;
+import org.apache.storm.container.cgroup.SubSystemType;
 
 import java.io.IOException;
 import java.util.LinkedList;

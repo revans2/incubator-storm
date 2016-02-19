@@ -16,13 +16,12 @@
  * limitations under the License.
  */
 
-package backtype.storm.container.cgroup;
+package org.apache.storm.container.cgroup;
 
-import org.apache.commons.lang.ArrayUtils;
 import backtype.storm.Config;
-import backtype.storm.container.ResourceIsolationInterface;
-import backtype.storm.container.cgroup.core.CpuCore;
-import backtype.storm.container.cgroup.core.MemoryCore;
+import org.apache.storm.container.ResourceIsolationInterface;
+import org.apache.storm.container.cgroup.core.CpuCore;
+import org.apache.storm.container.cgroup.core.MemoryCore;
 import backtype.storm.utils.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

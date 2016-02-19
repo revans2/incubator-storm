@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package backtype.storm.container.cgroup;
+package org.apache.storm.container.cgroup;
 
 /**
  * a class that represents a device in linux

@@ -20,7 +20,7 @@ package backtype.storm;
 
 import org.junit.Assert;
 import org.junit.Assume;
-import backtype.storm.container.cgroup.CgroupManager;
+import org.apache.storm.container.cgroup.CgroupManager;
 import backtype.storm.utils.Utils;
 import org.junit.Test;
 import org.slf4j.Logger;
