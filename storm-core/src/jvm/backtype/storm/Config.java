@@ -17,12 +17,12 @@
  */
 package backtype.storm;
 
+import org.apache.storm.container.ResourceIsolationInterface;
 import backtype.storm.scheduler.resource.strategies.eviction.IEvictionStrategy;
 import backtype.storm.scheduler.resource.strategies.priority.ISchedulingPriorityStrategy;
 import backtype.storm.scheduler.resource.strategies.scheduling.IStrategy;
 import backtype.storm.serialization.IKryoDecorator;
 import backtype.storm.serialization.IKryoFactory;
-import backtype.storm.validation.ConfigValidation;
 import backtype.storm.validation.ConfigValidation.PowerOf2Validator;
 import backtype.storm.validation.ConfigValidation.ImpersonationAclUserEntryValidator;
 import backtype.storm.validation.ConfigValidation.IntegerValidator;
@@ -33,7 +33,6 @@ import backtype.storm.validation.ConfigValidation.PositiveNumberValidator;
 import backtype.storm.validation.ConfigValidation.StringValidator;
 import backtype.storm.validation.ConfigValidation.PacemakerAuthTypeValidator;
 import backtype.storm.validation.ConfigValidation.UserResourcePoolEntryValidator;
-import backtype.storm.validation.ConfigValidationAnnotations;
 import backtype.storm.validation.ConfigValidationAnnotations.CustomValidator;
 import backtype.storm.validation.ConfigValidationAnnotations.NotNull;
 import backtype.storm.validation.ConfigValidationAnnotations.isBoolean;
@@ -2211,6 +2210,72 @@ public class Config extends HashMap<String, Object> {
     @isString
     public static final Object CLIENT_JAR_TRANSFORMER = "client.jartransformer.class";
 
+    /**
+     * The plugin to be used for resource isolation
+     */
+    @isImplementationOfClass(implementsClass = ResourceIsolationInterface.class)
+    public static final Object STORM_RESOURCE_ISOLATION_PLUGIN = "storm.resource.isolation.plugin";
+
+    /**
+     * flag to determine whether to use a resource isolation plugin
+     * Also determines whether the unit tests for cgroup runs.
+     * If storm.resource.isolation.plugin.enable is set to false the unit tests for cgroups will not run
+     */
+    @isBoolean
+    public static final String STORM_RESOURCE_ISOLATION_PLUGIN_ENABLE = "storm.resource.isolation.plugin.enable";
+
+    /**
+     * CGroup Setting below
+     */
+
+    /**
+     * root directory of the storm cgroup hierarchy
+     */
+    @isString
+    public static final Object STORM_CGROUP_HIERARCHY_DIR = "storm.cgroup.hierarchy.dir";
+
+    /**
+     * resources to to be controlled by cgroups
+     */
+    @isStringList
+    public static final Object STORM_CGROUP_RESOURCES = "storm.cgroup.resources";
+
+    /**
+     * name for the cgroup hierarchy
+     */
+    @isString
+    public static final Object STORM_CGROUP_HIERARCHY_NAME = "storm.cgroup.hierarchy.name";
+
+    /**
+     * root directory for cgoups
+     */
+    @isString
+    public static String STORM_SUPERVISOR_CGROUP_ROOTDIR = "storm.supervisor.cgroup.rootdir";
+
+    /**
+     * the manually set memory limit (in MB) for each CGroup on supervisor node
+     */
+    @isPositiveNumber
+    public static String STORM_WORKER_CGROUP_MEMORY_MB_LIMIT = "storm.worker.cgroup.memory.mb.limit";
+
+    /**
+     * the manually set cpu share for each CGroup on supervisor node
+     */
+    @isPositiveNumber
+    public static String STORM_WORKER_CGROUP_CPU_LIMIT = "storm.worker.cgroup.cpu.limit";
+
+    /**
+     * full path to cgexec command
+     */
+    @isString
+    public static String STORM_CGROUP_CGEXEC_CMD = "storm.cgroup.cgexec.cmd";
+
+    /**
+     * The amount of memory a worker can exceed its allocation before cgroup will kill it
+     */
+    @isPositiveNumber
+    public static String STORM_CGROUP_MEMORY_LIMIT_TOLERANCE_MARGIN_MB = "storm.cgroup.memory.limit.tolerance.margin.mb";
+
     public static void setClasspath(Map conf, String cp) {
         conf.put(Config.TOPOLOGY_CLASSPATH, cp);
     }
@@ -2293,7 +2358,8 @@ public class Config extends HashMap<String, Object> {
         m.put("argument", argument);
 
         List l = (List)conf.get(TOPOLOGY_METRICS_CONSUMER_REGISTER);
-        if (l == null) { l = new ArrayList(); }
+        if (l == null) {
+            l = new ArrayList(); }
         l.add(m);
         conf.put(TOPOLOGY_METRICS_CONSUMER_REGISTER, l);
     }
@@ -2387,7 +2453,7 @@ public class Config extends HashMap<String, Object> {
 
     private static List getRegisteredDecorators(Map conf) {
         List ret;
-        if(!conf.containsKey(Config.TOPOLOGY_KRYO_DECORATORS)) {
+        if (!conf.containsKey(Config.TOPOLOGY_KRYO_DECORATORS)) {
             ret = new ArrayList();
         } else {
             ret = new ArrayList((List) conf.get(Config.TOPOLOGY_KRYO_DECORATORS));
@@ -2461,5 +2527,25 @@ public class Config extends HashMap<String, Object> {
         if (clazz != null) {
             this.put(Config.TOPOLOGY_SCHEDULER_STRATEGY, clazz.getName());
         }
+    }
+
+    public static String getCgroupRootDir(Map conf) {
+        return (String) conf.get(STORM_SUPERVISOR_CGROUP_ROOTDIR);
+    }
+
+    public static String getCgroupStormHierarchyDir(Map conf) {
+        return (String) conf.get(Config.STORM_CGROUP_HIERARCHY_DIR);
+    }
+
+    public static ArrayList<String> getCgroupStormResources(Map conf) {
+        ArrayList<String> ret = new ArrayList<String>();
+        for (String entry : ((Iterable<String>) conf.get(Config.STORM_CGROUP_RESOURCES))) {
+            ret.add(entry);
+        }
+        return ret;
+    }
+
+    public static String getCgroupStormHierarchyName(Map conf) {
+        return (String) conf.get(Config.STORM_CGROUP_HIERARCHY_NAME);
     }
 }

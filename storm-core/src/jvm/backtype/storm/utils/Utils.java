@@ -562,8 +562,17 @@ public class Utils {
         return isSuccess;
     }
 
+    public static boolean checkFileExists(String path) {
+        return Files.exists(new File(path).toPath());
+    }
+
     public static boolean checkFileExists(String dir, String file) {
-        return Files.exists(new File(dir, file).toPath());
+        return checkFileExists(dir + "/" + file);
+    }
+
+    public static boolean CheckDirExists(String dir) {
+        File file = new File(dir);
+        return file.isDirectory();
     }
 
     public static long nimbusVersionOfBlob(String key, ClientBlobStore cb) throws AuthorizationException, KeyNotFoundException{

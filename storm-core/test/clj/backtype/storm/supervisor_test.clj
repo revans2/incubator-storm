@@ -21,7 +21,7 @@
   (:require [clojure [string :as string] [set :as set]])
   (:import [backtype.storm.testing TestWordCounter TestWordSpout TestGlobalCount TestAggregatesCounter TestPlannerSpout])
   (:import [backtype.storm.scheduler ISupervisor])
-  (:import [backtype.storm.generated RebalanceOptions])
+  (:import [backtype.storm.generated RebalanceOptions WorkerResources])
   (:import [java.util UUID])
   (:use [backtype.storm config testing util timer])
   (:use [backtype.storm.daemon common])
@@ -268,7 +268,6 @@
     (let [mock-port "42"
           mock-storm-id "fake-storm-id"
           mock-worker-id "fake-worker-id"
-          mock-mem-onheap 512
           mock-cp (str file-path-separator "base" class-path-separator file-path-separator "stormjar.jar")
           mock-sensitivity "S3"
           mock-cp "/base:/stormjar.jar"
@@ -332,7 +331,7 @@
                                       mock-storm-id
                                       mock-port
                                       mock-worker-id
-                                      mock-mem-onheap)
+                                       (WorkerResources.))
             (verify-first-call-args-for-indices launch-process
                                                 [0]
                                                 exp-args))))
@@ -356,7 +355,7 @@
                                       mock-storm-id
                                       mock-port
                                       mock-worker-id
-                                      mock-mem-onheap)
+                                       (WorkerResources.))
             (verify-first-call-args-for-indices launch-process
                                                 [0]
                                                 exp-args))))
@@ -377,7 +376,7 @@
                                               mock-storm-id
                                               mock-port
                                               mock-worker-id
-                                              mock-mem-onheap)
+                                               (WorkerResources.))
                     (verify-first-call-args-for-indices launch-process
                                                         [0]
                                                         exp-args))))
@@ -399,7 +398,7 @@
                                               mock-storm-id
                                               mock-port
                                               mock-worker-id
-                                              mock-mem-onheap)
+                                               (WorkerResources.))
                     (verify-first-call-args-for-indices launch-process
                                                         [2]
                                                         full-env)))))))
@@ -415,7 +414,6 @@
     (let [mock-port "42"
           mock-storm-id "fake-storm-id"
           mock-worker-id "fake-worker-id"
-          mock-mem-onheap 512
           mock-sensitivity "S3"
           mock-cp "mock-classpath'quote-on-purpose"
           storm-local (str "/tmp/" (UUID/randomUUID))
@@ -488,7 +486,7 @@
                                         mock-storm-id
                                         mock-port
                                         mock-worker-id
-                                        mock-mem-onheap)
+                                         (WorkerResources.))
               (verify-first-call-args-for-indices launch-process
                                                   [0]
                                                   exp-launch))
@@ -518,7 +516,7 @@
                                         mock-storm-id
                                         mock-port
                                         mock-worker-id
-                                        mock-mem-onheap)
+                                         (WorkerResources.))
               (verify-first-call-args-for-indices launch-process
                                                   [0]
                                                   exp-launch))
