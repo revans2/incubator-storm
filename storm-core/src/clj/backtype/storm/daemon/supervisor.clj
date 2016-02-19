@@ -536,6 +536,16 @@
             (log-debug "Files not present in topology directory")
             (rm-topo-files conf storm-id localizer rm-blob-refs?) storm-id))))))
 
+(defn kill-existing-workers-with-change-in-components [supervisor existing-assignment new-assignment]
+  (let [assigned-executors (defaulted (ls-local-assignments (:local-state supervisor)) {})
+        allocated (read-allocated-workers supervisor assigned-executors (current-time-secs))
+        valid-allocated (filter-val (fn [[state _]] (= state :valid)) allocated)
+        port->worker-id (clojure.set/map-invert (map-val #((nth % 1) :port) valid-allocated))]
+    (doseq [p (set/intersection (set (keys existing-assignment))
+                                (set (keys new-assignment)))]
+      (if (not= (:executors (existing-assignment p)) (:executors (new-assignment p)))
+        (shutdown-worker supervisor (port->worker-id p))))))
+
 (defn mk-synchronize-supervisor [supervisor sync-processes event-manager processes-event-manager]
   (fn this []
     (let [conf (:conf supervisor)
@@ -589,6 +599,7 @@
       (doseq [p (set/difference (set (keys existing-assignment))
                                 (set (keys new-assignment)))]
         (.killedWorker isupervisor (int p)))
+      (kill-existing-workers-with-change-in-components supervisor existing-assignment new-assignment)
       (.assigned isupervisor (keys new-assignment))
       (ls-local-assignments! local-state
             new-assignment)
@@ -607,8 +618,7 @@
                        storm-id)
           (rm-topo-files conf storm-id localizer rm-blob-refs?)
 	))
-      (.add processes-event-manager sync-processes)
-      )))
+      (.add processes-event-manager sync-processes))))
 
 (defn mk-supervisor-capacities
   [conf]
