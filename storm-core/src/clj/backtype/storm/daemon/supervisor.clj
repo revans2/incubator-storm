@@ -1,4 +1,4 @@
-;; Licensed to the Apache Software Foundation (ASF) under one
+ ;; Licensed to the Apache Software Foundation (ASF) under one
 ;; or more contributor license agreements.  See the NOTICE file
 ;; distributed with this work for additional information
 ;; regarding copyright ownership.  The ASF licenses this file
@@ -1022,6 +1022,14 @@
     (if (.exists (File. worker-dir))
       (create-symlink! worker-dir topo-dir "artifacts" port))))
 
+ (defn launch-with-cgroups? [topo-conf]
+   (if (topo-conf STORM-RESOURCE-ISOLATION-PLUGIN-ENABLE)
+     (if (and (= (topo-conf STORM-SCHEDULER) "backtype.storm.scheduler.bridge.MultitenantResourceAwareBridgeScheduler")
+           (= (topo-conf TOPOLOGY-SCHEDULER-STRATEGY) "backtype.storm.scheduler.resource.strategies.scheduling.MultitenantStrategy"))
+       false
+       true)
+     false))
+
 (defmethod launch-worker
     :distributed [supervisor storm-id port worker-id resources]
     (let [conf (:conf supervisor)
@@ -1109,7 +1117,7 @@
                      port
                      worker-id])
           command (->> command (map str) (filter (complement empty?)))
-          command (if (conf STORM-RESOURCE-ISOLATION-PLUGIN-ENABLE)
+          command (if (launch-with-cgroups? storm-conf)
                     (do
                       (.reserveResourcesForWorker (:resource-isolation-manager supervisor) worker-id
                         {"cpu" cpu "memory" (+ mem-onheap mem-offheap (int (Math/ceil (conf STORM-CGROUP-MEMORY-LIMIT-TOLERANCE-MARGIN-MB))))})

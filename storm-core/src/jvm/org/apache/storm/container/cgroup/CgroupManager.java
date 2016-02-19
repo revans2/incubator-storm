@@ -118,6 +118,7 @@ public class CgroupManager implements ResourceIsolationInterface {
     }
 
     public void reserveResourcesForWorker(String workerId, Map resourcesMap) throws SecurityException {
+        LOG.info("Creating cgroup for worker {} with resources {}", workerId, resourcesMap);
         Number cpuNum = null;
         // The manually set STORM_WORKER_CGROUP_CPU_LIMIT config on supervisor will overwrite resources assigned by RAS (Resource Aware Scheduler)
         if (this.conf.get(Config.STORM_WORKER_CGROUP_CPU_LIMIT) != null) {
