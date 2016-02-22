@@ -1395,7 +1395,7 @@
           (let [wait-amt (if (.is_set_wait_secs options)
                          (.get_wait_secs options)                         
                          )]
-          (transition-name! nimbus storm-name [:kill wait-amt] true))
+            (transition-name! nimbus storm-name [:kill wait-amt] true))
           (if (topology-conf TOPOLOGY-BACKPRESSURE-ENABLE)
             (.remove-backpressure! (:storm-cluster-state nimbus) storm-id))
           (add-topology-to-history-log (get-storm-id (:storm-cluster-state nimbus) storm-name)
