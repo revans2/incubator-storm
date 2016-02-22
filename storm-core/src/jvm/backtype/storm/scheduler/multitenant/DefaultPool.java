@@ -208,7 +208,9 @@ public class DefaultPool extends NodePool {
           _cluster.setStatus(topId,"Fully Scheduled");
         }
       } else {
-        _cluster.setStatus(topId,"Fully Scheduled");
+        if (isTopologyScheduledByMultitenant(td)) {
+          _cluster.setStatus(topId, "Fully Scheduled");
+        }
       }
     }
   }
