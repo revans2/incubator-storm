@@ -51,7 +51,7 @@ public class MultitenantResourceAwareBridgeScheduler implements IScheduler{
     public void schedule(Topologies topologies, Cluster cluster) {
         LOG.debug("\n\n\n/** Rerunning CombinedScheduler... **/");
         this.printScheduling(cluster, topologies);
-        
+
         LOG.debug("/* dividing topologies */");
         Map<String, Topologies> dividedTopologies = this.divideTopologies(cluster, topologies);
         
@@ -99,7 +99,7 @@ public class MultitenantResourceAwareBridgeScheduler implements IScheduler{
         }
 
         LOG.debug("/* Merge RAS Cluster with actual cluster */");
-        
+
         this.mergeCluster(cluster, rasCluster);
 
         this.printScheduling(cluster, topologies);
@@ -147,6 +147,8 @@ public class MultitenantResourceAwareBridgeScheduler implements IScheduler{
         Map<String, SchedulerAssignmentImpl> rasClusterAssignments = this.getRASClusterAssignments(cluster, rasTopologies);
 
         Cluster rasCluster = new Cluster(cluster.getINimbus(), rasClusterSups, rasClusterAssignments, cluster.getConf());
+        //set existing statuses
+        rasCluster.setStatusMap(cluster.getStatusMap());
         return rasCluster;
     }
 
