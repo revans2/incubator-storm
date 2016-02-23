@@ -58,17 +58,17 @@ public class AutoAthens implements IAutoCredentials {
                                             final String roleSuffix,
                                             final String trustDomain) {
         if (tenantDomain == null && defaultTenantDomain == null) {
-            throw new RuntimeException("You must set either "+DEFAULT_TENANT_DOMAIN_CONF+" or include a "+TENANT_DOMAIN+" key as part of "+ROLES_CONF);
+            throw new RuntimeException("You must set either " + DEFAULT_TENANT_DOMAIN_CONF + " or include a " + TENANT_DOMAIN + " key as part of " + ROLES_CONF);
         }
         String td = tenantDomain == null ? defaultTenantDomain : tenantDomain;
 
         if (tenantService == null && defaultTenantService == null) {
-            throw new RuntimeException("You must set either "+DEFAULT_TENANT_SERVICE_CONF+" or include a "+TENANT_SERVICE+" key as part of "+ROLES_CONF);
+            throw new RuntimeException("You must set either " + DEFAULT_TENANT_SERVICE_CONF + " or include a " + TENANT_SERVICE + " key as part of " + ROLES_CONF);
         }
         String ts = tenantService == null ? defaultTenantService : tenantService;
 
         if (roleDomain == null) {
-           throw new RuntimeException("If a role is provided as a Map, the roleDomain must be under the "+ROLE+" key");
+           throw new RuntimeException("If a role is provided as a Map, the roleDomain must be under the " + ROLE + " key");
         }
 
         try (ZTSClient client = new ZTSClient(td, ts)) {
