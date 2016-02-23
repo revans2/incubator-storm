@@ -115,7 +115,8 @@ public class AutoAthens implements IAutoCredentials {
                 confNum++;
             }
         } else if (roles != null) {
-            throw new RuntimeException(ROLES_CONF+" must be set to a String role, a Map or parameters, or a list of String/Maps");
+            throw new RuntimeException(ROLES_CONF + " must be set to a String "
+                    + "role, a Map or parameters, or a list of String/Maps");
         }
     }
 
@@ -139,7 +140,7 @@ public class AutoAthens implements IAutoCredentials {
             if (isAthensTokenKey(key)) {
                 int num = getAthensTokenKeyNum(key);
                 String roleName = credentials.get(asRoleKey(num)); //can be null
-                String trustDomain = credentials.get(asTrustKey(num));//can be null
+                String trustDomain = credentials.get(asTrustKey(num)); //can be null
                 ZTSClientTokenCacher.setRoleToken(entry.getValue(), roleName, trustDomain);
             }
         }
