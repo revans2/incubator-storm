@@ -34,17 +34,38 @@ public class MultitenantResourceAwareBridgeScheduler implements IScheduler{
     private static final Class<MultitenantStrategy> MULTITENANT_STRATEGY = MultitenantStrategy.class;
     private static final Class<DefaultResourceAwareStrategy> RESOURCE_AWARE_STRATEGY = DefaultResourceAwareStrategy.class;
     private MultitenantScheduler multitenantScheduler = new MultitenantScheduler();
+    ResourceAwareScheduler ras = new ResourceAwareScheduler();
     private static final Double PER_WORKER_CPU_SWAG = 100.0;
 
     @Override
     public void prepare(@SuppressWarnings("rawtypes") Map conf) {
         _conf = conf;
         multitenantScheduler.prepare(_conf);
+        ras.prepare(_conf);
     }
  
     @Override
     public Map<String, Object> config() {
-        return multitenantScheduler.config();
+
+        Map<String, Object> bridgeSchedulerConfigs = new HashMap<String, Object>();
+        Map<String, Object> multitenantSchedulerConfigs = multitenantScheduler.config();
+        Map<String, Object> resourceAwareSchedulerConfigs = ras.config();
+
+        //set isolated nodes for multitenant scheduler
+        for (String user : multitenantSchedulerConfigs.keySet()) {
+            bridgeSchedulerConfigs.put(user, new HashMap<String, Object>());
+            ((Map<String, Object>) bridgeSchedulerConfigs.get(user)).put("MultitenantScheduler", multitenantSchedulerConfigs.get(user));
+        }
+
+        //set resource guarantee for RAS
+        for (String user : resourceAwareSchedulerConfigs.keySet()) {
+            if (!bridgeSchedulerConfigs.containsKey(user)) {
+                bridgeSchedulerConfigs.put(user,  new HashMap<String, Object>());
+            }
+            LOG.info("bridgeSchedulerConfigs.get(user) {}",bridgeSchedulerConfigs.get(user));
+            ((Map<String, Object>) bridgeSchedulerConfigs.get(user)).put("ResourceAwareScheduler", resourceAwareSchedulerConfigs.get(user));
+        }
+        return bridgeSchedulerConfigs;
     }
 
     @Override
@@ -93,8 +114,6 @@ public class MultitenantResourceAwareBridgeScheduler implements IScheduler{
 
         LOG.debug("/* running RAS scheduler */");
         if(rasTopologies.getTopologies().size() > 0) {
-            ResourceAwareScheduler ras = new ResourceAwareScheduler();
-            ras.prepare(_conf);
             ras.schedule(rasTopologies, rasCluster);
         }
 
