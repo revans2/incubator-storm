@@ -62,7 +62,7 @@ public class WorkerBackpressureThreadTest extends TestCase {
         Thread.sleep(100);
         WorkerBackpressureThread.notifyBackpressureChecker(trigger);
         Thread.sleep(100);
-        Assert.assertTrue("Check the aliveness of workerBackpressureThread after RuntimeException. ",
+        Assert.assertFalse("Check the aliveness of workerBackpressureThread after RuntimeException. ",
                 workerBackpressureThread.isAlive());
     }
 }
