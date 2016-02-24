@@ -25,9 +25,10 @@ import org.slf4j.LoggerFactory;
 public class WorkerBackpressureThread extends Thread {
 
     private static final Logger LOG = LoggerFactory.getLogger(WorkerBackpressureThread.class);
-    Object trigger;
-    Object workerData;
-    WorkerBackpressureCallback callback;
+    private Object trigger;
+    private Object workerData;
+    private WorkerBackpressureCallback callback;
+    private volatile boolean running = true;
 
     public WorkerBackpressureThread(Object trigger, Object workerData, WorkerBackpressureCallback callback) {
         this.trigger = trigger;
@@ -48,8 +49,12 @@ public class WorkerBackpressureThread extends Thread {
         }
     }
 
+    public void terminate() {
+        running = false;
+    }
+
     public void run() {
-        while (true) {
+        while (running) {
             try {
                 synchronized(trigger) {
                     trigger.wait(100);
@@ -57,8 +62,6 @@ public class WorkerBackpressureThread extends Thread {
                 callback.onEvent(workerData); // check all executors and update zk backpressure throttle for the worker if needed
             } catch (InterruptedException interEx) {
                 LOG.info("WorkerBackpressureThread gets interrupted! Ignoring Exception: ", interEx);
-            } catch (RuntimeException runEx) {
-                LOG.error("Ignoring the failure in processing backpressure event: ", runEx);
             }
         }
     }
