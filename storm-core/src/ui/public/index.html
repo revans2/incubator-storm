@@ -179,6 +179,7 @@ $(document).ready(function() {
             var formattedResponse = formatConfigData(response);
             $.get("/templates/index-page-template.html", function(template) {
                 schedulerConfig.append(Mustache.render($(template).filter("#scheduler-configuration-template").html(),formattedResponse));
+                $('#scheduler-configuration-table td').jsonFormatter()
                 //key, value
                 dtAutoPage("#scheduler-configuration-table", {});
                 $('#scheduler-configuration [data-toggle="tooltip"]').tooltip();
