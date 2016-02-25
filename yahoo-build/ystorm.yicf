@@ -18,6 +18,7 @@ YINST requires pkg bouncer_auth_java     0.17.9      *
 YINST requires pkg yjava_servlet_filters 0.22.495    *
 YINST requires pkg yjava_yca             0.23.218    *
 YINST requires pkg bycookieauthkey       1.0.4.1     *
+YINST requires pkg zts_java_client       1.4.35      *
 
 YINST set storm_local_dir                 /home/y/var/storm
 YINST set syslog_facility                 LOCAL5
@@ -77,6 +78,13 @@ symlink - - - lib64/storm/$(BASE_VERSION)/lib/yjava_servlet.jar         /home/y/
 symlink - - - lib64/storm/$(BASE_VERSION)/lib/yjava_byauth.jar          /home/y/lib/jars/yjava_byauth.jar
 symlink - - - lib64/storm/$(BASE_VERSION)/lib/bouncer_auth_java.jar     /home/y/lib/jars/bouncer_auth_java.jar
 symlink - - - lib64/storm/$(BASE_VERSION)/lib/yjava_yca.jar             /home/y/lib/jars/yjava_yca.jar
+#Athens Support
+symlink - - - lib64/storm/$(BASE_VERSION)/lib/zts_java_client.jar       /home/y/lib/jars/zts_java_client.jar
+symlink - - - lib64/storm/$(BASE_VERSION)/lib/zts_core.jar              /home/y/lib/jars/zts_core.jar
+symlink - - - lib64/storm/$(BASE_VERSION)/lib/sia_java_client.jar       /home/y/lib/jars/sia_java_client.jar
+symlink - - - lib64/storm/$(BASE_VERSION)/lib/junixsocket.jar           /home/y/lib/jars/junixsocket.jar
+symlink - - - lib64/storm/$(BASE_VERSION)/lib/auth_core.jar             /home/y/lib/jars/auth_core.jar
+symlink - - - lib64/storm/$(BASE_VERSION)/lib/data_core.jar             /home/y/lib/jars/data_core.jar
 
 #The actual group of the executable will be set by a pre-activate script
 file 6550 root root lib64/storm/$(BASE_VERSION)/bin/worker-launcher ../storm-core/target/native/target/usr/local/bin/worker-launcher

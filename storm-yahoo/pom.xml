@@ -15,7 +15,6 @@
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
   </properties>
 
-
   <build>
     <sourceDirectory>src/main/java</sourceDirectory>
     <testSourceDirectory>src/test</testSourceDirectory>
@@ -33,20 +32,20 @@
     <outputDirectory>target/classes</outputDirectory>
     <plugins>
       <plugin>
-        <groupId>org.codehaus.mojo</groupId>
-        <artifactId>build-helper-maven-plugin</artifactId>
-        <version>1.7</version>
+        <artifactId>maven-dependency-plugin</artifactId>
+        <version>2.8</version>
         <executions>
           <execution>
-            <id>add-source</id>
-            <phase>generate-sources</phase>
+            <id>copy-dependencies</id>
+            <phase>package</phase>
             <goals>
-              <goal>add-source</goal>
+              <goal>copy-dependencies</goal>
             </goals>
             <configuration>
-              <sources>
-                <source>src/main/java</source>
-              </sources>
+              <overWriteReleases>false</overWriteReleases>
+              <overWriteSnapshots>false</overWriteSnapshots>
+              <overWriteIfNewer>true</overWriteIfNewer>
+              <includeScope>runtime</includeScope>
             </configuration>
           </execution>
         </executions>
@@ -73,25 +72,6 @@
         </dependencies>
       </plugin>
       <plugin>
-        <artifactId>maven-dependency-plugin</artifactId>
-        <version>2.6</version>
-        <executions>
-          <execution>
-            <id>copy-dependencies</id>
-            <phase>package</phase>
-            <goals>
-              <goal>copy-dependencies</goal>
-            </goals>
-            <configuration>
-              <overWriteReleases>false</overWriteReleases>
-              <overWriteSnapshots>false</overWriteSnapshots>
-              <overWriteIfNewer>true</overWriteIfNewer>
-              <includeScope>runtime</includeScope>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
-      <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-source-plugin</artifactId>
         <version>2.2.1</version>
@@ -105,44 +85,6 @@
           </execution>
         </executions>
       </plugin>
-      <plugin>
-        <groupId>com.theoryinpractise</groupId>
-        <artifactId>clojure-maven-plugin</artifactId>
-        <extensions>true</extensions>
-        <configuration>
-          <sourceDirectories>
-            <sourceDirectory>src/main/java</sourceDirectory>
-          </sourceDirectories>
-          <testSourceDirectories>
-            <testSourceDirectory>test/clj</testSourceDirectory>
-          </testSourceDirectories>
-          <warnOnReflection>false</warnOnReflection>
-          <copyDeclaredNamespaceOnly>true</copyDeclaredNamespaceOnly>
-          <copiedNamespaces>
-            <copiedNamespace>none</copiedNamespace>
-          </copiedNamespaces>
-        </configuration>
-        <executions>
-          <execution>
-            <id>compile-clojure</id>
-            <phase>compile</phase>
-            <goals>
-              <goal>compile</goal>
-            </goals>
-          </execution>
-          <execution>
-            <id>test-clojure</id>
-            <phase>test</phase>
-            <goals>
-              <goal>test-with-junit</goal>
-            </goals>
-            <configuration>
-              <!-- argLine is set by JaCoCo for code coverage -->
-              <vmargs>${argLine} ${test.extra.args}</vmargs>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
     </plugins>
   </build>
 
@@ -152,20 +94,6 @@
       <activation><activeByDefault>true</activeByDefault></activation>
       <build>
         <plugins>
-          <plugin>
-            <groupId>org.codehaus.mojo</groupId>
-            <artifactId>build-helper-maven-plugin</artifactId>
-            <version>1.7</version>
-            <executions>
-              <execution>
-                <id>add-source</id>
-                <phase>generate-sources</phase>
-                <goals>
-                  <goal>add-source</goal>
-                </goals>
-              </execution>
-            </executions>
-          </plugin>
           <plugin>
             <groupId>org.apache.maven.plugins</groupId>
             <artifactId>maven-antrun-plugin</artifactId>
@@ -231,76 +159,45 @@
     </repository>
   </repositories>
   <dependencies>
+    <!--Hadoop Mini Cluster cannot use log4j2 bridge,
+        Surefire has a way to exclude the conflicting log4j API jar
+        from the classpath, classpathDependencyExcludes, but it didn't work in practice.
+        This is here as a work around to place it at the beginning of the classpath
+        even though maven does not officially support ordering of the classpath.-->
     <dependency>
-      <groupId>org.apache.storm</groupId>
-      <artifactId>storm-core</artifactId>
-      <version>0.10.1.y</version>
-      <exclusions>
-        <exclusion>
-          <groupId>javax.servlet</groupId>
-          <artifactId>servlet-api</artifactId>
-        </exclusion>
-      </exclusions>
+      <groupId>log4j</groupId>
+      <artifactId>log4j</artifactId>
+      <version>1.2.17</version>
+      <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>yahoo.yinst.yjava_jetty_core</groupId>
-      <artifactId>yjava_jetty</artifactId>
-      <version>9.2.1.v20140609_127</version>
-      <exclusions>
-        <exclusion>
-          <groupId>org.slf4j</groupId>
-          <artifactId>slf4j-log4j12</artifactId>
-        </exclusion>
-      </exclusions>
+      <groupId>yahoo.yinst.zts_java_client</groupId>
+      <artifactId>zts_java_client</artifactId>
+      <version>1.4.35</version>
+    </dependency> 
+    <dependency>
+      <!--needed to fix dep issue with hadoop-->
+      <groupId>org.apache.httpcomponents</groupId>
+      <artifactId>httpcore</artifactId>
+      <version>4.3.3</version>
+      <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>org.eclipse.jetty</groupId>
-      <artifactId>jetty-servlet</artifactId>
-      <version>9.2.1.v20140609</version>
-      <exclusions>
-        <exclusion>
-          <groupId>org.slf4j</groupId>
-          <artifactId>slf4j-log4j12</artifactId>
-        </exclusion>
-      </exclusions>
+      <groupId>org.apache.hadoop</groupId>
+      <artifactId>hadoop-client</artifactId>
+      <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>org.eclipse.jetty</groupId>
-      <artifactId>jetty-util</artifactId>
-      <version>9.2.1.v20140609</version>
-      <exclusions>
-        <exclusion>
-          <groupId>org.slf4j</groupId>
-          <artifactId>slf4j-log4j12</artifactId>
-        </exclusion>
-      </exclusions>
+      <groupId>org.apache.hadoop</groupId>
+      <artifactId>hadoop-hdfs</artifactId>
+      <type>test-jar</type>
+      <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>org.eclipse.jetty</groupId>
-      <artifactId>jetty-servlets</artifactId>
-      <version>9.2.1.v20140609</version>
-      <exclusions>
-        <exclusion>
-          <groupId>org.slf4j</groupId>
-          <artifactId>slf4j-log4j12</artifactId>
-        </exclusion>
-      </exclusions>
-    </dependency>
-    <dependency>
-      <groupId>org.eclipse.jetty</groupId>
-      <artifactId>jetty-server</artifactId>
-      <version>9.2.1.v20140609</version>
-      <exclusions>
-        <exclusion>
-          <groupId>org.slf4j</groupId>
-          <artifactId>slf4j-log4j12</artifactId>
-        </exclusion>
-      </exclusions>
-    </dependency>
-    <dependency>
-      <groupId>yahoo.yinst.yjava_yca</groupId>
-      <artifactId>yjava_yca</artifactId>
-      <version>0.23.218</version>
+      <groupId>org.apache.hadoop</groupId>
+      <artifactId>hadoop-common</artifactId>
+      <type>test-jar</type>
+      <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>junit</groupId>
@@ -313,6 +210,84 @@
       <artifactId>mockito-all</artifactId>
       <scope>test</scope>
       <version>1.9.5</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.storm</groupId>
+      <artifactId>storm-core</artifactId>
+      <version>0.10.1.y</version>
+      <scope>provided</scope>
+      <exclusions>
+        <exclusion>
+          <groupId>javax.servlet</groupId>
+          <artifactId>servlet-api</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+    <dependency>
+      <groupId>yahoo.yinst.yjava_jetty_core</groupId>
+      <artifactId>yjava_jetty</artifactId>
+      <version>9.2.1.v20140609_127</version>
+      <scope>provided</scope>
+      <exclusions>
+        <exclusion>
+          <groupId>org.slf4j</groupId>
+          <artifactId>slf4j-log4j12</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency> 
+    <dependency>
+      <groupId>org.eclipse.jetty</groupId>
+      <artifactId>jetty-servlet</artifactId>
+      <version>9.2.1.v20140609</version>
+      <scope>provided</scope>
+      <exclusions>
+        <exclusion>
+          <groupId>org.slf4j</groupId>
+          <artifactId>slf4j-log4j12</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+    <dependency>
+      <groupId>org.eclipse.jetty</groupId>
+      <artifactId>jetty-util</artifactId>
+      <version>9.2.1.v20140609</version>
+      <scope>provided</scope>
+      <exclusions>
+        <exclusion>
+          <groupId>org.slf4j</groupId>
+          <artifactId>slf4j-log4j12</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+    <dependency>
+      <groupId>org.eclipse.jetty</groupId>
+      <artifactId>jetty-servlets</artifactId>
+      <version>9.2.1.v20140609</version>
+      <scope>provided</scope>
+      <exclusions>
+        <exclusion>
+          <groupId>org.slf4j</groupId>
+          <artifactId>slf4j-log4j12</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+    <dependency>
+      <groupId>org.eclipse.jetty</groupId>
+      <artifactId>jetty-server</artifactId>
+      <version>9.2.1.v20140609</version>
+      <scope>provided</scope>
+      <exclusions>
+        <exclusion>
+          <groupId>org.slf4j</groupId>
+          <artifactId>slf4j-log4j12</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+    <dependency>
+      <groupId>yahoo.yinst.yjava_yca</groupId>
+      <artifactId>yjava_yca</artifactId>
+      <version>0.23.218</version>
+      <scope>provided</scope>
     </dependency>
   </dependencies>
 </project>
