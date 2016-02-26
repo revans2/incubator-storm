@@ -550,7 +550,7 @@
            versions :versions}
           (assignments-snapshot storm-cluster-state sync-callback assignment-versions)
           storm-local-map (read-storm-local-dir assignments-snapshot)
-          all-/downloaded-storm-ids (set (read-downloaded-storm-ids conf))
+          all-downloaded-storm-ids (set (read-downloaded-storm-ids conf))
           existing-assignment (ls-local-assignments local-state)
           all-assignment (read-assignments assignments-snapshot
                                            (:assignment-id supervisor)
