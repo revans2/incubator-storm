@@ -40,29 +40,11 @@ public class WorkerBackpressureThreadTest extends TestCase {
         };
         WorkerBackpressureThread workerBackpressureThread = new WorkerBackpressureThread(trigger, workerData, callback);
         workerBackpressureThread.start();
-        Thread.sleep(100);
         WorkerBackpressureThread.notifyBackpressureChecker(trigger);
-        Thread.sleep(100);
-        Assert.assertNotEquals("Check the calling times of backpressure events, should not be 0. ",
-                workerData.get(), 0);
-    }
-
-    @Test
-    public void testThrowRuntimeExceptionEvent() throws Exception {
-        Object trigger = new Object();
-        Object workerData = new Object();
-        WorkerBackpressureCallback callback = new WorkerBackpressureCallback() {
-            @Override
-            public void onEvent(Object obj) {
-                throw new RuntimeException();
-            }
-        };
-        WorkerBackpressureThread workerBackpressureThread = new WorkerBackpressureThread(trigger, workerData, callback);
-        workerBackpressureThread.start();
-        Thread.sleep(100);
-        WorkerBackpressureThread.notifyBackpressureChecker(trigger);
-        Thread.sleep(100);
-        Assert.assertFalse("Check the aliveness of workerBackpressureThread after RuntimeException. ",
-                workerBackpressureThread.isAlive());
+        long start = System.currentTimeMillis();
+        while (workerData.get() == 0) {
+            assertTrue("Timeout", (System.currentTimeMillis() - start) < 1000);
+            Thread.sleep(100);
+        }
     }
 }
