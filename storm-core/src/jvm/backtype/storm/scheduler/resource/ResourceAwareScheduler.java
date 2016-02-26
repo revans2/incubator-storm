@@ -327,17 +327,9 @@ public class ResourceAwareScheduler implements IScheduler {
 
     @Override
     public Map<String, Object> config() {
-        return (Map) getUserConf();
+        return (Map)  getUserResourcePools();
     }
 
-    private Map<String, Double> getUserConf() {
-        Map<String, Double> ret = new HashMap<String, Double>();
-        ret.put(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB,
-                (Double) conf.get(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB));
-        ret.put(Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB,
-                (Double) conf.get(Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB));
-        return ret;
-    }
 
     public User getUser(String user) {
         return this.userMap.get(user);

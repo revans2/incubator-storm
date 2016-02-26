@@ -268,8 +268,16 @@
     <table class="table table-striped compact" id="scheduler-configuration-table">
         <thead>
         <tr>
-            <th>Key</th>
-            <th>Value</th>
+            <th>User</th>
+            <th>
+              <span data-toggle="tooltip" data-placement="above"
+                    title="Value displayed for MultitenantScheduler refers to the
+                    number of isolated nodes the user can have when using the MultitenantScheduler.
+                    The values displayed for ResourceAwareScheduler refer to the resource guarantee
+                    (cpu and memory) of the user when using ResourceAwareScheduler">
+                quota
+              </span>
+            </th>
         </tr>
         </thead>
         <tbody>
