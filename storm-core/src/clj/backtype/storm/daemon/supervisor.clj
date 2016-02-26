@@ -550,7 +550,7 @@
            versions :versions}
           (assignments-snapshot storm-cluster-state sync-callback assignment-versions)
           storm-local-map (read-storm-local-dir assignments-snapshot)
-          all-downloaded-storm-ids (set (read-downloaded-storm-ids conf))
+          all-/downloaded-storm-ids (set (read-downloaded-storm-ids conf))
           existing-assignment (ls-local-assignments local-state)
           all-assignment (read-assignments assignments-snapshot
                                            (:assignment-id supervisor)
@@ -1022,13 +1022,14 @@
     (if (.exists (File. worker-dir))
       (create-symlink! worker-dir topo-dir "artifacts" port))))
 
- (defn launch-with-cgroups? [topo-conf]
-   (if (topo-conf STORM-RESOURCE-ISOLATION-PLUGIN-ENABLE)
-     (if (and (= (topo-conf STORM-SCHEDULER) "backtype.storm.scheduler.bridge.MultitenantResourceAwareBridgeScheduler")
-           (= (topo-conf TOPOLOGY-SCHEDULER-STRATEGY) "backtype.storm.scheduler.resource.strategies.scheduling.MultitenantStrategy"))
-       false
-       true)
-     false))
+(defn launch-with-cgroups?
+  [topo-conf]
+  (and
+    (topo-conf STORM-RESOURCE-ISOLATION-PLUGIN-ENABLE)
+    (not
+      (and
+        (= (topo-conf STORM-SCHEDULER) "backtype.storm.scheduler.bridge.MultitenantResourceAwareBridgeScheduler")
+        (= (topo-conf TOPOLOGY-SCHEDULER-STRATEGY) "backtype.storm.scheduler.resource.strategies.scheduling.MultitenantStrategy")))))
 
 (defmethod launch-worker
     :distributed [supervisor storm-id port worker-id resources]
