@@ -104,3 +104,7 @@
 (defn -getState
   [this]
   (.state this))
+
+(defn -getTopologyPageInfo
+  [this topo-id window include-sys?]
+  (.getTopologyPageInfo (:nimbus (. this state)) topo-id window include-sys?))
