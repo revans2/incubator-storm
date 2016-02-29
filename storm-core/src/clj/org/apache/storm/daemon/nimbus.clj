@@ -2187,19 +2187,20 @@
           ;; Add the event logger details.
           (let [component->tasks (clojurify-structure (Utils/reverseMap (:task->component info)))
                 eventlogger-tasks (sort (get component->tasks
-                                             EVENTLOGGER-COMPONENT-ID))
-                ;; Find the task the events from this component route to.
-                task-index (mod (TupleUtils/listHashCode [component-id])
-                                (count eventlogger-tasks))
-                task-id (nth eventlogger-tasks task-index)
-                eventlogger-exec (first (filter (fn [[start stop]]
-                                                  (between? task-id start stop))
-                                                (keys executor->host+port)))
-                [host port] (get executor->host+port eventlogger-exec)]
-            (if (and host port)
-              (doto comp-page-info
-                (.set_eventlog_host host)
-                (.set_eventlog_port port))))
+                                             EVENTLOGGER-COMPONENT-ID))]
+            (when (< 0 (count eventlogger-tasks))
+              (let [;; Find the task the events from this component route to.
+                    task-index (mod (TupleUtils/listHashCode [component-id])
+                                    (count eventlogger-tasks))
+                    task-id (nth eventlogger-tasks task-index)
+                    eventlogger-exec (first (filter (fn [[start stop]]
+                                                      (between? task-id start stop))
+                                                    (keys executor->host+port)))
+                    [host port] (get executor->host+port eventlogger-exec)]
+                (if (and host port)
+                  (doto comp-page-info
+                    (.set_eventlog_host host)
+                    (.set_eventlog_port port))))))
           comp-page-info))
 
       (^TopologyHistoryInfo getTopologyHistory [this ^String user]

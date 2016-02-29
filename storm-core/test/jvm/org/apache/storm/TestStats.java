@@ -26,6 +26,7 @@ import java.util.Map;
 
 import org.apache.storm.Config;
 import org.apache.storm.LocalCluster;
+import org.apache.storm.generated.ComponentPageInfo;
 import org.apache.storm.generated.CommonAggregateStats;
 import org.apache.storm.generated.SpoutAggregateStats;
 import org.apache.storm.generated.BoltAggregateStats;
@@ -50,6 +51,9 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * This is a BAD TEST DO NOT MERGE!!!!!
+ */
 public class TestStats {
   private static final Logger LOG = LoggerFactory.getLogger(TestStats.class);
 
@@ -195,6 +199,38 @@ public class TestStats {
         assertEquals(0, sCommon.get_failed());
         assertEquals(500.0, (double)spout.get_specific_stats().get_spout().get_complete_latency_ms(), 500.0);
 
+        ComponentPageInfo sInfo = cluster.getComponentPageInfo(id, "spout", ":all-time", false);
+        LOG.info("S-INFO: {}", sInfo);
+        assertEquals(emitCount, sInfo.get_window_to_stats().get(":all-time").get_common_stats().get_emitted());
+        assertEquals(emitCount, sInfo.get_window_to_stats().get(":all-time").get_common_stats().get_transferred());
+        assertEquals(emitCount, sInfo.get_window_to_stats().get(":all-time").get_common_stats().get_acked());
+        assertEquals(0, sInfo.get_window_to_stats().get(":all-time").get_common_stats().get_failed());
+        assertEquals(500.0, (double)sInfo.get_window_to_stats().get(":all-time").get_specific_stats().get_spout().get_complete_latency_ms(), 500.0);
+
+        assertEquals(emitCount, sInfo.get_window_to_stats().get("10800").get_common_stats().get_emitted());
+        assertEquals(emitCount, sInfo.get_window_to_stats().get("10800").get_common_stats().get_transferred());
+        assertEquals(emitCount, sInfo.get_window_to_stats().get("10800").get_common_stats().get_acked());
+        assertEquals(0, sInfo.get_window_to_stats().get("10800").get_common_stats().get_failed());
+        assertEquals(500.0, (double)sInfo.get_window_to_stats().get("10800").get_specific_stats().get_spout().get_complete_latency_ms(), 500.0);
+
+        assertEquals(emitCount, sInfo.get_window_to_stats().get("86400").get_common_stats().get_emitted());
+        assertEquals(emitCount, sInfo.get_window_to_stats().get("86400").get_common_stats().get_transferred());
+        assertEquals(emitCount, sInfo.get_window_to_stats().get("86400").get_common_stats().get_acked());
+        assertEquals(0, sInfo.get_window_to_stats().get("86400").get_common_stats().get_failed());
+        assertEquals(500.0, (double)sInfo.get_window_to_stats().get("86400").get_specific_stats().get_spout().get_complete_latency_ms(), 500.0);
+
+        assertEquals(emitCount, sInfo.get_window_to_stats().get("600").get_common_stats().get_emitted());
+        assertEquals(emitCount, sInfo.get_window_to_stats().get("600").get_common_stats().get_transferred());
+        assertEquals(emitCount, sInfo.get_window_to_stats().get("600").get_common_stats().get_acked());
+        assertEquals(0, sInfo.get_window_to_stats().get("600").get_common_stats().get_failed());
+        assertEquals(500.0, (double)sInfo.get_window_to_stats().get("600").get_specific_stats().get_spout().get_complete_latency_ms(), 500.0);
+
+        assertEquals(emitCount, sInfo.get_sid_to_output_stats().get("default").get_common_stats().get_emitted());
+        assertEquals(emitCount, sInfo.get_sid_to_output_stats().get("default").get_common_stats().get_transferred());
+        assertEquals(emitCount, sInfo.get_sid_to_output_stats().get("default").get_common_stats().get_acked());
+        assertEquals(0, sInfo.get_sid_to_output_stats().get("default").get_common_stats().get_failed());
+        assertEquals(500.0, (double)sInfo.get_sid_to_output_stats().get("default").get_specific_stats().get_spout().get_complete_latency_ms(), 500.0);
+
         Map<String, ComponentAggregateStats> boltStats = info.get_id_to_bolt_agg_stats();
         LOG.info("BOLT-STATS: {}", boltStats);
 
@@ -211,6 +247,10 @@ public class TestStats {
         assertEquals(10.0, (double)bolt.get_specific_stats().get_bolt().get_process_latency_ms(), 10.0);
         assertEquals(1.0, (double)bolt.get_specific_stats().get_bolt().get_capacity(), 1.0);
         assertEquals(emitCount, bolt.get_specific_stats().get_bolt().get_executed());
+
+        ComponentPageInfo bInfo = cluster.getComponentPageInfo(id, "bolt", ":all-time", false);
+        LOG.info("B-INFO: {}", bInfo);
+
       } finally {
         cluster.killTopology("test");
       }

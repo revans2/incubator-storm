@@ -19,6 +19,7 @@ package org.apache.storm;
 
 import org.apache.storm.generated.AlreadyAliveException;
 import org.apache.storm.generated.AuthorizationException;
+import org.apache.storm.generated.ComponentPageInfo;
 import org.apache.storm.generated.ClusterSummary;
 import org.apache.storm.generated.InvalidTopologyException;
 import org.apache.storm.generated.KillOptions;
@@ -48,5 +49,6 @@ public interface ILocalCluster {
     ClusterSummary getClusterInfo();
     TopologyInfo getTopologyInfo(String id);
     TopologyPageInfo getTopologyPageInfo(String id, String window, boolean includeSystem) throws NotAliveException, AuthorizationException;
+    ComponentPageInfo getComponentPageInfo(String id, String componentId, String window, boolean includeSystem) throws NotAliveException, AuthorizationException;
     Map getState();
 }
