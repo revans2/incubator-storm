@@ -2276,6 +2276,13 @@ public class Config extends HashMap<String, Object> {
     @isPositiveNumber
     public static String STORM_CGROUP_MEMORY_LIMIT_TOLERANCE_MARGIN_MB = "storm.cgroup.memory.limit.tolerance.margin.mb";
 
+    /**
+     * Whether workers wait until each of its connections to remote workers are
+     * in ready state before opening spouts and preparing workers.
+     */
+    @isBoolean
+    public static final String TOPOLOGY_WORKER_WAIT_FOR_MESSAGING_CONNECTIONS_READY = "topology.worker.wait.for.messaging.connections.ready";
+
     public static void setClasspath(Map conf, String cp) {
         conf.put(Config.TOPOLOGY_CLASSPATH, cp);
     }
