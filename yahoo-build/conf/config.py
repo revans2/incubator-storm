@@ -53,7 +53,7 @@ mapKeys = set(["isolation.scheduler.machines", "ui.filter.params", "drpc.http.fi
 allStringKeys = set(["ui.filter.params", "drpc.http.filter.params", "storm.group.mapping.service.params"])
 
 ignoredKeys = set(["min.user.pid", "storm.zookeeper.auth.payload", "storm.cluster.user", "worker.launcher.group",
- "multitenant.scheduler.user.pools"])
+ "multitenant.scheduler.user.pools", "resource.aware.scheduler.user.pools"])
 
 config = dict((k[8:].replace("_", "."), v) for k, v in os.environ.items() \
         if k.startswith("ystorm__") \
