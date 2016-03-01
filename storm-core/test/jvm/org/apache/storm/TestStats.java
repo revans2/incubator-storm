@@ -26,6 +26,7 @@ import java.util.Map;
 
 import org.apache.storm.Config;
 import org.apache.storm.LocalCluster;
+import org.apache.storm.generated.GlobalStreamId;
 import org.apache.storm.generated.ComponentPageInfo;
 import org.apache.storm.generated.CommonAggregateStats;
 import org.apache.storm.generated.SpoutAggregateStats;
@@ -251,6 +252,41 @@ public class TestStats {
         ComponentPageInfo bInfo = cluster.getComponentPageInfo(id, "bolt", ":all-time", false);
         LOG.info("B-INFO: {}", bInfo);
 
+        assertEquals(emitCount, bInfo.get_window_to_stats().get(":all-time").get_common_stats().get_emitted());
+        assertEquals(0, bInfo.get_window_to_stats().get(":all-time").get_common_stats().get_transferred());
+        assertEquals(emitCount, bInfo.get_window_to_stats().get(":all-time").get_common_stats().get_acked());
+        assertEquals(0, bInfo.get_window_to_stats().get(":all-time").get_common_stats().get_failed());
+        assertEquals(emitCount, bInfo.get_window_to_stats().get(":all-time").get_specific_stats().get_bolt().get_executed());
+
+        assertEquals(emitCount, bInfo.get_window_to_stats().get("10800").get_common_stats().get_emitted());
+        assertEquals(0, bInfo.get_window_to_stats().get("10800").get_common_stats().get_transferred());
+        assertEquals(emitCount, bInfo.get_window_to_stats().get("10800").get_common_stats().get_acked());
+        assertEquals(0, bInfo.get_window_to_stats().get("10800").get_common_stats().get_failed());
+        assertEquals(emitCount, bInfo.get_window_to_stats().get("10800").get_specific_stats().get_bolt().get_executed());
+
+        assertEquals(emitCount, bInfo.get_window_to_stats().get("86400").get_common_stats().get_emitted());
+        assertEquals(0, bInfo.get_window_to_stats().get("86400").get_common_stats().get_transferred());
+        assertEquals(emitCount, bInfo.get_window_to_stats().get("86400").get_common_stats().get_acked());
+        assertEquals(0, bInfo.get_window_to_stats().get("86400").get_common_stats().get_failed());
+        assertEquals(emitCount, bInfo.get_window_to_stats().get("86400").get_specific_stats().get_bolt().get_executed());
+
+        assertEquals(emitCount, bInfo.get_window_to_stats().get("600").get_common_stats().get_emitted());
+        assertEquals(0, bInfo.get_window_to_stats().get("600").get_common_stats().get_transferred());
+        assertEquals(emitCount, bInfo.get_window_to_stats().get("600").get_common_stats().get_acked());
+        assertEquals(0, bInfo.get_window_to_stats().get("600").get_common_stats().get_failed());
+        assertEquals(emitCount, bInfo.get_window_to_stats().get("600").get_specific_stats().get_bolt().get_executed());
+
+        assertEquals(emitCount, bInfo.get_sid_to_output_stats().get("default").get_common_stats().get_emitted());
+        assertEquals(0, bInfo.get_sid_to_output_stats().get("default").get_common_stats().get_transferred());
+        assertEquals(0, bInfo.get_sid_to_output_stats().get("default").get_common_stats().get_acked());
+        assertEquals(0, bInfo.get_sid_to_output_stats().get("default").get_common_stats().get_failed());
+
+        GlobalStreamId spoutDefault = new GlobalStreamId("spout", "default");
+        assertEquals(0, bInfo.get_gsid_to_input_stats().get(spoutDefault).get_common_stats().get_emitted());
+        assertEquals(0, bInfo.get_gsid_to_input_stats().get(spoutDefault).get_common_stats().get_transferred());
+        assertEquals(emitCount, bInfo.get_gsid_to_input_stats().get(spoutDefault).get_common_stats().get_acked());
+        assertEquals(0, bInfo.get_gsid_to_input_stats().get(spoutDefault).get_common_stats().get_failed());
+        assertEquals(emitCount, bInfo.get_gsid_to_input_stats().get(spoutDefault).get_specific_stats().get_bolt().get_executed());
       } finally {
         cluster.killTopology("test");
       }
