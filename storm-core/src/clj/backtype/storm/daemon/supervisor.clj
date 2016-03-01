@@ -1032,6 +1032,15 @@
     (if (.exists (File. worker-dir))
       (create-symlink! worker-dir topo-dir "artifacts" port))))
 
+(defn launch-with-cgroups?
+  [topo-conf]
+  (and
+    (topo-conf STORM-RESOURCE-ISOLATION-PLUGIN-ENABLE)
+    (not
+      (and
+        (= (topo-conf STORM-SCHEDULER) "backtype.storm.scheduler.bridge.MultitenantResourceAwareBridgeScheduler")
+        (= (topo-conf TOPOLOGY-SCHEDULER-STRATEGY) "backtype.storm.scheduler.resource.strategies.scheduling.MultitenantStrategy")))))
+
 (defmethod launch-worker
     :distributed [supervisor storm-id port worker-id resources]
     (let [conf (:conf supervisor)
@@ -1119,7 +1128,7 @@
                      port
                      worker-id])
           command (->> command (map str) (filter (complement empty?)))
-          command (if (conf STORM-RESOURCE-ISOLATION-PLUGIN-ENABLE)
+          command (if (launch-with-cgroups? storm-conf)
                     (do
                       (.reserveResourcesForWorker (:resource-isolation-manager supervisor) worker-id
                         {"cpu" cpu "memory" (+ mem-onheap mem-offheap (int (Math/ceil (conf STORM-CGROUP-MEMORY-LIMIT-TOLERANCE-MARGIN-MB))))})
