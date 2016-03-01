@@ -126,11 +126,13 @@ public class TestStats {
 
     builder.setSpout("spout", new CountDownSpout(), 5);
     builder.setBolt("bolt", new PassThroughBolt(), 5).shuffleGrouping("spout");
+    builder.setBolt("second-bolt", new PassThroughBolt(), 5).shuffleGrouping("spout");
+    builder.setBolt("final-bolt", new PassThroughBolt(), 5).shuffleGrouping("bolt").shuffleGrouping("second-bolt");
 
     Config conf = new Config();
     conf.put(Config.TOPOLOGY_STATS_SAMPLE_RATE, 1.0);
     conf.setNumEventLoggers(0);
-    conf.setDebug(true);
+    //conf.setDebug(true);
 
     LOG.info("STARTING CLUSTER...");
     LocalCluster cluster = new LocalCluster();
@@ -154,35 +156,36 @@ public class TestStats {
         while (true) {
             info = cluster.getTopologyPageInfo(id, ":all-time", false);        
             Long emitted = info.get_topology_stats().get_window_to_emitted().get(":all-time");
-            if (emitted != null && emitted == (emitCount * 2)) { //1 for spout 1 for the bolt
+            if (emitted != null && emitted == (emitCount * 5)) { //1 for spout 1 for each the bolt (last bolt counts twice)
                 //looks like we got everything
                 break;
             }
+            LOG.info("WAITING({})... {} != {}",System.currentTimeMillis() - start, emitted, emitCount * 5);
             Thread.sleep(100);
             assertTrue(System.currentTimeMillis() - start < 30000);
         }
         TopologyStats topoStats = info.get_topology_stats();
         LOG.info("TOPO STATS: {}", topoStats);
-        assertEquals(new Long(emitCount * 2), topoStats.get_window_to_emitted().get(":all-time"));
-        assertEquals(new Long(emitCount), topoStats.get_window_to_transferred().get(":all-time"));
+        assertEquals(new Long(emitCount * 5), topoStats.get_window_to_emitted().get(":all-time"));
+        assertEquals(new Long(emitCount * 4), topoStats.get_window_to_transferred().get(":all-time"));
         assertEquals(new Long(emitCount), topoStats.get_window_to_acked().get(":all-time"));
         assertEquals((Long) null, topoStats.get_window_to_failed().get(":all-time"));
         assertEquals(500.0, (double)topoStats.get_window_to_complete_latencies_ms().get(":all-time"), 500.0);
 
-        assertEquals(new Long(emitCount * 2), topoStats.get_window_to_emitted().get("10800"));
-        assertEquals(new Long(emitCount), topoStats.get_window_to_transferred().get("10800"));
+        assertEquals(new Long(emitCount * 5), topoStats.get_window_to_emitted().get("10800"));
+        assertEquals(new Long(emitCount * 4), topoStats.get_window_to_transferred().get("10800"));
         assertEquals(new Long(emitCount), topoStats.get_window_to_acked().get("10800"));
         assertEquals((Long) null, topoStats.get_window_to_failed().get("10800"));
         assertEquals(500.0, (double)topoStats.get_window_to_complete_latencies_ms().get("10800"), 500.0);
 
-        assertEquals(new Long(emitCount * 2), topoStats.get_window_to_emitted().get("86400"));
-        assertEquals(new Long(emitCount), topoStats.get_window_to_transferred().get("86400"));
+        assertEquals(new Long(emitCount * 5), topoStats.get_window_to_emitted().get("86400"));
+        assertEquals(new Long(emitCount * 4), topoStats.get_window_to_transferred().get("86400"));
         assertEquals(new Long(emitCount), topoStats.get_window_to_acked().get("86400"));
         assertEquals((Long) null, topoStats.get_window_to_failed().get("86400"));
         assertEquals(500.0, (double)topoStats.get_window_to_complete_latencies_ms().get("86400"), 500.0);
 
-        assertEquals(new Long(emitCount * 2), topoStats.get_window_to_emitted().get("600"));
-        assertEquals(new Long(emitCount), topoStats.get_window_to_transferred().get("600"));
+        assertEquals(new Long(emitCount * 5), topoStats.get_window_to_emitted().get("600"));
+        assertEquals(new Long(emitCount * 4), topoStats.get_window_to_transferred().get("600"));
         assertEquals(new Long(emitCount), topoStats.get_window_to_acked().get("600"));
         assertEquals((Long) null, topoStats.get_window_to_failed().get("600"));
         assertEquals(500.0, (double)topoStats.get_window_to_complete_latencies_ms().get("600"), 500.0);
@@ -195,7 +198,7 @@ public class TestStats {
         assertTrue(sCommon != null); 
 
         assertEquals(emitCount, sCommon.get_emitted());
-        assertEquals(emitCount, sCommon.get_transferred());
+        assertEquals(emitCount * 2, sCommon.get_transferred());
         assertEquals(emitCount, sCommon.get_acked());
         assertEquals(0, sCommon.get_failed());
         assertEquals(500.0, (double)spout.get_specific_stats().get_spout().get_complete_latency_ms(), 500.0);
@@ -203,31 +206,31 @@ public class TestStats {
         ComponentPageInfo sInfo = cluster.getComponentPageInfo(id, "spout", ":all-time", false);
         LOG.info("S-INFO: {}", sInfo);
         assertEquals(emitCount, sInfo.get_window_to_stats().get(":all-time").get_common_stats().get_emitted());
-        assertEquals(emitCount, sInfo.get_window_to_stats().get(":all-time").get_common_stats().get_transferred());
+        assertEquals(emitCount * 2, sInfo.get_window_to_stats().get(":all-time").get_common_stats().get_transferred());
         assertEquals(emitCount, sInfo.get_window_to_stats().get(":all-time").get_common_stats().get_acked());
         assertEquals(0, sInfo.get_window_to_stats().get(":all-time").get_common_stats().get_failed());
         assertEquals(500.0, (double)sInfo.get_window_to_stats().get(":all-time").get_specific_stats().get_spout().get_complete_latency_ms(), 500.0);
 
         assertEquals(emitCount, sInfo.get_window_to_stats().get("10800").get_common_stats().get_emitted());
-        assertEquals(emitCount, sInfo.get_window_to_stats().get("10800").get_common_stats().get_transferred());
+        assertEquals(emitCount * 2, sInfo.get_window_to_stats().get("10800").get_common_stats().get_transferred());
         assertEquals(emitCount, sInfo.get_window_to_stats().get("10800").get_common_stats().get_acked());
         assertEquals(0, sInfo.get_window_to_stats().get("10800").get_common_stats().get_failed());
         assertEquals(500.0, (double)sInfo.get_window_to_stats().get("10800").get_specific_stats().get_spout().get_complete_latency_ms(), 500.0);
 
         assertEquals(emitCount, sInfo.get_window_to_stats().get("86400").get_common_stats().get_emitted());
-        assertEquals(emitCount, sInfo.get_window_to_stats().get("86400").get_common_stats().get_transferred());
+        assertEquals(emitCount * 2, sInfo.get_window_to_stats().get("86400").get_common_stats().get_transferred());
         assertEquals(emitCount, sInfo.get_window_to_stats().get("86400").get_common_stats().get_acked());
         assertEquals(0, sInfo.get_window_to_stats().get("86400").get_common_stats().get_failed());
         assertEquals(500.0, (double)sInfo.get_window_to_stats().get("86400").get_specific_stats().get_spout().get_complete_latency_ms(), 500.0);
 
         assertEquals(emitCount, sInfo.get_window_to_stats().get("600").get_common_stats().get_emitted());
-        assertEquals(emitCount, sInfo.get_window_to_stats().get("600").get_common_stats().get_transferred());
+        assertEquals(emitCount * 2, sInfo.get_window_to_stats().get("600").get_common_stats().get_transferred());
         assertEquals(emitCount, sInfo.get_window_to_stats().get("600").get_common_stats().get_acked());
         assertEquals(0, sInfo.get_window_to_stats().get("600").get_common_stats().get_failed());
         assertEquals(500.0, (double)sInfo.get_window_to_stats().get("600").get_specific_stats().get_spout().get_complete_latency_ms(), 500.0);
 
         assertEquals(emitCount, sInfo.get_sid_to_output_stats().get("default").get_common_stats().get_emitted());
-        assertEquals(emitCount, sInfo.get_sid_to_output_stats().get("default").get_common_stats().get_transferred());
+        assertEquals(emitCount * 2, sInfo.get_sid_to_output_stats().get("default").get_common_stats().get_transferred());
         assertEquals(emitCount, sInfo.get_sid_to_output_stats().get("default").get_common_stats().get_acked());
         assertEquals(0, sInfo.get_sid_to_output_stats().get("default").get_common_stats().get_failed());
         assertEquals(500.0, (double)sInfo.get_sid_to_output_stats().get("default").get_specific_stats().get_spout().get_complete_latency_ms(), 500.0);
@@ -241,7 +244,7 @@ public class TestStats {
         assertTrue(bCommon != null); 
 
         assertEquals(emitCount, bCommon.get_emitted());
-        assertEquals(0, bCommon.get_transferred());
+        assertEquals(emitCount, bCommon.get_transferred());
         assertEquals(emitCount, bCommon.get_acked());
         assertEquals(0, bCommon.get_failed());
         assertEquals(10.0, (double)bolt.get_specific_stats().get_bolt().get_execute_latency_ms(), 10.0);
@@ -253,31 +256,31 @@ public class TestStats {
         LOG.info("B-INFO: {}", bInfo);
 
         assertEquals(emitCount, bInfo.get_window_to_stats().get(":all-time").get_common_stats().get_emitted());
-        assertEquals(0, bInfo.get_window_to_stats().get(":all-time").get_common_stats().get_transferred());
+        assertEquals(emitCount, bInfo.get_window_to_stats().get(":all-time").get_common_stats().get_transferred());
         assertEquals(emitCount, bInfo.get_window_to_stats().get(":all-time").get_common_stats().get_acked());
         assertEquals(0, bInfo.get_window_to_stats().get(":all-time").get_common_stats().get_failed());
         assertEquals(emitCount, bInfo.get_window_to_stats().get(":all-time").get_specific_stats().get_bolt().get_executed());
 
         assertEquals(emitCount, bInfo.get_window_to_stats().get("10800").get_common_stats().get_emitted());
-        assertEquals(0, bInfo.get_window_to_stats().get("10800").get_common_stats().get_transferred());
+        assertEquals(emitCount, bInfo.get_window_to_stats().get("10800").get_common_stats().get_transferred());
         assertEquals(emitCount, bInfo.get_window_to_stats().get("10800").get_common_stats().get_acked());
         assertEquals(0, bInfo.get_window_to_stats().get("10800").get_common_stats().get_failed());
         assertEquals(emitCount, bInfo.get_window_to_stats().get("10800").get_specific_stats().get_bolt().get_executed());
 
         assertEquals(emitCount, bInfo.get_window_to_stats().get("86400").get_common_stats().get_emitted());
-        assertEquals(0, bInfo.get_window_to_stats().get("86400").get_common_stats().get_transferred());
+        assertEquals(emitCount, bInfo.get_window_to_stats().get("86400").get_common_stats().get_transferred());
         assertEquals(emitCount, bInfo.get_window_to_stats().get("86400").get_common_stats().get_acked());
         assertEquals(0, bInfo.get_window_to_stats().get("86400").get_common_stats().get_failed());
         assertEquals(emitCount, bInfo.get_window_to_stats().get("86400").get_specific_stats().get_bolt().get_executed());
 
         assertEquals(emitCount, bInfo.get_window_to_stats().get("600").get_common_stats().get_emitted());
-        assertEquals(0, bInfo.get_window_to_stats().get("600").get_common_stats().get_transferred());
+        assertEquals(emitCount, bInfo.get_window_to_stats().get("600").get_common_stats().get_transferred());
         assertEquals(emitCount, bInfo.get_window_to_stats().get("600").get_common_stats().get_acked());
         assertEquals(0, bInfo.get_window_to_stats().get("600").get_common_stats().get_failed());
         assertEquals(emitCount, bInfo.get_window_to_stats().get("600").get_specific_stats().get_bolt().get_executed());
 
         assertEquals(emitCount, bInfo.get_sid_to_output_stats().get("default").get_common_stats().get_emitted());
-        assertEquals(0, bInfo.get_sid_to_output_stats().get("default").get_common_stats().get_transferred());
+        assertEquals(emitCount, bInfo.get_sid_to_output_stats().get("default").get_common_stats().get_transferred());
         assertEquals(0, bInfo.get_sid_to_output_stats().get("default").get_common_stats().get_acked());
         assertEquals(0, bInfo.get_sid_to_output_stats().get("default").get_common_stats().get_failed());
 
@@ -287,6 +290,118 @@ public class TestStats {
         assertEquals(emitCount, bInfo.get_gsid_to_input_stats().get(spoutDefault).get_common_stats().get_acked());
         assertEquals(0, bInfo.get_gsid_to_input_stats().get(spoutDefault).get_common_stats().get_failed());
         assertEquals(emitCount, bInfo.get_gsid_to_input_stats().get(spoutDefault).get_specific_stats().get_bolt().get_executed());
+
+        bolt = boltStats.get("second-bolt");
+        assertTrue(bolt != null); 
+        bCommon = bolt.get_common_stats();
+        assertTrue(bCommon != null); 
+
+        assertEquals(emitCount, bCommon.get_emitted());
+        assertEquals(emitCount, bCommon.get_transferred());
+        assertEquals(emitCount, bCommon.get_acked());
+        assertEquals(0, bCommon.get_failed());
+        assertEquals(10.0, (double)bolt.get_specific_stats().get_bolt().get_execute_latency_ms(), 10.0);
+        assertEquals(10.0, (double)bolt.get_specific_stats().get_bolt().get_process_latency_ms(), 10.0);
+        assertEquals(1.0, (double)bolt.get_specific_stats().get_bolt().get_capacity(), 1.0);
+        assertEquals(emitCount, bolt.get_specific_stats().get_bolt().get_executed());
+
+        bInfo = cluster.getComponentPageInfo(id, "second-bolt", ":all-time", false);
+        LOG.info("B-INFO: {}", bInfo);
+
+        assertEquals(emitCount, bInfo.get_window_to_stats().get(":all-time").get_common_stats().get_emitted());
+        assertEquals(emitCount, bInfo.get_window_to_stats().get(":all-time").get_common_stats().get_transferred());
+        assertEquals(emitCount, bInfo.get_window_to_stats().get(":all-time").get_common_stats().get_acked());
+        assertEquals(0, bInfo.get_window_to_stats().get(":all-time").get_common_stats().get_failed());
+        assertEquals(emitCount, bInfo.get_window_to_stats().get(":all-time").get_specific_stats().get_bolt().get_executed());
+
+        assertEquals(emitCount, bInfo.get_window_to_stats().get("10800").get_common_stats().get_emitted());
+        assertEquals(emitCount, bInfo.get_window_to_stats().get("10800").get_common_stats().get_transferred());
+        assertEquals(emitCount, bInfo.get_window_to_stats().get("10800").get_common_stats().get_acked());
+        assertEquals(0, bInfo.get_window_to_stats().get("10800").get_common_stats().get_failed());
+        assertEquals(emitCount, bInfo.get_window_to_stats().get("10800").get_specific_stats().get_bolt().get_executed());
+
+        assertEquals(emitCount, bInfo.get_window_to_stats().get("86400").get_common_stats().get_emitted());
+        assertEquals(emitCount, bInfo.get_window_to_stats().get("86400").get_common_stats().get_transferred());
+        assertEquals(emitCount, bInfo.get_window_to_stats().get("86400").get_common_stats().get_acked());
+        assertEquals(0, bInfo.get_window_to_stats().get("86400").get_common_stats().get_failed());
+        assertEquals(emitCount, bInfo.get_window_to_stats().get("86400").get_specific_stats().get_bolt().get_executed());
+
+        assertEquals(emitCount, bInfo.get_window_to_stats().get("600").get_common_stats().get_emitted());
+        assertEquals(emitCount, bInfo.get_window_to_stats().get("600").get_common_stats().get_transferred());
+        assertEquals(emitCount, bInfo.get_window_to_stats().get("600").get_common_stats().get_acked());
+        assertEquals(0, bInfo.get_window_to_stats().get("600").get_common_stats().get_failed());
+        assertEquals(emitCount, bInfo.get_window_to_stats().get("600").get_specific_stats().get_bolt().get_executed());
+
+        assertEquals(emitCount, bInfo.get_sid_to_output_stats().get("default").get_common_stats().get_emitted());
+        assertEquals(emitCount, bInfo.get_sid_to_output_stats().get("default").get_common_stats().get_transferred());
+        assertEquals(0, bInfo.get_sid_to_output_stats().get("default").get_common_stats().get_acked());
+        assertEquals(0, bInfo.get_sid_to_output_stats().get("default").get_common_stats().get_failed());
+
+        assertEquals(0, bInfo.get_gsid_to_input_stats().get(spoutDefault).get_common_stats().get_emitted());
+        assertEquals(0, bInfo.get_gsid_to_input_stats().get(spoutDefault).get_common_stats().get_transferred());
+        assertEquals(emitCount, bInfo.get_gsid_to_input_stats().get(spoutDefault).get_common_stats().get_acked());
+        assertEquals(0, bInfo.get_gsid_to_input_stats().get(spoutDefault).get_common_stats().get_failed());
+        assertEquals(emitCount, bInfo.get_gsid_to_input_stats().get(spoutDefault).get_specific_stats().get_bolt().get_executed());
+
+        bolt = boltStats.get("final-bolt");
+        assertTrue(bolt != null); 
+        bCommon = bolt.get_common_stats();
+        assertTrue(bCommon != null); 
+
+        assertEquals(emitCount * 2, bCommon.get_emitted());
+        assertEquals(0, bCommon.get_transferred());
+        assertEquals(emitCount * 2, bCommon.get_acked());
+        assertEquals(0, bCommon.get_failed());
+        assertEquals(10.0, (double)bolt.get_specific_stats().get_bolt().get_execute_latency_ms(), 10.0);
+        assertEquals(10.0, (double)bolt.get_specific_stats().get_bolt().get_process_latency_ms(), 10.0);
+        assertEquals(1.0, (double)bolt.get_specific_stats().get_bolt().get_capacity(), 1.0);
+        assertEquals(emitCount * 2, bolt.get_specific_stats().get_bolt().get_executed());
+
+        bInfo = cluster.getComponentPageInfo(id, "final-bolt", ":all-time", false);
+        LOG.info("B-INFO: {}", bInfo);
+
+        assertEquals(emitCount * 2, bInfo.get_window_to_stats().get(":all-time").get_common_stats().get_emitted());
+        assertEquals(0, bInfo.get_window_to_stats().get(":all-time").get_common_stats().get_transferred());
+        assertEquals(emitCount * 2, bInfo.get_window_to_stats().get(":all-time").get_common_stats().get_acked());
+        assertEquals(0, bInfo.get_window_to_stats().get(":all-time").get_common_stats().get_failed());
+        assertEquals(emitCount * 2, bInfo.get_window_to_stats().get(":all-time").get_specific_stats().get_bolt().get_executed());
+
+        assertEquals(emitCount * 2, bInfo.get_window_to_stats().get("10800").get_common_stats().get_emitted());
+        assertEquals(0, bInfo.get_window_to_stats().get("10800").get_common_stats().get_transferred());
+        assertEquals(emitCount * 2, bInfo.get_window_to_stats().get("10800").get_common_stats().get_acked());
+        assertEquals(0, bInfo.get_window_to_stats().get("10800").get_common_stats().get_failed());
+        assertEquals(emitCount * 2, bInfo.get_window_to_stats().get("10800").get_specific_stats().get_bolt().get_executed());
+
+        assertEquals(emitCount * 2, bInfo.get_window_to_stats().get("86400").get_common_stats().get_emitted());
+        assertEquals(0, bInfo.get_window_to_stats().get("86400").get_common_stats().get_transferred());
+        assertEquals(emitCount * 2, bInfo.get_window_to_stats().get("86400").get_common_stats().get_acked());
+        assertEquals(0, bInfo.get_window_to_stats().get("86400").get_common_stats().get_failed());
+        assertEquals(emitCount * 2, bInfo.get_window_to_stats().get("86400").get_specific_stats().get_bolt().get_executed());
+
+        assertEquals(emitCount * 2, bInfo.get_window_to_stats().get("600").get_common_stats().get_emitted());
+        assertEquals(0, bInfo.get_window_to_stats().get("600").get_common_stats().get_transferred());
+        assertEquals(emitCount * 2, bInfo.get_window_to_stats().get("600").get_common_stats().get_acked());
+        assertEquals(0, bInfo.get_window_to_stats().get("600").get_common_stats().get_failed());
+        assertEquals(emitCount * 2, bInfo.get_window_to_stats().get("600").get_specific_stats().get_bolt().get_executed());
+
+        assertEquals(emitCount * 2, bInfo.get_sid_to_output_stats().get("default").get_common_stats().get_emitted());
+        assertEquals(0, bInfo.get_sid_to_output_stats().get("default").get_common_stats().get_transferred());
+        assertEquals(0, bInfo.get_sid_to_output_stats().get("default").get_common_stats().get_acked());
+        assertEquals(0, bInfo.get_sid_to_output_stats().get("default").get_common_stats().get_failed());
+
+        GlobalStreamId boltDefault = new GlobalStreamId("bolt", "default");
+        assertEquals(0, bInfo.get_gsid_to_input_stats().get(boltDefault).get_common_stats().get_emitted());
+        assertEquals(0, bInfo.get_gsid_to_input_stats().get(boltDefault).get_common_stats().get_transferred());
+        assertEquals(emitCount, bInfo.get_gsid_to_input_stats().get(boltDefault).get_common_stats().get_acked());
+        assertEquals(0, bInfo.get_gsid_to_input_stats().get(boltDefault).get_common_stats().get_failed());
+        assertEquals(emitCount, bInfo.get_gsid_to_input_stats().get(boltDefault).get_specific_stats().get_bolt().get_executed());
+
+        GlobalStreamId sboltDefault = new GlobalStreamId("second-bolt", "default");
+        assertEquals(0, bInfo.get_gsid_to_input_stats().get(sboltDefault).get_common_stats().get_emitted());
+        assertEquals(0, bInfo.get_gsid_to_input_stats().get(sboltDefault).get_common_stats().get_transferred());
+        assertEquals(emitCount, bInfo.get_gsid_to_input_stats().get(sboltDefault).get_common_stats().get_acked());
+        assertEquals(0, bInfo.get_gsid_to_input_stats().get(sboltDefault).get_common_stats().get_failed());
+        assertEquals(emitCount, bInfo.get_gsid_to_input_stats().get(sboltDefault).get_specific_stats().get_bolt().get_executed());
       } finally {
         cluster.killTopology("test");
       }
