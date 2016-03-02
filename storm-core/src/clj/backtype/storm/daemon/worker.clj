@@ -603,7 +603,9 @@
 
         _ (refresh-connections nil)
 
-        _ (activate-worker-when-all-connections-ready worker)
+        _ (if (get storm-conf TOPOLOGY-WORKER-WAIT-FOR-MESSAGING-CONNECTIONS-READY)
+            (activate-worker-when-all-connections-ready worker)
+            (reset! (:worker-active-flag worker) true))
 
         _ (refresh-storm-active worker nil)
 
