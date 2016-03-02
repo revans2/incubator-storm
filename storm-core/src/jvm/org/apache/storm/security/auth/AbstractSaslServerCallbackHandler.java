@@ -20,6 +20,9 @@ package org.apache.storm.security.auth;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import backtype.storm.security.auth.SaslTransportPlugin;
+import backtype.storm.security.auth.ReqContext;
+
 import javax.security.auth.callback.Callback;
 import javax.security.auth.callback.CallbackHandler;
 import javax.security.auth.callback.NameCallback;

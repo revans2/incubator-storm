@@ -22,8 +22,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.storm.security.auth.AbstractSaslServerCallbackHandler;
-import org.apache.storm.security.auth.ReqContext;
-import org.apache.storm.security.auth.SaslTransportPlugin;
+import backtype.storm.security.auth.ReqContext;
+import backtype.storm.security.auth.SaslTransportPlugin;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
