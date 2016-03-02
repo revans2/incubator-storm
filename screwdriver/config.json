@@ -14,7 +14,6 @@
                     ],
                     "task": "dist-install",
                     "branch": "quarantine",
-                    "dist_tag": "ystorm_master_security",
                     "required": true,
                     "group": "hadoopqa",
                     "type": "release",
