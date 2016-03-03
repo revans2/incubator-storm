@@ -36,7 +36,7 @@ storm.zookeeper.auth.user: null
 storm.zookeeper.auth.password: null
 storm.cluster.mode: "distributed" # can be distributed or local
 storm.local.mode.zmq: false
-storm.thrift.transport: "backtype.storm.security.auth.SimpleTransportPlugin"
+storm.thrift.transport: "org.apache.storm.security.auth.plain.PlainSaslTransportPlugin"
 storm.thrift.socket.timeout.ms: 600000
 storm.principal.tolocal: "backtype.storm.security.auth.DefaultPrincipalToLocal"
 storm.group.mapping.service: "backtype.storm.security.auth.ShellBasedGroupsMapping"
