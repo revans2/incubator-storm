@@ -10,26 +10,22 @@
             "build" : {
                 "publish" : {
                     "before" : [
-			"make -C ${SRC_DIR}/yahoo-build ignore-pom-changes"
+                        "cp -v yahoo-build/ystorm-`cat $SRC_DIR/yahoo-build/RELEASE | sed -e 's|-|_|g'`.tgz ${AUTO_PUBLISH_DIR}/"
                     ],
                     "task": "dist-install",
                     "branch": "quarantine",
-                    "dist_tag": "ystorm_master_security",
                     "required": true,
                     "group": "hadoopqa",
                     "type": "release",
-                    "yicf": [
-                        "yahoo-build/ystorm.yicf"
-                    ],
-		    "after" : [
-			"git tag -f -a `cat $SRC_DIR/yahoo-build/RELEASE` -m \"yahoo version `cat $SRC_DIR/yahoo-build/RELEASE`\"",
-			"git push origin `cat $SRC_DIR/yahoo-build/RELEASE`",
-			"${SRC_DIR}/internal/QATools/storm_tag_master_launcher"
-		    ]
+                    "after" : [
+                        "git tag -f -a `cat $SRC_DIR/yahoo-build/RELEASE` -m \"yahoo version `cat $SRC_DIR/yahoo-build/RELEASE`\"",
+                        "git push origin `cat $SRC_DIR/yahoo-build/RELEASE`",
+                        "${SRC_DIR}/internal/QATools/storm_tag_master_launcher"
+                    ]
                 },
                  "remote_trigger": {
-                                    "url": "http://jenkins.screwdriver.corp.yahoo.com:9999/jenkins/job/61235-ystorm_test_topologies-trunk-component/",
-					"params": { }
+                     "url": "http://jenkins.screwdriver.corp.yahoo.com:9999/jenkins/job/61235-ystorm_test_topologies-trunk-component/",
+                     "params": { }
                 }
             }
         }
