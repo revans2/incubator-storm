@@ -79,31 +79,3 @@ clean:
 	cd .. && $(MVN) -Pyahoo clean ${MVN_MAKE_OPTS}
 	$(revert-versions)
 	rm -rf *_build.ruleset ystorm*.tgz BASE_VERSION RELEASE BASE_VERSION_UNDERSCORE
-
-
-#BuildyBlocks targets
-BB_RULES=/home/y/share/yahoo_cfg/buildyblocks/Make.rules
-include $(BB_RULES)
-
-#COMMIT
-COMMIT_BIM=./commit.bim
-commit: BB_Provision build test
-commit: BB_BIM_FILE=$(COMMIT_BIM)
-
-commit_clean: clean
-
-#COMPONENT
-COMPONENT_BIM=./component.bim
-component: BB_Provision build test package
-component: BB_BIM_FILE=$(COMPONENT_BIM)
-
-git-tag: RELEASE
-	git tag -f -a $(FULL_VERSION) -m "yahoo version $(FULL_VERSION)"
-	git push origin $(FULL_VERSION)
-
-component-dist-push:: BB_BIM_FILE=./component.bim
-#component-dist-push:: component BB_Dist_Push
-component-dist-push:: component git-tag
-	/home/y/bin/dist_install ystorm-*.tgz -batch -branch quarantine -group hadoopqa -identity /home/y/var/yhudson/keys/hadoopqa/id_rsa -tag ystorm_master_security
-
-component_clean: clean
