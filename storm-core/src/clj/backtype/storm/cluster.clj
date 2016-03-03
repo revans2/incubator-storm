@@ -400,11 +400,13 @@
     
       (topology-backpressure
         [this storm-id callback]
-        "if the backpresure/storm-id dir is empty, this topology has throttle-off, otherwise throttle-on."
+        "if the backpresure/storm-id dir is empty, this topology has throttle-off, otherwise throttle-on.
+         The backpressure/storm-id dir may not exist if nimbus has shutdown the topology"
         (when callback
           (swap! backpressure-callback assoc storm-id callback))
         (let [path (backpressure-storm-root storm-id)
-              children (.get_children cluster-state path (not-nil? callback))]
+              children (if (.node_exists cluster-state path false)
+                         (.get_children cluster-state path (not-nil? callback))) ]
               (> (count children) 0)))
       
       (setup-backpressure!
