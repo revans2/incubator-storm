@@ -1073,7 +1073,7 @@
       (do 
         (log-error (:exception res) (str "Failed to " task-description ". Will make [" tries "] more attempts."))
         (recur (dec tries) task-description f args))
-      (do 
+      (do
         (log-debug (str "Successful " task-description "."))
         (:value res)))))
 

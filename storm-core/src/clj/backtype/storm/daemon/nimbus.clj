@@ -57,6 +57,7 @@
   (:use [backtype.storm.daemon common])
   (:use [clojure.string :only [blank?]])
   (:use [clojure.set :only [intersection]])
+  (:use [org.apache.storm.pacemaker pacemaker-state-factory])
   (:import [org.apache.zookeeper data.ACL ZooDefs$Ids ZooDefs$Perms])
   (:import [backtype.storm.utils VersionInfo])
   (:require [clj-time.core :as time])

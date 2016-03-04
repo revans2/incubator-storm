@@ -21,7 +21,6 @@ import org.jboss.netty.handler.codec.frame.FrameDecoder;
 import org.jboss.netty.channel.ChannelHandlerContext;
 import org.jboss.netty.channel.Channel;
 import backtype.storm.generated.HBMessage;
-import backtype.storm.generated.HBMessageData;
 import backtype.storm.generated.HBServerMessageType;
 import org.jboss.netty.buffer.ChannelBuffer;
 import backtype.storm.utils.Utils;
