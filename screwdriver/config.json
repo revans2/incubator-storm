@@ -10,7 +10,7 @@
             "build" : {
                 "publish" : {
                     "before" : [
-                        "cp -v yahoo-build/ystorm-`cat $SRC_DIR/yahoo-build/RELEASE | sed -e 's|-|_|g'`.tgz ${AUTO_PUBLISH_DIR}/"
+                        "cp -v yahoo-build/ystorm-`cat $SRC_DIR/yahoo-build/RELEASE | sed -e 's|-|_|g'`-rhel-6.x.tgz ${AUTO_PUBLISH_DIR}/"
                     ],
                     "task": "dist-install",
                     "branch": "quarantine",
