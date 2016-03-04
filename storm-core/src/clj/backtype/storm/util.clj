@@ -1097,7 +1097,10 @@
     (assoc coll k (apply str (repeat (count (coll k)) "#")))
     coll))
 
-(defn log-thrift-access [request-id remoteAddress principal operation]
-  (doto
-    (ThriftAccessLogger.)
-    (.log (str "Request ID: " request-id " access from: " remoteAddress " principal: " principal " operation: " operation))))
+(defn log-thrift-access
+  [request-id remoteAddress principal operation storm-name arg]
+    (doto
+      (ThriftAccessLogger.)
+      (.log (str "Request ID: " request-id " access from: " remoteAddress " principal: " principal
+                 " operation: " operation (if storm-name (str " storm-name: " storm-name) "")
+                 (if (.startsWith arg "access") " access result: " " function: ") arg))))
