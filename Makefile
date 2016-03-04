@@ -23,4 +23,4 @@ dist_tag:
 	$(MAKE) -C yahoo-build dist_tag
 
 screwdriver: internal dist_tag
-	$(MAKE) -C yahoo-build component_clean build test package-sd ; if [ $$? -eq 0 ] ; then $(MAKE) copy_test_files ;  else $(MAKE) copy_test_files; false ; fi
+	$(MAKE) -C yahoo-build clean build test package-sd ; if [ $$? -eq 0 ] ; then $(MAKE) copy_test_files ;  else $(MAKE) copy_test_files; false ; fi
