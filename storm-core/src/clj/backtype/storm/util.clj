@@ -1103,4 +1103,7 @@
       (ThriftAccessLogger.)
       (.log (str "Request ID: " request-id " access from: " remoteAddress " principal: " principal
                  " operation: " operation (if storm-name (str " storm-name: " storm-name) "")
-                 (if (.startsWith arg "access") " access result: " " function: ") arg))))
+                 (if (and (not-nil? arg)
+                          (.startsWith arg "access")
+                       " access result: "
+                       " function: ") arg)))))
