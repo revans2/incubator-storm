@@ -128,7 +128,7 @@
 
 ;; Used for mocking in tests
 (defn is-connection-ready [pacemaker-client]
-  (.isReady pacemaker-client))
+  (.isReady (.waitUntilReady pacemaker-client)))
 
 (defn pacemaker-retry-on-exception
   "Retries specific function on exception based on retries count"
@@ -209,7 +209,7 @@
                                   (if (is-connection-ready client)
                                     (get-worker-hb path client)
                                     (do
-                                      (log-error (HBExecutionException.) "Connection not ready for host " host client)
+                                      (log-error (HBExecutionException.) "Connection not ready for host " client)
                                       :error))
                                   (catch Exception e
                                     (do
@@ -239,11 +239,11 @@
                                   (if (is-connection-ready client)
                                     (get-worker-hb-children path client)
                                     (do
-                                      (log-error (HBExecutionException.) "Connection not ready for host " host client)
+                                      (log-error (HBExecutionException.) "Connection not ready for host " client)
                                       :error))
                                   (catch Exception e
                                     (do
-                                      (log-error e str "Error getting worker heartbeat children for host " host client)
+                                      (log-error e str "Error getting worker heartbeat children for host " client)
                                       :error))))
                               @pacemaker-client-pool)]
              ;; If all connections are throwing exceptions or not ready we throw exception up the stack
