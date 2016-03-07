@@ -23,6 +23,7 @@ import java.util.Iterator;
 import java.util.Collection;
 import java.util.Map;
 import java.util.HashMap;
+import java.util.Timer;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
@@ -73,7 +74,7 @@ public class Client extends ConnectionWithStatus implements IStatefulObject, ISa
     private static final Logger LOG = LoggerFactory.getLogger(Client.class);
     private static final String PREFIX = "Netty-Client-";
     private static final long NO_DELAY_MS = 0L;
-
+    private static Timer timer;
     private final Map stormConf;
     private final StormBoundedExponentialBackoffRetry retryPolicy;
     private final ClientBootstrap bootstrap;
@@ -129,6 +130,10 @@ public class Client extends ConnectionWithStatus implements IStatefulObject, ISa
 
     private final Object writeLock = new Object();
 
+    static {
+        timer = new Timer("NettyTimer-", true);
+    }
+
     @SuppressWarnings("rawtypes")
     Client(Map stormConf, ChannelFactory factory, HashedWheelTimer scheduler, String host, int port, Context context) {
         this.stormConf = stormConf;
@@ -145,13 +150,40 @@ public class Client extends ConnectionWithStatus implements IStatefulObject, ISa
         int minWaitMs = Utils.getInt(stormConf.get(Config.STORM_MESSAGING_NETTY_MIN_SLEEP_MS));
         int maxWaitMs = Utils.getInt(stormConf.get(Config.STORM_MESSAGING_NETTY_MAX_SLEEP_MS));
         retryPolicy = new StormBoundedExponentialBackoffRetry(minWaitMs, maxWaitMs, maxReconnectionAttempts);
+        int endOfBatchMessageDelay = Utils.getInt(stormConf.get
+                (Config.STORM_MESSAGING_NETTY_END_OF_BATCH_MESSAGE_DELAY_IN_SECS)) * 1000;
 
         // Initiate connection to remote destination
         bootstrap = createClientBootstrap(factory, bufferSize, stormConf);
         dstAddress = new InetSocketAddress(host, port);
         dstAddressPrefixedName = prefixedName(dstAddress);
+        launchEndOfBatchMessageThread(endOfBatchMessageDelay);
         scheduleConnect(NO_DELAY_MS);
         batcher = new MessageBuffer(messageBatchSize);
+    }
+
+    /**
+     * This thread helps us to send end of batch control messages to the destination
+     * server which are ignored eventually. This is performed just to know
+     * whether the server is alive or it will cascade into a reconnect after an exception and
+     * get a fresh channel in order to avoid sending messages to bad channel and the
+     * messages getting lost upon the failure of the server.
+     */
+    private void launchEndOfBatchMessageThread(int endOfBatchMessageDelay) {
+        // netty TimerTask is already defined
+        // sending end of batch message for every 30
+        // seconds to the server\
+            timer.schedule(new java.util.TimerTask() {
+                List<TaskMessage> wrapper = new ArrayList<TaskMessage>();
+                public void run() {
+                    try {
+                        LOG.debug("running timer task EOB, address {}", dstAddress);
+                        send(wrapper.iterator());
+                    } catch (Exception exp) {
+                        LOG.error("EOB write error {}", exp);
+                    }
+                }
+            }, 0, endOfBatchMessageDelay);
     }
 
     private ClientBootstrap createClientBootstrap(ChannelFactory factory, int bufferSize, Map stormConf) {
@@ -246,7 +278,7 @@ public class Client extends ConnectionWithStatus implements IStatefulObject, ISa
             return;
         }
 
-        if (!hasMessages(msgs)) {
+        if (msgs == null) {
           return;
         }
 
@@ -288,7 +320,7 @@ public class Client extends ConnectionWithStatus implements IStatefulObject, ISa
             // We can rely on `notifyInterestChanged` to push these messages as soon as there is spece in Netty's buffer
             // because we know `Channel.isWritable` was false after the messages were already in the buffer.
         }
-        }
+    }
 
     private Channel getConnectedChannel() {
         Channel channel = channelRef.get();
@@ -303,22 +335,17 @@ public class Client extends ConnectionWithStatus implements IStatefulObject, ISa
             }
             return null;
         }
-        }
+    }
 
     public InetSocketAddress getDstAddress() {
         return dstAddress;
     }
-
-    private boolean hasMessages(Iterator<TaskMessage> msgs) {
-        return msgs != null && msgs.hasNext();
-    }
-
-
+    
     private void dropMessages(Iterator<TaskMessage> msgs) {
         // We consume the iterator by traversing and thus "emptying" it.
         int msgCount = iteratorSize(msgs);
         messagesLost.getAndAdd(msgCount);
-                    }
+    }
 
     private int iteratorSize(Iterator<TaskMessage> msgs) {
         int size = 0;
