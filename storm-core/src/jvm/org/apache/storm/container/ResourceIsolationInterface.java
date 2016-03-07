@@ -33,7 +33,7 @@ public interface ResourceIsolationInterface {
      */
     void reserveResourcesForWorker(String workerId, Map resources);
 
-    /**
+    /**ø
      * This function will be called when the worker needs to shutdown.  This function should include logic to clean up after a worker is shutdown
      * @param workerId worker id to shutdown and clean up after
      */
@@ -43,9 +43,17 @@ public interface ResourceIsolationInterface {
     /**
      * After reserving resources for the worker (i.e. calling reserveResourcesForWorker). This function can be used
      * to get the modified command line to launch the worker with resource isolation
-     * @param existingCommand
+     * @param workerId the of the worker
+     * @param existingCommand existing command and args that needs to include to launch worker
      * @return new commandline with necessary additions to launch worker with resource isolation
      */
     List<String> getLaunchCommand(String workerId, List<String> existingCommand);
 
+    /**
+     * After reserving resources for the worker (i.e. calling reserveResourcesForWorker). this function can be used
+     * to get the launch command prefix
+     * @param workerId the of the worker
+     * @return the command line prefix for launching a worker with resource isolation
+     */
+    List<String> getLaunchCommandPrefix(String workerId);
 }
