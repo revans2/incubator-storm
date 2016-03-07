@@ -1104,6 +1104,6 @@
       (.log (str "Request ID: " request-id " access from: " remoteAddress " principal: " principal
                  " operation: " operation (if storm-name (str " storm-name: " storm-name) "")
                  (if (and (not-nil? arg)
-                          (.startsWith arg "access")
-                       " access result: "
-                       " function: ") arg)))))
+                          (.startsWith arg "access"))
+                   (str " access result: " arg)
+                   (str " function: " arg))))))
