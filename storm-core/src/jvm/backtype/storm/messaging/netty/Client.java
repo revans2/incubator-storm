@@ -161,7 +161,7 @@ public class Client extends ConnectionWithStatus implements IStatefulObject, ISa
         bootstrap = createClientBootstrap(factory, bufferSize, stormConf);
         dstAddress = new InetSocketAddress(host, port);
         dstAddressPrefixedName = prefixedName(dstAddress);
-        launchChannelConnectionThread();
+        launchChannelConnectionCheckThread();
         scheduleConnect(NO_DELAY_MS);
         batcher = new MessageBuffer(messageBatchSize);
     }
@@ -172,19 +172,19 @@ public class Client extends ConnectionWithStatus implements IStatefulObject, ISa
      * is alive or attempts to refresh connections if not alive. This
      * solution is better than what we have now in case of a bad channel.
      */
-    private void launchChannelConnectionThread() {
+    private void launchChannelConnectionCheckThread() {
         // netty TimerTask is already defined and hence a fully
         // qualified name
             timer.schedule(new java.util.TimerTask() {
                 public void run() {
                     try {
-                        LOG.debug("running timer task EOB, address {}", dstAddress);
+                        LOG.debug("running timer task, address {}", dstAddress);
                         if(closing) {
                             this.cancel();
                         }
                         getConnectedChannel();
                     } catch (Exception exp) {
-                        LOG.error("EOB write error {}", exp);
+                        LOG.error("channel connection error {}", exp);
                     }
                 }
             }, 0, CHECK_CHANNEL_CONNECTION_INTERVAL_MS);
