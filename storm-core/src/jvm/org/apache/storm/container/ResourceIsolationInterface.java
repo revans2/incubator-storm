@@ -33,7 +33,7 @@ public interface ResourceIsolationInterface {
      */
     void reserveResourcesForWorker(String workerId, Map resources);
 
-    /**ø
+    /**
      * This function will be called when the worker needs to shutdown.  This function should include logic to clean up after a worker is shutdown
      * @param workerId worker id to shutdown and clean up after
      */

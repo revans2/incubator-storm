@@ -217,34 +217,16 @@
 (defn generate-supervisor-id []
   (str (uuid) "-"  (.getHostAddress (InetAddress/getLocalHost))))
 
-(defn launch-with-cgroups?
-  [topo-conf]
-  (and
-    (topo-conf STORM-RESOURCE-ISOLATION-PLUGIN-ENABLE)
-    (not
-      (and
-        (= (topo-conf STORM-SCHEDULER) "backtype.storm.scheduler.bridge.MultitenantResourceAwareBridgeScheduler")
-        (= (topo-conf TOPOLOGY-SCHEDULER-STRATEGY) "backtype.storm.scheduler.resource.strategies.scheduling.MultitenantStrategy")))))
-
-(defnk worker-launcher-container [worker-id conf topo-conf user args supervisor :environment {} :log-prefix nil :exit-code-callback nil :directory nil]
+(defnk worker-launcher [conf user args :environment {} :log-prefix nil :exit-code-callback nil :directory nil :launch-in-container? false :supervisor nil :worker-id nil]
   (let [_ (when (clojure.string/blank? user)
             (throw (java.lang.IllegalArgumentException.
                      "User cannot be blank when calling worker-launcher.")))
         wl-initial (conf SUPERVISOR-WORKER-LAUNCHER)
         storm-home (System/getProperty "storm.home")
         wl (if wl-initial wl-initial (str storm-home "/bin/worker-launcher"))
-        command (concat (.getLaunchCommandPrefix (:resource-isolation-manager supervisor) worker-id) [wl user] args)]
-    (log-message "Running as user:" user " command:" (pr-str command))
-    (launch-process command :environment environment :log-prefix log-prefix :exit-code-callback exit-code-callback :directory directory)))
-
-(defnk worker-launcher [conf user args :environment {} :log-prefix nil :exit-code-callback nil :directory nil]
-  (let [_ (when (clojure.string/blank? user)
-            (throw (java.lang.IllegalArgumentException.
-                     "User cannot be blank when calling worker-launcher.")))
-        wl-initial (conf SUPERVISOR-WORKER-LAUNCHER)
-        storm-home (System/getProperty "storm.home")
-        wl (if wl-initial wl-initial (str storm-home "/bin/worker-launcher"))
-        command (concat [wl user] args)]
+        command (if launch-in-container?
+          (concat (.getLaunchCommandPrefix (:resource-isolation-manager supervisor) worker-id) [wl user] args)
+          (concat [wl user] args))]
     (log-message "Running as user:" user " command:" (pr-str command))
     (launch-process command :environment environment :log-prefix log-prefix :exit-code-callback exit-code-callback :directory directory)
   ))
@@ -1052,6 +1034,15 @@
     (if (.exists (File. worker-dir))
       (create-symlink! worker-dir topo-dir "artifacts" port))))
 
+(defn launch-with-cgroups?
+  [topo-conf]
+  (and
+    (topo-conf STORM-RESOURCE-ISOLATION-PLUGIN-ENABLE)
+    (not
+      (and
+        (= (topo-conf STORM-SCHEDULER) "backtype.storm.scheduler.bridge.MultitenantResourceAwareBridgeScheduler")
+        (= (topo-conf TOPOLOGY-SCHEDULER-STRATEGY) "backtype.storm.scheduler.resource.strategies.scheduling.MultitenantStrategy")))))
+
 (defmethod launch-worker
     :distributed [supervisor storm-id port worker-id resources]
     (let [conf (:conf supervisor)
@@ -1159,12 +1150,10 @@
         (remove-dead-worker worker-id)
         (create-blobstore-links conf storm-id port worker-id)
         (if run-worker-as-user
-          (if (launch-with-cgroups? storm-conf)
-            (worker-launcher-container worker-id conf storm-conf user ["worker" worker-dir (write-script worker-dir command :environment topology-worker-environment)]
-              supervisor :log-prefix log-prefix :exit-code-callback callback :directory (File. worker-dir))
-            (worker-launcher conf user ["worker" worker-dir (write-script worker-dir command :environment topology-worker-environment)]
-              :log-prefix log-prefix :exit-code-callback callback :directory (File. worker-dir)))
-          (launch-process command_final :environment topology-worker-environment :log-prefix log-prefix :exit-code-callback callback :directory (File. worker-dir)))
+          (worker-launcher conf user ["worker" worker-dir (write-script worker-dir command :environment topology-worker-environment)]
+            :log-prefix log-prefix :exit-code-callback callback :directory (File. worker-dir) :launch-in-container?
+            (launch-with-cgroups? storm-conf) :supervisor supervisor :worker-id worker-id))
+          (launch-process command_final :environment topology-worker-environment :log-prefix log-prefix :exit-code-callback callback :directory (File. worker-dir))
         )))
 
 ;; local implementation

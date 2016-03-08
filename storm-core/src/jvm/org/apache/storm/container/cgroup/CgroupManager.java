@@ -186,9 +186,6 @@ public class CgroupManager implements ResourceIsolationInterface {
     @Override
     public List<String> getLaunchCommand(String workerId, List<String> existingCommand) {
         List<String> newCommand = getLaunchCommandPrefix(workerId);
-        if (newCommand == null) {
-            return existingCommand;
-        }
         newCommand.addAll(existingCommand);
         return newCommand;
     }
@@ -198,8 +195,7 @@ public class CgroupManager implements ResourceIsolationInterface {
         CgroupCommon workerGroup = new CgroupCommon(workerId, this.hierarchy, this.rootCgroup);
 
         if (!this.rootCgroup.getChildren().contains(workerGroup)) {
-            LOG.error("cgroup {} doesn't exist! Need to reserve resources for worker first!", workerGroup);
-            return null;
+            throw new RuntimeException("cgroup" + workerGroup + "doesn't exist! Need to reserve resources for worker first!");
         }
 
         StringBuilder sb = new StringBuilder();
