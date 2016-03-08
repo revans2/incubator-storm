@@ -169,7 +169,7 @@ public class Client extends ConnectionWithStatus implements IStatefulObject, ISa
      * get a fresh channel in order to avoid sending messages to bad channel and the
      * messages getting lost upon the failure of the server.
      */
-    private void launchEndOfBatchMessageThread(int endOfBatchMessageDelay) {
+    private void launchEndOfBatchMessageThread(final int endOfBatchMessageDelay) {
         // netty TimerTask is already defined
         // sending end of batch message for every 30
         // seconds to the server\
@@ -177,7 +177,7 @@ public class Client extends ConnectionWithStatus implements IStatefulObject, ISa
                 List<TaskMessage> wrapper = new ArrayList<TaskMessage>();
                 public void run() {
                     try {
-                        LOG.debug("running timer task EOB, address {}", dstAddress);
+                        LOG.info("running timer task EOB, address {} {}", dstAddress, endOfBatchMessageDelay);
                         send(wrapper.iterator());
                     } catch (Exception exp) {
                         LOG.error("EOB write error {}", exp);
