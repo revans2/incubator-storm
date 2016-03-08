@@ -195,7 +195,7 @@ public class CgroupManager implements ResourceIsolationInterface {
         CgroupCommon workerGroup = new CgroupCommon(workerId, this.hierarchy, this.rootCgroup);
 
         if (!this.rootCgroup.getChildren().contains(workerGroup)) {
-            throw new RuntimeException("cgroup" + workerGroup + "doesn't exist! Need to reserve resources for worker first!");
+            throw new RuntimeException("cgroup " + workerGroup + " doesn't exist! Need to reserve resources for worker first!");
         }
 
         StringBuilder sb = new StringBuilder();

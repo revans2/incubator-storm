@@ -1150,9 +1150,19 @@
         (remove-dead-worker worker-id)
         (create-blobstore-links conf storm-id port worker-id)
         (if run-worker-as-user
-          (worker-launcher conf user ["worker" worker-dir (write-script worker-dir command :environment topology-worker-environment)]
-            :log-prefix log-prefix :exit-code-callback callback :directory (File. worker-dir) :launch-in-container?
-            (launch-with-cgroups? storm-conf) :supervisor supervisor :worker-id worker-id))
+          (worker-launcher conf
+                           user
+                           ["worker"
+                           worker-dir
+                           (write-script worker-dir
+                                         command
+                                         :environment topology-worker-environment)]
+                           :log-prefix log-prefix
+                           :exit-code-callback callback
+                           :directory (File. worker-dir)
+                           :launch-in-container? (launch-with-cgroups? storm-conf)
+                           :supervisor supervisor
+                           :worker-id worker-id))
           (launch-process command_final :environment topology-worker-environment :log-prefix log-prefix :exit-code-callback callback :directory (File. worker-dir))
         )))
 
