@@ -23,6 +23,7 @@ import java.util.Iterator;
 import java.util.Collection;
 import java.util.Map;
 import java.util.HashMap;
+import java.util.Timer;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
@@ -73,7 +74,7 @@ public class Client extends ConnectionWithStatus implements IStatefulObject, ISa
     private static final Logger LOG = LoggerFactory.getLogger(Client.class);
     private static final String PREFIX = "Netty-Client-";
     private static final long NO_DELAY_MS = 0L;
-
+    private static Timer timer;
     private final Map stormConf;
     private final StormBoundedExponentialBackoffRetry retryPolicy;
     private final ClientBootstrap bootstrap;
@@ -107,6 +108,12 @@ public class Client extends ConnectionWithStatus implements IStatefulObject, ISa
     private final AtomicInteger messagesLost = new AtomicInteger(0);
 
     /**
+     * Periodically checks for connected channel in order to avoid loss
+     * of messages
+     */
+    private final long CHANNEL_ALIVE_INTERVAL_MS = 30000L;
+
+    /**
      * Number of messages buffered in memory.
      */
     private final AtomicLong pendingMessages = new AtomicLong(0);
@@ -129,6 +136,10 @@ public class Client extends ConnectionWithStatus implements IStatefulObject, ISa
 
     private final Object writeLock = new Object();
 
+    static {
+        timer = new Timer("Netty-ChannelAlive-Timer", true);
+    }
+
     @SuppressWarnings("rawtypes")
     Client(Map stormConf, ChannelFactory factory, HashedWheelTimer scheduler, String host, int port, Context context) {
         this.stormConf = stormConf;
@@ -150,8 +161,33 @@ public class Client extends ConnectionWithStatus implements IStatefulObject, ISa
         bootstrap = createClientBootstrap(factory, bufferSize, stormConf);
         dstAddress = new InetSocketAddress(host, port);
         dstAddressPrefixedName = prefixedName(dstAddress);
+        launchChannelAliveThread();
         scheduleConnect(NO_DELAY_MS);
         batcher = new MessageBuffer(messageBatchSize);
+    }
+
+    /**
+     * This thread helps us to check for channel connection periodically.
+     * This is performed just to know whether the destination address
+     * is alive or attempts to refresh connections if not alive. This
+     * solution is better than what we have now in case of a bad channel.
+     */
+    private void launchChannelAliveThread() {
+        // netty TimerTask is already defined and hence a fully
+        // qualified name
+            timer.schedule(new java.util.TimerTask() {
+                public void run() {
+                    try {
+                        LOG.debug("running timer task, address {}", dstAddress);
+                        if(closing) {
+                            this.cancel();
+                        }
+                        getConnectedChannel();
+                    } catch (Exception exp) {
+                        LOG.error("channel connection error {}", exp);
+                    }
+                }
+            }, 0, CHANNEL_ALIVE_INTERVAL_MS);
     }
 
     private ClientBootstrap createClientBootstrap(ChannelFactory factory, int bufferSize, Map stormConf) {
@@ -247,7 +283,7 @@ public class Client extends ConnectionWithStatus implements IStatefulObject, ISa
         }
 
         if (!hasMessages(msgs)) {
-          return;
+            return;
         }
 
         Channel channel = getConnectedChannel();
@@ -288,7 +324,7 @@ public class Client extends ConnectionWithStatus implements IStatefulObject, ISa
             // We can rely on `notifyInterestChanged` to push these messages as soon as there is spece in Netty's buffer
             // because we know `Channel.isWritable` was false after the messages were already in the buffer.
         }
-        }
+    }
 
     private Channel getConnectedChannel() {
         Channel channel = channelRef.get();
@@ -303,7 +339,7 @@ public class Client extends ConnectionWithStatus implements IStatefulObject, ISa
             }
             return null;
         }
-        }
+    }
 
     public InetSocketAddress getDstAddress() {
         return dstAddress;
@@ -312,13 +348,12 @@ public class Client extends ConnectionWithStatus implements IStatefulObject, ISa
     private boolean hasMessages(Iterator<TaskMessage> msgs) {
         return msgs != null && msgs.hasNext();
     }
-
-
+    
     private void dropMessages(Iterator<TaskMessage> msgs) {
         // We consume the iterator by traversing and thus "emptying" it.
         int msgCount = iteratorSize(msgs);
         messagesLost.getAndAdd(msgCount);
-                    }
+    }
 
     private int iteratorSize(Iterator<TaskMessage> msgs) {
         int size = 0;
