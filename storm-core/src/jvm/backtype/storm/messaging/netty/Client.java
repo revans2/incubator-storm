@@ -111,7 +111,7 @@ public class Client extends ConnectionWithStatus implements IStatefulObject, ISa
      * Periodically checks for connected channel in order to avoid loss
      * of messages
      */
-    private final long CHECK_CHANNEL_CONNECTION_INTERVAL_MS = 30000L;
+    private final long CHANNEL_ALIVE_INTERVAL_MS = 30000L;
 
     /**
      * Number of messages buffered in memory.
@@ -137,7 +137,7 @@ public class Client extends ConnectionWithStatus implements IStatefulObject, ISa
     private final Object writeLock = new Object();
 
     static {
-        timer = new Timer("NettyTimer-", true);
+        timer = new Timer("Netty-ChannelAlive-Timer", true);
     }
 
     @SuppressWarnings("rawtypes")
@@ -161,7 +161,7 @@ public class Client extends ConnectionWithStatus implements IStatefulObject, ISa
         bootstrap = createClientBootstrap(factory, bufferSize, stormConf);
         dstAddress = new InetSocketAddress(host, port);
         dstAddressPrefixedName = prefixedName(dstAddress);
-        launchChannelConnectionCheckThread();
+        launchChannelAliveThread();
         scheduleConnect(NO_DELAY_MS);
         batcher = new MessageBuffer(messageBatchSize);
     }
@@ -172,7 +172,7 @@ public class Client extends ConnectionWithStatus implements IStatefulObject, ISa
      * is alive or attempts to refresh connections if not alive. This
      * solution is better than what we have now in case of a bad channel.
      */
-    private void launchChannelConnectionCheckThread() {
+    private void launchChannelAliveThread() {
         // netty TimerTask is already defined and hence a fully
         // qualified name
             timer.schedule(new java.util.TimerTask() {
@@ -187,7 +187,7 @@ public class Client extends ConnectionWithStatus implements IStatefulObject, ISa
                         LOG.error("channel connection error {}", exp);
                     }
                 }
-            }, 0, CHECK_CHANNEL_CONNECTION_INTERVAL_MS);
+            }, 0, CHANNEL_ALIVE_INTERVAL_MS);
     }
 
     private ClientBootstrap createClientBootstrap(ChannelFactory factory, int bufferSize, Map stormConf) {

@@ -280,17 +280,17 @@
   (log-message "6. test server always reconnects")
     (let [req_msg (String. "0123456789abcdefghijklmnopqrstuvwxyz")
           storm-conf {STORM-MESSAGING-TRANSPORT "backtype.storm.messaging.netty.Context"
-                       STORM-MESSAGING-NETTY-AUTHENTICATION false
-                       STORM-MESSAGING-NETTY-BUFFER-SIZE 1024
-                       STORM-MESSAGING-NETTY-MAX-RETRIES 2
-                       STORM-MESSAGING-NETTY-MIN-SLEEP-MS 10
-                       STORM-MESSAGING-NETTY-MAX-SLEEP-MS 50
-                       STORM-MESSAGING-NETTY-SERVER-WORKER-THREADS 1
-                       STORM-MESSAGING-NETTY-CLIENT-WORKER-THREADS 1
-                       TOPOLOGY-KRYO-FACTORY "backtype.storm.serialization.DefaultKryoFactory"
-                       TOPOLOGY-TUPLE-SERIALIZER "backtype.storm.serialization.types.ListDelegateSerializer"
-                       TOPOLOGY-FALL-BACK-ON-JAVA-SERIALIZATION false
-                       TOPOLOGY-SKIP-MISSING-KRYO-REGISTRATIONS false}
+                      STORM-MESSAGING-NETTY-AUTHENTICATION false
+                      STORM-MESSAGING-NETTY-BUFFER-SIZE 1024
+                      STORM-MESSAGING-NETTY-MAX-RETRIES 2
+                      STORM-MESSAGING-NETTY-MIN-SLEEP-MS 10
+                      STORM-MESSAGING-NETTY-MAX-SLEEP-MS 50
+                      STORM-MESSAGING-NETTY-SERVER-WORKER-THREADS 1
+                      STORM-MESSAGING-NETTY-CLIENT-WORKER-THREADS 1
+                      TOPOLOGY-KRYO-FACTORY "backtype.storm.serialization.DefaultKryoFactory"
+                      TOPOLOGY-TUPLE-SERIALIZER "backtype.storm.serialization.types.ListDelegateSerializer"
+                      TOPOLOGY-FALL-BACK-ON-JAVA-SERIALIZATION false
+                      TOPOLOGY-SKIP-MISSING-KRYO-REGISTRATIONS false}
           resp (atom nil)
           context (TransportFactory/makeContext storm-conf)
           port (available-port 6700)
