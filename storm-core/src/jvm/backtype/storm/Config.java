@@ -154,13 +154,6 @@ public class Config extends HashMap<String, Object> {
     public static final String STORM_NETTY_FLUSH_CHECK_INTERVAL_MS = "storm.messaging.netty.flush.check.interval.ms";
 
     /**
-     * Time taken for the timer thread to send heart beats inside the netty client.
-     * It makes sure to avoid loss of messages during the reconnect.
-     */
-    @isInteger
-    public static final String STORM_MESSAGING_NETTY_END_OF_BATCH_MESSAGE_DELAY_IN_SECS = "storm.messaging.netty.end.of.batch.message.delay.in.secs";
-
-    /**
      * Netty based messaging: Is authentication required for Netty messaging from client worker process to server worker process.
      */
     @isBoolean

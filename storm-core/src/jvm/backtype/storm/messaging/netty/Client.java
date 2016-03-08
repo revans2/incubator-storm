@@ -108,6 +108,12 @@ public class Client extends ConnectionWithStatus implements IStatefulObject, ISa
     private final AtomicInteger messagesLost = new AtomicInteger(0);
 
     /**
+     * Periodically checks for connected channel in order to avoid loss
+     * of messages
+     */
+    private final long CHECK_CHANNEL_CONNECTION_INTERVAL_MS = 30000L;
+
+    /**
      * Number of messages buffered in memory.
      */
     private final AtomicLong pendingMessages = new AtomicLong(0);
@@ -150,40 +156,38 @@ public class Client extends ConnectionWithStatus implements IStatefulObject, ISa
         int minWaitMs = Utils.getInt(stormConf.get(Config.STORM_MESSAGING_NETTY_MIN_SLEEP_MS));
         int maxWaitMs = Utils.getInt(stormConf.get(Config.STORM_MESSAGING_NETTY_MAX_SLEEP_MS));
         retryPolicy = new StormBoundedExponentialBackoffRetry(minWaitMs, maxWaitMs, maxReconnectionAttempts);
-        int endOfBatchMessageDelay = Utils.getInt(stormConf.get
-                (Config.STORM_MESSAGING_NETTY_END_OF_BATCH_MESSAGE_DELAY_IN_SECS)) * 1000;
 
         // Initiate connection to remote destination
         bootstrap = createClientBootstrap(factory, bufferSize, stormConf);
         dstAddress = new InetSocketAddress(host, port);
         dstAddressPrefixedName = prefixedName(dstAddress);
-        launchEndOfBatchMessageThread(endOfBatchMessageDelay);
+        launchChannelConnectionThread();
         scheduleConnect(NO_DELAY_MS);
         batcher = new MessageBuffer(messageBatchSize);
     }
 
     /**
-     * This thread helps us to send end of batch control messages to the destination
-     * server which are ignored eventually. This is performed just to know
-     * whether the server is alive or it will cascade into a reconnect after an exception and
-     * get a fresh channel in order to avoid sending messages to bad channel and the
-     * messages getting lost upon the failure of the server.
+     * This thread helps us to check for channel connection periodically.
+     * This is performed just to know whether the destination address
+     * is alive or attempts to refresh connections if not alive. This
+     * solution is better than what we have now in case of a bad channel.
      */
-    private void launchEndOfBatchMessageThread(final int endOfBatchMessageDelay) {
-        // netty TimerTask is already defined
-        // sending end of batch message for every 30
-        // seconds to the server\
+    private void launchChannelConnectionThread() {
+        // netty TimerTask is already defined and hence a fully
+        // qualified name
             timer.schedule(new java.util.TimerTask() {
-                List<TaskMessage> wrapper = new ArrayList<TaskMessage>();
                 public void run() {
                     try {
-                        LOG.info("running timer task EOB, address {} {}", dstAddress, endOfBatchMessageDelay);
-                        send(wrapper.iterator());
+                        LOG.debug("running timer task EOB, address {}", dstAddress);
+                        if(closing) {
+                            this.cancel();
+                        }
+                        getConnectedChannel();
                     } catch (Exception exp) {
                         LOG.error("EOB write error {}", exp);
                     }
                 }
-            }, 0, endOfBatchMessageDelay);
+            }, 0, CHECK_CHANNEL_CONNECTION_INTERVAL_MS);
     }
 
     private ClientBootstrap createClientBootstrap(ChannelFactory factory, int bufferSize, Map stormConf) {
@@ -278,8 +282,8 @@ public class Client extends ConnectionWithStatus implements IStatefulObject, ISa
             return;
         }
 
-        if (msgs == null) {
-          return;
+        if (!hasMessages(msgs)) {
+            return;
         }
 
         Channel channel = getConnectedChannel();
@@ -339,6 +343,10 @@ public class Client extends ConnectionWithStatus implements IStatefulObject, ISa
 
     public InetSocketAddress getDstAddress() {
         return dstAddress;
+    }
+
+    private boolean hasMessages(Iterator<TaskMessage> msgs) {
+        return msgs != null && msgs.hasNext();
     }
     
     private void dropMessages(Iterator<TaskMessage> msgs) {
