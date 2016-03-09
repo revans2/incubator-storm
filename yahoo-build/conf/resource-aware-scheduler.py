@@ -1,4 +1,8 @@
-#!/bin/env python
+#!/home/y/bin/python
+
+# We are using /home/y/bin/python as this script needs to use python 2.7.
+# When yinst runs, /bin/env python returns /usr/bin/python which
+# can be python 2.6 for some deployed versions of ylinux.
 
 import os
 import json
