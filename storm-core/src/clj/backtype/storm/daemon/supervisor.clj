@@ -1162,8 +1162,8 @@
                            :directory (File. worker-dir)
                            :launch-in-container? (launch-with-cgroups? storm-conf)
                            :supervisor supervisor
-                           :worker-id worker-id))
-          (launch-process command_final :environment topology-worker-environment :log-prefix log-prefix :exit-code-callback callback :directory (File. worker-dir))
+                           :worker-id worker-id)
+          (launch-process command_final :environment topology-worker-environment :log-prefix log-prefix :exit-code-callback callback :directory (File. worker-dir)))
         )))
 
 ;; local implementation
