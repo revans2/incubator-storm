@@ -217,14 +217,16 @@
 (defn generate-supervisor-id []
   (str (uuid) "-"  (.getHostAddress (InetAddress/getLocalHost))))
 
-(defnk worker-launcher [conf user args :environment {} :log-prefix nil :exit-code-callback nil :directory nil]
+(defnk worker-launcher [conf user args :environment {} :log-prefix nil :exit-code-callback nil :directory nil :launch-in-container? false :supervisor nil :worker-id nil]
   (let [_ (when (clojure.string/blank? user)
             (throw (java.lang.IllegalArgumentException.
                      "User cannot be blank when calling worker-launcher.")))
         wl-initial (conf SUPERVISOR-WORKER-LAUNCHER)
         storm-home (System/getProperty "storm.home")
         wl (if wl-initial wl-initial (str storm-home "/bin/worker-launcher"))
-        command (concat [wl user] args)]
+        command (if launch-in-container?
+          (concat (.getLaunchCommandPrefix (:resource-isolation-manager supervisor) worker-id) [wl user] args)
+          (concat [wl user] args))]
     (log-message "Running as user:" user " command:" (pr-str command))
     (launch-process command :environment environment :log-prefix log-prefix :exit-code-callback exit-code-callback :directory directory)
   ))
@@ -1128,7 +1130,7 @@
                      port
                      worker-id])
           command (->> command (map str) (filter (complement empty?)))
-          command (if (launch-with-cgroups? storm-conf)
+          command_final (if (launch-with-cgroups? storm-conf)
                     (do
                       (.reserveResourcesForWorker (:resource-isolation-manager supervisor) worker-id
                         {"cpu" cpu "memory" (+ mem-onheap mem-offheap (int (Math/ceil (conf STORM-CGROUP-MEMORY-LIMIT-TOLERANCE-MARGIN-MB))))})
@@ -1136,7 +1138,7 @@
                         (java.util.ArrayList. (java.util.Arrays/asList (to-array command)))))
                     command)]
 
-      (log-message "Launching worker with command: " (shell-cmd command))
+      (log-message "Launching worker with command: " (shell-cmd command_final))
       (write-log-metadata! storm-conf user worker-id storm-id port conf)
       (set-worker-user! conf worker-id user)
       (create-artifacts-link conf storm-id port worker-id)
@@ -1148,8 +1150,20 @@
         (remove-dead-worker worker-id)
         (create-blobstore-links conf storm-id port worker-id)
         (if run-worker-as-user
-          (worker-launcher conf user ["worker" worker-dir (write-script worker-dir command :environment topology-worker-environment)] :log-prefix log-prefix :exit-code-callback callback :directory (File. worker-dir))
-          (launch-process command :environment topology-worker-environment :log-prefix log-prefix :exit-code-callback callback :directory (File. worker-dir)))
+          (worker-launcher conf
+                           user
+                           ["worker"
+                           worker-dir
+                           (write-script worker-dir
+                                         command
+                                         :environment topology-worker-environment)]
+                           :log-prefix log-prefix
+                           :exit-code-callback callback
+                           :directory (File. worker-dir)
+                           :launch-in-container? (launch-with-cgroups? storm-conf)
+                           :supervisor supervisor
+                           :worker-id worker-id))
+          (launch-process command_final :environment topology-worker-environment :log-prefix log-prefix :exit-code-callback callback :directory (File. worker-dir))
         )))
 
 ;; local implementation
