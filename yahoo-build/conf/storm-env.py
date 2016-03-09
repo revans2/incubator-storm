@@ -1,4 +1,9 @@
-#!/bin/env python
+#!/home/y/bin/python
+
+# We are using /home/y/bin/python in case we need to use the
+# version of python pulled in by storm's dependencies.
+# When yinst runs, /bin/env python returns /usr/bin/python which
+# can be a far older version of python.
 
 import os
 import sys
