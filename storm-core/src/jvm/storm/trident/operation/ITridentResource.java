@@ -15,19 +15,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package storm.trident.planner;
+package storm.trident.operation;
 
-import backtype.storm.tuple.Fields;
+import java.util.Map;
 
-public class ProcessorNode extends Node {
-    
-    public boolean committer; // for partitionpersist
-    public TridentProcessor processor;
-    public Fields selfOutFields;
-    
-    public ProcessorNode(String streamId, String name, Fields allOutputFields, Fields selfOutFields, TridentProcessor processor) {
-        super(streamId, name, allOutputFields);
-        this.processor = processor;
-        this.selfOutFields = selfOutFields;
-    }
+public interface ITridentResource {
+    Map<String, Number> getResources();
 }

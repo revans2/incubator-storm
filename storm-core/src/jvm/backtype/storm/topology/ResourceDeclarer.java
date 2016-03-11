@@ -15,10 +15,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package storm.trident.fluent;
+package backtype.storm.topology;
 
-import storm.trident.Stream;
-
-public interface IChainedAggregatorDeclarer {
-    Stream chainEnd();
+public interface ResourceDeclarer <T extends ResourceDeclarer> {
+    T setMemoryLoad(Number onHeap);
+    T setMemoryLoad(Number onHeap, Number offHeap);
+    T setCPULoad(Number amount);
 }

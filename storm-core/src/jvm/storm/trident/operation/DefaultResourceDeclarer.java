@@ -15,13 +15,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.storm.trident.operation;
+package storm.trident.operation;
 
 import java.util.HashMap;
 import java.util.Map;
-import org.apache.storm.Config;
-import org.apache.storm.utils.Utils;
-import org.apache.storm.topology.ResourceDeclarer;
+import backtype.storm.Config;
+import backtype.storm.utils.Utils;
+import backtype.storm.topology.ResourceDeclarer;
 
 public class DefaultResourceDeclarer implements ResourceDeclarer, ITridentResource {
 

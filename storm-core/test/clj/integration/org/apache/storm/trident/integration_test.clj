@@ -15,30 +15,18 @@
 ;; limitations under the License.
 (ns integration.org.apache.storm.trident.integration-test
   (:use [clojure test])
-  (:require [org.apache.storm [testing :as t]])
-  (:import [org.apache.storm.trident.testing Split CountAsAggregator StringLength TrueFilter
+  (:require [backtype.storm [testing :as t]])
+  (:import [storm.trident.testing Split CountAsAggregator StringLength TrueFilter
             MemoryMapState$Factory])
-  (:import [org.apache.storm.trident.state StateSpec])
-  (:import [org.apache.storm.trident.operation.impl CombinerAggStateUpdater]
-           [org.apache.storm.trident.operation BaseFunction]
+  (:import [storm.trident.state StateSpec])
+  (:import [storm.trident.operation.impl CombinerAggStateUpdater]
+           [storm.trident.operation BaseFunction]
            [org.json.simple.parser JSONParser]
-           [org.apache.storm Config])
-  (:use [org.apache.storm.trident testing]
-        [org.apache.storm log util config]))
+           [backtype.storm Config])
+  (:use [storm.trident testing]
+        [backtype.storm log util config]))
 
 (bootstrap-imports)
-
-(defmacro letlocals
-  [& body]
-  (let [[tobind lexpr] (split-at (dec (count body)) body)
-        binded (vec (mapcat (fn [e]
-                              (if (and (list? e) (= 'bind (first e)))
-                                [(second e) (last e)]
-                                ['_ e]
-                                ))
-                            tobind))]
-    `(let ~binded
-       ~(first lexpr))))
 
 (deftest test-memory-map-get-tuples
   (t/with-local-cluster [cluster]
@@ -344,22 +332,22 @@
                      20.0)))
 
             (testing "bolt combinations"
-              (is (= (-> (json-confs "b-1")
-                         (get TOPOLOGY-COMPONENT-RESOURCES-ONHEAP-MEMORY-MB))
-                     (+ 1024.0 512.0)))
-
-              (is (= (-> (json-confs "b-1")
-                         (get TOPOLOGY-COMPONENT-CPU-PCORE-PERCENT))
-                     60.0)))
+              (is (some (fn [[bolt-name bolt-config]]
+                          (and
+                           (= (get bolt-config TOPOLOGY-COMPONENT-RESOURCES-ONHEAP-MEMORY-MB)
+                              (+ 1024.0 512.0))
+                           (= (get bolt-config TOPOLOGY-COMPONENT-CPU-PCORE-PERCENT)
+                              60.0)))
+                        json-confs)))
 
             (testing "aggregations after partition"
-              (is (= (-> (json-confs "b-0")
-                         (get TOPOLOGY-COMPONENT-RESOURCES-ONHEAP-MEMORY-MB))
-                     2048.0))
-
-              (is (= (-> (json-confs "b-0")
-                         (get TOPOLOGY-COMPONENT-CPU-PCORE-PERCENT))
-                     100.0)))))))))
+              (is (some (fn [[bolt-name bolt-config]]
+                          (and
+                           (= (get bolt-config TOPOLOGY-COMPONENT-RESOURCES-ONHEAP-MEMORY-MB)
+                              2048.0)
+                           (= (get bolt-config TOPOLOGY-COMPONENT-CPU-PCORE-PERCENT)
+                              100.0)))
+                        json-confs)))))))))
 
 ;; (deftest test-split-merge
 ;;   (t/with-local-cluster [cluster]

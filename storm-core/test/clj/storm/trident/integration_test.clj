@@ -44,7 +44,7 @@
             (.broadcast)
             (.stateQuery word-counts (fields "args") (TupleCollectionGet.) (fields "word" "count"))
             (.project (fields "word" "count")))
-        (with-topology [cluster topo]
+        (with-topology [cluster topo storm-topo]
           (feed feeder [["hello the man said"] ["the"]])
           (is (= #{["hello" 1] ["said" 1] ["the" 2] ["man" 1]}
                  (into #{} (exec-drpc drpc "all-tuples" "man"))))
@@ -73,7 +73,7 @@
             (.stateQuery word-counts (fields "word") (MapGet.) (fields "count"))
             (.aggregate (fields "count") (Sum.) (fields "sum"))
             (.project (fields "sum")))
-        (with-topology [cluster topo]
+        (with-topology [cluster topo storm-topo]
           (feed feeder [["hello the man said"] ["the"]])
           (is (= [[2]] (exec-drpc drpc "words" "the")))
           (is (= [[1]] (exec-drpc drpc "words" "hello")))
@@ -108,7 +108,7 @@
             (.stateQuery word-counts (fields "word") (MapGet.) (fields "count"))
             (.aggregate (fields "count") (Sum.) (fields "sum"))
             (.project (fields "sum")))
-        (with-topology [cluster topo]
+        (with-topology [cluster topo storm-topo]
           (feed feeder [["hello the man said"] ["the"]])
           (is (= [[2]] (exec-drpc drpc "words" "the")))
           (is (= [[1]] (exec-drpc drpc "words" "hello")))
@@ -135,7 +135,7 @@
             (.aggregate (CountAsAggregator.) (fields "count"))
             (.parallelismHint 2) ;;this makes sure batchGlobal is working correctly
             (.project (fields "count")))
-        (with-topology [cluster topo]
+        (with-topology [cluster topo storm-topo]
           (doseq [i (range 100)]
             (is (= [[1]] (exec-drpc drpc "numwords" "the"))))
           (is (= [[0]] (exec-drpc drpc "numwords" "")))
@@ -158,7 +158,7 @@
               (.project (fields "len"))))
 
         (.merge topo [s1 s2])
-        (with-topology [cluster topo]
+        (with-topology [cluster topo storm-topo]
           (is (t/ms= [[7] ["the"] ["man"]] (exec-drpc drpc "splitter" "the man")))
           (is (t/ms= [[5] ["hello"]] (exec-drpc drpc "splitter" "hello")))
           )))))
@@ -180,7 +180,7 @@
               (.aggregate (CountAsAggregator.) (fields "count"))))
 
         (.merge topo [s1 s2])
-        (with-topology [cluster topo]
+        (with-topology [cluster topo storm-topo]
           (is (t/ms= [["the" 1] ["the" 1]] (exec-drpc drpc "tester" "the")))
           (is (t/ms= [["aaaaa" 1] ["aaaaa" 1]] (exec-drpc drpc "tester" "aaaaa")))
           )))))
@@ -196,7 +196,7 @@
                                    (.shuffle)
                                    (.aggregate (CountAsAggregator.) (fields "count"))
                                    ))
-        (with-topology [cluster topo]
+        (with-topology [cluster topo storm-topo]
           (is (t/ms= [[2]] (exec-drpc drpc "tester" "the man")))
           (is (t/ms= [[1]] (exec-drpc drpc "tester" "aaa")))
           )))))
@@ -286,7 +286,7 @@
 ;;               (.project (fields "len"))))
 ;; 
 ;;         (.merge topo [s1 s2])
-;;         (with-topology [cluster topo]
+;;         (with-topology [cluster topo storm-topo]
 ;;           (is (t/ms= [[7] ["the"] ["man"]] (exec-drpc drpc "splitter" "the man")))
 ;;           (is (t/ms= [[5] ["hello"]] (exec-drpc drpc "splitter" "hello")))
 ;;           )))))
