@@ -79,7 +79,7 @@ public class Stream implements IAggregatableStream {
     }
     
     /**
-     * Sets the CPU Load resource for the current node
+     * Sets the CPU Load resource for the current operation
      */
     public Stream setCPULoad(Number load) {
         _node.setCPULoad(load);
@@ -87,7 +87,7 @@ public class Stream implements IAggregatableStream {
     }
 
     /**
-     * Sets the Memory Load resources for the current node.
+     * Sets the Memory Load resources for the current operation.
      * offHeap becomes default
      */
     public Stream setMemoryLoad(Number onHeap) {
@@ -96,7 +96,7 @@ public class Stream implements IAggregatableStream {
     }
 
     /**
-     * Sets the Memory Load resources for the current node
+     * Sets the Memory Load resources for the current operation.
      */
     public Stream setMemoryLoad(Number onHeap, Number offHeap) {
         _node.setMemoryLoad(onHeap, offHeap);
