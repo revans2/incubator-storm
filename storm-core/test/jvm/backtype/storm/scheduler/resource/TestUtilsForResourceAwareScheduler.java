@@ -160,6 +160,7 @@ public class TestUtilsForResourceAwareScheduler {
             }
             BoltDeclarer b1 = builder.setBolt("bolt-" + i, new TestBolt(),
                     boltParallelism).shuffleGrouping("spout-" + j);
+            j++;
         }
 
         return builder.createTopology();
