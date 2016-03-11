@@ -66,28 +66,38 @@ public class ResourceUtils {
     }
 
     public static void checkIntialization(Map<String, Double> topology_resources, String Com, Map topologyConf) {
-        checkInitMem(topology_resources, Com, topologyConf);
-        checkInitCPU(topology_resources, Com, topologyConf);
+        StringBuilder msgBuilder = new StringBuilder();
+        checkInitMem(topology_resources, Com, topologyConf, msgBuilder);
+        checkInitCPU(topology_resources, Com, topologyConf, msgBuilder);
+        if (msgBuilder.length() > 0) {
+            String resourceDefaults = msgBuilder.toString();
+            LOG.debug(
+                    "Unable to extract resource requirement for Component {} \n Resources : {}",
+                    Com, resourceDefaults);
+        }
     }
 
-    public static void checkInitMem(Map<String, Double> topology_resources, String Com, Map topologyConf) {
+    private static void checkInitMem(Map<String, Double> topology_resources, String Com, Map topologyConf, StringBuilder msgBuilder) {
         if (!topology_resources.containsKey(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB)) {
-            topology_resources.put(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB,
-                    backtype.storm.utils.Utils.getDouble(topologyConf.get(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB), null));
-            debugMessage("ONHEAP", Com, topologyConf);
+            Double topoMemOnHeap = backtype.storm.utils.Utils
+                    .getDouble(topologyConf.get(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB), null);
+            topology_resources.put(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB, topoMemOnHeap);
+            msgBuilder.append(debugMessage("ONHEAP", Com, topoMemOnHeap));
         }
         if (!topology_resources.containsKey(Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB)) {
-            topology_resources.put(Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB,
-                    backtype.storm.utils.Utils.getDouble(topologyConf.get(Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB), null));
-            debugMessage("OFFHEAP", Com, topologyConf);
+            Double topoMemOffHeap = backtype.storm.utils.Utils
+                    .getDouble(topologyConf.get(Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB), null);
+            topology_resources.put(Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB, topoMemOffHeap);
+            msgBuilder.append(debugMessage("OFFHEAP", Com, topoMemOffHeap));
         }
     }
 
-    public static void checkInitCPU(Map<String, Double> topology_resources, String Com, Map topologyConf) {
+    private static void checkInitCPU(Map<String, Double> topology_resources, String Com, Map topologyConf, StringBuilder msgBuilder) {
         if (!topology_resources.containsKey(Config.TOPOLOGY_COMPONENT_CPU_PCORE_PERCENT)) {
-            topology_resources.put(Config.TOPOLOGY_COMPONENT_CPU_PCORE_PERCENT,
-                    backtype.storm.utils.Utils.getDouble(topologyConf.get(Config.TOPOLOGY_COMPONENT_CPU_PCORE_PERCENT), null));
-            debugMessage("CPU", Com, topologyConf);
+            Double topoCPU = backtype.storm.utils.Utils
+                    .getDouble(topologyConf.get(Config.TOPOLOGY_COMPONENT_CPU_PCORE_PERCENT), null);
+            topology_resources.put(Config.TOPOLOGY_COMPONENT_CPU_PCORE_PERCENT, topoCPU);
+            msgBuilder.append(debugMessage("CPU", Com, topoCPU));
         }
     }
 
@@ -122,19 +132,16 @@ public class ResourceUtils {
         return topology_resources;
     }
 
-    private static void debugMessage(String memoryType, String Com, Map topologyConf) {
+    private static String debugMessage(String memoryType, String Com, Double defaultValue) {
         if (memoryType.equals("ONHEAP")) {
-            LOG.debug(
-                    "Unable to extract resource requirement for Component {} \n Resource : Memory Type : On Heap set to default {}",
-                    Com, topologyConf.get(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB));
+            return String.format(
+                    "[Memory Type : On Heap set to default %.1f] ", defaultValue);
         } else if (memoryType.equals("OFFHEAP")) {
-            LOG.debug(
-                    "Unable to extract resource requirement for Component {} \n Resource : Memory Type : Off Heap set to default {}",
-                    Com, topologyConf.get(Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB));
+            return String.format(
+                    "[Memory Type : Off Heap set to default %.1f] ", defaultValue);
         } else {
-            LOG.debug(
-                    "Unable to extract resource requirement for Component {} \n Resource : CPU Pcore Percent set to default {}",
-                    Com, topologyConf.get(Config.TOPOLOGY_COMPONENT_CPU_PCORE_PERCENT));
+            return String.format(
+                    "[CPU Pcore Percent set to default %.1f] ", defaultValue);
         }
     }
 
