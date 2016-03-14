@@ -67,8 +67,8 @@ public class ResourceUtils {
 
     public static void checkIntialization(Map<String, Double> topology_resources, String Com, Map topologyConf) {
         StringBuilder msgBuilder = new StringBuilder();
-        checkInitMem(topology_resources, Com, topologyConf, msgBuilder);
-        checkInitCPU(topology_resources, Com, topologyConf, msgBuilder);
+        msgBuilder.append(checkInitMem(topology_resources, Com, topologyConf));
+        msgBuilder.append(checkInitCPU(topology_resources, Com, topologyConf));
         if (msgBuilder.length() > 0) {
             String resourceDefaults = msgBuilder.toString();
             LOG.debug(
@@ -77,7 +77,8 @@ public class ResourceUtils {
         }
     }
 
-    private static void checkInitMem(Map<String, Double> topology_resources, String Com, Map topologyConf, StringBuilder msgBuilder) {
+    private static String checkInitMem(Map<String, Double> topology_resources, String Com, Map topologyConf) {
+        StringBuilder msgBuilder = new StringBuilder();
         if (!topology_resources.containsKey(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB)) {
             Double topoMemOnHeap = backtype.storm.utils.Utils
                     .getDouble(topologyConf.get(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB), null);
@@ -90,15 +91,17 @@ public class ResourceUtils {
             topology_resources.put(Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB, topoMemOffHeap);
             msgBuilder.append(debugMessage("OFFHEAP", Com, topoMemOffHeap));
         }
+        return msgBuilder.toString();
     }
 
-    private static void checkInitCPU(Map<String, Double> topology_resources, String Com, Map topologyConf, StringBuilder msgBuilder) {
+    private static String checkInitCPU(Map<String, Double> topology_resources, String Com, Map topologyConf) {
         if (!topology_resources.containsKey(Config.TOPOLOGY_COMPONENT_CPU_PCORE_PERCENT)) {
             Double topoCPU = backtype.storm.utils.Utils
                     .getDouble(topologyConf.get(Config.TOPOLOGY_COMPONENT_CPU_PCORE_PERCENT), null);
             topology_resources.put(Config.TOPOLOGY_COMPONENT_CPU_PCORE_PERCENT, topoCPU);
-            msgBuilder.append(debugMessage("CPU", Com, topoCPU));
+            return debugMessage("CPU", Com, topoCPU);
         }
+        return "";
     }
 
     public static Map<String, Double> parseResources(String input) {
