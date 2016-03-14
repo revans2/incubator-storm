@@ -255,6 +255,11 @@
 
 (defn try-cleanup-worker [conf supervisor id]
   (try
+    ;; clean up for resource isolation if enabled
+    (if (conf STORM-RESOURCE-ISOLATION-PLUGIN-ENABLE)
+      (.releaseResourcesForWorker (:resource-isolation-manager supervisor) id))
+    ;; Always make sure to clean up everything else before worker directory
+    ;; is removed since that is what is going to trigger the retry for cleanup
     (if (.exists (File. (worker-root conf id)))
       (do
         (if (conf SUPERVISOR-RUN-WORKER-AS-USER)
@@ -268,8 +273,6 @@
         (remove-worker-user! conf id)
         (remove-dead-worker id)
       ))
-    (if (conf STORM-RESOURCE-ISOLATION-PLUGIN-ENABLE)
-      (.releaseResourcesForWorker (:resource-isolation-manager supervisor) id))
   (catch IOException e
     (log-warn-error e "Failed to cleanup worker " id ". Will retry later"))
   (catch RuntimeException e
@@ -545,8 +548,11 @@
         port->worker-id (clojure.set/map-invert (map-val #((nth % 1) :port) valid-allocated))]
     (doseq [p (set/intersection (set (keys existing-assignment))
                                 (set (keys new-assignment)))]
-      (if (not= (:executors (existing-assignment p)) (:executors (new-assignment p)))
-        (shutdown-worker supervisor (port->worker-id p))))))
+
+      (if (not (and (list-contains? (:executors (existing-assignment p)) (:executors (new-assignment p)))
+              (list-contains? (:executors (new-assignment p)) (:executors (existing-assignment p)))))
+        (do
+          (shutdown-worker supervisor (port->worker-id p)))))))
 
 (defn mk-synchronize-supervisor [supervisor sync-processes event-manager processes-event-manager]
   (fn this []
@@ -579,6 +585,7 @@
       (log-debug "Synchronizing supervisor")
       (log-debug "Storm code map: " storm-local-map)
       (log-debug "All assignment: " all-assignment)
+      (log-debug "Existing Assignment: " existing-assignment)
       (log-debug "New assignment: " new-assignment)
       (log-debug "Assigned Storm Ids" assigned-storm-ids)
       (log-debug "Storm Ids Profiler Actions" storm-id->profiler-actions)

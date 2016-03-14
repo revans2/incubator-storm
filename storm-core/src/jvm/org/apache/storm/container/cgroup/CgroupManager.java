@@ -162,25 +162,19 @@ public class CgroupManager implements ResourceIsolationInterface {
     }
 
     public void releaseResourcesForWorker(String workerId) {
+        LOG.info("Cleaning up cgroups for worker {}", workerId);
         CgroupCommon workerGroup = new CgroupCommon(workerId, hierarchy, this.rootCgroup);
-        int retryTimeMs = 0;
-        //if cgroup deletion failed, retry every 100m for 1 sec
-        while (retryTimeMs < 1000) {
-            try {
-                Set<Integer> tasks = workerGroup.getTasks();
-                if (!tasks.isEmpty()) {
-                    throw new Exception("Cannot correctly showdown worker CGroup " + workerId + "tasks " + tasks.toString() + " still running!");
-                }
-                this.center.deleteCgroup(workerGroup);
-                return;
-            } catch (Exception e) {
-                LOG.error("Exception thrown when shutting worker {} Exception: {}", workerId, e);
-                Utils.sleep(100);
-                retryTimeMs += 100;
-                LOG.info("Retry deleting CGroup {}...attempt {}", workerId, retryTimeMs/100);
+        try {
+            Set<Integer> tasks = workerGroup.getTasks();
+            if (!tasks.isEmpty()) {
+                throw new Exception("Cannot correctly showdown worker CGroup " + workerId + " tasks " + tasks.toString() + " still running!");
             }
+            this.center.deleteCgroup(workerGroup);
+            return;
+        } catch (Exception e) {
+            LOG.error("Exception thrown when shutting worker {} Exception: ", workerId, e);
+            throw new RuntimeException("Unsuccessful in deleting CGroup " + workerId);
         }
-        LOG.error("Unsuccessful in deleting CGroup {}", workerId);
     }
 
     @Override
