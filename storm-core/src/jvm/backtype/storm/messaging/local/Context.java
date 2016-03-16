@@ -123,9 +123,6 @@ public class Context implements IContext {
                 while (msgs.hasNext()) {
                     ret.add(msgs.next());
                 }
-                for (TaskMessage msg : ret) {
-                    LOG.info("task id task msg {} {} ", msg.task(), msg.message());
-                }
                 _server._cb.recv(ret);
             }
         }
