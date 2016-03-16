@@ -95,13 +95,14 @@ public class ResourceUtils {
     }
 
     private static String checkInitCPU(Map<String, Double> topology_resources, String Com, Map topologyConf) {
+        StringBuilder msgBuilder = new StringBuilder();
         if (!topology_resources.containsKey(Config.TOPOLOGY_COMPONENT_CPU_PCORE_PERCENT)) {
             Double topoCPU = backtype.storm.utils.Utils
                     .getDouble(topologyConf.get(Config.TOPOLOGY_COMPONENT_CPU_PCORE_PERCENT), null);
             topology_resources.put(Config.TOPOLOGY_COMPONENT_CPU_PCORE_PERCENT, topoCPU);
-            return debugMessage("CPU", Com, topoCPU);
+            msgBuilder.append(debugMessage("CPU", Com, topoCPU));
         }
-        return "";
+        return msgBuilder.toString();
     }
 
     public static Map<String, Double> parseResources(String input) {
