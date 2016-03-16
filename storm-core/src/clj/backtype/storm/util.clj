@@ -1107,11 +1107,3 @@
                           (.startsWith arg "access"))
                    (str " access result: " arg)
                    (str " function: " arg))))))
-
-(defn contains-val?
-  [coll val]
-  (reduce #(if (= val %2) (reduced true) %1) false coll))
-
-(defn list-contains?
-  [list1 list2]
-  (every? (partial contains-val? list2) list1))
