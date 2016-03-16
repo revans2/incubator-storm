@@ -181,6 +181,7 @@ public class Client extends ConnectionWithStatus implements IStatefulObject, ISa
                         LOG.debug("running timer task, address {}", dstAddress);
                         if(closing) {
                             this.cancel();
+                            return;
                         }
                         getConnectedChannel();
                     } catch (Exception exp) {

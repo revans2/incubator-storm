@@ -252,7 +252,7 @@
                              (if (or
                                     (exception-cause? InterruptedException error)
                                     (exception-cause? java.io.InterruptedIOException error))
-                               (log-message "Got interrupted excpetion shutting thread down...")
+                               (log-message "Got interrupted exception shutting thread down...")
                                ((:suicide-fn <>))))
      :sampler (mk-stats-sampler storm-conf)
      :backpressure (atom false)
@@ -580,7 +580,7 @@
         (reset! open-or-prepare-was-called? true) 
         (log-message "Opened spout " component-id ":" (keys task-datas))
         (setup-metrics! executor-data)
-        
+
         (fn []
           ;; This design requires that spouts be non-blocking
           (disruptor/consume-batch receive-queue event-handler)

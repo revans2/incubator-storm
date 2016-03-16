@@ -28,9 +28,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 
 public class TupleCaptureBolt implements IRichBolt {
     public static transient Map<String, Map<String, List<FixedTuple>>> emitted_tuples = new HashMap<String, Map<String, List<FixedTuple>>>();
+    public static Logger LOG = LoggerFactory.getLogger(TupleCaptureBolt.class);
 
     private String _name;
     private OutputCollector _collector;
@@ -51,6 +55,7 @@ public class TupleCaptureBolt implements IRichBolt {
            captured.put(component, new ArrayList<FixedTuple>());
         }
         captured.get(component).add(new FixedTuple(input.getSourceStreamId(), input.getValues()));
+        LOG.debug("captured-tuples {} values {}", captured.keySet(), captured.values());
         _collector.ack(input);
     }
 
