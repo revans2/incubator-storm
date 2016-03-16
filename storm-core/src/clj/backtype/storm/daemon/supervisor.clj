@@ -549,7 +549,7 @@
     (doseq [p (set/intersection (set (keys existing-assignment))
                                 (set (keys new-assignment)))]
 
-      (if (not (= (set (:executors (existing-assignment p))) (set (:executors (new-assignment p)))))
+      (if (not= (set (:executors (existing-assignment p))) (set (:executors (new-assignment p))))
         (do
           (shutdown-worker supervisor (port->worker-id p)))))))
 
