@@ -46,7 +46,7 @@ public class ResourceUtils {
         if (topology.get_bolts() != null) {
             for (Map.Entry<String, Bolt> bolt : topology.get_bolts().entrySet()) {
                 Map<String, Double> topology_resources = parseResources(bolt.getValue().get_common().get_json_conf());
-                checkIntialization(topology_resources, bolt.getValue().toString(), topologyConf);
+                checkIntialization(topology_resources, bolt.getKey(), topologyConf);
                 boltResources.put(bolt.getKey(), topology_resources);
             }
         }
@@ -58,49 +58,49 @@ public class ResourceUtils {
         if (topology.get_spouts() != null) {
             for (Map.Entry<String, SpoutSpec> spout : topology.get_spouts().entrySet()) {
                 Map<String, Double> topology_resources = parseResources(spout.getValue().get_common().get_json_conf());
-                checkIntialization(topology_resources, spout.getValue().toString(), topologyConf);
+                checkIntialization(topology_resources, spout.getKey(), topologyConf);
                 spoutResources.put(spout.getKey(), topology_resources);
             }
         }
         return spoutResources;
     }
 
-    public static void checkIntialization(Map<String, Double> topology_resources, String Com, Map topologyConf) {
+    public static void checkIntialization(Map<String, Double> topology_resources, String componentId, Map topologyConf) {
         StringBuilder msgBuilder = new StringBuilder();
-        msgBuilder.append(checkInitMem(topology_resources, Com, topologyConf));
-        msgBuilder.append(checkInitCPU(topology_resources, Com, topologyConf));
+        msgBuilder.append(checkInitMem(topology_resources, topologyConf));
+        msgBuilder.append(checkInitCPU(topology_resources, topologyConf));
         if (msgBuilder.length() > 0) {
             String resourceDefaults = msgBuilder.toString();
             LOG.debug(
                     "Unable to extract resource requirement for Component {} \n Resources : {}",
-                    Com, resourceDefaults);
+                    componentId, resourceDefaults);
         }
     }
 
-    private static String checkInitMem(Map<String, Double> topology_resources, String Com, Map topologyConf) {
+    private static String checkInitMem(Map<String, Double> topology_resources, Map topologyConf) {
         StringBuilder msgBuilder = new StringBuilder();
         if (!topology_resources.containsKey(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB)) {
             Double topoMemOnHeap = backtype.storm.utils.Utils
                     .getDouble(topologyConf.get(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB), null);
             topology_resources.put(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB, topoMemOnHeap);
-            msgBuilder.append(debugMessage("ONHEAP", Com, topoMemOnHeap));
+            msgBuilder.append(debugMessage("ONHEAP", topoMemOnHeap));
         }
         if (!topology_resources.containsKey(Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB)) {
             Double topoMemOffHeap = backtype.storm.utils.Utils
                     .getDouble(topologyConf.get(Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB), null);
             topology_resources.put(Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB, topoMemOffHeap);
-            msgBuilder.append(debugMessage("OFFHEAP", Com, topoMemOffHeap));
+            msgBuilder.append(debugMessage("OFFHEAP", topoMemOffHeap));
         }
         return msgBuilder.toString();
     }
 
-    private static String checkInitCPU(Map<String, Double> topology_resources, String Com, Map topologyConf) {
+    private static String checkInitCPU(Map<String, Double> topology_resources, Map topologyConf) {
         StringBuilder msgBuilder = new StringBuilder();
         if (!topology_resources.containsKey(Config.TOPOLOGY_COMPONENT_CPU_PCORE_PERCENT)) {
             Double topoCPU = backtype.storm.utils.Utils
                     .getDouble(topologyConf.get(Config.TOPOLOGY_COMPONENT_CPU_PCORE_PERCENT), null);
             topology_resources.put(Config.TOPOLOGY_COMPONENT_CPU_PCORE_PERCENT, topoCPU);
-            msgBuilder.append(debugMessage("CPU", Com, topoCPU));
+            msgBuilder.append(debugMessage("CPU", topoCPU));
         }
         return msgBuilder.toString();
     }
@@ -136,7 +136,7 @@ public class ResourceUtils {
         return topology_resources;
     }
 
-    private static String debugMessage(String memoryType, String Com, Double defaultValue) {
+    private static String debugMessage(String memoryType, Double defaultValue) {
         if (memoryType.equals("ONHEAP")) {
             return String.format(
                     "[Memory Type : On Heap set to default %.1f] ", defaultValue);
