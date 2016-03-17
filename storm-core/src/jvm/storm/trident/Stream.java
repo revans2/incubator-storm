@@ -21,6 +21,7 @@ import backtype.storm.generated.Grouping;
 import backtype.storm.generated.NullStruct;
 import storm.trident.fluent.ChainedAggregatorDeclarer;
 import backtype.storm.grouping.CustomStreamGrouping;
+import backtype.storm.topology.ResourceDeclarer;
 import backtype.storm.tuple.Fields;
 import backtype.storm.utils.Utils;
 import storm.trident.fluent.GlobalAggregationScheme;
@@ -58,7 +59,7 @@ import storm.trident.state.StateUpdater;
 import storm.trident.util.TridentUtils;
 
 // TODO: need to be able to replace existing fields with the function fields (like Cascading Fields.REPLACE)
-public class Stream implements IAggregatableStream {
+public class Stream implements IAggregatableStream, ResourceDeclarer<Stream> {
     Node _node;
     TridentTopology _topology;
     String _name;
@@ -81,6 +82,7 @@ public class Stream implements IAggregatableStream {
     /**
      * Sets the CPU Load resource for the current operation
      */
+    @Override
     public Stream setCPULoad(Number load) {
         _node.setCPULoad(load);
         return this;
@@ -90,6 +92,7 @@ public class Stream implements IAggregatableStream {
      * Sets the Memory Load resources for the current operation.
      * offHeap becomes default
      */
+    @Override
     public Stream setMemoryLoad(Number onHeap) {
         _node.setMemoryLoad(onHeap);
         return this;
@@ -98,6 +101,7 @@ public class Stream implements IAggregatableStream {
     /**
      * Sets the Memory Load resources for the current operation.
      */
+    @Override
     public Stream setMemoryLoad(Number onHeap, Number offHeap) {
         _node.setMemoryLoad(onHeap, offHeap);
         return this;
