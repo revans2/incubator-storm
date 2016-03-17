@@ -100,7 +100,7 @@
           _ (.setAckFailDelegate feeder tracker)
           topology (thrift/mk-topology
                      {"1" (thrift/mk-spout-spec feeder)}
-                     {"2" (thrift/mk-bolt-spec {"1" :global} ack-every-other)})]
+                     {"2" (thrift/mk-bolt-spec {"1" :global} ack-every-other)})]      
       (submit-local-topology (:nimbus cluster)
                              "timeout-tester"
                              {TOPOLOGY-MESSAGE-TIMEOUT-SECS 10}
@@ -260,7 +260,7 @@
       (checker1 1)
       (checker2 1)
       (checker3 1)
-
+      
       )))
 
 (deftest test-ack-branching
@@ -296,7 +296,7 @@
 
 (def bolt-prepared? (atom false))
 (defbolt prepare-tracked-bolt [] {:prepare true}
-  [conf context collector]
+  [conf context collector]  
   (reset! bolt-prepared? true)
   (bolt
    (execute [tuple]
@@ -319,8 +319,8 @@
                      "2" (thrift/mk-spout-spec open-tracked-spout)}
                     {"3" (thrift/mk-bolt-spec {"1" :global} prepare-tracked-bolt)})]
       (reset! bolt-prepared? false)
-      (reset! spout-opened? false)
-
+      (reset! spout-opened? false)      
+      
       (submit-local-topology-with-opts (:nimbus cluster)
         "test"
         {TOPOLOGY-MESSAGE-TIMEOUT-SECS 10}
@@ -330,9 +330,9 @@
       (.feed feeder ["a"] 1)
       (advance-cluster-time cluster 9)
       (is (not @bolt-prepared?))
-      (is (not @spout-opened?))
-      (.activate (:nimbus cluster) "test")
-
+      (is (not @spout-opened?))        
+      (.activate (:nimbus cluster) "test")              
+      
       (advance-cluster-time cluster 12)
       (assert-acked tracker 1)
       (is @bolt-prepared?)
@@ -398,7 +398,7 @@
     (spout
      (nextTuple []
        (Thread/sleep 100)
-       (emit-spout! collector [@state] :id 1)
+       (emit-spout! collector [@state] :id 1)         
        )
      (ack [id]
        (swap! state inc))
@@ -412,7 +412,7 @@
      (nextTuple []
        (Thread/sleep 100)
        (swap! state inc)
-       (emit-spout! collector [(str prefix "-" @state)])
+       (emit-spout! collector [(str prefix "-" @state)])         
        )
      )))
 
@@ -445,13 +445,13 @@
                    (TestConfBolt.
                     {TOPOLOGY-KRYO-DECORATORS ["one" "two"]}))
          (.shuffleGrouping "1"))
-
+     
      (bind results
            (complete-topology cluster
                               (.createTopology builder)
                               :storm-conf {TOPOLOGY-KRYO-DECORATORS ["one" "three"]}
                               :mock-sources {"1" [[TOPOLOGY-KRYO-DECORATORS]]}))
-     (is (= {"topology.kryo.decorators" (list "one" "two" "three")}
+     (is (= {"topology.kryo.decorators" (list "one" "two" "three")}            
             (->> (read-tuples results "2")
                  (apply concat)
                  (apply hash-map)))))))
@@ -475,7 +475,7 @@
          (.setMaxTaskParallelism (int 2))
          (.addConfiguration "fake.config2" 987)
          )
-
+     
 
      (bind results
            (complete-topology cluster
@@ -585,19 +585,19 @@
         (tracked-wait tracked 1)
         (is (= 4 (errors-count)))
         (is (.last-error state storm-id "2"))
-
+        
         (advance-time-secs! 5)
         (.feed feeder [2])
         (tracked-wait tracked 1)
         (is (= 4 (errors-count)))
         (is (.last-error state storm-id "2"))
-
+        
         (advance-time-secs! 6)
         (.feed feeder [2])
         (tracked-wait tracked 1)
         (is (= 6 (errors-count)))
         (is (.last-error state storm-id "2"))
-
+        
         (advance-time-secs! 6)
         (.feed feeder [3])
         (tracked-wait tracked 1)

@@ -100,6 +100,10 @@ public class Context implements IContext {
             }
         }
 
+        /**
+         * We would ideally want the test to fail if it is not
+         * connecting within 5 seconds rather than to crash
+         */
         public void sleepUntilReady() {
             int tries = 5;
             try {
@@ -114,10 +118,7 @@ public class Context implements IContext {
 
         @Override
         public void send(Iterator<TaskMessage> msgs) {
-            if (this.status() != Status.Ready) {
-                sleepUntilReady();
-            }
-
+            sleepUntilReady();
             if (_server._cb != null) {
                 ArrayList<TaskMessage> ret = new ArrayList<>();
                 while (msgs.hasNext()) {
@@ -130,9 +131,9 @@ public class Context implements IContext {
         @Override
         public Status status() {
             if (_server._cb != null) {
-                    return Status.Ready;
+                return Status.Ready;
             } else {
-                    return Status.Connecting; // need to wait until sasl channel is also ready
+                return Status.Connecting;
             }
         }
 
