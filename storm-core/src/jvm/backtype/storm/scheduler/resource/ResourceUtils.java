@@ -27,6 +27,7 @@ import backtype.storm.scheduler.ExecutorDetails;
 import backtype.storm.scheduler.Topologies;
 import backtype.storm.scheduler.TopologyDetails;
 import backtype.storm.scheduler.WorkerSlot;
+import backtype.storm.utils.Utils;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
@@ -80,14 +81,14 @@ public class ResourceUtils {
     private static String checkInitMem(Map<String, Double> topology_resources, Map topologyConf) {
         StringBuilder msgBuilder = new StringBuilder();
         if (!topology_resources.containsKey(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB)) {
-            Double topoMemOnHeap = backtype.storm.utils.Utils
-                    .getDouble(topologyConf.get(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB), null);
+            Double topoMemOnHeap = Utils.getDouble(
+                    topologyConf.get(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB), null);
             topology_resources.put(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB, topoMemOnHeap);
             msgBuilder.append(debugMessage("ONHEAP", topoMemOnHeap));
         }
         if (!topology_resources.containsKey(Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB)) {
-            Double topoMemOffHeap = backtype.storm.utils.Utils
-                    .getDouble(topologyConf.get(Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB), null);
+            Double topoMemOffHeap = Utils.getDouble(
+                    topologyConf.get(Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB), null);
             topology_resources.put(Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB, topoMemOffHeap);
             msgBuilder.append(debugMessage("OFFHEAP", topoMemOffHeap));
         }
@@ -97,8 +98,8 @@ public class ResourceUtils {
     private static String checkInitCPU(Map<String, Double> topology_resources, Map topologyConf) {
         StringBuilder msgBuilder = new StringBuilder();
         if (!topology_resources.containsKey(Config.TOPOLOGY_COMPONENT_CPU_PCORE_PERCENT)) {
-            Double topoCPU = backtype.storm.utils.Utils
-                    .getDouble(topologyConf.get(Config.TOPOLOGY_COMPONENT_CPU_PCORE_PERCENT), null);
+            Double topoCPU = Utils.getDouble(
+                    topologyConf.get(Config.TOPOLOGY_COMPONENT_CPU_PCORE_PERCENT), null);
             topology_resources.put(Config.TOPOLOGY_COMPONENT_CPU_PCORE_PERCENT, topoCPU);
             msgBuilder.append(debugMessage("CPU", topoCPU));
         }
@@ -114,17 +115,17 @@ public class ResourceUtils {
                 Object obj = parser.parse(input);
                 JSONObject jsonObject = (JSONObject) obj;
                 if (jsonObject.containsKey(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB)) {
-                    Double topoMemOnHeap = backtype.storm.utils.Utils
-                            .getDouble(jsonObject.get(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB), null);
+                    Double topoMemOnHeap = Utils.getDouble(
+                            jsonObject.get(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB), null);
                     topology_resources.put(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB, topoMemOnHeap);
                 }
                 if (jsonObject.containsKey(Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB)) {
-                    Double topoMemOffHeap = backtype.storm.utils.Utils
-                            .getDouble(jsonObject.get(Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB), null);
+                    Double topoMemOffHeap = Utils.getDouble(
+                            jsonObject.get(Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB), null);
                     topology_resources.put(Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB, topoMemOffHeap);
                 }
                 if (jsonObject.containsKey(Config.TOPOLOGY_COMPONENT_CPU_PCORE_PERCENT)) {
-                    Double topoCPU = backtype.storm.utils.Utils.getDouble(jsonObject.get(Config.TOPOLOGY_COMPONENT_CPU_PCORE_PERCENT), null);
+                    Double topoCPU = Utils.getDouble(jsonObject.get(Config.TOPOLOGY_COMPONENT_CPU_PCORE_PERCENT), null);
                     topology_resources.put(Config.TOPOLOGY_COMPONENT_CPU_PCORE_PERCENT, topoCPU);
                 }
                 LOG.debug("Topology Resources {}", topology_resources);
