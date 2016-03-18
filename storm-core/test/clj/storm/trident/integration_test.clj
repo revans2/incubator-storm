@@ -270,6 +270,81 @@
                         (.stateQuery word-counts (fields "word1") (MapGet.) (fields "count"))))))
      )))
 
+(deftest test-set-component-resources
+  (t/with-local-cluster [cluster]
+    (with-drpc [drpc]
+      (letlocals
+        (bind topo (TridentTopology.))
+        (bind feeder (feeder-spout ["sentence"]))
+        (bind add-bang (proxy [BaseFunction] []
+                         (execute [tuple collector]
+                           (. collector emit (str (. tuple getString 0) "!")))))
+        (bind word-counts
+          (.. topo
+              (newStream "words" feeder)
+              (parallelismHint 5)
+              (setCPULoad 20)
+              (setMemoryLoad 512 256)
+              (each (fields "sentence") (Split.) (fields "word"))
+              (setCPULoad 10)
+              (setMemoryLoad 512)
+              (each (fields "word") add-bang (fields "word!"))
+              (parallelismHint 10)
+              (setCPULoad 50)
+              (setMemoryLoad 1024)
+              (groupBy (fields "word!"))
+              (persistentAggregate (memory-map-state) (Count.) (fields "count"))
+              (setCPULoad 100)
+              (setMemoryLoad 2048)))
+        (with-topology [cluster topo storm-topo]
+
+          (let [parse-fn (fn [[k v]]
+                           [k (clojurify-structure (. (JSONParser.) parse (.. v get_common get_json_conf)))])
+                json-confs (into {} (map parse-fn (. storm-topo get_bolts)))]
+            (testing "spout memory"
+              (is (= (-> (json-confs "spout-words")
+                         (get TOPOLOGY-COMPONENT-RESOURCES-ONHEAP-MEMORY-MB))
+                     512.0))
+
+              (is (= (-> (json-confs "spout-words")
+                         (get TOPOLOGY-COMPONENT-RESOURCES-OFFHEAP-MEMORY-MB))
+                   256.0))
+
+              (is (= (-> (json-confs "$spoutcoord-spout-words")
+                         (get TOPOLOGY-COMPONENT-RESOURCES-ONHEAP-MEMORY-MB))
+                     512.0))
+
+              (is (= (-> (json-confs "$spoutcoord-spout-words")
+                         (get TOPOLOGY-COMPONENT-RESOURCES-OFFHEAP-MEMORY-MB))
+                     256.0)))
+
+            (testing "spout CPU"
+              (is (= (-> (json-confs "spout-words")
+                         (get TOPOLOGY-COMPONENT-CPU-PCORE-PERCENT))
+                     20.0))
+
+              (is (= (-> (json-confs "$spoutcoord-spout-words")
+                       (get TOPOLOGY-COMPONENT-CPU-PCORE-PERCENT))
+                     20.0)))
+
+            (testing "bolt combinations"
+              (is (some (fn [[bolt-name bolt-config]]
+                          (and
+                           (= (get bolt-config TOPOLOGY-COMPONENT-RESOURCES-ONHEAP-MEMORY-MB)
+                              (+ 1024.0 512.0))
+                           (= (get bolt-config TOPOLOGY-COMPONENT-CPU-PCORE-PERCENT)
+                              60.0)))
+                        json-confs)))
+
+            (testing "aggregations after partition"
+              (is (some (fn [[bolt-name bolt-config]]
+                          (and
+                           (= (get bolt-config TOPOLOGY-COMPONENT-RESOURCES-ONHEAP-MEMORY-MB)
+                              2048.0)
+                           (= (get bolt-config TOPOLOGY-COMPONENT-CPU-PCORE-PERCENT)
+                              100.0)))
+                        json-confs)))))))))
+
 ;; (deftest test-split-merge
 ;;   (t/with-local-cluster [cluster]
 ;;     (with-drpc [drpc]
