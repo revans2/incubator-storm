@@ -17,6 +17,7 @@
  */
 package backtype.storm.messaging.local;
 
+import backtype.storm.messaging.ConnectionWithStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -80,7 +81,7 @@ public class Context implements IContext {
         }
     };
 
-    private static class LocalClient implements IConnection {
+    private static class LocalClient extends ConnectionWithStatus implements IConnection {
         private final LocalServer _server;
 
         public LocalClient(LocalServer server) {
@@ -98,15 +99,41 @@ public class Context implements IContext {
                 _server._cb.recv(Arrays.asList(new TaskMessage(taskId, payload)));
             }
         }
- 
+
+        /**
+         * We would ideally want the test to fail if it is not
+         * connecting within 5 seconds rather than to crash
+         */
+        public void sleepUntilReady() {
+            int tries = 5;
+            try {
+                while (this.status() != Status.Ready && tries > 0) {
+                    tries--;
+                    Thread.sleep(1000);
+                }
+            } catch (InterruptedException exp) {
+                throw new RuntimeException(exp);
+            }
+        }
+
         @Override
         public void send(Iterator<TaskMessage> msgs) {
+            sleepUntilReady();
             if (_server._cb != null) {
                 ArrayList<TaskMessage> ret = new ArrayList<>();
                 while (msgs.hasNext()) {
                     ret.add(msgs.next());
                 }
                 _server._cb.recv(ret);
+            }
+        }
+
+        @Override
+        public Status status() {
+            if (_server._cb != null) {
+                return Status.Ready;
+            } else {
+                return Status.Connecting;
             }
         }
 
@@ -124,7 +151,7 @@ public class Context implements IContext {
         public void close() {
             //NOOP
         }
-    };
+    }
 
     private static ConcurrentHashMap<String, LocalServer> _registry = new ConcurrentHashMap<>();
     private static LocalServer getLocalServer(String nodeId, int port) {
@@ -139,7 +166,7 @@ public class Context implements IContext {
         }
         return ret;
     }
-        
+
     @SuppressWarnings("rawtypes")
     @Override
     public void prepare(Map storm_conf) {

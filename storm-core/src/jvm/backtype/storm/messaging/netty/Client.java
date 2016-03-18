@@ -169,8 +169,7 @@ public class Client extends ConnectionWithStatus implements IStatefulObject, ISa
     /**
      * This thread helps us to check for channel connection periodically.
      * This is performed just to know whether the destination address
-     * is alive or attempts to refresh connections if not alive. This
-     * solution is better than what we have now in case of a bad channel.
+     * is alive or attempts to refresh connections if not alive.
      */
     private void launchChannelAliveThread() {
         // netty TimerTask is already defined and hence a fully
@@ -181,6 +180,7 @@ public class Client extends ConnectionWithStatus implements IStatefulObject, ISa
                         LOG.debug("running timer task, address {}", dstAddress);
                         if(closing) {
                             this.cancel();
+                            return;
                         }
                         getConnectedChannel();
                     } catch (Exception exp) {
