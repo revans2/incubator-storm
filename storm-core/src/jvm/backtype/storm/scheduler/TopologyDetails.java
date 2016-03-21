@@ -132,7 +132,7 @@ public class TopologyDetails {
                 //the json_conf is populated by TopologyBuilder (e.g. boltDeclarer.setMemoryLoad)
                 Map<String, Double> topology_resources = ResourceUtils.parseResources(bolt
                         .getValue().get_common().get_json_conf());
-                ResourceUtils.checkIntialization(topology_resources, bolt.getValue().toString(), this.topologyConf);
+                ResourceUtils.checkIntialization(topology_resources, bolt.getKey(), this.topologyConf);
                 for (Map.Entry<ExecutorDetails, String> anExecutorToComponent : this.executorToComponent.entrySet()) {
                     if (bolt.getKey().equals(anExecutorToComponent.getValue())) {
                         this.resourceList.put(anExecutorToComponent.getKey(), topology_resources);
@@ -145,7 +145,7 @@ public class TopologyDetails {
             for (Map.Entry<String, SpoutSpec> spout : this.topology.get_spouts().entrySet()) {
                 Map<String, Double> topology_resources = ResourceUtils.parseResources(spout
                         .getValue().get_common().get_json_conf());
-                ResourceUtils.checkIntialization(topology_resources, spout.getValue().toString(), this.topologyConf);
+                ResourceUtils.checkIntialization(topology_resources, spout.getKey(), this.topologyConf);
                 for (Map.Entry<ExecutorDetails, String> anExecutorToComponent : this.executorToComponent.entrySet()) {
                     if (spout.getKey().equals(anExecutorToComponent.getValue())) {
                         this.resourceList.put(anExecutorToComponent.getKey(), topology_resources);
