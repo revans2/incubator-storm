@@ -21,9 +21,10 @@
   (:import [storm.trident.state StateSpec])
   (:import [storm.trident.operation.impl CombinerAggStateUpdater]
            [storm.trident.operation BaseFunction]
-           [org.json.simple.parser JSONParser])
+           [org.json.simple.parser JSONParser]
+           [backtype.storm Config])
   (:use [storm.trident testing])
-  (:use [backtype.storm util]))
+  (:use [backtype.storm util config]))
   
 (bootstrap-imports)
 
