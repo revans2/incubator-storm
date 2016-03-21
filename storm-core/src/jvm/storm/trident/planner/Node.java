@@ -17,6 +17,7 @@
  */
 package storm.trident.planner;
 
+import storm.trident.operation.DefaultResourceDeclarer;
 import backtype.storm.tuple.Fields;
 import java.io.Serializable;
 import java.util.UUID;
@@ -25,9 +26,8 @@ import org.apache.commons.lang.builder.ToStringBuilder;
 import org.apache.commons.lang.builder.ToStringStyle;
 
 
-public class Node implements Serializable {
-    private static AtomicInteger INDEX = new AtomicInteger(0);
-    
+public class Node extends DefaultResourceDeclarer<Node> implements Serializable {
+    private static AtomicInteger INDEX = new AtomicInteger(0);    
     private String nodeId;
     
     public String name = null;
@@ -59,6 +59,4 @@ public class Node implements Serializable {
     public String toString() {
         return ToStringBuilder.reflectionToString(this, ToStringStyle.MULTI_LINE_STYLE);
     }
-    
-    
 }

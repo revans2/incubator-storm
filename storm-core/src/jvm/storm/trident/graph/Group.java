@@ -18,17 +18,20 @@
 package storm.trident.graph;
 
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import org.jgrapht.DirectedGraph;
+import storm.trident.operation.ITridentResource;
 import storm.trident.planner.Node;
 import storm.trident.util.IndexedEdge;
 import storm.trident.util.TridentUtils;
 
 
-public class Group {
+public class Group implements ITridentResource {
     public Set<Node> nodes = new HashSet<Node>();
     private DirectedGraph<Node, IndexedEdge> graph;
     private String id;
@@ -68,6 +71,23 @@ public class Group {
             ret.addAll(TridentUtils.getParents(graph, n));
         }        
         return ret;        
+    }
+
+    @Override
+    public Map<String, Number> getResources() {
+        Map<String, Number> ret = new HashMap<>();
+        for(Node n: nodes) {
+            Map<String, Number> res = n.getResources();
+            for(Map.Entry<String, Number> kv : res.entrySet()) {
+                String key = kv.getKey();
+                Number val = kv.getValue();
+                if(ret.containsKey(key)) {
+                    val = new Double(val.doubleValue() + ret.get(key).doubleValue());
+                }
+                ret.put(key, val);
+            }
+        }
+        return ret;
     }
 
     @Override

@@ -17,14 +17,12 @@
  */
 package backtype.storm.topology;
 
-import backtype.storm.topology.ResourceDeclarer;
-import java.util.Map;
-
-public interface ComponentConfigurationDeclarer<T extends ComponentConfigurationDeclarer> extends ResourceDeclarer<T> {
-    T addConfigurations(Map conf);
-    T addConfiguration(String config, Object value);
-    T setDebug(boolean debug);
-    T setMaxTaskParallelism(Number val);
-    T setMaxSpoutPending(Number val);
-    T setNumTasks(Number val);
+/**
+ * This is a new base interface that can be used by anything that wants to mirror
+ * RAS's basic API. Trident uses this to allow setting resources in the Stream API.
+ */
+public interface ResourceDeclarer <T extends ResourceDeclarer> {
+    T setMemoryLoad(Number onHeap);
+    T setMemoryLoad(Number onHeap, Number offHeap);
+    T setCPULoad(Number amount);
 }
