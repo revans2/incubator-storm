@@ -1340,3 +1340,138 @@
 
            (is (= (.get_action (.get levels "other-test")) LogLevelAction/UNCHANGED))
            (is (= (.get_target_log_level (.get levels "other-test")) "DEBUG")))))))
+
+(defn teardown-heartbeats [id])
+(defn teardown-topo-errors [id])
+(defn teardown-backpressure-dirs [id])
+(defn teardown-topo-log-config [id])
+(defn teardown-topo-profiler-requests [id])
+
+(defn mock-cluster-state 
+  ([] 
+    (mock-cluster-state nil nil))
+  ([active-topos inactive-topos]
+    (mock-cluster-state active-topos inactive-topos inactive-topos inactive-topos)) 
+  ([active-topos hb-topos error-topos bp-topos]
+    (reify cluster/StormClusterState
+      (teardown-heartbeats! [this id] (teardown-heartbeats id))
+      (teardown-topology-log-config! [this id] (teardown-topo-log-config id))
+      (teardown-topology-profiler-requests [this id] (teardown-topo-profiler-requests id))
+      (teardown-topology-errors! [this id] (teardown-topo-errors id))
+      (remove-backpressure! [this id] (teardown-backpressure-dirs id))
+      (active-storms [this] active-topos)
+      (heartbeat-storms [this] hb-topos)
+      (error-topologies [this] error-topos)
+      (backpressure-topologies [this] bp-topos))))
+
+(deftest cleanup-storm-ids-returns-inactive-topos
+  (let [mock-state (mock-cluster-state (list "topo1") (list "topo1" "topo2" "topo3"))]
+    (stubbing [nimbus/code-ids {}] 
+    (is (= (nimbus/cleanup-storm-ids mock-state nil) #{"topo2" "topo3"})))))
+
+(deftest cleanup-storm-ids-performs-union-of-storm-ids-with-active-znodes
+  (let [active-topos (list "hb1" "e2" "bp3")
+        hb-topos (list "hb1" "hb2" "hb3")
+        error-topos (list "e1" "e2" "e3")
+        bp-topos (list "bp1" "bp2" "bp3")
+        mock-state (mock-cluster-state active-topos hb-topos error-topos bp-topos)]
+    (stubbing [nimbus/code-ids {}] 
+    (is (= (nimbus/cleanup-storm-ids mock-state nil) 
+           #{"hb2" "hb3" "e1" "e3" "bp1" "bp2"})))))
+
+(deftest cleanup-storm-ids-returns-empty-set-when-all-topos-are-active
+  (let [active-topos (list "hb1" "hb2" "hb3" "e1" "e2" "e3" "bp1" "bp2" "bp3")
+        hb-topos (list "hb1" "hb2" "hb3")
+        error-topos (list "e1" "e2" "e3")
+        bp-topos (list "bp1" "bp2" "bp3")
+        mock-state (mock-cluster-state active-topos hb-topos error-topos bp-topos)]
+    (stubbing [nimbus/code-ids {}] 
+    (is (= (nimbus/cleanup-storm-ids mock-state nil) 
+           #{})))))
+
+(deftest do-cleanup-removes-inactive-znodes
+  (let [inactive-topos (list "topo2" "topo3")
+        hb-cache (atom (into {}(map vector inactive-topos '(nil nil))))
+        mock-state (mock-cluster-state)
+        mock-blob-store {}
+        conf {}
+        nimbus {:conf conf
+                :submit-lock mock-blob-store 
+                :blob-store {}
+                :storm-cluster-state mock-state
+                :heartbeats-cache hb-cache}]
+
+    (stubbing [nimbus/rm-from-blob-store nil
+               nimbus/cleanup-storm-ids inactive-topos]
+      (mocking
+        [teardown-heartbeats 
+         teardown-topo-errors 
+         teardown-topo-log-config
+         teardown-topo-profiler-requests
+         teardown-backpressure-dirs
+         nimbus/rm-from-blob-store] 
+
+        (nimbus/do-cleanup nimbus)
+
+        ;; removed heartbeats znode
+        (verify-nth-call-args-for 1 teardown-heartbeats "topo2")
+        (verify-nth-call-args-for 2 teardown-heartbeats "topo3")
+
+        ;; removed topo errors znode
+        (verify-nth-call-args-for 1 teardown-topo-errors "topo2")
+        (verify-nth-call-args-for 2 teardown-topo-errors "topo3")
+
+        ;; removed topo log config znode
+        (verify-nth-call-args-for 1 teardown-topo-log-config "topo2")
+        (verify-nth-call-args-for 2 teardown-topo-log-config "topo3")
+
+        ;; removed topo profiler requests
+        (verify-nth-call-args-for 1 teardown-topo-profiler-requests "topo2")
+        (verify-nth-call-args-for 2 teardown-topo-profiler-requests "topo3")
+
+        ;; removed backpressure znodes
+        (verify-nth-call-args-for 1 teardown-backpressure-dirs "topo2")
+        (verify-nth-call-args-for 2 teardown-backpressure-dirs "topo3")
+
+        ;; removed blob store topo keys
+        (verify-nth-call-args-for 1 nimbus/rm-from-blob-store "topo2" mock-blob-store)
+        (verify-nth-call-args-for 2 nimbus/rm-from-blob-store "topo3" mock-blob-store)
+
+        ;; remove topos from heartbeat cache
+        (is (= (count @hb-cache) 0))))))
+
+(deftest do-cleanup-does-not-teardown-active-topos
+  (let [inactive-topos ()
+        hb-cache (atom {"topo1" nil "topo2" nil})
+        mock-state (mock-cluster-state)
+        mock-blob-store {}
+        conf {}
+        nimbus {:conf conf
+                :submit-lock mock-blob-store 
+                :blob-store {}
+                :storm-cluster-state mock-state
+                :heartbeats-cache hb-cache}]
+
+    (stubbing [nimbus/rm-from-blob-store nil
+               nimbus/cleanup-storm-ids inactive-topos]
+      (mocking
+        [teardown-heartbeats 
+         teardown-topo-errors 
+         teardown-backpressure-dirs
+         teardown-topo-log-config
+         teardown-topo-profiler-requests
+         nimbus/rm-from-blob-store] 
+
+        (nimbus/do-cleanup nimbus)
+
+        (verify-call-times-for teardown-heartbeats 0)
+        (verify-call-times-for teardown-topo-errors 0)
+        (verify-call-times-for teardown-backpressure-dirs 0)
+        (verify-call-times-for teardown-topo-log-config 0)
+        (verify-call-times-for teardown-topo-profiler-requests 0)
+        (verify-call-times-for nimbus/rm-from-blob-store 0)
+
+        ;; hb-cache goes down to 1 because only one topo was inactive
+        (is (= (count @hb-cache) 2))
+        (is (contains? @hb-cache "topo1"))
+        (is (contains? @hb-cache "topo2"))))))

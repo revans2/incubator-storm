@@ -667,6 +667,7 @@
                     ;; TODO: here need to invoke the "shutdown" method of WorkerHook
                     
                     (.remove-worker-heartbeat! (:storm-cluster-state worker) storm-id assignment-id port)
+                    (.remove-worker-backpressure! (:storm-cluster-state worker) storm-id assignment-id port)
                     (log-message "Disconnecting from storm cluster state context")
                     (.disconnect (:storm-cluster-state worker))
                     (.close (:cluster-state worker))
