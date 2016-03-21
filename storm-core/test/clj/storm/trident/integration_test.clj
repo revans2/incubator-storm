@@ -19,7 +19,9 @@
   (:import [storm.trident.testing Split CountAsAggregator StringLength TrueFilter
             MemoryMapState$Factory])
   (:import [storm.trident.state StateSpec])
-  (:import [storm.trident.operation.impl CombinerAggStateUpdater])
+  (:import [storm.trident.operation.impl CombinerAggStateUpdater]
+           [storm.trident.operation BaseFunction]
+           [org.json.simple JSONParser])
   (:use [storm.trident testing])
   (:use [backtype.storm util]))
   
