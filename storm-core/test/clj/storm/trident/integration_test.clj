@@ -21,7 +21,7 @@
   (:import [storm.trident.state StateSpec])
   (:import [storm.trident.operation.impl CombinerAggStateUpdater]
            [storm.trident.operation BaseFunction]
-           [org.json.simple JSONParser])
+           [org.json.simple.parser JSONParser])
   (:use [storm.trident testing])
   (:use [backtype.storm util]))
   
