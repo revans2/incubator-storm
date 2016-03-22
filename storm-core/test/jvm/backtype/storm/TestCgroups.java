@@ -18,6 +18,7 @@
 
 package backtype.storm;
 
+import org.apache.commons.lang.StringUtils;
 import org.junit.Assert;
 import org.junit.Assume;
 import org.apache.storm.container.cgroup.CgroupManager;
@@ -31,6 +32,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -71,11 +73,17 @@ public class TestCgroups {
         for (String entry : commandList) {
             command.append(entry).append(" ");
         }
-        String correctCommand1 = config.get(Config.STORM_CGROUP_CGEXEC_CMD) + " -g memory,cpu:/"
+
+        List<String> cgroupSubsystems = Arrays.asList(command.toString().replaceAll("/bin/cgexec -g ", "").replaceAll(":/.*", "").split(","));
+        List<String> userListSubsystems = (List<String>) config.get(Config.STORM_CGROUP_RESOURCES);
+
+        Assert.assertTrue("The list of subsystems declared by the user to use is included", cgroupSubsystems.containsAll(userListSubsystems));
+
+        String correctCommand = config.get(Config.STORM_CGROUP_CGEXEC_CMD) + " -g " + StringUtils.join(cgroupSubsystems, ',') +  ":/"
                 + config.get(Config.STORM_SUPERVISOR_CGROUP_ROOTDIR) + "/" + workerId + " ";
-        String correctCommand2 = config.get(Config.STORM_CGROUP_CGEXEC_CMD) + " -g cpu,memory:/"
-                + config.get(Config.STORM_SUPERVISOR_CGROUP_ROOTDIR) + "/" + workerId + " ";
-        Assert.assertTrue("Check if cgroup launch command is correct", command.toString().equals(correctCommand1) || command.toString().equals(correctCommand2));
+
+        Assert.assertTrue("Check if cgroup launch command: '" + command + "' is correct. Correct commands '" + correctCommand + "'",
+                command.toString().equals(correctCommand));
 
         String pathToWorkerCgroupDir = ((String) config.get(Config.STORM_CGROUP_HIERARCHY_DIR))
                 + "/" + ((String) config.get(Config.STORM_SUPERVISOR_CGROUP_ROOTDIR)) + "/" + workerId;

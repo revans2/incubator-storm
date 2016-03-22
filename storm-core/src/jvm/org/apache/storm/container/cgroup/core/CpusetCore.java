@@ -68,8 +68,10 @@ public class CpusetCore implements CgroupCore {
             sb.append(num);
             sb.append(',');
         }
-        sb.deleteCharAt(sb.length() - 1);
-        CgroupUtils.writeFileByLine(CgroupUtils.getDir(this.dir, config), sb.toString());
+        if (!sb.toString().isEmpty()) {
+            sb.deleteCharAt(sb.length() - 1);
+            CgroupUtils.writeFileByLine(CgroupUtils.getDir(this.dir, config), sb.toString());
+        }
     }
 
     public int[] getMems() throws IOException {
@@ -164,6 +166,9 @@ public class CpusetCore implements CgroupCore {
     }
 
     public static int[] parseNums(String outputStr) {
+        if (outputStr.isEmpty()) {
+            return new int[0];
+        }
         char[] output = outputStr.toCharArray();
         LinkedList<Integer> numList = new LinkedList<Integer>();
         int value = 0;

@@ -21,6 +21,7 @@ package org.apache.storm.container.cgroup;
 import backtype.storm.Config;
 import org.apache.storm.container.ResourceIsolationInterface;
 import org.apache.storm.container.cgroup.core.CpuCore;
+import org.apache.storm.container.cgroup.core.CpusetCore;
 import org.apache.storm.container.cgroup.core.MemoryCore;
 import backtype.storm.utils.Utils;
 import org.slf4j.Logger;
@@ -139,7 +140,7 @@ public class CgroupManager implements ResourceIsolationInterface {
         try {
             this.center.createCgroup(workerGroup);
         } catch (Exception e) {
-            LOG.error("Error when creating Cgroup: {}", e);
+            throw new RuntimeException("Error when creating Cgroup! Exception: ", e);
         }
 
         if (cpuNum != null) {
@@ -157,6 +158,23 @@ public class CgroupManager implements ResourceIsolationInterface {
                 memCore.setPhysicalUsageLimit(Long.valueOf(totalMem.longValue() * 1024 * 1024));
             } catch (IOException e) {
                 throw new RuntimeException("Cannot set memory.limit_in_bytes! Exception: ", e);
+            }
+        }
+
+        if (Utils.getBoolean(this.conf.get(Config.STORM_CGROUP_INHERIT_CPUSET_CONFIGS), false)) {
+            if (workerGroup.getParent().getCores().containsKey(SubSystemType.cpuset)) {
+                CpusetCore parentCpusetCore = (CpusetCore) workerGroup.getParent().getCores().get(SubSystemType.cpuset);
+                CpusetCore cpusetCore = (CpusetCore) workerGroup.getCores().get(SubSystemType.cpuset);
+                try {
+                    cpusetCore.setCpus(parentCpusetCore.getCpus());
+                } catch (IOException e) {
+                    throw new RuntimeException("Cannot set cpuset.cpus! Exception: ", e);
+                }
+                try {
+                    cpusetCore.setMems(parentCpusetCore.getMems());
+                } catch (IOException e) {
+                    throw new RuntimeException("Cannot set cpuset.mems! Exception: ", e);
+                }
             }
         }
     }
