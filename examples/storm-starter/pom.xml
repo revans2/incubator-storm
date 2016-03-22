@@ -105,16 +105,6 @@
       <artifactId>storm-metrics</artifactId>
       <version>${project.version}</version>
     </dependency>
-    <dependency>
-      <groupId>org.apache.kafka</groupId>
-      <artifactId>${kafka.artifact.id}</artifactId>
-      <version>${kafka.version}</version>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.kafka</groupId>
-      <artifactId>kafka-clients</artifactId>
-    </dependency>
   </dependencies>
 
   <build>
