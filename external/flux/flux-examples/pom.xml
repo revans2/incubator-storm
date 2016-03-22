@@ -58,7 +58,7 @@
             <version>${project.version}</version>
         </dependency>
         <dependency>
-            <groupId>yahoo.yinst.ykafka</groupId>
+            <groupId>org.apache.kafka</groupId>
             <artifactId>${kafka.artifact.id}</artifactId>
             <version>${kafka.version}</version>
         </dependency>

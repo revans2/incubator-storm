@@ -77,7 +77,7 @@
             <version>1.2</version>
         </dependency>
         <dependency>
-            <groupId>yahoo.yinst.ykafka</groupId>
+            <groupId>org.apache.kafka</groupId>
             <artifactId>${kafka.artifact.id}</artifactId>
             <version>${kafka.version}</version>
             <scope>test</scope>
