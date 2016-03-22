@@ -18,12 +18,14 @@
 
 package org.apache.storm.kafka.spout;
 
+import org.apache.kafka.clients.CommonClientConfigs;
 import org.apache.kafka.clients.consumer.ConsumerRebalanceListener;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.TopicPartition;
+import org.apache.kafka.common.protocol.SecurityProtocol;
 import org.apache.storm.kafka.spout.KafkaSpoutConfig.FirstPollOffsetStrategy;
 import backtype.storm.spout.SpoutOutputCollector;
 import backtype.storm.task.TopologyContext;
@@ -264,7 +266,13 @@ public class KafkaSpout<K, V> extends BaseRichSpout {
     }
 
     private void subscribeKafkaConsumer() {
-        kafkaConsumer = new KafkaConsumer<>(kafkaSpoutConfig.getKafkaProps(),
+        Map<String, Object> kafkaProps = kafkaSpoutConfig.getKafkaProps();
+        Object secProc = kafkaProps.get(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG);
+        if(secProc instanceof SecurityProtocol) {
+            SecurityProtocol securityProtocol = (SecurityProtocol) kafkaProps.get(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG);
+            kafkaProps.put(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, securityProtocol.name);
+        }
+        kafkaConsumer = new KafkaConsumer<>(kafkaProps,
                 kafkaSpoutConfig.getKeyDeserializer(), kafkaSpoutConfig.getValueDeserializer());
         kafkaConsumer.subscribe(kafkaSpoutConfig.getSubscribedTopics(), new KafkaSpoutConsumerRebalanceListener());
         // Initial poll to get the consumer registration process going.
