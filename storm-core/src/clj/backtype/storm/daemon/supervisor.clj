@@ -1041,9 +1041,9 @@
       (create-symlink! worker-dir topo-dir "artifacts" port))))
 
 (defn launch-with-cgroups?
-  [topo-conf]
+  [conf topo-conf]
   (and
-    (topo-conf STORM-RESOURCE-ISOLATION-PLUGIN-ENABLE)
+    (conf STORM-RESOURCE-ISOLATION-PLUGIN-ENABLE)
     (not
       (and
         (= (topo-conf STORM-SCHEDULER) "backtype.storm.scheduler.bridge.MultitenantResourceAwareBridgeScheduler")
@@ -1136,7 +1136,7 @@
                      port
                      worker-id])
           command (->> command (map str) (filter (complement empty?)))
-          command_final (if (launch-with-cgroups? storm-conf)
+          command_final (if (launch-with-cgroups? conf storm-conf)
                     (do
                       (.reserveResourcesForWorker (:resource-isolation-manager supervisor) worker-id
                         {"cpu" cpu "memory" (+ mem-onheap mem-offheap (int (Math/ceil (conf STORM-CGROUP-MEMORY-LIMIT-TOLERANCE-MARGIN-MB))))})
@@ -1166,7 +1166,7 @@
                            :log-prefix log-prefix
                            :exit-code-callback callback
                            :directory (File. worker-dir)
-                           :launch-in-container? (launch-with-cgroups? storm-conf)
+                           :launch-in-container? (launch-with-cgroups? conf storm-conf)
                            :supervisor supervisor
                            :worker-id worker-id)
           (launch-process command_final :environment topology-worker-environment :log-prefix log-prefix :exit-code-callback callback :directory (File. worker-dir)))
