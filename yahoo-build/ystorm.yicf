@@ -117,6 +117,8 @@ file 444 - - lib64/jars/yahoo_examples.pom ../examples/yahoo-examples/pom.xml
 file 444 - - lib64/jars/storm-kafka.jar ../external/storm-kafka/target/storm-kafka-$(BASE_VERSION).jar
 file 444 - - lib64/jars/storm-kafka-sources.jar ../external/storm-kafka/target/storm-kafka-$(BASE_VERSION)-sources.jar
 file 444 - - lib64/jars/storm-kafka.pom ../external/storm-kafka/pom.xml
+file 444 - - lib64/jars/storm-kafka-client.jar ../external/storm-kafka-client/target/storm-kafka-client-$(BASE_VERSION).jar
+file 444 - - lib64/jars/storm-kafka-client.pom ../external/storm-kafka-client/pom.xml
 file 444 - - lib64/jars/storm-hdfs.jar ../external/storm-hdfs/target/storm-hdfs-$(BASE_VERSION).jar
 file 444 - - lib64/jars/storm-hdfs-sources.jar ../external/storm-hdfs/target/storm-hdfs-$(BASE_VERSION)-sources.jar
 file 444 - - lib64/jars/storm-hdfs.pom ../external/storm-hdfs/pom.xml
