@@ -79,7 +79,6 @@
         <dependency>
             <groupId>org.apache.kafka</groupId>
             <artifactId>${kafka.artifact.id}</artifactId>
-            <version>${kafka.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
