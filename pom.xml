@@ -82,7 +82,7 @@
             <roles>
                 <role>Committer</role>
             </roles>
-            <timezone />
+            <timezone/>
         </developer>
         <developer>
             <id>afeng</id>
@@ -109,7 +109,7 @@
             <roles>
                 <role>Committer</role>
             </roles>
-            <timezone />
+            <timezone/>
         </developer>
         <developer>
             <id>jjackson</id>
@@ -217,8 +217,10 @@
         <thrift.version>0.9.3</thrift.version>
         <junit.version>4.11</junit.version>
         <metrics-clojure.version>2.5.1</metrics-clojure.version>
-        <kafka.version>0.9.0.13</kafka.version>
+        <kafka.version>0.9.0.1.20</kafka.version>
         <hdrhistogram.version>2.1.7</hdrhistogram.version>
+        <calcite.version>1.4.0-incubating</calcite.version>
+        <kafka.artifact.id>kafka_2_10</kafka.artifact.id>
     </properties>
 
     <modules>
@@ -238,6 +240,7 @@
         <module>external/flux</module>
         <module>external/storm-metrics</module>
         <module>examples/storm-starter</module>
+        <module>external/storm-kafka-client</module>
     </modules>
 
 
@@ -501,14 +504,14 @@
                 <version>${ring-json.version}</version>
             </dependency>
             <dependency>
-	      <groupId>org.eclipse.jetty</groupId>
-	      <artifactId>jetty-servlet</artifactId>
-	      <version>${jetty.version}</version>
+                <groupId>org.eclipse.jetty</groupId>
+                <artifactId>jetty-servlet</artifactId>
+                <version>${jetty.version}</version>
             </dependency>
             <dependency>
-	      <groupId>org.eclipse.jetty</groupId>
-	      <artifactId>jetty-servlets</artifactId>
-	      <version>${jetty.version}</version>
+                <groupId>org.eclipse.jetty</groupId>
+                <artifactId>jetty-servlets</artifactId>
+                <version>${jetty.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.eclipse.jetty</groupId>
@@ -685,6 +688,35 @@
                 </exclusions>
             </dependency>
             <dependency>
+                <groupId>org.apache.calcite</groupId>
+                <artifactId>calcite-core</artifactId>
+                <version>${calcite.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.fasterxml.jackson.core</groupId>
+                <artifactId>jackson-databind</artifactId>
+                <version>${jackson.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.kafka</groupId>
+                <artifactId>${kafka.artifact.id}</artifactId>
+                <version>${kafka.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>org.apache.zookeeper</groupId>
+                        <artifactId>zookeeper</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>log4j</groupId>
+                        <artifactId>log4j</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.slf4j</groupId>
+                        <artifactId>slf4j-log4j12</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+            <dependency>
                 <groupId>org.apache.hadoop</groupId>
                 <artifactId>hadoop-common</artifactId>
                 <version>${hadoop.version}</version>
@@ -704,6 +736,11 @@
                         <artifactId>slf4j-log4j12</artifactId>
                     </exclusion>
                 </exclusions>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.kafka</groupId>
+                <artifactId>kafka-clients</artifactId>
+                <version>${kafka.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.hadoop</groupId>

@@ -131,9 +131,8 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>yahoo.yinst.ykafka</groupId>
-            <artifactId>kafka</artifactId>
-            <version>${kafka.version}</version>
+            <groupId>org.apache.kafka</groupId>
+            <artifactId>${kafka.artifact.id}</artifactId>
             <!-- use provided scope, so users can pull in whichever scala version they choose -->
             <scope>provided</scope>
             <exclusions>
@@ -152,27 +151,8 @@
             </exclusions>
         </dependency>
         <dependency>
-            <groupId>yahoo.yinst.ykafka</groupId>
-            <artifactId>scala-library-2.10.5</artifactId>
-            <version>${kafka.version}</version>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>yahoo.yinst.ykafka</groupId>
-            <artifactId>metrics-core-2.2.0</artifactId>
-            <version>${kafka.version}</version>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>yahoo.yinst.ykafka</groupId>
-            <artifactId>zkclient-0.7</artifactId>
-            <version>${kafka.version}</version>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>yahoo.yinst.ykafka</groupId>
+            <groupId>org.apache.kafka</groupId>
             <artifactId>kafka-clients</artifactId>
-            <version>${kafka.version}</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
