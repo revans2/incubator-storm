@@ -164,6 +164,12 @@ public class CgroupManager implements ResourceIsolationInterface {
     public void releaseResourcesForWorker(String workerId) {
         LOG.info("Cleaning up cgroups for worker {}", workerId);
         CgroupCommon workerGroup = new CgroupCommon(workerId, hierarchy, this.rootCgroup);
+
+        if (!Utils.CheckDirExists(workerGroup.getDir())) {
+            LOG.info("Nothing to cleanup for cgroups for worker {}", workerId);
+            return;
+        }
+
         try {
             Set<Integer> tasks = workerGroup.getTasks();
             if (!tasks.isEmpty()) {
