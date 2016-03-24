@@ -960,12 +960,13 @@
           (filter [this key] (get-id-from-blob-key key)))]
    (set (.filterAndListKeys blob-store to-id nil))))
 
-(defn cleanup-storm-ids [conf storm-cluster-state blob-store]
+(defn cleanup-storm-ids [storm-cluster-state blob-store]
   (let [heartbeat-ids (set (.heartbeat-storms storm-cluster-state))
         error-ids (set (.error-topologies storm-cluster-state))
         code-ids (code-ids blob-store)
+        backpressure-ids (set (.backpressure-topologies storm-cluster-state))
         assigned-ids (set (.active-storms storm-cluster-state))]
-    (set/difference (set/union heartbeat-ids error-ids code-ids) assigned-ids)
+    (set/difference (set/union heartbeat-ids error-ids backpressure-ids code-ids) assigned-ids)
     ))
 
 (defn extract-status-str [base]
@@ -1039,7 +1040,7 @@
         conf (:conf nimbus)
         submit-lock (:submit-lock nimbus)]
     (let [to-cleanup-ids (locking submit-lock
-                           (cleanup-storm-ids conf storm-cluster-state blob-store))]
+                           (cleanup-storm-ids storm-cluster-state blob-store))]
       (when-not (empty? to-cleanup-ids)
         (doseq [id to-cleanup-ids]
           (log-message "Cleaning up " id)
@@ -1047,6 +1048,7 @@
           (.teardown-topology-errors! storm-cluster-state id)
           (.teardown-topology-log-config! storm-cluster-state id)
           (.teardown-topology-profiler-requests storm-cluster-state id)
+          (.remove-backpressure! storm-cluster-state id)
           (rm-from-blob-store id blob-store)
           (swap! (:heartbeats-cache nimbus) dissoc id))))))
 

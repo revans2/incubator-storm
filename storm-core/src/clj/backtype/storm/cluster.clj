@@ -65,6 +65,7 @@
   (teardown-topology-profiler-requests [this storm-id])
   (heartbeat-storms [this])
   (error-topologies [this])
+  (backpressure-topologies [this])
   (set-topology-log-config! [this storm-id log-config])
   (topology-log-config [this storm-id cb])
   (worker-heartbeat! [this storm-id node port info])
@@ -240,7 +241,7 @@
                          ;; this should never happen
                          (exit-process! 30 "Unknown callback for subtree " subtree args)))))]
     (doseq [p [ASSIGNMENTS-SUBTREE STORMS-SUBTREE SUPERVISORS-SUBTREE WORKERBEATS-SUBTREE ERRORS-SUBTREE
-               LOGCONFIG-SUBTREE]]
+               LOGCONFIG-SUBTREE BACKPRESSURE-SUBTREE]]
       (.mkdirs cluster-state p acls))
     (reify
       StormClusterState
@@ -283,6 +284,10 @@
       (error-topologies
         [this]
         (.get_children cluster-state ERRORS-SUBTREE false))
+
+      (backpressure-topologies
+        [this]
+        (.get_children cluster-state BACKPRESSURE-SUBTREE false))
 
       (get-worker-heartbeat
         [this storm-id node port]
@@ -419,7 +424,10 @@
 
       (remove-worker-backpressure!
         [this storm-id node port]
-        (.delete_node cluster-state (backpressure-path storm-id node port)))
+        (let [path (backpressure-path storm-id node port)
+              existed (.node_exists cluster-state path false)]
+          (if existed
+            (.delete_node cluster-state (backpressure-path storm-id node port)))))
 
       (teardown-topology-errors!
         [this storm-id]
