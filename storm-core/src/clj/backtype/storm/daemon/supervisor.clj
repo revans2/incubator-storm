@@ -1046,8 +1046,10 @@
     (conf STORM-RESOURCE-ISOLATION-PLUGIN-ENABLE)
     (not
       (and
-        (= (topo-conf STORM-SCHEDULER) "backtype.storm.scheduler.bridge.MultitenantResourceAwareBridgeScheduler")
-        (= (topo-conf TOPOLOGY-SCHEDULER-STRATEGY) "backtype.storm.scheduler.resource.strategies.scheduling.MultitenantStrategy")))))
+        (= (conf STORM-SCHEDULER) "backtype.storm.scheduler.bridge.MultitenantResourceAwareBridgeScheduler")
+        (or
+          (= (topo-conf TOPOLOGY-SCHEDULER-STRATEGY) nil)
+          (= (topo-conf TOPOLOGY-SCHEDULER-STRATEGY) "backtype.storm.scheduler.resource.strategies.scheduling.MultitenantStrategy"))))))
 
 (defmethod launch-worker
     :distributed [supervisor storm-id port worker-id resources]
