@@ -68,7 +68,7 @@ public class CpusetCore implements CgroupCore {
             sb.append(num);
             sb.append(',');
         }
-        if (!sb.toString().isEmpty()) {
+        if (sb.length() > 0) {
             sb.deleteCharAt(sb.length() - 1);
             CgroupUtils.writeFileByLine(CgroupUtils.getDir(this.dir, config), sb.toString());
         }
