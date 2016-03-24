@@ -1173,6 +1173,13 @@ public class Config extends HashMap<String, Object> {
     public static final String SUPERVISOR_SLOTS_PORTS = "supervisor.slots.ports";
 
     /**
+     * For insecure mode we do not want the blobstore to validate acls.
+     * For secure mode we do want to validate acls
+     */
+    @isBoolean
+    public static final String STORM_BLOBSTORE_ACL_VALIDATION = "storm.blobstore.acl.validation";
+
+    /**
      * What blobstore implementation the supervisor should use.
      */
     @isString

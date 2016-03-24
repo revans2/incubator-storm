@@ -53,6 +53,7 @@ public class BlobStoreAclHandler {
   public static final List<AccessControl> DEFAULT = new ArrayList<AccessControl>();
   private Set<String> _supervisors;
   private Set<String> _admins;
+  private boolean doAclValidation;
 
   public BlobStoreAclHandler(Map conf) {
     _ptol = AuthUtils.GetPrincipalToLocalPlugin(conf);
@@ -63,6 +64,10 @@ public class BlobStoreAclHandler {
     }
     if (conf.containsKey(Config.NIMBUS_ADMINS)) {
       _admins.addAll((List<String>)conf.get(Config.NIMBUS_ADMINS));
+    }
+    if (conf.containsKey(Config.STORM_BLOBSTORE_ACL_VALIDATION)) {
+        doAclValidation = (boolean)conf.get(Config.STORM_BLOBSTORE_ACL_VALIDATION);
+        LOG.debug("doAclValidation {}", doAclValidation);
     }
   }
 
@@ -219,6 +224,9 @@ public class BlobStoreAclHandler {
    */
   public void validateUserCanReadMeta(List<AccessControl> acl, Subject who, String key)
       throws AuthorizationException {
+    if (!doAclValidation) {
+      return;
+    }
     Set<String> user = constructUserFromPrincipals(who);
     if (isNimbus(who)) {
       return;
@@ -238,6 +246,9 @@ public class BlobStoreAclHandler {
   }
 
   public void validateAnyACL(List<AccessControl> acl, int validPermissions, Subject who, String key) throws AuthorizationException {
+    if (!doAclValidation) {
+      return;
+    }
     Set<String> user = constructUserFromPrincipals(who);
     LOG.debug("user {}", user);
     if (isNimbus(who)) {
@@ -246,6 +257,7 @@ public class BlobStoreAclHandler {
     if(isSupervisorOrAdmin(user, validPermissions)) {
       return;
     }
+
     for (AccessControl ac : acl) {
       int allowed = getAllowed(ac, user);
       LOG.debug(" user: {} allowed: {} key: {}", user, allowed, key);
@@ -260,6 +272,9 @@ public class BlobStoreAclHandler {
   //Here all acls must match
   public void validateACL(List<AccessControl> acl, int mask, Subject who, String key)
       throws AuthorizationException {
+    if (!doAclValidation) {
+      return;
+    }
     Set<String> user = constructUserFromPrincipals(who);
     LOG.debug("user {}", user);
     if (isNimbus(who)) {
