@@ -48,6 +48,7 @@ public class PacemakerClient implements ISaslClient {
     private String topo_name;
     private String secret;
     private AtomicBoolean ready;
+    private AtomicBoolean shutdown;
     private final ClientBootstrap bootstrap;
     private AtomicReference<Channel> channelRef;
     private InetSocketAddress remote_addr;
@@ -64,7 +65,7 @@ public class PacemakerClient implements ISaslClient {
 
     private StormBoundedExponentialBackoffRetry backoff = new StormBoundedExponentialBackoffRetry(100, 5000, 20);
     private int retryTimes = 0;
-    
+
     public PacemakerClient(Map config, String host) {
         this.host = host;
         int port = (int)config.get(Config.PACEMAKER_PORT);
@@ -94,11 +95,12 @@ public class PacemakerClient implements ISaslClient {
             if(!auth.equals("NONE")) {
                 LOG.warn("Invalid auth scheme: '{}'. Falling back to 'NONE'", auth);
             }
-            
+
             authMethod = ThriftNettyClientCodec.AuthMethod.NONE;
         }
 
         ready = new AtomicBoolean(false);
+        shutdown = new AtomicBoolean(false);
         channelRef = new AtomicReference<Channel>(null);
         setupMessaging();
 
@@ -226,10 +228,10 @@ public class PacemakerClient implements ISaslClient {
     public void gotMessage(HBMessage m) {
         int message_id = m.get_message_id();
         if(message_id >= 0 && message_id < maxPending) {
-            
+
             LOG.debug("Pacemaker Client got message: {}", m.toString());
             HBMessage request = messages[message_id];
-            
+
             if(request == null) {
                 LOG.debug("No message for slot: {}", Integer.toString(message_id));
             }
@@ -259,11 +261,14 @@ public class PacemakerClient implements ISaslClient {
 
     public synchronized void doReconnect() {
         close_channel();
-        bootstrap.connect(remote_addr);
+	if (!shutdown.get()) {
+            bootstrap.connect(remote_addr);
+        }
     }
 
-    public void shutdown() {
-        bootstrap.shutdown();
+    public synchronized void shutdown() {
+        shutdown.set(true);
+        bootstrap.releaseExternalResources();
     }
 
     private synchronized void close_channel() {

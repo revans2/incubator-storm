@@ -95,6 +95,7 @@
 (defn shutdown-rotate [servers client-pool]
   ; Shutdown the client and remove from the pool
   (when @client-pool
+    (.close (get @client-pool (first @servers)))
     (.shutdown (get @client-pool (first @servers)))
     (swap! client-pool dissoc (first @servers))
   ; Rotate server list to try another write client
@@ -103,7 +104,7 @@
 (defn get-pacemaker-write-client [conf servers client-pool]
   ;; Client should be created in case of an exception or first write call
   ;; Shutdown happens in the retry loop
-  (try 
+  (try
     (.waitUntilReady
      (let [client (get @client-pool (first @servers))]
        (if (nil? client)
@@ -135,12 +136,12 @@
   [tries task-description f catchfn]
   (let [res (try {:value (f)}
               (catch Exception e
-                (do
-                  (if catchfn
-                    (catchfn e))
-                  (if (= 0 tries)
-                    (throw e)
-                    {:exception e}))))]
+                (if (= 0 tries)
+                  (do
+                    (if catchfn
+                      (catchfn e))
+                    (throw e))
+                  {:exception e})))]
     (if (:exception res)
       (do
         (log-error
