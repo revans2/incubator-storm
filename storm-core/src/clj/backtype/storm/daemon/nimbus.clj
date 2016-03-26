@@ -33,12 +33,12 @@
             Cluster Topologies SchedulerAssignment SchedulerAssignmentImpl DefaultScheduler ExecutorDetails])
   (:import [backtype.storm.utils TimeCacheMap TimeCacheMap$ExpiredCallback Utils ThriftTopologyUtils BufferInputStream])
   (:import [backtype.storm.generated AuthorizationException AlreadyAliveException BeginDownloadResult
-                                     ClusterSummary ComponentPageInfo ErrorInfo ExecutorInfo ExecutorSummary GetInfoOptions
+                                     ClusterSummary ComponentPageInfo SupervisorPageInfo ErrorInfo ExecutorInfo ExecutorSummary GetInfoOptions
                                      InvalidTopologyException KeyNotFoundException KillOptions
                                      ListBlobsResult LogConfig LogLevel LogLevelAction
                                      Nimbus$Iface Nimbus$Processor NumErrorsChoice NotAliveException
                                      ReadableBlobMeta RebalanceOptions SubmitOptions SupervisorSummary StormTopology
-                                     SettableBlobMeta TopologyHistoryInfo TopologyInfo TopologyInitialStatus
+                                     WorkerSummary SettableBlobMeta TopologyHistoryInfo TopologyInfo TopologyInitialStatus
                                      TopologyPageInfo TopologyStats TopologySummary
                                      ProfileRequest ProfileAction NodeInfo])
   (:import [backtype.storm.blobstore AtomicOutputStream
@@ -171,8 +171,9 @@
                                  ))
      :scheduler (mk-scheduler conf inimbus)
      :id->sched-status (atom {})
-     :node-id->resources (atom {}) ; resources of supervisors
      :id->resources (atom {}) ; resources of topologies
+     :node-id->resources (atom {}) ; resources of supervisors
+     :worker->resources (atom {}) ; resources of workers
      :cred-renewers (AuthUtils/GetCredentialRenewers conf)
      :topology-history-lock (Object.)
      :topo-history-state (nimbus-topo-history-state conf)
@@ -617,7 +618,7 @@
 
 (defn- read-all-supervisor-details
   [nimbus supervisor->dead-ports topologies missing-assignment-topologies]
-  "return a map: {topology-id SupervisorDetails}"
+  "return a map: {supervisor-id SupervisorDetails}"
   (let [storm-cluster-state (:storm-cluster-state nimbus)
         supervisor-infos (all-supervisor-info storm-cluster-state)
         supervisor-details (for [[id info] supervisor-infos]
@@ -762,6 +763,7 @@
     ;;merge with existing statuses
     (reset! (:id->sched-status nimbus) (merge (deref (:id->sched-status nimbus)) (.getStatusMap cluster)))
     (reset! (:node-id->resources nimbus) (.getSupervisorsResourcesMap cluster))
+    (reset! (:worker->resources nimbus) (.getWorkerResourcesMap cluster))
 
     ; Remove this at first opportunity. This is a hack for multitenant swags with RAS Bridge Scheduler.
     (swap! (:id->resources nimbus) merge (into {} (map (fn [[k v]] [k (->WorkerResources (nth v 0) (nth v 1) (nth v 2)
@@ -949,6 +951,20 @@
       (throw (AlreadyAliveException. (str storm-name " is already active"))))
     ))
 
+(defn try-read-storm-conf [conf storm-id blob-store]
+  (try-cause
+    (read-storm-conf-as-nimbus conf storm-id blob-store)
+    (catch KeyNotFoundException e
+       (throw (NotAliveException. (str storm-id))))
+  )
+)
+
+(defn try-read-storm-conf-from-name [conf storm-name nimbus]
+  (let [storm-cluster-state (:storm-cluster-state nimbus)
+        blob-store (:blob-store nimbus)
+        id (get-storm-id storm-cluster-state storm-name)]
+   (try-read-storm-conf conf id blob-store)))
+
 (defn check-authorization! 
   ([nimbus storm-name storm-conf operation context]
      (let [aclHandler (:authorization-handler nimbus)
@@ -976,6 +992,14 @@
   ([nimbus storm-name storm-conf operation]
      (check-authorization! nimbus storm-name storm-conf operation (ReqContext/context))))
 
+;; no-throw version of check-authorization!
+(defn check-authorization [nimbus conf blob-store topology-id]
+  (let [topology-conf (try-read-storm-conf conf topology-id blob-store)
+        storm-name (topology-conf TOPOLOGY-NAME)]
+    (try (do
+           (check-authorization! nimbus storm-name topology-conf "getTopologyConf")
+           true)
+         (catch AuthorizationException e (false)))))
 
 (defn code-ids [blob-store]
   (let [to-id (reify KeyFilter
@@ -1136,20 +1160,6 @@
     (throw (InvalidTopologyException. 
             ("Topology name cannot be blank"))))))
 
-(defn try-read-storm-conf [conf storm-id blob-store]
-  (try-cause
-    (read-storm-conf-as-nimbus conf storm-id blob-store)
-    (catch KeyNotFoundException e
-       (throw (NotAliveException. (str storm-id))))
-  )
-)
-
-(defn try-read-storm-conf-from-name [conf storm-name nimbus]
-  (let [storm-cluster-state (:storm-cluster-state nimbus)
-        blob-store (:blob-store nimbus)
-        id (get-storm-id storm-cluster-state storm-name)]
-   (try-read-storm-conf conf id blob-store)))
-
 (defn try-read-storm-topology [storm-id blob-store]
   (try-cause
     (read-storm-topology-as-nimbus storm-id blob-store)
@@ -1243,6 +1253,21 @@
    (if (time/after? timeout (time/now))
      (.set_reset_log_level_timeout_epoch log-config (coerce/to-long timeout))
      (.unset_reset_log_level_timeout_epoch log-config))))
+
+(defn make-supervisor-summary 
+  [nimbus id info]
+    (let [ports (set (:meta info)) ;;TODO: this is only true for standalone
+          sup-sum (SupervisorSummary. (:hostname info)
+                              (:uptime-secs info)
+                              (count ports)
+                              (count (:used-ports info))
+                              id)]
+      (.set_total_resources sup-sum (map-val double (:resources-map info)))
+      (when-let [[total-mem total-cpu used-mem used-cpu] (.get @(:node-id->resources nimbus) id)]
+        (.set_used_mem sup-sum used-mem)
+        (.set_used_cpu sup-sum used-cpu))
+      (when-let [version (:version info)] (.set_version sup-sum version))
+      sup-sum))
 
 (defserverfn service-handler [conf inimbus]
   (.prepare inimbus conf (master-inimbus-dir conf))
@@ -1623,20 +1648,7 @@
               ;; TODO: need to get the port info about supervisors...
               ;; in standalone just look at metadata, otherwise just say N/A?
               supervisor-summaries (dofor [[id info] supervisor-infos]
-                                          (let [ports (set (:meta info)) ;;TODO: this is only true for standalone
-
-                                            sup-sum (SupervisorSummary. (:hostname info)
-                                                                (:uptime-secs info)
-                                                                (count ports)
-                                                                (count (:used-ports info))
-                                                                id) ]
-                                            (.set_total_resources sup-sum (map-val double (:resources-map info)))
-                                            (when-let [[total-mem total-cpu used-mem used-cpu] (.get @(:node-id->resources nimbus) id)]
-                                              (.set_used_mem sup-sum used-mem)
-                                              (.set_used_cpu sup-sum used-cpu))
-                                            (when-let [version (:version info)] (.set_version sup-sum version))
-                                            sup-sum
-                                            ))
+                                            (make-supervisor-summary nimbus id info))
               nimbus-uptime ((:uptime nimbus))
               bases (topology-bases storm-cluster-state)
               topology-summaries (dofor [[id base] bases :when base]
@@ -1740,21 +1752,40 @@
       (^TopologyPageInfo getTopologyPageInfo
         [this ^String storm-id ^String window ^boolean include-sys?]
         (mark! num-getTopologyPageInfo-calls)
-        (let [info (get-common-topo-info storm-id "getTopologyPageInfo")
-
-              exec->node+port (:executor->node+port (:assignment info))
+        (let [{:keys [storm-name
+                      storm-cluster-state
+                      launch-time-secs
+                      assignment
+                      beats
+                      task->component
+                      topology
+                      base]} (get-common-topo-info storm-id "getTopologyPageInfo")
+              exec->node+port (:executor->node+port assignment)
+              node->host (:node->host assignment)
+              worker->resources (.get @(:worker->resources nimbus) storm-id)
               last-err-fn (partial get-last-error
-                                   (:storm-cluster-state info)
+                                   storm-cluster-state
                                    storm-id)
+              worker-summaries (stats/agg-worker-stats storm-id
+                                                       storm-name
+                                                       exec->node+port
+                                                       node->host
+                                                       worker->resources
+                                                       (mapcat executor-id->tasks (keys exec->node+port))
+                                                       task->component
+                                                       beats
+                                                       include-sys?
+                                                       true)  ;; this is the topology page, so we know the user is authorized
               topo-page-info (stats/agg-topo-execs-stats storm-id
                                                          exec->node+port
-                                                         (:task->component info)
-                                                         (:beats info)
-                                                         (:topology info)
+                                                         task->component
+                                                         beats
+                                                         topology
                                                          window
                                                          include-sys?
                                                          last-err-fn)]
-          (when-let [owner (:owner (:base info))]
+          (.set_workers topo-page-info worker-summaries)
+          (when-let [owner (:owner base)]
             (.set_owner topo-page-info owner))
           (when-let [sched-status (.get @(:id->sched-status nimbus) storm-id)]
             (.set_sched_status topo-page-info sched-status))
@@ -1766,9 +1797,9 @@
             (.set_assigned_memoffheap topo-page-info (:assigned-mem-off-heap resources))
             (.set_assigned_cpu topo-page-info (:assigned-cpu resources)))
           (doto topo-page-info
-            (.set_name (:storm-name info))
-            (.set_status (extract-status-str (:base info)))
-            (.set_uptime_secs (time-delta (:launch-time-secs info)))
+            (.set_name storm-name)
+            (.set_status (extract-status-str base))
+            (.set_uptime_secs (time-delta launch-time-secs))
             (.set_topology_conf (to-json (try-read-storm-conf conf
                                                               storm-id
                                                               blob-store))))))
@@ -1798,6 +1829,45 @@
             (.set_errors (get-errors (:storm-cluster-state info)
                                      topology-id
                                      component-id)))))
+
+      (^SupervisorPageInfo getSupervisorPageInfo
+        [this
+         ^String supervisor-id
+         ^String window
+         ^boolean include-sys?]
+        (let [storm-cluster-state (:storm-cluster-state nimbus)
+              supervisor-info (supervisor-info storm-cluster-state supervisor-id false)
+              sup-sum (make-supervisor-summary nimbus supervisor-id supervisor-info)
+              assigned-topology-ids (.assignments storm-cluster-state nil)
+              assignments (into {} (for [tid assigned-topology-ids]
+                          {tid (.assignment-info storm-cluster-state tid nil)}))
+              all-topologies (get (reverse-map (into {} (for [[topo-id assignment] assignments] 
+                               (let [sid (first (keys (:node->host assignment)))]
+                                 {topo-id sid})))) supervisor-id)
+              user-topologies (into #{} 
+                                (filter (partial check-authorization nimbus conf blob-store) all-topologies))
+              worker-summaries (flatten (into [] (for [storm-id all-topologies]
+                  (let [{:keys [storm-name
+                                assignment
+                                beats
+                                task->component
+                                base]} (get-common-topo-info storm-id "getSupervisorPageInfo")
+                        exec->node+port (:executor->node+port assignment)
+                        node->host (:node->host assignment)
+                        worker->resources (.get @(:worker->resources nimbus) storm-id)]
+                    (stats/agg-worker-stats storm-id
+                                            storm-name
+                                            exec->node+port
+                                            node->host
+                                            worker->resources
+                                            (mapcat executor-id->tasks (keys exec->node+port))
+                                            task->component
+                                            beats
+                                            include-sys?
+                                            (get user-topologies storm-id))))))]
+            (doto (SupervisorPageInfo.) 
+               (.set_supervisor_summary sup-sum)
+               (.set_worker_summaries worker-summaries))))
 
       (^String beginCreateBlob [this
                                 ^String blob-key

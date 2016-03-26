@@ -406,7 +406,57 @@
         {{/bolts}}
     </tbody>
 </script>
-
+<script id="worker-stats-template" type="text/html">
+  <h2>Worker Resources</h2>
+  <table class="table table-striped compact" id="worker-stats-table">
+    <thead>
+      <tr>
+        <th class="header headerSortDown">
+          <span data-toggle="tooltip" data-placement="right" title="A unique identifier given to a Supervisor when it joins the cluster">
+            Supervisor Id
+          </span>
+        </th>
+        <th class="header">
+          <span data-original-title="The hostname reported by the remote host. (Note that this hostname is not the result of a reverse lookup at the Nimbus node.)" data-toggle="tooltip" data-placement="right">
+            Host
+          </span>
+        </th>
+        <th class="header">
+          <span data-toggle="tooltip" data-placement="above" title="The port number used by the Worker. Click on the port number to open the logviewer page for this Worker.">
+            Port 
+          </span>
+        </th>
+        <th class="header">
+          <span data-toggle="tooltip" data-placement="above" title="The length of time a Worker has been alive.">
+            Uptime
+          </span>
+        </th>
+        <th class="header">
+          <span data-toggle="tooltip" data-placement="above" title="The number of executors">
+            Num executors
+          </span>
+        </th>
+        <th class="header">
+          <span data-toggle="tooltip" data-placement="above" title="Assigned Total Memory by Scheduler.">
+            Assigned Mem (MB)
+          </span>
+        </th>
+        {{#schedulerDisplayResource}}
+        <th class="header">
+          <span data-toggle="tooltip" data-placement="above" title="Assigned Total CPU by Scheduler. Every 100 means 1 core.">
+            Assigned CPU (%)
+          </span>
+        </th>
+        {{/schedulerDisplayResource}}
+        <th class="header">
+          <span data-toggle="tooltip" data-placement="left" title="The components running in this worker">
+            Components
+          </span>
+        </th>
+    </tr></thead>
+    <tbody>
+    </tbody>
+</script>
 <script id="topology-actions-template" type="text/html">
   <h2>Topology actions</h2>
   <p id="topology-actions">

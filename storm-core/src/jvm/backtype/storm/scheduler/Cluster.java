@@ -41,6 +41,12 @@ public class Cluster {
     private Map<String, Double[]> supervisorsResources;
 
     /**
+     * key: topology id,
+     * value: map of worker slot to resources for that worker
+     */
+    private Map<String, Map<WorkerSlot, Double[]>> workerResources;
+
+    /**
      * key: rack, value: nodes in that rack
      */
     private Map<String, List<String>> networkTopography;
@@ -80,6 +86,7 @@ public class Cluster {
         this.topologyResources = new HashMap<String, Double[]>();
         this.supervisorsResources = new HashMap<String, Double[]>();
         this.hostToId = new HashMap<String, List<String>>();
+        this.workerResources = new HashMap<String, Map<WorkerSlot, Double[]>>();
         for (Map.Entry<String, SupervisorDetails> entry : supervisors.entrySet()) {
             String nodeId = entry.getKey();
             SupervisorDetails supervisor = entry.getValue();
@@ -567,7 +574,6 @@ public class Cluster {
         if (memGcChildopts == null) {
             memGcChildopts = Utils.parseJvmHeapMemByChildOpts(workerGcChildopts, null);
         }
-
         String topologyWorkerChildopts = null;
         if (topConf.get(Config.TOPOLOGY_WORKER_CHILDOPTS) instanceof List) {
             topologyWorkerChildopts = getStringFromStringList(topConf.get(Config.TOPOLOGY_WORKER_CHILDOPTS));
@@ -620,15 +626,27 @@ public class Cluster {
             Map topConf = topologies.getById(topId).getConf();
             Double assignedMemForTopology = 0.0;
             Double assignedMemPerSlot = getAssignedMemoryForSlot(topConf);
+
+            Map<WorkerSlot, Double[]> workerResources = new HashMap<WorkerSlot, Double[]>();
+
             for (WorkerSlot ws: entry.getValue().getSlots()) {
                 assignedMemForTopology += assignedMemPerSlot;
                 String nodeId = ws.getNodeId();
+
+                // for non-RAS, these are all constant
+                Double[] worker_resources = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+                worker_resources[3] = assignedMemPerSlot;
+                workerResources.put(ws, worker_resources);
+
                 if (supervisorToAssignedMem.containsKey(nodeId)) {
                     supervisorToAssignedMem.put(nodeId, supervisorToAssignedMem.get(nodeId) + assignedMemPerSlot);
                 } else {
                     supervisorToAssignedMem.put(nodeId, assignedMemPerSlot);
                 }
             }
+
+            this.setWorkerResources(topId, workerResources);
+
             if (topologyResources.containsKey(topId)) {
                 Double[] topo_resources = topologyResources.get(topId);
                 topo_resources[3] = assignedMemForTopology;
@@ -770,6 +788,31 @@ public class Cluster {
      */
     public Map<String, Double[]> getSupervisorsResourcesMap() {
         return this.supervisorsResources;
+    }
+
+    /**
+     * Gets the reference to the full topology->worker resource map.
+     * @return map of topology -> map of worker slot ->resources for that worker
+     */
+    public Map<String, Map<WorkerSlot, Double[]>> getWorkerResourcesMap() {
+        return this.workerResources;
+    }
+
+    /**
+     * Set the worker resources map for all topologies in source
+     * @param resources map
+     */
+    public void setWorkerResourcesMap(Map<String, Map<WorkerSlot, Double[]>> resources) {
+        this.workerResources.putAll(resources);
+    }
+
+    /**
+     * Set the worker resources map for a specific topologyId
+     * @param topologyId the id of the topology
+     * @param resources map for the topology
+     */
+    public void setWorkerResources(String topologyId, Map<WorkerSlot, Double[]> resources) {
+        this.workerResources.put(topologyId, resources);
     }
 
     public INimbus getINimbus() {

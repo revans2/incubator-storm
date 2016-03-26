@@ -303,6 +303,8 @@ public class MultitenantResourceAwareBridgeScheduler implements IScheduler{
             }
             //merge resources map of MT and RAS for all topologies
             target.setTopologyResourcesMap(ephemeral.getTopologyResourcesMap());
+            //merge resources map of MT and RAS for all workers
+            target.setWorkerResourcesMap(ephemeral.getWorkerResourcesMap());
             //merge resources map of MT and RAS for all supervisors, considering that one node may run topologies with both strategies
             for (Map.Entry<String, Double[]> supervisorResource : ephemeral.getSupervisorsResourcesMap().entrySet()) {
                 String supervisorId = supervisorResource.getKey();

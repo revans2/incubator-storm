@@ -34,10 +34,10 @@
             ErrorInfo ClusterSummary SupervisorSummary TopologySummary
             Nimbus$Client StormTopology GlobalStreamId RebalanceOptions
             KillOptions GetInfoOptions NumErrorsChoice TopologyPageInfo
-            TopologyStats CommonAggregateStats ComponentAggregateStats
+            SupervisorPageInfo TopologyStats CommonAggregateStats ComponentAggregateStats
             ComponentType BoltAggregateStats SpoutAggregateStats
             ExecutorAggregateStats SpecificAggregateStats ComponentPageInfo
-            LogConfig LogLevel LogLevelAction])
+            LogConfig LogLevel LogLevelAction WorkerSummary])
   (:import [backtype.storm.security.auth AuthUtils ReqContext])
   (:import [backtype.storm.generated AuthorizationException ProfileRequest ProfileAction NodeInfo])
   (:import [backtype.storm.security.auth AuthUtils])
@@ -359,6 +359,53 @@
         "memAssignedPercentUtil" (if (and (not (nil? totalMem)) (> totalMem 0.0)) (format "%.1f" (* (/ (- totalMem availMem) totalMem) 100.0)) 0.0)
         "cpuAssignedPercentUtil" (if (and (not (nil? totalCpu)) (> totalCpu 0.0)) (format "%.1f" (* (/ (- totalCpu availCpu) totalCpu) 100.0)) 0.0)})))
 
+(defn worker-summary-json
+  [secure-link? ^WorkerSummary worker-summary]
+  (let [host (.get_host worker-summary)
+        port (.get_port worker-summary)
+        topology-id (.get_topology_id worker-summary)]
+    {"supervisorId" (.get_supervisor_id worker-summary)
+     "host" host
+     "port" port
+     "topologyId" topology-id
+     "topologyName" (.get_topology_name worker-summary)
+     "numExecutors" (.get_num_executors worker-summary)
+     "assignedMemOnHeap" (.get_assigned_memonheap worker-summary)
+     "assignedMemOffHeap" (.get_assigned_memoffheap worker-summary)
+     "assignedCpu" (.get_assigned_cpu worker-summary)
+     "components" (.get_components worker-summary)
+     "uptime" (pretty-uptime-sec (.get_uptime_secs worker-summary))
+     "workerLogLink" (worker-log-link host port topology-id secure-link?)}))
+
+(defn supervisor-summary-to-json [summary]
+  {"id" (.get_supervisor_id summary)
+   "host" (.get_host summary)
+   "uptime" (pretty-uptime-sec (.get_uptime_secs summary))
+   "uptimeSeconds" (.get_uptime_secs summary)
+   "slotsTotal" (.get_num_workers summary)
+   "slotsUsed" (.get_num_used_workers summary)
+   "totalMem" (get (.get_total_resources summary) Config/SUPERVISOR_MEMORY_CAPACITY_MB)
+   "totalCpu" (get (.get_total_resources summary) Config/SUPERVISOR_CPU_CAPACITY)
+   "usedMem" (.get_used_mem summary)
+   "usedCpu" (.get_used_cpu summary)
+   "version" (.get_version summary)})
+
+(defn supervisor-page-info
+  ([supervisor-id include-sys? secure?]
+     (with-nimbus nimbus
+        (supervisor-page-info (.getSupervisorPageInfo ^Nimbus$Client nimbus
+                                  supervisor-id
+                                  ":all-time"
+                                  include-sys?) secure?)))
+  ([^SupervisorPageInfo supervisor-page-info secure?]
+    ;; ask nimbus to return supervisor workers + any details user is allowed
+    ;; access on a per-topology basis (i.e. components)
+    (let [supervisor-json (supervisor-summary-to-json (.get_supervisor_summary supervisor-page-info))]
+      (merge supervisor-json
+             {"schedulerDisplayResource" (*STORM-CONF* Config/SCHEDULER_DISPLAY_RESOURCE)
+              "workers" (into [] (for [^WorkerSummary worker-summary (.get_worker_summaries supervisor-page-info)]
+              (worker-summary-json secure? worker-summary)))}))))
+
 (defn supervisor-summary
   ([]
    (with-nimbus nimbus
@@ -367,19 +414,8 @@
   ([summs]
    (let [bad-supervisors (filter #(= "unknown" (.get_host ^SupervisorSummary %)) summs)
          good-supervisors (filter #(not= "unknown" (.get_host ^SupervisorSummary %)) summs)]
-     {"supervisors"
-      (for [^SupervisorSummary s good-supervisors]
-        {"id" (.get_supervisor_id s)
-         "host" (.get_host s)
-         "uptime" (pretty-uptime-sec (.get_uptime_secs s))
-         "uptimeSeconds" (.get_uptime_secs s)
-         "slotsTotal" (.get_num_workers s)
-         "slotsUsed" (.get_num_used_workers s)
-         "totalMem" (get (.get_total_resources s) Config/SUPERVISOR_MEMORY_CAPACITY_MB)
-         "totalCpu" (get (.get_total_resources s) Config/SUPERVISOR_CPU_CAPACITY)
-         "usedMem" (.get_used_mem s)
-         "usedCpu" (.get_used_cpu s)
-         "version" (.get_version s)})
+     {"supervisors" (for [^SupervisorSummary s good-supervisors]
+                      (supervisor-summary-to-json s))
       "schedulerDisplayResource" (*STORM-CONF* Config/SCHEDULER_DISPLAY_RESOURCE)
       "has-bad-supervisors" (not (empty? bad-supervisors))
       "bad-supervisors"
@@ -498,7 +534,7 @@
 
 (defn- unpack-topology-page-info
   "Unpacks the serialized object to data structures"
-  [^TopologyPageInfo topo-info window]
+  [^TopologyPageInfo topo-info window secure?]
   (let [id (.get_id topo-info)
         ^TopologyStats topo-stats (.get_topology_stats topo-info)
         stat->window->number
@@ -527,6 +563,8 @@
      "assignedTotalMem" (+ (.get_assigned_memonheap topo-info) (.get_assigned_memoffheap topo-info))
      "assignedCpu" (.get_assigned_cpu topo-info)
      "topologyStats" topo-stats
+     "workers"  (map (partial worker-summary-json secure?)
+                     (.get_workers topo-info))
      "spouts" (map (partial comp-agg-stats-json id)
                    (.get_id_to_spout_agg_stats topo-info))
      "bolts" (map (partial comp-agg-stats-json id)
@@ -545,7 +583,7 @@
   (with-nimbus nimbus
     (distinct (exec-host-port (.get_executors (get-topology-info nimbus id))))))
 
-(defn topology-page [id window include-sys? user]
+(defn topology-page [id window include-sys? user secure?]
   (with-nimbus nimbus
     (let [window (or window ":all-time")
           window-hint (window-hint window)
@@ -556,7 +594,7 @@
           topology-conf (from-json (.get_topology_conf topo-page-info))
           msg-timeout (topology-conf TOPOLOGY-MESSAGE-TIMEOUT-SECS)]
       (merge
-       (unpack-topology-page-info topo-page-info window)
+       (unpack-topology-page-info topo-page-info window secure?)
        {"user" user
         "window" window
         "windowHint" window-hint
@@ -842,6 +880,12 @@
     (assert-authorized-user "getClusterInfo")
     (json-response (assoc (supervisor-summary)
                           "logviewerPort" (*STORM-CONF* LOGVIEWER-PORT)) (:callback m)))
+  (GET "/api/v1/supervisor/:id" [:as {:keys [cookies servlet-request scheme]} id & m]
+    (populate-context! servlet-request)
+    (assert-authorized-user "getClusterInfo")
+    (let [id (url-decode id)]
+      (json-response (assoc (supervisor-page-info id (check-include-sys? (:sys m)) (= scheme :https))
+                            "logviewerPort" (*STORM-CONF* LOGVIEWER-PORT)) (:callback m))))
   (GET "/api/v1/topology/summary" [:as {:keys [cookies servlet-request]} & m]
     (populate-context! servlet-request)
     (assert-authorized-user "getClusterInfo")
@@ -851,11 +895,11 @@
     (let [id (url-decode id)]
       (json-response {"hostPortList" (worker-host-port id)
                       "logviewerPort" (*STORM-CONF* LOGVIEWER-PORT)} (:callback m))))
-  (GET "/api/v1/topology/:id" [:as {:keys [cookies servlet-request]} id & m]
+  (GET "/api/v1/topology/:id" [:as {:keys [cookies servlet-request scheme]} id & m]
     (populate-context! servlet-request)
     (assert-authorized-user "getTopology" (topology-config id))
     (let [user (get-user-name servlet-request)]
-      (json-response (topology-page id (:window m) (check-include-sys? (:sys m)) user) (:callback m))))
+      (json-response (topology-page id (:window m) (check-include-sys? (:sys m)) user (= scheme :https)) (:callback m))))
   (GET "/api/v1/topology/:id/visualization-init" [:as {:keys [cookies servlet-request]} id & m]
     (populate-context! servlet-request)
     (assert-authorized-user "getTopology" (topology-config id))

@@ -199,3 +199,141 @@ $.blockUI.defaults.css = {
     opacity: .5,
     color: '#fff',margin:0,width:"30%",top:"40%",left:"35%",textAlign:"center"
 };
+
+function makeSupervisorWorkerStatsTable (response, elId) {
+    makeWorkerStatsTable (response, elId, "supervisor");
+};
+
+function makeTopologyWorkerStatsTable (response, elId) {
+    makeWorkerStatsTable (response, elId, "topology");
+};
+
+// Show at most 10 components per worker
+// if the worker has more than 10 components, show a button instead that when clicked
+// opens a row below the worker's row with the components
+// Note that components are still searchable in the datatable
+var maxInlineComponents = 10;
+
+// Build a table of per-worker resources and components (when permitted)
+var makeWorkerStatsTable = function (response, elId, type) {
+    var showCpu = response.schedulerDisplayResource;
+    var formatComponents = function (row) {
+        var result = '';
+        Object.keys(row.components || {}).forEach (function (component){
+            var numTasks = row.components[component];
+            result += '<a class="worker-component-button btn btn-xs btn-primary" href="/component.html?id=' + 
+                            component + '&topology_id=' + row.topology + '">';
+            result += component;
+            result += '<span class="badge">' + numTasks + '</span>';
+            result += '</a>';
+        });
+        return result;
+    };
+
+    var format = function (row){
+        var result = '<div class="worker-child-row">Worker components: ';
+        result += formatComponents (row);
+        result += '</div>';
+        return result;
+    };
+
+    var columns = [
+        { data: 'host'},
+        {
+            data: 'port',
+            render: function (data, type, row) {
+                var logLink = row.workerLogLink;
+                return type === 'display' ?
+                    ('<a href="' + logLink + '">' + data + '</a>'): 
+                    data;
+            }
+        },
+        { data: 'uptime' },
+        { data: 'numExecutors' },
+        { 
+            data: function (row){
+                return row.assignedMemOnHeap + row.assignedMemOffHeap;
+            }
+        },
+
+    ];
+
+    if (showCpu) {
+        columns.push ({ data: 'assignedCpu' });
+    }
+
+    columns.push ({ 
+        data: function (row, type, obj, dt) {
+            var components = Object.keys(row.components || {});
+            if (components.length === 0){
+                // if no components returned, it means the worker
+                // topology isn't one the user is authorized to see
+                return "N/A";
+            }
+
+            if (type !== 'display'){
+                return components
+            }
+
+            var result = '';
+            var expand = components.length > maxInlineComponents;
+
+            if (!expand) {
+                result += '<div>';
+                result += formatComponents (row);
+                result += '</div>';
+            } else {
+                // we want an expand button 
+                result += '<button class="btn btn-xs btn-info details-control" type="button">' + 
+                    components.length + ' components</button>';
+            }
+            return result;
+        }
+    });
+
+    switch (type){
+        case 'topology':
+            columns.unshift ({
+                data: 'supervisorId', 
+                render: function (data, type, row){
+                    return type === 'display' ? 
+                        ('<a href="/supervisor.html?id=' + data + '">' + data + '</a>') :
+                        data;
+                }
+            });
+        break;
+        case 'supervisor':
+            columns.unshift ({
+                data: function (row, type){
+                    return type === 'display' ? 
+                        ('<a href="/topology.html?id=' + row.topologyId + '">' + row.topologyName + '</a>') :
+                        row.topologyId;
+                }
+            });
+        break;
+    }
+
+    var workerStatsTable = dtAutoPage(elId, {
+        data: response.workers,
+        autoWidth: false,
+        columns: columns
+    });
+
+    // Add event listener for opening and closing details
+    $(elId + ' tbody').on('click', 'button.details-control', function () {
+        var tr = $(this).closest('tr');
+        var row = workerStatsTable.row( tr );
+
+        if (row.child.isShown()) {
+            // This row is already open - close it
+            row.child.hide();
+            tr.removeClass('shown');
+        } else {
+            // Open this row
+            row.child (format (row.data())).show();
+            tr.addClass('shown');
+        }
+    });
+
+    $(elId + ' [data-toggle="tooltip"]').tooltip();
+};
