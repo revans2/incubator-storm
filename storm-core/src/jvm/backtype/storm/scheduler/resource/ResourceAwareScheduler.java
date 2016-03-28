@@ -97,7 +97,7 @@ public class ResourceAwareScheduler implements IScheduler {
             if (schedulingPrioritystrategy == null) {
                 try {
                     schedulingPrioritystrategy = (ISchedulingPriorityStrategy) Utils.newInstance((String) this.conf.get(Config.RESOURCE_AWARE_SCHEDULER_PRIORITY_STRATEGY));
-                } catch (RuntimeException ex) {
+                } catch (Exception ex) {
                     LOG.error(String.format("failed to create instance of priority strategy: %s with error: %s! No topologies will be scheduled.",
                                     this.conf.get(Config.RESOURCE_AWARE_SCHEDULER_PRIORITY_STRATEGY), ex.getMessage()), ex);
                     break;
@@ -127,7 +127,7 @@ public class ResourceAwareScheduler implements IScheduler {
 
     public void scheduleTopology(TopologyDetails td) {
         User topologySubmitter = this.userMap.get(td.getTopologySubmitter());
-        if (cluster.getUnassignedExecutors(td).size() > 0) {
+        if (this.cluster.getUnassignedExecutors(td).size() > 0) {
             LOG.debug("/********Scheduling topology {} from User {}************/", td.getName(), topologySubmitter);
 
             SchedulingState schedulingState = checkpointSchedulingState();
@@ -170,8 +170,8 @@ public class ResourceAwareScheduler implements IScheduler {
                                 topologySubmitter.moveTopoFromPendingToAttempted(td);
                                 this.cluster.setStatus(td.getId(), "Unsuccessful in scheduling - Unable to assign executors to nodes. Please check logs for details");
                             }
-                        } catch (IllegalStateException ex) {
-                            LOG.error("Unsuccessful in scheduling - IllegalStateException thrown when attempting to assign executors to nodes.", ex);
+                        } catch (Exception ex) {
+                            LOG.error("Unsuccessful in scheduling - Exception thrown when attempting to assign executors to nodes.", ex);
                             topologySubmitter = cleanup(schedulingState, td);
                             topologySubmitter.moveTopoFromPendingToAttempted(td);
                             this.cluster.setStatus(td.getId(), "Unsuccessful in scheduling - IllegalStateException thrown when attempting to assign executors to nodes. Please check log for details.");
