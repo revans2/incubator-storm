@@ -314,7 +314,9 @@ public class Cluster {
         } else {
             for (ExecutorDetails executor : executors) {
                  if (assignment.isExecutorAssigned(executor)) {
-                     throw new RuntimeException("the executor is already assigned, you should unassign it before assign it to another slot.");
+                     throw new RuntimeException("Attempting to assign executor: " + executor + " of topology: "+ topologyId
+                             + " to workerslot: " + slot + ". The executor is already assigned to workerslot: " + assignment.getExecutorToSlot().get(executor)
+                             + ". The executor must unassigned before it can be assigned to another slot!");
                  }
             }
         }
