@@ -261,12 +261,12 @@ public class PacemakerClient implements ISaslClient {
 
     public synchronized void doReconnect() {
         close_channel();
-	if (!shutdown.get()) {
+	    if (!shutdown.get()) {
             bootstrap.connect(remote_addr);
         }
     }
 
-    public synchronized void shutdown() {
+    public void shutdown() {
         shutdown.set(true);
         bootstrap.releaseExternalResources();
     }
