@@ -140,7 +140,7 @@
                   (do
                     (if catchfn
                       (catchfn e))
-                    (throw e))
+                      (throw e))
                   {:exception e})))]
     (if (:exception res)
       (do
