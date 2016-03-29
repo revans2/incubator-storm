@@ -34,7 +34,7 @@ public final class YahooDNSToSwitchMapping extends AbstractDNSToSwitchMapping {
             return m;
         }
         Matcher match = null;
-        for (String name : names) {
+        for (final String name : names) {
             // See whether it's already in the cache.
             String cachedVal = mappingCache.get(name);
             if (cachedVal != null) {
@@ -47,9 +47,7 @@ public final class YahooDNSToSwitchMapping extends AbstractDNSToSwitchMapping {
                 // this is not an IP address, we consider it is a host name
                 // and try to convert it to IP address
                 try{
-                    InetAddress ipAddress = InetAddress.getByName(name);
-                    //name = ipAddress.getHostAddress();
-                    String hostToIp = ipAddress.getHostAddress();
+                    String hostToIp = hostnameToIp(name);
                     // we need to match again using the IP address,
                     // so we can use matcher.group() to split IP fields later
                     match = ipPattern.matcher(hostToIp);
@@ -68,6 +66,11 @@ public final class YahooDNSToSwitchMapping extends AbstractDNSToSwitchMapping {
             mappingCache.put(name, resolvedIP);
         }
         return m;
+    }
+
+    public String hostnameToIp(String hostname) {
+        InetAddress ipAddress = InetAddress.getByName(name);
+        return ipAddress.getHostAddress();
     }
 
     // For Yahoo, we handle the unresolved hosts by adding them to the
