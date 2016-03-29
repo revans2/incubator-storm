@@ -48,7 +48,12 @@ public final class YahooDNSToSwitchMapping extends AbstractDNSToSwitchMapping {
                 // and try to convert it to IP address
                 try{
                     InetAddress ipAddress = InetAddress.getByName(name);
-                    name = ipAddress.getHostAddress();
+                    //name = ipAddress.getHostAddress();
+                    String hostToIp = ipAddress.getHostAddress();
+                    // we need to match again using the IP address,
+                    // so we can use matcher.group() to split IP fields later
+                    match = ipPattern.matcher(hostToIp);
+                    match.matches();
                 } catch (UnknownHostException e){
                     // host name is unknown, use DEFAULT_RACK instead.
                     // do not cache this.
@@ -56,13 +61,9 @@ public final class YahooDNSToSwitchMapping extends AbstractDNSToSwitchMapping {
                     // continue on to the next host
                     continue;
                 }
-                // we need to match again using the IP address,
-                // so we can use matcher.group() to split IP fields later
-                match = ipPattern.matcher(name);
-                match.matches();
             }
 
-            String resolvedIP = applyMask(name, match);
+            String resolvedIP = applyMask(match);
             m.put(name, resolvedIP);
             mappingCache.put(name, resolvedIP);
         }
@@ -78,7 +79,7 @@ public final class YahooDNSToSwitchMapping extends AbstractDNSToSwitchMapping {
         return this.resolve(names);
     }
 
-    private String applyMask(String ipAddress, Matcher match) {
+    private String applyMask(Matcher match) {
         int[] net = new int[4];
         StringBuilder rackip = new StringBuilder();
         rackip.append("/");
