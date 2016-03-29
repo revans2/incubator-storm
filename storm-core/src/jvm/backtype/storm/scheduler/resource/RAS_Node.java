@@ -333,7 +333,7 @@ public class RAS_Node {
         if (!freeSlots.contains(target)) {
             throw new IllegalStateException("Trying to assign already used slot" + target.getPort() + "on node " + _nodeId);
         }
-        LOG.info("target slot: {}", target);
+        LOG.debug("target slot: {}", target);
 
         _cluster.assign(target, td.getId(), executors);
 

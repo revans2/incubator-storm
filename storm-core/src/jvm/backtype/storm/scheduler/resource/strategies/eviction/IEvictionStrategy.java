@@ -18,20 +18,15 @@
 
 package backtype.storm.scheduler.resource.strategies.eviction;
 
-import backtype.storm.scheduler.Cluster;
-import backtype.storm.scheduler.Topologies;
 import backtype.storm.scheduler.TopologyDetails;
-import backtype.storm.scheduler.resource.RAS_Nodes;
-import backtype.storm.scheduler.resource.User;
-
-import java.util.Map;
+import backtype.storm.scheduler.resource.SchedulingState;
 
 public interface IEvictionStrategy {
 
     /**
      * Initialization
      */
-    public void prepare(Topologies topologies, Cluster cluster, Map<String, User> userMap, RAS_Nodes nodes);
+    public void prepare(SchedulingState schedulingState);
 
     /**
      * This method when invoked should attempt to make space on the cluster so that the topology specified can be scheduled
