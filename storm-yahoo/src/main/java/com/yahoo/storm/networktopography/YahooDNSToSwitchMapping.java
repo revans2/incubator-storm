@@ -47,10 +47,10 @@ public final class YahooDNSToSwitchMapping extends AbstractDNSToSwitchMapping {
                 // this is not an IP address, we consider it is a host name
                 // and try to convert it to IP address
                 try{
-                    String hostToIp = hostnameToIp(name);
+                    String ipAddress = hostnameToIp(name);
                     // we need to match again using the IP address,
                     // so we can use matcher.group() to split IP fields later
-                    match = ipPattern.matcher(hostToIp);
+                    match = ipPattern.matcher(ipAddress);
                     match.matches();
                 } catch (UnknownHostException e){
                     // host name is unknown, use DEFAULT_RACK instead.
@@ -68,8 +68,8 @@ public final class YahooDNSToSwitchMapping extends AbstractDNSToSwitchMapping {
         return m;
     }
 
-    public String hostnameToIp(String hostname) {
-        InetAddress ipAddress = InetAddress.getByName(name);
+    public String hostnameToIp(String hostname) throws UnknownHostException{
+        InetAddress ipAddress = InetAddress.getByName(hostname);
         return ipAddress.getHostAddress();
     }
 
