@@ -276,7 +276,7 @@
   (catch IOException e
     (log-warn-error e "Failed to cleanup worker " id ". Will retry later"))
   (catch RuntimeException e
-    (log-warn-error e "Failed to cleanup worker " id ". Will retry later")))
+    (log-warn-error e "Failed to cleanup worker " id ". Will retry later"))))
 
 (defn shutdown-worker [supervisor id]
   (log-message "Shutting down " (:supervisor-id supervisor) ":" id)
