@@ -474,7 +474,7 @@
                       topology
                       (:num-workers storm-base)
                       executor->component
-                      )))
+                      (:launch-time-secs storm-base))))
 
 ;; Does not assume that clocks are synchronized. Executor heartbeat is only used so that
 ;; nimbus knows when it's received a new heartbeat. All timing is done by nimbus and
