@@ -50,7 +50,7 @@ storm.auth.simple-acl.users: []
 storm.auth.simple-acl.users.commands: []
 storm.auth.simple-acl.admins: []
 storm.blobstore.inputstream.buffer.size.bytes: 65536
-storm.blobstore.acl.validation : false
+storm.blobstore.acl.validation.enabled : false
 storm.meta.serialization.delegate: "backtype.storm.serialization.GzipThriftSerializationDelegate"
 # The state store for the cluster.
 #storm.cluster.state.store: "org.apache.storm.pacemaker.pacemaker_state_factory"

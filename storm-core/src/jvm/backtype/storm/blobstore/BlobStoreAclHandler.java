@@ -65,8 +65,8 @@ public class BlobStoreAclHandler {
     if (conf.containsKey(Config.NIMBUS_ADMINS)) {
       _admins.addAll((List<String>)conf.get(Config.NIMBUS_ADMINS));
     }
-    if (conf.containsKey(Config.STORM_BLOBSTORE_ACL_VALIDATION)) {
-        doAclValidation = (boolean)conf.get(Config.STORM_BLOBSTORE_ACL_VALIDATION);
+    if (conf.containsKey(Config.STORM_BLOBSTORE_ACL_VALIDATION_ENABLED)) {
+        doAclValidation = (boolean)conf.get(Config.STORM_BLOBSTORE_ACL_VALIDATION_ENABLED);
         LOG.debug("doAclValidation {}", doAclValidation);
     }
   }

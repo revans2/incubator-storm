@@ -938,7 +938,7 @@ public class Config extends HashMap<String, Object> {
 
     /**
      * The maximum number of threads that should be used by the Pacemaker.
-     * When Pacemaker gets loaded it will spawn new threads, up to 
+     * When Pacemaker gets loaded it will spawn new threads, up to
      * this many total, to handle the load.
      */
     @isNumber
@@ -1177,7 +1177,7 @@ public class Config extends HashMap<String, Object> {
      * For secure mode we do want to validate acls
      */
     @isBoolean
-    public static final String STORM_BLOBSTORE_ACL_VALIDATION = "storm.blobstore.acl.validation";
+    public static final String STORM_BLOBSTORE_ACL_VALIDATION_ENABLED = "storm.blobstore.acl.validation.enabled";
 
     /**
      * What blobstore implementation the supervisor should use.
