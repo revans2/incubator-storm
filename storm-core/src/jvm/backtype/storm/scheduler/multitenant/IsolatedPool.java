@@ -268,10 +268,8 @@ public class IsolatedPool extends NodePool {
     int slotsToUse = Math.min(slotsRequested - slotsUsed, slotsFree);
     if (slotsToUse <= 0) {
       if (origRequest > (slotsUsed)) {
-        _cluster.setStatus(topId, "Fully scheduled on " + allNodes.size()
-                + " isolated nodes using a maximum of " + (slotsUsed + slotsFree)
-                + " slots. Not enough slots on isolated nodes to schedule topology on "
-                + origRequest + " slots, which is the requested number of slots");
+        _cluster.setStatus(topId, "Running with fewer slots than requested " + slotsUsed + "/"
+                + origRequest + " on " + allNodes.size() + " with " + (slotsUsed + slotsFree) + " total slots");
       } else {
         _cluster.setStatus(topId, "Node has partially crashed, if this situation persists rebalance the topology.");
       }
