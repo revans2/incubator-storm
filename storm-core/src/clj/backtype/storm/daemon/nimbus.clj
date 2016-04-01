@@ -993,11 +993,11 @@
      (check-authorization! nimbus storm-name storm-conf operation (ReqContext/context))))
 
 ;; no-throw version of check-authorization!
-(defn check-authorization [nimbus conf blob-store topology-id]
+(defn check-authorization [nimbus conf blob-store operation topology-id]
   (let [topology-conf (try-read-storm-conf conf topology-id blob-store)
         storm-name (topology-conf TOPOLOGY-NAME)]
     (try (do
-           (check-authorization! nimbus storm-name topology-conf "getTopologyConf")
+           (check-authorization! nimbus storm-name topology-conf operation)
            true)
          (catch AuthorizationException e (false)))))
 
@@ -1845,7 +1845,7 @@
                                (let [sid (first (keys (:node->host assignment)))]
                                  {topo-id sid})))) supervisor-id)
               user-topologies (into #{} 
-                                (filter (partial check-authorization nimbus conf blob-store) all-topologies))
+                                (filter (partial check-authorization nimbus conf blob-store "getTopology") all-topologies))
               worker-summaries (flatten (into [] (for [storm-id all-topologies]
                   (let [{:keys [storm-name
                                 assignment
