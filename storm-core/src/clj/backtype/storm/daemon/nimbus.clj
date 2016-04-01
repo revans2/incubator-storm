@@ -1864,7 +1864,8 @@
                                             task->component
                                             beats
                                             include-sys?
-                                            (get user-topologies storm-id))))))]
+                                            (get user-topologies storm-id)
+                                            supervisor-id)))))]
             (doto (SupervisorPageInfo.) 
                (.set_supervisor_summary sup-sum)
                (.set_worker_summaries worker-summaries))))

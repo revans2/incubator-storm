@@ -997,40 +997,65 @@
     topo-page-info))
 
 (defn agg-worker-stats
-  "Aggregate statistics per worker for a topology."
-  [storm-id 
-   storm-name
-   exec->node+port 
-   node->host
-   worker->resources
-   executor-id->tasks
-   task->component
-   beats
-   include-sys?
-   user-authorized]
-  (let [node+port->exec (reverse-map exec->node+port)
-        handle-sys-components-fn (mk-include-sys-filter include-sys?)]
-    (dofor [[[node port] executors] node+port->exec]
-      (let [tasks (flatten (map #(range (first %) (inc (last %))) executors))
-            worker-beats (vals (select-keys beats executors))
-            not-null-worker-beat (first (filter #(not= % nil) worker-beats))
-            worker-uptime (or (:uptime not-null-worker-beat) 0)
-            components (handle-sys-components-fn (frequencies (map #(get task->component %) tasks)))
-            resources (or (.get worker->resources (WorkerSlot. node port)) [0 0 0 0 0 0])
-            worker-summary (doto 
-               (WorkerSummary.)
-                 (.set_host (node->host node))
-                 (.set_uptime_secs worker-uptime)
-                 (.set_supervisor_id node)
-                 (.set_port port)
-                 (.set_topology_id storm-id)
-                 (.set_topology_name storm-name)
-                 (.set_num_executors (count executors))
-                 (.set_assigned_memonheap (get resources 3))
-                 (.set_assigned_memoffheap (get resources 4))
-                 (.set_assigned_cpu (get resources 5)))]
-           (if user-authorized (.set_components worker-summary components))
-           worker-summary))))
+  "Aggregate statistics per worker for a topology. Optionally filtering on specific supervisors."
+  ([storm-id 
+    storm-name
+    exec->node+port 
+    node->host
+    worker->resources
+    executor-id->tasks
+    task->component
+    beats
+    include-sys?
+    user-authorized]
+    (agg-worker-stats storm-id 
+                      storm-name
+                      exec->node+port 
+                      node->host
+                      worker->resources
+                      executor-id->tasks
+                      task->component
+                      beats
+                      include-sys?
+                      user-authorized
+                      nil))
+  ([storm-id 
+    storm-name
+    exec->node+port 
+    node->host
+    worker->resources
+    executor-id->tasks
+    task->component
+    beats
+    include-sys?
+    user-authorized
+    filter-supervisor]
+    (let [all-node+port->exec (reverse-map exec->node+port)
+          node+port->exec (if (nil? filter-supervisor) 
+                            all-node+port->exec 
+                            (filter #(= filter-supervisor (ffirst %)) all-node+port->exec))
+          handle-sys-components-fn (mk-include-sys-filter include-sys?)]
+      (dofor [[[node port] executors] node+port->exec]
+        (let [tasks (flatten (map #(range (first %) (inc (last %))) executors))
+              worker-beats (vals (select-keys beats executors))
+              not-null-worker-beat (first (filter #(not= % nil) worker-beats))
+              worker-uptime (or (:uptime not-null-worker-beat) 0)
+              components (handle-sys-components-fn (frequencies (map #(get task->component %) tasks)))
+              resources (or (.get worker->resources (WorkerSlot. node port)) [0 0 0 0 0 0])
+              worker-summary (doto 
+                 (WorkerSummary.)
+                   (.set_host (node->host node))
+                   (.set_uptime_secs worker-uptime)
+                   (.set_supervisor_id node)
+                   (.set_port port)
+                   (.set_topology_id storm-id)
+                   (.set_topology_name storm-name)
+                   (.set_num_executors (count executors))
+                   (.set_assigned_memonheap (get resources 3))
+                   (.set_assigned_memoffheap (get resources 4))
+                   (.set_assigned_cpu (get resources 5)))]
+             (if user-authorized (.set_components worker-summary components))
+             worker-summary)))))
 
 (defn agg-topo-execs-stats
   "Aggregate various executor statistics for a topology from the given
