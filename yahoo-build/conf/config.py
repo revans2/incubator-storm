@@ -9,6 +9,8 @@ import os
 import re
 import json
 import types
+import yaml
+from socket import getfqdn
 
 print """
 # This configuration file is controlled by yinst set variables.
@@ -57,7 +59,7 @@ mapKeys = set(["isolation.scheduler.machines", "ui.filter.params", "drpc.http.fi
 
 allStringKeys = set(["ui.filter.params", "drpc.http.filter.params", "storm.group.mapping.service.params"])
 
-ignoredKeys = set(["min.user.pid", "storm.zookeeper.auth.payload", "storm.cluster.user", "worker.launcher.group",
+ignoredKeys = set(["min.user.pid", "storm.zookeeper.auth.payload", "worker.launcher.group",
  "multitenant.scheduler.user.pools", "resource.aware.scheduler.user.pools"])
 
 config = dict((k[8:].replace("_", "."), v) for k, v in os.environ.items() \
@@ -138,6 +140,23 @@ for mapKey in mapKeys:
                 else:
                     val[subKey] = parseValue(subval)
             result[mapKey] = val
+
+if 'storm.cluster.user' in result:
+    if 'nimbus.host' in result:
+        try:
+            impersonation_host = getfqdn(result['nimbus.host'])
+            impersonation_user = result['storm.cluster.user']
+            result["nimbus.impersonation.acl"] = {
+                impersonation_user: {
+                    'hosts': [impersonation_host],
+                    'groups': ['*']
+                }
+            }
+        except:
+            print ("Error resolving UI host! %s" % result["nimbus.host"])
+            raise;
+
+    del result['storm.cluster.user']
 
 if "supervisor.slots.ports" in result and isinstance(result["supervisor.slots.ports"], int):
     result["supervisor.slots.ports"] = [6700 + x for x in range(0, result["supervisor.slots.ports"])]

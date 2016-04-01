@@ -55,7 +55,7 @@ import org.slf4j.LoggerFactory;
 public class SupervisorPageInfo implements org.apache.thrift.TBase<SupervisorPageInfo, SupervisorPageInfo._Fields>, java.io.Serializable, Cloneable, Comparable<SupervisorPageInfo> {
   private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("SupervisorPageInfo");
 
-  private static final org.apache.thrift.protocol.TField SUPERVISOR_SUMMARY_FIELD_DESC = new org.apache.thrift.protocol.TField("supervisor_summary", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+  private static final org.apache.thrift.protocol.TField SUPERVISOR_SUMMARIES_FIELD_DESC = new org.apache.thrift.protocol.TField("supervisor_summaries", org.apache.thrift.protocol.TType.LIST, (short)1);
   private static final org.apache.thrift.protocol.TField WORKER_SUMMARIES_FIELD_DESC = new org.apache.thrift.protocol.TField("worker_summaries", org.apache.thrift.protocol.TType.LIST, (short)2);
 
   private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
@@ -64,12 +64,12 @@ public class SupervisorPageInfo implements org.apache.thrift.TBase<SupervisorPag
     schemes.put(TupleScheme.class, new SupervisorPageInfoTupleSchemeFactory());
   }
 
-  private SupervisorSummary supervisor_summary; // optional
+  private List<SupervisorSummary> supervisor_summaries; // optional
   private List<WorkerSummary> worker_summaries; // optional
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-    SUPERVISOR_SUMMARY((short)1, "supervisor_summary"),
+    SUPERVISOR_SUMMARIES((short)1, "supervisor_summaries"),
     WORKER_SUMMARIES((short)2, "worker_summaries");
 
     private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
@@ -85,8 +85,8 @@ public class SupervisorPageInfo implements org.apache.thrift.TBase<SupervisorPag
      */
     public static _Fields findByThriftId(int fieldId) {
       switch(fieldId) {
-        case 1: // SUPERVISOR_SUMMARY
-          return SUPERVISOR_SUMMARY;
+        case 1: // SUPERVISOR_SUMMARIES
+          return SUPERVISOR_SUMMARIES;
         case 2: // WORKER_SUMMARIES
           return WORKER_SUMMARIES;
         default:
@@ -129,12 +129,13 @@ public class SupervisorPageInfo implements org.apache.thrift.TBase<SupervisorPag
   }
 
   // isset id assignments
-  private static final _Fields optionals[] = {_Fields.SUPERVISOR_SUMMARY,_Fields.WORKER_SUMMARIES};
+  private static final _Fields optionals[] = {_Fields.SUPERVISOR_SUMMARIES,_Fields.WORKER_SUMMARIES};
   public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
   static {
     Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
-    tmpMap.put(_Fields.SUPERVISOR_SUMMARY, new org.apache.thrift.meta_data.FieldMetaData("supervisor_summary", org.apache.thrift.TFieldRequirementType.OPTIONAL, 
-        new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, SupervisorSummary.class)));
+    tmpMap.put(_Fields.SUPERVISOR_SUMMARIES, new org.apache.thrift.meta_data.FieldMetaData("supervisor_summaries", org.apache.thrift.TFieldRequirementType.OPTIONAL, 
+        new org.apache.thrift.meta_data.ListMetaData(org.apache.thrift.protocol.TType.LIST, 
+            new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, SupervisorSummary.class))));
     tmpMap.put(_Fields.WORKER_SUMMARIES, new org.apache.thrift.meta_data.FieldMetaData("worker_summaries", org.apache.thrift.TFieldRequirementType.OPTIONAL, 
         new org.apache.thrift.meta_data.ListMetaData(org.apache.thrift.protocol.TType.LIST, 
             new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRUCT            , "WorkerSummary"))));
@@ -149,8 +150,12 @@ public class SupervisorPageInfo implements org.apache.thrift.TBase<SupervisorPag
    * Performs a deep copy on <i>other</i>.
    */
   public SupervisorPageInfo(SupervisorPageInfo other) {
-    if (other.is_set_supervisor_summary()) {
-      this.supervisor_summary = new SupervisorSummary(other.supervisor_summary);
+    if (other.is_set_supervisor_summaries()) {
+      List<SupervisorSummary> __this__supervisor_summaries = new ArrayList<SupervisorSummary>(other.supervisor_summaries.size());
+      for (SupervisorSummary other_element : other.supervisor_summaries) {
+        __this__supervisor_summaries.add(new SupervisorSummary(other_element));
+      }
+      this.supervisor_summaries = __this__supervisor_summaries;
     }
     if (other.is_set_worker_summaries()) {
       List<WorkerSummary> __this__worker_summaries = new ArrayList<WorkerSummary>(other.worker_summaries.size());
@@ -167,30 +172,45 @@ public class SupervisorPageInfo implements org.apache.thrift.TBase<SupervisorPag
 
   @Override
   public void clear() {
-    this.supervisor_summary = null;
+    this.supervisor_summaries = null;
     this.worker_summaries = null;
   }
 
-  public SupervisorSummary get_supervisor_summary() {
-    return this.supervisor_summary;
+  public int get_supervisor_summaries_size() {
+    return (this.supervisor_summaries == null) ? 0 : this.supervisor_summaries.size();
   }
 
-  public void set_supervisor_summary(SupervisorSummary supervisor_summary) {
-    this.supervisor_summary = supervisor_summary;
+  public java.util.Iterator<SupervisorSummary> get_supervisor_summaries_iterator() {
+    return (this.supervisor_summaries == null) ? null : this.supervisor_summaries.iterator();
   }
 
-  public void unset_supervisor_summary() {
-    this.supervisor_summary = null;
+  public void add_to_supervisor_summaries(SupervisorSummary elem) {
+    if (this.supervisor_summaries == null) {
+      this.supervisor_summaries = new ArrayList<SupervisorSummary>();
+    }
+    this.supervisor_summaries.add(elem);
   }
 
-  /** Returns true if field supervisor_summary is set (has been assigned a value) and false otherwise */
-  public boolean is_set_supervisor_summary() {
-    return this.supervisor_summary != null;
+  public List<SupervisorSummary> get_supervisor_summaries() {
+    return this.supervisor_summaries;
   }
 
-  public void set_supervisor_summary_isSet(boolean value) {
+  public void set_supervisor_summaries(List<SupervisorSummary> supervisor_summaries) {
+    this.supervisor_summaries = supervisor_summaries;
+  }
+
+  public void unset_supervisor_summaries() {
+    this.supervisor_summaries = null;
+  }
+
+  /** Returns true if field supervisor_summaries is set (has been assigned a value) and false otherwise */
+  public boolean is_set_supervisor_summaries() {
+    return this.supervisor_summaries != null;
+  }
+
+  public void set_supervisor_summaries_isSet(boolean value) {
     if (!value) {
-      this.supervisor_summary = null;
+      this.supervisor_summaries = null;
     }
   }
 
@@ -234,11 +254,11 @@ public class SupervisorPageInfo implements org.apache.thrift.TBase<SupervisorPag
 
   public void setFieldValue(_Fields field, Object value) {
     switch (field) {
-    case SUPERVISOR_SUMMARY:
+    case SUPERVISOR_SUMMARIES:
       if (value == null) {
-        unset_supervisor_summary();
+        unset_supervisor_summaries();
       } else {
-        set_supervisor_summary((SupervisorSummary)value);
+        set_supervisor_summaries((List<SupervisorSummary>)value);
       }
       break;
 
@@ -255,8 +275,8 @@ public class SupervisorPageInfo implements org.apache.thrift.TBase<SupervisorPag
 
   public Object getFieldValue(_Fields field) {
     switch (field) {
-    case SUPERVISOR_SUMMARY:
-      return get_supervisor_summary();
+    case SUPERVISOR_SUMMARIES:
+      return get_supervisor_summaries();
 
     case WORKER_SUMMARIES:
       return get_worker_summaries();
@@ -272,8 +292,8 @@ public class SupervisorPageInfo implements org.apache.thrift.TBase<SupervisorPag
     }
 
     switch (field) {
-    case SUPERVISOR_SUMMARY:
-      return is_set_supervisor_summary();
+    case SUPERVISOR_SUMMARIES:
+      return is_set_supervisor_summaries();
     case WORKER_SUMMARIES:
       return is_set_worker_summaries();
     }
@@ -293,12 +313,12 @@ public class SupervisorPageInfo implements org.apache.thrift.TBase<SupervisorPag
     if (that == null)
       return false;
 
-    boolean this_present_supervisor_summary = true && this.is_set_supervisor_summary();
-    boolean that_present_supervisor_summary = true && that.is_set_supervisor_summary();
-    if (this_present_supervisor_summary || that_present_supervisor_summary) {
-      if (!(this_present_supervisor_summary && that_present_supervisor_summary))
+    boolean this_present_supervisor_summaries = true && this.is_set_supervisor_summaries();
+    boolean that_present_supervisor_summaries = true && that.is_set_supervisor_summaries();
+    if (this_present_supervisor_summaries || that_present_supervisor_summaries) {
+      if (!(this_present_supervisor_summaries && that_present_supervisor_summaries))
         return false;
-      if (!this.supervisor_summary.equals(that.supervisor_summary))
+      if (!this.supervisor_summaries.equals(that.supervisor_summaries))
         return false;
     }
 
@@ -318,10 +338,10 @@ public class SupervisorPageInfo implements org.apache.thrift.TBase<SupervisorPag
   public int hashCode() {
     List<Object> list = new ArrayList<Object>();
 
-    boolean present_supervisor_summary = true && (is_set_supervisor_summary());
-    list.add(present_supervisor_summary);
-    if (present_supervisor_summary)
-      list.add(supervisor_summary);
+    boolean present_supervisor_summaries = true && (is_set_supervisor_summaries());
+    list.add(present_supervisor_summaries);
+    if (present_supervisor_summaries)
+      list.add(supervisor_summaries);
 
     boolean present_worker_summaries = true && (is_set_worker_summaries());
     list.add(present_worker_summaries);
@@ -339,12 +359,12 @@ public class SupervisorPageInfo implements org.apache.thrift.TBase<SupervisorPag
 
     int lastComparison = 0;
 
-    lastComparison = Boolean.valueOf(is_set_supervisor_summary()).compareTo(other.is_set_supervisor_summary());
+    lastComparison = Boolean.valueOf(is_set_supervisor_summaries()).compareTo(other.is_set_supervisor_summaries());
     if (lastComparison != 0) {
       return lastComparison;
     }
-    if (is_set_supervisor_summary()) {
-      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.supervisor_summary, other.supervisor_summary);
+    if (is_set_supervisor_summaries()) {
+      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.supervisor_summaries, other.supervisor_summaries);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -379,12 +399,12 @@ public class SupervisorPageInfo implements org.apache.thrift.TBase<SupervisorPag
     StringBuilder sb = new StringBuilder("SupervisorPageInfo(");
     boolean first = true;
 
-    if (is_set_supervisor_summary()) {
-      sb.append("supervisor_summary:");
-      if (this.supervisor_summary == null) {
+    if (is_set_supervisor_summaries()) {
+      sb.append("supervisor_summaries:");
+      if (this.supervisor_summaries == null) {
         sb.append("null");
       } else {
-        sb.append(this.supervisor_summary);
+        sb.append(this.supervisor_summaries);
       }
       first = false;
     }
@@ -405,9 +425,6 @@ public class SupervisorPageInfo implements org.apache.thrift.TBase<SupervisorPag
   public void validate() throws org.apache.thrift.TException {
     // check for required fields
     // check for sub-struct validity
-    if (supervisor_summary != null) {
-      supervisor_summary.validate();
-    }
   }
 
   private void writeObject(java.io.ObjectOutputStream out) throws java.io.IOException {
@@ -444,11 +461,21 @@ public class SupervisorPageInfo implements org.apache.thrift.TBase<SupervisorPag
           break;
         }
         switch (schemeField.id) {
-          case 1: // SUPERVISOR_SUMMARY
-            if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-              struct.supervisor_summary = new SupervisorSummary();
-              struct.supervisor_summary.read(iprot);
-              struct.set_supervisor_summary_isSet(true);
+          case 1: // SUPERVISOR_SUMMARIES
+            if (schemeField.type == org.apache.thrift.protocol.TType.LIST) {
+              {
+                org.apache.thrift.protocol.TList _list376 = iprot.readListBegin();
+                struct.supervisor_summaries = new ArrayList<SupervisorSummary>(_list376.size);
+                SupervisorSummary _elem377;
+                for (int _i378 = 0; _i378 < _list376.size; ++_i378)
+                {
+                  _elem377 = new SupervisorSummary();
+                  _elem377.read(iprot);
+                  struct.supervisor_summaries.add(_elem377);
+                }
+                iprot.readListEnd();
+              }
+              struct.set_supervisor_summaries_isSet(true);
             } else { 
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
@@ -456,14 +483,14 @@ public class SupervisorPageInfo implements org.apache.thrift.TBase<SupervisorPag
           case 2: // WORKER_SUMMARIES
             if (schemeField.type == org.apache.thrift.protocol.TType.LIST) {
               {
-                org.apache.thrift.protocol.TList _list376 = iprot.readListBegin();
-                struct.worker_summaries = new ArrayList<WorkerSummary>(_list376.size);
-                WorkerSummary _elem377;
-                for (int _i378 = 0; _i378 < _list376.size; ++_i378)
+                org.apache.thrift.protocol.TList _list379 = iprot.readListBegin();
+                struct.worker_summaries = new ArrayList<WorkerSummary>(_list379.size);
+                WorkerSummary _elem380;
+                for (int _i381 = 0; _i381 < _list379.size; ++_i381)
                 {
-                  _elem377 = new WorkerSummary();
-                  _elem377.read(iprot);
-                  struct.worker_summaries.add(_elem377);
+                  _elem380 = new WorkerSummary();
+                  _elem380.read(iprot);
+                  struct.worker_summaries.add(_elem380);
                 }
                 iprot.readListEnd();
               }
@@ -485,10 +512,17 @@ public class SupervisorPageInfo implements org.apache.thrift.TBase<SupervisorPag
       struct.validate();
 
       oprot.writeStructBegin(STRUCT_DESC);
-      if (struct.supervisor_summary != null) {
-        if (struct.is_set_supervisor_summary()) {
-          oprot.writeFieldBegin(SUPERVISOR_SUMMARY_FIELD_DESC);
-          struct.supervisor_summary.write(oprot);
+      if (struct.supervisor_summaries != null) {
+        if (struct.is_set_supervisor_summaries()) {
+          oprot.writeFieldBegin(SUPERVISOR_SUMMARIES_FIELD_DESC);
+          {
+            oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, struct.supervisor_summaries.size()));
+            for (SupervisorSummary _iter382 : struct.supervisor_summaries)
+            {
+              _iter382.write(oprot);
+            }
+            oprot.writeListEnd();
+          }
           oprot.writeFieldEnd();
         }
       }
@@ -497,9 +531,9 @@ public class SupervisorPageInfo implements org.apache.thrift.TBase<SupervisorPag
           oprot.writeFieldBegin(WORKER_SUMMARIES_FIELD_DESC);
           {
             oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, struct.worker_summaries.size()));
-            for (WorkerSummary _iter379 : struct.worker_summaries)
+            for (WorkerSummary _iter383 : struct.worker_summaries)
             {
-              _iter379.write(oprot);
+              _iter383.write(oprot);
             }
             oprot.writeListEnd();
           }
@@ -524,22 +558,28 @@ public class SupervisorPageInfo implements org.apache.thrift.TBase<SupervisorPag
     public void write(org.apache.thrift.protocol.TProtocol prot, SupervisorPageInfo struct) throws org.apache.thrift.TException {
       TTupleProtocol oprot = (TTupleProtocol) prot;
       BitSet optionals = new BitSet();
-      if (struct.is_set_supervisor_summary()) {
+      if (struct.is_set_supervisor_summaries()) {
         optionals.set(0);
       }
       if (struct.is_set_worker_summaries()) {
         optionals.set(1);
       }
       oprot.writeBitSet(optionals, 2);
-      if (struct.is_set_supervisor_summary()) {
-        struct.supervisor_summary.write(oprot);
+      if (struct.is_set_supervisor_summaries()) {
+        {
+          oprot.writeI32(struct.supervisor_summaries.size());
+          for (SupervisorSummary _iter384 : struct.supervisor_summaries)
+          {
+            _iter384.write(oprot);
+          }
+        }
       }
       if (struct.is_set_worker_summaries()) {
         {
           oprot.writeI32(struct.worker_summaries.size());
-          for (WorkerSummary _iter380 : struct.worker_summaries)
+          for (WorkerSummary _iter385 : struct.worker_summaries)
           {
-            _iter380.write(oprot);
+            _iter385.write(oprot);
           }
         }
       }
@@ -550,20 +590,29 @@ public class SupervisorPageInfo implements org.apache.thrift.TBase<SupervisorPag
       TTupleProtocol iprot = (TTupleProtocol) prot;
       BitSet incoming = iprot.readBitSet(2);
       if (incoming.get(0)) {
-        struct.supervisor_summary = new SupervisorSummary();
-        struct.supervisor_summary.read(iprot);
-        struct.set_supervisor_summary_isSet(true);
+        {
+          org.apache.thrift.protocol.TList _list386 = new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, iprot.readI32());
+          struct.supervisor_summaries = new ArrayList<SupervisorSummary>(_list386.size);
+          SupervisorSummary _elem387;
+          for (int _i388 = 0; _i388 < _list386.size; ++_i388)
+          {
+            _elem387 = new SupervisorSummary();
+            _elem387.read(iprot);
+            struct.supervisor_summaries.add(_elem387);
+          }
+        }
+        struct.set_supervisor_summaries_isSet(true);
       }
       if (incoming.get(1)) {
         {
-          org.apache.thrift.protocol.TList _list381 = new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, iprot.readI32());
-          struct.worker_summaries = new ArrayList<WorkerSummary>(_list381.size);
-          WorkerSummary _elem382;
-          for (int _i383 = 0; _i383 < _list381.size; ++_i383)
+          org.apache.thrift.protocol.TList _list389 = new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, iprot.readI32());
+          struct.worker_summaries = new ArrayList<WorkerSummary>(_list389.size);
+          WorkerSummary _elem390;
+          for (int _i391 = 0; _i391 < _list389.size; ++_i391)
           {
-            _elem382 = new WorkerSummary();
-            _elem382.read(iprot);
-            struct.worker_summaries.add(_elem382);
+            _elem390 = new WorkerSummary();
+            _elem390.read(iprot);
+            struct.worker_summaries.add(_elem390);
           }
         }
         struct.set_worker_summaries_isSet(true);

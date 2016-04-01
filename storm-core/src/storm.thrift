@@ -291,7 +291,7 @@ struct TopologyStats {
 }
 
 struct SupervisorPageInfo {
-  1: optional SupervisorSummary supervisor_summary;
+  1: optional list<SupervisorSummary> supervisor_summaries;
   2: optional list<WorkerSummary> worker_summaries;
 }
 
@@ -302,7 +302,7 @@ struct WorkerSummary {
   4: optional string topology_id;
   5: optional string topology_name;
   6: optional i32 num_executors;
-  7: optional map<string, i64> components;
+  7: optional map<string, i64> component_to_num_tasks;
   8: optional i32 time_secs;
   9: optional i32 uptime_secs;
 521: optional double requested_memonheap;
@@ -641,7 +641,7 @@ service Nimbus {
   TopologyInfo getTopologyInfo(1: string id) throws (1: NotAliveException e, 2: AuthorizationException aze);
   TopologyInfo getTopologyInfoWithOpts(1: string id, 2: GetInfoOptions options) throws (1: NotAliveException e, 2: AuthorizationException aze);
   TopologyPageInfo getTopologyPageInfo(1: string id, 2: string window, 3: bool is_include_sys) throws (1: NotAliveException e, 2: AuthorizationException aze);
-  SupervisorPageInfo getSupervisorPageInfo(1: string id, 2: string window, 3: bool is_include_sys) throws (1: NotAliveException e, 2: AuthorizationException aze);
+  SupervisorPageInfo getSupervisorPageInfo(1: string id, 2: string host, 3: bool is_include_sys) throws (1: NotAliveException e, 2: AuthorizationException aze);
   ComponentPageInfo getComponentPageInfo(1: string topology_id, 2: string component_id, 3: string window, 4: bool is_include_sys) throws (1: NotAliveException e, 2: AuthorizationException aze);
   //returns json
   string getTopologyConf(1: string id) throws (1: NotAliveException e, 2: AuthorizationException aze);

@@ -278,11 +278,11 @@ class Iface:
     """
     pass
 
-  def getSupervisorPageInfo(self, id, window, is_include_sys):
+  def getSupervisorPageInfo(self, id, host, is_include_sys):
     """
     Parameters:
      - id
-     - window
+     - host
      - is_include_sys
     """
     pass
@@ -1499,21 +1499,21 @@ class Client(Iface):
       raise result.aze
     raise TApplicationException(TApplicationException.MISSING_RESULT, "getTopologyPageInfo failed: unknown result")
 
-  def getSupervisorPageInfo(self, id, window, is_include_sys):
+  def getSupervisorPageInfo(self, id, host, is_include_sys):
     """
     Parameters:
      - id
-     - window
+     - host
      - is_include_sys
     """
-    self.send_getSupervisorPageInfo(id, window, is_include_sys)
+    self.send_getSupervisorPageInfo(id, host, is_include_sys)
     return self.recv_getSupervisorPageInfo()
 
-  def send_getSupervisorPageInfo(self, id, window, is_include_sys):
+  def send_getSupervisorPageInfo(self, id, host, is_include_sys):
     self._oprot.writeMessageBegin('getSupervisorPageInfo', TMessageType.CALL, self._seqid)
     args = getSupervisorPageInfo_args()
     args.id = id
-    args.window = window
+    args.host = host
     args.is_include_sys = is_include_sys
     args.write(self._oprot)
     self._oprot.writeMessageEnd()
@@ -2663,7 +2663,7 @@ class Processor(Iface, TProcessor):
     iprot.readMessageEnd()
     result = getSupervisorPageInfo_result()
     try:
-      result.success = self._handler.getSupervisorPageInfo(args.id, args.window, args.is_include_sys)
+      result.success = self._handler.getSupervisorPageInfo(args.id, args.host, args.is_include_sys)
       msg_type = TMessageType.REPLY
     except (TTransport.TTransportException, KeyboardInterrupt, SystemExit):
       raise
@@ -4532,11 +4532,11 @@ class getComponentPendingProfileActions_result:
       if fid == 0:
         if ftype == TType.LIST:
           self.success = []
-          (_etype653, _size650) = iprot.readListBegin()
-          for _i654 in xrange(_size650):
-            _elem655 = ProfileRequest()
-            _elem655.read(iprot)
-            self.success.append(_elem655)
+          (_etype660, _size657) = iprot.readListBegin()
+          for _i661 in xrange(_size657):
+            _elem662 = ProfileRequest()
+            _elem662.read(iprot)
+            self.success.append(_elem662)
           iprot.readListEnd()
         else:
           iprot.skip(ftype)
@@ -4553,8 +4553,8 @@ class getComponentPendingProfileActions_result:
     if self.success is not None:
       oprot.writeFieldBegin('success', TType.LIST, 0)
       oprot.writeListBegin(TType.STRUCT, len(self.success))
-      for iter656 in self.success:
-        iter656.write(oprot)
+      for iter663 in self.success:
+        iter663.write(oprot)
       oprot.writeListEnd()
       oprot.writeFieldEnd()
     oprot.writeFieldStop()
@@ -7956,20 +7956,20 @@ class getSupervisorPageInfo_args:
   """
   Attributes:
    - id
-   - window
+   - host
    - is_include_sys
   """
 
   thrift_spec = (
     None, # 0
     (1, TType.STRING, 'id', None, None, ), # 1
-    (2, TType.STRING, 'window', None, None, ), # 2
+    (2, TType.STRING, 'host', None, None, ), # 2
     (3, TType.BOOL, 'is_include_sys', None, None, ), # 3
   )
 
-  def __init__(self, id=None, window=None, is_include_sys=None,):
+  def __init__(self, id=None, host=None, is_include_sys=None,):
     self.id = id
-    self.window = window
+    self.host = host
     self.is_include_sys = is_include_sys
 
   def read(self, iprot):
@@ -7988,7 +7988,7 @@ class getSupervisorPageInfo_args:
           iprot.skip(ftype)
       elif fid == 2:
         if ftype == TType.STRING:
-          self.window = iprot.readString().decode('utf-8')
+          self.host = iprot.readString().decode('utf-8')
         else:
           iprot.skip(ftype)
       elif fid == 3:
@@ -8010,9 +8010,9 @@ class getSupervisorPageInfo_args:
       oprot.writeFieldBegin('id', TType.STRING, 1)
       oprot.writeString(self.id.encode('utf-8'))
       oprot.writeFieldEnd()
-    if self.window is not None:
-      oprot.writeFieldBegin('window', TType.STRING, 2)
-      oprot.writeString(self.window.encode('utf-8'))
+    if self.host is not None:
+      oprot.writeFieldBegin('host', TType.STRING, 2)
+      oprot.writeString(self.host.encode('utf-8'))
       oprot.writeFieldEnd()
     if self.is_include_sys is not None:
       oprot.writeFieldBegin('is_include_sys', TType.BOOL, 3)
@@ -8028,7 +8028,7 @@ class getSupervisorPageInfo_args:
   def __hash__(self):
     value = 17
     value = (value * 31) ^ hash(self.id)
-    value = (value * 31) ^ hash(self.window)
+    value = (value * 31) ^ hash(self.host)
     value = (value * 31) ^ hash(self.is_include_sys)
     return value
 

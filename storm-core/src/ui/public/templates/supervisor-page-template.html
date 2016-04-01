@@ -59,22 +59,24 @@
         </tr>
       </thead>
       <tbody>
-      <tr>
-        <td>{{id}}</td>
-        <td>{{host}}</td>
-        <td>{{uptime}}</td>
-        <td>{{slotsTotal}}</td>
-        <td>{{slotsUsed}}</td>
-        {{#schedulerDisplayResource}}
-        <td>{{totalMem}}</td>
-        {{/schedulerDisplayResource}}
-        <td>{{usedMem}}</td>
-        {{#schedulerDisplayResource}}
-        <td>{{totalCpu}}</td>
-        <td>{{usedCpu}}</td>
-        {{/schedulerDisplayResource}}
-        <td>{{version}}</td>
-      </tr>
+      {{#supervisors}}
+          <tr>
+            <td><a href="/supervisor.html?id={{id}}">{{id}}</td>
+            <td><a href="/supervisor.html?host={{host}}">{{host}}</a></td>
+            <td>{{uptime}}</td>
+            <td>{{slotsTotal}}</td>
+            <td>{{slotsUsed}}</td>
+            {{#schedulerDisplayResource}}
+            <td>{{totalMem}}</td>
+            {{/schedulerDisplayResource}}
+            <td>{{usedMem}}</td>
+            {{#schedulerDisplayResource}}
+            <td>{{totalCpu}}</td>
+            <td>{{usedCpu}}</td>
+            {{/schedulerDisplayResource}}
+            <td>{{version}}</td>
+          </tr>
+      {{/supervisors}}
       </tbody>
     </table>
 </script>

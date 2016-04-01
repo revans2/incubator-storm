@@ -79,6 +79,7 @@
 (defmeter num-getTopologyInfo-calls) 
 (defmeter num-getTopologyPageInfo-calls) 
 (defmeter num-getComponentPageInfo-calls) 
+(defmeter num-getSupervisorPageInfo-calls) 
 (defmeter num-beginCreateBlob-calls) 
 (defmeter num-beginUpdateBlob-calls) 
 (defmeter num-deleteBlob-calls) 
@@ -388,7 +389,7 @@
       {})
     ))
 
-(defn- supervisor-info
+(defn supervisor-info
   [storm-cluster-state id include-non-readable?]
   (try
     (.supervisor-info storm-cluster-state id)
@@ -955,9 +956,7 @@
   (try-cause
     (read-storm-conf-as-nimbus conf storm-id blob-store)
     (catch KeyNotFoundException e
-       (throw (NotAliveException. (str storm-id))))
-  )
-)
+       (throw (NotAliveException. (str storm-id))))))
 
 (defn try-read-storm-conf-from-name [conf storm-name nimbus]
   (let [storm-cluster-state (:storm-cluster-state nimbus)
@@ -993,13 +992,13 @@
      (check-authorization! nimbus storm-name storm-conf operation (ReqContext/context))))
 
 ;; no-throw version of check-authorization!
-(defn check-authorization [nimbus conf blob-store operation topology-id]
+(defn check-authorization-no-throw [nimbus conf blob-store operation topology-id]
   (let [topology-conf (try-read-storm-conf conf topology-id blob-store)
         storm-name (topology-conf TOPOLOGY-NAME)]
     (try (do
            (check-authorization! nimbus storm-name topology-conf operation)
            true)
-         (catch AuthorizationException e (false)))))
+         (catch AuthorizationException e false))))
 
 (defn code-ids [blob-store]
   (let [to-id (reify KeyFilter
@@ -1269,6 +1268,24 @@
       (when-let [version (:version info)] (.set_version sup-sum version))
       sup-sum))
 
+(defn user-and-supervisor-topos
+  [nimbus conf blob-store assignments supervisor-id]
+  (let [topo-id->supervisors (into {} (for [[topo-id assignment] assignments] 
+                      {topo-id (into #{} (map #(first (second %)) (:executor->node+port assignment)))}))
+        supervisor-topologies (keys (filter #(get (val %) supervisor-id) topo-id->supervisors))]
+    {:supervisor-topologies supervisor-topologies
+     :user-topologies (into #{} (filter (partial check-authorization-no-throw nimbus 
+                                               conf 
+                                               blob-store 
+                                               "getTopology") 
+                  supervisor-topologies))}))
+
+(defn topology-assignments 
+  [storm-cluster-state]
+  (let [assigned-topology-ids (.assignments storm-cluster-state nil)]
+    (into {} (for [tid assigned-topology-ids]
+        {tid (.assignment-info storm-cluster-state tid nil)}))))
+
 (defserverfn service-handler [conf inimbus]
   (.prepare inimbus conf (master-inimbus-dir conf))
   (log-message "Starting Nimbus with conf " conf)
@@ -1281,10 +1298,15 @@
             (let [storm-cluster-state (:storm-cluster-state nimbus)
                   topology-conf (try-read-storm-conf conf storm-id blob-store)
                   storm-name (topology-conf TOPOLOGY-NAME)
-                  _ (check-authorization! nimbus
+                  ;; supervisor page info is special in that it shows 
+                  ;; the topologies running under a supervisor
+                  ;; it will check authorization, and not display components if
+                  ;; the user isn't authorized
+                  _ (if (not= operation "getSupervisorPageInfo") 
+                      (check-authorization! nimbus
                                           storm-name
                                           topology-conf
-                                          operation)
+                                          operation))
                   topology (try-read-storm-topology storm-id blob-store)
                   task->component (storm-task-info topology topology-conf)
                   base (.storm-base storm-cluster-state storm-id nil)
@@ -1752,28 +1774,23 @@
       (^TopologyPageInfo getTopologyPageInfo
         [this ^String storm-id ^String window ^boolean include-sys?]
         (mark! num-getTopologyPageInfo-calls)
-        (let [{:keys [storm-name
+        (let [topo-info (get-common-topo-info storm-id "getTopologyPageInfo")
+              {:keys [storm-name
                       storm-cluster-state
                       launch-time-secs
                       assignment
                       beats
                       task->component
                       topology
-                      base]} (get-common-topo-info storm-id "getTopologyPageInfo")
+                      base]} topo-info
               exec->node+port (:executor->node+port assignment)
-              node->host (:node->host assignment)
               worker->resources (.get @(:worker->resources nimbus) storm-id)
               last-err-fn (partial get-last-error
                                    storm-cluster-state
                                    storm-id)
-              worker-summaries (stats/agg-worker-stats storm-id
-                                                       storm-name
-                                                       exec->node+port
-                                                       node->host
+              worker-summaries (stats/agg-worker-stats storm-id 
+                                                       topo-info
                                                        worker->resources
-                                                       (mapcat executor-id->tasks (keys exec->node+port))
-                                                       task->component
-                                                       beats
                                                        include-sys?
                                                        true)  ;; this is the topology page, so we know the user is authorized
               topo-page-info (stats/agg-topo-execs-stats storm-id
@@ -1833,42 +1850,38 @@
       (^SupervisorPageInfo getSupervisorPageInfo
         [this
          ^String supervisor-id
-         ^String window
+         ^String host 
          ^boolean include-sys?]
+        (mark! num-getSupervisorPageInfo-calls)
         (let [storm-cluster-state (:storm-cluster-state nimbus)
-              supervisor-info (supervisor-info storm-cluster-state supervisor-id false)
-              sup-sum (make-supervisor-summary nimbus supervisor-id supervisor-info)
-              assigned-topology-ids (.assignments storm-cluster-state nil)
-              assignments (into {} (for [tid assigned-topology-ids]
-                          {tid (.assignment-info storm-cluster-state tid nil)}))
-              all-topologies (get (reverse-map (into {} (for [[topo-id assignment] assignments] 
-                               (let [sid (first (keys (:node->host assignment)))]
-                                 {topo-id sid})))) supervisor-id)
-              user-topologies (into #{} 
-                                (filter (partial check-authorization nimbus conf blob-store "getTopology") all-topologies))
-              worker-summaries (flatten (into [] (for [storm-id all-topologies]
-                  (let [{:keys [storm-name
-                                assignment
-                                beats
-                                task->component
-                                base]} (get-common-topo-info storm-id "getSupervisorPageInfo")
-                        exec->node+port (:executor->node+port assignment)
-                        node->host (:node->host assignment)
-                        worker->resources (.get @(:worker->resources nimbus) storm-id)]
-                    (stats/agg-worker-stats storm-id
-                                            storm-name
-                                            exec->node+port
-                                            node->host
-                                            worker->resources
-                                            (mapcat executor-id->tasks (keys exec->node+port))
-                                            task->component
-                                            beats
-                                            include-sys?
-                                            (get user-topologies storm-id)
-                                            supervisor-id)))))]
-            (doto (SupervisorPageInfo.) 
-               (.set_supervisor_summary sup-sum)
-               (.set_worker_summaries worker-summaries))))
+              supervisor-infos (all-supervisor-info storm-cluster-state)
+              host->supervisor-id (reverse-map (into {} (map #(into {} {(key %) (get (val %) :hostname)}) supervisor-infos)))
+              supervisor-ids (if (nil? supervisor-id)
+                                (get host->supervisor-id host)
+                                [supervisor-id])
+              page-info (SupervisorPageInfo.)]
+              (doseq [sid supervisor-ids]
+                (let [supervisor-info (supervisor-info storm-cluster-state sid false)
+                      sup-sum(make-supervisor-summary nimbus sid supervisor-info)
+                      _ (.add_to_supervisor_summaries page-info sup-sum)
+                      topo-id->assignments (topology-assignments storm-cluster-state)
+                      {:keys [user-topologies 
+                              supervisor-topologies]}(user-and-supervisor-topos nimbus
+                                                                                conf
+                                                                                blob-store
+                                                                                topo-id->assignments 
+                                                                                sid)]
+                  (doseq [storm-id supervisor-topologies]
+                      (let [topo-info (get-common-topo-info storm-id "getSupervisorPageInfo")
+                            worker->resources (.get @(:worker->resources nimbus) storm-id)]
+                        (doseq [worker-summary (stats/agg-worker-stats storm-id 
+                                                                       topo-info
+                                                                       worker->resources
+                                                                       include-sys?
+                                                                       (get user-topologies storm-id)
+                                                                       sid)]
+                          (.add_to_worker_summaries page-info worker-summary)))))) 
+              page-info))
 
       (^String beginCreateBlob [this
                                 ^String blob-key

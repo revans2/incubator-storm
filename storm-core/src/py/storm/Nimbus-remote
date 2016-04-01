@@ -76,7 +76,7 @@ if len(sys.argv) <= 1 or sys.argv[1] == '--help':
   print('  TopologyInfo getTopologyInfo(string id)')
   print('  TopologyInfo getTopologyInfoWithOpts(string id, GetInfoOptions options)')
   print('  TopologyPageInfo getTopologyPageInfo(string id, string window, bool is_include_sys)')
-  print('  SupervisorPageInfo getSupervisorPageInfo(string id, string window, bool is_include_sys)')
+  print('  SupervisorPageInfo getSupervisorPageInfo(string id, string host, bool is_include_sys)')
   print('  ComponentPageInfo getComponentPageInfo(string topology_id, string component_id, string window, bool is_include_sys)')
   print('  string getTopologyConf(string id)')
   print('  StormTopology getTopology(string id)')

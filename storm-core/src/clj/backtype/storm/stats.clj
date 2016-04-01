@@ -998,39 +998,16 @@
 
 (defn agg-worker-stats
   "Aggregate statistics per worker for a topology. Optionally filtering on specific supervisors."
-  ([storm-id 
-    storm-name
-    exec->node+port 
-    node->host
-    worker->resources
-    executor-id->tasks
-    task->component
-    beats
-    include-sys?
-    user-authorized]
-    (agg-worker-stats storm-id 
-                      storm-name
-                      exec->node+port 
-                      node->host
-                      worker->resources
-                      executor-id->tasks
-                      task->component
-                      beats
-                      include-sys?
-                      user-authorized
-                      nil))
-  ([storm-id 
-    storm-name
-    exec->node+port 
-    node->host
-    worker->resources
-    executor-id->tasks
-    task->component
-    beats
-    include-sys?
-    user-authorized
-    filter-supervisor]
-    (let [all-node+port->exec (reverse-map exec->node+port)
+  ([storm-id topo-info worker->resources include-sys? user-authorized]
+    (agg-worker-stats storm-id topo-info worker->resources include-sys?  user-authorized nil))
+  ([storm-id topo-info worker->resources include-sys? user-authorized filter-supervisor]
+    (let [{:keys [storm-name
+                  assignment
+                  beats
+                  task->component]} topo-info
+          exec->node+port (:executor->node+port assignment)
+          node->host (:node->host assignment)
+          all-node+port->exec (reverse-map exec->node+port)
           node+port->exec (if (nil? filter-supervisor) 
                             all-node+port->exec 
                             (filter #(= filter-supervisor (ffirst %)) all-node+port->exec))
@@ -1040,8 +1017,10 @@
               worker-beats (vals (select-keys beats executors))
               not-null-worker-beat (first (filter #(not= % nil) worker-beats))
               worker-uptime (or (:uptime not-null-worker-beat) 0)
-              components (handle-sys-components-fn (frequencies (map #(get task->component %) tasks)))
-              resources (or (.get worker->resources (WorkerSlot. node port)) [0 0 0 0 0 0])
+              component->num-tasks (handle-sys-components-fn (frequencies (map #(get task->component %) tasks)))
+              default-worker-resources [0 0 0 0 0 0]
+              resources (if (nil? worker->resources) default-worker-resources 
+                          (or (.get worker->resources (WorkerSlot. node port)) default-worker-resources))
               worker-summary (doto 
                  (WorkerSummary.)
                    (.set_host (node->host node))
@@ -1054,7 +1033,7 @@
                    (.set_assigned_memonheap (get resources 3))
                    (.set_assigned_memoffheap (get resources 4))
                    (.set_assigned_cpu (get resources 5)))]
-             (if user-authorized (.set_components worker-summary components))
+             (if user-authorized (.set_component_to_num_tasks worker-summary component->num-tasks))
              worker-summary)))))
 
 (defn agg-topo-execs-stats

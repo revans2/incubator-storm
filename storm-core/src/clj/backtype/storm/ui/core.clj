@@ -64,8 +64,8 @@
   [nimbus-sym & body]
   `(let [context# (ReqContext/context)
          user# (if (.principal context#) (.getName (.principal context#)))]
-    (thrift/with-nimbus-connection
-       [~nimbus-sym (*STORM-CONF* NIMBUS-HOST) (*STORM-CONF* NIMBUS-THRIFT-PORT)]
+    (thrift/with-nimbus-connection-as-user
+       [~nimbus-sym (*STORM-CONF* NIMBUS-HOST) (*STORM-CONF* NIMBUS-THRIFT-PORT) user#]
        ~@body)))
 
 (defn assert-authorized-user
@@ -359,22 +359,24 @@
         "memAssignedPercentUtil" (if (and (not (nil? totalMem)) (> totalMem 0.0)) (format "%.1f" (* (/ (- totalMem availMem) totalMem) 100.0)) 0.0)
         "cpuAssignedPercentUtil" (if (and (not (nil? totalCpu)) (> totalCpu 0.0)) (format "%.1f" (* (/ (- totalCpu availCpu) totalCpu) 100.0)) 0.0)})))
 
-(defn worker-summary-json
+(defn worker-summary-to-json
   [secure-link? ^WorkerSummary worker-summary]
   (let [host (.get_host worker-summary)
         port (.get_port worker-summary)
-        topology-id (.get_topology_id worker-summary)]
+        topology-id (.get_topology_id worker-summary)
+        uptime-secs (.get_uptime_secs worker-summary)]
     {"supervisorId" (.get_supervisor_id worker-summary)
      "host" host
      "port" port
      "topologyId" topology-id
      "topologyName" (.get_topology_name worker-summary)
-     "numExecutors" (.get_num_executors worker-summary)
+     "executorsTotal" (.get_num_executors worker-summary)
      "assignedMemOnHeap" (.get_assigned_memonheap worker-summary)
      "assignedMemOffHeap" (.get_assigned_memoffheap worker-summary)
      "assignedCpu" (.get_assigned_cpu worker-summary)
-     "components" (.get_components worker-summary)
-     "uptime" (pretty-uptime-sec (.get_uptime_secs worker-summary))
+     "componentNumTasks" (.get_component_to_num_tasks worker-summary)
+     "uptime" (pretty-uptime-sec uptime-secs)
+     "uptimeSeconds" uptime-secs
      "workerLogLink" (worker-log-link host port topology-id secure-link?)}))
 
 (defn supervisor-summary-to-json [summary]
@@ -391,20 +393,20 @@
    "version" (.get_version summary)})
 
 (defn supervisor-page-info
-  ([supervisor-id include-sys? secure?]
+  ([supervisor-id host include-sys? secure?]
      (with-nimbus nimbus
         (supervisor-page-info (.getSupervisorPageInfo ^Nimbus$Client nimbus
                                   supervisor-id
-                                  ":all-time"
+                                  host
                                   include-sys?) secure?)))
   ([^SupervisorPageInfo supervisor-page-info secure?]
     ;; ask nimbus to return supervisor workers + any details user is allowed
     ;; access on a per-topology basis (i.e. components)
-    (let [supervisor-json (supervisor-summary-to-json (.get_supervisor_summary supervisor-page-info))]
-      (merge supervisor-json
-             {"schedulerDisplayResource" (*STORM-CONF* Config/SCHEDULER_DISPLAY_RESOURCE)
-              "workers" (into [] (for [^WorkerSummary worker-summary (.get_worker_summaries supervisor-page-info)]
-              (worker-summary-json secure? worker-summary)))}))))
+    (let [supervisors-json (map supervisor-summary-to-json (.get_supervisor_summaries supervisor-page-info))]
+      {"supervisors" supervisors-json
+       "schedulerDisplayResource" (*STORM-CONF* Config/SCHEDULER_DISPLAY_RESOURCE)
+       "workers" (into [] (for [^WorkerSummary worker-summary (.get_worker_summaries supervisor-page-info)]
+              (worker-summary-to-json secure? worker-summary)))})))
 
 (defn supervisor-summary
   ([]
@@ -563,7 +565,7 @@
      "assignedTotalMem" (+ (.get_assigned_memonheap topo-info) (.get_assigned_memoffheap topo-info))
      "assignedCpu" (.get_assigned_cpu topo-info)
      "topologyStats" topo-stats
-     "workers"  (map (partial worker-summary-json secure?)
+     "workers"  (map (partial worker-summary-to-json secure?)
                      (.get_workers topo-info))
      "spouts" (map (partial comp-agg-stats-json id)
                    (.get_id_to_spout_agg_stats topo-info))
@@ -880,11 +882,13 @@
     (assert-authorized-user "getClusterInfo")
     (json-response (assoc (supervisor-summary)
                           "logviewerPort" (*STORM-CONF* LOGVIEWER-PORT)) (:callback m)))
-  (GET "/api/v1/supervisor/:id" [:as {:keys [cookies servlet-request scheme]} id & m]
+  (GET "/api/v1/supervisor" [:as {:keys [cookies servlet-request scheme]} & m]
     (populate-context! servlet-request)
     (assert-authorized-user "getClusterInfo")
-    (let [id (url-decode id)]
-      (json-response (assoc (supervisor-page-info id (check-include-sys? (:sys m)) (= scheme :https))
+    ;; supervisor takes either an id or a host query parameter
+    (let [id (:id m)
+          host (:host m)]
+      (json-response (assoc (supervisor-page-info id host (check-include-sys? (:sys m)) (= scheme :https))
                             "logviewerPort" (*STORM-CONF* LOGVIEWER-PORT)) (:callback m))))
   (GET "/api/v1/topology/summary" [:as {:keys [cookies servlet-request]} & m]
     (populate-context! servlet-request)

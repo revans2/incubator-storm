@@ -61,7 +61,7 @@ public class WorkerSummary implements org.apache.thrift.TBase<WorkerSummary, Wor
   private static final org.apache.thrift.protocol.TField TOPOLOGY_ID_FIELD_DESC = new org.apache.thrift.protocol.TField("topology_id", org.apache.thrift.protocol.TType.STRING, (short)4);
   private static final org.apache.thrift.protocol.TField TOPOLOGY_NAME_FIELD_DESC = new org.apache.thrift.protocol.TField("topology_name", org.apache.thrift.protocol.TType.STRING, (short)5);
   private static final org.apache.thrift.protocol.TField NUM_EXECUTORS_FIELD_DESC = new org.apache.thrift.protocol.TField("num_executors", org.apache.thrift.protocol.TType.I32, (short)6);
-  private static final org.apache.thrift.protocol.TField COMPONENTS_FIELD_DESC = new org.apache.thrift.protocol.TField("components", org.apache.thrift.protocol.TType.MAP, (short)7);
+  private static final org.apache.thrift.protocol.TField COMPONENT_TO_NUM_TASKS_FIELD_DESC = new org.apache.thrift.protocol.TField("component_to_num_tasks", org.apache.thrift.protocol.TType.MAP, (short)7);
   private static final org.apache.thrift.protocol.TField TIME_SECS_FIELD_DESC = new org.apache.thrift.protocol.TField("time_secs", org.apache.thrift.protocol.TType.I32, (short)8);
   private static final org.apache.thrift.protocol.TField UPTIME_SECS_FIELD_DESC = new org.apache.thrift.protocol.TField("uptime_secs", org.apache.thrift.protocol.TType.I32, (short)9);
   private static final org.apache.thrift.protocol.TField REQUESTED_MEMONHEAP_FIELD_DESC = new org.apache.thrift.protocol.TField("requested_memonheap", org.apache.thrift.protocol.TType.DOUBLE, (short)521);
@@ -83,7 +83,7 @@ public class WorkerSummary implements org.apache.thrift.TBase<WorkerSummary, Wor
   private String topology_id; // optional
   private String topology_name; // optional
   private int num_executors; // optional
-  private Map<String,Long> components; // optional
+  private Map<String,Long> component_to_num_tasks; // optional
   private int time_secs; // optional
   private int uptime_secs; // optional
   private double requested_memonheap; // optional
@@ -101,7 +101,7 @@ public class WorkerSummary implements org.apache.thrift.TBase<WorkerSummary, Wor
     TOPOLOGY_ID((short)4, "topology_id"),
     TOPOLOGY_NAME((short)5, "topology_name"),
     NUM_EXECUTORS((short)6, "num_executors"),
-    COMPONENTS((short)7, "components"),
+    COMPONENT_TO_NUM_TASKS((short)7, "component_to_num_tasks"),
     TIME_SECS((short)8, "time_secs"),
     UPTIME_SECS((short)9, "uptime_secs"),
     REQUESTED_MEMONHEAP((short)521, "requested_memonheap"),
@@ -136,8 +136,8 @@ public class WorkerSummary implements org.apache.thrift.TBase<WorkerSummary, Wor
           return TOPOLOGY_NAME;
         case 6: // NUM_EXECUTORS
           return NUM_EXECUTORS;
-        case 7: // COMPONENTS
-          return COMPONENTS;
+        case 7: // COMPONENT_TO_NUM_TASKS
+          return COMPONENT_TO_NUM_TASKS;
         case 8: // TIME_SECS
           return TIME_SECS;
         case 9: // UPTIME_SECS
@@ -205,7 +205,7 @@ public class WorkerSummary implements org.apache.thrift.TBase<WorkerSummary, Wor
   private static final int __ASSIGNED_MEMOFFHEAP_ISSET_ID = 8;
   private static final int __ASSIGNED_CPU_ISSET_ID = 9;
   private short __isset_bitfield = 0;
-  private static final _Fields optionals[] = {_Fields.SUPERVISOR_ID,_Fields.HOST,_Fields.PORT,_Fields.TOPOLOGY_ID,_Fields.TOPOLOGY_NAME,_Fields.NUM_EXECUTORS,_Fields.COMPONENTS,_Fields.TIME_SECS,_Fields.UPTIME_SECS,_Fields.REQUESTED_MEMONHEAP,_Fields.REQUESTED_MEMOFFHEAP,_Fields.REQUESTED_CPU,_Fields.ASSIGNED_MEMONHEAP,_Fields.ASSIGNED_MEMOFFHEAP,_Fields.ASSIGNED_CPU};
+  private static final _Fields optionals[] = {_Fields.SUPERVISOR_ID,_Fields.HOST,_Fields.PORT,_Fields.TOPOLOGY_ID,_Fields.TOPOLOGY_NAME,_Fields.NUM_EXECUTORS,_Fields.COMPONENT_TO_NUM_TASKS,_Fields.TIME_SECS,_Fields.UPTIME_SECS,_Fields.REQUESTED_MEMONHEAP,_Fields.REQUESTED_MEMOFFHEAP,_Fields.REQUESTED_CPU,_Fields.ASSIGNED_MEMONHEAP,_Fields.ASSIGNED_MEMOFFHEAP,_Fields.ASSIGNED_CPU};
   public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
   static {
     Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
@@ -221,7 +221,7 @@ public class WorkerSummary implements org.apache.thrift.TBase<WorkerSummary, Wor
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
     tmpMap.put(_Fields.NUM_EXECUTORS, new org.apache.thrift.meta_data.FieldMetaData("num_executors", org.apache.thrift.TFieldRequirementType.OPTIONAL, 
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I32)));
-    tmpMap.put(_Fields.COMPONENTS, new org.apache.thrift.meta_data.FieldMetaData("components", org.apache.thrift.TFieldRequirementType.OPTIONAL, 
+    tmpMap.put(_Fields.COMPONENT_TO_NUM_TASKS, new org.apache.thrift.meta_data.FieldMetaData("component_to_num_tasks", org.apache.thrift.TFieldRequirementType.OPTIONAL, 
         new org.apache.thrift.meta_data.MapMetaData(org.apache.thrift.protocol.TType.MAP, 
             new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING), 
             new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I64))));
@@ -267,9 +267,9 @@ public class WorkerSummary implements org.apache.thrift.TBase<WorkerSummary, Wor
       this.topology_name = other.topology_name;
     }
     this.num_executors = other.num_executors;
-    if (other.is_set_components()) {
-      Map<String,Long> __this__components = new HashMap<String,Long>(other.components);
-      this.components = __this__components;
+    if (other.is_set_component_to_num_tasks()) {
+      Map<String,Long> __this__component_to_num_tasks = new HashMap<String,Long>(other.component_to_num_tasks);
+      this.component_to_num_tasks = __this__component_to_num_tasks;
     }
     this.time_secs = other.time_secs;
     this.uptime_secs = other.uptime_secs;
@@ -295,7 +295,7 @@ public class WorkerSummary implements org.apache.thrift.TBase<WorkerSummary, Wor
     this.topology_name = null;
     set_num_executors_isSet(false);
     this.num_executors = 0;
-    this.components = null;
+    this.component_to_num_tasks = null;
     set_time_secs_isSet(false);
     this.time_secs = 0;
     set_uptime_secs_isSet(false);
@@ -450,37 +450,37 @@ public class WorkerSummary implements org.apache.thrift.TBase<WorkerSummary, Wor
     __isset_bitfield = EncodingUtils.setBit(__isset_bitfield, __NUM_EXECUTORS_ISSET_ID, value);
   }
 
-  public int get_components_size() {
-    return (this.components == null) ? 0 : this.components.size();
+  public int get_component_to_num_tasks_size() {
+    return (this.component_to_num_tasks == null) ? 0 : this.component_to_num_tasks.size();
   }
 
-  public void put_to_components(String key, long val) {
-    if (this.components == null) {
-      this.components = new HashMap<String,Long>();
+  public void put_to_component_to_num_tasks(String key, long val) {
+    if (this.component_to_num_tasks == null) {
+      this.component_to_num_tasks = new HashMap<String,Long>();
     }
-    this.components.put(key, val);
+    this.component_to_num_tasks.put(key, val);
   }
 
-  public Map<String,Long> get_components() {
-    return this.components;
+  public Map<String,Long> get_component_to_num_tasks() {
+    return this.component_to_num_tasks;
   }
 
-  public void set_components(Map<String,Long> components) {
-    this.components = components;
+  public void set_component_to_num_tasks(Map<String,Long> component_to_num_tasks) {
+    this.component_to_num_tasks = component_to_num_tasks;
   }
 
-  public void unset_components() {
-    this.components = null;
+  public void unset_component_to_num_tasks() {
+    this.component_to_num_tasks = null;
   }
 
-  /** Returns true if field components is set (has been assigned a value) and false otherwise */
-  public boolean is_set_components() {
-    return this.components != null;
+  /** Returns true if field component_to_num_tasks is set (has been assigned a value) and false otherwise */
+  public boolean is_set_component_to_num_tasks() {
+    return this.component_to_num_tasks != null;
   }
 
-  public void set_components_isSet(boolean value) {
+  public void set_component_to_num_tasks_isSet(boolean value) {
     if (!value) {
-      this.components = null;
+      this.component_to_num_tasks = null;
     }
   }
 
@@ -710,11 +710,11 @@ public class WorkerSummary implements org.apache.thrift.TBase<WorkerSummary, Wor
       }
       break;
 
-    case COMPONENTS:
+    case COMPONENT_TO_NUM_TASKS:
       if (value == null) {
-        unset_components();
+        unset_component_to_num_tasks();
       } else {
-        set_components((Map<String,Long>)value);
+        set_component_to_num_tasks((Map<String,Long>)value);
       }
       break;
 
@@ -805,8 +805,8 @@ public class WorkerSummary implements org.apache.thrift.TBase<WorkerSummary, Wor
     case NUM_EXECUTORS:
       return get_num_executors();
 
-    case COMPONENTS:
-      return get_components();
+    case COMPONENT_TO_NUM_TASKS:
+      return get_component_to_num_tasks();
 
     case TIME_SECS:
       return get_time_secs();
@@ -855,8 +855,8 @@ public class WorkerSummary implements org.apache.thrift.TBase<WorkerSummary, Wor
       return is_set_topology_name();
     case NUM_EXECUTORS:
       return is_set_num_executors();
-    case COMPONENTS:
-      return is_set_components();
+    case COMPONENT_TO_NUM_TASKS:
+      return is_set_component_to_num_tasks();
     case TIME_SECS:
       return is_set_time_secs();
     case UPTIME_SECS:
@@ -944,12 +944,12 @@ public class WorkerSummary implements org.apache.thrift.TBase<WorkerSummary, Wor
         return false;
     }
 
-    boolean this_present_components = true && this.is_set_components();
-    boolean that_present_components = true && that.is_set_components();
-    if (this_present_components || that_present_components) {
-      if (!(this_present_components && that_present_components))
+    boolean this_present_component_to_num_tasks = true && this.is_set_component_to_num_tasks();
+    boolean that_present_component_to_num_tasks = true && that.is_set_component_to_num_tasks();
+    if (this_present_component_to_num_tasks || that_present_component_to_num_tasks) {
+      if (!(this_present_component_to_num_tasks && that_present_component_to_num_tasks))
         return false;
-      if (!this.components.equals(that.components))
+      if (!this.component_to_num_tasks.equals(that.component_to_num_tasks))
         return false;
     }
 
@@ -1062,10 +1062,10 @@ public class WorkerSummary implements org.apache.thrift.TBase<WorkerSummary, Wor
     if (present_num_executors)
       list.add(num_executors);
 
-    boolean present_components = true && (is_set_components());
-    list.add(present_components);
-    if (present_components)
-      list.add(components);
+    boolean present_component_to_num_tasks = true && (is_set_component_to_num_tasks());
+    list.add(present_component_to_num_tasks);
+    if (present_component_to_num_tasks)
+      list.add(component_to_num_tasks);
 
     boolean present_time_secs = true && (is_set_time_secs());
     list.add(present_time_secs);
@@ -1178,12 +1178,12 @@ public class WorkerSummary implements org.apache.thrift.TBase<WorkerSummary, Wor
         return lastComparison;
       }
     }
-    lastComparison = Boolean.valueOf(is_set_components()).compareTo(other.is_set_components());
+    lastComparison = Boolean.valueOf(is_set_component_to_num_tasks()).compareTo(other.is_set_component_to_num_tasks());
     if (lastComparison != 0) {
       return lastComparison;
     }
-    if (is_set_components()) {
-      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.components, other.components);
+    if (is_set_component_to_num_tasks()) {
+      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.component_to_num_tasks, other.component_to_num_tasks);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -1339,13 +1339,13 @@ public class WorkerSummary implements org.apache.thrift.TBase<WorkerSummary, Wor
       sb.append(this.num_executors);
       first = false;
     }
-    if (is_set_components()) {
+    if (is_set_component_to_num_tasks()) {
       if (!first) sb.append(", ");
-      sb.append("components:");
-      if (this.components == null) {
+      sb.append("component_to_num_tasks:");
+      if (this.component_to_num_tasks == null) {
         sb.append("null");
       } else {
-        sb.append(this.components);
+        sb.append(this.component_to_num_tasks);
       }
       first = false;
     }
@@ -1490,22 +1490,22 @@ public class WorkerSummary implements org.apache.thrift.TBase<WorkerSummary, Wor
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
             break;
-          case 7: // COMPONENTS
+          case 7: // COMPONENT_TO_NUM_TASKS
             if (schemeField.type == org.apache.thrift.protocol.TType.MAP) {
               {
                 org.apache.thrift.protocol.TMap _map384 = iprot.readMapBegin();
-                struct.components = new HashMap<String,Long>(2*_map384.size);
+                struct.component_to_num_tasks = new HashMap<String,Long>(2*_map384.size);
                 String _key385;
                 long _val386;
                 for (int _i387 = 0; _i387 < _map384.size; ++_i387)
                 {
                   _key385 = iprot.readString();
                   _val386 = iprot.readI64();
-                  struct.components.put(_key385, _val386);
+                  struct.component_to_num_tasks.put(_key385, _val386);
                 }
                 iprot.readMapEnd();
               }
-              struct.set_components_isSet(true);
+              struct.set_component_to_num_tasks_isSet(true);
             } else { 
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
@@ -1625,12 +1625,12 @@ public class WorkerSummary implements org.apache.thrift.TBase<WorkerSummary, Wor
         oprot.writeI32(struct.num_executors);
         oprot.writeFieldEnd();
       }
-      if (struct.components != null) {
-        if (struct.is_set_components()) {
-          oprot.writeFieldBegin(COMPONENTS_FIELD_DESC);
+      if (struct.component_to_num_tasks != null) {
+        if (struct.is_set_component_to_num_tasks()) {
+          oprot.writeFieldBegin(COMPONENT_TO_NUM_TASKS_FIELD_DESC);
           {
-            oprot.writeMapBegin(new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.I64, struct.components.size()));
-            for (Map.Entry<String, Long> _iter388 : struct.components.entrySet())
+            oprot.writeMapBegin(new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.I64, struct.component_to_num_tasks.size()));
+            for (Map.Entry<String, Long> _iter388 : struct.component_to_num_tasks.entrySet())
             {
               oprot.writeString(_iter388.getKey());
               oprot.writeI64(_iter388.getValue());
@@ -1716,7 +1716,7 @@ public class WorkerSummary implements org.apache.thrift.TBase<WorkerSummary, Wor
       if (struct.is_set_num_executors()) {
         optionals.set(5);
       }
-      if (struct.is_set_components()) {
+      if (struct.is_set_component_to_num_tasks()) {
         optionals.set(6);
       }
       if (struct.is_set_time_secs()) {
@@ -1762,10 +1762,10 @@ public class WorkerSummary implements org.apache.thrift.TBase<WorkerSummary, Wor
       if (struct.is_set_num_executors()) {
         oprot.writeI32(struct.num_executors);
       }
-      if (struct.is_set_components()) {
+      if (struct.is_set_component_to_num_tasks()) {
         {
-          oprot.writeI32(struct.components.size());
-          for (Map.Entry<String, Long> _iter389 : struct.components.entrySet())
+          oprot.writeI32(struct.component_to_num_tasks.size());
+          for (Map.Entry<String, Long> _iter389 : struct.component_to_num_tasks.entrySet())
           {
             oprot.writeString(_iter389.getKey());
             oprot.writeI64(_iter389.getValue());
@@ -1829,17 +1829,17 @@ public class WorkerSummary implements org.apache.thrift.TBase<WorkerSummary, Wor
       if (incoming.get(6)) {
         {
           org.apache.thrift.protocol.TMap _map390 = new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.I64, iprot.readI32());
-          struct.components = new HashMap<String,Long>(2*_map390.size);
+          struct.component_to_num_tasks = new HashMap<String,Long>(2*_map390.size);
           String _key391;
           long _val392;
           for (int _i393 = 0; _i393 < _map390.size; ++_i393)
           {
             _key391 = iprot.readString();
             _val392 = iprot.readI64();
-            struct.components.put(_key391, _val392);
+            struct.component_to_num_tasks.put(_key391, _val392);
           }
         }
-        struct.set_components_isSet(true);
+        struct.set_component_to_num_tasks_isSet(true);
       }
       if (incoming.get(7)) {
         struct.time_secs = iprot.readI32();

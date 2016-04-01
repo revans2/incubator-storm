@@ -54,9 +54,12 @@ $(document).ajaxStart(function(){
 });
 $(document).ready(function() {
     var supervisorId = $.url("?id");
+    var host = $.url("?host");
     var windowParam = $.url("?window");
     var sys = $.cookies.get("sys") || "false";
-    var url = "/api/v1/supervisor/"+supervisorId+"?sys="+sys;
+    var url = "/api/v1/supervisor?" + 
+                (supervisorId ? "id="+supervisorId : "host="+host) 
+                + "&sys="+sys;
     if(windowParam) url += "&window=" + windowParam;
     $.extend( $.fn.dataTable.defaults, {
       stateSave: true,

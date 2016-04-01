@@ -124,7 +124,7 @@ public class Nimbus {
 
     public TopologyPageInfo getTopologyPageInfo(String id, String window, boolean is_include_sys) throws NotAliveException, AuthorizationException, org.apache.thrift.TException;
 
-    public SupervisorPageInfo getSupervisorPageInfo(String id, String window, boolean is_include_sys) throws NotAliveException, AuthorizationException, org.apache.thrift.TException;
+    public SupervisorPageInfo getSupervisorPageInfo(String id, String host, boolean is_include_sys) throws NotAliveException, AuthorizationException, org.apache.thrift.TException;
 
     public ComponentPageInfo getComponentPageInfo(String topology_id, String component_id, String window, boolean is_include_sys) throws NotAliveException, AuthorizationException, org.apache.thrift.TException;
 
@@ -234,7 +234,7 @@ public class Nimbus {
 
     public void getTopologyPageInfo(String id, String window, boolean is_include_sys, org.apache.thrift.async.AsyncMethodCallback resultHandler) throws org.apache.thrift.TException;
 
-    public void getSupervisorPageInfo(String id, String window, boolean is_include_sys, org.apache.thrift.async.AsyncMethodCallback resultHandler) throws org.apache.thrift.TException;
+    public void getSupervisorPageInfo(String id, String host, boolean is_include_sys, org.apache.thrift.async.AsyncMethodCallback resultHandler) throws org.apache.thrift.TException;
 
     public void getComponentPageInfo(String topology_id, String component_id, String window, boolean is_include_sys, org.apache.thrift.async.AsyncMethodCallback resultHandler) throws org.apache.thrift.TException;
 
@@ -1170,17 +1170,17 @@ public class Nimbus {
       throw new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.MISSING_RESULT, "getTopologyPageInfo failed: unknown result");
     }
 
-    public SupervisorPageInfo getSupervisorPageInfo(String id, String window, boolean is_include_sys) throws NotAliveException, AuthorizationException, org.apache.thrift.TException
+    public SupervisorPageInfo getSupervisorPageInfo(String id, String host, boolean is_include_sys) throws NotAliveException, AuthorizationException, org.apache.thrift.TException
     {
-      send_getSupervisorPageInfo(id, window, is_include_sys);
+      send_getSupervisorPageInfo(id, host, is_include_sys);
       return recv_getSupervisorPageInfo();
     }
 
-    public void send_getSupervisorPageInfo(String id, String window, boolean is_include_sys) throws org.apache.thrift.TException
+    public void send_getSupervisorPageInfo(String id, String host, boolean is_include_sys) throws org.apache.thrift.TException
     {
       getSupervisorPageInfo_args args = new getSupervisorPageInfo_args();
       args.set_id(id);
-      args.set_window(window);
+      args.set_host(host);
       args.set_is_include_sys(is_include_sys);
       sendBase("getSupervisorPageInfo", args);
     }
@@ -2562,21 +2562,21 @@ public class Nimbus {
       }
     }
 
-    public void getSupervisorPageInfo(String id, String window, boolean is_include_sys, org.apache.thrift.async.AsyncMethodCallback resultHandler) throws org.apache.thrift.TException {
+    public void getSupervisorPageInfo(String id, String host, boolean is_include_sys, org.apache.thrift.async.AsyncMethodCallback resultHandler) throws org.apache.thrift.TException {
       checkReady();
-      getSupervisorPageInfo_call method_call = new getSupervisorPageInfo_call(id, window, is_include_sys, resultHandler, this, ___protocolFactory, ___transport);
+      getSupervisorPageInfo_call method_call = new getSupervisorPageInfo_call(id, host, is_include_sys, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
       ___manager.call(method_call);
     }
 
     public static class getSupervisorPageInfo_call extends org.apache.thrift.async.TAsyncMethodCall {
       private String id;
-      private String window;
+      private String host;
       private boolean is_include_sys;
-      public getSupervisorPageInfo_call(String id, String window, boolean is_include_sys, org.apache.thrift.async.AsyncMethodCallback resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      public getSupervisorPageInfo_call(String id, String host, boolean is_include_sys, org.apache.thrift.async.AsyncMethodCallback resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
         this.id = id;
-        this.window = window;
+        this.host = host;
         this.is_include_sys = is_include_sys;
       }
 
@@ -2584,7 +2584,7 @@ public class Nimbus {
         prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("getSupervisorPageInfo", org.apache.thrift.protocol.TMessageType.CALL, 0));
         getSupervisorPageInfo_args args = new getSupervisorPageInfo_args();
         args.set_id(id);
-        args.set_window(window);
+        args.set_host(host);
         args.set_is_include_sys(is_include_sys);
         args.write(prot);
         prot.writeMessageEnd();
@@ -3748,7 +3748,7 @@ public class Nimbus {
       public getSupervisorPageInfo_result getResult(I iface, getSupervisorPageInfo_args args) throws org.apache.thrift.TException {
         getSupervisorPageInfo_result result = new getSupervisorPageInfo_result();
         try {
-          result.success = iface.getSupervisorPageInfo(args.id, args.window, args.is_include_sys);
+          result.success = iface.getSupervisorPageInfo(args.id, args.host, args.is_include_sys);
         } catch (NotAliveException e) {
           result.e = e;
         } catch (AuthorizationException aze) {
@@ -6050,7 +6050,7 @@ public class Nimbus {
       }
 
       public void start(I iface, getSupervisorPageInfo_args args, org.apache.thrift.async.AsyncMethodCallback<SupervisorPageInfo> resultHandler) throws TException {
-        iface.getSupervisorPageInfo(args.id, args.window, args.is_include_sys,resultHandler);
+        iface.getSupervisorPageInfo(args.id, args.host, args.is_include_sys,resultHandler);
       }
     }
 
@@ -16572,14 +16572,14 @@ public class Nimbus {
             case 0: // SUCCESS
               if (schemeField.type == org.apache.thrift.protocol.TType.LIST) {
                 {
-                  org.apache.thrift.protocol.TList _list728 = iprot.readListBegin();
-                  struct.success = new ArrayList<ProfileRequest>(_list728.size);
-                  ProfileRequest _elem729;
-                  for (int _i730 = 0; _i730 < _list728.size; ++_i730)
+                  org.apache.thrift.protocol.TList _list736 = iprot.readListBegin();
+                  struct.success = new ArrayList<ProfileRequest>(_list736.size);
+                  ProfileRequest _elem737;
+                  for (int _i738 = 0; _i738 < _list736.size; ++_i738)
                   {
-                    _elem729 = new ProfileRequest();
-                    _elem729.read(iprot);
-                    struct.success.add(_elem729);
+                    _elem737 = new ProfileRequest();
+                    _elem737.read(iprot);
+                    struct.success.add(_elem737);
                   }
                   iprot.readListEnd();
                 }
@@ -16605,9 +16605,9 @@ public class Nimbus {
           oprot.writeFieldBegin(SUCCESS_FIELD_DESC);
           {
             oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, struct.success.size()));
-            for (ProfileRequest _iter731 : struct.success)
+            for (ProfileRequest _iter739 : struct.success)
             {
-              _iter731.write(oprot);
+              _iter739.write(oprot);
             }
             oprot.writeListEnd();
           }
@@ -16638,9 +16638,9 @@ public class Nimbus {
         if (struct.is_set_success()) {
           {
             oprot.writeI32(struct.success.size());
-            for (ProfileRequest _iter732 : struct.success)
+            for (ProfileRequest _iter740 : struct.success)
             {
-              _iter732.write(oprot);
+              _iter740.write(oprot);
             }
           }
         }
@@ -16652,14 +16652,14 @@ public class Nimbus {
         BitSet incoming = iprot.readBitSet(1);
         if (incoming.get(0)) {
           {
-            org.apache.thrift.protocol.TList _list733 = new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, iprot.readI32());
-            struct.success = new ArrayList<ProfileRequest>(_list733.size);
-            ProfileRequest _elem734;
-            for (int _i735 = 0; _i735 < _list733.size; ++_i735)
+            org.apache.thrift.protocol.TList _list741 = new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, iprot.readI32());
+            struct.success = new ArrayList<ProfileRequest>(_list741.size);
+            ProfileRequest _elem742;
+            for (int _i743 = 0; _i743 < _list741.size; ++_i743)
             {
-              _elem734 = new ProfileRequest();
-              _elem734.read(iprot);
-              struct.success.add(_elem734);
+              _elem742 = new ProfileRequest();
+              _elem742.read(iprot);
+              struct.success.add(_elem742);
             }
           }
           struct.set_success_isSet(true);
@@ -36280,7 +36280,7 @@ public class Nimbus {
     private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("getSupervisorPageInfo_args");
 
     private static final org.apache.thrift.protocol.TField ID_FIELD_DESC = new org.apache.thrift.protocol.TField("id", org.apache.thrift.protocol.TType.STRING, (short)1);
-    private static final org.apache.thrift.protocol.TField WINDOW_FIELD_DESC = new org.apache.thrift.protocol.TField("window", org.apache.thrift.protocol.TType.STRING, (short)2);
+    private static final org.apache.thrift.protocol.TField HOST_FIELD_DESC = new org.apache.thrift.protocol.TField("host", org.apache.thrift.protocol.TType.STRING, (short)2);
     private static final org.apache.thrift.protocol.TField IS_INCLUDE_SYS_FIELD_DESC = new org.apache.thrift.protocol.TField("is_include_sys", org.apache.thrift.protocol.TType.BOOL, (short)3);
 
     private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
@@ -36290,13 +36290,13 @@ public class Nimbus {
     }
 
     private String id; // required
-    private String window; // required
+    private String host; // required
     private boolean is_include_sys; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       ID((short)1, "id"),
-      WINDOW((short)2, "window"),
+      HOST((short)2, "host"),
       IS_INCLUDE_SYS((short)3, "is_include_sys");
 
       private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
@@ -36314,8 +36314,8 @@ public class Nimbus {
         switch(fieldId) {
           case 1: // ID
             return ID;
-          case 2: // WINDOW
-            return WINDOW;
+          case 2: // HOST
+            return HOST;
           case 3: // IS_INCLUDE_SYS
             return IS_INCLUDE_SYS;
           default:
@@ -36365,7 +36365,7 @@ public class Nimbus {
       Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
       tmpMap.put(_Fields.ID, new org.apache.thrift.meta_data.FieldMetaData("id", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
-      tmpMap.put(_Fields.WINDOW, new org.apache.thrift.meta_data.FieldMetaData("window", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+      tmpMap.put(_Fields.HOST, new org.apache.thrift.meta_data.FieldMetaData("host", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
       tmpMap.put(_Fields.IS_INCLUDE_SYS, new org.apache.thrift.meta_data.FieldMetaData("is_include_sys", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.BOOL)));
@@ -36378,12 +36378,12 @@ public class Nimbus {
 
     public getSupervisorPageInfo_args(
       String id,
-      String window,
+      String host,
       boolean is_include_sys)
     {
       this();
       this.id = id;
-      this.window = window;
+      this.host = host;
       this.is_include_sys = is_include_sys;
       set_is_include_sys_isSet(true);
     }
@@ -36396,8 +36396,8 @@ public class Nimbus {
       if (other.is_set_id()) {
         this.id = other.id;
       }
-      if (other.is_set_window()) {
-        this.window = other.window;
+      if (other.is_set_host()) {
+        this.host = other.host;
       }
       this.is_include_sys = other.is_include_sys;
     }
@@ -36409,7 +36409,7 @@ public class Nimbus {
     @Override
     public void clear() {
       this.id = null;
-      this.window = null;
+      this.host = null;
       set_is_include_sys_isSet(false);
       this.is_include_sys = false;
     }
@@ -36437,26 +36437,26 @@ public class Nimbus {
       }
     }
 
-    public String get_window() {
-      return this.window;
+    public String get_host() {
+      return this.host;
     }
 
-    public void set_window(String window) {
-      this.window = window;
+    public void set_host(String host) {
+      this.host = host;
     }
 
-    public void unset_window() {
-      this.window = null;
+    public void unset_host() {
+      this.host = null;
     }
 
-    /** Returns true if field window is set (has been assigned a value) and false otherwise */
-    public boolean is_set_window() {
-      return this.window != null;
+    /** Returns true if field host is set (has been assigned a value) and false otherwise */
+    public boolean is_set_host() {
+      return this.host != null;
     }
 
-    public void set_window_isSet(boolean value) {
+    public void set_host_isSet(boolean value) {
       if (!value) {
-        this.window = null;
+        this.host = null;
       }
     }
 
@@ -36492,11 +36492,11 @@ public class Nimbus {
         }
         break;
 
-      case WINDOW:
+      case HOST:
         if (value == null) {
-          unset_window();
+          unset_host();
         } else {
-          set_window((String)value);
+          set_host((String)value);
         }
         break;
 
@@ -36516,8 +36516,8 @@ public class Nimbus {
       case ID:
         return get_id();
 
-      case WINDOW:
-        return get_window();
+      case HOST:
+        return get_host();
 
       case IS_INCLUDE_SYS:
         return is_is_include_sys();
@@ -36535,8 +36535,8 @@ public class Nimbus {
       switch (field) {
       case ID:
         return is_set_id();
-      case WINDOW:
-        return is_set_window();
+      case HOST:
+        return is_set_host();
       case IS_INCLUDE_SYS:
         return is_set_is_include_sys();
       }
@@ -36565,12 +36565,12 @@ public class Nimbus {
           return false;
       }
 
-      boolean this_present_window = true && this.is_set_window();
-      boolean that_present_window = true && that.is_set_window();
-      if (this_present_window || that_present_window) {
-        if (!(this_present_window && that_present_window))
+      boolean this_present_host = true && this.is_set_host();
+      boolean that_present_host = true && that.is_set_host();
+      if (this_present_host || that_present_host) {
+        if (!(this_present_host && that_present_host))
           return false;
-        if (!this.window.equals(that.window))
+        if (!this.host.equals(that.host))
           return false;
       }
 
@@ -36595,10 +36595,10 @@ public class Nimbus {
       if (present_id)
         list.add(id);
 
-      boolean present_window = true && (is_set_window());
-      list.add(present_window);
-      if (present_window)
-        list.add(window);
+      boolean present_host = true && (is_set_host());
+      list.add(present_host);
+      if (present_host)
+        list.add(host);
 
       boolean present_is_include_sys = true;
       list.add(present_is_include_sys);
@@ -36626,12 +36626,12 @@ public class Nimbus {
           return lastComparison;
         }
       }
-      lastComparison = Boolean.valueOf(is_set_window()).compareTo(other.is_set_window());
+      lastComparison = Boolean.valueOf(is_set_host()).compareTo(other.is_set_host());
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (is_set_window()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.window, other.window);
+      if (is_set_host()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.host, other.host);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -36674,11 +36674,11 @@ public class Nimbus {
       }
       first = false;
       if (!first) sb.append(", ");
-      sb.append("window:");
-      if (this.window == null) {
+      sb.append("host:");
+      if (this.host == null) {
         sb.append("null");
       } else {
-        sb.append(this.window);
+        sb.append(this.host);
       }
       first = false;
       if (!first) sb.append(", ");
@@ -36738,10 +36738,10 @@ public class Nimbus {
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
-            case 2: // WINDOW
+            case 2: // HOST
               if (schemeField.type == org.apache.thrift.protocol.TType.STRING) {
-                struct.window = iprot.readString();
-                struct.set_window_isSet(true);
+                struct.host = iprot.readString();
+                struct.set_host_isSet(true);
               } else { 
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
@@ -36772,9 +36772,9 @@ public class Nimbus {
           oprot.writeString(struct.id);
           oprot.writeFieldEnd();
         }
-        if (struct.window != null) {
-          oprot.writeFieldBegin(WINDOW_FIELD_DESC);
-          oprot.writeString(struct.window);
+        if (struct.host != null) {
+          oprot.writeFieldBegin(HOST_FIELD_DESC);
+          oprot.writeString(struct.host);
           oprot.writeFieldEnd();
         }
         oprot.writeFieldBegin(IS_INCLUDE_SYS_FIELD_DESC);
@@ -36801,7 +36801,7 @@ public class Nimbus {
         if (struct.is_set_id()) {
           optionals.set(0);
         }
-        if (struct.is_set_window()) {
+        if (struct.is_set_host()) {
           optionals.set(1);
         }
         if (struct.is_set_is_include_sys()) {
@@ -36811,8 +36811,8 @@ public class Nimbus {
         if (struct.is_set_id()) {
           oprot.writeString(struct.id);
         }
-        if (struct.is_set_window()) {
-          oprot.writeString(struct.window);
+        if (struct.is_set_host()) {
+          oprot.writeString(struct.host);
         }
         if (struct.is_set_is_include_sys()) {
           oprot.writeBool(struct.is_include_sys);
@@ -36828,8 +36828,8 @@ public class Nimbus {
           struct.set_id_isSet(true);
         }
         if (incoming.get(1)) {
-          struct.window = iprot.readString();
-          struct.set_window_isSet(true);
+          struct.host = iprot.readString();
+          struct.set_host_isSet(true);
         }
         if (incoming.get(2)) {
           struct.is_include_sys = iprot.readBool();

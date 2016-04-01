@@ -1158,7 +1158,27 @@
                     nimbus/check-authorization!
                       [1 2 3] expected-name expected-conf expected-operation)
                   (verify-first-call-args-for-indices
-                    nimbus/try-read-storm-topology [0] "fake-id"))))))))))
+                    nimbus/try-read-storm-topology [0] "fake-id"))))))
+
+       (testing "getSupervisorPageInfo only calls check-authorization as getTopology"
+         (let [expected-operation "getTopology"
+               assignment {:executor->node+port {[1 1] ["super1" "host1"],
+                                                 [2 2] ["super2" "host1"]}}
+               topo-assignment {expected-name assignment}]
+           (stubbing [nimbus/check-authorization! nil
+                      nimbus/try-read-storm-conf expected-conf
+                      nimbus/try-read-storm-topology nil
+                      storm-task-info {}
+                      nimbus/supervisor-info {:meta [1234], :uptime-secs 123}
+                      nimbus/topology-assignments topo-assignment]
+            (try
+              (.getSupervisorPageInfo nimbus "super1" ":all-time" true)
+                (catch NotAliveException e)
+                  (finally
+                (verify-first-call-args-for-indices
+                  nimbus/check-authorization!
+                    [1 2 3] expected-name expected-conf expected-operation))))))
+       ))))
 
 (deftest test-nimbus-iface-getTopology-methods-throw-correctly
   (with-local-cluster [cluster]
@@ -1475,3 +1495,62 @@
         (is (= (count @hb-cache) 2))
         (is (contains? @hb-cache "topo1"))
         (is (contains? @hb-cache "topo2"))))))
+
+(deftest user-topologies-for-supervisor
+  (let [assignment {:executor->node+port {[1 1] ["super1" "host1"],
+                                          [2 2] ["super2" "host1"]}}
+        assignment2 {:executor->node+port {[1 1] ["super2" "host1"],
+                                           [2 2] ["super2" "host1"]}}
+        assignments {"topo1" assignment, "topo2" assignment2} 
+        supervisor-id "super1"]
+    (stubbing [nimbus/check-authorization-no-throw true]
+      (let [topos (nimbus/user-and-supervisor-topos nil nil nil assignments "super1")]
+        (is (= (list "topo1") (:supervisor-topologies topos)))
+        (is (= #{"topo1"} (:user-topologies topos)))
+        ))))
+
+(defn- mock-check-auth [nimbus conf blob-store op topo-name]
+  (= topo-name "authorized"))
+
+(deftest user-topologies-for-supervisor-with-unauthorized-user
+  (let [assignment {:executor->node+port {[1 1] ["super1" "host1"],
+                                          [2 2] ["super2" "host1"]}}
+        assignment2 {:executor->node+port {[1 1] ["super1" "host1"],
+                                           [2 2] ["super2" "host1"]}}
+        assignments {"topo1" assignment, "authorized" assignment2} 
+        supervisor-id "super1"]
+    (stubbing [nimbus/check-authorization-no-throw mock-check-auth]
+      (let [topos (nimbus/user-and-supervisor-topos nil nil nil assignments "super1")]
+        (is (= (list "topo1" "authorized") (:supervisor-topologies topos)))
+        (is (= #{"authorized"} (:user-topologies topos)))
+        ))))
+
+(defn- mock-check-authorization! [nimbus storm-name topology-conf operation]
+  (if (= storm-name "unauthorized-topo")
+    (throw (AuthorizationException.))))
+
+(deftest check-authorization-no-throw-tests
+  (let [nimbus {}
+        blob-store {}
+        operation "getSupervisorPage"
+        topo-id nil]
+    (testing "check-authorization-no-throw returns false if user not authorized"
+      (let [conf {TOPOLOGY-NAME "unauthorized-topo"}]
+        (stubbing [nimbus/try-read-storm-conf conf
+                   nimbus/check-authorization! mock-check-authorization!]
+          (is (= false (nimbus/check-authorization-no-throw nimbus 
+                                                            conf 
+                                                            blob-store 
+                                                            operation 
+                                                            topo-id)))))) 
+    
+    (testing "check-authorization-no-throw returns true if user is authorized"
+      (let [conf {TOPOLOGY-NAME "authorized-topo"}]
+        (stubbing [nimbus/try-read-storm-conf conf
+                   nimbus/check-authorization! mock-check-authorization!]
+          (is (= true (nimbus/check-authorization-no-throw nimbus 
+                                                           conf 
+                                                           blob-store 
+                                                           operation 
+                                                           topo-id))))))))
+

@@ -25,7 +25,6 @@
   (:import [backtype.storm.security.auth AuthUtils ThriftServer ThriftClient 
                                          ReqContext ThriftConnectionType])
   (:use [backtype.storm cluster util config log])
-  (:use [backtype.storm.daemon common nimbus])
   (:import [backtype.storm.generated Nimbus Nimbus$Client Nimbus$Processor 
             AuthorizationException SubmitOptions TopologyInitialStatus KillOptions])
   (:require [conjure.core])

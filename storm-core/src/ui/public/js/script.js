@@ -219,10 +219,10 @@ var makeWorkerStatsTable = function (response, elId, type) {
     var showCpu = response.schedulerDisplayResource;
     var formatComponents = function (row) {
         var result = '';
-        Object.keys(row.components || {}).forEach (function (component){
-            var numTasks = row.components[component];
+        Object.keys(row.componentNumTasks || {}).forEach (function (component){
+            var numTasks = row.componentNumTasks[component];
             result += '<a class="worker-component-button btn btn-xs btn-primary" href="/component.html?id=' + 
-                            component + '&topology_id=' + row.topology + '">';
+                            component + '&topology_id=' + row.topologyId + '">';
             result += component;
             result += '<span class="badge">' + numTasks + '</span>';
             result += '</a>';
@@ -238,7 +238,14 @@ var makeWorkerStatsTable = function (response, elId, type) {
     };
 
     var columns = [
-        { data: 'host'},
+        {
+            data: 'host', 
+            render: function (data, type, row){
+                return type === 'display' ? 
+                    ('<a href="/supervisor.html?host=' + data + '">' + data + '</a>') :
+                    row.topologyId;
+            }
+        },
         {
             data: 'port',
             render: function (data, type, row) {
@@ -249,13 +256,12 @@ var makeWorkerStatsTable = function (response, elId, type) {
             }
         },
         { data: 'uptime' },
-        { data: 'numExecutors' },
+        { data: 'executorsTotal' },
         { 
             data: function (row){
                 return row.assignedMemOnHeap + row.assignedMemOffHeap;
             }
         },
-
     ];
 
     if (showCpu) {
@@ -264,7 +270,7 @@ var makeWorkerStatsTable = function (response, elId, type) {
 
     columns.push ({ 
         data: function (row, type, obj, dt) {
-            var components = Object.keys(row.components || {});
+            var components = Object.keys(row.componentNumTasks || {});
             if (components.length === 0){
                 // if no components returned, it means the worker
                 // topology isn't one the user is authorized to see
