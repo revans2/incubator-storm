@@ -947,10 +947,11 @@
                       security risk, please see SECURITY.MD to learn how to configure impersonation authorizer."))))
 
        (if aclHandler
-         (when-not (.permit aclHandler ctx operation check-conf)
-           (log-thrift-access (.requestID ctx) (.remoteAddress ctx) (.principal ctx) operation storm-name "access-denied")
-           (throw (AuthorizationException. (str operation (if storm-name (str " on topology " storm-name)) " is not authorized"))))
-         (log-thrift-access (.requestID ctx) (.remoteAddress ctx) (.principal ctx) operation storm-name "access-granted"))))
+         (if-not (.permit aclHandler ctx operation check-conf)
+           (do
+             (log-thrift-access (.requestID ctx) (.remoteAddress ctx) (.principal ctx) operation storm-name "access-denied")
+             (throw (AuthorizationException. (str operation (if storm-name (str " on topology " storm-name)) " is not authorized"))))
+           (log-thrift-access (.requestID ctx) (.remoteAddress ctx) (.principal ctx) operation storm-name "access-granted")))))
   ([nimbus storm-name storm-conf operation]
      (check-authorization! nimbus storm-name storm-conf operation (ReqContext/context))))
 
