@@ -93,13 +93,17 @@ public class TestUtilsForResourceAwareScheduler {
     }
 
     public static Map<String, SupervisorDetails> genSupervisors(int numSup, int numPorts, Map resourceMap) {
+        return genSupervisors(numSup, numPorts, 0, resourceMap);
+    }
+
+        public static Map<String, SupervisorDetails> genSupervisors(int numSup, int numPorts, int start, Map resourceMap) {
         Map<String, SupervisorDetails> retList = new HashMap<String, SupervisorDetails>();
-        for (int i = 0; i < numSup; i++) {
+        for (int i = start; i < numSup + start; i++) {
             List<Number> ports = new LinkedList<Number>();
             for (int j = 0; j < numPorts; j++) {
                 ports.add(j);
             }
-            SupervisorDetails sup = new SupervisorDetails("sup-" + i, "host-" + i, null, ports, resourceMap);
+            SupervisorDetails sup = new SupervisorDetails("sup-" + i, "host-" + i, null, ports, new HashMap<>(resourceMap));
             retList.put(sup.getId(), sup);
         }
         return retList;
