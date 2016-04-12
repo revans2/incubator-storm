@@ -387,17 +387,16 @@
     (doseq [[id [state heartbeat]] allocated]
       (let
         [worker-launchtime (:launchtime (@(:worker-launchtime-atom supervisor) id))]
-      (when
-        (or 
-          (and (not= :valid state) (not= :not-started state))
-          (and (= :not-started state) (not-nil? worker-launchtime) (is-worker-launchtime-timed-out? now worker-launchtime conf)))
-            (log-message
-             "Shutting down and clearing state for id " id
-             ". Current supervisor time: " now
-             ". State: " state
-             ", Heartbeat: " (pr-str heartbeat))
-            (shutdown-worker supervisor id)
-          )))
+        (when
+          (or 
+            (and (not= :valid state) (not= :not-started state))
+            (and (= :not-started state) (not-nil? worker-launchtime) (is-worker-launchtime-timed-out? now worker-launchtime conf)))
+              (log-message
+               "Shutting down and clearing state for id " id
+               ". Current supervisor time: " now
+               ". State: " state
+               ", Heartbeat: " (pr-str heartbeat))
+              (shutdown-worker supervisor id))))
     (let [valid-new-worker-ids
           (into {}
             (remove nil?
