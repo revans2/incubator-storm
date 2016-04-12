@@ -168,21 +168,18 @@ public class DefaultResourceAwareStrategy implements IStrategy {
     }
 
     private WorkerSlot findWorkerForExec(ExecutorDetails exec, TopologyDetails td, Map<WorkerSlot, Collection<ExecutorDetails>> scheduleAssignmentMap) {
-        WorkerSlot ws;
+        WorkerSlot ws = null;
         // first scheduling
         if (this.refNode == null) {
-            String bestRack = null;
             // iterate through an ordered list of all racks available to make sure we cannot schedule the first executor in any rack before we "give up"
             // the list is ordered in decreasing order of effective resources. With the rack in the front of the list having the most effective resources.
             for (RackResources rack : sortRacks(td.getId())) {
                 ws = this.getBestWorker(exec, td, rack.id, scheduleAssignmentMap);
                 if (ws != null) {
-                    bestRack = rack.id;
                     LOG.debug("best rack: {}", rack.id);
                     break;
                 }
             }
-            ws = this.getBestWorker(exec, td, bestRack, scheduleAssignmentMap);
         } else {
             ws = this.getBestWorker(exec, td, scheduleAssignmentMap);
         }
@@ -352,7 +349,7 @@ public class DefaultResourceAwareStrategy implements IStrategy {
             }
         });
         sortedRacks.addAll(racks);
-        LOG.info("Sorted rack: {}", sortedRacks);
+        LOG.debug("Sorted rack: {}", sortedRacks);
         return sortedRacks;
     }
 
