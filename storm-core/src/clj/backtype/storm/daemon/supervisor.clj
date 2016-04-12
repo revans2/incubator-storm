@@ -194,30 +194,6 @@
               ))
      )))
 
-(defn- wait-for-worker-launch [conf id start-time]
-  (let [state (worker-state conf id)]
-    (loop []
-      (let [hb (ls-worker-heartbeat state)]
-        (when (and
-               (not hb)
-               (<
-                (- (current-time-secs) start-time)
-                (conf SUPERVISOR-WORKER-START-TIMEOUT-SECS)
-                ))
-          (log-message id " still hasn't started")
-          (Time/sleep 500)
-          (recur)
-          )))
-    (when-not (ls-worker-heartbeat state)
-      (log-message "Worker " id " failed to start")
-      )))
-
-(defn- wait-for-workers-launch [conf ids]
-  (let [start-time (current-time-secs)]
-    (doseq [id ids]
-      (wait-for-worker-launch conf id start-time))
-    ))
-
 (defn generate-supervisor-id []
   (str (uuid) "-"  (.getHostAddress (InetAddress/getLocalHost))))
 
@@ -276,7 +252,6 @@
             (rmr (worker-root conf id))))
         (remove-worker-user! conf id)
         (remove-dead-worker id)
-        (swap! (:worker-launchtime-atom supervisor) dissoc id )
       ))
   (catch IOException e
     (log-warn-error e "Failed to cleanup worker " id ". Will retry later"))
@@ -314,6 +289,7 @@
             (log-warn-error e "Failed to cleanup pid dir: " pid " for worker " id". Will retry later")))))
           ;; on windows, the supervisor may still holds the lock on the worker directory
     (try-cleanup-worker conf supervisor id))
+    (swap! (:worker-launchtime-atom supervisor) dissoc id)
   (log-message "Shut down " (:supervisor-id supervisor) ":" id))
 
 (def SUPERVISOR-ZK-ACLS
@@ -407,18 +383,21 @@
     (log-debug "Reassigned executors: " reassign-executors)
     (log-debug "Assigned executors: " assigned-executors)
     (log-debug "Allocated: " allocated)
+
     (doseq [[id [state heartbeat]] allocated]
       (let
         [worker-launchtime (:launchtime (@(:worker-launchtime-atom supervisor) id))]
-      (when (and (not= :valid state)
-        (is-worker-launchtime-timed-out? now worker-launchtime conf))
-          (log-message
-           "Shutting down and clearing state for id " id
-           ". Current supervisor time: " now
-           ". State: " state
-           ", Heartbeat: " (pr-str heartbeat))
-          (shutdown-worker supervisor id)
-        )))
+      (when
+        (or 
+          (and (not= :valid state) (not= :not-started state))
+          (and (= :not-started state) (not-nil? worker-launchtime) (is-worker-launchtime-timed-out? now worker-launchtime conf)))
+            (log-message
+             "Shutting down and clearing state for id " id
+             ". Current supervisor time: " now
+             ". State: " state
+             ", Heartbeat: " (pr-str heartbeat))
+            (shutdown-worker supervisor id)
+          )))
     (let [valid-new-worker-ids
           (into {}
             (remove nil?
