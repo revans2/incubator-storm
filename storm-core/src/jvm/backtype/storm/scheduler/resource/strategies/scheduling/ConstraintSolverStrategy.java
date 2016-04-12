@@ -232,9 +232,7 @@ public class ConstraintSolverStrategy implements IStrategy{
                 node.freeResourcesForTask(exec, this.topo);
                 this.numBacktrack++;
                 execIndex --;
-
             }
-
         }
         return null;
     }
@@ -353,7 +351,7 @@ public class ConstraintSolverStrategy implements IStrategy{
         if (result == null) {
             return false;
         }
-        return this.checkSpreadSchedulingValid(result) && this.checkConstraintsSatisfied(result);
+        return this.checkSpreadSchedulingValid(result) && this.checkConstraintsSatisfied(result) && this.checkResourcesCorrect(result);
     }
 
     /**
@@ -398,11 +396,6 @@ public class ConstraintSolverStrategy implements IStrategy{
             String comp = this.execToComp.get(exec);
             RAS_Node node = this.workerToNodes.get(worker);
 
-            if (node.getAvailableMemoryResources() < 0.0 && node.getAvailableCpuResources() < 0.0) {
-                LOG.error("Incorrect Scheduling: found node that negative available resources");
-                return false;
-            }
-
             if (!workerExecMap.containsKey(worker)) {
                 workerExecMap.put(worker, new HashSet<ExecutorDetails>());
                 workerCompMap.put(worker, new HashSet<String>());
@@ -424,6 +417,50 @@ public class ConstraintSolverStrategy implements IStrategy{
                 }
             }
             nodeCompMap.get(node).add(comp);
+        }
+        return true;
+    }
+
+    /**
+     * Check if resource constraints satisfied
+     */
+    private boolean checkResourcesCorrect(Map<ExecutorDetails, WorkerSlot> result) {
+
+        Map<RAS_Node, Collection<ExecutorDetails>> nodeToExecs = new HashMap<RAS_Node, Collection<ExecutorDetails>>();
+        for (Map.Entry<ExecutorDetails, WorkerSlot> entry : result.entrySet()) {
+            ExecutorDetails exec = entry.getKey();
+            WorkerSlot worker = entry.getValue();
+            RAS_Node node = this.workerToNodes.get(worker);
+
+            if (node.getAvailableMemoryResources() < 0.0 && node.getAvailableCpuResources() < 0.0) {
+                LOG.error("Incorrect Scheduling: found node that negative available resources");
+                return false;
+            }
+            if (!nodeToExecs.containsKey(node)) {
+                nodeToExecs.put(node, new LinkedList<ExecutorDetails>());
+            }
+            nodeToExecs.get(node).add(exec);
+        }
+
+        for (Map.Entry<RAS_Node, Collection<ExecutorDetails>> entry : nodeToExecs.entrySet()) {
+            RAS_Node node = entry.getKey();
+            Collection<ExecutorDetails> execs = entry.getValue();
+            double cpuUsed = 0.0;
+            double memoryUsed = 0.0;
+            for (ExecutorDetails exec : execs) {
+                cpuUsed += this.topo.getTotalCpuReqTask(exec);
+                memoryUsed += this.topo.getTotalMemReqTask(exec);
+            }
+            if (node.getAvailableCpuResources() != (node.getTotalCpuResources() - cpuUsed)) {
+                LOG.error("Incorrect Scheduling: node {} has consumed incorrect amount of cpu. Expected: {} Actual: {} Executors scheduled on node: {}",
+                        node.getId(), (node.getTotalCpuResources() - cpuUsed), node.getAvailableCpuResources(), execs);
+                return false;
+            }
+            if (node.getAvailableMemoryResources() != (node.getTotalMemoryResources() - memoryUsed)) {
+                LOG.error("Incorrect Scheduling: node {} has consumed incorrect amount of memory. Expected: {} Actual: {} Executors scheduled on node: {}",
+                        node.getId(), (node.getTotalMemoryResources() - memoryUsed), node.getAvailableMemoryResources(), execs);
+                return false;
+            }
         }
         return true;
     }

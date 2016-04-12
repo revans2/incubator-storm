@@ -521,7 +521,7 @@ public class RAS_Node {
     public void freeResourcesForTask(ExecutorDetails exec, TopologyDetails topo) {
         Double taskMemReq = topo.getTotalMemReqTask(exec);
         Double taskCpuReq = topo.getTotalCpuReqTask(exec);
-        freeCPU(taskMemReq);
-        freeMemory(taskCpuReq);
+        freeCPU(taskCpuReq);
+        freeMemory(taskMemReq);
     }
 }
