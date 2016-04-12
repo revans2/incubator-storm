@@ -20,12 +20,10 @@ package backtype.storm.scheduler.resource.strategies.scheduling;
 
 import backtype.storm.Config;
 import backtype.storm.scheduler.Cluster;
-import backtype.storm.scheduler.ExecutorDetails;
 import backtype.storm.scheduler.SchedulerAssignmentImpl;
 import backtype.storm.scheduler.SupervisorDetails;
 import backtype.storm.scheduler.Topologies;
 import backtype.storm.scheduler.TopologyDetails;
-import backtype.storm.scheduler.WorkerSlot;
 import backtype.storm.scheduler.resource.ResourceAwareScheduler;
 import backtype.storm.scheduler.resource.SchedulingResult;
 import backtype.storm.scheduler.resource.SchedulingState;
@@ -37,16 +35,12 @@ import org.junit.Assert;
 import org.junit.Test;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
 public class TestRASConstraintSolver {
-    private static final org.slf4j.Logger LOG = LoggerFactory.getLogger(TestRASConstraintSolver.class);
     private static final int NUM_SUPS = 20;
     private static final int NUM_WORKERS_PER_SUP = 4;
     private static final int MAX_TRAVERSAL_DEPTH = 1000000;
