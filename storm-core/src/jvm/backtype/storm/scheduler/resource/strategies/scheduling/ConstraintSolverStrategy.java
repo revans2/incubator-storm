@@ -315,19 +315,21 @@ public class ConstraintSolverStrategy implements IStrategy{
                 matrix.get(comp).put(comp2, 0);
             }
         }
-        for (List<String> constraintPair : constraints) {
-            String comp1 = constraintPair.get(0);
-            String comp2 = constraintPair.get(1);
-            if (!matrix.containsKey(comp1)) {
-                LOG.warn("Comp: {} declared in constraints is not valid!", comp1);
-                continue;
+        if (constraints!=null ) {
+            for (List<String> constraintPair : constraints) {
+                String comp1 = constraintPair.get(0);
+                String comp2 = constraintPair.get(1);
+                if (!matrix.containsKey(comp1)) {
+                    LOG.warn("Comp: {} declared in constraints is not valid!", comp1);
+                    continue;
+                }
+                if (!matrix.containsKey(comp2)) {
+                    LOG.warn("Comp: {} declared in constraints is not valid!", comp2);
+                    continue;
+                }
+                matrix.get(comp1).put(comp2, 1);
+                matrix.get(comp2).put(comp1, 1);
             }
-            if (!matrix.containsKey(comp2)) {
-                LOG.warn("Comp: {} declared in constraints is not valid!", comp2);
-                continue;
-            }
-            matrix.get(comp1).put(comp2, 1);
-            matrix.get(comp2).put(comp1, 1);
         }
         return matrix;
     }
