@@ -159,7 +159,7 @@
 
 (defn is-worker-launchtime-timed-out? [now lt conf]
   (> (- now lt)
-     (conf SUPERVISOR-WORKER-TIMEOUT-SECS)))
+     (conf SUPERVISOR-WORKER-START-TIMEOUT-SECS)))
 
 (defn is-worker-hb-timed-out? [now hb conf]
   (> (- now (:time-secs hb))
