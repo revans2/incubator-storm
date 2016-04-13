@@ -1376,7 +1376,7 @@ public class TestResourceAwareScheduler {
         StormTopology stormTopology = builder.createTopology();
         TopologyDetails topo = new TopologyDetails("topo-1", config, stormTopology,
                 0,
-                genExecsAndComps(stormTopology, 5, 5), 0);
+                genExecsAndComps(stormTopology), 0);
 
         Cluster cluster = new Cluster(iNimbus, supMap, new HashMap<String, SchedulerAssignmentImpl>(), config);
 

@@ -109,21 +109,28 @@ public class TestUtilsForResourceAwareScheduler {
         return retList;
     }
 
-    public static Map<ExecutorDetails, String> genExecsAndComps(StormTopology topology, int spoutParallelism, int boltParallelism) {
+    public static Map<ExecutorDetails, String> genExecsAndComps(StormTopology topology) {
         Map<ExecutorDetails, String> retMap = new HashMap<ExecutorDetails, String>();
         int startTask = 0;
         int endTask = 1;
         for (Map.Entry<String, SpoutSpec> entry : topology.get_spouts().entrySet()) {
+            SpoutSpec spout = entry.getValue();
+            String spoutId = entry.getKey();
+            int spoutParallelism = spout.get_common().get_parallelism_hint();
+
             for (int i = 0; i < spoutParallelism; i++) {
-                retMap.put(new ExecutorDetails(startTask, endTask), entry.getKey());
+                retMap.put(new ExecutorDetails(startTask, endTask), spoutId);
                 startTask++;
                 endTask++;
             }
         }
 
         for (Map.Entry<String, Bolt> entry : topology.get_bolts().entrySet()) {
+            String boltId = entry.getKey();
+            Bolt bolt = entry.getValue();
+            int boltParallelism = bolt.get_common().get_parallelism_hint();
             for (int i = 0; i < boltParallelism; i++) {
-                retMap.put(new ExecutorDetails(startTask, endTask), entry.getKey());
+                retMap.put(new ExecutorDetails(startTask, endTask), boltId);
                 startTask++;
                 endTask++;
             }
@@ -142,7 +149,7 @@ public class TestUtilsForResourceAwareScheduler {
         StormTopology topology = buildTopology(numSpout, numBolt, spoutParallelism, boltParallelism);
         TopologyDetails topo = new TopologyDetails(name + "-" + launchTime, conf, topology,
                 0,
-                genExecsAndComps(topology, spoutParallelism, boltParallelism), launchTime);
+                genExecsAndComps(topology), launchTime);
         return topo;
     }
 

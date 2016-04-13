@@ -79,7 +79,7 @@ public class TestDefaultResourceAwareStrategy {
         conf.put(Config.TOPOLOGY_WORKER_MAX_HEAP_SIZE_MB, Double.MAX_VALUE);
 
         TopologyDetails topo = new TopologyDetails("testTopology-id", conf, stormToplogy, 0,
-                TestUtilsForResourceAwareScheduler.genExecsAndComps(stormToplogy, spoutParallelism, boltParallelism)
+                TestUtilsForResourceAwareScheduler.genExecsAndComps(stormToplogy)
                 , this.currentTime);
 
         Map<String, TopologyDetails> topoMap = new HashMap<String, TopologyDetails>();
