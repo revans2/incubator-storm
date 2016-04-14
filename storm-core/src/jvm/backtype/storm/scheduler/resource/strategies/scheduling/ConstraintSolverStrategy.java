@@ -251,7 +251,7 @@ public class ConstraintSolverStrategy implements IStrategy{
         RAS_Node node = this.workerToNodes.get(worker);
         double taskMem = this.topo.getTotalMemReqTask(exec);
         double taskCPU = this.topo.getTotalCpuReqTask(exec);
-        if (!(node.getAvailableCpuResources() > taskCPU && node.getAvailableMemoryResources() > taskMem)) {
+        if (!(node.getAvailableCpuResources() >= taskCPU && node.getAvailableMemoryResources() >= taskMem)) {
             return false;
         }
 
