@@ -17,7 +17,6 @@
  */
 package backtype.storm.metric.internal;
 
-import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -136,29 +135,5 @@ public class RateTracker{
         public void run () {
             rotateBuckets(System.currentTimeMillis());
         }
-    }
-
-    public static void main (String args[]) throws Exception {
-        final int number = (args.length >= 1) ? Integer.parseInt(args[0]) : 100000000;
-        for (int i = 0; i < 10; i++) {
-            testRate(number);
-        }
-    }
-
-    private static void testRate(int number) {
-        RateTracker rt = new RateTracker(10000, 10);
-        long start = System.currentTimeMillis();
-        for (int i = 0; i < number; i++) {
-            rt.notify(1);
-            if ((i % 1000000) == 0) {
-                //There seems to be an issue with java that when we are under a very heavy load
-                // the timer thread does not get called.  This is a work around for that.
-                Thread.yield();
-            }
-        }
-        long end = System.currentTimeMillis();
-        double rate = rt.reportRate();
-        rt.close();
-        System.out.printf("time %,8d count %,8d rate %,15.2f reported rate %,15.2f\n", end-start,number, ((number * 1000.0)/(end-start)), rate);
     }
 }
