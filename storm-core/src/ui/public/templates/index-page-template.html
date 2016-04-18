@@ -229,13 +229,11 @@
           Used slots
         </span>
       </th>
-      {{#schedulerDisplayResource}}
       <th>
         <span data-toggle="tooltip" data-placement="above" title="Memory capacity of a supervisor.">
           Total Mem (MB)
         </span>
       </th>
-      {{/schedulerDisplayResource}}
       <th>
         <span data-toggle="tooltip" data-placement="left" title="Memory that has been allocated.">
           Used Mem (MB)
@@ -264,13 +262,11 @@
     {{#supervisors}}
     <tr>
       <td><a href="/supervisor.html?id={{id}}">{{id}}</a></td>
-      <td><a href="/supervisor.html?host={{host}}">{{host}}</td>
+      <td><a href="/supervisor.html?host={{host}}">{{host}}</a></td>
       <td>{{uptime}}</td>
       <td>{{slotsTotal}}</td>
       <td>{{slotsUsed}}</td>
-      {{#schedulerDisplayResource}}
       <td>{{totalMem}}</td>
-      {{/schedulerDisplayResource}}
       <td>{{usedMem}}</td>
       {{#schedulerDisplayResource}}
       <td>{{totalCpu}}</td>

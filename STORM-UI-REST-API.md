@@ -168,13 +168,20 @@ Sample response:
 
 ### /api/v1/supervisor (GET)
 
-Returns summary for a supervisor by id, or all supervisors running on a host
+Returns summary for a supervisor by id, or all supervisors running on a host.
+
+Examples:
+
+```no-highlight
+ 1. By host: http://ui-daemon-host-name:8080/api/v1/supervisor?host=supervisor-daemon-host-name
+ 2. By id: http://ui-daemon-host-name:8080/api/v1/supervisor?id=f5449110-1daa-43e2-89e3-69917b16dec9-192.168.1.1
+```
 
 Request parameters:
 
 |Parameter |Value   |Description  |
 |----------|--------|-------------|
-|id   	   |String. Supervisor id | If specified, respond with the supervisor and worker stats with id |
+|id   	   |String. Supervisor id | If specified, respond with the supervisor and worker stats with id. Note that when id is specified, the host argument is ignored. |
 |host      |String. Host name| If specified, respond with all supervisors and worker stats in the host (normally just one)|
 |sys       |String. Values 1 or 0. Default value 0| Controls including sys stats part of the response|
 
@@ -194,7 +201,7 @@ Each supervisor is defined by:
 |host| String| Supervisor's host name|
 |uptime| String| Shows how long the supervisor is running|
 |uptimeSeconds| Integer| Shows how long the supervisor is running in seconds|
-|slotsTotal| Integer| Total number of available worker slots for this supervisor|
+|slotsTotal| Integer| Total number of worker slots for this supervisor|
 |slotsUsed| Integer| Number of worker slots used on this supervisor|
 |totalMem| Double| Total memory capacity on this supervisor|
 |totalCpu| Double| Total CPU capacity on this supervisor|
@@ -210,12 +217,12 @@ Each worker is defined by:
 |port | Integer | Worker's port|
 |topologyId | String | Topology Id|
 |topologyName | String | Topology Name|
-|executorsTotal | Integer | Number of executors used by this worker/topoogy|
+|executorsTotal | Integer | Number of executors used by the topology in this worker|
 |assignedMemOnHeap | Double | Assigned On-Heap Memory by Scheduler (MB)|
 |assignedMemOffHeap | Double | Assigned Off-Heap Memory by Scheduler (MB)|
 |assignedCpu | Number | Assigned CPU by Scheduler (%)| 
-|componentNumTasks | Dictionary | Componen ts -> # of executing tasks|
-|uptime| String| Shows how long the workeris running|
+|componentNumTasks | Dictionary | Components -> # of executing tasks|
+|uptime| String| Shows how long the worker is running|
 |uptimeSeconds| Integer| Shows how long the worker is running in seconds|
 |workerLogLink | String | Link to worker log viewer page|
 
@@ -232,7 +239,7 @@ Sample response:
         "usedCpu":495.0,
         "usedMem":3432.0,
         "slotsUsed":2,
-        "version":"0.10.1.y.${ystorm.build.number}",
+        "version":"0.10.1",
         "slotsTotal":4,
         "uptimeSeconds":428
     }],

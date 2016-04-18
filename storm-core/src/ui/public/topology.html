@@ -361,7 +361,7 @@ $(document).ready(function() {
 
           jsError(function() {
             workerStats.append(Mustache.render($(template).filter("#worker-stats-template").html(),response));
-            makeTopologyWorkerStatsTable (response, '#worker-stats-table');
+            makeTopologyWorkerStatsTable (response, '#worker-stats-table', '#worker-stats');
           });
 
           jsError(function() {

@@ -26,6 +26,7 @@
   (:import [backtype.storm.utils Utils])
   (:import [backtype.storm.scheduler WorkerSlot])
   (:import [backtype.storm.metric.internal MultiCountStatAndMetric MultiLatencyStatAndMetric])
+  (:require [backtype.storm.daemon.common :refer [->WorkerResources]])
   (:use [backtype.storm log util])
   (:use [clojure.math.numeric-tower :only [ceil]]))
 
@@ -1015,12 +1016,14 @@
       (dofor [[[node port] executors] node+port->exec]
         (let [tasks (flatten (map #(range (first %) (inc (last %))) executors))
               worker-beats (vals (select-keys beats executors))
-              not-null-worker-beat (first (filter #(not= % nil) worker-beats))
+              not-null-worker-beat (first (filter identity worker-beats))
               worker-uptime (or (:uptime not-null-worker-beat) 0)
               component->num-tasks (handle-sys-components-fn (frequencies (map #(get task->component %) tasks)))
-              default-worker-resources [0 0 0 0 0 0]
-              resources (if (nil? worker->resources) default-worker-resources 
-                          (or (.get worker->resources (WorkerSlot. node port)) default-worker-resources))
+              default-worker-resources (->WorkerResources 0 0 0)
+              resources (if (nil? worker->resources) 
+                            default-worker-resources 
+                            (or (.get worker->resources (WorkerSlot. node port)) 
+                                default-worker-resources))
               worker-summary (doto 
                  (WorkerSummary.)
                    (.set_host (node->host node))
@@ -1030,11 +1033,11 @@
                    (.set_topology_id storm-id)
                    (.set_topology_name storm-name)
                    (.set_num_executors (count executors))
-                   (.set_assigned_memonheap (get resources 3))
-                   (.set_assigned_memoffheap (get resources 4))
-                   (.set_assigned_cpu (get resources 5)))]
-             (if user-authorized (.set_component_to_num_tasks worker-summary component->num-tasks))
-             worker-summary)))))
+                   (.set_assigned_memonheap (:assigned-mem-on-heap resources))
+                   (.set_assigned_memoffheap (:assigned-mem-off-heap resources))
+                   (.set_assigned_cpu (:assigned-cpu resources)))]
+          (if user-authorized (.set_component_to_num_tasks worker-summary component->num-tasks))
+          worker-summary)))))
 
 (defn agg-topo-execs-stats
   "Aggregate various executor statistics for a topology from the given

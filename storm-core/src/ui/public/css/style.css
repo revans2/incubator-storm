@@ -279,7 +279,10 @@ PRE.jsonFormatter-codeContainer {
   padding: 10px;
 }
 
-.supervisor-page #toggle-switch {
+.supervisor-page #toggle-sys {
   padding: 10px;
 }
 
+#toggle-on-components-btn .btn {
+  margin: 10px;
+}

@@ -379,7 +379,8 @@
      "uptimeSeconds" uptime-secs
      "workerLogLink" (worker-log-link host port topology-id secure-link?)}))
 
-(defn supervisor-summary-to-json [summary]
+(defn supervisor-summary-to-json 
+  [summary]
   {"id" (.get_supervisor_id summary)
    "host" (.get_host summary)
    "uptime" (pretty-uptime-sec (.get_uptime_secs summary))
@@ -396,9 +397,9 @@
   ([supervisor-id host include-sys? secure?]
      (with-nimbus nimbus
         (supervisor-page-info (.getSupervisorPageInfo ^Nimbus$Client nimbus
-                                  supervisor-id
-                                  host
-                                  include-sys?) secure?)))
+                                                      supervisor-id
+                                                      host
+                                                      include-sys?) secure?)))
   ([^SupervisorPageInfo supervisor-page-info secure?]
     ;; ask nimbus to return supervisor workers + any details user is allowed
     ;; access on a per-topology basis (i.e. components)
@@ -406,7 +407,7 @@
       {"supervisors" supervisors-json
        "schedulerDisplayResource" (*STORM-CONF* Config/SCHEDULER_DISPLAY_RESOURCE)
        "workers" (into [] (for [^WorkerSummary worker-summary (.get_worker_summaries supervisor-page-info)]
-              (worker-summary-to-json secure? worker-summary)))})))
+                            (worker-summary-to-json secure? worker-summary)))})))
 
 (defn supervisor-summary
   ([]
@@ -884,8 +885,9 @@
                           "logviewerPort" (*STORM-CONF* LOGVIEWER-PORT)) (:callback m)))
   (GET "/api/v1/supervisor" [:as {:keys [cookies servlet-request scheme]} & m]
     (populate-context! servlet-request)
-    (assert-authorized-user "getClusterInfo")
-    ;; supervisor takes either an id or a host query parameter
+    (assert-authorized-user "getSupervisorPageInfo")
+    ;; supervisor takes either an id or a host query parameter, and technically both
+    ;; that said, if both the id and host are provided, the id wins
     (let [id (:id m)
           host (:host m)]
       (json-response (assoc (supervisor-page-info id host (check-include-sys? (:sys m)) (= scheme :https))

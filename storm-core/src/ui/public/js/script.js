@@ -200,42 +200,38 @@ $.blockUI.defaults.css = {
     color: '#fff',margin:0,width:"30%",top:"40%",left:"35%",textAlign:"center"
 };
 
-function makeSupervisorWorkerStatsTable (response, elId) {
-    makeWorkerStatsTable (response, elId, "supervisor");
+function makeSupervisorWorkerStatsTable (response, elId, parentId) {
+    makeWorkerStatsTable (response, elId, parentId, "supervisor");
 };
 
-function makeTopologyWorkerStatsTable (response, elId) {
-    makeWorkerStatsTable (response, elId, "topology");
+function makeTopologyWorkerStatsTable (response, elId, parentId) {
+    makeWorkerStatsTable (response, elId, parentId, "topology");
 };
 
-// Show at most 10 components per worker
-// if the worker has more than 10 components, show a button instead that when clicked
-// opens a row below the worker's row with the components
-// Note that components are still searchable in the datatable
-var maxInlineComponents = 10;
+var formatComponents = function (row) {
+    if (!row) return;
+    var result = '';
+    Object.keys(row.componentNumTasks || {}).forEach (function (component){
+        var numTasks = row.componentNumTasks[component];
+        result += '<a class="worker-component-button btn btn-xs btn-primary" href="/component.html?id=' + 
+                        component + '&topology_id=' + row.topologyId + '">';
+        result += component;
+        result += '<span class="badge">' + numTasks + '</span>';
+        result += '</a>';
+    });
+    return result;
+};
+
+var format = function (row){
+    var result = '<div class="worker-child-row">Worker components: ';
+    result += formatComponents (row) || 'N/A';
+    result += '</div>';
+    return result;
+};
 
 // Build a table of per-worker resources and components (when permitted)
-var makeWorkerStatsTable = function (response, elId, type) {
+var makeWorkerStatsTable = function (response, elId, parentId, type) {
     var showCpu = response.schedulerDisplayResource;
-    var formatComponents = function (row) {
-        var result = '';
-        Object.keys(row.componentNumTasks || {}).forEach (function (component){
-            var numTasks = row.componentNumTasks[component];
-            result += '<a class="worker-component-button btn btn-xs btn-primary" href="/component.html?id=' + 
-                            component + '&topology_id=' + row.topologyId + '">';
-            result += component;
-            result += '<span class="badge">' + numTasks + '</span>';
-            result += '</a>';
-        });
-        return result;
-    };
-
-    var format = function (row){
-        var result = '<div class="worker-child-row">Worker components: ';
-        result += formatComponents (row);
-        result += '</div>';
-        return result;
-    };
 
     var columns = [
         {
@@ -281,19 +277,9 @@ var makeWorkerStatsTable = function (response, elId, type) {
                 return components
             }
 
-            var result = '';
-            var expand = components.length > maxInlineComponents;
-
-            if (!expand) {
-                result += '<div>';
-                result += formatComponents (row);
-                result += '</div>';
-            } else {
-                // we want an expand button 
-                result += '<button class="btn btn-xs btn-info details-control" type="button">' + 
-                    components.length + ' components</button>';
-            }
-            return result;
+            // show a button to toggle the component row
+            return '<button class="btn btn-xs btn-info details-control" type="button">' + 
+                   components.length + ' components</button>';
         }
     });
 
@@ -307,7 +293,7 @@ var makeWorkerStatsTable = function (response, elId, type) {
                         data;
                 }
             });
-        break;
+            break;
         case 'supervisor':
             columns.unshift ({
                 data: function (row, type){
@@ -316,30 +302,77 @@ var makeWorkerStatsTable = function (response, elId, type) {
                         row.topologyId;
                 }
             });
-        break;
+            break;
     }
 
     var workerStatsTable = dtAutoPage(elId, {
         data: response.workers,
         autoWidth: false,
-        columns: columns
+        columns: columns,
+        initComplete: function (){
+            // add a "Toggle Components" button
+            renderToggleComponents ($(elId + '_filter'), elId);
+            var show = $.cookies.get("showComponents") || false;
+
+            // if the cookie is false, then we are done
+            if (!show) {
+                return;
+            }
+
+            // toggle all components visibile
+            $(elId + ' tr').each(function (){
+                var dt = $(elId).dataTable();
+                showComponents(dt.api().row(this), true);
+            });
+        }
     });
 
-    // Add event listener for opening and closing details
+    // Add event listener for opening and closing components row
+    // on a per component basis
     $(elId + ' tbody').on('click', 'button.details-control', function () {
         var tr = $(this).closest('tr');
-        var row = workerStatsTable.row( tr );
+        var row = workerStatsTable.row(tr);
+        showComponents(row, !row.child.isShown());
+    });
 
-        if (row.child.isShown()) {
-            // This row is already open - close it
-            row.child.hide();
-            tr.removeClass('shown');
-        } else {
-            // Open this row
-            row.child (format (row.data())).show();
-            tr.addClass('shown');
-        }
+    $(parentId + ' #toggle-on-components-btn').on('click', 'input', function (){
+        toggleComponents(elId);
     });
 
     $(elId + ' [data-toggle="tooltip"]').tooltip();
 };
+
+function renderToggleComponents(div, targetTable) {
+     var showComponents = $.cookies.get("showComponents") || false;
+     div.append("<span id='toggle-on-components-btn' class=\"tip right\" " +
+                "title=\"Use this to toggle visibility of worker components.\">"+
+                    "<input value=\"Toggle Components\" type=\"button\" class=\"btn btn-info\">" + 
+                "</span>");
+}
+
+function showComponents(row, open) {
+    var tr = $(this).closest('tr');
+    if (!open) {
+        // This row is already open - close it
+        row.child.hide();
+        tr.removeClass('shown');
+    } else {
+        // Open this row
+        row.child (format (row.data())).show();
+        tr.addClass('shown');
+    }
+}
+
+function toggleComponents(elId) {
+    var show = $.cookies.get('showComponents') || false;
+    show = !show;
+
+    var exDate = new Date();
+    exDate.setDate(exDate.getDate() + 365);
+
+    $.cookies.set('showComponents', show, {'path':'/', 'expiresAt':exDate.toUTCString()});
+    $(elId + ' tr').each(function (){
+        var dt = $(elId).dataTable();
+        showComponents(dt.api().row(this), show);
+    });
+}

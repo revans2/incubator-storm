@@ -463,3 +463,53 @@
 
     ;;request from authorized hosts and group should be allowed.
     (is (= true (.permit authorizer (mk-impersonating-req-context impersonating-user user-being-impersonated (InetAddress/getLocalHost)) "someOperation" nil)))))
+
+(deftest impersonation-authorizer-can-be-configured-with-host
+  (let [impersonating-user "admin"
+        user-being-impersonated (System/getProperty "user.name")
+        cluster-conf (merge (read-storm-config)
+                       {Config/NIMBUS_IMPERSONATION_ACL {impersonating-user {"hosts" [(.getCanonicalHostName (InetAddress/getLocalHost))]
+                                                                            ;; WILD_CARD => all groups
+                                                                            "groups" ["*"]}}})
+        authorizer (ImpersonationAuthorizer. )
+        unauthorized-host (com.google.common.net.InetAddresses/forString "10.10.10.10")]
+
+    (.prepare authorizer cluster-conf)
+    ;;request from hosts that are not authorized should be rejected.
+    (is (= false 
+           (.permit authorizer 
+                    (mk-impersonating-req-context impersonating-user 
+                                                  user-being-impersonated 
+                                                  unauthorized-host) "someOperation" nil)))
+
+    ;;request from authorized hosts and group should be allowed.
+    (is (= true 
+           (.permit authorizer 
+                    (mk-impersonating-req-context impersonating-user 
+                                                  user-being-impersonated 
+                                                  (InetAddress/getLocalHost)) "someOperation" nil)))))
+
+(deftest impersonation-authorizer-can-be-configured-with-ip
+  (let [impersonating-user "admin"
+        user-being-impersonated (System/getProperty "user.name")
+        cluster-conf (merge (read-storm-config)
+                       {Config/NIMBUS_IMPERSONATION_ACL {impersonating-user {"hosts" [(.getHostAddress (InetAddress/getLocalHost))]
+                                                                            ;; WILD_CARD => all groups
+                                                                            "groups" ["*"]}}})
+        authorizer (ImpersonationAuthorizer. )
+        unauthorized-host (com.google.common.net.InetAddresses/forString "10.10.10.10")]
+
+    (.prepare authorizer cluster-conf)
+    ;;request from hosts that are not authorized should be rejected.
+    (is (= false 
+           (.permit authorizer 
+                    (mk-impersonating-req-context impersonating-user 
+                                                  user-being-impersonated 
+                                                  unauthorized-host) "someOperation" nil)))
+
+    ;;request from authorized hosts and group should be allowed.
+    (is (= true 
+           (.permit authorizer 
+                    (mk-impersonating-req-context impersonating-user 
+                                                  user-being-impersonated 
+                                                  (InetAddress/getLocalHost)) "someOperation" nil)))))

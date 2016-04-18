@@ -65,6 +65,8 @@
                           ^long transferred
                           ^long failed])
 
+(defrecord WorkerResources [assigned-mem-on-heap assigned-mem-off-heap assigned-cpu])
+
 (defn new-executor-stats []
   (ExecutorStats. 0 0 0 0 0))
 

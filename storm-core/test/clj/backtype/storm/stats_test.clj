@@ -16,14 +16,17 @@
 (ns backtype.storm.stats-test
   (:use [clojure test])
   (:import [backtype.storm.scheduler WorkerSlot])
+  (:require [backtype.storm.daemon.common :refer [->WorkerResources]])
   (:require [backtype.storm [stats :as stats]]))
 
-(defn- make-topo-info-no-beats []
+(defn- make-topo-info-no-beats 
+  []
   {:storm-name "testing", 
    :assignment {:executor->node+port {[1 3] ["node" 1234]}
-                 :node->host {"node" "host"}}})
+                :node->host {"node" "host"}}})
 
-(defn- make-topo-info[]
+(defn- make-topo-info
+  []
   (merge 
     {:beats {[1 3] {:uptime 6}}}
     {:task->component {1 "exclaim1", 2 "__sys", 3 "exclaim1"}}
@@ -32,13 +35,13 @@
 (deftest agg-worker-populates-worker-summary
   (let [storm-id "foo"
         topo-info (make-topo-info)
-        worker->resources {(WorkerSlot. "node" 1234) [0 1 2 3 4 5]}
-        include->sys? true 
+        worker->resources {(WorkerSlot. "node" 1234) (->WorkerResources 3 4 5)}
+        include-sys? true 
         user-authorized true 
         worker-summaries (stats/agg-worker-stats storm-id 
                                                  topo-info 
                                                  worker->resources 
-                                                 include->sys? 
+                                                 include-sys? 
                                                  user-authorized)]
     (let [summ (first worker-summaries)
           comps (.get_component_to_num_tasks summ)]
@@ -60,13 +63,13 @@
 (deftest agg-worker-skips-sys-if-not-enabled
   (let [storm-id "foo"
         topo-info (make-topo-info)
-        worker->resources {(WorkerSlot. "node" 1234) [0 1 2 3 4 5]}
-        include->sys? false
+        worker->resources {(WorkerSlot. "node" 1234) (->WorkerResources 3 4 5)}
+        include-sys? false
         user-authorized true 
         worker-summaries (stats/agg-worker-stats storm-id 
                                                  topo-info 
                                                  worker->resources 
-                                                 include->sys? 
+                                                 include-sys? 
                                                  user-authorized)]
     (let [summ (first worker-summaries)
           comps (.get_component_to_num_tasks summ)]
@@ -76,13 +79,13 @@
 (deftest agg-worker-gracefully-handles-missing-beats
   (let [storm-id "foo"
         topo-info (make-topo-info-no-beats)
-        worker->resources {(WorkerSlot. "node" 1234) [0 1 2 3 4 5]}
-        include->sys? false
+        worker->resources {(WorkerSlot. "node" 1234) (->WorkerResources 3 4 5)}
+        include-sys? false
         user-authorized true 
         worker-summaries (stats/agg-worker-stats storm-id 
                                                  topo-info 
                                                  worker->resources 
-                                                 include->sys? 
+                                                 include-sys? 
                                                  user-authorized)]
     (let [summ (first worker-summaries)]
       (is (= 0 (.get_uptime_secs summ))))))
@@ -90,13 +93,13 @@
 (deftest agg-worker-stats-exclude-components-if-not-authorized
   (let [storm-id "foo"
         topo-info (make-topo-info-no-beats)
-        worker->resources {(WorkerSlot. "node" 1234) [0 1 2 3 4 5]}
-        include->sys? false
+        worker->resources {(WorkerSlot. "node" 1234) (->WorkerResources 3 4 5)}
+        include-sys? false
         user-authorized  false
         worker-summaries (stats/agg-worker-stats storm-id 
                                                  topo-info 
                                                  worker->resources 
-                                                 include->sys? 
+                                                 include-sys? 
                                                  user-authorized)]
     (let [summ (first worker-summaries)]
       (is (= 0 (.get_uptime_secs summ)))
@@ -106,12 +109,12 @@
   (let [storm-id "foo"
         topo-info (make-topo-info-no-beats)
         worker->resources nil
-        include->sys? false
+        include-sys? false
         user-authorized  false
         worker-summaries (stats/agg-worker-stats storm-id 
                                                  topo-info 
                                                  worker->resources 
-                                                 include->sys? 
+                                                 include-sys? 
                                                  user-authorized)]
     (let [summ (first worker-summaries)]
       (is (= 0 (.get_uptime_secs summ)))

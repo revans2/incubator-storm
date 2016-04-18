@@ -627,16 +627,26 @@ public class Cluster {
             Double assignedMemForTopology = 0.0;
             Double assignedMemPerSlot = getAssignedMemoryForSlot(topConf);
 
-            Map<WorkerSlot, Double[]> workerResources = new HashMap<WorkerSlot, Double[]>();
+            Map<WorkerSlot, Double[]> workerResources;
+            if (this.workerResources.containsKey(topId)){
+                workerResources = this.workerResources.get(topId);
+            } else {
+                workerResources = new HashMap<WorkerSlot, Double[]>();
+                this.workerResources.put(topId, workerResources);
+            }
 
             for (WorkerSlot ws: entry.getValue().getSlots()) {
                 assignedMemForTopology += assignedMemPerSlot;
                 String nodeId = ws.getNodeId();
 
                 // for non-RAS, these are all constant
-                Double[] worker_resources = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
-                worker_resources[3] = assignedMemPerSlot;
-                workerResources.put(ws, worker_resources);
+                if (workerResources.containsKey(ws)){
+                    Double[] worker_resources = workerResources.get(ws);
+                    worker_resources[0] = assignedMemPerSlot;
+                } else {
+                    Double[] worker_resources = {assignedMemPerSlot, 0.0, 0.0};
+                    workerResources.put(ws, worker_resources);
+                }
 
                 if (supervisorToAssignedMem.containsKey(nodeId)) {
                     supervisorToAssignedMem.put(nodeId, supervisorToAssignedMem.get(nodeId) + assignedMemPerSlot);
@@ -644,8 +654,6 @@ public class Cluster {
                     supervisorToAssignedMem.put(nodeId, assignedMemPerSlot);
                 }
             }
-
-            this.setWorkerResources(topId, workerResources);
 
             if (topologyResources.containsKey(topId)) {
                 Double[] topo_resources = topologyResources.get(topId);
@@ -684,15 +692,36 @@ public class Cluster {
             }
             Map topConf = topologies.getById(topId).getConf();
             Double assignedCpuForTopology = 0.0;
+
+            Map<WorkerSlot, Double[]> workerResources;
+            if (this.workerResources.containsKey(topId)){
+                workerResources = this.workerResources.get(topId);
+            } else {
+                workerResources = new HashMap<WorkerSlot, Double[]>();
+                this.workerResources.put(topId, workerResources);
+            }
+
             for (WorkerSlot ws: entry.getValue().getSlots()) {
                 assignedCpuForTopology += PER_WORKER_CPU_SWAG;
                 String nodeId = ws.getNodeId();
+
+                // for non-RAS, these are all constant
+                if (workerResources.containsKey(ws)){
+                    Double[] worker_resources = workerResources.get(ws);
+                    worker_resources[2] = PER_WORKER_CPU_SWAG;
+                } else {
+                    Double[] worker_resources = {0.0, 0.0, PER_WORKER_CPU_SWAG};
+                    workerResources.put(ws, worker_resources);
+                }
+
                 if (supervisorToAssignedCpu.containsKey(nodeId)) {
                     supervisorToAssignedCpu.put(nodeId, supervisorToAssignedCpu.get(nodeId) + PER_WORKER_CPU_SWAG);
                 } else {
                     supervisorToAssignedCpu.put(nodeId, PER_WORKER_CPU_SWAG);
                 }
             }
+            this.setWorkerResources(topId, workerResources);
+
             if (getTopologyResourcesMap().containsKey(topId)) {
                 Double[] topo_resources = getTopologyResourcesMap().get(topId);
                 topo_resources[5] = assignedCpuForTopology;
