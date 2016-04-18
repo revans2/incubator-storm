@@ -389,14 +389,19 @@
         [worker-launchtime (:launchtime (@(:worker-launchtime-atom supervisor) id))]
         (when
           (or 
-            (and (not= :valid state) (not= :not-started state))
-            (and (= :not-started state) (not-nil? worker-launchtime) (is-worker-launchtime-timed-out? now worker-launchtime conf)))
-              (log-message
-               "Shutting down and clearing state for id " id
-               ". Current supervisor time: " now
-               ". State: " state
-               ", Heartbeat: " (pr-str heartbeat))
-              (shutdown-worker supervisor id))))
+            (and (not= :valid state)
+                 (not= :not-started state))
+            (and (= :not-started state)
+                 (or (nil? worker-launchtime)
+                 (is-worker-launchtime-timed-out? now worker-launchtime conf))))
+          (if (= :not-started state)
+            (log-message "Worker " id " failed to start"))
+          (log-message
+            "Shutting down and clearing state for id " id
+            ". Current supervisor time: " now
+            ". State: " state
+            ", Heartbeat: " (pr-str heartbeat))
+          (shutdown-worker supervisor id))))
     (let [valid-new-worker-ids
           (into {}
             (remove nil?
@@ -423,7 +428,7 @@
                         port
                         id
                         resources)
-                      (swap! (:worker-launchtime-atom supervisor) assoc id { :launchtime (current-time-secs) :port port })
+                      (swap! (:worker-launchtime-atom supervisor) assoc id {:launchtime (current-time-secs) :port port})
                       (mark! num-workers-launched)
                       [port id])
                     (do
@@ -440,8 +445,7 @@
                         (merge
                           (select-keys (ls-approved-workers local-state)
                             (keys keepers))
-                          (zipmap (vals valid-new-worker-ids) (keys valid-new-worker-ids))))
-      )))
+                          (zipmap (vals valid-new-worker-ids) (keys valid-new-worker-ids)))))))
 
 (defn assigned-storm-ids-from-port-assignments [assignment]
   (->> assignment
