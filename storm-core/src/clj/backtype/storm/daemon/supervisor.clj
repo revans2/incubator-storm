@@ -393,15 +393,15 @@
                  (not= :not-started state))
             (and (= :not-started state)
                  (or (nil? worker-launchtime)
-                 (is-worker-launchtime-timed-out? now worker-launchtime conf))))
-          (if (= :not-started state)
-            (log-message "Worker " id " failed to start"))
-          (log-message
-            "Shutting down and clearing state for id " id
-            ". Current supervisor time: " now
-            ". State: " state
-            ", Heartbeat: " (pr-str heartbeat))
-          (shutdown-worker supervisor id))))
+                   (is-worker-launchtime-timed-out? now worker-launchtime conf))))
+              (if (= :not-started state)
+                (log-message "Worker " id " failed to start"))
+              (log-message
+                "Shutting down and clearing state for id " id
+                ". Current supervisor time: " now
+                ". State: " state
+                ", Heartbeat: " (pr-str heartbeat))
+              (shutdown-worker supervisor id))))
     (let [valid-new-worker-ids
           (into {}
             (remove nil?
