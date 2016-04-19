@@ -325,10 +325,10 @@ public class MultitenantResourceAwareBridgeScheduler implements IScheduler{
                     ExecutorDetails exec = execToWs.getKey();
                     WorkerSlot ws = execToWs.getValue();
 
-                    if (schedMap.containsKey(topoId) == false) {
+                    if (!schedMap.containsKey(topoId)) {
                         schedMap.put(topoId, new HashMap<WorkerSlot, Collection<ExecutorDetails>>());
                     }
-                    if (schedMap.get(topoId).containsKey(ws) == false) {
+                    if (!schedMap.get(topoId).containsKey(ws)) {
                         schedMap.get(topoId).put(ws, new LinkedList<ExecutorDetails>());
                     }
                     schedMap.get(topoId).get(ws).add(exec);
