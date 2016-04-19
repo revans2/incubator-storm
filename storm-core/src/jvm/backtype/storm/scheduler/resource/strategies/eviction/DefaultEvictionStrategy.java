@@ -63,12 +63,12 @@ public class DefaultEvictionStrategy implements IEvictionStrategy {
             if (evictUser != null) {
                 TopologyDetails topologyEvict = evictUser.getRunningTopologyWithLowestPriority();
                 LOG.debug("Running Topology {} from user {} is still within user's resource guarantee thus, POTENTIALLY evicting Topology {} from user {} since:" +
-                                "\n(1.0 - submitter.getCPUResourcePoolUtilization()) = {} >= cpuNeeded = {}" +
-                                "\nand" +
-                                "\n(1.0 - submitter.getMemoryResourcePoolUtilization()) = {} >= memoryNeeded = {}"
-                        ,td, submitter, topologyEvict, evictUser, (1.0 - submitter.getCPUResourcePoolUtilization())
+                        "\n(1.0 - submitter.getCPUResourcePoolUtilization()) = {} >= cpuNeeded = {}" +
+                        "\nand" +
+                        "\n(1.0 - submitter.getMemoryResourcePoolUtilization()) = {} >= memoryNeeded = {}"
+                        , td, submitter, topologyEvict, evictUser, (1.0 - submitter.getCPUResourcePoolUtilization())
                         , cpuNeeded, (1.0 - submitter.getMemoryResourcePoolUtilization()), memoryNeeded);
-                evictTopology(topologyEvict);
+                EvictionCommon.evictTopology(topologyEvict, this.cluster, this.userMap, this.nodes);
                 return true;
             }
         } else {
@@ -76,13 +76,13 @@ public class DefaultEvictionStrategy implements IEvictionStrategy {
                 if ((evictUser.getResourcePoolAverageUtilization() - 1.0) > (((cpuNeeded + memoryNeeded) / 2) + (submitter.getResourcePoolAverageUtilization() - 1.0))) {
                     TopologyDetails topologyEvict = evictUser.getRunningTopologyWithLowestPriority();
                     LOG.debug("POTENTIALLY Evicting Topology {} from user {} since:" +
-                                    "\n((evictUser.getResourcePoolAverageUtilization() - 1.0) = {}" +
-                                    "\n(cpuNeeded + memoryNeeded) / 2) = {} and (submitter.getResourcePoolAverageUtilization() - 1.0)) = {} Thus," +
-                                    "\n(evictUser.getResourcePoolAverageUtilization() - 1.0) = {} > (((cpuNeeded + memoryNeeded) / 2) + (submitter.getResourcePoolAverageUtilization() - 1.0)) = {}"
-                            ,topologyEvict, evictUser, (evictUser.getResourcePoolAverageUtilization() - 1.0), ((cpuNeeded + memoryNeeded) / 2)
+                            "\n((evictUser.getResourcePoolAverageUtilization() - 1.0) = {}" +
+                            "\n(cpuNeeded + memoryNeeded) / 2) = {} and (submitter.getResourcePoolAverageUtilization() - 1.0)) = {} Thus," +
+                            "\n(evictUser.getResourcePoolAverageUtilization() - 1.0) = {} > (((cpuNeeded + memoryNeeded) / 2) + (submitter.getResourcePoolAverageUtilization() - 1.0)) = {}"
+                            , topologyEvict, evictUser, (evictUser.getResourcePoolAverageUtilization() - 1.0), ((cpuNeeded + memoryNeeded) / 2)
                             , (submitter.getResourcePoolAverageUtilization() - 1.0), (evictUser.getResourcePoolAverageUtilization() - 1.0)
                             , (((cpuNeeded + memoryNeeded) / 2) + (submitter.getResourcePoolAverageUtilization() - 1.0)));
-                    evictTopology(topologyEvict);
+                    EvictionCommon.evictTopology(topologyEvict, this.cluster, this.userMap, this.nodes);
                     return true;
                 }
             }
@@ -95,20 +95,11 @@ public class DefaultEvictionStrategy implements IEvictionStrategy {
             if (topo.getTopologyPriority() > td.getTopologyPriority()) {
                 LOG.debug("POTENTIALLY Evicting Topology {} from user {} (itself) since topology {} has a lower priority than topology {}"
                         , topo, submitter, topo, td);
-                        evictTopology(topo);
+                EvictionCommon.evictTopology(topo, this.cluster, this.userMap, this.nodes);
                 return true;
             }
         }
         return false;
-    }
-
-    private void evictTopology(TopologyDetails topologyEvict) {
-        Collection<WorkerSlot> workersToEvict = this.cluster.getUsedSlotsByTopologyId(topologyEvict.getId());
-        User submitter = this.userMap.get(topologyEvict.getTopologySubmitter());
-
-        LOG.info("Evicting Topology {} with workers: {} from user {}", topologyEvict.getName(), workersToEvict, topologyEvict.getTopologySubmitter());
-        this.nodes.freeSlots(workersToEvict);
-        submitter.moveTopoFromRunningToPending(topologyEvict, this.cluster);
     }
 
     private User findUserWithHighestAverageResourceUtilAboveGuarantee() {
