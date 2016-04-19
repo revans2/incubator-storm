@@ -313,32 +313,33 @@ public class MultitenantResourceAwareBridgeScheduler implements IScheduler{
      * @param ephemeral
      */
     public void mergeCluster(Cluster target, Cluster ephemeral) {
-        if(target.hashCode() != ephemeral.hashCode()) {
+        if (target.hashCode() != ephemeral.hashCode()) {
             Map<String, Map<WorkerSlot, Collection<ExecutorDetails>>> schedMap = new HashMap<String, Map<WorkerSlot, Collection<ExecutorDetails>>>();
-            for(Entry<String, SchedulerAssignment> entry : ephemeral.getAssignments().entrySet()) {
+            for (Entry<String, SchedulerAssignment> entry : ephemeral.getAssignments().entrySet()) {
                 String topoId = entry.getKey();
-                for(Map.Entry<ExecutorDetails, WorkerSlot> execToWs : entry.getValue().getExecutorToSlot().entrySet()) {
+                //free existing assignments of topo so new assignments can be assigned
+                LOG.debug("free slots {} already used by topology {}", target.getUsedSlotsByTopologyId(topoId), topoId);
+                target.freeSlots(target.getUsedSlotsByTopologyId(topoId));
+
+                for (Map.Entry<ExecutorDetails, WorkerSlot> execToWs : entry.getValue().getExecutorToSlot().entrySet()) {
                     ExecutorDetails exec = execToWs.getKey();
                     WorkerSlot ws = execToWs.getValue();
 
-                    if((target.getAssignmentById(topoId) == null) || (target.getAssignmentById(topoId).getExecutorToSlot().containsKey(exec) == false)
-                            && ((target.getAssignmentById(topoId).getExecutorToSlot().get(exec) != null) &&
-                                    (target.getAssignmentById(topoId).getExecutorToSlot().get(exec).hashCode() != ws.hashCode()))) {
-                        if(schedMap.containsKey(topoId) == false) {
-                            schedMap.put(topoId, new HashMap<WorkerSlot, Collection<ExecutorDetails>>());
-                        }
-                        if(schedMap.get(topoId).containsKey(ws) == false) {
-                            schedMap.get(topoId).put(ws, new LinkedList<ExecutorDetails> ());
-                        }
-                        schedMap.get(topoId).get(ws).add(exec);
+                    if (!schedMap.containsKey(topoId)) {
+                        schedMap.put(topoId, new HashMap<WorkerSlot, Collection<ExecutorDetails>>());
                     }
+                    if (!schedMap.get(topoId).containsKey(ws)) {
+                        schedMap.get(topoId).put(ws, new LinkedList<ExecutorDetails>());
+                    }
+                    schedMap.get(topoId).get(ws).add(exec);
                 }
             }
-            for(Entry<String, Map<WorkerSlot, Collection<ExecutorDetails>>> schedEntry : schedMap.entrySet()) {
+            for (Entry<String, Map<WorkerSlot, Collection<ExecutorDetails>>> schedEntry : schedMap.entrySet()) {
                 String topoId = schedEntry.getKey();
-                for(Entry<WorkerSlot, Collection<ExecutorDetails>> execToWs : schedEntry.getValue().entrySet()) {
-                    WorkerSlot ws = execToWs.getKey();
-                    Collection<ExecutorDetails> execs = execToWs.getValue();
+
+                for (Entry<WorkerSlot, Collection<ExecutorDetails>> workerToExecs : schedEntry.getValue().entrySet()) {
+                    WorkerSlot ws = workerToExecs.getKey();
+                    Collection<ExecutorDetails> execs = workerToExecs.getValue();
                     LOG.info("For topoId {}, assign slot with {} {}", topoId, ws.getNodeId(), ws.getPort());
                     target.assign(ws, topoId, execs);
                 }
