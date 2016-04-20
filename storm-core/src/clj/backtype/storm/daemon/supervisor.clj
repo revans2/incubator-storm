@@ -360,7 +360,12 @@
         keepers (filter-val
                  (fn [[state _]] (or (= state :not-started) (= state :valid)))
                  allocated)
-        keep-ports (set (for [[id [_ hb]] keepers] (:port (@(:worker-launchtime-atom supervisor) id) )))
+        keep-ports (->> keepers
+                       (map (fn [[id [_ hb]]]
+                              (:port (or hb
+                                         (get @(:worker-launchtime-atom supervisor) id)))))
+                       (filter not-nil?)
+                       (set))
         reassign-executors (select-keys-pred (complement keep-ports) assigned-executors)
         new-worker-ids (into
                         {}
