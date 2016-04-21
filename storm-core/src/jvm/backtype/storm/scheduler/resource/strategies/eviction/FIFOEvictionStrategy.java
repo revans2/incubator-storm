@@ -31,6 +31,11 @@ import java.util.Comparator;
 import java.util.Map;
 import java.util.TreeSet;
 
+/**
+ * This eviction strategy will evict topologies in FIFO order based on uptime.  Thus, in a situation when there is not enough resources to schedule
+ * an incoming topology, the oldest scheduled existing topology will be evicted.  We will only evict topologies from users that are over
+ * their resource guarantee
+ */
 public class FIFOEvictionStrategy implements IEvictionStrategy{
     private static final Logger LOG = LoggerFactory
             .getLogger(FIFOEvictionStrategy.class);
@@ -52,7 +57,7 @@ public class FIFOEvictionStrategy implements IEvictionStrategy{
     public boolean makeSpaceForTopo(TopologyDetails td) {
         LOG.debug("attempting to make space for topo {} from user {}", td.getName(), td.getTopologySubmitter());
         User submitter = this.userMap.get(td.getTopologySubmitter());
-        TreeSet<TopologyDetails> topos = getFIFOOdering();
+        TreeSet<TopologyDetails> topos = getTopoOrderedByUptime();
         if (topos.size() > 0 ) {
             TopologyDetails topoToEvict = topos.first();
             if (topoToEvict.getUpTime() > td.getUpTime()) {
@@ -63,7 +68,7 @@ public class FIFOEvictionStrategy implements IEvictionStrategy{
         return false;
     }
 
-    TreeSet<TopologyDetails> getFIFOOdering() {
+    TreeSet<TopologyDetails> getTopoOrderedByUptime() {
         TreeSet<TopologyDetails> orderedTopologies = new TreeSet<TopologyDetails>(new Comparator<TopologyDetails>() {
             @Override
             public int compare(TopologyDetails o1, TopologyDetails o2) {
