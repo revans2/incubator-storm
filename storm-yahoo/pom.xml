@@ -173,7 +173,7 @@
     <dependency>
       <groupId>yahoo.yinst.zts_java_client</groupId>
       <artifactId>zts_java_client</artifactId>
-      <version>1.4.35</version>
+      <version>1.4.45</version>
     </dependency> 
     <dependency>
       <!--needed to fix dep issue with hadoop-->
