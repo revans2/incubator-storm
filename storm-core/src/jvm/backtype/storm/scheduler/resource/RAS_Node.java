@@ -244,7 +244,6 @@ public class RAS_Node {
     }
 
     private void freeMemory(double amount) {
-        LOG.debug("freeing {} memory on node {}...avail mem: {}", amount, getHostname(), _availMemory);
         if((_availMemory + amount) > getTotalMemoryResources()) {
             LOG.warn("Freeing more memory than there exists! Memory trying to free: {} Total memory on Node: {}", (_availMemory + amount), getTotalMemoryResources());
             return;
@@ -253,7 +252,6 @@ public class RAS_Node {
     }
 
     private void freeCPU(double amount) {
-        LOG.debug("freeing {} CPU on node...avail CPU: {}", amount, getHostname(), _availCPU);
         if ((_availCPU + amount) > getTotalCpuResources()) {
             LOG.warn("Freeing more CPU than there exists! CPU trying to free: {} Total CPU on Node: {}", (_availMemory + amount), getTotalCpuResources());
             return;
@@ -513,5 +511,17 @@ public class RAS_Node {
         Double taskCpuReq = topo.getTotalCpuReqTask(exec);
         consumeCPU(taskCpuReq);
         consumeMemory(taskMemReq);
+    }
+
+    /**
+     * frees the amount of resources for a executor in a topology.
+     * @param exec is the executor for which the resources are freed for
+     * @param topo the topology the executor is a part
+     */
+    public void freeResourcesForTask(ExecutorDetails exec, TopologyDetails topo) {
+        Double taskMemReq = topo.getTotalMemReqTask(exec);
+        Double taskCpuReq = topo.getTotalCpuReqTask(exec);
+        freeCPU(taskCpuReq);
+        freeMemory(taskMemReq);
     }
 }

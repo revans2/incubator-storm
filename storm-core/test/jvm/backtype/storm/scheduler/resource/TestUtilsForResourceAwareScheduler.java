@@ -285,4 +285,19 @@ public class TestUtilsForResourceAwareScheduler {
         }
         return ret;
     }
+
+    public static Map<ExecutorDetails, WorkerSlot> getExecToWorkerResultMapping(Map<WorkerSlot, Collection<ExecutorDetails>> workerToExecs) {
+        Map<ExecutorDetails, WorkerSlot> execToWorkerMapping = null;
+        if(workerToExecs!= null) {
+            execToWorkerMapping = new HashMap<ExecutorDetails, WorkerSlot>();
+            for (Map.Entry<WorkerSlot, Collection<ExecutorDetails>> entry : workerToExecs.entrySet()) {
+                WorkerSlot workerSlot = entry.getKey();
+                Collection<ExecutorDetails> execs = entry.getValue();
+                for (ExecutorDetails exec : execs) {
+                    execToWorkerMapping.put(exec, workerSlot);
+                }
+            }
+        }
+        return execToWorkerMapping;
+    }
 }
