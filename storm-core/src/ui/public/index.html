@@ -49,6 +49,12 @@
   </div>
   <div class="row">
     <div class="col-md-12">
+      <h2 id="cluster-resources-header">Cluster Resources</h2>
+      <div id="cluster-resources"></div>
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-md-12">
       <h2>Topology Summary</h2>
       <div id="topology-summary"></div>
     </div>
@@ -117,6 +123,7 @@ $(document).ready(function() {
 
     var uiUser = $("#ui-user");
     var clusterSummary = $("#cluster-summary");
+    var clusterResources = $("#cluster-resources");
     var topologySummary = $("#topology-summary");
     var topologyResources = $("#topology-resources");
     var supervisorSummary = $("#supervisor-summary");
@@ -136,6 +143,15 @@ $(document).ready(function() {
           jsError(function() {
             clusterSummary.append(Mustache.render($(template).filter("#cluster-summary-template").html(),response));
             $('#cluster-summary [data-toggle="tooltip"]').tooltip();
+          });
+           jsError(function() {
+            clusterResources.append(Mustache.render($(template).filter("#cluster-resources-template").html(),response));
+            var displayResource = response["schedulerDisplayResource"];
+            $('#cluster-resources [data-toggle="tooltip"]').tooltip();
+            if (!displayResource){
+                $('#cluster-resources-header').hide();
+                $('#cluster-resources').hide();
+            }
           });
         });
     });

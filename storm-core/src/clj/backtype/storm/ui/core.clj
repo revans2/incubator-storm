@@ -326,7 +326,20 @@
                             (reduce +))
            total-executors (->> (.get_topologies summ)
                                 (map #(.get_num_executors ^TopologySummary %))
-                                (reduce +))]
+                             (reduce +))
+           resourceSummary (if (> (.size sups) 0)
+                             (reduce #(map + %1 %2)
+                               (for [^SupervisorSummary s sups
+                                     :let [sup-total-mem (get (.get_total_resources s) Config/SUPERVISOR_MEMORY_CAPACITY_MB)
+                                           sup-total-cpu (get (.get_total_resources s) Config/SUPERVISOR_CPU_CAPACITY)
+                                           sup-avail-mem (if (> (- sup-total-mem (.get_used_mem s) 0.0)) (- sup-total-mem (.get_used_mem s)) 0.0)
+                                           sup-avail-cpu (if (> (- sup-total-cpu (.get_used_cpu s)) 0.0) (- sup-total-cpu (.get_used_cpu s)) 0.0)]]
+                                 [sup-total-mem sup-total-cpu sup-avail-mem sup-avail-cpu]))
+                             [0.0 0.0 0.0 0.0])
+           totalMem (nth resourceSummary 0)
+           totalCpu (nth resourceSummary 1)
+           availMem (nth resourceSummary 2)
+           availCpu (nth resourceSummary 3)]
        {"user" user
         "stormVersion" STORM-VERSION
         "nimbusUptime" (pretty-uptime-sec (.get_nimbus_uptime_secs summ))
@@ -337,7 +350,14 @@
         "slotsUsed"  used-slots
         "slotsFree" free-slots
         "executorsTotal" total-executors
-        "tasksTotal" total-tasks })))
+        "tasksTotal" total-tasks
+        "schedulerDisplayResource" (*STORM-CONF* Config/SCHEDULER_DISPLAY_RESOURCE)
+        "totalMem" totalMem
+        "totalCpu" totalCpu
+        "availMem" availMem
+        "availCpu" availCpu
+        "memPercentUtil" (if (and (not (nil? totalMem)) (> totalMem 0.0)) (format "%.1f" (* (/ (- totalMem availMem) totalMem) 100.0)) 0.0)
+        "cpuPercentUtil" (if (and (not (nil? totalCpu)) (> totalCpu 0.0)) (format "%.1f" (* (/ (- totalCpu availCpu) totalCpu) 100.0)) 0.0)})))
 
 (defn supervisor-summary
   ([]

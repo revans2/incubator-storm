@@ -93,6 +93,13 @@ Response fields:
 |slotsFree| Integer |Number of worker slots available|
 |executorsTotal| Integer |Total number of executors|
 |tasksTotal| Integer |Total tasks|
+|schedulerDisplayResource| Boolean | Whether to display scheduler resource information|
+|totalMem| Double | The total amount of memory in the cluster in MB
+|totalCpu| Double | The total amount of CPU in the cluster
+|availMem| Double | The amount of available memory in the cluster in MB
+|availCpu| Double | The amount of available cpu in the cluster
+|memPercentUtil| Double | The percent utilization of memory resources in cluster
+|cpuPercentUtil| Double | The percent utilization of CPU resources in cluster
 
 Sample response:
 
@@ -107,6 +114,13 @@ Sample response:
     "slotsFree": 1,
     "executorsTotal": 28,
     "tasksTotal": 28
+    "schedulerDisplayResource": true
+    "totalMem": 4096.0
+    "totalCpu": 400.0
+    "availMem": 1024.0
+    "availCPU": 250.0
+    "memPercentUtil": 75.0
+    "cpuPercentUtil": 37.5
     }
 ```
 
@@ -124,6 +138,7 @@ Response fields:
 |uptimeSeconds| Integer| Shows how long the supervisor is running in seconds|
 |slotsTotal| Integer| Total number of available worker slots for this supervisor|
 |slotsUsed| Integer| Number of worker slots used on this supervisor|
+|schedulerDisplayResource| Boolean | Whether to display scheduler resource information|
 |totalMem| Double| Total memory capacity on this supervisor|
 |totalCpu| Double| Total CPU capacity on this supervisor|
 |usedMem| Double| Used memory capacity on this supervisor|
@@ -167,6 +182,7 @@ Response fields:
 |tasksTotal| Integer |Total number of tasks for this topology|
 |workersTotal| Integer |Number of workers used for this topology|
 |executorsTotal| Integer |Number of executors used for this topology|
+|schedulerDisplayResource| Boolean | Whether to display scheduler resource information|
 |requestedMemOnHeap| Double|Requested On-Heap Memory by User (MB)
 |requestedMemOffHeap| Double|Requested Off-Heap Memory by User (MB)|
 |requestedTotalMem| Double|Requested Total Memory by User (MB)|

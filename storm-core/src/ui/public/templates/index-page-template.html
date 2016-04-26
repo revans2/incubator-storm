@@ -74,6 +74,54 @@
   </tbody>
 </table>
 </script>
+<script id="cluster-resources-template" type="text/html">
+  <table id="cluster-resources-table" class="table compact">
+    <thead>
+    <tr>
+      <th>
+          <span data-toggle="tooltip" data-placement="right" title="Total Available Memory in Cluster in MB.">
+            Total Memory (MB)
+          </span>
+      </th>
+      <th>
+          <span data-toggle="tooltip" data-placement="right" title="Total Available Memory in Cluster in MB.">
+            Total Available Memory (MB)
+          </span>
+      </th>
+      <th>
+          <span data-toggle="tooltip" data-placement="above" title="Percent Utilization of Memory Resources in Cluster.">
+            Memory Utilization (%)
+          </span>
+      </th>
+      <th>
+          <span data-toggle="tooltip" data-placement="above" title="Total CPU Resources in Cluster. Every 100 means 1 core.">
+            Total CPU (%)
+          </span>
+      </th>
+      <th>
+          <span data-toggle="tooltip" data-placement="above" title="Total Available CPU Resources in Cluster. Every 100 means 1 core.">
+            Available CPU (%)
+          </span>
+      </th>
+      <th>
+          <span data-toggle="tooltip" data-placement="above" title="Percent Utilization of CPU Resources in Cluster.">
+           CPU Utilization (%)
+          </span>
+      </th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr>
+      <td>{{totalMem}}</td>
+      <td>{{availMem}}</td>
+      <td>{{memPercentUtil}}</td>
+      <td>{{totalCpu}}</td>
+      <td>{{availCpu}}</td>
+      <td>{{cpuPercentUtil}}</td>
+    </tr>
+    </tbody>
+  </table>
+</script>
 <script id="topology-summary-template" type="text/html">
   <table class="table table-striped compact" id="topology-summary-table">
     <thead>
