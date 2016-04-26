@@ -63,10 +63,10 @@ public class TopologyWithConstraintsExample {
     public static void main(String[] args) throws Exception {
         TopologyBuilder builder = new TopologyBuilder();
 
-        builder.setSpout("testSpout", new TestWordSpout(), 3);
-        builder.setBolt("testBolt1", new ExclamationBolt(), 8).shuffleGrouping("testSpout");
-        builder.setBolt("testBolt2", new ExclamationBolt(), 8).shuffleGrouping("testBolt1");
-        builder.setBolt("testBolt3", new ExclamationBolt(), 8).shuffleGrouping("testBolt2");
+        builder.setSpout("testSpout", new TestWordSpout(), 3).setCPULoad(10.0).setMemoryLoad(120.0);;
+        builder.setBolt("testBolt1", new ExclamationBolt(), 8).shuffleGrouping("testSpout").setCPULoad(10.0).setMemoryLoad(120.0);
+        builder.setBolt("testBolt2", new ExclamationBolt(), 8).shuffleGrouping("testBolt1").setCPULoad(10.0).setMemoryLoad(120.0);;
+        builder.setBolt("testBolt3", new ExclamationBolt(), 8).shuffleGrouping("testBolt2").setCPULoad(10.0).setMemoryLoad(120.0);;
 
         Config conf = new Config();
         conf.setDebug(true);
@@ -93,8 +93,9 @@ public class TopologyWithConstraintsExample {
          */
         conf.put(Config.TOPOLOGY_CONSTRAINTS_MAX_DEPTH_TRAVERSAL, 1000000);
 
+        conf.setTopologyStrategy(backtype.storm.scheduler.resource.strategies.scheduling.ConstraintSolverStrategy.class);
+
         if (args != null && args.length > 0) {
-            conf.setNumWorkers(16);
 
             StormSubmitter.submitTopologyWithProgressBar(args[0], conf, builder.createTopology());
         } else {

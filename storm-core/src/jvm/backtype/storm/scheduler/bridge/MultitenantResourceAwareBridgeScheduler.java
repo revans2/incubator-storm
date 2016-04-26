@@ -137,14 +137,10 @@ public class MultitenantResourceAwareBridgeScheduler implements IScheduler{
         Map<String, TopologyDetails> multitenantTopologies = new HashMap<String, TopologyDetails>();
         Map<String, TopologyDetails> rasTopologies = new HashMap<String, TopologyDetails>();
         for(TopologyDetails topo : topologies.getTopologies()) {
-                if(MULTITENANT_STRATEGY.getName().equals(topo.getTopologyStrategy())) {
-                    multitenantTopologies.put(topo.getId(), topo);
-                } else if(RESOURCE_AWARE_STRATEGY.getName().equals(topo.getTopologyStrategy())) {
-                    rasTopologies.put(topo.getId(), topo);
-                } else {
-                    LOG.warn("No valid scheduler specified! Topology {} is going to be scheduled via {} by default", topo.getId(), MULTITENANT_STRATEGY.getName());
-                    topo.setTopologyStrategy(MULTITENANT_STRATEGY);
-                    multitenantTopologies.put(topo.getId(), topo);
+            if(MULTITENANT_STRATEGY.getName().equals(topo.getTopologyStrategy())) {
+                multitenantTopologies.put(topo.getId(), topo);
+            } else {
+                rasTopologies.put(topo.getId(), topo);
             }
         }
         dividedTopos.put(MULTITENANT_STRATEGY.getName(), new Topologies(multitenantTopologies));
@@ -284,7 +280,7 @@ public class MultitenantResourceAwareBridgeScheduler implements IScheduler{
 
         LOG.debug("->Topologies running on Node: {}", node.getRunningTopologies());
         for(String topoId : node.getRunningTopologies()) {
-            if (!RESOURCE_AWARE_STRATEGY.getName().equals(allTopologies.getById(topoId).getTopologyStrategy())) {
+            if (MULTITENANT_STRATEGY.getName().equals(allTopologies.getById(topoId).getTopologyStrategy())) {
                 SchedulerAssignment assignment = cluster.getAssignmentById(topoId);
                 Set<WorkerSlot> usedSlots = assignment.getSlots();
                 LOG.debug("->usedSlots: {})", usedSlots);
