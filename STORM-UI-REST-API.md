@@ -98,8 +98,8 @@ Response fields:
 |totalCpu| Double | The total amount of CPU in the cluster
 |availMem| Double | The amount of available memory in the cluster in MB
 |availCpu| Double | The amount of available cpu in the cluster
-|memPercentUtil| Double | The percent utilization of memory resources in cluster
-|cpuPercentUtil| Double | The percent utilization of CPU resources in cluster
+|memAssignedPercentUtil| Double | The percent utilization of assigned memory resources in cluster.
+|cpuAssignedPercentUtil| Double | The percent utilization of assigned CPU resources in cluster
 
 Sample response:
 
@@ -113,14 +113,14 @@ Sample response:
     "slotsUsed": 3,
     "slotsFree": 1,
     "executorsTotal": 28,
-    "tasksTotal": 28
-    "schedulerDisplayResource": true
-    "totalMem": 4096.0
-    "totalCpu": 400.0
-    "availMem": 1024.0
-    "availCPU": 250.0
-    "memPercentUtil": 75.0
-    "cpuPercentUtil": 37.5
+    "tasksTotal": 28,
+    "schedulerDisplayResource": true,
+    "totalMem": 4096.0,
+    "totalCpu": 400.0,
+    "availMem": 1024.0,
+    "availCPU": 250.0,
+    "memAssignedPercentUtil": 75.0,
+    "cpuAssignedPercentUtil": 37.5,
     }
 ```
 

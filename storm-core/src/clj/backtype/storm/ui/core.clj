@@ -356,8 +356,8 @@
         "totalCpu" totalCpu
         "availMem" availMem
         "availCpu" availCpu
-        "memPercentUtil" (if (and (not (nil? totalMem)) (> totalMem 0.0)) (format "%.1f" (* (/ (- totalMem availMem) totalMem) 100.0)) 0.0)
-        "cpuPercentUtil" (if (and (not (nil? totalCpu)) (> totalCpu 0.0)) (format "%.1f" (* (/ (- totalCpu availCpu) totalCpu) 100.0)) 0.0)})))
+        "memAssignedPercentUtil" (if (and (not (nil? totalMem)) (> totalMem 0.0)) (format "%.1f" (* (/ (- totalMem availMem) totalMem) 100.0)) 0.0)
+        "cpuAssignedPercentUtil" (if (and (not (nil? totalCpu)) (> totalCpu 0.0)) (format "%.1f" (* (/ (- totalCpu availCpu) totalCpu) 100.0)) 0.0)})))
 
 (defn supervisor-summary
   ([]
