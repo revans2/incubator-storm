@@ -728,6 +728,9 @@
 
     new-topology->executor->node+port))
 
+(defrecord WorkerResources [requested-mem-on-heap requested-mem-off-heap requested-cpu
+                            assigned-mem-on-heap assigned-mem-off-heap assigned-cpu])
+
 ;; public so it can be mocked out
 (defn compute-new-scheduler-assignments [nimbus existing-assignments topologies scratch-topology-id]
   (let [conf (:conf nimbus)
@@ -780,9 +783,6 @@
                                                                                          (nth v 3) (nth v 4) (nth v 5))])
                                                        (.getTopologyResourcesMap cluster))))
     (.getAssignments cluster)))
-
-(defrecord WorkerResources [requested-mem-on-heap requested-mem-off-heap requested-cpu
-                            assigned-mem-on-heap assigned-mem-off-heap assigned-cpu])
 
 (defn- get-resources-for-topology [nimbus topo-id]
   (or (get @(:id->resources nimbus) topo-id)
