@@ -779,6 +779,8 @@
     ;;merge with existing statuses
     (reset! (:id->sched-status nimbus) (merge (deref (:id->sched-status nimbus)) (.getStatusMap cluster)))
     (reset! (:node-id->resources nimbus) (.getSupervisorsResourcesMap cluster))
+
+    ; Remove this at first opportunity. This is a hack for multitenant swags with RAS Bridge Scheduler.
     (swap! (:id->resources nimbus) merge (into {} (map (fn [[k v]] [k (->WorkerResources (nth v 0) (nth v 1) (nth v 2)
                                                                                          (nth v 3) (nth v 4) (nth v 5))])
                                                        (.getTopologyResourcesMap cluster))))
