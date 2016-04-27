@@ -776,6 +776,9 @@
     ;;merge with existing statuses
     (reset! (:id->sched-status nimbus) (merge (deref (:id->sched-status nimbus)) (.getStatusMap cluster)))
     (reset! (:node-id->resources nimbus) (.getSupervisorsResourcesMap cluster))
+    (swap! (:id->resources nimbus) merge (into {} (map (fn [[k v]] [k (->WorkerResources (nth v 0) (nth v 1) (nth v 2)
+                                                                                         (nth v 3) (nth v 4) (nth v 5))])
+                                                       (.getTopologyResourcesMap cluster))))
     (.getAssignments cluster)))
 
 (defrecord WorkerResources [requested-mem-on-heap requested-mem-off-heap requested-cpu
