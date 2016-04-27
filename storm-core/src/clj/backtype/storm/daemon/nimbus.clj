@@ -728,6 +728,9 @@
 
     new-topology->executor->node+port))
 
+(defrecord WorkerResources [requested-mem-on-heap requested-mem-off-heap requested-cpu
+                            assigned-mem-on-heap assigned-mem-off-heap assigned-cpu])
+
 ;; public so it can be mocked out
 (defn compute-new-scheduler-assignments [nimbus existing-assignments topologies scratch-topology-id]
   (let [conf (:conf nimbus)
@@ -765,19 +768,51 @@
                                   (apply merge-with set/union))
 
         supervisors (read-all-supervisor-details nimbus all-scheduling-slots supervisor->dead-ports)
-        cluster (Cluster. (:inimbus nimbus) supervisors topology->scheduler-assignment conf)
-        ;; set the status map with existing topology statuses
-        _ (.setStatusMap cluster (deref (:id->sched-status nimbus)))
-        ;; call scheduler.schedule to schedule all the topologies
-        ;; the new assignments for all the topologies are in the cluster object.
-        _ (.schedule (:scheduler nimbus) topologies cluster)
-        _ (.setTopologyResourcesMap cluster @(:id->resources nimbus))
-        _ (if-not (conf SCHEDULER-DISPLAY-RESOURCE) (.updateAssignedMemoryForTopologyAndSupervisor cluster topologies))
-        ;;merge with existing statuses
-        _ (reset! (:id->sched-status nimbus) (merge (deref (:id->sched-status nimbus)) (.getStatusMap cluster)))
-        _ (reset! (:node-id->resources nimbus) (.getSupervisorsResourcesMap cluster))
-        _ (reset! (:id->resources nimbus) (.getTopologyResourcesMap cluster))]
+        cluster (Cluster. (:inimbus nimbus) supervisors topology->scheduler-assignment conf)]
+
+    ;; set the status map with existing topology statuses
+    (.setStatusMap cluster (deref (:id->sched-status nimbus)))
+    ;; call scheduler.schedule to schedule all the topologies
+    ;; the new assignments for all the topologies are in the cluster object.
+    (.schedule (:scheduler nimbus) topologies cluster)
+
+    ;;merge with existing statuses
+    (reset! (:id->sched-status nimbus) (merge (deref (:id->sched-status nimbus)) (.getStatusMap cluster)))
+    (reset! (:node-id->resources nimbus) (.getSupervisorsResourcesMap cluster))
+
+    ; Remove this at first opportunity. This is a hack for multitenant swags with RAS Bridge Scheduler.
+    (swap! (:id->resources nimbus) merge (into {} (map (fn [[k v]] [k (->WorkerResources (nth v 0) (nth v 1) (nth v 2)
+                                                                                         (nth v 3) (nth v 4) (nth v 5))])
+                                                       (.getTopologyResourcesMap cluster))))
     (.getAssignments cluster)))
+
+(defn- get-resources-for-topology [nimbus topo-id]
+  (or (get @(:id->resources nimbus) topo-id)
+      (try
+        (let [storm-cluster-state (:storm-cluster-state nimbus)
+              topology-details (read-topology-details nimbus topo-id)
+              assigned-resources (->> (.assignment-info storm-cluster-state topo-id nil)
+                                      :worker->resources
+                                      (vals)
+                                        ; Default to [[0 0 0]] if there are no values
+                                      (#(or % [[0 0 0]]))
+                                        ; [[on-heap, off-heap, cpu]] -> [[on-heap], [off-heap], [cpu]]
+                                      (apply map vector)
+                                        ; [[on-heap], [off-heap], [cpu]] -> [on-heap-sum, off-heap-sum, cpu-sum]
+                                      (map (partial reduce +)))
+              worker-resources (->WorkerResources (.getTotalRequestedMemOnHeap topology-details)
+                                                  (.getTotalRequestedMemOffHeap topology-details)
+                                                  (.getTotalRequestedCpu topology-details)
+                                                  (nth assigned-resources 0)
+                                                  (nth assigned-resources 1)
+                                                  (nth assigned-resources 2))]
+          (swap! (:id->resources nimbus) assoc topo-id worker-resources)
+          worker-resources)
+        (catch KeyNotFoundException e
+          ; This can happen when a topology is first coming up.
+          ; It's thrown by the blobstore code.
+          (log-error e "Failed to get topology details")
+          (->WorkerResources 0 0 0 0 0 0)))))
 
 (defn changed-executors [executor->node+port new-executor->node+port]
   (let [executor->node+port (if executor->node+port (sort executor->node+port) nil)
@@ -870,6 +905,9 @@
                                                  start-times
                                                  worker->resources)}))]
 
+    (when (not= new-assignments existing-assignments)
+      (log-debug "RESETTING id->resources cache!")
+      (reset! (:id->resources nimbus) {}))
     ;; tasks figure out what tasks to talk to by looking at topology at runtime
     ;; only log/set when there's been a change to the assignment
     (doseq [[topology-id assignment] new-assignments
@@ -1637,13 +1675,13 @@
                                                             (extract-status-str base))]
                                                (when-let [owner (:owner base)] (.set_owner topo-summ owner))
                                                (when-let [sched-status (.get @(:id->sched-status nimbus) id)] (.set_sched_status topo-summ sched-status))
-                                               (when-let [resources (.get @(:id->resources nimbus) id)]
-                                                 (.set_requested_memonheap topo-summ (get resources 0))
-                                                 (.set_requested_memoffheap topo-summ (get resources 1))
-                                                 (.set_requested_cpu topo-summ (get resources 2))
-                                                 (.set_assigned_memonheap topo-summ (get resources 3))
-                                                 (.set_assigned_memoffheap topo-summ (get resources 4))
-                                                 (.set_assigned_cpu topo-summ (get resources 5)))
+                                               (when-let [resources (get-resources-for-topology nimbus id)]
+                                                 (.set_requested_memonheap topo-summ (:requested-mem-on-heap resources))
+                                                 (.set_requested_memoffheap topo-summ (:requested-mem-off-heap resources))
+                                                 (.set_requested_cpu topo-summ (:requested-cpu resources))
+                                                 (.set_assigned_memonheap topo-summ (:assigned-mem-on-heap resources))
+                                                 (.set_assigned_memoffheap topo-summ (:assigned-mem-off-heap resources))
+                                                 (.set_assigned_cpu topo-summ (:assigned-cpu resources)))
                                                topo-summ
                                           ))]
           (ClusterSummary. supervisor-summaries
@@ -1701,13 +1739,13 @@
                            )]
             (when-let [owner (:owner base)] (.set_owner topo-info owner))
             (when-let [sched-status (.get @(:id->sched-status nimbus) storm-id)] (.set_sched_status topo-info sched-status))
-            (when-let [resources (.get @(:id->resources nimbus) storm-id)]
-              (.set_requested_memonheap topo-info (get resources 0))
-              (.set_requested_memoffheap topo-info (get resources 1))
-              (.set_requested_cpu topo-info (get resources 2))
-              (.set_assigned_memonheap topo-info (get resources 3))
-              (.set_assigned_memoffheap topo-info (get resources 4))
-              (.set_assigned_cpu topo-info (get resources 5)))
+            (when-let [resources (get-resources-for-topology nimbus storm-id)]
+              (.set_requested_memonheap topo-info (:requested-mem-on-heap resources))
+              (.set_requested_memoffheap topo-info (:requested-mem-off-heap resources))
+              (.set_requested_cpu topo-info (:requested-cpu resources))
+              (.set_assigned_memonheap topo-info (:assigned-mem-on-heap resources))
+              (.set_assigned_memoffheap topo-info (:assigned-mem-off-heap resources))
+              (.set_assigned_cpu topo-info (:assigned-cpu resources)))
             topo-info
           ))
 
@@ -1737,13 +1775,13 @@
             (.set_owner topo-page-info owner))
           (when-let [sched-status (.get @(:id->sched-status nimbus) storm-id)]
             (.set_sched_status topo-page-info sched-status))
-          (when-let [resources (.get @(:id->resources nimbus) storm-id)]
-            (.set_requested_memonheap topo-page-info (get resources 0))
-            (.set_requested_memoffheap topo-page-info (get resources 1))
-            (.set_requested_cpu topo-page-info (get resources 2))
-            (.set_assigned_memonheap topo-page-info (get resources 3))
-            (.set_assigned_memoffheap topo-page-info (get resources 4))
-            (.set_assigned_cpu topo-page-info (get resources 5)))
+          (when-let [resources (get-resources-for-topology nimbus storm-id)]
+            (.set_requested_memonheap topo-page-info (:requested-mem-on-heap resources))
+            (.set_requested_memoffheap topo-page-info (:requested-mem-off-heap resources))
+            (.set_requested_cpu topo-page-info (:requested-cpu resources))
+            (.set_assigned_memonheap topo-page-info (:assigned-mem-on-heap resources))
+            (.set_assigned_memoffheap topo-page-info (:assigned-mem-off-heap resources))
+            (.set_assigned_cpu topo-page-info (:assigned-cpu resources)))
           (doto topo-page-info
             (.set_name (:storm-name info))
             (.set_status (extract-status-str (:base info)))

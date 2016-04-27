@@ -30,7 +30,6 @@ import backtype.storm.networktopography.DNSToSwitchMapping;
 import backtype.storm.utils.Utils;
 
 public class Cluster {
-
     /**
      * key: supervisor id, value: supervisor details
      */
@@ -601,8 +600,8 @@ public class Cluster {
     }
 
     /*
-    * Update memory usage for each topology and each supervisor node after every round of scheduling
-    * */
+     * Update memory usage for each topology and each supervisor node after every round of scheduling
+     * */
     public void updateAssignedMemoryForTopologyAndSupervisor(Topologies topologies) {
         Map<String, Double> supervisorToAssignedMem = new HashMap<String, Double>();
 
@@ -623,8 +622,8 @@ public class Cluster {
                     supervisorToAssignedMem.put(nodeId, assignedMemPerSlot);
                 }
             }
-            if (this.getTopologyResourcesMap().containsKey(topId)) {
-                Double[] topo_resources = getTopologyResourcesMap().get(topId);
+            if (topologyResources.containsKey(topId)) {
+                Double[] topo_resources = topologyResources.get(topId);
                 topo_resources[3] = assignedMemForTopology;
             } else {
                 Double[] topo_resources = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
@@ -642,6 +641,52 @@ public class Cluster {
                 Double[] supervisor_resources = {0.0, 0.0, 0.0, 0.0};
                 supervisor_resources[2] = entry.getValue();
                 this.supervisorsResources.put(nodeId, supervisor_resources);
+            }
+        }
+    }
+
+    private static final Double PER_WORKER_CPU_SWAG = 100.0;
+    /**
+     * Update CPU usage for each topology and each supervisor node
+     */
+    public void updateAssignedCpuForTopologyAndSupervisor(Topologies topologies) {
+        Map<String, Double> supervisorToAssignedCpu = new HashMap<String, Double>();
+
+        for (Map.Entry<String, SchedulerAssignment> entry : getAssignments().entrySet()) {
+            String topId = entry.getValue().getTopologyId();
+            if (topologies.getById(topId) == null) {
+                continue;
+            }
+            Map topConf = topologies.getById(topId).getConf();
+            Double assignedCpuForTopology = 0.0;
+            for (WorkerSlot ws: entry.getValue().getSlots()) {
+                assignedCpuForTopology += PER_WORKER_CPU_SWAG;
+                String nodeId = ws.getNodeId();
+                if (supervisorToAssignedCpu.containsKey(nodeId)) {
+                    supervisorToAssignedCpu.put(nodeId, supervisorToAssignedCpu.get(nodeId) + PER_WORKER_CPU_SWAG);
+                } else {
+                    supervisorToAssignedCpu.put(nodeId, PER_WORKER_CPU_SWAG);
+                }
+            }
+            if (getTopologyResourcesMap().containsKey(topId)) {
+                Double[] topo_resources = getTopologyResourcesMap().get(topId);
+                topo_resources[5] = assignedCpuForTopology;
+            } else {
+                Double[] topo_resources = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+                topo_resources[5] = assignedCpuForTopology;
+                setTopologyResources(topId, topo_resources);
+            }
+        }
+
+        for (Map.Entry<String, Double> entry : supervisorToAssignedCpu.entrySet()) {
+            String nodeId = entry.getKey();
+            if (supervisorsResources.containsKey(nodeId)) {
+                Double[] supervisor_resources = supervisorsResources.get(nodeId);
+                supervisor_resources[3] = entry.getValue();
+            } else {
+                Double[] supervisor_resources = {0.0, 0.0, 0.0, 0.0};
+                supervisor_resources[3] = entry.getValue();
+                supervisorsResources.put(nodeId, supervisor_resources);
             }
         }
     }

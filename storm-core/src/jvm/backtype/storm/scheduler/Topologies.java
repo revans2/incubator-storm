@@ -60,7 +60,7 @@ public class Topologies {
             return this.getById(topologyId);
         }
     }
-    
+
     public Collection<TopologyDetails> getTopologies() {
         return this.topologies.values();
     }

@@ -96,7 +96,7 @@ public class MultitenantResourceAwareBridgeScheduler implements IScheduler{
         //Update memory assignment information for each multitenant topology and supervisor nodes
         cluster.updateAssignedMemoryForTopologyAndSupervisor(mtTopologies);
         //Update Cpu assignment information for each multitenant topology and supervisor nodes
-        updateAssignedCpuForTopologyAndSupervisor(mtTopologies, cluster);
+        cluster.updateAssignedCpuForTopologyAndSupervisor(mtTopologies);
         
         this.printScheduling(cluster, topologies);
         
@@ -218,51 +218,6 @@ public class MultitenantResourceAwareBridgeScheduler implements IScheduler{
         }
         printAssignment(rasClusterAssignments);
         return rasClusterAssignments;
-    }
-
-    /**
-     * Update CPU usage for each topology and each supervisor node
-     */
-    void updateAssignedCpuForTopologyAndSupervisor(Topologies topologies, Cluster cluster) {
-        Map<String, Double> supervisorToAssignedCpu = new HashMap<String, Double>();
-
-        for (Map.Entry<String, SchedulerAssignment> entry : cluster.getAssignments().entrySet()) {
-            String topId = entry.getValue().getTopologyId();
-            if (topologies.getById(topId) == null) {
-                continue;
-            }
-            Map topConf = topologies.getById(topId).getConf();
-            Double assignedCpuForTopology = 0.0;
-            for (WorkerSlot ws: entry.getValue().getSlots()) {
-                assignedCpuForTopology += PER_WORKER_CPU_SWAG;
-                String nodeId = ws.getNodeId();
-                if (supervisorToAssignedCpu.containsKey(nodeId)) {
-                    supervisorToAssignedCpu.put(nodeId, supervisorToAssignedCpu.get(nodeId) + PER_WORKER_CPU_SWAG);
-                } else {
-                    supervisorToAssignedCpu.put(nodeId, PER_WORKER_CPU_SWAG);
-                }
-            }
-            if (cluster.getTopologyResourcesMap().containsKey(topId)) {
-                Double[] topo_resources = cluster.getTopologyResourcesMap().get(topId);
-                topo_resources[5] = assignedCpuForTopology;
-            } else {
-                Double[] topo_resources = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
-                topo_resources[5] = assignedCpuForTopology;
-                cluster.setTopologyResources(topId, topo_resources);
-            }
-        }
-
-        for (Map.Entry<String, Double> entry : supervisorToAssignedCpu.entrySet()) {
-            String nodeId = entry.getKey();
-            if (cluster.getSupervisorsResourcesMap().containsKey(nodeId)) {
-                Double[] supervisor_resources = cluster.getSupervisorsResourcesMap().get(nodeId);
-                supervisor_resources[3] = entry.getValue();
-            } else {
-                Double[] supervisor_resources = {0.0, 0.0, 0.0, 0.0};
-                supervisor_resources[3] = entry.getValue();
-                cluster.getSupervisorsResourcesMap().put(nodeId, supervisor_resources);
-            }
-        }
     }
 
     /**
