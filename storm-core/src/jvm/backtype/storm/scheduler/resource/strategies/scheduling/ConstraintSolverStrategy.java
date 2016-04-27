@@ -97,7 +97,7 @@ public class ConstraintSolverStrategy implements IStrategy{
                 }
                 resultOrganized.get(workerSlot).add(exec);
             }
-            return SchedulingResult.successWithMsg(resultOrganized, "Fully Scheduled by ConstraintSolverStrategy");
+            return SchedulingResult.successWithMsg(resultOrganized, "Fully Scheduled by ConstraintSolverStrategy (" + this.getTraversalDepth() + " states traversed)");
         }
     }
 
@@ -186,12 +186,12 @@ public class ConstraintSolverStrategy implements IStrategy{
     private Map<ExecutorDetails, WorkerSlot> backtrackSearch(ArrayList<ExecutorDetails> execs, int execIndex) {
 
         if (this.traversalDepth % 1000 == 0) {
-            LOG.info("Traversal Depth: {}", this.traversalDepth);
-            LOG.info("stack frames: {}", this.stackFrames);
-            LOG.info("backtrack: {}", this.numBacktrack);
+            LOG.debug("Traversal Depth: {}", this.traversalDepth);
+            LOG.debug("stack frames: {}", this.stackFrames);
+            LOG.debug("backtrack: {}", this.numBacktrack);
         }
         if (this.traversalDepth > this.maxTraversalDepth || this.stackFrames >= MAX_RECURSIVE_DEPTH) {
-            LOG.info("Exceeded max depth");
+            LOG.warn("Exceeded max depth");
             return null;
         }
         this.traversalDepth++;

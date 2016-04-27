@@ -280,7 +280,8 @@
                      TOPOLOGY-COMPONENT-CPU-PCORE-PERCENT 0
                      TOPOLOGY-COMPONENT-RESOURCES-OFFHEAP-MEMORY-MB 0
                      TOPOLOGY-COMPONENT-RESOURCES-ONHEAP-MEMORY-MB 0
-                     TOPOLOGY-SUBMITTER-USER "userC"}
+                     TOPOLOGY-SUBMITTER-USER "userC"
+                     TOPOLOGY-SCHEDULER-STRATEGY "backtype.storm.scheduler.resource.strategies.scheduling.MultitenantStrategy"}
                     (StormTopology.)
                     4
                     (mk-ed-map [["spout1" 0 5]
@@ -295,7 +296,8 @@
                      TOPOLOGY-COMPONENT-RESOURCES-OFFHEAP-MEMORY-MB 0
                      TOPOLOGY-COMPONENT-RESOURCES-ONHEAP-MEMORY-MB 0
                      TOPOLOGY-ISOLATED-MACHINES 2
-                     TOPOLOGY-SUBMITTER-USER "userA"}
+                     TOPOLOGY-SUBMITTER-USER "userA"
+                     TOPOLOGY-SCHEDULER-STRATEGY "backtype.storm.scheduler.resource.strategies.scheduling.MultitenantStrategy"}
                     (StormTopology.)
                     4
                     (mk-ed-map [["spout11" 0 5]
@@ -310,7 +312,8 @@
                      TOPOLOGY-COMPONENT-RESOURCES-OFFHEAP-MEMORY-MB 0
                      TOPOLOGY-COMPONENT-RESOURCES-ONHEAP-MEMORY-MB 0
                      TOPOLOGY-ISOLATED-MACHINES 5
-                     TOPOLOGY-SUBMITTER-USER "userB"}
+                     TOPOLOGY-SUBMITTER-USER "userB"
+                     TOPOLOGY-SCHEDULER-STRATEGY "backtype.storm.scheduler.resource.strategies.scheduling.MultitenantStrategy"}
                     (StormTopology.)
                     10
                     (mk-ed-map [["spout21" 0 10]
@@ -352,7 +355,8 @@
                      TOPOLOGY-COMPONENT-RESOURCES-ONHEAP-MEMORY-MB 0
                      TOPOLOGY-ISOLATED-MACHINES 4
                      TOPOLOGY-SUBMITTER-USER "userA"
-                     TOPOLOGY-SPREAD-COMPONENTS ["spout1"]}
+                     TOPOLOGY-SPREAD-COMPONENTS ["spout1"]
+                     TOPOLOGY-SCHEDULER-STRATEGY "backtype.storm.scheduler.resource.strategies.scheduling.MultitenantStrategy"}
                     (StormTopology.)
                     12
                     (mk-ed-map [["spout1" 0 4]
@@ -389,7 +393,8 @@
                      TOPOLOGY-COMPONENT-CPU-PCORE-PERCENT 0
                      TOPOLOGY-COMPONENT-RESOURCES-OFFHEAP-MEMORY-MB 0
                      TOPOLOGY-COMPONENT-RESOURCES-ONHEAP-MEMORY-MB 0
-                     TOPOLOGY-SUBMITTER-USER "userC"}
+                     TOPOLOGY-SUBMITTER-USER "userC"
+                     TOPOLOGY-SCHEDULER-STRATEGY "backtype.storm.scheduler.resource.strategies.scheduling.MultitenantStrategy"}
                     (StormTopology.)
                     4
                     (mk-ed-map [["spout1" 0 5]
@@ -431,7 +436,8 @@
                        TOPOLOGY-COMPONENT-CPU-PCORE-PERCENT 0
                        TOPOLOGY-COMPONENT-RESOURCES-OFFHEAP-MEMORY-MB 0
                        TOPOLOGY-COMPONENT-RESOURCES-ONHEAP-MEMORY-MB 0
-                       TOPOLOGY-SUBMITTER-USER "userC"}
+                       TOPOLOGY-SUBMITTER-USER "userC"
+                       TOPOLOGY-SCHEDULER-STRATEGY "backtype.storm.scheduler.resource.strategies.scheduling.MultitenantStrategy"}
                       (StormTopology.)
                       1
                       (mk-ed-map [["spout1" 0 1]]))
@@ -443,7 +449,8 @@
                        TOPOLOGY-COMPONENT-RESOURCES-OFFHEAP-MEMORY-MB 0
                        TOPOLOGY-COMPONENT-RESOURCES-ONHEAP-MEMORY-MB 0
                        TOPOLOGY-ISOLATED-MACHINES 2
-                       TOPOLOGY-SUBMITTER-USER "userA"}
+                       TOPOLOGY-SUBMITTER-USER "userA"
+                       TOPOLOGY-SCHEDULER-STRATEGY "backtype.storm.scheduler.resource.strategies.scheduling.MultitenantStrategy"}
                       (StormTopology.)
                       2
                       (mk-ed-map [["spout11" 1 2] ["bolt11" 3 4]]))
@@ -455,7 +462,8 @@
                        TOPOLOGY-COMPONENT-RESOURCES-OFFHEAP-MEMORY-MB 0
                        TOPOLOGY-COMPONENT-RESOURCES-ONHEAP-MEMORY-MB 0
                        TOPOLOGY-ISOLATED-MACHINES 1
-                       TOPOLOGY-SUBMITTER-USER "userB"}
+                       TOPOLOGY-SUBMITTER-USER "userB"
+                       TOPOLOGY-SCHEDULER-STRATEGY "backtype.storm.scheduler.resource.strategies.scheduling.MultitenantStrategy"}
                       (StormTopology.)
                       1
                       (mk-ed-map [["spout21" 2 3]]))
@@ -488,7 +496,8 @@
                        TOPOLOGY-COMPONENT-CPU-PCORE-PERCENT 0
                        TOPOLOGY-COMPONENT-RESOURCES-OFFHEAP-MEMORY-MB 0
                        TOPOLOGY-COMPONENT-RESOURCES-ONHEAP-MEMORY-MB 0
-                       TOPOLOGY-SUBMITTER-USER "userA"}
+                       TOPOLOGY-SUBMITTER-USER "userA"
+                       TOPOLOGY-SCHEDULER-STRATEGY "backtype.storm.scheduler.resource.strategies.scheduling.MultitenantStrategy"}
                       (StormTopology.)
                       1
                       (mk-ed-map [["spout11" 0 1]]))
@@ -519,7 +528,8 @@
                        TOPOLOGY-COMPONENT-CPU-PCORE-PERCENT 0
                        TOPOLOGY-COMPONENT-RESOURCES-OFFHEAP-MEMORY-MB 0
                        TOPOLOGY-COMPONENT-RESOURCES-ONHEAP-MEMORY-MB 0
-                       TOPOLOGY-SUBMITTER-USER "userA"}
+                       TOPOLOGY-SUBMITTER-USER "userA"
+                       TOPOLOGY-SCHEDULER-STRATEGY "backtype.storm.scheduler.resource.strategies.scheduling.MultitenantStrategy"}
                       (StormTopology.)
                       2
                       (mk-ed-map [["spout11" 0 1]
@@ -531,7 +541,8 @@
                        TOPOLOGY-COMPONENT-CPU-PCORE-PERCENT 0
                        TOPOLOGY-COMPONENT-RESOURCES-OFFHEAP-MEMORY-MB 0
                        TOPOLOGY-COMPONENT-RESOURCES-ONHEAP-MEMORY-MB 0
-                       TOPOLOGY-SUBMITTER-USER "userA"}
+                       TOPOLOGY-SUBMITTER-USER "userA"
+                       TOPOLOGY-SCHEDULER-STRATEGY "backtype.storm.scheduler.resource.strategies.scheduling.MultitenantStrategy"}
                       (StormTopology.)
                       2
                       (mk-ed-map [["spout21" 4 5]
