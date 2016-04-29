@@ -168,7 +168,11 @@ public class RAS_Node {
     }
 
     public Collection<WorkerSlot> getUsedSlots(String topId) {
-        return workerIdsToWorkers(_topIdToUsedSlots.get(topId).keySet());
+        Collection<WorkerSlot> ret = null;
+        if (_topIdToUsedSlots.get(topId) != null) {
+            ret = workerIdsToWorkers(_topIdToUsedSlots.get(topId).keySet());
+        }
+        return ret;
     }
 
     public boolean isAlive() {
@@ -329,7 +333,7 @@ public class RAS_Node {
             target = getFreeSlots().iterator().next();
         }
         if (!freeSlots.contains(target)) {
-            throw new IllegalStateException("Trying to assign already used slot" + target.getPort() + "on node " + _nodeId);
+            throw new IllegalStateException("Trying to assign already used slot " + target.getPort() + " on node " + _nodeId);
         }
         LOG.debug("target slot: {}", target);
 
