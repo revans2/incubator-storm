@@ -127,6 +127,10 @@ public class RAS_Nodes {
         return this.nodeMap.values();
     }
 
+    public Map<String, RAS_Node> getNodeMap() {
+        return this.nodeMap;
+    }
+
     @Override
     public String toString() {
         String ret = "";
