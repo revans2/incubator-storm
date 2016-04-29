@@ -332,7 +332,7 @@
                                (for [^SupervisorSummary s sups
                                      :let [sup-total-mem (get (.get_total_resources s) Config/SUPERVISOR_MEMORY_CAPACITY_MB)
                                            sup-total-cpu (get (.get_total_resources s) Config/SUPERVISOR_CPU_CAPACITY)
-                                           sup-avail-mem (if (> (- sup-total-mem (.get_used_mem s) 0.0)) (- sup-total-mem (.get_used_mem s)) 0.0)
+                                           sup-avail-mem (if (> (- sup-total-mem (.get_used_mem s)) 0.0) (- sup-total-mem (.get_used_mem s)) 0.0)
                                            sup-avail-cpu (if (> (- sup-total-cpu (.get_used_cpu s)) 0.0) (- sup-total-cpu (.get_used_cpu s)) 0.0)]]
                                  [sup-total-mem sup-total-cpu sup-avail-mem sup-avail-cpu]))
                              [0.0 0.0 0.0 0.0])
