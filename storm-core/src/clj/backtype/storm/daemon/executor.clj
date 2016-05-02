@@ -458,7 +458,7 @@
     ))
 
 (defmethod mk-threads :spout [executor-data task-datas initial-credentials]
-  (let [{:keys [storm-conf component-id worker-context transfer-fn report-error sampler open-or-prepare-was-called?]} executor-data
+  (let [{:keys [storm-conf component-id executor-id worker-context transfer-fn report-error sampler open-or-prepare-was-called?]} executor-data
         ^ISpoutWaitStrategy spout-wait-strategy (init-spout-wait-strategy storm-conf)
         max-spout-pending (executor-max-spout-pending storm-conf (count task-datas))
         ^Integer max-spout-pending (if max-spout-pending (int max-spout-pending))        
@@ -621,7 +621,7 @@
           0))
       :kill-fn (:report-error-and-die executor-data)
       :factory? true
-      :thread-name component-id)]))
+      :thread-name (str component-id "_" executor-id))]))
 
 (defn- tuple-time-delta! [^TupleImpl tuple]
   (let [ms (.getProcessSampleStartTime tuple)]
@@ -641,7 +641,7 @@
   (let [storm-conf (:storm-conf executor-data)
         execute-sampler (mk-stats-sampler storm-conf)
         executor-stats (:stats executor-data)
-        {:keys [storm-conf component-id worker-context transfer-fn report-error sampler
+        {:keys [storm-conf component-id executor-id worker-context transfer-fn report-error sampler
                 open-or-prepare-was-called?]} executor-data
         rand (Random. (Utils/secureRandomLong))
 
@@ -797,7 +797,7 @@
             0)))
       :kill-fn (:report-error-and-die executor-data)
       :factory? true
-      :thread-name component-id)]))
+      :thread-name (str component-id "_" executor-id))]))
 
 (defmethod close-component :spout [executor-data spout]
   (.close spout))
