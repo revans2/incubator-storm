@@ -237,7 +237,8 @@
                 ; Otherwise
                 (log-message "Got Unexpected Type: " (.get_type request)))]
 
-          (.set_message_id response (.get_message_id request))
+          (when response
+            (.set_message_id response (.get_message_id request)))
           response)))))
 
 (defn launch-server! []

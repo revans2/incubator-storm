@@ -33,7 +33,7 @@ public class ThriftDecoder extends FrameDecoder {
     protected Object decode(ChannelHandlerContext ctx, Channel channel, ChannelBuffer buf) throws Exception {
 
         long available = buf.readableBytes();
-        if(available < 2) {
+        if(available < 4) {
             return null;
         }
 
@@ -48,18 +48,10 @@ public class ThriftDecoder extends FrameDecoder {
             return null;
         }
 
-        buf.discardReadBytes();
-
         HBMessage m;
-        if(buf.hasArray()) {
-            m = (HBMessage)Utils.thriftDeserialize(HBMessage.class, buf.array(), 0, thriftLen);
-            buf.readerIndex(buf.readerIndex() + thriftLen);
-        }
-        else {
-            byte serialized[] = new byte[thriftLen];
-            buf.readBytes(serialized, 0, thriftLen);
-            m = (HBMessage)Utils.thriftDeserialize(HBMessage.class, serialized);
-        }
+        byte serialized[] = new byte[thriftLen];
+        buf.readBytes(serialized, 0, thriftLen);
+        m = (HBMessage)Utils.thriftDeserialize(HBMessage.class, serialized);
 
         if(m.get_type() == HBServerMessageType.CONTROL_MESSAGE) {
             ControlMessage cm = ControlMessage.read(m.get_data().get_message_blob());
