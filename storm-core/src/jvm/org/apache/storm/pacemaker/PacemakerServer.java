@@ -138,7 +138,7 @@ class PacemakerServer implements ISaslServer {
             channel.write(response);
         }
         else {
-            LOG.error("Got null response from handler handling message: {}", m);
+            LOG.info("Got null response from handler handling message: {}", mx);
         }
     }
 
