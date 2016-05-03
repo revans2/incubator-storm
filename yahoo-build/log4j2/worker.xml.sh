@@ -24,7 +24,7 @@ cat <<XML
 
 <configuration monitorInterval="60">
 <properties>
-    <property name="pattern">%d{yyyy-MM-dd HH:mm:ss.SSS} %c{1.} [%p] %msg%n</property>
+    <property name="pattern">%d{yyyy-MM-dd HH:mm:ss.SSS} %c{1.} %t [%p] %msg%n</property>
     <property name="patternNoTime">%msg%n</property>
 </properties>
 <appenders>

@@ -492,8 +492,8 @@
                        (kill-fn t)))))]
     (.setDaemon thread daemon)
     (.setPriority thread priority)
-    (when thread-name
-      (.setName thread (str (.getName thread) "-" thread-name)))
+    (when-not (clojure.string/blank? thread-name)
+      (.setName thread thread-name))
     (when start
       (.start thread))
     ;; should return object that supports stop, interrupt, join, and waiting?
