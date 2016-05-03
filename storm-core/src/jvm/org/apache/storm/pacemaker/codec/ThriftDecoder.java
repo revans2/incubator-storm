@@ -29,18 +29,20 @@ import backtype.storm.messaging.netty.SaslMessageToken;
 
 public class ThriftDecoder extends FrameDecoder {
 
+    private static final int INTEGER_SIZE = 4;
+
     @Override
     protected Object decode(ChannelHandlerContext ctx, Channel channel, ChannelBuffer buf) throws Exception {
 
         long available = buf.readableBytes();
-        if(available < 4) {
+        if(available < INTEGER_SIZE) {
             return null;
         }
 
         buf.markReaderIndex();
 
         int thriftLen = buf.readInt();
-        available -= 4;
+        available -= INTEGER_SIZE;
 
         if(available < thriftLen) {
             // We haven't received the entire object yet, return and wait for more bytes.
