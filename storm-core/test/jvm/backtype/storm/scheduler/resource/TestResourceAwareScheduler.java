@@ -20,6 +20,7 @@ package backtype.storm.scheduler.resource;
 
 import backtype.storm.Config;
 import backtype.storm.generated.StormTopology;
+import backtype.storm.networktopography.DNSToSwitchMapping;
 import backtype.storm.scheduler.Cluster;
 import backtype.storm.scheduler.ExecutorDetails;
 import backtype.storm.scheduler.INimbus;
@@ -1240,107 +1241,6 @@ public class TestResourceAwareScheduler {
     }
 
     /**
-     * test if the scheduling logic for the DefaultResourceAwareStrategy is correct
-     */
-    @Test
-    public void testDefaultResourceAwareStrategy() {
-        int spoutParallelism = 1;
-        int boltParallelism = 2;
-        TopologyBuilder builder = new TopologyBuilder();
-        builder.setSpout("spout", new TestUtilsForResourceAwareScheduler.TestSpout(),
-                spoutParallelism);
-        builder.setBolt("bolt-1", new TestUtilsForResourceAwareScheduler.TestBolt(),
-                boltParallelism).shuffleGrouping("spout");
-        builder.setBolt("bolt-2", new TestUtilsForResourceAwareScheduler.TestBolt(),
-                boltParallelism).shuffleGrouping("bolt-1");
-        builder.setBolt("bolt-3", new TestUtilsForResourceAwareScheduler.TestBolt(),
-                boltParallelism).shuffleGrouping("bolt-2");
-
-        StormTopology stormToplogy = builder.createTopology();
-
-        Config conf = new Config();
-        INimbus iNimbus = new TestUtilsForResourceAwareScheduler.INimbusTest();
-        Map<String, Number> resourceMap = new HashMap<String, Number>();
-        resourceMap.put(Config.SUPERVISOR_CPU_CAPACITY, 150.0);
-        resourceMap.put(Config.SUPERVISOR_MEMORY_CAPACITY_MB, 1500.0);
-        Map<String, SupervisorDetails> supMap = TestUtilsForResourceAwareScheduler.genSupervisors(4, 4, resourceMap);
-        conf.putAll(Utils.readDefaultConfig());
-        conf.put(Config.RESOURCE_AWARE_SCHEDULER_EVICTION_STRATEGY, backtype.storm.scheduler.resource.strategies.eviction.DefaultEvictionStrategy.class.getName());
-        conf.put(Config.RESOURCE_AWARE_SCHEDULER_PRIORITY_STRATEGY, backtype.storm.scheduler.resource.strategies.priority.DefaultSchedulingPriorityStrategy.class.getName());
-        conf.put(Config.TOPOLOGY_SCHEDULER_STRATEGY, backtype.storm.scheduler.resource.strategies.scheduling.DefaultResourceAwareStrategy.class.getName());
-        conf.put(Config.TOPOLOGY_COMPONENT_CPU_PCORE_PERCENT, 50.0);
-        conf.put(Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB, 250);
-        conf.put(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB, 250);
-        conf.put(Config.TOPOLOGY_PRIORITY, 0);
-        conf.put(Config.TOPOLOGY_NAME, "testTopology");
-        conf.put(Config.TOPOLOGY_WORKER_MAX_HEAP_SIZE_MB, Double.MAX_VALUE);
-
-        TopologyDetails topo = new TopologyDetails("testTopology-id", conf, stormToplogy, 0,
-                TestUtilsForResourceAwareScheduler.genExecsAndComps(stormToplogy, spoutParallelism, boltParallelism)
-                , this.currentTime);
-
-        Map<String, TopologyDetails> topoMap = new HashMap<String, TopologyDetails>();
-        topoMap.put(topo.getId(), topo);
-        Topologies topologies = new Topologies(topoMap);
-        Cluster cluster = new Cluster(iNimbus, supMap, new HashMap<String, SchedulerAssignmentImpl>(), conf);
-
-        ResourceAwareScheduler rs = new ResourceAwareScheduler();
-
-        rs.prepare(conf);
-        rs.schedule(topologies, cluster);
-
-        Map<String, List<String>> nodeToComps = new HashMap<String, List<String>>();
-        for (Map.Entry<ExecutorDetails, WorkerSlot> entry : cluster.getAssignments().get("testTopology-id").getExecutorToSlot().entrySet()) {
-            WorkerSlot ws = entry.getValue();
-            ExecutorDetails exec = entry.getKey();
-            if (!nodeToComps.containsKey(ws.getNodeId())) {
-                nodeToComps.put(ws.getNodeId(), new LinkedList<String>());
-            }
-            nodeToComps.get(ws.getNodeId()).add(topo.getExecutorToComponent().get(exec));
-        }
-
-        /**
-         * check for correct scheduling
-         * Since all the resource availabilites on nodes are the same in the beginining
-         * DefaultResourceAwareStrategy can arbitrarily pick one thus we must find if a particular scheduling
-         * exists on a node the the cluster.
-         */
-
-        //one node should have the below scheduling
-        List<String> node1 = new LinkedList<>();
-        node1.add("spout");
-        node1.add("bolt-1");
-        node1.add("bolt-2");
-        Assert.assertTrue("Check DefaultResourceAwareStrategy scheduling", checkDefaultStrategyScheduling(nodeToComps, node1));
-
-        //one node should have the below scheduling
-        List<String> node2 = new LinkedList<>();
-        node2.add("bolt-3");
-        node2.add("bolt-1");
-        node2.add("bolt-2");
-
-        Assert.assertTrue("Check DefaultResourceAwareStrategy scheduling", checkDefaultStrategyScheduling(nodeToComps, node2));
-
-        //one node should have the below scheduling
-        List<String> node3 = new LinkedList<>();
-        node3.add("bolt-3");
-
-        Assert.assertTrue("Check DefaultResourceAwareStrategy scheduling", checkDefaultStrategyScheduling(nodeToComps, node3));
-
-        //three used and one node should be empty
-        Assert.assertEquals("only three nodes should be used", 3, nodeToComps.size());
-    }
-
-    private boolean checkDefaultStrategyScheduling(Map<String, List<String>> nodeToComps, List<String> schedulingToFind) {
-        for (List<String> entry : nodeToComps.values()) {
-            if (schedulingToFind.containsAll(entry) && entry.containsAll(schedulingToFind)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    /**
      * test if free slots on nodes work correctly
      */
     @Test
@@ -1476,7 +1376,7 @@ public class TestResourceAwareScheduler {
         StormTopology stormTopology = builder.createTopology();
         TopologyDetails topo = new TopologyDetails("topo-1", config, stormTopology,
                 0,
-                genExecsAndComps(stormTopology, 5, 5), 0);
+                genExecsAndComps(stormTopology), 0);
 
         Cluster cluster = new Cluster(iNimbus, supMap, new HashMap<String, SchedulerAssignmentImpl>(), config);
 
