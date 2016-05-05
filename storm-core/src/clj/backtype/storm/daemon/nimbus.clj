@@ -627,7 +627,7 @@
                                     supervisor-details
                                     topologies
                                     (set missing-assignment-topologies))
-                                  (map #([(.getNodeId %) #{(.getPort %)}]))
+                                  (map (fn [s] {(.getNodeId s) #{(.getPort s)}}))
                                   (apply merge-with set/union))]
     (into {} (for [[sid supervisor-info] supervisor-infos
                    :let [hostname (:hostname supervisor-info)
@@ -637,7 +637,7 @@
                          ;; these dead-ports can be reused in next round of assignments
                          all-ports (-> (get all-scheduling-slots sid)
                                        (set/difference dead-ports)
-                                       ((fn [ports] (map int ports))))
+                                       (as-> ports (map int ports)))
                          supervisor-details (SupervisorDetails. sid hostname scheduler-meta all-ports (:resources-map supervisor-info))]]
                {sid supervisor-details}))))
 
