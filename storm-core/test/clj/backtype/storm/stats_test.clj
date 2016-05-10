@@ -22,14 +22,16 @@
 (defn- make-topo-info-no-beats 
   []
   {:storm-name "testing", 
-   :assignment {:executor->node+port {[1 3] ["node" 1234]}
+   :assignment {:executor->node+port {[1 3] ["node" 1234] 
+                                      [4 4] ["node" 1234]}
                 :node->host {"node" "host"}}})
 
 (defn- make-topo-info
   []
   (merge 
-    {:beats {[1 3] {:uptime 6}}}
-    {:task->component {1 "exclaim1", 2 "__sys", 3 "exclaim1"}}
+    {:beats {[1 3] {:uptime 6}
+             [4 4] {:uptime 6}}}
+    {:task->component {1 "exclaim1", 2 "__sys", 3 "exclaim1", 4 "__sys2"}}
     (make-topo-info-no-beats)))
 
 (deftest agg-worker-populates-worker-summary
@@ -52,7 +54,7 @@
       (is (= 1234 (.get_port summ)))
       (is (= "foo" (.get_topology_id summ)))
       (is (= "testing" (.get_topology_name summ)))
-      (is (= 1 (.get_num_executors summ)))
+      (is (= 2 (.get_num_executors summ)))
       (is (= 3.0 (.get_assigned_memonheap summ)))
       (is (= 4.0 (.get_assigned_memoffheap summ)))
       (is (= 5.0 (.get_assigned_cpu summ)))
@@ -74,6 +76,7 @@
     (let [summ (first worker-summaries)
           comps (.get_component_to_num_tasks summ)]
       (is (= nil (get comps "__sys")))
+      (is (= 1 (.get_num_executors summ)))
       (is (= 2 (get comps "exclaim1"))))))
 
 (deftest agg-worker-gracefully-handles-missing-beats

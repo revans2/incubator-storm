@@ -1012,13 +1012,18 @@
           node+port->exec (if (nil? filter-supervisor) 
                             all-node+port->exec 
                             (filter #(= filter-supervisor (ffirst %)) all-node+port->exec))
-          handle-sys-components-fn (mk-include-sys-filter include-sys?)]
+          handle-sys-components-fn (mk-include-sys-fn include-sys?)]
       (dofor [[[node port] executors] node+port->exec]
-        (let [tasks (flatten (map #(range (first %) (inc (last %))) executors))
+        (let [executor-tasks (map #(range (first %) (inc (last %))) executors)
               worker-beats (vals (select-keys beats executors))
               not-null-worker-beat (first (filter identity worker-beats))
               worker-uptime (or (:uptime not-null-worker-beat) 0)
-              component->num-tasks (handle-sys-components-fn (frequencies (map #(get task->component %) tasks)))
+              ;; list of components per executor ((c1 c2 c3) (c4) (c5))
+              ;; if the executor was running only system components, an empty list for that executor is possible
+              components-per-executor (for [tasks executor-tasks] 
+                                        (filter handle-sys-components-fn (map #(get task->component %) tasks)))
+              component->num-tasks (frequencies (flatten components-per-executor))
+              num-executors (count (filter not-empty components-per-executor))
               default-worker-resources (->WorkerResources 0 0 0)
               resources (if (nil? worker->resources) 
                             default-worker-resources 
@@ -1032,7 +1037,7 @@
                    (.set_port port)
                    (.set_topology_id storm-id)
                    (.set_topology_name storm-name)
-                   (.set_num_executors (count executors))
+                   (.set_num_executors num-executors)
                    (.set_assigned_memonheap (:assigned-mem-on-heap resources))
                    (.set_assigned_memoffheap (:assigned-mem-off-heap resources))
                    (.set_assigned_cpu (:assigned-cpu resources)))]

@@ -1297,22 +1297,22 @@
         supervisor-topologies (keys (filter #(get (val %) supervisor-id) topo-id->supervisors))]
     {:supervisor-topologies supervisor-topologies
      :user-topologies (into #{} (filter (partial is-authorized? nimbus 
-                                               conf 
-                                               blob-store 
-                                               "getTopology") 
+                                                 conf 
+                                                 blob-store 
+                                                 "getTopology") 
                   supervisor-topologies))}))
 
 (defn topology-assignments 
   [storm-cluster-state]
   (let [assigned-topology-ids (.assignments storm-cluster-state nil)]
     (into {} (for [tid assigned-topology-ids]
-        {tid (.assignment-info storm-cluster-state tid nil)}))))
+               {tid (.assignment-info storm-cluster-state tid nil)}))))
 
 (defn get-launch-time-secs 
   [base storm-id]
   (if base (:launch-time-secs base)
-   (throw
-     (NotAliveException. (str storm-id)))))
+    (throw
+      (NotAliveException. (str storm-id)))))
 
 (defserverfn service-handler [conf inimbus]
   (.prepare inimbus conf (master-inimbus-dir conf))
