@@ -396,6 +396,7 @@
           (.interrupt t)
           (.join t))
         
+        (stats/cleanup-stats! (:stats executor-data))
         (doseq [user-context (map :user-context (vals task-datas))]
           (doseq [hook (.getHooks user-context)]
             (.cleanup hook)))
