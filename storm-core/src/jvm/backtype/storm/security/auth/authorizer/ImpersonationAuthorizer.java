@@ -25,6 +25,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.*;
 
 
@@ -82,27 +83,11 @@ public class ImpersonationAuthorizer implements IAuthorizer {
         ImpersonationACL principalACL = userImpersonationACL.get(impersonatingPrincipal);
         ImpersonationACL userACL = userImpersonationACL.get(impersonatingUser);
 
-        Set<String> authorizedHosts = new HashSet<String>();
-        Set<String> authorizedGroups = new HashSet<String>();
-
-        if (principalACL != null) {
-            authorizedHosts.addAll(principalACL.authorizedHosts);
-            authorizedGroups.addAll(principalACL.authorizedGroups);
-        }
-
-        if (userACL != null) {
-            authorizedHosts.addAll(userACL.authorizedHosts);
-            authorizedGroups.addAll(userACL.authorizedGroups);
-        }
+        Set<String> authorizedGroups = getAuthorizedGroups(principalACL, userACL);
+        Set<String> authorizedHosts = getAuthorizedHosts(principalACL, userACL);
 
         LOG.debug("user = {}, principal = {} is allowed to impersonate groups = {} from hosts = {} ",
                 impersonatingUser, impersonatingPrincipal, authorizedGroups, authorizedHosts);
-
-        if (!isAllowedToImpersonateFromHost(authorizedHosts, remoteAddress)) {
-            LOG.info("user = {}, principal = {} is not allowed to impersonate from host {} ",
-                    impersonatingUser, impersonatingPrincipal, remoteAddress);
-            return false;
-        }
 
         if (!isAllowedToImpersonateUser(authorizedGroups, userBeingImpersonated)) {
             LOG.info("user = {}, principal = {} is not allowed to impersonate any group that user {} is part of.",
@@ -110,8 +95,50 @@ public class ImpersonationAuthorizer implements IAuthorizer {
             return false;
         }
 
+        if (!isAllowedToImpersonateFromHost(authorizedHosts, remoteAddress)) {
+            // re-resolve FQDN for authorized hosts to see if DNS refreshed
+            // Note in most cases this will hit the JVM cache for dns lookups
+            authorizedHosts = getAuthorizedHosts(principalACL, userACL, true);
+       
+            // retry once
+            if (!isAllowedToImpersonateFromHost(authorizedHosts, remoteAddress)) {
+                LOG.info("user = {}, principal = {} is not allowed to impersonate from host {} ",
+                        impersonatingUser, impersonatingPrincipal, remoteAddress);
+                return false;
+            }
+        }
+
         LOG.info("Allowing impersonation of user {} by user {}", userBeingImpersonated, impersonatingUser);
         return true;
+    }
+
+    private Set<String> getAuthorizedGroups(ImpersonationACL principalACL, ImpersonationACL userACL) {
+        Set<String> authorizedGroups = new HashSet<String>();
+        if (principalACL != null) {
+            authorizedGroups.addAll(principalACL.authorizedGroups);
+        }
+
+        if (userACL != null) {
+            authorizedGroups.addAll(userACL.authorizedGroups);
+        }
+        return authorizedGroups;
+    }
+
+    private Set<String> getAuthorizedHosts(ImpersonationACL principalACL, ImpersonationACL userACL) { 
+        return getAuthorizedHosts(principalACL, userACL, false);
+    }
+
+    private Set<String> getAuthorizedHosts(ImpersonationACL principalACL, ImpersonationACL userACL, boolean refresh) {
+        Set<String> authorizedHosts = new HashSet<String>();
+        if (principalACL != null) {
+            authorizedHosts.addAll(principalACL.getAuthorizedHosts(refresh));
+        }
+
+        if (userACL != null) {
+            authorizedHosts.addAll(userACL.getAuthorizedHosts(refresh));
+        }
+
+        return authorizedHosts;
     }
 
     private boolean isAllowedToImpersonateFromHost(Set<String> authorizedHosts, InetAddress remoteAddress) {
@@ -151,12 +178,57 @@ public class ImpersonationAuthorizer implements IAuthorizer {
         //Groups this user is authorized to impersonate.
         public Set<String> authorizedGroups;
         //Hosts this user is authorized to impersonate from.
-        public Set<String> authorizedHosts;
+        private Set<String> configuredHosts;
+        private Set<String> authorizedHosts;
 
-        private ImpersonationACL(String impersonatingUser, Set<String> authorizedGroups, Set<String> authorizedHosts) {
+        private ImpersonationACL(String impersonatingUser, Set<String> authorizedGroups, Set<String> configuredHosts) {
             this.impersonatingUser = impersonatingUser;
             this.authorizedGroups = authorizedGroups;
-            this.authorizedHosts = authorizedHosts;
+            this.configuredHosts = configuredHosts;
+            this.authorizedHosts = new HashSet<String>();
+
+            // populate authorizedHosts set
+            resolveHosts();
+        }
+
+        private String resolveHost(String host) throws UnknownHostException {
+            return host.equals(WILD_CARD) ?
+                // if wildcard, return as is
+                host :
+                // else, resolve host.
+                // Note that the JVM caches dns resolution, and by default
+                // the expiration times can very according to version.
+                // Adjust networkaddress.cache.ttl and networkaddress.cache.negative.ttl 
+                // to change the default JVM behavior
+                InetAddress.getByName(host).getCanonicalHostName();
+        }
+        
+        public synchronized Set<String> getAuthorizedHosts(boolean refresh){
+            if (refresh) {
+                resolveHosts();
+            }
+
+            return authorizedHosts;
+        }
+
+        private synchronized void resolveHosts() {
+            // we don't care about the previously cached FQDNs
+            authorizedHosts.clear();
+
+            for (String host : configuredHosts){
+                try {
+                    String resolved = resolveHost(host);
+                    authorizedHosts.add(resolved);
+                    if (host.equals(WILD_CARD)) {
+                        LOG.info("host = {} is wildcard and will match all requesting hosts", host);
+                    } else {
+                        LOG.info("host = {} was resolved to FQDN = {}", host, resolved);
+                    }
+                } catch (UnknownHostException uhe) {
+                    LOG.error("host = {} cannot be resolved at this time and will " +
+                              "be retried later", host, uhe);
+                }
+            }
         }
 
         @Override
