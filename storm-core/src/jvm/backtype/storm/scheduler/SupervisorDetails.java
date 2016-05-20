@@ -61,7 +61,6 @@ public class SupervisorDetails {
             this.allPorts = new HashSet<>();
         }
         this._total_resources = total_resources;
-        LOG.debug("Creating a new supervisor ({}-{}) with resources: {}", this.host, this.id, total_resources);
     }
 
     public SupervisorDetails(String id, Object meta){

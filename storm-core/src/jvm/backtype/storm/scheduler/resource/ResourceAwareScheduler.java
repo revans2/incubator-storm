@@ -62,12 +62,12 @@ public class ResourceAwareScheduler implements IScheduler {
         //initialize data structures
         initialize(topologies, cluster);
         //logs everything that is currently scheduled and the location at which they are scheduled
-        LOG.info("Cluster scheduling:\n{}", ResourceUtils.printScheduling(cluster, topologies));
+        LOG.debug("Cluster scheduling:\n{}", ResourceUtils.printScheduling(cluster, topologies));
         //logs the resources available/used for every node
-        LOG.info("Nodes:\n{}", this.schedulingState.nodes);
+        LOG.debug("Nodes:\n{}", this.schedulingState.nodes);
         //logs the detailed info about each user
         for (User user : getUserMap().values()) {
-            LOG.info(user.getDetailedInfo());
+            LOG.debug(user.getDetailedInfo());
         }
 
         ISchedulingPriorityStrategy schedulingPrioritystrategy = null;
