@@ -62,7 +62,7 @@ public class MultitenantResourceAwareBridgeScheduler implements IScheduler{
             if (!bridgeSchedulerConfigs.containsKey(user)) {
                 bridgeSchedulerConfigs.put(user,  new HashMap<String, Object>());
             }
-            LOG.info("bridgeSchedulerConfigs.get(user) {}",bridgeSchedulerConfigs.get(user));
+            LOG.debug("bridgeSchedulerConfigs.get(user) {}",bridgeSchedulerConfigs.get(user));
             ((Map<String, Object>) bridgeSchedulerConfigs.get(user)).put("ResourceAwareScheduler", resourceAwareSchedulerConfigs.get(user));
         }
         return bridgeSchedulerConfigs;
@@ -72,6 +72,7 @@ public class MultitenantResourceAwareBridgeScheduler implements IScheduler{
     public void schedule(Topologies topologies, Cluster cluster) {
         LOG.debug("\n\n\n/** Rerunning CombinedScheduler... **/");
         this.printScheduling(cluster, topologies);
+        this.printClusterInfo(cluster);
 
         LOG.debug("/* dividing topologies */");
         Map<String, Topologies> dividedTopologies = this.divideTopologies(cluster, topologies);
@@ -97,18 +98,11 @@ public class MultitenantResourceAwareBridgeScheduler implements IScheduler{
         cluster.updateAssignedMemoryForTopologyAndSupervisor(mtTopologies);
         //Update Cpu assignment information for each multitenant topology and supervisor nodes
         cluster.updateAssignedCpuForTopologyAndSupervisor(mtTopologies);
-        
-        this.printScheduling(cluster, topologies);
-        
-        this.printClusterInfo(cluster);
 
         LOG.debug("/* Translating to RAS cluster */");
-        LOG.debug("nodesRASCanUse: {}", Node.getNodesDebugInfo(multitenantScheduler.getNodesRASCanUse().values()));
         Cluster rasCluster = translateToRASCluster(cluster, rasTopologies, topologies,
                 multitenantScheduler.getNodesRASCanUse());
 
-        LOG.debug("RAS cluster scheduling: ");
-        this.printScheduling(rasCluster, topologies);
         LOG.debug("RAS cluster info: ");
         this.printClusterInfo(rasCluster);
 
@@ -120,8 +114,6 @@ public class MultitenantResourceAwareBridgeScheduler implements IScheduler{
         LOG.debug("/* Merge RAS Cluster with actual cluster */");
 
         this.mergeCluster(cluster, rasCluster);
-
-        this.printScheduling(cluster, topologies);
     }
 
     /**
@@ -291,7 +283,7 @@ public class MultitenantResourceAwareBridgeScheduler implements IScheduler{
                 for (Entry<WorkerSlot, Collection<ExecutorDetails>> workerToExecs : schedEntry.getValue().entrySet()) {
                     WorkerSlot ws = workerToExecs.getKey();
                     Collection<ExecutorDetails> execs = workerToExecs.getValue();
-                    LOG.info("For topoId {}, assign slot with {} {}", topoId, ws.getNodeId(), ws.getPort());
+                    LOG.debug("For topoId {}, assign slot with {} {}", topoId, ws.getNodeId(), ws.getPort());
                     target.assign(ws, topoId, execs);
                 }
             }

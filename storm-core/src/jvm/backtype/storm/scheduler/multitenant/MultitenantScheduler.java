@@ -69,7 +69,6 @@ public class MultitenantScheduler implements IScheduler {
   @Override
   public void schedule(Topologies topologies, Cluster cluster) {
     LOG.debug("Rerunning scheduling...");
-    LOG.debug("Cluster Scheduling:\n{}", printScheduling(cluster, topologies));
 
     Map<String, Node> nodeIdToNode = Node.getAllNodesFrom(cluster);
     
@@ -107,13 +106,12 @@ public class MultitenantScheduler implements IScheduler {
 
     this.nodesRasCanUse = new HashSet<Node>();
 
-    LOG.debug("adding nodes {} from default pool to nodesRasCanUse", Node.getNodesDebugInfo(defaultPool.getNodesInPool()));
+    LOG.debug("Nodes from default pool RAS can use: {}", Node.getNodesDebugInfo(defaultPool.getNodesInPool()));
     this.nodesRasCanUse.addAll(defaultPool.getNodesInPool());
 
-    LOG.debug("adding nodes {} from free pool to nodesRasCanUse", Node.getNodesDebugInfo(freePool.getNodesInPool()));
+    LOG.debug("Nodes from free pool RAS can use: {}", Node.getNodesDebugInfo(freePool.getNodesInPool()));
     this.nodesRasCanUse.addAll(freePool.getNodesInPool());
 
-    LOG.debug("nodes RAS can use: {}", Node.getNodesDebugInfo(this.nodesRasCanUse));
     LOG.debug("Scheduling done...");
   }
 

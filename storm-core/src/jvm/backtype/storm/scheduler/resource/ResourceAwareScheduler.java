@@ -62,12 +62,12 @@ public class ResourceAwareScheduler implements IScheduler {
         //initialize data structures
         initialize(topologies, cluster);
         //logs everything that is currently scheduled and the location at which they are scheduled
-        LOG.info("Cluster scheduling:\n{}", ResourceUtils.printScheduling(cluster, topologies));
+        LOG.debug("Cluster scheduling:\n{}", ResourceUtils.printScheduling(cluster, topologies));
         //logs the resources available/used for every node
-        LOG.info("Nodes:\n{}", this.schedulingState.nodes);
+        LOG.debug("Nodes:\n{}", this.schedulingState.nodes);
         //logs the detailed info about each user
         for (User user : getUserMap().values()) {
-            LOG.info(user.getDetailedInfo());
+            LOG.debug(user.getDetailedInfo());
         }
 
         ISchedulingPriorityStrategy schedulingPrioritystrategy = null;
@@ -120,7 +120,7 @@ public class ResourceAwareScheduler implements IScheduler {
     public void scheduleTopology(TopologyDetails td) {
         User topologySubmitter = this.schedulingState.userMap.get(td.getTopologySubmitter());
         if (this.schedulingState.cluster.getUnassignedExecutors(td).size() > 0) {
-            LOG.debug("/********Scheduling topology {} from User {}************/", td.getName(), topologySubmitter);
+            LOG.info("/********Scheduling topology {} from User {}************/", td.getName(), topologySubmitter);
 
             SchedulingState schedulingState = checkpointSchedulingState();
             IStrategy rasStrategy = null;
@@ -256,7 +256,7 @@ public class ResourceAwareScheduler implements IScheduler {
 
                 targetNode.assign(targetSlot, td, execsNeedScheduling);
 
-                LOG.debug("ASSIGNMENT    TOPOLOGY: {}  TASKS: {} To Node: {} on Slot: {}",
+                LOG.info("ASSIGNMENT    TOPOLOGY: {}  TASKS: {} To Node: {} on Slot: {}",
                         td.getName(), execsNeedScheduling, targetNode.getHostname(), targetSlot.getPort());
 
                 for (ExecutorDetails exec : execsNeedScheduling) {

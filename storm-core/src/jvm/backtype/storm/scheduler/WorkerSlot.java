@@ -76,6 +76,6 @@ public class WorkerSlot {
     
     @Override
     public String toString() {
-    	return this.nodeId + ":" + this.port;
+        return String.valueOf(this.port);
     }
 }
