@@ -110,7 +110,7 @@ def get_jars_full(adir):
     if os.path.isdir(adir):
         files = os.listdir(adir)
     elif os.path.exists(adir):
-        files = [aidr]
+        files = [adir]
 
     ret = []
     for f in files:
