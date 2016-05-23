@@ -267,7 +267,7 @@ public class IsolatedPool extends NodePool {
     int slotsFree = Node.countFreeSlotsAlive(allNodes);
     int slotsToUse = Math.min(slotsRequested - slotsUsed, slotsFree);
     if (slotsToUse <= 0) {
-      if (origRequest > (slotsUsed)) {
+      if (origRequest > slotsUsed) {
         _cluster.setStatus(topId, "Running with fewer slots than requested " + slotsUsed + "/"
                 + origRequest + " on " + allNodes.size() + " with " + (slotsUsed + slotsFree) + " total slots");
       } else {
