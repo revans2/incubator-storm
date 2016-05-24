@@ -211,7 +211,7 @@ function makeTopologyWorkerStatsTable (response, elId, parentId) {
 var formatComponents = function (row) {
     if (!row) return;
     var result = '';
-    Object.keys(row.componentNumTasks || {}).forEach (function (component){
+    Object.keys(row.componentNumTasks || {}).sort().forEach (function (component){
         var numTasks = row.componentNumTasks[component];
         result += '<a class="worker-component-button btn btn-xs btn-primary" href="/component.html?id=' + 
                         component + '&topology_id=' + row.topologyId + '">';
