@@ -211,7 +211,7 @@ function makeTopologyWorkerStatsTable (response, elId, parentId) {
 var formatComponents = function (row) {
     if (!row) return;
     var result = '';
-    Object.keys(row.componentNumTasks || {}).forEach (function (component){
+    Object.keys(row.componentNumTasks || {}).sort().forEach (function (component){
         var numTasks = row.componentNumTasks[component];
         result += '<a class="worker-component-button btn btn-xs btn-primary" href="/component.html?id=' + 
                         component + '&topology_id=' + row.topologyId + '">';
@@ -273,13 +273,17 @@ var makeWorkerStatsTable = function (response, elId, parentId, type) {
                 return "N/A";
             }
 
-            if (type !== 'display'){
+            if (type == 'filter') {
                 return components
             }
 
-            // show a button to toggle the component row
-            return '<button class="btn btn-xs btn-info details-control" type="button">' + 
-                   components.length + ' components</button>';
+            if (type == 'display') {
+                // show a button to toggle the component row
+                return '<button class="btn btn-xs btn-info details-control" type="button">' +
+                       components.length + ' components</button>';
+            }
+
+            return components.length;
         }
     });
 
@@ -309,6 +313,12 @@ var makeWorkerStatsTable = function (response, elId, parentId, type) {
         data: response.workers,
         autoWidth: false,
         columns: columns,
+        columnDefs: [
+            // port, #execs, mem, cpu%, components
+            {type: "num", targets: [2, 4, 5, 6, 7]},
+            // uptime
+            {type: "time-str", targets: [3]}
+        ],
         initComplete: function (){
             // add a "Toggle Components" button
             renderToggleComponents ($(elId + '_filter'), elId);
