@@ -31,6 +31,7 @@
   (:use [backtype.storm.scheduler.DefaultScheduler])
   (:import [backtype.storm.scheduler INimbus SupervisorDetails WorkerSlot TopologyDetails
             Cluster Topologies SchedulerAssignment SchedulerAssignmentImpl DefaultScheduler ExecutorDetails])
+  (:import [backtype.storm.scheduler.resource ResourceUtils])
   (:import [backtype.storm.utils TimeCacheMap TimeCacheMap$ExpiredCallback Utils ThriftTopologyUtils BufferInputStream])
   (:import [backtype.storm.generated AuthorizationException AlreadyAliveException BeginDownloadResult
                                      ClusterSummary ComponentPageInfo SupervisorPageInfo ErrorInfo ExecutorInfo ExecutorSummary GetInfoOptions
@@ -40,7 +41,7 @@
                                      ReadableBlobMeta RebalanceOptions SubmitOptions SupervisorSummary StormTopology
                                      WorkerSummary SettableBlobMeta TopologyHistoryInfo TopologyInfo TopologyInitialStatus
                                      TopologyPageInfo TopologyStats TopologySummary
-                                     ProfileRequest ProfileAction NodeInfo])
+                                     ProfileRequest ProfileAction NodeInfo ComponentType])
   (:import [backtype.storm.blobstore AtomicOutputStream
                                      BlobStore
                                      BlobStoreAclHandler
@@ -1346,6 +1347,7 @@
                :assignment assignment
                :beats beats
                :topology topology
+               :topology-conf topology-conf
                :task->component task->component
                :base base}))
         get-last-error (fn [storm-cluster-state storm-id component-id]
@@ -1804,6 +1806,7 @@
                       beats
                       task->component
                       topology
+                      topology-conf
                       base]} topo-info
               exec->node+port (:executor->node+port assignment)
               worker->resources (get-worker-resources-for-topology nimbus storm-id)
@@ -1823,6 +1826,23 @@
                                                          window
                                                          include-sys?
                                                          last-err-fn)]
+
+          (doseq [[spout-id component-aggregate-stats] (.get_id_to_spout_agg_stats topo-page-info)]
+            (let [common-stats (.get_common_stats component-aggregate-stats)]
+              ; Temporary conditional check for bridge scheduler
+              (if (= (topology-conf TOPOLOGY-SCHEDULER-STRATEGY) "backtype.storm.scheduler.resource.strategies.scheduling.MultitenantStrategy")
+                (.set_resources_map common-stats {TOPOLOGY-COMPONENT-RESOURCES-ONHEAP-MEMORY-MB 0.0,
+                                         TOPOLOGY-COMPONENT-RESOURCES-OFFHEAP-MEMORY-MB 0.0,
+                                         TOPOLOGY-COMPONENT-CPU-PCORE-PERCENT 0.0})
+                (.set_resources_map common-stats (.get (ResourceUtils/getSpoutsResources topology topology-conf) spout-id)))))
+          (doseq [[bolt-id component-aggregate-stats] (.get_id_to_bolt_agg_stats topo-page-info)]
+            (let [common-stats (.get_common_stats component-aggregate-stats)]
+              ; Temporary conditional check for bridge scheduler
+              (if (= (topology-conf TOPOLOGY-SCHEDULER-STRATEGY) "backtype.storm.scheduler.resource.strategies.scheduling.MultitenantStrategy")
+                (.set_resources_map common-stats {TOPOLOGY-COMPONENT-RESOURCES-ONHEAP-MEMORY-MB 0.0,
+                                         TOPOLOGY-COMPONENT-RESOURCES-OFFHEAP-MEMORY-MB 0.0,
+                                         TOPOLOGY-COMPONENT-CPU-PCORE-PERCENT 0.0})
+                (.set_resources_map common-stats (.get (ResourceUtils/getBoltsResources topology topology-conf) bolt-id)))))
           (.set_workers topo-page-info worker-summaries)
           (when-let [owner (:owner base)]
             (.set_owner topo-page-info owner))
@@ -1851,6 +1871,7 @@
          ^boolean include-sys?]
         (mark! num-getComponentPageInfo-calls)
         (let [info (get-common-topo-info topology-id "getComponentPageInfo")
+              {:keys [topology topology-conf]} info
               {:keys [executor->node+port node->host]} (:assignment info)
               executor->host+port (map-val (fn [[node port]]
                                              [(node->host node) port])
@@ -1863,6 +1884,14 @@
                                               topology-id
                                               (:topology info)
                                               component-id)]
+          ; Temporary conditional check for bridge scheduler
+          (if (= (topology-conf TOPOLOGY-SCHEDULER-STRATEGY) "backtype.storm.scheduler.resource.strategies.scheduling.MultitenantStrategy")
+            (.set_resources_map ret {TOPOLOGY-COMPONENT-RESOURCES-ONHEAP-MEMORY-MB 0.0,
+                                     TOPOLOGY-COMPONENT-RESOURCES-OFFHEAP-MEMORY-MB 0.0,
+                                     TOPOLOGY-COMPONENT-CPU-PCORE-PERCENT 0.0})
+            (if (.equals (.get_component_type ret) ComponentType/SPOUT)
+              (.set_resources_map ret (.get (ResourceUtils/getSpoutsResources topology topology-conf) component-id))
+              (.set_resources_map ret (.get (ResourceUtils/getBoltsResources topology topology-conf) component-id))))
           (doto ret
             (.set_topology_name (:storm-name info))
             (.set_errors (get-errors (:storm-cluster-state info)
