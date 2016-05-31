@@ -558,6 +558,10 @@
   [path]
   (.exists (File. path)))
 
+(defn not-empty-file?
+  [path]
+  (not (= (.length (File. path)) 0)))
+
 (defn rmr
   [path]
   (log-debug "Rmr path " path)

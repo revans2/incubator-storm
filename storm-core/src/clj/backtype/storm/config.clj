@@ -182,13 +182,15 @@
 
 (defn read-supervisor-storm-conf
   [conf storm-id]
+  (log-debug "Attempting to read conf for "  storm-id)
   (let [stormroot (supervisor-stormdist-root conf storm-id)
         conf-path (supervisor-stormconf-path stormroot)
-        topo-conf-file (File. conf-path)
-        _ (if-not (.exists topo-conf-file) (log-warn (str "The topology configuration file is missing: " conf-path)))
-        topo-conf (if (.exists topo-conf-file)
+        _ (if-not (exists-file? conf-path) (log-warn (str "The topology configuration file is missing: " conf-path)))
+        _ (if-not (not-empty-file? conf-path) (log-warn (str "The topology configuration is empty: " conf-path)))
+
+        topo-conf (if (and (exists-file? conf-path) (not-empty-file? conf-path))
                     (clojurify-structure
-                      (Utils/fromCompressedJsonConf (FileUtils/readFileToByteArray topo-conf-file))))]
+                      (Utils/fromCompressedJsonConf (FileUtils/readFileToByteArray (File. conf-path)))))]
     (merge conf topo-conf)))
 
 (defn read-supervisor-topology
