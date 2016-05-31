@@ -340,15 +340,15 @@
                                  nil)
    })
 
-(defn required-topo-files-exist?
+(defn required-topo-files-exist-and-not-empty?
   [conf storm-id]
   (let [stormroot (supervisor-stormdist-root conf storm-id)
         stormjarpath (supervisor-stormjar-path stormroot)
         stormcodepath (supervisor-stormcode-path stormroot)
         stormconfpath (supervisor-stormconf-path stormroot)]
-    (and (every? exists-file? [stormroot stormconfpath stormcodepath])
+    (and (every? exists-file? [stormroot stormconfpath stormcodepath]) (every? not-empty-file? [stormconfpath stormcodepath])
       (or (local-mode? conf)
-        (exists-file? stormjarpath)))))
+        (and (exists-file? stormjarpath) (not-empty-file? stormjarpath))))))
 
 (defn sync-processes [supervisor]
   (let [conf (:conf supervisor)
@@ -415,7 +415,7 @@
                       storm-id (:storm-id assignment)
                       ^WorkerResources resources (:resources assignment)
                       mem-onheap (.get_mem_on_heap resources)]
-                  (if (required-topo-files-exist? conf storm-id)
+                  (if (required-topo-files-exist-and-not-empty? conf storm-id)
                     (do
                       (log-message "Launching worker with assignment "
                         (pr-str assignment)
@@ -537,9 +537,9 @@
       (for [storm-id all-downloaded-storm-ids
             :let [rm-blob-refs? false]
             :when (contains? assigned-storm-ids storm-id)]
-        (if (not (required-topo-files-exist? conf storm-id))
+        (if (not (required-topo-files-exist-and-not-empty? conf storm-id))
           (do
-            (log-debug "Files not present in topology directory")
+            (log-debug "Files not present or empty in topology directory for " storm-id)
             (rm-topo-files conf storm-id localizer rm-blob-refs?) storm-id))))))
 
 (defn kill-existing-workers-with-change-in-components [supervisor existing-assignment new-assignment]
