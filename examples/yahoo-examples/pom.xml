@@ -46,7 +46,7 @@
     <dependency>
       <groupId>yahoo.yinst.storm_hadoop_client_conf</groupId>
       <artifactId>storm_hadoop_client_conf</artifactId>
-      <version>1.0.0.1</version>
+      <version>1.0.0.4</version>
     </dependency>
     <dependency>
       <groupId>commons-cli</groupId>
