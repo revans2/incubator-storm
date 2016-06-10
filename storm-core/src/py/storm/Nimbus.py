@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+#
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
 # distributed with this work for additional information
@@ -4532,11 +4534,11 @@ class getComponentPendingProfileActions_result:
       if fid == 0:
         if ftype == TType.LIST:
           self.success = []
-          (_etype660, _size657) = iprot.readListBegin()
-          for _i661 in xrange(_size657):
-            _elem662 = ProfileRequest()
-            _elem662.read(iprot)
-            self.success.append(_elem662)
+          (_etype678, _size675) = iprot.readListBegin()
+          for _i679 in xrange(_size675):
+            _elem680 = ProfileRequest()
+            _elem680.read(iprot)
+            self.success.append(_elem680)
           iprot.readListEnd()
         else:
           iprot.skip(ftype)
@@ -4553,8 +4555,8 @@ class getComponentPendingProfileActions_result:
     if self.success is not None:
       oprot.writeFieldBegin('success', TType.LIST, 0)
       oprot.writeListBegin(TType.STRUCT, len(self.success))
-      for iter663 in self.success:
-        iter663.write(oprot)
+      for iter681 in self.success:
+        iter681.write(oprot)
       oprot.writeListEnd()
       oprot.writeFieldEnd()
     oprot.writeFieldStop()

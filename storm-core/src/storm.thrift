@@ -252,6 +252,7 @@ struct CommonAggregateStats {
 4: optional i64 transferred;
 5: optional i64 acked;
 6: optional i64 failed;
+7: optional map<string, double> resources_map
 }
 
 struct SpoutAggregateStats {
@@ -353,6 +354,7 @@ struct ComponentPageInfo {
  9: optional map<string,ComponentAggregateStats> sid_to_output_stats;
 10: optional list<ExecutorAggregateStats> exec_stats;
 11: optional list<ErrorInfo> errors;
+12: optional map<string, double> resources_map
 }
 
 struct KillOptions {

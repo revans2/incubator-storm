@@ -371,14 +371,14 @@ public class LSTopoHistoryList implements org.apache.thrift.TBase<LSTopoHistoryL
           case 1: // TOPO_HISTORY
             if (schemeField.type == org.apache.thrift.protocol.TType.LIST) {
               {
-                org.apache.thrift.protocol.TList _list678 = iprot.readListBegin();
-                struct.topo_history = new ArrayList<LSTopoHistory>(_list678.size);
-                LSTopoHistory _elem679;
-                for (int _i680 = 0; _i680 < _list678.size; ++_i680)
+                org.apache.thrift.protocol.TList _list732 = iprot.readListBegin();
+                struct.topo_history = new ArrayList<LSTopoHistory>(_list732.size);
+                LSTopoHistory _elem733;
+                for (int _i734 = 0; _i734 < _list732.size; ++_i734)
                 {
-                  _elem679 = new LSTopoHistory();
-                  _elem679.read(iprot);
-                  struct.topo_history.add(_elem679);
+                  _elem733 = new LSTopoHistory();
+                  _elem733.read(iprot);
+                  struct.topo_history.add(_elem733);
                 }
                 iprot.readListEnd();
               }
@@ -404,9 +404,9 @@ public class LSTopoHistoryList implements org.apache.thrift.TBase<LSTopoHistoryL
         oprot.writeFieldBegin(TOPO_HISTORY_FIELD_DESC);
         {
           oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, struct.topo_history.size()));
-          for (LSTopoHistory _iter681 : struct.topo_history)
+          for (LSTopoHistory _iter735 : struct.topo_history)
           {
-            _iter681.write(oprot);
+            _iter735.write(oprot);
           }
           oprot.writeListEnd();
         }
@@ -431,9 +431,9 @@ public class LSTopoHistoryList implements org.apache.thrift.TBase<LSTopoHistoryL
       TTupleProtocol oprot = (TTupleProtocol) prot;
       {
         oprot.writeI32(struct.topo_history.size());
-        for (LSTopoHistory _iter682 : struct.topo_history)
+        for (LSTopoHistory _iter736 : struct.topo_history)
         {
-          _iter682.write(oprot);
+          _iter736.write(oprot);
         }
       }
     }
@@ -442,14 +442,14 @@ public class LSTopoHistoryList implements org.apache.thrift.TBase<LSTopoHistoryL
     public void read(org.apache.thrift.protocol.TProtocol prot, LSTopoHistoryList struct) throws org.apache.thrift.TException {
       TTupleProtocol iprot = (TTupleProtocol) prot;
       {
-        org.apache.thrift.protocol.TList _list683 = new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, iprot.readI32());
-        struct.topo_history = new ArrayList<LSTopoHistory>(_list683.size);
-        LSTopoHistory _elem684;
-        for (int _i685 = 0; _i685 < _list683.size; ++_i685)
+        org.apache.thrift.protocol.TList _list737 = new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, iprot.readI32());
+        struct.topo_history = new ArrayList<LSTopoHistory>(_list737.size);
+        LSTopoHistory _elem738;
+        for (int _i739 = 0; _i739 < _list737.size; ++_i739)
         {
-          _elem684 = new LSTopoHistory();
-          _elem684.read(iprot);
-          struct.topo_history.add(_elem684);
+          _elem738 = new LSTopoHistory();
+          _elem738.read(iprot);
+          struct.topo_history.add(_elem738);
         }
       }
       struct.set_topo_history_isSet(true);
