@@ -181,12 +181,12 @@ $(document).ready(function() {
               {type: "time-str", targets: [2]}
             ]
           });
+          $('#supervisor-summary [data-toggle="tooltip"]').tooltip();
           $('#bad-supervisor-summary [data-toggle="tooltip"]').tooltip();
             badSupervisorSummary.append(Mustache.render($(template).filter("#bad-supervisor-summary-template").html(),response));
             //id, error
             dtAutoPage("#bad-supervisor-summary-table", {});
             $('#bad-supervisor-summary [data-toggle="tooltip"]').tooltip();
-
         });
       });
     });

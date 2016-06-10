@@ -381,17 +381,29 @@
 
 (defn supervisor-summary-to-json 
   [summary]
+  (let [slotsTotal (.get_num_workers summary)
+        slotsUsed (.get_num_used_workers summary)
+        slotsFree (if (> (- slotsTotal slotsUsed) 0) (- slotsTotal slotsUsed) 0)
+        totalMem (get (.get_total_resources summary) Config/SUPERVISOR_MEMORY_CAPACITY_MB)
+        totalCpu (get (.get_total_resources summary) Config/SUPERVISOR_CPU_CAPACITY)
+        usedMem (.get_used_mem summary)
+        usedCpu (.get_used_cpu summary)
+        availMem (if (> (- totalMem usedMem) 0) (- totalMem usedMem) 0)
+        availCpu (if (> (- totalCpu usedCpu) 0) (- totalCpu usedCpu) 0)]
   {"id" (.get_supervisor_id summary)
    "host" (.get_host summary)
    "uptime" (pretty-uptime-sec (.get_uptime_secs summary))
    "uptimeSeconds" (.get_uptime_secs summary)
-   "slotsTotal" (.get_num_workers summary)
-   "slotsUsed" (.get_num_used_workers summary)
-   "totalMem" (get (.get_total_resources summary) Config/SUPERVISOR_MEMORY_CAPACITY_MB)
-   "totalCpu" (get (.get_total_resources summary) Config/SUPERVISOR_CPU_CAPACITY)
-   "usedMem" (.get_used_mem summary)
-   "usedCpu" (.get_used_cpu summary)
-   "version" (.get_version summary)})
+   "slotsTotal" slotsTotal
+   "slotsUsed" slotsUsed
+   "slotsFree" slotsFree
+   "totalMem" totalMem
+   "totalCpu" totalCpu
+   "usedMem" usedMem
+   "usedCpu" usedCpu
+   "availMem" availMem
+   "availCpu" availCpu
+   "version" (.get_version summary)}))
 
 (defn supervisor-page-info
   ([supervisor-id host include-sys? secure?]
