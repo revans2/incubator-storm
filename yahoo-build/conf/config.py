@@ -136,7 +136,7 @@ for mapKey in mapKeys:
                 if mapKey in allStringKeys:
                     val[subkey] = subval
                 else:
-                    val[subKey] = parseValue(subval)
+                    val[subkey] = parseValue(subval)
             result[mapKey] = val
 
 if "supervisor.slots.ports" in result and isinstance(result["supervisor.slots.ports"], int):
