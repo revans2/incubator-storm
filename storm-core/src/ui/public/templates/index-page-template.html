@@ -220,34 +220,51 @@
         </span>
       </th>
       <th>
-        <span data-toggle="tooltip" data-placement="above" title="Slots are Workers (processes).">
+        <span data-toggle="tooltip" data-placement="above" title="Total number of Slots. Slots are Workers (processes).">
           Slots
         </span>
       </th>
       <th>
-        <span data-toggle="tooltip" data-placement="left" title="Slots are Workers (processes).">
+        <span data-toggle="tooltip" data-placement="left" title="The number of Slots used. Slots are Workers (processes).">
           Used slots
         </span>
       </th>
       <th>
-        <span data-toggle="tooltip" data-placement="above" title="Memory capacity of a supervisor.">
+        <span data-toggle="tooltip" data-placement="left" title="The number of Slots available. Slots are Workers (processes).">
+          Avail slots
+        </span>
+      </th>
+      {{#schedulerDisplayResource}}
+        <th>
+        <span data-toggle="tooltip" data-placement="above" title="The total Memory capacity of a supervisor in megabytes.">
           Total Mem (MB)
         </span>
       </th>
-      <th>
-        <span data-toggle="tooltip" data-placement="left" title="Memory that has been allocated.">
+      {{/schedulerDisplayResource}}
+        <th>
+        <span data-toggle="tooltip" data-placement="left" title="The amount of Memory that has been allocated in megabytes.">
           Used Mem (MB)
         </span>
       </th>
       {{#schedulerDisplayResource}}
       <th>
-        <span data-toggle="tooltip" data-placement="above" title="CPU capacity of a supervisor. Every 100 means one core.">
+        <span data-toggle="tooltip" data-placement="left" title="The amount of Memory available in megabytes.">
+          Avail Mem (MB)
+        </span>
+      </th>
+      <th>
+        <span data-toggle="tooltip" data-placement="above" title="The total CPU capacity of a supervisor. Every 100 means one core.">
           Total CPU (%)
         </span>
       </th>
       <th>
-        <span data-toggle="tooltip" data-placement="left" title="CPU that has been allocated. Every 100 means one core">
+        <span data-toggle="tooltip" data-placement="left" title="The amount of CPU that has been allocated. Every 100 means one core.">
           Used CPU (%)
+        </span>
+      </th>
+      <th>
+        <span data-toggle="tooltip" data-placement="left" title="The amount of CPU that is available. Every 100 means one core.">
+          Avail CPU (%)
         </span>
       </th>
       {{/schedulerDisplayResource}}
@@ -266,11 +283,16 @@
       <td>{{uptime}}</td>
       <td>{{slotsTotal}}</td>
       <td>{{slotsUsed}}</td>
+      <td>{{slotsFree}}</td>
+      {{#schedulerDisplayResource}}
       <td>{{totalMem}}</td>
+      {{/schedulerDisplayResource}}
       <td>{{usedMem}}</td>
       {{#schedulerDisplayResource}}
+      <td>{{availMem}}</td>
       <td>{{totalCpu}}</td>
       <td>{{usedCpu}}</td>
+      <td>{{availCpu}}</td>
       {{/schedulerDisplayResource}}
       <td>{{version}}</td>
     </tr>
