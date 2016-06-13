@@ -332,8 +332,8 @@
                                (for [^SupervisorSummary s sups
                                      :let [sup-total-mem (get (.get_total_resources s) Config/SUPERVISOR_MEMORY_CAPACITY_MB)
                                            sup-total-cpu (get (.get_total_resources s) Config/SUPERVISOR_CPU_CAPACITY)
-                                           sup-avail-mem (if (> (- sup-total-mem (.get_used_mem s)) 0.0) (- sup-total-mem (.get_used_mem s)) 0.0)
-                                           sup-avail-cpu (if (> (- sup-total-cpu (.get_used_cpu s)) 0.0) (- sup-total-cpu (.get_used_cpu s)) 0.0)]]
+                                           sup-avail-mem (max (- sup-total-mem (.get_used_mem s)) 0.0)
+                                           sup-avail-cpu (max (- sup-total-cpu (.get_used_cpu s)) 0.0)]]
                                  [sup-total-mem sup-total-cpu sup-avail-mem sup-avail-cpu]))
                              [0.0 0.0 0.0 0.0])
            totalMem (nth resourceSummary 0)
@@ -383,13 +383,13 @@
   [summary]
   (let [slotsTotal (.get_num_workers summary)
         slotsUsed (.get_num_used_workers summary)
-        slotsFree (if (> (- slotsTotal slotsUsed) 0) (- slotsTotal slotsUsed) 0)
+        slotsFree (max (- slotsTotal slotsUsed) 0)
         totalMem (get (.get_total_resources summary) Config/SUPERVISOR_MEMORY_CAPACITY_MB)
         totalCpu (get (.get_total_resources summary) Config/SUPERVISOR_CPU_CAPACITY)
         usedMem (.get_used_mem summary)
         usedCpu (.get_used_cpu summary)
-        availMem (if (> (- totalMem usedMem) 0) (- totalMem usedMem) 0)
-        availCpu (if (> (- totalCpu usedCpu) 0) (- totalCpu usedCpu) 0)]
+        availMem (max (- totalMem usedMem) 0)
+        availCpu (max (- totalCpu usedCpu) 0)]
   {"id" (.get_supervisor_id summary)
    "host" (.get_host summary)
    "uptime" (pretty-uptime-sec (.get_uptime_secs summary))
