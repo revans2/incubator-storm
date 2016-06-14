@@ -18,7 +18,8 @@
   (:use compojure.core)
   (:use [clojure.java.shell :only [sh]])
   (:use ring.middleware.reload
-        ring.middleware.multipart-params)
+        ring.middleware.multipart-params
+        ring.middleware.multipart-params.temp-file)
   (:use [hiccup core page-helpers])
   (:use [backtype.storm config util log converter stats])
   (:use [backtype.storm.ui helpers])

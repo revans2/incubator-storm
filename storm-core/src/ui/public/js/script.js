@@ -388,3 +388,15 @@ function toggleComponents(elId) {
         showComponents(dt.api().row(this), show);
     });
 }
+
+// add a url query param to static (templates normally) ajax requests
+// for cache busting
+function getStatic(url, cb) {
+    return $.ajax({
+        url: url,
+        data: {
+            '_ts': '${packageTimestamp}'
+        },
+        success: cb
+    });
+};
