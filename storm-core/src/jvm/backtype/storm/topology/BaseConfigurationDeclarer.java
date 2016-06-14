@@ -51,7 +51,7 @@ public abstract class BaseConfigurationDeclarer<T extends ComponentConfiguration
         if(val!=null) val = val.intValue();
         return addConfiguration(Config.TOPOLOGY_MAX_SPOUT_PENDING, val);
     }
-    
+
     @Override
     public T setNumTasks(Number val) {
         if(val!=null) val = val.intValue();
@@ -60,16 +60,18 @@ public abstract class BaseConfigurationDeclarer<T extends ComponentConfiguration
 
     @Override
     public T setMemoryLoad(Number onHeap) {
-        return setMemoryLoad(onHeap, Utils.getDouble(conf.get(Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB)));
-    } 
+        if (onHeap != null) {
+            onHeap = onHeap.doubleValue();
+            return addConfiguration(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB, onHeap);
+        }
+        return null;
+    }
 
     @Override
     public T setMemoryLoad(Number onHeap, Number offHeap) {
         T ret = null;
-        if (onHeap != null) {
-            onHeap = onHeap.doubleValue();
-            ret = addConfiguration(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB, onHeap);
-        }
+        ret = setMemoryLoad(onHeap);
+
         if (offHeap!=null) {
             offHeap = offHeap.doubleValue();
             ret = addConfiguration(Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB, offHeap);
@@ -83,5 +85,5 @@ public abstract class BaseConfigurationDeclarer<T extends ComponentConfiguration
             return addConfiguration(Config.TOPOLOGY_COMPONENT_CPU_PCORE_PERCENT, amount);
         }
         return null;
-    } 
+    }
 }
