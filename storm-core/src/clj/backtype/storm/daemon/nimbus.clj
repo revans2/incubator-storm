@@ -1350,6 +1350,11 @@
                :topology-conf topology-conf
                :task->component task->component
                :base base}))
+        set-resources-default-if-not-set
+          (fn [^HashMap component-resources-map component-id topology-conf]
+              (let [resource-map (or (.get component-resources-map component-id) (HashMap.))]
+                (ResourceUtils/checkIntialization resource-map component-id topology-conf)
+                resource-map))
         get-last-error (fn [storm-cluster-state storm-id component-id]
                          (if-let [e (.last-error storm-cluster-state
                                                  storm-id
@@ -1825,7 +1830,9 @@
                                                          topology
                                                          window
                                                          include-sys?
-                                                         last-err-fn)]
+                                                         last-err-fn)
+              spout-resources (ResourceUtils/getSpoutsResources topology topology-conf)
+              bolt-resources (ResourceUtils/getBoltsResources topology topology-conf)]
 
           (doseq [[spout-id component-aggregate-stats] (.get_id_to_spout_agg_stats topo-page-info)]
             (let [common-stats (.get_common_stats component-aggregate-stats)]
@@ -1834,7 +1841,7 @@
                 (.set_resources_map common-stats {TOPOLOGY-COMPONENT-RESOURCES-ONHEAP-MEMORY-MB 0.0,
                                          TOPOLOGY-COMPONENT-RESOURCES-OFFHEAP-MEMORY-MB 0.0,
                                          TOPOLOGY-COMPONENT-CPU-PCORE-PERCENT 0.0})
-                (.set_resources_map common-stats (.get (ResourceUtils/getSpoutsResources topology topology-conf) spout-id)))))
+                (.set_resources_map common-stats (set-resources-default-if-not-set spout-resources spout-id topology-conf)))))
           (doseq [[bolt-id component-aggregate-stats] (.get_id_to_bolt_agg_stats topo-page-info)]
             (let [common-stats (.get_common_stats component-aggregate-stats)]
               ; Temporary conditional check for bridge scheduler
@@ -1842,7 +1849,7 @@
                 (.set_resources_map common-stats {TOPOLOGY-COMPONENT-RESOURCES-ONHEAP-MEMORY-MB 0.0,
                                          TOPOLOGY-COMPONENT-RESOURCES-OFFHEAP-MEMORY-MB 0.0,
                                          TOPOLOGY-COMPONENT-CPU-PCORE-PERCENT 0.0})
-                (.set_resources_map common-stats (.get (ResourceUtils/getBoltsResources topology topology-conf) bolt-id)))))
+                (.set_resources_map common-stats (set-resources-default-if-not-set bolt-resources bolt-id topology-conf)))))
           (.set_workers topo-page-info worker-summaries)
           (when-let [owner (:owner base)]
             (.set_owner topo-page-info owner))
@@ -1890,8 +1897,8 @@
                                      TOPOLOGY-COMPONENT-RESOURCES-OFFHEAP-MEMORY-MB 0.0,
                                      TOPOLOGY-COMPONENT-CPU-PCORE-PERCENT 0.0})
             (if (.equals (.get_component_type ret) ComponentType/SPOUT)
-              (.set_resources_map ret (.get (ResourceUtils/getSpoutsResources topology topology-conf) component-id))
-              (.set_resources_map ret (.get (ResourceUtils/getBoltsResources topology topology-conf) component-id))))
+              (.set_resources_map ret (set-resources-default-if-not-set (ResourceUtils/getSpoutsResources topology topology-conf) component-id topology-conf))
+              (.set_resources_map ret (set-resources-default-if-not-set (ResourceUtils/getBoltsResources topology topology-conf) component-id topology-conf))))
           (doto ret
             (.set_topology_name (:storm-name info))
             (.set_errors (get-errors (:storm-cluster-state info)
