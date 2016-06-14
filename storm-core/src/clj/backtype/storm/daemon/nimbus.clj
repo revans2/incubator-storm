@@ -1352,7 +1352,7 @@
                :base base}))
         set-resources-default-if-not-set
           (fn [^HashMap component-resources-map component-id topology-conf]
-              (let [resource-map (if (nil? (.get component-resources-map component-id)) (HashMap.) (.get component-resources-map component-id))]
+              (let [resource-map (or (.get component-resources-map component-id) (HashMap.))]
                 (ResourceUtils/checkIntialization resource-map component-id topology-conf)
                 resource-map))
         get-last-error (fn [storm-cluster-state storm-id component-id]
