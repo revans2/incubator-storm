@@ -26,6 +26,7 @@ import backtype.storm.generated.StormTopology;
 import backtype.storm.grouping.CustomStreamGrouping;
 import backtype.storm.topology.BoltDeclarer;
 import backtype.storm.topology.IRichSpout;
+import backtype.storm.topology.SpoutDeclarer;
 import backtype.storm.tuple.Fields;
 import backtype.storm.utils.Utils;
 
@@ -50,6 +51,7 @@ import storm.trident.fluent.IAggregatableStream;
 import storm.trident.fluent.UniqueIdGen;
 import storm.trident.graph.GraphGrouper;
 import storm.trident.graph.Group;
+import storm.trident.operation.DefaultResourceDeclarer;
 import storm.trident.operation.GroupedMultiReducer;
 import storm.trident.operation.MultiReducer;
 import storm.trident.operation.impl.FilterExecutor;
@@ -92,6 +94,8 @@ public class TridentTopology {
     DefaultDirectedGraph<Node, IndexedEdge> _graph;
     Map<String, List<Node>> _colocate = new HashMap();
     UniqueIdGen _gen;
+    Map<String, Number> _resourceDefaults = new HashMap<>();
+    Map<String, Number> _masterCoordResources = new HashMap<>();
     
     public TridentTopology() {
         _graph = new DefaultDirectedGraph(new ErrorEdgeFactory());
@@ -261,8 +265,18 @@ public class TridentTopology {
               groupedStreams(streams, joinFields),
               new JoinerMultiReducer(mixed, joinFields.get(0).size(), strippedInputFields(streams, joinFields)),
               outFields);
-    }    
-        
+    }
+
+    public TridentTopology setResourceDefaults(DefaultResourceDeclarer defaults) {
+        _resourceDefaults = defaults.getResources();
+        return this;
+    }
+
+    public TridentTopology setMasterCoordResources(DefaultResourceDeclarer resources) {
+        _masterCoordResources = resources.getResources();
+        return this;
+    }
+
     public StormTopology build() {
         DefaultDirectedGraph<Node, IndexedEdge> graph = (DefaultDirectedGraph) _graph.clone();
         
@@ -378,29 +392,28 @@ public class TridentTopology {
 //        System.out.println(graph);
         
         Map<Group, Integer> parallelisms = getGroupParallelisms(graph, grouper, mergedGroups);
-        
+
         TridentTopologyBuilder builder = new TridentTopologyBuilder();
-        
+
         Map<Node, String> spoutIds = genSpoutIds(spoutNodes);
         Map<Group, String> boltIds = genBoltIds(mergedGroups);
-        
-        Map defaults = Utils.readDefaultConfig();
 
         for(SpoutNode sn: spoutNodes) {
             Integer parallelism = parallelisms.get(grouper.nodeGroup(sn));
 
-            Map<String, Number> spoutRes = null;
-            spoutRes = mergeDefaultResources(sn.getResources(), defaults);
+            Map<String, Number> spoutRes = new HashMap<>(_resourceDefaults);
+            spoutRes.putAll(sn.getResources());
+
             Number onHeap = spoutRes.get(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB);
             Number offHeap = spoutRes.get(Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB);
             Number cpuLoad = spoutRes.get(Config.TOPOLOGY_COMPONENT_CPU_PCORE_PERCENT);
 
+            SpoutDeclarer spoutDeclarer = null;
+
             if(sn.type == SpoutNode.SpoutType.DRPC) {
 
-                builder.setBatchPerTupleSpout(spoutIds.get(sn), sn.streamId,
-                                              (IRichSpout) sn.spout, parallelism, batchGroupMap.get(sn))
-                    .setMemoryLoad(onHeap, offHeap)
-                    .setCPULoad(cpuLoad);
+                spoutDeclarer = builder.setBatchPerTupleSpout(spoutIds.get(sn), sn.streamId,
+                                                              (IRichSpout) sn.spout, parallelism, batchGroupMap.get(sn));
             } else {
                 ITridentSpout s;
                 if(sn.spout instanceof IBatchSpout) {
@@ -411,9 +424,20 @@ public class TridentTopology {
                     throw new RuntimeException("Regular rich spouts not supported yet... try wrapping in a RichSpoutBatchExecutor");
                     // TODO: handle regular rich spout without batches (need lots of updates to support this throughout)
                 }
-                builder.setSpout(spoutIds.get(sn), sn.streamId, sn.txId, s, parallelism, batchGroupMap.get(sn))
-                    .setMemoryLoad(onHeap, offHeap)
-                    .setCPULoad(cpuLoad);
+                spoutDeclarer = builder.setSpout(spoutIds.get(sn), sn.streamId, sn.txId, s, parallelism, batchGroupMap.get(sn));
+            }
+
+            if(onHeap != null) {
+                if(offHeap != null) {
+                    spoutDeclarer.setMemoryLoad(onHeap, offHeap);
+                }
+                else {
+                    spoutDeclarer.setMemoryLoad(onHeap);
+                }
+            }
+
+            if(cpuLoad != null) {
+                spoutDeclarer.setCPULoad(cpuLoad);
             }
         }
 
@@ -421,16 +445,28 @@ public class TridentTopology {
             if(!isSpoutGroup(g)) {
                 Integer p = parallelisms.get(g);
                 Map<String, String> streamToGroup = getOutputStreamBatchGroups(g, batchGroupMap);
-                Map<String, Number> groupRes = mergeDefaultResources(g.getResources(), defaults);
+                Map<String, Number> groupRes = g.getResources(_resourceDefaults);
 
                 Number onHeap = groupRes.get(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB);
                 Number offHeap = groupRes.get(Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB);
                 Number cpuLoad = groupRes.get(Config.TOPOLOGY_COMPONENT_CPU_PCORE_PERCENT);
 
                 BoltDeclarer d = builder.setBolt(boltIds.get(g), new SubtopologyBolt(graph, g.nodes, batchGroupMap), p,
-                                                 committerBatches(g, batchGroupMap), streamToGroup)
-                    .setMemoryLoad(onHeap, offHeap)
-                    .setCPULoad(cpuLoad);
+                                                 committerBatches(g, batchGroupMap), streamToGroup);
+
+                if(onHeap != null) {
+                    if(offHeap != null) {
+                        d.setMemoryLoad(onHeap, offHeap);
+                    }
+                    else {
+                        d.setMemoryLoad(onHeap);
+                    }
+                }
+
+                if(cpuLoad != null) {
+                    d.setCPULoad(cpuLoad);
+                }
+
                 Collection<PartitionNode> inputs = uniquedSubscriptions(externalGroupInputs(g));
                 for(PartitionNode n: inputs) {
                     Node parent = TridentUtils.getParent(graph, n);
@@ -441,11 +477,12 @@ public class TridentTopology {
                         componentId = boltIds.get(grouper.nodeGroup(parent));
                     }
                     d.grouping(new GlobalStreamId(componentId, n.streamId), n.thriftGrouping);
-                } 
+                }
             }
         }
-        
-        return builder.buildTopology();
+        HashMap<String, Number> combinedMasterCoordResources = new HashMap<String, Number>(_resourceDefaults);
+        combinedMasterCoordResources.putAll(_masterCoordResources);
+        return builder.buildTopology(combinedMasterCoordResources);
     }
 
     private static Map<String, Number> mergeDefaultResources(Map<String, Number> res, Map defaultConfig) {
