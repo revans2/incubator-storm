@@ -251,7 +251,13 @@ var makeWorkerStatsTable = function (response, elId, parentId, type) {
                     data;
             }
         },
-        { data: 'uptime' },
+        { 
+            data: function (row, type){
+                return type === 'display' ? 
+                    row.uptime :
+                    row.uptimeSeconds;
+            }
+        },
         { data: 'executorsTotal' },
         { 
             data: function (row){
@@ -274,7 +280,7 @@ var makeWorkerStatsTable = function (response, elId, parentId, type) {
             }
 
             if (type == 'filter') {
-                return components
+                return components;
             }
 
             if (type == 'display') {
@@ -313,12 +319,6 @@ var makeWorkerStatsTable = function (response, elId, parentId, type) {
         data: response.workers,
         autoWidth: false,
         columns: columns,
-        columnDefs: [
-            // port, #execs, mem, cpu%, components
-            {type: "num", targets: [2, 4, 5, 6, 7]},
-            // uptime
-            {type: "time-str", targets: [3]}
-        ],
         initComplete: function (){
             // add a "Toggle Components" button
             renderToggleComponents ($(elId + '_filter'), elId);
