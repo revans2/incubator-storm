@@ -1,7 +1,8 @@
 {
     "version": 2,
     "shared": {
-        "notification_email": "storm-devel@yahoo-inc.com"
+        "notification_email": "storm-devel@yahoo-inc.com",
+        "build_timeout": 600
     },
     "jobs": {
         "component": {  
