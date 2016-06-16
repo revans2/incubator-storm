@@ -109,7 +109,6 @@ public class ResourceUtils {
     public static Map<String, Double> parseResources(String input) {
         Map<String, Double> topology_resources = new HashMap<String, Double>();
         JSONParser parser = new JSONParser();
-        LOG.debug("Input to parseResources {}", input);
         try {
             if (input != null) {
                 Object obj = parser.parse(input);
@@ -128,7 +127,6 @@ public class ResourceUtils {
                     Double topoCPU = Utils.getDouble(jsonObject.get(Config.TOPOLOGY_COMPONENT_CPU_PCORE_PERCENT), null);
                     topology_resources.put(Config.TOPOLOGY_COMPONENT_CPU_PCORE_PERCENT, topoCPU);
                 }
-                LOG.debug("Topology Resources {}", topology_resources);
             }
         } catch (ParseException e) {
             LOG.error("Failed to parse component resources is:" + e.toString(), e);
