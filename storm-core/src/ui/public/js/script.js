@@ -239,7 +239,7 @@ var makeWorkerStatsTable = function (response, elId, parentId, type) {
             render: function (data, type, row){
                 return type === 'display' ? 
                     ('<a href="/supervisor.html?host=' + data + '">' + data + '</a>') :
-                    row.topologyId;
+                    data;
             }
         },
         {
