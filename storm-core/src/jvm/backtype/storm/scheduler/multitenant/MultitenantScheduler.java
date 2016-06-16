@@ -25,6 +25,7 @@ import java.util.LinkedList;
 import java.util.Map;
 import java.util.Set;
 
+import backtype.storm.scheduler.IConfigLoader;
 import backtype.storm.scheduler.ExecutorDetails;
 import backtype.storm.scheduler.WorkerSlot;
 import backtype.storm.scheduler.resource.ResourceUtils;
@@ -36,6 +37,7 @@ import backtype.storm.scheduler.Cluster;
 import backtype.storm.scheduler.IScheduler;
 import backtype.storm.scheduler.Topologies;
 import backtype.storm.scheduler.TopologyDetails;
+import backtype.storm.scheduler.SchedulerUtils;
 import backtype.storm.utils.Utils;
 
 public class MultitenantScheduler implements IScheduler {
@@ -43,13 +45,26 @@ public class MultitenantScheduler implements IScheduler {
   Set<Node> nodesRasCanUse;
   @SuppressWarnings("rawtypes")
   private Map _conf;
+  IConfigLoader _configLoader;
   
   @Override
   public void prepare(@SuppressWarnings("rawtypes") Map conf) {
     _conf = conf;
+    _configLoader = SchedulerUtils.getConfigLoader(conf, Config.MULTITENANT_SCHEDULER_USER_POOL_LOADER);
   }
  
   private Map<String, Number> getUserConf() {
+    // Try the loader plugin, if configured
+    if (_configLoader != null) {
+        Map<String, Number> ret = (Map<String, Number>)_configLoader.load();
+        if (ret != null) {
+            return ret;
+        } else {
+            LOG.debug("Config loader returned null");
+        }
+    }
+
+    // If that fails, fall back on config
     Map<String, Number> ret = (Map<String, Number>)_conf.get(Config.MULTITENANT_SCHEDULER_USER_POOLS);
     if (ret == null) {
       ret = new HashMap<>();
