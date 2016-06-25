@@ -2292,6 +2292,12 @@ public class Config extends HashMap<String, Object> {
     public static String STORM_CGROUP_INHERIT_CPUSET_CONFIGS = "storm.cgroup.inherit.cpuset.configs";
 
     /**
+     * !!!!! - TEMPORARY CONFIG - !!!!!
+     */
+    @isBoolean
+    public static String STORM_CGROUP_MEMORY_ENFORCEMENT_ENABLE = "storm.cgroup.memory.enforcement.enable";
+
+    /**
      * Whether workers wait until each of its connections to remote workers are
      * in ready state before opening spouts and preparing workers.
      */

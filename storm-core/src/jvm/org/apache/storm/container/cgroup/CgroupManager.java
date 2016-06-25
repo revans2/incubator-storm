@@ -152,12 +152,15 @@ public class CgroupManager implements ResourceIsolationInterface {
             }
         }
 
-        if (totalMem != null) {
-            MemoryCore memCore = (MemoryCore) workerGroup.getCores().get(SubSystemType.memory);
-            try {
-                memCore.setPhysicalUsageLimit(Long.valueOf(totalMem.longValue() * 1024 * 1024));
-            } catch (IOException e) {
-                throw new RuntimeException("Cannot set memory.limit_in_bytes! Exception: ", e);
+        // TEMPORARY CHECK TO DEAL WITH KERNEL BUGS
+        if ((boolean)this.conf.get(Config.STORM_CGROUP_MEMORY_ENFORCEMENT_ENABLE)) {
+            if (totalMem != null) {
+                MemoryCore memCore = (MemoryCore) workerGroup.getCores().get(SubSystemType.memory);
+                try {
+                    memCore.setPhysicalUsageLimit(Long.valueOf(totalMem.longValue() * 1024 * 1024));
+                } catch (IOException e) {
+                    throw new RuntimeException("Cannot set memory.limit_in_bytes! Exception: ", e);
+                }
             }
         }
 

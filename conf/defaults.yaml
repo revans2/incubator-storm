@@ -299,3 +299,5 @@ storm.supervisor.cgroup.rootdir: "storm"
 storm.cgroup.cgexec.cmd: "/bin/cgexec"
 storm.cgroup.memory.limit.tolerance.margin.mb: 128.0
 storm.cgroup.inherit.cpuset.configs: false
+### Temporary config ###
+storm.cgroup.memory.enforcement.enable: false
