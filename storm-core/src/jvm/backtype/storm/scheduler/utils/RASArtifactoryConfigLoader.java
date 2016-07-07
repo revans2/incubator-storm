@@ -28,7 +28,7 @@ public class RASArtifactoryConfigLoader extends ArtifactoryConfigLoader {
     @Override
     public void prepare(Map conf) {
         this.conf = new HashMap(conf);
-        this.conf.put(ArtifactoryConfigLoader.ARTIFACTORY_URI, (String)conf.get(Config.RESOURCE_AWARE_SCHEDULER_USER_POOL_URI));
+        this.conf.put(ArtifactoryConfigLoader.ARTIFACTORY_URI, (String)conf.get(Config.RESOURCE_AWARE_SCHEDULER_USER_POOLS_URI));
         super.prepare(this.conf);
     }
 }

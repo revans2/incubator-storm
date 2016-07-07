@@ -56,7 +56,7 @@ public class ResourceAwareScheduler implements IScheduler {
     @Override
     public void prepare(Map conf) {
         this.conf = conf;
-        configLoader = SchedulerUtils.getConfigLoader(conf, Config.RESOURCE_AWARE_SCHEDULER_USER_POOL_LOADER);
+        configLoader = SchedulerUtils.getConfigLoader(conf, Config.RESOURCE_AWARE_SCHEDULER_USER_POOLS_LOADER);
     }
 
     @Override

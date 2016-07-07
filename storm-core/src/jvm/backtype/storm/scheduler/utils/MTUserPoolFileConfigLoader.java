@@ -29,7 +29,7 @@ public class MTUserPoolFileConfigLoader extends FileConfigLoader {
     @Override
     public void prepare(Map conf) {
         this.conf = new HashMap(conf);
-        this.conf.put(FileConfigLoader.LOCAL_FILE_YAML, conf.get(Config.MULTITENANT_SCHEDULER_USER_POOL_LOCAL_FILE));
+        this.conf.put(FileConfigLoader.LOCAL_FILE_YAML, conf.get(Config.MULTITENANT_SCHEDULER_USER_POOLS_LOCAL_FILE));
         super.prepare(this.conf);
     }
 }

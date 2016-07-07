@@ -50,7 +50,7 @@ public class MultitenantScheduler implements IScheduler {
   @Override
   public void prepare(@SuppressWarnings("rawtypes") Map conf) {
     _conf = conf;
-    _configLoader = SchedulerUtils.getConfigLoader(conf, Config.MULTITENANT_SCHEDULER_USER_POOL_LOADER);
+    _configLoader = SchedulerUtils.getConfigLoader(conf, Config.MULTITENANT_SCHEDULER_USER_POOLS_LOADER);
   }
  
   private Map<String, Number> getUserConf() {

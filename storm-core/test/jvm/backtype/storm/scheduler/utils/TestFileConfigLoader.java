@@ -101,12 +101,12 @@ public class TestFileConfigLoader {
 
     @Test
     public void testValidFileMT() throws Exception {
-        testValidFile(new MTUserPoolFileConfigLoader(), Config.MULTITENANT_SCHEDULER_USER_POOL_LOCAL_FILE);
+        testValidFile(new MTUserPoolFileConfigLoader(), Config.MULTITENANT_SCHEDULER_USER_POOLS_LOCAL_FILE);
     }
 
     @Test
     public void testValidFileRAS() throws Exception {
-        testValidFile(new RASUserPoolFileConfigLoader(), Config.RESOURCE_AWARE_SCHEDULER_USER_POOL_LOCAL_FILE);
+        testValidFile(new RASUserPoolFileConfigLoader(), Config.RESOURCE_AWARE_SCHEDULER_USER_POOLS_LOCAL_FILE);
     }
 
     @Test  // this should get tested by the above two tests, but let's go ahead and test the base class

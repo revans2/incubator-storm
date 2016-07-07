@@ -41,6 +41,7 @@ import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.ResponseHandler;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.config.RequestConfig; 
+import org.apache.http.client.utils.URIBuilder;
 import org.apache.http.impl.client.HttpClientBuilder; 
 import org.apache.http.client.HttpClient; 
 import org.apache.http.impl.client.HttpClients;
@@ -52,6 +53,9 @@ import org.slf4j.LoggerFactory;
 
 public class ArtifactoryConfigLoader implements IConfigLoader {
     protected static final String ARTIFACTORY_URI="artifactory.config.loader.uri";
+    protected static final String ARTIFACTORY_TIMEOUT_SECS="artifactory.config.loader.timeout.secs";
+    protected static final String ARTIFACTORY_SCHEME="artifactory.config.loader.scheme";
+    protected static final String ARTIFACTORY_BASE_DIRECTORY="artifactory.config.loader.base.directory";
     protected static final String LOCAL_ARTIFACT_DIR="scheduler_artifacts";
 
     private static final Logger LOG = LoggerFactory.getLogger(ArtifactoryConfigLoader.class);
@@ -64,34 +68,29 @@ public class ArtifactoryConfigLoader implements IConfigLoader {
     private String uriString;
     private String location;
     private String localCacheDir;
+    private String artifactoryScheme = "http";
+    private String baseDirectory = "/artifactory/";
     private int lastReturnedTime = 0;
+    private Integer timeout = new Integer(10);
     private Map lastReturnedValue;
 
     // Protected so we can override this in testing
     protected String doGet(String api, String artifact) {
-        StringBuilder urlBuilder = new StringBuilder();
-        URL localUrl;
+        URIBuilder builder = new URIBuilder().setScheme(artifactoryScheme).setHost(host).setPort(port);
 
-        urlBuilder.append("http://").append(host).append(":").append(port).append("/artifactory/");
         if (api != null) {
-            urlBuilder.append(api);
-        }
-        urlBuilder.append(artifact);
-        String urlStr = urlBuilder.toString();
-        try {
-            localUrl = new URL(urlStr);
-        } catch (MalformedURLException localMalformedURLException) {
-            LOG.error("Misconfigured artifactory client:  URL={}", urlStr, localMalformedURLException);
-            return null;
+            builder.setPath(baseDirectory + api + artifact);
+        } else {
+            builder.setPath(baseDirectory + artifact);
         }
         
-        RequestConfig requestConfig = RequestConfig.custom().setConnectTimeout(10 * 1000).build();
+        RequestConfig requestConfig = RequestConfig.custom().setConnectTimeout(timeout * 1000).build();
         HttpClient httpclient = HttpClientBuilder.create().setDefaultRequestConfig(requestConfig).build();
 
         String returnValue;
         try {
-            LOG.debug("About to issue a GET to {}", urlStr);
-            HttpGet httpget = new HttpGet(urlStr);
+            LOG.debug("About to issue a GET to {}", builder.toString());
+            HttpGet httpget = new HttpGet(builder.build());
 
             // Create a custom response handler
             ResponseHandler<String> responseHandler = new ResponseHandler<String>() {
@@ -293,6 +292,18 @@ public class ArtifactoryConfigLoader implements IConfigLoader {
             } catch (java.net.URISyntaxException e) {
                 LOG.error("Failed to parse uri={}", uriString);
             }
+        }
+        Integer thisTimeout = (Integer)conf.get(ARTIFACTORY_TIMEOUT_SECS);
+        if (thisTimeout != null) {
+            timeout = thisTimeout;
+        }
+        String thisScheme = (String)conf.get(ARTIFACTORY_SCHEME);
+        if (thisScheme != null) {
+            artifactoryScheme = thisScheme;
+        }
+        String thisBase = (String)conf.get(ARTIFACTORY_BASE_DIRECTORY);
+        if (thisBase != null) {
+            baseDirectory = thisBase;
         }
         makeArtifactoryCache();
     }
