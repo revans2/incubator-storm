@@ -16,12 +16,12 @@
  * limitations under the License.
  */
 
-package backtype.storm.scheduler;
+package backtype.storm.scheduler.utils;
 
 import backtype.storm.Config;
 import backtype.storm.utils.Time;
 import backtype.storm.utils.Utils;
-import backtype.storm.scheduler.ArtifactoryConfigLoader;
+import backtype.storm.scheduler.utils.ArtifactoryConfigLoader;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.Before;
@@ -116,21 +116,20 @@ public class TestArtifactoryConfigLoader {
         Map ret = testClass.load();
 
         Assert.assertNotNull("Unexpectedly returned null", ret);
-        Assert.assertEquals( ret.get("one"), 1);
-        Assert.assertEquals( ret.get("two"), 2);
-        Assert.assertEquals( ret.get("three"), 3);
-        Assert.assertEquals( ret.get("four"), 4);
-
+        Assert.assertEquals(1, ret.get("one"));
+        Assert.assertEquals(2, ret.get("two"));
+        Assert.assertEquals(3, ret.get("three"));
+        Assert.assertEquals(4, ret.get("four"));
 
         // Now let's load w/o setting up gets and we should still get valid map back
         TestClass tc2 = new TestClass();
         tc2.prepare(conf);
         Map ret2 = tc2.load();
         Assert.assertNotNull("Unexpectedly returned null", ret2);
-        Assert.assertEquals( ret2.get("one"), 1);
-        Assert.assertEquals( ret2.get("two"), 2);
-        Assert.assertEquals( ret2.get("three"), 3);
-        Assert.assertEquals( ret2.get("four"), 4);
+        Assert.assertEquals(1, ret2.get("one"));
+        Assert.assertEquals(2, ret2.get("two"));
+        Assert.assertEquals(3, ret2.get("three"));
+        Assert.assertEquals(4, ret2.get("four"));
     }
 
     @Test
@@ -152,9 +151,9 @@ public class TestArtifactoryConfigLoader {
             Map ret = testClass.load();
 
             Assert.assertNotNull("Unexpectedly returned null", ret);
-            Assert.assertEquals( ret.get("one"), 1);
-            Assert.assertEquals( ret.get("two"), 2);
-            Assert.assertEquals( ret.get("three"), 3);
+            Assert.assertEquals(1, ret.get("one"));
+            Assert.assertEquals(2, ret.get("two"));
+            Assert.assertEquals(3, ret.get("three"));
             Assert.assertNull("Unexpectedly did not return null", ret.get("four"));
 
             // Now let's load w/o setting up gets and we should still get valid map back
@@ -162,55 +161,47 @@ public class TestArtifactoryConfigLoader {
             tc2.prepare(conf);
             Map ret2 = tc2.load();
             Assert.assertNotNull("Unexpectedly returned null", ret2);
-            Assert.assertEquals( ret2.get("one"), 1);
-            Assert.assertEquals( ret2.get("two"), 2);
-            Assert.assertEquals( ret2.get("three"), 3);
+            Assert.assertEquals(1, ret2.get("one"));
+            Assert.assertEquals(2, ret2.get("two"));
+            Assert.assertEquals(3, ret2.get("three"));
             Assert.assertNull("Unexpectedly did not return null", ret2.get("four"));
 
             // Now let's update it, but not advance time.  Should get old map again.
             testClass.setData("Anything", "/location/of/test/dir",
-                "{\"children\" : [ { \"uri\" : \"/20160621204999.yaml\", \"folder\" : false }]}" );
+                "{\"children\" : [ { \"uri\" : \"/20160621204999.yaml\", \"folder\" : false }]}");
             testClass.setData(null, null, "{one: 1, two: 2, three: 3, four: 4}");
             ret = testClass.load();
             Assert.assertNotNull("Unexpectedly returned null", ret);
-            Assert.assertEquals( ret.get("one"), 1);
-            Assert.assertEquals( ret.get("two"), 2);
-            Assert.assertEquals( ret.get("three"), 3);
+            Assert.assertEquals(1, ret.get("one"));
+            Assert.assertEquals(2, ret.get("two"));
+            Assert.assertEquals(3, ret.get("three"));
             Assert.assertNull("Unexpectedly did not return null", ret.get("four"));
 
             // Re-load from cached' file.
             ret2 = tc2.load();
             Assert.assertNotNull("Unexpectedly returned null", ret2);
-            Assert.assertEquals( ret2.get("one"), 1);
-            Assert.assertEquals( ret2.get("two"), 2);
-            Assert.assertEquals( ret2.get("three"), 3);
+            Assert.assertEquals(1, ret2.get("one"));
+            Assert.assertEquals(2, ret2.get("two"));
+            Assert.assertEquals(3, ret2.get("three"));
             Assert.assertNull("Unexpectedly did not return null", ret2.get("four"));
 
             // Now, let's advance time.
             Time.advanceTime(11*60*1000);
 
-            // And we have to wait a real second so our cache file has a different
-            // modification time
-            try {
-                java.lang.Thread.sleep(1000);
-            } catch (Exception e) {
-                LOG.error("Sleep failed", e);
-            }
-
             ret = testClass.load();
             Assert.assertNotNull("Unexpectedly returned null", ret);
-            Assert.assertEquals( ret.get("one"), 1);
-            Assert.assertEquals( ret.get("two"), 2);
-            Assert.assertEquals( ret.get("three"), 3);
-            Assert.assertEquals( ret.get("four"), 4);
+            Assert.assertEquals(1, ret.get("one"));
+            Assert.assertEquals(2, ret.get("two"));
+            Assert.assertEquals(3, ret.get("three"));
+            Assert.assertEquals(4, ret.get("four"));
 
             // Re-load from cached' file.
             ret2 = tc2.load();
             Assert.assertNotNull("Unexpectedly returned null", ret2);
-            Assert.assertEquals( ret2.get("one"), 1);
-            Assert.assertEquals( ret2.get("two"), 2);
-            Assert.assertEquals( ret2.get("three"), 3);
-            Assert.assertEquals( ret2.get("four"), 4);
+            Assert.assertEquals(1, ret2.get("one"));
+            Assert.assertEquals(2, ret2.get("two"));
+            Assert.assertEquals(3, ret2.get("three"));
+            Assert.assertEquals(4, ret2.get("four"));
         } finally {
             Time.stopSimulating();
         }
@@ -231,19 +222,18 @@ public class TestArtifactoryConfigLoader {
         Map ret = testClass.load();
 
         Assert.assertNotNull("Unexpectedly returned null", ret);
-        Assert.assertEquals( ret.get("one"), 1);
-        Assert.assertEquals( ret.get("two"), 2);
-        Assert.assertEquals( ret.get("three"), 3);
-
+        Assert.assertEquals(1, ret.get("one"));
+        Assert.assertEquals(2, ret.get("two"));
+        Assert.assertEquals(3, ret.get("three"));
 
         // Now let's load w/o setting up gets and we should still get valid map back
         TestClass tc2 = new TestClass();
         tc2.prepare(conf);
         Map ret2 = tc2.load();
         Assert.assertNotNull("Unexpectedly returned null", ret2);
-        Assert.assertEquals( ret2.get("one"), 1);
-        Assert.assertEquals( ret2.get("two"), 2);
-        Assert.assertEquals( ret2.get("three"), 3);
+        Assert.assertEquals(1, ret2.get("one"));
+        Assert.assertEquals(2, ret2.get("two"));
+        Assert.assertEquals(3, ret2.get("three"));
     }
 
     @Test
@@ -293,7 +283,6 @@ public class TestArtifactoryConfigLoader {
             File temp = File.createTempFile("FileLoader", ".yaml");
             temp.deleteOnExit();
             Map<String, Integer> testMap = new HashMap<String, Integer>();
-
 
             testMap.put("a", 1);
             testMap.put("b", 2);

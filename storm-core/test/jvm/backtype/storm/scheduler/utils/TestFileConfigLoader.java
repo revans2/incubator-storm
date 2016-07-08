@@ -16,12 +16,12 @@
  * limitations under the License.
  */
 
-package backtype.storm.scheduler;
+package backtype.storm.scheduler.utils;
 
 import backtype.storm.Config;
-import backtype.storm.scheduler.FileConfigLoader;
-import backtype.storm.scheduler.MTUserPoolFileConfigLoader;
-import backtype.storm.scheduler.RASUserPoolFileConfigLoader;
+import backtype.storm.scheduler.utils.FileConfigLoader;
+import backtype.storm.scheduler.utils.MTUserPoolFileConfigLoader;
+import backtype.storm.scheduler.utils.RASUserPoolFileConfigLoader;
 import backtype.storm.utils.Time;
 import backtype.storm.utils.Utils;
 import org.junit.Assert;
@@ -61,7 +61,6 @@ public class TestFileConfigLoader {
         Assert.assertNull("Unexpectedly returned a map", result);
     }
 
-
     @Test
     public void testInvalidConfig() throws Exception {
         Config config = new Config();
@@ -86,7 +85,6 @@ public class TestFileConfigLoader {
         fw.write(outputData, 0, outputData.length());
         fw.flush();
         fw.close();
-
 
         Config config = new Config();
         config.put(FileConfigLoader.LOCAL_FILE_YAML, temp.getCanonicalPath());
@@ -131,10 +129,8 @@ public class TestFileConfigLoader {
         fw.flush();
         fw.close();
 
-
         Config config = new Config();
         config.put(setting, temp.getCanonicalPath());
-
 
         loader.prepare(config);
 
@@ -149,6 +145,5 @@ public class TestFileConfigLoader {
             Integer returnedValue = (Integer)result.get(key);
             Assert.assertEquals("Bad value for key=" + key, expectedValue, returnedValue);
         }
-
     }
 }

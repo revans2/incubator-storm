@@ -25,7 +25,7 @@ import java.util.LinkedList;
 import java.util.Map;
 import java.util.Set;
 
-import backtype.storm.scheduler.IConfigLoader;
+import backtype.storm.scheduler.utils.IConfigLoader;
 import backtype.storm.scheduler.ExecutorDetails;
 import backtype.storm.scheduler.WorkerSlot;
 import backtype.storm.scheduler.resource.ResourceUtils;
@@ -37,7 +37,7 @@ import backtype.storm.scheduler.Cluster;
 import backtype.storm.scheduler.IScheduler;
 import backtype.storm.scheduler.Topologies;
 import backtype.storm.scheduler.TopologyDetails;
-import backtype.storm.scheduler.SchedulerUtils;
+import backtype.storm.scheduler.utils.SchedulerUtils;
 import backtype.storm.utils.Utils;
 
 public class MultitenantScheduler implements IScheduler {
