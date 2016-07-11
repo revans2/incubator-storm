@@ -18,7 +18,7 @@
   (:import [org.apache.zookeeper.data Stat ACL Id]
            [backtype.storm.generated SupervisorInfo Assignment StormBase ClusterWorkerHeartbeat ErrorInfo Credentials LogConfig ProfileAction ProfileRequest NodeInfo]
            [java.io Serializable])
-  (:import [org.apache.zookeeper KeeperException KeeperException$NoNodeException ZooDefs ZooDefs$Ids ZooDefs$Perms])
+  (:import [org.apache.zookeeper KeeperException KeeperException$NoNodeException KeeperException$NodeExistsException ZooDefs ZooDefs$Ids ZooDefs$Perms])
   (:import [backtype.storm.utils Utils])
   (:import [backtype.storm.cluster ClusterState ClusterStateContext])
   (:import [java.security MessageDigest])
