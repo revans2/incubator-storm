@@ -30,12 +30,7 @@ import storm.trident.planner.Node;
 import storm.trident.util.IndexedEdge;
 import storm.trident.util.TridentUtils;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 public class Group {
-    private static final Logger LOG = LoggerFactory.getLogger(Group.class);
-    
     public Set<Node> nodes = new HashSet<Node>();
     private DirectedGraph<Node, IndexedEdge> graph;
     private String id;
@@ -99,10 +94,10 @@ public class Group {
             else {
                 Map<String, Number> node_res = new HashMap<>(defaults);
                 node_res.putAll(n.getResources());
-                
+
                 if(!node_res.keySet().equals(resources.keySet())) {
                     StringBuilder ops = new StringBuilder();
-                    
+
                     for(Node nod : nodes) {
                         Set<String> resource_keys = new HashSet<>(defaults.keySet());
                         resource_keys.addAll(nod.getResources().keySet());

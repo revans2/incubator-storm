@@ -70,10 +70,8 @@ public abstract class BaseConfigurationDeclarer<T extends ComponentConfiguration
     @Override
     public T setMemoryLoad(Number onHeap, Number offHeap) {
         T ret = null;
-        if (onHeap != null) {
-            onHeap = onHeap.doubleValue();
-            ret = addConfiguration(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB, onHeap);
-        }
+        ret = setMemoryLoad(onHeap);
+
         if (offHeap!=null) {
             offHeap = offHeap.doubleValue();
             ret = addConfiguration(Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB, offHeap);
