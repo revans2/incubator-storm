@@ -21,7 +21,8 @@
                     "after" : [
                         "git tag -f -a `cat $SRC_DIR/yahoo-build/RELEASE` -m \"yahoo version `cat $SRC_DIR/yahoo-build/RELEASE`\"",
                         "git push origin `cat $SRC_DIR/yahoo-build/RELEASE`",
-                        "${SRC_DIR}/internal/QATools/storm_tag_master_launcher"
+                        "${SRC_DIR}/internal/QATools/storm_tag_master_launcher",
+			"pipeline-log-event --this_task \"screwdriver|screwdriver.corp.yahoo.com:${PROJECT_ID}|${BUILD_NUMBER}\" --input_object \"git|${GIT_URL}|${GIT_COMMIT}\" --output-object \"yinst|ystorm|`cat $SRC_DIR/yahoo-build/RELEASE`\" --next-task \"screwdriver|screwdriver.corp.yahoo.com:61235\""
                     ]
                 },
                  "remote_trigger": {
