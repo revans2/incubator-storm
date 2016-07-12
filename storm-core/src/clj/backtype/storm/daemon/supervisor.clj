@@ -1071,7 +1071,7 @@
           topo-classpath (if-let [cp (storm-conf TOPOLOGY-CLASSPATH)]
                            [cp]
                            [])
-          worker-classpath-str (if-let [ufcp (storm-conf TOPOLOGY-CLASSPATH-FIRST)]
+          worker-classpath-str (if-let [ufcp (storm-conf TOPOLOGY-CLASSPATH-BEGINNING)]
                                  (add-to-classpath ufcp [(worker-classpath)])
                                  (worker-classpath))
           classpath (-> worker-classpath-str

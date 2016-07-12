@@ -300,4 +300,4 @@ storm.cgroup.cgexec.cmd: "/bin/cgexec"
 storm.cgroup.memory.limit.tolerance.margin.mb: 128.0
 storm.cgroup.inherit.cpuset.configs: false
 storm.cgroup.memory.enforcement.enable: false ### Temporary config ###
-storm.user.classpath.first.enabled: false
+storm.topology.classpath.beginning.enabled: false
