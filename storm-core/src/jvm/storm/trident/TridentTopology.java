@@ -485,65 +485,6 @@ public class TridentTopology {
         return builder.buildTopology(combinedMasterCoordResources);
     }
 
-    private static Map<String, Number> mergeDefaultResources(Map<String, Number> res, Map defaultConfig) {
-        Map<String, Number> ret = new HashMap<String, Number>();
-
-        Number onHeapDefault = (Number)defaultConfig.get(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB);
-        Number offHeapDefault = (Number)defaultConfig.get(Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB);
-        Number cpuLoadDefault = (Number)defaultConfig.get(Config.TOPOLOGY_COMPONENT_CPU_PCORE_PERCENT);
-
-        if(res == null) {
-            ret.put(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB, onHeapDefault);
-            ret.put(Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB, offHeapDefault);
-            ret.put(Config.TOPOLOGY_COMPONENT_CPU_PCORE_PERCENT, cpuLoadDefault);
-            return ret;
-        }
-
-        Number onHeap = res.get(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB);
-        Number offHeap = res.get(Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB);
-        Number cpuLoad = res.get(Config.TOPOLOGY_COMPONENT_CPU_PCORE_PERCENT);
-
-        /* We take the max of the default and whatever the user put in here.
-           Each node's resources can be the sum of several operations, so the simplest
-           thing to do is get the max.
-
-           The situation we want to avoid is that the user sets low resources on one
-           node, and when that node is combined with a bunch of others, the sum is still
-           that low resource count. If any component isn't set, we want to use the default.
-
-           Right now, this code does not check that. It just takes the max of the summed
-           up resource counts for simplicity's sake. We could perform some more complicated
-           logic to be more accurate, but the benefits are very small, and only apply to some
-           very odd corner cases. */
-
-        if(onHeap == null) {
-            onHeap = onHeapDefault;
-        }
-        else {
-            onHeap = Math.max(onHeap.doubleValue(), onHeapDefault.doubleValue());
-        }
-
-        if(offHeap == null) {
-            offHeap = offHeapDefault;
-        }
-        else {
-            offHeap = Math.max(offHeap.doubleValue(), offHeapDefault.doubleValue());
-        }
-
-        if(cpuLoad == null) {
-            cpuLoad = cpuLoadDefault;
-        }
-        else {
-            cpuLoad = Math.max(cpuLoad.doubleValue(), cpuLoadDefault.doubleValue());
-        }
-
-        ret.put(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB, onHeap);
-        ret.put(Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB, offHeap);
-        ret.put(Config.TOPOLOGY_COMPONENT_CPU_PCORE_PERCENT, cpuLoad);
-
-        return ret;
-    }
-    
     private static void completeDRPC(DefaultDirectedGraph<Node, IndexedEdge> graph, Map<String, List<Node>> colocate, UniqueIdGen gen) {
         List<Set<Node>> connectedComponents = new ConnectivityInspector<Node, IndexedEdge>(graph).connectedSets();
         

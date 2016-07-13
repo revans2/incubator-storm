@@ -105,6 +105,7 @@ public class Group {
                     }
 
                     if(node_res.keySet().containsAll(resources.keySet())) {
+                        // Node has some extra settings.
                         Set<String> diffset = new HashSet<>(node_res.keySet());
                         diffset.removeAll(resources.keySet());
                         throw new RuntimeException("Found an operation with resources set which are not set in other operations in the group:\n" +
@@ -114,11 +115,22 @@ public class Group {
                                                    ops);
                     }
                     else if(resources.keySet().containsAll(node_res.keySet())) {
+                        // Node missing some settings.
                         Set<String> diffset = new HashSet<>(resources.keySet());
                         diffset.removeAll(node_res.keySet());
                         throw new RuntimeException("Found an operation with resources unset which are set in other operations in the group:\n" +
                                                    "\t[ " + n.shortString() + " ]: " + diffset + "\n" +
                                                    "Either set these resources in all other operations in the group, add a default setting, or remove the setting from all other operations.\n" +
+                                                   "The group at fault:\n" +
+                                                   ops);
+                    }
+                    else {
+                        // Expected settings and Node settings totally mismatched.
+                        throw new RuntimeException("Found an operation with mismatched resource settings:\n" +
+                                                   "\t[ " + n.shortString() + " ]:\n" +
+                                                   "\tExpected: " + resources.keySet() + "\n" +
+                                                   "\tFound: " + node_res.keySet() + "\n" +
+                                                   "All nodes in a group must have the same resources defined. Define the resources or set defaults.\n" +
                                                    "The group at fault:\n" +
                                                    ops);
                     }
