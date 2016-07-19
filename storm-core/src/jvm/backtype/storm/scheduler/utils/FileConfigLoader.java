@@ -55,6 +55,7 @@ public class FileConfigLoader implements IConfigLoader {
             Yaml yaml = new Yaml(new SafeConstructor());
             FileInputStream fis = new FileInputStream(theFile);
             ret = (Map) yaml.load(new InputStreamReader(fis));
+            fis.close();
         } catch (Exception e) {
             LOG.error("Failed to load yaml from file" + localFileName, e);
             return null;
