@@ -75,14 +75,14 @@
                    (if-let [topo-profile-actions (.get-topology-profile-requests storm-cluster-state sid false)]
                       {sid topo-profile-actions}))
            (apply merge))]
-         
+
       {:assignments (into {} (for [[k v] new-assignments] [k (:data v)]))
        :profiler-actions new-profiler-actions
        :versions new-assignments})))
 
 (defn- read-my-executors [assignments-snapshot storm-id assignment-id]
   (let [assignment (get assignments-snapshot storm-id)
-        my-slots-resources (into {} 
+        my-slots-resources (into {}
                                  (filter (fn [[[node _] _]] (= node assignment-id))
                                          (:worker->resources assignment)))
         my-executors (filter (fn [[_ [node _]]] (= node assignment-id))
@@ -272,7 +272,7 @@
       (if as-user
         (worker-launcher-and-wait conf user ["signal" pid "15"] :log-prefix (str "kill -15 " pid))
         (kill-process-with-sig-term pid)))
-    (when-not (empty? pids)  
+    (when-not (empty? pids)
       (log-message "Sleep " shutdown-sleep-secs " seconds for execution of cleanup threads on worker.")
       (sleep-secs shutdown-sleep-secs))
     (doseq [pid pids]
@@ -350,6 +350,15 @@
       (or (local-mode? conf)
         (and (exists-file? stormjarpath) (not-empty-file? stormjarpath))))))
 
+(defn port-is-clear [supervisor port]
+  (let [^LocalState local-state (:local-state supervisor)
+        assigned-executors (defaulted (ls-local-assignments local-state) {})
+        now (current-time-secs)
+        allocated (vals (read-allocated-workers supervisor assigned-executors now))
+        valid-allocated (filter (fn [[_ hb]] (not (nil? hb))) allocated)
+        living-ports (set (map #((nth % 1) :port) valid-allocated))]
+    (nil? (living-ports port))))
+
 (defn sync-processes [supervisor]
   (let [conf (:conf supervisor)
         download-lock (:download-lock supervisor)
@@ -393,7 +402,7 @@
       (let
         [worker-launchtime (:launchtime (@(:worker-launchtime-atom supervisor) id))]
         (when
-          (or 
+          (or
             (and (not= :valid state)
                  (not= :not-started state))
             (and (= :not-started state)
@@ -428,14 +437,17 @@
                       (local-mkdirs (worker-pids-root conf id))
                       (local-mkdirs (worker-tmp-root conf id))
                       (local-mkdirs (worker-heartbeats-root conf id))
-                      (launch-worker supervisor
-                        (:storm-id assignment)
-                        port
-                        id
-                        resources)
-                      (swap! (:worker-launchtime-atom supervisor) assoc id {:launchtime (current-time-secs) :port port})
-                      (mark! num-workers-launched)
-                      [port id])
+                      (if (port-is-clear supervisor port)
+                        (do
+                          (launch-worker supervisor
+                                         (:storm-id assignment)
+                                         port
+                                         id
+                                         resources)
+                          (swap! (:worker-launchtime-atom supervisor) assoc id {:launchtime (current-time-secs) :port port})
+                          (mark! num-workers-launched)
+                          [port id])
+                        (log-message "Worker slot " port " still occupied! Will retry later.")))
                     (do
                       (log-message "Missing topology storm code, so can't launch worker with assignment "
                         (pr-str assignment)
@@ -626,7 +638,7 @@
           (log-message "Removing code for storm id "
                        storm-id)
           (rm-topo-files conf storm-id localizer rm-blob-refs?)
-	))
+       ))
       (.add processes-event-manager sync-processes))))
 
 (defn mk-supervisor-capacities
@@ -1101,7 +1113,7 @@
                                         (merge env {"LD_LIBRARY_PATH" jlp})
                                         {"LD_LIBRARY_PATH" jlp})
           command (concat
-                    [(java-cmd) "-cp" classpath 
+                    [(java-cmd) "-cp" classpath
                      topo-worker-lw-childopts
                      (str "-Dlogfile.name=" logfilename)
                      (str "-Dstorm.home=" storm-home)
@@ -1194,13 +1206,13 @@
           blob-store (Utils/getNimbusBlobStore conf master-code-dir)]
       (try
         (FileUtils/forceMkdir (File. tmproot))
-      
+
         (.readBlobTo blob-store (master-stormcode-key storm-id) (FileOutputStream. (supervisor-stormcode-path tmproot)) nil)
         (.readBlobTo blob-store (master-stormconf-key storm-id) (FileOutputStream. (supervisor-stormconf-path tmproot)) nil)
-      (finally 
+      (finally
         (.shutdown blob-store)))
       (FileUtils/moveDirectory (File. tmproot) (File. stormroot))
-      (setup-storm-code-dir conf (read-supervisor-storm-conf conf storm-id) stormroot)     
+      (setup-storm-code-dir conf (read-supervisor-storm-conf conf storm-id) stormroot)
       (let [classloader (.getContextClassLoader (Thread/currentThread))
             resources-jar (resources-jar)
             url (.getResource classloader RESOURCES-SUBDIR)
