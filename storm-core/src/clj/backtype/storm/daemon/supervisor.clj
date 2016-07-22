@@ -75,14 +75,14 @@
                    (if-let [topo-profile-actions (.get-topology-profile-requests storm-cluster-state sid false)]
                       {sid topo-profile-actions}))
            (apply merge))]
-
+      
       {:assignments (into {} (for [[k v] new-assignments] [k (:data v)]))
        :profiler-actions new-profiler-actions
        :versions new-assignments})))
 
 (defn- read-my-executors [assignments-snapshot storm-id assignment-id]
   (let [assignment (get assignments-snapshot storm-id)
-        my-slots-resources (into {}
+        my-slots-resources (into {} 
                                  (filter (fn [[[node _] _]] (= node assignment-id))
                                          (:worker->resources assignment)))
         my-executors (filter (fn [[_ [node _]]] (= node assignment-id))
@@ -272,7 +272,7 @@
       (if as-user
         (worker-launcher-and-wait conf user ["signal" pid "15"] :log-prefix (str "kill -15 " pid))
         (kill-process-with-sig-term pid)))
-    (when-not (empty? pids)
+    (when-not (empty? pids) 
       (log-message "Sleep " shutdown-sleep-secs " seconds for execution of cleanup threads on worker.")
       (sleep-secs shutdown-sleep-secs))
     (doseq [pid pids]
@@ -402,7 +402,7 @@
       (let
         [worker-launchtime (:launchtime (@(:worker-launchtime-atom supervisor) id))]
         (when
-          (or
+          (or 
             (and (not= :valid state)
                  (not= :not-started state))
             (and (= :not-started state)
@@ -1113,7 +1113,7 @@
                                         (merge env {"LD_LIBRARY_PATH" jlp})
                                         {"LD_LIBRARY_PATH" jlp})
           command (concat
-                    [(java-cmd) "-cp" classpath
+                    [(java-cmd) "-cp" classpath 
                      topo-worker-lw-childopts
                      (str "-Dlogfile.name=" logfilename)
                      (str "-Dstorm.home=" storm-home)
@@ -1206,13 +1206,13 @@
           blob-store (Utils/getNimbusBlobStore conf master-code-dir)]
       (try
         (FileUtils/forceMkdir (File. tmproot))
-
+        
         (.readBlobTo blob-store (master-stormcode-key storm-id) (FileOutputStream. (supervisor-stormcode-path tmproot)) nil)
         (.readBlobTo blob-store (master-stormconf-key storm-id) (FileOutputStream. (supervisor-stormconf-path tmproot)) nil)
-      (finally
+      (finally 
         (.shutdown blob-store)))
       (FileUtils/moveDirectory (File. tmproot) (File. stormroot))
-      (setup-storm-code-dir conf (read-supervisor-storm-conf conf storm-id) stormroot)
+      (setup-storm-code-dir conf (read-supervisor-storm-conf conf storm-id) stormroot)    
       (let [classloader (.getContextClassLoader (Thread/currentThread))
             resources-jar (resources-jar)
             url (.getResource classloader RESOURCES-SUBDIR)
