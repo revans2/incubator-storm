@@ -434,11 +434,11 @@
                         port
                         " with id "
                         id)
-                      (local-mkdirs (worker-pids-root conf id))
-                      (local-mkdirs (worker-tmp-root conf id))
-                      (local-mkdirs (worker-heartbeats-root conf id))
                       (if (port-is-clear supervisor port)
                         (do
+                          (local-mkdirs (worker-pids-root conf id))
+                          (local-mkdirs (worker-tmp-root conf id))
+                          (local-mkdirs (worker-heartbeats-root conf id))
                           (launch-worker supervisor
                                          (:storm-id assignment)
                                          port
