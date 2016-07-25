@@ -56,7 +56,7 @@ public class ResourceAwareScheduler implements IScheduler {
     @Override
     public void prepare(Map conf) {
         this.conf = conf;
-        configLoader = SchedulerUtils.getConfigLoader(conf, Config.RESOURCE_AWARE_SCHEDULER_USER_POOLS_LOADER);
+        this.configLoader = SchedulerUtils.getConfigLoader(conf, Config.RESOURCE_AWARE_SCHEDULER_USER_POOLS_LOADER);
     }
 
     @Override
@@ -393,7 +393,7 @@ public class ResourceAwareScheduler implements IScheduler {
      */
     private Map<String, Map<String, Double>> getUserResourcePools() {
         // If loader plugin is configured, then try it
-        if (configLoader != null) {
+        if (this.configLoader != null) {
             Map<String, Map<String, Double>> ret = configLoader.load();
             if (ret != null) {
                 return ret;
