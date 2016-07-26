@@ -615,11 +615,6 @@
         (reset! (:curr-assignment supervisor) new-assignment)
 
         ;; kill workers based on assignment diff after we update assignments
-        ;; Useless code! Might want to remove
-        (doseq [p (set/difference (set (keys existing-assignment))
-                    (set (keys new-assignment)))]
-          (.killedWorker isupervisor (int p)))
-        ;; kill assignments with diff in assignment
         (kill-existing-workers-with-change-in-components supervisor existing-assignment new-assignment port->worker-id))
       ;; remove any downloaded code that's no longer assigned or active
       ;; important that this happens after setting the local assignment so that
