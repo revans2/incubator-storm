@@ -173,7 +173,7 @@
       (do
         (log-warn "Exception "
                   ~klass
-                  " not found amoung thrown Exceptions: "
+                  " not found among thrown Exceptions: "
                   (map str causal-chain))
         false))))
 
