@@ -17,6 +17,7 @@
  */
 package storm.trident.topology;
 
+import backtype.storm.Config;
 import backtype.storm.generated.GlobalStreamId;
 import backtype.storm.generated.Grouping;
 import backtype.storm.generated.StormTopology;
@@ -129,7 +130,7 @@ public class TridentTopologyBuilder {
         return ret;
     }
     
-    public StormTopology buildTopology() {        
+    public StormTopology buildTopology(Map<String, Number> masterCoordResources) {
         TopologyBuilder builder = new TopologyBuilder();
         Map<GlobalStreamId, String> batchIdsForSpouts = fleshOutStreamBatchIds(false);
         Map<GlobalStreamId, String> batchIdsForBolts = fleshOutStreamBatchIds(true);
@@ -195,10 +196,27 @@ public class TridentTopologyBuilder {
                 d.addConfigurations(conf);
             }
         }
-        
+
+        Number onHeap = masterCoordResources.get(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB);
+        Number offHeap = masterCoordResources.get(Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB);
+        Number cpuLoad = masterCoordResources.get(Config.TOPOLOGY_COMPONENT_CPU_PCORE_PERCENT);
+
         for(String batch: batchesToCommitIds.keySet()) {
             List<String> commitIds = batchesToCommitIds.get(batch);
-            builder.setSpout(masterCoordinator(batch), new MasterBatchCoordinator(commitIds, batchesToSpouts.get(batch)));
+            SpoutDeclarer masterCoord = builder.setSpout(masterCoordinator(batch), new MasterBatchCoordinator(commitIds, batchesToSpouts.get(batch)));
+
+            if(onHeap != null) {
+                if(offHeap != null) {
+                    masterCoord.setMemoryLoad(onHeap, offHeap);
+                }
+                else {
+                    masterCoord.setMemoryLoad(onHeap);
+                }
+            }
+
+            if(cpuLoad != null) {
+                masterCoord.setCPULoad(cpuLoad);
+            }
         }
                 
         for(String id: _bolts.keySet()) {
