@@ -255,16 +255,16 @@
       {:status {:type :rebalancing}
        :prev-status status
        :topology-action-options (-> {:delay-secs delay :action :rebalance}
-                                  (assoc-non-nil :num-workers num-workers)
-                                  (assoc-non-nil :component->executors executor-overrides)
-                                  (assoc-non-nil :component->resources resource-overrides)
-                                  (assoc-non-nil :topology->config topology-config-overrides)
-                                  (assoc-non-nil :principal (if subject
-                                                              (-> subject
-                                                              (.getPrincipals)
-                                                              (.iterator)
-                                                              (.next)
-                                                              (.getName)))))
+                                    (assoc-non-nil :num-workers num-workers)
+                                    (assoc-non-nil :component->executors executor-overrides)
+                                    (assoc-non-nil :component->resources resource-overrides)
+                                    (assoc-non-nil :topology->config topology-config-overrides)
+                                    (assoc-non-nil :principal (if subject
+                                                                (-> subject
+                                                                (.getPrincipals)
+                                                                (.iterator)
+                                                                (.next)
+                                                                (.getName)))))
        })))
 
 (defn do-rebalance [nimbus storm-id status storm-base]
@@ -443,15 +443,13 @@
 
 (defnk update-storm-code [storm-id blob-store :topology-conf nil :topology nil :subject (get-subject)]
   (if topology-conf
-    (let [blob-stream (.updateBlob blob-store (master-stormconf-key storm-id) subject)]
+    (with-open [blob-stream (.updateBlob blob-store (master-stormconf-key storm-id) subject)]
       (log-debug "updating topology-conf stored at key: " (master-stormconf-key storm-id) " conf: " topology-conf " for subject: " subject)
-      (.write blob-stream (Utils/toCompressedJsonConf topology-conf))
-      (.close blob-stream)))
+      (.write blob-stream (Utils/toCompressedJsonConf topology-conf))))
   (if topology
-    (let [blob-stream (.updateBlob blob-store (master-stormcode-key storm-id) subject)]
+    (with-open [blob-stream (.updateBlob blob-store (master-stormcode-key storm-id) subject)]
       (log-debug "updating storm topology stored at key: " (master-stormcode-key storm-id) " topology: " topology "for subject: " subject)
-      (.write blob-stream (Utils/serialize topology))
-      (.close blob-stream))))
+      (.write blob-stream (Utils/serialize topology)))))
 
 (defn update-topology-resources [nimbus storm-id resource-overrides subject]
   (let [blob-store (:blob-store nimbus)
