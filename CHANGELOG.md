@@ -1,19 +1,4 @@
-## 0.10.2
- * STORM-1834: Documentation How to Generate Certificates For Local Testing SSL Setup
- * STORM-1754: Correct java version in 0.10.x storm-starter
- * STORM-1750: Ensure worker dies when report-error-and-die is called.
- * STORM-1739: update the minor JAVA version dependency in 0.10.0 and above
- * STORM-1733: Flush stdout and stderr before calling "os.execvp" to prevent log loss
-
 ## 0.10.1
- * STORM-1731: Avoid looking up debug enable flags within critical path
- * STORM-1645: convert nimbus.thrift.port to int to avoid ClassCastException
- * STORM-1535: Make sure hdfs key tab login happens only once for multiple bolts/executors
- * STORM-584: Fix logging for LoggingMetricsConsumer metrics.log file
- * STORM-1603: Storm UT fails on supervisor test in Windows (0.10.x)
- * STORM-1596: Do not use single Kerberos TGT instance between multiple threads
- * STORM-1482: add missing 'break' for RedisStoreBolt
- * STORM-1481: avoid Math.abs(Integer) get a negative value
  * STORM-1121: Deprecate test only configuraton nimbus.reassign
  * STORM-1180: FLUX logo wasn't appearing quite right
 
