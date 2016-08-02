@@ -165,23 +165,15 @@
 
 (defn exception-cause?
   [klass ^Throwable t]
-  (let [causal-chain (->>
-                       (iterate #(.getCause ^Throwable %) t)
-                       (take-while identity))]
-    (if-let [cause-found? (some (partial instance? klass) causal-chain)]
-      true
-      (do
-        (log-warn "Exception "
-                  ~klass
-                  " not found among thrown Exceptions: "
-                  (map str causal-chain))
-        false))))
+  (->> (iterate #(.getCause ^Throwable %) t)
+       (take-while identity)
+       (some (partial instance? klass))
+       boolean))
 
 (defmacro thrown-cause?
   [klass & body]
   `(try
      ~@body
-     (log-warn "No exception was thrown when checking for " ~klass)
      false
      (catch Throwable t#
        (exception-cause? ~klass t#))))
