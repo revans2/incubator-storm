@@ -1562,6 +1562,8 @@
         (check-storm-active! nimbus storm-name true)
         (let [topology-conf (try-read-storm-conf-from-name conf storm-name nimbus)]
           (check-authorization! nimbus storm-name topology-conf "rebalance"))
+        ;; Set principal in RebalanceOptions to nil because users are not suppose to set this
+        (.set_principal options nil)
         (let [wait-amt (if (.is_set_wait_secs options)
                          (.get_wait_secs options))
               num-workers (if (.is_set_num_workers options)

@@ -151,11 +151,6 @@
             <artifactId>data.codec</artifactId>
             <scope>test</scope>
         </dependency>
-        <dependency>
-            <groupId>org.clojure</groupId>
-            <artifactId>data.json</artifactId>
-            <version>0.2.6</version>
-        </dependency>
 
         <!--java-->
         <dependency>

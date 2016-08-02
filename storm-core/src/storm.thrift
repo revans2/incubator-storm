@@ -367,6 +367,7 @@ struct RebalanceOptions {
   3: optional map<string, i32> num_executors;
   4: optional map<string, map<string, double>> topology_resources_overrides;
   5: optional string topology_conf_overrides;
+  //This value is not intended to be explicitly set by end users
   6: optional string principal
 }
 

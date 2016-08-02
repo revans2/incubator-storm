@@ -17,9 +17,9 @@
   (:import [backtype.storm.generated SupervisorInfo NodeInfo Assignment WorkerResources
             StormBase TopologyStatus ClusterWorkerHeartbeat ExecutorInfo ErrorInfo Credentials RebalanceOptions KillOptions TopologyActionOptions ProfileRequest])
   (:import [backtype.storm.utils Utils])
+  (:import [org.json.simple JSONObject])
   (:use [backtype.storm util stats log])
-  (:require [backtype.storm.daemon [common :as common]])
-  (:require [clojure.data.json :as json]))
+  (:require [backtype.storm.daemon [common :as common]]))
 
 (defn thriftify-supervisor-info [supervisor-info]
   (doto (SupervisorInfo.)
@@ -128,7 +128,7 @@
     (assoc-non-nil :num-workers (if (.is_set_num_workers rebalance-options) (.get_num_workers rebalance-options)))
     (assoc-non-nil :component->executors (if (.is_set_num_executors rebalance-options) (into {} (.get_num_executors rebalance-options))))
     (assoc-non-nil :component->resources (if (.is_set_topology_resources_overrides rebalance-options) (into {} (.get_topology_resources_overrides rebalance-options))))
-    (assoc-non-nil :topology->config (if (.is_set_topology_conf_overrides rebalance-options) (into {} (Utils/parseJson (.get_topology_conf_overrides rebalance-options)))))
+    (assoc-non-nil :topology->config (if (.is_set_topology_conf_overrides rebalance-options) (into {} (from-json (.get_topology_conf_overrides rebalance-options)))))
     (assoc-non-nil :principal (if (.is_set_principal rebalance-options) (.get_principal rebalance-options)))))
 
 (defn thriftify-rebalance-options [rebalance-options]
@@ -143,7 +143,7 @@
       (if (:component->resources rebalance-options)
         (.set_topology_resources_overrides thrift-rebalance-options (map-val (partial map-val double) (:component->resources rebalance-options))))
       (if (:topology->config rebalance-options)
-        (.set_topology_conf_overrides thrift-rebalance-options (json/write-str (:topology->config rebalance-options))))
+        (.set_topology_conf_overrides thrift-rebalance-options (JSONObject/toJSONString (java.util.HashMap. (:topology->config rebalance-options)))))
       (if (:principal rebalance-options)
         (.set_principal thrift-rebalance-options (:principal rebalance-options)))
       thrift-rebalance-options)))
