@@ -30,9 +30,4 @@ public class ProcessorNode extends Node {
         this.processor = processor;
         this.selfOutFields = selfOutFields;
     }
-
-    @Override
-    public String shortString() {
-        return super.shortString() + ", processor: " + processor + ", selfOutFields: " + selfOutFields;
-    }
 }
