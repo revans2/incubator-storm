@@ -34,17 +34,15 @@ public class DefaultResourceDeclarer<T extends DefaultResourceDeclarer> implemen
 
     @Override
     public T setMemoryLoad(Number onHeap) {
-        if (onHeap != null) {
-            onHeap = onHeap.doubleValue();
-            resources.put(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB, onHeap);
-        }
-        return (T)this;
+        return setMemoryLoad(onHeap, Utils.getDouble(conf.get(Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB)));
     }
 
     @Override
     public T setMemoryLoad(Number onHeap, Number offHeap) {
-        setMemoryLoad(onHeap);
-
+        if (onHeap != null) {
+            onHeap = onHeap.doubleValue();
+            resources.put(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB, onHeap);
+        }
         if (offHeap!=null) {
             offHeap = offHeap.doubleValue();
             resources.put(Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB, offHeap);

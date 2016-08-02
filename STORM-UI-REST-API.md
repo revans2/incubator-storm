@@ -1,9 +1,3 @@
----
-title: Storm REST API
-layout: documentation
-documentation: true
----
-
 # Storm UI REST API
 
 The Storm UI daemon provides a REST API that allows you to interact with a Storm cluster, which includes retrieving

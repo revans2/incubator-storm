@@ -199,7 +199,7 @@ Storm.prototype.emitDirect = function(commandDetails) {
 
 /**
  * Initialize storm component according to the configuration received.
- * @param conf configuration object according to storm protocol.
+ * @param conf configuration object accrding to storm protocol.
  * @param context context object according to storm protocol.
  * @param done callback. Call this method when finished initializing.
  */
@@ -221,18 +221,10 @@ function Tuple(id, component, stream, task, values) {
     this.values = values;
 }
 
-Tuple.prototype.isTickTuple = function(){
-  return this.task === -1 && this.stream === "__tick";
-}
-
-Tuple.prototype.isHeartbeatTuple = function(){
-  return this.task === -1 && this.stream === "__heartbeat";
-}
-
 /**
  * Base class for storm bolt.
  * To create a bolt implement 'process' method.
- * You may also implement initialize method too
+ * You may also implement initialize method to
  */
 function BasicBolt() {
     Storm.call(this);
@@ -270,7 +262,7 @@ BasicBolt.prototype.handleNewCommand = function(command) {
     var self = this;
     var tup = new Tuple(command["id"], command["comp"], command["stream"], command["task"], command["tuple"]);
 
-    if (tup.isHeartbeatTuple()) {
+    if (tup.task === -1 && tup.stream === "__heartbeat") {
         self.sync();
         return;
     }
@@ -300,6 +292,7 @@ BasicBolt.prototype.ack = function(tup) {
 BasicBolt.prototype.fail = function(tup, err) {
     this.sendMsgToParent({"command": "fail", "id": tup.id});
 }
+
 
 /**
  * Base class for storm spout.

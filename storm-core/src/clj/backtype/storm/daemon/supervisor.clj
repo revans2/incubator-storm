@@ -542,13 +542,17 @@
             (log-debug "Files not present or empty in topology directory for " storm-id)
             (rm-topo-files conf storm-id localizer rm-blob-refs?) storm-id))))))
 
-(defn kill-existing-workers-with-change-in-components [supervisor existing-assignment new-assignment port->worker-id]
-  (doseq [p (set/intersection (set (keys existing-assignment))
-                              (set (keys new-assignment)))]
+(defn kill-existing-workers-with-change-in-components [supervisor existing-assignment new-assignment]
+  (let [assigned-executors (defaulted (ls-local-assignments (:local-state supervisor)) {})
+        allocated (read-allocated-workers supervisor assigned-executors (current-time-secs))
+        valid-allocated (filter-val (fn [[state _]] (= state :valid)) allocated)
+        port->worker-id (clojure.set/map-invert (map-val #((nth % 1) :port) valid-allocated))]
+    (doseq [p (set/intersection (set (keys existing-assignment))
+                                (set (keys new-assignment)))]
 
-    (if (not= (set (:executors (existing-assignment p))) (set (:executors (new-assignment p))))
-      (do
-        (shutdown-worker supervisor (port->worker-id p))))))
+      (if (not= (set (:executors (existing-assignment p))) (set (:executors (new-assignment p))))
+        (do
+          (shutdown-worker supervisor (port->worker-id p)))))))
 
 (defn mk-synchronize-supervisor [supervisor sync-processes event-manager processes-event-manager]
   (fn this []
@@ -601,21 +605,17 @@
 
       (log-debug "Writing new assignment "
                  (pr-str new-assignment))
-      (let [assigned-executors (defaulted (ls-local-assignments (:local-state supervisor)) {})
-            allocated (read-allocated-workers supervisor assigned-executors (current-time-secs))
-            valid-allocated (filter-val (fn [[state _]] (= state :valid)) allocated)
-            port->worker-id (clojure.set/map-invert (map-val #((nth % 1) :port) valid-allocated))]
+      (doseq [p (set/difference (set (keys existing-assignment))
+                                (set (keys new-assignment)))]
+        (.killedWorker isupervisor (int p)))
+      (kill-existing-workers-with-change-in-components supervisor existing-assignment new-assignment)
+      (.assigned isupervisor (keys new-assignment))
+      (ls-local-assignments! local-state
+            new-assignment)
+      (reset! (:assignment-versions supervisor) versions)
+      (reset! (:stormid->profiler-actions supervisor) storm-id->profiler-actions)
 
-        (.assigned isupervisor (keys new-assignment))
-        (ls-local-assignments! local-state
-          new-assignment)
-        (reset! (:assignment-versions supervisor) versions)
-        (reset! (:stormid->profiler-actions supervisor) storm-id->profiler-actions)
-
-        (reset! (:curr-assignment supervisor) new-assignment)
-
-        ;; kill workers based on assignment diff after we update assignments
-        (kill-existing-workers-with-change-in-components supervisor existing-assignment new-assignment port->worker-id))
+      (reset! (:curr-assignment supervisor) new-assignment)
       ;; remove any downloaded code that's no longer assigned or active
       ;; important that this happens after setting the local assignment so that
       ;; synchronize-supervisor doesn't try to launch workers for which the

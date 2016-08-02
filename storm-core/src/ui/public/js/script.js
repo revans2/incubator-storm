@@ -253,9 +253,7 @@ var makeWorkerStatsTable = function (response, elId, parentId, type) {
         },
         { 
             data: function (row, type){
-                // if we are showing or filtering, using the formatted
-                // uptime, else use the seconds (for sorting)
-                return (type === 'display' || type === 'filter') ? 
+                return type === 'display' ? 
                     row.uptime :
                     row.uptimeSeconds;
             }

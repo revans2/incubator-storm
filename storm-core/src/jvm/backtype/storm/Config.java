@@ -2144,47 +2144,11 @@ public class Config extends HashMap<String, Object> {
     public static final String MULTITENANT_SCHEDULER_USER_POOLS = "multitenant.scheduler.user.pools";
 
     /**
-     * A plugin that should load the user pools for the multitenant scheduler
-     */
-    @isString
-    public static final String MULTITENANT_SCHEDULER_USER_POOLS_LOADER = "multitenant.scheduler.user.pools.loader";
-
-    /**
-     * Location for Multitenant user pool yaml local file
-     */
-    @isString
-    public static final String MULTITENANT_SCHEDULER_USER_POOLS_LOCAL_FILE = "multitenant.scheduler.user.pools.local.file";
-
-    /**
-     * Location for Multitenant aware user pool yaml uri
-     */
-    @isString
-    public static final String MULTITENANT_SCHEDULER_USER_POOLS_URI = "multitenant.scheduler.user.pools.uri";
-
-    /**
      * A map of users to another map of the resource guarantees of the user. Used by Resource Aware Scheduler to ensure
      * per user resource guarantees.
      */
     @isMapEntryCustom(keyValidatorClasses = {StringValidator.class}, valueValidatorClasses = {UserResourcePoolEntryValidator.class})
     public static final String RESOURCE_AWARE_SCHEDULER_USER_POOLS = "resource.aware.scheduler.user.pools";
-
-    /**
-     * A plugin that should load the user pools for the resource aware scheduler
-     */
-    @isString
-    public static final String RESOURCE_AWARE_SCHEDULER_USER_POOLS_LOADER = "resource.aware.scheduler.user.pools.loader";
-
-    /**
-     * Location for Resource aware user pool yaml local file
-     */
-    @isString
-    public static final String RESOURCE_AWARE_SCHEDULER_USER_POOLS_LOCAL_FILE = "resource.aware.scheduler.user.pools.local.file";
-
-    /**
-     * Location for Resource aware user pool yaml uri
-     */
-    @isString
-    public static final String RESOURCE_AWARE_SCHEDULER_USER_POOLS_URI = "resource.aware.scheduler.user.pools.uri";
 
     /**
      * The class that specifies the eviction strategy to use in ResourceAwareScheduler

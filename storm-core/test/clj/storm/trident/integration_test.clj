@@ -284,9 +284,6 @@
                            (. collector emit (str (. tuple getString 0) "!")))))
         (bind word-counts
           (.. topo
-              (setResourceDefaults (doto (storm.trident.operation.DefaultResourceDeclarer.)
-                                     (.setMemoryLoad 0 0)
-                                     (.setCPULoad 0)))
               (newStream "words" feeder)
               (parallelismHint 5)
               (setCPULoad 20)
