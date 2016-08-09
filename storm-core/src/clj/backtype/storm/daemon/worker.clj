@@ -380,7 +380,7 @@
                                       (filter-key (complement (-> worker :task-ids set))))
               needed-connections (-> needed-assignment vals set)
               needed-tasks (-> needed-assignment keys)
-
+              
               current-connections (set (keys @(:cached-node+port->socket worker)))
               new-connections (set/difference needed-connections current-connections)
               remove-connections (set/difference current-connections needed-connections)]
@@ -757,4 +757,4 @@
     (setup-default-uncaught-exception-handler)
     (validate-distributed-mode! conf)
     (let [worker (mk-worker conf nil storm-id assignment-id (Integer/parseInt port-str) worker-id)]
-      (add-shutdown-hook-with-force-kill-in-1-sec #(do (log-message "Hit shutdown hook.") (.shutdown worker))))))
+      (add-shutdown-hook-with-force-kill-in-1-sec #(.shutdown worker)))))
