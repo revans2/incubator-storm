@@ -47,17 +47,18 @@
 
 (defmulti mk-suicide-fn cluster-mode)
 
-(defn read-worker-executors [storm-conf storm-cluster-state storm-id assignment-id port assignment-versions]
+(defn tasks-for-executor->node+port [executor->node+port assignment-id port]
+  (concat     
+   [Constants/SYSTEM_EXECUTOR_ID]
+   (mapcat (fn [[executor loc]]
+             (if (= loc [assignment-id port])
+               [executor]))
+           executor->node+port)))
+
+(defn read-worker-executors [storm-conf storm-cluster-state storm-id assignment-id port]
   (log-message "Reading Assignments.")
-  (let [assignment (:executor->node+port (.assignment-info storm-cluster-state storm-id nil))]
-    (doall
-     (concat     
-      [Constants/SYSTEM_EXECUTOR_ID]
-      (mapcat (fn [[executor loc]]
-                (if (= loc [assignment-id port])
-                  [executor]
-                  ))
-              assignment)))))
+  (let [executor->node+port (:executor->node+port (.assignment-info storm-cluster-state storm-id nil))]
+    (doall (tasks-for-executor->node+port executor->node+port assignment-id port))))
 
 (defnk do-executor-heartbeats [worker :executors nil]
   ;; stats is how we know what executors are assigned to this worker 
@@ -249,7 +250,7 @@
 
 (defn worker-data [conf mq-context storm-id assignment-id port worker-id storm-conf cluster-state storm-cluster-state]
   (let [assignment-versions (atom {})
-        executors (set (read-worker-executors storm-conf storm-cluster-state storm-id assignment-id port assignment-versions))
+        executors (set (read-worker-executors storm-conf storm-cluster-state storm-id assignment-id port))
         transfer-queue (disruptor/disruptor-queue "worker-transfer-queue" (storm-conf TOPOLOGY-TRANSFER-BUFFER-SIZE)
                                                   (storm-conf TOPOLOGY-DISRUPTOR-WAIT-TIMEOUT-MILLIS)
                                                   :batch-size (storm-conf TOPOLOGY-DISRUPTOR-BATCH-SIZE)
@@ -344,6 +345,16 @@
             (.sendLoadMetrics (:receiver worker) local-pop)
             (reset! next-update (+ 5000 now))))))))
 
+(defn suicide-if-local-assignments-changed [worker assignment]
+  (let [assigned-worker-executors (set (tasks-for-executor->node+port (:executor->node+port assignment) (:assignment-id worker) (:port worker)))
+        current-executors (:executors worker)
+        suicide-fn (:suicide-fn worker)]
+    (when (not= assigned-worker-executors current-executors)
+      (log-message "Found conflicting assignments. We shouldn't be alive! Assigned: "
+                   (pr-str assigned-worker-executors) ", Current: " (pr-str current-executors))
+      (when suicide-fn
+        (suicide-fn)))))
+
 (defn mk-refresh-connections [worker]
   (let [outbound-tasks (worker-outbound-tasks worker)
         conf (:conf worker)
@@ -369,10 +380,11 @@
                                       (filter-key (complement (-> worker :task-ids set))))
               needed-connections (-> needed-assignment vals set)
               needed-tasks (-> needed-assignment keys)
-              
+
               current-connections (set (keys @(:cached-node+port->socket worker)))
               new-connections (set/difference needed-connections current-connections)
               remove-connections (set/difference current-connections needed-connections)]
+              (suicide-if-local-assignments-changed worker assignment)
               (swap! (:cached-node+port->socket worker)
                      #(HashMap. (merge (into {} %1) %2))
                      (into {}
@@ -731,7 +743,7 @@
 
 (defmethod mk-suicide-fn
   :local [conf]
-  (fn [] (exit-process! 1 "Worker died")))
+  (fn [] (log-message "Local worker tried to commit suicide!")))
 
 (defmethod mk-suicide-fn
   :distributed [conf]
@@ -745,4 +757,4 @@
     (setup-default-uncaught-exception-handler)
     (validate-distributed-mode! conf)
     (let [worker (mk-worker conf nil storm-id assignment-id (Integer/parseInt port-str) worker-id)]
-      (add-shutdown-hook-with-force-kill-in-1-sec #(.shutdown worker)))))
+      (add-shutdown-hook-with-force-kill-in-1-sec #(do (log-message "Hit shutdown hook.") (.shutdown worker))))))

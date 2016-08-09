@@ -904,6 +904,7 @@
        (:supervisor-id supervisor))
      (shutdown-all-workers [this]
        (let [ids (my-worker-ids conf)]
+         (log-message "Shutting down all workers: " ids)
          (doseq [id ids]
            (shutdown-worker supervisor id)
            )))
