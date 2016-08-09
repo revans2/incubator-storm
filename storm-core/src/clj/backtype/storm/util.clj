@@ -174,7 +174,7 @@
         (log-warn "Exception "
                   klass
                   " not found among thrown Exceptions: "
-                  (map str causal-chain))
+                  (pr-str causal-chain))
         false))))
 
 (defmacro thrown-cause?
