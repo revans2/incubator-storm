@@ -1207,7 +1207,7 @@
           blob-store (Utils/getNimbusBlobStore conf master-code-dir)]
       (try
         (FileUtils/forceMkdir (File. tmproot))
-        
+
         (.readBlobTo blob-store (master-stormcode-key storm-id) (FileOutputStream. (supervisor-stormcode-path tmproot)) nil)
         (.readBlobTo blob-store (master-stormconf-key storm-id) (FileOutputStream. (supervisor-stormconf-path tmproot)) nil)
       (finally 
