@@ -350,13 +350,19 @@
       (or (local-mode? conf)
         (and (exists-file? stormjarpath) (not-empty-file? stormjarpath))))))
 
-(defn port-is-clear [supervisor port]
+(defn allocated-slots [supervisor]
   (let [^LocalState local-state (:local-state supervisor)
         assigned-executors (defaulted (ls-local-assignments local-state) {})
-        now (current-time-secs)
-        allocated (vals (read-allocated-workers supervisor assigned-executors now))
-        valid-allocated (filter (fn [[_ hb]] (not (nil? hb))) allocated)
-        living-ports (set (map #((nth % 1) :port) valid-allocated))]
+        now (current-time-secs)]
+    (read-allocated-workers supervisor assigned-executors now)))
+
+(defn valid-allocated-slots [supervisor]
+  (filter-val (fn [[state _]] (= state :valid)) (allocated-slots supervisor)))
+
+(defn port-is-clear [supervisor port]
+  (let [allocated (vals (allocated-slots supervisor))
+        heartbeating-allocated (filter (fn [[_ hb]] (not (nil? hb))) allocated)
+        living-ports (set (map #((nth % 1) :port) heartbeating-allocated))]
     (nil? (living-ports port))))
 
 (defn sync-processes [supervisor]
@@ -365,7 +371,7 @@
         ^LocalState local-state (:local-state supervisor)
         assigned-executors (defaulted (ls-local-assignments local-state) {})
         now (current-time-secs)
-        allocated (read-allocated-workers supervisor assigned-executors now)
+        allocated (allocated-slots supervisor)
         keepers (filter-val
                  (fn [[state _]] (or (= state :not-started) (= state :valid)))
                  allocated)
@@ -472,10 +478,7 @@
 
 (defn shutdown-disallowed-workers [supervisor]
   (let [conf (:conf supervisor)
-        ^LocalState local-state (:local-state supervisor)
-        assigned-executors (defaulted (ls-local-assignments local-state) {})
-        now (current-time-secs)
-        allocated (read-allocated-workers supervisor assigned-executors now)
+        allocated (allocated-slots supervisor)
         disallowed (keys (filter-val
                                   (fn [[state _]] (= state :disallowed))
                                   allocated))]
@@ -555,9 +558,7 @@
             (rm-topo-files conf storm-id localizer rm-blob-refs?) storm-id))))))
 
 (defn kill-existing-workers-with-change-in-components [supervisor existing-assignment new-assignment]
-  (let [assigned-executors (defaulted (ls-local-assignments (:local-state supervisor)) {})
-        allocated (read-allocated-workers supervisor assigned-executors (current-time-secs))
-        valid-allocated (filter-val (fn [[state _]] (= state :valid)) allocated)
+  (let [valid-allocated (valid-allocated-slots supervisor)
         port->worker-id (clojure.set/map-invert (map-val #((nth % 1) :port) valid-allocated))]
     (doseq [p (set/intersection (set (keys existing-assignment))
                                 (set (keys new-assignment)))]
