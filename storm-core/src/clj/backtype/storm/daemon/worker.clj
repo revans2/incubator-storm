@@ -743,6 +743,14 @@
     ret
     ))))))
 
+;; mk-reassigned-suicide-fn is different than mk-suicide-fn because:
+;; mk-suicide-fn returns a fn that is called in the executor when various uncaught exceptions occur.
+;; mk-reassigned-suicide-fn is called in the worker when it detects that its assignments have changed.
+;; These two functions need to behave differently.
+;; In local mode, we don't want the worker to kill itself when it detects different assignments, because
+;; it'll take down everything - the supervisor thread (or whatever) will still handle all of this.
+;; However, we still want the executor to explode everything into oblivion if some unhandled exception
+;; bubbles up, even in local mode. Using two functions is the simplest way to achieve this.
 (defmethod mk-reassigned-suicide-fn
   :local [conf]
   (fn [] (log-message "Local worker tried to commit suicide!")))
