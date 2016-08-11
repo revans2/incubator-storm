@@ -46,6 +46,7 @@
   (:gen-class))
 
 (defmulti mk-suicide-fn cluster-mode)
+(defmulti mk-reassigned-suicide-fn cluster-mode)
 
 (defn tasks-for-executor->node+port [executor->node+port assignment-id port]
   (concat     
@@ -308,6 +309,7 @@
                                  (into {})
                                  (HashMap.))
       :suicide-fn (mk-suicide-fn conf)
+      :reassigned-suicide-fn (mk-reassigned-suicide-fn conf)
       :uptime (uptime-computer)
       :default-shared-resources (mk-default-resources <>)
       :user-shared-resources (mk-user-resources <>)
@@ -348,7 +350,7 @@
 (defn suicide-if-local-assignments-changed [worker assignment]
   (let [assigned-worker-executors (set (tasks-for-executor->node+port (:executor->node+port assignment) (:assignment-id worker) (:port worker)))
         current-executors (:executors worker)
-        suicide-fn (:suicide-fn worker)]
+        suicide-fn (:reassigned-suicide-fn worker)]
     (when (not= assigned-worker-executors current-executors)
       (log-message "Found conflicting assignments. We shouldn't be alive! Assigned: "
                    (pr-str assigned-worker-executors) ", Current: " (pr-str current-executors))
@@ -741,9 +743,17 @@
     ret
     ))))))
 
-(defmethod mk-suicide-fn
+(defmethod mk-reassigned-suicide-fn
   :local [conf]
   (fn [] (log-message "Local worker tried to commit suicide!")))
+
+(defmethod mk-reassigned-suicide-fn
+  :distributed [conf]
+  (fn [] (exit-process! 1 "Worker died")))
+
+(defmethod mk-suicide-fn
+  :local [conf]
+  (fn [] (exit-process! 1 "Worker died")))
 
 (defmethod mk-suicide-fn
   :distributed [conf]

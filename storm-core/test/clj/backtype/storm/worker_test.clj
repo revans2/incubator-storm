@@ -209,7 +209,7 @@
   (let [worker {:assignment-id "assignment-id"
                 :port 6000
                 :executors #{[-1 -1] [2 2] [3 3]}
-                :suicide-fn (fn [] true)}
+                :reassigned-suicide-fn (fn [] true)}
         assignment1 {:executor->node+port {[2 2] '("assignment-id" 6000)
                                            [3 3] '("assignment-id" 6000)}}
         assignment2 {:executor->node+port {[2 2] '("assignment-id" 6000)
