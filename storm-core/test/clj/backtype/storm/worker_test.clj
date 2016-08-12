@@ -204,3 +204,18 @@
     (. (Mockito/when (.status connection)) thenReturn ConnectionWithStatus$Status/Closed)
     (is (= false (worker/is-connection-ready connection)))
   ))
+
+(deftest test-worker-suicide-on-different-assignment
+  (let [worker {:assignment-id "assignment-id"
+                :port 6000
+                :executors #{[-1 -1] [2 2] [3 3]}
+                :reassigned-suicide-fn (fn [] true)}
+        assignment1 {:executor->node+port {[2 2] '("assignment-id" 6000)
+                                           [3 3] '("assignment-id" 6000)}}
+        assignment2 {:executor->node+port {[2 2] '("assignment-id" 6000)
+                                           [3 3] '("assignment-id" 6000)
+                                           [4 4] '("assignment-id" 6000)}}
+        assignment3 {:executor->node+port {}}]
+    (is (= nil (worker/suicide-if-local-assignments-changed worker assignment1)))
+    (is (= true (worker/suicide-if-local-assignments-changed worker assignment2)))
+    (is (= true (worker/suicide-if-local-assignments-changed worker assignment3)))))

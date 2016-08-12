@@ -46,18 +46,20 @@
   (:gen-class))
 
 (defmulti mk-suicide-fn cluster-mode)
+(defmulti mk-reassigned-suicide-fn cluster-mode)
 
-(defn read-worker-executors [storm-conf storm-cluster-state storm-id assignment-id port assignment-versions]
+(defn tasks-for-executor->node+port [executor->node+port assignment-id port]
+  (concat     
+   [Constants/SYSTEM_EXECUTOR_ID]
+   (mapcat (fn [[executor loc]]
+             (if (= loc [assignment-id port])
+               [executor]))
+           executor->node+port)))
+
+(defn read-worker-executors [storm-conf storm-cluster-state storm-id assignment-id port]
   (log-message "Reading Assignments.")
-  (let [assignment (:executor->node+port (.assignment-info storm-cluster-state storm-id nil))]
-    (doall
-     (concat     
-      [Constants/SYSTEM_EXECUTOR_ID]
-      (mapcat (fn [[executor loc]]
-                (if (= loc [assignment-id port])
-                  [executor]
-                  ))
-              assignment)))))
+  (let [executor->node+port (:executor->node+port (.assignment-info storm-cluster-state storm-id nil))]
+    (doall (tasks-for-executor->node+port executor->node+port assignment-id port))))
 
 (defnk do-executor-heartbeats [worker :executors nil]
   ;; stats is how we know what executors are assigned to this worker 
@@ -249,7 +251,7 @@
 
 (defn worker-data [conf mq-context storm-id assignment-id port worker-id storm-conf cluster-state storm-cluster-state]
   (let [assignment-versions (atom {})
-        executors (set (read-worker-executors storm-conf storm-cluster-state storm-id assignment-id port assignment-versions))
+        executors (set (read-worker-executors storm-conf storm-cluster-state storm-id assignment-id port))
         transfer-queue (disruptor/disruptor-queue "worker-transfer-queue" (storm-conf TOPOLOGY-TRANSFER-BUFFER-SIZE)
                                                   (storm-conf TOPOLOGY-DISRUPTOR-WAIT-TIMEOUT-MILLIS)
                                                   :batch-size (storm-conf TOPOLOGY-DISRUPTOR-BATCH-SIZE)
@@ -307,6 +309,7 @@
                                  (into {})
                                  (HashMap.))
       :suicide-fn (mk-suicide-fn conf)
+      :reassigned-suicide-fn (mk-reassigned-suicide-fn conf)
       :uptime (uptime-computer)
       :default-shared-resources (mk-default-resources <>)
       :user-shared-resources (mk-user-resources <>)
@@ -344,6 +347,16 @@
             (.sendLoadMetrics (:receiver worker) local-pop)
             (reset! next-update (+ 5000 now))))))))
 
+(defn suicide-if-local-assignments-changed [worker assignment]
+  (let [assigned-worker-executors (set (tasks-for-executor->node+port (:executor->node+port assignment) (:assignment-id worker) (:port worker)))
+        current-executors (:executors worker)
+        suicide-fn (:reassigned-suicide-fn worker)]
+    (when (not= assigned-worker-executors current-executors)
+      (log-message "Found conflicting assignments. We shouldn't be alive! Assigned: "
+                   (pr-str assigned-worker-executors) ", Current: " (pr-str current-executors))
+      (when suicide-fn
+        (suicide-fn)))))
+
 (defn mk-refresh-connections [worker]
   (let [outbound-tasks (worker-outbound-tasks worker)
         conf (:conf worker)
@@ -373,6 +386,7 @@
               current-connections (set (keys @(:cached-node+port->socket worker)))
               new-connections (set/difference needed-connections current-connections)
               remove-connections (set/difference current-connections needed-connections)]
+              (suicide-if-local-assignments-changed worker assignment)
               (swap! (:cached-node+port->socket worker)
                      #(HashMap. (merge (into {} %1) %2))
                      (into {}
@@ -728,6 +742,22 @@
     (log-message "Worker " worker-id " for storm " storm-id " on " assignment-id ":" port " has finished loading")
     ret
     ))))))
+
+;; mk-reassigned-suicide-fn is different than mk-suicide-fn because:
+;; mk-suicide-fn returns a fn that is called in the executor when various uncaught exceptions occur.
+;; mk-reassigned-suicide-fn is called in the worker when it detects that its assignments have changed.
+;; These two functions need to behave differently.
+;; In local mode, we don't want the worker to kill itself when it detects different assignments, because
+;; it'll take down everything - the supervisor thread (or whatever) will still handle all of this.
+;; However, we still want the executor to explode everything into oblivion if some unhandled exception
+;; bubbles up, even in local mode. Using two functions is the simplest way to achieve this.
+(defmethod mk-reassigned-suicide-fn
+  :local [conf]
+  (fn [] (log-message "Local worker tried to commit suicide!")))
+
+(defmethod mk-reassigned-suicide-fn
+  :distributed [conf]
+  (fn [] (exit-process! 1 "Worker died")))
 
 (defmethod mk-suicide-fn
   :local [conf]
