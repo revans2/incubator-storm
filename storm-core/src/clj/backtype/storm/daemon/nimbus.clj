@@ -348,7 +348,7 @@
 (defn delay-event [nimbus storm-id delay-secs event]
   (log-message "Delaying event " event " for " delay-secs " secs for " storm-id)
   (schedule (:timer nimbus)
-            delay-secs
+            (or delay-secs 0)
             #(transition! nimbus storm-id event false)
             ))
 
