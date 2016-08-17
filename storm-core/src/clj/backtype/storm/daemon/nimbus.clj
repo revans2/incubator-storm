@@ -256,7 +256,7 @@
   (let [rebalance-options (:topology-action-options storm-base)]
     (.update-storm! (:storm-cluster-state nimbus)
       storm-id
-        (-> {:topology-action-options nil}
+        (-> {}
           (assoc-non-nil :component->executors (:component->executors rebalance-options))
           (assoc-non-nil :num-workers (:num-workers rebalance-options)))))
   (mk-assignments nimbus :scratch-topology-id storm-id))
