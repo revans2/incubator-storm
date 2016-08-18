@@ -15,7 +15,12 @@
 ;; limitations under the License.
 
 (ns backtype.storm.cluster-state.zookeeper-state-factory
-  (:import [org.apache.zookeeper KeeperException KeeperException$NoNodeException ZooDefs ZooDefs$Ids ZooDefs$Perms]
+  (:import [org.apache.zookeeper KeeperException 
+                                 KeeperException$NodeExistsException 
+                                 KeeperException$NoNodeException 
+                                 ZooDefs 
+                                 ZooDefs$Ids 
+                                 ZooDefs$Perms]
            [backtype.storm.cluster ClusterState ClusterStateContext DaemonType])
   (:use [backtype.storm cluster config log util])
   (:require [backtype.storm [zookeeper :as zk]])
@@ -93,7 +98,10 @@
           (zk/set-data zk-writer path data)
           (do
             (zk/mkdirs zk-writer (parent-path path) acls)
-            (zk/create-node zk-writer path data :persistent acls))))
+              (try-cause
+                (zk/create-node zk-writer path data :persistent acls)
+                (catch KeeperException$NodeExistsException e
+                  (zk/set-data zk-writer path data))))))
       
       (set_worker_hb
         [this path data acls]
