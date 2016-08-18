@@ -1,0 +1,24 @@
+platform: cpp
+
+shared:
+    notifications:
+        email: "storm-devel@yahoo-inc.com"
+    steps:
+        git_tag:
+            description: Git tag after successful release
+            command: gmake git_tag
+    triggers:
+        - sd@145451
+    plugins:
+        coverage:
+            enabled: false
+        test_results:
+            type: junit
+            parameters:
+                path: "my_test_results"
+
+jobs:
+  component:
+    order: [environment, install-rpms, init, build, test, package, publish, git_tag]
+  pull-request:
+    order: [environment, install-rpms, init, build, test, package]
