@@ -248,7 +248,10 @@
      :stream->component->grouper (outbound-components worker-context component-id storm-conf)
      :report-error (throttled-report-error-fn <>)
      :report-error-and-die (fn [error]
-                             ((:report-error <>) error)
+                             (try 
+                               ((:report-error <>) error)
+                               (catch Exception e
+                                 (log-error "Error while reporting error to cluster, proceeding with shutdown " e))) 
                              (if (or
                                     (exception-cause? InterruptedException error)
                                     (exception-cause? java.io.InterruptedIOException error))
