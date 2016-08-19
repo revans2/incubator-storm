@@ -296,7 +296,9 @@
                  :kill (kill-transition nimbus storm-id)
                  :do-rebalance (fn []
                                  (do-rebalance nimbus storm-id status storm-base)
-                                 (:type (:prev-status storm-base)))
+                                 {:status {:type (:type (:prev-status storm-base))}
+                                  :prev-status :rebalancing
+                                  :topology-action-options nil})
                  }})
 
 (defn transition!
