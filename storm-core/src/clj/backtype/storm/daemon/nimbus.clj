@@ -256,7 +256,7 @@
   (let [rebalance-options (:topology-action-options storm-base)]
     (.update-storm! (:storm-cluster-state nimbus)
       storm-id
-        (-> {:topology-action-options nil}
+        (-> {}
           (assoc-non-nil :component->executors (:component->executors rebalance-options))
           (assoc-non-nil :num-workers (:num-workers rebalance-options)))))
   (mk-assignments nimbus :scratch-topology-id storm-id))
@@ -296,7 +296,9 @@
                  :kill (kill-transition nimbus storm-id)
                  :do-rebalance (fn []
                                  (do-rebalance nimbus storm-id status storm-base)
-                                 (:type (:prev-status storm-base)))
+                                 {:status {:type (:type (:prev-status storm-base))}
+                                  :prev-status :rebalancing
+                                  :topology-action-options nil})
                  }})
 
 (defn transition!
@@ -348,7 +350,7 @@
 (defn delay-event [nimbus storm-id delay-secs event]
   (log-message "Delaying event " event " for " delay-secs " secs for " storm-id)
   (schedule (:timer nimbus)
-            delay-secs
+            (or delay-secs 0)
             #(transition! nimbus storm-id event false)
             ))
 
