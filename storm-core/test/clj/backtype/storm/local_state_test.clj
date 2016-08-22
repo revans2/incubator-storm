@@ -18,7 +18,7 @@
   (:use [backtype.storm testing])
   (:use [backtype.storm.local-state])
   (:import [backtype.storm.utils LocalState]
-           [backtype.storm.generated GlobalStreamId]
+           [backtype.storm.generated GlobalStreamId WorkerResources]
            [org.apache.commons.io FileUtils]
            [java.io File]))
 
@@ -67,6 +67,14 @@
           assignments {(int 1) assignment}]
       (ls-local-assignments! ls assignments) 
       ;; get the assignments back
-      (let [local-assignments (ls-local-assignments ls)]
+      (let [local-assignments (ls-local-assignments ls)
+            resources (:resources (get local-assignments 1))]
+        (is (instance? WorkerResources resources))
         ;; and put them one more time
-        (ls-local-assignments! ls local-assignments)))))
+        (ls-local-assignments! ls local-assignments)
+        (let [new-local-assignments (ls-local-assignments ls)
+              new-resources (:resources (get new-local-assignments 1))]
+          (is (instance? WorkerResources new-resources))
+          (is (= (.get_cpu new-resources) (.get_cpu resources)))
+          (is (= (.get_mem_on_heap new-resources) (.get_mem_on_heap resources)))
+          (is (= (.get_mem_off_heap new-resources) (.get_mem_off_heap resources))))))))
