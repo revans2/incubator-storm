@@ -64,7 +64,7 @@
         scheduler (MultitenantResourceAwareBridgeScheduler.)]
     (.prepare scheduler conf_scheduler)
     (.schedule scheduler topologies cluster)
-    (is (= "Fully Scheduled" (.get (.getStatusMap cluster) "topology1")))))
+    (is (= "(MT) Fully Scheduled" (.get (.getStatusMap cluster) "topology1")))))
 
 ;; test scheduling a topology with only using resource aware scheduler
 (deftest test-schedule-resource-aware
@@ -96,7 +96,7 @@
         scheduler (MultitenantResourceAwareBridgeScheduler.)]
     (.prepare scheduler conf)
     (.schedule scheduler topologies cluster)
-    (is (= "Running - Fully Scheduled by DefaultResourceAwareStrategy" (.get (.getStatusMap cluster) "topology1")))))
+    (is (= "(RAS) Running - Fully Scheduled by DefaultResourceAwareStrategy" (.get (.getStatusMap cluster) "topology1")))))
 
 ;; test multiple schedulings with scheduling multitenant topologies first
 (deftest test-consecutive-scheduling-multitenant-first
@@ -173,13 +173,13 @@
         scheduler (MultitenantResourceAwareBridgeScheduler.)]
     (.prepare scheduler conf_scheduler)
     (.schedule scheduler topologies cluster)
-    (is (= "Scheduled Isolated on 1 Nodes" (.get (.getStatusMap cluster) "topology1")))
-    (is (= "Fully Scheduled" (.get (.getStatusMap cluster) "topology2")))
-    (is (= "Fully Scheduled" (.get (.getStatusMap cluster) "topology3")))
+    (is (= "(MT) Scheduled Isolated on 1 Nodes" (.get (.getStatusMap cluster) "topology1")))
+    (is (= "(MT) Fully Scheduled" (.get (.getStatusMap cluster) "topology2")))
+    (is (= "(MT) Fully Scheduled" (.get (.getStatusMap cluster) "topology3")))
     (.schedule scheduler topologies cluster)
-    (is (= "Scheduled Isolated on 1 Nodes" (.get (.getStatusMap cluster) "topology1")))
-    (is (= "Fully Scheduled" (.get (.getStatusMap cluster) "topology2")))
-    (is (= "Fully Scheduled" (.get (.getStatusMap cluster) "topology3")))))
+    (is (= "(MT) Scheduled Isolated on 1 Nodes" (.get (.getStatusMap cluster) "topology1")))
+    (is (= "(MT) Fully Scheduled" (.get (.getStatusMap cluster) "topology2")))
+    (is (= "(MT) Fully Scheduled" (.get (.getStatusMap cluster) "topology3")))))
 
 ;; test multiple schedulings with scheduling resource aware topology first
 (deftest test-consecutive-scheduling-resource-aware-first
@@ -261,13 +261,13 @@
     (.prepare scheduler conf_scheduler)
     (.schedule scheduler topologies cluster)
     (.schedule scheduler topologies2 cluster)
-    (is (= "Running - Fully Scheduled by DefaultResourceAwareStrategy" (.get (.getStatusMap cluster) "topology1")))
-    (is (= "Scheduled Isolated on 1 Nodes" (.get (.getStatusMap cluster) "topology2")))
-    (is (= "Fully Scheduled" (.get (.getStatusMap cluster) "topology3")))
+    (is (= "(RAS) Running - Fully Scheduled by DefaultResourceAwareStrategy" (.get (.getStatusMap cluster) "topology1")))
+    (is (= "(MT) Scheduled Isolated on 1 Nodes" (.get (.getStatusMap cluster) "topology2")))
+    (is (= "(MT) Fully Scheduled" (.get (.getStatusMap cluster) "topology3")))
     (.schedule scheduler topologies2 cluster)
-    (is (= "Running - Fully Scheduled by DefaultResourceAwareStrategy" (.get (.getStatusMap cluster) "topology1")))
-    (is (= "Scheduled Isolated on 1 Nodes" (.get (.getStatusMap cluster) "topology2")))
-    (is (= "Fully Scheduled" (.get (.getStatusMap cluster) "topology3")))))
+    (is (= "(RAS) Running - Fully Scheduled by DefaultResourceAwareStrategy" (.get (.getStatusMap cluster) "topology1")))
+    (is (= "(MT) Scheduled Isolated on 1 Nodes" (.get (.getStatusMap cluster) "topology2")))
+    (is (= "(MT) Fully Scheduled" (.get (.getStatusMap cluster) "topology3")))))
 
 ;;;;;;;;;;;;;;;;;;;;PORT MULTITENANT TESTS;;;;;;;;;;;;;;;;;;;;
 
@@ -339,9 +339,9 @@
       (is (= 20 (.size executors)))
       (is (= 2 (count scheduler-config)))
       )
-    (is (= "Fully Scheduled" (.get (.getStatusMap cluster) "topology1")))
-    (is (= "Scheduled Isolated on 2 Nodes" (.get (.getStatusMap cluster) "topology2")))
-    (is (= "Scheduled Isolated on 5 Nodes" (.get (.getStatusMap cluster) "topology3")))
+    (is (= "(MT) Fully Scheduled" (.get (.getStatusMap cluster) "topology1")))
+    (is (= "(MT) Scheduled Isolated on 2 Nodes" (.get (.getStatusMap cluster) "topology2")))
+    (is (= "(MT) Scheduled Isolated on 5 Nodes" (.get (.getStatusMap cluster) "topology3")))
     ))
 
 (deftest test-multitenant-isolated-spread-scheduler
@@ -382,7 +382,7 @@
       (is (= 25 (.size executors)))
       (is (= 2 (count scheduler-config)))
       (is (= 4 (.size (remove nil? (for [[execDetails slot] executor-to-slot] (when (contains? #{0 1 2 3} (.getStartTask execDetails)) (.getNodeId slot))))))))
-    (is (= "Scheduled Isolated on 4 Nodes" (.get (.getStatusMap cluster) "topology1")))))
+    (is (= "(MT) Scheduled Isolated on 4 Nodes" (.get (.getStatusMap cluster) "topology1")))))
 
 (deftest test-force-free-slot-in-bad-state
   (let [supers (gen-supervisors 1 4)
@@ -423,7 +423,7 @@
       (is (= 4 (.size assigned-slots)))
       (is (= 1 (.size (into #{} (for [slot assigned-slots] (.getNodeId slot))))))
       )
-    (is (= "Fully Scheduled" (.get (.getStatusMap cluster) "topology1")))
+    (is (= "(MT) Fully Scheduled" (.get (.getStatusMap cluster) "topology1")))
     ))
 
 (deftest test-multitenant-scheduler-bad-starting-state
@@ -480,9 +480,9 @@
             assigned-slots (.getSlots assignment)
             executors (.getExecutors assignment)]
         (is (= 1 (.size assigned-slots))))
-      (is (= "Fully Scheduled" (.get (.getStatusMap cluster) "topology1")))
-      (is (= "Scheduled Isolated on 2 Nodes" (.get (.getStatusMap cluster) "topology2")))
-      (is (= "Scheduled Isolated on 1 Nodes" (.get (.getStatusMap cluster) "topology3"))))))
+      (is (= "(MT) Fully Scheduled" (.get (.getStatusMap cluster) "topology1")))
+      (is (= "(MT) Scheduled Isolated on 2 Nodes" (.get (.getStatusMap cluster) "topology2")))
+      (is (= "(MT) Scheduled Isolated on 1 Nodes" (.get (.getStatusMap cluster) "topology3"))))))
 
 (deftest test-existing-assignment-slot-not-found-in-supervisor
   (testing "Scheduler should handle discrepancy when a live supervisor heartbeat does not report slot,
@@ -514,7 +514,7 @@
             assigned-slots (.getSlots assignment)
             executors (.getExecutors assignment)]
         (is (= 1 (.size assigned-slots))))
-      (is (= "Fully Scheduled" (.get (.getStatusMap cluster) "topology1"))))))
+      (is (= "(MT) Fully Scheduled" (.get (.getStatusMap cluster) "topology1"))))))
 
 (deftest test-existing-assignment-slot-on-dead-supervisor
   (testing "Dead supervisor could have slot with duplicate assignments or slot never reported by supervisor"
@@ -568,14 +568,14 @@
         (is (= 2 (.size assigned-slots)))
         (is (= 2 (.size (into #{} (for [slot assigned-slots] (.getNodeId slot))))))
         (is (= 2 (.size executors))))
-      (is (= "Fully Scheduled" (.get (.getStatusMap cluster) "topology1")))
+      (is (= "(MT) Fully Scheduled" (.get (.getStatusMap cluster) "topology1")))
       (let [assignment (.getAssignmentById cluster "topology2")
             assigned-slots (.getSlots assignment)
             executors (.getExecutors assignment)]
         (is (= 2 (.size assigned-slots)))
         (is (= 2 (.size (into #{} (for [slot assigned-slots] (.getNodeId slot))))))
         (is (= 2 (.size executors))))
-      (is (= "Fully Scheduled" (.get (.getStatusMap cluster) "topology2"))))))
+      (is (= "(MT) Fully Scheduled" (.get (.getStatusMap cluster) "topology2"))))))
 
 ;;;;;;;;;;;;;;;;;;;;PORT RAS TESTS;;;;;;;;;;;;;;;;;;;;
 
@@ -605,9 +605,9 @@
         node-map (RAS_Nodes/getAllNodesFrom cluster topologies)
         scheduler (MultitenantResourceAwareBridgeScheduler.)]
     (.prepare scheduler {
-      RESOURCE-AWARE-SCHEDULER-EVICTION-STRATEGY "backtype.storm.scheduler.resource.strategies.eviction.DefaultEvictionStrategy"
-      RESOURCE-AWARE-SCHEDULER-PRIORITY-STRATEGY "backtype.storm.scheduler.resource.strategies.priority.DefaultSchedulingPriorityStrategy"
-    })
+                          RESOURCE-AWARE-SCHEDULER-EVICTION-STRATEGY "backtype.storm.scheduler.resource.strategies.eviction.DefaultEvictionStrategy"
+                          RESOURCE-AWARE-SCHEDULER-PRIORITY-STRATEGY "backtype.storm.scheduler.resource.strategies.priority.DefaultSchedulingPriorityStrategy"
+                          })
     (.schedule scheduler topologies cluster)
     (let [assignment (.getAssignmentById cluster "topology1")
           assigned-slots (.getSlots assignment)
@@ -615,7 +615,7 @@
       (is (= 1 (.size assigned-slots)))
       (is (= 1 (.size (into #{} (for [slot assigned-slots] (.getNodeId slot))))))
       (is (= 2 (.size executors))))
-    (is (= "Running - Fully Scheduled by DefaultResourceAwareStrategy" (.get (.getStatusMap cluster) "topology1")))))
+    (is (= "(RAS) Running - Fully Scheduled by DefaultResourceAwareStrategy" (.get (.getStatusMap cluster) "topology1")))))
 
 (deftest test-topology-with-multiple-spouts
   (let [builder1 (TopologyBuilder.)  ;; a topology with multiple spouts
@@ -672,9 +672,9 @@
         topologies (Topologies. (to-top-map [topology1 topology2]))
         scheduler (MultitenantResourceAwareBridgeScheduler.)]
     (.prepare scheduler {
-      RESOURCE-AWARE-SCHEDULER-EVICTION-STRATEGY "backtype.storm.scheduler.resource.strategies.eviction.DefaultEvictionStrategy"
-      RESOURCE-AWARE-SCHEDULER-PRIORITY-STRATEGY "backtype.storm.scheduler.resource.strategies.priority.DefaultSchedulingPriorityStrategy"
-    })
+                          RESOURCE-AWARE-SCHEDULER-EVICTION-STRATEGY "backtype.storm.scheduler.resource.strategies.eviction.DefaultEvictionStrategy"
+                          RESOURCE-AWARE-SCHEDULER-PRIORITY-STRATEGY "backtype.storm.scheduler.resource.strategies.priority.DefaultSchedulingPriorityStrategy"
+                          })
     (.schedule scheduler topologies cluster)
     (let [assignment (.getAssignmentById cluster "topology1")
           assigned-slots (.getSlots assignment)
@@ -682,14 +682,14 @@
       (is (= 1 (.size assigned-slots)))
       (is (= 1 (.size (into #{} (for [slot assigned-slots] (.getNodeId slot))))))
       (is (= 7 (.size executors))))
-    (is (= "Running - Fully Scheduled by DefaultResourceAwareStrategy" (.get (.getStatusMap cluster) "topology1")))
+    (is (= "(RAS) Running - Fully Scheduled by DefaultResourceAwareStrategy" (.get (.getStatusMap cluster) "topology1")))
     (let [assignment (.getAssignmentById cluster "topology2")
           assigned-slots (.getSlots assignment)
           executors (.getExecutors assignment)]
       (is (= 1 (.size assigned-slots)))
       (is (= 1 (.size (into #{} (for [slot assigned-slots] (.getNodeId slot))))))
       (is (= 2 (.size executors))))
-    (is (= "Running - Fully Scheduled by DefaultResourceAwareStrategy" (.get (.getStatusMap cluster) "topology2")))))
+    (is (= "(RAS) Running - Fully Scheduled by DefaultResourceAwareStrategy" (.get (.getStatusMap cluster) "topology2")))))
 
 (deftest test-topology-set-memory-and-cpu-load
   (let [builder (TopologyBuilder.)
@@ -720,9 +720,9 @@
         topologies (Topologies. (to-top-map [topology2]))
         scheduler (MultitenantResourceAwareBridgeScheduler.)]
     (.prepare scheduler {
-      RESOURCE-AWARE-SCHEDULER-EVICTION-STRATEGY "backtype.storm.scheduler.resource.strategies.eviction.DefaultEvictionStrategy"
-      RESOURCE-AWARE-SCHEDULER-PRIORITY-STRATEGY "backtype.storm.scheduler.resource.strategies.priority.DefaultSchedulingPriorityStrategy"
-    })
+                          RESOURCE-AWARE-SCHEDULER-EVICTION-STRATEGY "backtype.storm.scheduler.resource.strategies.eviction.DefaultEvictionStrategy"
+                          RESOURCE-AWARE-SCHEDULER-PRIORITY-STRATEGY "backtype.storm.scheduler.resource.strategies.priority.DefaultSchedulingPriorityStrategy"
+                          })
     (.schedule scheduler topologies cluster)
     (let [assignment (.getAssignmentById cluster "topology2")
           assigned-slots (.getSlots assignment)
@@ -730,7 +730,7 @@
       (is (= 1 (.size assigned-slots)))
       (is (= 1 (.size (into #{} (for [slot assigned-slots] (.getNodeId slot))))))
       (is (= 2 (.size executors))))
-    (is (= "Running - Fully Scheduled by DefaultResourceAwareStrategy" (.get (.getStatusMap cluster) "topology2")))))
+    (is (= "(RAS) Running - Fully Scheduled by DefaultResourceAwareStrategy" (.get (.getStatusMap cluster) "topology2")))))
 
 (deftest test-resource-limitation
   (let [builder (TopologyBuilder.)
@@ -762,9 +762,9 @@
         topologies (Topologies. (to-top-map [topology1]))
         scheduler (MultitenantResourceAwareBridgeScheduler.)]
     (.prepare scheduler {
-      RESOURCE-AWARE-SCHEDULER-EVICTION-STRATEGY "backtype.storm.scheduler.resource.strategies.eviction.DefaultEvictionStrategy"
-      RESOURCE-AWARE-SCHEDULER-PRIORITY-STRATEGY "backtype.storm.scheduler.resource.strategies.priority.DefaultSchedulingPriorityStrategy"
-    })
+                          RESOURCE-AWARE-SCHEDULER-EVICTION-STRATEGY "backtype.storm.scheduler.resource.strategies.eviction.DefaultEvictionStrategy"
+                          RESOURCE-AWARE-SCHEDULER-PRIORITY-STRATEGY "backtype.storm.scheduler.resource.strategies.priority.DefaultSchedulingPriorityStrategy"
+                          })
     (.schedule scheduler topologies cluster)
     (let [assignment (.getAssignmentById cluster "topology1")
           assigned-slots (.getSlots assignment)
@@ -798,7 +798,7 @@
         (is (>= avail used)))
       (doseq [[avail used] cpu-avail->used] ;; for each node, assigned cpu smaller than total
         (is (>= avail used))))
-    (is (= "Running - Fully Scheduled by DefaultResourceAwareStrategy" (.get (.getStatusMap cluster) "topology1")))))
+    (is (= "(RAS) Running - Fully Scheduled by DefaultResourceAwareStrategy" (.get (.getStatusMap cluster) "topology1")))))
 
 (deftest test-scheduling-resilience
   (let [supers (gen-supervisors 2 2)
@@ -840,9 +840,9 @@
                        "backtype.storm.networktopography.DefaultRackDNSToSwitchMapping"})
             topologies (Topologies. (to-top-map [topology2]))
             _ (.prepare scheduler {
-                RESOURCE-AWARE-SCHEDULER-EVICTION-STRATEGY "backtype.storm.scheduler.resource.strategies.eviction.DefaultEvictionStrategy"
-                RESOURCE-AWARE-SCHEDULER-PRIORITY-STRATEGY "backtype.storm.scheduler.resource.strategies.priority.DefaultSchedulingPriorityStrategy"
-               })
+                                    RESOURCE-AWARE-SCHEDULER-EVICTION-STRATEGY "backtype.storm.scheduler.resource.strategies.eviction.DefaultEvictionStrategy"
+                                    RESOURCE-AWARE-SCHEDULER-PRIORITY-STRATEGY "backtype.storm.scheduler.resource.strategies.priority.DefaultSchedulingPriorityStrategy"
+                                    })
             _ (.schedule scheduler topologies cluster)
             assignment (.getAssignmentById cluster "topology2")
             failed-worker (first (vec (.getSlots assignment)))  ;; choose a worker to mock as failed
@@ -852,16 +852,16 @@
             copy-old-mapping (HashMap. ed->slot)
             healthy-eds (.keySet copy-old-mapping)
             _ (.prepare scheduler {
-                RESOURCE-AWARE-SCHEDULER-EVICTION-STRATEGY "backtype.storm.scheduler.resource.strategies.eviction.DefaultEvictionStrategy"
-                RESOURCE-AWARE-SCHEDULER-PRIORITY-STRATEGY "backtype.storm.scheduler.resource.strategies.priority.DefaultSchedulingPriorityStrategy"
-               })
+                                    RESOURCE-AWARE-SCHEDULER-EVICTION-STRATEGY "backtype.storm.scheduler.resource.strategies.eviction.DefaultEvictionStrategy"
+                                    RESOURCE-AWARE-SCHEDULER-PRIORITY-STRATEGY "backtype.storm.scheduler.resource.strategies.priority.DefaultSchedulingPriorityStrategy"
+                                    })
             _ (.schedule scheduler topologies cluster)
             new-assignment (.getAssignmentById cluster "topology2")
             new-ed->slot (.getExecutorToSlot new-assignment)]
         ;; for each executor that was scheduled on healthy workers, their slots should remain unchanged after a new scheduling
         (doseq [ed healthy-eds]
           (is (.equals (.get copy-old-mapping ed) (.get new-ed->slot ed))))
-        (is (= "Running - Fully Scheduled by DefaultResourceAwareStrategy" (.get (.getStatusMap cluster) "topology2")))))
+        (is (= "(RAS) Running - Fully Scheduled by DefaultResourceAwareStrategy" (.get (.getStatusMap cluster) "topology2")))))
 
     (testing "When a supervisor fails, RAS does not alter existing assignments"
       (let [existing-assignments {"topology1" (SchedulerAssignmentImpl. "topology1"
@@ -882,15 +882,15 @@
                           {STORM-NETWORK-TOPOGRAPHY-PLUGIN
                            "backtype.storm.networktopography.DefaultRackDNSToSwitchMapping"})
             _ (.prepare scheduler {
-                RESOURCE-AWARE-SCHEDULER-EVICTION-STRATEGY "backtype.storm.scheduler.resource.strategies.eviction.DefaultEvictionStrategy"
-                RESOURCE-AWARE-SCHEDULER-PRIORITY-STRATEGY "backtype.storm.scheduler.resource.strategies.priority.DefaultSchedulingPriorityStrategy"
-               })
+                                    RESOURCE-AWARE-SCHEDULER-EVICTION-STRATEGY "backtype.storm.scheduler.resource.strategies.eviction.DefaultEvictionStrategy"
+                                    RESOURCE-AWARE-SCHEDULER-PRIORITY-STRATEGY "backtype.storm.scheduler.resource.strategies.priority.DefaultSchedulingPriorityStrategy"
+                                    })
             _ (.schedule scheduler topologies new-cluster) ;; the actual schedule for this topo will not run since it is fully assigned
             new-assignment (.getAssignmentById new-cluster "topology1")
             new-ed->slot (.getExecutorToSlot new-assignment)]
         (doseq [ed existing-eds]
           (is (.equals (.get copy-old-mapping ed) (.get new-ed->slot ed))))
-        (is (= "Fully Scheduled" (.get (.getStatusMap new-cluster) "topology1")))))
+        (is (= "(RAS) Fully Scheduled" (.get (.getStatusMap new-cluster) "topology1")))))
 
     (testing "When a supervisor and a worker on it fails, RAS does not alter existing assignments"
       (let [existing-assignments {"topology1" (SchedulerAssignmentImpl. "topology1"
@@ -912,15 +912,15 @@
                           {STORM-NETWORK-TOPOGRAPHY-PLUGIN
                            "backtype.storm.networktopography.DefaultRackDNSToSwitchMapping"})
             _ (.prepare scheduler {
-                RESOURCE-AWARE-SCHEDULER-EVICTION-STRATEGY "backtype.storm.scheduler.resource.strategies.eviction.DefaultEvictionStrategy"
-                RESOURCE-AWARE-SCHEDULER-PRIORITY-STRATEGY "backtype.storm.scheduler.resource.strategies.priority.DefaultSchedulingPriorityStrategy"
-               })
+                                    RESOURCE-AWARE-SCHEDULER-EVICTION-STRATEGY "backtype.storm.scheduler.resource.strategies.eviction.DefaultEvictionStrategy"
+                                    RESOURCE-AWARE-SCHEDULER-PRIORITY-STRATEGY "backtype.storm.scheduler.resource.strategies.priority.DefaultSchedulingPriorityStrategy"
+                                    })
             _ (.schedule scheduler topologies new-cluster)
             new-assignment (.getAssignmentById new-cluster "topology1")
             new-ed->slot (.getExecutorToSlot new-assignment)]
         (doseq [ed existing-eds]
           (is (.equals (.get copy-old-mapping ed) (.get new-ed->slot ed))))
-        (is (= "Running - Fully Scheduled by DefaultResourceAwareStrategy" (.get (.getStatusMap new-cluster) "topology1")))))
+        (is (= "(RAS) Running - Fully Scheduled by DefaultResourceAwareStrategy" (.get (.getStatusMap new-cluster) "topology1")))))
 
     (testing "Scheduling a new topology does not disturb other assignments unnecessarily"
       (let [cluster (Cluster. (nimbus/standalone-nimbus) supers {}
@@ -928,25 +928,25 @@
                        "backtype.storm.networktopography.DefaultRackDNSToSwitchMapping"})
             topologies (Topologies. (to-top-map [topology1]))
             _ (.prepare scheduler {
-                RESOURCE-AWARE-SCHEDULER-EVICTION-STRATEGY "backtype.storm.scheduler.resource.strategies.eviction.DefaultEvictionStrategy"
-                RESOURCE-AWARE-SCHEDULER-PRIORITY-STRATEGY "backtype.storm.scheduler.resource.strategies.priority.DefaultSchedulingPriorityStrategy"
-               })
+                                    RESOURCE-AWARE-SCHEDULER-EVICTION-STRATEGY "backtype.storm.scheduler.resource.strategies.eviction.DefaultEvictionStrategy"
+                                    RESOURCE-AWARE-SCHEDULER-PRIORITY-STRATEGY "backtype.storm.scheduler.resource.strategies.priority.DefaultSchedulingPriorityStrategy"
+                                    })
             _ (.schedule scheduler topologies cluster)
             assignment (.getAssignmentById cluster "topology1")
             ed->slot (.getExecutorToSlot assignment)
             copy-old-mapping (HashMap. ed->slot)
             new-topologies (Topologies. (to-top-map [topology1 topology2]))  ;; a second topology joins
             _ (.prepare scheduler {
-                RESOURCE-AWARE-SCHEDULER-EVICTION-STRATEGY "backtype.storm.scheduler.resource.strategies.eviction.DefaultEvictionStrategy"
-                RESOURCE-AWARE-SCHEDULER-PRIORITY-STRATEGY "backtype.storm.scheduler.resource.strategies.priority.DefaultSchedulingPriorityStrategy"
-               })
+                                    RESOURCE-AWARE-SCHEDULER-EVICTION-STRATEGY "backtype.storm.scheduler.resource.strategies.eviction.DefaultEvictionStrategy"
+                                    RESOURCE-AWARE-SCHEDULER-PRIORITY-STRATEGY "backtype.storm.scheduler.resource.strategies.priority.DefaultSchedulingPriorityStrategy"
+                                    })
             _ (.schedule scheduler new-topologies cluster)
             new-assignment (.getAssignmentById cluster "topology1")
             new-ed->slot (.getExecutorToSlot new-assignment)]
         (doseq [ed (.keySet copy-old-mapping)]
           (is (.equals (.get copy-old-mapping ed) (.get new-ed->slot ed))))  ;; the assignment for topo1 should not change
-        (is (= "Running - Fully Scheduled by DefaultResourceAwareStrategy" (.get (.getStatusMap cluster) "topology1")))
-        (is (= "Running - Fully Scheduled by DefaultResourceAwareStrategy" (.get (.getStatusMap cluster) "topology2")))))))
+        (is (= "(RAS) Running - Fully Scheduled by DefaultResourceAwareStrategy" (.get (.getStatusMap cluster) "topology1")))
+        (is (= "(RAS) Running - Fully Scheduled by DefaultResourceAwareStrategy" (.get (.getStatusMap cluster) "topology2")))))))
 
 ;; Automated tests for heterogeneous cluster
 (deftest test-heterogeneous-cluster
@@ -1054,15 +1054,15 @@
                        "backtype.storm.networktopography.DefaultRackDNSToSwitchMapping"})
             topologies (Topologies. (to-top-map [topology1 topology2 topology3]))
             _ (.prepare scheduler {
-                RESOURCE-AWARE-SCHEDULER-EVICTION-STRATEGY "backtype.storm.scheduler.resource.strategies.eviction.DefaultEvictionStrategy"
-                RESOURCE-AWARE-SCHEDULER-PRIORITY-STRATEGY "backtype.storm.scheduler.resource.strategies.priority.DefaultSchedulingPriorityStrategy"
-               })
+                                    RESOURCE-AWARE-SCHEDULER-EVICTION-STRATEGY "backtype.storm.scheduler.resource.strategies.eviction.DefaultEvictionStrategy"
+                                    RESOURCE-AWARE-SCHEDULER-PRIORITY-STRATEGY "backtype.storm.scheduler.resource.strategies.priority.DefaultSchedulingPriorityStrategy"
+                                    })
             _ (.schedule scheduler topologies cluster)
             super->mem-usage (ras/get-super->mem-usage cluster topologies)
             super->cpu-usage (ras/get-super->cpu-usage cluster topologies)]
-        (is (= "Running - Fully Scheduled by DefaultResourceAwareStrategy" (.get (.getStatusMap cluster) "topology1")))
-        (is (= "Running - Fully Scheduled by DefaultResourceAwareStrategy" (.get (.getStatusMap cluster) "topology2")))
-        (is (= "Running - Fully Scheduled by DefaultResourceAwareStrategy" (.get (.getStatusMap cluster) "topology3")))
+        (is (= "(RAS) Running - Fully Scheduled by DefaultResourceAwareStrategy" (.get (.getStatusMap cluster) "topology1")))
+        (is (= "(RAS) Running - Fully Scheduled by DefaultResourceAwareStrategy" (.get (.getStatusMap cluster) "topology2")))
+        (is (= "(RAS) Running - Fully Scheduled by DefaultResourceAwareStrategy" (.get (.getStatusMap cluster) "topology3")))
         (doseq [super (.values supers)]
           (let [mem-avail (.getTotalMemory super)
                 mem-used (.get super->mem-usage super)
@@ -1077,13 +1077,13 @@
                        "backtype.storm.networktopography.DefaultRackDNSToSwitchMapping"})
             topologies (Topologies. (to-top-map [topology1 topology2 topology3]))
             _ (.prepare scheduler {
-                RESOURCE-AWARE-SCHEDULER-EVICTION-STRATEGY "backtype.storm.scheduler.resource.strategies.eviction.DefaultEvictionStrategy"
-                RESOURCE-AWARE-SCHEDULER-PRIORITY-STRATEGY "backtype.storm.scheduler.resource.strategies.priority.DefaultSchedulingPriorityStrategy"
-               })
+                                    RESOURCE-AWARE-SCHEDULER-EVICTION-STRATEGY "backtype.storm.scheduler.resource.strategies.eviction.DefaultEvictionStrategy"
+                                    RESOURCE-AWARE-SCHEDULER-PRIORITY-STRATEGY "backtype.storm.scheduler.resource.strategies.priority.DefaultSchedulingPriorityStrategy"
+                                    })
             _ (.schedule scheduler topologies cluster)
-            scheduled-topos (if (= "Running - Fully Scheduled by DefaultResourceAwareStrategy" (.get (.getStatusMap cluster) "topology1")) 1 0)
-            scheduled-topos (+ scheduled-topos (if (= "Running - Fully Scheduled by DefaultResourceAwareStrategy" (.get (.getStatusMap cluster) "topology2")) 1 0))
-            scheduled-topos (+ scheduled-topos (if (= "Running - Fully Scheduled by DefaultResourceAwareStrategy" (.get (.getStatusMap cluster) "topology4")) 1 0))]
+            scheduled-topos (if (= "(RAS) Running - Fully Scheduled by DefaultResourceAwareStrategy" (.get (.getStatusMap cluster) "topology1")) 1 0)
+            scheduled-topos (+ scheduled-topos (if (= "(RAS) Running - Fully Scheduled by DefaultResourceAwareStrategy" (.get (.getStatusMap cluster) "topology2")) 1 0))
+            scheduled-topos (+ scheduled-topos (if (= "(RAS) Running - Fully Scheduled by DefaultResourceAwareStrategy" (.get (.getStatusMap cluster) "topology4")) 1 0))]
         (is (= scheduled-topos 2)))) ;; only 2 topos will get (fully) scheduled
 
     (testing "Launch topo5 only, both mem and cpu should be exactly used up"
@@ -1092,13 +1092,13 @@
                        "backtype.storm.networktopography.DefaultRackDNSToSwitchMapping"})
             topologies (Topologies. (to-top-map [topology5]))
             _ (.prepare scheduler {
-                RESOURCE-AWARE-SCHEDULER-EVICTION-STRATEGY "backtype.storm.scheduler.resource.strategies.eviction.DefaultEvictionStrategy"
-                RESOURCE-AWARE-SCHEDULER-PRIORITY-STRATEGY "backtype.storm.scheduler.resource.strategies.priority.DefaultSchedulingPriorityStrategy"
-               })
+                                    RESOURCE-AWARE-SCHEDULER-EVICTION-STRATEGY "backtype.storm.scheduler.resource.strategies.eviction.DefaultEvictionStrategy"
+                                    RESOURCE-AWARE-SCHEDULER-PRIORITY-STRATEGY "backtype.storm.scheduler.resource.strategies.priority.DefaultSchedulingPriorityStrategy"
+                                    })
             _ (.schedule scheduler topologies cluster)
             super->mem-usage (ras/get-super->mem-usage cluster topologies)
             super->cpu-usage (ras/get-super->cpu-usage cluster topologies)]
-        (is (= "Running - Fully Scheduled by DefaultResourceAwareStrategy" (.get (.getStatusMap cluster) "topology5")))
+        (is (= "(RAS) Running - Fully Scheduled by DefaultResourceAwareStrategy" (.get (.getStatusMap cluster) "topology5")))
         (doseq [super (.values supers)]
           (let [mem-avail (.getTotalMemory super)
                 mem-used (.get super->mem-usage super)
@@ -1131,11 +1131,11 @@
                         (mk-ed-map [["spout1" 0 4]]))
             topologies (Topologies. (to-top-map [topology1]))]
         (.prepare scheduler {
-          RESOURCE-AWARE-SCHEDULER-EVICTION-STRATEGY "backtype.storm.scheduler.resource.strategies.eviction.DefaultEvictionStrategy"
-          RESOURCE-AWARE-SCHEDULER-PRIORITY-STRATEGY "backtype.storm.scheduler.resource.strategies.priority.DefaultSchedulingPriorityStrategy"
-        })
+                              RESOURCE-AWARE-SCHEDULER-EVICTION-STRATEGY "backtype.storm.scheduler.resource.strategies.eviction.DefaultEvictionStrategy"
+                              RESOURCE-AWARE-SCHEDULER-PRIORITY-STRATEGY "backtype.storm.scheduler.resource.strategies.priority.DefaultSchedulingPriorityStrategy"
+                              })
         (.schedule scheduler topologies cluster)
-        (is (= (.get (.getStatusMap cluster) "topology1") "Running - Fully Scheduled by DefaultResourceAwareStrategy"))
+        (is (= (.get (.getStatusMap cluster) "topology1") "(RAS) Running - Fully Scheduled by DefaultResourceAwareStrategy"))
         (is (= (.getAssignedNumWorkers cluster topology1) 4))))
     (testing "test when no more workers are available due to topology worker max heap size limit but there is memory is still available"
       (let [cluster (Cluster. (nimbus/standalone-nimbus) supers {}
@@ -1159,13 +1159,12 @@
                         (mk-ed-map [["spout1" 0 5]]))
             topologies (Topologies. (to-top-map [topology1]))]
         (.prepare scheduler {
-          RESOURCE-AWARE-SCHEDULER-EVICTION-STRATEGY "backtype.storm.scheduler.resource.strategies.eviction.DefaultEvictionStrategy"
-          RESOURCE-AWARE-SCHEDULER-PRIORITY-STRATEGY "backtype.storm.scheduler.resource.strategies.priority.DefaultSchedulingPriorityStrategy"
-        })
+                              RESOURCE-AWARE-SCHEDULER-EVICTION-STRATEGY "backtype.storm.scheduler.resource.strategies.eviction.DefaultEvictionStrategy"
+                              RESOURCE-AWARE-SCHEDULER-PRIORITY-STRATEGY "backtype.storm.scheduler.resource.strategies.priority.DefaultSchedulingPriorityStrategy"
+                              })
         (.schedule scheduler topologies cluster)
         ;;spout1 is going to contain 5 executors that needs scheduling. Each of those executors has a memory requirement of 128.0 MB
         ;;The cluster contains 4 free WorkerSlots. For this topolology each worker is limited to a max heap size of 128.0
         ;;Thus, one executor not going to be able to get scheduled thus failing the scheduling of this topology and no executors of this topology will be scheduleded
         (is (= (.size (.getUnassignedExecutors cluster topology1)) 5))
-        (is (= (.get (.getStatusMap cluster) "topology1")  "Not enough resources to schedule - 0/5 executors scheduled"))))))
-
+        (is (= (.get (.getStatusMap cluster) "topology1")  "(RAS) Not enough resources to schedule - 0/5 executors scheduled"))))))
