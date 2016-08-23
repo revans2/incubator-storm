@@ -87,10 +87,16 @@ public class ConstraintSolverStrategy implements IStrategy{
     @Override
     public SchedulingResult schedule(TopologyDetails td) {
         initialize(td);
+
+        //early detection/early fail
+        if (!this.checkSchedulingFeasibility()) {
+            //Scheduling Status set to FAIL_OTHER so not eviction policy with be attempted to make space for this topology
+            return SchedulingResult.failure(SchedulingStatus.FAIL_OTHER, "Scheduling not feasible!");
+        }
         Map<ExecutorDetails, WorkerSlot> result = findScheduling();
 
         if (result == null) {
-            return SchedulingResult.failure(SchedulingStatus.FAIL_OTHER, "Cannot find Scheduling that satisfy constraints");
+            return SchedulingResult.failure(SchedulingStatus.FAIL_NOT_ENOUGH_RESOURCES, "Cannot find Scheduling that satisfy constraints");
         } else {
             Map<WorkerSlot, Collection<ExecutorDetails>> resultOrganized = new HashMap<>();
             for (Map.Entry<ExecutorDetails, WorkerSlot> entry : result.entrySet()) {
@@ -108,10 +114,6 @@ public class ConstraintSolverStrategy implements IStrategy{
     }
 
     public Map<ExecutorDetails, WorkerSlot> findScheduling() {
-        //early detection/early fail
-        if (!this.checkSchedulingFeasibility()) {
-            return null;
-        }
         return this.backtrackSearch(this.sortedExecs, 0);
     }
 
