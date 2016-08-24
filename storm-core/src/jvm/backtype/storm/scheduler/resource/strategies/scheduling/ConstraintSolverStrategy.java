@@ -113,7 +113,7 @@ public class ConstraintSolverStrategy implements IStrategy{
         }
     }
 
-    public Map<ExecutorDetails, WorkerSlot> findScheduling() {
+    private Map<ExecutorDetails, WorkerSlot> findScheduling() {
         return this.backtrackSearch(this.sortedExecs, 0);
     }
 
