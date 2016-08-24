@@ -260,7 +260,7 @@
 
 (defn shutdown-worker [supervisor id]
   (if id
-    (log-message "Shutting down " (:supervisor-id supervisor) ":" id)
+    ( (log-message "Shutting down " (:supervisor-id supervisor) ":" id)
     (let [conf (:conf supervisor)
           pids (read-dir-contents (worker-pids-root conf id))
           thread-pid (@(:worker-thread-pids-atom supervisor) id)
@@ -291,7 +291,7 @@
       ;; on windows, the supervisor may still holds the lock on the worker directory
       (try-cleanup-worker conf supervisor id))
     (swap! (:worker-launchtime-atom supervisor) dissoc id)
-    (log-message "Shut down " (:supervisor-id supervisor) ":" id)))
+    (log-message "Shut down " (:supervisor-id supervisor) ":" id))))
 
 (def SUPERVISOR-ZK-ACLS
   [(first ZooDefs$Ids/CREATOR_ALL_ACL)
