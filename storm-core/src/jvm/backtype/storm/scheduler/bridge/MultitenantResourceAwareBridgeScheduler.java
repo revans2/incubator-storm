@@ -155,7 +155,13 @@ public class MultitenantResourceAwareBridgeScheduler implements IScheduler{
 
         Cluster rasCluster = new Cluster(cluster.getINimbus(), rasClusterSups, rasClusterAssignments, cluster.getConf());
         //set existing statuses
-        rasCluster.setStatusMap(cluster.getStatusMap());
+        for (Entry<String, String> entry : cluster.getStatusMap().entrySet()) {
+            String topoId = entry.getKey();
+            String status = entry.getValue();
+            if (rasTopologies.getById(topoId) != null) {
+                rasCluster.setStatus(topoId, status);
+            }
+        }
         return rasCluster;
     }
 
@@ -287,11 +293,25 @@ public class MultitenantResourceAwareBridgeScheduler implements IScheduler{
                     target.assign(ws, topoId, execs);
                 }
             }
+            //add scheduler identifier
+            for (Entry<String, String> statusEntry : target.getStatusMap().entrySet()) {
+                String topoId = statusEntry.getKey();
+                String status = statusEntry.getValue();
+                if (!status.startsWith("(MT)")) {
+                    target.setStatus(topoId, "(MT) " + status);
+                } else {
+                    target.setStatus(topoId, status);
+                }
+            }
             //merge scheduler set status
             for (Entry<String, String> statusEntry : ephemeral.getStatusMap().entrySet()) {
                 String topoId = statusEntry.getKey();
-                String status = statusEntry.getValue();
-                target.setStatus(topoId, status);
+                String status =  statusEntry.getValue();
+                if (!status.startsWith("(RAS)")) {
+                    target.setStatus(topoId, "(RAS) " + status);
+                } else {
+                    target.setStatus(topoId, status);
+                }
             }
             //merge resources map of MT and RAS for all topologies
             target.setTopologyResourcesMap(ephemeral.getTopologyResourcesMap());
