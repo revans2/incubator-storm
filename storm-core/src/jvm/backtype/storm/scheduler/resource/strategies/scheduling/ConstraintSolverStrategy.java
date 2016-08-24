@@ -90,7 +90,7 @@ public class ConstraintSolverStrategy implements IStrategy{
 
         //early detection/early fail
         if (!this.checkSchedulingFeasibility()) {
-            //Scheduling Status set to FAIL_OTHER so not eviction policy with be attempted to make space for this topology
+            //Scheduling Status set to FAIL_OTHER so no eviction policy will be attempted to make space for this topology
             return SchedulingResult.failure(SchedulingStatus.FAIL_OTHER, "Scheduling not feasible!");
         }
         Map<ExecutorDetails, WorkerSlot> result = findScheduling();
