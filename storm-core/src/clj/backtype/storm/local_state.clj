@@ -87,10 +87,16 @@
   [{storm-id :storm-id executors :executors resources :resources}]
   (let [assignment (LocalAssignment. storm-id (->ExecutorInfo-list executors))]
     (if resources (.set_resources assignment
-                                  (doto (WorkerResources. )
-                                    (.set_mem_on_heap (first resources))
-                                    (.set_mem_off_heap (second resources))
-                                    (.set_cpu (last resources)))))
+                                  (if (instance? WorkerResources resources)
+                                    ;; this call came from supervisor, and the resources
+                                    ;; are already in the thrift format
+                                    resources
+                                    ;; resources in the WorkResources record format
+                                    ;; from nimbus
+                                    (doto (WorkerResources. )
+                                      (.set_mem_on_heap (first resources))
+                                      (.set_mem_off_heap (second resources))
+                                      (.set_cpu (last resources))))))
     assignment))
 
 (defn mk-local-assignment
