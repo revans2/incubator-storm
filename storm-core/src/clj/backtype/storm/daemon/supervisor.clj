@@ -260,38 +260,39 @@
 
 (defn shutdown-worker [supervisor id]
   (if id
-    ( (log-message "Shutting down " (:supervisor-id supervisor) ":" id)
-    (let [conf (:conf supervisor)
-          pids (read-dir-contents (worker-pids-root conf id))
-          thread-pid (@(:worker-thread-pids-atom supervisor) id)
-          shutdown-sleep-secs (conf SUPERVISOR-WORKER-SHUTDOWN-SLEEP-SECS)
-          as-user (conf SUPERVISOR-RUN-WORKER-AS-USER)
-          user (get-worker-user conf id)]
-      (when thread-pid
-        (psim/kill-process thread-pid))
-      (doseq [pid pids]
-        (if as-user
-          (worker-launcher-and-wait conf user ["signal" pid "15"] :log-prefix (str "kill -15 " pid))
-          (kill-process-with-sig-term pid)))
-      (when-not (empty? pids)
-        (log-message "Sleep " shutdown-sleep-secs " seconds for execution of cleanup threads on worker.")
-        (sleep-secs shutdown-sleep-secs))
-      (doseq [pid pids]
-        (if as-user
-          (worker-launcher-and-wait conf user ["signal" pid "9"] :log-prefix (str "kill -9 " pid))
-          (force-kill-process pid))
-        (if as-user
-          (try
-            (rmr-as-user conf id (worker-pid-path conf id pid))
-            (rmpath (worker-pid-path conf id pid))
-            (catch IOException e
-              (log-warn-error e "Failed to cleanup pid dir: " pid " for worker " id ". Will retry later"))
-            (catch RuntimeException e
-              (log-warn-error e "Failed to cleanup pid dir: " pid " for worker " id ". Will retry later")))))
-      ;; on windows, the supervisor may still holds the lock on the worker directory
-      (try-cleanup-worker conf supervisor id))
-    (swap! (:worker-launchtime-atom supervisor) dissoc id)
-    (log-message "Shut down " (:supervisor-id supervisor) ":" id))))
+    (do
+      (log-message "Shutting down " (:supervisor-id supervisor) ":" id)
+      (let [conf (:conf supervisor)
+            pids (read-dir-contents (worker-pids-root conf id))
+            thread-pid (@(:worker-thread-pids-atom supervisor) id)
+            shutdown-sleep-secs (conf SUPERVISOR-WORKER-SHUTDOWN-SLEEP-SECS)
+            as-user (conf SUPERVISOR-RUN-WORKER-AS-USER)
+            user (get-worker-user conf id)]
+        (when thread-pid
+          (psim/kill-process thread-pid))
+        (doseq [pid pids]
+          (if as-user
+            (worker-launcher-and-wait conf user ["signal" pid "15"] :log-prefix (str "kill -15 " pid))
+            (kill-process-with-sig-term pid)))
+        (when-not (empty? pids)
+          (log-message "Sleep " shutdown-sleep-secs " seconds for execution of cleanup threads on worker.")
+          (sleep-secs shutdown-sleep-secs))
+        (doseq [pid pids]
+          (if as-user
+            (worker-launcher-and-wait conf user ["signal" pid "9"] :log-prefix (str "kill -9 " pid))
+            (force-kill-process pid))
+          (if as-user
+            (try
+              (rmr-as-user conf id (worker-pid-path conf id pid))
+              (rmpath (worker-pid-path conf id pid))
+              (catch IOException e
+                (log-warn-error e "Failed to cleanup pid dir: " pid " for worker " id ". Will retry later"))
+              (catch RuntimeException e
+                (log-warn-error e "Failed to cleanup pid dir: " pid " for worker " id ". Will retry later")))))
+        ;; on windows, the supervisor may still holds the lock on the worker directory
+        (try-cleanup-worker conf supervisor id))
+      (swap! (:worker-launchtime-atom supervisor) dissoc id)
+      (log-message "Shut down " (:supervisor-id supervisor) ":" id))))
 
 (def SUPERVISOR-ZK-ACLS
   [(first ZooDefs$Ids/CREATOR_ALL_ACL)
