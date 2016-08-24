@@ -16,8 +16,9 @@
 (ns backtype.storm.local-state-test
   (:use [clojure test])
   (:use [backtype.storm testing])
+  (:use [backtype.storm.local-state])
   (:import [backtype.storm.utils LocalState]
-           [backtype.storm.generated GlobalStreamId]
+           [backtype.storm.generated GlobalStreamId WorkerResources]
            [org.apache.commons.io FileUtils]
            [java.io File]))
 
@@ -53,3 +54,27 @@
       (is (= nil (.get ls "c")))
       (.put ls "a" gs-a)
       (is (= gs-a (.get ls "a"))))))
+
+;; ls-local-assignments! converts the resources ISeq to a WorkerResources
+;; generated thrift object. A bug we saw was causing this conversion to 
+;; throw in the case where the supervisor would retry 
+(deftest should-be-able-to-get-and-put-local-assignments
+  (with-local-tmp [dir]
+    (let [ls (LocalState. dir)
+          assignment {:storm-id "my-storm"
+                      :executors [[1 4] [5 6]]
+                      :resources [1 2 3]}
+          assignments {(int 1) assignment}]
+      (ls-local-assignments! ls assignments) 
+      ;; get the assignments back
+      (let [local-assignments (ls-local-assignments ls)
+            resources (:resources (get local-assignments 1))]
+        (is (instance? WorkerResources resources))
+        ;; and put them one more time
+        (ls-local-assignments! ls local-assignments)
+        (let [new-local-assignments (ls-local-assignments ls)
+              new-resources (:resources (get new-local-assignments 1))]
+          (is (instance? WorkerResources new-resources))
+          (is (= (.get_cpu new-resources) (.get_cpu resources)))
+          (is (= (.get_mem_on_heap new-resources) (.get_mem_on_heap resources)))
+          (is (= (.get_mem_off_heap new-resources) (.get_mem_off_heap resources))))))))
