@@ -50,18 +50,18 @@ public class ConstraintSolverStrategy implements IStrategy{
     private Map<String, RAS_Node> nodes;
     private Cluster cluster;
     private ArrayList<WorkerSlot> workerSlots;
-    private Map<ExecutorDetails, String> execToComp = new HashMap<ExecutorDetails, String>();
-    private Map<String, HashSet<ExecutorDetails>> compToExecs = new HashMap<String, HashSet<ExecutorDetails>>();
-    private ArrayList<ExecutorDetails> sortedExecs = new ArrayList<ExecutorDetails>();
-    private Map<WorkerSlot, RAS_Node> workerToNodes = new LinkedHashMap<WorkerSlot, RAS_Node>();
+    private Map<ExecutorDetails, String> execToComp;
+    private Map<String, HashSet<ExecutorDetails>> compToExecs;
+    private ArrayList<ExecutorDetails> sortedExecs;
+    private Map<WorkerSlot, RAS_Node> workerToNodes;
     private int numBacktrack = 0;
     private int traversalDepth = 0;
 
     //holds assignments
-    private Map<ExecutorDetails, WorkerSlot> execToWorker = new HashMap<ExecutorDetails, WorkerSlot>();
-    private Map<WorkerSlot, Set<String>> workerCompAssignment = new HashMap<WorkerSlot, Set<String>>();
-    private Map<RAS_Node, Set<String>> nodeCompAssignment = new HashMap<RAS_Node, Set<String>>();
-    private Map<WorkerSlot, Set<ExecutorDetails>> workerToExecs = new HashMap<WorkerSlot, Set<ExecutorDetails>>();
+    private Map<ExecutorDetails, WorkerSlot> execToWorker;
+    private Map<WorkerSlot, Set<String>> workerCompAssignment;
+    private Map<RAS_Node, Set<String>> nodeCompAssignment;
+    private Map<WorkerSlot, Set<ExecutorDetails>> workerToExecs;
 
     //constraints and spreads
     private Map<String, Map<String, Integer>> constraintMatrix;
@@ -82,6 +82,14 @@ public class ConstraintSolverStrategy implements IStrategy{
     public void prepare(SchedulingState schedulingState) {
         this.nodes = schedulingState.nodes.getNodeMap();
         this.cluster = schedulingState.cluster;
+        this.sortedExecs = new ArrayList<ExecutorDetails>();
+        this.execToWorker = new HashMap<ExecutorDetails, WorkerSlot>();
+        this.workerCompAssignment = new HashMap<WorkerSlot, Set<String>>();
+        this.nodeCompAssignment = new HashMap<RAS_Node, Set<String>>();
+        this.workerToExecs = new HashMap<WorkerSlot, Set<ExecutorDetails>>();
+        this.numBacktrack = 0;
+        this.traversalDepth = 0;
+        this.stackFrames = 0;
     }
 
     @Override
@@ -216,7 +224,7 @@ public class ConstraintSolverStrategy implements IStrategy{
 
     private Map<ExecutorDetails, WorkerSlot> backtrackSearch(ArrayList<ExecutorDetails> execs, int execIndex) {
 
-        if (this.traversalDepth % 1000 == 0) {
+        if (this.traversalDepth % 100000 == 0) {
             LOG.debug("Traversal Depth: {}", this.traversalDepth);
             LOG.debug("stack frames: {}", this.stackFrames);
             LOG.debug("backtrack: {}", this.numBacktrack);
