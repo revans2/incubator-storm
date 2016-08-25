@@ -45,7 +45,7 @@
   and add Cache-Control: no-cache for html files in root directory (index.html, topology.html, etc)"
   [handler]
   (fn [req]
-    (.mark num-requests)
+    (.mark! num-requests)
     (let [uri (:uri req)
           res (handler req)
           content-type (response/get-header res "Content-Type")]
