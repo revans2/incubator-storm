@@ -143,6 +143,12 @@
                   (*STORM-CONF* LOGVIEWER-PORT)
                   fname))))
 
+(defn nimbus-log-link [host]
+  (url-format "http://%s:%s/daemonlog?file=nimbus.log" host (*STORM-CONF* LOGVIEWER-PORT)))
+
+(defn supervisor-log-link [host]
+  (url-format "http://%s:%s/daemonlog?file=supervisor.log" host (*STORM-CONF* LOGVIEWER-PORT)))
+
 (defn get-error-time
   [error]
   (if error
@@ -344,6 +350,8 @@
         "stormVersion" STORM-VERSION
         "nimbusUptime" (pretty-uptime-sec (.get_nimbus_uptime_secs summ))
         "nimbusUptimeSeconds" (.get_nimbus_uptime_secs summ)
+        "nimbusLogLink" (nimbus-log-link (*STORM-CONF* NIMBUS-HOST))
+        "host" (*STORM-CONF* NIMBUS-HOST)
         "supervisors" (count sups)
         "topologies" topologies
         "slotsTotal" total-slots
@@ -403,6 +411,7 @@
    "usedCpu" usedCpu
    "availMem" availMem
    "availCpu" availCpu
+   "logLink" (supervisor-log-link (.get_host summary))
    "version" (.get_version summary)}))
 
 (defn supervisor-page-info

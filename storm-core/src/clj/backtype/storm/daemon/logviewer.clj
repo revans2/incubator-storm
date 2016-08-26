@@ -352,39 +352,40 @@ Note that if anything goes wrong, this will throw an Error and exit."
   [:a {:href (java.net.URI. url)
        :class (str "btn btn-default " (if enabled "enabled" "disabled"))} text])
 
-(defn search-file-form [fname]
+(defn search-file-form [fname is-daemon]
   [[:form {:action "logviewer_search.html" :id "search-box"}
     "Search this file:"
     [:input {:type "text" :name "search"}]
+    [:input {:type "hidden" :name "is-daemon" :value is-daemon}]
     [:input {:type "hidden" :name "file" :value fname}]
     [:input {:type "submit" :value "Search"}]]])
 
-(defn log-file-selection-form [log-files]
-  [[:form {:action "log" :id "list-of-files"}
+(defn log-file-selection-form [log-files type]
+  [[:form {:action type :id "list-of-files"}
     (drop-down "file" log-files)
     [:input {:type "submit" :value "Switch file"}]]])
 
-(defn pager-links [fname start length file-size]
+(defn pager-links [fname start length file-size type]
   (let [prev-start (max 0 (- start length))
         next-start (if (> file-size 0)
                      (min (max 0 (- file-size length)) (+ start length))
                      (+ start length))]
     [[:div
       (concat
-          [(to-btn-link (url "/log"
+          [(to-btn-link (url (str "/" type)
                           {:file fname
                            :start (max 0 (- start length))
                            :length length})
                           "Prev" :enabled (< prev-start start))]
-          [(to-btn-link (url "/log"
+          [(to-btn-link (url (str "/" type)
                            {:file fname
                             :start 0
                             :length length}) "First")]
-          [(to-btn-link (url "/log"
+          [(to-btn-link (url (str "/" type)
                            {:file fname
                             :length length})
                         "Last")]
-          [(to-btn-link (url "/log"
+          [(to-btn-link (url (str "/" type)
                           {:file fname
                            :start (min (max 0 (- file-size length))
                                        (+ start length))
@@ -394,7 +395,13 @@ Note that if anything goes wrong, this will throw an Error and exit."
 (defn- download-link [fname]
   [[:p (link-to (url-format "/download/%s" fname) "Download Full File")]])
 
+(defn daemon-download-link [fname]
+  [[:p (link-to (url-format "/daemondownload/%s" fname) "Download Full File")]])
+
 (def default-bytes-per-page 51200)
+
+(defn- is-txt-file [fname]
+  (re-find #"\.(log.*|txt|yaml|pid)$" fname))
 
 (defn log-page [fname start length grep user root-dir]
   (if (or (blank? (*STORM-CONF* UI-FILTER))
@@ -415,9 +422,8 @@ Note that if anything goes wrong, this will throw an Error and exit."
         (let [length (if length
                        (min 10485760 length)
                        default-bytes-per-page)
-              is-txt-file (re-find #"\.(log.*|txt|yaml|pid)$" fname)
               log-string (escape-html
-                           (if is-txt-file
+                           (if (is-txt-file fname)
                              (if start
                                (page-file path start length)
                                (page-file path length))
@@ -430,9 +436,9 @@ Note that if anything goes wrong, this will throw an Error and exit."
                           (filter #(.contains % grep))
                           (string/join "\n"))
                      log-string)])
-            (let [pager-data (if is-txt-file (pager-links fname start length file-length) nil)]
-              (html (concat (search-file-form fname)
-                            (log-file-selection-form reordered-files-str) ;display all files for this topology
+            (let [pager-data (if (is-txt-file fname) (pager-links fname start length file-length "log") nil)]
+              (html (concat (search-file-form fname "no")
+                            (log-file-selection-form reordered-files-str "log") ;display all files for this topology
                             pager-data
                             (download-link fname)
                             [[:pre#logContent log-string]]
@@ -444,11 +450,52 @@ Note that if anything goes wrong, this will throw an Error and exit."
         (resp/status 404))
       (unauthorized-user-html user))))
 
-(defn download-log-file [fname req resp user ^String root-dir]
+(defn daemonlog-page [fname start length grep user root-dir]
+  (let [file (.getCanonicalFile (File. root-dir fname))
+        file-length (.length file)
+        path (.getCanonicalPath file)
+        zip-file? (.endsWith path ".gz")]
+    (if (and (= (.getCanonicalFile (File. root-dir))
+               (.getParentFile file))
+          (.exists file))
+      (let [file-length (if zip-file? (Utils/zipFileSize (clojure.java.io/file path)) (.length (clojure.java.io/file path)))
+            length (if length
+                     (min 10485760 length)
+                     default-bytes-per-page)
+            log-files (into [] (filter #(.isFile %) (.listFiles (File. root-dir)))) ;all types of files included
+            files-str (for [file log-files]
+                        (.getName file))
+            reordered-files-str (conj (filter #(not= fname %) files-str) fname)
+            log-string (escape-html
+                         (if (is-txt-file fname)
+                           (if start
+                             (page-file path start length)
+                             (page-file path length))
+                           "This is a binary file and cannot display! You may download the full file."))
+            start (or start (- file-length length))]
+        (if grep
+          (html [:pre#logContent
+                 (if grep
+                   (->> (.split log-string "\n")
+                     (filter #(.contains % grep))
+                     (string/join "\n"))
+                   log-string)])
+          (let [pager-data (if (is-txt-file fname) (pager-links fname start length file-length "daemonlog") nil)]
+            (html (concat (search-file-form fname "yes")
+                    (log-file-selection-form reordered-files-str "daemonlog") ; list all daemon logs
+                    pager-data
+                    (daemon-download-link fname)
+                    [[:pre#logContent log-string]]
+                    pager-data)))))
+      (-> (resp/response "Page not found")
+        (resp/status 404)))))
+
+(defnk download-log-file [fname req resp user ^String root-dir :is-daemon false]
   (let [file (.getCanonicalFile (File. root-dir fname))]
     (if (.exists file)
-      (if (or (blank? (*STORM-CONF* UI-FILTER))
-              (authorized-log-user? user fname *STORM-CONF*))
+      (if (or is-daemon
+            (or (blank? (*STORM-CONF* UI-FILTER))
+              (authorized-log-user? user fname *STORM-CONF*)))
         (-> (resp/response file)
             (resp/content-type "application/octet-stream"))
         (unauthorized-user-html user))
@@ -476,13 +523,31 @@ Note that if anything goes wrong, this will throw an Error and exit."
                          (int (/ (alength needle) -2)))) ;; Addition
           :length default-bytes-per-page})))
 
+(defn url-to-match-centered-in-log-page-daemon-file
+  [needle fname offset port]
+  (let [host (local-hostname)
+        port (logviewer-port)
+        fname (clojure.string/join file-path-separator (take-last 1 (split fname (re-pattern file-path-separator))))]
+    (url (str "http://" host ":" port "/daemonlog")
+      {:file fname
+       :start (max 0
+                (- offset
+                  (int (/ default-bytes-per-page 2))
+                  (int (/ (alength needle) -2)))) ;; Addition
+       :length default-bytes-per-page})))
+
 (defnk mk-match-data
   [^bytes needle ^ByteBuffer haystack haystack-offset file-offset fname
-   :before-bytes nil :after-bytes nil]
-  (let [url (url-to-match-centered-in-log-page needle
+   :is-daemon false :before-bytes nil :after-bytes nil]
+  (let [url (if is-daemon
+              (url-to-match-centered-in-log-page-daemon-file needle
+                fname
+                file-offset
+                (*STORM-CONF* LOGVIEWER-PORT))
+        (url-to-match-centered-in-log-page needle
                                                fname
                                                file-offset
-                                               (*STORM-CONF* LOGVIEWER-PORT))
+                                               (*STORM-CONF* LOGVIEWER-PORT)))
         haystack-bytes (.array haystack)
         before-string (if (>= haystack-offset grep-context-size)
                         (String. haystack-bytes
@@ -578,7 +643,7 @@ Note that if anything goes wrong, this will throw an Error and exit."
   "As the file is read into a buffer, 1/2 the buffer's size at a time, we
   search the buffer for matches of the substring and return a list of zero or
   more matches."
-  [file file-len offset-to-buf init-buf-offset stream bytes-skipped
+  [is-daemon file file-len offset-to-buf init-buf-offset stream bytes-skipped
    bytes-read ^ByteBuffer haystack ^bytes needle initial-matches num-matches
    ^bytes before-bytes]
   (loop [buf-offset init-buf-offset
@@ -603,6 +668,7 @@ Note that if anything goes wrong, this will throw an Error and exit."
                                      offset
                                      file-offset
                                      (.getCanonicalPath file)
+                                     :is-daemon is-daemon
                                      :before-bytes before-arg
                                      :after-bytes after-arg))))
        (let [before-str-to-offset (min (.limit haystack)
@@ -659,7 +725,7 @@ Note that if anything goes wrong, this will throw an Error and exit."
   context lines.  Other information is included to be useful for progressively
   searching through a file for display in a UI. The search string must
   grep-max-search-size bytes or fewer when decoded with UTF-8."
-  [file ^String search-string :num-matches 10 :start-byte-offset 0]
+  [file ^String search-string :is-daemon false :num-matches 10 :start-byte-offset 0]
   {:pre [(not (empty? search-string))
          (<= (count (.getBytes search-string "UTF-8")) grep-max-search-size)]}
   (let [zip-file? (.endsWith (.getName file) ".gz")
@@ -694,7 +760,8 @@ Note that if anything goes wrong, this will throw an Error and exit."
            byte-offset start-byte-offset
            before-bytes nil]
       (let [[matches new-byte-offset new-before-bytes]
-              (buffer-substring-search! file
+              (buffer-substring-search! is-daemon
+                                        file
                                         file-len
                                         byte-offset
                                         init-buf-offset
@@ -721,16 +788,17 @@ Note that if anything goes wrong, this will throw an Error and exit."
                    new-buf-offset
                    new-byte-offset
                    new-before-bytes))
-          (mk-grep-response search-bytes
-                            start-byte-offset
-                            matches
-                            (if-not (and (< (count matches) num-matches)
-                                         (>= @total-bytes-read file-len))
-                              (let [next-byte-offset (+ (get (last matches)
-                                                             "byteOffset")
-                                                        (alength search-bytes))]
-                                (if (> file-len next-byte-offset)
-                                  next-byte-offset)))))))))
+          (merge {"isDaemon" (if is-daemon "yes" "no")}
+            (mk-grep-response search-bytes
+                              start-byte-offset
+                              matches
+                              (if-not (and (< (count matches) num-matches)
+                                           (>= @total-bytes-read file-len))
+                                (let [next-byte-offset (+ (get (last matches)
+                                                               "byteOffset")
+                                                          (alength search-bytes))]
+                                  (if (> file-len next-byte-offset)
+                                    next-byte-offset))))))))))
 
 (defn- try-parse-int-param
   [nam value]
@@ -743,11 +811,12 @@ Note that if anything goes wrong, this will throw an Error and exit."
         throw))))
 
 (defn search-log-file
-  [fname user ^String root-dir search num-matches offset callback origin]
+  [fname user ^String root-dir is-daemon search num-matches offset callback origin]
   (let [file (.getCanonicalFile (File. root-dir fname))]
     (if (.exists file)
-      (if (or (blank? (*STORM-CONF* UI-FILTER))
-              (authorized-log-user? user fname *STORM-CONF*))
+      (if (or is-daemon
+            (or (blank? (*STORM-CONF* UI-FILTER))
+              (authorized-log-user? user fname *STORM-CONF*)))
         (let [num-matches-int (if num-matches
                                 (try-parse-int-param "num-matches"
                                                      num-matches))
@@ -757,10 +826,12 @@ Note that if anything goes wrong, this will throw an Error and exit."
             (if (and (not (empty? search))
                      <= (count (.getBytes search "UTF-8")) grep-max-search-size)
               (json-response
-                (substring-search file
-                                  search
-                                  :num-matches num-matches-int
-                                  :start-byte-offset offset-int)
+                (merge {"isDaemon" (if is-daemon "yes" "no")}
+                  (substring-search file
+                                    search
+                                    :is-daemon is-daemon
+                                    :num-matches num-matches-int
+                                    :start-byte-offset offset-int))
                 callback
                 :headers {"Access-Control-Allow-Origin" origin
                           "Access-Control-Allow-Credentials" "true"})
@@ -943,20 +1014,29 @@ Note that if anything goes wrong, this will throw an Error and exit."
        ;; filter is configured.
        (try
          (mark! num-file-downloads)
-         (let [user (.getUserName http-creds-handler servlet-request)]
+         (let [user (.getUserName http-creds-handler servlet-request)]/
            (download-log-file file servlet-request servlet-response user log-root))
          (catch InvalidRequestException ex
            (log-error ex)
            (ring-response-from-exception ex))))
-  (GET "/search/:file" [:as {:keys [servlet-request servlet-response log-root]} file & m]
+  (GET "/daemondownload/:file" [:as {:keys [servlet-request servlet-response daemonlog-root]} file & m]
+    (try
+      (let [user (.getUserName http-creds-handler servlet-request)]
+        (download-log-file file servlet-request servlet-response user daemonlog-root :is-daemon true))
+      (catch InvalidRequestException ex
+        (log-error ex)
+        (ring-response-from-exception ex))))
+  (GET "/search/:file" [:as {:keys [servlet-request servlet-response log-root daemonlog-root]} file & m]
        ;; We do not use servlet-response here, but do not remove it from the
        ;; :keys list, or this rule could stop working when an authentication
        ;; filter is configured.
        (try
-         (let [user (.getUserName http-creds-handler servlet-request)]
+         (let [user (.getUserName http-creds-handler servlet-request)
+               is-daemon (= (:is-daemon m) "yes")]
            (search-log-file (url-decode file)
                             user
-                            log-root
+                            (if is-daemon daemonlog-root log-root)
+                            is-daemon
                             (:search-string m)
                             (:num-matches m)
                             (:start-byte-offset m)
@@ -1019,7 +1099,21 @@ Note that if anything goes wrong, this will throw an Error and exit."
              (unauthorized-user-html user))
            (-> (resp/response "Page not found")
              (resp/status 404)))))
-         
+
+  (GET "/daemonlog" [:as req & m]
+    (try
+      (let [servlet-request (:servlet-request req)
+            daemonlog-root (:daemonlog-root req)
+            user (.getUserName http-creds-handler servlet-request)
+            start (if (:start m) (parse-long-from-map m :start))
+            length (if (:length m) (parse-long-from-map m :length))
+            file (url-decode (:file m))]
+        (log-template (daemonlog-page file start length (:grep m) user daemonlog-root)
+          file user))
+      (catch InvalidRequestException ex
+        (log-error ex)
+        (ring-response-from-exception ex))))
+
   (GET "/deepSearch/:topo-id" [:as {:keys [servlet-request servlet-response log-root]} topo-id & m]
        ;; We do not use servlet-response here, but do not remove it from the
        ;; :keys list, or this rule could stop working when an authentication
@@ -1072,18 +1166,18 @@ Note that if anything goes wrong, this will throw an Error and exit."
 
 (defn conf-middleware
   "For passing the storm configuration with each request."
-  [app log-root]
+  [app log-root daemonlog-root]
   (fn [req]
-    (app (assoc req :log-root log-root))))
+    (app (assoc req :log-root log-root :daemonlog-root daemonlog-root))))
 
-(defn start-logviewer! [conf log-root-dir]
+(defn start-logviewer! [conf log-root-dir daemonlog-root-dir]
   (try
     (let [header-buffer-size (int (.get conf UI-HEADER-BUFFER-BYTES))
           filter-class (conf UI-FILTER)
           filter-params (conf UI-FILTER-PARAMS)
           logapp (handler/api (-> log-routes
                                   requests-middleware)) 
-          middle (conf-middleware logapp log-root-dir)
+          middle (conf-middleware logapp log-root-dir daemonlog-root-dir)
           filters-confs (if (conf UI-FILTER)
                           [{:filter-class filter-class
                             :filter-params (or (conf UI-FILTER-PARAMS) {})}]
@@ -1123,11 +1217,12 @@ Note that if anything goes wrong, this will throw an Error and exit."
 
 (defn -main []
   (let [conf *STORM-CONF*
-        log-root (worker-artifacts-root conf)]
+        log-root (worker-artifacts-root conf)
+        daemonlog-root (log-root-dir (conf LOGVIEWER-APPENDER-NAME))]
     (setup-default-uncaught-exception-handler)
     (start-log-cleaner! conf log-root)
     (log-message "Starting logviewer server for storm version '"
                  STORM-VERSION
                  "'")
-    (start-logviewer! conf log-root)
+    (start-logviewer! conf log-root daemonlog-root)
     (start-metrics-reporters)))
