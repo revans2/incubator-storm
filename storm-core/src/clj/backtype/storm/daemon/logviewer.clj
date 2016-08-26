@@ -1100,20 +1100,20 @@ Note that if anything goes wrong, this will throw an Error and exit."
            (-> (resp/response "Page not found")
              (resp/status 404)))))
 
-(GET "/daemonlog" [:as req & m]
-  (try
-    (let [servlet-request (:servlet-request req)
-          daemonlog-root (:daemonlog-root req)
-          user (.getUserName http-creds-handler servlet-request)
-          start (if (:start m) (parse-long-from-map m :start))
-          length (if (:length m) (parse-long-from-map m :length))
-          file (url-decode (:file m))]
-      (log-template (daemonlog-page file start length (:grep m) user daemonlog-root)
-        file user))
-    (catch InvalidRequestException ex
-      (log-error ex)
-      (ring-response-from-exception ex))))
-         
+  (GET "/daemonlog" [:as req & m]
+    (try
+      (let [servlet-request (:servlet-request req)
+            daemonlog-root (:daemonlog-root req)
+            user (.getUserName http-creds-handler servlet-request)
+            start (if (:start m) (parse-long-from-map m :start))
+            length (if (:length m) (parse-long-from-map m :length))
+            file (url-decode (:file m))]
+        (log-template (daemonlog-page file start length (:grep m) user daemonlog-root)
+          file user))
+      (catch InvalidRequestException ex
+        (log-error ex)
+        (ring-response-from-exception ex))))
+
   (GET "/deepSearch/:topo-id" [:as {:keys [servlet-request servlet-response log-root]} topo-id & m]
        ;; We do not use servlet-response here, but do not remove it from the
        ;; :keys list, or this rule could stop working when an authentication
