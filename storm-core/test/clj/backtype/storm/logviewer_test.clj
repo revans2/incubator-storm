@@ -16,7 +16,7 @@
 (ns backtype.storm.logviewer-test
   (:use [backtype.storm config log util])
   (:require [backtype.storm.daemon [logviewer :as logviewer]
-                                   [supervisor :as supervisor]])
+             [supervisor :as supervisor]])
   (:require [conjure.core])
   (:use [clojure test])
   (:use [conjure core])
@@ -50,7 +50,7 @@
     (. (Mockito/when (.lastModified mockFile)) thenReturn mtime)
     (. (Mockito/when (.isFile mockFile)) thenReturn true)
     (. (Mockito/when (.getCanonicalPath mockFile))
-       thenReturn (str "/mock/canonical/path/to/" file-name))
+      thenReturn (str "/mock/canonical/path/to/" file-name))
     (. (Mockito/when (.length mockFile)) thenReturn length)
     mockFile))
 
@@ -66,58 +66,58 @@
 
 (deftest test-get-size-for-logdir
   (testing "get the file sizes of a worker log directory"
-  (stubbing [logviewer/get-stream-for-dir (fn [x] (map #(mk-mock-Path %) (.listFiles x)))]
-            (let [now-millis (current-time-millis)
-                  files1 (into-array File (map #(mk-mock-File {:name (str %)
-                                                               :type :file
-                                                               :mtime (- now-millis (* 100 %))
-                                                               :length 200})
-                                               (range 1 6))) ;; 5 files
-                  port1-dir (mk-mock-File {:name "/workers-artifacts/topo1/port1"
-                                           :type :directory
-                                           :files files1})]
-              (is (= (logviewer/get-size-for-logdir port1-dir) 1000))))))
+    (stubbing [logviewer/get-stream-for-dir (fn [x] (map #(mk-mock-Path %) (.listFiles x)))]
+      (let [now-millis (current-time-millis)
+            files1 (into-array File (map #(mk-mock-File {:name (str %)
+                                                         :type :file
+                                                         :mtime (- now-millis (* 100 %))
+                                                         :length 200})
+                                      (range 1 6))) ;; 5 files
+            port1-dir (mk-mock-File {:name "/workers-artifacts/topo1/port1"
+                                     :type :directory
+                                     :files files1})]
+        (is (= (logviewer/get-size-for-logdir port1-dir) 1000))))))
 
 (deftest test-mk-FileFilter-for-log-cleanup
   (testing "log file filter selects the correct worker-log dirs for purge"
     (stubbing [logviewer/get-stream-for-dir (fn [x] (map #(mk-mock-Path %) (.listFiles x)))]
-    (let [now-millis (current-time-millis)
-          conf {LOGVIEWER-CLEANUP-AGE-MINS 60
-                LOGVIEWER-CLEANUP-INTERVAL-SECS 300}
-          cutoff-millis (logviewer/cleanup-cutoff-age-millis conf now-millis)
-          old-mtime-millis (- cutoff-millis 500)
-          new-mtime-millis (+ cutoff-millis 500)
-          matching-files (map #(mk-mock-File %)
-                              [{:name "3031"
-                                :type :directory
-                                :mtime old-mtime-millis}
-                               {:name "3032"
-                                :type :directory
-                                :mtime old-mtime-millis}
-                               {:name "7077"
-                                :type :directory
-                                :mtime old-mtime-millis}])
-          excluded-files (map #(mk-mock-File %)
-                              [{:name "oldlog-1-2-worker-.log"
-                                :type :file
-                                :mtime old-mtime-millis}
-                               {:name "newlog-1-2-worker.log"
-                                :type :file
-                                :mtime new-mtime-millis}
-                               {:name "some-old-file.txt"
-                                :type :file
-                                :mtime old-mtime-millis}
-                               {:name "olddir-1-2-worker.log"
-                                :type :directory
-                                :mtime new-mtime-millis}
-                               {:name "metadata"
-                                :type :directory
-                                :mtime new-mtime-millis}
-                               {:name "newdir"
-                                :type :directory
-                                :mtime new-mtime-millis}
+      (let [now-millis (current-time-millis)
+            conf {LOGVIEWER-CLEANUP-AGE-MINS 60
+                  LOGVIEWER-CLEANUP-INTERVAL-SECS 300}
+            cutoff-millis (logviewer/cleanup-cutoff-age-millis conf now-millis)
+            old-mtime-millis (- cutoff-millis 500)
+            new-mtime-millis (+ cutoff-millis 500)
+            matching-files (map #(mk-mock-File %)
+                             [{:name "3031"
+                               :type :directory
+                               :mtime old-mtime-millis}
+                              {:name "3032"
+                               :type :directory
+                               :mtime old-mtime-millis}
+                              {:name "7077"
+                               :type :directory
+                               :mtime old-mtime-millis}])
+            excluded-files (map #(mk-mock-File %)
+                             [{:name "oldlog-1-2-worker-.log"
+                               :type :file
+                               :mtime old-mtime-millis}
+                              {:name "newlog-1-2-worker.log"
+                               :type :file
+                               :mtime new-mtime-millis}
+                              {:name "some-old-file.txt"
+                               :type :file
+                               :mtime old-mtime-millis}
+                              {:name "olddir-1-2-worker.log"
+                               :type :directory
+                               :mtime new-mtime-millis}
+                              {:name "metadata"
+                               :type :directory
+                               :mtime new-mtime-millis}
+                              {:name "newdir"
+                               :type :directory
+                               :mtime new-mtime-millis}
                               ])
-          file-filter (logviewer/mk-FileFilter-for-log-cleanup conf now-millis)]
+            file-filter (logviewer/mk-FileFilter-for-log-cleanup conf now-millis)]
         (is (every? #(.accept file-filter %) matching-files))
         (is (not-any? #(.accept file-filter %) excluded-files))
         ))))
@@ -125,103 +125,103 @@
 (deftest test-per-workerdir-cleanup!
   (testing "cleaner deletes oldest files in each worker dir if files are larger than per-dir quota."
     (stubbing [rmr nil]
-              (let [cleaner (proxy [backtype.storm.daemon.DirectoryCleaner] []
-                              (getStreamForDirectory
-                                ([^File dir]
-                                  (mk-DirectoryStream
-                                    (ArrayList.
-                                      (map #(mk-mock-Path %) (.listFiles dir)))))))
-                    now-millis (current-time-millis)
-                    files1 (into-array File (map #(mk-mock-File {:name (str "A" %)
-                                                                 :type :file
-                                                                 :mtime (+ now-millis (* 100 %))
-                                                                 :length 200 })
-                                                 (range 0 10)))
-                    files2 (into-array File (map #(mk-mock-File {:name (str "B" %)
-                                                                 :type :file
-                                                                 :mtime (+ now-millis (* 100 %))
-                                                                 :length 200 })
-                                                 (range 0 10)))
-                    files3 (into-array File (map #(mk-mock-File {:name (str "C" %)
-                                                                 :type :file
-                                                                 :mtime (+ now-millis (* 100 %))
-                                                                 :length 200 })
-                                                 (range 0 10)))
-                    port1-dir (mk-mock-File {:name "/workers-artifacts/topo1/port1"
-                                             :type :directory
-                                             :files files1})
-                    port2-dir (mk-mock-File {:name "/workers-artifacts/topo1/port2"
-                                             :type :directory
-                                             :files files2})
-                    port3-dir (mk-mock-File {:name "/workers-artifacts/topo2/port3"
-                                             :type :directory
-                                             :files files3})
-                    topo1-files (into-array File [port1-dir port2-dir])
-                    topo2-files (into-array File [port3-dir])
-                    topo1-dir (mk-mock-File {:name "/workers-artifacts/topo1"
-                                             :type :directory
-                                             :files topo1-files})
-                    topo2-dir (mk-mock-File {:name "/workers-artifacts/topo2"
-                                             :type :directory
-                                             :files topo2-files})
-                    root-files (into-array File [topo1-dir topo2-dir])
-                    root-dir (mk-mock-File {:name "/workers-artifacts"
-                                            :type :directory
-                                            :files root-files})
-                    deletedFiles (logviewer/per-workerdir-cleanup! root-dir 1200 cleaner)]
-                (is (= (first deletedFiles) 4))
-                (is (= (second deletedFiles) 4))
-                (is (= (last deletedFiles) 4))))))
+      (let [cleaner (proxy [backtype.storm.daemon.DirectoryCleaner] []
+                      (getStreamForDirectory
+                        ([^File dir]
+                          (mk-DirectoryStream
+                            (ArrayList.
+                              (map #(mk-mock-Path %) (.listFiles dir)))))))
+            now-millis (current-time-millis)
+            files1 (into-array File (map #(mk-mock-File {:name (str "A" %)
+                                                         :type :file
+                                                         :mtime (+ now-millis (* 100 %))
+                                                         :length 200 })
+                                      (range 0 10)))
+            files2 (into-array File (map #(mk-mock-File {:name (str "B" %)
+                                                         :type :file
+                                                         :mtime (+ now-millis (* 100 %))
+                                                         :length 200 })
+                                      (range 0 10)))
+            files3 (into-array File (map #(mk-mock-File {:name (str "C" %)
+                                                         :type :file
+                                                         :mtime (+ now-millis (* 100 %))
+                                                         :length 200 })
+                                      (range 0 10)))
+            port1-dir (mk-mock-File {:name "/workers-artifacts/topo1/port1"
+                                     :type :directory
+                                     :files files1})
+            port2-dir (mk-mock-File {:name "/workers-artifacts/topo1/port2"
+                                     :type :directory
+                                     :files files2})
+            port3-dir (mk-mock-File {:name "/workers-artifacts/topo2/port3"
+                                     :type :directory
+                                     :files files3})
+            topo1-files (into-array File [port1-dir port2-dir])
+            topo2-files (into-array File [port3-dir])
+            topo1-dir (mk-mock-File {:name "/workers-artifacts/topo1"
+                                     :type :directory
+                                     :files topo1-files})
+            topo2-dir (mk-mock-File {:name "/workers-artifacts/topo2"
+                                     :type :directory
+                                     :files topo2-files})
+            root-files (into-array File [topo1-dir topo2-dir])
+            root-dir (mk-mock-File {:name "/workers-artifacts"
+                                    :type :directory
+                                    :files root-files})
+            deletedFiles (logviewer/per-workerdir-cleanup! root-dir 1200 cleaner)]
+        (is (= (first deletedFiles) 4))
+        (is (= (second deletedFiles) 4))
+        (is (= (last deletedFiles) 4))))))
 
 (deftest test-global-log-cleanup!
   (testing "cleaner deletes oldest when files' sizes are larger than the global quota."
     (stubbing [rmr nil
                logviewer/get-alive-worker-dirs ["/workers-artifacts/topo1/port1"]]
-              (let [cleaner (proxy [backtype.storm.daemon.DirectoryCleaner] []
-                              (getStreamForDirectory
-                                ([^File dir]
-                                  (mk-DirectoryStream
-                                    (ArrayList.
-                                      (map #(mk-mock-Path %) (.listFiles dir)))))))
-                    now-millis (current-time-millis)
-                    files1 (into-array File (map #(mk-mock-File {:name (str "A" % ".log")
-                                                                 :type :file
-                                                                 :mtime (+ now-millis (* 100 %))
-                                                                 :length 200 })
-                                                 (range 0 10)))
-                    files2 (into-array File (map #(mk-mock-File {:name (str "B" %)
-                                                                 :type :file
-                                                                 :mtime (+ now-millis (* 100 %))
-                                                                 :length 200 })
-                                                 (range 0 10)))
-                    files3 (into-array File (map #(mk-mock-File {:name (str "C" %)
-                                                                 :type :file
-                                                                 :mtime (+ now-millis (* 100 %))
-                                                                 :length 200 })
-                                                 (range 0 10)))
-                    port1-dir (mk-mock-File {:name "/workers-artifacts/topo1/port1"
-                                             :type :directory
-                                             :files files1}) ;; note that port1-dir is active worker containing active logs
-                    port2-dir (mk-mock-File {:name "/workers-artifacts/topo1/port2"
-                                             :type :directory
-                                             :files files2})
-                    port3-dir (mk-mock-File {:name "/workers-artifacts/topo2/port3"
-                                             :type :directory
-                                             :files files3})
-                    topo1-files (into-array File [port1-dir port2-dir])
-                    topo2-files (into-array File [port3-dir])
-                    topo1-dir (mk-mock-File {:name "/workers-artifacts/topo1"
-                                             :type :directory
-                                             :files topo1-files})
-                    topo2-dir (mk-mock-File {:name "/workers-artifacts/topo2"
-                                             :type :directory
-                                             :files topo2-files})
-                    root-files (into-array File [topo1-dir topo2-dir])
-                    root-dir (mk-mock-File {:name "/workers-artifacts"
-                                            :type :directory
-                                            :files root-files})
-                    deletedFiles (logviewer/global-log-cleanup! root-dir 2400 cleaner)]
-                (is (= deletedFiles 18))))))
+      (let [cleaner (proxy [backtype.storm.daemon.DirectoryCleaner] []
+                      (getStreamForDirectory
+                        ([^File dir]
+                          (mk-DirectoryStream
+                            (ArrayList.
+                              (map #(mk-mock-Path %) (.listFiles dir)))))))
+            now-millis (current-time-millis)
+            files1 (into-array File (map #(mk-mock-File {:name (str "A" % ".log")
+                                                         :type :file
+                                                         :mtime (+ now-millis (* 100 %))
+                                                         :length 200 })
+                                      (range 0 10)))
+            files2 (into-array File (map #(mk-mock-File {:name (str "B" %)
+                                                         :type :file
+                                                         :mtime (+ now-millis (* 100 %))
+                                                         :length 200 })
+                                      (range 0 10)))
+            files3 (into-array File (map #(mk-mock-File {:name (str "C" %)
+                                                         :type :file
+                                                         :mtime (+ now-millis (* 100 %))
+                                                         :length 200 })
+                                      (range 0 10)))
+            port1-dir (mk-mock-File {:name "/workers-artifacts/topo1/port1"
+                                     :type :directory
+                                     :files files1}) ;; note that port1-dir is active worker containing active logs
+            port2-dir (mk-mock-File {:name "/workers-artifacts/topo1/port2"
+                                     :type :directory
+                                     :files files2})
+            port3-dir (mk-mock-File {:name "/workers-artifacts/topo2/port3"
+                                     :type :directory
+                                     :files files3})
+            topo1-files (into-array File [port1-dir port2-dir])
+            topo2-files (into-array File [port3-dir])
+            topo1-dir (mk-mock-File {:name "/workers-artifacts/topo1"
+                                     :type :directory
+                                     :files topo1-files})
+            topo2-dir (mk-mock-File {:name "/workers-artifacts/topo2"
+                                     :type :directory
+                                     :files topo2-files})
+            root-files (into-array File [topo1-dir topo2-dir])
+            root-dir (mk-mock-File {:name "/workers-artifacts"
+                                    :type :directory
+                                    :files root-files})
+            deletedFiles (logviewer/global-log-cleanup! root-dir 2400 cleaner)]
+        (is (= deletedFiles 18))))))
 
 (deftest test-identify-worker-log-dirs
   (testing "Build up workerid-workerlogdir map for the old workers' dirs"
@@ -234,7 +234,7 @@
       (stubbing [supervisor/read-worker-heartbeats nil
                  logviewer/get-metadata-file-for-wroker-logdir mock-metaFile
                  logviewer/get-worker-id-from-metadata-file exp-id]
-                (is (= expected (logviewer/identify-worker-log-dirs [port1-dir])))))))
+        (is (= expected (logviewer/identify-worker-log-dirs [port1-dir])))))))
 
 (deftest test-get-dead-worker-dirs
   (testing "return directories for workers that are not alive"
@@ -249,8 +249,8 @@
                                                      "007" expected-dir2
                                                      "" expected-dir3} ;; this tests a directory with no yaml file thus no worker id
                  supervisor/read-worker-heartbeats id->hb]
-                (is (= #{expected-dir2 expected-dir3}
-                       (logviewer/get-dead-worker-dirs conf now-secs log-dirs)))))))
+        (is (= #{expected-dir2 expected-dir3}
+              (logviewer/get-dead-worker-dirs conf now-secs log-dirs)))))))
 
 (deftest test-cleanup-fn
   (testing "cleanup function rmr's files of dead workers"
@@ -260,10 +260,10 @@
                  logviewer/get-dead-worker-dirs (sorted-set mockfile1 mockfile2)
                  logviewer/cleanup-empty-topodir! nil
                  rmr nil]
-                (logviewer/cleanup-fn! "/bogus/path")
-                (verify-call-times-for rmr 2)
-                (verify-nth-call-args-for 1 rmr (.getCanonicalPath mockfile1))
-                (verify-nth-call-args-for 2 rmr (.getCanonicalPath mockfile2))))))
+        (logviewer/cleanup-fn! "/bogus/path")
+        (verify-call-times-for rmr 2)
+        (verify-nth-call-args-for 1 rmr (.getCanonicalPath mockfile1))
+        (verify-nth-call-args-for 2 rmr (.getCanonicalPath mockfile2))))))
 
 (deftest test-authorized-log-user
   (testing "allow cluster admin"
@@ -315,7 +315,7 @@
 (deftest test-search-via-rest-api
   (testing "Throws if bogus file is given"
     (thrown-cause? java.lang.RuntimeException
-                      (logviewer/substring-search nil "a string")))
+      (logviewer/substring-search nil "a string")))
 
   (let [pattern "needle"
         expected-host "dev.null.invalid"
@@ -332,109 +332,112 @@
       (testing "Logviewer link centers the match in the page"
         (let [expected-fname "foobar.log"]
           (is (= (str "http://"
-                      expected-host
-                      ":"
-                      expected-port
-                      "/log?file="
-                      expected-fname
-                      "&start=1947&length="
-                      logviewer/default-bytes-per-page)
-                 (logviewer/url-to-match-centered-in-log-page (byte-array 42)
-                                                              expected-fname
-                                                              27526
-                                                              8888)))))
+                   expected-host
+                   ":"
+                   expected-port
+                   "/log?file="
+                   expected-fname
+                   "&start=1947&length="
+                   logviewer/default-bytes-per-page)
+                (logviewer/url-to-match-centered-in-log-page (byte-array 42)
+                  expected-fname
+                  27526
+                  8888)))))
 
       (let [file (->> "logviewer-search-context-tests.log"
-                      (clojure.java.io/file "src" "dev"))]
+                   (clojure.java.io/file "src" "dev"))]
         (testing "returns correct before/after context"
-          (is (= {"searchString" pattern
+          (is (= {"isDaemon" "no"
+                  "searchString" pattern
                   "startByteOffset" 0
                   "matches" [{"byteOffset" 0
                               "beforeString" ""
                               "afterString" " needle000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000needle "
                               "matchString" pattern
                               "logviewerURL" (str "http://"
-                                                  expected-host
-                                                  ":"
-                                                  expected-port
-                                                  "/log?file=src%2Fdev%2F"
-                                                  (.getName file)
-                                                  "&start=0&length=51200")}
+                                               expected-host
+                                               ":"
+                                               expected-port
+                                               "/log?file=src%2Fdev%2F"
+                                               (.getName file)
+                                               "&start=0&length=51200")}
                              {"byteOffset" 7
                               "beforeString" "needle "
                               "afterString" "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000needle needle\n"
                               "matchString" pattern
                               "logviewerURL" (str "http://"
-                                                  expected-host
-                                                  ":"
-                                                  expected-port
-                                                  "/log?file=src%2Fdev%2F"
-                                                  (.getName file)
-                                                  "&start=0&length=51200")}
+                                               expected-host
+                                               ":"
+                                               expected-port
+                                               "/log?file=src%2Fdev%2F"
+                                               (.getName file)
+                                               "&start=0&length=51200")}
                              {"byteOffset" 127
                               "beforeString" "needle needle000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
                               "afterString" " needle\n"
                               "matchString" pattern
                               "logviewerURL" (str "http://"
-                                                  expected-host
-                                                  ":"
-                                                  expected-port
-                                                  "/log?file=src%2Fdev%2F"
-                                                  (.getName file)
-                                                  "&start=0&length=51200")}
+                                               expected-host
+                                               ":"
+                                               expected-port
+                                               "/log?file=src%2Fdev%2F"
+                                               (.getName file)
+                                               "&start=0&length=51200")}
                              {"byteOffset" 134
                               "beforeString" " needle000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000needle "
                               "afterString" "\n"
                               "matchString" pattern
                               "logviewerURL" (str "http://"
-                                                  expected-host
-                                                  ":"
-                                                  expected-port
-                                                  "/log?file=src%2Fdev%2F"
-                                                  (.getName file)
-                                                  "&start=0&length=51200")}
+                                               expected-host
+                                               ":"
+                                               expected-port
+                                               "/log?file=src%2Fdev%2F"
+                                               (.getName file)
+                                               "&start=0&length=51200")}
                              ]}
-                 (logviewer/substring-search file pattern)))))
+                (logviewer/substring-search file pattern)))))
 
       (let [file (clojure.java.io/file "src" "dev" "small-worker.log")]
         (testing "a really small log file"
-          (is (= {"searchString" pattern
+          (is (= {"isDaemon" "no"
+                  "searchString" pattern
                   "startByteOffset" 0
                   "matches" [{"byteOffset" 7
                               "beforeString" "000000 "
                               "afterString" " 000000\n"
                               "matchString" pattern
                               "logviewerURL" (str "http://"
-                                                  expected-host
-                                                  ":"
-                                                  expected-port
-                                                  "/log?file=src%2Fdev%2F"
-                                                  (.getName file)
-                                                  "&start=0&length=51200")}]}
-                   (logviewer/substring-search file pattern)))))
+                                               expected-host
+                                               ":"
+                                               expected-port
+                                               "/log?file=src%2Fdev%2F"
+                                               (.getName file)
+                                               "&start=0&length=51200")}]}
+                (logviewer/substring-search file pattern)))))
 
       (let [file (clojure.java.io/file "src" "dev" "test-3072.log")]
         (testing "no offset returned when file ends on buffer offset"
           (let [expected
-                  {"searchString" pattern
-                   "startByteOffset" 0
-                   "matches" [{"byteOffset" 3066
-                               "beforeString" (->>
-                                                (repeat 128 '.)
-                                                clojure.string/join)
-                               "afterString" ""
-                               "matchString" pattern
-                               "logviewerURL" (str "http://"
-                                                   expected-host
-                                                   ":"
-                                                   expected-port
-                                                   "/log?file=src%2Fdev%2F"
-                                                   (.getName file)
-                                                   "&start=0&length=51200")}]}]
-          (is (= expected
-                 (logviewer/substring-search file pattern)))
-          (is (= expected
-                 (logviewer/substring-search file pattern :num-matches 1))))))
+                {"isDaemon" "no"
+                 "searchString" pattern
+                 "startByteOffset" 0
+                 "matches" [{"byteOffset" 3066
+                             "beforeString" (->>
+                                              (repeat 128 '.)
+                                              clojure.string/join)
+                             "afterString" ""
+                             "matchString" pattern
+                             "logviewerURL" (str "http://"
+                                              expected-host
+                                              ":"
+                                              expected-port
+                                              "/log?file=src%2Fdev%2F"
+                                              (.getName file)
+                                              "&start=0&length=51200")}]}]
+            (is (= expected
+                  (logviewer/substring-search file pattern)))
+            (is (= expected
+                  (logviewer/substring-search file pattern :num-matches 1))))))
 
       (let [file (clojure.java.io/file "src" "dev" "test-worker.log")]
 
@@ -456,100 +459,102 @@
                                                [13 12 nil]]]
             (let [result
                   (logviewer/substring-search file
-                                              pattern
-                                              :num-matches num-matches-sought)]
+                    pattern
+                    :num-matches num-matches-sought)]
               (is (= expected-next-byte-offset
-                     (get result "nextByteOffset")))
+                    (get result "nextByteOffset")))
               (is (= num-matches-found (count (get result "matches")))))))
 
         (is
-          (= {"nextByteOffset" 6252
+          (= {"isDaemon" "no"
+              "nextByteOffset" 6252
               "searchString" pattern
               "startByteOffset" 0
               "matches" [
-                         {"byteOffset" 5
-                          "beforeString" "Test "
-                          "afterString" " is near the beginning of the file.\nThis file assumes a buffer size of 2048 bytes, a max search string size of 1024 bytes, and a"
-                          "matchString" pattern
-                          "logviewerURL" (str "http://"
-                                               expected-host
-                                               ":"
-                                               expected-port
-                                               "/log?file=src%2Fdev%2F"
-                                               (.getName file)
-                                               "&start=0&length=51200")}
-                         {"byteOffset" 2036
-                          "beforeString" "ng 146\npadding 147\npadding 148\npadding 149\npadding 150\npadding 151\npadding 152\npadding 153\nNear the end of a 1024 byte block, a "
-                          "afterString" ".\nA needle that straddles a 1024 byte boundary should also be detected.\n\npadding 157\npadding 158\npadding 159\npadding 160\npadding"
-                          "matchString" pattern
-                          "logviewerURL" (str "http://"
-                                               expected-host
-                                               ":"
-                                               expected-port
-                                               "/log?file=src%2Fdev%2F"
-                                               (.getName file)
-                                               "&start=0&length=51200")}
-                         {"byteOffset" 2046
-                          "beforeString" "ding 147\npadding 148\npadding 149\npadding 150\npadding 151\npadding 152\npadding 153\nNear the end of a 1024 byte block, a needle.\nA "
-                          "afterString" " that straddles a 1024 byte boundary should also be detected.\n\npadding 157\npadding 158\npadding 159\npadding 160\npadding 161\npaddi"
-                          "matchString" pattern
-                          "logviewerURL" (str "http://"
-                                               expected-host
-                                               ":"
-                                               expected-port
-                                               "/log?file=src%2Fdev%2F"
-                                               (.getName file)
-                                               "&start=0&length=51200")}
-                         {"byteOffset" 3072
-                          "beforeString" "adding 226\npadding 227\npadding 228\npadding 229\npadding 230\npadding 231\npadding 232\npadding 233\npadding 234\npadding 235\n\n\nHere a "
-                          "afterString" " occurs just after a 1024 byte boundary.  It should have the correct context.\n\nText with two adjoining matches: needleneedle\n\npa"
-                          "matchString" pattern
-                          "logviewerURL" (str "http://"
-                                               expected-host
-                                               ":"
-                                               expected-port
-                                               "/log?file=src%2Fdev%2F"
-                                               (.getName file)
-                                               "&start=0&length=51200")}
-                         {"byteOffset" 3190
-                          "beforeString" "\n\n\nHere a needle occurs just after a 1024 byte boundary.  It should have the correct context.\n\nText with two adjoining matches: "
-                          "afterString" "needle\n\npadding 243\npadding 244\npadding 245\npadding 246\npadding 247\npadding 248\npadding 249\npadding 250\npadding 251\npadding 252\n"
-                          "matchString" pattern
-                          "logviewerURL" (str "http://"
-                                               expected-host
-                                               ":"
-                                               expected-port
-                                               "/log?file=src%2Fdev%2F"
-                                               (.getName file)
-                                               "&start=0&length=51200")}
-                         {"byteOffset" 3196
-                          "beforeString" "e a needle occurs just after a 1024 byte boundary.  It should have the correct context.\n\nText with two adjoining matches: needle"
-                          "afterString" "\n\npadding 243\npadding 244\npadding 245\npadding 246\npadding 247\npadding 248\npadding 249\npadding 250\npadding 251\npadding 252\npaddin"
-                          "matchString" pattern
-                          "logviewerURL" (str "http://"
-                                               expected-host
-                                               ":"
-                                               expected-port
-                                               "/log?file=src%2Fdev%2F"
-                                               (.getName file)
-                                               "&start=0&length=51200")}
-                         {"byteOffset" 6246
-                          "beforeString" "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX\n\nHere are four non-ascii 1-byte UTF-8 characters: αβγδε\n\n"
-                          "afterString" "\n\nHere are four printable 2-byte UTF-8 characters: ¡¢£¤¥\n\nneedle\n\n\n\nHere are four printable 3-byte UTF-8 characters: ऄअ"
-                          "matchString" pattern
-                          "logviewerURL" (str "http://"
-                                               expected-host
-                                               ":"
-                                               expected-port
-                                               "/log?file=src%2Fdev%2F"
-                                               (.getName file)
-                                               "&start=0&length=51200")}
-                         ]}
-                 (logviewer/substring-search file pattern :num-matches 7)))
+                          {"byteOffset" 5
+                           "beforeString" "Test "
+                           "afterString" " is near the beginning of the file.\nThis file assumes a buffer size of 2048 bytes, a max search string size of 1024 bytes, and a"
+                           "matchString" pattern
+                           "logviewerURL" (str "http://"
+                                            expected-host
+                                            ":"
+                                            expected-port
+                                            "/log?file=src%2Fdev%2F"
+                                            (.getName file)
+                                            "&start=0&length=51200")}
+                          {"byteOffset" 2036
+                           "beforeString" "ng 146\npadding 147\npadding 148\npadding 149\npadding 150\npadding 151\npadding 152\npadding 153\nNear the end of a 1024 byte block, a "
+                           "afterString" ".\nA needle that straddles a 1024 byte boundary should also be detected.\n\npadding 157\npadding 158\npadding 159\npadding 160\npadding"
+                           "matchString" pattern
+                           "logviewerURL" (str "http://"
+                                            expected-host
+                                            ":"
+                                            expected-port
+                                            "/log?file=src%2Fdev%2F"
+                                            (.getName file)
+                                            "&start=0&length=51200")}
+                          {"byteOffset" 2046
+                           "beforeString" "ding 147\npadding 148\npadding 149\npadding 150\npadding 151\npadding 152\npadding 153\nNear the end of a 1024 byte block, a needle.\nA "
+                           "afterString" " that straddles a 1024 byte boundary should also be detected.\n\npadding 157\npadding 158\npadding 159\npadding 160\npadding 161\npaddi"
+                           "matchString" pattern
+                           "logviewerURL" (str "http://"
+                                            expected-host
+                                            ":"
+                                            expected-port
+                                            "/log?file=src%2Fdev%2F"
+                                            (.getName file)
+                                            "&start=0&length=51200")}
+                          {"byteOffset" 3072
+                           "beforeString" "adding 226\npadding 227\npadding 228\npadding 229\npadding 230\npadding 231\npadding 232\npadding 233\npadding 234\npadding 235\n\n\nHere a "
+                           "afterString" " occurs just after a 1024 byte boundary.  It should have the correct context.\n\nText with two adjoining matches: needleneedle\n\npa"
+                           "matchString" pattern
+                           "logviewerURL" (str "http://"
+                                            expected-host
+                                            ":"
+                                            expected-port
+                                            "/log?file=src%2Fdev%2F"
+                                            (.getName file)
+                                            "&start=0&length=51200")}
+                          {"byteOffset" 3190
+                           "beforeString" "\n\n\nHere a needle occurs just after a 1024 byte boundary.  It should have the correct context.\n\nText with two adjoining matches: "
+                           "afterString" "needle\n\npadding 243\npadding 244\npadding 245\npadding 246\npadding 247\npadding 248\npadding 249\npadding 250\npadding 251\npadding 252\n"
+                           "matchString" pattern
+                           "logviewerURL" (str "http://"
+                                            expected-host
+                                            ":"
+                                            expected-port
+                                            "/log?file=src%2Fdev%2F"
+                                            (.getName file)
+                                            "&start=0&length=51200")}
+                          {"byteOffset" 3196
+                           "beforeString" "e a needle occurs just after a 1024 byte boundary.  It should have the correct context.\n\nText with two adjoining matches: needle"
+                           "afterString" "\n\npadding 243\npadding 244\npadding 245\npadding 246\npadding 247\npadding 248\npadding 249\npadding 250\npadding 251\npadding 252\npaddin"
+                           "matchString" pattern
+                           "logviewerURL" (str "http://"
+                                            expected-host
+                                            ":"
+                                            expected-port
+                                            "/log?file=src%2Fdev%2F"
+                                            (.getName file)
+                                            "&start=0&length=51200")}
+                          {"byteOffset" 6246
+                           "beforeString" "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX\n\nHere are four non-ascii 1-byte UTF-8 characters: αβγδε\n\n"
+                           "afterString" "\n\nHere are four printable 2-byte UTF-8 characters: ¡¢£¤¥\n\nneedle\n\n\n\nHere are four printable 3-byte UTF-8 characters: ऄअ"
+                           "matchString" pattern
+                           "logviewerURL" (str "http://"
+                                            expected-host
+                                            ":"
+                                            expected-port
+                                            "/log?file=src%2Fdev%2F"
+                                            (.getName file)
+                                            "&start=0&length=51200")}
+                          ]}
+            (logviewer/substring-search file pattern :num-matches 7)))
 
         (testing "Correct match offset is returned when skipping bytes"
           (let [start-byte-offset 3197]
-            (is (= {"nextByteOffset" 6252
+            (is (= {"isDaemon" "no"
+                    "nextByteOffset" 6252
                     "searchString" pattern
                     "startByteOffset" start-byte-offset
                     "matches" [{"byteOffset" 6246
@@ -557,77 +562,80 @@
                                 "afterString" "\n\nHere are four printable 2-byte UTF-8 characters: ¡¢£¤¥\n\nneedle\n\n\n\nHere are four printable 3-byte UTF-8 characters: ऄअ"
                                 "matchString" pattern
                                 "logviewerURL" (str "http://"
-                                                    expected-host
-                                                    ":"
-                                                    expected-port
-                                                    "/log?file=src%2Fdev%2F"
-                                                    (.getName file)
-                                                    "&start=0&length=51200")}]}
-                   (logviewer/substring-search file
-                                               pattern
-                                               :num-matches 1
-                                               :start-byte-offset start-byte-offset)))))
+                                                 expected-host
+                                                 ":"
+                                                 expected-port
+                                                 "/log?file=src%2Fdev%2F"
+                                                 (.getName file)
+                                                 "&start=0&length=51200")}]}
+                  (logviewer/substring-search file
+                    pattern
+                    :num-matches 1
+                    :start-byte-offset start-byte-offset)))))
 
-          (let [pattern (clojure.string/join (repeat 1024 'X))]
-            (is
-              (= {"nextByteOffset" 6183
-                  "searchString" pattern
-                  "startByteOffset" 0
-                  "matches" [
-                             {"byteOffset" 4075
-                              "beforeString" "\n\nThe following match of 1024 bytes completely fills half the byte buffer.  It is a search substring of the maximum size......\n\n"
-                              "afterString" "\nThe following max-size match straddles a 1024 byte buffer.\nXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
-                              "matchString" pattern
-                              "logviewerURL" (str "http://"
-                                                   expected-host
-                                                   ":"
-                                                   expected-port
-                                                   "/log?file=src%2Fdev%2F"
-                                                   (.getName file)
-                                                   "&start=0&length=51200")}
-                             {"byteOffset" 5159
-                              "beforeString" "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX\nThe following max-size match straddles a 1024 byte buffer.\n"
-                              "afterString" "\n\nHere are four non-ascii 1-byte UTF-8 characters: αβγδε\n\nneedle\n\nHere are four printable 2-byte UTF-8 characters: ¡¢£¤"
-                              "matchString" pattern
-                              "logviewerURL" (str "http://"
-                                                   expected-host
-                                                   ":"
-                                                   expected-port
-                                                   "/log?file=src%2Fdev%2F"
-                                                   (.getName file)
-                                                   "&start=0&length=51200")}
-                             ]}
-                   (logviewer/substring-search file pattern :num-matches 2))))
+        (let [pattern (clojure.string/join (repeat 1024 'X))]
+          (is
+            (= {"isDaemon" "no"
+                "nextByteOffset" 6183
+                "searchString" pattern
+                "startByteOffset" 0
+                "matches" [
+                            {"byteOffset" 4075
+                             "beforeString" "\n\nThe following match of 1024 bytes completely fills half the byte buffer.  It is a search substring of the maximum size......\n\n"
+                             "afterString" "\nThe following max-size match straddles a 1024 byte buffer.\nXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+                             "matchString" pattern
+                             "logviewerURL" (str "http://"
+                                              expected-host
+                                              ":"
+                                              expected-port
+                                              "/log?file=src%2Fdev%2F"
+                                              (.getName file)
+                                              "&start=0&length=51200")}
+                            {"byteOffset" 5159
+                             "beforeString" "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX\nThe following max-size match straddles a 1024 byte buffer.\n"
+                             "afterString" "\n\nHere are four non-ascii 1-byte UTF-8 characters: αβγδε\n\nneedle\n\nHere are four printable 2-byte UTF-8 characters: ¡¢£¤"
+                             "matchString" pattern
+                             "logviewerURL" (str "http://"
+                                              expected-host
+                                              ":"
+                                              expected-port
+                                              "/log?file=src%2Fdev%2F"
+                                              (.getName file)
+                                              "&start=0&length=51200")}
+                            ]}
+              (logviewer/substring-search file pattern :num-matches 2))))
 
-          (let [pattern "𐄀𐄁𐄂"]
-            (is
-              (= {"nextByteOffset" 7176
-                  "searchString" pattern
-                  "startByteOffset" 0
-                  "matches" [
-                             {"byteOffset" 7164
-                              "beforeString" "padding 372\npadding 373\npadding 374\npadding 375\n\nThe following tests multibyte UTF-8 Characters straddling the byte boundary:   "
-                              "afterString" "\n\nneedle"
-                              "matchString" pattern
-                              "logviewerURL" (str "http://"
-                                                   expected-host
-                                                   ":"
-                                                   expected-port
-                                                   "/log?file=src%2Fdev%2F"
-                                                   (.getName file)
-                                                   "&start=0&length=51200")}
-                             ]}
-                   (logviewer/substring-search file pattern :num-matches 1))))
+        (let [pattern "𐄀𐄁𐄂"]
+          (is
+            (= {"isDaemon" "no"
+                "nextByteOffset" 7176
+                "searchString" pattern
+                "startByteOffset" 0
+                "matches" [
+                            {"byteOffset" 7164
+                             "beforeString" "padding 372\npadding 373\npadding 374\npadding 375\n\nThe following tests multibyte UTF-8 Characters straddling the byte boundary:   "
+                             "afterString" "\n\nneedle"
+                             "matchString" pattern
+                             "logviewerURL" (str "http://"
+                                              expected-host
+                                              ":"
+                                              expected-port
+                                              "/log?file=src%2Fdev%2F"
+                                              (.getName file)
+                                              "&start=0&length=51200")}
+                            ]}
+              (logviewer/substring-search file pattern :num-matches 1))))
 
         (testing "Returns 0 matches for unseen pattern"
           (let [pattern "Not There"]
             (is (= {"searchString" pattern
                     "startByteOffset" 0
-                    "matches" []}
-                    (logviewer/substring-search file
-                                                pattern
-                                                :num-matches nil
-                                                :start-byte-offset nil)))))))))
+                    "matches" []
+                    "isDaemon" "no"}
+                  (logviewer/substring-search file
+                    pattern
+                    :num-matches nil
+                    :start-byte-offset nil)))))))))
 
 (deftest test-list-log-files
   (testing "list-log-files filter selects the correct log files to return"
@@ -644,18 +652,18 @@
           _ (.createNewFile file3)
           origin "www.origin.server.net"
           expected-all (json-response '("topoA/port1/worker.log" "topoA/port2/worker.log"
-                                                                 "topoB/port1/worker.log")
-                                      nil
-                                      :headers {"Access-Control-Allow-Origin" origin
-                                                "Access-Control-Allow-Credentials" "true"})
+                                         "topoB/port1/worker.log")
+                         nil
+                         :headers {"Access-Control-Allow-Origin" origin
+                                   "Access-Control-Allow-Credentials" "true"})
           expected-filter-port (json-response '("topoA/port1/worker.log" "topoB/port1/worker.log")
-                                              nil
-                                              :headers {"Access-Control-Allow-Origin" origin
-                                                        "Access-Control-Allow-Credentials" "true"})
+                                 nil
+                                 :headers {"Access-Control-Allow-Origin" origin
+                                           "Access-Control-Allow-Credentials" "true"})
           expected-filter-topoId (json-response '("topoB/port1/worker.log")
-                                                nil
-                                                :headers {"Access-Control-Allow-Origin" origin
-                                                          "Access-Control-Allow-Credentials" "true"})
+                                   nil
+                                   :headers {"Access-Control-Allow-Origin" origin
+                                             "Access-Control-Allow-Credentials" "true"})
           returned-all (logviewer/list-log-files "user" nil nil root-path nil origin)
           returned-filter-port (logviewer/list-log-files "user" nil "port1" root-path nil origin)
           returned-filter-topoId (logviewer/list-log-files "user" "topoB" nil root-path nil origin)]
