@@ -3,6 +3,7 @@ MVN_BASE_VERSION:=`cat yahoo-build/BASE_VERSION`
 FULL_VERSION=`cat RELEASE`
 BASE_VERSION_UNDERSCORE=`cat BASE_VERSION_UNDERSCORE`
 MVN_FULL_VERSION=`cat yahoo-build/RELEASE`
+MVN_MAKE_OPTS=--batch-mode
 MVN=LD_LIBRARY_PATH=/home/y/lib64 /home/y/bin/mvn
 EXEC_CONF_DIR?=/home/y/conf/storm/
 
