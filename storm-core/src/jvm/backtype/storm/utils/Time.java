@@ -26,9 +26,10 @@ import org.slf4j.LoggerFactory;
 
 
 public class Time {
-    public static Logger LOG = LoggerFactory.getLogger(Time.class);    
+    public static final Logger LOG = LoggerFactory.getLogger(Time.class);
     
     private static AtomicBoolean simulating = new AtomicBoolean(false);
+    private static AtomicLong autoAdvanceOnSleep = new AtomicLong(0);
     //TODO: should probably use weak references here or something
     private static volatile Map<Thread, AtomicLong> threadSleepTimes;
     private static final Object sleepTimesLock = new Object();
@@ -39,14 +40,22 @@ public class Time {
         synchronized(sleepTimesLock) {
             simulating.set(true);
             simulatedCurrTimeMs = new AtomicLong(0);
-            threadSleepTimes = new ConcurrentHashMap<Thread, AtomicLong>();
+            threadSleepTimes = new ConcurrentHashMap<>();
+        }
+    }
+    
+    public static void startSimulatingAutoAdvanceOnSleep(long ms) {
+        synchronized(sleepTimesLock) {
+            startSimulating();
+            autoAdvanceOnSleep.set(ms);
         }
     }
     
     public static void stopSimulating() {
         synchronized(sleepTimesLock) {
-            simulating.set(false);             
-            threadSleepTimes = null;  
+            simulating.set(false);    
+            autoAdvanceOnSleep.set(0);
+            threadSleepTimes = null;
         }
     }
     
@@ -71,6 +80,10 @@ public class Time {
                             throw new InterruptedException();
                         }
                     }
+                    long autoAdvance = autoAdvanceOnSleep.get();
+                    if (autoAdvance > 0) {
+                        advanceTime(autoAdvance);
+                    }
                     Thread.sleep(10);
                 }
             } finally {
@@ -86,9 +99,15 @@ public class Time {
                 Thread.sleep(sleepTime);
         }
     }
-    
+
     public static void sleep(long ms) throws InterruptedException {
         sleepUntil(currentTimeMillis()+ms);
+    }
+
+    public static void sleepSecs (long secs) throws InterruptedException {
+        if (secs > 0) {
+            sleep(secs * 1000);
+        }
     }
     
     public static long currentTimeMillis() {
@@ -98,14 +117,32 @@ public class Time {
             return System.currentTimeMillis();
         }
     }
-    
+
+    public static long secsToMillis (int secs) {
+        return 1000*(long) secs;
+    }
+
+    public static long secsToMillisLong(double secs) {
+        return (long) (1000 * secs);
+    }
+
     public static int currentTimeSecs() {
         return (int) (currentTimeMillis() / 1000);
     }
+
+    public static int deltaSecs(int timeInSeconds) {
+        return Time.currentTimeSecs() - timeInSeconds;
+    }
+
+    public static long deltaMs(long timeInMilliseconds) {
+        return Time.currentTimeMillis() - timeInMilliseconds;
+    }
     
     public static void advanceTime(long ms) {
-        if(!simulating.get()) throw new IllegalStateException("Cannot simulate time unless in simulation mode");
-        simulatedCurrTimeMs.set(simulatedCurrTimeMs.get() + ms);
+        if (!simulating.get()) throw new IllegalStateException("Cannot simulate time unless in simulation mode");
+        if (ms < 0) throw new IllegalArgumentException("advanceTime only accepts positive time as an argument");
+        long newTime = simulatedCurrTimeMs.addAndGet(ms);
+        LOG.debug("Advanced simulated time to {}", newTime);
     }
     
     public static boolean isThreadWaiting(Thread t) {
@@ -115,5 +152,5 @@ public class Time {
             time = threadSleepTimes.get(t);
         }
         return !t.isAlive() || time!=null && currentTimeMillis() < time.longValue();
-    }    
+    }
 }

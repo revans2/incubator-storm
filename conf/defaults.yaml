@@ -171,7 +171,9 @@ worker.childopts:
 - -XX:OnOutOfMemoryError="chmod g+r artifacts/*.hprof artifacts/heapdump"
 
 worker.gc.childopts: ""
+worker.profiler.enabled: false
 worker.profiler.childopts: "-XX:+UnlockCommercialFeatures -XX:+FlightRecorder"
+worker.profiler.command: "flight.bash"
 worker.heartbeat.frequency.secs: 1
 # check whether dynamic log levels can be reset from DEBUG to INFO in workers
 worker.log.level.reset.poll.secs: 30

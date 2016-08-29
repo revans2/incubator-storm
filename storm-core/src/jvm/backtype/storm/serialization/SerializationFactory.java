@@ -21,7 +21,6 @@ import backtype.storm.Config;
 import backtype.storm.generated.ComponentCommon;
 import backtype.storm.generated.StormTopology;
 import backtype.storm.serialization.types.ArrayListSerializer;
-import backtype.storm.serialization.types.ListDelegateSerializer;
 import backtype.storm.serialization.types.HashMapSerializer;
 import backtype.storm.serialization.types.HashSetSerializer;
 import backtype.storm.transactional.TransactionAttempt;
@@ -81,10 +80,10 @@ public class SerializationFactory {
         kryoFactory.preRegister(k, conf);
 
         boolean skipMissing = (Boolean) conf.get(Config.TOPOLOGY_SKIP_MISSING_KRYO_REGISTRATIONS);
-        for(String klassName: registrations.keySet()) {
-            String serializerClassName = registrations.get(klassName);
+        for(Map.Entry<String, String> entry: registrations.entrySet()) {
+            String serializerClassName = entry.getValue();
             try {
-                Class klass = Class.forName(klassName);
+                Class klass = Class.forName(entry.getKey());
                 Class serializerClass = null;
                 if(serializerClassName!=null)
                     serializerClass = Class.forName(serializerClassName);
@@ -130,19 +129,34 @@ public class SerializationFactory {
     }
 
     public static class IdDictionary {
-        Map<String, Map<String, Integer>> streamNametoId = new HashMap<String, Map<String, Integer>>();
-        Map<String, Map<Integer, String>> streamIdToName = new HashMap<String, Map<Integer, String>>();
+        Map<String, Map<String, Integer>> streamNametoId = new HashMap<>();
+        Map<String, Map<Integer, String>> streamIdToName = new HashMap<>();
+
+        /**
+         * "{:a 1  :b 2} -> {1 :a  2 :b}"
+         *
+         * Note: Only one key wins if there are duplicate values.
+         *       Which key wins is indeterminate:
+         * "{:a 1  :b 1} -> {1 :a} *or* {1 :b}"
+         */
+        private static <K, V> Map<V, K> simpleReverseMap(Map<K, V> map) {
+            Map<V, K> ret = new HashMap<V, K>();
+            for (Map.Entry<K, V> entry : map.entrySet()) {
+                ret.put(entry.getValue(), entry.getKey());
+            }
+            return ret;
+        }
 
         public IdDictionary(StormTopology topology) {
-            List<String> componentNames = new ArrayList<String>(topology.get_spouts().keySet());
+            List<String> componentNames = new ArrayList<>(topology.get_spouts().keySet());
             componentNames.addAll(topology.get_bolts().keySet());
             componentNames.addAll(topology.get_state_spouts().keySet());
 
             for(String name: componentNames) {
                 ComponentCommon common = Utils.getComponentCommon(topology, name);
-                List<String> streams = new ArrayList<String>(common.get_streams().keySet());
+                List<String> streams = new ArrayList<>(common.get_streams().keySet());
                 streamNametoId.put(name, idify(streams));
-                streamIdToName.put(name, Utils.reverseMap(streamNametoId.get(name)));
+                streamIdToName.put(name, simpleReverseMap(streamNametoId.get(name)));
             }
         }
 
@@ -156,7 +170,7 @@ public class SerializationFactory {
 
         private static Map<String, Integer> idify(List<String> names) {
             Collections.sort(names);
-            Map<String, Integer> ret = new HashMap<String, Integer>();
+            Map<String, Integer> ret = new HashMap<>();
             int i = 1;
             for(String name: names) {
                 ret.put(name, i);
@@ -204,8 +218,8 @@ public class SerializationFactory {
     private static Map<String, String> normalizeKryoRegister(Map conf) {
         // TODO: de-duplicate this logic with the code in nimbus
         Object res = conf.get(Config.TOPOLOGY_KRYO_REGISTER);
-        if(res==null) return new TreeMap<String, String>();
-        Map<String, String> ret = new HashMap<String, String>();
+        if(res==null) return new TreeMap<>();
+        Map<String, String> ret = new HashMap<>();
         if(res instanceof Map) {
             ret = (Map<String, String>) res;
         } else {
@@ -219,6 +233,6 @@ public class SerializationFactory {
         }
 
         //ensure always same order for registrations with TreeMap
-        return new TreeMap<String, String>(ret);
+        return new TreeMap<>(ret);
     }
 }

@@ -26,7 +26,7 @@ import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class NimbusClient extends ThriftClient {
+public class NimbusClient extends ThriftClient implements AutoCloseable {
     private Nimbus.Client _client;
     private static final Logger LOG = LoggerFactory.getLogger(NimbusClient.class);
 

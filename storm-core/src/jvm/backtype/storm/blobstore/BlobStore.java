@@ -114,7 +114,9 @@ public abstract class BlobStore implements Shutdownable {
       }
       out.close();
     } catch (AuthorizationException | IOException | RuntimeException e) {
-      out.cancel();
+      if (out != null) {
+        out.cancel();
+      }
     } finally {
       in.close();
     }

@@ -29,7 +29,6 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.SortedMap;
 import java.util.TreeMap;
-
 /**
  * A set of resources that we can look at to see which ones we retain and which ones should be
  * removed.
@@ -94,7 +93,7 @@ public class LocalizedResourceRetentionSet {
           i.remove();
         } else {
           // since it failed to delete add it back so it gets retried
-          set.addResource(resource.getKey(), resource, resource.isUncompressed());
+          set.add(resource.getKey(), resource, resource.isUncompressed());
         }
       }
     }
@@ -137,10 +136,5 @@ public class LocalizedResourceRetentionSet {
       }
       return ret > 0 ? 1 : -1;
     }
-
-    public boolean equals(Object other) {
-      return this == other;
-    }
   }
-
 }

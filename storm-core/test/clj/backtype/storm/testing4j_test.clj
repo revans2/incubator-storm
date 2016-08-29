@@ -15,7 +15,7 @@
 ;; limitations under the License.
 (ns backtype.storm.testing4j-test
   (:use [clojure.test])
-  (:use [backtype.storm config clojure testing util])
+  (:use [backtype.storm config clojure testing util log])
   (:require [backtype.storm.integration-test :as it])
   (:require [backtype.storm.thrift :as thrift])
   (:import [backtype.storm Testing Config ILocalCluster])
@@ -116,9 +116,9 @@
                              (it/agg-bolt 4))}))]
          (.submitTopology cluster
                           "test-acking2"
-                          (Config.)
+                          (doto (Config.)
+                            (.put TOPOLOGY-DEBUG true))
                           (.getTopology tracked))
-         (advance-cluster-time (.getState cluster) 11)
          (.feed feeder [1])
          (Testing/trackedWait tracked (int 1))
          (checker 0)
@@ -148,13 +148,14 @@
                             "timeout-tester"
                             storm-conf
                             topology)
+           ;;Wait for the topology to come up
            (.feed feeder ["a"] 1)
            (.feed feeder ["b"] 2)
            (.feed feeder ["c"] 3)
            (Testing/advanceClusterTime cluster (int 9))
            (it/assert-acked tracker 1 3)
            (is (not (.isFailed tracker 2)))
-           (Testing/advanceClusterTime cluster (int 12))
+           (Testing/advanceClusterTime cluster (int 20))
            (it/assert-failed tracker 2)
            ))))))
 
@@ -174,19 +175,21 @@
                            {"1" (thrift/mk-spout-spec feeder)}
                            {"2" (thrift/mk-bolt-spec {"1" :global} it/ack-every-other)})
                 storm-conf (doto (Config.)
+                             (.put TOPOLOGY-DEBUG true)
                              (.put TOPOLOGY-MESSAGE-TIMEOUT-SECS 10)
                              (.put TOPOLOGY-ENABLE-MESSAGE-TIMEOUTS false))]
             (.submitTopology cluster
               "disable-timeout-tester"
               storm-conf
               topology)
+            ;;Wait for the topology to come up
             (.feed feeder ["a"] 1)
             (.feed feeder ["b"] 2)
             (.feed feeder ["c"] 3)
             (Testing/advanceClusterTime cluster (int 9))
             (it/assert-acked tracker 1 3)
             (is (not (.isFailed tracker 2)))
-            (Testing/advanceClusterTime cluster (int 12))
+            (Testing/advanceClusterTime cluster (int 20))
             (is (not (.isFailed tracker 2)))
             ))))))
 

@@ -1,3 +1,20 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package backtype.storm.localizer;
 
 import backtype.storm.Config;
@@ -47,20 +64,6 @@ import static java.nio.file.StandardCopyOption.ATOMIC_MOVE;
  */
 public class Localizer {
   public static final Logger LOG = LoggerFactory.getLogger(Localizer.class);
-
-  private Map _conf;
-  private int _threadPoolSize;
-  // thread pool for initial download
-  private ExecutorService _execService;
-  // thread pool for updates
-  private ExecutorService _updateExecService;
-  private int _blobDownloadRetries;
-
-  // track resources - user to resourceSet
-  private final ConcurrentMap<String, LocalizedResourceSet> _userRsrc = new
-      ConcurrentHashMap<String, LocalizedResourceSet>();
-
-  private String _localBaseDir;
   public static final String USERCACHE = "usercache";
   public static final String FILECACHE = "filecache";
 
@@ -69,26 +72,42 @@ public class Localizer {
   public static final String ARCHIVESDIR = "archives";
 
   private static final String TO_UNCOMPRESS = "_tmp_";
+  
+  
+  
+  private final Map<String, Object> _conf;
+  private final int _threadPoolSize;
+  // thread pool for initial download
+  private final ExecutorService _execService;
+  // thread pool for updates
+  private final ExecutorService _updateExecService;
+  private final int _blobDownloadRetries;
+
+  // track resources - user to resourceSet
+  private final ConcurrentMap<String, LocalizedResourceSet> _userRsrc = new
+      ConcurrentHashMap<String, LocalizedResourceSet>();
+
+  private final String _localBaseDir;
 
   // cleanup
   private long _cacheTargetSize;
   private long _cacheCleanupPeriod;
   private ScheduledExecutorService _cacheCleanupService;
 
-  public Localizer(Map conf, String baseDir) {
+  public Localizer(Map<String, Object> conf, String baseDir) {
     _conf = conf;
     _localBaseDir = baseDir;
     // default cache size 10GB, converted to Bytes
     _cacheTargetSize = Utils.getInt(_conf.get(Config.SUPERVISOR_LOCALIZER_CACHE_TARGET_SIZE_MB),
-        10 * 1024).longValue() << 20;
+            10 * 1024).longValue() << 20;
     // default 10 minutes.
     _cacheCleanupPeriod = Utils.getInt(_conf.get(
-        Config.SUPERVISOR_LOCALIZER_CACHE_CLEANUP_INTERVAL_MS), 10 * 60 * 1000).longValue();
+            Config.SUPERVISOR_LOCALIZER_CACHE_CLEANUP_INTERVAL_MS), 10 * 60 * 1000).longValue();
 
     // if we needed we could make config for update thread pool size
     _threadPoolSize = Utils.getInt(_conf.get(Config.SUPERVISOR_BLOBSTORE_DOWNLOAD_THREAD_COUNT), 5);
     _blobDownloadRetries = Utils.getInt(_conf.get(
-        Config.SUPERVISOR_BLOBSTORE_DOWNLOAD_MAX_RETRIES), 3);
+            Config.SUPERVISOR_BLOBSTORE_DOWNLOAD_MAX_RETRIES), 3);
 
     _execService = Executors.newFixedThreadPool(_threadPoolSize);
     _updateExecService = Executors.newFixedThreadPool(_threadPoolSize);
@@ -173,7 +192,7 @@ public class Localizer {
         LOG.debug("local file is: {} path is: {}", rsrc.getPath(), path);
         LocalizedResource lrsrc = new LocalizedResource(new File(path).getName(), path,
             uncompress);
-        lrsrcSet.addResource(lrsrc.getKey(), lrsrc, uncompress);
+        lrsrcSet.add(lrsrc.getKey(), lrsrc, uncompress);
       }
     }
   }
@@ -293,7 +312,7 @@ public class Localizer {
   }
 
   protected boolean isLocalizedResourceUpToDate(LocalizedResource lrsrc,
-      ClientBlobStore blobstore) throws AuthorizationException, KeyNotFoundException{
+      ClientBlobStore blobstore) throws AuthorizationException, KeyNotFoundException {
     String localFile = lrsrc.getFilePath();
     long nimbusBlobVersion = Utils.nimbusVersionOfBlob(lrsrc.getKey(), blobstore);
     long currentBlobVersion = Utils.localVersionOfBlob(localFile);
@@ -301,7 +320,7 @@ public class Localizer {
   }
 
   protected ClientBlobStore getClientBlobStore() {
-    return Utils.getSupervisorBlobStore(_conf);
+    return Utils.getClientBlobStoreForSupervisor(_conf);
   }
 
   /**
@@ -353,7 +372,7 @@ public class Localizer {
           if (newlrsrcSet == null) {
             newlrsrcSet = newSet;
           }
-          newlrsrcSet.updateResource(lrsrc.getKey(), lrsrc, lrsrc.isUncompressed());
+          newlrsrcSet.putIfAbsent(lrsrc.getKey(), lrsrc, lrsrc.isUncompressed());
           results.add(lrsrc);
         }
         catch (ExecutionException e) {
@@ -362,8 +381,7 @@ public class Localizer {
             throw (AuthorizationException)e.getCause();
           }
           if (e.getCause() instanceof KeyNotFoundException) {
-            KeyNotFoundException knf = (KeyNotFoundException) e.getCause();
-            throw new KeyNotFoundMessageException(knf);
+            throw (KeyNotFoundException)e.getCause();
           }
         }
       }
@@ -436,15 +454,14 @@ public class Localizer {
       for (Future<LocalizedResource> futureRsrc: futures) {
         LocalizedResource lrsrc = futureRsrc.get();
         lrsrc.addReference(topo);
-        lrsrcSet.addResource(lrsrc.getKey(), lrsrc, lrsrc.isUncompressed());
+        lrsrcSet.add(lrsrc.getKey(), lrsrc, lrsrc.isUncompressed());
         results.add(lrsrc);
       }
     } catch (ExecutionException e) {
       if (e.getCause() instanceof AuthorizationException)
         throw (AuthorizationException)e.getCause();
       else if (e.getCause() instanceof KeyNotFoundException) {
-        KeyNotFoundException knf = (KeyNotFoundException) e.getCause();
-        throw new KeyNotFoundMessageException(knf);
+        throw (KeyNotFoundException)e.getCause();
       } else {
         throw new IOException("Error getting blobs", e);
       }
@@ -498,7 +515,7 @@ public class Localizer {
       int numTries = 0;
       String localizedPath = localFile.toString();
       String localFileWithVersion = Utils.constructBlobWithVersionFileName(localFile.toString(),
-          nimbusBlobVersion);
+              nimbusBlobVersion);
       String localVersionFile = Utils.constructVersionFileName(localFile.toString());
       String downloadFile = localFileWithVersion;
       if (uncompress) {
@@ -547,9 +564,9 @@ public class Localizer {
 
             Files.createSymbolicLink(uuid_symlink.toPath(),
                 Paths.get(Utils.constructBlobWithVersionFileName(localFile.toString(),
-                    nimbusBlobVersion)));
+                        nimbusBlobVersion)));
             File current_symlink = new File(Utils.constructBlobCurrentSymlinkName(
-                localFile.toString()));
+                    localFile.toString()));
             Files.move(uuid_symlink.toPath(), current_symlink.toPath(), ATOMIC_MOVE);
           } catch (IOException e) {
             // if we fail after writing the version file but before we move current link we need to

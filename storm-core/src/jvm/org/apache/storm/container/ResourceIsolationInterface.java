@@ -18,13 +18,22 @@
 
 package org.apache.storm.container;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * A plugin to support resource isolation and limitation within Storm
  */
 public interface ResourceIsolationInterface {
+    
+    /**
+     * Called when starting up
+     * @param conf the cluster config
+     * @throws IOException on any error.
+     */
+    void prepare(Map<String, Object> conf) throws IOException;
 
     /**
      * This function should be used prior to starting the worker to reserve resources for the worker
@@ -39,12 +48,10 @@ public interface ResourceIsolationInterface {
      */
     void releaseResourcesForWorker(String workerId);
 
-
     /**
      * After reserving resources for the worker (i.e. calling reserveResourcesForWorker). This function can be used
      * to get the modified command line to launch the worker with resource isolation
-     * @param workerId the of the worker
-     * @param existingCommand existing command and args that needs to include to launch worker
+     * @param existingCommand
      * @return new commandline with necessary additions to launch worker with resource isolation
      */
     List<String> getLaunchCommand(String workerId, List<String> existingCommand);
@@ -56,4 +63,14 @@ public interface ResourceIsolationInterface {
      * @return the command line prefix for launching a worker with resource isolation
      */
     List<String> getLaunchCommandPrefix(String workerId);
+
+    /**
+     * Get the list of PIDs currently in an isolated container
+     * @param workerId the id of the worker to get these for
+     * @return the set of PIDs, this will be combined with
+     * other ways of getting PIDs. An Empty set if
+     * no PIDs are found.
+     * @throws IOException on any error
+     */
+    Set<Long> getRunningPIDs(String workerId) throws IOException;
 }

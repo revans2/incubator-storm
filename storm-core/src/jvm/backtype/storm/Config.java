@@ -166,6 +166,45 @@ public class Config extends HashMap<String, Object> {
     @isString
     public static final String STORM_META_SERIALIZATION_DELEGATE = "storm.meta.serialization.delegate";
 
+   /**
+     * A list of daemon metrics  reporter plugin class names.
+     * These plugins must implement {@link org.apache.storm.daemon.metrics.reporters.PreparableReporter} interface.
+     */
+    @isStringList
+    public static final String STORM_DAEMON_METRICS_REPORTER_PLUGINS = "storm.daemon.metrics.reporter.plugins";
+
+    /**
+     * A specify Locale for daemon metrics reporter plugin.
+     * Use the specified IETF BCP 47 language tag string for a Locale.
+     */
+    @isString
+    public static final String STORM_DAEMON_METRICS_REPORTER_PLUGIN_LOCALE = "storm.daemon.metrics.reporter.plugin.locale";
+
+    /**
+     * A specify domain for daemon metrics reporter plugin to limit reporting to specific domain.
+     */
+    @isString
+    public static final String STORM_DAEMON_METRICS_REPORTER_PLUGIN_DOMAIN = "storm.daemon.metrics.reporter.plugin.domain";
+
+    /**
+     * A specify rate-unit in TimeUnit to specify reporting frequency for daemon metrics reporter plugin.
+     */
+    @isString
+    public static final String STORM_DAEMON_METRICS_REPORTER_PLUGIN_RATE_UNIT = "storm.daemon.metrics.reporter.plugin.rate.unit";
+
+    /**
+     * A specify duration-unit in TimeUnit to specify reporting window for daemon metrics reporter plugin.
+     */
+    @isString
+    public static final String STORM_DAEMON_METRICS_REPORTER_PLUGIN_DURATION_UNIT = "storm.daemon.metrics.reporter.plugin.duration.unit";
+
+
+    /**
+     * A specify csv reporter directory for CvsPreparableReporter daemon metrics reporter.
+     */
+    @isString
+    public static final String STORM_DAEMON_METRICS_REPORTER_CSV_LOG_DIR = "storm.daemon.metrics.reporter.csv.log.dir";
+    
     /**
      * A list of hosts of ZooKeeper servers used to manage the cluster.
      */
@@ -1173,13 +1212,6 @@ public class Config extends HashMap<String, Object> {
     public static final String SUPERVISOR_SLOTS_PORTS = "supervisor.slots.ports";
 
     /**
-     * For insecure mode we do not want the blobstore to validate acls.
-     * For secure mode we do want to validate acls
-     */
-    @isBoolean
-    public static final String STORM_BLOBSTORE_ACL_VALIDATION_ENABLED = "storm.blobstore.acl.validation.enabled";
-
-    /**
      * What blobstore implementation the supervisor should use.
      */
     @isString
@@ -1268,6 +1300,13 @@ public class Config extends HashMap<String, Object> {
     @isPositiveNumber
     @isInteger
     public static final String STORM_BLOBSTORE_REPLICATION_FACTOR = "storm.blobstore.replication.factor";
+
+    /**
+     *  For secure mode we would want to turn on this config
+     *  By default this is turned off assuming the default is insecure
+     */
+    @isBoolean
+    public static final String STORM_BLOBSTORE_ACL_VALIDATION_ENABLED = "storm.blobstore.acl.validation.enabled";
 
     /**
      * What blobstore implementation nimbus should use.
@@ -2229,21 +2268,13 @@ public class Config extends HashMap<String, Object> {
      * future releases.
      */
     @isString
-    public static final Object CLIENT_JAR_TRANSFORMER = "client.jartransformer.class";
+    public static final String CLIENT_JAR_TRANSFORMER = "client.jartransformer.class";
 
     /**
      * The plugin to be used for resource isolation
      */
     @isImplementationOfClass(implementsClass = ResourceIsolationInterface.class)
-    public static final Object STORM_RESOURCE_ISOLATION_PLUGIN = "storm.resource.isolation.plugin";
-
-    /**
-     * flag to determine whether to use a resource isolation plugin
-     * Also determines whether the unit tests for cgroup runs.
-     * If storm.resource.isolation.plugin.enable is set to false the unit tests for cgroups will not run
-     */
-    @isBoolean
-    public static final String STORM_RESOURCE_ISOLATION_PLUGIN_ENABLE = "storm.resource.isolation.plugin.enable";
+    public static final String STORM_RESOURCE_ISOLATION_PLUGIN = "storm.resource.isolation.plugin";
 
     /**
      * CGroup Setting below
@@ -2253,19 +2284,27 @@ public class Config extends HashMap<String, Object> {
      * root directory of the storm cgroup hierarchy
      */
     @isString
-    public static final Object STORM_CGROUP_HIERARCHY_DIR = "storm.cgroup.hierarchy.dir";
+    public static final String STORM_CGROUP_HIERARCHY_DIR = "storm.cgroup.hierarchy.dir";
 
     /**
      * resources to to be controlled by cgroups
      */
     @isStringList
-    public static final Object STORM_CGROUP_RESOURCES = "storm.cgroup.resources";
+    public static final String STORM_CGROUP_RESOURCES = "storm.cgroup.resources";
 
     /**
      * name for the cgroup hierarchy
      */
     @isString
-    public static final Object STORM_CGROUP_HIERARCHY_NAME = "storm.cgroup.hierarchy.name";
+    public static final String STORM_CGROUP_HIERARCHY_NAME = "storm.cgroup.hierarchy.name";
+
+    /**
+     * flag to determine whether to use a resource isolation plugin
+     * Also determines whether the unit tests for cgroup runs.
+     * If storm.resource.isolation.plugin.enable is set to false the unit tests for cgroups will not run
+     */
+    @isBoolean
+    public static final String STORM_RESOURCE_ISOLATION_PLUGIN_ENABLE = "storm.resource.isolation.plugin.enable";
 
     /**
      * root directory for cgoups
@@ -2400,8 +2439,7 @@ public class Config extends HashMap<String, Object> {
         m.put("argument", argument);
 
         List l = (List)conf.get(TOPOLOGY_METRICS_CONSUMER_REGISTER);
-        if (l == null) {
-            l = new ArrayList(); }
+        if (l == null) { l = new ArrayList(); }
         l.add(m);
         conf.put(TOPOLOGY_METRICS_CONSUMER_REGISTER, l);
     }

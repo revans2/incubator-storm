@@ -24,13 +24,23 @@
   (:import [backtype.storm.security.auth IAuthorizer]) 
   (:import [java.nio.channels ClosedByInterruptException])
   (:import [java.io InterruptedIOException])
+  (:import [org.apache.storm.daemon.metrics.reporters PreparableReporter]
+           [org.apache.storm.daemon.metrics MetricsUtils]
+           [com.codahale.metrics MetricRegistry])
   (:require [clojure.set :as set])  
   (:require [backtype.storm.daemon.acker :as acker])
   (:require [backtype.storm.thrift :as thrift])
-  (:require [metrics.reporters.jmx :as jmx]))
+  (:require [metrics.core  :refer [default-registry]]))
 
-(defn start-metrics-reporters []
-  (jmx/start (jmx/reporter {})))
+(defn start-metrics-reporter [reporter conf]
+  (doto reporter
+    (.prepare default-registry conf)
+    (.start))
+  (log-message "Started statistics report plugin..."))
+
+(defn start-metrics-reporters [conf]
+  (doseq [reporter (MetricsUtils/getPreparableReporters conf)]
+    (start-metrics-reporter reporter conf)))
 
 (def ACKER-COMPONENT-ID acker/ACKER-COMPONENT-ID)
 (def ACKER-INIT-STREAM-ID acker/ACKER-INIT-STREAM-ID)

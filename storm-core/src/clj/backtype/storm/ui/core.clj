@@ -1315,7 +1315,7 @@
       (if-not (local-mode? conf)
         (redirect-stdio-to-slf4j!))
 
-      (start-metrics-reporters)
+      (start-metrics-reporters conf)
       (storm-run-jetty {:port (conf UI-PORT)
                         :host (conf UI-HOST)
                         :https-port https-port

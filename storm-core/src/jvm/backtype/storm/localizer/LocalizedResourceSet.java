@@ -21,8 +21,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Iterator;
-import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 /**
  * Set of localized resources for a specific user.
@@ -57,7 +57,7 @@ public class LocalizedResourceSet {
     return _localrsrcFiles.get(name);
   }
 
-  public void updateResource(String resourceName, LocalizedResource updatedResource,
+  public void putIfAbsent(String resourceName, LocalizedResource updatedResource,
                             boolean uncompress) {
     if (uncompress) {
       _localrsrcArchives.putIfAbsent(resourceName, updatedResource);
@@ -66,7 +66,7 @@ public class LocalizedResourceSet {
     }
   }
 
-  public void addResource(String resourceName, LocalizedResource newResource, boolean uncompress) {
+  public void add(String resourceName, LocalizedResource newResource, boolean uncompress) {
     if (uncompress) {
       _localrsrcArchives.put(resourceName, newResource);
     } else {
@@ -76,9 +76,9 @@ public class LocalizedResourceSet {
 
   public boolean exists(String resourceName, boolean uncompress) {
     if (uncompress) {
-      return (_localrsrcArchives.get(resourceName) != null);
+      return _localrsrcArchives.containsKey(resourceName);
     }
-    return (_localrsrcFiles.get(resourceName) != null);
+    return _localrsrcFiles.containsKey(resourceName);
   }
 
   public boolean remove(LocalizedResource resource) {
