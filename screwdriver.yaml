@@ -1,6 +1,9 @@
 platform: cpp
 
 shared:
+    settings:
+        env.MVN_MAKE_OPTS: --batch-mode
+
     notifications:
         email: "storm-devel@yahoo-inc.com"
     steps:
