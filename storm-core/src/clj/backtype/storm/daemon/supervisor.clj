@@ -1056,16 +1056,20 @@
     (if (.exists (File. worker-dir))
       (create-symlink! worker-dir topo-dir "artifacts" port))))
 
+(defn is-RAS?
+  [conf topo-conf]
+  (not
+    (and
+      (= (conf STORM-SCHEDULER) "backtype.storm.scheduler.bridge.MultitenantResourceAwareBridgeScheduler")
+      (or
+        (= (topo-conf TOPOLOGY-SCHEDULER-STRATEGY) nil)
+        (= (topo-conf TOPOLOGY-SCHEDULER-STRATEGY) "backtype.storm.scheduler.resource.strategies.scheduling.MultitenantStrategy")))))
+
 (defn launch-with-cgroups?
   [conf topo-conf]
   (and
     (conf STORM-RESOURCE-ISOLATION-PLUGIN-ENABLE)
-    (not
-      (and
-        (= (conf STORM-SCHEDULER) "backtype.storm.scheduler.bridge.MultitenantResourceAwareBridgeScheduler")
-        (or
-          (= (topo-conf TOPOLOGY-SCHEDULER-STRATEGY) nil)
-          (= (topo-conf TOPOLOGY-SCHEDULER-STRATEGY) "backtype.storm.scheduler.resource.strategies.scheduling.MultitenantStrategy"))))))
+    (is-RAS? conf topo-conf)))
 
 (defmethod launch-worker
     :distributed [supervisor storm-id port worker-id resources]

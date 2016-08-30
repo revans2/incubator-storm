@@ -29,27 +29,27 @@
         </span>
       </th>
       <th>
-        <span data-toggle="tooltip" data-placement="above" title="The number of nodes in the cluster currently.">
+        <span data-toggle="tooltip" data-placement="top" title="The number of nodes in the cluster currently.">
           Supervisors
       </span>
       </th>
       <th>
-        <span data-toggle="tooltip" data-placement="above" title="Slots are Workers (processes).">
+        <span data-toggle="tooltip" data-placement="top" title="Slots are Workers (processes).">
           Used slots
       </span>
       </th>
       <th>
-        <span data-toggle="tooltip" data-placement="above" title="Slots are Workers (processes).">
+        <span data-toggle="tooltip" data-placement="top" title="Slots are Workers (processes).">
           Free slots
       </span>
       </th>
       <th>
-        <span data-toggle="tooltip" data-placement="above" title="Slots are Workers (processes).">
+        <span data-toggle="tooltip" data-placement="top" title="Slots are Workers (processes).">
           Total slots
       </span>
       </th>
       <th>
-        <span data-toggle="tooltip" data-placement="above" title="Executors are threads in a Worker process.">
+        <span data-toggle="tooltip" data-placement="top" title="Executors are threads in a Worker process.">
           Executors
       </span>
       </th>
@@ -89,22 +89,22 @@
           </span>
       </th>
       <th>
-          <span data-toggle="tooltip" data-placement="above" title="Percent Utilization of Memory Resources in Cluster.">
+          <span data-toggle="tooltip" data-placement="top" title="Percent Utilization of Memory Resources in Cluster.">
             Memory Utilization (%)
           </span>
       </th>
       <th>
-          <span data-toggle="tooltip" data-placement="above" title="Total CPU Resources in Cluster. Every 100 means 1 core.">
+          <span data-toggle="tooltip" data-placement="top" title="Total CPU Resources in Cluster. Every 100 means 1 core.">
             Total CPU (%)
           </span>
       </th>
       <th>
-          <span data-toggle="tooltip" data-placement="above" title="Total Available CPU Resources in Cluster. Every 100 means 1 core.">
+          <span data-toggle="tooltip" data-placement="top" title="Total Available CPU Resources in Cluster. Every 100 means 1 core.">
             Available CPU (%)
           </span>
       </th>
       <th>
-          <span data-toggle="tooltip" data-placement="above" title="Percent Utilization of CPU Resources in Cluster.">
+          <span data-toggle="tooltip" data-placement="top" title="Percent Utilization of CPU Resources in Cluster.">
            CPU Utilization (%)
           </span>
       </th>
@@ -122,6 +122,73 @@
     </tbody>
   </table>
 </script>
+
+<script id="user-summary-template" type="text/html">
+  <table class="table table-striped compact" id="user-summary-table">
+    <thead>
+    <tr>
+      <th>
+        User Name
+      </th>
+      <th>
+        <span data-toggle="tooltip" data-placement="top" title="Total number of topologies owned by user.">
+          Total Topologies
+        </span>
+      </th>
+      <th>
+        <span data-toggle="tooltip" data-placement="top" title="Total number of executors used by user.">
+          Total Executors
+      </span>
+      </th>
+      <th>
+        <span data-toggle="tooltip" data-placement="top" title="Total number of workers used by user.">
+          Total Workers
+      </span>
+      </th>
+      <th>
+        <span data-toggle="tooltip" data-placement="top" title="The amount of memory resource (in MB) used by user.">
+          Memory Usage (MB)
+        </span>
+      </th>
+      {{#schedulerDisplayResource}}
+      <th>
+        <span data-toggle="tooltip" data-placement="top" title="The amount of memory resource (in MB) guaranteed to user.">
+            Memory Guarantee (MB)
+        </span>
+      </th>
+      <th>
+        <span data-toggle="tooltip" data-placement="top" title="The amount of guaranteed memory resources (in MB) remaining.">
+          Memory Guarantee Remaining (MB)
+        </span>
+      </th>
+      <th>
+          <span data-toggle="tooltip" data-placement="top" title="Total CPU Resource Assigned on behalf of User. Every 100 means 1 core.">
+           CPU Usage (%)
+          </span>
+      </th>
+      <th>
+        <span data-toggle="tooltip" data-placement="top" title="The amount of CPU resource (every 100 means 1 core) guaranteed to user.">
+            CPU Guarantee (%)
+        </span>
+      </th>
+      <th>
+        <span data-toggle="tooltip" data-placement="top" title="The amount of guaranteed CPU resource (every 100 means 1 core) remaining.">
+          CPU Guarantee Remaining (%)
+        </span>
+      </th>
+      <th>
+        <span data-toggle="tooltip" data-placement="top" title="The amount of isolated nodes user may use">
+          Isolated Nodes Guarantee
+        </span>
+      </th>
+      {{/schedulerDisplayResource}}
+    </tr>
+    </thead>
+    <tbody>
+    </tbody>
+  </table>
+</script>
+
 <script id="topology-summary-template" type="text/html">
   <table class="table table-striped compact" id="topology-summary-table">
     <thead>
@@ -132,43 +199,43 @@
           </span>
         </th>
         <th>
-          <span data-toggle="tooltip" data-placement="above" title="The user that submitted the Topology, if authentication is enabled.">
+          <span data-toggle="tooltip" data-placement="top" title="The user that submitted the Topology, if authentication is enabled.">
             Owner
           </span>
         </th>
         <th>
-          <span data-toggle="tooltip" data-placement="above" title="The status can be one of ACTIVE, INACTIVE, KILLED, or REBALANCING.">
+          <span data-toggle="tooltip" data-placement="top" title="The status can be one of ACTIVE, INACTIVE, KILLED, or REBALANCING.">
             Status
           </span>
         </th>
         <th>
-          <span data-toggle="tooltip" data-placement="above" title="The time since the Topology was submitted.">
+          <span data-toggle="tooltip" data-placement="top" title="The time since the Topology was submitted.">
             Uptime
           </span>
         </th>
         <th>
-          <span data-toggle="tooltip" data-placement="above" title="The number of Workers (processes).">
+          <span data-toggle="tooltip" data-placement="top" title="The number of Workers (processes).">
             Num workers
           </span>
         </th>
         <th>
-          <span data-toggle="tooltip" data-placement="above" title="Executors are threads in a Worker process.">
+          <span data-toggle="tooltip" data-placement="top" title="Executors are threads in a Worker process.">
             Num executors
           </span>
         </th>
         <th>
-          <span data-toggle="tooltip" data-placement="above" title="A Task is an instance of a Bolt or Spout. The number of Tasks is almost always equal to the number of Executors.">
+          <span data-toggle="tooltip" data-placement="top" title="A Task is an instance of a Bolt or Spout. The number of Tasks is almost always equal to the number of Executors.">
             Num tasks
           </span>
         </th>
         <th>
-          <span data-toggle="tooltip" data-placement="above" title="Assigned Total Memory by Scheduler.">
+          <span data-toggle="tooltip" data-placement="top" title="Assigned Total Memory by Scheduler.">
             Assigned Mem (MB)
           </span>
         </th>
         {{#schedulerDisplayResource}}
         <th>
-          <span data-toggle="tooltip" data-placement="above" title="Assigned Total CPU by Scheduler. Every 100 means 1 core.">
+          <span data-toggle="tooltip" data-placement="top" title="Assigned Total CPU by Scheduler. Every 100 means 1 core.">
             Assigned CPU (%)
           </span>
         </th>
@@ -184,7 +251,7 @@
       {{#topologies}}
       <tr>
         <td><a href="/topology.html?id={{encodedId}}">{{name}}</a></td>
-        <td>{{owner}}</td>
+        <td><a href="/user.html?id={{owner}}">{{owner}}</a></td>
         <td>{{status}}</td>
         <td>{{uptime}}</td>
         <td>{{workersTotal}}</td>
@@ -210,17 +277,17 @@
         </span>
       </th>
       <th>
-        <span data-toggle="tooltip" data-placement="above" title="The hostname reported by the remote host. (Note that this hostname is not the result of a reverse lookup at the Nimbus node.)">
+        <span data-toggle="tooltip" data-placement="top" title="The hostname reported by the remote host. (Note that this hostname is not the result of a reverse lookup at the Nimbus node.)">
           Host
         </span>
       </th>
       <th>
-        <span data-toggle="tooltip" data-placement="above" title="The length of time a Supervisor has been registered to the cluster.">
+        <span data-toggle="tooltip" data-placement="top" title="The length of time a Supervisor has been registered to the cluster.">
           Uptime
         </span>
       </th>
       <th>
-        <span data-toggle="tooltip" data-placement="above" title="Total number of Slots. Slots are Workers (processes).">
+        <span data-toggle="tooltip" data-placement="top" title="Total number of Slots. Slots are Workers (processes).">
           Slots
         </span>
       </th>
@@ -236,7 +303,7 @@
       </th>
       {{#schedulerDisplayResource}}
         <th>
-        <span data-toggle="tooltip" data-placement="above" title="The total Memory capacity of a supervisor in megabytes.">
+        <span data-toggle="tooltip" data-placement="top" title="The total Memory capacity of a supervisor in megabytes.">
           Total Mem (MB)
         </span>
       </th>
@@ -253,7 +320,7 @@
         </span>
       </th>
       <th>
-        <span data-toggle="tooltip" data-placement="above" title="The total CPU capacity of a supervisor. Every 100 means one core.">
+        <span data-toggle="tooltip" data-placement="top" title="The total CPU capacity of a supervisor. Every 100 means one core.">
           Total CPU (%)
         </span>
       </th>
@@ -336,7 +403,7 @@
         <tr>
             <th>User</th>
             <th>
-              <span data-toggle="tooltip" data-placement="above"
+              <span data-toggle="tooltip" data-placement="top"
                     title="Value displayed for MultitenantScheduler refers to the
                     number of isolated nodes the user can have when using the MultitenantScheduler.
                     The values displayed for ResourceAwareScheduler refer to the resource guarantee
@@ -349,7 +416,7 @@
         <tbody>
         {{#config}}
         <tr>
-            <td>{{key}}</td>
+            <td><a href="/user.html?id={{key}}">{{key}}</a></td>
             <td>{{value}}</td>
         </tr>
         {{/config}}

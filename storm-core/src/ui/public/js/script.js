@@ -399,4 +399,74 @@ function getStatic(url, cb) {
         },
         success: cb
     });
+}
+
+function getResourceGuaranteeRemainingFormat(type, data) {
+    if (type === 'display' && typeof data === "number") {
+        var resourceGuaranteeRemaining = parseFloat(data);
+        if (resourceGuaranteeRemaining > 0.0) {
+            return '<span class="resource-guarantee-remaining-positive">+' + data + '</span>'
+        }
+        if (resourceGuaranteeRemaining < 0.0) {
+            return '<span class="resource-guarantee-remaining-negative">' + data + '</span>'
+        }
+    }
+    return data;
+}
+
+var makeUserSummaryTable = function(response, elId, parentId) {
+    var showCpu = response.schedulerDisplayResource;
+
+    var columns = [
+    {
+        data: 'userId',
+        render: function(data, type, row) {
+            return type === 'display' ?
+                ('<a href="/user.html?id=' + data + '">' + data + '</a>') :
+                data;
+        }
+    }, {
+        data: 'totalTopologies',
+    }, {
+        data: 'totalExecutors',
+    }, {
+        data: 'totalWorkers',
+    }, {
+        data: 'memoryUsage',
+    }];
+
+    if (showCpu) {
+        columns.push({
+            data: 'memoryGuarantee'
+        });
+        columns.push({
+            data: 'memoryGuaranteeRemaining',
+            render: function(data, type, row) {
+                return getResourceGuaranteeRemainingFormat(type, data);
+            }
+        });
+        columns.push({
+            data: 'cpuUsage'
+        });
+        columns.push({
+            data: 'cpuGuarantee'
+        });
+        columns.push({
+            data: 'cpuGuaranteeRemaining',
+            render: function(data, type, row) {
+                return getResourceGuaranteeRemainingFormat(type, data);
+            }
+        });
+        columns.push({
+            data: 'isolatedNodes'
+        });
+    }
+
+    var userSummaryTable = dtAutoPage(elId, {
+        data: response.users,
+        autoWidth: false,
+        columns: columns,
+    });
+
+    $(elId + ' [data-toggle="tooltip"]').tooltip();
 };

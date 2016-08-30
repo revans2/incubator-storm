@@ -1,0 +1,253 @@
+<!--
+ Licensed to the Apache Software Foundation (ASF) under one or more
+ contributor license agreements.  See the NOTICE file distributed with
+ this work for additional information regarding copyright ownership.
+ The ASF licenses this file to You under the Apache License, Version 2.0
+ (the "License"); you may not use this file except in compliance with
+ the License.  You may obtain a copy of the License at
+
+     http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+-->
+<script id="user-summary-template" type="text/html">
+    <table id="user-summary-table" class="table compact">
+        <thead>
+        <tr>
+            <th>
+                User Name
+            </th>
+            <th>
+                <span data-toggle="tooltip" data-placement="above" title="Total number of topologies owned by user.">
+                    Total Topologies
+                </span>
+            </th>
+            <th>
+                <span data-toggle="tooltip" data-placement="above" title="Total number of tasks used by user.)">
+                    Total Tasks
+                </span>
+            </th>
+            <th>
+                <span data-toggle="tooltip" data-placement="above" title="Total number of executors used by user.">
+                    Total Executors
+                </span>
+            </th>
+            <th>
+                <span data-toggle="tooltip" data-placement="above" title="Total number of workers used by user.">
+                    Total Workers
+                </span>
+            </th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr>
+            <td>{{userId}}</td>
+            <td>{{totalTopologies}}</td>
+            <td>{{totalTasks}}</td>
+            <td>{{totalExecutors}}</td>
+            <td>{{totalWorkers}}</td>
+        </tr>
+        </tbody>
+    </table>
+</script>
+
+<script id="user-resource-usage-template" type="text/html">
+    <table id="user-resource-usage-table" class="table compact">
+        <thead>
+        <tr>
+            <th>
+                <span data-toggle="tooltip" data-placement="top" title="Total On-Heap Memory Requested by User in MB.">
+                    Total Request On-Heap Mem (MB)
+                </span>
+            </th>
+            <th>
+                <span data-toggle="tooltip" data-placement="top" title="Total Off-Heap Memory Requested by User in MB.">
+                    Total Request Off-Heap Mem (MB)
+                </span>
+            </th>
+            <th>
+                <span data-toggle="tooltip" data-placement="top" title="Total Memory Requested by User in MB.">
+                    Total Request Mem (MB)
+                </span>
+            </th>
+            <th>
+                <span data-toggle="tooltip" data-placement="top" title="Total CPU Resource Requested by User. Every 100 means 1 core.">
+                    Total Request CPU (%)
+                </span>
+            </th>
+            <th>
+                <span data-toggle="tooltip" data-placement="top" title="Total On-Heap Memory Assigned on behalf of user in MB.">
+                    Total Assigned On-Heap Mem (MB)
+                </span>
+            </th>
+            <th>
+                <span data-toggle="tooltip" data-placement="top" title="Total Off-Heap Memory Assigned on behalf of user in MB.">
+                    Total Assigned Off-Heap Mem (MB)
+                </span>
+            </th>
+            <th>
+                <span data-toggle="tooltip" data-placement="top" title="Total Memory Assigned on behalf of user in MB.">
+                    Total Assigned Mem (MB)
+                </span>
+            </th>
+            <th>
+                <span data-toggle="tooltip" data-placement="top" title="Total CPU Resource Assigned on behalf of User. Every 100 means 1 core.">
+                    Total Assigned CPU (%)
+                </span>
+            </th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr>
+            <td>{{totalReqOnHeapMem}}</td>
+            <td>{{totalReqOffHeapMem}}</td>
+            <td>{{totalReqMem}}</td>
+            <td>{{totalReqCpu}}</td>
+            <td>{{totalAssignedOnHeapMem}}</td>
+            <td>{{totalAssignedOffHeapMem}}</td>
+            <td>{{totalAssignedMem}}</td>
+            <td>{{totalAssignedCpu}}</td>
+        </tr>
+        </tbody>
+    </table>
+</script>
+
+<script id="user-resource-guarantee-template" type="text/html">
+    <table id="user-resource-guarantee-table" class="table compact">
+        <thead>
+        <tr>
+            <th>
+                <span data-toggle="tooltip" data-placement="top" title="The amount of CPU resource (every 100 means 1 core) guaranteed to user.">
+                    CPU Guarantee (%)
+                </span>
+            </th>
+            <th>
+                <span data-toggle="tooltip" data-placement="top" title="The amount of CPU resource (every 100 means 1 core) used by user.">
+                    CPU Usage (%)
+                </span>
+            </th>
+            <th>
+                <span data-toggle="tooltip" data-placement="top" title="The amount of guaranteed CPU resource (every 100 means 1 core) remaining.">
+                    CPU Guarantee Remaining (%)
+                </span>
+            </th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr>
+            <td>{{cpuGuarantee}}</td>
+            <td>{{rasTopologiesAssignedCpu}}</td>
+            <td id="cpu-guarantee-util">{{cpuGuaranteeRemaining}}</td>
+        </tr>
+        </tbody>
+        <thead>
+        <tr>
+            <th>
+                <span data-toggle="tooltip" data-placement="top" title="The amount of memory resource (in MB) guaranteed to user.">
+                    Memory Guarantee (MB)
+                </span>
+            </th>
+            <th>
+                <span data-toggle="tooltip" data-placement="top" title="The amount of memory resource (in MB) used by user.">
+                    Memory Usage (MB)
+                </span>
+            </th>
+            <th>
+                <span data-toggle="tooltip" data-placement="top" title="The amount of guaranteed memory resources (in MB) remaining.">
+                    Memory Guarantee Remaining (MB)
+                </span>
+            </th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr>
+            <td>{{memoryGuarantee}}</td>
+            <td>{{rasTopologiesAssignedMem}}</td>
+            <td id="mem-guarantee-util">{{memoryGuaranteeRemaining}}</td>
+        </tr>
+        </tbody>
+    </table>
+</script>
+
+<script id="user-topology-summary-template" type="text/html">
+    <table id="user-topology-summary-table" class="table table-striped compact">
+        <thead>
+        <tr>
+            <th>
+                <span data-toggle="tooltip" data-placement="top" title="The name given to the topology by when it was submitted. Click the name to view the Topology's information.">
+                    Name
+                </span>
+            </th>
+            <th>
+                <span data-toggle="tooltip" data-placement="top" title="The user that submitted the Topology, if authentication is enabled.">
+                    Owner
+                </span>
+            </th>
+            <th>
+                <span data-toggle="tooltip" data-placement="top" title="The status can be one of ACTIVE, INACTIVE, KILLED, or REBALANCING.">
+                    Status
+                </span>
+            </th>
+            <th>
+                <span data-toggle="tooltip" data-placement="top" title="The time since the Topology was submitted.">
+                    Uptime
+                </span>
+            </th>
+            <th>
+                <span data-toggle="tooltip" data-placement="top" title="The number of Workers (processes).">
+                    Num workers
+                </span>
+            </th>
+            <th>
+                <span data-toggle="tooltip" data-placement="top" title="Executors are threads in a Worker process.">
+                    Num executors
+                </span>
+            </th>
+            <th>
+                <span data-toggle="tooltip" data-placement="top" title="A Task is an instance of a Bolt or Spout. The number of Tasks is almost always equal to the number of Executors.">
+                    Num tasks
+                </span>
+            </th>
+            <th>
+                <span data-toggle="tooltip" data-placement="top" title="Assigned Total Memory by Scheduler.">
+                    Assigned Mem (MB)
+                </span>
+            </th>
+            {{#schedulerDisplayResource}}
+            <th>
+                <span data-toggle="tooltip" data-placement="top" title="Assigned Total CPU by Scheduler. Every 100 means 1 core.">
+                    Assigned CPU (%)
+                </span>
+            </th>
+            {{/schedulerDisplayResource}}
+            <th>
+                <span data-toggle="tooltip" data-placement="left" title="This shows information from the scheduler about the latest attempt to schedule the Topology on the cluster.">
+                    Scheduler Info
+                </span>
+            </th>
+        </tr>
+        </thead>
+        <tbody>
+        {{#topologies}}
+        <tr>
+            <td><a href="/topology.html?id={{encodedId}}">{{name}}</a></td>
+            <td><a href="/user.html?id={{owner}}">{{owner}}</a></td>
+            <td>{{status}}</td>
+            <td>{{uptime}}</td>
+            <td>{{workersTotal}}</td>
+            <td>{{executorsTotal}}</td>
+            <td>{{tasksTotal}}</td>
+            <td>{{assignedTotalMem}}</td>
+            {{#schedulerDisplayResource}}
+            <td>{{assignedCpu}}</td>
+            {{/schedulerDisplayResource}}
+            <td>{{schedulerInfo}}</td>
+        </tr>
+        {{/topologies}}
+        </tbody>
+    </table>
+</script>
