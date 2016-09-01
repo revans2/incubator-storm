@@ -1022,7 +1022,8 @@
     (let [id (:id m)
           host (:host m)]
       (json-response (assoc (supervisor-page-info id host (check-include-sys? (:sys m)) (= scheme :https))
-                            "logviewerPort" (*STORM-CONF* LOGVIEWER-PORT)) (:callback m))))
+                            "logviewerPort" (*STORM-CONF* LOGVIEWER-PORT)
+                            "logLink" (supervisor-log-link host)) (:callback m))))
   (GET "/api/v1/topology/summary" [:as {:keys [cookies servlet-request]} & m]
     (populate-context! servlet-request)
     (assert-authorized-user "getClusterInfo")
