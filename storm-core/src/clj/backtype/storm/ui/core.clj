@@ -49,6 +49,7 @@
             [ring.util.response :as resp]
             [backtype.storm [thrift :as thrift]])
   (:require [metrics.meters :refer [defmeter mark!]])
+  (:require [backtype.storm.daemon.supervisor :refer [is-RAS?]])
   (:import [org.apache.commons.lang StringEscapeUtils])
   (:import [org.apache.logging.log4j Level])
   (:gen-class))
@@ -448,6 +449,30 @@
         {"id" (.get_supervisor_id s)
          "error" (.get_version s)})})))
 
+
+(defnk get-topologies-map [summs :conditional (fn [t] true) :keys nil]
+  (for [^TopologySummary t summs :when (conditional t)]
+    (let [data {"id" (.get_id t)
+                "encodedId" (url-encode (.get_id t))
+                "owner" (.get_owner t)
+                "name" (.get_name t)
+                "status" (.get_status t)
+                "uptime" (pretty-uptime-sec (.get_uptime_secs t))
+                "uptimeSeconds" (.get_uptime_secs t)
+                "tasksTotal" (.get_num_tasks t)
+                "workersTotal" (.get_num_workers t)
+                "executorsTotal" (.get_num_executors t)
+                "schedulerInfo" (.get_sched_status t)
+                "requestedMemOnHeap" (.get_requested_memonheap t)
+                "requestedMemOffHeap" (.get_requested_memoffheap t)
+                "requestedTotalMem" (+ (.get_requested_memonheap t) (.get_requested_memoffheap t))
+                "requestedCpu" (.get_requested_cpu t)
+                "assignedMemOnHeap" (.get_assigned_memonheap t)
+                "assignedMemOffHeap" (.get_assigned_memoffheap t)
+                "assignedTotalMem" (+ (.get_assigned_memonheap t) (.get_assigned_memoffheap t))
+                "assignedCpu" (.get_assigned_cpu t)}]
+      (if (not-nil? keys) (select-keys data keys) data))))
+
 (defn all-topologies-summary
   ([]
    (with-nimbus
@@ -455,28 +480,7 @@
      (all-topologies-summary
        (.get_topologies (.getClusterInfo ^Nimbus$Client nimbus)))))
   ([summs]
-   {"topologies"
-    (for [^TopologySummary t summs]
-      {
-       "id" (.get_id t)
-       "encodedId" (url-encode (.get_id t))
-       "owner" (.get_owner t)
-       "name" (.get_name t)
-       "status" (.get_status t)
-       "uptime" (pretty-uptime-sec (.get_uptime_secs t))
-       "uptimeSeconds" (.get_uptime_secs t)
-       "tasksTotal" (.get_num_tasks t)
-       "workersTotal" (.get_num_workers t)
-       "executorsTotal" (.get_num_executors t)
-       "schedulerInfo" (.get_sched_status t)
-       "requestedMemOnHeap" (.get_requested_memonheap t)
-       "requestedMemOffHeap" (.get_requested_memoffheap t)
-       "requestedTotalMem" (+ (.get_requested_memonheap t) (.get_requested_memoffheap t))
-       "requestedCpu" (.get_requested_cpu t)
-       "assignedMemOnHeap" (.get_assigned_memonheap t)
-       "assignedMemOffHeap" (.get_assigned_memoffheap t)
-       "assignedTotalMem" (+ (.get_assigned_memonheap t) (.get_assigned_memoffheap t))
-       "assignedCpu" (.get_assigned_cpu t)})
+   {"topologies" (get-topologies-map summs)
     "schedulerDisplayResource" (*STORM-CONF* Config/SCHEDULER_DISPLAY_RESOURCE)}))
 
 (defn topology-stats [window stats]
@@ -843,6 +847,104 @@
        "componentType" (-> comp-page-info .get_component_type str lower-case)
        "windowHint" window-hint
        "profilerActive" (get-active-profile-actions nimbus topology-id component)))))
+
+(defn get-user-scheduler-configuration [scheduler-configuration user]
+  (let [memory-guarantee (get-in (scheduler-configuration user) ["ResourceAwareScheduler" "memory"])
+        cpu-guarantee (get-in (scheduler-configuration user) ["ResourceAwareScheduler" "cpu"])
+        isolated-nodes (get-in (scheduler-configuration user) ["MultitenantScheduler"])]
+  {:memory-guarantee memory-guarantee :cpu-guarantee cpu-guarantee :isolated-nodes isolated-nodes}))
+
+(defn group-by-scheduler
+  [topos]
+  (with-nimbus nimbus
+    (group-by (fn [x]
+                (let [topo-conf (from-json (.getTopologyConf ^Nimbus$Client nimbus (get x "id")))]
+                  (is-RAS? *STORM-CONF* topo-conf)))
+      topos)))
+
+(defn user-summary []
+  (with-nimbus nimbus
+    (let [topologies (.get_topologies (.getClusterInfo ^Nimbus$Client nimbus))
+          scheduler-configuration (from-json (.getSchedulerConf ^Nimbus$Client nimbus))
+          topology-data (get-topologies-map topologies :keys ["id" "owner" "workersTotal" "executorsTotal" "assignedTotalMem" "assignedCpu"])
+          user-topologies (group-by #(get % "owner") topology-data)]
+
+      {"schedulerDisplayResource" (*STORM-CONF* SCHEDULER-DISPLAY-RESOURCE)
+       "users"
+       (for [[user topos] user-topologies]
+         (let [{memory-guarantee :memory-guarantee
+                cpu-guarantee :cpu-guarantee
+                isolated-nodes :isolated-nodes} (get-user-scheduler-configuration scheduler-configuration user)
+               ;; groups topologies by scheduler. Topologies on RAS are bound to resource-aware-topologies. Topologies on the Multi-tenant scheduler are bound to multitenant-topologies.
+               {resource-aware-topologies true
+                multitenant-topologies false}
+               (group-by-scheduler topos)
+               fields ["workersTotal" "executorsTotal" "assignedTotalMem" "assignedCpu"]
+               total-aggregates (apply merge-with +
+                                  (map #(select-keys % fields) topos))
+               ras-aggregates (apply merge-with +
+                                (map #(select-keys % fields)
+                                  resource-aware-topologies))
+               memory-guarantee-remaining (if (not-nil? memory-guarantee) (- memory-guarantee (or (get ras-aggregates "assignedTotalMem") 0)) "N/A")
+               cpu-guarantee-remaining (if (not-nil? cpu-guarantee) (- cpu-guarantee (or (get ras-aggregates "assignedCpu") 0)) "N/A")]
+           {"userId" user
+            "totalTopologies" (count topos)
+            "totalExecutors" (or (total-aggregates "executorsTotal") 0)
+            "totalWorkers" (or (total-aggregates "workersTotal") 0)
+            "memoryUsage" (or (total-aggregates "assignedTotalMem") 0)
+            "cpuUsage" (or (total-aggregates "assignedCpu") 0)
+            "memoryGuarantee" (or memory-guarantee "N/A")
+            "cpuGuarantee" (or cpu-guarantee "N/A")
+            "memoryGuaranteeRemaining" (or memory-guarantee-remaining "N/A")
+            "cpuGuaranteeRemaining" (or cpu-guarantee-remaining "N/A")
+            "isolatedNodes" (or isolated-nodes "N/A")}))})))
+
+(defn user-page [user-id]
+  (with-nimbus nimbus
+    (let [topologies (.get_topologies (.getClusterInfo ^Nimbus$Client nimbus))
+          scheduler-configuration (from-json (.getSchedulerConf ^Nimbus$Client nimbus))
+          data (get-topologies-map topologies :conditional (fn [t] (= (.get_owner t) user-id)))
+          ;; groups topologies by scheduler. Topologies on RAS are bound to resource-aware-topologies. Topologies on the Multi-tenant scheduler are bound to multitenant-topologies.
+          {resource-aware-topologies true
+           multitenant-topologies false}
+          (group-by-scheduler data)
+
+          fields ["tasksTotal" "workersTotal","executorsTotal"
+                  "requestedMemOnHeap" "requestedMemOffHeap"
+                  "requestedTotalMem" "requestedCpu" "assignedMemOnHeap"
+                  "assignedMemOffHeap" "assignedTotalMem" "assignedCpu"]
+
+          total-aggregates (apply merge-with +
+                             (map #(select-keys % fields) data))
+          ras-aggregates (apply merge-with +
+                           (map #(select-keys % fields) resource-aware-topologies))
+          {memory-guarantee :memory-guarantee
+           cpu-guarantee :cpu-guarantee
+           isolated-nodes :isolated-nodes} (get-user-scheduler-configuration scheduler-configuration user-id)
+          memory-guarantee-remaining (if (not-nil? memory-guarantee) (- memory-guarantee (or (get ras-aggregates "assignedTotalMem") 0)) "N/A")
+          cpu-guarantee-remaining (if (not-nil? cpu-guarantee) (- cpu-guarantee (or (get ras-aggregates "assignedCpu") 0)) "N/A")]
+      {"topologies" data
+       "totalTopologies" (count data)
+       "schedulerDisplayResource" (*STORM-CONF* SCHEDULER-DISPLAY-RESOURCE)
+       "userId" user-id
+       "memoryGuarantee" (or memory-guarantee "N/A")
+       "cpuGuarantee" (or cpu-guarantee "N/A")
+       "isolatedNodes" (or isolated-nodes "N/A")
+       "memoryGuaranteeRemaining" (or memory-guarantee-remaining "N/A")
+       "cpuGuaranteeRemaining" (or cpu-guarantee-remaining "N/A")
+       "rasTopologiesAssignedMem" (or (get ras-aggregates "assignedTotalMem") 0)
+       "rasTopologiesAssignedCpu" (or (get ras-aggregates "assignedCpu") 0)
+       "totalTasks" (or (get total-aggregates "tasksTotal") 0)
+       "totalWorkers" (or (get total-aggregates "workersTotal") 0)
+       "totalExecutors" (or (get total-aggregates "executorsTotal") 0)
+       "totalReqOnHeapMem" (or (get total-aggregates "requestedMemOnHeap") 0)
+       "totalReqOffHeapMem" (or (get total-aggregates "requestedMemOffHeap") 0)
+       "totalReqMem" (or (get total-aggregates "requestedTotalMem") 0)
+       "totalReqCpu" (or (get total-aggregates "requestedCpu") 0)
+       "totalAssignedOnHeapMem" (or (get total-aggregates "assignedMemOnHeap") 0)
+       "totalAssignedOffHeapMem" (or (get total-aggregates "assignedMemOffHeap") 0)
+       "totalAssignedMem" (or (get total-aggregates "assignedTotalMem") 0)
+       "totalAssignedCpu" (or (get total-aggregates "assignedCpu") 0)})))
     
 (defn- level-to-dict [level]
   (if level
@@ -1161,6 +1263,18 @@
   
   (GET "/" [:as {cookies :cookies}]
     (resp/redirect "/index.html"))
+  (GET "/api/v1/user/summary" [:as {:keys [cookies servlet-request scheme]} id & m]
+    (populate-context! servlet-request)
+    (let [user (get-user-name servlet-request)]
+      (populate-context! servlet-request)
+      (assert-authorized-user "getClusterInfo")
+      (json-response (user-summary) (:callback m))))
+  (GET "/api/v1/user/:id" [:as {:keys [cookies servlet-request scheme]} id & m]
+    (populate-context! servlet-request)
+    (let [user (get-user-name servlet-request)]
+      (populate-context! servlet-request)
+      (assert-authorized-user "getClusterInfo")
+      (json-response (user-page id) (:callback m))))
   (route/resources "/")
   (route/not-found "Page not found"))
 

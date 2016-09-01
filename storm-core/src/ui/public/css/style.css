@@ -44,6 +44,16 @@
   width: 100%;
 }
 
+.resource-guarantee-remaining-positive {
+    color: green;
+    font-weight: bold;
+}
+
+.resource-guarantee-remaining-negative {
+    color: red;
+    font-weight: bold;
+}
+
 body,
 .dataTables_wrapper label,
 div.dataTables_info[role="status"],
