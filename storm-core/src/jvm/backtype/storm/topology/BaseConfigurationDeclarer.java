@@ -18,16 +18,11 @@
 package backtype.storm.topology;
 
 import backtype.storm.Config;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import backtype.storm.utils.Utils;
 import java.util.HashMap;
 import java.util.Map;
 
 public abstract class BaseConfigurationDeclarer<T extends ComponentConfigurationDeclarer> implements ComponentConfigurationDeclarer<T> {
 
-    private Map conf = Utils.readStormConfig();
-    private static final Logger LOG = LoggerFactory.getLogger(BaseConfigurationDeclarer.class);
     @Override
     public T addConfiguration(String config, Object value) {
         Map configMap = new HashMap();
