@@ -490,6 +490,20 @@ Note that if anything goes wrong, this will throw an Error and exit."
       (-> (resp/response "Page not found")
         (resp/status 404)))))
 
+(defnk set-log-file-permissions [fname root-dir]
+  (let [file (.getCanonicalFile (File. root-dir fname))
+        run-as-user (*STORM-CONF* SUPERVISOR-RUN-WORKER-AS-USER)
+        parent (.getParent (File. root-dir fname))
+        md-file (if (nil? parent) nil (get-metadata-file-for-wroker-logdir parent))
+        topo-owner (if (nil? md-file) nil (get-topo-owner-from-metadata-file md-file))]
+    (if (and run-as-user
+             (not-nil? topo-owner)
+             (.exists file)
+             (not (Files/isReadable (.toPath file))))
+      (do
+        (log-debug "Setting permissions on file " fname " with topo-owner " topo-owner)
+        (supervisor/worker-launcher-and-wait *STORM-CONF* topo-owner ["blob" (.getCanonicalPath file)] :log-prefix (str "setup group read permissions for file: " fname))))))
+
 (defnk download-log-file [fname req resp user ^String root-dir :is-daemon false]
   (let [file (.getCanonicalFile (File. root-dir fname))]
     (if (.exists file)
@@ -1003,6 +1017,7 @@ Note that if anything goes wrong, this will throw an Error and exit."
                start (if (:start m) (parse-long-from-map m :start))
                length (if (:length m) (parse-long-from-map m :length))
                file (url-decode (:file m))]
+           (set-log-file-permissions file log-root)
            (log-template (log-page file start length (:grep m) user log-root)
                          file user))
          (catch InvalidRequestException ex
@@ -1014,6 +1029,7 @@ Note that if anything goes wrong, this will throw an Error and exit."
        ;; filter is configured.
        (try
          (mark! num-file-downloads)
+         (set-log-file-permissions file log-root)
          (let [user (.getUserName http-creds-handler servlet-request)]/
            (download-log-file file servlet-request servlet-response user log-root))
          (catch InvalidRequestException ex
