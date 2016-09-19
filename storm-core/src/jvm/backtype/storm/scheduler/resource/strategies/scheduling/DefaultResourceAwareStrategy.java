@@ -67,7 +67,6 @@ public class DefaultResourceAwareStrategy implements IStrategy {
     }
 
     public SchedulingResult schedule(TopologyDetails td) {
-        LOG.debug("max heap: {}", td.getConf().get(Config.TOPOLOGY_WORKER_MAX_HEAP_SIZE_MB));
         if (_nodes.getNodes().size() <= 0) {
             LOG.warn("No available nodes to schedule tasks on!");
             return SchedulingResult.failure(SchedulingStatus.FAIL_NOT_ENOUGH_RESOURCES, "No available nodes to schedule tasks on!");
