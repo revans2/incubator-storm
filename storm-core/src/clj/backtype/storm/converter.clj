@@ -16,8 +16,10 @@
 (ns backtype.storm.converter
   (:import [backtype.storm.generated SupervisorInfo NodeInfo Assignment WorkerResources
             StormBase TopologyStatus ClusterWorkerHeartbeat ExecutorInfo ErrorInfo Credentials RebalanceOptions KillOptions TopologyActionOptions ProfileRequest])
+  (:import [backtype.storm.utils Utils])
   (:use [backtype.storm util stats log])
-  (:require [backtype.storm.daemon [common :as common]]))
+  (:require [backtype.storm.daemon [common :as common]])
+  (:require [clojure.data.json :as json]))
 
 (defn thriftify-supervisor-info [supervisor-info]
   (doto (SupervisorInfo.)
@@ -81,13 +83,16 @@
           (into [] list-of-executors)) ; list of executors must be coverted to clojure vector to ensure it is sortable.
         executor->node_port))))
 
-(defn clojurify-worker->resources [worker->resources]
+(defn clojurify-worker-resources [^WorkerResources resources]
+  [(.get_mem_on_heap resources) (.get_mem_off_heap resources) (.get_cpu resources)])
+
+(defn clojurify-node-info-worker-resources [worker->resources]
   "convert worker info to be [node, port]
    convert resources to be mem_on_heap mem_off_heap cpu]"
   (into {} (map
              (fn [[nodeInfo resources]]
                [(concat [(.get_node nodeInfo)] (.get_port nodeInfo))
-                [(.get_mem_on_heap resources) (.get_mem_off_heap resources) (.get_cpu resources)]])
+                (clojurify-worker-resources resources)])
              worker->resources)))
 
 (defn clojurify-assignment [^Assignment assignment]
@@ -98,7 +103,7 @@
       (clojurify-executor->node_port (into {} (.get_executor_node_port assignment)))
       (map-key (fn [executor] (into [] executor))
         (into {} (.get_executor_start_time_secs assignment)))
-      (clojurify-worker->resources (into {} (.get_worker_resources assignment))))))
+      (clojurify-node-info-worker-resources (into {} (.get_worker_resources assignment))))))
 
 (defn convert-to-symbol-from-status [status]
   (condp = status
@@ -121,7 +126,10 @@
   (-> {:action :rebalance}
     (assoc-non-nil :delay-secs (if (.is_set_wait_secs rebalance-options) (.get_wait_secs rebalance-options)))
     (assoc-non-nil :num-workers (if (.is_set_num_workers rebalance-options) (.get_num_workers rebalance-options)))
-    (assoc-non-nil :component->executors (if (.is_set_num_executors rebalance-options) (into {} (.get_num_executors rebalance-options))))))
+    (assoc-non-nil :component->executors (if (.is_set_num_executors rebalance-options) (into {} (.get_num_executors rebalance-options))))
+    (assoc-non-nil :component->resources (if (.is_set_topology_resources_overrides rebalance-options) (into {} (.get_topology_resources_overrides rebalance-options))))
+    (assoc-non-nil :topology->config (if (.is_set_topology_conf_overrides rebalance-options) (into {} (Utils/parseJson (.get_topology_conf_overrides rebalance-options)))))
+    (assoc-non-nil :principal (if (.is_set_principal rebalance-options) (.get_principal rebalance-options)))))
 
 (defn thriftify-rebalance-options [rebalance-options]
   (if rebalance-options
@@ -132,6 +140,12 @@
         (.set_num_workers thrift-rebalance-options (int (:num-workers rebalance-options))))
       (if (:component->executors rebalance-options)
         (.set_num_executors thrift-rebalance-options (map-val int (:component->executors rebalance-options))))
+      (if (:component->resources rebalance-options)
+        (.set_topology_resources_overrides thrift-rebalance-options (map-val (partial map-val double) (:component->resources rebalance-options))))
+      (if (:topology->config rebalance-options)
+        (.set_topology_conf_overrides thrift-rebalance-options (json/write-str (:topology->config rebalance-options))))
+      (if (:principal rebalance-options)
+        (.set_principal thrift-rebalance-options (:principal rebalance-options)))
       thrift-rebalance-options)))
 
 (defn clojurify-kill-options [^KillOptions kill-options]

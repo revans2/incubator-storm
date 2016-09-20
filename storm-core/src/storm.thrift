@@ -365,6 +365,9 @@ struct RebalanceOptions {
   1: optional i32 wait_secs;
   2: optional i32 num_workers;
   3: optional map<string, i32> num_executors;
+  4: optional map<string, map<string, double>> topology_resources_overrides;
+  5: optional string topology_conf_overrides;
+  6: optional string principal
 }
 
 struct Credentials {

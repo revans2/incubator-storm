@@ -15,8 +15,11 @@
 ;; limitations under the License.
 (ns backtype.storm.command.rebalance
   (:use [clojure.tools.cli :only [cli]])
-  (:use [backtype.storm thrift config log])
+  (:use [backtype.storm thrift config log util])
   (:import [backtype.storm.generated RebalanceOptions])
+  (:import [backtype.storm.utils Utils])
+  (:import [org.json.simple JSONObject])
+  (:import [org.json.simple.parser JSONParser ParseException])
   (:gen-class))
 
 (defn- parse-executor [^String s]
@@ -26,8 +29,27 @@
     {name (Integer/parseInt amt)}
     ))
 
-(defn -main [& args] 
-  (let [[{wait :wait executor :executor num-workers :num-workers} [name] _]
+(defn- parse-resources-overrides [^String s]
+  (if-not (nil? s)
+    (try
+      (let [resources (java.util.HashMap.
+                        (map-val (partial map-val double) (Utils/parseJson s)))]
+        resources)
+      (catch ParseException e
+        (throw-runtime "Parse topology resource override json FAILED with exceptions: " e)))
+    (throw-runtime "No arguments found for topology resources override!")))
+
+(defn- validate-configs-overrides [^String s]
+  (if-not (nil? s)
+    (try
+      (Utils/parseJson s)
+      (str s)
+      (catch ParseException e
+        (throw-runtime "Parse topology config override json FAILED with exceptions: " e)))
+    (throw-runtime "No arguments found for topology config override!")))
+
+(defn -main [& args]
+  (let [[{wait :wait executor :executor num-workers :num-workers resources :resources topology-conf :topology-conf} [name] _]
                   (cli args ["-w" "--wait" :default nil :parse-fn #(Integer/parseInt %)]
                             ["-n" "--num-workers" :default nil :parse-fn #(Integer/parseInt %)]
                             ["-e" "--executor"  :parse-fn parse-executor
@@ -35,11 +57,20 @@
                                          (assoc previous key
                                                 (if-let [oldval (get previous key)]
                                                   (merge oldval val)
-                                                  val)))])
+                                                  val)))]
+                            ["-r" "--resources" :parse-fn parse-resources-overrides
+                             :assoc-fn (fn [previous key val]
+                                         (assoc previous key
+                                                 (if-let [oldval (get previous key)]
+                                                   (merge oldval val)
+                                                   val)))]
+                            ["-t" "--topology-conf" :default nil :parse-fn validate-configs-overrides])
         opts (RebalanceOptions.)]
     (if wait (.set_wait_secs opts wait))
     (if executor (.set_num_executors opts executor))
     (if num-workers (.set_num_workers opts num-workers))
+    (if resources (.set_topology_resources_overrides opts resources))
+    (if topology-conf (.set_topology_conf_overrides opts topology-conf))
     (with-configured-nimbus-connection nimbus
       (.rebalance nimbus name opts)
       (log-message "Topology " name " is rebalancing")

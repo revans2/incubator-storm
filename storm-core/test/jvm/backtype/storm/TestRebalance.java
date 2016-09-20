@@ -1,0 +1,157 @@
+package backtype.storm;
+
+import backtype.storm.LocalCluster;
+
+import backtype.storm.generated.AlreadyAliveException;
+import backtype.storm.generated.AuthorizationException;
+import backtype.storm.generated.ClusterSummary;
+import backtype.storm.generated.InvalidTopologyException;
+import backtype.storm.generated.NotAliveException;
+import backtype.storm.generated.RebalanceOptions;
+import backtype.storm.generated.StormTopology;
+import backtype.storm.generated.TopologySummary;
+import backtype.storm.scheduler.resource.TestUtilsForResourceAwareScheduler;
+import backtype.storm.topology.BoltDeclarer;
+import backtype.storm.topology.SpoutDeclarer;
+import backtype.storm.topology.TopologyBuilder;
+import backtype.storm.utils.Utils;
+import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
+import org.json.simple.parser.ParseException;
+import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.HashMap;
+import java.util.Map;
+
+import static org.junit.Assert.assertEquals;
+
+public class TestRebalance {
+
+    static final int SLEEP_TIME_BETWEEN_RETRY = 1000;
+
+    private static final Logger LOG = LoggerFactory.getLogger(TestRebalance.class);
+
+    @Test
+    public void testRebalanceTopologyResourcesAndConfigs() throws InvalidTopologyException, AuthorizationException, AlreadyAliveException, NotAliveException, ParseException {
+
+        LOG.info("Starting local cluster...");
+
+        Config config = new Config();
+        config.put(Config.STORM_SCHEDULER, backtype.storm.scheduler.resource.ResourceAwareScheduler.class.getName());
+        config.put(Config.RESOURCE_AWARE_SCHEDULER_EVICTION_STRATEGY, backtype.storm.scheduler.resource.strategies.eviction.DefaultEvictionStrategy.class.getName());
+        config.put(Config.RESOURCE_AWARE_SCHEDULER_PRIORITY_STRATEGY, backtype.storm.scheduler.resource.strategies.priority.DefaultSchedulingPriorityStrategy.class.getName());
+        config.put(Config.TOPOLOGY_SCHEDULER_STRATEGY, backtype.storm.scheduler.resource.strategies.scheduling.DefaultResourceAwareStrategy.class.getName());
+        config.put(Config.TOPOLOGY_COMPONENT_CPU_PCORE_PERCENT, 10.0);
+        config.put(Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB, 10.0);
+        config.put(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB, 100.0);
+        config.put(Config.TOPOLOGY_WORKER_MAX_HEAP_SIZE_MB, Double.MAX_VALUE);
+
+        ILocalCluster cluster = LocalCluster.getLocalClusterWithConf(config);
+
+        TopologyBuilder builder = new TopologyBuilder();
+
+        SpoutDeclarer s1 = builder.setSpout("spout-1", new TestUtilsForResourceAwareScheduler.TestSpout(),
+                2);
+        BoltDeclarer b1 = builder.setBolt("bolt-1", new TestUtilsForResourceAwareScheduler.TestBolt(),
+                2).shuffleGrouping("spout-1");
+        BoltDeclarer b2 = builder.setBolt("bolt-2", new TestUtilsForResourceAwareScheduler.TestBolt(),
+                2).shuffleGrouping("bolt-1");
+
+        StormTopology stormTopology = builder.createTopology();
+
+        LOG.info("submitting topologies...");
+        String topoName = "topo1";
+        cluster.submitTopology(topoName, new HashMap(), stormTopology);
+
+        waitTopologyScheduled(topoName, cluster, 20);
+
+        RebalanceOptions opts = new RebalanceOptions();
+
+        Map<String, Map<String, Double>> resources = new HashMap<String, Map<String, Double>>();
+        resources.put("spout-1", new HashMap<String, Double>());
+        resources.get("spout-1").put(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB, 120.0);
+        resources.get("spout-1").put(Config.TOPOLOGY_COMPONENT_CPU_PCORE_PERCENT, 25.0);
+
+        opts.set_topology_resources_overrides(resources);
+        opts.set_wait_secs(0);
+
+        JSONObject jsonObject = new JSONObject();
+        jsonObject.put(Config.TOPOLOGY_WORKER_MAX_HEAP_SIZE_MB, 768.0);
+
+        opts.set_topology_conf_overrides(jsonObject.toJSONString());
+
+        LOG.info("rebalancing...");
+        cluster.rebalance("topo1", opts);
+
+        waitTopologyScheduled(topoName, cluster, 10);
+
+        String confRaw = cluster.getTopologyConf(topoNameToId(topoName, cluster));
+
+        JSONParser parser = new JSONParser();
+
+        JSONObject readConf = (JSONObject) parser.parse(confRaw);
+        assertEquals("updated conf correct", 768.0, (double) readConf.get(Config.TOPOLOGY_WORKER_MAX_HEAP_SIZE_MB), 0.001);
+
+        StormTopology readStormTopology = cluster.getTopology(topoNameToId(topoName, cluster));
+        String componentConfRaw = readStormTopology.get_spouts().get("spout-1").get_common().get_json_conf();
+
+        JSONObject readTopologyConf = (JSONObject) parser.parse(componentConfRaw);
+
+        assertEquals("Updated CPU correct", 25.0, (double) readTopologyConf.get(Config.TOPOLOGY_COMPONENT_CPU_PCORE_PERCENT), 0.001);
+        assertEquals("Updated Memory correct", 120.0, (double) readTopologyConf.get(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB), 0.001);
+
+        cluster.shutdown();
+    }
+
+    public void waitTopologyScheduled(String topoName, ILocalCluster cluster, int retryAttempts) {
+        for (int i = 0; i < retryAttempts; i++) {
+            if (checkTopologyScheduled(topoName, cluster)) {
+                //sleep to prevent race conditions
+                Utils.sleep(SLEEP_TIME_BETWEEN_RETRY);
+                return;
+            }
+            Utils.sleep(SLEEP_TIME_BETWEEN_RETRY);
+        }
+        throw new RuntimeException("Error: Wait for topology " + topoName + " to be ACTIVE has timed out!");
+    }
+
+    public boolean checkTopologyScheduled(String topoName, ILocalCluster cluster) {
+        if (checkTopologyUp(topoName, cluster)) {
+            ClusterSummary sum = cluster.getClusterInfo();
+            for (TopologySummary topoSum : sum.get_topologies()) {
+                if (topoSum.get_name().equals(topoName)) {
+                    String status = topoSum.get_status();
+                    String sched_status = topoSum.get_sched_status();
+                    if (status.equals("ACTIVE") && (sched_status != null && !sched_status.equals(""))) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+    public boolean checkTopologyUp(String topoName, ILocalCluster cluster) {
+        ClusterSummary sum = cluster.getClusterInfo();
+
+        for (TopologySummary topoSum : sum.get_topologies()) {
+            if (topoSum.get_name().equals(topoName)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public static String topoNameToId(String topoName, ILocalCluster cluster) {
+        for (TopologySummary topoSum : cluster.getClusterInfo().get_topologies()) {
+            if (topoSum.get_name().equals(topoName)) {
+                return topoSum.get_id();
+            }
+        }
+        return null;
+    }
+
+
+}

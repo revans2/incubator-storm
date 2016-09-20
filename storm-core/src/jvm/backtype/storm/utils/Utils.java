@@ -58,6 +58,7 @@ import backtype.storm.generated.StormTopology;
 import backtype.storm.generated.TopologyInfo;
 import backtype.storm.generated.TopologySummary;
 import backtype.storm.localizer.Localizer;
+import backtype.storm.security.auth.SingleUserPrincipal;
 import backtype.storm.serialization.DefaultSerializationDelegate;
 import backtype.storm.serialization.SerializationDelegate;
 import org.apache.thrift.TBase;
@@ -68,6 +69,7 @@ import org.apache.zookeeper.ZooDefs;
 import org.apache.zookeeper.data.ACL;
 import org.apache.zookeeper.data.Id;
 import org.json.simple.JSONValue;
+import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -95,6 +97,13 @@ import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.PrintStream;
 import java.io.RandomAccessFile;
+import java.io.IOException;
+import java.security.Principal;
+import java.util.jar.JarEntry;
+import java.util.jar.JarFile;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.io.BufferedReader;
 import java.io.Serializable;
 import java.lang.management.ManagementFactory;
 import java.net.InetAddress;
@@ -134,6 +143,8 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
 import clojure.lang.RT;
+
+import javax.security.auth.Subject;
 
 public class Utils {
     // A singleton instance allows us to mock delegated static methods in our
@@ -1505,6 +1516,17 @@ public class Utils {
      */
     public static int toPositive(int number) {
         return number & Integer.MAX_VALUE;
+    }
+
+    public static Object parseJson(String jsonString) throws ParseException {
+        return new JSONParser().parse(jsonString);
+    }
+
+    public static Subject principalNameToSubject(String name) {
+        SingleUserPrincipal principal = new SingleUserPrincipal(name);
+        Subject sub = new Subject();
+        sub.getPrincipals().add(principal);
+        return sub;
     }
 
     public static GlobalStreamId getGlobalStreamId(String streamId, String componentId) {
