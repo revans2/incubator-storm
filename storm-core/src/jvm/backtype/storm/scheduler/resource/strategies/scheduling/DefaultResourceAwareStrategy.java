@@ -18,7 +18,6 @@
 
 package backtype.storm.scheduler.resource.strategies.scheduling;
 
-import backtype.storm.Config;
 import backtype.storm.scheduler.Cluster;
 import backtype.storm.scheduler.ExecutorDetails;
 import backtype.storm.scheduler.Topologies;
