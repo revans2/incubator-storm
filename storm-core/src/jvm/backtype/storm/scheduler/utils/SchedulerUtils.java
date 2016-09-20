@@ -19,6 +19,7 @@ package backtype.storm.scheduler.utils;
 
 import backtype.storm.utils.Utils;
 import java.util.Map;
+import java.util.HashMap;
 import java.io.File;
 import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.constructor.SafeConstructor;
@@ -32,12 +33,15 @@ public class SchedulerUtils {
 
     public static IConfigLoader getConfigLoader(Map conf, String loaderClassConfig, String loaderConfConfig) {
         if (conf.get(loaderClassConfig) != null) {
-            Map<String, String> loaderConf = (Map<String, String>)conf.get(loaderConfConfig);
+            Map<String, String> loaderVariables = (Map<String, String>)conf.get(loaderConfConfig);
+            HashMap<Object, Object> mergedConf = new HashMap<Object, Object>();
+            mergedConf.putAll(loaderVariables);
+            mergedConf.putAll(conf);
             String clazz = (String)conf.get(loaderClassConfig);
             if (clazz != null) {
                 IConfigLoader loader = (IConfigLoader)Utils.newInstance(clazz);
                 if (loader != null) {
-                    loader.prepare(loaderConf);
+                    loader.prepare(mergedConf);
                     return loader;
                 }
             }
