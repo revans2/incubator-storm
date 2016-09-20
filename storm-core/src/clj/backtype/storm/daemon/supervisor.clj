@@ -956,17 +956,17 @@
   ;; Downloading to permanent location is atomic
   (let [tmproot (str (supervisor-tmp-dir conf) file-path-separator (uuid))
         stormroot (supervisor-stormdist-root conf storm-id)
-        blobstore (Utils/getSupervisorBlobStore conf)]
+        blobstore (Utils/getClientBlobStoreForSupervisor conf)]
     (FileUtils/forceMkdir (File. tmproot))
     (if-not on-windows?
       (Utils/restrictPermissions tmproot)
       (if (conf SUPERVISOR-RUN-WORKER-AS-USER)
         (throw-runtime (str "ERROR: Windows doesn't implement setting the correct permissions"))))
-    (Utils/downloadResourcesAsSupervisor conf (master-stormjar-key storm-id)
+    (Utils/downloadResourcesAsSupervisor (master-stormjar-key storm-id)
       (supervisor-stormjar-path tmproot) blobstore)
-    (Utils/downloadResourcesAsSupervisor conf (master-stormcode-key storm-id)
+    (Utils/downloadResourcesAsSupervisor (master-stormcode-key storm-id)
       (supervisor-stormcode-path tmproot) blobstore)
-    (Utils/downloadResourcesAsSupervisor conf (master-stormconf-key storm-id)
+    (Utils/downloadResourcesAsSupervisor (master-stormconf-key storm-id)
       (supervisor-stormconf-path tmproot) blobstore)
     (.shutdown blobstore)
     (extract-dir-from-jar (supervisor-stormjar-path tmproot) RESOURCES-SUBDIR tmproot)
@@ -1261,7 +1261,7 @@
     (let [supervisor (mk-supervisor conf nil supervisor)]
       (add-shutdown-hook-with-force-kill-in-1-sec #(.shutdown supervisor)))
     (defgauge num-slots-used-gauge #(count (my-worker-ids conf)))
-    (start-metrics-reporters)))
+    (start-metrics-reporters conf)))
 
 (defn standalone-supervisor []
   (let [conf-atom (atom nil)

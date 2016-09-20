@@ -339,6 +339,7 @@
       ([] 
         (let [^LoadMapping load-mapping (:load-mapping worker)
               local-pop (map-val (fn [^DisruptorQueue queue] (/ (double (.population (.getMetrics queue))) (.capacity (.getMetrics queue)))) short-executor-receive-queue-map)
+              local-pop (map-key int local-pop)
               remote-load (reduce merge (for [[np conn] @(:cached-node+port->socket worker)] (into {} (.getLoad conn remote-tasks))))
               now (System/currentTimeMillis)]
           (.setLocal load-mapping local-pop)

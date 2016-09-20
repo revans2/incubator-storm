@@ -1241,4 +1241,4 @@ Note that if anything goes wrong, this will throw an Error and exit."
                  STORM-VERSION
                  "'")
     (start-logviewer! conf log-root daemonlog-root)
-    (start-metrics-reporters)))
+    (start-metrics-reporters conf)))

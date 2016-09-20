@@ -255,7 +255,7 @@
                                         https-need-client-auth
                                         https-want-client-auth)
                             (config-filter server app filters-confs))})))
-      (start-metrics-reporters)
+      (start-metrics-reporters conf)
       (when handler-server
         (.serve handler-server)))))
 

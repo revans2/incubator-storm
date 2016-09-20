@@ -21,6 +21,7 @@
                                  ZooDefs 
                                  ZooDefs$Ids 
                                  ZooDefs$Perms]
+           [org.apache.storm.cluster ZKStateStorage]
            [backtype.storm.cluster ClusterState ClusterStateContext DaemonType])
   (:use [backtype.storm cluster config log util])
   (:require [backtype.storm [zookeeper :as zk]])
@@ -29,6 +30,9 @@
 
 (defn- is-nimbus? [context]
   (= (.getDaemonType context) DaemonType/NIMBUS))
+
+(defn -mkStore [this conf auth-conf, acls, context]
+  (ZKStateStorage. conf, auth-conf, acls, context))
 
 (defn -mkState [this conf auth-conf acls context]
   (let [zk-writer (zk/mk-client conf (conf STORM-ZOOKEEPER-SERVERS) (conf STORM-ZOOKEEPER-PORT) :auth-conf auth-conf)]
