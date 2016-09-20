@@ -84,8 +84,9 @@ public abstract class ContainerLauncher {
      * @param state the current state of the supervisor
      * @return The container that can be used to manage the processes.
      * @throws IOException on any error
+     * @throws ContainerRecoveryException if the Container could not be recovered
      */
-    public abstract Container recoverContainer(int port, LocalAssignment assignment, LocalState state) throws IOException;
+    public abstract Container recoverContainer(int port, LocalAssignment assignment, LocalState state) throws IOException, ContainerRecoveryException;
     
     /**
      * Try to recover a container using just the worker ID.  
@@ -94,9 +95,10 @@ public abstract class ContainerLauncher {
      * do not case the result to Container because only the Killable APIs
      * are guaranteed to work. 
      * @param workerId the id of the worker to use
-     * @param state the current state of the supervisor
+     * @param localState the state of the running supervisor
      * @return a Killable that can be used to kill the underlying container.
      * @throws IOException on any error
+     * @throws ContainerRecoveryException if the Container could not be recovered
      */
     public abstract Killable recoverContainer(String workerId, LocalState localState) throws IOException, ContainerRecoveryException;
 }

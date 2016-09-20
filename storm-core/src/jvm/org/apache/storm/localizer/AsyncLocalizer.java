@@ -129,31 +129,36 @@ public class AsyncLocalizer implements ILocalizer, Shutdownable {
         
         @Override
         public Void call() throws Exception {
-            if (_fsOps.fileExists(_stormRoot)) {
-                if (!_fsOps.supportsAtomicDirectoryMove()) {
-                    LOG.warn("{} may have partially downloaded blobs, recovering", _topologyId);
-                    _fsOps.deleteIfExists(_stormRoot);
-                } else {
-                    LOG.warn("{} already downloaded blobs, skipping", _topologyId);
-                    return null;
-                }
-            }
-            boolean deleteAll = true;
-            String tmproot = ConfigUtils.supervisorTmpDir(_conf) + Utils.FILE_PATH_SEPARATOR + Utils.uuid();
-            File tr = new File(tmproot);
             try {
-                downloadBaseBlobs(tr);
-                _fsOps.moveDirectoryPreferAtomic(tr, _stormRoot);
-                _fsOps.setupStormCodeDir(ConfigUtils.readSupervisorStormConf(_conf, _topologyId), _stormRoot);
-                deleteAll = false;
-            } finally {
-                if (deleteAll) {
-                    LOG.warn("Failed to download basic resources for topology-id {}", _topologyId);
-                    _fsOps.deleteIfExists(tr);
-                    _fsOps.deleteIfExists(_stormRoot);
+                if (_fsOps.fileExists(_stormRoot)) {
+                    if (!_fsOps.supportsAtomicDirectoryMove()) {
+                        LOG.warn("{} may have partially downloaded blobs, recovering", _topologyId);
+                        _fsOps.deleteIfExists(_stormRoot);
+                    } else {
+                        LOG.warn("{} already downloaded blobs, skipping", _topologyId);
+                        return null;
+                    }
                 }
+                boolean deleteAll = true;
+                String tmproot = ConfigUtils.supervisorTmpDir(_conf) + Utils.FILE_PATH_SEPARATOR + Utils.uuid();
+                File tr = new File(tmproot);
+                try {
+                    downloadBaseBlobs(tr);
+                    _fsOps.moveDirectoryPreferAtomic(tr, _stormRoot);
+                    _fsOps.setupStormCodeDir(ConfigUtils.readSupervisorStormConf(_conf, _topologyId), _stormRoot);
+                    deleteAll = false;
+                } finally {
+                    if (deleteAll) {
+                        LOG.warn("Failed to download basic resources for topology-id {}", _topologyId);
+                        _fsOps.deleteIfExists(tr);
+                        _fsOps.deleteIfExists(_stormRoot);
+                    }
+                }
+                return null;
+            } catch (Exception e) {
+                LOG.warn("Caught Exception While Downloading (rethrowing)... ", e);
+                throw e;
             }
-            return null;
         }
     }
     
@@ -212,58 +217,68 @@ public class AsyncLocalizer implements ILocalizer, Shutdownable {
 
         @Override
         public Void call() throws Exception {
-            String stormroot = ConfigUtils.supervisorStormDistRoot(_conf, _topologyId);
-            Map<String, Object> stormConf = ConfigUtils.readSupervisorStormConf(_conf, _topologyId);
-                
-            @SuppressWarnings("unchecked")
-            Map<String, Map<String, Object>> blobstoreMap = (Map<String, Map<String, Object>>) stormConf.get(Config.TOPOLOGY_BLOBSTORE_MAP);
-            String user = (String) stormConf.get(Config.TOPOLOGY_SUBMITTER_USER);
-            String topoName = (String) stormConf.get(Config.TOPOLOGY_NAME);
+            try {
+                String stormroot = ConfigUtils.supervisorStormDistRoot(_conf, _topologyId);
+                Map<String, Object> stormConf = ConfigUtils.readSupervisorStormConf(_conf, _topologyId);
 
-            List<LocalResource> localResourceList = new ArrayList<>();
-            if (blobstoreMap != null) {
-                List<LocalResource> tmp = SupervisorUtils.blobstoreMapToLocalresources(blobstoreMap);
-                if (tmp != null) {
-                    localResourceList.addAll(tmp);
-                }
-            }
+                @SuppressWarnings("unchecked")
+                Map<String, Map<String, Object>> blobstoreMap = (Map<String, Map<String, Object>>) stormConf.get(Config.TOPOLOGY_BLOBSTORE_MAP);
+                String user = (String) stormConf.get(Config.TOPOLOGY_SUBMITTER_USER);
+                String topoName = (String) stormConf.get(Config.TOPOLOGY_NAME);
 
-//            StormTopology stormCode = ConfigUtils.readSupervisorTopology(_conf, _topologyId, _fsOps);
-//            List<String> dependencies = new ArrayList<>();
-//            if (stormCode.is_set_dependency_jars()) {
-//                dependencies.addAll(stormCode.get_dependency_jars());
-//            }
-//            if (stormCode.is_set_dependency_artifacts()) {
-//                dependencies.addAll(stormCode.get_dependency_artifacts());
-//            }
-//            for (String dependency : dependencies) {
-//                localResourceList.add(new LocalResource(dependency, false));
-//            }
-            
-            if (!localResourceList.isEmpty()) {
-                File userDir = _localizer.getLocalUserFileCacheDir(user);
-                if (!_fsOps.fileExists(userDir)) {
-                    _fsOps.forceMkdir(userDir);
-                }
-                List<LocalizedResource> localizedResources = _localizer.getBlobs(localResourceList, user, topoName, userDir);
-                _fsOps.setupBlobPermissions(userDir, user);
-                for (LocalizedResource localizedResource : localizedResources) {
-                    String keyName = localizedResource.getKey();
-                    //The sym link we are pointing to
-                    File rsrcFilePath = new File(localizedResource.getCurrentSymlinkPath());
-
-                    String symlinkName = null;
-                    Map<String, Object> blobInfo = blobstoreMap.get(keyName);
-                    if (blobInfo != null && blobInfo.containsKey("localname")) {
-                        symlinkName = (String) blobInfo.get("localname");
-                    } else {
-                        symlinkName = keyName;
+                List<LocalResource> localResourceList = new ArrayList<>();
+                if (blobstoreMap != null) {
+                    List<LocalResource> tmp = SupervisorUtils.blobstoreMapToLocalresources(blobstoreMap);
+                    if (tmp != null) {
+                        localResourceList.addAll(tmp);
                     }
-                    _fsOps.createSymlink(new File(stormroot, symlinkName), rsrcFilePath);
                 }
-            }
 
-            return null;
+//                StormTopology stormCode = ConfigUtils.readSupervisorTopology(_conf, _topologyId, _fsOps);
+//                List<String> dependencies = new ArrayList<>();
+//                if (stormCode.is_set_dependency_jars()) {
+//                    dependencies.addAll(stormCode.get_dependency_jars());
+//                }
+//                if (stormCode.is_set_dependency_artifacts()) {
+//                    dependencies.addAll(stormCode.get_dependency_artifacts());
+//                }
+//                for (String dependency : dependencies) {
+//                    localResourceList.add(new LocalResource(dependency, false));
+//                }
+
+                if (!localResourceList.isEmpty()) {
+                    File userDir = _localizer.getLocalUserFileCacheDir(user);
+                    if (!_fsOps.fileExists(userDir)) {
+                        _fsOps.forceMkdir(userDir);
+                    }
+                    List<LocalizedResource> localizedResources = _localizer.getBlobs(localResourceList, user, topoName, userDir);
+                    _fsOps.setupBlobPermissions(userDir, user);
+                    for (LocalizedResource localizedResource : localizedResources) {
+                        String keyName = localizedResource.getKey();
+                        //The sym link we are pointing to
+                        File rsrcFilePath = new File(localizedResource.getCurrentSymlinkPath());
+
+                        String symlinkName = null;
+                        if (blobstoreMap != null) {
+                            Map<String, Object> blobInfo = blobstoreMap.get(keyName);
+                            if (blobInfo != null && blobInfo.containsKey("localname")) {
+                                symlinkName = (String) blobInfo.get("localname");
+                            } else {
+                                symlinkName = keyName;
+                            }
+                        } else {
+                            // all things are from dependencies
+                            symlinkName = keyName;
+                        }
+                        _fsOps.createSymlink(new File(stormroot, symlinkName), rsrcFilePath);
+                    }
+                }
+
+                return null;
+            } catch (Exception e) {
+                LOG.warn("Caught Exception While Downloading (rethrowing)... ", e);
+                throw e;
+            }
         }
     }
     
@@ -309,25 +324,15 @@ public class AsyncLocalizer implements ILocalizer, Shutdownable {
         if (path == null) {
             return null;
         }
-        String[] paths = path.split(File.pathSeparator);
-        List<String> jarPaths = new ArrayList<String>();
-        for (String s : paths) {
-            if (s.endsWith(".jar")) {
-                jarPaths.add(s);
+        
+        for (String jpath : path.split(File.pathSeparator)) {
+            if (jpath.endsWith(".jar")) {
+                if (Utils.zipDoesContainDir(jpath, ConfigUtils.RESOURCES_SUBDIR)) {
+                    return jpath;
+                }
             }
         }
-
-        List<String> rtn = new ArrayList<String>();
-        int size = jarPaths.size();
-        for (int i = 0; i < size; i++) {
-            if (Utils.zipDoesContainDir(jarPaths.get(i), ConfigUtils.RESOURCES_SUBDIR)) {
-                rtn.add(jarPaths.get(i));
-            }
-        }
-        if (rtn.size() == 0)
-            return null;
-
-        return rtn.get(0);
+        return null;
     }
     
     @Override

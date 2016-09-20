@@ -306,9 +306,9 @@ public abstract class Container implements Killable {
             LOG.info("Missing topology storm code, so can't launch  worker with assignment {} for this supervisor {} on port {} with id {}", _assignment,
                     _supervisorId, _port, _workerId);
             throw new IllegalStateException("Not all needed files are here!!!!");
-        }
+        } 
         LOG.info("Setting up {}:{}", _supervisorId, _workerId);
-        
+
         _ops.forceMkdir(new File(ConfigUtils.workerPidsRoot(_conf, _workerId)));
         _ops.forceMkdir(new File(ConfigUtils.workerTmpRoot(_conf, _workerId)));
         _ops.forceMkdir(new File(ConfigUtils.workerHeartbeatsRoot(_conf, _workerId)));
@@ -451,10 +451,10 @@ public abstract class Container implements Killable {
     protected String getWorkerUser() throws IOException {
         LOG.info("GET worker-user for {}", _workerId);
         File file = new File(ConfigUtils.workerUserFile(_conf, _workerId));
-        
+
         if (_ops.fileExists(file)) {
             return _ops.slurpString(file).trim();
-        } else if (_topoConf != null) {
+        } else if (_topoConf != null) { 
             return (String) _topoConf.get(Config.TOPOLOGY_SUBMITTER_USER);
         }
         if (ConfigUtils.isLocalMode(_conf)) {
@@ -483,7 +483,7 @@ public abstract class Container implements Killable {
      * Clean up the container partly preparing for restart.
      * By default delete all of the temp directories we are going
      * to get a new worker_id anyways.
-     * POST CONDITION: the workerId will be set to null 
+     * POST CONDITION: the workerId will be set to null
      * @throws IOException on any error
      */
     public void cleanUpForRestart() throws IOException {

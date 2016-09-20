@@ -260,7 +260,7 @@
                     {"mybolt" (thrift/mk-bolt-spec {"myspout" :shuffle} ack-every-other)})]      
       (submit-local-topology (:nimbus cluster)
                              "metrics-tester"
-                             {}
+                             {TOPOLOGY-DEBUG true}
                              topology)
       
       (.feed feeder ["a"] 1)
@@ -312,7 +312,8 @@
                     {"mybolt" (thrift/mk-bolt-spec {"myspout" :global} ack-every-other)})]      
       (submit-local-topology (:nimbus cluster)
                              "timeout-tester"
-                             {TOPOLOGY-MESSAGE-TIMEOUT-SECS 10}
+                             {TOPOLOGY-MESSAGE-TIMEOUT-SECS 10
+                              TOPOLOGY-DEBUG true}
                              topology)
       (.feed feeder ["a"] 1)
       (.feed feeder ["b"] 2)

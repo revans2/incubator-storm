@@ -142,7 +142,7 @@ public class Time {
         if (!simulating.get()) throw new IllegalStateException("Cannot simulate time unless in simulation mode");
         if (ms < 0) throw new IllegalArgumentException("advanceTime only accepts positive time as an argument");
         long newTime = simulatedCurrTimeMs.addAndGet(ms);
-        LOG.debug("Advanced simulated time to {}", newTime);
+        LOG.warn("Advanced simulated time to {}", newTime);
     }
     
     public static boolean isThreadWaiting(Thread t) {
