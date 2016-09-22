@@ -24,7 +24,7 @@
            [java.net URI]
            [org.apache.commons.io FileUtils]
            [java.io File])
-  (:use [backtype.storm config util log timer local-state converter])
+  (:use [backtype.storm config util log timer local-state])
   (:import [backtype.storm.utils VersionInfo])
   (:import [backtype.storm.generated AuthorizationException KeyNotFoundException ProfileAction WorkerResources])
   (:import [java.nio.file Files Path Paths StandardCopyOption])
