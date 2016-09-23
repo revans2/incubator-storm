@@ -480,7 +480,7 @@ public class BasicContainer extends Container {
      */
     private List<String> getClassPathParams(final String stormRoot) throws IOException {
         final String stormJar = ConfigUtils.supervisorStormJarPath(stormRoot);
-        final StormTopology stormTopology = ConfigUtils.readSupervisorTopology(_conf, _topologyId, _ops);
+//        final StormTopology stormTopology = ConfigUtils.readSupervisorTopology(_conf, _topologyId, _ops);
         final List<String> dependencyLocations = new ArrayList<>();
 //        if (stormTopology.get_dependency_jars() != null) {
 //            for (String dependency : stormTopology.get_dependency_jars()) {
