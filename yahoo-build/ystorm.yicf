@@ -92,6 +92,9 @@ symlink - - - lib64/storm/$(BASE_VERSION)/lib/data_core.jar             /home/y/
 #The actual group of the executable will be set by a pre-activate script
 file 6550 root root lib64/storm/$(BASE_VERSION)/bin/worker-launcher ../storm-core/target/native/target/usr/local/bin/worker-launcher
 
+# cgroup monitoring native library
+file 444 - - lib64/libcgroupOOMMonitor.so ../storm-core/target/native/target/usr/local/lib/libcgroupOOMMonitor.so
+
 file 444 - - lib64/jars/storm.pom ../pom.xml
 file 444 - - lib64/jars/storm-core.jar ../storm-core/target/storm-core-$(BASE_VERSION).jar
 file 444 - - lib64/jars/storm-core-sources.jar ../storm-core/target/storm-core-$(BASE_VERSION)-sources.jar

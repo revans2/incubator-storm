@@ -85,6 +85,9 @@
     <div id="topology-configuration" class="col-md-12"></div>
   </div>
   <div class="row">
+    <div id="topology-errors" class="col-md-12"></div>
+  </div>
+  <div class="row">
     <div class="col-md-12">
       <p id="toggle-switch" style="display: block;" class="js-only"></p>
     </div>
@@ -304,6 +307,7 @@ $(document).ready(function() {
         var searchForm = $("#search-form")
         var formattedConfig = formatConfigData(response["configuration"]);
         var buttonJsonData = topologyActionJson(response["id"],response["encodedId"],response["name"],response["status"],response["msgTimeout"]);
+        var topologyErrors = $("#topology-errors");
         getStatic("/templates/topology-page-template.html", function(template) {
           toggleChangeLogLevel = function (data) {
               renderLogLevelForm (template, data);
@@ -385,6 +389,30 @@ $(document).ready(function() {
               }
             }
           });
+
+          jsError(function() {
+            topologyErrors.append(Mustache.render($(template).filter("#topology-errors-template").html(), response));
+            //time, error
+            dtAutoPage("#topology-errors-table", {});
+
+            var errorTimeCells = document.getElementsByClassName("errorTimeSpan");
+            for (i = 0; i < errorTimeCells.length; i++) {
+              var timeInMilliseconds = errorTimeCells[i].id;
+              var time = parseInt(timeInMilliseconds);
+              var date = new Date(time);
+              errorTimeCells[i].innerHTML = date.toJSON();
+            }
+
+            var errorCells = document.getElementsByClassName("errorSpan");
+            for (i = 0; i < errorCells.length; i++) {
+              var timeLapsedInSecs = errorCells[i].id;
+              if (parseInt(timeLapsedInSecs) < 1800) {
+                errorCells[i].style.color = "#9d261d";
+                errorCells[i].style.borderBottomColor = "#9d261d";
+             }
+            }
+          });
+
           $('#topology-summary [data-toggle="tooltip"]').tooltip();
           $('#topology-stats [data-toggle="tooltip"]').tooltip();
           $('#spout-stats [data-toggle="tooltip"]').tooltip();
@@ -392,6 +420,7 @@ $(document).ready(function() {
           $('#topology-configuration [data-toggle="tooltip"]').tooltip();
           $('#topology-actions [data-toggle="tooltip"]').tooltip();
           $('#topology-visualization [data-toggle="tooltip"]').tooltip();
+          $('#topology-errors [data-toggle="tooltip"]').tooltip();
       });
     });
  });

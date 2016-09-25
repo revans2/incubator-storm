@@ -1228,6 +1228,12 @@
                       (.set_host (:host e))
                       (.set_port (:port e)))))
 
+(defn- get-topology-errors [storm-cluster-state topology-id]
+  (->> (.get-topology-errors storm-cluster-state topology-id)
+    (map #(doto (ErrorInfo. (:error %) (:time-secs %))
+            (.set_host (:host %))
+            (.set_port (:port %))))))
+
 (defn- thriftify-executor-id [[first-task-id last-task-id]]
   (ExecutorInfo. (int first-task-id) (int last-task-id)))
 
@@ -1952,7 +1958,9 @@
             (.set_uptime_secs (time-delta launch-time-secs))
             (.set_topology_conf (to-json (try-read-storm-conf conf
                                                               storm-id
-                                                              blob-store))))))
+                                                              blob-store)))
+            (.set_errors (get-topology-errors (:storm-cluster-state topo-info)
+                           storm-id)))))
 
       (^ComponentPageInfo getComponentPageInfo
         [this

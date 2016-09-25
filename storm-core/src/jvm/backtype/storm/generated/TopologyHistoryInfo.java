@@ -364,13 +364,13 @@ public class TopologyHistoryInfo implements org.apache.thrift.TBase<TopologyHist
           case 1: // TOPO_IDS
             if (schemeField.type == org.apache.thrift.protocol.TType.LIST) {
               {
-                org.apache.thrift.protocol.TList _list562 = iprot.readListBegin();
-                struct.topo_ids = new ArrayList<String>(_list562.size);
-                String _elem563;
-                for (int _i564 = 0; _i564 < _list562.size; ++_i564)
+                org.apache.thrift.protocol.TList _list570 = iprot.readListBegin();
+                struct.topo_ids = new ArrayList<String>(_list570.size);
+                String _elem571;
+                for (int _i572 = 0; _i572 < _list570.size; ++_i572)
                 {
-                  _elem563 = iprot.readString();
-                  struct.topo_ids.add(_elem563);
+                  _elem571 = iprot.readString();
+                  struct.topo_ids.add(_elem571);
                 }
                 iprot.readListEnd();
               }
@@ -396,9 +396,9 @@ public class TopologyHistoryInfo implements org.apache.thrift.TBase<TopologyHist
         oprot.writeFieldBegin(TOPO_IDS_FIELD_DESC);
         {
           oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRING, struct.topo_ids.size()));
-          for (String _iter565 : struct.topo_ids)
+          for (String _iter573 : struct.topo_ids)
           {
-            oprot.writeString(_iter565);
+            oprot.writeString(_iter573);
           }
           oprot.writeListEnd();
         }
@@ -429,9 +429,9 @@ public class TopologyHistoryInfo implements org.apache.thrift.TBase<TopologyHist
       if (struct.is_set_topo_ids()) {
         {
           oprot.writeI32(struct.topo_ids.size());
-          for (String _iter566 : struct.topo_ids)
+          for (String _iter574 : struct.topo_ids)
           {
-            oprot.writeString(_iter566);
+            oprot.writeString(_iter574);
           }
         }
       }
@@ -443,13 +443,13 @@ public class TopologyHistoryInfo implements org.apache.thrift.TBase<TopologyHist
       BitSet incoming = iprot.readBitSet(1);
       if (incoming.get(0)) {
         {
-          org.apache.thrift.protocol.TList _list567 = new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRING, iprot.readI32());
-          struct.topo_ids = new ArrayList<String>(_list567.size);
-          String _elem568;
-          for (int _i569 = 0; _i569 < _list567.size; ++_i569)
+          org.apache.thrift.protocol.TList _list575 = new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRING, iprot.readI32());
+          struct.topo_ids = new ArrayList<String>(_list575.size);
+          String _elem576;
+          for (int _i577 = 0; _i577 < _list575.size; ++_i577)
           {
-            _elem568 = iprot.readString();
-            struct.topo_ids.add(_elem568);
+            _elem576 = iprot.readString();
+            struct.topo_ids.add(_elem576);
           }
         }
         struct.set_topo_ids_isSet(true);

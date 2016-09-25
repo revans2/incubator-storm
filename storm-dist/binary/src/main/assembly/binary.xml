@@ -34,6 +34,13 @@
     </dependencySets>
 
     <fileSets>
+        <fileSet>
+            <directory>${project.basedir}/../../storm-core/target/native/target/usr/local/lib/</directory>
+            <outputDirectory>lib</outputDirectory>
+            <includes>
+                <include>libcgroupOOMMonitor.so</include>
+            </includes>
+        </fileSet>
         <!--
             $STORM_HOME/bin
         -->

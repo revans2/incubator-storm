@@ -34,6 +34,7 @@ import org.apache.storm.container.ResourceIsolationInterface;
 import org.apache.storm.container.cgroup.core.CpuCore;
 import org.apache.storm.container.cgroup.core.CpusetCore;
 import org.apache.storm.container.cgroup.core.MemoryCore;
+import org.apache.storm.container.cgroup.monitor.CgroupOOMMonitor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -57,6 +58,8 @@ public class CgroupManager implements ResourceIsolationInterface {
 
     private Map<String, Object> conf;
 
+    private CgroupOOMMonitor oomMonitor;
+
     /**
      * initialize intial data structures
      * @param conf storm confs
@@ -78,6 +81,17 @@ public class CgroupManager implements ResourceIsolationInterface {
             throw new RuntimeException("Cgroup error, please check /proc/cgroups");
         }
         this.prepareSubSystem(this.conf);
+
+        //initalize oom monitor
+        if (Utils.getBoolean(this.conf.get(Config.STORM_CGROUP_OOM_MONITORING_ENABLE), false)) {
+            String libPathProperty = System.getProperty("java.library.path");
+            LOG.debug("java.library.path: {}", libPathProperty);
+            this.oomMonitor = new CgroupOOMMonitor(conf);
+            this.oomMonitor.startNotificationThread();
+            // enabling monitoring on exisiting cgroups
+            LOG.info("Cgroups to Monitor for OOM on startup: {} ", this.rootCgroup.getChildren());
+            this.oomMonitor.setCgroupsToMonitor(this.rootCgroup.getChildren());
+        }
     }
 
     /**
@@ -182,7 +196,13 @@ public class CgroupManager implements ResourceIsolationInterface {
                 }
             }
         }
+        //update which cgroups to monitor
+        if (Utils.getBoolean(conf.get(Config.STORM_CGROUP_OOM_MONITORING_ENABLE), false)) {
+            this.oomMonitor.addCgroupToMonitor(workerGroup);
+        }
     }
+
+
 
     public void releaseResourcesForWorker(String workerId) {
         LOG.info("Cleaning up cgroups for worker {}", workerId);
@@ -198,8 +218,11 @@ public class CgroupManager implements ResourceIsolationInterface {
             if (!tasks.isEmpty()) {
                 throw new Exception("Cannot correctly showdown worker CGroup " + workerId + " tasks " + tasks.toString() + " still running!");
             }
+            //update which cgroups to monitor
+            if (Utils.getBoolean(conf.get(Config.STORM_CGROUP_OOM_MONITORING_ENABLE), false)) {
+                this.oomMonitor.removeCgroupToMonitor(workerGroup);
+            }
             this.center.deleteCgroup(workerGroup);
-            return;
         } catch (Exception e) {
             LOG.error("Exception thrown when shutting worker {} Exception: ", workerId, e);
             throw new RuntimeException("Unsuccessful in deleting CGroup " + workerId);
@@ -234,7 +257,7 @@ public class CgroupManager implements ResourceIsolationInterface {
                 sb.append(":");
             }
         }
-        sb.append(workerGroup.getName());
+        sb.append("/").append(workerGroup.getParent().getName()).append("/").append(workerGroup.getName());
         List<String> newCommand = new ArrayList<String>();
         newCommand.addAll(Arrays.asList(sb.toString().split(" ")));
         return newCommand;

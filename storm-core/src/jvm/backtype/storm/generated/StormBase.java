@@ -984,15 +984,15 @@ public class StormBase implements org.apache.thrift.TBase<StormBase, StormBase._
           case 4: // COMPONENT_EXECUTORS
             if (schemeField.type == org.apache.thrift.protocol.TType.MAP) {
               {
-                org.apache.thrift.protocol.TMap _map670 = iprot.readMapBegin();
-                struct.component_executors = new HashMap<String,Integer>(2*_map670.size);
-                String _key671;
-                int _val672;
-                for (int _i673 = 0; _i673 < _map670.size; ++_i673)
+                org.apache.thrift.protocol.TMap _map678 = iprot.readMapBegin();
+                struct.component_executors = new HashMap<String,Integer>(2*_map678.size);
+                String _key679;
+                int _val680;
+                for (int _i681 = 0; _i681 < _map678.size; ++_i681)
                 {
-                  _key671 = iprot.readString();
-                  _val672 = iprot.readI32();
-                  struct.component_executors.put(_key671, _val672);
+                  _key679 = iprot.readString();
+                  _val680 = iprot.readI32();
+                  struct.component_executors.put(_key679, _val680);
                 }
                 iprot.readMapEnd();
               }
@@ -1065,10 +1065,10 @@ public class StormBase implements org.apache.thrift.TBase<StormBase, StormBase._
           oprot.writeFieldBegin(COMPONENT_EXECUTORS_FIELD_DESC);
           {
             oprot.writeMapBegin(new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.I32, struct.component_executors.size()));
-            for (Map.Entry<String, Integer> _iter674 : struct.component_executors.entrySet())
+            for (Map.Entry<String, Integer> _iter682 : struct.component_executors.entrySet())
             {
-              oprot.writeString(_iter674.getKey());
-              oprot.writeI32(_iter674.getValue());
+              oprot.writeString(_iter682.getKey());
+              oprot.writeI32(_iter682.getValue());
             }
             oprot.writeMapEnd();
           }
@@ -1141,10 +1141,10 @@ public class StormBase implements org.apache.thrift.TBase<StormBase, StormBase._
       if (struct.is_set_component_executors()) {
         {
           oprot.writeI32(struct.component_executors.size());
-          for (Map.Entry<String, Integer> _iter675 : struct.component_executors.entrySet())
+          for (Map.Entry<String, Integer> _iter683 : struct.component_executors.entrySet())
           {
-            oprot.writeString(_iter675.getKey());
-            oprot.writeI32(_iter675.getValue());
+            oprot.writeString(_iter683.getKey());
+            oprot.writeI32(_iter683.getValue());
           }
         }
       }
@@ -1174,15 +1174,15 @@ public class StormBase implements org.apache.thrift.TBase<StormBase, StormBase._
       BitSet incoming = iprot.readBitSet(5);
       if (incoming.get(0)) {
         {
-          org.apache.thrift.protocol.TMap _map676 = new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.I32, iprot.readI32());
-          struct.component_executors = new HashMap<String,Integer>(2*_map676.size);
-          String _key677;
-          int _val678;
-          for (int _i679 = 0; _i679 < _map676.size; ++_i679)
+          org.apache.thrift.protocol.TMap _map684 = new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.I32, iprot.readI32());
+          struct.component_executors = new HashMap<String,Integer>(2*_map684.size);
+          String _key685;
+          int _val686;
+          for (int _i687 = 0; _i687 < _map684.size; ++_i687)
           {
-            _key677 = iprot.readString();
-            _val678 = iprot.readI32();
-            struct.component_executors.put(_key677, _val678);
+            _key685 = iprot.readString();
+            _val686 = iprot.readI32();
+            struct.component_executors.put(_key685, _val686);
           }
         }
         struct.set_component_executors_isSet(true);

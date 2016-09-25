@@ -84,6 +84,7 @@
   (report-error [this storm-id task-id node port error])
   (errors [this storm-id task-id])
   (last-error [this storm-id task-id])
+  (get-topology-errors [this topology-id])
   (set-credentials! [this storm-id creds topo-conf])
   (credentials [this storm-id callback])
   (disconnect [this]))
@@ -154,6 +155,10 @@
        (url-encode component-id)
        "-"
        last-error-path-seg))
+
+(defn topology-error-path
+  [topology-id]
+  (str (error-storm-root topology-id) "/" (url-encode "worker-errors")))
 
 (defn credentials-path
   [storm-id]
@@ -544,6 +549,20 @@
                  data (clojurify-error (maybe-deserialize raw ErrorInfo))]
               (when data
                  (map->TaskError data))))))
+
+      (get-topology-errors
+        [this topology-id]
+        (let [path (topology-error-path topology-id)
+              errors (if (.node_exists cluster-state path false)
+                       (dofor [c (.get_children cluster-state path false)]
+                         (let [raw (.get_data cluster-state (str path "/" c) false)
+                               data (clojurify-error (maybe-deserialize raw ErrorInfo))]
+                           (when data
+                             (map->TaskError data))))
+                       ())
+              ]
+          (->> (filter not-nil? errors)
+            (sort-by (comp - :time-secs)))))
       
       (disconnect
          [this]

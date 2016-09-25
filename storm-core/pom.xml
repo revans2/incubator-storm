@@ -505,6 +505,9 @@
                          <!--Hadoop Mini Cluster cannot use log4j2 bridge-->
                         <classpathDependencyExcludes>org.apache.logging.log4j:log4j-1.2-api</classpathDependencyExcludes>
                     </classpathDependencyExcludes>
+                    <environmentVariables>
+                        <LD_LIBRARY_PATH>${project.build.directory}/native/target/usr/local/lib/</LD_LIBRARY_PATH>
+                    </environmentVariables>
                 </configuration>
             </plugin>
             <plugin>
@@ -1149,7 +1152,7 @@
                         </executions>
                         <configuration>
                             <!-- autoreconf settings -->
-                            <workDir>${project.build.directory}/native/worker-launcher</workDir>
+                            <workDir>${project.build.directory}/native</workDir>
                             <arguments>
                                 <argument>-i</argument>
                             </arguments>
@@ -1161,12 +1164,11 @@
                                     <value>-DEXEC_CONF_DIR=${worker-launcher.conf.dir} ${worker-launcher.additional_cflags}</value>
                                 </property>
                             </configureEnvironment>
-                            <configureWorkDir>${project.build.directory}/native/worker-launcher</configureWorkDir>
+                            <configureWorkDir>${project.build.directory}/native</configureWorkDir>
                             <prefix>/usr/local</prefix>
 
                             <!-- configure & make settings -->
                             <destDir>${project.build.directory}/native/target</destDir>
-
                         </configuration>
                     </plugin>
                 </plugins>

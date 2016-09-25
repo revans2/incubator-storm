@@ -161,6 +161,14 @@ public class ClusterUtils {
         return errorPath(stormId, componentId) + "-last-error";
     }
 
+    public static String topologyErrorPath(String topologyId) {
+        try {
+            return errorStormRoot(topologyId) + ZK_SEPERATOR + URLEncoder.encode("worker-errors", "UTF-8");
+        } catch (UnsupportedEncodingException e) {
+            throw Utils.wrapInRuntime(e);
+        }
+    }
+
     public static String credentialsPath(String stormId) {
         return CREDENTIALS_SUBTREE + ZK_SEPERATOR + stormId;
     }
