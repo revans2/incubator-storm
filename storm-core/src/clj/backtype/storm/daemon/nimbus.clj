@@ -443,13 +443,23 @@
 
 (defnk update-storm-code [storm-id blob-store :topology-conf nil :topology nil :subject (get-subject)]
   (if topology-conf
-    (with-open [blob-stream (.updateBlob blob-store (master-stormconf-key storm-id) subject)]
+    (let [blob-stream (.updateBlob blob-store (master-stormconf-key storm-id) subject)]
       (log-debug "updating topology-conf stored at key: " (master-stormconf-key storm-id) " conf: " topology-conf " for subject: " subject)
-      (.write blob-stream (Utils/toCompressedJsonConf topology-conf))))
+      (try
+        (.write blob-stream (Utils/toCompressedJsonConf topology-conf))
+        (.close blob-stream)
+        (catch Exception e
+          (.cancel blob-stream)
+          (throw (RuntimeException. e))))))
   (if topology
-    (with-open [blob-stream (.updateBlob blob-store (master-stormcode-key storm-id) subject)]
+    (let [blob-stream (.updateBlob blob-store (master-stormcode-key storm-id) subject)]
       (log-debug "updating storm topology stored at key: " (master-stormcode-key storm-id) " topology: " topology "for subject: " subject)
-      (.write blob-stream (Utils/serialize topology)))))
+      (try
+        (.write blob-stream (Utils/serialize topology))
+        (.close blob-stream)
+        (catch Exception e
+          (.cancel blob-stream)
+          (throw (RuntimeException. e)))))))
 
 (defn update-topology-resources [nimbus storm-id resource-overrides subject]
   (let [blob-store (:blob-store nimbus)

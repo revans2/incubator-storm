@@ -39,7 +39,7 @@
         (throw-runtime "Parse topology resource override json FAILED with exceptions: " e)))
     (throw-runtime "No arguments found for topology resources override!")))
 
-(defn- validate-configs-overrides [^String s]
+(defn- is-valid-json? [^String s]
   (if-not (nil? s)
     (try
       (Utils/parseJson s)
@@ -64,7 +64,7 @@
                                                  (if-let [oldval (get previous key)]
                                                    (merge oldval val)
                                                    val)))]
-                            ["-t" "--topology-conf" :default nil :parse-fn validate-configs-overrides])
+                            ["-t" "--topology-conf" :default nil :parse-fn is-valid-json?])
         opts (RebalanceOptions.)]
     (if wait (.set_wait_secs opts wait))
     (if executor (.set_num_executors opts executor))
