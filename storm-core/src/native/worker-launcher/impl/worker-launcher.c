@@ -414,7 +414,7 @@ static int copy_file(int input, const char* in_filename,
   return 0;
 }
 
-int setup_stormdist(FTSENT* entry, uid_t euser, int user_write) {
+static int setup_permissions(FTSENT* entry, uid_t euser, int user_write) {
   fprintf(ERRORFILE, "Setting mode on file: [%s]\n", entry->fts_path);
   if (lchown(entry->fts_path, euser, launcher_gid) != 0) {
     fprintf(ERRORFILE, "Failure to exec app initialization process 0 - %s, fts_path=%s\n",
@@ -437,7 +437,7 @@ int setup_stormdist(FTSENT* entry, uid_t euser, int user_write) {
   return 0;
 }
 
-int setup_stormdist_dir(const char* local_dir, int for_blob_permission) {
+int setup_dir_permissions(const char* local_dir, int user_writable) {
   int exit_code = 0;
   uid_t euser = geteuid();
 
@@ -447,7 +447,7 @@ int setup_stormdist_dir(const char* local_dir, int for_blob_permission) {
   } else {
     char *(paths[]) = {strndup(local_dir,PATH_MAX), 0};
     if (paths[0] == NULL) {
-      fprintf(ERRORFILE, "Malloc failed in setup_stormdist_dir\n");
+      fprintf(ERRORFILE, "Malloc failed in setup_dir_permissions\n");
       return -1;
     }
     // check to make sure the directory exists
@@ -488,7 +488,7 @@ int setup_stormdist_dir(const char* local_dir, int for_blob_permission) {
         fprintf(LOGFILE, "NOOP: %s\n", entry->fts_path); break;
       case FTS_D:         // A directory in pre-order
       case FTS_F:         // A regular file
-        if (setup_stormdist(entry, euser, for_blob_permission == 0) != 0) {
+        if (setup_permissions(entry, euser, user_writable) != 0) {
             exit_code = -1;
         }
         break;
