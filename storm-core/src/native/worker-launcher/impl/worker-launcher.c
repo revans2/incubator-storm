@@ -415,7 +415,6 @@ static int copy_file(int input, const char* in_filename,
 }
 
 static int setup_permissions(FTSENT* entry, uid_t euser, int user_write) {
-  fprintf(ERRORFILE, "Setting mode on file: [%s]\n", entry->fts_path);
   if (lchown(entry->fts_path, euser, launcher_gid) != 0) {
     fprintf(ERRORFILE, "Failure to exec app initialization process 0 - %s, fts_path=%s\n",
       strerror(errno), entry->fts_path);
