@@ -17,11 +17,13 @@
 (ns backtype.storm.LocalCluster
   (:use [backtype.storm testing config])
   (:import [java.util Map])
+  (:import [backtype.storm ILocalCluster])
   (:gen-class
     :init init
     :implements [backtype.storm.ILocalCluster]
     :constructors {[] [] [java.util.Map] [] [String Long] []}
-    :state state))
+    :state state
+    :methods [#^{:static true} [getLocalClusterWithConf [java.util.Map] backtype.storm.ILocalCluster]]))
 
 (defn -init
   ([]
@@ -35,7 +37,12 @@
                                                      STORM-ZOOKEEPER-PORT zk-port})]
      [[] ret]))
   ([^Map stateMap]
-   [[] stateMap]))
+    [[] stateMap]))
+
+(defn -getLocalClusterWithConf [conf]
+  (let [cluster-conf (mk-local-storm-cluster
+                       :daemon-conf (merge {TOPOLOGY-ENABLE-MESSAGE-TIMEOUTS true} (into {} conf)))]
+    (backtype.storm.LocalCluster. cluster-conf)))
 
 (defn -submitTopology
   [this name conf topology]

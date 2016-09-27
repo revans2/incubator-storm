@@ -367,7 +367,7 @@ def deactivate(*args):
         extrajars=[USER_CONF_DIR, STORM_BIN_DIR])
 
 def rebalance(*args):
-    """Syntax: [storm rebalance topology-name [-w wait-time-secs] [-n new-num-workers] [-e component=parallelism]*]
+    """Syntax: [storm rebalance topology-name [-w wait-time-secs] [-n new-num-workers] [-e component=parallelism]* [-r '{"component1": {"resource1": new_amount, "resource2": new_amount, ... }*}'] [-c '{"conf1": newValue, *}']
 
     Sometimes you may wish to spread out where the workers for a topology
     are running. For example, let's say you have a 10 node cluster running

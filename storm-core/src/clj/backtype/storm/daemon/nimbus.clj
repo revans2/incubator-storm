@@ -68,6 +68,15 @@
   (:gen-class
     :methods [^{:static true} [launch [backtype.storm.scheduler.INimbus] void]]))
 
+(declare read-storm-topology-as-nimbus)
+(declare read-storm-topology-as-subject)
+(declare read-storm-conf-as-nimbus)
+(declare read-storm-conf-as-subject)
+(declare update-blob-store)
+(declare delay-event)
+(declare mk-assignments)
+(declare compute-executor->component)
+
 (defmeter num-submitTopology-calls) 
 (defmeter num-killTopology-calls) 
 (defmeter num-rebalance-calls) 
@@ -217,8 +226,6 @@
                    {:status status})
    (log-message "Updated " storm-id " with status " status)
    ))
-(declare delay-event)
-(declare mk-assignments)
 
 (defn kill-transition [nimbus storm-id]
   (fn [kill-time]
@@ -236,7 +243,7 @@
     ))
 
 (defn rebalance-transition [nimbus storm-id status]
-  (fn [time num-workers executor-overrides]
+  (fn [time num-workers executor-overrides resource-overrides topology-config-overrides subject]
     (let [delay (if time
                   time
                   (get (read-storm-conf (:conf nimbus) storm-id (:blob-store nimbus))
@@ -248,8 +255,16 @@
       {:status {:type :rebalancing}
        :prev-status status
        :topology-action-options (-> {:delay-secs delay :action :rebalance}
-                                  (assoc-non-nil :num-workers num-workers)
-                                  (assoc-non-nil :component->executors executor-overrides))
+                                    (assoc-non-nil :num-workers num-workers)
+                                    (assoc-non-nil :component->executors executor-overrides)
+                                    (assoc-non-nil :component->resources resource-overrides)
+                                    (assoc-non-nil :topology->config topology-config-overrides)
+                                    (assoc-non-nil :principal (if subject
+                                                                (-> subject
+                                                                (.getPrincipals)
+                                                                (.iterator)
+                                                                (.next)
+                                                                (.getName)))))
        })))
 
 (defn do-rebalance [nimbus storm-id status storm-base]
@@ -258,7 +273,9 @@
       storm-id
         (-> {}
           (assoc-non-nil :component->executors (:component->executors rebalance-options))
-          (assoc-non-nil :num-workers (:num-workers rebalance-options)))))
+          (assoc-non-nil :num-workers (:num-workers rebalance-options))))
+    ;; update blob store
+    (update-blob-store nimbus storm-id rebalance-options (Utils/principalNameToSubject (:principal rebalance-options))))
   (mk-assignments nimbus :scratch-topology-id storm-id))
 
 (defn state-transitions [nimbus storm-id status storm-base]
@@ -424,11 +441,47 @@
     (.createBlob blob-store (master-stormcode-key storm-id) (Utils/serialize topology) (SettableBlobMeta. BlobStoreAclHandler/DEFAULT) subject)
     (.createBlob blob-store (master-stormconf-key storm-id) (Utils/toCompressedJsonConf storm-conf) (SettableBlobMeta. BlobStoreAclHandler/DEFAULT) subject)))
 
+(defnk update-storm-code [storm-id blob-store :topology-conf nil :topology nil :subject (get-subject)]
+  (if topology-conf
+    (let [blob-stream (.updateBlob blob-store (master-stormconf-key storm-id) subject)]
+      (log-debug "updating topology-conf stored at key: " (master-stormconf-key storm-id) " conf: " topology-conf " for subject: " subject)
+      (try
+        (.write blob-stream (Utils/toCompressedJsonConf topology-conf))
+        (.close blob-stream)
+        (catch Exception e
+          (.cancel blob-stream)
+          (throw (RuntimeException. e))))))
+  (if topology
+    (let [blob-stream (.updateBlob blob-store (master-stormcode-key storm-id) subject)]
+      (log-debug "updating storm topology stored at key: " (master-stormcode-key storm-id) " topology: " topology "for subject: " subject)
+      (try
+        (.write blob-stream (Utils/serialize topology))
+        (.close blob-stream)
+        (catch Exception e
+          (.cancel blob-stream)
+          (throw (RuntimeException. e)))))))
+
+(defn update-topology-resources [nimbus storm-id resource-overrides subject]
+  (let [blob-store (:blob-store nimbus)
+        ^StormTopology topology (read-storm-topology-as-subject storm-id blob-store subject)]
+    (ResourceUtils/updateStormTopologyResources topology resource-overrides)
+    (update-storm-code storm-id blob-store :topology topology :subject subject)))
+
+(defn update-topology-config [nimbus storm-id topology-config-override subject]
+  (let [blob-store (:blob-store nimbus)
+        conf (:conf nimbus)
+        current-config (read-storm-conf-as-subject conf storm-id blob-store subject)]
+    (update-storm-code storm-id blob-store :topology-conf (merge current-config topology-config-override) :subject subject)))
+
+(defn update-blob-store [nimbus storm-id rebalance-options subject]
+  (if (not (empty? (:component->resources rebalance-options)))
+    (update-topology-resources nimbus storm-id (:component->resources rebalance-options) subject))
+  (if (not (empty? (:topology->config rebalance-options)))
+    (update-topology-config nimbus storm-id (:topology->config rebalance-options) subject)))
+
 (defn- read-storm-topology [storm-id blob-store]
   (Utils/deserialize
     (.readBlob blob-store (master-stormcode-key storm-id) (get-subject)) StormTopology))
-
-(declare compute-executor->component)
 
 (defn- get-nimbus-subject []
   (let [nimbus-subject (Subject.)
@@ -437,14 +490,20 @@
     (.add principals nimbus-principal)
     nimbus-subject))
 
-(defn- read-storm-topology-as-nimbus [storm-id blob-store]
+(defn- read-storm-topology-as-subject [storm-id blob-store subject]
   (Utils/deserialize
-    (.readBlob blob-store (master-stormcode-key storm-id) (get-nimbus-subject)) StormTopology))
+    (.readBlob blob-store (master-stormcode-key storm-id) subject) StormTopology))
+
+(defn- read-storm-topology-as-nimbus [storm-id blob-store]
+  (read-storm-topology-as-subject storm-id blob-store (get-nimbus-subject)))
 
 (defn read-storm-conf-as-nimbus [conf storm-id blob-store]
+  (read-storm-conf-as-subject conf storm-id blob-store (get-nimbus-subject)))
+
+(defn read-storm-conf-as-subject [conf storm-id blob-store subject]
   (clojurify-structure
     (Utils/fromCompressedJsonConf
-      (.readBlob blob-store (master-stormconf-key storm-id) (get-nimbus-subject)))))
+      (.readBlob blob-store (master-stormconf-key storm-id) subject))))
 
 (defn read-topology-details [nimbus storm-id]
   (let [conf (:conf nimbus)
@@ -1513,18 +1572,38 @@
         (check-storm-active! nimbus storm-name true)
         (let [topology-conf (try-read-storm-conf-from-name conf storm-name nimbus)]
           (check-authorization! nimbus storm-name topology-conf "rebalance"))
+        ;; Set principal in RebalanceOptions to nil because users are not suppose to set this
+        (.set_principal options nil)
         (let [wait-amt (if (.is_set_wait_secs options)
                          (.get_wait_secs options))
               num-workers (if (.is_set_num_workers options)
                             (.get_num_workers options))
               executor-overrides (if (.is_set_num_executors options)
                                    (.get_num_executors options)
-                                   {})]
+                                   {})
+              resource-overrides (if (.is_set_topology_resources_overrides options)
+                                   (into {} (.get_topology_resources_overrides options))
+                                   {})
+              topology-config-overrides (if (.is_set_topology_conf_overrides options)
+                                          (into {} (Utils/parseJson(.get_topology_conf_overrides options)))
+                                          {})
+              topology-config-overrides-cleansed (-> topology-config-overrides
+                                                   (dissoc TOPOLOGY-SUBMITTER-PRINCIPAL)
+                                                   (dissoc TOPOLOGY-SUBMITTER-USER)
+                                                   (dissoc STORM-ZOOKEEPER-SUPERACL))
+              topology-config-overrides-cleansed (if (Utils/isZkAuthenticationConfiguredStormServer conf)
+                                                   topology-config-overrides-cleansed
+                                                   (dissoc topology-config-overrides-cleansed STORM-ZOOKEEPER-TOPOLOGY-AUTH-SCHEME STORM-ZOOKEEPER-TOPOLOGY-AUTH-PAYLOAD))
+              topology-config-overrides-cleansed (if (conf STORM-TOPOLOGY-CLASSPATH-BEGINNING-ENABLED)
+                                                   topology-config-overrides-cleansed
+                                                   (dissoc topology-config-overrides-cleansed TOPOLOGY-CLASSPATH-BEGINNING))
+              subject (get-subject)]
+          (log-message "Topology: " storm-name " with Subject: " subject " Overrides - [Resources]: " resource-overrides " [Topology Conf]: " topology-config-overrides-cleansed)
           (doseq [[c num-executors] executor-overrides]
             (when (<= num-executors 0)
               (throw (InvalidTopologyException. "Number of executors must be greater than 0"))
               ))
-          (transition-name! nimbus storm-name [:rebalance wait-amt num-workers executor-overrides] true)
+          (transition-name! nimbus storm-name [:rebalance wait-amt num-workers executor-overrides resource-overrides topology-config-overrides-cleansed subject] true)
           ))
 
       (activate [this storm-name]
