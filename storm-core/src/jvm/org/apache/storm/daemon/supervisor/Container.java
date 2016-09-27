@@ -120,16 +120,7 @@ public abstract class Container implements Killable {
         _conf = conf;
         _supervisorId = supervisorId;
         _assignment = assignment;
-        boolean isBridgeSched = "backtype.storm.scheduler.bridge.MultitenantResourceAwareBridgeScheduler".equals(conf.get(Config.STORM_SCHEDULER));
-        Object schedStrategy = topoConf == null ? null : topoConf.get(Config.TOPOLOGY_SCHEDULER_STRATEGY);
-        boolean isMTStrategy = topoConf == null ? false : (schedStrategy == null || "backtype.storm.scheduler.resource.strategies.scheduling.MultitenantStrategy".equals(schedStrategy));
-        if (isBridgeSched && isMTStrategy) {
-            //disable CGroups for MT Strategy
-            _resourceIsolationManager = null;
-        } else { 
-            _resourceIsolationManager = resourceIsolationManager;
-        }
-        
+       
         if (_type.isOnlyKillable()) {
             assert(_assignment == null);
             assert(_port <= 0);
@@ -151,6 +142,17 @@ public abstract class Container implements Killable {
                 //For testing...
                 _topoConf = topoConf;
             }
+        }
+
+        boolean isBridgeSched = "backtype.storm.scheduler.bridge.MultitenantResourceAwareBridgeScheduler".equals(conf.get(Config.STORM_SCHEDULER));
+        Object schedStrategy = _topoConf == null ? null : _topoConf.get(Config.TOPOLOGY_SCHEDULER_STRATEGY);
+        boolean isMTStrategy = _topoConf == null ? false : (schedStrategy == null || "backtype.storm.scheduler.resource.strategies.scheduling.MultitenantStrategy".equals(schedStrategy));
+        LOG.info("isBridgeSched? {} {} isMTStrategy? {} {}", isBridgeSched, conf.get(Config.STORM_SCHEDULER), isMTStrategy, schedStrategy);
+        if (isBridgeSched && isMTStrategy) {
+            //disable CGroups for MT Strategy
+            _resourceIsolationManager = null;
+        } else { 
+            _resourceIsolationManager = resourceIsolationManager;
         }
     }
     
