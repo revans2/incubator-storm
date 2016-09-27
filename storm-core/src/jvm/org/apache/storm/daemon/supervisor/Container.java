@@ -147,7 +147,7 @@ public abstract class Container implements Killable {
         boolean isBridgeSched = "backtype.storm.scheduler.bridge.MultitenantResourceAwareBridgeScheduler".equals(conf.get(Config.STORM_SCHEDULER));
         Object schedStrategy = _topoConf == null ? null : _topoConf.get(Config.TOPOLOGY_SCHEDULER_STRATEGY);
         boolean isMTStrategy = _topoConf == null ? false : (schedStrategy == null || "backtype.storm.scheduler.resource.strategies.scheduling.MultitenantStrategy".equals(schedStrategy));
-        LOG.info("isBridge? {} {} isMT {} {} - {}", isBridgeSched, conf.get(Config.STORM_SCHEDULER), isMTStrategy, schedStrategy);
+        LOG.info("isBridgeSched? {} {} isMTStrategy? {} {}", isBridgeSched, conf.get(Config.STORM_SCHEDULER), isMTStrategy, schedStrategy);
         if (isBridgeSched && isMTStrategy) {
             //disable CGroups for MT Strategy
             _resourceIsolationManager = null;
