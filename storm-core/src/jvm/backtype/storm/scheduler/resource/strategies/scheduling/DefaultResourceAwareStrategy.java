@@ -216,14 +216,12 @@ public class DefaultResourceAwareStrategy implements IStrategy {
     /**
      * a class to contain individual object resources as well as cumulative stats
      */
-    class AllResources {
+    static class AllResources {
         List<ObjectResources> objectResources = new LinkedList<ObjectResources>();
-        Double availMemResourcesOverall = 0.0;
-        Double totalMemResourcesOverall = 0.0;
-        Double availCpuResourcesOverall = 0.0;
-        Double totalCpuResourcesOverall = 0.0;
-        Integer freeSlotsOverall = 0;
-        Integer totalSlotsOverall = 0;
+        double availMemResourcesOverall = 0.0;
+        double totalMemResourcesOverall = 0.0;
+        double availCpuResourcesOverall = 0.0;
+        double totalCpuResourcesOverall = 0.0;
         String identifier;
 
         public AllResources(String identifier) {
@@ -234,14 +232,12 @@ public class DefaultResourceAwareStrategy implements IStrategy {
     /**
      * class to keep track of resources on a rack or node
      */
-     class ObjectResources {
+     static class ObjectResources {
         String id;
-        Double availMem = 0.0;
-        Double totalMem = 0.0;
-        Double availCpu = 0.0;
-        Double totalCpu = 0.0;
-        Integer freeSlots = 0;
-        Integer totalSlots = 0;
+        double availMem = 0.0;
+        double totalMem = 0.0;
+        double availCpu = 0.0;
+        double totalCpu = 0.0;
         double effectiveResources = 0.0;
 
         public ObjectResources(String id) {
@@ -290,8 +286,6 @@ public class DefaultResourceAwareStrategy implements IStrategy {
             node.totalMem = totalMem;
             node.availCpu = availCpu;
             node.totalCpu = totalCpu;
-            node.freeSlots = freeSlots;
-            node.totalSlots = totalSlots;
             nodes.add(node);
 
             allResources.availMemResourcesOverall += availMem;
@@ -300,12 +294,10 @@ public class DefaultResourceAwareStrategy implements IStrategy {
             allResources.totalMemResourcesOverall += totalMem;
             allResources.totalCpuResourcesOverall += totalCpu;
         }
-        //don't care about slots because strategy is not slot constrained.  Can put any number of executors in workers up to TOPOLOGY_WORKER_MAX_HEAP_SIZE_MB.
-        allResources.totalSlotsOverall = null;
-        allResources.freeSlotsOverall = null;
 
-        LOG.debug("Rack {}: Overall Avail [ CPU {} MEM {} Slots {} ] Total [ CPU {} MEM {} Slots {} ]",
-                rackId, allResources.availCpuResourcesOverall, allResources.availMemResourcesOverall, allResources.freeSlotsOverall, allResources.totalCpuResourcesOverall, allResources.totalMemResourcesOverall, allResources.totalSlotsOverall);
+
+        LOG.debug("Rack {}: Overall Avail [ CPU {} MEM {} ] Total [ CPU {} MEM {} ]",
+                rackId, allResources.availCpuResourcesOverall, allResources.availMemResourcesOverall, allResources.totalCpuResourcesOverall, allResources.totalMemResourcesOverall);
 
         return sortObjectResources(allResources, new ExistingScheduleFunc() {
             @Override
@@ -378,11 +370,9 @@ public class DefaultResourceAwareStrategy implements IStrategy {
                 allResources.totalMemResourcesOverall += totalMem;
                 allResources.totalCpuResourcesOverall += totalCpu;
             }
-            allResources.totalSlotsOverall = null;
-            allResources.freeSlotsOverall = null;
         }
-        LOG.debug("Cluster Overall Avail [ CPU {} MEM {} Slots {} ] Total [ CPU {} MEM {} Slots {} ]",
-                allResources.availCpuResourcesOverall, allResources.availMemResourcesOverall, allResources.freeSlotsOverall, allResources.totalCpuResourcesOverall, allResources.totalMemResourcesOverall, allResources.totalSlotsOverall);
+        LOG.debug("Cluster Overall Avail [ CPU {} MEM {} ] Total [ CPU {} MEM {} ]",
+                allResources.availCpuResourcesOverall, allResources.availMemResourcesOverall, allResources.totalCpuResourcesOverall, allResources.totalMemResourcesOverall);
 
         return sortObjectResources(allResources, new ExistingScheduleFunc() {
             @Override
@@ -432,36 +422,26 @@ public class DefaultResourceAwareStrategy implements IStrategy {
 
         for (ObjectResources objectResources : allResources.objectResources) {
             StringBuilder sb = new StringBuilder();
-            if ((allResources.availCpuResourcesOverall != null && allResources.availCpuResourcesOverall <= 0.0)
-                    || (allResources.availMemResourcesOverall != null && allResources.availMemResourcesOverall <= 0.0)
-                    || (allResources.freeSlotsOverall != null && allResources.freeSlotsOverall <= 0.0)) {
+            if (allResources.availCpuResourcesOverall <= 0.0  || allResources.availMemResourcesOverall <= 0.0) {
                 objectResources.effectiveResources = 0.0;
             } else {
                 List<Double> values = new LinkedList<Double>();
-                if (allResources.availCpuResourcesOverall != null) {
-                    double value = (objectResources.availCpu / allResources.availCpuResourcesOverall) * 100.0;
-                    values.add(value);
 
-                    sb.append(String.format("CPU %f(%f%%) ", objectResources.availCpu, value));
-                }
-                if (allResources.availMemResourcesOverall != null) {
-                    double value = (objectResources.availMem / allResources.availMemResourcesOverall) * 100.0;
-                    values.add(value);
-                    sb.append(String.format("MEM %f(%f%%) ", objectResources.availMem, value));
+                //add cpu
+                double cpuPercent = (objectResources.availCpu / allResources.availCpuResourcesOverall) * 100.0;
+                values.add(cpuPercent);
+                sb.append(String.format("CPU %f(%f%%) ", objectResources.availCpu, cpuPercent));
 
-                }
-                if (allResources.freeSlotsOverall != null) {
-                    double value = ((double) objectResources.freeSlots / (double) allResources.freeSlotsOverall) * 100.0;
-                    values.add(value);
-                    sb.append(String.format("Slots %d(%f%%) ", objectResources.freeSlots, value));
-                }
+                //add memory
+                double memoryPercent = (objectResources.availMem / allResources.availMemResourcesOverall) * 100.0;
+                values.add(memoryPercent);
+                sb.append(String.format("MEM %f(%f%%) ", objectResources.availMem, memoryPercent));
 
                 objectResources.effectiveResources = Collections.min(values);
             }
-            LOG.debug("{}: Avail [ {} ] Total [ CPU {} MEM {} Slots {} ] effective resources: {}",
+            LOG.debug("{}: Avail [ {} ] Total [ CPU {} MEM {}] effective resources: {}",
                     objectResources.id, sb.toString(),
-                    objectResources.totalCpu, objectResources.totalMem,
-                    objectResources.totalSlots, objectResources.effectiveResources);
+                    objectResources.totalCpu, objectResources.totalMem, objectResources.effectiveResources);
         }
 
         TreeSet<ObjectResources> sortedObjectResources = new TreeSet<ObjectResources>(new Comparator<ObjectResources>() {
@@ -482,20 +462,11 @@ public class DefaultResourceAwareStrategy implements IStrategy {
                     } else {
                         List<Double> o1_values = new LinkedList<Double>();
                         List<Double> o2_values = new LinkedList<Double>();
-                        if (allResources.availCpuResourcesOverall != null) {
-                            o1_values.add((o1.availCpu / allResources.availCpuResourcesOverall) * 100.0);
-                            o2_values.add((o2.availCpu / allResources.availCpuResourcesOverall) * 100.0);
-                        }
+                        o1_values.add((o1.availCpu / allResources.availCpuResourcesOverall) * 100.0);
+                        o2_values.add((o2.availCpu / allResources.availCpuResourcesOverall) * 100.0);
 
-                        if (allResources.availMemResourcesOverall != null) {
-                            o1_values.add((o1.availMem / allResources.availMemResourcesOverall) * 100.0);
-                            o2_values.add((o2.availMem / allResources.availMemResourcesOverall) * 100.0);
-                        }
-
-                        if (allResources.freeSlotsOverall != null) {
-                            o1_values.add(((double) o1.freeSlots / (double) allResources.freeSlotsOverall) * 100.0);
-                            o2_values.add(((double) o2.freeSlots / (double) allResources.freeSlotsOverall) * 100.0);
-                        }
+                        o1_values.add((o1.availMem / allResources.availMemResourcesOverall) * 100.0);
+                        o2_values.add((o2.availMem / allResources.availMemResourcesOverall) * 100.0);
 
                         double o1_avg = ResourceUtils.avg(o1_values);
                         double o2_avg = ResourceUtils.avg(o2_values);
