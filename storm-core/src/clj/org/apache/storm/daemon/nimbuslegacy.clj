@@ -74,15 +74,6 @@
   (:gen-class
     :methods [^{:static true} [launch [org.apache.storm.scheduler.INimbus] void]]))
 
-(defn file-cache-map [conf]
-  (TimeCacheMap.
-   (int (conf NIMBUS-FILE-COPY-EXPIRATION-SECS))
-   (reify TimeCacheMap$ExpiredCallback
-          (expire [this id stream]
-                  (.close stream)
-                  ))
-   ))
-
 (defn mk-scheduler [conf inimbus]
   (let [forced-scheduler (.getForcedScheduler inimbus)
         scheduler (cond
@@ -167,8 +158,8 @@
      :cred-update-lock (Object.)
      :log-update-lock (Object.)
      :heartbeats-cache (atom {})
-     :downloaders (file-cache-map conf)
-     :uploaders (file-cache-map conf)
+     :downloaders (Nimbus/fileCacheMap conf)
+     :uploaders (Nimbus/fileCacheMap conf)
      :blob-store blob-store
      :blob-downloaders (mk-blob-cache-map conf)
      :blob-uploaders (mk-blob-cache-map conf)

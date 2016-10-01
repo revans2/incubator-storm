@@ -19,6 +19,11 @@ package org.apache.storm.daemon.nimbus;
 
 import static org.apache.storm.metric.StormMetricsRegistry.registerMeter;
 
+import java.util.Map;
+
+import org.apache.storm.Config;
+import org.apache.storm.utils.TimeCacheMap;
+import org.apache.storm.utils.Utils;
 import org.apache.storm.utils.VersionInfo;
 
 import com.codahale.metrics.Meter;
@@ -56,4 +61,16 @@ public class Nimbus {
     
     public static final String STORM_VERSION = VersionInfo.getVersion();
     
+    
+    @SuppressWarnings("deprecation")
+    public static TimeCacheMap<String, AutoCloseable> fileCacheMap(Map<String, Object> conf) {
+        return new TimeCacheMap<>(Utils.getInt(conf.get(Config.NIMBUS_FILE_COPY_EXPIRATION_SECS)),
+                (id, stream) -> {
+                    try {
+                        stream.close();
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
+                    }
+                });
+    }
 }

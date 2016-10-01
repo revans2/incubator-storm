@@ -1517,7 +1517,7 @@
                   zk-le (MockedZookeeper. (proxy [Zookeeper] []
                           (zkLeaderElectorImpl [conf blob-store] nil)))
                   mocked-cluster (MockedCluster. cluster-utils)]
-        (stubbing [nimbus/file-cache-map nil
+        (stubbing [
                    nimbus/mk-blob-cache-map nil
                    nimbus/mk-bloblist-cache-map nil
                    nimbus/mk-scheduler nil]
