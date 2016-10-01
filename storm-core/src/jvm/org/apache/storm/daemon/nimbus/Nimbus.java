@@ -22,13 +22,20 @@ import static org.apache.storm.metric.StormMetricsRegistry.registerMeter;
 import java.util.Map;
 
 import org.apache.storm.Config;
+import org.apache.storm.scheduler.DefaultScheduler;
+import org.apache.storm.scheduler.INimbus;
+import org.apache.storm.scheduler.IScheduler;
 import org.apache.storm.utils.TimeCacheMap;
 import org.apache.storm.utils.Utils;
 import org.apache.storm.utils.VersionInfo;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.codahale.metrics.Meter;
 
 public class Nimbus {
+    private final static Logger LOG = LoggerFactory.getLogger(Nimbus.class);
+    
     public static final Meter submitTopologyWithOptsCalls = registerMeter("nimbus:num-submitTopologyWithOpts-calls");
     public static final Meter submitTopologyCalls = registerMeter("nimbus:num-submitTopology-calls");
     public static final Meter killTopologyWithOptsCalls = registerMeter("nimbus:num-killTopologyWithOpts-calls");
@@ -72,5 +79,21 @@ public class Nimbus {
                         throw new RuntimeException(e);
                     }
                 });
+    }
+    
+    public static IScheduler makeScheduler(Map<String, Object> conf, INimbus inimbus) {
+        String schedClass = (String) conf.get(Config.STORM_SCHEDULER);
+        IScheduler scheduler = inimbus.getForcedScheduler();
+        if (scheduler != null) {
+            LOG.info("Using forced scheduler from INimbus {} {}", scheduler.getClass(), scheduler);
+        } else if (schedClass != null){
+            LOG.info("Using custom scheduler: {}", schedClass);
+            scheduler = Utils.newInstance(schedClass);
+        } else {
+            LOG.info("Using default scheduler");
+            scheduler = new DefaultScheduler();
+        }
+        scheduler.prepare(conf);
+        return scheduler;
     }
 }

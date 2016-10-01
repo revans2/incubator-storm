@@ -1520,7 +1520,8 @@
         (stubbing [
                    nimbus/mk-blob-cache-map nil
                    nimbus/mk-bloblist-cache-map nil
-                   nimbus/mk-scheduler nil]
+                   ;;nimbus/mk-scheduler nil
+                   ]
           (nimbus/nimbus-data auth-conf fake-inimbus)
           (.mkStormClusterStateImpl (Mockito/verify cluster-utils (Mockito/times 1)) (Mockito/any) (Mockito/eq expected-acls) (Mockito/any))
           )))))

@@ -74,24 +74,6 @@
   (:gen-class
     :methods [^{:static true} [launch [org.apache.storm.scheduler.INimbus] void]]))
 
-(defn mk-scheduler [conf inimbus]
-  (let [forced-scheduler (.getForcedScheduler inimbus)
-        scheduler (cond
-                    forced-scheduler
-                    (do (log-message "Using forced scheduler from INimbus " (class forced-scheduler))
-                        forced-scheduler)
-
-                    (conf STORM-SCHEDULER)
-                    (do (log-message "Using custom scheduler: " (conf STORM-SCHEDULER))
-                        (-> (conf STORM-SCHEDULER) Utils/newInstance))
-
-                    :else
-                    (do (log-message "Using default scheduler")
-                        (DefaultScheduler.)))]
-    (.prepare scheduler conf)
-    scheduler
-    ))
-
 (defmulti blob-sync cluster-mode)
 
 (defnk is-leader [nimbus :throw-exception true]
@@ -173,7 +155,7 @@
                   (log-error e "Error when processing event")
                   (Utils/exitProcess 20 "Error when processing an event"))))
 
-     :scheduler (mk-scheduler conf inimbus)
+     :scheduler (Nimbus/makeScheduler conf inimbus)
      :leader-elector (Zookeeper/zkLeaderElector conf blob-store)
      :id->sched-status (atom {})
      :node-id->resources (atom {}) ;;resources of supervisors
