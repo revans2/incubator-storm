@@ -74,8 +74,6 @@
   (:gen-class
     :methods [^{:static true} [launch [org.apache.storm.scheduler.INimbus] void]]))
 
-(def STORM-VERSION (VersionInfo/getVersion))
-
 (defn file-cache-map [conf]
   (TimeCacheMap.
    (int (conf NIMBUS-FILE-COPY-EXPIRATION-SECS))
@@ -2373,7 +2371,7 @@
         (.getPort (:nimbus-host-port-info nimbus))
         (Time/currentTimeSecs)
         false ;is-leader
-        STORM-VERSION))
+        Nimbus/STORM_VERSION))
 
     (.addToLeaderLockQueue (:leader-elector nimbus))
     (when (instance? LocalFsBlobStore blob-store)
@@ -2452,7 +2450,7 @@
                                                   (.shutdown service-handler)
                                                   (.stop server)))
     (log-message "Starting nimbus server for storm version '"
-                 STORM-VERSION
+                 Nimbus/STORM_VERSION
                  "'")
     (.serve server)
     service-handler))

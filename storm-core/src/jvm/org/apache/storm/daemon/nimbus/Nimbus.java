@@ -19,6 +19,8 @@ package org.apache.storm.daemon.nimbus;
 
 import static org.apache.storm.metric.StormMetricsRegistry.registerMeter;
 
+import org.apache.storm.utils.VersionInfo;
+
 import com.codahale.metrics.Meter;
 
 public class Nimbus {
@@ -51,5 +53,7 @@ public class Nimbus {
     public static final Meter getSupervisorPageInfoCalls = registerMeter("nimbus:num-getSupervisorPageInfo-calls");
     public static final Meter getComponentPageInfoCalls = registerMeter("nimbus:num-getComponentPageInfo-calls");
     public static final Meter shutdownCalls = registerMeter("nimbus:num-shutdown-calls");
+    
+    public static final String STORM_VERSION = VersionInfo.getVersion();
     
 }
