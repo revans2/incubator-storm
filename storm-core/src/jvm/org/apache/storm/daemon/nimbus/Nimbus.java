@@ -20,6 +20,7 @@ package org.apache.storm.daemon.nimbus;
 import static org.apache.storm.metric.StormMetricsRegistry.registerMeter;
 
 import java.io.OutputStream;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
@@ -39,6 +40,7 @@ import org.apache.storm.cluster.DaemonType;
 import org.apache.storm.cluster.IStormClusterState;
 import org.apache.storm.daemon.StormCommon;
 import org.apache.storm.generated.WorkerResources;
+import org.apache.storm.metric.ClusterMetricsConsumerExecutor;
 import org.apache.storm.nimbus.ILeaderElector;
 import org.apache.storm.nimbus.ITopologyActionNotifierPlugin;
 import org.apache.storm.nimbus.ITopologyValidator;
@@ -172,6 +174,18 @@ public class Nimbus {
             } catch (Exception e) {
                 LOG.warn("Ignoring exception, Could not initialize {}", clazz, e);
                 ret = null;
+            }
+        }
+        return ret;
+    }
+    
+    @SuppressWarnings("unchecked")
+    public static List<ClusterMetricsConsumerExecutor> makeClusterMetricsConsumerExecutors(Map<String, Object> conf) {
+        Collection<Map<String, Object>> consumers = (Collection<Map<String, Object>>) conf.get(Config.STORM_CLUSTER_METRICS_CONSUMER_REGISTER);
+        List<ClusterMetricsConsumerExecutor> ret = new ArrayList<>();
+        if (consumers != null) {
+            for (Map<String, Object> consumer : consumers) {
+                ret.add(new ClusterMetricsConsumerExecutor((String) consumer.get("class"), consumer.get("argument")));
             }
         }
         return ret;

@@ -83,13 +83,6 @@
         (let [leader-address (.getLeader leader-elector)]
           (throw (RuntimeException. (str "not a leader, current leader is " leader-address))))))))
 
-(defn mk-cluster-metrics-consumer-executors [storm-conf]
-  (map
-    (fn [consumer]
-      (ClusterMetricsConsumerExecutor. (get consumer "class")
-                                       (get consumer "argument")))
-    (get storm-conf STORM-CLUSTER-METRICS-CONSUMER-REGISTER)))
-
 (defn nimbus-data [conf inimbus]
   (let [forced-scheduler (.getForcedScheduler inimbus)
         blob-store (Utils/getNimbusBlobStore conf (NimbusInfo/fromConf conf))]
@@ -134,7 +127,7 @@
      :topo-history-state (ConfigUtils/nimbusTopoHistoryState conf)
      :nimbus-autocred-plugins (AuthUtils/getNimbusAutoCredPlugins conf)
      :nimbus-topology-action-notifier (Nimbus/createTopologyActionNotifier conf)
-     :cluster-consumer-executors (mk-cluster-metrics-consumer-executors conf)
+     :cluster-consumer-executors (Nimbus/makeClusterMetricsConsumerExecutors conf)
      }))
 
 (defn inbox [nimbus]
