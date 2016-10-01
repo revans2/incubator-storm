@@ -19,15 +19,25 @@ package org.apache.storm.daemon.nimbus;
 
 import static org.apache.storm.metric.StormMetricsRegistry.registerMeter;
 
+import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.storm.Config;
+import org.apache.storm.blobstore.BlobStore;
+import org.apache.storm.cluster.ClusterUtils;
+import org.apache.storm.daemon.StormCommon;
+import org.apache.storm.nimbus.NimbusInfo;
 import org.apache.storm.scheduler.DefaultScheduler;
 import org.apache.storm.scheduler.INimbus;
 import org.apache.storm.scheduler.IScheduler;
+import org.apache.storm.security.auth.IAuthorizer;
 import org.apache.storm.utils.TimeCacheMap;
 import org.apache.storm.utils.Utils;
 import org.apache.storm.utils.VersionInfo;
+import org.apache.zookeeper.ZooDefs;
+import org.apache.zookeeper.data.ACL;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -67,7 +77,8 @@ public class Nimbus {
     public static final Meter shutdownCalls = registerMeter("nimbus:num-shutdown-calls");
     
     public static final String STORM_VERSION = VersionInfo.getVersion();
-    
+    public static final List<ACL> ZK_ACLS = Arrays.asList(ZooDefs.Ids.CREATOR_ALL_ACL.get(0),
+            new ACL(ZooDefs.Perms.READ | ZooDefs.Perms.CREATE, ZooDefs.Ids.ANYONE_ID_UNSAFE));
     
     @SuppressWarnings("deprecation")
     public static TimeCacheMap<String, AutoCloseable> fileCacheMap(Map<String, Object> conf) {
@@ -96,4 +107,72 @@ public class Nimbus {
         scheduler.prepare(conf);
         return scheduler;
     }
+
+//    private final Map<String, Object> conf;
+//    private final NimbusInfo nimbusHostPortInfo;
+//    private final INimbus inimbus;
+//    private final IAuthorizer authorizationHandler;
+//    private final IAuthorizer ImpersonationAuthorizationHandler;
+//    private final AtomicLong submittedCount;
+//    
+//    //TODO need to replace Exception with something better
+//    public Nimbus(Map<String, Object> conf, INimbus inimbus) throws Exception {
+//        this.conf = conf;
+//        this.nimbusHostPortInfo = NimbusInfo.fromConf(conf);
+//        this.inimbus = inimbus;
+//        this.authorizationHandler = StormCommon.mkAuthorizationHandler((String) conf.get(Config.NIMBUS_AUTHORIZER), conf);
+//        this.ImpersonationAuthorizationHandler = StormCommon.mkAuthorizationHandler((String) conf.get(Config.NIMBUS_IMPERSONATION_AUTHORIZER), conf);
+//        this.submittedCount = new AtomicLong(0);
+//        //TODO need to change CLusterUtils to have a Map option
+//        this.stormClusterState = ClusterUtils.mkStormClusterState(conf, acls, context)
+//        IScheduler forcedSchduler = inimbus.getForcedScheduler();
+//        BlobStore blobStore = Utils.getNimbusBlobStore(conf, nimbusHostPortInfo);
+//    }
+    
+    
+//    
+//              {:conf conf
+//               :nimbus-host-port-info (NimbusInfo/fromConf conf)
+//               :inimbus inimbus
+//               :authorization-handler (StormCommon/mkAuthorizationHandler (conf NIMBUS-AUTHORIZER) conf)
+//               :impersonation-authorization-handler (StormCommon/mkAuthorizationHandler (conf NIMBUS-IMPERSONATION-AUTHORIZER) conf)
+//               :submitted-count (atom 0)
+//               :storm-cluster-state (ClusterUtils/mkStormClusterState conf  (when
+//                                                                                 (Utils/isZkAuthenticationConfiguredStormServer
+//                                                                                   conf)
+//                                                                                 NIMBUS-ZK-ACLS)
+//                                                                    (ClusterStateContext. DaemonType/NIMBUS))
+//               :submit-lock (Object.)
+//               :cred-update-lock (Object.)
+//               :log-update-lock (Object.)
+//               :heartbeats-cache (atom {})
+//               :downloaders (Nimbus/fileCacheMap conf)
+//               :uploaders (Nimbus/fileCacheMap conf)
+//               :blob-store blob-store
+//               :blob-downloaders (mk-blob-cache-map conf)
+//               :blob-uploaders (mk-blob-cache-map conf)
+//               :blob-listers (mk-bloblist-cache-map conf)
+//               :uptime (Utils/makeUptimeComputer)
+//               :validator (Utils/newInstance (conf NIMBUS-TOPOLOGY-VALIDATOR))
+//               :timer (StormTimer. nil
+//                        (reify Thread$UncaughtExceptionHandler
+//                          (^void uncaughtException
+//                            [this ^Thread t ^Throwable e]
+//                            (log-error e "Error when processing event")
+//                            (Utils/exitProcess 20 "Error when processing an event"))))
+//
+//               :scheduler (Nimbus/makeScheduler conf inimbus)
+//               :leader-elector (Zookeeper/zkLeaderElector conf blob-store)
+//               :id->sched-status (atom {})
+//               :node-id->resources (atom {}) ;;resources of supervisors
+//               :id->resources (atom {}) ;;resources of topologies
+//               :id->worker-resources (atom {}) ; resources of workers per topology
+//               :cred-renewers (AuthUtils/GetCredentialRenewers conf)
+//               :topology-history-lock (Object.)
+//               :topo-history-state (ConfigUtils/nimbusTopoHistoryState conf)
+//               :nimbus-autocred-plugins (AuthUtils/getNimbusAutoCredPlugins conf)
+//               :nimbus-topology-action-notifier (create-tology-action-notifier conf)
+//               :cluster-consumer-executors (mk-cluster-metrics-consumer-executors conf)
+//               }))
+//    
 }

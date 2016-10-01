@@ -21,6 +21,7 @@
   (:import [org.apache.storm.testing TestWordCounter TestWordSpout TestGlobalCount
             TestAggregatesCounter TestPlannerSpout TestPlannerBolt]
            [org.apache.storm.nimbus InMemoryTopologyActionNotifier]
+           [org.apache.storm.daemon.nimbus Nimbus]
            [org.apache.storm.generated GlobalStreamId]
            [org.apache.storm Thrift MockAutoCred]
            [org.apache.storm.stats BoltExecutorStats StatsUtil])
@@ -1500,7 +1501,7 @@
                      STORM-ZOOKEEPER-AUTH-PAYLOAD digest
                      STORM-PRINCIPAL-TO-LOCAL-PLUGIN "org.apache.storm.security.auth.DefaultPrincipalToLocal"
                      NIMBUS-THRIFT-PORT 6666})
-          expected-acls nimbus/NIMBUS-ZK-ACLS
+          expected-acls Nimbus/ZK_ACLS
           fake-inimbus (reify INimbus (getForcedScheduler [this] nil))
           fake-cu (proxy [ConfigUtils] []
                     (nimbusTopoHistoryStateImpl [conf] nil))
@@ -1520,7 +1521,6 @@
         (stubbing [
                    nimbus/mk-blob-cache-map nil
                    nimbus/mk-bloblist-cache-map nil
-                   ;;nimbus/mk-scheduler nil
                    ]
           (nimbus/nimbus-data auth-conf fake-inimbus)
           (.mkStormClusterStateImpl (Mockito/verify cluster-utils (Mockito/times 1)) (Mockito/any) (Mockito/eq expected-acls) (Mockito/any))

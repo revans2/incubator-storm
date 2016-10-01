@@ -83,10 +83,6 @@
         (let [leader-address (.getLeader leader-elector)]
           (throw (RuntimeException. (str "not a leader, current leader is " leader-address))))))))
 
-(def NIMBUS-ZK-ACLS
-  [(first ZooDefs$Ids/CREATOR_ALL_ACL)
-   (ACL. (bit-or ZooDefs$Perms/READ ZooDefs$Perms/CREATE) ZooDefs$Ids/ANYONE_ID_UNSAFE)])
-
 (defn mk-blob-cache-map
   "Constructs a TimeCacheMap instance with a blob store timeout whose
   expiration callback invokes cancel on the value held by an expired entry when
@@ -134,7 +130,7 @@
      :storm-cluster-state (ClusterUtils/mkStormClusterState conf  (when
                                                                        (Utils/isZkAuthenticationConfiguredStormServer
                                                                          conf)
-                                                                       NIMBUS-ZK-ACLS)
+                                                                       Nimbus/ZK_ACLS)
                                                           (ClusterStateContext. DaemonType/NIMBUS))
      :submit-lock (Object.)
      :cred-update-lock (Object.)
