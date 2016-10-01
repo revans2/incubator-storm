@@ -83,12 +83,6 @@
         (let [leader-address (.getLeader leader-elector)]
           (throw (RuntimeException. (str "not a leader, current leader is " leader-address))))))))
 
-(defn mk-bloblist-cache-map
-  "Constructs a TimeCacheMap instance with a blobstore timeout and no callback
-  function."
-  [conf]
-  (TimeCacheMap. (int (conf NIMBUS-BLOBSTORE-EXPIRATION-SECS))))
-
 (defn create-tology-action-notifier [conf]
   (when-not (clojure.string/blank? (conf NIMBUS-TOPOLOGY-ACTION-NOTIFIER-PLUGIN))
     (let [instance (Utils/newInstance (conf NIMBUS-TOPOLOGY-ACTION-NOTIFIER-PLUGIN))]
@@ -128,7 +122,7 @@
      :blob-store blob-store
      :blob-downloaders (Nimbus/makeBlobCachMap conf)
      :blob-uploaders (Nimbus/makeBlobCachMap conf)
-     :blob-listers (mk-bloblist-cache-map conf)
+     :blob-listers (Nimbus/makeBlobListCachMap conf)
      :uptime (Utils/makeUptimeComputer)
      :validator (Utils/newInstance (conf NIMBUS-TOPOLOGY-VALIDATOR))
      :timer (StormTimer. nil

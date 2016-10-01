@@ -22,6 +22,7 @@ import static org.apache.storm.metric.StormMetricsRegistry.registerMeter;
 import java.io.OutputStream;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
@@ -137,6 +138,16 @@ public class Nimbus {
                     }
                 });
     }
+    
+    /**
+     * Constructs a TimeCacheMap instance with a blobstore timeout and no callback function.
+     * @param conf
+     * @return
+     */
+    @SuppressWarnings("deprecation")
+    public static TimeCacheMap<String, Iterator<String>> makeBlobListCachMap(Map<String, Object> conf) {
+        return new TimeCacheMap<>(Utils.getInt(conf.get(Config.NIMBUS_BLOBSTORE_EXPIRATION_SECS)));
+    }
 
 //    private final Map<String, Object> conf;
 //    private final NimbusInfo nimbusHostPortInfo;
@@ -152,6 +163,8 @@ public class Nimbus {
 //    private final TimeCacheMap<String, AutoCloseable> downloaders;
 //    private final TimeCacheMap<String, AutoCloseable> uploaders;
 //    private final BlobStore blobStore;
+//    private final TimeCacheMap<String, OutputStream> blobDownloaders;
+//    private final TimeCacheMap<String, OutputStream> blobUploaders;
 //    
 //    //TODO need to replace Exception with something better
 //    public Nimbus(Map<String, Object> conf, INimbus inimbus) throws Exception {
@@ -176,10 +189,10 @@ public class Nimbus {
 //        this.downloaders = fileCacheMap(conf);
 //        this.uploaders = fileCacheMap(conf);
 //        this.blobStore = Utils.getNimbusBlobStore(conf, nimbusHostPortInfo);
+//        this.blobDownloaders = makeBlobCachMap(conf);
+//        this.blobUploaders = makeBlobCachMap(conf);
 //    }
-//    
-//               :blob-downloaders (mk-blob-cache-map conf)
-//               :blob-uploaders (mk-blob-cache-map conf)
+//
 //               :blob-listers (mk-bloblist-cache-map conf)
 //               :uptime (Utils/makeUptimeComputer)
 //               :validator (Utils/newInstance (conf NIMBUS-TOPOLOGY-VALIDATOR))
