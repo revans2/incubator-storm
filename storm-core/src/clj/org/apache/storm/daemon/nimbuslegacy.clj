@@ -13,7 +13,7 @@
 ;; WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 ;; See the License for the specific language governing permissions and
 ;; limitations under the License.
-(ns org.apache.storm.daemon.nimbus
+(ns org.apache.storm.daemon.nimbuslegacy
   (:import [org.apache.thrift.server THsHaServer THsHaServer$Args]
            [org.apache.storm.stats StatsUtil]
            [org.apache.storm.metric StormMetricsRegistry])

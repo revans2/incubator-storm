@@ -16,7 +16,7 @@
 (ns org.apache.storm.scheduler.multitenant-scheduler-test
   (:use [clojure test])
   (:use [org.apache.storm config testing log])
-  (:require [org.apache.storm.daemon [nimbus :as nimbus]])
+  (:require [org.apache.storm.daemon [nimbuslegacy :as nimbus]])
   (:import [org.apache.storm.generated StormTopology])
   (:import [org.apache.storm.scheduler Cluster SupervisorDetails WorkerSlot ExecutorDetails
             SchedulerAssignmentImpl Topologies TopologyDetails])

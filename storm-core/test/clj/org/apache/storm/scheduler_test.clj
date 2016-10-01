@@ -17,7 +17,7 @@
   (:use [clojure test])
   (:use [org.apache.storm util config testing])
   (:import [org.apache.storm.scheduler EvenScheduler])
-  (:require [org.apache.storm.daemon [nimbus :as nimbus]])
+  (:require [org.apache.storm.daemon [nimbuslegacy :as nimbus]])
   (:import [org.apache.storm.generated StormTopology])
   (:import [org.apache.storm.scheduler Cluster SupervisorDetails WorkerSlot ExecutorDetails
             SchedulerAssignmentImpl Topologies TopologyDetails]))

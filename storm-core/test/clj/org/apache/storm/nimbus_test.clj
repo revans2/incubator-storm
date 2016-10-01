@@ -16,7 +16,7 @@
 (ns org.apache.storm.nimbus-test
   (:use [clojure test])
   (:require [org.apache.storm [util :as util]])
-  (:require [org.apache.storm.daemon [nimbus :as nimbus]])
+  (:require [org.apache.storm.daemon [nimbuslegacy :as nimbus]])
   (:require [org.apache.storm [converter :as converter]])
   (:import [org.apache.storm.testing TestWordCounter TestWordSpout TestGlobalCount
             TestAggregatesCounter TestPlannerSpout TestPlannerBolt]
@@ -44,7 +44,7 @@
   (:import [org.apache.storm.daemon StormCommon])
   (:import [org.apache.storm.cluster IStormClusterState StormClusterStateImpl ClusterStateContext ClusterUtils])
   (:use [org.apache.storm testing util config log converter])
-    (:require [conjure.core] [org.apache.storm.daemon.worker :as worker] [org.apache.storm.daemon.nimbus :as nimbus])
+    (:require [conjure.core] [org.apache.storm.daemon.worker :as worker])
 
   (:use [conjure core]))
 
