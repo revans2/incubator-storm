@@ -21,6 +21,7 @@ import static org.apache.storm.metric.StormMetricsRegistry.registerMeter;
 
 import java.io.OutputStream;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -37,13 +38,20 @@ import org.apache.storm.cluster.ClusterUtils;
 import org.apache.storm.cluster.DaemonType;
 import org.apache.storm.cluster.IStormClusterState;
 import org.apache.storm.daemon.StormCommon;
+import org.apache.storm.generated.WorkerResources;
 import org.apache.storm.nimbus.ILeaderElector;
+import org.apache.storm.nimbus.ITopologyActionNotifierPlugin;
 import org.apache.storm.nimbus.ITopologyValidator;
 import org.apache.storm.nimbus.NimbusInfo;
 import org.apache.storm.scheduler.DefaultScheduler;
 import org.apache.storm.scheduler.INimbus;
 import org.apache.storm.scheduler.IScheduler;
+import org.apache.storm.security.INimbusCredentialPlugin;
+import org.apache.storm.security.auth.AuthUtils;
 import org.apache.storm.security.auth.IAuthorizer;
+import org.apache.storm.security.auth.ICredentialsRenewer;
+import org.apache.storm.utils.ConfigUtils;
+import org.apache.storm.utils.LocalState;
 import org.apache.storm.utils.TimeCacheMap;
 import org.apache.storm.utils.Utils;
 import org.apache.storm.utils.Utils.UptimeComputer;
@@ -154,6 +162,21 @@ public class Nimbus {
         return new TimeCacheMap<>(Utils.getInt(conf.get(Config.NIMBUS_BLOBSTORE_EXPIRATION_SECS)));
     }
     
+    public static ITopologyActionNotifierPlugin createTopologyActionNotifier(Map<String, Object> conf) {
+        String clazz = (String) conf.get(Config.NIMBUS_TOPOLOGY_ACTION_NOTIFIER_PLUGIN);
+        ITopologyActionNotifierPlugin ret = null;
+        if (clazz != null && !clazz.isEmpty()) {
+            ret = Utils.newInstance(clazz);
+            try {
+                ret.prepare(conf);
+            } catch (Exception e) {
+                LOG.warn("Ignoring exception, Could not initialize {}", clazz, e);
+                ret = null;
+            }
+        }
+        return ret;
+    }
+    
 //    private final Map<String, Object> conf;
 //    private final NimbusInfo nimbusHostPortInfo;
 //    private final INimbus inimbus;
@@ -178,6 +201,12 @@ public class Nimbus {
 //    private final ILeaderElector leaderElector;
 //    private final AtomicReference<Map<String, String>> idToSchedStatus;
 //    private final AtomicReference<Map<String, Double[]>> nodeIdToResources;
+//    private final AtomicReference<Map<String, TopologyResources>> idToResources;
+//    private final AtomicReference<Map<String, WorkerResources>> idToWorkerResources;
+//    private final Collection<ICredentialsRenewer> credRenewers;
+//    private final Object topologyHistoryLock;
+//    private final LocalState topologyHistoryState;
+//    private final Collection<INimbusCredentialPlugin> nimbusAutocredPlugins;
 //    
 //    //TODO need to replace Exception with something better
 //    public Nimbus(Map<String, Object> conf, INimbus inimbus) throws Exception {
@@ -213,17 +242,16 @@ public class Nimbus {
 //        });
 //        this.scheduler = makeScheduler(conf, inimbus);
 //        this.leaderElector = Zookeeper.zkLeaderElector(conf, blobStore);
-//        this.idToSchedStatus = new AtomicReference<>();
-//        this.nodeIdToResources = new AtomicReference<>();
+//        this.idToSchedStatus = new AtomicReference<>(new HashMap<>());
+//        this.nodeIdToResources = new AtomicReference<>(new HashMap<>());
+//        this.idToResources = new AtomicReference<>(new HashMap<>());
+//        this.idToWorkerResources = new AtomicReference<>(new HashMap<>());
+//        this.credRenewers = AuthUtils.GetCredentialRenewers(conf);
+//        this.topologyHistoryLock = new Object();
+//        this.topologyHistoryState = ConfigUtils.nimbusTopoHistoryState(conf);
+//        this.nimbusAutocredPlugins = AuthUtils.getNimbusAutoCredPlugins(conf);
 //    }
-//
 
-//               :id->resources (atom {}) ;;resources of topologies
-//               :id->worker-resources (atom {}) ; resources of workers per topology
-//               :cred-renewers (AuthUtils/GetCredentialRenewers conf)
-//               :topology-history-lock (Object.)
-//               :topo-history-state (ConfigUtils/nimbusTopoHistoryState conf)
-//               :nimbus-autocred-plugins (AuthUtils/getNimbusAutoCredPlugins conf)
 //               :nimbus-topology-action-notifier (create-tology-action-notifier conf)
 //               :cluster-consumer-executors (mk-cluster-metrics-consumer-executors conf)
 //               }))

@@ -83,15 +83,6 @@
         (let [leader-address (.getLeader leader-elector)]
           (throw (RuntimeException. (str "not a leader, current leader is " leader-address))))))))
 
-(defn create-tology-action-notifier [conf]
-  (when-not (clojure.string/blank? (conf NIMBUS-TOPOLOGY-ACTION-NOTIFIER-PLUGIN))
-    (let [instance (Utils/newInstance (conf NIMBUS-TOPOLOGY-ACTION-NOTIFIER-PLUGIN))]
-      (try
-        (.prepare instance conf)
-        instance
-        (catch Exception e
-          (log-warn-error e "Ingoring exception, Could not initialize " (conf NIMBUS-TOPOLOGY-ACTION-NOTIFIER-PLUGIN)))))))
-
 (defn mk-cluster-metrics-consumer-executors [storm-conf]
   (map
     (fn [consumer]
@@ -142,7 +133,7 @@
      :topology-history-lock (Object.)
      :topo-history-state (ConfigUtils/nimbusTopoHistoryState conf)
      :nimbus-autocred-plugins (AuthUtils/getNimbusAutoCredPlugins conf)
-     :nimbus-topology-action-notifier (create-tology-action-notifier conf)
+     :nimbus-topology-action-notifier (Nimbus/createTopologyActionNotifier conf)
      :cluster-consumer-executors (mk-cluster-metrics-consumer-executors conf)
      }))
 
