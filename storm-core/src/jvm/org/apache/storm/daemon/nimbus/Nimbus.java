@@ -19,14 +19,21 @@ package org.apache.storm.daemon.nimbus;
 
 import static org.apache.storm.metric.StormMetricsRegistry.registerMeter;
 
+import java.io.OutputStream;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.storm.Config;
+import org.apache.storm.blobstore.AtomicOutputStream;
 import org.apache.storm.blobstore.BlobStore;
+import org.apache.storm.cluster.ClusterStateContext;
 import org.apache.storm.cluster.ClusterUtils;
+import org.apache.storm.cluster.DaemonType;
+import org.apache.storm.cluster.IStormClusterState;
 import org.apache.storm.daemon.StormCommon;
 import org.apache.storm.nimbus.NimbusInfo;
 import org.apache.storm.scheduler.DefaultScheduler;
@@ -108,12 +115,43 @@ public class Nimbus {
         return scheduler;
     }
 
+    /**
+     * Constructs a TimeCacheMap instance with a blob store timeout whose
+     * expiration callback invokes cancel on the value held by an expired entry when
+     * that value is an AtomicOutputStream and calls close otherwise.
+     * @param conf the config to use
+     * @return the newly created map
+     */
+    @SuppressWarnings("deprecation")
+    public static TimeCacheMap<String, OutputStream> makeBlobCachMap(Map<String, Object> conf) {
+        return new TimeCacheMap<>(Utils.getInt(conf.get(Config.NIMBUS_BLOBSTORE_EXPIRATION_SECS)),
+                (id, stream) -> {
+                    try {
+                        if (stream instanceof AtomicOutputStream) {
+                            ((AtomicOutputStream) stream).cancel();
+                        } else {
+                            stream.close();
+                        }
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
+                    }
+                });
+    }
+
 //    private final Map<String, Object> conf;
 //    private final NimbusInfo nimbusHostPortInfo;
 //    private final INimbus inimbus;
 //    private final IAuthorizer authorizationHandler;
 //    private final IAuthorizer ImpersonationAuthorizationHandler;
 //    private final AtomicLong submittedCount;
+//    private final IStormClusterState stormClusterState;
+//    private final Object submitLock;
+//    private final Object credUpdateLock;
+//    private final Object logUpdateLock;
+//    private final AtomicReference<Map<List<Integer>, Map<String, Object>>> heartbeatsCache;
+//    private final TimeCacheMap<String, AutoCloseable> downloaders;
+//    private final TimeCacheMap<String, AutoCloseable> uploaders;
+//    private final BlobStore blobStore;
 //    
 //    //TODO need to replace Exception with something better
 //    public Nimbus(Map<String, Object> conf, INimbus inimbus) throws Exception {
@@ -124,31 +162,22 @@ public class Nimbus {
 //        this.ImpersonationAuthorizationHandler = StormCommon.mkAuthorizationHandler((String) conf.get(Config.NIMBUS_IMPERSONATION_AUTHORIZER), conf);
 //        this.submittedCount = new AtomicLong(0);
 //        //TODO need to change CLusterUtils to have a Map option
-//        this.stormClusterState = ClusterUtils.mkStormClusterState(conf, acls, context)
+//        List<ACL> acls = null;
+//        if (Utils.isZkAuthenticationConfiguredStormServer(conf)) {
+//            acls = ZK_ACLS;
+//        }
+//        this.stormClusterState = ClusterUtils.mkStormClusterState(conf, acls, new ClusterStateContext(DaemonType.NIMBUS));
+//        //TODO we need a better lock for this...
+//        this.submitLock = new Object();
+//        this.credUpdateLock = new Object();
+//        this.logUpdateLock = new Object();
 //        IScheduler forcedSchduler = inimbus.getForcedScheduler();
-//        BlobStore blobStore = Utils.getNimbusBlobStore(conf, nimbusHostPortInfo);
+//        this.heartbeatsCache = new AtomicReference<>(new HashMap<>());
+//        this.downloaders = fileCacheMap(conf);
+//        this.uploaders = fileCacheMap(conf);
+//        this.blobStore = Utils.getNimbusBlobStore(conf, nimbusHostPortInfo);
 //    }
-    
-    
 //    
-//              {:conf conf
-//               :nimbus-host-port-info (NimbusInfo/fromConf conf)
-//               :inimbus inimbus
-//               :authorization-handler (StormCommon/mkAuthorizationHandler (conf NIMBUS-AUTHORIZER) conf)
-//               :impersonation-authorization-handler (StormCommon/mkAuthorizationHandler (conf NIMBUS-IMPERSONATION-AUTHORIZER) conf)
-//               :submitted-count (atom 0)
-//               :storm-cluster-state (ClusterUtils/mkStormClusterState conf  (when
-//                                                                                 (Utils/isZkAuthenticationConfiguredStormServer
-//                                                                                   conf)
-//                                                                                 NIMBUS-ZK-ACLS)
-//                                                                    (ClusterStateContext. DaemonType/NIMBUS))
-//               :submit-lock (Object.)
-//               :cred-update-lock (Object.)
-//               :log-update-lock (Object.)
-//               :heartbeats-cache (atom {})
-//               :downloaders (Nimbus/fileCacheMap conf)
-//               :uploaders (Nimbus/fileCacheMap conf)
-//               :blob-store blob-store
 //               :blob-downloaders (mk-blob-cache-map conf)
 //               :blob-uploaders (mk-blob-cache-map conf)
 //               :blob-listers (mk-bloblist-cache-map conf)

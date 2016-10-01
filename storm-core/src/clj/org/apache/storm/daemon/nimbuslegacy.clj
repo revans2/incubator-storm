@@ -83,19 +83,6 @@
         (let [leader-address (.getLeader leader-elector)]
           (throw (RuntimeException. (str "not a leader, current leader is " leader-address))))))))
 
-(defn mk-blob-cache-map
-  "Constructs a TimeCacheMap instance with a blob store timeout whose
-  expiration callback invokes cancel on the value held by an expired entry when
-  that value is an AtomicOutputStream and calls close otherwise."
-  [conf]
-  (TimeCacheMap.
-    (int (conf NIMBUS-BLOBSTORE-EXPIRATION-SECS))
-    (reify TimeCacheMap$ExpiredCallback
-      (expire [this id stream]
-        (if (instance? AtomicOutputStream stream)
-          (.cancel stream)
-          (.close stream))))))
-
 (defn mk-bloblist-cache-map
   "Constructs a TimeCacheMap instance with a blobstore timeout and no callback
   function."
@@ -139,8 +126,8 @@
      :downloaders (Nimbus/fileCacheMap conf)
      :uploaders (Nimbus/fileCacheMap conf)
      :blob-store blob-store
-     :blob-downloaders (mk-blob-cache-map conf)
-     :blob-uploaders (mk-blob-cache-map conf)
+     :blob-downloaders (Nimbus/makeBlobCachMap conf)
+     :blob-uploaders (Nimbus/makeBlobCachMap conf)
      :blob-listers (mk-bloblist-cache-map conf)
      :uptime (Utils/makeUptimeComputer)
      :validator (Utils/newInstance (conf NIMBUS-TOPOLOGY-VALIDATOR))

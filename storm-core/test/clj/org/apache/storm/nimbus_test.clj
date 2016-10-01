@@ -1519,7 +1519,6 @@
                           (zkLeaderElectorImpl [conf blob-store] nil)))
                   mocked-cluster (MockedCluster. cluster-utils)]
         (stubbing [
-                   nimbus/mk-blob-cache-map nil
                    nimbus/mk-bloblist-cache-map nil
                    ]
           (nimbus/nimbus-data auth-conf fake-inimbus)
