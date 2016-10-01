@@ -17,7 +17,7 @@
   (:import [org.apache.thrift.server THsHaServer THsHaServer$Args]
            [org.apache.storm.stats StatsUtil]
            [org.apache.storm.metric StormMetricsRegistry])
-  (:import [org.apache.storm.daemon.nimbus Nimbus])
+  (:import [org.apache.storm.daemon.nimbus Nimbus TopologyResources])
   (:import [org.apache.storm.generated KeyNotFoundException])
   (:import [org.apache.storm.blobstore LocalFsBlobStore])
   (:import [org.apache.thrift.protocol TBinaryProtocol TBinaryProtocol$Factory])
@@ -714,9 +714,6 @@
 
     new-topology->executor->node+port))
 
-(defrecord TopologyResources [requested-mem-on-heap requested-mem-off-heap requested-cpu
-                              assigned-mem-on-heap assigned-mem-off-heap assigned-cpu])
- 
 ;; public so it can be mocked out
 (defn compute-new-scheduler-assignments [nimbus existing-assignments topologies scratch-topology-id]
   (let [conf (:conf nimbus)
@@ -770,7 +767,7 @@
       (.updateAssignedMemoryForTopologyAndSupervisor cluster topologies))
 
     ; Remove both of swaps below at first opportunity. This is a hack for non-ras scheduler topology and worker resources.
-    (swap! (:id->resources nimbus) merge (into {} (map (fn [[k v]] [k (->TopologyResources (nth v 0) (nth v 1) (nth v 2)
+    (swap! (:id->resources nimbus) merge (into {} (map (fn [[k v]] [k (TopologyResources. (nth v 0) (nth v 1) (nth v 2)
                                                                                            (nth v 3) (nth v 4) (nth v 5))])
                                                        (.getTopologyResourcesMap cluster))))
     ; Remove this also at first chance
@@ -802,19 +799,19 @@
                                       (apply map vector)
                                         ; [[on-heap], [off-heap], [cpu]] -> [on-heap-sum, off-heap-sum, cpu-sum]
                                       (map (partial reduce +)))
-              worker-resources (->TopologyResources (.getTotalRequestedMemOnHeap topology-details)
+              worker-resources (TopologyResources. (.getTotalRequestedMemOnHeap topology-details)
                                                     (.getTotalRequestedMemOffHeap topology-details)
                                                     (.getTotalRequestedCpu topology-details)
-                                                    (nth assigned-resources 0)
-                                                    (nth assigned-resources 1)
-                                                    (nth assigned-resources 2))]
+                                                    (double (nth assigned-resources 0))
+                                                    (double (nth assigned-resources 1))
+                                                    (double (nth assigned-resources 2)))]
           (swap! (:id->resources nimbus) assoc topo-id worker-resources)
           worker-resources)
         (catch KeyNotFoundException e
           ; This can happen when a topology is first coming up.
           ; It's thrown by the blobstore code.
           (log-error e "Failed to get topology details")
-          (->TopologyResources 0 0 0 0 0 0)))))
+          (TopologyResources. 0 0 0 0 0 0)))))
 
 (defn- get-worker-resources-for-topology [nimbus topo-id]
   (or (get @(:id->worker-resources nimbus) topo-id)
@@ -1447,12 +1444,12 @@
                                     (when-let [owner (:owner base)] (.set_owner topo-summ owner))
                                     (when-let [sched-status (.get @(:id->sched-status nimbus) id)] (.set_sched_status topo-summ sched-status))
                                     (when-let [resources (get-resources-for-topology nimbus id)]
-                                      (.set_requested_memonheap topo-summ (:requested-mem-on-heap resources))
-                                      (.set_requested_memoffheap topo-summ (:requested-mem-off-heap resources))
-                                      (.set_requested_cpu topo-summ (:requested-cpu resources))
-                                      (.set_assigned_memonheap topo-summ (:assigned-mem-on-heap resources))
-                                      (.set_assigned_memoffheap topo-summ (:assigned-mem-off-heap resources))
-                                      (.set_assigned_cpu topo-summ (:assigned-cpu resources)))
+                                      (.set_requested_memonheap topo-summ (.getRequestedMemOnHeap resources))
+                                      (.set_requested_memoffheap topo-summ (.getRequestedMemOffHeap resources))
+                                      (.set_requested_cpu topo-summ (.getRequestedCpu resources))
+                                      (.set_assigned_memonheap topo-summ (.getAssignedMemOnHeap resources))
+                                      (.set_assigned_memoffheap topo-summ (.getAssignedMemOffHeap resources))
+                                      (.set_assigned_cpu topo-summ (.getAssignedCpu resources)))
                                     (.set_replication_count topo-summ (get-blob-replication-count (ConfigUtils/masterStormCodeKey id) nimbus))
                                     topo-summ))
         ret (ClusterSummary. supervisor-summaries
@@ -1933,12 +1930,12 @@
             (when-let [owner (:owner base)] (.set_owner topo-info owner))
             (when-let [sched-status (.get @(:id->sched-status nimbus) storm-id)] (.set_sched_status topo-info sched-status))
             (when-let [resources (get-resources-for-topology nimbus storm-id)]
-              (.set_requested_memonheap topo-info (:requested-mem-on-heap resources))
-              (.set_requested_memoffheap topo-info (:requested-mem-off-heap resources))
-              (.set_requested_cpu topo-info (:requested-cpu resources))
-              (.set_assigned_memonheap topo-info (:assigned-mem-on-heap resources))
-              (.set_assigned_memoffheap topo-info (:assigned-mem-off-heap resources))
-              (.set_assigned_cpu topo-info (:assigned-cpu resources)))
+              (.set_requested_memonheap topo-info (.getRequestedMemOnHeap resources))
+              (.set_requested_memoffheap topo-info (.getRequestedMemOffHeap resources))
+              (.set_requested_cpu topo-info (.getRequestedCpu resources))
+              (.set_assigned_memonheap topo-info (.getAssignedMemOnHeap resources))
+              (.set_assigned_memoffheap topo-info (.getAssignedMemOffHeap resources))
+              (.set_assigned_cpu topo-info (.getAssignedCpu resources)))
             (when-let [component->debug (:component->debug base)]
               ;TODO: when translating this function, you should replace the map-val with a proper for loop HERE
               (.set_component_debug topo-info (map-val converter/thriftify-debugoptions component->debug)))

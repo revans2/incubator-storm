@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- * <p/>
+ * 
  * http://www.apache.org/licenses/LICENSE-2.0
- * <p/>
+ * 
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -29,6 +29,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.storm.Config;
+import org.apache.storm.StormTimer;
 import org.apache.storm.blobstore.AtomicOutputStream;
 import org.apache.storm.blobstore.BlobStore;
 import org.apache.storm.cluster.ClusterStateContext;
@@ -36,6 +37,8 @@ import org.apache.storm.cluster.ClusterUtils;
 import org.apache.storm.cluster.DaemonType;
 import org.apache.storm.cluster.IStormClusterState;
 import org.apache.storm.daemon.StormCommon;
+import org.apache.storm.nimbus.ILeaderElector;
+import org.apache.storm.nimbus.ITopologyValidator;
 import org.apache.storm.nimbus.NimbusInfo;
 import org.apache.storm.scheduler.DefaultScheduler;
 import org.apache.storm.scheduler.INimbus;
@@ -43,7 +46,9 @@ import org.apache.storm.scheduler.IScheduler;
 import org.apache.storm.security.auth.IAuthorizer;
 import org.apache.storm.utils.TimeCacheMap;
 import org.apache.storm.utils.Utils;
+import org.apache.storm.utils.Utils.UptimeComputer;
 import org.apache.storm.utils.VersionInfo;
+import org.apache.storm.zookeeper.Zookeeper;
 import org.apache.zookeeper.ZooDefs;
 import org.apache.zookeeper.data.ACL;
 import org.slf4j.Logger;
@@ -148,7 +153,7 @@ public class Nimbus {
     public static TimeCacheMap<String, Iterator<String>> makeBlobListCachMap(Map<String, Object> conf) {
         return new TimeCacheMap<>(Utils.getInt(conf.get(Config.NIMBUS_BLOBSTORE_EXPIRATION_SECS)));
     }
-
+    
 //    private final Map<String, Object> conf;
 //    private final NimbusInfo nimbusHostPortInfo;
 //    private final INimbus inimbus;
@@ -165,6 +170,14 @@ public class Nimbus {
 //    private final BlobStore blobStore;
 //    private final TimeCacheMap<String, OutputStream> blobDownloaders;
 //    private final TimeCacheMap<String, OutputStream> blobUploaders;
+//    private final TimeCacheMap<String, Iterator<String>> blobListers;
+//    private final UptimeComputer uptime;
+//    private final ITopologyValidator validator;
+//    private final StormTimer timer;
+//    private final IScheduler scheduler;
+//    private final ILeaderElector leaderElector;
+//    private final AtomicReference<Map<String, String>> idToSchedStatus;
+//    private final AtomicReference<Map<String, Double[]>> nodeIdToResources;
 //    
 //    //TODO need to replace Exception with something better
 //    public Nimbus(Map<String, Object> conf, INimbus inimbus) throws Exception {
@@ -191,22 +204,20 @@ public class Nimbus {
 //        this.blobStore = Utils.getNimbusBlobStore(conf, nimbusHostPortInfo);
 //        this.blobDownloaders = makeBlobCachMap(conf);
 //        this.blobUploaders = makeBlobCachMap(conf);
+//        this.blobListers = makeBlobListCachMap(conf);
+//        this.uptime = Utils.makeUptimeComputer();
+//        this.validator = Utils.newInstance((String) conf.get(Config.NIMBUS_TOPOLOGY_VALIDATOR));
+//        this.timer = new StormTimer(null, (t, e) -> {
+//            LOG.error("Error while processing event", e);
+//            Utils.exitProcess(20, "Error while processing event");
+//        });
+//        this.scheduler = makeScheduler(conf, inimbus);
+//        this.leaderElector = Zookeeper.zkLeaderElector(conf, blobStore);
+//        this.idToSchedStatus = new AtomicReference<>();
+//        this.nodeIdToResources = new AtomicReference<>();
 //    }
 //
-//               :blob-listers (mk-bloblist-cache-map conf)
-//               :uptime (Utils/makeUptimeComputer)
-//               :validator (Utils/newInstance (conf NIMBUS-TOPOLOGY-VALIDATOR))
-//               :timer (StormTimer. nil
-//                        (reify Thread$UncaughtExceptionHandler
-//                          (^void uncaughtException
-//                            [this ^Thread t ^Throwable e]
-//                            (log-error e "Error when processing event")
-//                            (Utils/exitProcess 20 "Error when processing an event"))))
-//
-//               :scheduler (Nimbus/makeScheduler conf inimbus)
-//               :leader-elector (Zookeeper/zkLeaderElector conf blob-store)
-//               :id->sched-status (atom {})
-//               :node-id->resources (atom {}) ;;resources of supervisors
+
 //               :id->resources (atom {}) ;;resources of topologies
 //               :id->worker-resources (atom {}) ; resources of workers per topology
 //               :cred-renewers (AuthUtils/GetCredentialRenewers conf)
