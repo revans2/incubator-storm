@@ -15,7 +15,7 @@ import backtype.storm.scheduler.resource.RAS_Node;
 import backtype.storm.scheduler.resource.RAS_Nodes;
 import backtype.storm.scheduler.resource.ResourceAwareScheduler;
 import backtype.storm.scheduler.resource.SchedulingResult;
-import backtype.storm.scheduler.resource.strategies.scheduling.DefaultResourceAwareStrategy.RackResources;
+import backtype.storm.scheduler.resource.strategies.scheduling.DefaultResourceAwareStrategy.ObjectResources;
 import backtype.storm.scheduler.resource.SchedulingState;
 import backtype.storm.scheduler.resource.TestUtilsForResourceAwareScheduler;
 import backtype.storm.scheduler.resource.User;
@@ -250,10 +250,10 @@ public class TestDefaultResourceAwareStrategy {
         DefaultResourceAwareStrategy rs = new DefaultResourceAwareStrategy();
 
         rs.prepare(new SchedulingState(new HashMap<String, User>(), cluster, topologies, config));
-        TreeSet<RackResources> sortedRacks= rs.sortRacks(topo1.getId());
+        TreeSet<ObjectResources> sortedRacks= rs.sortRacks(topo1.getId(), new HashMap<WorkerSlot, Collection<ExecutorDetails>>());
 
         Assert.assertEquals("# of racks sorted", 5, sortedRacks.size());
-        Iterator<RackResources> it = sortedRacks.iterator();
+        Iterator<ObjectResources> it = sortedRacks.iterator();
         // Ranked first since rack-0 has the most balanced set of resources
         Assert.assertEquals("rack-0 should be ordered first", "rack-0", it.next().id);
         // Ranked second since rack-1 has a balanced set of resources but less than rack-0
@@ -293,8 +293,6 @@ public class TestDefaultResourceAwareStrategy {
             // to actually assign
             cluster.assign(targetSlot, topo2.getId(), Arrays.asList(targetExec));
         }
-
-        topologies.getById(topo2.getId()).getTotalMemoryResourceList();
 
         rs = new DefaultResourceAwareStrategy();
         rs.prepare(new SchedulingState(new HashMap<String, User>(), cluster, topologies, config));
