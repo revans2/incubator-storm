@@ -465,4 +465,15 @@ public class Nimbus {
     public List<ClusterMetricsConsumerExecutor> getClusterConsumerExecutors() {
         return clusterConsumerExceutors;
     }
+    
+    public boolean isLeader() throws Exception {
+        return getLeaderElector().isLeader();
+    }
+    
+    public void assertIsLeader() throws Exception {
+        if (!isLeader()) {
+            NimbusInfo leaderAddress = getLeaderElector().getLeader();
+            throw new RuntimeException("not a leader, current leader is " + leaderAddress);
+        }
+    }
 }

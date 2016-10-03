@@ -76,13 +76,6 @@
 
 (defmulti blob-sync cluster-mode)
 
-(defnk is-leader [nimbus :throw-exception true]
-  (let [leader-elector (.getLeaderElector nimbus)]
-    (if (.isLeader leader-elector) true
-      (if throw-exception
-        (let [leader-address (.getLeader leader-elector)]
-          (throw (RuntimeException. (str "not a leader, current leader is " leader-address))))))))
-
 (defn nimbus-data [conf inimbus]
   (Nimbus. conf inimbus))
 
@@ -207,7 +200,7 @@
   ([nimbus storm-id event]
      (transition! nimbus storm-id event false))
   ([nimbus storm-id event error-on-no-transition?]
-    (is-leader nimbus)
+    (.assertIsLeader nimbus)
     (locking (.getSubmitLock nimbus)
        (let [system-events #{:startup}
              [event & event-args] (if (keyword? event) [event] event)
@@ -803,7 +796,7 @@
 ;; only keep existing slots that satisfy one of those slots. for rest, reassign them across remaining slots
 ;; edge case for slots with no executor timeout but with supervisor timeout... just treat these as valid slots that can be reassigned to. worst comes to worse the executor will timeout and won't assign here next time around
 (defnk mk-assignments [nimbus :scratch-topology-id nil]
-  (if (is-leader nimbus :throw-exception false)
+  (if (.isLeader nimbus)
     (let [conf (.getConf nimbus)
         storm-cluster-state (.getStormClusterState nimbus)
         ^INimbus inimbus (.getINimbus nimbus)
@@ -1077,7 +1070,7 @@
   (Utils/forceDelete (ConfigUtils/masterStormDistRoot conf id)))
 
 (defn do-cleanup [nimbus]
-  (if (is-leader nimbus :throw-exception false)
+  (if (.isLeader nimbus)
     (let [storm-cluster-state (.getStormClusterState nimbus)
           conf (.getConf nimbus)
           submit-lock (.getSubmitLock nimbus)
@@ -1235,7 +1228,7 @@
     (remove nil? (map #(topo-user-can-access % user (.getConf nimbus)) curr-history))))
 
 (defn renew-credentials [nimbus]
-  (if (is-leader nimbus :throw-exception false)
+  (if (.isLeader nimbus)
     (let [storm-cluster-state (.getStormClusterState nimbus)
           blob-store (.getBlobStore nimbus)
           renewers (.getCredRenewers nimbus)
@@ -1288,7 +1281,7 @@
      (.unset_reset_log_level_timeout_epoch log-config))))
 
 (defmethod blob-sync :distributed [conf nimbus]
-  (if (not (is-leader nimbus :throw-exception false))
+  (if (not (.isLeader nimbus))
     (let [storm-cluster-state (.getStormClusterState nimbus)
           nimbus-host-port-info (.getNimbusHostPortInfo nimbus)
           blob-store-key-set (set (get-key-seq-from-blob-store (.getBlobStore nimbus)))
@@ -1487,7 +1480,7 @@
          ^SubmitOptions submitOptions]
         (try
           (.mark Nimbus/submitTopologyWithOptsCalls)
-          (is-leader nimbus)
+          (.assertIsLeader nimbus)
           (assert (not-nil? submitOptions))
           (validate-topology-name! storm-name)
           (check-authorization! nimbus storm-name nil "submitTopology")
@@ -2271,7 +2264,7 @@
     (doseq [consumer (.getClusterConsumerExecutors nimbus)]
       (.prepare consumer))
 
-    (when (is-leader nimbus :throw-exception false)
+    (when (.isLeader nimbus)
       (doseq [storm-id (.activeStorms (.getStormClusterState nimbus))]
         (transition! nimbus storm-id :startup)))
 
@@ -2316,7 +2309,7 @@
         0
         (conf STORM-CLUSTER-METRICS-CONSUMER-PUBLISH-INTERVAL-SECS)
         (fn []
-          (when (is-leader nimbus :throw-exception false)
+          (when (.isLeader nimbus)
             (send-cluster-metrics-to-executors nimbus)))))
 
     (mk-reified-nimbus nimbus conf blob-store)))

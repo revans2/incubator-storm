@@ -1707,8 +1707,7 @@
 
 (deftest cleanup-storm-ids-returns-inactive-topos
          (let [mock-state (mock-cluster-state (list "topo1") (list "topo1" "topo2" "topo3"))]
-              (stubbing [nimbus/is-leader true
-                         nimbus/code-ids {}]
+              (stubbing [nimbus/code-ids {}]
                         (is (= (nimbus/cleanup-storm-ids mock-state nil) #{"topo2" "topo3"})))))
 
 (deftest cleanup-storm-ids-performs-union-of-storm-ids-with-active-znodes
@@ -1717,8 +1716,7 @@
         error-topos (list "e1" "e2" "e3")
         bp-topos (list "bp1" "bp2" "bp3")
         mock-state (mock-cluster-state active-topos hb-topos error-topos bp-topos)]
-    (stubbing [nimbus/is-leader true
-               nimbus/code-ids {}] 
+    (stubbing [nimbus/code-ids {}] 
     (is (= (nimbus/cleanup-storm-ids mock-state nil) 
            #{"hb2" "hb3" "e1" "e3" "bp1" "bp2"})))))
 
@@ -1728,8 +1726,7 @@
         error-topos (list "e1" "e2" "e3")
         bp-topos (list "bp1" "bp2" "bp3")
         mock-state (mock-cluster-state active-topos hb-topos error-topos bp-topos)]
-    (stubbing [nimbus/is-leader true
-               nimbus/code-ids {}] 
+    (stubbing [nimbus/code-ids {}] 
     (is (= (nimbus/cleanup-storm-ids mock-state nil) 
            #{})))))
 
@@ -1737,15 +1734,13 @@
   (let [inactive-topos (list "topo2" "topo3")
         hb-cache (into {}(map vector inactive-topos '(nil nil)))
         mock-state (mock-cluster-state)
-        mock-leader-elector (Mockito/mock ILeaderElector)
         mock-blob-store (Mockito/mock BlobStore)
         conf {}]
     (with-open [_ (MockedZookeeper. (proxy [Zookeeper] []
-                    (zkLeaderElectorImpl [conf blob-store] mock-leader-elector)))]
+                    (zkLeaderElectorImpl [conf blob-store] (mock-leader-elector))))]
       (let [nimbus (Nimbus. conf nil mock-state nil mock-blob-store)]
         (.set (.getHeartbeatsCache nimbus) hb-cache)
-        (stubbing [nimbus/is-leader true
-                   nimbus/blob-rm-topology-keys nil
+        (stubbing [nimbus/blob-rm-topology-keys nil
                    nimbus/cleanup-storm-ids inactive-topos]
           (mocking
             [teardown-heartbeats 
@@ -1788,15 +1783,13 @@
   (let [inactive-topos ()
         hb-cache {"topo1" nil "topo2" nil}
         mock-state (mock-cluster-state)
-        mock-leader-elector (Mockito/mock ILeaderElector)
         mock-blob-store (Mockito/mock BlobStore)
         conf {}]
     (with-open [_ (MockedZookeeper. (proxy [Zookeeper] []
-                    (zkLeaderElectorImpl [conf blob-store] mock-leader-elector)))]
+                    (zkLeaderElectorImpl [conf blob-store] (mock-leader-elector))))]
       (let [nimbus (Nimbus. conf nil mock-state nil mock-blob-store)]
         (.set (.getHeartbeatsCache nimbus) hb-cache)
-        (stubbing [nimbus/is-leader true
-                   nimbus/blob-rm-topology-keys nil
+        (stubbing [nimbus/blob-rm-topology-keys nil
                    nimbus/cleanup-storm-ids inactive-topos]
           (mocking
             [teardown-heartbeats 
