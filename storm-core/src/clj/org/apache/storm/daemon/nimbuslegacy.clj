@@ -76,12 +76,6 @@
 
 (defmulti blob-sync cluster-mode)
 
-(defn nimbus-data [conf inimbus]
-  (Nimbus. conf inimbus))
-
-(defn inbox [nimbus]
-  (ConfigUtils/masterInbox (.getConf nimbus)))
-
 (defn- get-subject
   []
   (let [req (ReqContext/context)]
@@ -1713,7 +1707,7 @@
       (beginFileUpload [this]
         (.mark Nimbus/beginFileUploadCalls)
         (check-authorization! nimbus nil nil "fileUpload")
-        (let [fileloc (str (inbox nimbus) "/stormjar-" (Utils/uuid) ".jar")]
+        (let [fileloc (str (.getInbox nimbus) "/stormjar-" (Utils/uuid) ".jar")]
           (.put (.getUploaders nimbus)
                 fileloc
                 (Channels/newChannel (FileOutputStream. fileloc)))
@@ -2242,7 +2236,7 @@
 (defserverfn service-handler [conf inimbus]
   (.prepare inimbus conf (ConfigUtils/masterInimbusDir conf))
   (log-message "Starting Nimbus with conf " conf)
-  (let [nimbus (nimbus-data conf inimbus)
+  (let [nimbus (Nimbus. conf inimbus)
         blob-store (.getBlobStore nimbus)]
     (.prepare ^org.apache.storm.nimbus.ITopologyValidator (.getValidator nimbus) conf)
 
@@ -2280,7 +2274,7 @@
     (.scheduleRecurring (.getTimer nimbus)
       0
       (conf NIMBUS-CLEANUP-INBOX-FREQ-SECS)
-      (fn [] (clean-inbox (inbox nimbus) (conf NIMBUS-INBOX-JAR-EXPIRATION-SECS))))
+      (fn [] (clean-inbox (.getInbox nimbus) (conf NIMBUS-INBOX-JAR-EXPIRATION-SECS))))
     ;; Schedule nimbus code sync thread to sync code from other nimbuses.
     (if (instance? LocalFsBlobStore blob-store)
       (.scheduleRecurring (.getTimer nimbus)

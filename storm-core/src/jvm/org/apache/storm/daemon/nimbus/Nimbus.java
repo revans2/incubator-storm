@@ -19,6 +19,7 @@ package org.apache.storm.daemon.nimbus;
 
 import static org.apache.storm.metric.StormMetricsRegistry.registerMeter;
 
+import java.io.IOException;
 import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -475,5 +476,9 @@ public class Nimbus {
             NimbusInfo leaderAddress = getLeaderElector().getLeader();
             throw new RuntimeException("not a leader, current leader is " + leaderAddress);
         }
+    }
+    
+    public String getInbox() throws IOException {
+        return ConfigUtils.masterInbox(getConf());
     }
 }
