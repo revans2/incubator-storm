@@ -29,6 +29,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.BinaryOperator;
+import java.util.function.UnaryOperator;
 
 import org.apache.storm.Config;
 import org.apache.storm.StormTimer;
@@ -41,6 +43,7 @@ import org.apache.storm.cluster.IStormClusterState;
 import org.apache.storm.daemon.StormCommon;
 import org.apache.storm.generated.WorkerResources;
 import org.apache.storm.metric.ClusterMetricsConsumerExecutor;
+import org.apache.storm.nimbus.DefaultTopologyValidator;
 import org.apache.storm.nimbus.ILeaderElector;
 import org.apache.storm.nimbus.ITopologyActionNotifierPlugin;
 import org.apache.storm.nimbus.ITopologyValidator;
@@ -103,9 +106,50 @@ public class Nimbus {
     public static final List<ACL> ZK_ACLS = Arrays.asList(ZooDefs.Ids.CREATOR_ALL_ACL.get(0),
             new ACL(ZooDefs.Perms.READ | ZooDefs.Perms.CREATE, ZooDefs.Ids.ANYONE_ID_UNSAFE));
     
+    public static final BinaryOperator<Map<String, WorkerResources>> MERGE_ID_TO_WORKER_RESOURCES = (orig, update) -> {
+        return merge(orig, update);
+    };
+    
+    public static final BinaryOperator<Map<String, TopologyResources>> MERGE_ID_TO_RESOURCES = (orig, update) -> {
+        return merge(orig, update);
+    };
+    
+    //TODO is it possible to move these to a ConcurrentMap?
+    public static final class Assoc<K,V> implements UnaryOperator<Map<K, V>> {
+        private final K key;
+        private final V value;
+        
+        public Assoc(K key, V value) {
+            this.key = key;
+            this.value = value;
+        }
+        
+        @Override
+        public Map<K, V> apply(Map<K, V> t) {
+            Map<K, V> ret = new HashMap<>(t);
+            ret.put(key, value);
+            return ret;
+        }
+    }
+    
+    public static final class Dissoc<K,V> implements UnaryOperator<Map<K, V>> {
+        private final K key;
+        
+        public Dissoc(K key) {
+            this.key = key;
+        }
+        
+        @Override
+        public Map<K, V> apply(Map<K, V> t) {
+            Map<K, V> ret = new HashMap<>(t);
+            ret.remove(key);
+            return ret;
+        }
+    }
+    
     @SuppressWarnings("deprecation")
     public static TimeCacheMap<String, AutoCloseable> fileCacheMap(Map<String, Object> conf) {
-        return new TimeCacheMap<>(Utils.getInt(conf.get(Config.NIMBUS_FILE_COPY_EXPIRATION_SECS)),
+        return new TimeCacheMap<>(Utils.getInt(conf.get(Config.NIMBUS_FILE_COPY_EXPIRATION_SECS), 600),
                 (id, stream) -> {
                     try {
                         stream.close();
@@ -114,10 +158,18 @@ public class Nimbus {
                     }
                 });
     }
-    
+
+    private static <K, V> Map<K, V> merge(Map<? extends K, ? extends V> first, Map<? extends K, ? extends V> ... others) {
+        Map<K, V> ret = new HashMap<>(first);
+        for (Map<? extends K, ? extends V> other: others) {
+            ret.putAll(other);
+        }
+        return ret;
+    }
+
     public static IScheduler makeScheduler(Map<String, Object> conf, INimbus inimbus) {
         String schedClass = (String) conf.get(Config.STORM_SCHEDULER);
-        IScheduler scheduler = inimbus.getForcedScheduler();
+        IScheduler scheduler = inimbus == null ? null : inimbus.getForcedScheduler();
         if (scheduler != null) {
             LOG.info("Using forced scheduler from INimbus {} {}", scheduler.getClass(), scheduler);
         } else if (schedClass != null){
@@ -140,7 +192,7 @@ public class Nimbus {
      */
     @SuppressWarnings("deprecation")
     public static TimeCacheMap<String, OutputStream> makeBlobCachMap(Map<String, Object> conf) {
-        return new TimeCacheMap<>(Utils.getInt(conf.get(Config.NIMBUS_BLOBSTORE_EXPIRATION_SECS)),
+        return new TimeCacheMap<>(Utils.getInt(conf.get(Config.NIMBUS_BLOBSTORE_EXPIRATION_SECS), 600),
                 (id, stream) -> {
                     try {
                         if (stream instanceof AtomicOutputStream) {
@@ -161,7 +213,7 @@ public class Nimbus {
      */
     @SuppressWarnings("deprecation")
     public static TimeCacheMap<String, Iterator<String>> makeBlobListCachMap(Map<String, Object> conf) {
-        return new TimeCacheMap<>(Utils.getInt(conf.get(Config.NIMBUS_BLOBSTORE_EXPIRATION_SECS)));
+        return new TimeCacheMap<>(Utils.getInt(conf.get(Config.NIMBUS_BLOBSTORE_EXPIRATION_SECS), 600));
     }
     
     public static ITopologyActionNotifierPlugin createTopologyActionNotifier(Map<String, Object> conf) {
@@ -191,83 +243,226 @@ public class Nimbus {
         return ret;
     }
     
-//    private final Map<String, Object> conf;
-//    private final NimbusInfo nimbusHostPortInfo;
-//    private final INimbus inimbus;
-//    private final IAuthorizer authorizationHandler;
-//    private final IAuthorizer ImpersonationAuthorizationHandler;
-//    private final AtomicLong submittedCount;
-//    private final IStormClusterState stormClusterState;
-//    private final Object submitLock;
-//    private final Object credUpdateLock;
-//    private final Object logUpdateLock;
-//    private final AtomicReference<Map<List<Integer>, Map<String, Object>>> heartbeatsCache;
-//    private final TimeCacheMap<String, AutoCloseable> downloaders;
-//    private final TimeCacheMap<String, AutoCloseable> uploaders;
-//    private final BlobStore blobStore;
-//    private final TimeCacheMap<String, OutputStream> blobDownloaders;
-//    private final TimeCacheMap<String, OutputStream> blobUploaders;
-//    private final TimeCacheMap<String, Iterator<String>> blobListers;
-//    private final UptimeComputer uptime;
-//    private final ITopologyValidator validator;
-//    private final StormTimer timer;
-//    private final IScheduler scheduler;
-//    private final ILeaderElector leaderElector;
-//    private final AtomicReference<Map<String, String>> idToSchedStatus;
-//    private final AtomicReference<Map<String, Double[]>> nodeIdToResources;
-//    private final AtomicReference<Map<String, TopologyResources>> idToResources;
-//    private final AtomicReference<Map<String, WorkerResources>> idToWorkerResources;
-//    private final Collection<ICredentialsRenewer> credRenewers;
-//    private final Object topologyHistoryLock;
-//    private final LocalState topologyHistoryState;
-//    private final Collection<INimbusCredentialPlugin> nimbusAutocredPlugins;
-//    
-//    //TODO need to replace Exception with something better
-//    public Nimbus(Map<String, Object> conf, INimbus inimbus) throws Exception {
-//        this.conf = conf;
-//        this.nimbusHostPortInfo = NimbusInfo.fromConf(conf);
-//        this.inimbus = inimbus;
-//        this.authorizationHandler = StormCommon.mkAuthorizationHandler((String) conf.get(Config.NIMBUS_AUTHORIZER), conf);
-//        this.ImpersonationAuthorizationHandler = StormCommon.mkAuthorizationHandler((String) conf.get(Config.NIMBUS_IMPERSONATION_AUTHORIZER), conf);
-//        this.submittedCount = new AtomicLong(0);
-//        //TODO need to change CLusterUtils to have a Map option
-//        List<ACL> acls = null;
-//        if (Utils.isZkAuthenticationConfiguredStormServer(conf)) {
-//            acls = ZK_ACLS;
-//        }
-//        this.stormClusterState = ClusterUtils.mkStormClusterState(conf, acls, new ClusterStateContext(DaemonType.NIMBUS));
-//        //TODO we need a better lock for this...
-//        this.submitLock = new Object();
-//        this.credUpdateLock = new Object();
-//        this.logUpdateLock = new Object();
-//        IScheduler forcedSchduler = inimbus.getForcedScheduler();
-//        this.heartbeatsCache = new AtomicReference<>(new HashMap<>());
-//        this.downloaders = fileCacheMap(conf);
-//        this.uploaders = fileCacheMap(conf);
-//        this.blobStore = Utils.getNimbusBlobStore(conf, nimbusHostPortInfo);
-//        this.blobDownloaders = makeBlobCachMap(conf);
-//        this.blobUploaders = makeBlobCachMap(conf);
-//        this.blobListers = makeBlobListCachMap(conf);
-//        this.uptime = Utils.makeUptimeComputer();
-//        this.validator = Utils.newInstance((String) conf.get(Config.NIMBUS_TOPOLOGY_VALIDATOR));
-//        this.timer = new StormTimer(null, (t, e) -> {
-//            LOG.error("Error while processing event", e);
-//            Utils.exitProcess(20, "Error while processing event");
-//        });
-//        this.scheduler = makeScheduler(conf, inimbus);
-//        this.leaderElector = Zookeeper.zkLeaderElector(conf, blobStore);
-//        this.idToSchedStatus = new AtomicReference<>(new HashMap<>());
-//        this.nodeIdToResources = new AtomicReference<>(new HashMap<>());
-//        this.idToResources = new AtomicReference<>(new HashMap<>());
-//        this.idToWorkerResources = new AtomicReference<>(new HashMap<>());
-//        this.credRenewers = AuthUtils.GetCredentialRenewers(conf);
-//        this.topologyHistoryLock = new Object();
-//        this.topologyHistoryState = ConfigUtils.nimbusTopoHistoryState(conf);
-//        this.nimbusAutocredPlugins = AuthUtils.getNimbusAutoCredPlugins(conf);
-//    }
+    private final Map<String, Object> conf;
+    private final NimbusInfo nimbusHostPortInfo;
+    private final INimbus inimbus;
+    private final IAuthorizer authorizationHandler;
+    private final IAuthorizer impersonationAuthorizationHandler;
+    private final AtomicLong submittedCount;
+    private final IStormClusterState stormClusterState;
+    private final Object submitLock;
+    private final Object credUpdateLock;
+    private final Object logUpdateLock;
+    private final AtomicReference<Map<String, Map<List<Integer>, Map<String, Object>>>> heartbeatsCache;
+    @SuppressWarnings("deprecation")
+    private final TimeCacheMap<String, AutoCloseable> downloaders;
+    @SuppressWarnings("deprecation")
+    private final TimeCacheMap<String, AutoCloseable> uploaders;
+    private final BlobStore blobStore;
+    @SuppressWarnings("deprecation")
+    private final TimeCacheMap<String, OutputStream> blobDownloaders;
+    @SuppressWarnings("deprecation")
+    private final TimeCacheMap<String, OutputStream> blobUploaders;
+    @SuppressWarnings("deprecation")
+    private final TimeCacheMap<String, Iterator<String>> blobListers;
+    private final UptimeComputer uptime;
+    private final ITopologyValidator validator;
+    private final StormTimer timer;
+    private final IScheduler scheduler;
+    private final ILeaderElector leaderElector;
+    private final AtomicReference<Map<String, String>> idToSchedStatus;
+    private final AtomicReference<Map<String, Double[]>> nodeIdToResources;
+    private final AtomicReference<Map<String, TopologyResources>> idToResources;
+    private final AtomicReference<Map<String, WorkerResources>> idToWorkerResources;
+    private final Collection<ICredentialsRenewer> credRenewers;
+    private final Object topologyHistoryLock;
+    private final LocalState topologyHistoryState;
+    private final Collection<INimbusCredentialPlugin> nimbusAutocredPlugins;
+    private final ITopologyActionNotifierPlugin nimbusTopologyActionNotifier;
+    private final List<ClusterMetricsConsumerExecutor> clusterConsumerExceutors;
+    
+    private static IStormClusterState makeStormClusterState(Map<String, Object> conf) throws Exception {
+        //TODO need to change CLusterUtils to have a Map option
+        List<ACL> acls = null;
+        if (Utils.isZkAuthenticationConfiguredStormServer(conf)) {
+            acls = ZK_ACLS;
+        }
+        return ClusterUtils.mkStormClusterState(conf, acls, new ClusterStateContext(DaemonType.NIMBUS));
+    }
+    
+    public Nimbus(Map<String, Object> conf, INimbus inimbus) throws Exception {
+        this(conf, inimbus, makeStormClusterState(conf), NimbusInfo.fromConf(conf), Utils.getNimbusBlobStore(conf, NimbusInfo.fromConf(conf)));
+    }
+    
+    public Nimbus(Map<String, Object> conf, INimbus inimbus, IStormClusterState stormClusterState, NimbusInfo hostPortInfo, BlobStore blobStore) throws Exception {
+        this.conf = conf;
+        this.nimbusHostPortInfo = hostPortInfo;
+        this.inimbus = inimbus;
+        this.authorizationHandler = StormCommon.mkAuthorizationHandler((String) conf.get(Config.NIMBUS_AUTHORIZER), conf);
+        this.impersonationAuthorizationHandler = StormCommon.mkAuthorizationHandler((String) conf.get(Config.NIMBUS_IMPERSONATION_AUTHORIZER), conf);
+        this.submittedCount = new AtomicLong(0);
+        this.stormClusterState = stormClusterState;
+        //TODO we need a better lock for this...
+        this.submitLock = new Object();
+        this.credUpdateLock = new Object();
+        this.logUpdateLock = new Object();
+        this.heartbeatsCache = new AtomicReference<>(new HashMap<>());
+        this.downloaders = fileCacheMap(conf);
+        this.uploaders = fileCacheMap(conf);
+        this.blobStore = blobStore;
+        this.blobDownloaders = makeBlobCachMap(conf);
+        this.blobUploaders = makeBlobCachMap(conf);
+        this.blobListers = makeBlobListCachMap(conf);
+        this.uptime = Utils.makeUptimeComputer();
+        this.validator = Utils.newInstance((String) conf.getOrDefault(Config.NIMBUS_TOPOLOGY_VALIDATOR, DefaultTopologyValidator.class.getName()));
+        this.timer = new StormTimer(null, (t, e) -> {
+            LOG.error("Error while processing event", e);
+            Utils.exitProcess(20, "Error while processing event");
+        });
+        this.scheduler = makeScheduler(conf, inimbus);
+        this.leaderElector = Zookeeper.zkLeaderElector(conf, getBlobStore());
+        this.idToSchedStatus = new AtomicReference<>(new HashMap<>());
+        this.nodeIdToResources = new AtomicReference<>(new HashMap<>());
+        this.idToResources = new AtomicReference<>(new HashMap<>());
+        this.idToWorkerResources = new AtomicReference<>(new HashMap<>());
+        this.credRenewers = AuthUtils.GetCredentialRenewers(conf);
+        this.topologyHistoryLock = new Object();
+        this.topologyHistoryState = ConfigUtils.nimbusTopoHistoryState(conf);
+        this.nimbusAutocredPlugins = AuthUtils.getNimbusAutoCredPlugins(conf);
+        this.nimbusTopologyActionNotifier = createTopologyActionNotifier(conf);
+        this.clusterConsumerExceutors = makeClusterMetricsConsumerExecutors(conf);
+    }
 
-//               :nimbus-topology-action-notifier (create-tology-action-notifier conf)
-//               :cluster-consumer-executors (mk-cluster-metrics-consumer-executors conf)
-//               }))
-//    
+    public Map<String, Object> getConf() {
+        return conf;
+    }
+
+    public NimbusInfo getNimbusHostPortInfo() {
+        return nimbusHostPortInfo;
+    }
+
+    public INimbus getINimbus() {
+        return inimbus;
+    }
+
+    public IAuthorizer getAuthorizationHandler() {
+        return authorizationHandler;
+    }
+
+    public IAuthorizer getImpersonationAuthorizationHandler() {
+        return impersonationAuthorizationHandler;
+    }
+
+    public AtomicLong getSubmittedCount() {
+        return submittedCount;
+    }
+
+    public IStormClusterState getStormClusterState() {
+        return stormClusterState;
+    }
+
+    public Object getSubmitLock() {
+        return submitLock;
+    }
+
+    public Object getCredUpdateLock() {
+        return credUpdateLock;
+    }
+
+    public Object getLogUpdateLock() {
+        return logUpdateLock;
+    }
+
+    public AtomicReference<Map<String,Map<List<Integer>,Map<String,Object>>>> getHeartbeatsCache() {
+        return heartbeatsCache;
+    }
+
+    @SuppressWarnings("deprecation")
+    public TimeCacheMap<String, AutoCloseable> getDownloaders() {
+        return downloaders;
+    }
+
+    @SuppressWarnings("deprecation")
+    public TimeCacheMap<String, AutoCloseable> getUploaders() {
+        return uploaders;
+    }
+
+    public BlobStore getBlobStore() {
+        return blobStore;
+    }
+
+    @SuppressWarnings("deprecation")
+    public TimeCacheMap<String, OutputStream> getBlobDownloaders() {
+        return blobDownloaders;
+    }
+
+    @SuppressWarnings("deprecation")
+    public TimeCacheMap<String, OutputStream> getBlobUploaders() {
+        return blobUploaders;
+    }
+
+    @SuppressWarnings("deprecation")
+    public TimeCacheMap<String, Iterator<String>> getBlobListers() {
+        return blobListers;
+    }
+
+    public UptimeComputer getUptime() {
+        return uptime;
+    }
+
+    public ITopologyValidator getValidator() {
+        return validator;
+    }
+
+    public StormTimer getTimer() {
+        return timer;
+    }
+
+    public IScheduler getScheduler() {
+        return scheduler;
+    }
+
+    public ILeaderElector getLeaderElector() {
+        return leaderElector;
+    }
+
+    public AtomicReference<Map<String, String>> getIdToSchedStatus() {
+        return idToSchedStatus;
+    }
+
+    public AtomicReference<Map<String, Double[]>> getNodeIdToResources() {
+        return nodeIdToResources;
+    }
+
+    public AtomicReference<Map<String, TopologyResources>> getIdToResources() {
+        return idToResources;
+    }
+
+    public AtomicReference<Map<String, WorkerResources>> getIdToWorkerResources() {
+        return idToWorkerResources;
+    }
+
+    public Collection<ICredentialsRenewer> getCredRenewers() {
+        return credRenewers;
+    }
+
+    public Object getTopologyHistoryLock() {
+        return topologyHistoryLock;
+    }
+
+    public LocalState getTopologyHistoryState() {
+        return topologyHistoryState;
+    }
+
+    public Collection<INimbusCredentialPlugin> getNimbusAutocredPlugins() {
+        return nimbusAutocredPlugins;
+    }
+
+    public ITopologyActionNotifierPlugin getNimbusTopologyActionNotifier() {
+        return nimbusTopologyActionNotifier;
+    }
+
+    public List<ClusterMetricsConsumerExecutor> getClusterConsumerExecutors() {
+        return clusterConsumerExceutors;
+    }
 }

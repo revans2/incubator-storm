@@ -21,7 +21,13 @@
            [org.apache.storm.utils Utils]
            [org.apache.storm.security.auth.authorizer ImpersonationAuthorizer]
            [java.net Inet4Address])
+  (:import [org.apache.storm.blobstore BlobStore])
   (:import [org.apache.thrift.transport TTransportException])
+  (:import [org.apache.storm.testing.staticmocking MockedZookeeper])
+  (:import [org.apache.storm.nimbus ILeaderElector])
+  (:import [org.apache.storm.cluster IStormClusterState])
+  (:import [org.mockito Mockito])
+  (:import [org.apache.storm.zookeeper Zookeeper])
   (:import [java.nio ByteBuffer])
   (:import [java.security Principal AccessController])
   (:import [javax.security.auth Subject])
@@ -57,21 +63,9 @@
 (def nimbus-timeout (Integer. (* 3 1000)))
 
 (defn nimbus-data [storm-conf inimbus]
-  (let [forced-scheduler (.getForcedScheduler inimbus)]
-    {:conf storm-conf
-     :inimbus inimbus
-     :authorization-handler (StormCommon/mkAuthorizationHandler (storm-conf NIMBUS-AUTHORIZER) storm-conf)
-     :submitted-count (atom 0)
-     :storm-cluster-state nil
-     :submit-lock (Object.)
-     :heartbeats-cache (atom {})
-     :downloaders nil
-     :uploaders nil
-     :uptime (Utils/makeUptimeComputer)
-     :validator nil
-     :timer nil
-     :scheduler nil
-     }))
+  (with-open [_ (MockedZookeeper. (proxy [Zookeeper] []
+                  (zkLeaderElectorImpl [conf blob-store] (Mockito/mock ILeaderElector))))]
+    (org.apache.storm.daemon.nimbus.Nimbus. storm-conf inimbus (Mockito/mock IStormClusterState) nil (Mockito/mock BlobStore))))
 
 (defn dummy-service-handler
   ([conf inimbus auth-context]
