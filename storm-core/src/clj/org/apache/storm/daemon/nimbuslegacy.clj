@@ -79,17 +79,6 @@
 (declare delay-event)
 (declare mk-assignments)
 
-(defn get-nimbus-subject
-  []
-  (let [subject (Subject.)
-        principal (NimbusPrincipal.)
-        principals (.getPrincipals subject)]
-    (.add principals principal)
-    subject))
-
-(def nimbus-subject
-  (get-nimbus-subject))
-
 (defn- get-key-list-from-id
   [conf id]
   (log-debug "set keys id = " id "set = " #{(ConfigUtils/masterStormCodeKey id) (ConfigUtils/masterStormJarKey id) (ConfigUtils/masterStormConfKey id)})
@@ -319,7 +308,7 @@
   [blob-key nimbus]
   (if (.getBlobStore nimbus)
         (-> (.getBlobStore nimbus)
-          (.getBlobReplication  blob-key nimbus-subject))))
+          (.getBlobReplication  blob-key Nimbus/NIMBUS_SUBJECT))))
 
 (defn- wait-for-desired-code-replication [nimbus conf storm-id]
   (let [min-replication-count (conf TOPOLOGY-MIN-REPLICATION-COUNT)
@@ -362,14 +351,14 @@
 
 (defn- read-storm-topology-as-nimbus [storm-id blob-store]
   (Utils/deserialize
-    (.readBlob blob-store (ConfigUtils/masterStormCodeKey storm-id) nimbus-subject) StormTopology))
+    (.readBlob blob-store (ConfigUtils/masterStormCodeKey storm-id) Nimbus/NIMBUS_SUBJECT) StormTopology))
 
 (declare compute-executor->component)
 
 (defn read-storm-conf-as-nimbus [storm-id blob-store]
   (clojurify-structure
     (Utils/fromCompressedJsonConf
-      (.readBlob blob-store (ConfigUtils/masterStormConfKey storm-id) nimbus-subject))))
+      (.readBlob blob-store (ConfigUtils/masterStormConfKey storm-id) Nimbus/NIMBUS_SUBJECT))))
 
 ;TODO: when translating this function, you should replace the map-val with a proper for loop HERE
 (defn read-topology-details [nimbus storm-id]
@@ -1028,7 +1017,7 @@
 
 (defn blob-rm-key [blob-store key storm-cluster-state]
   (try
-    (.deleteBlob blob-store key nimbus-subject)
+    (.deleteBlob blob-store key Nimbus/NIMBUS_SUBJECT)
     (if (instance? LocalFsBlobStore blob-store)
       (.removeBlobstoreKey storm-cluster-state key))
     (catch Exception e
@@ -1108,7 +1097,7 @@
         nimbus-host-port-info (.getNimbusHostPortInfo nimbus)]
     (log-debug "Deleting keys not on the zookeeper" keys-to-delete)
     (doseq [key keys-to-delete]
-      (.deleteBlob blob-store key nimbus-subject))
+      (.deleteBlob blob-store key Nimbus/NIMBUS_SUBJECT))
     (log-debug "Creating list of key entries for blobstore inside zookeeper" all-keys "local" locally-available-active-keys)
     (doseq [key locally-available-active-keys]
       (.setupBlobstore storm-cluster-state key (.getNimbusHostPortInfo nimbus) (get-version-for-key key nimbus-host-port-info conf)))))

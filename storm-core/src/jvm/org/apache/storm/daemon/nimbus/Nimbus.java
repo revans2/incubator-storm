@@ -60,6 +60,7 @@ import org.apache.storm.security.INimbusCredentialPlugin;
 import org.apache.storm.security.auth.AuthUtils;
 import org.apache.storm.security.auth.IAuthorizer;
 import org.apache.storm.security.auth.ICredentialsRenewer;
+import org.apache.storm.security.auth.NimbusPrincipal;
 import org.apache.storm.security.auth.ReqContext;
 import org.apache.storm.utils.ConfigUtils;
 import org.apache.storm.utils.LocalState;
@@ -111,6 +112,11 @@ public class Nimbus {
     public static final String STORM_VERSION = VersionInfo.getVersion();
     public static final List<ACL> ZK_ACLS = Arrays.asList(ZooDefs.Ids.CREATOR_ALL_ACL.get(0),
             new ACL(ZooDefs.Perms.READ | ZooDefs.Perms.CREATE, ZooDefs.Ids.ANYONE_ID_UNSAFE));
+    public static final Subject NIMBUS_SUBJECT = new Subject();
+    static {
+        NIMBUS_SUBJECT.getPrincipals().add(new NimbusPrincipal());
+        NIMBUS_SUBJECT.setReadOnly();
+    }
     
     public static final BinaryOperator<Map<String, WorkerResources>> MERGE_ID_TO_WORKER_RESOURCES = (orig, update) -> {
         return merge(orig, update);
