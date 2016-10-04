@@ -265,6 +265,17 @@ public class Nimbus {
         return Utils.fromCompressedJsonConf(blobStore.readBlob(ConfigUtils.masterStormConfKey(topoId), getSubject()));
     }
     
+    //TODO private
+    public static List<String> getKeyListFromId(Map<String, Object> conf, String id) {
+        List<String> ret = new ArrayList<>(3);
+        ret.add(ConfigUtils.masterStormCodeKey(id));
+        ret.add(ConfigUtils.masterStormConfKey(id));
+        if (!ConfigUtils.isLocalMode(conf)) {
+            ret.add(ConfigUtils.masterStormJarKey(id));
+        }
+        return ret;
+    }
+    
     private final Map<String, Object> conf;
     private final NimbusInfo nimbusHostPortInfo;
     private final INimbus inimbus;

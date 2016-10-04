@@ -79,13 +79,6 @@
 (declare delay-event)
 (declare mk-assignments)
 
-(defn- get-key-list-from-id
-  [conf id]
-  (log-debug "set keys id = " id "set = " #{(ConfigUtils/masterStormCodeKey id) (ConfigUtils/masterStormJarKey id) (ConfigUtils/masterStormConfKey id)})
-  (if (ConfigUtils/isLocalMode conf)
-    [(ConfigUtils/masterStormCodeKey id) (ConfigUtils/masterStormConfKey id)]
-    [(ConfigUtils/masterStormCodeKey id) (ConfigUtils/masterStormJarKey id) (ConfigUtils/masterStormConfKey id)]))
-
 (defn kill-transition [nimbus storm-id]
   (fn [kill-time]
     (let [delay (if kill-time
@@ -151,7 +144,7 @@
                       (.removeStorm (.getStormClusterState nimbus)
                                       storm-id)
                       (when (instance? LocalFsBlobStore (.getBlobStore nimbus))
-                        (doseq [blob-key (get-key-list-from-id (.getConf nimbus) storm-id)]
+                        (doseq [blob-key (Nimbus/getKeyListFromId (.getConf nimbus) storm-id)]
                           (.removeBlobstoreKey (.getStormClusterState nimbus) blob-key)
                           (.removeKeyVersion (.getStormClusterState nimbus) blob-key)))
                       nil)
