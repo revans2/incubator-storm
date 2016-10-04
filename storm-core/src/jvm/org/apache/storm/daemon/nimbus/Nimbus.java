@@ -33,6 +33,8 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BinaryOperator;
 import java.util.function.UnaryOperator;
 
+import javax.security.auth.Subject;
+
 import org.apache.storm.Config;
 import org.apache.storm.StormTimer;
 import org.apache.storm.blobstore.AtomicOutputStream;
@@ -56,6 +58,7 @@ import org.apache.storm.security.INimbusCredentialPlugin;
 import org.apache.storm.security.auth.AuthUtils;
 import org.apache.storm.security.auth.IAuthorizer;
 import org.apache.storm.security.auth.ICredentialsRenewer;
+import org.apache.storm.security.auth.ReqContext;
 import org.apache.storm.utils.ConfigUtils;
 import org.apache.storm.utils.LocalState;
 import org.apache.storm.utils.TimeCacheMap;
@@ -242,6 +245,11 @@ public class Nimbus {
             }
         }
         return ret;
+    }
+    
+    //TODO private
+    public static Subject getSubject() {
+        return ReqContext.context().subject();
     }
     
     private final Map<String, Object> conf;

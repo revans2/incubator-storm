@@ -76,15 +76,10 @@
 
 (defmulti blob-sync cluster-mode)
 
-(defn- get-subject
-  []
-  (let [req (ReqContext/context)]
-    (.subject req)))
-
 (defn- read-storm-conf [conf storm-id blob-store]
   (clojurify-structure
     (Utils/fromCompressedJsonConf
-      (.readBlob blob-store (ConfigUtils/masterStormConfKey storm-id) (get-subject)))))
+      (.readBlob blob-store (ConfigUtils/masterStormConfKey storm-id) (Nimbus/getSubject)))))
 
 (declare delay-event)
 (declare mk-assignments)
@@ -303,7 +298,7 @@
     (iterator-seq key-iter)))
 
 (defn- setup-storm-code [nimbus conf storm-id tmp-jar-location storm-conf topology]
-  (let [subject (get-subject)
+  (let [subject (Nimbus/getSubject)
         storm-cluster-state (.getStormClusterState nimbus)
         blob-store (.getBlobStore nimbus)
         jar-key (ConfigUtils/masterStormJarKey storm-id)
@@ -323,7 +318,7 @@
 
 (defn- read-storm-topology [storm-id blob-store]
   (Utils/deserialize
-    (.readBlob blob-store (ConfigUtils/masterStormCodeKey storm-id) (get-subject)) StormTopology))
+    (.readBlob blob-store (ConfigUtils/masterStormCodeKey storm-id) (Nimbus/getSubject)) StormTopology))
 
 (defn get-blob-replication-count
   [blob-key nimbus]
@@ -1884,14 +1879,14 @@
         (let [session-id (Utils/uuid)]
           (.put (.getBlobUploaders nimbus)
             session-id
-            (.createBlob (.getBlobStore nimbus) blob-key blob-meta (get-subject)))
+            (.createBlob (.getBlobStore nimbus) blob-key blob-meta (Nimbus/getSubject)))
           (log-message "Created blob for " blob-key
             " with session id " session-id)
           (str session-id)))
 
       (^String beginUpdateBlob [this ^String blob-key]
         (let [^AtomicOutputStream os (.updateBlob (.getBlobStore nimbus)
-                                       blob-key (get-subject))]
+                                       blob-key (Nimbus/getSubject))]
           (let [session-id (Utils/uuid)]
             (.put (.getBlobUploaders nimbus) session-id os)
             (log-message "Created upload session for " blob-key
@@ -1943,7 +1938,7 @@
 
       (^ReadableBlobMeta getBlobMeta [this ^String blob-key]
         (let [^ReadableBlobMeta ret (.getBlobMeta (.getBlobStore nimbus)
-                                      blob-key (get-subject))]
+                                      blob-key (Nimbus/getSubject))]
           ret))
 
       (^void setBlobMeta [this ^String blob-key ^SettableBlobMeta blob-meta]
@@ -1953,7 +1948,7 @@
 
       (^BeginDownloadResult beginBlobDownload [this ^String blob-key]
         (let [^InputStreamWithMeta is (.getBlob (.getBlobStore nimbus)
-                                        blob-key (get-subject))]
+                                        blob-key (Nimbus/getSubject))]
           (let [session-id (Utils/uuid)
                 ret (BeginDownloadResult. (.getVersion is) (str session-id))]
             (.set_data_size ret (.getFileLength is))
