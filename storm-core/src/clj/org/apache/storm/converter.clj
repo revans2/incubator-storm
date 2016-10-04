@@ -121,21 +121,11 @@
       (clojurify-worker->resources (into {} (.get_worker_resources assignment))))))
 
 (defn convert-to-symbol-from-status [status]
-  (condp = status
-    TopologyStatus/ACTIVE {:type :active}
-    TopologyStatus/INACTIVE {:type :inactive}
-    TopologyStatus/REBALANCING {:type :rebalancing}
-    TopologyStatus/KILLED {:type :killed}
-    nil))
+  {:type status})
 
 (defn- convert-to-status-from-symbol [status]
   (if status
-    (condp = (:type status)
-      :active TopologyStatus/ACTIVE
-      :inactive TopologyStatus/INACTIVE
-      :rebalancing TopologyStatus/REBALANCING
-      :killed TopologyStatus/KILLED
-      nil)))
+    (:type status)))
 
 (defn assoc-non-nil
   [m k v]

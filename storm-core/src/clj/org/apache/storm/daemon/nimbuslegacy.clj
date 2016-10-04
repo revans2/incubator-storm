@@ -18,7 +18,7 @@
            [org.apache.storm.stats StatsUtil]
            [org.apache.storm.metric StormMetricsRegistry])
   (:import [org.apache.storm.daemon.nimbus Nimbus TopologyResources Nimbus$Assoc Nimbus$Dissoc])
-  (:import [org.apache.storm.generated KeyNotFoundException])
+  (:import [org.apache.storm.generated KeyNotFoundException TopologyStatus])
   (:import [org.apache.storm.blobstore LocalFsBlobStore])
   (:import [org.apache.thrift.protocol TBinaryProtocol TBinaryProtocol$Factory])
   (:import [org.apache.thrift.exception])
@@ -90,7 +90,7 @@
                    delay
                    :remove)
       {
-        :status {:type :killed}
+        :status {:type TopologyStatus/KILLED}
         :topology-action-options {:delay-secs delay :action :kill}})
     ))
 
@@ -104,7 +104,7 @@
                    storm-id
                    delay
                    :do-rebalance)
-      {:status {:type :rebalancing}
+      {:status {:type TopologyStatus/REBALANCING}
        :prev-status status
        :topology-action-options (-> {:delay-secs delay :action :rebalance}
                                   (converter/assoc-non-nil :num-workers num-workers)
@@ -121,17 +121,17 @@
   (mk-assignments nimbus :scratch-topology-id storm-id))
 
 (defn state-transitions [nimbus storm-id status storm-base]
-  {:active {:inactivate :inactive
+  {TopologyStatus/ACTIVE {:inactivate TopologyStatus/INACTIVE
             :activate nil
             :rebalance (rebalance-transition nimbus storm-id status)
             :kill (kill-transition nimbus storm-id)
             }
-   :inactive {:activate :active
+   TopologyStatus/INACTIVE {:activate TopologyStatus/ACTIVE
               :inactivate nil
               :rebalance (rebalance-transition nimbus storm-id status)
               :kill (kill-transition nimbus storm-id)
               }
-   :killed {:startup (fn [] (delay-event nimbus
+   TopologyStatus/KILLED {:startup (fn [] (delay-event nimbus
                                          storm-id
                                          (-> storm-base
                                              :topology-action-options
@@ -149,7 +149,7 @@
                           (.removeKeyVersion (.getStormClusterState nimbus) blob-key)))
                       nil)
             }
-   :rebalancing {:startup (fn [] (delay-event nimbus
+   TopologyStatus/REBALANCING {:startup (fn [] (delay-event nimbus
                                               storm-id
                                               (-> storm-base
                                                   :topology-action-options
@@ -191,11 +191,13 @@
                                 (get (:type status))
                                 (get-event event))
                  transition (if (or (nil? transition)
-                                    (keyword? transition))
-                              (fn [] transition)
+                                    (instance? TopologyStatus transition))
+                              (do
+                                (log-message "Transition is nil or TopologyStatus... " transition)
+                                (fn [] transition))
                               transition)
                  storm-base-updates (apply transition event-args)
-                 storm-base-updates (if (keyword? storm-base-updates) ;if it's just a symbol, that just indicates new status.
+                 storm-base-updates (if (instance? TopologyStatus storm-base-updates) ;if it's just a State, that just indicates new status.
                                       {:status {:type storm-base-updates}}
                                       storm-base-updates)]
 
@@ -851,7 +853,7 @@
 
 ;TODO: when translating this function, you should replace the map-val with a proper for loop HERE
 (defn- start-storm [nimbus storm-name storm-id topology-initial-status]
-  {:pre [(#{:active :inactive} topology-initial-status)]}
+  {:pre [(#{TopologyStatus/ACTIVE TopologyStatus/INACTIVE} topology-initial-status)]}
   (let [storm-cluster-state (.getStormClusterState nimbus)
         conf (.getConf nimbus)
         blob-store (.getBlobStore nimbus)
@@ -953,7 +955,7 @@
 
 (defn extract-status-str [base]
   (let [t (-> base :status :type)]
-    (.toUpperCase (name t))
+    (.toUpperCase (.toString t))
     ))
 
 (defn mapify-serializations [sers]
@@ -1519,8 +1521,8 @@
               (if (total-storm-conf TOPOLOGY-BACKPRESSURE-ENABLE)
                 (.setupBackpressure storm-cluster-state storm-id))
               (notify-topology-action-listener nimbus storm-name "submitTopology")
-              (let [thrift-status->kw-status {TopologyInitialStatus/INACTIVE :inactive
-                                              TopologyInitialStatus/ACTIVE :active}]
+              (let [thrift-status->kw-status {TopologyInitialStatus/INACTIVE TopologyStatus/INACTIVE
+                                              TopologyInitialStatus/ACTIVE TopologyStatus/ACTIVE}]
                 (start-storm nimbus storm-name storm-id (thrift-status->kw-status (.get_initial_status submitOptions))))))
           (catch Throwable e
             (log-warn-error e "Topology submission exception. (topology name='" storm-name "')")

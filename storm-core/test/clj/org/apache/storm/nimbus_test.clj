@@ -23,7 +23,7 @@
            [org.apache.storm.blobstore BlobStore]
            [org.apache.storm.nimbus InMemoryTopologyActionNotifier]
            [org.apache.storm.daemon.nimbus Nimbus]
-           [org.apache.storm.generated GlobalStreamId]
+           [org.apache.storm.generated GlobalStreamId TopologyStatus]
            [org.apache.storm Thrift MockAutoCred]
            [org.apache.storm.stats BoltExecutorStats StatsUtil])
   (:import [org.apache.storm.testing.staticmocking MockedZookeeper])
@@ -523,7 +523,7 @@
         (is (not-nil? (clojurify-assignment (.assignmentInfo state storm-id nil))))
         (.killTopology (:nimbus cluster) "test")
         ;; check that storm is deactivated but alive
-        (is (= :killed (-> (clojurify-storm-base (.stormBase state storm-id nil)) :status :type)))
+        (is (= TopologyStatus/KILLED (-> (clojurify-storm-base (.stormBase state storm-id nil)) :status :type)))
         (is (not-nil? (clojurify-assignment (.assignmentInfo state storm-id nil))))
         (advance-cluster-time cluster 35)
         ;; kill topology read on group
@@ -534,7 +534,7 @@
         (is (not-nil? (clojurify-assignment (.assignmentInfo state storm-id-killgroup nil))))
         (.killTopology (:nimbus cluster) "killgrouptest")
         ;; check that storm is deactivated but alive
-        (is (= :killed (-> (clojurify-storm-base (.stormBase state storm-id-killgroup nil)) :status :type)))
+        (is (= TopologyStatus/KILLED (-> (clojurify-storm-base (.stormBase state storm-id-killgroup nil)) :status :type)))
         (is (not-nil? (clojurify-assignment (.assignmentInfo state storm-id-killgroup nil))))
         (advance-cluster-time cluster 35)
         ;; kill topology can't read
@@ -545,7 +545,7 @@
         (is (not-nil? (clojurify-assignment (.assignmentInfo state storm-id-killnoread nil))))
         (.killTopology (:nimbus cluster) "killnoreadtest")
         ;; check that storm is deactivated but alive
-        (is (= :killed (-> (clojurify-storm-base (.stormBase state storm-id-killnoread nil)) :status :type)))
+        (is (= TopologyStatus/KILLED (-> (clojurify-storm-base (.stormBase state storm-id-killnoread nil)) :status :type)))
         (is (not-nil? (clojurify-assignment (.assignmentInfo state storm-id-killnoread nil))))
         (advance-cluster-time cluster 35)
 
@@ -619,7 +619,7 @@
       (is (not-nil? (clojurify-assignment (.assignmentInfo state storm-id nil))))
       (.killTopology (:nimbus cluster) "test")
       ;; check that storm is deactivated but alive
-      (is (= :killed (-> (clojurify-storm-base (.stormBase state storm-id nil)) :status :type)))
+      (is (= TopologyStatus/KILLED (-> (clojurify-storm-base (.stormBase state storm-id nil)) :status :type)))
       (is (not-nil? (clojurify-assignment (.assignmentInfo state storm-id nil))))
       (advance-cluster-time cluster 18)
       ;; check that storm is deactivated but alive

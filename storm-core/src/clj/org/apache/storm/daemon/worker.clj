@@ -38,7 +38,7 @@
   (:import [org.apache.storm.daemon Shutdownable StormCommon DaemonCommon])
   (:import [org.apache.storm.daemon.supervisor AdvancedFSOps])
   (:import [org.apache.storm.serialization KryoTupleSerializer])
-  (:import [org.apache.storm.generated StormTopology LSWorkerHeartbeat])
+  (:import [org.apache.storm.generated StormTopology LSWorkerHeartbeat TopologyStatus])
   (:import [org.apache.storm.tuple AddressedTuple Fields])
   (:import [org.apache.storm.task WorkerTopologyContext])
   (:import [org.apache.storm Constants])
@@ -459,7 +459,7 @@
                  (:refresh-active-timer worker) 0 (partial refresh-storm-active worker)))))
   ([worker callback]
     (let [base (clojurify-storm-base (.stormBase (:storm-cluster-state worker) (:storm-id worker) callback))]
-      (.set (:storm-active-atom worker) (and (= :active (-> base :status :type)) @(:worker-active-flag worker)))
+      (.set (:storm-active-atom worker) (and (= TopologyStatus/ACTIVE (-> base :status :type)) @(:worker-active-flag worker)))
       (.set (:storm-component->debug-atom worker) (map-val thriftify-debugoptions (-> base :component->debug)))
       (log-debug "Event debug options " (.get (:storm-component->debug-atom worker))))))
 
