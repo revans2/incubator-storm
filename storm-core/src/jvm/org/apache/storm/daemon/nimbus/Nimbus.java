@@ -44,6 +44,8 @@ import org.apache.storm.cluster.ClusterUtils;
 import org.apache.storm.cluster.DaemonType;
 import org.apache.storm.cluster.IStormClusterState;
 import org.apache.storm.daemon.StormCommon;
+import org.apache.storm.generated.AuthorizationException;
+import org.apache.storm.generated.KeyNotFoundException;
 import org.apache.storm.generated.WorkerResources;
 import org.apache.storm.metric.ClusterMetricsConsumerExecutor;
 import org.apache.storm.nimbus.DefaultTopologyValidator;
@@ -250,6 +252,11 @@ public class Nimbus {
     //TODO private
     public static Subject getSubject() {
         return ReqContext.context().subject();
+    }
+    
+    //TODO private
+    public static Map<String, Object> readTopoConf(Map<String, Object> conf, String topoId, BlobStore blobStore) throws KeyNotFoundException, AuthorizationException, IOException {
+        return Utils.fromCompressedJsonConf(blobStore.readBlob(ConfigUtils.masterStormConfKey(topoId), getSubject()));
     }
     
     private final Map<String, Object> conf;

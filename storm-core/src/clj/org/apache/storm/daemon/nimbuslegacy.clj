@@ -76,11 +76,6 @@
 
 (defmulti blob-sync cluster-mode)
 
-(defn- read-storm-conf [conf storm-id blob-store]
-  (clojurify-structure
-    (Utils/fromCompressedJsonConf
-      (.readBlob blob-store (ConfigUtils/masterStormConfKey storm-id) (Nimbus/getSubject)))))
-
 (declare delay-event)
 (declare mk-assignments)
 
@@ -106,7 +101,7 @@
   (fn [kill-time]
     (let [delay (if kill-time
                   kill-time
-                  (get (read-storm-conf (.getConf nimbus) storm-id (.getBlobStore nimbus))
+                  (get (clojurify-structure (Nimbus/readTopoConf (.getConf nimbus) storm-id (.getBlobStore nimbus)))
                        TOPOLOGY-MESSAGE-TIMEOUT-SECS))]
       (delay-event nimbus
                    storm-id
@@ -121,7 +116,7 @@
   (fn [time num-workers executor-overrides]
     (let [delay (if time
                   time
-                  (get (read-storm-conf (.getConf nimbus) storm-id (.getBlobStore nimbus))
+                  (get (clojurify-structure (Nimbus/readTopoConf (.getConf nimbus) storm-id (.getBlobStore nimbus)))
                        TOPOLOGY-MESSAGE-TIMEOUT-SECS))]
       (delay-event nimbus
                    storm-id
@@ -878,7 +873,7 @@
   (let [storm-cluster-state (.getStormClusterState nimbus)
         conf (.getConf nimbus)
         blob-store (.getBlobStore nimbus)
-        storm-conf (read-storm-conf conf storm-id blob-store)
+        storm-conf (clojurify-structure (Nimbus/readTopoConf conf storm-id blob-store))
         topology (StormCommon/systemTopology storm-conf (read-storm-topology storm-id blob-store))
         num-executors (->> (clojurify-structure (StormCommon/allComponents topology)) (map-val #(StormCommon/numStartExecutors %)))]
     (log-message "Activating " storm-name ": " storm-id)
