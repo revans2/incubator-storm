@@ -598,3 +598,31 @@
       </table>
   </div>
 </script>
+
+<script id="topology-errors-template" type="text/html">
+  <h2>Errors</h2>
+  <table class="table table-striped compact" id="topology-errors-table">
+    <thead>
+    <tr>
+      <th>Time</th>
+      <th>Error Host</th>
+      <th>Error Port</th>
+      <th>Error</th>
+    </tr>
+    </thead>
+    <tbody>
+    {{#topologyErrors}}
+    <tr>
+      <td>
+        <span id="{{time}}" class="errorTimeSpan">{{time}}</span>
+      </td>
+      <td><a href="/supervisor.html?host={{errorHost}}">{{errorHost}}</a></td>
+      <td>{{errorPort}}</td>
+      <td>
+        <span id="{{errorLapsedSecs}}" class="errorSpan">{{error}}</span>
+      </td>
+    </tr>
+    {{/topologyErrors}}
+    </tbody>
+  </table>
+</script>

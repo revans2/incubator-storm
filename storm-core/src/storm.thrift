@@ -329,6 +329,7 @@ struct TopologyPageInfo {
 12: optional TopologyStats topology_stats;
 13: optional string owner;
 14: optional list<WorkerSummary> workers;
+15: optional list<ErrorInfo> errors;
 521: optional double requested_memonheap;
 522: optional double requested_memoffheap;
 523: optional double requested_cpu;

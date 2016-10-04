@@ -2369,6 +2369,12 @@ public class Config extends HashMap<String, Object> {
     public static String STORM_CGROUP_INHERIT_CPUSET_CONFIGS = "storm.cgroup.inherit.cpuset.configs";
 
     /**
+     * To determine whether to enable cgroup OOM monitoring via the cgroup notification api
+     */
+    @isBoolean
+    public static String STORM_CGROUP_OOM_MONITORING_ENABLE = "storm.cgroup.oom.monitoring.enable";
+
+    /**
      * !!!!! - TEMPORARY CONFIG - !!!!!
      */
     @isBoolean

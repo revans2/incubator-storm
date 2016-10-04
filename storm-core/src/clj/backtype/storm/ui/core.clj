@@ -564,6 +564,19 @@
        "lastError" (error-subset (if-let [e (.get_last_error s)]
                                               (.get_error e)))})))
 
+(defn topology-errors
+  [errors-list topology-id secure?]
+  (let [errors (->> errors-list
+                 (sort-by #(.get_error_time_secs ^ErrorInfo %))
+                 reverse)]
+    {"topologyErrors"
+     (for [^ErrorInfo e errors]
+       {"time" (* 1000 (long (.get_error_time_secs e)))
+        "errorHost" (.get_host e)
+        "errorPort"  (.get_port e)
+        "errorLapsedSecs" (get-error-time e)
+        "error" (.get_error e)})}))
+
 (defn- unpack-topology-page-info
   "Unpacks the serialized object to data structures"
   [^TopologyPageInfo topo-info window secure?]
@@ -576,32 +589,34 @@
            :acked (.get_window_to_acked topo-stats)
            :failed (.get_window_to_failed topo-stats)}
         topo-stats (topology-stats window stat->window->number)]
-    {"id" id
-     "encodedId" (url-encode id)
-     "owner" (.get_owner topo-info)
-     "name" (.get_name topo-info)
-     "status" (.get_status topo-info)
-     "uptime" (pretty-uptime-sec (.get_uptime_secs topo-info))
-     "uptimeSeconds" (.get_uptime_secs topo-info)
-     "tasksTotal" (.get_num_tasks topo-info)
-     "workersTotal" (.get_num_workers topo-info)
-     "executorsTotal" (.get_num_executors topo-info)
-     "schedulerInfo" (.get_sched_status topo-info)
-     "requestedMemOnHeap" (.get_requested_memonheap topo-info)
-     "requestedMemOffHeap" (.get_requested_memoffheap topo-info)
-     "requestedCpu" (.get_requested_cpu topo-info)
-     "assignedMemOnHeap" (.get_assigned_memonheap topo-info)
-     "assignedMemOffHeap" (.get_assigned_memoffheap topo-info)
-     "assignedTotalMem" (+ (.get_assigned_memonheap topo-info) (.get_assigned_memoffheap topo-info))
-     "assignedCpu" (.get_assigned_cpu topo-info)
-     "topologyStats" topo-stats
-     "workers"  (map (partial worker-summary-to-json secure?)
-                     (.get_workers topo-info))
-     "spouts" (map (partial comp-agg-stats-json id)
-                   (.get_id_to_spout_agg_stats topo-info))
-     "bolts" (map (partial comp-agg-stats-json id)
-                  (.get_id_to_bolt_agg_stats topo-info))
-     "configuration" (.get_topology_conf topo-info)}))
+    (merge
+      {"id" id
+       "encodedId" (url-encode id)
+       "owner" (.get_owner topo-info)
+       "name" (.get_name topo-info)
+       "status" (.get_status topo-info)
+       "uptime" (pretty-uptime-sec (.get_uptime_secs topo-info))
+       "uptimeSeconds" (.get_uptime_secs topo-info)
+       "tasksTotal" (.get_num_tasks topo-info)
+       "workersTotal" (.get_num_workers topo-info)
+       "executorsTotal" (.get_num_executors topo-info)
+       "schedulerInfo" (.get_sched_status topo-info)
+       "requestedMemOnHeap" (.get_requested_memonheap topo-info)
+       "requestedMemOffHeap" (.get_requested_memoffheap topo-info)
+       "requestedCpu" (.get_requested_cpu topo-info)
+       "assignedMemOnHeap" (.get_assigned_memonheap topo-info)
+       "assignedMemOffHeap" (.get_assigned_memoffheap topo-info)
+       "assignedTotalMem" (+ (.get_assigned_memonheap topo-info) (.get_assigned_memoffheap topo-info))
+       "assignedCpu" (.get_assigned_cpu topo-info)
+       "topologyStats" topo-stats
+       "workers"  (map (partial worker-summary-to-json secure?)
+                       (.get_workers topo-info))
+       "spouts" (map (partial comp-agg-stats-json id)
+                     (.get_id_to_spout_agg_stats topo-info))
+       "bolts" (map (partial comp-agg-stats-json id)
+                    (.get_id_to_bolt_agg_stats topo-info))
+       "configuration" (.get_topology_conf topo-info)}
+      (topology-errors (.get_errors topo-info) id secure?))))
 
 (defn exec-host-port
   [executors]

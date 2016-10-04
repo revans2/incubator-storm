@@ -108,6 +108,8 @@ public interface IStormClusterState {
 
     public List<ErrorInfo> errors(String stormId, String componentId);
 
+    public void reportTopologyError(String topologyId, String hostname, int port, String errorMsg);
+
     public ErrorInfo lastError(String stormId, String componentId);
 
     public void setCredentials(String stormId, Credentials creds, Map topoConf) throws NoSuchAlgorithmException;

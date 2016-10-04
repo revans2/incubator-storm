@@ -563,6 +563,28 @@ public class StormClusterStateImpl implements IStormClusterState {
     }
 
     @Override
+    public void reportTopologyError (String topologyId, String hostname, int port, String errorMsg) {
+        String path = ClusterUtils.topologyErrorPath(topologyId);
+        ErrorInfo errorInfo = new ErrorInfo(errorMsg, Time.currentTimeSecs());
+        errorInfo.set_host(hostname);
+        errorInfo.set_port(port);
+        byte[] serData = Utils.serialize(errorInfo);
+        stateStorage.mkdirs(path, acls);
+        stateStorage.create_sequential(path + ClusterUtils.ZK_SEPERATOR + "e", serData, acls);
+        List<String> childrens = stateStorage.get_children(path, false);
+
+        Collections.sort(childrens, new Comparator<String>() {
+            public int compare(String arg0, String arg1) {
+                return Long.compare(Long.parseLong(arg0.substring(1)), Long.parseLong(arg1.substring(1)));
+            }
+        });
+
+        while (childrens.size() > 10) {
+            stateStorage.delete_node(path + ClusterUtils.ZK_SEPERATOR + childrens.remove(0));
+        }
+    }
+
+    @Override
     public void reportError(String stormId, String componentId, String node, Long port, Throwable error) {
 
         String path = ClusterUtils.errorPath(stormId, componentId);

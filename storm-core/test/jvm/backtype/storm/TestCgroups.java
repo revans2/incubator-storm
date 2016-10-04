@@ -19,6 +19,15 @@
 package backtype.storm;
 
 import org.apache.commons.lang.StringUtils;
+import org.apache.storm.cluster.IStormClusterState;
+
+import org.apache.storm.container.cgroup.CgroupCenter;
+import org.apache.storm.container.cgroup.CgroupCommon;
+import org.apache.storm.container.cgroup.Hierarchy;
+import org.apache.storm.container.cgroup.SubSystemType;
+import org.apache.storm.container.cgroup.core.CpuCore;
+import org.apache.storm.container.cgroup.core.MemoryCore;
+import org.apache.storm.container.cgroup.monitor.CgroupOOMMonitor;
 import org.junit.Assert;
 import org.junit.Assume;
 import org.apache.storm.container.cgroup.CgroupManager;
@@ -27,20 +36,26 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import static org.mockito.Mockito.mock;
+
 /**
  * Unit tests for CGroups
  */
+
 public class TestCgroups {
 
     private static final Logger LOG = LoggerFactory.getLogger(TestCgroups.class);
@@ -54,10 +69,13 @@ public class TestCgroups {
         Config config = new Config();
         config.putAll(Utils.readDefaultConfig());
         //We don't want to run the test is CGroups are not setup
-        Assume.assumeTrue("Check if CGroups are setup", ((boolean) config.get(Config.STORM_RESOURCE_ISOLATION_PLUGIN_ENABLE)) == true);
+        Assume.assumeTrue("Check if CGroups are setup", ((boolean) config.get(Config.STORM_RESOURCE_ISOLATION_PLUGIN_ENABLE)));
 
         Assert.assertTrue("Check if STORM_CGROUP_HIERARCHY_DIR exists", stormCgroupHierarchyExists(config));
         Assert.assertTrue("Check if STORM_SUPERVISOR_CGROUP_ROOTDIR exists", stormCgroupSupervisorRootDirExists(config));
+
+        //set to false since we don't want to test this feature in the test
+        config.put(Config.STORM_CGROUP_OOM_MONITORING_ENABLE, false);
 
         CgroupManager manager = new CgroupManager();
         manager.prepare(config);
@@ -107,6 +125,92 @@ public class TestCgroups {
 
         Assert.assertFalse("Make sure cgroup was removed properly", dirExists(pathToWorkerCgroupDir));
     }
+
+    /**
+     * Test if cgroup OOM notification is working correctly
+     * NOTE: remember to set java.library.path or LD_LIBRARY_PATH to include the path to libcgroupOOMMonitor.so native library
+     */
+    @Test
+    public void testCgroupMonitor() throws IOException, InterruptedException {
+        Config config = new Config();
+        config.putAll(Utils.readDefaultConfig());
+        //We don't want to run the test is CGroups are not setup
+        Assume.assumeTrue("Check if CGroups are setup", ((boolean) config.get(Config.STORM_RESOURCE_ISOLATION_PLUGIN_ENABLE)));
+        Assume.assumeTrue("Check if Cgroup oom monitoring is enabled", (boolean) config.get(Config.STORM_CGROUP_OOM_MONITORING_ENABLE));
+        Assume.assumeTrue("check if stress utility exists", fileExists("/usr/bin/stress"));
+
+        Assert.assertTrue("Check if STORM_CGROUP_HIERARCHY_DIR exists", stormCgroupHierarchyExists(config));
+        Assert.assertTrue("Check if STORM_SUPERVISOR_CGROUP_ROOTDIR exists", stormCgroupSupervisorRootDirExists(config));
+
+        CgroupCenter center = CgroupCenter.getInstance();
+        List<SubSystemType> subSystemTypes = new LinkedList<>();
+        for (String resource : Config.getCgroupStormResources(config)) {
+            subSystemTypes.add(SubSystemType.getSubSystem(resource));
+        }
+        Hierarchy hierarchy = center.getHierarchyWithSubSystems(subSystemTypes);
+        String rootDir = Config.getCgroupRootDir(config);
+        CgroupCommon rootCgroup = new CgroupCommon(rootDir, hierarchy, hierarchy.getRootCgroups());
+
+        // creating cgroup
+        String workerId = UUID.randomUUID().toString();
+        CgroupCommon workerGroup = new CgroupCommon(workerId, hierarchy, rootCgroup);
+        center.createCgroup(workerGroup);
+
+        // setting cpu and mem
+        CpuCore cpuCore = (CpuCore) workerGroup.getCores().get(SubSystemType.cpu);
+        cpuCore.setCpuShares(10);
+        MemoryCore memCore = (MemoryCore) workerGroup.getCores().get(SubSystemType.memory);
+        memCore.setPhysicalUsageLimit(Long.valueOf(128 * 1024 * 1024));
+
+        IStormClusterState stormClusterState = mock(IStormClusterState.class);
+
+        CgroupOOMMonitor oomMonitor = new CgroupOOMMonitor(config, stormClusterState);
+        oomMonitor.addCgroupToMonitor(workerGroup);
+
+        Assert.assertEquals("Check right number of cgroups being monitored", 1, oomMonitor.getCgroupsBeingMonitored().size());
+        Assert.assertEquals("Check right cgroup being monitored", workerId, oomMonitor.getCgroupsBeingMonitored().iterator().next());
+
+        List<String> userListSubsystems = (List<String>) config.get(Config.STORM_CGROUP_RESOURCES);
+
+        String command = config.get(Config.STORM_CGROUP_CGEXEC_CMD) + " -g " + StringUtils.join(userListSubsystems, ',') + ":/"
+                + config.get(Config.STORM_SUPERVISOR_CGROUP_ROOTDIR) + "/" + workerId + " /usr/bin/stress --vm 1";
+
+        String output = executeCommand(command);
+        String notification = null;
+        //wait for oom notification
+        for (int i = 0; i < 10; i++) {
+            notification = oomMonitor.getNextNotification();
+            if (notification != null) {
+                break;
+            }
+            Utils.sleep(1000);
+        }
+        Assert.assertNotNull("Check if there is a notification", notification);
+        Assert.assertEquals("Check if right cgroup got an oom error", workerId, notification);
+
+        //deleting cgroup
+        oomMonitor.removeCgroupToMonitor(workerGroup);
+        center.deleteCgroup(workerGroup);
+
+        Assert.assertEquals("Making sure not cgroups are still being monitored after cleanup", 0, oomMonitor.getCgroupsBeingMonitored().size());
+    }
+
+    private String executeCommand(String command) throws IOException, InterruptedException {
+
+        StringBuffer output = new StringBuffer();
+        Process p;
+        p = Runtime.getRuntime().exec(command);
+        p.waitFor();
+        BufferedReader reader =
+                new BufferedReader(new InputStreamReader(p.getInputStream()));
+
+        String line = "";
+        while ((line = reader.readLine()) != null) {
+            output.append(line + "\n");
+        }
+        return output.toString();
+    }
+
 
     private boolean stormCgroupHierarchyExists(Map config) {
         String pathToStormCgroupHierarchy = (String) config.get(Config.STORM_CGROUP_HIERARCHY_DIR);

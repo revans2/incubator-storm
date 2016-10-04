@@ -50,7 +50,7 @@ public class CgroupCommon implements CgroupCommonOperation {
     private static final Logger LOG = LoggerFactory.getLogger(CgroupCommon.class);
 
     public CgroupCommon(String name, Hierarchy hierarchy, CgroupCommon parent) {
-        this.name = parent.getName() + "/" + name;
+        this.name = name;
         this.hierarchy = hierarchy;
         this.parent = parent;
         this.dir = parent.getDir() + "/" + name;

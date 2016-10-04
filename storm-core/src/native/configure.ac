@@ -13,38 +13,23 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-#
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 
-AC_PREREQ(2.63)
-AC_INIT(worker-launcher, 1.0.0, user@storm.apache.org)
-AC_GNU_SOURCE
-
+AC_PREREQ([2.63])
+AC_INIT(storm-core-native, 1.0.0, users@storm.apache.org)
 AM_INIT_AUTOMAKE([subdir-objects foreign no-dist])
-
-AC_CONFIG_SRCDIR([impl/worker-launcher.c])
 AC_CONFIG_FILES([Makefile])
-
-AC_PREFIX_DEFAULT(`pwd`/../install)
-
+AC_CONFIG_MACRO_DIR([m4])
 # Checks for programs.
-AC_PROG_CC
-AM_PROG_CC_C_O
 
 # Checks for libraries.
-
+AC_PROG_LIBTOOL
 # Checks for header files.
-AC_LANG(C)
-AC_CHECK_HEADERS([unistd.h])
 
 # Checks for typedefs, structures, and compiler characteristics.
-AC_HEADER_STDBOOL
-AC_C_CONST
-AC_TYPE_OFF_T
-AC_TYPE_SIZE_T
-AC_FUNC_STRERROR_R
 
 # Checks for library functions.
-AC_CHECK_FUNCS([mkdir uname])
+
+AC_CONFIG_SUBDIRS([cgroup-oom-monitor worker-launcher])
 AC_OUTPUT
