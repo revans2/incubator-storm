@@ -206,7 +206,10 @@
                  storm-base-updates (apply transition event-args)
                  _ (log-message "ST-B-U-0 " storm-base-updates)
                  storm-base-updates (if (instance? TopologyStatus storm-base-updates) ;if it's just a State, that just indicates new status.
-                                      {:status {:type storm-base-updates}}
+                                      (doto (org.apache.storm.generated.StormBase.)
+                                        (.set_status storm-base-updates)
+                                        (.set_component_executors {})
+                                        (.set_component_debug {}))
                                       storm-base-updates)
                  _ (log-message "ST-B-U-1 " storm-base-updates)
                  storm-base-updates (if (or (not storm-base-updates) (instance? org.apache.storm.generated.StormBase storm-base-updates))
