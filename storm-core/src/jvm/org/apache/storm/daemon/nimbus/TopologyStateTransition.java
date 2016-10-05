@@ -17,7 +17,10 @@
  */
 package org.apache.storm.daemon.nimbus;
 
+import java.util.Collections;
+
 import org.apache.storm.generated.StormBase;
+import org.apache.storm.generated.TopologyStatus;
 
 /**
  * A transition from one state to another
@@ -25,8 +28,18 @@ import org.apache.storm.generated.StormBase;
 public interface TopologyStateTransition<T> {
     //[TopologyActions/KILL wait-amt]
     //[TopologyActions/REBALANCE wait-amt num-workers executor-overrides]
-        
+    public static StormBase make(TopologyStatus status) {
+        StormBase ret = new StormBase();
+        ret.set_status(status);
+        //The following are required for backwards compatibility with clojure code
+        ret.set_component_executors(Collections.emptyMap());
+        ret.set_component_debug(Collections.emptyMap());
+        return ret;
+    }
+    
     public StormBase transition(T argument);
     
-    public static TopologyStateTransition<Void> NOOP = (ignored) -> null;
+    public static final TopologyStateTransition<Void> NOOP = (ignored) -> null;
+    public static final TopologyStateTransition<Void> INACTIVE = (ignored) -> make(TopologyStatus.INACTIVE);
+    public static final TopologyStateTransition<Void> ACTIVE = (ignored) -> make(TopologyStatus.ACTIVE);
 }

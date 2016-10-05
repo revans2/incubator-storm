@@ -139,7 +139,7 @@
   (mk-assignments nimbus :scratch-topology-id storm-id))
 
 (defn state-transitions [nimbus storm-id status storm-base]
-  {TopologyStatus/ACTIVE {TopologyActions/INACTIVATE TopologyStatus/INACTIVE
+  {TopologyStatus/ACTIVE {TopologyActions/INACTIVATE TopologyStateTransition/INACTIVE
             TopologyActions/ACTIVATE TopologyStateTransition/NOOP
             TopologyActions/REBALANCE (rebalance-transition nimbus storm-id status)
             TopologyActions/KILL (kill-transition nimbus storm-id)
@@ -216,7 +216,8 @@
                                 (log-message "Transition is nil or TopologyStatus... " transition)
                                 (fn [] transition))
                               (if (instance? TopologyStateTransition transition)
-                                (fn [arg] (.transition transition arg))
+                                ;;TODO need to get arity to work properly by having everyone pass in a single argument
+                                (fn [] (.transition transition nil))
                                 transition))
                  storm-base-updates (apply transition event-args)
                  storm-base-updates (if (instance? TopologyStatus storm-base-updates) ;if it's just a State, that just indicates new status.
