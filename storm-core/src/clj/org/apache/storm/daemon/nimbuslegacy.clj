@@ -89,7 +89,8 @@
       (delay-event nimbus
                    storm-id
                    delay
-                   TopologyActions/REMOVE)
+                   TopologyActions/REMOVE
+                   nil)
       (doto (org.apache.storm.generated.StormBase.)
          (.set_status TopologyStatus/KILLED)
          (.set_topology_action_options 
@@ -101,7 +102,7 @@
          (.set_component_debug {})))))
 
 (defn rebalance-transition [nimbus storm-id status]
-  (fn [time num-workers executor-overrides]
+  (fn [[time num-workers executor-overrides]]
     (let [delay (if time
                   time
                   (get (clojurify-structure (Nimbus/readTopoConf (.getConf nimbus) storm-id (.getBlobStore nimbus)))
@@ -110,7 +111,8 @@
       (delay-event nimbus
                    storm-id
                    delay
-                   TopologyActions/DO_REBALANCE)
+                   TopologyActions/DO_REBALANCE
+                   nil)
 
       (if num-workers (.set_num_workers rbo (int num-workers)))
       (if executor-overrides (.set_num_executors rbo (map-val int executor-overrides)))
@@ -149,16 +151,17 @@
               TopologyActions/REBALANCE (rebalance-transition nimbus storm-id status)
               TopologyActions/KILL (kill-transition nimbus storm-id)
               }
-   TopologyStatus/KILLED {TopologyActions/STARTUP (fn [] (delay-event nimbus
+   TopologyStatus/KILLED {TopologyActions/STARTUP (fn [args] (delay-event nimbus
                                          storm-id
                                          (-> storm-base
                                              .get_topology_action_options
                                              .get_kill_options
                                              .get_wait_secs)
-                                        TopologyActions/REMOVE)
+                                        TopologyActions/REMOVE
+                                        nil)
                              nil)
             TopologyActions/KILL (kill-transition nimbus storm-id)
-            TopologyActions/REMOVE (fn []
+            TopologyActions/REMOVE (fn [args]
                       (log-message "Killing topology: " storm-id)
                       (.removeStorm (.getStormClusterState nimbus)
                                       storm-id)
@@ -168,28 +171,28 @@
                           (.removeKeyVersion (.getStormClusterState nimbus) blob-key)))
                       nil)
             }
-   TopologyStatus/REBALANCING {TopologyActions/STARTUP (fn [] (delay-event nimbus
+   TopologyStatus/REBALANCING {TopologyActions/STARTUP (fn [args] (delay-event nimbus
                                               storm-id
                                               (-> storm-base
                                                  .get_topology_action_options
                                                  .get_rebalance_options
                                                  .get_wait_secs)
-                                              TopologyActions/DO_REBALANCE)
+                                              TopologyActions/DO_REBALANCE
+                                              nil)
                                  nil)
                  TopologyActions/KILL (kill-transition nimbus storm-id)
-                 TopologyActions/DO_REBALANCE (fn []
+                 TopologyActions/DO_REBALANCE (fn [args]
                                  (do-rebalance nimbus storm-id status storm-base)
                                  (.get_prev_status storm-base))
                  }})
 
 (defn transition!
-  ([nimbus storm-id event]
-     (transition! nimbus storm-id event false))
-  ([nimbus storm-id event error-on-no-transition?]
+  ([nimbus storm-id event event-args]
+     (transition! nimbus storm-id event event-args false))
+  ([nimbus storm-id event event-args error-on-no-transition?]
     (.assertIsLeader nimbus)
     (locking (.getSubmitLock nimbus)
        (let [system-events #{TopologyActions/STARTUP}
-             [event & event-args] (if (instance? TopologyActions event) [event] event)
              storm-base (-> nimbus .getStormClusterState  (.stormBase storm-id nil))
              status (.get_status storm-base)]
          ;; handles the case where event was scheduled but topology has been removed
@@ -214,12 +217,12 @@
                                     (instance? TopologyStatus transition))
                               (do
                                 (log-message "Transition is nil or TopologyStatus... " transition)
-                                (fn [] transition))
+                                (fn [args] transition))
                               (if (instance? TopologyStateTransition transition)
                                 ;;TODO need to get arity to work properly by having everyone pass in a single argument
-                                (fn [] (.transition transition nil))
+                                (fn [args] (.transition transition args))
                                 transition))
-                 storm-base-updates (apply transition event-args)
+                 storm-base-updates (transition event-args)
                  storm-base-updates (if (instance? TopologyStatus storm-base-updates) ;if it's just a State, that just indicates new status.
                                       (doto (org.apache.storm.generated.StormBase.)
                                         (.set_status storm-base-updates)
@@ -230,17 +233,17 @@
                (.updateStorm (.getStormClusterState nimbus) storm-id storm-base-updates)))))
        )))
 
-(defn transition-name! [nimbus storm-name event & args]
+(defn transition-name! [nimbus storm-name event args & error-on-no-transition?]
   (let [storm-id (StormCommon/getStormId (.getStormClusterState nimbus) storm-name)]
     (when-not storm-id
       (throw (NotAliveException. storm-name)))
-    (apply transition! nimbus storm-id event args)))
+    (apply transition! nimbus storm-id event args error-on-no-transition?)))
 
-(defn delay-event [nimbus storm-id delay-secs event]
+(defn delay-event [nimbus storm-id delay-secs event args]
   (log-message "Delaying event " event " for " delay-secs " secs for " storm-id)
   (.schedule (.getTimer nimbus)
     delay-secs
-    (fn [] (transition! nimbus storm-id event false))))
+    (fn [] (transition! nimbus storm-id event args false))))
 
 ;; active -> reassign in X secs
 
@@ -1573,7 +1576,7 @@
           (let [wait-amt (if (.is_set_wait_secs options)
                            (.get_wait_secs options)
                            )]
-            (transition-name! nimbus storm-name [TopologyActions/KILL wait-amt] true)
+            (transition-name! nimbus storm-name TopologyActions/KILL wait-amt true)
             (notify-topology-action-listener nimbus storm-name operation))
           (add-topology-to-history-log (StormCommon/getStormId (.getStormClusterState nimbus) storm-name)
             nimbus topology-conf)))
@@ -1595,7 +1598,7 @@
               (when (<= num-executors 0)
                 (throw (InvalidTopologyException. "Number of executors must be greater than 0"))
                 ))
-            (transition-name! nimbus storm-name [TopologyActions/REBALANCE wait-amt num-workers executor-overrides] true)
+            (transition-name! nimbus storm-name TopologyActions/REBALANCE [wait-amt num-workers executor-overrides] true)
 
             (notify-topology-action-listener nimbus storm-name operation))))
 
@@ -1604,7 +1607,7 @@
         (let [topology-conf (try-read-storm-conf-from-name conf storm-name nimbus)
               operation "activate"]
           (check-authorization! nimbus storm-name topology-conf operation)
-          (transition-name! nimbus storm-name TopologyActions/ACTIVATE true)
+          (transition-name! nimbus storm-name TopologyActions/ACTIVATE nil true)
           (notify-topology-action-listener nimbus storm-name operation)))
 
       (deactivate [this storm-name]
@@ -1612,7 +1615,7 @@
         (let [topology-conf (try-read-storm-conf-from-name conf storm-name nimbus)
               operation "deactivate"]
           (check-authorization! nimbus storm-name topology-conf operation)
-          (transition-name! nimbus storm-name TopologyActions/INACTIVATE true)
+          (transition-name! nimbus storm-name TopologyActions/INACTIVATE nil true)
           (notify-topology-action-listener nimbus storm-name operation)))
 
       (debug [this storm-name component-id enable? samplingPct]
@@ -2259,7 +2262,7 @@
 
     (when (.isLeader nimbus)
       (doseq [storm-id (.activeStorms (.getStormClusterState nimbus))]
-        (transition! nimbus storm-id TopologyActions/STARTUP)))
+        (transition! nimbus storm-id TopologyActions/STARTUP nil)))
 
     (.scheduleRecurring (.getTimer nimbus)
       0
