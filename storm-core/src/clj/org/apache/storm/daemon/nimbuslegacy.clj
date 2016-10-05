@@ -96,7 +96,7 @@
            (doto (TopologyActionOptions.)
              (.set_kill_options
                (doto (KillOptions.)
-                 (.set_wait_secs delay)))))
+                 (.set_wait_secs (int delay))))))
          (.set_component_executors {})
          (.set_component_debug {})))))
 
@@ -105,17 +105,24 @@
     (let [delay (if time
                   time
                   (get (clojurify-structure (Nimbus/readTopoConf (.getConf nimbus) storm-id (.getBlobStore nimbus)))
-                       TOPOLOGY-MESSAGE-TIMEOUT-SECS))]
+                       TOPOLOGY-MESSAGE-TIMEOUT-SECS))
+          rbo (doto (RebalanceOptions.) (.set_wait_secs (int delay)))]
       (delay-event nimbus
                    storm-id
                    delay
                    TopologyActions/DO_REBALANCE)
-      {:status {:type TopologyStatus/REBALANCING}
-       :prev-status {:type status}
-       :topology-action-options (-> {:delay-secs delay :action TopologyActions/REBALANCE}
-                                  (converter/assoc-non-nil :num-workers num-workers)
-                                  (converter/assoc-non-nil :component->executors executor-overrides))
-       })))
+
+      (if num-workers (.set_num_workers rbo (int num-workers)))
+      (if executor-overrides (.set_num_executors rbo (map-val int executor-overrides)))
+        
+      (doto (org.apache.storm.generated.StormBase.)
+         (.set_status TopologyStatus/REBALANCING)
+         (.set_prev_status status)
+         (.set_topology_action_options 
+           (doto (TopologyActionOptions.)
+             (.set_rebalance_options rbo)))
+         (.set_component_executors {})
+         (.set_component_debug {})))))
 
 (defn do-rebalance [nimbus storm-id status storm-base]
   (let [rebalance-options (.get_rebalance_options (.get_topology_action_options storm-base))
@@ -210,18 +217,15 @@
                                 (fn [] transition))
                               transition)
                  storm-base-updates (apply transition event-args)
-                 _ (log-message "ST-B-U-0 " storm-base-updates)
                  storm-base-updates (if (instance? TopologyStatus storm-base-updates) ;if it's just a State, that just indicates new status.
                                       (doto (org.apache.storm.generated.StormBase.)
                                         (.set_status storm-base-updates)
                                         (.set_component_executors {})
                                         (.set_component_debug {}))
                                       storm-base-updates)
-                 _ (log-message "ST-B-U-1 " storm-base-updates)
                  storm-base-updates (if (or (not storm-base-updates) (instance? org.apache.storm.generated.StormBase storm-base-updates))
                                       storm-base-updates
                                       (converter/thriftify-storm-base storm-base-updates))]
-             (log-message "ST-B-U-2 " storm-base-updates)
              (when storm-base-updates
                (.updateStorm (.getStormClusterState nimbus) storm-id storm-base-updates)))))
        )))
