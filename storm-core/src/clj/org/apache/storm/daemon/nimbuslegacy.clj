@@ -103,29 +103,30 @@
            (.set_component_debug {}))))))
 
 (defn rebalance-transition [nimbus storm-id status]
-  (fn [[time num-workers executor-overrides]]
-    (let [delay (if time
-                  time
-                  (get (clojurify-structure (Nimbus/readTopoConf (.getConf nimbus) storm-id (.getBlobStore nimbus)))
-                       TOPOLOGY-MESSAGE-TIMEOUT-SECS))
-          rbo (doto (RebalanceOptions.) (.set_wait_secs (int delay)))]
-      (delay-event nimbus
-                   storm-id
-                   delay
-                   TopologyActions/DO_REBALANCE
-                   nil)
+  (reify TopologyStateTransition
+    (transition [this [time num-workers executor-overrides]]
+      (let [delay (if time
+                    time
+                    (get (clojurify-structure (Nimbus/readTopoConf (.getConf nimbus) storm-id (.getBlobStore nimbus)))
+                         TOPOLOGY-MESSAGE-TIMEOUT-SECS))
+            rbo (doto (RebalanceOptions.) (.set_wait_secs (int delay)))]
+        (delay-event nimbus
+                     storm-id
+                     delay
+                     TopologyActions/DO_REBALANCE
+                     nil)
 
-      (if num-workers (.set_num_workers rbo (int num-workers)))
-      (if executor-overrides (.set_num_executors rbo (map-val int executor-overrides)))
+        (if num-workers (.set_num_workers rbo (int num-workers)))
+        (if executor-overrides (.set_num_executors rbo (map-val int executor-overrides)))
         
-      (doto (org.apache.storm.generated.StormBase.)
-         (.set_status TopologyStatus/REBALANCING)
-         (.set_prev_status status)
-         (.set_topology_action_options 
-           (doto (TopologyActionOptions.)
-             (.set_rebalance_options rbo)))
-         (.set_component_executors {})
-         (.set_component_debug {})))))
+        (doto (org.apache.storm.generated.StormBase.)
+           (.set_status TopologyStatus/REBALANCING)
+           (.set_prev_status status)
+           (.set_topology_action_options 
+             (doto (TopologyActionOptions.)
+               (.set_rebalance_options rbo)))
+           (.set_component_executors {})
+           (.set_component_debug {}))))))
 
 (defn do-rebalance [nimbus storm-id status storm-base]
   (let [rebalance-options (.get_rebalance_options (.get_topology_action_options storm-base))
