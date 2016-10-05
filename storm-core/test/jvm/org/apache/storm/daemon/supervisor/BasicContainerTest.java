@@ -433,7 +433,7 @@ public class BasicContainerTest {
                     "-Dlog4j.configurationFile=" + workerConf,
                     "-DLog4jContextSelector=org.apache.logging.log4j.core.selector.BasicContextSelector",
                     "-Dstorm.local.dir=" + stormLocal,
-                    "-Djava.library.path=/foobar:JLP",
+                    "-Djava.library.path=JLP:/foobar",
                     "-Dstorm.conf.file=",
                     "-Dstorm.options=",
                     "-Djava.io.tmpdir="+workerTmpDir,

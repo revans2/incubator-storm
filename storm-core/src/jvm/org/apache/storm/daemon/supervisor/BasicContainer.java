@@ -641,7 +641,7 @@ public class BasicContainer extends Container {
 
         String ld_library_path = topEnvironment.get("LD_LIBRARY_PATH");
         if (ld_library_path != null) {
-            jlp = ld_library_path + System.getProperty("path.separator") + jlp;
+            jlp = jlp + System.getProperty("path.separator") + ld_library_path;
         }
         
         topEnvironment.put("LD_LIBRARY_PATH", jlp);
