@@ -81,25 +81,26 @@
 (declare mk-assignments)
 
 (defn kill-transition [nimbus storm-id]
-  (fn [kill-time]
-    (let [delay (if kill-time
-                  kill-time
-                  (get (clojurify-structure (Nimbus/readTopoConf (.getConf nimbus) storm-id (.getBlobStore nimbus)))
-                       TOPOLOGY-MESSAGE-TIMEOUT-SECS))]
-      (delay-event nimbus
-                   storm-id
-                   delay
-                   TopologyActions/REMOVE
-                   nil)
-      (doto (org.apache.storm.generated.StormBase.)
-         (.set_status TopologyStatus/KILLED)
-         (.set_topology_action_options 
-           (doto (TopologyActionOptions.)
-             (.set_kill_options
-               (doto (KillOptions.)
-                 (.set_wait_secs (int delay))))))
-         (.set_component_executors {})
-         (.set_component_debug {})))))
+  (reify TopologyStateTransition
+    (transition [this kill-time]
+      (let [delay (if kill-time
+                    kill-time
+                    (get (clojurify-structure (Nimbus/readTopoConf (.getConf nimbus) storm-id (.getBlobStore nimbus)))
+                         TOPOLOGY-MESSAGE-TIMEOUT-SECS))]
+        (delay-event nimbus
+                     storm-id
+                     delay
+                     TopologyActions/REMOVE
+                     nil)
+        (doto (org.apache.storm.generated.StormBase.)
+           (.set_status TopologyStatus/KILLED)
+           (.set_topology_action_options 
+             (doto (TopologyActionOptions.)
+               (.set_kill_options
+                 (doto (KillOptions.)
+                   (.set_wait_secs (int delay))))))
+           (.set_component_executors {})
+           (.set_component_debug {}))))))
 
 (defn rebalance-transition [nimbus storm-id status]
   (fn [[time num-workers executor-overrides]]
