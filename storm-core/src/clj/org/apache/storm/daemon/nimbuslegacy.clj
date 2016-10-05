@@ -148,7 +148,7 @@
             TopologyActions/REBALANCE (rebalance-transition nimbus storm-id status)
             TopologyActions/KILL (kill-transition nimbus storm-id)
             }
-   TopologyStatus/INACTIVE {TopologyActions/ACTIVATE TopologyStatus/ACTIVE
+   TopologyStatus/INACTIVE {TopologyActions/ACTIVATE TopologyStateTransition/ACTIVE
               TopologyActions/INACTIVATE TopologyStateTransition/NOOP
               TopologyActions/REBALANCE (rebalance-transition nimbus storm-id status)
               TopologyActions/KILL (kill-transition nimbus storm-id)
@@ -216,16 +216,8 @@
                  transition (-> (state-transitions nimbus storm-id status storm-base)
                                 (get status)
                                 (get-event event))
-                 transition (if (or (nil? transition)
-                                    (instance? TopologyStatus transition))
-                              (do
-                                (log-message "Transition is nil or TopologyStatus... " transition)
-                                (fn [args] transition))
-                              (if (instance? TopologyStateTransition transition)
-                                ;;TODO need to get arity to work properly by having everyone pass in a single argument
-                                (fn [args] (.transition transition args))
-                                transition))
-                 storm-base-updates (transition event-args)
+                 transition (if (nil? transition) TopologyStateTransition/NOOP transition)
+                 storm-base-updates (.transition transition event-args)
                  storm-base-updates (if (instance? TopologyStatus storm-base-updates) ;if it's just a State, that just indicates new status.
                                       (doto (org.apache.storm.generated.StormBase.)
                                         (.set_status storm-base-updates)
