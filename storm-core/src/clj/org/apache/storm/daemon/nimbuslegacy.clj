@@ -153,7 +153,7 @@
               TopologyActions/REBALANCE (rebalance-transition nimbus storm-id status)
               TopologyActions/KILL (kill-transition nimbus storm-id)
               }
-   TopologyStatus/KILLED {TopologyActions/STARTUP (fn [args] (delay-event nimbus
+   TopologyStatus/KILLED {TopologyActions/STARTUP (reify TopologyStateTransition (transition [this args] (delay-event nimbus
                                          storm-id
                                          (-> storm-base
                                              .get_topology_action_options
@@ -161,9 +161,9 @@
                                              .get_wait_secs)
                                         TopologyActions/REMOVE
                                         nil)
-                             nil)
+                             nil))
             TopologyActions/KILL (kill-transition nimbus storm-id)
-            TopologyActions/REMOVE (fn [args]
+            TopologyActions/REMOVE (reify TopologyStateTransition (transition [this args]
                       (log-message "Killing topology: " storm-id)
                       (.removeStorm (.getStormClusterState nimbus)
                                       storm-id)
@@ -171,9 +171,10 @@
                         (doseq [blob-key (Nimbus/getKeyListFromId (.getConf nimbus) storm-id)]
                           (.removeBlobstoreKey (.getStormClusterState nimbus) blob-key)
                           (.removeKeyVersion (.getStormClusterState nimbus) blob-key)))
-                      nil)
+                      nil))
             }
-   TopologyStatus/REBALANCING {TopologyActions/STARTUP (fn [args] (delay-event nimbus
+   TopologyStatus/REBALANCING {TopologyActions/STARTUP (reify TopologyStateTransition (transition [this args]
+                                           (delay-event nimbus
                                               storm-id
                                               (-> storm-base
                                                  .get_topology_action_options
@@ -181,11 +182,11 @@
                                                  .get_wait_secs)
                                               TopologyActions/DO_REBALANCE
                                               nil)
-                                 nil)
+                                 nil))
                  TopologyActions/KILL (kill-transition nimbus storm-id)
-                 TopologyActions/DO_REBALANCE (fn [args]
+                 TopologyActions/DO_REBALANCE (reify TopologyStateTransition (transition [this args]
                                  (do-rebalance nimbus storm-id status storm-base)
-                                 (.get_prev_status storm-base))
+                                 (TopologyStateTransition/make (.get_prev_status storm-base))))
                  }})
 
 (defn transition!
