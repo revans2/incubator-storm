@@ -201,22 +201,20 @@
          ;; handles the case where event was scheduled but topology has been removed
          (if-not status
            (log-message "Cannot apply event " event " to " storm-id " because topology no longer exists")
-           (let [get-event (fn [m e]
-                             (if (contains? m e)
-                               (m e)
-                               (let [msg (str "No transition for event: " event
-                                              ", status: " status,
-                                              " storm-id: " storm-id)]
-                                 (if error-on-no-transition?
-                                   (throw (RuntimeException. msg))
-                                   (do (when-not (contains? system-events event)
-                                         (log-message msg))
-                                       nil))
-                                 )))
-                 transition (-> (state-transitions nimbus storm-id status storm-base)
+           (let [transition (-> (state-transitions nimbus storm-id status storm-base)
                                 (get status)
-                                (get-event event))
-                 transition (if (nil? transition) TopologyStateTransition/NOOP transition)
+                                (get event))
+                 transition (if (nil? transition)
+                                (do
+                                  (let [msg (str "No transition for event: " event
+                                                 ", status: " status,
+                                                 " storm-id: " storm-id)]
+                                    (if error-on-no-transition?
+                                      (throw (RuntimeException. msg))
+                                      (do (when-not (contains? system-events event)
+                                          (log-message msg))
+                                        TopologyStateTransition/NOOP))))
+                                transition)
                  storm-base-updates (.transition transition event-args)
                  storm-base-updates (if (instance? TopologyStatus storm-base-updates) ;if it's just a State, that just indicates new status.
                                       (doto (org.apache.storm.generated.StormBase.)
