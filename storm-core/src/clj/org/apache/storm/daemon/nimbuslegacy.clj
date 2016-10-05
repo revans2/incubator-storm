@@ -222,10 +222,7 @@
                                         (.set_status storm-base-updates)
                                         (.set_component_executors {})
                                         (.set_component_debug {}))
-                                      storm-base-updates)
-                 storm-base-updates (if (or (not storm-base-updates) (instance? org.apache.storm.generated.StormBase storm-base-updates))
-                                      storm-base-updates
-                                      (converter/thriftify-storm-base storm-base-updates))]
+                                      storm-base-updates)]
              (when storm-base-updates
                (.updateStorm (.getStormClusterState nimbus) storm-id storm-base-updates)))))
        )))
