@@ -17,7 +17,7 @@
   (:import [org.apache.thrift.server THsHaServer THsHaServer$Args]
            [org.apache.storm.stats StatsUtil]
            [org.apache.storm.metric StormMetricsRegistry])
-  (:import [org.apache.storm.daemon.nimbus Nimbus TopologyResources Nimbus$Assoc Nimbus$Dissoc TopologyActions])
+  (:import [org.apache.storm.daemon.nimbus Nimbus TopologyResources TopologyStateTransition Nimbus$Assoc Nimbus$Dissoc TopologyActions])
   (:import [org.apache.storm.generated KeyNotFoundException TopologyStatus])
   (:import [org.apache.storm.blobstore LocalFsBlobStore])
   (:import [org.apache.thrift.protocol TBinaryProtocol TBinaryProtocol$Factory])
@@ -140,12 +140,12 @@
 
 (defn state-transitions [nimbus storm-id status storm-base]
   {TopologyStatus/ACTIVE {TopologyActions/INACTIVATE TopologyStatus/INACTIVE
-            TopologyActions/ACTIVATE nil
+            TopologyActions/ACTIVATE TopologyStateTransition/NOOP
             TopologyActions/REBALANCE (rebalance-transition nimbus storm-id status)
             TopologyActions/KILL (kill-transition nimbus storm-id)
             }
    TopologyStatus/INACTIVE {TopologyActions/ACTIVATE TopologyStatus/ACTIVE
-              TopologyActions/INACTIVATE nil
+              TopologyActions/INACTIVATE TopologyStateTransition/NOOP
               TopologyActions/REBALANCE (rebalance-transition nimbus storm-id status)
               TopologyActions/KILL (kill-transition nimbus storm-id)
               }
@@ -215,7 +215,9 @@
                               (do
                                 (log-message "Transition is nil or TopologyStatus... " transition)
                                 (fn [] transition))
-                              transition)
+                              (if (instance? TopologyStateTransition transition)
+                                (fn [arg] (.transition transition arg))
+                                transition))
                  storm-base-updates (apply transition event-args)
                  storm-base-updates (if (instance? TopologyStatus storm-base-updates) ;if it's just a State, that just indicates new status.
                                       (doto (org.apache.storm.generated.StormBase.)
