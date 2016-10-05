@@ -50,7 +50,8 @@
             KillOptions RebalanceOptions ClusterSummary SupervisorSummary TopologySummary TopologyInfo TopologyHistoryInfo
             ExecutorSummary AuthorizationException GetInfoOptions NumErrorsChoice SettableBlobMeta ReadableBlobMeta
             BeginDownloadResult ListBlobsResult ComponentPageInfo TopologyPageInfo LogConfig LogLevel LogLevelAction
-            ProfileRequest ProfileAction NodeInfo LSTopoHistory SupervisorPageInfo WorkerSummary WorkerResources ComponentType])
+            ProfileRequest ProfileAction NodeInfo LSTopoHistory SupervisorPageInfo WorkerSummary WorkerResources ComponentType
+            TopologyActionOptions])
   (:import [org.apache.storm.daemon Shutdownable StormCommon DaemonCommon])
   (:import [org.apache.storm.validation ConfigValidation])
   (:import [org.apache.storm.cluster ClusterStateContext DaemonType StormClusterStateImpl ClusterUtils])
@@ -89,10 +90,15 @@
                    storm-id
                    delay
                    TopologyActions/REMOVE)
-      {
-        :status {:type TopologyStatus/KILLED}
-        :topology-action-options {:delay-secs delay :action TopologyActions/KILL}})
-    ))
+      (doto (org.apache.storm.generated.StormBase.)
+         (.set_status TopologyStatus/KILLED)
+         (.set_topology_action_options 
+           (doto (TopologyActionOptions.)
+             (.set_kill_options
+               (doto (KillOptions.)
+                 (.set_wait_secs delay)))))
+         (.set_component_executors {})
+         (.set_component_debug {})))))
 
 (defn rebalance-transition [nimbus storm-id status]
   (fn [time num-workers executor-overrides]
