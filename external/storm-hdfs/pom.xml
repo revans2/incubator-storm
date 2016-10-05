@@ -53,7 +53,7 @@
         <dependency>
             <groupId>org.apache.hadoop</groupId>
             <artifactId>hadoop-client</artifactId>
-            <version>2.6.0.26.1512101646</version>
+            <version>2.7.2.7.1604210306</version>
             <exclusions>
                 <exclusion>
                     <groupId>org.slf4j</groupId>
@@ -68,7 +68,7 @@
         <dependency>
             <groupId>org.apache.hadoop</groupId>
             <artifactId>hadoop-hdfs</artifactId>
-            <version>2.6.0.26.1512101646</version>
+            <version>2.7.2.7.1604210306</version>
             <exclusions>
                 <exclusion>
                     <groupId>org.slf4j</groupId>
