@@ -630,9 +630,7 @@ public class BasicContainer extends Container {
         final WorkerResources resources = _assignment.get_resources();
         final int memOnheap = getMemOnHeap(resources);
         final String stormRoot = ConfigUtils.supervisorStormDistRoot(_conf, _topologyId);
-        final String jlp = javaLibraryPath(stormRoot, _conf);
-        
-        List<String> commandList = mkLaunchCommand(memOnheap, stormRoot, jlp);
+        String jlp = javaLibraryPath(stormRoot, _conf);
 
         Map<String, String> topEnvironment = new HashMap<String, String>();
         @SuppressWarnings("unchecked")
@@ -640,7 +638,15 @@ public class BasicContainer extends Container {
         if (environment != null) {
             topEnvironment.putAll(environment);
         }
+
+        String ld_library_path = topEnvironment.get("LD_LIBRARY_PATH");
+        if (ld_library_path != null) {
+            jlp = jlp + System.getProperty("path.separator") + ld_library_path;
+        }
+        
         topEnvironment.put("LD_LIBRARY_PATH", jlp);
+        
+        List<String> commandList = mkLaunchCommand(memOnheap, stormRoot, jlp);
 
         if (_resourceIsolationManager != null) {
             int memoffheap = (int) Math.ceil(resources.get_mem_off_heap());

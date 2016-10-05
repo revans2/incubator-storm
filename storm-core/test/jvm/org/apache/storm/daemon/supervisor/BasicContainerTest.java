@@ -389,11 +389,15 @@ public class BasicContainerTest {
         when(ops.slurp(stormcode)).thenReturn(serializedState);
         
         LocalState ls = mock(LocalState.class);
-        
+
+        HashMap<String, Object> topoConfig = new HashMap<>();
+        HashMap<String, String> topoEnvironment = new HashMap<>();
+        topoEnvironment.put("LD_LIBRARY_PATH", "/foobar");
+        topoConfig.put(Config.TOPOLOGY_ENVIRONMENT, topoEnvironment);
         
         checkpoint(() -> {
             MockBasicContainer mc = new MockBasicContainer(ContainerType.LAUNCH, superConf, 
-                    "SUPERVISOR", port, la, null, ls, workerId, new HashMap<>(), ops, "profile");
+                    "SUPERVISOR", port, la, null, ls, workerId, topoConfig, ops, "profile");
 
             mc.launch();
 
@@ -429,7 +433,7 @@ public class BasicContainerTest {
                     "-Dlog4j.configurationFile=" + workerConf,
                     "-DLog4jContextSelector=org.apache.logging.log4j.core.selector.BasicContextSelector",
                     "-Dstorm.local.dir=" + stormLocal,
-                    "-Djava.library.path=JLP",
+                    "-Djava.library.path=JLP:/foobar",
                     "-Dstorm.conf.file=",
                     "-Dstorm.options=",
                     "-Djava.io.tmpdir="+workerTmpDir,
