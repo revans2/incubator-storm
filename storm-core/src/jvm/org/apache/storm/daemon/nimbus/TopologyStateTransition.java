@@ -25,7 +25,7 @@ import org.apache.storm.generated.TopologyStatus;
 /**
  * A transition from one state to another
  */
-public interface TopologyStateTransition<T> {
+public interface TopologyStateTransition {
     //[TopologyActions/KILL wait-amt]
     //[TopologyActions/REBALANCE wait-amt num-workers executor-overrides]
     public static StormBase make(TopologyStatus status) {
@@ -37,9 +37,9 @@ public interface TopologyStateTransition<T> {
         return ret;
     }
     
-    public StormBase transition(T argument);
+    public StormBase transition(Object argument, Nimbus nimbus, String topoId, TopologyStatus status);
     
-    public static final TopologyStateTransition<Void> NOOP = (ignored) -> null;
-    public static final TopologyStateTransition<Void> INACTIVE = (ignored) -> make(TopologyStatus.INACTIVE);
-    public static final TopologyStateTransition<Void> ACTIVE = (ignored) -> make(TopologyStatus.ACTIVE);
+    public static final TopologyStateTransition NOOP = (arg, nimbus, topoId, status) -> null;
+    public static final TopologyStateTransition INACTIVE = (arg, nimbus, topoId, status) -> make(TopologyStatus.INACTIVE);
+    public static final TopologyStateTransition ACTIVE = (arg, nimbus, topoId, status) -> make(TopologyStatus.ACTIVE);
 }
