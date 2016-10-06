@@ -132,6 +132,7 @@ public class Nimbus {
         return merge(orig, update);
     };
     
+    //TODO perhaps this should all go to a few switch statements?
     public static final Map<TopologyStatus, Map<TopologyActions, TopologyStateTransition>> TOPO_STATE_TRANSITIONS = 
             new ImmutableMap.Builder<TopologyStatus, Map<TopologyActions, TopologyStateTransition>>()
             .put(TopologyStatus.ACTIVE, new ImmutableMap.Builder<TopologyActions, TopologyStateTransition>()

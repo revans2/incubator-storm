@@ -82,44 +82,14 @@
 (defn mk-assignments-scratch [nimbus storm-id]
   (mk-assignments nimbus :scratch-topology-id storm-id))
 
-;; active -> reassign in X secs
-
-;; killed -> wait kill time then shutdown
-;; active -> reassign in X secs
-;; inactive -> nothing
-;; rebalance -> wait X seconds then rebalance
-;; swap... (need to handle kill during swap, etc.)
-;; event transitions are delayed by timer... anything else that comes through (e.g. a kill) override the transition? or just disable other transitions during the transition?
-
-
 (defmulti setup-jar cluster-mode)
 (defmulti clean-inbox cluster-mode)
-
-;; swapping design
-;; -- need 2 ports per worker (swap port and regular port)
-;; -- topology that swaps in can use all the existing topologies swap ports, + unused worker slots
-;; -- how to define worker resources? port range + number of workers?
-
 
 ;; Monitoring (or by checking when nodes go down or heartbeats aren't received):
 ;; 1. read assignment
 ;; 2. see which executors/nodes are up
 ;; 3. make new assignment to fix any problems
 ;; 4. if a storm exists but is not taken down fully, ensure that storm takedown is launched (step by step remove executors and finally remove assignments)
-
-(defn- assigned-slots
-  "Returns a map from node-id to a set of ports"
-  [storm-cluster-state]
-
-  (let [assignments (.assignments storm-cluster-state nil)]
-    (or
-      (apply merge-with set/union
-             (for [a assignments
-                   [_ [node port]] (-> (clojurify-assignment (.assignmentInfo storm-cluster-state a nil)) :executor->node+port)]
-               {node #{port}}
-               ))
-      {})
-    ))
 
 ;; public for testing
 (defn all-supervisor-info
