@@ -103,10 +103,6 @@
                   [[id info]]))
               supervisor-ids)))))
 
-(defn- get-version-for-key [key nimbus-host-port-info conf]
-  (let [version (KeySequenceNumber. key nimbus-host-port-info)]
-    (.getKeySequenceNumber version conf)))
-
 (defn get-key-seq-from-blob-store [blob-store]
   (let [key-iter (.listKeys blob-store)]
     (iterator-seq key-iter)))
@@ -122,13 +118,13 @@
     (when tmp-jar-location ;;in local mode there is no jar
       (.createBlob blob-store jar-key (FileInputStream. tmp-jar-location) (SettableBlobMeta. BlobStoreAclHandler/DEFAULT) subject)
       (if (instance? LocalFsBlobStore blob-store)
-        (.setupBlobstore storm-cluster-state jar-key nimbus-host-port-info (get-version-for-key jar-key nimbus-host-port-info conf))))
+        (.setupBlobstore storm-cluster-state jar-key nimbus-host-port-info (Nimbus/getVerionForKey jar-key nimbus-host-port-info conf))))
     (.createBlob blob-store conf-key (Utils/toCompressedJsonConf storm-conf) (SettableBlobMeta. BlobStoreAclHandler/DEFAULT) subject)
     (if (instance? LocalFsBlobStore blob-store)
-      (.setupBlobstore storm-cluster-state conf-key nimbus-host-port-info (get-version-for-key conf-key nimbus-host-port-info conf)))
+      (.setupBlobstore storm-cluster-state conf-key nimbus-host-port-info (Nimbus/getVerionForKey conf-key nimbus-host-port-info conf)))
     (.createBlob blob-store code-key (Utils/serialize topology) (SettableBlobMeta. BlobStoreAclHandler/DEFAULT) subject)
     (if (instance? LocalFsBlobStore blob-store)
-      (.setupBlobstore storm-cluster-state code-key nimbus-host-port-info (get-version-for-key code-key nimbus-host-port-info conf)))))
+      (.setupBlobstore storm-cluster-state code-key nimbus-host-port-info (Nimbus/getVerionForKey code-key nimbus-host-port-info conf)))))
 
 (defn- read-storm-topology [storm-id blob-store]
   (Utils/deserialize
@@ -930,7 +926,7 @@
       (.deleteBlob blob-store key Nimbus/NIMBUS_SUBJECT))
     (log-debug "Creating list of key entries for blobstore inside zookeeper" all-keys "local" locally-available-active-keys)
     (doseq [key locally-available-active-keys]
-      (.setupBlobstore storm-cluster-state key (.getNimbusHostPortInfo nimbus) (get-version-for-key key nimbus-host-port-info conf)))))
+      (.setupBlobstore storm-cluster-state key (.getNimbusHostPortInfo nimbus) (Nimbus/getVerionForKey key nimbus-host-port-info conf)))))
 
 (defn- get-errors [storm-cluster-state storm-id component-id]
   (->> (map clojurify-error (.errors storm-cluster-state storm-id component-id))
@@ -1709,7 +1705,7 @@
               nimbus-host-port-info (.getNimbusHostPortInfo nimbus)
               conf (.getConf nimbus)]
           (if (instance? LocalFsBlobStore blob-store)
-              (.setupBlobstore storm-cluster-state blob-key nimbus-host-port-info (get-version-for-key blob-key nimbus-host-port-info conf)))
+              (.setupBlobstore storm-cluster-state blob-key nimbus-host-port-info (Nimbus/getVerionForKey blob-key nimbus-host-port-info conf)))
           (log-debug "Created state in zookeeper" storm-cluster-state blob-store nimbus-host-port-info)))
 
       (^void uploadBlobChunk [this ^String session ^ByteBuffer blob-chunk]

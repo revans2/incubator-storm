@@ -1369,6 +1369,7 @@
                   (verify-first-call-args-for-indices
                     nimbus/try-read-storm-topology [0] "fake-id"))))))
 
+        ;;TODO this should move to a true unit test
         (testing "getSupervisorPageInfo only calls check-authorization as getTopology"
           (let [expected-operation "getTopology"
                 assignment (doto (Assignment.)

@@ -40,6 +40,7 @@ import org.apache.storm.Config;
 import org.apache.storm.StormTimer;
 import org.apache.storm.blobstore.AtomicOutputStream;
 import org.apache.storm.blobstore.BlobStore;
+import org.apache.storm.blobstore.KeySequenceNumber;
 import org.apache.storm.cluster.ClusterStateContext;
 import org.apache.storm.cluster.ClusterUtils;
 import org.apache.storm.cluster.DaemonType;
@@ -307,6 +308,11 @@ public class Nimbus {
             ret.add(ConfigUtils.masterStormJarKey(id));
         }
         return ret;
+    }
+    
+    public static int getVerionForKey(String key, NimbusInfo nimbusInfo, Map<String, Object> conf) {
+        KeySequenceNumber kseq = new KeySequenceNumber(key, nimbusInfo);
+        return kseq.getKeySequenceNumber(conf);
     }
     
     private final Map<String, Object> conf;
