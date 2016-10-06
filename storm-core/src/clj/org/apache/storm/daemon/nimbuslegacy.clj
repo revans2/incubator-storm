@@ -82,20 +82,6 @@
 (defn mk-assignments-scratch [nimbus storm-id]
   (mk-assignments nimbus :scratch-topology-id storm-id))
 
-(defn do-rebalance [nimbus storm-id status storm-base]
-  (let [rebalance-options (.get_rebalance_options (.get_topology_action_options storm-base))
-        updated-storm-base (doto (org.apache.storm.generated.StormBase.)
-                                 (.set_topology_action_options nil)
-                                 (.set_component_debug {})) ;;For backwards compatability with original code
-        num-exec (.get_num_executors rebalance-options)
-        num-workers (.get_num_workers rebalance-options)]
-    (when num-exec (.set_component_executors updated-storm-base num-exec))
-    (when num-workers (.set_num_workers updated-storm-base num-workers))
-    (.updateStorm (.getStormClusterState nimbus)
-      storm-id
-      updated-storm-base))
-  (mk-assignments nimbus :scratch-topology-id storm-id))
-
 (def state-transitions
   {TopologyStatus/ACTIVE {TopologyActions/INACTIVATE TopologyStateTransition/INACTIVE
             TopologyActions/ACTIVATE TopologyStateTransition/NOOP
