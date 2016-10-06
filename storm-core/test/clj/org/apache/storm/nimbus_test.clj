@@ -995,7 +995,7 @@
 
       (.rebalance (:nimbus cluster) "test"
                   (doto (RebalanceOptions.)
-                    (.set_num_workers 6)
+                    (.set_num_workers (int 6))
                     ))
       (advance-cluster-time cluster 29)
       (checker [2 2 2])
@@ -1004,7 +1004,7 @@
 
       (.rebalance (:nimbus cluster) "test"
                   (doto (RebalanceOptions.)
-                    (.set_num_executors {"1" 1})
+                    (.set_num_executors {"1" (int 1)})
                     ))
       (advance-cluster-time cluster 29)
       (checker [1 1 1 1 1 1])
@@ -1013,7 +1013,7 @@
 
       (.rebalance (:nimbus cluster) "test"
                   (doto (RebalanceOptions.)
-                    (.set_num_executors {"1" 8})
+                    (.set_num_executors {"1" (int 8)})
                     (.set_num_workers 4)
                     ))
       (advance-cluster-time cluster 32)

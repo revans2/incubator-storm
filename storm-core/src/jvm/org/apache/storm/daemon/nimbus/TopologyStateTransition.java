@@ -18,6 +18,7 @@
 package org.apache.storm.daemon.nimbus;
 
 import java.util.Collections;
+import java.util.List;
 
 import org.apache.storm.Config;
 import org.apache.storm.generated.KillOptions;
@@ -47,6 +48,7 @@ public interface TopologyStateTransition {
     public static final TopologyStateTransition INACTIVE = (arg, nimbus, topoId, base) -> make(TopologyStatus.INACTIVE);
     public static final TopologyStateTransition ACTIVE = (arg, nimbus, topoId, base) -> make(TopologyStatus.ACTIVE);
     public static final TopologyStateTransition KILL = (killTime, nimbus, topoId, base) -> {
+        //TODO replace the killTIme with an actual class (possibly just the original KillOpts)
         int delay = 0;
         if (killTime != null) {
             delay = ((Number)killTime).intValue();
@@ -65,4 +67,57 @@ public interface TopologyStateTransition {
         sb.set_component_debug(Collections.emptyMap());
         return sb;
     };
+    
+//    @SuppressWarnings("unchecked")
+//    public static final TopologyStateTransition REBALANCE = (rebalanceOpts, nimbus, topoId, base) -> {
+//        //TODO replace the list with an actual class (possibly just the RebalanceOpts)
+//        List<Object> trasitionOpts = (List<Object>) rebalanceOpts;
+//        int delay = 0;
+//        if (trasitionOpts.get(0) != null) {
+//            delay = ((Number)trasitionOpts.get(0)).intValue();
+//        } else {
+//            delay = Utils.getInt(Nimbus.readTopoConf(nimbus.getConf(), topoId, nimbus.getBlobStore()).get(Config.TOPOLOGY_MESSAGE_TIMEOUT_SECS));
+//        }
+//        Integer numWorkers = (Integer)trasitionOpts.get(1);
+//        Integer  = (Integer)trasitionOpts.get(1);
+//        nimbus.delayEvent(topoId, delay, TopologyActions.DO_REBALANCE, null);
+//        StormBase sb = new StormBase();
+//        sb.set_status(TopologyStatus.KILLED);
+//        TopologyActionOptions tao = new TopologyActionOptions();
+//        KillOptions opts = new KillOptions();
+//        opts.set_wait_secs(delay);
+//        tao.set_kill_options(opts);
+//        sb.set_topology_action_options(tao);
+//        sb.set_component_executors(Collections.emptyMap());
+//        sb.set_component_debug(Collections.emptyMap());
+//        return sb;
+//    };
+//    
+    
+    
+//    (defn rebalance-transition []
+//            (reify TopologyStateTransition
+//              (transition [this [time num-workers executor-overrides] nimbus storm-id storm-base]
+//                (let [delay (if time
+//                              time
+//                              (get (clojurify-structure (Nimbus/readTopoConf (.getConf nimbus) storm-id (.getBlobStore nimbus)))
+//                                   TOPOLOGY-MESSAGE-TIMEOUT-SECS))
+//                      rbo (doto (RebalanceOptions.) (.set_wait_secs (int delay)))]
+//                  (.delayEvent nimbus
+//                               storm-id
+//                               delay
+//                               TopologyActions/DO_REBALANCE
+//                               nil)
+//
+//                  (if num-workers (.set_num_workers rbo (int num-workers)))
+//                  (if executor-overrides (.set_num_executors rbo (map-val int executor-overrides)))
+//
+//                  (doto (org.apache.storm.generated.StormBase.)
+//                     (.set_status TopologyStatus/REBALANCING)
+//                     (.set_prev_status (.get_status storm-base))
+//                     (.set_topology_action_options
+//                       (doto (TopologyActionOptions.)
+//                         (.set_rebalance_options rbo)))
+//                     (.set_component_executors {})
+//                     (.set_component_debug {}))))))
 }

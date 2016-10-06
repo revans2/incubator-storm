@@ -81,20 +81,18 @@
 
 (defn rebalance-transition []
   (reify TopologyStateTransition
-    (transition [this [time num-workers executor-overrides] nimbus storm-id storm-base]
-      (let [delay (if time
-                    time
+    (transition [this rbo nimbus storm-id storm-base]
+      (let [delay (if (.is_set_wait_secs rbo)
+                    (.get_wait_secs rbo)
                     (get (clojurify-structure (Nimbus/readTopoConf (.getConf nimbus) storm-id (.getBlobStore nimbus)))
-                         TOPOLOGY-MESSAGE-TIMEOUT-SECS))
-            rbo (doto (RebalanceOptions.) (.set_wait_secs (int delay)))]
+                         TOPOLOGY-MESSAGE-TIMEOUT-SECS))]
         (.delayEvent nimbus
                      storm-id
                      delay
                      TopologyActions/DO_REBALANCE
                      nil)
-
-        (if num-workers (.set_num_workers rbo (int num-workers)))
-        (if executor-overrides (.set_num_executors rbo (map-val int executor-overrides)))
+        (.set_wait_secs rbo (int delay))
+        (if (not (.is_set_num_executors rbo)) (.set_num_executors rbo {}))
         
         (doto (org.apache.storm.generated.StormBase.)
            (.set_status TopologyStatus/REBALANCING)
@@ -1551,18 +1549,14 @@
         (let [topology-conf (try-read-storm-conf-from-name conf storm-name nimbus)
               operation "rebalance"]
           (check-authorization! nimbus storm-name topology-conf operation)
-          (let [wait-amt (if (.is_set_wait_secs options)
-                           (.get_wait_secs options))
-                num-workers (if (.is_set_num_workers options)
-                              (.get_num_workers options))
-                executor-overrides (if (.is_set_num_executors options)
+          (let [executor-overrides (if (.is_set_num_executors options)
                                      (.get_num_executors options)
                                      {})]
             (doseq [[c num-executors] executor-overrides]
               (when (<= num-executors 0)
                 (throw (InvalidTopologyException. "Number of executors must be greater than 0"))
                 ))
-            (transition-name! nimbus storm-name TopologyActions/REBALANCE [wait-amt num-workers executor-overrides] true)
+            (transition-name! nimbus storm-name TopologyActions/REBALANCE options true)
 
             (notify-topology-action-listener nimbus storm-name operation))))
 
