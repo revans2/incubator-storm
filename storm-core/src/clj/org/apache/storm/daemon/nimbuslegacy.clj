@@ -82,26 +82,6 @@
 (defn mk-assignments-scratch [nimbus storm-id]
   (mk-assignments nimbus :scratch-topology-id storm-id))
 
-(def state-transitions
-  {TopologyStatus/ACTIVE {TopologyActions/INACTIVATE TopologyStateTransition/INACTIVE
-            TopologyActions/ACTIVATE TopologyStateTransition/NOOP
-            TopologyActions/REBALANCE TopologyStateTransition/REBALANCE
-            TopologyActions/KILL TopologyStateTransition/KILL
-            }
-   TopologyStatus/INACTIVE {TopologyActions/ACTIVATE TopologyStateTransition/ACTIVE
-              TopologyActions/INACTIVATE TopologyStateTransition/NOOP
-              TopologyActions/REBALANCE TopologyStateTransition/REBALANCE
-              TopologyActions/KILL TopologyStateTransition/KILL
-              }
-   TopologyStatus/KILLED {TopologyActions/STARTUP TopologyStateTransition/STARTUP_WHEN_KILLED
-            TopologyActions/KILL TopologyStateTransition/KILL
-            TopologyActions/REMOVE TopologyStateTransition/REMOVE
-            }
-   TopologyStatus/REBALANCING {TopologyActions/STARTUP TopologyStateTransition/STARTUP_WHEN_REBALANCING
-                 TopologyActions/KILL TopologyStateTransition/KILL
-                 TopologyActions/DO_REBALANCE TopologyStateTransition/DO_REBALANCE
-                 }})
-
 (defn transition!
   ([nimbus storm-id event event-args]
      (transition! nimbus storm-id event event-args false))
@@ -114,7 +94,7 @@
          ;; handles the case where event was scheduled but topology has been removed
          (if-not status
            (log-message "Cannot apply event " event " to " storm-id " because topology no longer exists")
-           (let [transition (-> state-transitions
+           (let [transition (-> Nimbus/TOPO_STATE_TRANSITIONS
                                 (get status)
                                 (get event))
                  transition (if (nil? transition)

@@ -79,6 +79,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.codahale.metrics.Meter;
+import com.google.common.collect.ImmutableMap;
 
 public class Nimbus {
     private final static Logger LOG = LoggerFactory.getLogger(Nimbus.class);
@@ -129,6 +130,32 @@ public class Nimbus {
     public static final BinaryOperator<Map<String, TopologyResources>> MERGE_ID_TO_RESOURCES = (orig, update) -> {
         return merge(orig, update);
     };
+    
+    public static final Map<TopologyStatus, Map<TopologyActions, TopologyStateTransition>> TOPO_STATE_TRANSITIONS = 
+            new ImmutableMap.Builder<TopologyStatus, Map<TopologyActions, TopologyStateTransition>>()
+            .put(TopologyStatus.ACTIVE, new ImmutableMap.Builder<TopologyActions, TopologyStateTransition>()
+                    .put(TopologyActions.INACTIVATE, TopologyStateTransition.INACTIVE)
+                    .put(TopologyActions.ACTIVATE, TopologyStateTransition.NOOP)
+                    .put(TopologyActions.REBALANCE, TopologyStateTransition.REBALANCE)
+                    .put(TopologyActions.KILL, TopologyStateTransition.KILL)
+                    .build())
+            .put(TopologyStatus.INACTIVE, new ImmutableMap.Builder<TopologyActions, TopologyStateTransition>()
+                    .put(TopologyActions.ACTIVATE, TopologyStateTransition.ACTIVE)
+                    .put(TopologyActions.INACTIVATE, TopologyStateTransition.NOOP)
+                    .put(TopologyActions.REBALANCE, TopologyStateTransition.REBALANCE)
+                    .put(TopologyActions.KILL, TopologyStateTransition.KILL)
+                    .build())
+            .put(TopologyStatus.KILLED, new ImmutableMap.Builder<TopologyActions, TopologyStateTransition>()
+                    .put(TopologyActions.STARTUP, TopologyStateTransition.STARTUP_WHEN_KILLED)
+                    .put(TopologyActions.KILL, TopologyStateTransition.KILL)
+                    .put(TopologyActions.REMOVE, TopologyStateTransition.REMOVE)
+                    .build())
+            .put(TopologyStatus.REBALANCING, new ImmutableMap.Builder<TopologyActions, TopologyStateTransition>()
+                    .put(TopologyActions.STARTUP, TopologyStateTransition.STARTUP_WHEN_REBALANCING)
+                    .put(TopologyActions.KILL, TopologyStateTransition.KILL)
+                    .put(TopologyActions.DO_REBALANCE, TopologyStateTransition.DO_REBALANCE)
+                    .build())
+            .build();
     
     //TODO is it possible to move these to a ConcurrentMap?
     public static final class Assoc<K,V> implements UnaryOperator<Map<K, V>> {
