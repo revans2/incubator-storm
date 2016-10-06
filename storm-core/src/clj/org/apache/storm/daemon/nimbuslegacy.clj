@@ -79,30 +79,6 @@
 
 (declare mk-assignments)
 
-(defn rebalance-transition []
-  (reify TopologyStateTransition
-    (transition [this rbo nimbus storm-id storm-base]
-      (let [delay (if (.is_set_wait_secs rbo)
-                    (.get_wait_secs rbo)
-                    (get (clojurify-structure (Nimbus/readTopoConf (.getConf nimbus) storm-id (.getBlobStore nimbus)))
-                         TOPOLOGY-MESSAGE-TIMEOUT-SECS))]
-        (.delayEvent nimbus
-                     storm-id
-                     delay
-                     TopologyActions/DO_REBALANCE
-                     nil)
-        (.set_wait_secs rbo (int delay))
-        (if (not (.is_set_num_executors rbo)) (.set_num_executors rbo {}))
-        
-        (doto (org.apache.storm.generated.StormBase.)
-           (.set_status TopologyStatus/REBALANCING)
-           (.set_prev_status (.get_status storm-base))
-           (.set_topology_action_options 
-             (doto (TopologyActionOptions.)
-               (.set_rebalance_options rbo)))
-           (.set_component_executors {})
-           (.set_component_debug {}))))))
-
 (defn do-rebalance [nimbus storm-id status storm-base]
   (let [rebalance-options (.get_rebalance_options (.get_topology_action_options storm-base))
         updated-storm-base (doto (org.apache.storm.generated.StormBase.)
@@ -120,12 +96,12 @@
 (def state-transitions
   {TopologyStatus/ACTIVE {TopologyActions/INACTIVATE TopologyStateTransition/INACTIVE
             TopologyActions/ACTIVATE TopologyStateTransition/NOOP
-            TopologyActions/REBALANCE (rebalance-transition)
+            TopologyActions/REBALANCE TopologyStateTransition/REBALANCE
             TopologyActions/KILL TopologyStateTransition/KILL
             }
    TopologyStatus/INACTIVE {TopologyActions/ACTIVATE TopologyStateTransition/ACTIVE
               TopologyActions/INACTIVATE TopologyStateTransition/NOOP
-              TopologyActions/REBALANCE (rebalance-transition)
+              TopologyActions/REBALANCE TopologyStateTransition/REBALANCE
               TopologyActions/KILL TopologyStateTransition/KILL
               }
    TopologyStatus/KILLED {TopologyActions/STARTUP (reify TopologyStateTransition (transition [this args nimbus storm-id storm-base] (.delayEvent nimbus
