@@ -20,6 +20,9 @@ package org.apache.storm.daemon.nimbus;
 import java.util.Collections;
 
 import org.apache.storm.Config;
+import org.apache.storm.blobstore.BlobStore;
+import org.apache.storm.blobstore.LocalFsBlobStore;
+import org.apache.storm.cluster.IStormClusterState;
 import org.apache.storm.generated.KillOptions;
 import org.apache.storm.generated.RebalanceOptions;
 import org.apache.storm.generated.StormBase;
@@ -101,6 +104,20 @@ public interface TopologyStateTransition {
     public static final TopologyStateTransition STARTUP_WHEN_KILLED = (args, nimbus, topoId, base) -> {
         int delay = base.get_topology_action_options().get_kill_options().get_wait_secs();
         nimbus.delayEvent(topoId, delay, TopologyActions.REMOVE, null);
+        return null;
+    };
+    
+    public static final TopologyStateTransition REMOVE = (args, nimbus, topoId, base) -> {
+        LOG.info("Killing topology: {}", topoId);
+        IStormClusterState state = nimbus.getStormClusterState();
+        state.removeStorm(topoId);
+        BlobStore store = nimbus.getBlobStore();
+        if (store instanceof LocalFsBlobStore) {
+            for (String key: Nimbus.getKeyListFromId(nimbus.getConf(), topoId)) {
+                state.removeBlobstoreKey(key);
+                state.removeKeyVersion(key);
+            }
+        }
         return null;
     };
 }

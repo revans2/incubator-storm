@@ -106,15 +106,7 @@
               }
    TopologyStatus/KILLED {TopologyActions/STARTUP TopologyStateTransition/STARTUP_WHEN_KILLED
             TopologyActions/KILL TopologyStateTransition/KILL
-            TopologyActions/REMOVE (reify TopologyStateTransition (transition [this args nimbus storm-id storm-base]
-                      (log-message "Killing topology: " storm-id)
-                      (.removeStorm (.getStormClusterState nimbus)
-                                      storm-id)
-                      (when (instance? LocalFsBlobStore (.getBlobStore nimbus))
-                        (doseq [blob-key (Nimbus/getKeyListFromId (.getConf nimbus) storm-id)]
-                          (.removeBlobstoreKey (.getStormClusterState nimbus) blob-key)
-                          (.removeKeyVersion (.getStormClusterState nimbus) blob-key)))
-                      nil))
+            TopologyActions/REMOVE TopologyStateTransition/REMOVE
             }
    TopologyStatus/REBALANCING {TopologyActions/STARTUP (reify TopologyStateTransition (transition [this args nimbus storm-id storm-base]
                                            (.delayEvent nimbus
