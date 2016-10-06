@@ -107,10 +107,6 @@
   (let [key-iter (.listKeys blob-store)]
     (iterator-seq key-iter)))
 
-(defn- read-storm-topology [storm-id blob-store]
-  (Utils/deserialize
-    (.readBlob blob-store (ConfigUtils/masterStormCodeKey storm-id) (Nimbus/getSubject)) StormTopology))
-
 (defn get-blob-replication-count
   [blob-key nimbus]
   (if (.getBlobStore nimbus)
@@ -670,7 +666,7 @@
         conf (.getConf nimbus)
         blob-store (.getBlobStore nimbus)
         storm-conf (clojurify-structure (Nimbus/readTopoConf conf storm-id blob-store))
-        topology (StormCommon/systemTopology storm-conf (read-storm-topology storm-id blob-store))
+        topology (StormCommon/systemTopology storm-conf (Nimbus/readStormTopology storm-id blob-store))
         num-executors (->> (clojurify-structure (StormCommon/allComponents topology)) (map-val #(StormCommon/numStartExecutors %)))]
     (log-message "Activating " storm-name ": " storm-id)
     (.activateStorm storm-cluster-state

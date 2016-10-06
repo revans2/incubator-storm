@@ -20,7 +20,6 @@ package org.apache.storm.daemon.nimbus;
 import static org.apache.storm.metric.StormMetricsRegistry.registerMeter;
 
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.ArrayList;
@@ -51,7 +50,6 @@ import org.apache.storm.cluster.DaemonType;
 import org.apache.storm.cluster.IStormClusterState;
 import org.apache.storm.daemon.StormCommon;
 import org.apache.storm.generated.AuthorizationException;
-import org.apache.storm.generated.KeyAlreadyExistsException;
 import org.apache.storm.generated.KeyNotFoundException;
 import org.apache.storm.generated.NotAliveException;
 import org.apache.storm.generated.RebalanceOptions;
@@ -317,9 +315,15 @@ public class Nimbus {
         return ret;
     }
     
+    //TODO private
     public static int getVerionForKey(String key, NimbusInfo nimbusInfo, Map<String, Object> conf) {
         KeySequenceNumber kseq = new KeySequenceNumber(key, nimbusInfo);
         return kseq.getKeySequenceNumber(conf);
+    }
+    
+    //TODO private
+    public static StormTopology readStormTopology(String topoId, BlobStore store) throws Exception {
+        return Utils.deserialize(store.readBlob(ConfigUtils.masterStormCodeKey(topoId), getSubject()), StormTopology.class);
     }
     
     private final Map<String, Object> conf;
