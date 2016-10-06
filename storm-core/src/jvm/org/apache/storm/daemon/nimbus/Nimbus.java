@@ -513,4 +513,18 @@ public class Nimbus {
     public String getInbox() throws IOException {
         return ConfigUtils.masterInbox(getConf());
     }
+    
+    //TODO replace this ASAP
+    private static final clojure.lang.IFn FIXME = clojure.java.api.Clojure.var("org.apache.storm.daemon.nimbuslegacy", "transition!");
+    
+    //TODO private
+    public void delayEvent(String topoId, int delaySecs, TopologyActions event, Object args) {
+        LOG.info("Delaying event {} for {} secs for {}", event, delaySecs, topoId);
+        getTimer().schedule(delaySecs, () -> FIXME.invoke(this, topoId, event, args, false));
+    }
+//    (defn delay-event [nimbus storm-id delay-secs event args]
+//            (log-message "Delaying event " event " for " delay-secs " secs for " storm-id)
+//            (.schedule (.getTimer nimbus)
+//              delay-secs
+//              (fn [] (transition! nimbus storm-id event args false))))
 }

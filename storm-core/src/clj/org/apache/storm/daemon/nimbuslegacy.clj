@@ -77,7 +77,6 @@
 
 (defmulti blob-sync cluster-mode)
 
-(declare delay-event)
 (declare mk-assignments)
 
 (defn kill-transition []
@@ -87,7 +86,7 @@
                     kill-time
                     (get (clojurify-structure (Nimbus/readTopoConf (.getConf nimbus) storm-id (.getBlobStore nimbus)))
                          TOPOLOGY-MESSAGE-TIMEOUT-SECS))]
-        (delay-event nimbus
+        (.delayEvent nimbus
                      storm-id
                      delay
                      TopologyActions/REMOVE
@@ -110,7 +109,7 @@
                     (get (clojurify-structure (Nimbus/readTopoConf (.getConf nimbus) storm-id (.getBlobStore nimbus)))
                          TOPOLOGY-MESSAGE-TIMEOUT-SECS))
             rbo (doto (RebalanceOptions.) (.set_wait_secs (int delay)))]
-        (delay-event nimbus
+        (.delayEvent nimbus
                      storm-id
                      delay
                      TopologyActions/DO_REBALANCE
@@ -153,7 +152,7 @@
               TopologyActions/REBALANCE (rebalance-transition)
               TopologyActions/KILL (kill-transition)
               }
-   TopologyStatus/KILLED {TopologyActions/STARTUP (reify TopologyStateTransition (transition [this args nimbus storm-id storm-base] (delay-event nimbus
+   TopologyStatus/KILLED {TopologyActions/STARTUP (reify TopologyStateTransition (transition [this args nimbus storm-id storm-base] (.delayEvent nimbus
                                          storm-id
                                          (-> storm-base
                                              .get_topology_action_options
@@ -174,7 +173,7 @@
                       nil))
             }
    TopologyStatus/REBALANCING {TopologyActions/STARTUP (reify TopologyStateTransition (transition [this args nimbus storm-id storm-base]
-                                           (delay-event nimbus
+                                           (.delayEvent nimbus
                                               storm-id
                                               (-> storm-base
                                                  .get_topology_action_options
@@ -231,12 +230,6 @@
     (when-not storm-id
       (throw (NotAliveException. storm-name)))
     (apply transition! nimbus storm-id event args error-on-no-transition?)))
-
-(defn delay-event [nimbus storm-id delay-secs event args]
-  (log-message "Delaying event " event " for " delay-secs " secs for " storm-id)
-  (.schedule (.getTimer nimbus)
-    delay-secs
-    (fn [] (transition! nimbus storm-id event args false))))
 
 ;; active -> reassign in X secs
 
