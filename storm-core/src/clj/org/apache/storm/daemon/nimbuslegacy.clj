@@ -79,6 +79,9 @@
 
 (declare mk-assignments)
 
+(defn mk-assignments-scratch [nimbus storm-id]
+  (mk-assignments nimbus :scratch-topology-id storm-id))
+
 (defn do-rebalance [nimbus storm-id status storm-base]
   (let [rebalance-options (.get_rebalance_options (.get_topology_action_options storm-base))
         updated-storm-base (doto (org.apache.storm.generated.StormBase.)

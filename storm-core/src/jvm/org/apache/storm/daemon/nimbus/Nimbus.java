@@ -24,6 +24,7 @@ import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -46,6 +47,9 @@ import org.apache.storm.cluster.IStormClusterState;
 import org.apache.storm.daemon.StormCommon;
 import org.apache.storm.generated.AuthorizationException;
 import org.apache.storm.generated.KeyNotFoundException;
+import org.apache.storm.generated.RebalanceOptions;
+import org.apache.storm.generated.StormBase;
+import org.apache.storm.generated.TopologyStatus;
 import org.apache.storm.generated.WorkerResources;
 import org.apache.storm.metric.ClusterMetricsConsumerExecutor;
 import org.apache.storm.nimbus.DefaultTopologyValidator;
@@ -515,16 +519,31 @@ public class Nimbus {
     }
     
     //TODO replace this ASAP
-    private static final clojure.lang.IFn FIXME = clojure.java.api.Clojure.var("org.apache.storm.daemon.nimbuslegacy", "transition!");
+    private static final clojure.lang.IFn FIXME_TRANSITION = clojure.java.api.Clojure.var("org.apache.storm.daemon.nimbuslegacy", "transition!");
     
     //TODO private
     public void delayEvent(String topoId, int delaySecs, TopologyActions event, Object args) {
         LOG.info("Delaying event {} for {} secs for {}", event, delaySecs, topoId);
-        getTimer().schedule(delaySecs, () -> FIXME.invoke(this, topoId, event, args, false));
+        getTimer().schedule(delaySecs, () -> FIXME_TRANSITION.invoke(this, topoId, event, args, false));
     }
-//    (defn delay-event [nimbus storm-id delay-secs event args]
-//            (log-message "Delaying event " event " for " delay-secs " secs for " storm-id)
-//            (.schedule (.getTimer nimbus)
-//              delay-secs
-//              (fn [] (transition! nimbus storm-id event args false))))
+
+    //TODO replace this ASAP
+    private static final clojure.lang.IFn FIXME_MK_ASSIGNMENTS = clojure.java.api.Clojure.var("org.apache.storm.daemon.nimbuslegacy", "mk-assignments-scratch");    
+    
+    void doRebalance(String topoId, StormBase stormBase) {
+        RebalanceOptions rbo = stormBase.get_topology_action_options().get_rebalance_options();
+        StormBase updated = new StormBase();
+        updated.set_topology_action_options(null);
+        updated.set_component_debug(Collections.emptyMap());
+        
+        if (rbo.is_set_num_executors()) {
+            updated.set_component_executors(rbo.get_num_executors());
+        }
+        
+        if (rbo.is_set_num_workers()) {
+            updated.set_num_workers(rbo.get_num_workers());
+        }
+        getStormClusterState().updateStorm(topoId, updated);
+        FIXME_MK_ASSIGNMENTS.invoke(this, topoId);
+    }
 }

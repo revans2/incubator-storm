@@ -127,10 +127,8 @@ public interface TopologyStateTransition {
         return null;
     };
     
-    //TODO
-    public static final clojure.lang.IFn FIXME_REBALANCE = clojure.java.api.Clojure.var("org.apache.storm.daemon.nimbuslegacy", "do-rebalance");
     public static final TopologyStateTransition DO_REBALANCE = (args, nimbus, topoId, base) -> {
-        FIXME_REBALANCE.invoke(nimbus, topoId, base.get_status(), base);
+        nimbus.doRebalance(topoId, base);
         return make(base.get_prev_status());
     };
 }
