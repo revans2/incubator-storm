@@ -19,8 +19,12 @@ package org.apache.storm.daemon.nimbus;
 
 import java.util.Collections;
 
+import org.apache.storm.Config;
+import org.apache.storm.generated.KillOptions;
 import org.apache.storm.generated.StormBase;
+import org.apache.storm.generated.TopologyActionOptions;
 import org.apache.storm.generated.TopologyStatus;
+import org.apache.storm.utils.Utils;
 
 /**
  * A transition from one state to another
@@ -36,10 +40,29 @@ public interface TopologyStateTransition {
         ret.set_component_debug(Collections.emptyMap());
         return ret;
     }
-    
-    public StormBase transition(Object argument, Nimbus nimbus, String topoId, StormBase base);
+    //TODO make the exception correct
+    public StormBase transition(Object argument, Nimbus nimbus, String topoId, StormBase base) throws Exception;
     
     public static final TopologyStateTransition NOOP = (arg, nimbus, topoId, base) -> null;
     public static final TopologyStateTransition INACTIVE = (arg, nimbus, topoId, base) -> make(TopologyStatus.INACTIVE);
     public static final TopologyStateTransition ACTIVE = (arg, nimbus, topoId, base) -> make(TopologyStatus.ACTIVE);
+    public static final TopologyStateTransition KILL = (killTime, nimbus, topoId, base) -> {
+        int delay = 0;
+        if (killTime != null) {
+            delay = ((Number)killTime).intValue();
+        } else {
+            delay = Utils.getInt(Nimbus.readTopoConf(nimbus.getConf(), topoId, nimbus.getBlobStore()).get(Config.TOPOLOGY_MESSAGE_TIMEOUT_SECS));
+        }
+        nimbus.delayEvent(topoId, delay, TopologyActions.REMOVE, null);
+        StormBase sb = new StormBase();
+        sb.set_status(TopologyStatus.KILLED);
+        TopologyActionOptions tao = new TopologyActionOptions();
+        KillOptions opts = new KillOptions();
+        opts.set_wait_secs(delay);
+        tao.set_kill_options(opts);
+        sb.set_topology_action_options(tao);
+        sb.set_component_executors(Collections.emptyMap());
+        sb.set_component_debug(Collections.emptyMap());
+        return sb;
+    };
 }
