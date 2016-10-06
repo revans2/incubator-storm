@@ -110,9 +110,7 @@
             }
    TopologyStatus/REBALANCING {TopologyActions/STARTUP TopologyStateTransition/STARTUP_WHEN_REBALANCING
                  TopologyActions/KILL TopologyStateTransition/KILL
-                 TopologyActions/DO_REBALANCE (reify TopologyStateTransition (transition [this args nimbus storm-id storm-base]
-                                 (do-rebalance nimbus storm-id (.get_status storm-base) storm-base)
-                                 (TopologyStateTransition/make (.get_prev_status storm-base))))
+                 TopologyActions/DO_REBALANCE TopologyStateTransition/DO_REBALANCE
                  }})
 
 (defn transition!
