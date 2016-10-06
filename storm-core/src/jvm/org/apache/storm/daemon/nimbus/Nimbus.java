@@ -47,6 +47,7 @@ import org.apache.storm.cluster.IStormClusterState;
 import org.apache.storm.daemon.StormCommon;
 import org.apache.storm.generated.AuthorizationException;
 import org.apache.storm.generated.KeyNotFoundException;
+import org.apache.storm.generated.NotAliveException;
 import org.apache.storm.generated.RebalanceOptions;
 import org.apache.storm.generated.StormBase;
 import org.apache.storm.generated.TopologyStatus;
@@ -545,13 +546,16 @@ public class Nimbus {
         return ConfigUtils.masterInbox(getConf());
     }
     
-    //TODO replace this ASAP
-    private static final clojure.lang.IFn FIXME_TRANSITION = clojure.java.api.Clojure.var("org.apache.storm.daemon.nimbuslegacy", "transition!");
-    
     //TODO private
     public void delayEvent(String topoId, int delaySecs, TopologyActions event, Object args) {
         LOG.info("Delaying event {} for {} secs for {}", event, delaySecs, topoId);
-        getTimer().schedule(delaySecs, () -> FIXME_TRANSITION.invoke(this, topoId, event, args, false));
+        getTimer().schedule(delaySecs, () -> {
+            try {
+                transition(topoId, event, args, false);
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        });
     }
 
     //TODO replace this ASAP
@@ -572,5 +576,56 @@ public class Nimbus {
         }
         getStormClusterState().updateStorm(topoId, updated);
         FIXME_MK_ASSIGNMENTS.invoke(this, topoId);
+    }
+    
+    private String toTopoId(String topoName) throws NotAliveException {
+        String topoId = StormCommon.getStormId(getStormClusterState(), topoName);
+        if (topoId == null) {
+            throw new NotAliveException(topoName);
+        }
+        return topoId;
+    }
+    
+    public void transitionName(String topoName, TopologyActions event, Object eventArg) throws Exception {
+        transition(toTopoId(topoName), event, eventArg);
+    }
+    
+    public void transitionName(String topoName, TopologyActions event, Object eventArg, boolean errorOnNoTransition) throws Exception {
+        transition(toTopoId(topoName), event, eventArg, errorOnNoTransition);
+    }
+
+    public void transition(String topoId, TopologyActions event, Object eventArg) throws Exception {
+        transition(topoId, event, eventArg, false);
+    }
+    
+    public void transition(String topoId, TopologyActions event, Object eventArg, boolean errorOnNoTransition) throws Exception {
+        LOG.info("TRANSITION: {} {} {} {}", topoId, event, eventArg, errorOnNoTransition);
+        assertIsLeader();
+        synchronized(getSubmitLock()) {
+            IStormClusterState clusterState = getStormClusterState();
+            StormBase base = clusterState.stormBase(topoId, null);
+            TopologyStatus status = base.get_status();
+            if (status == null) {
+                LOG.info("Cannot apply event {} to {} because topology no longer exists", event, topoId);
+            } else {
+                TopologyStateTransition transition = TOPO_STATE_TRANSITIONS.get(status).get(event);
+                if (transition == null) {
+                    String message = "No transition for event: " + event + ", status: " + status + " storm-id: " + topoId;
+                    if (errorOnNoTransition) {
+                        throw new RuntimeException(message);
+                    }
+                    
+                    if (TopologyActions.STARTUP != event) {
+                        //STARTUP is a system event so don't log an issue
+                        LOG.info(message);
+                    }
+                    transition = TopologyStateTransition.NOOP;
+                }
+                StormBase updates = transition.transition(eventArg, this, topoId, base);
+                if (updates != null) {
+                    clusterState.updateStorm(topoId, updates);
+                }
+            }
+        }
     }
 }
