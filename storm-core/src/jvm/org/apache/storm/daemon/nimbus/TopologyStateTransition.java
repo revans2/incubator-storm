@@ -37,9 +37,9 @@ public interface TopologyStateTransition {
         return ret;
     }
     
-    public StormBase transition(Object argument, Nimbus nimbus, String topoId, TopologyStatus status);
+    public StormBase transition(Object argument, Nimbus nimbus, String topoId, StormBase base);
     
-    public static final TopologyStateTransition NOOP = (arg, nimbus, topoId, status) -> null;
-    public static final TopologyStateTransition INACTIVE = (arg, nimbus, topoId, status) -> make(TopologyStatus.INACTIVE);
-    public static final TopologyStateTransition ACTIVE = (arg, nimbus, topoId, status) -> make(TopologyStatus.ACTIVE);
+    public static final TopologyStateTransition NOOP = (arg, nimbus, topoId, base) -> null;
+    public static final TopologyStateTransition INACTIVE = (arg, nimbus, topoId, base) -> make(TopologyStatus.INACTIVE);
+    public static final TopologyStateTransition ACTIVE = (arg, nimbus, topoId, base) -> make(TopologyStatus.ACTIVE);
 }
