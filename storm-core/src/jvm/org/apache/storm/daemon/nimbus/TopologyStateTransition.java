@@ -97,4 +97,10 @@ public interface TopologyStateTransition {
         
         return sb;
     };
+    
+    public static final TopologyStateTransition STARTUP_WHEN_KILLED = (args, nimbus, topoId, base) -> {
+        int delay = base.get_topology_action_options().get_kill_options().get_wait_secs();
+        nimbus.delayEvent(topoId, delay, TopologyActions.REMOVE, null);
+        return null;
+    };
 }

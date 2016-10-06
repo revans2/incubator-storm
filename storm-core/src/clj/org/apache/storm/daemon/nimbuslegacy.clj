@@ -104,15 +104,7 @@
               TopologyActions/REBALANCE TopologyStateTransition/REBALANCE
               TopologyActions/KILL TopologyStateTransition/KILL
               }
-   TopologyStatus/KILLED {TopologyActions/STARTUP (reify TopologyStateTransition (transition [this args nimbus storm-id storm-base] (.delayEvent nimbus
-                                         storm-id
-                                         (-> storm-base
-                                             .get_topology_action_options
-                                             .get_kill_options
-                                             .get_wait_secs)
-                                        TopologyActions/REMOVE
-                                        nil)
-                             nil))
+   TopologyStatus/KILLED {TopologyActions/STARTUP TopologyStateTransition/STARTUP_WHEN_KILLED
             TopologyActions/KILL TopologyStateTransition/KILL
             TopologyActions/REMOVE (reify TopologyStateTransition (transition [this args nimbus storm-id storm-base]
                       (log-message "Killing topology: " storm-id)
