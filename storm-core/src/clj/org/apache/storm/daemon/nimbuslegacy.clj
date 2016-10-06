@@ -107,25 +107,6 @@
   (let [key-iter (.listKeys blob-store)]
     (iterator-seq key-iter)))
 
-(defn- setup-storm-code [nimbus conf storm-id tmp-jar-location storm-conf topology]
-  (let [subject (Nimbus/getSubject)
-        storm-cluster-state (.getStormClusterState nimbus)
-        blob-store (.getBlobStore nimbus)
-        jar-key (ConfigUtils/masterStormJarKey storm-id)
-        code-key (ConfigUtils/masterStormCodeKey storm-id)
-        conf-key (ConfigUtils/masterStormConfKey storm-id)
-        nimbus-host-port-info (.getNimbusHostPortInfo nimbus)]
-    (when tmp-jar-location ;;in local mode there is no jar
-      (.createBlob blob-store jar-key (FileInputStream. tmp-jar-location) (SettableBlobMeta. BlobStoreAclHandler/DEFAULT) subject)
-      (if (instance? LocalFsBlobStore blob-store)
-        (.setupBlobstore storm-cluster-state jar-key nimbus-host-port-info (Nimbus/getVerionForKey jar-key nimbus-host-port-info conf))))
-    (.createBlob blob-store conf-key (Utils/toCompressedJsonConf storm-conf) (SettableBlobMeta. BlobStoreAclHandler/DEFAULT) subject)
-    (if (instance? LocalFsBlobStore blob-store)
-      (.setupBlobstore storm-cluster-state conf-key nimbus-host-port-info (Nimbus/getVerionForKey conf-key nimbus-host-port-info conf)))
-    (.createBlob blob-store code-key (Utils/serialize topology) (SettableBlobMeta. BlobStoreAclHandler/DEFAULT) subject)
-    (if (instance? LocalFsBlobStore blob-store)
-      (.setupBlobstore storm-cluster-state code-key nimbus-host-port-info (Nimbus/getVerionForKey code-key nimbus-host-port-info conf)))))
-
 (defn- read-storm-topology [storm-id blob-store]
   (Utils/deserialize
     (.readBlob blob-store (ConfigUtils/masterStormCodeKey storm-id) (Nimbus/getSubject)) StormTopology))
@@ -1346,7 +1327,7 @@
               ;;cred-update-lock is not needed here because creds are being added for the first time.
               (.setCredentials storm-cluster-state storm-id (thriftify-credentials credentials) storm-conf)
               (log-message "uploadedJar " uploadedJarLocation)
-              (setup-storm-code nimbus conf storm-id uploadedJarLocation total-storm-conf topology)
+              (.setupStormCode nimbus conf storm-id uploadedJarLocation total-storm-conf topology)
               (wait-for-desired-code-replication nimbus total-storm-conf storm-id)
               (.setupHeatbeats storm-cluster-state storm-id)
               (if (total-storm-conf TOPOLOGY-BACKPRESSURE-ENABLE)

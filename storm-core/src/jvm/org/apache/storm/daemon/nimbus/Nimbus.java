@@ -19,6 +19,8 @@ package org.apache.storm.daemon.nimbus;
 
 import static org.apache.storm.metric.StormMetricsRegistry.registerMeter;
 
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.ArrayList;
@@ -40,17 +42,22 @@ import org.apache.storm.Config;
 import org.apache.storm.StormTimer;
 import org.apache.storm.blobstore.AtomicOutputStream;
 import org.apache.storm.blobstore.BlobStore;
+import org.apache.storm.blobstore.BlobStoreAclHandler;
 import org.apache.storm.blobstore.KeySequenceNumber;
+import org.apache.storm.blobstore.LocalFsBlobStore;
 import org.apache.storm.cluster.ClusterStateContext;
 import org.apache.storm.cluster.ClusterUtils;
 import org.apache.storm.cluster.DaemonType;
 import org.apache.storm.cluster.IStormClusterState;
 import org.apache.storm.daemon.StormCommon;
 import org.apache.storm.generated.AuthorizationException;
+import org.apache.storm.generated.KeyAlreadyExistsException;
 import org.apache.storm.generated.KeyNotFoundException;
 import org.apache.storm.generated.NotAliveException;
 import org.apache.storm.generated.RebalanceOptions;
+import org.apache.storm.generated.SettableBlobMeta;
 import org.apache.storm.generated.StormBase;
+import org.apache.storm.generated.StormTopology;
 import org.apache.storm.generated.TopologyStatus;
 import org.apache.storm.generated.WorkerResources;
 import org.apache.storm.metric.ClusterMetricsConsumerExecutor;
@@ -633,6 +640,38 @@ public class Nimbus {
                     clusterState.updateStorm(topoId, updates);
                 }
             }
+        }
+    }
+    
+    //TODO private
+    public void setupStormCode(Map<String, Object> conf, String topoId, String tmpJarLocation, 
+            Map<String, Object> topoConf, StormTopology topology) throws Exception {
+        Subject subject = getSubject();
+        IStormClusterState clusterState = getStormClusterState();
+        BlobStore store = getBlobStore();
+        String jarKey = ConfigUtils.masterStormJarKey(topoId);
+        String codeKey = ConfigUtils.masterStormCodeKey(topoId);
+        String confKey = ConfigUtils.masterStormConfKey(topoId);
+        NimbusInfo hostPortInfo = getNimbusHostPortInfo();
+        if (tmpJarLocation != null) {
+            //in local mode there is no jar
+            try (FileInputStream fin = new FileInputStream(tmpJarLocation)) {
+                store.createBlob(jarKey, fin, new SettableBlobMeta(BlobStoreAclHandler.DEFAULT), subject);
+            }
+            if (store instanceof LocalFsBlobStore) {
+                clusterState.setupBlobstore(jarKey, hostPortInfo, getVerionForKey(jarKey, hostPortInfo, conf));
+            }
+        }
+        
+        //TODO looks like some code reuse potential here
+        store.createBlob(confKey, Utils.toCompressedJsonConf(topoConf), new SettableBlobMeta(BlobStoreAclHandler.DEFAULT), subject);
+        if (store instanceof LocalFsBlobStore) {
+            clusterState.setupBlobstore(confKey, hostPortInfo, getVerionForKey(confKey, hostPortInfo, conf));
+        }
+        
+        store.createBlob(codeKey, Utils.serialize(topology), new SettableBlobMeta(BlobStoreAclHandler.DEFAULT), subject);
+        if (store instanceof LocalFsBlobStore) {
+            clusterState.setupBlobstore(codeKey, hostPortInfo, getVerionForKey(codeKey, hostPortInfo, conf));
         }
     }
 }
