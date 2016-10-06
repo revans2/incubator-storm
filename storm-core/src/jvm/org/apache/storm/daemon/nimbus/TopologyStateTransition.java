@@ -120,4 +120,10 @@ public interface TopologyStateTransition {
         }
         return null;
     };
+    
+    public static final TopologyStateTransition STARTUP_WHEN_REBALANCING = (args, nimbus, topoId, base) -> {
+        int delay = base.get_topology_action_options().get_rebalance_options().get_wait_secs();
+        nimbus.delayEvent(topoId, delay, TopologyActions.DO_REBALANCE, null);
+        return null;
+    };
 }

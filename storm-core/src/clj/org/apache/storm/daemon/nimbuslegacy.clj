@@ -108,16 +108,7 @@
             TopologyActions/KILL TopologyStateTransition/KILL
             TopologyActions/REMOVE TopologyStateTransition/REMOVE
             }
-   TopologyStatus/REBALANCING {TopologyActions/STARTUP (reify TopologyStateTransition (transition [this args nimbus storm-id storm-base]
-                                           (.delayEvent nimbus
-                                              storm-id
-                                              (-> storm-base
-                                                 .get_topology_action_options
-                                                 .get_rebalance_options
-                                                 .get_wait_secs)
-                                              TopologyActions/DO_REBALANCE
-                                              nil)
-                                 nil))
+   TopologyStatus/REBALANCING {TopologyActions/STARTUP TopologyStateTransition/STARTUP_WHEN_REBALANCING
                  TopologyActions/KILL TopologyStateTransition/KILL
                  TopologyActions/DO_REBALANCE (reify TopologyStateTransition (transition [this args nimbus storm-id storm-base]
                                  (do-rebalance nimbus storm-id (.get_status storm-base) storm-base)
