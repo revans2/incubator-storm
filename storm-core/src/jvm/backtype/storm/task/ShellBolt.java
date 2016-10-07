@@ -67,6 +67,7 @@ import static java.util.concurrent.TimeUnit.SECONDS;
  * </pre>
  */
 public class ShellBolt implements IBolt {
+    private static final long serialVersionUID = -141067271633232418L;
     public static final String HEARTBEAT_STREAM_ID = "__heartbeat";
     public static Logger LOG = LoggerFactory.getLogger(ShellBolt.class);
     Process _subprocess;
@@ -89,6 +90,7 @@ public class ShellBolt implements IBolt {
     private ScheduledExecutorService heartBeatExecutorService;
     private AtomicLong lastHeartbeatTimestamp = new AtomicLong();
     private AtomicBoolean sendHeartbeatFlag = new AtomicBoolean(false);
+    private boolean changeDirectory = true;
 
     public ShellBolt(ShellComponent component) {
         this(component.get_execution_command(), component.get_script());
@@ -96,6 +98,17 @@ public class ShellBolt implements IBolt {
 
     public ShellBolt(String... command) {
         _command = command;
+    }
+
+    /**
+     * Set if the current working directory of the child process should change
+     * to the resources dir from extracted from the jar, or if it should stay
+     * the same as the worker process to access things from the blob store.
+     * @param changeDirectory true change the directory (default) false
+     * leave the directory the same as the worker process.
+     */
+    public void changeChildCWD(boolean changeDirectory) {
+        this.changeDirectory = changeDirectory;
     }
 
     public void prepare(Map stormConf, TopologyContext context,
@@ -114,7 +127,7 @@ public class ShellBolt implements IBolt {
         _process = new ShellProcess(_command);
 
         //subprocesses must send their pid first thing
-        Number subpid = _process.launch(stormConf, context);
+        Number subpid = _process.launch(stormConf, context, changeDirectory);
         LOG.info("Launched subprocess with pid " + subpid);
 
         // reader
