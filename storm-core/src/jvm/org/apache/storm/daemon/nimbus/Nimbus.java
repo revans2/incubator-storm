@@ -328,15 +328,6 @@ public class Nimbus {
         return Utils.deserialize(store.readBlob(ConfigUtils.masterStormCodeKey(topoId), getSubject()), StormTopology.class);
     }
     
-    //TODO private
-    //TODO should this be a JSONObject???
-    public static Object fromJson(String str) {
-        if (str != null) {
-            return JSONValue.parse(str);
-        }
-        return null;
-    }
-    
     private final Map<String, Object> conf;
     private final NimbusInfo nimbusHostPortInfo;
     private final INimbus inimbus;

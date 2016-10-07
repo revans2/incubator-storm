@@ -50,11 +50,18 @@
 
   (:use [conjure core]))
 
+(defn- from-json
+       [^String str]
+       (if str
+         (clojurify-structure
+           (JSONValue/parse str))
+         nil))
+
 (defn storm-component->task-info [cluster storm-name]
   (let [storm-id (StormCommon/getStormId (:storm-cluster-state cluster) storm-name)
         nimbus (:nimbus cluster)]
     (-> (.getUserTopology nimbus storm-id)
-        (#(StormCommon/stormTaskInfo % (clojurify-structure (Nimbus/fromJson (.getTopologyConf nimbus storm-id)))))
+        (#(StormCommon/stormTaskInfo % (from-json (.getTopologyConf nimbus storm-id))))
         (Utils/reverseMap)
         clojurify-structure)))
 
@@ -65,7 +72,7 @@
 (defn storm-component->executor-info [cluster storm-name]
   (let [storm-id (StormCommon/getStormId (:storm-cluster-state cluster) storm-name)
         nimbus (:nimbus cluster)
-        storm-conf (clojurify-structure (Nimbus/fromJson (.getTopologyConf nimbus storm-id)))
+        storm-conf (from-json (.getTopologyConf nimbus storm-id))
         topology (.getUserTopology nimbus storm-id)
         task->component (clojurify-structure (StormCommon/stormTaskInfo topology storm-conf))
         state (:storm-cluster-state cluster)
@@ -156,7 +163,7 @@
 (defn task-ids [cluster storm-id]
   (let [nimbus (:nimbus cluster)]
     (-> (.getUserTopology nimbus storm-id)
-        (#(StormCommon/stormTaskInfo % (clojurify-structure (Nimbus/fromJson (.getTopologyConf nimbus storm-id)))))
+        (#(StormCommon/stormTaskInfo % (from-json (.getTopologyConf nimbus storm-id))))
         clojurify-structure
         keys)))
 
