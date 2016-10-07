@@ -1446,10 +1446,9 @@
                         :status {:type bogus-type}}
                 }
         ]
+      (.thenReturn (Mockito/when (.getBlobReplication blob-store (Mockito/any String) (Mockito/anyObject))) (int 1))
       (stubbing [nimbus/get-resources-for-topology nil
-                 nimbus/nimbus-topology-bases bogus-bases
-                 ;;TODO how do we mock out blob store???
-                 nimbus/get-blob-replication-count 1]
+                 nimbus/nimbus-topology-bases bogus-bases]
         (let [topos (.get_topologies (.getClusterInfo nimbus))]
           ; The number of topologies in the summary is correct.
           (is (= (count
