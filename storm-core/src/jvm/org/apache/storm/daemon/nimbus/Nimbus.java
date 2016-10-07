@@ -696,13 +696,8 @@ public class Nimbus {
     public Integer getBlobReplicationCount(String key) throws Exception {
         BlobStore store = getBlobStore();
         if (store != null) { //TODO why is this ever null
-            store.getBlobReplication(key, NIMBUS_SUBJECT);
+            return store.getBlobReplication(key, NIMBUS_SUBJECT);
         }
         return null;
     }
-//    (defn get-blob-replication-count
-//            [blob-key nimbus]
-//            (if (.getBlobStore nimbus)
-//                  (-> (.getBlobStore nimbus)
-//                    (.getBlobReplication  blob-key Nimbus/NIMBUS_SUBJECT))))
 }

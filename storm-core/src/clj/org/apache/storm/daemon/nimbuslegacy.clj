@@ -107,21 +107,14 @@
   (let [key-iter (.listKeys blob-store)]
     (iterator-seq key-iter)))
 
-;; public for testing
-(defn get-blob-replication-count
-  [blob-key nimbus]
-  (if (.getBlobStore nimbus)
-        (-> (.getBlobStore nimbus)
-          (.getBlobReplication  blob-key Nimbus/NIMBUS_SUBJECT))))
-
 (defn- wait-for-desired-code-replication [nimbus conf storm-id]
   (let [min-replication-count (conf TOPOLOGY-MIN-REPLICATION-COUNT)
         max-replication-wait-time (conf TOPOLOGY-MAX-REPLICATION-WAIT-TIME-SEC)
         current-replication-count-jar (if (not (ConfigUtils/isLocalMode conf))
-                                        (atom (get-blob-replication-count (ConfigUtils/masterStormJarKey storm-id) nimbus))
+                                        (atom (.getBlobReplicationCount nimbus (ConfigUtils/masterStormJarKey storm-id)))
                                         (atom min-replication-count))
-        current-replication-count-code (atom (get-blob-replication-count (ConfigUtils/masterStormCodeKey storm-id) nimbus))
-        current-replication-count-conf (atom (get-blob-replication-count (ConfigUtils/masterStormConfKey storm-id) nimbus))
+        current-replication-count-code (atom (.getBlobReplicationCount nimbus (ConfigUtils/masterStormCodeKey storm-id)))
+        current-replication-count-conf (atom (.getBlobReplicationCount nimbus (ConfigUtils/masterStormConfKey storm-id)))
         total-wait-time (atom 0)]
     (if (.getBlobStore nimbus)
       (while (and
@@ -139,9 +132,9 @@
           " total-wait-time " @total-wait-time)
         (swap! total-wait-time inc)
         (if (not (ConfigUtils/isLocalMode conf))
-          (reset! current-replication-count-jar  (get-blob-replication-count (ConfigUtils/masterStormJarKey storm-id) nimbus)))
-        (reset! current-replication-count-code  (get-blob-replication-count (ConfigUtils/masterStormCodeKey storm-id) nimbus))
-        (reset! current-replication-count-conf  (get-blob-replication-count (ConfigUtils/masterStormConfKey storm-id) nimbus))))
+          (reset! current-replication-count-jar  (.getBlobReplicationCount nimbus (ConfigUtils/masterStormJarKey storm-id))))
+        (reset! current-replication-count-code  (.getBlobReplicationCount nimbus (ConfigUtils/masterStormCodeKey storm-id)))
+        (reset! current-replication-count-conf  (.getBlobReplicationCount nimbus (ConfigUtils/masterStormConfKey storm-id)))))
     (if (and (<= min-replication-count @current-replication-count-conf)
              (<= min-replication-count @current-replication-count-code)
              (<= min-replication-count @current-replication-count-jar))
@@ -1162,7 +1155,7 @@
                                       (.set_assigned_memonheap topo-summ (.getAssignedMemOnHeap resources))
                                       (.set_assigned_memoffheap topo-summ (.getAssignedMemOffHeap resources))
                                       (.set_assigned_cpu topo-summ (.getAssignedCpu resources)))
-                                    (.set_replication_count topo-summ (get-blob-replication-count (ConfigUtils/masterStormCodeKey id) nimbus))
+                                    (.set_replication_count topo-summ (.getBlobReplicationCount nimbus (ConfigUtils/masterStormCodeKey id)))
                                     topo-summ))
         ret (ClusterSummary. supervisor-summaries
                              topology-summaries
@@ -1647,7 +1640,7 @@
             (when-let [component->debug (:component->debug base)]
               ;TODO: when translating this function, you should replace the map-val with a proper for loop HERE
               (.set_component_debug topo-info (map-val converter/thriftify-debugoptions component->debug)))
-            (.set_replication_count topo-info (get-blob-replication-count (ConfigUtils/masterStormCodeKey storm-id) nimbus))
+            (.set_replication_count topo-info (.getBlobReplicationCount nimbus (ConfigUtils/masterStormCodeKey storm-id)))
           topo-info))
 
       (^TopologyInfo getTopologyInfo [this ^String topology-id]
@@ -1869,7 +1862,7 @@
                                   (try-read-storm-conf conf
                                                        topo-id
                                                        (.getBlobStore nimbus))))
-            (.set_replication_count (get-blob-replication-count (ConfigUtils/masterStormCodeKey topo-id) nimbus)))
+            (.set_replication_count (.getBlobReplicationCount nimbus (ConfigUtils/masterStormCodeKey topo-id))))
           (when-let [debug-options
                      (get-in topo-info [:base :component->debug topo-id])]
             (.set_debug_options
