@@ -374,16 +374,22 @@ public class Nimbus {
     }
     
     public Nimbus(Map<String, Object> conf, INimbus inimbus) throws Exception {
-        this(conf, inimbus, makeStormClusterState(conf), NimbusInfo.fromConf(conf), Utils.getNimbusBlobStore(conf, NimbusInfo.fromConf(conf)));
+        this(conf, inimbus, null, null, null, null);
     }
     
-    public Nimbus(Map<String, Object> conf, INimbus inimbus, IStormClusterState stormClusterState, NimbusInfo hostPortInfo, BlobStore blobStore) throws Exception {
+    public Nimbus(Map<String, Object> conf, INimbus inimbus, IStormClusterState stormClusterState, NimbusInfo hostPortInfo, BlobStore blobStore, ILeaderElector leaderElector) throws Exception {
         this.conf = conf;
+        if (hostPortInfo == null) {
+            hostPortInfo = NimbusInfo.fromConf(conf);
+        }
         this.nimbusHostPortInfo = hostPortInfo;
         this.inimbus = inimbus;
         this.authorizationHandler = StormCommon.mkAuthorizationHandler((String) conf.get(Config.NIMBUS_AUTHORIZER), conf);
         this.impersonationAuthorizationHandler = StormCommon.mkAuthorizationHandler((String) conf.get(Config.NIMBUS_IMPERSONATION_AUTHORIZER), conf);
         this.submittedCount = new AtomicLong(0);
+        if (stormClusterState == null) {
+            stormClusterState =  makeStormClusterState(conf);
+        }
         this.stormClusterState = stormClusterState;
         //TODO we need a better lock for this...
         this.submitLock = new Object();
@@ -392,6 +398,9 @@ public class Nimbus {
         this.heartbeatsCache = new AtomicReference<>(new HashMap<>());
         this.downloaders = fileCacheMap(conf);
         this.uploaders = fileCacheMap(conf);
+        if (blobStore == null) {
+            blobStore = Utils.getNimbusBlobStore(conf, this.nimbusHostPortInfo);
+        }
         this.blobStore = blobStore;
         this.blobDownloaders = makeBlobCachMap(conf);
         this.blobUploaders = makeBlobCachMap(conf);
@@ -403,7 +412,10 @@ public class Nimbus {
             Utils.exitProcess(20, "Error while processing event");
         });
         this.scheduler = makeScheduler(conf, inimbus);
-        this.leaderElector = Zookeeper.zkLeaderElector(conf, getBlobStore());
+        if (leaderElector == null) {
+            leaderElector = Zookeeper.zkLeaderElector(conf, getBlobStore());;
+        }
+        this.leaderElector = leaderElector;
         this.idToSchedStatus = new AtomicReference<>(new HashMap<>());
         this.nodeIdToResources = new AtomicReference<>(new HashMap<>());
         this.idToResources = new AtomicReference<>(new HashMap<>());
@@ -678,4 +690,19 @@ public class Nimbus {
             clusterState.setupBlobstore(codeKey, hostPortInfo, getVerionForKey(codeKey, hostPortInfo, conf));
         }
     }
+    
+    //TODO private
+    //TODO can this go to int
+    public Integer getBlobReplicationCount(String key) throws Exception {
+        BlobStore store = getBlobStore();
+        if (store != null) { //TODO why is this ever null
+            store.getBlobReplication(key, NIMBUS_SUBJECT);
+        }
+        return null;
+    }
+//    (defn get-blob-replication-count
+//            [blob-key nimbus]
+//            (if (.getBlobStore nimbus)
+//                  (-> (.getBlobStore nimbus)
+//                    (.getBlobReplication  blob-key Nimbus/NIMBUS_SUBJECT))))
 }

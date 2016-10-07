@@ -1139,24 +1139,6 @@
                                        {TOPOLOGY-WORKERS 8}
                                        topology))))))
 
-(defnk mock-leader-elector [:is-leader true :leader-name "test-host" :leader-port 9999]
-  (let [leader-address (NimbusInfo. leader-name leader-port true)]
-    (reify ILeaderElector
-      (prepare [this conf] true)
-      (isLeader [this] is-leader)
-      (addToLeaderLockQueue [this] true)
-      (getLeader [this] leader-address)
-      (getAllNimbuses [this] `(leader-address))
-      (close [this] true))))
-
-;(deftest test-no-overlapping-slots
-;  ;; test that same node+port never appears across 2 assignments
-;  )
-
-;(deftest test-stateless
-;  ;; test that nimbus can die and restart without any problems
-;  )
-
 (deftest test-clean-inbox
   "Tests that the inbox correctly cleans jar files."
   (with-simulated-time
@@ -1211,7 +1193,7 @@
                         STORM-ZOOKEEPER-PORT zk-port
                         STORM-LOCAL-DIR nimbus-dir}))
           (bind cluster-state (ClusterUtils/mkStormClusterState conf nil (ClusterStateContext.)))
-          (bind nimbus (nimbus/service-handler conf (nimbus/standalone-nimbus)))
+          (bind nimbus (nimbus/service-handler conf (nimbus/standalone-nimbus) nil nil nil))
           (bind topology (Thrift/buildTopology
                            {"1" (Thrift/prepareSpoutDetails
                                   (TestPlannerSpout. true) (Integer. 3))}
@@ -1222,7 +1204,7 @@
 
             (letlocals
               (bind non-leader-cluster-state (ClusterUtils/mkStormClusterState conf nil (ClusterStateContext.)))
-              (bind non-leader-nimbus (nimbus/service-handler conf (nimbus/standalone-nimbus)))
+              (bind non-leader-nimbus (nimbus/service-handler conf (nimbus/standalone-nimbus) nil nil nil))
 
               ;first we verify that the master nimbus can perform all actions, even with another nimbus present.
               (submit-local-topology nimbus "t1" {} topology)
@@ -1447,9 +1429,10 @@
 )
 
 (deftest test-nimbus-iface-getClusterInfo-filters-topos-without-bases
-  (with-local-cluster [cluster]
-    (let [
-          nimbus (:nimbus cluster)
+  (let [cluster-state (Mockito/mock IStormClusterState)
+        blob-store (Mockito/mock BlobStore)]
+  (with-mocked-nimbus [cluster :cluster-state cluster-state :blob-store blob-store]
+    (let [nimbus (:nimbus cluster)
           bogus-secs 42
           bogus-type "bogusType"
           bogus-bases {
@@ -1465,6 +1448,7 @@
         ]
       (stubbing [nimbus/get-resources-for-topology nil
                  nimbus/nimbus-topology-bases bogus-bases
+                 ;;TODO how do we mock out blob store???
                  nimbus/get-blob-replication-count 1]
         (let [topos (.get_topologies (.getClusterInfo nimbus))]
           ; The number of topologies in the summary is correct.
@@ -1485,14 +1469,7 @@
       )
     )
   )
-)
-
-(deftest test-defserverfn-numbus-iface-instance
-  (test-nimbus-iface-submitTopologyWithOpts-checks-authorization)
-  (test-nimbus-iface-methods-check-authorization)
-  (test-nimbus-iface-getTopology-methods-throw-correctly)
-  (test-nimbus-iface-getClusterInfo-filters-topos-without-bases)
-)
+))
 
 (deftest test-nimbus-data-acls
   (testing "nimbus-data uses correct ACLs"
@@ -1554,7 +1531,7 @@
                       STORM-ZOOKEEPER-PORT zk-port
                       STORM-LOCAL-DIR nimbus-dir}))
         (bind cluster-state (ClusterUtils/mkStormClusterState conf nil (ClusterStateContext.)))
-        (bind nimbus (nimbus/service-handler conf (nimbus/standalone-nimbus)))
+        (bind nimbus (nimbus/service-handler conf (nimbus/standalone-nimbus) nil nil nil))
         (Time/sleepSecs 1)
         (bind topology (Thrift/buildTopology
                          {"1" (Thrift/prepareSpoutDetails
@@ -1569,7 +1546,7 @@
         ; in startup of nimbus it reads cluster state and take proper actions
         ; in this case nimbus registers topology transition event to scheduler again
         ; before applying STORM-856 nimbus was killed with NPE
-        (bind nimbus (nimbus/service-handler conf (nimbus/standalone-nimbus)))
+        (bind nimbus (nimbus/service-handler conf (nimbus/standalone-nimbus) nil nil nil))
         (.shutdown nimbus)
         (.disconnect cluster-state)
         ))))
@@ -1587,7 +1564,7 @@
                         STORM-LOCAL-DIR nimbus-dir
                         NIMBUS-TOPOLOGY-ACTION-NOTIFIER-PLUGIN (.getName InMemoryTopologyActionNotifier)}))
           (bind cluster-state (ClusterUtils/mkStormClusterState conf nil (ClusterStateContext.)))
-          (bind nimbus (nimbus/service-handler conf (nimbus/standalone-nimbus)))
+          (bind nimbus (nimbus/service-handler conf (nimbus/standalone-nimbus) nil nil nil))
           (bind notifier (InMemoryTopologyActionNotifier.))
           (Time/sleepSecs 1)
           (bind topology (Thrift/buildTopology
@@ -1739,7 +1716,7 @@
         conf {}]
     (with-open [_ (MockedZookeeper. (proxy [Zookeeper] []
                     (zkLeaderElectorImpl [conf blob-store] (mock-leader-elector))))]
-      (let [nimbus (Nimbus. conf nil mock-state nil mock-blob-store)]
+      (let [nimbus (Nimbus. conf nil mock-state nil mock-blob-store nil)]
         (.set (.getHeartbeatsCache nimbus) hb-cache)
         (stubbing [nimbus/blob-rm-topology-keys nil
                    nimbus/cleanup-storm-ids inactive-topos]
@@ -1788,7 +1765,7 @@
         conf {}]
     (with-open [_ (MockedZookeeper. (proxy [Zookeeper] []
                     (zkLeaderElectorImpl [conf blob-store] (mock-leader-elector))))]
-      (let [nimbus (Nimbus. conf nil mock-state nil mock-blob-store)]
+      (let [nimbus (Nimbus. conf nil mock-state nil mock-blob-store nil)]
         (.set (.getHeartbeatsCache nimbus) hb-cache)
         (stubbing [nimbus/blob-rm-topology-keys nil
                    nimbus/cleanup-storm-ids inactive-topos]

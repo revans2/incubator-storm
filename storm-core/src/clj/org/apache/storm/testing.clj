@@ -35,6 +35,7 @@
   (:import [org.apache.storm.utils Time Utils IPredicate RegisteredGlobalState ConfigUtils LocalState StormCommonInstaller])
   (:import [org.apache.storm.tuple Fields Tuple TupleImpl])
   (:import [org.apache.storm.task TopologyContext])
+  (:import [org.apache.storm.nimbus ILeaderElector NimbusInfo])
   (:import [org.apache.storm.generated GlobalStreamId Bolt KillOptions])
   (:import [org.apache.storm.testing FeederSpout FixedTupleSpout FixedTuple
             TupleCaptureBolt SpoutTracker BoltTracker NonRichBoltTracker
@@ -173,8 +174,45 @@
 ;; local dir is always overridden in maps
 ;; can customize the supervisors (except for ports) by passing in map for :supervisors parameter
 ;; if need to customize amt of ports more, can use add-supervisor calls afterwards
+(defnk mock-leader-elector [:is-leader true :leader-name "test-host" :leader-port 9999]
+  (let [leader-address (NimbusInfo. leader-name leader-port true)]
+    (reify ILeaderElector
+      (prepare [this conf] true)
+      (isLeader [this] is-leader)
+      (addToLeaderLockQueue [this] true)
+      (getLeader [this] leader-address)
+      (getAllNimbuses [this] `(leader-address))
+      (close [this] true))))
 
-;;TODO need a way to mock out parts of nimbus (or find a better way to test)
+(defnk mk-mocked-nimbus [:daemon-conf {} :inimbus nil :blob-store nil :cluster-state nil :leader-elector nil]
+  (let [zk-tmp (local-temp-path)
+        [zk-port zk-handle] (if-not cluster-state
+                              (Zookeeper/mkInprocessZookeeper zk-tmp nil))
+        leader-elector (or leader-elector (if zk-handle leader-elector (mock-leader-elector)))
+        nimbus-tmp (local-temp-path)
+        daemon-conf (merge (clojurify-structure (ConfigUtils/readStormConfig))
+                           {TOPOLOGY-SKIP-MISSING-KRYO-REGISTRATIONS true
+                            ZMQ-LINGER-MILLIS 0
+                            TOPOLOGY-ENABLE-MESSAGE-TIMEOUTS false
+                            TOPOLOGY-TRIDENT-BATCH-EMIT-INTERVAL-MILLIS 50
+                            STORM-CLUSTER-MODE "local"
+                            BLOBSTORE-SUPERUSER (System/getProperty "user.name")
+                            BLOBSTORE-DIR nimbus-tmp}
+                           (if-not cluster-state
+                             {STORM-ZOOKEEPER-PORT zk-port
+                              STORM-ZOOKEEPER-SERVERS ["localhost"]})
+                           daemon-conf)
+        nimbus (nimbus/service-handler
+                (assoc daemon-conf STORM-LOCAL-DIR nimbus-tmp)
+                (if inimbus inimbus (nimbus/standalone-nimbus))
+                blob-store
+                leader-elector
+                cluster-state)]
+    {:nimbus nimbus
+     :daemon-conf daemon-conf
+     :tmp-dirs (atom [nimbus-tmp zk-tmp])
+     :zookeeper (if (not-nil? zk-handle) zk-handle)}))
+
 (defnk mk-local-storm-cluster [:supervisors 2 :ports-per-supervisor 3 :daemon-conf {} :inimbus nil :supervisor-slot-port-min 1024 :nimbus-daemon false]
   (let [zk-tmp (local-temp-path)
         [zk-port zk-handle] (if-not (contains? daemon-conf STORM-ZOOKEEPER-SERVERS)
@@ -195,7 +233,10 @@
         port-counter (mk-counter supervisor-slot-port-min)
         nimbus (nimbus/service-handler
                 (assoc daemon-conf STORM-LOCAL-DIR nimbus-tmp)
-                (if inimbus inimbus (nimbus/standalone-nimbus)))
+                (if inimbus inimbus (nimbus/standalone-nimbus))
+                nil
+                nil
+                nil)
         context (mk-shared-context daemon-conf)
         nimbus-thrift-server (if nimbus-daemon (start-nimbus-daemon daemon-conf nimbus) nil)
         cluster-map {:nimbus nimbus
@@ -246,12 +287,13 @@
         (.stop (:nimbus-thrift-server cluster-map))
         (catch Exception e (log-message "failed to stop thrift")))
       ))
-  (.close (:state cluster-map))
-  (.disconnect (:storm-cluster-state cluster-map))
-  (doseq [s @(:supervisors cluster-map)]
-    (.shutdownAllWorkers s)
-    ;; race condition here? will it launch the workers again?
-    (.close s))
+  (if (:state cluster-map) (.close (:state cluster-map)))
+  (if (:storm-cluster-state cluster-map) (.disconnect (:storm-cluster-state cluster-map)))
+  (if (:supervisors cluster-map)
+    (doseq [s @(:supervisors cluster-map)]
+      (.shutdownAllWorkers s)
+      ;; race condition here? will it launch the workers again?
+      (.close s)))
   (ProcessSimulator/killAllProcesses)
   (if (not-nil? (:zookeeper cluster-map))
     (do
@@ -319,6 +361,21 @@
          (recur (- left diff))))))
   ([cluster-map secs]
    (advance-cluster-time cluster-map secs 1)))
+
+(defmacro with-mocked-nimbus
+  [[nimbus-sym & args] & body]
+  `(let [~nimbus-sym (mk-mocked-nimbus ~@args)]
+     (try
+       ~@body
+       (catch Throwable t#
+         (log-error t# "Error in cluster")
+         (throw t#))
+       (finally
+         (let [keep-waiting?# (atom true)
+               f# (future (while @keep-waiting?# (simulate-wait ~nimbus-sym)))]
+           (kill-local-storm-cluster ~nimbus-sym)
+           (reset! keep-waiting?# false)
+            @f#)))))
 
 (defmacro with-local-cluster
   [[cluster-sym & args] & body]

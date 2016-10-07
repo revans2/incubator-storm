@@ -107,6 +107,7 @@
   (let [key-iter (.listKeys blob-store)]
     (iterator-seq key-iter)))
 
+;; public for testing
 (defn get-blob-replication-count
   [blob-key nimbus]
   (if (.getBlobStore nimbus)
@@ -2011,10 +2012,10 @@
         (.isTimerWaiting (.getTimer nimbus))))))
 
 ;TODO: when translating this function, you should replace the map-val with a proper for loop HERE
-(defserverfn service-handler [conf inimbus]
+(defserverfn service-handler [conf inimbus blob-store leader-elector cluster-state]
   (.prepare inimbus conf (ConfigUtils/masterInimbusDir conf))
   (log-message "Starting Nimbus with conf " conf)
-  (let [nimbus (Nimbus. conf inimbus)
+  (let [nimbus (Nimbus. conf inimbus cluster-state nil blob-store leader-elector)
         blob-store (.getBlobStore nimbus)]
     (.prepare ^org.apache.storm.nimbus.ITopologyValidator (.getValidator nimbus) conf)
 
@@ -2097,7 +2098,7 @@
 (defn launch-server! [conf nimbus]
   (StormCommon/validateDistributedMode conf)
   (validate-port-available conf)
-  (let [service-handler (service-handler conf nimbus)
+  (let [service-handler (service-handler conf nimbus nil nil)
         server (ThriftServer. conf (Nimbus$Processor. service-handler)
                               ThriftConnectionType/NIMBUS)]
     (Utils/addShutdownHookWithForceKillIn1Sec (fn []
