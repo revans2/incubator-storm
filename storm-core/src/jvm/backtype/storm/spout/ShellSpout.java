@@ -54,7 +54,11 @@ public class ShellSpout implements ISpout {
     private int workerTimeoutMills;
     private ScheduledExecutorService heartBeatExecutorService;
     private AtomicLong lastHeartbeatTimestamp = new AtomicLong();
-    private boolean changeDirectory = true;
+    //This value acts as a canary for java deserialization
+    // If this is deserialized from an older version that does not
+    // have a changeDirectory the value will be set to the default
+    // null, and indicate that we need to set it to the real default.
+    private Boolean changeDirectory = true;
 
     public ShellSpout(ShellComponent component) {
         this(component.get_execution_command(), component.get_script());
@@ -88,7 +92,7 @@ public class ShellSpout implements ISpout {
 
         _process = new ShellProcess(_command);
 
-        Number subpid = _process.launch(stormConf, context, changeDirectory);
+        Number subpid = _process.launch(stormConf, context, changeDirectory == null ? true : changeDirectory);
         LOG.info("Launched subprocess with pid " + subpid);
 
         heartBeatExecutorService = MoreExecutors.getExitingScheduledExecutorService(new ScheduledThreadPoolExecutor(1));
