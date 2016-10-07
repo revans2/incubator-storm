@@ -145,14 +145,15 @@
 
 (defn clojurify-structure
   [s]
-  (prewalk (fn [x]
+  (if s
+    (prewalk (fn [x]
              (cond (instance? Map x) (into {} x)
                    (instance? List x) (vec x)
                    ;; (Boolean. false) does not evaluate to false in an if.
                    ;; This fixes that.
                    (instance? Boolean x) (boolean x)
                    true x))
-           s))
+           s)))
 ; move this func form convert.clj due to cyclic load dependency
 (defn clojurify-error [^ErrorInfo error]
   (if error

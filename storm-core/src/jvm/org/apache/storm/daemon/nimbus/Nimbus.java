@@ -82,6 +82,8 @@ import org.apache.storm.utils.VersionInfo;
 import org.apache.storm.zookeeper.Zookeeper;
 import org.apache.zookeeper.ZooDefs;
 import org.apache.zookeeper.data.ACL;
+import org.json.simple.JSONObject;
+import org.json.simple.JSONValue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -324,6 +326,15 @@ public class Nimbus {
     //TODO private
     public static StormTopology readStormTopology(String topoId, BlobStore store) throws Exception {
         return Utils.deserialize(store.readBlob(ConfigUtils.masterStormCodeKey(topoId), getSubject()), StormTopology.class);
+    }
+    
+    //TODO private
+    //TODO should this be a JSONObject???
+    public static Object fromJson(String str) {
+        if (str != null) {
+            return JSONValue.parse(str);
+        }
+        return null;
     }
     
     private final Map<String, Object> conf;
