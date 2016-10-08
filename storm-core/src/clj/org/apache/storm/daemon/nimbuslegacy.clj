@@ -433,6 +433,7 @@
   (or (get (.get (.getIdToResources nimbus)) topo-id)
       (try
         (let [storm-cluster-state (.getStormClusterState nimbus)
+              _ (.readTopologyDetails nimbus topo-id)
               topology-details (read-topology-details nimbus topo-id)
               assigned-resources (->> (clojurify-assignment (.assignmentInfo storm-cluster-state topo-id nil))
                                       :worker->resources
@@ -513,7 +514,8 @@
         ;; read all the topologies
         topology-ids (.activeStorms storm-cluster-state)
         topologies (into {} (for [tid topology-ids]
-                              {tid (read-topology-details nimbus tid)}))
+                               (do (.readTopologyDetails nimbus tid)
+                              {tid (read-topology-details nimbus tid)})))
         topologies (Topologies. topologies)
         ;; read all the assignments
         assigned-topology-ids (.assignments storm-cluster-state nil)

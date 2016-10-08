@@ -67,6 +67,7 @@ import org.apache.storm.nimbus.NimbusInfo;
 import org.apache.storm.scheduler.DefaultScheduler;
 import org.apache.storm.scheduler.INimbus;
 import org.apache.storm.scheduler.IScheduler;
+import org.apache.storm.scheduler.TopologyDetails;
 import org.apache.storm.security.INimbusCredentialPlugin;
 import org.apache.storm.security.auth.AuthUtils;
 import org.apache.storm.security.auth.IAuthorizer;
@@ -335,7 +336,7 @@ public class Nimbus {
     }
     
     //TODO private
-    public static StormTopology readStromTopologyAsNimbus(String topoId, BlobStore store) throws Exception {
+    public static StormTopology readStromTopologyAsNimbus(String topoId, BlobStore store) throws KeyNotFoundException, AuthorizationException, IOException {
         return Utils.deserialize(store.readBlob(ConfigUtils.masterStormCodeKey(topoId), NIMBUS_SUBJECT), StormTopology.class);
     }
     
@@ -753,15 +754,21 @@ public class Nimbus {
                 minReplicationCount, confCount, codeCount, jarCount);
     }
     
-//    public TopologyDetails readTopologyDetails(String topoId) {
-//        StormBase base = getStormClusterState().stormBase(topoId, null);
-//        if (base == null) {
-//            throw new NotAliveException(topoId);
-//        }
-//        BlobStore store = getBlobStore();
-//        Map<String, Object> topoConf = readTopoConfAsNimbus(topoId, store);
-//        
-//    }
+    //TODO replace this ASAP
+    private static final clojure.lang.IFn FIXME_COMPUTE_EXEC_TO_COMP = clojure.java.api.Clojure.var("org.apache.storm.daemon.nimbuslegacy", "compute-executor->component");
+    
+    public TopologyDetails readTopologyDetails(String topoId) throws NotAliveException, KeyNotFoundException, AuthorizationException, IOException {
+        StormBase base = getStormClusterState().stormBase(topoId, null);
+        if (base == null) {
+            throw new NotAliveException(topoId);
+        }
+        BlobStore store = getBlobStore();
+        Map<String, Object> topoConf = readTopoConfAsNimbus(topoId, store);
+        StormTopology topo = readStromTopologyAsNimbus(topoId, store);
+        Object ret = FIXME_COMPUTE_EXEC_TO_COMP.invoke(this, topoId);
+        LOG.warn("WHAT IS THIS???? {} {}", ret.getClass(), ret);
+        return null;
+    }
     
 //    (defn read-topology-details [nimbus storm-id]
 //            (let [blob-store (.getBlobStore nimbus)
