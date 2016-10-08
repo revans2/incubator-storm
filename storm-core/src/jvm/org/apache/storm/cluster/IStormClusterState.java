@@ -124,27 +124,21 @@ public interface IStormClusterState {
 
     public void disconnect();
     
-    //TODO normally we would use a default method here for this, but we would have to upgrade to mockito 2.x to make that work,
-    // and that has other issues right now.  So for now make them regular methods and provide a static implementation that others can use
-
-    public Map<String, SupervisorInfo> allSupervisorInfo();
-    public Map<String, SupervisorInfo> allSupervisorInfo(Runnable callback);
-    
     /**
      * @return All of the supervisors with the ID as the key
      */
-    static Map<String, SupervisorInfo> allSupervisorInfoImpl(IStormClusterState state) {
-        return state.allSupervisorInfo(null);
+    default Map<String, SupervisorInfo> allSupervisorInfo() {
+        return allSupervisorInfo(null);
     }
 
     /**
      * @param callback be alerted if the list of supervisors change
      * @return All of the supervisors with the ID as the key
      */
-    static Map<String, SupervisorInfo> allSupervisorInfoImpl(IStormClusterState state, Runnable callback) {
+    default Map<String, SupervisorInfo> allSupervisorInfo(Runnable callback) {
         Map<String, SupervisorInfo> ret = new HashMap<>();
-        for (String id: state.supervisors(callback)) {
-            ret.put(id, state.supervisorInfo(id));
+        for (String id: supervisors(callback)) {
+            ret.put(id, supervisorInfo(id));
         }
         return ret;
     }
