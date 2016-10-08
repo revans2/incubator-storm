@@ -102,9 +102,8 @@
 (declare compute-executor->component)
 
 (defn read-storm-conf-as-nimbus [storm-id blob-store]
-  (clojurify-structure
-    (Utils/fromCompressedJsonConf
-      (.readBlob blob-store (ConfigUtils/masterStormConfKey storm-id) Nimbus/NIMBUS_SUBJECT))))
+  (Utils/fromCompressedJsonConf
+    (.readBlob blob-store (ConfigUtils/masterStormConfKey storm-id) Nimbus/NIMBUS_SUBJECT)))
 
 ;TODO: when translating this function, you should replace the map-val with a proper for loop HERE
 (defn read-topology-details [nimbus storm-id]
@@ -112,7 +111,7 @@
         storm-base (or
                      (clojurify-storm-base (.stormBase (.getStormClusterState nimbus) storm-id nil))
                      (throw (NotAliveException. storm-id)))
-        topology-conf (read-storm-conf-as-nimbus storm-id blob-store)
+        topology-conf (clojurify-structure (read-storm-conf-as-nimbus storm-id blob-store))
         topology (read-storm-topology-as-nimbus storm-id blob-store)
         executor->component (->> (compute-executor->component nimbus storm-id)
                                  (map-key (fn [[start-task end-task]]
@@ -186,7 +185,7 @@
         blob-store (.getBlobStore nimbus)
         storm-base (clojurify-storm-base (.stormBase (.getStormClusterState nimbus) storm-id nil))
         component->executors (:component->executors storm-base)
-        storm-conf (read-storm-conf-as-nimbus storm-id blob-store)
+        storm-conf (clojurify-structure (read-storm-conf-as-nimbus storm-id blob-store))
         topology (read-storm-topology-as-nimbus storm-id blob-store)
         task->component (get-clojurified-task-info topology storm-conf)]
     (if (nil? component->executors)
@@ -206,7 +205,7 @@
         blob-store (.getBlobStore nimbus)
         executors (compute-executors nimbus storm-id)
         topology (read-storm-topology-as-nimbus storm-id blob-store)
-        storm-conf (read-storm-conf-as-nimbus storm-id blob-store)
+        storm-conf (clojurify-structure (read-storm-conf-as-nimbus storm-id blob-store))
         task->component (get-clojurified-task-info topology storm-conf)
         executor->component (into {} (for [executor executors
                                            :let [start-task (first executor)
@@ -645,7 +644,7 @@
 
 (defn try-read-storm-conf [conf storm-id blob-store]
   (try-cause
-    (read-storm-conf-as-nimbus conf storm-id blob-store)
+    (clojurify-structure (read-storm-conf-as-nimbus storm-id blob-store))
     (catch KeyNotFoundException e
        (throw (NotAliveException. (str storm-id))))))
 
@@ -878,13 +877,6 @@
       (throw (AuthorizationException. (str "Invalid file path: " file-path))))
     (catch Exception e
       (throw (AuthorizationException. (str "Invalid file path: " file-path))))))
-
-(defn try-read-storm-conf
-  [conf storm-id blob-store]
-  (try-cause
-    (read-storm-conf-as-nimbus storm-id blob-store)
-    (catch KeyNotFoundException e
-      (throw (NotAliveException. (str storm-id))))))
 
 (defn try-read-storm-conf-from-name
   [conf storm-name nimbus]
