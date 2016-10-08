@@ -334,6 +334,11 @@ public class Nimbus {
         return Utils.fromCompressedJsonConf(store.readBlob(ConfigUtils.masterStormConfKey(topoId), NIMBUS_SUBJECT));
     }
     
+    //TODO private
+    public static StormTopology readStromTopologyAsNimbus(String topoId, BlobStore store) throws Exception {
+        return Utils.deserialize(store.readBlob(ConfigUtils.masterStormCodeKey(topoId), NIMBUS_SUBJECT), StormTopology.class);
+    }
+    
     private final Map<String, Object> conf;
     private final NimbusInfo nimbusHostPortInfo;
     private final INimbus inimbus;
@@ -747,4 +752,31 @@ public class Nimbus {
                 + " current-replication-count for code key = {}, current-replication-count for jar key = {}", 
                 minReplicationCount, confCount, codeCount, jarCount);
     }
+    
+//    public TopologyDetails readTopologyDetails(String topoId) {
+//        StormBase base = getStormClusterState().stormBase(topoId, null);
+//        if (base == null) {
+//            throw new NotAliveException(topoId);
+//        }
+//        BlobStore store = getBlobStore();
+//        Map<String, Object> topoConf = readTopoConfAsNimbus(topoId, store);
+//        
+//    }
+    
+//    (defn read-topology-details [nimbus storm-id]
+//            (let [blob-store (.getBlobStore nimbus)
+//                  storm-base (or
+//                               (clojurify-storm-base (.stormBase (.getStormClusterState nimbus) storm-id nil))
+//                               (throw (NotAliveException. storm-id)))
+//                  topology-conf (clojurify-structure (Nimbus/readTopoConfAsNimbus storm-id blob-store))
+//                  topology (read-storm-topology-as-nimbus storm-id blob-store)
+//                  executor->component (->> (compute-executor->component nimbus storm-id)
+//                                           (map-key (fn [[start-task end-task]]
+//                                                      (ExecutorDetails. (int start-task) (int end-task)))))]
+//              (TopologyDetails. storm-id
+//                                topology-conf
+//                                topology
+//                                (:num-workers storm-base)
+//                                executor->component
+//                                (:launch-time-secs storm-base))))
 }

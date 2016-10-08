@@ -95,10 +95,6 @@
   (let [key-iter (.listKeys blob-store)]
     (iterator-seq key-iter)))
 
-(defn- read-storm-topology-as-nimbus [storm-id blob-store]
-  (Utils/deserialize
-    (.readBlob blob-store (ConfigUtils/masterStormCodeKey storm-id) Nimbus/NIMBUS_SUBJECT) StormTopology))
-
 (declare compute-executor->component)
 
 ;TODO: when translating this function, you should replace the map-val with a proper for loop HERE
@@ -108,7 +104,7 @@
                      (clojurify-storm-base (.stormBase (.getStormClusterState nimbus) storm-id nil))
                      (throw (NotAliveException. storm-id)))
         topology-conf (clojurify-structure (Nimbus/readTopoConfAsNimbus storm-id blob-store))
-        topology (read-storm-topology-as-nimbus storm-id blob-store)
+        topology (Nimbus/readStromTopologyAsNimbus storm-id blob-store)
         executor->component (->> (compute-executor->component nimbus storm-id)
                                  (map-key (fn [[start-task end-task]]
                                             (ExecutorDetails. (int start-task) (int end-task)))))]
@@ -182,7 +178,7 @@
         storm-base (clojurify-storm-base (.stormBase (.getStormClusterState nimbus) storm-id nil))
         component->executors (:component->executors storm-base)
         storm-conf (clojurify-structure (Nimbus/readTopoConfAsNimbus storm-id blob-store))
-        topology (read-storm-topology-as-nimbus storm-id blob-store)
+        topology (Nimbus/readStromTopologyAsNimbus storm-id blob-store)
         task->component (get-clojurified-task-info topology storm-conf)]
     (if (nil? component->executors)
       []
@@ -200,7 +196,7 @@
   (let [conf (.getConf nimbus)
         blob-store (.getBlobStore nimbus)
         executors (compute-executors nimbus storm-id)
-        topology (read-storm-topology-as-nimbus storm-id blob-store)
+        topology (Nimbus/readStromTopologyAsNimbus storm-id blob-store)
         storm-conf (clojurify-structure (Nimbus/readTopoConfAsNimbus storm-id blob-store))
         task->component (get-clojurified-task-info topology storm-conf)
         executor->component (into {} (for [executor executors
@@ -766,7 +762,7 @@
 
 (defn blob-rm-dependency-jars-in-topology [id blob-store storm-cluster-state]
   (try
-    (let [storm-topology (read-storm-topology-as-nimbus id blob-store)
+    (let [storm-topology (Nimbus/readStromTopologyAsNimbus id blob-store)
           dependency-jars (.get_dependency_jars ^StormTopology storm-topology)]
       (log-message "Removing dependency jars from blobs - " dependency-jars)
       (when-not (empty? dependency-jars)
@@ -884,7 +880,7 @@
 (defn try-read-storm-topology
   [storm-id blob-store]
   (try-cause
-    (read-storm-topology-as-nimbus storm-id blob-store)
+    (Nimbus/readStromTopologyAsNimbus storm-id blob-store)
     (catch KeyNotFoundException e
       (throw (NotAliveException. (str storm-id))))))
 
