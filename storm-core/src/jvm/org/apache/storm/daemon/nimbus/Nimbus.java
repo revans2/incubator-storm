@@ -329,6 +329,11 @@ public class Nimbus {
         return Utils.deserialize(store.readBlob(ConfigUtils.masterStormCodeKey(topoId), getSubject()), StormTopology.class);
     }
     
+    //TODO private
+    public static Map<String, Object> readTopoConfAsNimbus(String topoId, BlobStore store) throws KeyNotFoundException, AuthorizationException, IOException {
+        return Utils.fromCompressedJsonConf(store.readBlob(ConfigUtils.masterStormConfKey(topoId), NIMBUS_SUBJECT));
+    }
+    
     private final Map<String, Object> conf;
     private final NimbusInfo nimbusHostPortInfo;
     private final INimbus inimbus;
