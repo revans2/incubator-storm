@@ -717,4 +717,14 @@ public class StormClusterStateImpl implements IStormClusterState {
         if (solo)
             stateStorage.close();
     }
+
+    @Override
+    public Map<String, SupervisorInfo> allSupervisorInfo() {
+        return IStormClusterState.allSupervisorInfoImpl(this);
+    }
+
+    @Override
+    public Map<String, SupervisorInfo> allSupervisorInfo(Runnable callback) {
+        return IStormClusterState.allSupervisorInfoImpl(this, callback);
+    }
 }

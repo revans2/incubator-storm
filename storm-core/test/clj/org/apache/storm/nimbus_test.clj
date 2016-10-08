@@ -1349,46 +1349,58 @@
                     nimbus/check-authorization!
                       [1 2 3] expected-name expected-conf expected-operation)
                   (verify-first-call-args-for-indices
-                    nimbus/try-read-storm-topology [0] "fake-id"))))))
+                    nimbus/try-read-storm-topology [0] "fake-id"))))))))))
 
-        ;;TODO this should move to a true unit test
-        (testing "getSupervisorPageInfo only calls check-authorization as getTopology"
-          (let [expected-operation "getTopology"
-                assignment (doto (Assignment.)
-                             (.set_executor_node_port {[1 1] (NodeInfo. "super1" #{1}),
-                                                       [2 2] (NodeInfo. "super2" #{2})}))
-                clojurified-assignment (clojurify-assignment assignment)
-                topo-assignment {expected-name assignment}
-                check-auth-state (atom [])
-                mock-check-authorization (fn [nimbus storm-name storm-conf operation] 
-                                           (swap! check-auth-state conj {:nimbus nimbus
-                                                                         :storm-name storm-name
-                                                                         :storm-conf storm-conf
-                                                                         :operation operation}))]
-            (stubbing [nimbus/check-authorization! mock-check-authorization
-                       nimbus/try-read-storm-conf expected-conf
-                       nimbus/try-read-storm-topology nil
-                       nimbus/get-clojurified-task-info {}
-                       nimbus/all-supervisor-info {"super1" (doto (SupervisorInfo.) (.set_hostname "host1") (.set_meta [(long 1234)]) (.set_uptime_secs (long 123)))
-                                                   "super2" (doto (SupervisorInfo.) (.set_hostname "host2") (.set_meta [(long 1234)]) (.set_uptime_secs (long 123)))}
-                       clojurify-assignment clojurified-assignment
-                       nimbus/topology-assignments topo-assignment
-                       nimbus/get-launch-time-secs 0]
-              ;; not called yet
-              (verify-call-times-for nimbus/check-authorization! 0)
-              (.getSupervisorPageInfo nimbus "super1" nil true)
+
+(deftest test-check-authorization-getSupervisorPageInfo
+  (let [cluster-state (Mockito/mock IStormClusterState)
+        blob-store (Mockito/mock BlobStore)]
+  (with-mocked-nimbus [cluster :cluster-state cluster-state :blob-store blob-store
+                       :daemon-conf {NIMBUS-AUTHORIZER "org.apache.storm.security.auth.authorizer.NoopAuthorizer"}]
+    (let [nimbus (:nimbus cluster)
+          expected-name "test-nimbus-check-autho-params"
+          expected-conf {TOPOLOGY-NAME expected-name
+                         "foo" "bar"}
+          expected-operation "getTopology"
+          assignment (doto (Assignment.)
+                       (.set_executor_node_port {[1 1] (NodeInfo. "super1" #{1}),
+                                                 [2 2] (NodeInfo. "super2" #{2})}))
+          clojurified-assignment (clojurify-assignment assignment)
+          topo-assignment {expected-name assignment}
+          check-auth-state (atom [])
+          mock-check-authorization (fn [nimbus storm-name storm-conf operation] 
+                                     (swap! check-auth-state conj {:nimbus nimbus
+                                                                   :storm-name storm-name
+                                                                   :storm-conf storm-conf
+                                                                   :operation operation}))
+          all-supervisors (doto (HashMap.)
+                            (.put "super1" (doto (SupervisorInfo.) (.set_hostname "host1") (.set_meta [(long 1234)])
+                                             (.set_uptime_secs (long 123)) (.set_meta [1 2 3]) (.set_used_ports []) (.set_resources_map {})))
+                            (.put "super2" (doto (SupervisorInfo.) (.set_hostname "host2") (.set_meta [(long 1234)])
+                                             (.set_uptime_secs (long 123)) (.set_meta [1 2 3]) (.set_used_ports []) (.set_resources_map {}))))]
+      (.thenReturn (Mockito/when (.allSupervisorInfo cluster-state)) all-supervisors)
+      (stubbing [nimbus/check-authorization! mock-check-authorization
+                 nimbus/try-read-storm-conf expected-conf
+                 nimbus/try-read-storm-topology nil
+                 nimbus/get-clojurified-task-info {}
+                 clojurify-assignment clojurified-assignment
+                 nimbus/topology-assignments topo-assignment
+                 nimbus/get-launch-time-secs 0]
+        ;; not called yet
+        (verify-call-times-for nimbus/check-authorization! 0)
+        (.getSupervisorPageInfo nimbus "super1" nil true)
  
-              ;; afterwards, it should get called twice
-              (verify-call-times-for nimbus/check-authorization! 2)
-              (let [first-call (nth @check-auth-state 0)
-                    second-call (nth @check-auth-state 1)]
-                 (is (= expected-name (:storm-name first-call)))
-                 (is (= expected-conf (:storm-conf first-call)))
-                 (is (= "getTopology" (:operation first-call)))
+        ;; afterwards, it should get called twice
+        (verify-call-times-for nimbus/check-authorization! 2)
+        (let [first-call (nth @check-auth-state 0)
+              second-call (nth @check-auth-state 1)]
+           (is (= expected-name (:storm-name first-call)))
+           (is (= expected-conf (:storm-conf first-call)))
+           (is (= "getTopology" (:operation first-call)))
  
-                 (is (= expected-name (:storm-name second-call)))
-                 (is (= expected-conf (:storm-conf second-call)))
-                 (is (= "getSupervisorPageInfo" (:operation second-call)))))))))))
+           (is (= expected-name (:storm-name second-call)))
+           (is (= expected-conf (:storm-conf second-call)))
+           (is (= "getSupervisorPageInfo" (:operation second-call)))))))))
 
 (deftest test-nimbus-iface-getTopology-methods-throw-correctly
   (with-local-cluster [cluster]

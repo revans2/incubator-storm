@@ -91,18 +91,6 @@
 ;; 3. make new assignment to fix any problems
 ;; 4. if a storm exists but is not taken down fully, ensure that storm takedown is launched (step by step remove executors and finally remove assignments)
 
-;; public for testing
-(defn all-supervisor-info
-  ([storm-cluster-state] (all-supervisor-info storm-cluster-state nil))
-  ([storm-cluster-state callback]
-     (let [supervisor-ids (.supervisors storm-cluster-state callback)]
-       (into {}
-             (mapcat
-              (fn [id]
-                (if-let [info (.supervisorInfo storm-cluster-state id)]
-                  [[id info]]))
-              supervisor-ids)))))
-
 (defn get-key-seq-from-blob-store [blob-store]
   (let [key-iter (.listKeys blob-store)]
     (iterator-seq key-iter)))
@@ -318,7 +306,7 @@
   [nimbus supervisor->dead-ports topologies missing-assignment-topologies]
   "return a map: {supervisor-id SupervisorDetails}"
   (let [storm-cluster-state (.getStormClusterState nimbus)
-        supervisor-infos (all-supervisor-info storm-cluster-state)
+        supervisor-infos (.allSupervisorInfo storm-cluster-state)
         supervisor-details (for [[id info] supervisor-infos]
                              (SupervisorDetails. id (.get_meta info) (.get_resources_map info)))
         ;; Note that allSlotsAvailableForScheduling
@@ -551,7 +539,7 @@
 
 
 (defn basic-supervisor-details-map [storm-cluster-state]
-  (let [infos (all-supervisor-info storm-cluster-state)]
+  (let [infos (.allSupervisorInfo storm-cluster-state)]
     (->> infos
          (map (fn [[id info]]
                  [id (SupervisorDetails. id (.get_hostname info) (.get_scheduler_meta info) nil (.get_resources_map info))]))
@@ -1069,7 +1057,9 @@
 
 (defn make-supervisor-summary 
   [nimbus id info]
+    (log-message "INFO: " info " ID: " id)
     (let [ports (set (.get_meta info)) ;;TODO: this is only true for standalone
+          _ (log-message "PORTS: " ports)
           sup-sum (SupervisorSummary. (.get_hostname info)
                                       (.get_uptime_secs info)
                                       (count ports)
@@ -1112,7 +1102,7 @@
 
 (defn get-cluster-info [nimbus]
   (let [storm-cluster-state (.getStormClusterState nimbus)
-        supervisor-infos (all-supervisor-info storm-cluster-state)
+        supervisor-infos (.allSupervisorInfo storm-cluster-state)
         ;; TODO: need to get the port info about supervisors...
         ;; in standalone just look at metadata, otherwise just say N/A?
         supervisor-summaries (dofor [[id info] supervisor-infos]
@@ -1877,7 +1867,7 @@
          ^boolean include-sys?]
         (.mark Nimbus/getSupervisorPageInfoCalls)
         (let [storm-cluster-state (.getStormClusterState nimbus)
-              supervisor-infos (all-supervisor-info storm-cluster-state)
+              supervisor-infos (.allSupervisorInfo storm-cluster-state)
               host->supervisor-id (Utils/reverseMap (map-val (fn [info] (.get_hostname info)) supervisor-infos))
               supervisor-ids (if (nil? supervisor-id)
                                 (get host->supervisor-id host)
@@ -1885,6 +1875,7 @@
               page-info (SupervisorPageInfo.)]
               (doseq [sid supervisor-ids]
                 (let [supervisor-info (get supervisor-infos sid)
+                      _ (log-message "SID: " sid " SI: " supervisor-info " ALL: " supervisor-infos)
                       sup-sum (make-supervisor-summary nimbus sid supervisor-info)
                       _ (.add_to_supervisor_summaries page-info sup-sum)
                       topo-id->assignments (topology-assignments storm-cluster-state)
