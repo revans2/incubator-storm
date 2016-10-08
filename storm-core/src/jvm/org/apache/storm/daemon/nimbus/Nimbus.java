@@ -75,6 +75,7 @@ import org.apache.storm.security.auth.NimbusPrincipal;
 import org.apache.storm.security.auth.ReqContext;
 import org.apache.storm.utils.ConfigUtils;
 import org.apache.storm.utils.LocalState;
+import org.apache.storm.utils.Time;
 import org.apache.storm.utils.TimeCacheMap;
 import org.apache.storm.utils.Utils;
 import org.apache.storm.utils.Utils.UptimeComputer;
@@ -701,5 +702,44 @@ public class Nimbus {
             return store.getBlobReplication(key, NIMBUS_SUBJECT);
         }
         return null;
+    }
+    
+    //TODO private
+    public void waitForDesiredCodeReplication(Map<String, Object> topoConf, String topoId) throws Exception {
+        //TODO is this the topo conf?  Why not get this from nimbus itself?
+        int minReplicationCount = Utils.getInt(topoConf.get(Config.TOPOLOGY_MIN_REPLICATION_COUNT));
+        int maxWaitTime = Utils.getInt(topoConf.get(Config.TOPOLOGY_MAX_REPLICATION_WAIT_TIME_SEC));
+        int jarCount = minReplicationCount;
+        if (!ConfigUtils.isLocalMode(topoConf)) {
+            jarCount = getBlobReplicationCount(ConfigUtils.masterStormJarKey(topoId));
+        }
+        int codeCount = getBlobReplicationCount(ConfigUtils.masterStormCodeKey(topoId));
+        int confCount = getBlobReplicationCount(ConfigUtils.masterStormConfKey(topoId));
+        long totalWaitTime = 0;
+        //When is this ever null?
+        if (getBlobStore() != null) {
+            while (jarCount < minReplicationCount &&
+                    codeCount < minReplicationCount &&
+                    confCount < minReplicationCount) {
+                if (maxWaitTime > 0 && totalWaitTime > maxWaitTime) {
+                    LOG.info("desired replication count of {} not achieved but we have hit the max wait time {}"
+                            + " so moving on with replication count for conf key = {} for code key = {} for jar key = ",
+                            minReplicationCount, maxWaitTime, confCount, codeCount, jarCount);
+                    return;
+                }
+                LOG.info("WAITING... {} <? {} {} {}", minReplicationCount, jarCount, codeCount, confCount);
+                LOG.info("WAITING... {} <? {}", totalWaitTime, maxWaitTime);
+                Time.sleepSecs(1);
+                totalWaitTime++;
+                if (!ConfigUtils.isLocalMode(topoConf)) {
+                    jarCount = getBlobReplicationCount(ConfigUtils.masterStormJarKey(topoId));
+                }
+                codeCount = getBlobReplicationCount(ConfigUtils.masterStormCodeKey(topoId));
+                confCount = getBlobReplicationCount(ConfigUtils.masterStormConfKey(topoId));
+            }
+        }
+        LOG.info("desired replication count {} achieved, current-replication-count for conf key = {},"
+                + " current-replication-count for code key = {}, current-replication-count for jar key = {}", 
+                minReplicationCount, confCount, codeCount, jarCount);
     }
 }

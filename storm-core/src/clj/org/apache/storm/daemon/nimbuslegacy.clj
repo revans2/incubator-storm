@@ -95,45 +95,6 @@
   (let [key-iter (.listKeys blob-store)]
     (iterator-seq key-iter)))
 
-(defn- wait-for-desired-code-replication [nimbus conf storm-id]
-  (let [min-replication-count (conf TOPOLOGY-MIN-REPLICATION-COUNT)
-        max-replication-wait-time (conf TOPOLOGY-MAX-REPLICATION-WAIT-TIME-SEC)
-        current-replication-count-jar (if (not (ConfigUtils/isLocalMode conf))
-                                        (atom (.getBlobReplicationCount nimbus (ConfigUtils/masterStormJarKey storm-id)))
-                                        (atom min-replication-count))
-        current-replication-count-code (atom (.getBlobReplicationCount nimbus (ConfigUtils/masterStormCodeKey storm-id)))
-        current-replication-count-conf (atom (.getBlobReplicationCount nimbus (ConfigUtils/masterStormConfKey storm-id)))
-        total-wait-time (atom 0)]
-    (if (.getBlobStore nimbus)
-      (while (and
-               (or (> min-replication-count @current-replication-count-jar)
-                   (> min-replication-count @current-replication-count-code)
-                   (> min-replication-count @current-replication-count-conf))
-               (or (neg? max-replication-wait-time)
-                   (< @total-wait-time max-replication-wait-time)))
-        (Time/sleepSecs 1)
-        (log-debug "waiting for desired replication to be achieved.
-          min-replication-count = " min-replication-count  " max-replication-wait-time = " max-replication-wait-time
-          (if (not (ConfigUtils/isLocalMode conf))"current-replication-count for jar key = " @current-replication-count-jar)
-          "current-replication-count for code key = " @current-replication-count-code
-          "current-replication-count for conf key = " @current-replication-count-conf
-          " total-wait-time " @total-wait-time)
-        (swap! total-wait-time inc)
-        (if (not (ConfigUtils/isLocalMode conf))
-          (reset! current-replication-count-jar  (.getBlobReplicationCount nimbus (ConfigUtils/masterStormJarKey storm-id))))
-        (reset! current-replication-count-code  (.getBlobReplicationCount nimbus (ConfigUtils/masterStormCodeKey storm-id)))
-        (reset! current-replication-count-conf  (.getBlobReplicationCount nimbus (ConfigUtils/masterStormConfKey storm-id)))))
-    (if (and (<= min-replication-count @current-replication-count-conf)
-             (<= min-replication-count @current-replication-count-code)
-             (<= min-replication-count @current-replication-count-jar))
-      (log-message "desired replication count "  min-replication-count " achieved, "
-        "current-replication-count for conf key = " @current-replication-count-conf ", "
-        "current-replication-count for code key = " @current-replication-count-code ", "
-        "current-replication-count for jar key = " @current-replication-count-jar)
-      (log-message "desired replication count of "  min-replication-count " not achieved but we have hit the max wait time "
-        max-replication-wait-time " so moving on with replication count for conf key = " @current-replication-count-conf
-        " for code key = " @current-replication-count-code "for jar key = " @current-replication-count-jar))))
-
 (defn- read-storm-topology-as-nimbus [storm-id blob-store]
   (Utils/deserialize
     (.readBlob blob-store (ConfigUtils/masterStormCodeKey storm-id) Nimbus/NIMBUS_SUBJECT) StormTopology))
@@ -1308,7 +1269,7 @@
               (.setCredentials storm-cluster-state storm-id (thriftify-credentials credentials) storm-conf)
               (log-message "uploadedJar " uploadedJarLocation)
               (.setupStormCode nimbus conf storm-id uploadedJarLocation total-storm-conf topology)
-              (wait-for-desired-code-replication nimbus total-storm-conf storm-id)
+              (.waitForDesiredCodeReplication nimbus total-storm-conf storm-id)
               (.setupHeatbeats storm-cluster-state storm-id)
               (if (total-storm-conf TOPOLOGY-BACKPRESSURE-ENABLE)
                 (.setupBackpressure storm-cluster-state storm-id))
