@@ -99,7 +99,7 @@
        (into {}
              (mapcat
               (fn [id]
-                (if-let [info (clojurify-supervisor-info (.supervisorInfo storm-cluster-state id))]
+                (if-let [info (.supervisorInfo storm-cluster-state id)]
                   [[id info]]))
               supervisor-ids)))))
 
@@ -320,7 +320,7 @@
   (let [storm-cluster-state (.getStormClusterState nimbus)
         supervisor-infos (all-supervisor-info storm-cluster-state)
         supervisor-details (for [[id info] supervisor-infos]
-                             (SupervisorDetails. id (:meta info) (:resources-map info)))
+                             (SupervisorDetails. id (.get_meta info) (.get_resources_map info)))
         ;; Note that allSlotsAvailableForScheduling
         ;; only uses the supervisor-details. The rest of the arguments
         ;; are there to satisfy the INimbus interface.
@@ -332,15 +332,15 @@
                                   (map (fn [s] {(.getNodeId s) #{(.getPort s)}}))
                                   (apply merge-with set/union))]
     (into {} (for [[sid supervisor-info] supervisor-infos
-                   :let [hostname (:hostname supervisor-info)
-                         scheduler-meta (:scheduler-meta supervisor-info)
+                   :let [hostname (.get_hostname supervisor-info)
+                         scheduler-meta (.get_scheduler_meta supervisor-info)
                          dead-ports (supervisor->dead-ports sid)
                          ;; hide the dead-ports from the all-ports
                          ;; these dead-ports can be reused in next round of assignments
                          all-ports (-> (get all-scheduling-slots sid)
                                        (set/difference dead-ports)
                                        (as-> ports (map int ports)))
-                         supervisor-details (SupervisorDetails. sid hostname scheduler-meta all-ports (:resources-map supervisor-info))]]
+                         supervisor-details (SupervisorDetails. sid hostname scheduler-meta all-ports (.get_resources_map supervisor-info))]]
                {sid supervisor-details}))))
 
 
@@ -554,7 +554,7 @@
   (let [infos (all-supervisor-info storm-cluster-state)]
     (->> infos
          (map (fn [[id info]]
-                 [id (SupervisorDetails. id (:hostname info) (:scheduler-meta info) nil (:resources-map info))]))
+                 [id (SupervisorDetails. id (.get_hostname info) (.get_scheduler_meta info) nil (.get_resources_map info))]))
          (into {}))))
 
 (defn- to-worker-slot [[node port]]
@@ -1069,17 +1069,17 @@
 
 (defn make-supervisor-summary 
   [nimbus id info]
-    (let [ports (set (:meta info)) ;;TODO: this is only true for standalone
-          sup-sum (SupervisorSummary. (:hostname info)
-                                      (:uptime-secs info)
+    (let [ports (set (.get_meta info)) ;;TODO: this is only true for standalone
+          sup-sum (SupervisorSummary. (.get_hostname info)
+                                      (.get_uptime_secs info)
                                       (count ports)
-                                      (count (:used-ports info))
+                                      (count (.get_used_ports info))
                                       id)]
-      (.set_total_resources sup-sum (map-val double (:resources-map info)))
+      (.set_total_resources sup-sum (map-val double (.get_resources_map info)))
       (when-let [[total-mem total-cpu used-mem used-cpu] (.get (.get (.getNodeIdToResources nimbus)) id)]
         (.set_used_mem sup-sum (Utils/nullToZero used-mem))
         (.set_used_cpu sup-sum (Utils/nullToZero used-cpu)))
-      (when-let [version (:version info)] (.set_version sup-sum version))
+      (when-let [version (.get_version info)] (.set_version sup-sum version))
       sup-sum))
 
 (defn user-and-supervisor-topos
@@ -1878,7 +1878,7 @@
         (.mark Nimbus/getSupervisorPageInfoCalls)
         (let [storm-cluster-state (.getStormClusterState nimbus)
               supervisor-infos (all-supervisor-info storm-cluster-state)
-              host->supervisor-id (Utils/reverseMap (map-val :hostname supervisor-infos))
+              host->supervisor-id (Utils/reverseMap (map-val (fn [info] (.get_hostname info)) supervisor-infos))
               supervisor-ids (if (nil? supervisor-id)
                                 (get host->supervisor-id host)
                                   [supervisor-id])

@@ -23,7 +23,7 @@
            [org.apache.storm.blobstore BlobStore]
            [org.apache.storm.nimbus InMemoryTopologyActionNotifier]
            [org.apache.storm.daemon.nimbus Nimbus]
-           [org.apache.storm.generated GlobalStreamId TopologyStatus]
+           [org.apache.storm.generated GlobalStreamId TopologyStatus SupervisorInfo]
            [org.apache.storm Thrift MockAutoCred]
            [org.apache.storm.stats BoltExecutorStats StatsUtil])
   (:import [org.apache.storm.testing.staticmocking MockedZookeeper])
@@ -1369,8 +1369,8 @@
                        nimbus/try-read-storm-conf expected-conf
                        nimbus/try-read-storm-topology nil
                        nimbus/get-clojurified-task-info {}
-                       nimbus/all-supervisor-info {"super1" {:hostname "host1", :meta [1234], :uptime-secs 123}
-                                                   "super2" {:hostname "host2", :meta [1234], :uptime-secs 123}}
+                       nimbus/all-supervisor-info {"super1" (doto (SupervisorInfo.) (.set_hostname "host1") (.set_meta [(long 1234)]) (.set_uptime_secs (long 123)))
+                                                   "super2" (doto (SupervisorInfo.) (.set_hostname "host2") (.set_meta [(long 1234)]) (.set_uptime_secs (long 123)))}
                        clojurify-assignment clojurified-assignment
                        nimbus/topology-assignments topo-assignment
                        nimbus/get-launch-time-secs 0]
