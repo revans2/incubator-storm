@@ -784,8 +784,7 @@ public class Nimbus {
         return new TopologyDetails(topoId, topoConf, topo, base.get_num_workers(), executorsToComponent, base.get_launch_time_secs());
     }
     
-    //TODO private
-    public void updateHeartbeats(String topoId, Set<List<Integer>> allExecutors, Assignment existingAssignment) {
+    private void updateHeartbeats(String topoId, Set<List<Integer>> allExecutors, Assignment existingAssignment) {
         LOG.debug("Updating heartbeats for {} {}", topoId, allExecutors);
         IStormClusterState state = getStormClusterState();
         Map<List<Integer>, Map<String, Object>> executorBeats = StatsUtil.convertExecutorBeats(state.executorBeats(topoId, existingAssignment.get_executor_node_port()));
@@ -793,15 +792,16 @@ public class Nimbus {
         getHeartbeatsCache().getAndUpdate(new Assoc<String, Map<List<Integer>, Map<String, Object>>>(topoId, cache));
     }
     
-//    (defn update-heartbeats! [nimbus storm-id all-executors existing-assignment]
-//            (log-debug "Updating heartbeats for " storm-id " " (pr-str all-executors))
-//            (let [storm-cluster-state (.getStormClusterState nimbus)
-//                  executor-beats (let [executor-stats-java-map (.executorBeats storm-cluster-state storm-id
-//                                                                 (.get_executor_node_port (thriftify-assignment existing-assignment)))]
-//                                   (StatsUtil/convertExecutorBeats executor-stats-java-map))
-//                  cache (StatsUtil/updateHeartbeatCache (.get (.get (.getHeartbeatsCache nimbus)) storm-id)
-//                                                executor-beats
-//                                                (StatsUtil/convertExecutors all-executors)
-//                                                (int (.get (.getConf nimbus) NIMBUS-TASK-TIMEOUT-SECS)))]
-//                (.getAndUpdate (.getHeartbeatsCache nimbus) (Nimbus$Assoc. storm-id cache))))
+    //TODO private
+    /**
+     * update all the heartbeats for all the topologies' executors
+     * @param existingAssignments current assignments (thrift)
+     * @param topologyToExecutors topology ID to executors.
+     */
+    public void updateAllHeartbeats(Map<String, Assignment> existingAssignments, Map<String, Set<List<Integer>>> topologyToExecutors) {
+        for (Entry<String, Assignment> entry: existingAssignments.entrySet()) {
+            String topoId = entry.getKey();
+            updateHeartbeats(topoId, topologyToExecutors.get(topoId), entry.getValue());
+        }
+    }
 }

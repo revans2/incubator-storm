@@ -95,12 +95,6 @@
   (let [key-iter (.listKeys blob-store)]
     (iterator-seq key-iter)))
 
-(defn- update-all-heartbeats! [nimbus existing-assignments topology->executors]
-  "update all the heartbeats for all the topologies's executors"
-  (doseq [[tid assignment] existing-assignments
-          :let [all-executors (topology->executors tid)]]
-    (.updateHeartbeats nimbus tid all-executors assignment)))
-
 (defn- alive-executors
   [nimbus ^TopologyDetails topology-details all-executors existing-assignment]
   (log-debug "Computing alive executors for " (.getId topology-details) "\n"
@@ -330,7 +324,7 @@
         storm-cluster-state (.getStormClusterState nimbus)
         topology->executors (compute-topology->executors nimbus (keys thrift-existing-assignments))
         ;; update the executors heartbeats first.
-        _ (update-all-heartbeats! nimbus thrift-existing-assignments topology->executors)
+        _ (.updateAllHeartbeats nimbus thrift-existing-assignments topology->executors)
         topology->alive-executors (compute-topology->alive-executors nimbus
                                                                      existing-assignments
                                                                      topologies
