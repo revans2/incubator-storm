@@ -31,6 +31,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BinaryOperator;
@@ -48,10 +49,14 @@ import org.apache.storm.blobstore.LocalFsBlobStore;
 import org.apache.storm.cluster.ClusterStateContext;
 import org.apache.storm.cluster.ClusterUtils;
 import org.apache.storm.cluster.DaemonType;
+import org.apache.storm.cluster.ExecutorBeat;
 import org.apache.storm.cluster.IStormClusterState;
 import org.apache.storm.daemon.StormCommon;
+import org.apache.storm.generated.Assignment;
 import org.apache.storm.generated.AuthorizationException;
+import org.apache.storm.generated.ExecutorInfo;
 import org.apache.storm.generated.KeyNotFoundException;
+import org.apache.storm.generated.NodeInfo;
 import org.apache.storm.generated.NotAliveException;
 import org.apache.storm.generated.RebalanceOptions;
 import org.apache.storm.generated.SettableBlobMeta;
@@ -76,6 +81,7 @@ import org.apache.storm.security.auth.IAuthorizer;
 import org.apache.storm.security.auth.ICredentialsRenewer;
 import org.apache.storm.security.auth.NimbusPrincipal;
 import org.apache.storm.security.auth.ReqContext;
+import org.apache.storm.stats.StatsUtil;
 import org.apache.storm.utils.ConfigUtils;
 import org.apache.storm.utils.LocalState;
 import org.apache.storm.utils.Time;
@@ -777,4 +783,25 @@ public class Nimbus {
         
         return new TopologyDetails(topoId, topoConf, topo, base.get_num_workers(), executorsToComponent, base.get_launch_time_secs());
     }
+    
+    //TODO private
+    public void updateHeartbeats(String topoId, Set<List<Integer>> allExecutors, Assignment existingAssignment) {
+        LOG.debug("Updating heartbeats for {} {}", topoId, allExecutors);
+        IStormClusterState state = getStormClusterState();
+        Map<List<Integer>, Map<String, Object>> executorBeats = StatsUtil.convertExecutorBeats(state.executorBeats(topoId, existingAssignment.get_executor_node_port()));
+        Map<List<Integer>, Map<String, Object>> cache = StatsUtil.updateHeartbeatCache(getHeartbeatsCache().get().get(topoId), executorBeats, allExecutors, Utils.getInt(getConf().get(Config.NIMBUS_TASK_TIMEOUT_SECS)));
+        getHeartbeatsCache().getAndUpdate(new Assoc<String, Map<List<Integer>, Map<String, Object>>>(topoId, cache));
+    }
+    
+//    (defn update-heartbeats! [nimbus storm-id all-executors existing-assignment]
+//            (log-debug "Updating heartbeats for " storm-id " " (pr-str all-executors))
+//            (let [storm-cluster-state (.getStormClusterState nimbus)
+//                  executor-beats (let [executor-stats-java-map (.executorBeats storm-cluster-state storm-id
+//                                                                 (.get_executor_node_port (thriftify-assignment existing-assignment)))]
+//                                   (StatsUtil/convertExecutorBeats executor-stats-java-map))
+//                  cache (StatsUtil/updateHeartbeatCache (.get (.get (.getHeartbeatsCache nimbus)) storm-id)
+//                                                executor-beats
+//                                                (StatsUtil/convertExecutors all-executors)
+//                                                (int (.get (.getConf nimbus) NIMBUS-TASK-TIMEOUT-SECS)))]
+//                (.getAndUpdate (.getHeartbeatsCache nimbus) (Nimbus$Assoc. storm-id cache))))
 }

@@ -95,25 +95,11 @@
   (let [key-iter (.listKeys blob-store)]
     (iterator-seq key-iter)))
 
-(declare compute-executor->component)
-
-(defn update-heartbeats! [nimbus storm-id all-executors existing-assignment]
-  (log-debug "Updating heartbeats for " storm-id " " (pr-str all-executors))
-  (let [storm-cluster-state (.getStormClusterState nimbus)
-        executor-beats (let [executor-stats-java-map (.executorBeats storm-cluster-state storm-id
-                                                       (.get_executor_node_port (thriftify-assignment existing-assignment)))]
-                         (StatsUtil/convertExecutorBeats executor-stats-java-map))
-        cache (StatsUtil/updateHeartbeatCache (.get (.get (.getHeartbeatsCache nimbus)) storm-id)
-                                      executor-beats
-                                      (StatsUtil/convertExecutors all-executors)
-                                      (int (.get (.getConf nimbus) NIMBUS-TASK-TIMEOUT-SECS)))]
-      (.getAndUpdate (.getHeartbeatsCache nimbus) (Nimbus$Assoc. storm-id cache))))
-
 (defn- update-all-heartbeats! [nimbus existing-assignments topology->executors]
   "update all the heartbeats for all the topologies's executors"
   (doseq [[tid assignment] existing-assignments
           :let [all-executors (topology->executors tid)]]
-    (update-heartbeats! nimbus tid all-executors assignment)))
+    (.updateHeartbeats nimbus tid all-executors assignment)))
 
 (defn- alive-executors
   [nimbus ^TopologyDetails topology-details all-executors existing-assignment]
@@ -173,7 +159,7 @@
            (mapcat second)
            (map to-executor-id)))))
 
-(defn- compute-executor->component [nimbus storm-id]
+(defn compute-executor->component [nimbus storm-id]
   (let [conf (.getConf nimbus)
         blob-store (.getBlobStore nimbus)
         executors (compute-executors nimbus storm-id)
@@ -339,12 +325,12 @@
     new-topology->executor->node+port))
 
 ;; public so it can be mocked out
-(defn compute-new-scheduler-assignments [nimbus existing-assignments topologies scratch-topology-id]
+(defn compute-new-scheduler-assignments [nimbus thrift-existing-assignments existing-assignments topologies scratch-topology-id]
   (let [conf (.getConf nimbus)
         storm-cluster-state (.getStormClusterState nimbus)
-        topology->executors (compute-topology->executors nimbus (keys existing-assignments))
+        topology->executors (compute-topology->executors nimbus (keys thrift-existing-assignments))
         ;; update the executors heartbeats first.
-        _ (update-all-heartbeats! nimbus existing-assignments topology->executors)
+        _ (update-all-heartbeats! nimbus thrift-existing-assignments topology->executors)
         topology->alive-executors (compute-topology->alive-executors nimbus
                                                                      existing-assignments
                                                                      topologies
@@ -504,9 +490,17 @@
                                         ;; will be treated as free slot in the scheduler code.
                                         (when (or (nil? scratch-topology-id) (not= tid scratch-topology-id))
                                           {tid (clojurify-assignment (.assignmentInfo storm-cluster-state tid nil))})))
+        thrift-existing-assignments (into {} (for [tid assigned-topology-ids]
+                                        ;; for the topology which wants rebalance (specified by the scratch-topology-id)
+                                        ;; we exclude its assignment, meaning that all the slots occupied by its assignment
+                                        ;; will be treated as free slot in the scheduler code.
+                                        (when (or (nil? scratch-topology-id) (not= tid scratch-topology-id))
+                                          {tid (.assignmentInfo storm-cluster-state tid nil)})))
+ 
         ;; make the new assignments for topologies
         new-scheduler-assignments (compute-new-scheduler-assignments
                                        nimbus
+                                       thrift-existing-assignments
                                        existing-assignments
                                        topologies
                                        scratch-topology-id)

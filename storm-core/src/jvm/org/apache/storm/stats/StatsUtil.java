@@ -1548,10 +1548,10 @@ public class StatsUtil {
      * @param timeout       timeout
      * @return a HashMap of updated executor heart beats
      */
-    public static Map<List<Integer>, Object> updateHeartbeatCache(Map<List<Integer>, Map<String, Object>> cache,
+    public static Map<List<Integer>, Map<String, Object>> updateHeartbeatCache(Map<List<Integer>, Map<String, Object>> cache,
                                                                   Map<List<Integer>, Map<String, Object>> executorBeats,
                                                                   Set<List<Integer>> executors, Integer timeout) {
-        Map<List<Integer>, Object> ret = new HashMap<>();
+        Map<List<Integer>, Map<String, Object>> ret = new HashMap<>();
         if (cache == null && executorBeats == null) {
             return ret;
         }
