@@ -30,6 +30,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BinaryOperator;
@@ -65,6 +66,7 @@ import org.apache.storm.nimbus.ITopologyActionNotifierPlugin;
 import org.apache.storm.nimbus.ITopologyValidator;
 import org.apache.storm.nimbus.NimbusInfo;
 import org.apache.storm.scheduler.DefaultScheduler;
+import org.apache.storm.scheduler.ExecutorDetails;
 import org.apache.storm.scheduler.INimbus;
 import org.apache.storm.scheduler.IScheduler;
 import org.apache.storm.scheduler.TopologyDetails;
@@ -765,25 +767,14 @@ public class Nimbus {
         BlobStore store = getBlobStore();
         Map<String, Object> topoConf = readTopoConfAsNimbus(topoId, store);
         StormTopology topo = readStromTopologyAsNimbus(topoId, store);
-        Object ret = FIXME_COMPUTE_EXEC_TO_COMP.invoke(this, topoId);
-        LOG.warn("WHAT IS THIS???? {} {}", ret.getClass(), ret);
-        return null;
+        Map<List<Number>, String> rawExecToComponent = (Map<List<Number>, String>) FIXME_COMPUTE_EXEC_TO_COMP.invoke(this, topoId);
+        Map<ExecutorDetails, String> executorsToComponent = new HashMap<>();
+        for (Entry<List<Number>, String> entry: rawExecToComponent.entrySet()) {
+            List<Number> execs = entry.getKey();
+            ExecutorDetails execDetails = new ExecutorDetails(Utils.getInt(execs.get(0)), Utils.getInt(execs.get(1)));
+            executorsToComponent.put(execDetails, entry.getValue());
+        }
+        
+        return new TopologyDetails(topoId, topoConf, topo, base.get_num_workers(), executorsToComponent, base.get_launch_time_secs());
     }
-    
-//    (defn read-topology-details [nimbus storm-id]
-//            (let [blob-store (.getBlobStore nimbus)
-//                  storm-base (or
-//                               (clojurify-storm-base (.stormBase (.getStormClusterState nimbus) storm-id nil))
-//                               (throw (NotAliveException. storm-id)))
-//                  topology-conf (clojurify-structure (Nimbus/readTopoConfAsNimbus storm-id blob-store))
-//                  topology (read-storm-topology-as-nimbus storm-id blob-store)
-//                  executor->component (->> (compute-executor->component nimbus storm-id)
-//                                           (map-key (fn [[start-task end-task]]
-//                                                      (ExecutorDetails. (int start-task) (int end-task)))))]
-//              (TopologyDetails. storm-id
-//                                topology-conf
-//                                topology
-//                                (:num-workers storm-base)
-//                                executor->component
-//                                (:launch-time-secs storm-base))))
 }

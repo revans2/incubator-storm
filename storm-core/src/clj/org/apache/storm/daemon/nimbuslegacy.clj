@@ -97,24 +97,6 @@
 
 (declare compute-executor->component)
 
-;TODO: when translating this function, you should replace the map-val with a proper for loop HERE
-(defn read-topology-details [nimbus storm-id]
-  (let [blob-store (.getBlobStore nimbus)
-        storm-base (or
-                     (clojurify-storm-base (.stormBase (.getStormClusterState nimbus) storm-id nil))
-                     (throw (NotAliveException. storm-id)))
-        topology-conf (clojurify-structure (Nimbus/readTopoConfAsNimbus storm-id blob-store))
-        topology (Nimbus/readStromTopologyAsNimbus storm-id blob-store)
-        executor->component (->> (compute-executor->component nimbus storm-id)
-                                 (map-key (fn [[start-task end-task]]
-                                            (ExecutorDetails. (int start-task) (int end-task)))))]
-    (TopologyDetails. storm-id
-                      topology-conf
-                      topology
-                      (:num-workers storm-base)
-                      executor->component
-                      (:launch-time-secs storm-base))))
-
 (defn update-heartbeats! [nimbus storm-id all-executors existing-assignment]
   (log-debug "Updating heartbeats for " storm-id " " (pr-str all-executors))
   (let [storm-cluster-state (.getStormClusterState nimbus)
@@ -175,11 +157,10 @@
 (defn- compute-executors [nimbus storm-id]
   (let [conf (.getConf nimbus)
         blob-store (.getBlobStore nimbus)
-        storm-base (clojurify-storm-base (.stormBase (.getStormClusterState nimbus) storm-id nil))
-        component->executors (:component->executors storm-base)
+        storm-base (.stormBase (.getStormClusterState nimbus) storm-id nil)
+        component->executors (.get_component_executors storm-base)
         storm-conf (clojurify-structure (Nimbus/readTopoConfAsNimbus storm-id blob-store))
-        topology (Nimbus/readStromTopologyAsNimbus storm-id blob-store)
-        task->component (get-clojurified-task-info topology storm-conf)]
+        topology (Nimbus/readStromTopologyAsNimbus storm-id blob-store)]
     (if (nil? component->executors)
       []
       (->> (StormCommon/stormTaskInfo topology storm-conf)
@@ -433,8 +414,7 @@
   (or (get (.get (.getIdToResources nimbus)) topo-id)
       (try
         (let [storm-cluster-state (.getStormClusterState nimbus)
-              _ (.readTopologyDetails nimbus topo-id)
-              topology-details (read-topology-details nimbus topo-id)
+              topology-details (.readTopologyDetails nimbus topo-id)
               assigned-resources (->> (clojurify-assignment (.assignmentInfo storm-cluster-state topo-id nil))
                                       :worker->resources
                                       (vals)
@@ -514,8 +494,7 @@
         ;; read all the topologies
         topology-ids (.activeStorms storm-cluster-state)
         topologies (into {} (for [tid topology-ids]
-                               (do (.readTopologyDetails nimbus tid)
-                              {tid (read-topology-details nimbus tid)})))
+                              {tid (.readTopologyDetails nimbus tid)}))
         topologies (Topologies. topologies)
         ;; read all the assignments
         assigned-topology-ids (.assignments storm-cluster-state nil)
