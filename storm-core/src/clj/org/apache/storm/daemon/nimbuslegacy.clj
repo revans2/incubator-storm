@@ -95,21 +95,6 @@
   (let [key-iter (.listKeys blob-store)]
     (iterator-seq key-iter)))
 
-(defn- compute-supervisor->dead-ports [nimbus existing-assignments topology->executors topology->alive-executors]
-  (let [dead-slots (into [] (for [[tid assignment] existing-assignments
-                                  :let [all-executors (topology->executors tid)
-                                        alive-executors (topology->alive-executors tid)
-                                        dead-executors (set/difference all-executors alive-executors)
-                                        dead-slots (->> (:executor->node+port assignment)
-                                                        (filter #(contains? dead-executors (first %)))
-                                                        vals)]]
-                              dead-slots))
-        supervisor->dead-ports (->> dead-slots
-                                    (apply concat)
-                                    (map (fn [[sid port]] {sid #{port}}))
-                                    (apply (partial merge-with set/union)))]
-    (or supervisor->dead-ports {})))
-
 (defn- compute-topology->scheduler-assignment [nimbus existing-assignments topology->alive-executors]
   "convert assignment information in zk to SchedulerAssignment, so it can be used by scheduler api."
   (into {} (for [[tid assignment] existing-assignments
@@ -244,10 +229,10 @@
                                                                      topologies
                                                                      topology->executors
                                                                      scratch-topology-id))
-        supervisor->dead-ports (compute-supervisor->dead-ports nimbus
-                                                               existing-assignments
+        supervisor->dead-ports (clojurify-structure (.computeSupervisorToDeadPorts nimbus
+                                                               thrift-existing-assignments
                                                                topology->executors
-                                                               topology->alive-executors)
+                                                               topology->alive-executors))
         topology->scheduler-assignment (compute-topology->scheduler-assignment nimbus
                                                                                existing-assignments
                                                                                topology->alive-executors)

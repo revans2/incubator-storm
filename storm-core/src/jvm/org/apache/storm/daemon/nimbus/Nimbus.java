@@ -56,6 +56,7 @@ import org.apache.storm.generated.Assignment;
 import org.apache.storm.generated.AuthorizationException;
 import org.apache.storm.generated.InvalidTopologyException;
 import org.apache.storm.generated.KeyNotFoundException;
+import org.apache.storm.generated.NodeInfo;
 import org.apache.storm.generated.NotAliveException;
 import org.apache.storm.generated.RebalanceOptions;
 import org.apache.storm.generated.SettableBlobMeta;
@@ -913,6 +914,42 @@ public class Nimbus {
                 aliveExecutors = new HashSet<>(aliveExecutors(td, allExecutors, assignment));
             }
             ret.put(topoId, aliveExecutors);
+        }
+        return ret;
+    }
+    
+    private static List<Integer> asIntExec(List<Long> exec) {
+        //TODO this should just not exist
+        List<Integer> ret = new ArrayList<>(2);
+        ret.add(exec.get(0).intValue());
+        ret.add(exec.get(1).intValue());
+        return ret;
+    }
+    
+    //TODO private
+    public Map<String, Set<Long>> computeSupervisorToDeadPorts(Map<String, Assignment> existingAssignments, Map<String, Set<List<Integer>>> topologyToExecutors,
+            Map<String, Set<List<Integer>>> topologyToAliveExecutors) {
+        Map<String, Set<Long>> ret = new HashMap<>();
+        for (Entry<String, Assignment> entry: existingAssignments.entrySet()) {
+            String topoId = entry.getKey();
+            Assignment assignment = entry.getValue();
+            Set<List<Integer>> allExecutors = topologyToExecutors.get(topoId);
+            Set<List<Integer>> aliveExecutors = topologyToAliveExecutors.get(topoId);
+            Set<List<Integer>> deadExecutors = new HashSet<>(allExecutors);
+            deadExecutors.removeAll(aliveExecutors);
+            Map<List<Long>, NodeInfo> execToNodePort = assignment.get_executor_node_port();
+            for (Entry<List<Long>, NodeInfo> assigned: execToNodePort.entrySet()) {
+                if (deadExecutors.contains(asIntExec(assigned.getKey()))) {
+                    NodeInfo info = assigned.getValue();
+                    String superId = info.get_node();
+                    Set<Long> ports = ret.get(superId);
+                    if (ports == null) {
+                        ports = new HashSet<>();
+                        ret.put(superId, ports);
+                    }
+                    ports.addAll(info.get_port());
+                }
+            }
         }
         return ret;
     }
