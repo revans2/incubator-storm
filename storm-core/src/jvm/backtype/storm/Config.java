@@ -2387,6 +2387,12 @@ public class Config extends HashMap<String, Object> {
     @isBoolean
     public static final String TOPOLOGY_WORKER_WAIT_FOR_MESSAGING_CONNECTIONS_READY = "topology.worker.wait.for.messaging.connections.ready";
 
+    /**
+     * Do not use this. This is a terrible hack. Temporarily here to allow user writes to stormdist directory.
+     */
+    @isBoolean
+    public static final String STORM_WORKER_STORMDIST_DIR_WRITE = "storm.worker.stormdist.dir.write";
+
     public static void setClasspath(Map conf, String cp) {
         conf.put(Config.TOPOLOGY_CLASSPATH, cp);
     }
