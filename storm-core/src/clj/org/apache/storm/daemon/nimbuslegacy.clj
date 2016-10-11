@@ -95,37 +95,6 @@
   (let [key-iter (.listKeys blob-store)]
     (iterator-seq key-iter)))
 
-(defn- alive-executors
-  [nimbus ^TopologyDetails topology-details all-executors existing-assignment]
-  (log-debug "Computing alive executors for " (.getId topology-details) "\n"
-             "Executors: " (pr-str all-executors) "\n"
-             "Assignment: " (pr-str existing-assignment) "\n"
-             "Heartbeat cache: " (pr-str (.get (.get (.getHeartbeatsCache nimbus)) (.getId topology-details)))
-             )
-  ;; TODO: need to consider all executors associated with a dead executor (in same slot) dead as well,
-  ;; don't just rely on heartbeat being the same
-  (let [conf (.getConf nimbus)
-        storm-id (.getId topology-details)
-        executor-start-times (:executor->start-time-secs existing-assignment)
-        heartbeats-cache (.get (.get (.getHeartbeatsCache nimbus)) storm-id)]
-    (->> all-executors
-        (filter (fn [executor]
-          (let [start-time (get executor-start-times executor)
-                is-timed-out (.get (.get heartbeats-cache (StatsUtil/convertExecutor executor)) "is-timed-out")]
-            (if (and start-time
-                   (or
-                    (< (Time/deltaSecs start-time)
-                       (conf NIMBUS-TASK-LAUNCH-SECS))
-                    (not is-timed-out)
-                    ))
-              true
-              (do
-                (log-message "Executor " storm-id ":" executor " not alive")
-                false))
-            )))
-        doall)))
-
-
 (defn- to-executor-id [task-ids]
   [(first task-ids) (last task-ids)])
 
@@ -171,14 +140,14 @@
   (into {} (for [tid storm-ids]
              {tid (set (compute-executors nimbus tid))})))
 
-(defn- compute-topology->alive-executors [nimbus existing-assignments topologies topology->executors scratch-topology-id]
+(defn- compute-topology->alive-executors [nimbus thrift-existing-assignments topologies topology->executors scratch-topology-id]
   "compute a topology-id -> alive executors map"
-  (into {} (for [[tid assignment] existing-assignments
+  (into {} (for [[tid assignment] thrift-existing-assignments
                  :let [topology-details (.getById topologies tid)
                        all-executors (topology->executors tid)
                        alive-executors (if (and scratch-topology-id (= scratch-topology-id tid))
                                          all-executors
-                                         (set (alive-executors nimbus topology-details all-executors assignment)))]]
+                                         (clojurify-structure (set (.aliveExecutors nimbus topology-details all-executors assignment))))]]
              {tid alive-executors})))
 
 (defn- compute-supervisor->dead-ports [nimbus existing-assignments topology->executors topology->alive-executors]
@@ -326,7 +295,7 @@
         ;; update the executors heartbeats first.
         _ (.updateAllHeartbeats nimbus thrift-existing-assignments topology->executors)
         topology->alive-executors (compute-topology->alive-executors nimbus
-                                                                     existing-assignments
+                                                                     thrift-existing-assignments
                                                                      topologies
                                                                      topology->executors
                                                                      scratch-topology-id)

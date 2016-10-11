@@ -27,6 +27,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -803,5 +804,41 @@ public class Nimbus {
             String topoId = entry.getKey();
             updateHeartbeats(topoId, topologyToExecutors.get(topoId), entry.getValue());
         }
+    }
+    
+    //TODO private
+    public Set<List<Long>> aliveExecutors(TopologyDetails td, Set<List<? extends Number>> allExecutors, Assignment assignment) {
+        String topoId = td.getId();
+        Map<List<Integer>, Map<String, Object>> hbCache = getHeartbeatsCache().get().get(topoId);
+        LOG.debug("NEW  Computing alive executors for {}\nExecutors: {}\nAssignment: {}\nHeartbeat cache: {}",
+                topoId, allExecutors, assignment, hbCache);
+        //TODO need to consider all executors associated with a dead executor (in same slot) dead as well,
+        // don't just rely on heartbeat being the same
+        
+        Map<String, Object> conf = getConf();
+        int taskLaunchSecs = Utils.getInt(conf.get(Config.NIMBUS_TASK_LAUNCH_SECS));
+        Set<List<Long>> ret = new HashSet<>();
+        Map<List<Long>, Long> execToStartTimes = assignment.get_executor_start_time_secs();
+
+        for (List<? extends Number> cljExec: allExecutors) {
+            //TODO it really would be best to not need to do this translation.
+            // Ideally we would not use a List<Number> but instead use Something else for the executor data.
+            List<Long> exec = new ArrayList<Long>(cljExec.size());
+            for (Number num : cljExec) {
+                exec.add(num.longValue());
+            }
+
+            Long startTime = execToStartTimes.get(exec);
+            //TODO it would really be great to not use a Map with strings to pass around this kind of cached data
+            // Lets use a real object instead.
+            Boolean isTimedOut = (Boolean)hbCache.get(StatsUtil.convertExecutor(exec)).get("is-timed-out");
+            Integer delta = startTime == null ? null : Time.deltaSecs(startTime.intValue());
+            if (startTime != null && ((delta < taskLaunchSecs) || !isTimedOut)) {
+                ret.add(exec);
+            } else {
+                LOG.info("Executor {}:{} not alive", topoId, exec);
+            }
+        }
+        return ret;
     }
 }
