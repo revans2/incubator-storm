@@ -877,16 +877,14 @@ public class Nimbus {
         return ret;
     }
     
-//    (defn compute-executor->component [nimbus storm-id]
-//            (let [conf (.getConf nimbus)
-//                  blob-store (.getBlobStore nimbus)
-//                  executors (clojurify-structure (.computeExecutors nimbus storm-id))
-//                  topology (Nimbus/readStromTopologyAsNimbus storm-id blob-store)
-//                  storm-conf (clojurify-structure (Nimbus/readTopoConfAsNimbus storm-id blob-store))
-//                  task->component (clojurify-structure (StormCommon/stormTaskInfo topology storm-conf))
-//                  executor->component (into {} (for [executor executors
-//                                                     :let [start-task (first executor)
-//                                                           component (task->component start-task)]]
-//                                                 {executor component}))]
-//                  executor->component))
+    //TODO private
+    public Map<String, Set<List<Integer>>> computeTopologyToExecutors(List<String> topoIds) throws KeyNotFoundException, AuthorizationException, InvalidTopologyException, IOException {
+        Map<String, Set<List<Integer>>> ret = new HashMap<>();
+        if (topoIds != null) {
+            for (String topoId: topoIds) {
+                ret.put(topoId, new HashSet<>(computeExecutors(topoId)));
+            }
+        }
+        return ret;
+    }
 }

@@ -25,7 +25,7 @@
             MutableObject])
   (:import [org.apache.storm.security.auth NimbusPrincipal])
   (:import [javax.security.auth Subject])
-  (:import [java.util UUID Random ArrayList List Collections])
+  (:import [java.util UUID Random ArrayList List Collections Set])
   (:import [java.util.zip ZipFile])
   (:import [java.util.concurrent.locks ReentrantReadWriteLock])
   (:import [java.util.concurrent Semaphore])
@@ -149,6 +149,7 @@
     (prewalk (fn [x]
              (cond (instance? Map x) (into {} x)
                    (instance? List x) (vec x)
+                   (instance? Set x) (into #{} x)
                    ;; (Boolean. false) does not evaluate to false in an if.
                    ;; This fixes that.
                    (instance? Boolean x) (boolean x)
