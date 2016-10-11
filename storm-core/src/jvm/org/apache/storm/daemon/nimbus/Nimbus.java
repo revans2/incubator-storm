@@ -341,7 +341,7 @@ public class Nimbus {
     }
     
     //TODO private
-    public static StormTopology readStromTopologyAsNimbus(String topoId, BlobStore store) throws KeyNotFoundException, AuthorizationException, IOException {
+    public static StormTopology readStormTopologyAsNimbus(String topoId, BlobStore store) throws KeyNotFoundException, AuthorizationException, IOException {
         return store.readTopology(topoId, NIMBUS_SUBJECT);
     }
     
@@ -759,22 +759,19 @@ public class Nimbus {
                 minReplicationCount, confCount, codeCount, jarCount);
     }
     
-    //TODO replace this ASAP
-    private static final clojure.lang.IFn FIXME_COMPUTE_EXEC_TO_COMP = clojure.java.api.Clojure.var("org.apache.storm.daemon.nimbuslegacy", "compute-executor->component");
-    
-    public TopologyDetails readTopologyDetails(String topoId) throws NotAliveException, KeyNotFoundException, AuthorizationException, IOException {
+    public TopologyDetails readTopologyDetails(String topoId) throws NotAliveException, KeyNotFoundException, AuthorizationException, IOException, InvalidTopologyException {
         StormBase base = getStormClusterState().stormBase(topoId, null);
         if (base == null) {
             throw new NotAliveException(topoId);
         }
         BlobStore store = getBlobStore();
         Map<String, Object> topoConf = readTopoConfAsNimbus(topoId, store);
-        StormTopology topo = readStromTopologyAsNimbus(topoId, store);
-        Map<List<Number>, String> rawExecToComponent = (Map<List<Number>, String>) FIXME_COMPUTE_EXEC_TO_COMP.invoke(this, topoId);
+        StormTopology topo = readStormTopologyAsNimbus(topoId, store);
+        Map<List<Integer>, String> rawExecToComponent = computeExecutorToComponent(topoId);
         Map<ExecutorDetails, String> executorsToComponent = new HashMap<>();
-        for (Entry<List<Number>, String> entry: rawExecToComponent.entrySet()) {
-            List<Number> execs = entry.getKey();
-            ExecutorDetails execDetails = new ExecutorDetails(Utils.getInt(execs.get(0)), Utils.getInt(execs.get(1)));
+        for (Entry<List<Integer>, String> entry: rawExecToComponent.entrySet()) {
+            List<Integer> execs = entry.getKey();
+            ExecutorDetails execDetails = new ExecutorDetails(execs.get(0), execs.get(1));
             executorsToComponent.put(execDetails, entry.getValue());
         }
         
@@ -845,7 +842,7 @@ public class Nimbus {
         StormBase base = getStormClusterState().stormBase(topoId, null);
         Map<String, Integer> compToExecutors = base.get_component_executors();
         Map<String, Object> topoConf = readTopoConfAsNimbus(topoId, store);
-        StormTopology topology = readStromTopologyAsNimbus(topoId, store);
+        StormTopology topology = readStormTopologyAsNimbus(topoId, store);
         List<List<Integer>> ret = new ArrayList<>();
         if (compToExecutors != null) {
             Map<Integer, String> taskInfo = StormCommon.stormTaskInfo(topology, topoConf);
@@ -864,4 +861,32 @@ public class Nimbus {
         }
         return ret;
     }
+    
+    //TODO private
+    public Map<List<Integer>, String> computeExecutorToComponent(String topoId) throws KeyNotFoundException, AuthorizationException, InvalidTopologyException, IOException {
+        BlobStore store = getBlobStore();
+        //TODO computing executors and this both read topoConf and topology.  Lets see if we can just compute all of this in one pass.
+        List<List<Integer>> executors = computeExecutors(topoId);
+        StormTopology topology = readStormTopologyAsNimbus(topoId, store);
+        Map<String, Object> topoConf = readTopoConfAsNimbus(topoId, store);
+        Map<Integer, String> taskToComponent = StormCommon.stormTaskInfo(topology, topoConf);
+        Map<List<Integer>, String> ret = new HashMap<>();
+        for (List<Integer> executor: executors) {
+            ret.put(executor, taskToComponent.get(executor.get(0)));
+        }
+        return ret;
+    }
+    
+//    (defn compute-executor->component [nimbus storm-id]
+//            (let [conf (.getConf nimbus)
+//                  blob-store (.getBlobStore nimbus)
+//                  executors (clojurify-structure (.computeExecutors nimbus storm-id))
+//                  topology (Nimbus/readStromTopologyAsNimbus storm-id blob-store)
+//                  storm-conf (clojurify-structure (Nimbus/readTopoConfAsNimbus storm-id blob-store))
+//                  task->component (clojurify-structure (StormCommon/stormTaskInfo topology storm-conf))
+//                  executor->component (into {} (for [executor executors
+//                                                     :let [start-task (first executor)
+//                                                           component (task->component start-task)]]
+//                                                 {executor component}))]
+//                  executor->component))
 }
