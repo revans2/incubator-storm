@@ -23,7 +23,7 @@
            [org.apache.storm.blobstore BlobStore]
            [org.apache.storm.nimbus InMemoryTopologyActionNotifier]
            [org.apache.storm.daemon.nimbus Nimbus]
-           [org.apache.storm.generated GlobalStreamId TopologyStatus SupervisorInfo]
+           [org.apache.storm.generated GlobalStreamId TopologyStatus SupervisorInfo StormTopology]
            [org.apache.storm Thrift MockAutoCred]
            [org.apache.storm.stats BoltExecutorStats StatsUtil])
   (:import [org.apache.storm.testing.staticmocking MockedZookeeper])
@@ -38,6 +38,7 @@
             LogConfig LogLevel LogLevelAction Assignment NodeInfo])
   (:import [java.util HashMap])
   (:import [java.io File])
+  (:import [javax.security.auth Subject])
   (:import [org.apache.storm.utils Time Utils Utils$UptimeComputer ConfigUtils IPredicate StormCommonInstaller]
            [org.apache.storm.utils.staticmocking ConfigUtilsInstaller UtilsInstaller])
   (:import [org.apache.storm.zookeeper Zookeeper])
@@ -1360,11 +1361,17 @@
     (let [nimbus (:nimbus cluster)
           expected-name "test-nimbus-check-autho-params"
           expected-conf {TOPOLOGY-NAME expected-name
+                         TOPOLOGY-WORKERS 1
+                         TOPOLOGY-MESSAGE-TIMEOUT-SECS 30
                          "foo" "bar"}
           expected-operation "getTopology"
           assignment (doto (Assignment.)
                        (.set_executor_node_port {[1 1] (NodeInfo. "super1" #{1}),
                                                  [2 2] (NodeInfo. "super2" #{2})}))
+          topology (doto (StormTopology. )
+                     (.set_spouts {})
+                     (.set_bolts {})
+                     (.set_state_spouts {}))
           clojurified-assignment (clojurify-assignment assignment)
           topo-assignment {expected-name assignment}
           check-auth-state (atom [])
@@ -1379,10 +1386,9 @@
                             (.put "super2" (doto (SupervisorInfo.) (.set_hostname "host2") (.set_meta [(long 1234)])
                                              (.set_uptime_secs (long 123)) (.set_meta [1 2 3]) (.set_used_ports []) (.set_resources_map {}))))]
       (.thenReturn (Mockito/when (.allSupervisorInfo cluster-state)) all-supervisors)
+      (.thenReturn (Mockito/when (.readTopologyConf blob-store (Mockito/any String) (Mockito/any Subject))) expected-conf)
+      (.thenReturn (Mockito/when (.readTopology blob-store (Mockito/any String) (Mockito/any Subject))) topology)
       (stubbing [nimbus/check-authorization! mock-check-authorization
-                 nimbus/try-read-storm-conf expected-conf
-                 nimbus/try-read-storm-topology nil
-                 nimbus/get-clojurified-task-info {}
                  clojurify-assignment clojurified-assignment
                  nimbus/topology-assignments topo-assignment
                  nimbus/get-launch-time-secs 0]
