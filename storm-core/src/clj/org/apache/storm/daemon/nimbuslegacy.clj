@@ -98,7 +98,7 @@
 (defn- compute-topology->executors [nimbus storm-ids]
   "compute a topology-id -> executors map"
   (into {} (for [tid storm-ids]
-             {tid (set (clojurify-structure (.computeExecutors nimbus tid)))})))
+             {tid (set (.computeExecutors nimbus tid))})))
 
 (defn- compute-topology->alive-executors [nimbus thrift-existing-assignments topologies topology->executors scratch-topology-id]
   "compute a topology-id -> alive executors map"
@@ -251,7 +251,7 @@
 (defn compute-new-scheduler-assignments [nimbus thrift-existing-assignments existing-assignments topologies scratch-topology-id]
   (let [conf (.getConf nimbus)
         storm-cluster-state (.getStormClusterState nimbus)
-        topology->executors (compute-topology->executors nimbus (keys thrift-existing-assignments))
+        topology->executors (clojurify-structure (compute-topology->executors nimbus (keys thrift-existing-assignments)))
         ;; update the executors heartbeats first.
         _ (.updateAllHeartbeats nimbus thrift-existing-assignments topology->executors)
         topology->alive-executors (compute-topology->alive-executors nimbus
