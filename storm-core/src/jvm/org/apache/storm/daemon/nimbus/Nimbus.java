@@ -73,6 +73,7 @@ import org.apache.storm.scheduler.DefaultScheduler;
 import org.apache.storm.scheduler.ExecutorDetails;
 import org.apache.storm.scheduler.INimbus;
 import org.apache.storm.scheduler.IScheduler;
+import org.apache.storm.scheduler.Topologies;
 import org.apache.storm.scheduler.TopologyDetails;
 import org.apache.storm.security.INimbusCredentialPlugin;
 import org.apache.storm.security.auth.AuthUtils;
@@ -800,7 +801,7 @@ public class Nimbus {
     }
     
     //TODO private
-    public Set<List<Long>> aliveExecutors(TopologyDetails td, Set<List<? extends Number>> allExecutors, Assignment assignment) {
+    public Set<List<Integer>> aliveExecutors(TopologyDetails td, Set<List<Integer>> allExecutors, Assignment assignment) {
         String topoId = td.getId();
         Map<List<Integer>, Map<String, Object>> hbCache = getHeartbeatsCache().get().get(topoId);
         LOG.debug("NEW  Computing alive executors for {}\nExecutors: {}\nAssignment: {}\nHeartbeat cache: {}",
@@ -810,21 +811,21 @@ public class Nimbus {
         
         Map<String, Object> conf = getConf();
         int taskLaunchSecs = Utils.getInt(conf.get(Config.NIMBUS_TASK_LAUNCH_SECS));
-        Set<List<Long>> ret = new HashSet<>();
+        Set<List<Integer>> ret = new HashSet<>();
         Map<List<Long>, Long> execToStartTimes = assignment.get_executor_start_time_secs();
 
-        for (List<? extends Number> cljExec: allExecutors) {
+        for (List<Integer> exec: allExecutors) {
             //TODO it really would be best to not need to do this translation.
-            // Ideally we would not use a List<Number> but instead use Something else for the executor data.
-            List<Long> exec = new ArrayList<Long>(cljExec.size());
-            for (Number num : cljExec) {
-                exec.add(num.longValue());
+            // Ideally we would not use a List<Integer> but instead use Something else for the executor data.
+            List<Long> longExec = new ArrayList<Long>(exec.size());
+            for (Integer num : exec) {
+                longExec.add(num.longValue());
             }
 
-            Long startTime = execToStartTimes.get(exec);
+            Long startTime = execToStartTimes.get(longExec);
             //TODO it would really be great to not use a Map with strings to pass around this kind of cached data
             // Lets use a real object instead.
-            Boolean isTimedOut = (Boolean)hbCache.get(StatsUtil.convertExecutor(exec)).get("is-timed-out");
+            Boolean isTimedOut = (Boolean)hbCache.get(StatsUtil.convertExecutor(longExec)).get("is-timed-out");
             Integer delta = startTime == null ? null : Time.deltaSecs(startTime.intValue());
             if (startTime != null && ((delta < taskLaunchSecs) || !isTimedOut)) {
                 ret.add(exec);
@@ -884,6 +885,34 @@ public class Nimbus {
             for (String topoId: topoIds) {
                 ret.put(topoId, new HashSet<>(computeExecutors(topoId)));
             }
+        }
+        return ret;
+    }
+    
+    //TODO private
+    /**
+     * compute a topology-id -> alive executors map
+     * @param existingAssignment the current assignments
+     * @param topologies the current topologies
+     * @param topologyToExecutors the executors for the current topologies
+     * @param scratchTopologyId the topology being rebalanced and should be excluded
+     * @return the map of topology id to alive executors
+     */
+    public Map<String, Set<List<Integer>>> computeTopologyToAliveExecutors(Map<String, Assignment> existingAssignment, Topologies topologies, 
+            Map<String, Set<List<Integer>>> topologyToExecutors, String scratchTopologyId) {
+        Map<String, Set<List<Integer>>> ret = new HashMap<>();
+        for (Entry<String, Assignment> entry: existingAssignment.entrySet()) {
+            String topoId = entry.getKey();
+            Assignment assignment = entry.getValue();
+            TopologyDetails td = topologies.getById(topoId);
+            Set<List<Integer>> allExecutors = topologyToExecutors.get(topoId);
+            Set<List<Integer>> aliveExecutors;
+            if (topoId.equals(scratchTopologyId)) {
+                aliveExecutors = allExecutors;
+            } else {
+                aliveExecutors = new HashSet<>(aliveExecutors(td, allExecutors, assignment));
+            }
+            ret.put(topoId, aliveExecutors);
         }
         return ret;
     }

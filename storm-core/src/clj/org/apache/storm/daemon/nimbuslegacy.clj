@@ -95,16 +95,6 @@
   (let [key-iter (.listKeys blob-store)]
     (iterator-seq key-iter)))
 
-(defn- compute-topology->alive-executors [nimbus thrift-existing-assignments topologies topology->executors scratch-topology-id]
-  "compute a topology-id -> alive executors map"
-  (into {} (for [[tid assignment] thrift-existing-assignments
-                 :let [topology-details (.getById topologies tid)
-                       all-executors (topology->executors tid)
-                       alive-executors (if (and scratch-topology-id (= scratch-topology-id tid))
-                                         all-executors
-                                         (clojurify-structure (set (.aliveExecutors nimbus topology-details all-executors assignment))))]]
-             {tid alive-executors})))
-
 (defn- compute-supervisor->dead-ports [nimbus existing-assignments topology->executors topology->alive-executors]
   (let [dead-slots (into [] (for [[tid assignment] existing-assignments
                                   :let [all-executors (topology->executors tid)
@@ -249,11 +239,11 @@
         topology->executors (clojurify-structure (.computeTopologyToExecutors nimbus (keys thrift-existing-assignments)))
         ;; update the executors heartbeats first.
         _ (.updateAllHeartbeats nimbus thrift-existing-assignments topology->executors)
-        topology->alive-executors (compute-topology->alive-executors nimbus
+        topology->alive-executors (clojurify-structure (.computeTopologyToAliveExecutors nimbus
                                                                      thrift-existing-assignments
                                                                      topologies
                                                                      topology->executors
-                                                                     scratch-topology-id)
+                                                                     scratch-topology-id))
         supervisor->dead-ports (compute-supervisor->dead-ports nimbus
                                                                existing-assignments
                                                                topology->executors
