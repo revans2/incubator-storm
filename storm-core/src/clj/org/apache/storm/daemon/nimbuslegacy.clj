@@ -95,37 +95,15 @@
   (let [key-iter (.listKeys blob-store)]
     (iterator-seq key-iter)))
 
-(defn- to-executor-id [task-ids]
-  [(first task-ids) (last task-ids)])
-
 ;; convenience method for unit test
 (defn get-clojurified-task-info [topology storm-conf]
+  (log-message "GETTING TASK INFO FOR\n" topology "\nAND CONF\n" storm-conf) 
   (clojurify-structure (StormCommon/stormTaskInfo topology storm-conf)))
-
-;TODO: when translating this function, you should replace the map-val with a proper for loop HERE
-(defn- compute-executors [nimbus storm-id]
-  (let [conf (.getConf nimbus)
-        blob-store (.getBlobStore nimbus)
-        storm-base (.stormBase (.getStormClusterState nimbus) storm-id nil)
-        component->executors (.get_component_executors storm-base)
-        storm-conf (clojurify-structure (Nimbus/readTopoConfAsNimbus storm-id blob-store))
-        topology (Nimbus/readStromTopologyAsNimbus storm-id blob-store)]
-    (if (nil? component->executors)
-      []
-      (->> (StormCommon/stormTaskInfo topology storm-conf)
-           (Utils/reverseMap)
-           clojurify-structure
-           (map-val sort)
-           ((fn [ & maps ] (Utils/joinMaps (into-array Map (into [component->executors] maps)))))
-           (clojurify-structure)
-           (map-val (partial apply (fn part-fixed [a b] (Utils/partitionFixed a b))))
-           (mapcat second)
-           (map to-executor-id)))))
 
 (defn compute-executor->component [nimbus storm-id]
   (let [conf (.getConf nimbus)
         blob-store (.getBlobStore nimbus)
-        executors (compute-executors nimbus storm-id)
+        executors (clojurify-structure (.computeExecutors nimbus storm-id))
         topology (Nimbus/readStromTopologyAsNimbus storm-id blob-store)
         storm-conf (clojurify-structure (Nimbus/readTopoConfAsNimbus storm-id blob-store))
         task->component (get-clojurified-task-info topology storm-conf)
@@ -138,7 +116,7 @@
 (defn- compute-topology->executors [nimbus storm-ids]
   "compute a topology-id -> executors map"
   (into {} (for [tid storm-ids]
-             {tid (set (compute-executors nimbus tid))})))
+             {tid (set (clojurify-structure (.computeExecutors nimbus tid)))})))
 
 (defn- compute-topology->alive-executors [nimbus thrift-existing-assignments topologies topology->executors scratch-topology-id]
   "compute a topology-id -> alive executors map"
@@ -537,7 +515,7 @@
   (let [storm-cluster-state (.getStormClusterState nimbus)
         conf (.getConf nimbus)
         blob-store (.getBlobStore nimbus)
-        storm-conf (clojurify-structure (Nimbus/readTopoConf conf storm-id blob-store))
+        storm-conf (clojurify-structure (Nimbus/readTopoConf storm-id blob-store))
         topology (StormCommon/systemTopology storm-conf (Nimbus/readStormTopology storm-id blob-store))
         num-executors (->> (clojurify-structure (StormCommon/allComponents topology)) (map-val #(StormCommon/numStartExecutors %)))]
     (log-message "Activating " storm-name ": " storm-id)

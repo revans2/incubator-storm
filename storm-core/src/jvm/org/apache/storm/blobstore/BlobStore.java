@@ -31,6 +31,8 @@ import java.util.regex.Pattern;
 import javax.security.auth.Subject;
 
 import org.apache.storm.nimbus.NimbusInfo;
+import org.apache.storm.utils.ConfigUtils;
+import org.apache.storm.utils.Utils;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -41,6 +43,7 @@ import org.apache.storm.generated.KeyNotFoundException;
 import org.apache.storm.generated.KeyAlreadyExistsException;
 import org.apache.storm.generated.ReadableBlobMeta;
 import org.apache.storm.generated.SettableBlobMeta;
+import org.apache.storm.generated.StormTopology;
 
 /**
  * Provides a way to store blobs that can be downloaded.
@@ -303,6 +306,32 @@ public abstract class BlobStore implements Shutdownable {
         return bytes;
     }
 
+    /**
+     * Read a stored topology helper method
+     * @param topoId the id of the topology to read
+     * @param who who to read it as
+     * @return the deserialized topology.
+     * @throws IOException on any error while reading the blob.
+     * @throws AuthorizationException if who is not allowed to read the blob
+     * @throws KeyNotFoundException if the blob could not be found
+     */
+    public StormTopology readTopology(String topoId, Subject who) throws KeyNotFoundException, AuthorizationException, IOException {
+        return Utils.deserialize(readBlob(ConfigUtils.masterStormCodeKey(topoId), who), StormTopology.class);
+    }
+    
+    /**
+     * Read a stored topology config helper method
+     * @param topoId the id of the topology whos conf we are reading
+     * @param who who we are reading this as
+     * @return the deserialized config
+     * @throws KeyNotFoundException if the blob could not be found
+     * @throws AuthorizationException if who is not allowed to read the blob
+     * @throws IOException on any error while reading the blob.
+     */
+    public Map<String, Object> readTopologyConf(String topoId, Subject who) throws KeyNotFoundException, AuthorizationException, IOException {
+        return Utils.fromCompressedJsonConf(readBlob(ConfigUtils.masterStormConfKey(topoId), who));
+    }
+    
     /**
      * Output stream implementation used for reading the
      * metadata and data information.

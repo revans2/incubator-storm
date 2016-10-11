@@ -50,14 +50,12 @@ import org.apache.storm.blobstore.LocalFsBlobStore;
 import org.apache.storm.cluster.ClusterStateContext;
 import org.apache.storm.cluster.ClusterUtils;
 import org.apache.storm.cluster.DaemonType;
-import org.apache.storm.cluster.ExecutorBeat;
 import org.apache.storm.cluster.IStormClusterState;
 import org.apache.storm.daemon.StormCommon;
 import org.apache.storm.generated.Assignment;
 import org.apache.storm.generated.AuthorizationException;
-import org.apache.storm.generated.ExecutorInfo;
+import org.apache.storm.generated.InvalidTopologyException;
 import org.apache.storm.generated.KeyNotFoundException;
-import org.apache.storm.generated.NodeInfo;
 import org.apache.storm.generated.NotAliveException;
 import org.apache.storm.generated.RebalanceOptions;
 import org.apache.storm.generated.SettableBlobMeta;
@@ -93,8 +91,6 @@ import org.apache.storm.utils.VersionInfo;
 import org.apache.storm.zookeeper.Zookeeper;
 import org.apache.zookeeper.ZooDefs;
 import org.apache.zookeeper.data.ACL;
-import org.json.simple.JSONObject;
-import org.json.simple.JSONValue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -313,8 +309,8 @@ public class Nimbus {
     }
     
     //TODO private
-    public static Map<String, Object> readTopoConf(Map<String, Object> conf, String topoId, BlobStore blobStore) throws KeyNotFoundException, AuthorizationException, IOException {
-        return Utils.fromCompressedJsonConf(blobStore.readBlob(ConfigUtils.masterStormConfKey(topoId), getSubject()));
+    public static Map<String, Object> readTopoConf(String topoId, BlobStore blobStore) throws KeyNotFoundException, AuthorizationException, IOException {
+        return blobStore.readTopologyConf(topoId, getSubject());
     }
     
     //TODO private
@@ -335,18 +331,18 @@ public class Nimbus {
     }
     
     //TODO private
-    public static StormTopology readStormTopology(String topoId, BlobStore store) throws Exception {
-        return Utils.deserialize(store.readBlob(ConfigUtils.masterStormCodeKey(topoId), getSubject()), StormTopology.class);
+    public static StormTopology readStormTopology(String topoId, BlobStore store) throws KeyNotFoundException, AuthorizationException, IOException {
+        return store.readTopology(topoId, getSubject());
     }
     
     //TODO private
     public static Map<String, Object> readTopoConfAsNimbus(String topoId, BlobStore store) throws KeyNotFoundException, AuthorizationException, IOException {
-        return Utils.fromCompressedJsonConf(store.readBlob(ConfigUtils.masterStormConfKey(topoId), NIMBUS_SUBJECT));
+        return store.readTopologyConf(topoId, NIMBUS_SUBJECT);
     }
     
     //TODO private
     public static StormTopology readStromTopologyAsNimbus(String topoId, BlobStore store) throws KeyNotFoundException, AuthorizationException, IOException {
-        return Utils.deserialize(store.readBlob(ConfigUtils.masterStormCodeKey(topoId), NIMBUS_SUBJECT), StormTopology.class);
+        return store.readTopology(topoId, NIMBUS_SUBJECT);
     }
     
     private final Map<String, Object> conf;
@@ -837,6 +833,33 @@ public class Nimbus {
                 ret.add(exec);
             } else {
                 LOG.info("Executor {}:{} not alive", topoId, exec);
+            }
+        }
+        return ret;
+    }
+    
+    //TODO private
+    public List<List<Integer>> computeExecutors(String topoId) throws KeyNotFoundException, AuthorizationException, IOException, InvalidTopologyException {
+        Map<String, Object> conf = getConf();
+        BlobStore store = getBlobStore();
+        StormBase base = getStormClusterState().stormBase(topoId, null);
+        Map<String, Integer> compToExecutors = base.get_component_executors();
+        Map<String, Object> topoConf = readTopoConfAsNimbus(topoId, store);
+        StormTopology topology = readStromTopologyAsNimbus(topoId, store);
+        List<List<Integer>> ret = new ArrayList<>();
+        if (compToExecutors != null) {
+            Map<Integer, String> taskInfo = StormCommon.stormTaskInfo(topology, topoConf);
+            Map<String, List<Integer>> compToTaskList = Utils.reverseMap(taskInfo);
+            for (Entry<String, List<Integer>> entry: compToTaskList.entrySet()) {
+                List<Integer> comps = entry.getValue();
+                comps.sort(null);
+                Integer numExecutors = compToExecutors.get(entry.getKey());
+                if (numExecutors != null) {
+                    List<List<Integer>> partitioned = Utils.partitionFixed(numExecutors, comps);
+                    for (List<Integer> partition: partitioned) {
+                        ret.add(Arrays.asList(partition.get(0), partition.get(partition.size() - 1)));
+                    }
+                }
             }
         }
         return ret;

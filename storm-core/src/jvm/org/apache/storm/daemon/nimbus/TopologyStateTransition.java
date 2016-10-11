@@ -59,7 +59,7 @@ public interface TopologyStateTransition {
         if (killTime != null) {
             delay = ((Number)killTime).intValue();
         } else {
-            delay = Utils.getInt(Nimbus.readTopoConf(nimbus.getConf(), topoId, nimbus.getBlobStore()).get(Config.TOPOLOGY_MESSAGE_TIMEOUT_SECS));
+            delay = Utils.getInt(Nimbus.readTopoConf(topoId, nimbus.getBlobStore()).get(Config.TOPOLOGY_MESSAGE_TIMEOUT_SECS));
         }
         nimbus.delayEvent(topoId, delay, TopologyActions.REMOVE, null);
         StormBase sb = new StormBase();
@@ -80,7 +80,7 @@ public interface TopologyStateTransition {
         if (rbo.is_set_wait_secs()) {
             delay = rbo.get_wait_secs();
         } else {
-            delay = Utils.getInt(Nimbus.readTopoConf(nimbus.getConf(), topoId, nimbus.getBlobStore()).get(Config.TOPOLOGY_MESSAGE_TIMEOUT_SECS));
+            delay = Utils.getInt(Nimbus.readTopoConf(topoId, nimbus.getBlobStore()).get(Config.TOPOLOGY_MESSAGE_TIMEOUT_SECS));
         }
         nimbus.delayEvent(topoId, delay, TopologyActions.DO_REBALANCE, null);
         
