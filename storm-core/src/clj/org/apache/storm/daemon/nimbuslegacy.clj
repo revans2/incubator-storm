@@ -95,18 +95,13 @@
   (let [key-iter (.listKeys blob-store)]
     (iterator-seq key-iter)))
 
-;; convenience method for unit test
-(defn get-clojurified-task-info [topology storm-conf]
-  (log-message "GETTING TASK INFO FOR\n" topology "\nAND CONF\n" storm-conf) 
-  (clojurify-structure (StormCommon/stormTaskInfo topology storm-conf)))
-
 (defn compute-executor->component [nimbus storm-id]
   (let [conf (.getConf nimbus)
         blob-store (.getBlobStore nimbus)
         executors (clojurify-structure (.computeExecutors nimbus storm-id))
         topology (Nimbus/readStromTopologyAsNimbus storm-id blob-store)
         storm-conf (clojurify-structure (Nimbus/readTopoConfAsNimbus storm-id blob-store))
-        task->component (get-clojurified-task-info topology storm-conf)
+        task->component (clojurify-structure (StormCommon/stormTaskInfo topology storm-conf))
         executor->component (into {} (for [executor executors
                                            :let [start-task (first executor)
                                                  component (task->component start-task)]]
@@ -1067,7 +1062,7 @@
                                           topology-conf
                                           operation)
                   topology (try-read-storm-topology storm-id blob-store)
-                  task->component (get-clojurified-task-info topology topology-conf)
+                  task->component (clojurify-structure (StormCommon/stormTaskInfo topology topology-conf))
                   base (clojurify-storm-base (.stormBase storm-cluster-state storm-id nil))
                   launch-time-secs (get-launch-time-secs base storm-id)
                   assignment (clojurify-assignment (.assignmentInfo storm-cluster-state storm-id nil))
