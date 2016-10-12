@@ -178,7 +178,7 @@ public class CgroupManager implements ResourceIsolationInterface {
                 } catch (IOException e) {
                     throw new RuntimeException("Cannot set memory.limit_in_bytes! Exception: ", e);
                 }
-                //need to set memory.memsw.limit_in_bytes after setting memory.limit_in_bytes or error might occur
+                // need to set memory.memsw.limit_in_bytes after setting memory.limit_in_bytes or error might occur
                 try {
                     memCore.setWithSwapUsageLimit(memLimit);
                 } catch (IOException e) {
