@@ -95,36 +95,6 @@
   (let [key-iter (.listKeys blob-store)]
     (iterator-seq key-iter)))
 
-(defn- read-all-supervisor-details
-  [nimbus supervisor->dead-ports topologies missing-assignment-topologies]
-  "return a map: {supervisor-id SupervisorDetails}"
-  (let [storm-cluster-state (.getStormClusterState nimbus)
-        supervisor-infos (.allSupervisorInfo storm-cluster-state)
-        supervisor-details (for [[id info] supervisor-infos]
-                             (SupervisorDetails. id (.get_meta info) (.get_resources_map info)))
-        ;; Note that allSlotsAvailableForScheduling
-        ;; only uses the supervisor-details. The rest of the arguments
-        ;; are there to satisfy the INimbus interface.
-        all-scheduling-slots (->> (.allSlotsAvailableForScheduling
-                                    (.getINimbus nimbus)
-                                    supervisor-details
-                                    topologies
-                                    (set missing-assignment-topologies))
-                                  (map (fn [s] {(.getNodeId s) #{(.getPort s)}}))
-                                  (apply merge-with set/union))]
-    (into {} (for [[sid supervisor-info] supervisor-infos
-                   :let [hostname (.get_hostname supervisor-info)
-                         scheduler-meta (.get_scheduler_meta supervisor-info)
-                         dead-ports (supervisor->dead-ports sid)
-                         ;; hide the dead-ports from the all-ports
-                         ;; these dead-ports can be reused in next round of assignments
-                         all-ports (-> (get all-scheduling-slots sid)
-                                       (set/difference dead-ports)
-                                       (as-> ports (map int ports)))
-                         supervisor-details (SupervisorDetails. sid hostname scheduler-meta all-ports (.get_resources_map supervisor-info))]]
-               {sid supervisor-details}))))
-
-
 ;TODO: when translating this function, you should replace the map-val with a proper for loop HERE
 (defn- compute-topology->executor->node+port [scheduler-assignments]
   "convert {topology-id -> SchedulerAssignment} to
@@ -211,11 +181,10 @@
                                                                      topology->executors
                                                                      scratch-topology-id)
         topology->alive-executors (clojurify-structure j-topology->alive-executors)
-        supervisor->dead-ports (clojurify-structure (.computeSupervisorToDeadPorts nimbus
+        j-supervisor->dead-ports (.computeSupervisorToDeadPorts nimbus
                                                                thrift-existing-assignments
                                                                topology->executors
-                                                               j-topology->alive-executors))
-
+                                                               j-topology->alive-executors)
         topology->scheduler-assignment (clojurify-structure (.computeTopologyToSchedulerAssignment nimbus
                                                                                thrift-existing-assignments
                                                                                j-topology->alive-executors))
@@ -232,10 +201,10 @@
                                                                   num-used-workers )
                                                               (-> topologies (.getById t) .getNumWorkers)))))))
 
-        supervisors (read-all-supervisor-details nimbus 
-                                                 supervisor->dead-ports
+        supervisors (clojurify-structure (.readAllSupervisorDetails nimbus 
+                                                 j-supervisor->dead-ports
                                                  topologies
-                                                 missing-assignment-topologies)
+                                                 missing-assignment-topologies))
         cluster (Cluster. (.getINimbus nimbus) supervisors topology->scheduler-assignment conf)]
 
     ;; set the status map with existing topology statuses

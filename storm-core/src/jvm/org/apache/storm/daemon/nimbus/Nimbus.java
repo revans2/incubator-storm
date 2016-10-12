@@ -62,6 +62,7 @@ import org.apache.storm.generated.RebalanceOptions;
 import org.apache.storm.generated.SettableBlobMeta;
 import org.apache.storm.generated.StormBase;
 import org.apache.storm.generated.StormTopology;
+import org.apache.storm.generated.SupervisorInfo;
 import org.apache.storm.generated.TopologyStatus;
 import org.apache.storm.generated.WorkerResources;
 import org.apache.storm.metric.ClusterMetricsConsumerExecutor;
@@ -76,6 +77,7 @@ import org.apache.storm.scheduler.INimbus;
 import org.apache.storm.scheduler.IScheduler;
 import org.apache.storm.scheduler.SchedulerAssignment;
 import org.apache.storm.scheduler.SchedulerAssignmentImpl;
+import org.apache.storm.scheduler.SupervisorDetails;
 import org.apache.storm.scheduler.Topologies;
 import org.apache.storm.scheduler.TopologyDetails;
 import org.apache.storm.scheduler.WorkerSlot;
@@ -991,6 +993,59 @@ public class Nimbus {
                 }
             }
             ret.put(topoId, new SchedulerAssignmentImpl(topoId, execToSlot));
+        }
+        return ret;
+    }
+    
+    //TODO private
+    /**
+     * @param superToDeadPorts dead ports on the supervisor
+     * @param topologies all of the topologies
+     * @param missingAssignmentTopologies topologies that need assignments
+     * @return a map: {supervisor-id SupervisorDetails}
+     */
+    public Map<String, SupervisorDetails> readAllSupervisorDetails(Map<String, Set<Long>> superToDeadPorts,
+            Topologies topologies, Collection<String> missingAssignmentTopologies) {
+        Map<String, SupervisorDetails> ret = new HashMap<>();
+        IStormClusterState state = getStormClusterState();
+        Map<String, SupervisorInfo> superInfos = state.allSupervisorInfo();
+        List<SupervisorDetails> superDetails = new ArrayList<>();
+        for (Entry<String, SupervisorInfo> entry: superInfos.entrySet()) {
+            SupervisorInfo info = entry.getValue();
+            superDetails.add(new SupervisorDetails(entry.getKey(), info.get_meta(), info.get_resources_map()));
+        }
+        // Note that allSlotsAvailableForScheduling
+        // only uses the supervisor-details. The rest of the arguments
+        // are there to satisfy the INimbus interface.
+        Map<String, Set<Long>> superToPorts = new HashMap<>();
+        for (WorkerSlot slot : getINimbus().allSlotsAvailableForScheduling(superDetails, topologies, 
+                new HashSet<>(missingAssignmentTopologies))) {
+            String superId = slot.getNodeId();
+            Set<Long> ports = superToPorts.get(superId);
+            if (ports == null) {
+                ports = new HashSet<>();
+                superToPorts.put(superId, ports);
+            }
+            ports.add((long) slot.getPort());
+        }
+        for (Entry<String, SupervisorInfo> entry: superInfos.entrySet()) {
+            String superId = entry.getKey();
+            SupervisorInfo info = entry.getValue();
+            String hostname = info.get_hostname();
+            Set<Long> deadPorts = superToDeadPorts.get(superId);
+            Set<Long> allPorts = superToPorts.get(superId);
+            if (allPorts == null) {
+                allPorts = new HashSet<>();
+            } else {
+                allPorts = new HashSet<>(allPorts);
+            }
+            if (deadPorts != null) {
+                allPorts.removeAll(deadPorts);
+            }
+            //hide the dead-ports from the all-ports
+            // these dead-ports can be reused in next round of assignments}
+            ret.put(superId, new SupervisorDetails(superId, hostname, info.get_scheduler_meta(), 
+                    allPorts, info.get_resources_map()));
         }
         return ret;
     }
