@@ -74,8 +74,11 @@ import org.apache.storm.scheduler.DefaultScheduler;
 import org.apache.storm.scheduler.ExecutorDetails;
 import org.apache.storm.scheduler.INimbus;
 import org.apache.storm.scheduler.IScheduler;
+import org.apache.storm.scheduler.SchedulerAssignment;
+import org.apache.storm.scheduler.SchedulerAssignmentImpl;
 import org.apache.storm.scheduler.Topologies;
 import org.apache.storm.scheduler.TopologyDetails;
+import org.apache.storm.scheduler.WorkerSlot;
 import org.apache.storm.security.INimbusCredentialPlugin;
 import org.apache.storm.security.auth.AuthUtils;
 import org.apache.storm.security.auth.IAuthorizer;
@@ -950,6 +953,44 @@ public class Nimbus {
                     ports.addAll(info.get_port());
                 }
             }
+        }
+        return ret;
+    }
+    
+    //TODO private
+    /**
+     * Convert assignment information in zk to SchedulerAssignment, so it can be used by scheduler api.
+     * @param existingAssignments current assignments
+     * @param topologyToAliveExecutors executors that are alive
+     * @return topo ID to schedulerAssignment
+     */
+    public Map<String, SchedulerAssignment> computeTopologyToSchedulerAssignment(Map<String, Assignment> existingAssignments,
+            Map<String, Set<List<Integer>>> topologyToAliveExecutors) {
+        Map<String, SchedulerAssignment> ret = new HashMap<>();
+        for (Entry<String, Assignment> entry: existingAssignments.entrySet()) {
+            String topoId = entry.getKey();
+            Assignment assignment = entry.getValue();
+            Set<List<Integer>> aliveExecutors = topologyToAliveExecutors.get(topoId);
+            Map<List<Long>, NodeInfo> execToNodePort = assignment.get_executor_node_port();
+            Map<NodeInfo, WorkerResources> workerToResources = assignment.get_worker_resources();
+            Map<NodeInfo, WorkerSlot> nodePortToSlot = new HashMap<>();
+            for (Entry<NodeInfo, WorkerResources> nodeAndResources: workerToResources.entrySet()) {
+                NodeInfo info = nodeAndResources.getKey();
+                WorkerResources resources = nodeAndResources.getValue();
+                WorkerSlot slot = new WorkerSlot(info.get_node(), info.get_port_iterator().next(),
+                        resources.get_mem_on_heap(), resources.get_mem_off_heap(),
+                        resources.get_cpu());
+                nodePortToSlot.put(info, slot);
+            }
+            Map<ExecutorDetails, WorkerSlot> execToSlot = new HashMap<>();
+            for (Entry<List<Long>, NodeInfo> execAndNodePort: execToNodePort.entrySet()) {
+                List<Integer> exec = asIntExec(execAndNodePort.getKey());
+                NodeInfo info = execAndNodePort.getValue();
+                if (aliveExecutors.contains(exec)) {
+                    execToSlot.put(new ExecutorDetails(exec.get(0), exec.get(1)), nodePortToSlot.get(info));
+                }
+            }
+            ret.put(topoId, new SchedulerAssignmentImpl(topoId, execToSlot));
         }
         return ret;
     }

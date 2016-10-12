@@ -95,25 +95,6 @@
   (let [key-iter (.listKeys blob-store)]
     (iterator-seq key-iter)))
 
-(defn- compute-topology->scheduler-assignment [nimbus existing-assignments topology->alive-executors]
-  "convert assignment information in zk to SchedulerAssignment, so it can be used by scheduler api."
-  (into {} (for [[tid assignment] existing-assignments
-                 :let [alive-executors (topology->alive-executors tid)
-                       executor->node+port (:executor->node+port assignment)
-                       worker->resources (:worker->resources assignment)
-                       ;; making a map from node+port to WorkerSlot with allocated resources
-                       node+port->slot (into {} (for [[[node port] [mem-on-heap mem-off-heap cpu]] worker->resources]
-                                                  {[node port]
-                                                   (WorkerSlot. node port mem-on-heap mem-off-heap cpu)}))
-                       executor->slot (into {} (for [[executor [node port]] executor->node+port]
-                                                 ;; filter out the dead executors
-                                                 (if (contains? alive-executors executor)
-                                                   {(ExecutorDetails. (first executor)
-                                                                      (second executor))
-                                                    (get node+port->slot [node port])}
-                                                   {})))]]
-             {tid (SchedulerAssignmentImpl. tid executor->slot)})))
-
 (defn- read-all-supervisor-details
   [nimbus supervisor->dead-ports topologies missing-assignment-topologies]
   "return a map: {supervisor-id SupervisorDetails}"
@@ -224,19 +205,20 @@
         topology->executors (clojurify-structure (.computeTopologyToExecutors nimbus (keys thrift-existing-assignments)))
         ;; update the executors heartbeats first.
         _ (.updateAllHeartbeats nimbus thrift-existing-assignments topology->executors)
-        topology->alive-executors (clojurify-structure (.computeTopologyToAliveExecutors nimbus
+        j-topology->alive-executors (.computeTopologyToAliveExecutors nimbus
                                                                      thrift-existing-assignments
                                                                      topologies
                                                                      topology->executors
-                                                                     scratch-topology-id))
+                                                                     scratch-topology-id)
+        topology->alive-executors (clojurify-structure j-topology->alive-executors)
         supervisor->dead-ports (clojurify-structure (.computeSupervisorToDeadPorts nimbus
                                                                thrift-existing-assignments
                                                                topology->executors
-                                                               topology->alive-executors))
-        topology->scheduler-assignment (compute-topology->scheduler-assignment nimbus
-                                                                               existing-assignments
-                                                                               topology->alive-executors)
+                                                               j-topology->alive-executors))
 
+        topology->scheduler-assignment (clojurify-structure (.computeTopologyToSchedulerAssignment nimbus
+                                                                               thrift-existing-assignments
+                                                                               j-topology->alive-executors))
         missing-assignment-topologies (->> topologies
                                            .getTopologies
                                            (map (memfn getId))
