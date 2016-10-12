@@ -173,7 +173,9 @@ public class CgroupManager implements ResourceIsolationInterface {
             if (totalMem != null) {
                 MemoryCore memCore = (MemoryCore) workerGroup.getCores().get(SubSystemType.memory);
                 try {
-                    memCore.setPhysicalUsageLimit(Long.valueOf(totalMem.longValue() * 1024 * 1024));
+                    long memLimit = Long.valueOf(totalMem.longValue() * 1024 * 1024);
+                    memCore.setPhysicalUsageLimit(memLimit);
+                    memCore.setWithSwapUsageLimit(memLimit);
                 } catch (IOException e) {
                     throw new RuntimeException("Cannot set memory.limit_in_bytes! Exception: ", e);
                 }
