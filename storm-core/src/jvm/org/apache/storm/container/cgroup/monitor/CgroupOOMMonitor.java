@@ -89,7 +89,7 @@ public class CgroupOOMMonitor {
         }
 
         if (stormClusterState == null) {
-            stormClusterState = getStormClusterState(this.conf);
+            this.stormClusterState = getStormClusterState(this.conf);
         } else {
             this.stormClusterState = stormClusterState;
         }
