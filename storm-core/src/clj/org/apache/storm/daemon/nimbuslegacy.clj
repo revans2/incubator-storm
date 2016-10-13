@@ -95,25 +95,6 @@
   (let [key-iter (.listKeys blob-store)]
     (iterator-seq key-iter)))
 
-(defn compute-new-topology->executor->node+port [new-scheduler-assignments existing-assignments]
-  (let [new-topology->executor->node+port (clojurify-structure (Nimbus/computeTopoToExecToNodePort new-scheduler-assignments))]
-    ;; print some useful information.
-    (doseq [[topology-id executor->node+port] new-topology->executor->node+port
-            :let [old-executor->node+port (-> topology-id
-                                              existing-assignments
-                                              :executor->node+port)
-                  reassignment (filter (fn [[executor node+port]]
-                                         (and (contains? old-executor->node+port executor)
-                                              (not (= node+port (old-executor->node+port executor)))))
-                                       executor->node+port)]]
-      (when-not (empty? reassignment)
-        (let [new-slots-cnt (count (set (vals executor->node+port)))
-              reassign-executors (keys reassignment)]
-          (log-message "Reassigning " topology-id " to " new-slots-cnt " slots")
-          (log-message "Reassign executors: " (vec reassign-executors)))))
-
-    new-topology->executor->node+port))
-
 ;; public so it can be mocked out
 (defn compute-new-scheduler-assignments [nimbus thrift-existing-assignments existing-assignments topologies scratch-topology-id]
   (let [conf (.getConf nimbus)
@@ -294,7 +275,7 @@
                                        existing-assignments
                                        topologies
                                        scratch-topology-id)
-        topology->executor->node+port (compute-new-topology->executor->node+port new-scheduler-assignments existing-assignments)
+        topology->executor->node+port (clojurify-structure (Nimbus/computeNewTopoToExecToNodePort new-scheduler-assignments thrift-existing-assignments))
 
         topology->executor->node+port (merge (into {} (for [id assigned-topology-ids] {id nil})) topology->executor->node+port)
         new-assigned-worker->resources (clojurify-structure (Nimbus/computeTopoToNodePortToResources new-scheduler-assignments))

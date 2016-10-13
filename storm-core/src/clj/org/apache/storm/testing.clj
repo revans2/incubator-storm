@@ -418,32 +418,6 @@
     (throw (IllegalArgumentException. "Topology conf is not json-serializable")))
   (.submitTopologyWithOpts nimbus storm-name nil (JSONValue/toJSONString conf) topology submit-opts))
 
-(defn mocked-convert-assignments-to-worker->resources [storm-cluster-state storm-name worker->resources]
-  (fn [existing-assignments]
-    (let [topology-id (StormCommon/getStormId storm-cluster-state storm-name)
-          existing-assignments (into {} (for [[tid assignment] existing-assignments]
-                                          {tid (:worker->resources assignment)}))
-          new-assignments (assoc existing-assignments topology-id worker->resources)]
-      new-assignments)))
-
-(defn mocked-compute-new-topology->executor->node+port [storm-cluster-state storm-name executor->node+port]
-  (fn [new-scheduler-assignments existing-assignments]
-    (let [topology-id (StormCommon/getStormId storm-cluster-state storm-name)
-          existing-assignments (into {} (for [[tid assignment] existing-assignments]
-                                          {tid (:executor->node+port assignment)}))
-          new-assignments (assoc existing-assignments topology-id executor->node+port)]
-      new-assignments)))
-
-(defn mocked-compute-new-scheduler-assignments []
-  (fn [nimbus existing-assignments topologies scratch-topology-id]
-    existing-assignments))
-
-(defn find-worker-id
-  [supervisor-conf port]
-  (let [supervisor-state (ConfigUtils/supervisorState supervisor-conf)
-        worker->port (.getApprovedWorkers ^LocalState supervisor-state)]
-    (first ((clojurify-structure (Utils/reverseMap worker->port)) port))))
-
 (defn find-worker-port
   [supervisor-conf worker-id]
   (let [supervisor-state (ConfigUtils/supervisorState supervisor-conf)

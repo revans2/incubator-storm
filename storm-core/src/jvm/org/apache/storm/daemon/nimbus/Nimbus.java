@@ -420,21 +420,61 @@ public class Nimbus {
         }
         return ret;
     }
+
+    //TODO private
+    public static Map<String, Map<List<Long>, List<Object>>> computeNewTopoToExecToNodePort(Map<String, SchedulerAssignment> schedAssignments,
+            Map<String, Assignment> existingAssignments) {
+        Map<String, Map<List<Long>, List<Object>>> ret = computeTopoToExecToNodePort(schedAssignments);
+        //Print some useful information
+        if (existingAssignments != null && !existingAssignments.isEmpty()) {
+            for (Entry<String, Map<List<Long>, List<Object>>> entry: ret.entrySet()) {
+                String topoId = entry.getKey();
+                Map<List<Long>, List<Object>> execToNodePort = entry.getValue();
+                Assignment assignment = existingAssignments.get(topoId);
+                if (assignment == null) {
+                    continue;
+                }
+                Map<List<Long>, NodeInfo> old = assignment.get_executor_node_port();
+                Map<List<Long>, List<Object>> reassigned = new HashMap<>();
+                for (Entry<List<Long>, List<Object>> execAndNodePort: execToNodePort.entrySet()) {
+                    NodeInfo oldAssigned = old.get(execAndNodePort.getKey());
+                    String node = (String) execAndNodePort.getValue().get(0);
+                    Integer port = (Integer) execAndNodePort.getValue().get(1);
+                    if (oldAssigned == null || !oldAssigned.get_node().equals(node) 
+                            || !port.equals(oldAssigned.get_port_iterator().next().intValue())) {
+                        reassigned.put(execAndNodePort.getKey(), execAndNodePort.getValue());
+                    }
+                }
+
+                if (!reassigned.isEmpty()) {
+                    int count = (new HashSet<>(execToNodePort.values())).size();
+                    Set<List<Long>> reExecs = reassigned.keySet();
+                    LOG.info("Reassigning {} to {} slots", topoId, count);
+                    LOG.info("Reassign executors: {}", reExecs);
+                }
+            }
+        }
+        return ret;
+    }
     
-//    (defn convert-assignments-to-worker->resources [new-scheduler-assignments]
-//            "convert {topology-id -> SchedulerAssignment} to
-//                     {topology-id -> {[node port] [mem-on-heap mem-off-heap cpu]}}
-//             Make sure this can deal with other non-RAS schedulers
-//             later we may further support map-for-any-resources"
-//            (map-val (fn [^SchedulerAssignment assignment]
-//                       (->> assignment
-//                            .getExecutorToSlot
-//                            .values
-//                            (#(into {} (for [^WorkerSlot slot %]
-//                                        {[(.getNodeId slot) (.getPort slot)]
-//                                         [(.getAllocatedMemOnHeap slot) (.getAllocatedMemOffHeap slot) (.getAllocatedCpu slot)]
-//                                         })))))
-//                     new-scheduler-assignments))
+//    (defn compute-new-topology->executor->node+port [new-scheduler-assignments existing-assignments]
+//            (let [new-topology->executor->node+port (clojurify-structure (Nimbus/computeTopoToExecToNodePort new-scheduler-assignments))]
+//              ;; print some useful information.
+//              (doseq [[topology-id executor->node+port] new-topology->executor->node+port
+//                      :let [old-executor->node+port (-> topology-id
+//                                                        existing-assignments
+//                                                        :executor->node+port)
+//                            reassignment (filter (fn [[executor node+port]]
+//                                                   (and (contains? old-executor->node+port executor)
+//                                                        (not (= node+port (old-executor->node+port executor)))))
+//                                                 executor->node+port)]]
+//                (when-not (empty? reassignment)
+//                  (let [new-slots-cnt (count (set (vals executor->node+port)))
+//                        reassign-executors (keys reassignment)]
+//                    (log-message "Reassigning " topology-id " to " new-slots-cnt " slots")
+//                    (log-message "Reassign executors: " (vec reassign-executors)))))
+//
+//              new-topology->executor->node+port))
     
     private final Map<String, Object> conf;
     private final NimbusInfo nimbusHostPortInfo;
