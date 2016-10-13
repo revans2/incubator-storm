@@ -145,7 +145,15 @@ public class AsyncLocalizer implements ILocalizer, Shutdownable {
                 try {
                     downloadBaseBlobs(tr);
                     _fsOps.moveDirectoryPreferAtomic(tr, _stormRoot);
-                    _fsOps.setupStormCodeDir(ConfigUtils.readSupervisorStormConf(_conf, _topologyId), _stormRoot);
+                    Map topoConf = ConfigUtils.readSupervisorStormConf(_conf, _topologyId);
+                    // This is a truly awful hack. We need to remove this ASAP.
+                    Boolean writeableStormdist = (Boolean)topoConf.get(Config.STORM_WORKER_STORMDIST_DIR_WRITE);
+                    if(writeableStormdist != null && writeableStormdist == true) {
+                        _fsOps.setupWorkerArtifactsDir(topoConf, _stormRoot);
+                    }
+                    else {
+                        _fsOps.setupStormCodeDir(topoConf, _stormRoot);
+                    }
                     deleteAll = false;
                 } finally {
                     if (deleteAll) {
