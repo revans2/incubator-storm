@@ -382,6 +382,13 @@ public class Nimbus {
         return ret;
     }
     
+    public static int numUsedWorkers(SchedulerAssignment assignment) {
+        if (assignment == null) {
+            return 0;
+        }
+        return assignment.getSlots().size();
+    }
+    
     private final Map<String, Object> conf;
     private final NimbusInfo nimbusHostPortInfo;
     private final INimbus inimbus;

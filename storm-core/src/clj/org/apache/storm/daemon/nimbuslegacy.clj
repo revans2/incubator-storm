@@ -95,32 +95,6 @@
   (let [key-iter (.listKeys blob-store)]
     (iterator-seq key-iter)))
 
-;; NEW NOTES
-;; only assign to supervisors who are there and haven't timed out
-;; need to reassign workers with executors that have timed out (will this make it brittle?)
-;; need to read in the topology and storm-conf from disk
-;; if no slots available and no slots used by this storm, just skip and do nothing
-;; otherwise, package rest of executors into available slots (up to how much it needs)
-
-;; in the future could allocate executors intelligently (so that "close" tasks reside on same machine)
-
-;; TODO: slots that have dead executor should be reused as long as supervisor is active
-
-
-;; (defn- assigned-slots-from-scheduler-assignments [topology->assignment]
-;;   (->> topology->assignment
-;;        vals
-;;        (map (fn [^SchedulerAssignment a] (.getExecutorToSlot a)))
-;;        (mapcat vals)
-;;        (map (fn [^WorkerSlot s] {(.getNodeId s) #{(.getPort s)}}))
-;;        (apply merge-with set/union)
-;;        ))
-
-(defn num-used-workers [^SchedulerAssignment scheduler-assignment]
-  (if scheduler-assignment
-    (count (.getSlots scheduler-assignment))
-    0 ))
-
 ;TODO: when translating this function, you should replace the map-val with a proper for loop HERE
 (defn convert-assignments-to-worker->resources [new-scheduler-assignments]
   "convert {topology-id -> SchedulerAssignment} to
@@ -186,7 +160,7 @@
                                                            (not= alle alivee)
                                                            (< (-> topology->scheduler-assignment
                                                                   (get t)
-                                                                  num-used-workers )
+                                                                  Nimbus/numUsedWorkers )
                                                               (-> topologies (.getById t) .getNumWorkers)))))))
 
         supervisors (clojurify-structure (.readAllSupervisorDetails nimbus 
