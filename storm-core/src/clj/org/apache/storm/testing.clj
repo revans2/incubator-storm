@@ -438,22 +438,6 @@
   (fn [nimbus existing-assignments topologies scratch-topology-id]
     existing-assignments))
 
-(defn submit-mocked-assignment
-  [nimbus storm-cluster-state storm-name conf topology task->component executor->node+port worker->resources]
-  (let [fake-common (proxy [StormCommon] []
-                      (stormTaskInfoImpl [_] task->component))]
-    (with-open [- (StormCommonInstaller. fake-common)]
-      (with-var-roots [nimbus/compute-new-scheduler-assignments (mocked-compute-new-scheduler-assignments)
-                       nimbus/convert-assignments-to-worker->resources (mocked-convert-assignments-to-worker->resources
-                                                              storm-cluster-state
-                                                              storm-name
-                                                              worker->resources)
-                       nimbus/compute-new-topology->executor->node+port (mocked-compute-new-topology->executor->node+port
-                                                                          storm-cluster-state
-                                                                          storm-name
-                                                                          executor->node+port)]
-        (submit-local-topology nimbus storm-name conf topology)))))
-
 (defn find-worker-id
   [supervisor-conf port]
   (let [supervisor-state (ConfigUtils/supervisorState supervisor-conf)
