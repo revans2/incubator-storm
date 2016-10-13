@@ -95,73 +95,6 @@
   (let [key-iter (.listKeys blob-store)]
     (iterator-seq key-iter)))
 
-;; public so it can be mocked out
-(defn compute-new-scheduler-assignments [nimbus thrift-existing-assignments existing-assignments topologies scratch-topology-id]
-  (let [conf (.getConf nimbus)
-        storm-cluster-state (.getStormClusterState nimbus)
-        topology->executors (clojurify-structure (.computeTopologyToExecutors nimbus (keys thrift-existing-assignments)))
-        ;; update the executors heartbeats first.
-        _ (.updateAllHeartbeats nimbus thrift-existing-assignments topology->executors)
-        j-topology->alive-executors (.computeTopologyToAliveExecutors nimbus
-                                                                     thrift-existing-assignments
-                                                                     topologies
-                                                                     topology->executors
-                                                                     scratch-topology-id)
-        topology->alive-executors (clojurify-structure j-topology->alive-executors)
-        j-supervisor->dead-ports (.computeSupervisorToDeadPorts nimbus
-                                                               thrift-existing-assignments
-                                                               topology->executors
-                                                               j-topology->alive-executors)
-        topology->scheduler-assignment (clojurify-structure (.computeTopologyToSchedulerAssignment nimbus
-                                                                               thrift-existing-assignments
-                                                                               j-topology->alive-executors))
-        missing-assignment-topologies (->> topologies
-                                           .getTopologies
-                                           (map (memfn getId))
-                                           (filter (fn [t]
-                                                     (let [alle (get topology->executors t)
-                                                           alivee (get topology->alive-executors t)]
-                                                       (or (empty? alle)
-                                                           (not= alle alivee)
-                                                           (< (-> topology->scheduler-assignment
-                                                                  (get t)
-                                                                  Nimbus/numUsedWorkers )
-                                                              (-> topologies (.getById t) .getNumWorkers)))))))
-
-        supervisors (clojurify-structure (.readAllSupervisorDetails nimbus 
-                                                 j-supervisor->dead-ports
-                                                 topologies
-                                                 missing-assignment-topologies))
-        cluster (Cluster. (.getINimbus nimbus) supervisors topology->scheduler-assignment conf)]
-
-    ;; set the status map with existing topology statuses
-    (.setStatusMap cluster (.get (.getIdToSchedStatus nimbus)))
-    ;; call scheduler.schedule to schedule all the topologies
-    ;; the new assignments for all the topologies are in the cluster object.
-    (.schedule (.getScheduler nimbus) topologies cluster)
-
-    ;;merge with existing statuses
-    ;;TODO remove work around for merge to work with java maps
-    (.set (.getIdToSchedStatus nimbus) (merge {} (.get (.getIdToSchedStatus nimbus)) (.getStatusMap cluster)))
-    (.set (.getNodeIdToResources nimbus) (.getSupervisorsResourcesMap cluster))
-
-    (if-not (conf SCHEDULER-DISPLAY-RESOURCE) 
-      (.updateAssignedMemoryForTopologyAndSupervisor cluster topologies))
-
-    ; Remove both of swaps below at first opportunity. This is a hack for non-ras scheduler topology and worker resources
-    (.getAndAccumulate (.getIdToResources nimbus) (into {} (map (fn [[k v]] [k (TopologyResources. (nth v 0) (nth v 1) (nth v 2)
-                                                    (nth v 3) (nth v 4) (nth v 5))])
-                                                      (.getTopologyResourcesMap cluster))) Nimbus/MERGE_ID_TO_RESOURCES)
-    ; Remove this also at first chance
-    (.getAndAccumulate (.getIdToWorkerResources nimbus)
-           (into {} (map (fn [[k v]] [k (map-val #(doto (WorkerResources.)
-                                                        (.set_mem_on_heap (nth % 0))
-                                                        (.set_mem_off_heap (nth % 1))
-                                                        (.set_cpu (nth % 2))) v)])
-                         (.getWorkerResourcesMap cluster))) Nimbus/MERGE_ID_TO_WORKER_RESOURCES)
-
-    (.getAssignments cluster)))
-
 (defn- map-diff
   "Returns mappings in m2 that aren't in m1"
   [m1 m2]
@@ -269,10 +202,9 @@
                                           {tid (.assignmentInfo storm-cluster-state tid nil)})))
  
         ;; make the new assignments for topologies
-        new-scheduler-assignments (compute-new-scheduler-assignments
+        new-scheduler-assignments (.computeNewSchedulerAssignmnets
                                        nimbus
                                        thrift-existing-assignments
-                                       existing-assignments
                                        topologies
                                        scratch-topology-id)
         topology->executor->node+port (clojurify-structure (Nimbus/computeNewTopoToExecToNodePort new-scheduler-assignments thrift-existing-assignments))

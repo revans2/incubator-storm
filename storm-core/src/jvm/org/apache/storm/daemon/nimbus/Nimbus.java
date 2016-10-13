@@ -71,6 +71,7 @@ import org.apache.storm.nimbus.ILeaderElector;
 import org.apache.storm.nimbus.ITopologyActionNotifierPlugin;
 import org.apache.storm.nimbus.ITopologyValidator;
 import org.apache.storm.nimbus.NimbusInfo;
+import org.apache.storm.scheduler.Cluster;
 import org.apache.storm.scheduler.DefaultScheduler;
 import org.apache.storm.scheduler.ExecutorDetails;
 import org.apache.storm.scheduler.INimbus;
@@ -146,7 +147,7 @@ public class Nimbus {
         NIMBUS_SUBJECT.setReadOnly();
     }
     
-    public static final BinaryOperator<Map<String, WorkerResources>> MERGE_ID_TO_WORKER_RESOURCES = (orig, update) -> {
+    public static final BinaryOperator<Map<String, Map<WorkerSlot, WorkerResources>>> MERGE_ID_TO_WORKER_RESOURCES = (orig, update) -> {
         return merge(orig, update);
     };
     
@@ -457,25 +458,6 @@ public class Nimbus {
         return ret;
     }
     
-//    (defn compute-new-topology->executor->node+port [new-scheduler-assignments existing-assignments]
-//            (let [new-topology->executor->node+port (clojurify-structure (Nimbus/computeTopoToExecToNodePort new-scheduler-assignments))]
-//              ;; print some useful information.
-//              (doseq [[topology-id executor->node+port] new-topology->executor->node+port
-//                      :let [old-executor->node+port (-> topology-id
-//                                                        existing-assignments
-//                                                        :executor->node+port)
-//                            reassignment (filter (fn [[executor node+port]]
-//                                                   (and (contains? old-executor->node+port executor)
-//                                                        (not (= node+port (old-executor->node+port executor)))))
-//                                                 executor->node+port)]]
-//                (when-not (empty? reassignment)
-//                  (let [new-slots-cnt (count (set (vals executor->node+port)))
-//                        reassign-executors (keys reassignment)]
-//                    (log-message "Reassigning " topology-id " to " new-slots-cnt " slots")
-//                    (log-message "Reassign executors: " (vec reassign-executors)))))
-//
-//              new-topology->executor->node+port))
-    
     private final Map<String, Object> conf;
     private final NimbusInfo nimbusHostPortInfo;
     private final INimbus inimbus;
@@ -506,7 +488,7 @@ public class Nimbus {
     private final AtomicReference<Map<String, String>> idToSchedStatus;
     private final AtomicReference<Map<String, Double[]>> nodeIdToResources;
     private final AtomicReference<Map<String, TopologyResources>> idToResources;
-    private final AtomicReference<Map<String, WorkerResources>> idToWorkerResources;
+    private final AtomicReference<Map<String, Map<WorkerSlot, WorkerResources>>> idToWorkerResources;
     private final Collection<ICredentialsRenewer> credRenewers;
     private final Object topologyHistoryLock;
     private final LocalState topologyHistoryState;
@@ -683,7 +665,7 @@ public class Nimbus {
         return idToResources;
     }
 
-    public AtomicReference<Map<String, WorkerResources>> getIdToWorkerResources() {
+    public AtomicReference<Map<String, Map<WorkerSlot, WorkerResources>>> getIdToWorkerResources() {
         return idToWorkerResources;
     }
 
@@ -1009,7 +991,7 @@ public class Nimbus {
     }
     
     //TODO private
-    public Map<String, Set<List<Integer>>> computeTopologyToExecutors(List<String> topoIds) throws KeyNotFoundException, AuthorizationException, InvalidTopologyException, IOException {
+    public Map<String, Set<List<Integer>>> computeTopologyToExecutors(Collection<String> topoIds) throws KeyNotFoundException, AuthorizationException, InvalidTopologyException, IOException {
         Map<String, Set<List<Integer>>> ret = new HashMap<>();
         if (topoIds != null) {
             for (String topoId: topoIds) {
@@ -1090,9 +1072,10 @@ public class Nimbus {
      * @param topologyToAliveExecutors executors that are alive
      * @return topo ID to schedulerAssignment
      */
-    public Map<String, SchedulerAssignment> computeTopologyToSchedulerAssignment(Map<String, Assignment> existingAssignments,
+    //TODO this should really return a SchedulerAssignment or we need to merge the two things together.
+    public Map<String, SchedulerAssignmentImpl> computeTopologyToSchedulerAssignment(Map<String, Assignment> existingAssignments,
             Map<String, Set<List<Integer>>> topologyToAliveExecutors) {
-        Map<String, SchedulerAssignment> ret = new HashMap<>();
+        Map<String, SchedulerAssignmentImpl> ret = new HashMap<>();
         for (Entry<String, Assignment> entry: existingAssignments.entrySet()) {
             String topoId = entry.getKey();
             Assignment assignment = entry.getValue();
@@ -1172,5 +1155,72 @@ public class Nimbus {
                     allPorts, info.get_resources_map()));
         }
         return ret;
+    }
+    
+    //TODO private
+    public Map<String, SchedulerAssignment> computeNewSchedulerAssignmnets(Map<String, Assignment> existingAssignments,
+            Topologies topologies, String scratchTopologyId) throws KeyNotFoundException, AuthorizationException, InvalidTopologyException, IOException {
+        Map<String, Object> conf = getConf();
+        Map<String, Set<List<Integer>>> topoToExec = computeTopologyToExecutors(existingAssignments.keySet());
+        
+        updateAllHeartbeats(existingAssignments, topoToExec);
+
+        Map<String, Set<List<Integer>>> topoToAliveExecutors = computeTopologyToAliveExecutors(existingAssignments, topologies,
+                topoToExec, scratchTopologyId);
+        Map<String, Set<Long>> supervisorToDeadPorts = computeSupervisorToDeadPorts(existingAssignments, topoToExec,
+                topoToAliveExecutors);
+        Map<String, SchedulerAssignmentImpl> topoToSchedAssignment = computeTopologyToSchedulerAssignment(existingAssignments,
+                topoToAliveExecutors);
+        Set<String> missingAssignmentTopologies = new HashSet<>();
+        for (TopologyDetails topo: topologies.getTopologies()) {
+            String id = topo.getId();
+            Set<List<Integer>> allExecs = topoToExec.get(id);
+            Set<List<Integer>> aliveExecs = topoToAliveExecutors.get(id);
+            int numDesiredWorkers = topo.getNumWorkers();
+            int numAssignedWorkers = numUsedWorkers(topoToSchedAssignment.get(id));
+            if (allExecs == null || allExecs.isEmpty() || !allExecs.equals(aliveExecs) || numDesiredWorkers < numAssignedWorkers) {
+                //We have something to schedule...
+                missingAssignmentTopologies.add(id);
+            }
+        }
+        Map<String, SupervisorDetails> supervisors = readAllSupervisorDetails(supervisorToDeadPorts, topologies, missingAssignmentTopologies);
+        Cluster cluster = new Cluster(getINimbus(), supervisors, topoToSchedAssignment, conf);
+        cluster.setStatusMap(getIdToSchedStatus().get());
+        getScheduler().schedule(topologies, cluster);
+
+        //merge with existing statuses
+        getIdToSchedStatus().set(merge(getIdToSchedStatus().get(), cluster.getStatusMap()));
+        getNodeIdToResources().set(cluster.getSupervisorsResourcesMap());
+        
+        if (!Utils.getBoolean(conf.get(Config.SCHEDULER_DISPLAY_RESOURCE), false)) {
+            cluster.updateAssignedMemoryForTopologyAndSupervisor(topologies);
+        }
+        
+        //TODO remove both of swaps below at first opportunity.
+        // This is a hack for non-ras scheduler topology and worker resources
+        Map<String, TopologyResources> resources = new HashMap<>();
+        for (Entry<String, Double[]> uglyResources : cluster.getTopologyResourcesMap().entrySet()) {
+            Double[] r = uglyResources.getValue();
+            resources.put(uglyResources.getKey(), new TopologyResources(r[0], r[1], r[2], r[3], r[4], r[5]));
+        }
+        getIdToResources().getAndAccumulate(resources, MERGE_ID_TO_RESOURCES);
+        
+        //TODO remove this also at first chance
+        Map<String, Map<WorkerSlot, WorkerResources>> workerResources = new HashMap<>();
+        for (Entry<String, Map<WorkerSlot, Double[]>> uglyWorkerResources: cluster.getWorkerResourcesMap().entrySet()) {
+            Map<WorkerSlot, WorkerResources> slotToResources = new HashMap<>();
+            for (Entry<WorkerSlot, Double[]> uglySlotToResources : uglyWorkerResources.getValue().entrySet()) {
+                Double[] r = uglySlotToResources.getValue();
+                WorkerResources wr = new WorkerResources();
+                wr.set_mem_on_heap(r[0]);
+                wr.set_mem_off_heap(r[1]);
+                wr.set_cpu(r[2]);
+                slotToResources.put(uglySlotToResources.getKey(), wr);
+            }
+            workerResources.put(uglyWorkerResources.getKey(), slotToResources);
+        }
+        getIdToWorkerResources().getAndAccumulate(workerResources, MERGE_ID_TO_WORKER_RESOURCES);
+        
+        return cluster.getAssignments();
     }
 }
