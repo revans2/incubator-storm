@@ -23,7 +23,7 @@
            [org.apache.storm.blobstore BlobStore]
            [org.apache.storm.nimbus InMemoryTopologyActionNotifier]
            [org.apache.storm.daemon.nimbus Nimbus]
-           [org.apache.storm.generated GlobalStreamId TopologyStatus SupervisorInfo StormTopology]
+           [org.apache.storm.generated GlobalStreamId TopologyStatus SupervisorInfo StormTopology StormBase]
            [org.apache.storm Thrift MockAutoCred]
            [org.apache.storm.stats BoltExecutorStats StatsUtil])
   (:import [org.apache.storm.testing.staticmocking MockedZookeeper])
@@ -1463,10 +1463,21 @@
                         :storm-name "id4-name"
                         :status {:type bogus-type}}
                 }
+          topo-name "test-topo"
+          topo-conf {TOPOLOGY-NAME topo-name
+                     TOPOLOGY-WORKERS 1
+                     TOPOLOGY-MESSAGE-TIMEOUT-SECS 30}
+          storm-base (StormBase. )
+          topology (doto (StormTopology. )
+                     (.set_spouts {})
+                     (.set_bolts {})
+                     (.set_state_spouts {}))
         ]
-      (.thenReturn (Mockito/when (.getBlobReplication blob-store (Mockito/any String) (Mockito/anyObject))) (int 1))
-      (stubbing [nimbus/get-resources-for-topology nil
-                 nimbus/nimbus-topology-bases bogus-bases]
+      (.thenReturn (Mockito/when (.stormBase cluster-state (Mockito/any String) (Mockito/anyObject))) storm-base)
+      (.thenReturn (Mockito/when (.readTopologyConf blob-store (Mockito/any String) (Mockito/any Subject))) topo-conf)
+      (.thenReturn (Mockito/when (.readTopology blob-store (Mockito/any String) (Mockito/any Subject))) topology)
+ 
+      (stubbing [nimbus/nimbus-topology-bases bogus-bases]
         (let [topos (.get_topologies (.getClusterInfo nimbus))]
           ; The number of topologies in the summary is correct.
           (is (= (count
