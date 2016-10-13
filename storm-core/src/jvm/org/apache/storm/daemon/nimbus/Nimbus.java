@@ -234,6 +234,17 @@ public class Nimbus {
         }
         return ret;
     }
+    
+    //TODO private
+    public static <K, V> Map<K, V> mapDiff(Map<? extends K, ? extends V> first, Map<? extends K, ? extends V> second) {
+        Map<K, V> ret = new HashMap<>();
+        for (Entry<? extends K, ? extends V> entry: second.entrySet()) {
+            if (!entry.getValue().equals(first.get(entry.getKey()))) {
+                ret.put(entry.getKey(), entry.getValue());
+            }
+        }
+        return ret;
+    }
 
     public static IScheduler makeScheduler(Map<String, Object> conf, INimbus inimbus) {
         String schedClass = (String) conf.get(Config.STORM_SCHEDULER);

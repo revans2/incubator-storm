@@ -95,11 +95,6 @@
   (let [key-iter (.listKeys blob-store)]
     (iterator-seq key-iter)))
 
-(defn- map-diff
-  "Returns mappings in m2 that aren't in m1"
-  [m1 m2]
-  (into {} (filter (fn [[k v]] (not= v (m1 k))) m2)))
-
 (defn get-resources-for-topology [nimbus topo-id]
   (or (get (.get (.getIdToResources nimbus)) topo-id)
       (try
@@ -147,7 +142,7 @@
         new-executor->node+port (if new-executor->node+port (sort new-executor->node+port) nil)
         slot-assigned (clojurify-structure (Utils/reverseMap executor->node+port))
         new-slot-assigned (clojurify-structure (Utils/reverseMap new-executor->node+port))
-        brand-new-slots (map-diff slot-assigned new-slot-assigned)]
+        brand-new-slots (Nimbus/mapDiff slot-assigned new-slot-assigned)]
     (apply concat (vals brand-new-slots))
     ))
 
