@@ -95,18 +95,6 @@
   (let [key-iter (.listKeys blob-store)]
     (iterator-seq key-iter)))
 
-;TODO: when translating this function, you should replace the map-val with a proper for loop HERE
-(defn- compute-topology->executor->node+port [scheduler-assignments]
-  "convert {topology-id -> SchedulerAssignment} to
-           {topology-id -> {executor [node port]}}"
-  (map-val (fn [^SchedulerAssignment assignment]
-             (->> assignment
-                  .getExecutorToSlot
-                  (#(into {} (for [[^ExecutorDetails executor ^WorkerSlot slot] %]
-                              {[(.getStartTask executor) (.getEndTask executor)]
-                               [(.getNodeId slot) (.getPort slot)]})))))
-           scheduler-assignments))
-
 ;; NEW NOTES
 ;; only assign to supervisors who are there and haven't timed out
 ;; need to reassign workers with executors that have timed out (will this make it brittle?)
@@ -150,7 +138,7 @@
            new-scheduler-assignments))
 
 (defn compute-new-topology->executor->node+port [new-scheduler-assignments existing-assignments]
-  (let [new-topology->executor->node+port (compute-topology->executor->node+port new-scheduler-assignments)]
+  (let [new-topology->executor->node+port (clojurify-structure (Nimbus/computeTopoToExecToNodePort new-scheduler-assignments))]
     ;; print some useful information.
     (doseq [[topology-id executor->node+port] new-topology->executor->node+port
             :let [old-executor->node+port (-> topology-id

@@ -352,6 +352,36 @@ public class Nimbus {
         return store.readTopology(topoId, NIMBUS_SUBJECT);
     }
     
+    //TODO private
+    //TODO lets not use lists for all of this but real objects
+    /**
+     * convert {topology-id -> SchedulerAssignment} to
+     *         {topology-id -> {executor [node port]}}
+     * @return
+     */
+    public static Map<String, Map<List<Long>, List<Object>>> computeTopoToExecToNodePort(Map<String, SchedulerAssignment> schedAssignments) {
+        Map<String, Map<List<Long>, List<Object>>> ret = new HashMap<>();
+        for (Entry<String, SchedulerAssignment> schedEntry: schedAssignments.entrySet()) {
+            Map<List<Long>, List<Object>> execToNodePort = new HashMap<>();
+            for (Entry<ExecutorDetails, WorkerSlot> execAndNodePort: schedEntry.getValue().getExecutorToSlot().entrySet()) {
+                ExecutorDetails exec = execAndNodePort.getKey();
+                WorkerSlot slot = execAndNodePort.getValue();
+                
+                List<Long> listExec = new ArrayList<>(2);
+                listExec.add((long) exec.getStartTask());
+                listExec.add((long) exec.getEndTask());
+                
+                List<Object> nodePort = new ArrayList<>(2);
+                nodePort.add(slot.getNodeId());
+                nodePort.add(slot.getPort());
+                
+                execToNodePort.put(listExec, nodePort);
+            }
+            ret.put(schedEntry.getKey(), execToNodePort);
+        }
+        return ret;
+    }
+    
     private final Map<String, Object> conf;
     private final NimbusInfo nimbusHostPortInfo;
     private final INimbus inimbus;
