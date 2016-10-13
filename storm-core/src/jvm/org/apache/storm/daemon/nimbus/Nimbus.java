@@ -382,12 +382,59 @@ public class Nimbus {
         return ret;
     }
     
+    //TODO private
     public static int numUsedWorkers(SchedulerAssignment assignment) {
         if (assignment == null) {
             return 0;
         }
         return assignment.getSlots().size();
     }
+    
+    //TODO private
+    //TODO lets use real objects again
+    /**
+     * convert {topology-id -> SchedulerAssignment} to
+     *         {topology-id -> {[node port] [mem-on-heap mem-off-heap cpu]}}
+     * Make sure this can deal with other non-RAS schedulers
+     * later we may further support map-for-any-resources
+     * @param schedAssignments the assignments
+     * @return  {topology-id {[node port] [mem-on-heap mem-off-heap cpu]}}
+     */
+    public static Map<String, Map<List<Object>, List<Double>>> computeTopoToNodePortToResources(Map<String, SchedulerAssignment> schedAssignments) {
+        Map<String, Map<List<Object>, List<Double>>> ret = new HashMap<>();
+        for (Entry<String, SchedulerAssignment> schedEntry: schedAssignments.entrySet()) {
+            Map<List<Object>, List<Double>> nodePortToResources = new HashMap<>();
+            for (WorkerSlot slot: schedEntry.getValue().getExecutorToSlot().values()) {
+                List<Object> nodePort = new ArrayList<>(2);
+                nodePort.add(slot.getNodeId());
+                nodePort.add(slot.getPort());
+                
+                List<Double> resources = new ArrayList<>(3);
+                resources.add(slot.getAllocatedMemOnHeap());
+                resources.add(slot.getAllocatedMemOffHeap());
+                resources.add(slot.getAllocatedCpu());
+                
+                nodePortToResources.put(nodePort, resources);
+            }
+            ret.put(schedEntry.getKey(), nodePortToResources);
+        }
+        return ret;
+    }
+    
+//    (defn convert-assignments-to-worker->resources [new-scheduler-assignments]
+//            "convert {topology-id -> SchedulerAssignment} to
+//                     {topology-id -> {[node port] [mem-on-heap mem-off-heap cpu]}}
+//             Make sure this can deal with other non-RAS schedulers
+//             later we may further support map-for-any-resources"
+//            (map-val (fn [^SchedulerAssignment assignment]
+//                       (->> assignment
+//                            .getExecutorToSlot
+//                            .values
+//                            (#(into {} (for [^WorkerSlot slot %]
+//                                        {[(.getNodeId slot) (.getPort slot)]
+//                                         [(.getAllocatedMemOnHeap slot) (.getAllocatedMemOffHeap slot) (.getAllocatedCpu slot)]
+//                                         })))))
+//                     new-scheduler-assignments))
     
     private final Map<String, Object> conf;
     private final NimbusInfo nimbusHostPortInfo;

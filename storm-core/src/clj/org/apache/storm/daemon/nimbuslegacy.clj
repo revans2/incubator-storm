@@ -95,22 +95,6 @@
   (let [key-iter (.listKeys blob-store)]
     (iterator-seq key-iter)))
 
-;TODO: when translating this function, you should replace the map-val with a proper for loop HERE
-(defn convert-assignments-to-worker->resources [new-scheduler-assignments]
-  "convert {topology-id -> SchedulerAssignment} to
-           {topology-id -> {[node port] [mem-on-heap mem-off-heap cpu]}}
-   Make sure this can deal with other non-RAS schedulers
-   later we may further support map-for-any-resources"
-  (map-val (fn [^SchedulerAssignment assignment]
-             (->> assignment
-                  .getExecutorToSlot
-                  .values
-                  (#(into {} (for [^WorkerSlot slot %]
-                              {[(.getNodeId slot) (.getPort slot)]
-                               [(.getAllocatedMemOnHeap slot) (.getAllocatedMemOffHeap slot) (.getAllocatedCpu slot)]
-                               })))))
-           new-scheduler-assignments))
-
 (defn compute-new-topology->executor->node+port [new-scheduler-assignments existing-assignments]
   (let [new-topology->executor->node+port (clojurify-structure (Nimbus/computeTopoToExecToNodePort new-scheduler-assignments))]
     ;; print some useful information.
@@ -313,7 +297,7 @@
         topology->executor->node+port (compute-new-topology->executor->node+port new-scheduler-assignments existing-assignments)
 
         topology->executor->node+port (merge (into {} (for [id assigned-topology-ids] {id nil})) topology->executor->node+port)
-        new-assigned-worker->resources (convert-assignments-to-worker->resources new-scheduler-assignments)
+        new-assigned-worker->resources (clojurify-structure (Nimbus/computeTopoToNodePortToResources new-scheduler-assignments))
         now-secs (Time/currentTimeSecs)
 
         basic-supervisor-details-map (basic-supervisor-details-map storm-cluster-state)
