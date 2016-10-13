@@ -28,6 +28,7 @@
 #include <sys/time.h>
 #include <sys/epoll.h>
 #include <stdarg.h>
+#include <stdint.h>
 #include "org_apache_storm_container_cgroup_monitor_CgroupOOMMonitor.h"
 
 #define BUFSIZE 512
@@ -245,7 +246,7 @@ JNIEXPORT jint JNICALL Java_org_apache_storm_container_cgroup_monitor_CgroupOOMM
 
             log_message(env, DEBUG, "OOM occured for cgroup: %s", cgroup_id);
 
-            int notifications_queue_size = (*env)->CallObjectMethod(env, notifications, queue_size);
+            int32_t notifications_queue_size = (*env)->CallIntMethod(env, notifications, queue_size);
 
             //limit the number of messages enqueued
             if (notifications_queue_size > MAX_EVENTS) {

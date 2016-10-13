@@ -160,7 +160,9 @@ public class TestCgroups {
         CpuCore cpuCore = (CpuCore) workerGroup.getCores().get(SubSystemType.cpu);
         cpuCore.setCpuShares(10);
         MemoryCore memCore = (MemoryCore) workerGroup.getCores().get(SubSystemType.memory);
-        memCore.setPhysicalUsageLimit(Long.valueOf(128 * 1024 * 1024));
+        long memoryLimit = Long.valueOf(128 * 1024 * 1024);
+        memCore.setPhysicalUsageLimit(memoryLimit);
+        memCore.setWithSwapUsageLimit(memoryLimit);
 
         IStormClusterState stormClusterState = mock(IStormClusterState.class);
 

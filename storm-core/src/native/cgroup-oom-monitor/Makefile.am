@@ -14,6 +14,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-AM_CFLAGS = -Wall
+AM_CFLAGS=-I$(srcdir)/impl -Wall -g -Werror
 lib_LTLIBRARIES = libcgroupOOMMonitor.la
 libcgroupOOMMonitor_la_SOURCES = impl/org_apache_storm_container_cgroup_monitor_CgroupOOMMonitor.c
