@@ -17,7 +17,7 @@
   (:import [org.apache.thrift.server THsHaServer THsHaServer$Args]
            [org.apache.storm.stats StatsUtil]
            [org.apache.storm.metric StormMetricsRegistry])
-  (:import [org.apache.storm.daemon.nimbus Nimbus TopologyResources TopologyStateTransition Nimbus$Assoc Nimbus$Dissoc TopologyActions])
+  (:import [org.apache.storm.daemon.nimbus Nimbus TopologyResources TopologyStateTransition Nimbus$Dissoc TopologyActions])
   (:import [org.apache.storm.generated KeyNotFoundException TopologyStatus])
   (:import [org.apache.storm.blobstore LocalFsBlobStore])
   (:import [org.apache.thrift.protocol TBinaryProtocol TBinaryProtocol$Factory])
@@ -95,20 +95,6 @@
   (let [key-iter (.listKeys blob-store)]
     (iterator-seq key-iter)))
 
-(defn- get-worker-resources-for-topology [nimbus topo-id]
-  (or (get (.get (.getIdToWorkerResources nimbus)) topo-id)
-      (try
-        (let [storm-cluster-state (.getStormClusterState nimbus)
-              assigned-resources (->> (clojurify-assignment (.assignmentInfo storm-cluster-state topo-id nil))
-                                      :worker->resources)
-              worker-resources (into {} (map #(identity {(WorkerSlot. (first (key %)) (second (key %)))  
-                                                         (doto (WorkerResources.)
-                                                             (.set_mem_on_heap (nth (val %) 0))
-                                                             (.set_mem_off_heap (nth (val %) 1))
-                                                             (.set_cpu (nth (val %) 2)))}) assigned-resources))]
-          (.getAndUpdate (.getIdToWorkerResources nimbus) (Nimbus$Assoc. topo-id worker-resources))
-          worker-resources))))
-          
 (defn changed-executors [executor->node+port new-executor->node+port]
   (let [executor->node+port (if executor->node+port (sort executor->node+port) nil)
         new-executor->node+port (if new-executor->node+port (sort new-executor->node+port) nil)
@@ -1393,7 +1379,7 @@
                       base]} topo-info
               exec->node+port (:executor->node+port assignment)
               node->host (:node->host assignment)
-              worker->resources (get-worker-resources-for-topology nimbus topo-id)
+              worker->resources (.getWorkerResourcesForTopology nimbus topo-id)
               worker-summaries (StatsUtil/aggWorkerStats topo-id 
                                                          storm-name
                                                          task->component
@@ -1483,7 +1469,7 @@
                                     task->component]} topo-info
                             exec->node+port (:executor->node+port assignment)
                             node->host (:node->host assignment)
-                            worker->resources (get-worker-resources-for-topology nimbus storm-id)]
+                            worker->resources (.getWorkerResourcesForTopology nimbus storm-id)]
                         (doseq [worker-summary (StatsUtil/aggWorkerStats storm-id 
                                                                          storm-name
                                                                          task->component

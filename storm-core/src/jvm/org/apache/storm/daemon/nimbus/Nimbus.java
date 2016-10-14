@@ -1279,4 +1279,23 @@ public class Nimbus {
         }
         return ret;
     }
+    
+    // TODO private
+    public Map<WorkerSlot, WorkerResources> getWorkerResourcesForTopology(String topoId) {
+        Map<WorkerSlot, WorkerResources> ret = getIdToWorkerResources().get().get(topoId);
+        if (ret == null) {
+            IStormClusterState state = getStormClusterState();
+            ret = new HashMap<>();
+            Assignment assignment = state.assignmentInfo(topoId, null);
+            if (assignment != null && assignment.is_set_worker_resources()) {
+                for (Entry<NodeInfo, WorkerResources> entry: assignment.get_worker_resources().entrySet()) {
+                    NodeInfo ni = entry.getKey();
+                    WorkerSlot slot = new WorkerSlot(ni.get_node(), ni.get_port_iterator().next());
+                    ret.put(slot, entry.getValue());
+                }
+                getIdToWorkerResources().getAndUpdate(new Assoc<>(topoId, ret));
+            }
+        }
+        return ret;
+    }
 }
