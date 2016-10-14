@@ -95,34 +95,6 @@
   (let [key-iter (.listKeys blob-store)]
     (iterator-seq key-iter)))
 
-(defn get-resources-for-topology [nimbus topo-id]
-  (or (get (.get (.getIdToResources nimbus)) topo-id)
-      (try
-        (let [storm-cluster-state (.getStormClusterState nimbus)
-              topology-details (.readTopologyDetails nimbus topo-id)
-              assigned-resources (->> (clojurify-assignment (.assignmentInfo storm-cluster-state topo-id nil))
-                                      :worker->resources
-                                      (vals)
-                                        ; Default to [[0 0 0]] if there are no values
-                                      (#(or % [[0 0 0]]))
-                                        ; [[on-heap, off-heap, cpu]] -> [[on-heap], [off-heap], [cpu]]
-                                      (apply map vector)
-                                        ; [[on-heap], [off-heap], [cpu]] -> [on-heap-sum, off-heap-sum, cpu-sum]
-                                      (map (partial reduce +)))
-              worker-resources (TopologyResources. (.getTotalRequestedMemOnHeap topology-details)
-                                                    (.getTotalRequestedMemOffHeap topology-details)
-                                                    (.getTotalRequestedCpu topology-details)
-                                                    (double (nth assigned-resources 0))
-                                                    (double (nth assigned-resources 1))
-                                                    (double (nth assigned-resources 2)))]
-          (.getAndUpdate (.getIdToResources nimbus) (Nimbus$Assoc. topo-id worker-resources))
-          worker-resources)
-        (catch KeyNotFoundException e
-          ; This can happen when a topology is first coming up.
-          ; It's thrown by the blobstore code.
-          (log-error e "Failed to get topology details")
-          (TopologyResources. 0 0 0 0 0 0)))))
-
 (defn- get-worker-resources-for-topology [nimbus topo-id]
   (or (get (.get (.getIdToWorkerResources nimbus)) topo-id)
       (try
@@ -756,7 +728,7 @@
                                                                     (extract-status-str base))]
                                     (when-let [owner (:owner base)] (.set_owner topo-summ owner))
                                     (when-let [sched-status (.get (.get (.getIdToSchedStatus nimbus)) id)] (.set_sched_status topo-summ sched-status))
-                                    (when-let [resources (get-resources-for-topology nimbus id)]
+                                    (when-let [resources (.getResourcesForTopology nimbus id)]
                                       (.set_requested_memonheap topo-summ (.getRequestedMemOnHeap resources))
                                       (.set_requested_memoffheap topo-summ (.getRequestedMemOffHeap resources))
                                       (.set_requested_cpu topo-summ (.getRequestedCpu resources))
@@ -1238,7 +1210,7 @@
                            )]
             (when-let [owner (:owner base)] (.set_owner topo-info owner))
             (when-let [sched-status (.get (.get (.getIdToSchedStatus nimbus)) storm-id)] (.set_sched_status topo-info sched-status))
-            (when-let [resources (get-resources-for-topology nimbus storm-id)]
+            (when-let [resources (.getResourcesForTopology nimbus storm-id)]
               (.set_requested_memonheap topo-info (.getRequestedMemOnHeap resources))
               (.set_requested_memoffheap topo-info (.getRequestedMemOffHeap resources))
               (.set_requested_cpu topo-info (.getRequestedCpu resources))
@@ -1455,7 +1427,7 @@
             (.set_owner topo-page-info owner))
           (when-let [sched-status (.get (.get (.getIdToSchedStatus nimbus)) topo-id)]
             (.set_sched_status topo-page-info sched-status))
-          (when-let [resources (get-resources-for-topology nimbus topo-id)]
+          (when-let [resources (.getResourcesForTopology nimbus topo-id)]
             (.set_requested_memonheap topo-page-info (:requested-mem-on-heap resources))
             (.set_requested_memoffheap topo-page-info (:requested-mem-off-heap resources))
             (.set_requested_cpu topo-page-info (:requested-cpu resources))

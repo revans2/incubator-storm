@@ -1234,4 +1234,49 @@ public class Nimbus {
         
         return cluster.getAssignments();
     }
+    
+    //TODO private
+    public TopologyResources getResourcesForTopology(String topoId) throws NotAliveException, AuthorizationException, InvalidTopologyException, IOException {
+        TopologyResources ret = getIdToResources().get().get(topoId);
+        if (ret == null) {
+            try {
+                IStormClusterState state = getStormClusterState();
+                TopologyDetails details = readTopologyDetails(topoId);
+                double sumOnHeap = 0.0;
+                double sumOffHeap = 0.0;
+                double sumCPU = 0.0;
+                
+                Assignment assignment = state.assignmentInfo(topoId, null);
+                if (assignment != null) {
+                    if (assignment.is_set_worker_resources()) {
+                        for (WorkerResources wr: assignment.get_worker_resources().values()) {
+                            if (wr.is_set_cpu()) {
+                                sumCPU += wr.get_cpu();
+                            }
+                            
+                            if (wr.is_set_mem_off_heap()) {
+                                sumOffHeap += wr.get_mem_off_heap();
+                            }
+                            
+                            if (wr.is_set_mem_on_heap()) {
+                                sumOnHeap += wr.get_mem_on_heap();
+                            }
+                        }
+                    }
+                }
+                ret = new TopologyResources(details.getTotalRequestedMemOnHeap(),
+                        details.getTotalRequestedMemOffHeap(),
+                        details.getTotalRequestedCpu(),
+                        sumOnHeap,
+                        sumOffHeap,
+                        sumCPU);
+            } catch(KeyNotFoundException e) {
+                //This can happen when a topology is first coming up
+                // It's thrown by the blobstore code
+                LOG.error("Failed to get topology details", e);
+                ret = new TopologyResources(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+            }
+        }
+        return ret;
+    }
 }
