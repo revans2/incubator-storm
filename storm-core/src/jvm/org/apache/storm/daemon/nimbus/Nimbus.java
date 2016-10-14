@@ -385,7 +385,7 @@ public class Nimbus {
                 
                 List<Object> nodePort = new ArrayList<>(2);
                 nodePort.add(slot.getNodeId());
-                nodePort.add(slot.getPort());
+                nodePort.add((long)slot.getPort());
                 
                 execToNodePort.put(listExec, nodePort);
             }
@@ -451,9 +451,9 @@ public class Nimbus {
                 for (Entry<List<Long>, List<Object>> execAndNodePort: execToNodePort.entrySet()) {
                     NodeInfo oldAssigned = old.get(execAndNodePort.getKey());
                     String node = (String) execAndNodePort.getValue().get(0);
-                    Integer port = (Integer) execAndNodePort.getValue().get(1);
+                    Long port = (Long) execAndNodePort.getValue().get(1);
                     if (oldAssigned == null || !oldAssigned.get_node().equals(node) 
-                            || !port.equals(oldAssigned.get_port_iterator().next().intValue())) {
+                            || !port.equals(oldAssigned.get_port_iterator().next())) {
                         reassigned.put(execAndNodePort.getKey(), execAndNodePort.getValue());
                     }
                 }
@@ -469,6 +469,19 @@ public class Nimbus {
         return ret;
     }
     
+    //TODO private
+    public static List<List<Long>> changedExecutors(Map<List<Long>, List<Object>> execToNodePort,
+            Map<List<Long>, List<Object>> newExecToNodePort) {
+        HashMap<List<Object>, List<List<Long>>> slotAssigned = execToNodePort == null ? new HashMap<>() : Utils.reverseMap(execToNodePort);
+        HashMap<List<Object>, List<List<Long>>> newSlotAssigned = newExecToNodePort == null ? new HashMap<>() : Utils.reverseMap(newExecToNodePort);
+        Map<List<Object>, List<List<Long>>> diff = mapDiff(slotAssigned, newSlotAssigned);
+        List<List<Long>> ret = new ArrayList<>();
+        for (List<List<Long>> val: diff.values()) {
+            ret.addAll(val);
+        }
+        return ret;
+    }
+
     private final Map<String, Object> conf;
     private final NimbusInfo nimbusHostPortInfo;
     private final INimbus inimbus;

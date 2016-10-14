@@ -95,15 +95,6 @@
   (let [key-iter (.listKeys blob-store)]
     (iterator-seq key-iter)))
 
-(defn changed-executors [executor->node+port new-executor->node+port]
-  (let [executor->node+port (if executor->node+port (sort executor->node+port) nil)
-        new-executor->node+port (if new-executor->node+port (sort new-executor->node+port) nil)
-        slot-assigned (clojurify-structure (Utils/reverseMap executor->node+port))
-        new-slot-assigned (clojurify-structure (Utils/reverseMap new-executor->node+port))
-        brand-new-slots (Nimbus/mapDiff slot-assigned new-slot-assigned)]
-    (apply concat (vals brand-new-slots))
-    ))
-
 (defn newly-added-slots [existing-assignment new-assignment]
   (let [old-slots (-> (:executor->node+port existing-assignment)
                       vals
@@ -171,6 +162,7 @@
         ;; construct the final Assignments by adding start-times etc into it
         new-assignments (into {} (for [[topology-id executor->node+port] topology->executor->node+port
                                         :let [existing-assignment (get existing-assignments topology-id)
+                                              t-existing-assignment (get thrift-existing-assignments topology-id)
                                               all-nodes (->> executor->node+port vals (map first) set)
                                               node->host (->> all-nodes
                                                               (mapcat (fn [node]
@@ -179,7 +171,7 @@
                                                                           )))
                                                               (into {}))
                                               all-node->host (merge (:node->host existing-assignment) node->host)
-                                              reassign-executors (changed-executors (:executor->node+port existing-assignment) executor->node+port)
+                                              reassign-executors (clojurify-structure (Nimbus/changedExecutors (:executor->node+port existing-assignment) executor->node+port))
                                               start-times (merge (:executor->start-time-secs existing-assignment)
                                                                 (into {}
                                                                       (for [id reassign-executors]
