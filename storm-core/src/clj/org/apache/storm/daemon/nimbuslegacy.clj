@@ -95,13 +95,6 @@
   (let [key-iter (.listKeys blob-store)]
     (iterator-seq key-iter)))
 
-(defn basic-supervisor-details-map [storm-cluster-state]
-  (let [infos (.allSupervisorInfo storm-cluster-state)]
-    (->> infos
-         (map (fn [[id info]]
-                 [id (SupervisorDetails. id (.get_hostname info) (.get_scheduler_meta info) nil (.get_resources_map info))]))
-         (into {}))))
-
 ;; get existing assignment (just the executor->node+port map) -> default to {}
 ;; filter out ones which have a executor timeout
 ;; figure out available slots on cluster. add to that the used valid slots to get total slots. figure out how many executors should be in each slot (e.g., 4, 4, 4, 5)
@@ -144,7 +137,7 @@
         new-assigned-worker->resources (clojurify-structure (Nimbus/computeTopoToNodePortToResources new-scheduler-assignments))
         now-secs (Time/currentTimeSecs)
 
-        basic-supervisor-details-map (basic-supervisor-details-map storm-cluster-state)
+        basic-supervisor-details-map (Nimbus/basicSupervisorDetailsMap storm-cluster-state)
 
         ;; construct the final Assignments by adding start-times etc into it
         new-assignments (into {} (for [[topology-id executor->node+port] topology->executor->node+port

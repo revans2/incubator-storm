@@ -494,6 +494,18 @@ public class Nimbus {
         return ret;
     }
     
+    //TODO private
+    public static Map<String, SupervisorDetails> basicSupervisorDetailsMap(IStormClusterState state) {
+        Map<String, SupervisorDetails> ret = new HashMap<>();
+        for (Entry<String, SupervisorInfo> entry: state.allSupervisorInfo().entrySet()) {
+            String id = entry.getKey();
+            SupervisorInfo info = entry.getValue();
+            ret.put(id, new SupervisorDetails(id, info.get_hostname(), info.get_scheduler_meta(), null,
+                    info.get_resources_map()));
+        }
+        return ret;
+    }
+    
     private final Map<String, Object> conf;
     private final NimbusInfo nimbusHostPortInfo;
     private final INimbus inimbus;
