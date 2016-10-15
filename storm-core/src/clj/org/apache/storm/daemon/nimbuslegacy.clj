@@ -90,29 +90,6 @@
   (let [key-iter (.listKeys blob-store)]
     (iterator-seq key-iter)))
 
-;TODO: when translating this function, you should replace the map-val with a proper for loop HERE
-(defn- start-storm [nimbus storm-name storm-id topology-initial-status]
-  {:pre [(#{TopologyStatus/ACTIVE TopologyStatus/INACTIVE} topology-initial-status)]}
-  (let [storm-cluster-state (.getStormClusterState nimbus)
-        conf (.getConf nimbus)
-        blob-store (.getBlobStore nimbus)
-        storm-conf (clojurify-structure (Nimbus/readTopoConf storm-id blob-store))
-        topology (StormCommon/systemTopology storm-conf (Nimbus/readStormTopology storm-id blob-store))
-        num-executors (->> (clojurify-structure (StormCommon/allComponents topology)) (map-val #(StormCommon/numStartExecutors %)))]
-    (log-message "Activating " storm-name ": " storm-id)
-    (.activateStorm storm-cluster-state
-                      storm-id
-      (converter/thriftify-storm-base (StormBase. storm-name
-                                  (Time/currentTimeSecs)
-                                  {:type topology-initial-status}
-                                  (storm-conf TOPOLOGY-WORKERS)
-                                  num-executors
-                                  (storm-conf TOPOLOGY-SUBMITTER-USER)
-                                  nil
-                                  nil
-                                  {})))
-    (.notifyTopologyActionListener nimbus storm-name "activate")))
-
 ;; Master:
 ;; job submit:
 ;; 1. read which nodes are available
@@ -757,7 +734,7 @@
               (.notifyTopologyActionListener nimbus storm-name "submitTopology")
               (let [thrift-status->kw-status {TopologyInitialStatus/INACTIVE TopologyStatus/INACTIVE
                                               TopologyInitialStatus/ACTIVE TopologyStatus/ACTIVE}]
-                (start-storm nimbus storm-name storm-id (thrift-status->kw-status (.get_initial_status submitOptions))))))
+                (.startStorm nimbus storm-name storm-id (thrift-status->kw-status (.get_initial_status submitOptions))))))
           (catch Throwable e
             (log-warn-error e "Topology submission exception. (topology name='" storm-name "')")
             (throw e))))

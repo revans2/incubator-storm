@@ -63,6 +63,7 @@ import org.apache.storm.generated.SettableBlobMeta;
 import org.apache.storm.generated.StormBase;
 import org.apache.storm.generated.StormTopology;
 import org.apache.storm.generated.SupervisorInfo;
+import org.apache.storm.generated.TopologyInitialStatus;
 import org.apache.storm.generated.TopologyStatus;
 import org.apache.storm.generated.WorkerResources;
 import org.apache.storm.metric.ClusterMetricsConsumerExecutor;
@@ -1511,11 +1512,30 @@ public class Nimbus {
             }
         }
     }
-//    (defn notify-topology-action-listener [nimbus storm-id action]
-//            (let [topology-action-notifier (.getNimbusTopologyActionNotifier nimbus)]
-//              (when (not-nil? topology-action-notifier)
-//                (try (.notify topology-action-notifier storm-id action)
-//                  (catch Exception e
-//                  (log-warn-error e "Ignoring exception from Topology action notifier for storm-Id " storm-id))))))
 
+    //TODO private
+    //TODO rename
+    public void startStorm(String topoName, String topoId, TopologyStatus initStatus) throws KeyNotFoundException, AuthorizationException, IOException, InvalidTopologyException {
+        assert(TopologyStatus.ACTIVE == initStatus || TopologyStatus.INACTIVE == initStatus);
+        IStormClusterState state = getStormClusterState();
+        Map<String, Object> conf = getConf();
+        BlobStore store = getBlobStore();
+        Map<String, Object> topoConf = readTopoConf(topoId, store);
+        StormTopology topology = StormCommon.systemTopology(topoConf, readStormTopology(topoId, store));
+        Map<String, Integer> numExecutors = new HashMap<>();
+        for (Entry<String, Object> entry: StormCommon.allComponents(topology).entrySet()) {
+            numExecutors.put(entry.getKey(), StormCommon.numStartExecutors(entry.getValue()));
+        }
+        LOG.info("Activating {}: {}", topoName, topoId);
+        StormBase base = new StormBase();
+        base.set_name(topoName);
+        base.set_launch_time_secs(Time.currentTimeSecs());
+        base.set_status(initStatus);
+        base.set_num_workers(Utils.getInt(topoConf.get(Config.TOPOLOGY_WORKERS), 0));
+        base.set_component_executors(numExecutors);
+        base.set_owner((String) topoConf.get(Config.TOPOLOGY_SUBMITTER_USER));
+        base.set_component_debug(new HashMap<>());
+        state.activateStorm(topoId, base);
+        notifyTopologyActionListener(topoName, "activate");
+    }
 }
