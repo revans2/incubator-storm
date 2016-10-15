@@ -419,7 +419,7 @@ public class Nimbus {
             for (WorkerSlot slot: schedEntry.getValue().getExecutorToSlot().values()) {
                 List<Object> nodePort = new ArrayList<>(2);
                 nodePort.add(slot.getNodeId());
-                nodePort.add(slot.getPort());
+                nodePort.add((long)slot.getPort());
                 
                 List<Double> resources = new ArrayList<>(3);
                 resources.add(slot.getAllocatedMemOnHeap());
@@ -470,10 +470,26 @@ public class Nimbus {
     }
     
     //TODO private
-    public static List<List<Long>> changedExecutors(Map<List<Long>, List<Object>> execToNodePort,
+    public static List<List<Long>> changedExecutors(Map<List<Long>, NodeInfo> map,
             Map<List<Long>, List<Object>> newExecToNodePort) {
-        HashMap<List<Object>, List<List<Long>>> slotAssigned = execToNodePort == null ? new HashMap<>() : Utils.reverseMap(execToNodePort);
-        HashMap<List<Object>, List<List<Long>>> newSlotAssigned = newExecToNodePort == null ? new HashMap<>() : Utils.reverseMap(newExecToNodePort);
+        HashMap<NodeInfo, List<List<Long>>> tmpSlotAssigned = map == null ? new HashMap<>() : Utils.reverseMap(map);
+        HashMap<List<Object>, List<List<Long>>> slotAssigned = new HashMap<>();
+        for (Entry<NodeInfo, List<List<Long>>> entry: tmpSlotAssigned.entrySet()) {
+            NodeInfo ni = entry.getKey();
+            List<Object> key = new ArrayList<>(2);
+            key.add(ni.get_node());
+            key.add(ni.get_port_iterator().next());
+            List<List<Long>> value = new ArrayList<>(entry.getValue());
+            value.sort((a, b) -> a.get(0).compareTo(b.get(0)));
+            slotAssigned.put(key, value);
+        }
+        HashMap<List<Object>, List<List<Long>>> tmpNewSlotAssigned = newExecToNodePort == null ? new HashMap<>() : Utils.reverseMap(newExecToNodePort);
+        HashMap<List<Object>, List<List<Long>>> newSlotAssigned = new HashMap<>();
+        for (Entry<List<Object>, List<List<Long>>> entry: tmpNewSlotAssigned.entrySet()) {
+            List<List<Long>> value = new ArrayList<>(entry.getValue());
+            value.sort((a, b) -> a.get(0).compareTo(b.get(0)));
+            newSlotAssigned.put(entry.getKey(), value);
+        }
         Map<List<Object>, List<List<Long>>> diff = mapDiff(slotAssigned, newSlotAssigned);
         List<List<Long>> ret = new ArrayList<>();
         for (List<List<Long>> val: diff.values()) {
@@ -768,10 +784,7 @@ public class Nimbus {
         });
     }
 
-    //TODO replace this ASAP
-    private static final clojure.lang.IFn FIXME_MK_ASSIGNMENTS = clojure.java.api.Clojure.var("org.apache.storm.daemon.nimbuslegacy", "mk-assignments-scratch");    
-    
-    void doRebalance(String topoId, StormBase stormBase) {
+    void doRebalance(String topoId, StormBase stormBase) throws Exception {
         RebalanceOptions rbo = stormBase.get_topology_action_options().get_rebalance_options();
         StormBase updated = new StormBase();
         updated.set_topology_action_options(null);
@@ -785,7 +798,7 @@ public class Nimbus {
             updated.set_num_workers(rbo.get_num_workers());
         }
         getStormClusterState().updateStorm(topoId, updated);
-        FIXME_MK_ASSIGNMENTS.invoke(this, topoId);
+        mkAssignments(topoId);
     }
     
     private String toTopoId(String topoName) throws NotAliveException {
@@ -1206,6 +1219,7 @@ public class Nimbus {
     }
     
     //TODO private
+    //TODO misspelled!!!
     public Map<String, SchedulerAssignment> computeNewSchedulerAssignmnets(Map<String, Assignment> existingAssignments,
             Topologies topologies, String scratchTopologyId) throws KeyNotFoundException, AuthorizationException, InvalidTopologyException, IOException {
         Map<String, Object> conf = getConf();
@@ -1335,4 +1349,155 @@ public class Nimbus {
         }
         return ret;
     }
+
+    //TODO private
+    public void mkAssignments() throws Exception {
+        mkAssignments(null);
+    }
+    
+    public void mkAssignments(String scratchTopoId) throws Exception {
+        if (!isLeader()) {
+            LOG.info("not a leader, skipping assignments");
+            return;
+        }
+        // get existing assignment (just the executor->node+port map) -> default to {}
+        // filter out ones which have a executor timeout
+        // figure out available slots on cluster. add to that the used valid slots to get total slots. figure out how many executors should be in each slot (e.g., 4, 4, 4, 5)
+        // only keep existing slots that satisfy one of those slots. for rest, reassign them across remaining slots
+        // edge case for slots with no executor timeout but with supervisor timeout... just treat these as valid slots that can be reassigned to. worst comes to worse the executor will timeout and won't assign here next time around
+
+        Map<String, Object> conf = getConf();
+        IStormClusterState state = getStormClusterState();
+        INimbus inumbus = getINimbus();
+        //read all the topologies
+        List<String> topologyIds = state.activeStorms();
+        Map<String, TopologyDetails> tds = new HashMap<>();
+        for (String id: topologyIds) {
+            tds.put(id, readTopologyDetails(id));
+        }
+        Topologies topologies = new Topologies(tds);
+        List<String> assignedTopologyIds = state.assignments(null);
+        Map<String, Assignment> existingAssignments = new HashMap<>();
+        for (String id: assignedTopologyIds) {
+            //for the topology which wants rebalance (specified by the scratch-topology-id)
+            // we exclude its assignment, meaning that all the slots occupied by its assignment
+            // will be treated as free slot in the scheduler code.
+            if (!id.equals(scratchTopoId)) {
+                existingAssignments.put(id, state.assignmentInfo(id, null));
+            }
+        }
+        // make the new assignments for topologies
+        Map<String, SchedulerAssignment> newSchedulerAssignments = computeNewSchedulerAssignmnets(existingAssignments, topologies, scratchTopoId);
+        Map<String, Map<List<Long>, List<Object>>> topologyToExecutorToNodePort = computeNewTopoToExecToNodePort(newSchedulerAssignments, existingAssignments);
+        for (String id: assignedTopologyIds) {
+            if (!topologyToExecutorToNodePort.containsKey(id)) {
+                topologyToExecutorToNodePort.put(id, null);
+            }
+        }
+        Map<String, Map<List<Object>, List<Double>>> newAssignedWorkerToResources = computeTopoToNodePortToResources(newSchedulerAssignments);
+        int nowSecs = Time.currentTimeSecs();
+        Map<String, SupervisorDetails> basicSupervisorDetailsMap = basicSupervisorDetailsMap(state);
+        //construct the final Assignments by adding start-times etc into it
+        Map<String, Assignment> newAssignments  = new HashMap<>();
+        for (Entry<String, Map<List<Long>, List<Object>>> entry: topologyToExecutorToNodePort.entrySet()) {
+            String topoId = entry.getKey();
+            Map<List<Long>, List<Object>> execToNodePort = entry.getValue();
+            Assignment existingAssignment = existingAssignments.get(topoId);
+            Set<String> allNodes = new HashSet<>();
+            for (List<Object> nodePort: execToNodePort.values()) {
+                allNodes.add((String) nodePort.get(0));
+            }
+            Map<String, String> allNodeHost = new HashMap<>();
+            if (existingAssignment != null) {
+                allNodeHost.putAll(existingAssignment.get_node_host());
+            }
+            for (String node: allNodes) {
+                String host = inimbus.getHostName(basicSupervisorDetailsMap, node);
+                if (host != null) {
+                    allNodeHost.put(node, host);
+                }
+            }
+            Map<List<Long>, NodeInfo> execNodeInfo = null;
+            if (existingAssignment != null) {
+                execNodeInfo = existingAssignment.get_executor_node_port();
+            }
+            List<List<Long>> reassignExecutors = changedExecutors(execNodeInfo, execToNodePort);
+            Map<List<Long>, Long> startTimes = new HashMap<>();
+            if (existingAssignment != null) {
+                startTimes.putAll(existingAssignment.get_executor_start_time_secs());
+            }
+            for (List<Long> id: reassignExecutors) {
+                startTimes.put(id, (long)nowSecs);
+            }
+            Map<List<Object>, List<Double>> workerToResources = newAssignedWorkerToResources.get(topoId);
+            Assignment newAssignment = new Assignment((String)conf.get(Config.STORM_LOCAL_DIR));
+            Map<String, String> justAssignedKeys = new HashMap<>(allNodeHost);
+            //Modifies justAssignedKeys
+            justAssignedKeys.keySet().retainAll(allNodes);
+            newAssignment.set_node_host(justAssignedKeys);
+            //convert NodePort to NodeInfo (again!!!).
+            Map<List<Long>, NodeInfo> execToNodeInfo = new HashMap<>();
+            for (Entry<List<Long>, List<Object>> execAndNodePort: execToNodePort.entrySet()) {
+                List<Object> nodePort = execAndNodePort.getValue();
+                NodeInfo ni = new NodeInfo();
+                ni.set_node((String) nodePort.get(0));
+                ni.add_to_port((Long)nodePort.get(1));
+                execToNodeInfo.put(execAndNodePort.getKey(), ni);
+            }
+            newAssignment.set_executor_node_port(execToNodeInfo);
+            newAssignment.set_executor_start_time_secs(startTimes);
+            //do another conversion (lets just make this all common)
+            Map<NodeInfo, WorkerResources> workerResources = new HashMap<>();
+            for (Entry<List<Object>, List<Double>> wr: workerToResources.entrySet()) {
+                List<Object> nodePort = wr.getKey();
+                NodeInfo ni = new NodeInfo();
+                ni.set_node((String) nodePort.get(0));
+                ni.add_to_port((Long) nodePort.get(1));
+                List<Double> r = wr.getValue();
+                WorkerResources resources = new WorkerResources();
+                resources.set_mem_on_heap(r.get(0));
+                resources.set_mem_off_heap(r.get(1));
+                resources.set_cpu(r.get(2));
+                workerResources.put(ni, resources);
+            }
+            newAssignment.set_worker_resources(workerResources);
+            newAssignments.put(topoId, newAssignment);
+        }
+        
+        if (!newAssignments.equals(existingAssignments)) {
+            LOG.debug("RESETTING id->resources and id->worker-resources cache!");
+            getIdToResources().set(new HashMap<>());
+            getIdToWorkerResources().set(new HashMap<>());
+        }
+        //tasks figure out what tasks to talk to by looking at topology at runtime
+        // only log/set when there's been a change to the assignment
+        for (Entry<String, Assignment> entry: newAssignments.entrySet()) {
+            String topoId = entry.getKey();
+            Assignment assignment = entry.getValue();
+            Assignment existingAssignment = existingAssignments.get(topoId);
+            //NOT Used TopologyDetails topologyDetails = topologies.getById(topoId);
+            if (assignment.equals(existingAssignment)) {
+                LOG.debug("Assignment for {} hasn't changed", topoId);
+            } else {
+                LOG.info("Setting new assignment for topology id {}: {}", topoId, assignment);
+                state.setAssignment(topoId, assignment);
+            }
+        }
+        //TODO yes we loop through again (Do we want to combine the various loops???)
+        Map<String, Collection<WorkerSlot>> addedSlots = new HashMap<>();
+        for (Entry<String, Assignment> entry: newAssignments.entrySet()) {
+            String topoId = entry.getKey();
+            Assignment assignment = entry.getValue();
+            Assignment existingAssignment = existingAssignments.get(topoId);
+            if (existingAssignment == null) {
+                existingAssignment = new Assignment();
+                existingAssignment.set_executor_node_port(new HashMap<>());
+                existingAssignment.set_executor_start_time_secs(new HashMap<>());
+            }
+            Set<WorkerSlot> newSlots = newlyAddedSlots(existingAssignment, assignment);
+            addedSlots.put(topoId, newSlots);
+        }
+        inumbus.assignSlots(topologies, addedSlots);
+    }
+
 }

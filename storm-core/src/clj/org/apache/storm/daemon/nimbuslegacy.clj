@@ -77,11 +77,6 @@
 
 (defmulti blob-sync cluster-mode)
 
-(declare mk-assignments)
-
-(defn mk-assignments-scratch [nimbus storm-id]
-  (mk-assignments nimbus :scratch-topology-id storm-id))
-
 (defmulti setup-jar cluster-mode)
 (defmulti clean-inbox cluster-mode)
 
@@ -94,100 +89,6 @@
 (defn get-key-seq-from-blob-store [blob-store]
   (let [key-iter (.listKeys blob-store)]
     (iterator-seq key-iter)))
-
-;; get existing assignment (just the executor->node+port map) -> default to {}
-;; filter out ones which have a executor timeout
-;; figure out available slots on cluster. add to that the used valid slots to get total slots. figure out how many executors should be in each slot (e.g., 4, 4, 4, 5)
-;; only keep existing slots that satisfy one of those slots. for rest, reassign them across remaining slots
-;; edge case for slots with no executor timeout but with supervisor timeout... just treat these as valid slots that can be reassigned to. worst comes to worse the executor will timeout and won't assign here next time around
-(defnk mk-assignments [nimbus :scratch-topology-id nil]
-  (if (.isLeader nimbus)
-    (let [conf (.getConf nimbus)
-        storm-cluster-state (.getStormClusterState nimbus)
-        ^INimbus inimbus (.getINimbus nimbus)
-        ;; read all the topologies
-        topology-ids (.activeStorms storm-cluster-state)
-        topologies (into {} (for [tid topology-ids]
-                              {tid (.readTopologyDetails nimbus tid)}))
-        topologies (Topologies. topologies)
-        ;; read all the assignments
-        assigned-topology-ids (.assignments storm-cluster-state nil)
-        existing-assignments (into {} (for [tid assigned-topology-ids]
-                                        ;; for the topology which wants rebalance (specified by the scratch-topology-id)
-                                        ;; we exclude its assignment, meaning that all the slots occupied by its assignment
-                                        ;; will be treated as free slot in the scheduler code.
-                                        (when (or (nil? scratch-topology-id) (not= tid scratch-topology-id))
-                                          {tid (clojurify-assignment (.assignmentInfo storm-cluster-state tid nil))})))
-        thrift-existing-assignments (into {} (for [tid assigned-topology-ids]
-                                        ;; for the topology which wants rebalance (specified by the scratch-topology-id)
-                                        ;; we exclude its assignment, meaning that all the slots occupied by its assignment
-                                        ;; will be treated as free slot in the scheduler code.
-                                        (when (or (nil? scratch-topology-id) (not= tid scratch-topology-id))
-                                          {tid (.assignmentInfo storm-cluster-state tid nil)})))
- 
-        ;; make the new assignments for topologies
-        new-scheduler-assignments (.computeNewSchedulerAssignmnets
-                                       nimbus
-                                       thrift-existing-assignments
-                                       topologies
-                                       scratch-topology-id)
-        topology->executor->node+port (clojurify-structure (Nimbus/computeNewTopoToExecToNodePort new-scheduler-assignments thrift-existing-assignments))
-
-        topology->executor->node+port (merge (into {} (for [id assigned-topology-ids] {id nil})) topology->executor->node+port)
-        new-assigned-worker->resources (clojurify-structure (Nimbus/computeTopoToNodePortToResources new-scheduler-assignments))
-        now-secs (Time/currentTimeSecs)
-
-        basic-supervisor-details-map (Nimbus/basicSupervisorDetailsMap storm-cluster-state)
-
-        ;; construct the final Assignments by adding start-times etc into it
-        new-assignments (into {} (for [[topology-id executor->node+port] topology->executor->node+port
-                                        :let [existing-assignment (get existing-assignments topology-id)
-                                              t-existing-assignment (get thrift-existing-assignments topology-id)
-                                              all-nodes (->> executor->node+port vals (map first) set)
-                                              node->host (->> all-nodes
-                                                              (mapcat (fn [node]
-                                                                        (if-let [host (.getHostName inimbus basic-supervisor-details-map node)]
-                                                                          [[node host]]
-                                                                          )))
-                                                              (into {}))
-                                              all-node->host (merge (:node->host existing-assignment) node->host)
-                                              reassign-executors (clojurify-structure (Nimbus/changedExecutors (:executor->node+port existing-assignment) executor->node+port))
-                                              start-times (merge (:executor->start-time-secs existing-assignment)
-                                                                (into {}
-                                                                      (for [id reassign-executors]
-                                                                        [id now-secs]
-                                                                        )))
-                                              worker->resources (get new-assigned-worker->resources topology-id)]]
-                                   {topology-id (Assignment.
-                                                 (conf STORM-LOCAL-DIR)
-                                                 (select-keys all-node->host all-nodes)
-                                                 executor->node+port
-                                                 start-times
-                                                 worker->resources)}))]
-
-    (when (not= new-assignments existing-assignments)
-      (log-debug "RESETTING id->resources and id->worker-resources cache!")
-      (.set (.getIdToResources nimbus) {})
-      (.set (.getIdToWorkerResources nimbus) {}))
-    ;; tasks figure out what tasks to talk to by looking at topology at runtime
-    ;; only log/set when there's been a change to the assignment
-    (doseq [[topology-id assignment] new-assignments
-            :let [existing-assignment (get existing-assignments topology-id)
-                  topology-details (.getById topologies topology-id)]]
-      (if (= existing-assignment assignment)
-        (log-debug "Assignment for " topology-id " hasn't changed")
-        (do
-          (log-message "Setting new assignment for topology id " topology-id ": " (pr-str assignment))
-          (.setAssignment storm-cluster-state topology-id (thriftify-assignment assignment))
-          )))
-    (->> new-assignments
-          (map (fn [[topology-id assignment]]
-            (let [existing-assignment (get existing-assignments topology-id)]
-              [topology-id (Nimbus/newlyAddedSlots (thriftify-assignment existing-assignment) (thriftify-assignment assignment))]
-              )))
-          (into {})
-          (.assignSlots inimbus topologies)))
-    (log-message "not a leader, skipping assignments")))
 
 (defn notify-topology-action-listener [nimbus storm-id action]
   (let [topology-action-notifier (.getNimbusTopologyActionNotifier nimbus)]
@@ -1579,7 +1480,7 @@
       (fn []
         (when-not (conf ConfigUtils/NIMBUS_DO_NOT_REASSIGN)
           (locking (.getSubmitLock nimbus)
-            (mk-assignments nimbus)))
+            (.mkAssignments nimbus)))
         (do-cleanup nimbus)))
     ;; Schedule Nimbus inbox cleaner
     (.scheduleRecurring (.getTimer nimbus)
