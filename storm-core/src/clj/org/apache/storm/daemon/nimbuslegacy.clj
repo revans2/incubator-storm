@@ -95,25 +95,12 @@
   (let [key-iter (.listKeys blob-store)]
     (iterator-seq key-iter)))
 
-(defn newly-added-slots [existing-assignment new-assignment]
-  (let [old-slots (-> (:executor->node+port existing-assignment)
-                      vals
-                      set)
-        new-slots (-> (:executor->node+port new-assignment)
-                      vals
-                      set)]
-    (set/difference new-slots old-slots)))
-
-
 (defn basic-supervisor-details-map [storm-cluster-state]
   (let [infos (.allSupervisorInfo storm-cluster-state)]
     (->> infos
          (map (fn [[id info]]
                  [id (SupervisorDetails. id (.get_hostname info) (.get_scheduler_meta info) nil (.get_resources_map info))]))
          (into {}))))
-
-(defn- to-worker-slot [[node port]]
-  (WorkerSlot. node port))
 
 ;; get existing assignment (just the executor->node+port map) -> default to {}
 ;; filter out ones which have a executor timeout
@@ -203,7 +190,7 @@
     (->> new-assignments
           (map (fn [[topology-id assignment]]
             (let [existing-assignment (get existing-assignments topology-id)]
-              [topology-id (map to-worker-slot (newly-added-slots existing-assignment assignment))]
+              [topology-id (Nimbus/newlyAddedSlots (thriftify-assignment existing-assignment) (thriftify-assignment assignment))]
               )))
           (into {})
           (.assignSlots inimbus topologies)))

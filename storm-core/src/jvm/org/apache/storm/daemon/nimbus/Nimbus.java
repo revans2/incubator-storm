@@ -482,6 +482,18 @@ public class Nimbus {
         return ret;
     }
 
+    //TODO private
+    public static Set<WorkerSlot> newlyAddedSlots(Assignment old, Assignment current) {
+        Set<NodeInfo> oldSlots = new HashSet<>(old.get_executor_node_port().values());
+        Set<NodeInfo> niRet = new HashSet<>(current.get_executor_node_port().values());
+        niRet.removeAll(oldSlots);
+        Set<WorkerSlot> ret = new HashSet<>();
+        for (NodeInfo ni: niRet) {
+            ret.add(new WorkerSlot(ni.get_node(), ni.get_port_iterator().next()));
+        }
+        return ret;
+    }
+    
     private final Map<String, Object> conf;
     private final NimbusInfo nimbusHostPortInfo;
     private final INimbus inimbus;
