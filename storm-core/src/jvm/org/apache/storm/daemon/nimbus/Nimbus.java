@@ -1499,5 +1499,23 @@ public class Nimbus {
         }
         inumbus.assignSlots(topologies, addedSlots);
     }
+    
+    //TODO private
+    public void notifyTopologyActionListener(String topoId, String action) {
+        ITopologyActionNotifierPlugin notifier = getNimbusTopologyActionNotifier();
+        if (notifier != null) {
+            try {
+                notifier.notify(topoId, action);
+            } catch (Exception e) {
+                LOG.warn("Ignoring exception from Topology action notifier for storm-Id {}", topoId, e);
+            }
+        }
+    }
+//    (defn notify-topology-action-listener [nimbus storm-id action]
+//            (let [topology-action-notifier (.getNimbusTopologyActionNotifier nimbus)]
+//              (when (not-nil? topology-action-notifier)
+//                (try (.notify topology-action-notifier storm-id action)
+//                  (catch Exception e
+//                  (log-warn-error e "Ignoring exception from Topology action notifier for storm-Id " storm-id))))))
 
 }

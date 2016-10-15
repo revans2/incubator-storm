@@ -90,13 +90,6 @@
   (let [key-iter (.listKeys blob-store)]
     (iterator-seq key-iter)))
 
-(defn notify-topology-action-listener [nimbus storm-id action]
-  (let [topology-action-notifier (.getNimbusTopologyActionNotifier nimbus)]
-    (when (not-nil? topology-action-notifier)
-      (try (.notify topology-action-notifier storm-id action)
-        (catch Exception e
-        (log-warn-error e "Ignoring exception from Topology action notifier for storm-Id " storm-id))))))
-
 ;TODO: when translating this function, you should replace the map-val with a proper for loop HERE
 (defn- start-storm [nimbus storm-name storm-id topology-initial-status]
   {:pre [(#{TopologyStatus/ACTIVE TopologyStatus/INACTIVE} topology-initial-status)]}
@@ -118,7 +111,7 @@
                                   nil
                                   nil
                                   {})))
-    (notify-topology-action-listener nimbus storm-name "activate")))
+    (.notifyTopologyActionListener nimbus storm-name "activate")))
 
 ;; Master:
 ;; job submit:
@@ -761,7 +754,7 @@
               (.setupHeatbeats storm-cluster-state storm-id)
               (if (total-storm-conf TOPOLOGY-BACKPRESSURE-ENABLE)
                 (.setupBackpressure storm-cluster-state storm-id))
-              (notify-topology-action-listener nimbus storm-name "submitTopology")
+              (.notifyTopologyActionListener nimbus storm-name "submitTopology")
               (let [thrift-status->kw-status {TopologyInitialStatus/INACTIVE TopologyStatus/INACTIVE
                                               TopologyInitialStatus/ACTIVE TopologyStatus/ACTIVE}]
                 (start-storm nimbus storm-name storm-id (thrift-status->kw-status (.get_initial_status submitOptions))))))
@@ -790,7 +783,7 @@
                            (.get_wait_secs options)
                            )]
             (.transitionName nimbus storm-name TopologyActions/KILL wait-amt true)
-            (notify-topology-action-listener nimbus storm-name operation))
+            (.notifyTopologyActionListener nimbus storm-name operation))
           (add-topology-to-history-log (StormCommon/getStormId (.getStormClusterState nimbus) storm-name)
             nimbus topology-conf)))
 
@@ -809,7 +802,7 @@
                 ))
             (.transitionName nimbus storm-name TopologyActions/REBALANCE options true)
 
-            (notify-topology-action-listener nimbus storm-name operation))))
+            (.notifyTopologyActionListener nimbus storm-name operation))))
 
       (activate [this storm-name]
         (.mark Nimbus/activateCalls)
@@ -817,7 +810,7 @@
               operation "activate"]
           (check-authorization! nimbus storm-name topology-conf operation)
           (.transitionName nimbus storm-name TopologyActions/ACTIVATE nil true)
-          (notify-topology-action-listener nimbus storm-name operation)))
+          (.notifyTopologyActionListener nimbus storm-name operation)))
 
       (deactivate [this storm-name]
         (.mark Nimbus/deactivateCalls)
@@ -825,7 +818,7 @@
               operation "deactivate"]
           (check-authorization! nimbus storm-name topology-conf operation)
           (.transitionName nimbus storm-name TopologyActions/INACTIVATE nil true)
-          (notify-topology-action-listener nimbus storm-name operation)))
+          (.notifyTopologyActionListener nimbus storm-name operation)))
 
       (debug [this storm-name component-id enable? samplingPct]
         (.mark Nimbus/debugCalls)
