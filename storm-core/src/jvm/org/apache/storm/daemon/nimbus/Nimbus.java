@@ -52,6 +52,7 @@ import org.apache.storm.cluster.ClusterUtils;
 import org.apache.storm.cluster.DaemonType;
 import org.apache.storm.cluster.IStormClusterState;
 import org.apache.storm.daemon.StormCommon;
+import org.apache.storm.generated.AlreadyAliveException;
 import org.apache.storm.generated.Assignment;
 import org.apache.storm.generated.AuthorizationException;
 import org.apache.storm.generated.InvalidTopologyException;
@@ -521,6 +522,11 @@ public class Nimbus {
                     info.get_resources_map()));
         }
         return ret;
+    }
+    
+    //TODO private
+    public static boolean isTopologyActive(IStormClusterState state, String topoName) {
+        return StormCommon.getStormId(state, topoName) != null;
     }
     
     private final Map<String, Object> conf;
@@ -1537,5 +1543,15 @@ public class Nimbus {
         base.set_component_debug(new HashMap<>());
         state.activateStorm(topoId, base);
         notifyTopologyActionListener(topoName, "activate");
+    }
+    
+    //TODO private
+    public void assertTopoActive(String topoName, boolean expectActive) throws NotAliveException, AlreadyAliveException {
+        if (isTopologyActive(getStormClusterState(), topoName) != expectActive) {
+            if (expectActive) {
+                throw new NotAliveException(topoName + " is not alive");
+            }
+            throw new AlreadyAliveException(topoName + " is already alive");
+        }
     }
 }

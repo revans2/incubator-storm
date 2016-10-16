@@ -96,18 +96,6 @@
 ;; 2. set assignments
 ;; 3. start storm - necessary in case master goes down, when goes back up can remember to take down the storm (2 states: on or off)
 
-(defn storm-active? [storm-cluster-state storm-name]
-  (not-nil? (StormCommon/getStormId storm-cluster-state storm-name)))
-
-(defn check-storm-active! [nimbus storm-name active?]
-  (if (= (not active?)
-         (storm-active? (.getStormClusterState nimbus)
-                        storm-name))
-    (if active?
-      (throw (NotAliveException. (str storm-name " is not alive")))
-      (throw (AlreadyAliveException. (str storm-name " is already active"))))
-    ))
-
 (defn try-read-storm-conf [conf storm-id blob-store]
   (try-cause
     (clojurify-structure (Nimbus/readTopoConfAsNimbus storm-id blob-store))
@@ -663,7 +651,7 @@
           (assert (not-nil? submitOptions))
           (validate-topology-name! storm-name)
           (check-authorization! nimbus storm-name nil "submitTopology")
-          (check-storm-active! nimbus storm-name false)
+          (.assertTopoActive nimbus storm-name false)
           (let [topo-conf (if-let [parsed-json (JSONValue/parse serializedConf)]
                             (clojurify-structure parsed-json))]
             (try
@@ -722,7 +710,7 @@
             ;; lock protects against multiple topologies being submitted at once and
             ;; cleanup thread killing topology in b/w assignment and starting the topology
             (locking (.getSubmitLock nimbus)
-              (check-storm-active! nimbus storm-name false)
+              (.assertTopoActive nimbus storm-name false)
               ;;cred-update-lock is not needed here because creds are being added for the first time.
               (.setCredentials storm-cluster-state storm-id (thriftify-credentials credentials) storm-conf)
               (log-message "uploadedJar " uploadedJarLocation)
@@ -751,7 +739,7 @@
 
       (^void killTopologyWithOpts [this ^String storm-name ^KillOptions options]
         (.mark Nimbus/killTopologyWithOptsCalls)
-        (check-storm-active! nimbus storm-name true)
+        (.assertTopoActive nimbus storm-name true)
         (let [topology-conf (try-read-storm-conf-from-name conf storm-name nimbus)
               storm-id (topology-conf STORM-ID)
               operation "killTopology"]
@@ -766,7 +754,7 @@
 
       (^void rebalance [this ^String storm-name ^RebalanceOptions options]
         (.mark Nimbus/rebalanceCalls)
-        (check-storm-active! nimbus storm-name true)
+        (.assertTopoActive nimbus storm-name true)
         (let [topology-conf (try-read-storm-conf-from-name conf storm-name nimbus)
               operation "rebalance"]
           (check-authorization! nimbus storm-name topology-conf operation)

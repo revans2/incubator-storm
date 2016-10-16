@@ -1271,11 +1271,8 @@
           (submit-local-topology-with-opts nimbus "test" {} topology
               (SubmitOptions. TopologyInitialStatus/INACTIVE))
       )
-      (stubbing [nimbus/storm-active? true]
-        (is (thrown? AuthorizationException
-          (.rebalance nimbus "test" (RebalanceOptions.))
-          ))
-      )
+      (is (thrown? AuthorizationException
+        (.rebalance nimbus "test" (RebalanceOptions.))))
       (is (thrown? AuthorizationException
         (.activate nimbus "test")
         ))
@@ -1651,8 +1648,7 @@
       (.set_target_log_level level "ERROR")
       (.set_action level LogLevelAction/UPDATE)
       (.put_to_named_logger_level previous-config "test" level)
-      (stubbing [nimbus/check-storm-active! nil
-                 nimbus/try-read-storm-conf {}]
+      (stubbing [nimbus/try-read-storm-conf {}]
         (.setLogConfig nimbus "foo" previous-config)
         (.setLogConfig nimbus "foo" mock-config)
         (let [saved-config (.getLogConfig nimbus "foo")
@@ -1661,8 +1657,7 @@
 
 (deftest log-level-update-merges-and-flags-existent-log-level
   (with-local-cluster [cluster]
-    (stubbing [nimbus/check-storm-active! nil
-               nimbus/try-read-storm-conf {}]
+    (stubbing [nimbus/try-read-storm-conf {}]
       (let [nimbus (:nimbus cluster)
             previous-config (LogConfig.)
             level (LogLevel.)

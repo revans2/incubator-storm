@@ -117,7 +117,9 @@
      ~@body
      false
      (catch Throwable t#
-       (Utils/exceptionCauseIsInstanceOf ~klass t#))))
+       (let [tc# (Utils/exceptionCauseIsInstanceOf ~klass t#)]
+         (if (not tc#) (log-error t# "Exception did not match " ~klass))
+         tc#))))
 
 (defmacro forcat
   [[args aseq] & body]
