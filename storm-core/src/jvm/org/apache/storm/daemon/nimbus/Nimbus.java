@@ -529,6 +529,23 @@ public class Nimbus {
         return StormCommon.getStormId(state, topoName) != null;
     }
     
+    //TODO private
+    public static Map<String, Object> tryReadTopoConf(String topoId, BlobStore store) throws NotAliveException, AuthorizationException, IOException {
+        try {
+            return readTopoConfAsNimbus(topoId, store);
+            //Was a try-cause but I looked at the code around this and key not found is not wrapped in runtime,
+            // so it is not needed
+        } catch (KeyNotFoundException e) {
+            throw new NotAliveException(topoId);
+        }
+    }
+    
+//    (defn try-read-storm-conf [conf storm-id blob-store]
+//            (try-cause
+//              (clojurify-structure (Nimbus/readTopoConfAsNimbus storm-id blob-store))
+//              (catch KeyNotFoundException e
+//                 (throw (NotAliveException. (str storm-id))))))
+    
     private final Map<String, Object> conf;
     private final NimbusInfo nimbusHostPortInfo;
     private final INimbus inimbus;
