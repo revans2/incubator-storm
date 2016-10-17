@@ -19,6 +19,8 @@ package org.apache.storm.cluster;
 
 import org.apache.storm.generated.*;
 import org.apache.storm.nimbus.NimbusInfo;
+import org.apache.storm.utils.IPredicate;
+import org.apache.storm.utils.Utils;
 
 import java.security.NoSuchAlgorithmException;
 import java.util.HashMap;
@@ -141,5 +143,20 @@ public interface IStormClusterState {
             ret.put(id, supervisorInfo(id));
         }
         return ret;
+    }
+    
+    /**
+     * Get a topology ID from the name of a topology
+     * @param topologyName the name of the topology to look for
+     * @return the id of the topology or null if it is not alive.
+     */
+    default String getTopoId(final String topologyName) {
+        for (String topoId: activeStorms()) {
+            String name = stormBase(topoId, null).get_name();
+            if (topologyName.equals(name)) {
+                return topoId;
+            }
+        }
+        return null;
     }
 }

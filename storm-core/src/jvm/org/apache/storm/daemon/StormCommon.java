@@ -94,17 +94,8 @@ public class StormCommon {
     public static final String TOPOLOGY_METRICS_CONSUMER_EXPAND_MAP_TYPE = "expandMapType";
     public static final String TOPOLOGY_METRICS_CONSUMER_METRIC_NAME_SEPARATOR = "metricNameSeparator";
 
-    @SuppressWarnings("unchecked")
     public static String getStormId(final IStormClusterState stormClusterState, final String topologyName) {
-        List<String> activeTopologys = stormClusterState.activeStorms();
-        IPredicate pred = new IPredicate<String>() {
-            @Override
-            public boolean test(String obj) {
-                String name = stormClusterState.stormBase(obj, null).get_name();
-                return name.equals(topologyName);
-            }
-        };
-        return Utils.findOne(pred, activeTopologys);
+        return stormClusterState.getTopoId(topologyName);
     }
 
     public static Map<String, StormBase> topologyBases(IStormClusterState stormClusterState) {

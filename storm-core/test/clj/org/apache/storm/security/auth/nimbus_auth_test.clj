@@ -72,10 +72,15 @@
         (.close client)))))
 
 (deftest test-noop-authorization-w-simple-transport
-  (let [port (Utils/getAvailablePort)]
-    (with-test-cluster [port nil
-                  "org.apache.storm.security.auth.authorizer.NoopAuthorizer"
-                  "org.apache.storm.security.auth.SimpleTransportPlugin"]
+  (let [port (Utils/getAvailablePort)
+        cluster-state (Mockito/mock IStormClusterState)
+        blob-store (Mockito/mock BlobStore)
+        topo-name "topo-name"]
+    (with-mocked-nimbus [cluster :cluster-state cluster-state :blob-store blob-store
+                         :nimbus-daemon true
+                         :daemon-conf {NIMBUS-AUTHORIZER "org.apache.storm.security.auth.authorizer.NoopAuthorizer"
+                                       NIMBUS-THRIFT-PORT port
+                                       STORM-THRIFT-TRANSPORT-PLUGIN "org.apache.storm.security.auth.SimpleTransportPlugin"}]
       (let [storm-conf (merge (clojurify-structure (ConfigUtils/readStormConfig))
                                {STORM-THRIFT-TRANSPORT-PLUGIN "org.apache.storm.security.auth.SimpleTransportPlugin"
                                 STORM-NIMBUS-RETRY-TIMES 0})
@@ -83,7 +88,7 @@
             nimbus_client (.getClient client)]
         (testing "(Positive authorization) Authorization plugin should accept client request"
                  (is (thrown-cause? NotAliveException
-                              (.activate nimbus_client "topo-name"))))
+                              (.activate nimbus_client topo-name))))
         (.close client)))))
 
 (deftest test-deny-authorization-w-simple-transport
@@ -91,11 +96,8 @@
         cluster-state (Mockito/mock IStormClusterState)
         blob-store (Mockito/mock BlobStore)
         topo-name "topo-name"
-        topo-id "topo-name-1"
-        storm-base (doto (StormBase. )
-                      (.set_name topo-name))]
-    (.thenReturn (Mockito/when (.activeStorms cluster-state)) [topo-id])
-    (.thenReturn (Mockito/when (.stormBase cluster-state (Mockito/eq topo-id) (Mockito/anyObject))) storm-base)
+        topo-id "topo-name-1"]
+    (.thenReturn (Mockito/when (.getTopoId cluster-state topo-name)) topo-id)
     (.thenReturn (Mockito/when (.readTopologyConf blob-store (Mockito/any String) (Mockito/anyObject))) {})
     (with-mocked-nimbus [cluster :cluster-state cluster-state :blob-store blob-store
                          :nimbus-daemon true
@@ -154,11 +156,8 @@
         cluster-state (Mockito/mock IStormClusterState)
         blob-store (Mockito/mock BlobStore)
         topo-name "topo-name"
-        topo-id "topo-name-1"
-        storm-base (doto (StormBase. )
-                      (.set_name topo-name))]
-    (.thenReturn (Mockito/when (.activeStorms cluster-state)) [topo-id])
-    (.thenReturn (Mockito/when (.stormBase cluster-state (Mockito/eq topo-id) (Mockito/anyObject))) storm-base)
+        topo-id "topo-name-1"]
+    (.thenReturn (Mockito/when (.getTopoId cluster-state topo-name)) topo-id)
     (.thenReturn (Mockito/when (.readTopologyConf blob-store (Mockito/any String) (Mockito/anyObject))) {})
     (with-mocked-nimbus [cluster :cluster-state cluster-state :blob-store blob-store
                          :nimbus-daemon true

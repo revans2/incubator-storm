@@ -536,15 +536,12 @@ public class Nimbus {
             //Was a try-cause but I looked at the code around this and key not found is not wrapped in runtime,
             // so it is not needed
         } catch (KeyNotFoundException e) {
+            if (topoId == null) {
+                throw new NullPointerException();
+            }
             throw new NotAliveException(topoId);
         }
     }
-    
-//    (defn try-read-storm-conf [conf storm-id blob-store]
-//            (try-cause
-//              (clojurify-structure (Nimbus/readTopoConfAsNimbus storm-id blob-store))
-//              (catch KeyNotFoundException e
-//                 (throw (NotAliveException. (str storm-id))))))
     
     private final Map<String, Object> conf;
     private final NimbusInfo nimbusHostPortInfo;
@@ -828,7 +825,7 @@ public class Nimbus {
     private String toTopoId(String topoName) throws NotAliveException {
         String topoId = StormCommon.getStormId(getStormClusterState(), topoName);
         if (topoId == null) {
-            throw new NotAliveException(topoName);
+            throw new NotAliveException(topoName+" is not alive");
         }
         return topoId;
     }
@@ -960,6 +957,9 @@ public class Nimbus {
     public TopologyDetails readTopologyDetails(String topoId) throws NotAliveException, KeyNotFoundException, AuthorizationException, IOException, InvalidTopologyException {
         StormBase base = getStormClusterState().stormBase(topoId, null);
         if (base == null) {
+            if (topoId == null) {
+                throw new NullPointerException();
+            }
             throw new NotAliveException(topoId);
         }
         BlobStore store = getBlobStore();
