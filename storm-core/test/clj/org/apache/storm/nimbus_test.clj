@@ -1284,71 +1284,65 @@
 )
 
 (deftest test-nimbus-check-authorization-params
-  (with-local-cluster [cluster
+  (let [cluster-state (Mockito/mock IStormClusterState)
+        blob-store (Mockito/mock BlobStore)]
+  (with-mocked-nimbus [cluster :cluster-state cluster-state :blob-store blob-store
                        :daemon-conf {NIMBUS-AUTHORIZER "org.apache.storm.security.auth.authorizer.NoopAuthorizer"}]
     (let [nimbus (:nimbus cluster)
           topology-name "test-nimbus-check-autho-params"
-          topology (Thrift/buildTopology {} {})]
+          topology (Thrift/buildTopology {} {})
+          expected-name topology-name
+          expected-conf {TOPOLOGY-NAME expected-name
+                         "foo" "bar"}] 
+      (.thenReturn (Mockito/when (.readTopologyConf blob-store (Mockito/any String) (Mockito/anyObject))) expected-conf)
+      (testing "getTopologyConf calls check-authorization! with the correct parameters."
+        (let [expected-operation "getTopologyConf"
+              expected-conf-json (JSONValue/toJSONString expected-conf)]
+          (stubbing [nimbus/check-authorization! nil]
+            (try
+              (is (= expected-conf
+                     (->> (.getTopologyConf nimbus "fake-id")
+                          JSONValue/parse 
+                          clojurify-structure)))
+              (catch NotAliveException e)
+              (finally
+                (verify-first-call-args-for-indices
+                  nimbus/check-authorization!
+                  [1 2 3] expected-name expected-conf expected-operation))))))
 
-      (submit-local-topology-with-opts nimbus topology-name {} topology
-          (SubmitOptions. TopologyInitialStatus/INACTIVE))
-
-      (let [expected-name topology-name
-            expected-conf {TOPOLOGY-NAME expected-name
-                           "foo" "bar"}]
-
-        (testing "getTopologyConf calls check-authorization! with the correct parameters."
-          (let [expected-operation "getTopologyConf"
-                expected-conf-json (JSONValue/toJSONString expected-conf)]
+      (testing "getTopology calls check-authorization! with the correct parameters."
+        (let [expected-operation "getTopology"
+              common-spy (->>
+                           (proxy [StormCommon] []
+                                  (systemTopologyImpl [conf topology] nil))
+                         Mockito/spy)]
+          (with-open [- (StormCommonInstaller. common-spy)]
             (stubbing [nimbus/check-authorization! nil
-                       nimbus/try-read-storm-conf expected-conf]
-              (try
-                (is (= expected-conf
-                       (->> (.getTopologyConf nimbus "fake-id")
-                            JSONValue/parse 
-                            clojurify-structure)))
-                (catch NotAliveException e)
-                (finally
-                  (verify-first-call-args-for-indices
-                    nimbus/check-authorization!
-                      [1 2 3] expected-name expected-conf expected-operation))))))
-
-        (testing "getTopology calls check-authorization! with the correct parameters."
-          (let [expected-operation "getTopology"
-                common-spy (->>
-                             (proxy [StormCommon] []
-                                    (systemTopologyImpl [conf topology] nil))
-                           Mockito/spy)]
-            (with-open [- (StormCommonInstaller. common-spy)]
-              (stubbing [nimbus/check-authorization! nil
-                         nimbus/try-read-storm-conf expected-conf
-                         nimbus/try-read-storm-topology nil]
-                (try
-                  (.getTopology nimbus "fake-id")
-                  (catch NotAliveException e)
-                  (finally
-                    (verify-first-call-args-for-indices
-                      nimbus/check-authorization!
-                        [1 2 3] expected-name expected-conf expected-operation)
-                    (. (Mockito/verify common-spy)
-                      (systemTopologyImpl (Matchers/eq expected-conf)
-                                          (Matchers/any)))))))))
-
-        (testing "getUserTopology calls check-authorization with the correct parameters."
-          (let [expected-operation "getUserTopology"]
-            (stubbing [nimbus/check-authorization! nil
-                       nimbus/try-read-storm-conf expected-conf
                        nimbus/try-read-storm-topology nil]
               (try
-                (.getUserTopology nimbus "fake-id")
+                (.getTopology nimbus "fake-id")
                 (catch NotAliveException e)
                 (finally
                   (verify-first-call-args-for-indices
                     nimbus/check-authorization!
                       [1 2 3] expected-name expected-conf expected-operation)
-                  (verify-first-call-args-for-indices
-                    nimbus/try-read-storm-topology [0] "fake-id"))))))))))
+                  (. (Mockito/verify common-spy)
+                    (systemTopologyImpl (Matchers/eq expected-conf)
+                                        (Matchers/any)))))))))
 
+      (testing "getUserTopology calls check-authorization with the correct parameters."
+        (let [expected-operation "getUserTopology"]
+          (stubbing [nimbus/check-authorization! nil
+                     nimbus/try-read-storm-topology nil]
+            (try
+              (.getUserTopology nimbus "fake-id")
+              (catch NotAliveException e)
+              (finally
+                (verify-first-call-args-for-indices
+                  nimbus/check-authorization!
+                    [1 2 3] expected-name expected-conf expected-operation)
+                (verify-first-call-args-for-indices
+                  nimbus/try-read-storm-topology [0] "fake-id"))))))))))
 
 (deftest test-check-authorization-getSupervisorPageInfo
   (let [cluster-state (Mockito/mock IStormClusterState)
@@ -1639,21 +1633,30 @@
 ;; if the user sends an empty log config, nimbus will say that all 
 ;; log configs it contains are LogLevelAction/UNCHANGED
 (deftest empty-save-config-results-in-all-unchanged-actions
-  (with-local-cluster [cluster]
-    (let [nimbus (:nimbus cluster)
-          previous-config (LogConfig.)
-          level (LogLevel.)
-          mock-config (LogConfig.)]
-      ;; send something with content to nimbus beforehand
-      (.set_target_log_level level "ERROR")
-      (.set_action level LogLevelAction/UPDATE)
-      (.put_to_named_logger_level previous-config "test" level)
-      (stubbing [nimbus/try-read-storm-conf {}]
-        (.setLogConfig nimbus "foo" previous-config)
+  (let [cluster-state (Mockito/mock IStormClusterState)
+        blob-store (Mockito/mock BlobStore)]
+    (with-mocked-nimbus [cluster :cluster-state cluster-state :blob-store blob-store
+                         :daemon-conf {NIMBUS-AUTHORIZER "org.apache.storm.security.auth.authorizer.NoopAuthorizer"}]
+      (let [nimbus (:nimbus cluster)
+            previous-config (LogConfig.)
+            level (LogLevel.)
+            mock-config (LogConfig.)
+            expected-level (LogLevel.)
+            expected-config (LogConfig.)]
+        ;; send something with content to nimbus beforehand
+        (.set_target_log_level level "ERROR")
+        (.set_action level LogLevelAction/UPDATE)
+        (.put_to_named_logger_level previous-config "test" level)
+
+        (.set_target_log_level expected-level "ERROR")
+        (.set_action expected-level LogLevelAction/UNCHANGED)
+        (.put_to_named_logger_level expected-config "test" expected-level)
+
+        (.thenReturn (Mockito/when (.readTopologyConf blob-store (Mockito/any String) (Mockito/anyObject))) {})
+        (.thenReturn (Mockito/when (.topologyLogConfig cluster-state (Mockito/any String) (Mockito/anyObject))) previous-config)
+ 
         (.setLogConfig nimbus "foo" mock-config)
-        (let [saved-config (.getLogConfig nimbus "foo")
-              levels (.get_named_logger_level saved-config)]
-           (is (= (.get_action (.get levels "test")) LogLevelAction/UNCHANGED)))))))
+        (.setTopologyLogConfig (Mockito/verify cluster-state) (Mockito/any String) (Mockito/eq expected-config))))))
 
 (deftest log-level-update-merges-and-flags-existent-log-level
   (with-local-cluster [cluster]
