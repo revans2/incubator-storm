@@ -67,6 +67,7 @@ import org.apache.storm.generated.SupervisorInfo;
 import org.apache.storm.generated.TopologyInitialStatus;
 import org.apache.storm.generated.TopologyStatus;
 import org.apache.storm.generated.WorkerResources;
+import org.apache.storm.logging.ThriftAccessLogger;
 import org.apache.storm.metric.ClusterMetricsConsumerExecutor;
 import org.apache.storm.nimbus.DefaultTopologyValidator;
 import org.apache.storm.nimbus.ILeaderElector;
@@ -1580,11 +1581,53 @@ public class Nimbus {
         }
         return tryReadTopoConf(topoId, getBlobStore());
     }
+
+    public void checkAuthorization(String topoName, Map<String, Object> topoConf, String operation) throws AuthorizationException {
+        checkAuthorization(topoName, topoConf, operation, null);
+    }
     
-//    (defn try-read-storm-conf-from-name [conf storm-name nimbus]
-//            (let [storm-cluster-state (.getStormClusterState nimbus)
-//                  blob-store (.getBlobStore nimbus)
-//                  id (StormCommon/getStormId storm-cluster-state storm-name)]
-//             (when (nil? id) (throw (NotAliveException. (str storm-name " is not alive"))))
-//             (Nimbus/tryReadTopoConf id blob-store)))
+    public void checkAuthorization(String topoName, Map<String, Object> topoConf, String operation, ReqContext context) throws AuthorizationException {
+        //if (true) {throw new RuntimeException("HERE");}
+        IAuthorizer aclHandler = getAuthorizationHandler();
+        IAuthorizer impersonationAuthorizer = getImpersonationAuthorizationHandler();
+        if (context == null) {
+            context = ReqContext.context();
+        }
+        Map<String, Object> checkConf = new HashMap<>();
+        if (topoConf != null) {
+            checkConf.putAll(topoConf);
+        } else if (topoName != null) {
+            checkConf.put(Config.TOPOLOGY_NAME, topoName);
+        }
+       
+        if (context.isImpersonating()) {
+            LOG.warn("principal: {} is trying to impersonate principal: {}", context.realPrincipal(), context.principal());
+            if (impersonationAuthorizer == null) {
+                //TODO now that we are 2.x lets fail closed here
+                LOG.warn("impersonation attempt but {} has no authorizer configured. potential security risk, "
+                        + "please see SECURITY.MD to learn how to configure impersonation authorizer.", Config.NIMBUS_IMPERSONATION_AUTHORIZER);
+            } else {
+                if (!impersonationAuthorizer.permit(context, operation, checkConf)) {
+                    ThriftAccessLogger.logAccess(context.requestID(), context.remoteAddress(),
+                            context.principal(), operation, topoName, "access-denied");
+                    throw new AuthorizationException("principal " + context.realPrincipal() + 
+                            " is not authorized to impersonate principal " + context.principal() +
+                            " from host " + context.remoteAddress() +
+                            " Please see SECURITY.MD to learn how to configure impersonation acls.");
+                }
+            }
+        }
+        
+        if (aclHandler != null) {
+            if (!aclHandler.permit(context, operation, checkConf)) {
+              ThriftAccessLogger.logAccess(context.requestID(), context.remoteAddress(), context.principal(), operation,
+                      topoName, "access-denied");
+              throw new AuthorizationException( operation + (topoName != null ? " on topology " + topoName : "") + 
+                      " is not authorized");
+            } else {
+              ThriftAccessLogger.logAccess(context.requestID(), context.remoteAddress(), context.principal(),
+                      operation, topoName, "access-granted");
+            }
+        }
+    }
 }

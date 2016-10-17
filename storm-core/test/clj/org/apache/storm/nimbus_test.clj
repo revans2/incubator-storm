@@ -1194,7 +1194,7 @@
                         STORM-ZOOKEEPER-PORT zk-port
                         STORM-LOCAL-DIR nimbus-dir}))
           (bind cluster-state (ClusterUtils/mkStormClusterState conf nil (ClusterStateContext.)))
-          (bind nimbus (nimbus/service-handler conf (nimbus/standalone-nimbus) nil nil nil))
+          (bind nimbus (nimbus/service-handler (nimbus/mk-nimbus conf (nimbus/standalone-nimbus) nil nil nil)))
           (bind topology (Thrift/buildTopology
                            {"1" (Thrift/prepareSpoutDetails
                                   (TestPlannerSpout. true) (Integer. 3))}
@@ -1205,7 +1205,7 @@
 
             (letlocals
               (bind non-leader-cluster-state (ClusterUtils/mkStormClusterState conf nil (ClusterStateContext.)))
-              (bind non-leader-nimbus (nimbus/service-handler conf (nimbus/standalone-nimbus) nil nil nil))
+              (bind non-leader-nimbus (nimbus/service-handler (nimbus/mk-nimbus conf (nimbus/standalone-nimbus) nil nil nil)))
 
               ;first we verify that the master nimbus can perform all actions, even with another nimbus present.
               (submit-local-topology nimbus "t1" {} topology)
@@ -1259,56 +1259,50 @@
 )
 
 (deftest test-nimbus-iface-methods-check-authorization
-  (with-local-cluster [cluster
-                       :daemon-conf {NIMBUS-AUTHORIZER
-                          "org.apache.storm.security.auth.authorizer.DenyAuthorizer"}]
-    (let [
-          nimbus (:nimbus cluster)
-          topology (Thrift/buildTopology {} {})
-         ]
-      ; Fake good authorization as part of setup.
-      (mocking [nimbus/check-authorization!]
-          (submit-local-topology-with-opts nimbus "test" {} topology
-              (SubmitOptions. TopologyInitialStatus/INACTIVE))
-      )
-      (is (thrown? AuthorizationException
-        (.rebalance nimbus "test" (RebalanceOptions.))))
-      (is (thrown? AuthorizationException
-        (.activate nimbus "test")
-        ))
-      (is (thrown? AuthorizationException
-        (.deactivate nimbus "test")
-        ))
-    )
-  )
-)
+  (let [cluster-state (Mockito/mock IStormClusterState)
+        blob-store (Mockito/mock BlobStore)]
+    (with-mocked-nimbus [cluster :cluster-state cluster-state :blob-store blob-store
+                         :daemon-conf {NIMBUS-AUTHORIZER "org.apache.storm.security.auth.authorizer.DenyAuthorizer"}]
+      (let [nimbus (:nimbus cluster)
+            topology-name "test"
+            topology-id "test-id"]
+        (.thenReturn (Mockito/when (.getTopoId cluster-state topology-name)) topology-id)
+        (is (thrown? AuthorizationException
+          (.rebalance nimbus topology-name (RebalanceOptions.))))
+        (is (thrown? AuthorizationException
+          (.activate nimbus topology-name)))
+        (is (thrown? AuthorizationException
+          (.deactivate nimbus topology-name)))))))
 
 (deftest test-nimbus-check-authorization-params
   (let [cluster-state (Mockito/mock IStormClusterState)
-        blob-store (Mockito/mock BlobStore)]
-  (with-mocked-nimbus [cluster :cluster-state cluster-state :blob-store blob-store
+        blob-store (Mockito/mock BlobStore)
+        mk-nimbus (fn
+                    [conf inimbus blob-store leader-elector cluster-state]
+                    (Mockito/spy (nimbus/mk-nimbus conf inimbus blob-store leader-elector cluster-state)))] 
+  (with-mocked-nimbus [cluster :cluster-state cluster-state :blob-store blob-store :mk-nimbus mk-nimbus
                        :daemon-conf {NIMBUS-AUTHORIZER "org.apache.storm.security.auth.authorizer.NoopAuthorizer"}]
     (let [nimbus (:nimbus cluster)
+          nimbus-data (:nimbus-data cluster)
           topology-name "test-nimbus-check-autho-params"
+          topology-id "fake-id"
           topology (Thrift/buildTopology {} {})
           expected-name topology-name
           expected-conf {TOPOLOGY-NAME expected-name
                          "foo" "bar"}] 
+      (.thenReturn (Mockito/when (.getTopoId cluster-state topology-name)) topology-id)
       (.thenReturn (Mockito/when (.readTopologyConf blob-store (Mockito/any String) (Mockito/anyObject))) expected-conf)
       (testing "getTopologyConf calls check-authorization! with the correct parameters."
-        (let [expected-operation "getTopologyConf"
-              expected-conf-json (JSONValue/toJSONString expected-conf)]
-          (stubbing [nimbus/check-authorization! nil]
-            (try
-              (is (= expected-conf
-                     (->> (.getTopologyConf nimbus "fake-id")
-                          JSONValue/parse 
-                          clojurify-structure)))
-              (catch NotAliveException e)
-              (finally
-                (verify-first-call-args-for-indices
-                  nimbus/check-authorization!
-                  [1 2 3] expected-name expected-conf expected-operation))))))
+      (let [expected-operation "getTopologyConf"
+            expected-conf-json (JSONValue/toJSONString expected-conf)]
+          (try
+            (is (= expected-conf
+                   (->> (.getTopologyConf nimbus topology-id)
+                        JSONValue/parse 
+                        clojurify-structure)))
+            (catch NotAliveException e)
+            (finally
+              (.checkAuthorization (Mockito/verify nimbus-data) topology-name expected-conf expected-operation)))))
 
       (testing "getTopology calls check-authorization! with the correct parameters."
         (let [expected-operation "getTopology"
@@ -1317,37 +1311,34 @@
                                   (systemTopologyImpl [conf topology] nil))
                          Mockito/spy)]
           (with-open [- (StormCommonInstaller. common-spy)]
-            (stubbing [nimbus/check-authorization! nil
-                       nimbus/try-read-storm-topology nil]
+            (stubbing [nimbus/try-read-storm-topology nil]
               (try
-                (.getTopology nimbus "fake-id")
+                (.getTopology nimbus topology-id)
                 (catch NotAliveException e)
                 (finally
-                  (verify-first-call-args-for-indices
-                    nimbus/check-authorization!
-                      [1 2 3] expected-name expected-conf expected-operation)
+                  (.checkAuthorization (Mockito/verify nimbus-data) topology-name expected-conf expected-operation)
                   (. (Mockito/verify common-spy)
                     (systemTopologyImpl (Matchers/eq expected-conf)
                                         (Matchers/any)))))))))
 
       (testing "getUserTopology calls check-authorization with the correct parameters."
         (let [expected-operation "getUserTopology"]
-          (stubbing [nimbus/check-authorization! nil
-                     nimbus/try-read-storm-topology nil]
+          (stubbing [nimbus/try-read-storm-topology nil]
             (try
-              (.getUserTopology nimbus "fake-id")
+              (.getUserTopology nimbus topology-id)
               (catch NotAliveException e)
               (finally
+                (.checkAuthorization (Mockito/verify nimbus-data) topology-name expected-conf expected-operation)
                 (verify-first-call-args-for-indices
-                  nimbus/check-authorization!
-                    [1 2 3] expected-name expected-conf expected-operation)
-                (verify-first-call-args-for-indices
-                  nimbus/try-read-storm-topology [0] "fake-id"))))))))))
+                  nimbus/try-read-storm-topology [0] topology-id))))))))))
 
 (deftest test-check-authorization-getSupervisorPageInfo
   (let [cluster-state (Mockito/mock IStormClusterState)
-        blob-store (Mockito/mock BlobStore)]
-  (with-mocked-nimbus [cluster :cluster-state cluster-state :blob-store blob-store
+        blob-store (Mockito/mock BlobStore)
+        mk-nimbus (fn
+                    [conf inimbus blob-store leader-elector cluster-state]
+                    (Mockito/spy (nimbus/mk-nimbus conf inimbus blob-store leader-elector cluster-state)))]
+  (with-mocked-nimbus [cluster :cluster-state cluster-state :blob-store blob-store :mk-nimbus mk-nimbus
                        :daemon-conf {NIMBUS-AUTHORIZER "org.apache.storm.security.auth.authorizer.NoopAuthorizer"}]
     (let [nimbus (:nimbus cluster)
           expected-name "test-nimbus-check-autho-params"
@@ -1379,25 +1370,14 @@
       (.thenReturn (Mockito/when (.allSupervisorInfo cluster-state)) all-supervisors)
       (.thenReturn (Mockito/when (.readTopologyConf blob-store (Mockito/any String) (Mockito/any Subject))) expected-conf)
       (.thenReturn (Mockito/when (.readTopology blob-store (Mockito/any String) (Mockito/any Subject))) topology)
-      (stubbing [nimbus/check-authorization! mock-check-authorization
-                 clojurify-assignment clojurified-assignment
+      (stubbing [clojurify-assignment clojurified-assignment
                  nimbus/topology-assignments topo-assignment
                  nimbus/get-launch-time-secs 0]
-        ;; not called yet
-        (verify-call-times-for nimbus/check-authorization! 0)
         (.getSupervisorPageInfo nimbus "super1" nil true)
  
         ;; afterwards, it should get called twice
-        (verify-call-times-for nimbus/check-authorization! 2)
-        (let [first-call (nth @check-auth-state 0)
-              second-call (nth @check-auth-state 1)]
-           (is (= expected-name (:storm-name first-call)))
-           (is (= expected-conf (:storm-conf first-call)))
-           (is (= "getTopology" (:operation first-call)))
- 
-           (is (= expected-name (:storm-name second-call)))
-           (is (= expected-conf (:storm-conf second-call)))
-           (is (= "getSupervisorPageInfo" (:operation second-call)))))))))
+        (.checkAuthorization (Mockito/verify (:nimbus-data cluster)) expected-name expected-conf "getSupervisorPageInfo")
+        (.checkAuthorization (Mockito/verify (:nimbus-data cluster)) expected-name expected-conf "getTopology"))))))
 
 (deftest test-nimbus-iface-getTopology-methods-throw-correctly
   (with-local-cluster [cluster]
@@ -1529,12 +1509,13 @@
       )))
 
 (deftest test-validate-topo-config-on-submit
-  (with-local-cluster [cluster]
-    (let [nimbus (:nimbus cluster)
-          topology (Thrift/buildTopology {} {})
-          bad-config {"topology.isolate.machines" "2"}]
-      ; Fake good authorization as part of setup.
-      (mocking [nimbus/check-authorization!]
+  (let [cluster-state (Mockito/mock IStormClusterState)
+        blob-store (Mockito/mock BlobStore)]
+    (with-mocked-nimbus [cluster :cluster-state cluster-state :blob-store blob-store
+                         :daemon-conf {NIMBUS-AUTHORIZER "org.apache.storm.security.auth.authorizer.NoopAuthorizer"}]
+      (let [nimbus (:nimbus cluster)
+            topology (Thrift/buildTopology {} {})
+            bad-config {"topology.isolate.machines" "2"}]
         (is (thrown-cause? InvalidTopologyException
           (submit-local-topology-with-opts nimbus "test" bad-config topology
                                            (SubmitOptions.))))))))
@@ -1550,7 +1531,7 @@
                       STORM-ZOOKEEPER-PORT zk-port
                       STORM-LOCAL-DIR nimbus-dir}))
         (bind cluster-state (ClusterUtils/mkStormClusterState conf nil (ClusterStateContext.)))
-        (bind nimbus (nimbus/service-handler conf (nimbus/standalone-nimbus) nil nil nil))
+        (bind nimbus (nimbus/service-handler (nimbus/mk-nimbus conf (nimbus/standalone-nimbus) nil nil nil)))
         (Time/sleepSecs 1)
         (bind topology (Thrift/buildTopology
                          {"1" (Thrift/prepareSpoutDetails
@@ -1565,7 +1546,7 @@
         ; in startup of nimbus it reads cluster state and take proper actions
         ; in this case nimbus registers topology transition event to scheduler again
         ; before applying STORM-856 nimbus was killed with NPE
-        (bind nimbus (nimbus/service-handler conf (nimbus/standalone-nimbus) nil nil nil))
+        (bind nimbus (nimbus/service-handler (nimbus/mk-nimbus conf (nimbus/standalone-nimbus) nil nil nil)))
         (.shutdown nimbus)
         (.disconnect cluster-state)
         ))))
@@ -1583,7 +1564,7 @@
                         STORM-LOCAL-DIR nimbus-dir
                         NIMBUS-TOPOLOGY-ACTION-NOTIFIER-PLUGIN (.getName InMemoryTopologyActionNotifier)}))
           (bind cluster-state (ClusterUtils/mkStormClusterState conf nil (ClusterStateContext.)))
-          (bind nimbus (nimbus/service-handler conf (nimbus/standalone-nimbus) nil nil nil))
+          (bind nimbus (nimbus/service-handler (nimbus/mk-nimbus conf (nimbus/standalone-nimbus) nil nil nil)))
           (bind notifier (InMemoryTopologyActionNotifier.))
           (Time/sleepSecs 1)
           (bind topology (Thrift/buildTopology

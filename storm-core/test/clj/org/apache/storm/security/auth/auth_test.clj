@@ -75,25 +75,25 @@
          (^void submitTopologyWithOpts [this ^String storm-name ^String uploadedJarLocation ^String serializedConf ^StormTopology topology
                                         ^SubmitOptions submitOptions]
            (if (not (nil? serializedConf)) (swap! topo-conf (fn [prev new] new) (if serializedConf (clojurify-structure (JSONValue/parse serializedConf)))))
-           (nimbus/check-authorization! nimbus-d storm-name @topo-conf "submitTopology" auth-context))
+           (.checkAuthorization nimbus-d storm-name @topo-conf "submitTopology" auth-context))
 
          (^void killTopology [this ^String storm-name]
-           (nimbus/check-authorization! nimbus-d storm-name @topo-conf "killTopology" auth-context))
+           (.checkAuthorization nimbus-d storm-name @topo-conf "killTopology" auth-context))
 
          (^void killTopologyWithOpts [this ^String storm-name ^KillOptions options]
-           (nimbus/check-authorization! nimbus-d storm-name @topo-conf "killTopology" auth-context))
+           (.checkAuthorization nimbus-d storm-name @topo-conf "killTopology" auth-context))
 
          (^void rebalance [this ^String storm-name ^RebalanceOptions options]
-           (nimbus/check-authorization! nimbus-d storm-name @topo-conf "rebalance" auth-context))
+           (.checkAuthorization nimbus-d storm-name @topo-conf "rebalance" auth-context))
 
          (activate [this storm-name]
-           (nimbus/check-authorization! nimbus-d storm-name @topo-conf "activate" auth-context))
+           (.checkAuthorization nimbus-d storm-name @topo-conf "activate" auth-context))
 
          (deactivate [this storm-name]
-           (nimbus/check-authorization! nimbus-d storm-name @topo-conf "deactivate" auth-context))
+           (.checkAuthorization nimbus-d storm-name @topo-conf "deactivate" auth-context))
 
          (uploadNewCredentials [this storm-name creds]
-           (nimbus/check-authorization! nimbus-d storm-name @topo-conf "uploadNewCredentials" auth-context))
+           (.checkAuthorization nimbus-d storm-name @topo-conf "uploadNewCredentials" auth-context))
 
          (beginFileUpload [this])
 
@@ -102,7 +102,7 @@
          (^void finishFileUpload [this ^String location])
 
          (^String beginFileDownload [this ^String file]
-           (nimbus/check-authorization! nimbus-d nil nil "fileDownload" auth-context)
+           (.checkAuthorization nimbus-d nil nil "fileDownload" auth-context)
            "Done!")
 
          (^ByteBuffer downloadChunk [this ^String id])

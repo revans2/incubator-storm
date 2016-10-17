@@ -96,39 +96,12 @@
 ;; 2. set assignments
 ;; 3. start storm - necessary in case master goes down, when goes back up can remember to take down the storm (2 states: on or off)
 
-(defn check-authorization!
-  ([nimbus storm-name storm-conf operation context]
-     (let [aclHandler (.getAuthorizationHandler nimbus)
-           impersonation-authorizer (.getImpersonationAuthorizationHandler nimbus)
-           ctx (or context (ReqContext/context))
-           check-conf (if storm-conf storm-conf (if storm-name {TOPOLOGY-NAME storm-name}))]
-       (if (.isImpersonating ctx)
-         (do
-          (log-warn "principal: " (.realPrincipal ctx) " is trying to impersonate principal: " (.principal ctx))
-          (if impersonation-authorizer
-           (when-not (.permit impersonation-authorizer ctx operation check-conf)
-             (ThriftAccessLogger/logAccess (.requestID ctx) (.remoteAddress ctx) (.principal ctx) operation storm-name "access-denied")
-             (throw (AuthorizationException. (str "principal " (.realPrincipal ctx) " is not authorized to impersonate
-                        principal " (.principal ctx) " from host " (.remoteAddress ctx) " Please see SECURITY.MD to learn
-                        how to configure impersonation acls."))))
-           (log-warn "impersonation attempt but " NIMBUS-IMPERSONATION-AUTHORIZER " has no authorizer configured. potential
-                      security risk, please see SECURITY.MD to learn how to configure impersonation authorizer."))))
-
-       (if aclHandler
-         (if-not (.permit aclHandler ctx operation check-conf)
-           (do
-             (ThriftAccessLogger/logAccess (.requestID ctx) (.remoteAddress ctx) (.principal ctx) operation storm-name "access-denied")
-             (throw (AuthorizationException. (str operation (if storm-name (str " on topology " storm-name)) " is not authorized"))))
-           (ThriftAccessLogger/logAccess (.requestID ctx) (.remoteAddress ctx) (.principal ctx) operation storm-name "access-granted")))))
-  ([nimbus storm-name storm-conf operation]
-     (check-authorization! nimbus storm-name storm-conf operation (ReqContext/context))))
-
 ;; no-throw version of check-authorization!
 (defn is-authorized?
   [nimbus conf blob-store operation topology-id]
   (let [topology-conf (clojurify-structure (Nimbus/tryReadTopoConf topology-id blob-store))
         storm-name (topology-conf TOPOLOGY-NAME)]
-    (try (check-authorization! nimbus storm-name topology-conf operation)
+    (try (.checkAuthorization nimbus storm-name topology-conf operation)
          true
       (catch AuthorizationException e false))))
 
@@ -589,7 +562,7 @@
             (let [storm-cluster-state (.getStormClusterState nimbus)
                   topology-conf (clojurify-structure (Nimbus/tryReadTopoConf storm-id blob-store))
                   storm-name (topology-conf TOPOLOGY-NAME)
-                  _ (check-authorization! nimbus
+                  _ (.checkAuthorization nimbus
                                           storm-name
                                           topology-conf
                                           operation)
@@ -631,7 +604,7 @@
           (.assertIsLeader nimbus)
           (assert (not-nil? submitOptions))
           (validate-topology-name! storm-name)
-          (check-authorization! nimbus storm-name nil "submitTopology")
+          (.checkAuthorization nimbus storm-name nil "submitTopology")
           (.assertTopoActive nimbus storm-name false)
           (let [topo-conf (if-let [parsed-json (JSONValue/parse serializedConf)]
                             (clojurify-structure parsed-json))]
@@ -724,7 +697,7 @@
         (let [topology-conf (clojurify-structure (.tryReadTopoConfFromName nimbus storm-name))
               storm-id (topology-conf STORM-ID)
               operation "killTopology"]
-          (check-authorization! nimbus storm-name topology-conf operation)
+          (.checkAuthorization nimbus storm-name topology-conf operation)
           (let [wait-amt (if (.is_set_wait_secs options)
                            (.get_wait_secs options)
                            )]
@@ -738,7 +711,7 @@
         (.assertTopoActive nimbus storm-name true)
         (let [topology-conf (clojurify-structure (.tryReadTopoConfFromName nimbus storm-name))
               operation "rebalance"]
-          (check-authorization! nimbus storm-name topology-conf operation)
+          (.checkAuthorization nimbus storm-name topology-conf operation)
           (let [executor-overrides (if (.is_set_num_executors options)
                                      (.get_num_executors options)
                                      {})]
@@ -754,7 +727,7 @@
         (.mark Nimbus/activateCalls)
         (let [topology-conf (clojurify-structure (.tryReadTopoConfFromName nimbus storm-name))
               operation "activate"]
-          (check-authorization! nimbus storm-name topology-conf operation)
+          (.checkAuthorization nimbus storm-name topology-conf operation)
           (.transitionName nimbus storm-name TopologyActions/ACTIVATE nil true)
           (.notifyTopologyActionListener nimbus storm-name operation)))
 
@@ -762,7 +735,7 @@
         (.mark Nimbus/deactivateCalls)
         (let [topology-conf (clojurify-structure (.tryReadTopoConfFromName nimbus storm-name))
               operation "deactivate"]
-          (check-authorization! nimbus storm-name topology-conf operation)
+          (.checkAuthorization nimbus storm-name topology-conf operation)
           (.transitionName nimbus storm-name TopologyActions/INACTIVATE nil true)
           (.notifyTopologyActionListener nimbus storm-name operation)))
 
@@ -778,7 +751,7 @@
               storm-base-updates (assoc {} :component->debug (if (empty? component-id)
                                                                {storm-id debug-options}
                                                                {component-id debug-options}))]
-          (check-authorization! nimbus storm-name topology-conf "debug")
+          (.checkAuthorization nimbus storm-name topology-conf "debug")
           (when-not storm-id
             (throw (NotAliveException. storm-name)))
           (log-message "Nimbus setting debug to " enable? " for storm-name '" storm-name "' storm-id '" storm-id "' sampling pct '" spct "'"
@@ -791,7 +764,7 @@
         (.mark Nimbus/setWorkerProfilerCalls)
         (let [topology-conf (clojurify-structure (Nimbus/tryReadTopoConf id (.getBlobStore nimbus)))
               storm-name (topology-conf TOPOLOGY-NAME)
-              _ (check-authorization! nimbus storm-name topology-conf "setWorkerProfiler")
+              _ (.checkAuthorization nimbus storm-name topology-conf "setWorkerProfiler")
               storm-cluster-state (.getStormClusterState nimbus)]
           (.setWorkerProfileRequest storm-cluster-state id profileRequest)))
 
@@ -823,7 +796,7 @@
         (.mark Nimbus/setLogConfigCalls)
         (let [topology-conf (clojurify-structure (Nimbus/tryReadTopoConf id (.getBlobStore nimbus)))
               storm-name (topology-conf TOPOLOGY-NAME)
-              _ (check-authorization! nimbus storm-name topology-conf "setLogConfig")
+              _ (.checkAuthorization nimbus storm-name topology-conf "setLogConfig")
               storm-cluster-state (.getStormClusterState nimbus)
               merged-log-config (or (.topologyLogConfig storm-cluster-state id nil) (LogConfig.))
               named-loggers (.get_named_logger_level merged-log-config)]
@@ -852,12 +825,12 @@
               _ (when (nil? storm-id) (throw (NotAliveException. (str storm-name " is not alive"))))
               topology-conf (clojurify-structure (Nimbus/tryReadTopoConf storm-id blob-store))
               creds (when credentials (.get_creds credentials))]
-          (check-authorization! nimbus storm-name topology-conf "uploadNewCredentials")
+          (.checkAuthorization nimbus storm-name topology-conf "uploadNewCredentials")
           (locking (.getCredUpdateLock nimbus) (.setCredentials storm-cluster-state storm-id (thriftify-credentials creds) topology-conf))))
 
       (beginFileUpload [this]
         (.mark Nimbus/beginFileUploadCalls)
-        (check-authorization! nimbus nil nil "fileUpload")
+        (.checkAuthorization nimbus nil nil "fileUpload")
         (let [fileloc (str (.getInbox nimbus) "/stormjar-" (Utils/uuid) ".jar")]
           (.put (.getUploaders nimbus)
                 fileloc
@@ -868,7 +841,7 @@
 
       (^void uploadChunk [this ^String location ^ByteBuffer chunk]
         (.mark Nimbus/uploadChunkCalls)
-        (check-authorization! nimbus nil nil "fileUpload")
+        (.checkAuthorization nimbus nil nil "fileUpload")
         (let [uploaders (.getUploaders nimbus)
               ^WritableByteChannel channel (.get uploaders location)]
           (when-not channel
@@ -880,7 +853,7 @@
 
       (^void finishFileUpload [this ^String location]
         (.mark Nimbus/finishFileUploadCalls)
-        (check-authorization! nimbus nil nil "fileUpload")
+        (.checkAuthorization nimbus nil nil "fileUpload")
         (let [uploaders (.getUploaders nimbus)
               ^WritableByteChannel channel (.get uploaders location)]
           (when-not channel
@@ -894,7 +867,7 @@
       (^String beginFileDownload
         [this ^String file]
         (.mark Nimbus/beginFileDownloadCalls)
-        (check-authorization! nimbus nil nil "fileDownload")
+        (.checkAuthorization nimbus nil nil "fileDownload")
         (let [is (BufferInputStream. (.getBlob (.getBlobStore nimbus) file nil)
               ^Integer (Utils/getInt (conf STORM-BLOBSTORE-INPUTSTREAM-BUFFER-SIZE-BYTES)
               (int 65536)))
@@ -904,7 +877,7 @@
 
       (^ByteBuffer downloadChunk [this ^String id]
         (.mark Nimbus/downloadChunkCalls)
-        (check-authorization! nimbus nil nil "fileDownload")
+        (.checkAuthorization nimbus nil nil "fileDownload")
         (let [downloaders (.getDownloaders nimbus)
               ^BufferInputStream is (.get downloaders id)]
           (when-not is
@@ -919,14 +892,14 @@
 
       (^String getNimbusConf [this]
         (.mark Nimbus/getNimbusConfCalls)
-        (check-authorization! nimbus nil nil "getNimbusConf")
+        (.checkAuthorization nimbus nil nil "getNimbusConf")
         (JSONValue/toJSONString (.getConf nimbus)))
 
       (^LogConfig getLogConfig [this ^String id]
         (.mark Nimbus/getLogConfigCalls)
         (let [topology-conf (clojurify-structure (Nimbus/tryReadTopoConf id (.getBlobStore nimbus)))
               storm-name (topology-conf TOPOLOGY-NAME)
-              _ (check-authorization! nimbus storm-name topology-conf "getLogConfig")
+              _ (.checkAuthorization nimbus storm-name topology-conf "getLogConfig")
              storm-cluster-state (.getStormClusterState nimbus)
              log-config (.topologyLogConfig storm-cluster-state id nil)]
            (if log-config log-config (LogConfig.))))
@@ -935,26 +908,26 @@
         (.mark Nimbus/getTopologyConfCalls)
         (let [topology-conf (clojurify-structure (Nimbus/tryReadTopoConf id (.getBlobStore nimbus)))
               storm-name (topology-conf TOPOLOGY-NAME)]
-              (check-authorization! nimbus storm-name topology-conf "getTopologyConf")
+              (.checkAuthorization nimbus storm-name topology-conf "getTopologyConf")
               (JSONValue/toJSONString topology-conf)))
 
       (^StormTopology getTopology [this ^String id]
         (.mark Nimbus/getTopologyCalls)
         (let [topology-conf (clojurify-structure (Nimbus/tryReadTopoConf id (.getBlobStore nimbus)))
               storm-name (topology-conf TOPOLOGY-NAME)]
-              (check-authorization! nimbus storm-name topology-conf "getTopology")
+              (.checkAuthorization nimbus storm-name topology-conf "getTopology")
               (StormCommon/systemTopology topology-conf (try-read-storm-topology id (.getBlobStore nimbus)))))
 
       (^StormTopology getUserTopology [this ^String id]
         (.mark Nimbus/getUserTopologyCalls)
         (let [topology-conf (clojurify-structure (Nimbus/tryReadTopoConf id (.getBlobStore nimbus)))
               storm-name (topology-conf TOPOLOGY-NAME)]
-              (check-authorization! nimbus storm-name topology-conf "getUserTopology")
+              (.checkAuthorization nimbus storm-name topology-conf "getUserTopology")
               (try-read-storm-topology id blob-store)))
 
       (^ClusterSummary getClusterInfo [this]
         (.mark Nimbus/getClusterInfoCalls)
-        (check-authorization! nimbus nil nil "getClusterInfo")
+        (.checkAuthorization nimbus nil nil "getClusterInfo")
         (get-cluster-info nimbus))
 
       (^TopologyInfo getTopologyInfoWithOpts [this ^String storm-id ^GetInfoOptions options]
@@ -1384,12 +1357,16 @@
       (isWaiting [this]
         (.isTimerWaiting (.getTimer nimbus))))))
 
-;TODO: when translating this function, you should replace the map-val with a proper for loop HERE
-(defserverfn service-handler [conf inimbus blob-store leader-elector cluster-state]
+(defn mk-nimbus
+  [conf inimbus blob-store leader-elector cluster-state]
   (.prepare inimbus conf (ConfigUtils/masterInimbusDir conf))
-  (log-message "Starting Nimbus with conf " conf)
-  (let [nimbus (Nimbus. conf inimbus cluster-state nil blob-store leader-elector)
+  (Nimbus. conf inimbus cluster-state nil blob-store leader-elector))
+
+;TODO: when translating this function, you should replace the map-val with a proper for loop HERE
+(defserverfn service-handler [nimbus]
+  (let [conf (.getConf nimbus)
         blob-store (.getBlobStore nimbus)]
+    (log-message "Starting Nimbus with conf " conf)
     (.prepare ^org.apache.storm.nimbus.ITopologyValidator (.getValidator nimbus) conf)
 
     ;add to nimbuses
@@ -1471,7 +1448,7 @@
 (defn launch-server! [conf nimbus]
   (StormCommon/validateDistributedMode conf)
   (validate-port-available conf)
-  (let [service-handler (service-handler conf nimbus nil nil)
+  (let [service-handler (service-handler (mk-nimbus conf nimbus nil nil))
         server (ThriftServer. conf (Nimbus$Processor. service-handler)
                               ThriftConnectionType/NIMBUS)]
     (Utils/addShutdownHookWithForceKillIn1Sec (fn []

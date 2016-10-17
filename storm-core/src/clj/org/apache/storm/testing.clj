@@ -184,7 +184,7 @@
       (getAllNimbuses [this] `(leader-address))
       (close [this] true))))
 
-(defnk mk-mocked-nimbus [:daemon-conf {} :inimbus nil :blob-store nil :cluster-state nil :leader-elector nil :nimbus-daemon false]
+(defnk mk-mocked-nimbus [:daemon-conf {} :inimbus nil :blob-store nil :cluster-state nil :leader-elector nil :nimbus-daemon false :mk-nimbus nimbus/mk-nimbus]
   (let [zk-tmp (local-temp-path)
         [zk-port zk-handle] (if-not cluster-state
                               (Zookeeper/mkInprocessZookeeper zk-tmp nil))
@@ -202,14 +202,16 @@
                              {STORM-ZOOKEEPER-PORT zk-port
                               STORM-ZOOKEEPER-SERVERS ["localhost"]})
                            daemon-conf)
-        nimbus (nimbus/service-handler
+        nimbus-data (mk-nimbus
                 (assoc daemon-conf STORM-LOCAL-DIR nimbus-tmp)
                 (if inimbus inimbus (nimbus/standalone-nimbus))
                 blob-store
                 leader-elector
                 cluster-state)
+        nimbus (nimbus/service-handler nimbus-data)
         nimbus-thrift-server (if nimbus-daemon (start-nimbus-daemon daemon-conf nimbus) nil)]
     {:nimbus nimbus
+     :nimbus-data nimbus-data
      :daemon-conf daemon-conf
      :tmp-dirs (atom [nimbus-tmp zk-tmp])
      :nimbus-thrift-server nimbus-thrift-server
@@ -234,11 +236,12 @@
                            daemon-conf)
         port-counter (mk-counter supervisor-slot-port-min)
         nimbus (nimbus/service-handler
-                (assoc daemon-conf STORM-LOCAL-DIR nimbus-tmp)
-                (if inimbus inimbus (nimbus/standalone-nimbus))
-                nil
-                nil
-                nil)
+                (nimbus/mk-nimbus
+                  (assoc daemon-conf STORM-LOCAL-DIR nimbus-tmp)
+                  (if inimbus inimbus (nimbus/standalone-nimbus))
+                  nil
+                  nil
+                  nil))
         context (mk-shared-context daemon-conf)
         nimbus-thrift-server (if nimbus-daemon (start-nimbus-daemon daemon-conf nimbus) nil)
         cluster-map {:nimbus nimbus
