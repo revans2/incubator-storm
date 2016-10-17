@@ -96,13 +96,6 @@
 ;; 2. set assignments
 ;; 3. start storm - necessary in case master goes down, when goes back up can remember to take down the storm (2 states: on or off)
 
-(defn try-read-storm-conf-from-name [conf storm-name nimbus]
-  (let [storm-cluster-state (.getStormClusterState nimbus)
-        blob-store (.getBlobStore nimbus)
-        id (StormCommon/getStormId storm-cluster-state storm-name)]
-   (when (nil? id) (throw (NotAliveException. (str storm-name " is not alive"))))
-   (Nimbus/tryReadTopoConf id blob-store)))
-
 (defn check-authorization!
   ([nimbus storm-name storm-conf operation context]
      (let [aclHandler (.getAuthorizationHandler nimbus)
@@ -728,7 +721,7 @@
       (^void killTopologyWithOpts [this ^String storm-name ^KillOptions options]
         (.mark Nimbus/killTopologyWithOptsCalls)
         (.assertTopoActive nimbus storm-name true)
-        (let [topology-conf (clojurify-structure (try-read-storm-conf-from-name conf storm-name nimbus))
+        (let [topology-conf (clojurify-structure (.tryReadTopoConfFromName nimbus storm-name))
               storm-id (topology-conf STORM-ID)
               operation "killTopology"]
           (check-authorization! nimbus storm-name topology-conf operation)
@@ -743,7 +736,7 @@
       (^void rebalance [this ^String storm-name ^RebalanceOptions options]
         (.mark Nimbus/rebalanceCalls)
         (.assertTopoActive nimbus storm-name true)
-        (let [topology-conf (clojurify-structure (try-read-storm-conf-from-name conf storm-name nimbus))
+        (let [topology-conf (clojurify-structure (.tryReadTopoConfFromName nimbus storm-name))
               operation "rebalance"]
           (check-authorization! nimbus storm-name topology-conf operation)
           (let [executor-overrides (if (.is_set_num_executors options)
@@ -759,7 +752,7 @@
 
       (activate [this storm-name]
         (.mark Nimbus/activateCalls)
-        (let [topology-conf (clojurify-structure (try-read-storm-conf-from-name conf storm-name nimbus))
+        (let [topology-conf (clojurify-structure (.tryReadTopoConfFromName nimbus storm-name))
               operation "activate"]
           (check-authorization! nimbus storm-name topology-conf operation)
           (.transitionName nimbus storm-name TopologyActions/ACTIVATE nil true)
@@ -767,7 +760,7 @@
 
       (deactivate [this storm-name]
         (.mark Nimbus/deactivateCalls)
-        (let [topology-conf (clojurify-structure (try-read-storm-conf-from-name conf storm-name nimbus))
+        (let [topology-conf (clojurify-structure (.tryReadTopoConfFromName nimbus storm-name))
               operation "deactivate"]
           (check-authorization! nimbus storm-name topology-conf operation)
           (.transitionName nimbus storm-name TopologyActions/INACTIVATE nil true)

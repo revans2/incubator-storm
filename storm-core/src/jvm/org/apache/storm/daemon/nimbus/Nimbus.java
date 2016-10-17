@@ -1571,4 +1571,20 @@ public class Nimbus {
             throw new AlreadyAliveException(topoName + " is already alive");
         }
     }
+    
+    public Map<String, Object> tryReadTopoConfFromName(String topoName) throws NotAliveException, AuthorizationException, IOException {
+        IStormClusterState state = getStormClusterState();
+        String topoId = state.getTopoId(topoName);
+        if (topoId == null) {
+            throw new NotAliveException(topoName + " is not alive");
+        }
+        return tryReadTopoConf(topoId, getBlobStore());
+    }
+    
+//    (defn try-read-storm-conf-from-name [conf storm-name nimbus]
+//            (let [storm-cluster-state (.getStormClusterState nimbus)
+//                  blob-store (.getBlobStore nimbus)
+//                  id (StormCommon/getStormId storm-cluster-state storm-name)]
+//             (when (nil? id) (throw (NotAliveException. (str storm-name " is not alive"))))
+//             (Nimbus/tryReadTopoConf id blob-store)))
 }
