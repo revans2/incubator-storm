@@ -96,6 +96,7 @@
                       (.set_name topo-name))]
     (.thenReturn (Mockito/when (.activeStorms cluster-state)) [topo-id])
     (.thenReturn (Mockito/when (.stormBase cluster-state (Mockito/eq topo-id) (Mockito/anyObject))) storm-base)
+    (.thenReturn (Mockito/when (.readTopologyConf blob-store (Mockito/any String) (Mockito/anyObject))) {})
     (with-mocked-nimbus [cluster :cluster-state cluster-state :blob-store blob-store
                          :nimbus-daemon true
                          :daemon-conf {NIMBUS-AUTHORIZER "org.apache.storm.security.auth.authorizer.DenyAuthorizer"
@@ -119,18 +120,15 @@
         (is (thrown-cause? AuthorizationException (.downloadChunk nimbus_client nil)))
         (is (thrown-cause? AuthorizationException (.getNimbusConf nimbus_client)))
         (is (thrown-cause? AuthorizationException (.getClusterInfo nimbus_client)))
-        (stubbing [nimbus/try-read-storm-conf-from-name {}]
-          (is (thrown-cause? AuthorizationException (.killTopology nimbus_client topo-name)))
-          (is (thrown-cause? AuthorizationException (.killTopologyWithOpts nimbus_client topo-name (KillOptions.))))
-          (is (thrown-cause? AuthorizationException (.activate nimbus_client topo-name)))
-          (is (thrown-cause? AuthorizationException (.deactivate nimbus_client topo-name)))
-          (is (thrown-cause? AuthorizationException (.rebalance nimbus_client topo-name nil)))
-        )
-        (stubbing [nimbus/try-read-storm-conf {}]
-          (is (thrown-cause? AuthorizationException (.getTopologyConf nimbus_client topo-id)))
-          (is (thrown-cause? AuthorizationException (.getTopology nimbus_client topo-id)))
-          (is (thrown-cause? AuthorizationException (.getUserTopology nimbus_client topo-id)))
-          (is (thrown-cause? AuthorizationException (.getTopologyInfo nimbus_client topo-id))))
+        (is (thrown-cause? AuthorizationException (.killTopology nimbus_client topo-name)))
+        (is (thrown-cause? AuthorizationException (.killTopologyWithOpts nimbus_client topo-name (KillOptions.))))
+        (is (thrown-cause? AuthorizationException (.activate nimbus_client topo-name)))
+        (is (thrown-cause? AuthorizationException (.deactivate nimbus_client topo-name)))
+        (is (thrown-cause? AuthorizationException (.rebalance nimbus_client topo-name nil)))
+        (is (thrown-cause? AuthorizationException (.getTopologyConf nimbus_client topo-id)))
+        (is (thrown-cause? AuthorizationException (.getTopology nimbus_client topo-id)))
+        (is (thrown-cause? AuthorizationException (.getUserTopology nimbus_client topo-id)))
+        (is (thrown-cause? AuthorizationException (.getTopologyInfo nimbus_client topo-id)))
         (.close client)))))
 
 (deftest test-noop-authorization-w-sasl-digest
@@ -161,6 +159,7 @@
                       (.set_name topo-name))]
     (.thenReturn (Mockito/when (.activeStorms cluster-state)) [topo-id])
     (.thenReturn (Mockito/when (.stormBase cluster-state (Mockito/eq topo-id) (Mockito/anyObject))) storm-base)
+    (.thenReturn (Mockito/when (.readTopologyConf blob-store (Mockito/any String) (Mockito/anyObject))) {})
     (with-mocked-nimbus [cluster :cluster-state cluster-state :blob-store blob-store
                          :nimbus-daemon true
                          :daemon-conf {NIMBUS-AUTHORIZER "org.apache.storm.security.auth.authorizer.DenyAuthorizer"
@@ -186,17 +185,14 @@
         (is (thrown-cause? AuthorizationException (.downloadChunk nimbus_client nil)))
         (is (thrown-cause? AuthorizationException (.getNimbusConf nimbus_client)))
         (is (thrown-cause? AuthorizationException (.getClusterInfo nimbus_client)))
-        (stubbing [nimbus/try-read-storm-conf-from-name {}]
-          (is (thrown-cause? AuthorizationException (.killTopology nimbus_client topo-name)))
-          (is (thrown-cause? AuthorizationException (.killTopologyWithOpts nimbus_client topo-name (KillOptions.))))
-          (is (thrown-cause? AuthorizationException (.activate nimbus_client topo-name)))
-          (is (thrown-cause? AuthorizationException (.deactivate nimbus_client topo-name)))
-          (is (thrown-cause? AuthorizationException (.rebalance nimbus_client topo-name nil)))
-        )
-        (stubbing [nimbus/try-read-storm-conf {}]
-          (is (thrown-cause? AuthorizationException (.getTopologyConf nimbus_client topo-id)))
-          (is (thrown-cause? AuthorizationException (.getTopology nimbus_client topo-id)))
-          (is (thrown-cause? AuthorizationException (.getUserTopology nimbus_client topo-id)))
-          (is (thrown-cause? AuthorizationException (.getTopologyInfo nimbus_client topo-id))))
+        (is (thrown-cause? AuthorizationException (.killTopology nimbus_client topo-name)))
+        (is (thrown-cause? AuthorizationException (.killTopologyWithOpts nimbus_client topo-name (KillOptions.))))
+        (is (thrown-cause? AuthorizationException (.activate nimbus_client topo-name)))
+        (is (thrown-cause? AuthorizationException (.deactivate nimbus_client topo-name)))
+        (is (thrown-cause? AuthorizationException (.rebalance nimbus_client topo-name nil)))
+        (is (thrown-cause? AuthorizationException (.getTopologyConf nimbus_client topo-id)))
+        (is (thrown-cause? AuthorizationException (.getTopology nimbus_client topo-id)))
+        (is (thrown-cause? AuthorizationException (.getUserTopology nimbus_client topo-id)))
+        (is (thrown-cause? AuthorizationException (.getTopologyInfo nimbus_client topo-id)))
         (.close client)))))
 
