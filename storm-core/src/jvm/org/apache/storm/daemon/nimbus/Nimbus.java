@@ -1630,4 +1630,23 @@ public class Nimbus {
             }
         }
     }
+    
+    public boolean isAuthorized(String operation, String topoId) throws NotAliveException, AuthorizationException, IOException {
+        Map<String, Object> topoConf = tryReadTopoConf(topoId, getBlobStore());
+        String topoName = (String) topoConf.get(Config.TOPOLOGY_NAME);
+        try {
+            checkAuthorization(topoName, topoConf, operation);
+            return true;
+        } catch (AuthorizationException e) {
+            return false;
+        }
+    }
+    
+//    (defn is-authorized?
+//            [nimbus conf blob-store operation topology-id]
+//            (let [topology-conf (clojurify-structure (Nimbus/tryReadTopoConf topology-id blob-store))
+//                  storm-name (topology-conf TOPOLOGY-NAME)]
+//              (try (.checkAuthorization nimbus storm-name topology-conf operation)
+//                   true
+//                (catch AuthorizationException e false))))
 }

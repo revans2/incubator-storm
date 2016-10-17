@@ -1825,7 +1825,7 @@
         (is (= #{"topo1" "topo2"} (:user-topologies topos2)))))))
 
 (defn- mock-check-auth 
-  [nimbus conf blob-store op topo-name]
+  [nimbus op topo-name]
   (= topo-name "authorized"))
 
 (deftest user-topologies-for-supervisor-with-unauthorized-user

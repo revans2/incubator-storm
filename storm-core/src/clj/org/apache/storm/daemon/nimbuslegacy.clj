@@ -97,13 +97,10 @@
 ;; 3. start storm - necessary in case master goes down, when goes back up can remember to take down the storm (2 states: on or off)
 
 ;; no-throw version of check-authorization!
+;;TODO when used inline
 (defn is-authorized?
-  [nimbus conf blob-store operation topology-id]
-  (let [topology-conf (clojurify-structure (Nimbus/tryReadTopoConf topology-id blob-store))
-        storm-name (topology-conf TOPOLOGY-NAME)]
-    (try (.checkAuthorization nimbus storm-name topology-conf operation)
-         true
-      (catch AuthorizationException e false))))
+  [nimbus operation topology-id]
+  (.isAuthorized nimbus operation topology-id))
 
 (defn code-ids [blob-store]
   (let [to-id (reify KeyFilter
@@ -444,8 +441,6 @@
         supervisor-topologies (keys (filter #(get (val %) supervisor-id) topo-id->supervisors))]
     {:supervisor-topologies supervisor-topologies
      :user-topologies (into #{} (filter (partial is-authorized? nimbus 
-                                                 conf 
-                                                 blob-store 
                                                  "getTopology") 
                   supervisor-topologies))}))
 
