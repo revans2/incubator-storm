@@ -1639,18 +1639,18 @@
                          :daemon-conf {NIMBUS-AUTHORIZER "org.apache.storm.security.auth.authorizer.NoopAuthorizer"}]
       (let [nimbus (:nimbus cluster)
             previous-config (LogConfig.)
-            level (LogLevel.)
             mock-config (LogConfig.)
-            expected-level (LogLevel.)
             expected-config (LogConfig.)]
         ;; send something with content to nimbus beforehand
-        (.set_target_log_level level "ERROR")
-        (.set_action level LogLevelAction/UPDATE)
-        (.put_to_named_logger_level previous-config "test" level)
+        (.put_to_named_logger_level previous-config "test" 
+          (doto (LogLevel.)
+            (.set_target_log_level "ERROR")
+            (.set_action LogLevelAction/UPDATE)))
 
-        (.set_target_log_level expected-level "ERROR")
-        (.set_action expected-level LogLevelAction/UNCHANGED)
-        (.put_to_named_logger_level expected-config "test" expected-level)
+        (.put_to_named_logger_level expected-config "test" 
+          (doto (LogLevel.)
+            (.set_target_log_level "ERROR")
+            (.set_action LogLevelAction/UNCHANGED)))
 
         (.thenReturn (Mockito/when (.readTopologyConf blob-store (Mockito/any String) (Mockito/anyObject))) {})
         (.thenReturn (Mockito/when (.topologyLogConfig cluster-state (Mockito/any String) (Mockito/anyObject))) previous-config)
@@ -1659,36 +1659,47 @@
         (.setTopologyLogConfig (Mockito/verify cluster-state) (Mockito/any String) (Mockito/eq expected-config))))))
 
 (deftest log-level-update-merges-and-flags-existent-log-level
-  (with-local-cluster [cluster]
-    (stubbing [nimbus/try-read-storm-conf {}]
+  (let [cluster-state (Mockito/mock IStormClusterState)
+        blob-store (Mockito/mock BlobStore)]
+    (with-mocked-nimbus [cluster :cluster-state cluster-state :blob-store blob-store
+                         :daemon-conf {NIMBUS-AUTHORIZER "org.apache.storm.security.auth.authorizer.NoopAuthorizer"}]
       (let [nimbus (:nimbus cluster)
             previous-config (LogConfig.)
-            level (LogLevel.)
-            other-level (LogLevel.)
-            mock-config (LogConfig.)]
+            mock-config (LogConfig.)
+            expected-config (LogConfig.)]
         ;; send something with content to nimbus beforehand
-        (.set_target_log_level level "ERROR")
-        (.set_action level LogLevelAction/UPDATE)
-        (.put_to_named_logger_level previous-config "test" level)
+        (.put_to_named_logger_level previous-config "test" 
+          (doto (LogLevel.)
+            (.set_target_log_level "ERROR")
+            (.set_action LogLevelAction/UPDATE)))
 
-        (.set_target_log_level other-level "DEBUG")
-        (.set_action other-level LogLevelAction/UPDATE)
-        (.put_to_named_logger_level previous-config "other-test" other-level)
-        (.setLogConfig nimbus "foo" previous-config)
+        (.put_to_named_logger_level previous-config "other-test" 
+          (doto (LogLevel.)
+            (.set_target_log_level "DEBUG")
+            (.set_action LogLevelAction/UPDATE)))
+
 
         ;; only change "test"
-        (.set_target_log_level level "INFO")
-        (.set_action level LogLevelAction/UPDATE)
-        (.put_to_named_logger_level mock-config "test" level)
+        (.put_to_named_logger_level mock-config "test" 
+          (doto (LogLevel.)
+            (.set_target_log_level "INFO")
+            (.set_action LogLevelAction/UPDATE)))
+
+        (.put_to_named_logger_level expected-config "test" 
+          (doto (LogLevel.)
+            (.set_target_log_level "INFO")
+            (.set_action LogLevelAction/UPDATE)))
+
+        (.put_to_named_logger_level expected-config "other-test" 
+          (doto (LogLevel.)
+            (.set_target_log_level "DEBUG")
+            (.set_action LogLevelAction/UNCHANGED)))
+
+        (.thenReturn (Mockito/when (.readTopologyConf blob-store (Mockito/any String) (Mockito/anyObject))) {})
+        (.thenReturn (Mockito/when (.topologyLogConfig cluster-state (Mockito/any String) (Mockito/anyObject))) previous-config)
+ 
         (.setLogConfig nimbus "foo" mock-config)
-
-        (let [saved-config (.getLogConfig nimbus "foo")
-              levels (.get_named_logger_level saved-config)]
-           (is (= (.get_action (.get levels "test")) LogLevelAction/UPDATE))
-           (is (= (.get_target_log_level (.get levels "test")) "INFO"))
-
-           (is (= (.get_action (.get levels "other-test")) LogLevelAction/UNCHANGED))
-           (is (= (.get_target_log_level (.get levels "other-test")) "DEBUG")))))))
+        (.setTopologyLogConfig (Mockito/verify cluster-state) (Mockito/any String) (Mockito/eq expected-config))))))
 
 (defn teardown-heartbeats [id])
 (defn teardown-topo-errors [id])
