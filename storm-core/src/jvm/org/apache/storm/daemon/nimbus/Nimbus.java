@@ -62,6 +62,7 @@ import org.apache.storm.generated.AuthorizationException;
 import org.apache.storm.generated.ExecutorInfo;
 import org.apache.storm.generated.InvalidTopologyException;
 import org.apache.storm.generated.KeyNotFoundException;
+import org.apache.storm.generated.LSTopoHistory;
 import org.apache.storm.generated.NodeInfo;
 import org.apache.storm.generated.NotAliveException;
 import org.apache.storm.generated.RebalanceOptions;
@@ -706,12 +707,6 @@ public class Nimbus {
             throw new NotAliveException(topoId);
         }
     }
-//  (defn try-read-storm-topology
-//          [storm-id blob-store]
-//          (try-cause
-//            (Nimbus/readStormTopologyAsNimbus storm-id blob-store)
-//            (catch KeyNotFoundException e
-//              (throw (NotAliveException. (str storm-id))))))
     
     private final Map<String, Object> conf;
     private final NimbusInfo nimbusHostPortInfo;
@@ -1911,6 +1906,17 @@ public class Nimbus {
         LOG.debug("Creating list of key entries for blobstore inside zookeeper {} local {}", activeKeys, activeLocalKeys);
         for (String key: activeLocalKeys) {
             state.setupBlobstore(key, nimbusInfo, getVerionForKey(key, nimbusInfo, conf));
+        }
+    }
+    
+    //TODO private
+    public void addTopoToHistoryLog(String topoId, Map<String, Object> topoConf) {
+        LOG.info("Adding topo to history log: {}", topoId);
+        LocalState state = getTopologyHistoryState();
+        List<String> users = ConfigUtils.getTopoLogsUsers(topoConf);
+        List<String> groups = ConfigUtils.getTopoLogsGroups(topoConf);
+        synchronized(getTopologyHistoryLock()) {
+            state.addTopologyHistory(new LSTopoHistory(topoId, Time.currentTimeSecs(), users, groups));
         }
     }
 }

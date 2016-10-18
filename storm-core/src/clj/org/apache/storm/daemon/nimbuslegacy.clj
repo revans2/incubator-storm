@@ -101,16 +101,6 @@
   [nimbus operation topology-id]
   (.isAuthorized nimbus operation topology-id))
 
-(defn add-topology-to-history-log
-  [storm-id nimbus topology-conf]
-  (log-message "Adding topo to history log: " storm-id)
-  (locking (.getTopologyHistoryLock nimbus)
-    (let [topo-history-state (.getTopologyHistoryState nimbus)
-          users (ConfigUtils/getTopoLogsUsers topology-conf)
-          groups (ConfigUtils/getTopoLogsGroups topology-conf)]
-      (.addTopologyHistory ^LocalState topo-history-state
-                           (LSTopoHistory. storm-id (Time/currentTimeSecs) users groups)))))
-
 (defn igroup-mapper
   [storm-conf]
   (AuthUtils/GetGroupMappingServiceProviderPlugin storm-conf))
@@ -503,8 +493,7 @@
                            )]
             (.transitionName nimbus storm-name TopologyActions/KILL wait-amt true)
             (.notifyTopologyActionListener nimbus storm-name operation))
-          (add-topology-to-history-log (StormCommon/getStormId (.getStormClusterState nimbus) storm-name)
-            nimbus topology-conf)))
+          (.addTopoToHistoryLog nimbus (StormCommon/getStormId (.getStormClusterState nimbus) storm-name) topology-conf)))
 
       (^void rebalance [this ^String storm-name ^RebalanceOptions options]
         (.mark Nimbus/rebalanceCalls)
