@@ -96,6 +96,7 @@ import org.apache.storm.security.auth.ReqContext;
 import org.apache.storm.stats.StatsUtil;
 import org.apache.storm.utils.ConfigUtils;
 import org.apache.storm.utils.LocalState;
+import org.apache.storm.utils.ThriftTopologyUtils;
 import org.apache.storm.utils.Time;
 import org.apache.storm.utils.TimeCacheMap;
 import org.apache.storm.utils.Utils;
@@ -596,6 +597,86 @@ public class Nimbus {
         }
         return ret;
     }
+    
+    private static void addToDecorators(Set<String> decorators, List<String> conf) {
+        if (conf != null) {
+            decorators.addAll(conf);
+        }
+    }
+    
+    @SuppressWarnings("unchecked")
+    private static void addToSerializers(Map<String, String> ser, List<Object> conf) {
+        if (conf != null) {
+            for (Object o: conf) {
+                if (o instanceof Map) {
+                    ser.putAll((Map<String,String>)o);
+                } else {
+                    ser.put((String)o, null);
+                }
+            }
+        }
+    }
+    
+    //TODO private
+    @SuppressWarnings("unchecked")
+    public static Map<String, Object> normalizeConf(Map<String,Object> conf, Map<String, Object> topoConf, StormTopology topology) {
+        //ensure that serializations are same for all tasks no matter what's on
+        // the supervisors. this also allows you to declare the serializations as a sequence
+        List<Map<String, Object>> allConfs = new ArrayList<>();
+        for (Object comp: StormCommon.allComponents(topology).values()) {
+            allConfs.add(StormCommon.componentConf(comp));
+        }
+
+        Set<String> decorators = new HashSet<>();
+        //TODO we are putting in a config that is not the same type we pulled out.
+        // Why don't we just use a single map instead from the beginning?
+        Map<String, String> serializers = new HashMap<>();
+        for (Map<String, Object> c: allConfs) {
+            addToDecorators(decorators, (List<String>) c.get(Config.TOPOLOGY_KRYO_DECORATORS));
+            addToSerializers(serializers, (List<Object>) c.get(Config.TOPOLOGY_KRYO_REGISTER));
+        }
+        //TODO this seems like of dumb that we take all of nothing on the topoConf vs daemon conf
+        // Why not just merge them like we do for the other configs.
+        addToDecorators(decorators, (List<String>)topoConf.getOrDefault(Config.TOPOLOGY_KRYO_DECORATORS, 
+                conf.get(Config.TOPOLOGY_KRYO_DECORATORS)));
+        addToSerializers(serializers, (List<Object>)topoConf.getOrDefault(Config.TOPOLOGY_KRYO_REGISTER, 
+                conf.get(Config.TOPOLOGY_KRYO_REGISTER)));
+        
+        Map<String, Object> mergedConf = merge(conf, topoConf);
+        Map<String, Object> ret = new HashMap<>(topoConf);
+        ret.put(Config.TOPOLOGY_KRYO_REGISTER, serializers);
+        ret.put(Config.TOPOLOGY_KRYO_DECORATORS, new ArrayList<>(decorators));
+        ret.put(Config.TOPOLOGY_ACKER_EXECUTORS, mergedConf.get(Config.TOPOLOGY_ACKER_EXECUTORS));
+        ret.put(Config.TOPOLOGY_EVENTLOGGER_EXECUTORS, mergedConf.get(Config.TOPOLOGY_EVENTLOGGER_EXECUTORS));
+        ret.put(Config.TOPOLOGY_MAX_TASK_PARALLELISM, mergedConf.get(Config.TOPOLOGY_MAX_TASK_PARALLELISM));
+        return ret;
+    }
+//    (defn normalize-conf [conf storm-conf ^StormTopology topology]
+//            ;; ensure that serializations are same for all tasks no matter what's on
+//            ;; the supervisors. this also allows you to declare the serializations as a sequence
+//            (let [component-confs (map
+//                                   #(-> (ThriftTopologyUtils/getComponentCommon topology %)
+//                                        .get_json_conf
+//                                        ((fn [c] (if c (JSONValue/parse c))))
+//                                        clojurify-structure)
+//                                   (ThriftTopologyUtils/getComponentIds topology))
+//                  total-conf (merge conf storm-conf)
+//
+//                  get-merged-conf-val (fn [k merge-fn]
+//                                        (merge-fn
+//                                         (concat
+//                                          (mapcat #(get % k) component-confs)
+//                                          (or (get storm-conf k)
+//                                              (get conf k)))))]
+//              ;; topology level serialization registrations take priority
+//              ;; that way, if there's a conflict, a user can force which serialization to use
+//              ;; append component conf to storm-conf
+//              (merge storm-conf
+//                     {TOPOLOGY-KRYO-DECORATORS (get-merged-conf-val TOPOLOGY-KRYO-DECORATORS distinct)
+//                      TOPOLOGY-KRYO-REGISTER (get-merged-conf-val TOPOLOGY-KRYO-REGISTER mapify-serializations)
+//                      TOPOLOGY-ACKER-EXECUTORS (total-conf TOPOLOGY-ACKER-EXECUTORS)
+//                      TOPOLOGY-EVENTLOGGER-EXECUTORS (total-conf TOPOLOGY-EVENTLOGGER-EXECUTORS)
+//                      TOPOLOGY-MAX-TASK-PARALLELISM (total-conf TOPOLOGY-MAX-TASK-PARALLELISM)})))
     
     private final Map<String, Object> conf;
     private final NimbusInfo nimbusHostPortInfo;
