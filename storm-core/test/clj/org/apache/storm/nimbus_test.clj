@@ -1702,29 +1702,32 @@
       (backpressureTopologies [this] bp-topos))))
 
 (deftest cleanup-storm-ids-returns-inactive-topos
-         (let [mock-state (mock-cluster-state (list "topo1") (list "topo1" "topo2" "topo3"))]
-              (stubbing [nimbus/code-ids {}]
-                        (is (= (nimbus/cleanup-storm-ids mock-state nil) #{"topo2" "topo3"})))))
+         (let [mock-state (mock-cluster-state (list "topo1") (list "topo1" "topo2" "topo3"))
+               store (Mockito/mock BlobStore)]
+              (.thenReturn (Mockito/when (.storedTopoIds store)) #{})
+              (is (= (nimbus/cleanup-storm-ids mock-state store) #{"topo2" "topo3"}))))
 
 (deftest cleanup-storm-ids-performs-union-of-storm-ids-with-active-znodes
   (let [active-topos (list "hb1" "e2" "bp3")
         hb-topos (list "hb1" "hb2" "hb3")
         error-topos (list "e1" "e2" "e3")
         bp-topos (list "bp1" "bp2" "bp3")
-        mock-state (mock-cluster-state active-topos hb-topos error-topos bp-topos)]
-    (stubbing [nimbus/code-ids {}] 
-    (is (= (nimbus/cleanup-storm-ids mock-state nil) 
-           #{"hb2" "hb3" "e1" "e3" "bp1" "bp2"})))))
+        mock-state (mock-cluster-state active-topos hb-topos error-topos bp-topos)
+        store (Mockito/mock BlobStore)]
+    (.thenReturn (Mockito/when (.storedTopoIds store)) #{})
+    (is (= (nimbus/cleanup-storm-ids mock-state store)
+           #{"hb2" "hb3" "e1" "e3" "bp1" "bp2"}))))
 
 (deftest cleanup-storm-ids-returns-empty-set-when-all-topos-are-active
   (let [active-topos (list "hb1" "hb2" "hb3" "e1" "e2" "e3" "bp1" "bp2" "bp3")
         hb-topos (list "hb1" "hb2" "hb3")
         error-topos (list "e1" "e2" "e3")
         bp-topos (list "bp1" "bp2" "bp3")
-        mock-state (mock-cluster-state active-topos hb-topos error-topos bp-topos)]
-    (stubbing [nimbus/code-ids {}] 
-    (is (= (nimbus/cleanup-storm-ids mock-state nil) 
-           #{})))))
+        mock-state (mock-cluster-state active-topos hb-topos error-topos bp-topos)
+        store (Mockito/mock BlobStore)]
+    (.thenReturn (Mockito/when (.storedTopoIds store)) #{})
+    (is (= (nimbus/cleanup-storm-ids mock-state store) 
+           #{}))))
 
 (deftest do-cleanup-removes-inactive-znodes
   (let [inactive-topos (list "topo2" "topo3")

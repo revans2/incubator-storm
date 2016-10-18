@@ -102,18 +102,13 @@
   [nimbus operation topology-id]
   (.isAuthorized nimbus operation topology-id))
 
-(defn code-ids [blob-store]
-  (let [to-id (reify KeyFilter
-                (filter [this key] (ConfigUtils/getIdFromBlobKey key)))]
-    (set (.filterAndListKeys blob-store to-id))))
-
 (defn cleanup-storm-ids [storm-cluster-state blob-store]
   (let [heartbeat-ids (set (.heartbeatStorms storm-cluster-state))
         error-ids (set (.errorTopologies storm-cluster-state))
-        code-ids (code-ids blob-store)
+        store-ids (clojurify-structure (.storedTopoIds blob-store))
         backpressure-ids (set (.backpressureTopologies storm-cluster-state))
         assigned-ids (set (.activeStorms storm-cluster-state))]
-    (set/difference (set/union heartbeat-ids error-ids backpressure-ids code-ids) assigned-ids)))
+    (set/difference (set/union heartbeat-ids error-ids backpressure-ids store-ids) assigned-ids)))
 
 (defn extract-status-str [base]
   (let [t (-> base :status :type)]

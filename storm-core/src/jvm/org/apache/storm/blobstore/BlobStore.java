@@ -332,6 +332,15 @@ public abstract class BlobStore implements Shutdownable {
         return Utils.fromCompressedJsonConf(readBlob(ConfigUtils.masterStormConfKey(topoId), who));
     }
     
+    private static final KeyFilter<String> TO_TOPO_ID = (key) -> ConfigUtils.getIdFromBlobKey(key);
+    /**
+     * @return a set of all of the topology ids with special data stored in the
+     * blob store.
+     */
+    public Set<String> storedTopoIds() {
+        return filterAndListKeys(TO_TOPO_ID);
+    }
+    
     /**
      * Output stream implementation used for reading the
      * metadata and data information.
