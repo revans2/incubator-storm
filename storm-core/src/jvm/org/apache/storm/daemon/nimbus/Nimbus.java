@@ -349,6 +349,7 @@ public class Nimbus {
     }
     
     //TODO private
+    //TODO fix spelling
     public static int getVerionForKey(String key, NimbusInfo nimbusInfo, Map<String, Object> conf) {
         KeySequenceNumber kseq = new KeySequenceNumber(key, nimbusInfo);
         return kseq.getKeySequenceNumber(conf);
@@ -1848,4 +1849,55 @@ public class Nimbus {
             state.filterOldTopologies(cutoffAgeSecs);
         }
     }
+    
+    //TODO private
+    /**
+     * Sets up blobstore state for all current keys.
+     * @throws KeyNotFoundException 
+     * @throws AuthorizationException 
+     */
+    public void setupBlobstore() throws AuthorizationException, KeyNotFoundException {
+        //TODO it this should really be part of the blob store
+        //TODO it would be great to not need to read all blobs into memory to make this happen.
+        IStormClusterState state = getStormClusterState();
+        BlobStore store = getBlobStore();
+        Set<String> localKeys = new HashSet<>();
+        for (Iterator<String> it = store.listKeys(); it.hasNext();) {
+            localKeys.add(it.next());
+        }
+        Set<String> activeKeys = new HashSet<>(state.activeKeys());
+        Set<String> activeLocalKeys = new HashSet<>(localKeys);
+        activeLocalKeys.retainAll(activeKeys);
+        Set<String> keysToDelete = new HashSet<>(localKeys);
+        keysToDelete.removeAll(activeKeys);
+        Map<String, Object> conf = getConf();
+        NimbusInfo nimbusInfo = getNimbusHostPortInfo();
+        LOG.debug("Deleting keys not on the zookeeper {}", keysToDelete);
+        for (String toDelete: keysToDelete) {
+            store.deleteBlob(toDelete, NIMBUS_SUBJECT);
+        }
+        LOG.debug("Creating list of key entries for blobstore inside zookeeper {} local {}", activeKeys, activeLocalKeys);
+        for (String key: activeLocalKeys) {
+            state.setupBlobstore(key, nimbusInfo, getVerionForKey(key, nimbusInfo, conf));
+        }
+    }
+//    (defn get-key-seq-from-blob-store [blob-store]
+//            (let [key-iter (.listKeys blob-store)]
+//              (iterator-seq key-iter)))
+//    (defn setup-blobstore [nimbus]
+//            "Sets up blobstore state for all current keys."
+//            (let [storm-cluster-state (.getStormClusterState nimbus)
+//                  blob-store (.getBlobStore nimbus)
+//                  local-set-of-keys (set (get-key-seq-from-blob-store blob-store))
+//                  all-keys (set (.activeKeys storm-cluster-state))
+//                  locally-available-active-keys (set/intersection local-set-of-keys all-keys)
+//                  keys-to-delete (set/difference local-set-of-keys all-keys)
+//                  conf (.getConf nimbus)
+//                  nimbus-host-port-info (.getNimbusHostPortInfo nimbus)]
+//              (log-debug "Deleting keys not on the zookeeper" keys-to-delete)
+//              (doseq [key keys-to-delete]
+//                (.deleteBlob blob-store key Nimbus/NIMBUS_SUBJECT))
+//              (log-debug "Creating list of key entries for blobstore inside zookeeper" all-keys "local" locally-available-active-keys)
+//              (doseq [key locally-available-active-keys]
+//                (.setupBlobstore storm-cluster-state key (.getNimbusHostPortInfo nimbus) (Nimbus/getVerionForKey key nimbus-host-port-info conf)))))
 }

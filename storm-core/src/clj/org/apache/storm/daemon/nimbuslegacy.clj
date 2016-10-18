@@ -101,23 +101,6 @@
   [nimbus operation topology-id]
   (.isAuthorized nimbus operation topology-id))
 
-(defn setup-blobstore [nimbus]
-  "Sets up blobstore state for all current keys."
-  (let [storm-cluster-state (.getStormClusterState nimbus)
-        blob-store (.getBlobStore nimbus)
-        local-set-of-keys (set (get-key-seq-from-blob-store blob-store))
-        all-keys (set (.activeKeys storm-cluster-state))
-        locally-available-active-keys (set/intersection local-set-of-keys all-keys)
-        keys-to-delete (set/difference local-set-of-keys all-keys)
-        conf (.getConf nimbus)
-        nimbus-host-port-info (.getNimbusHostPortInfo nimbus)]
-    (log-debug "Deleting keys not on the zookeeper" keys-to-delete)
-    (doseq [key keys-to-delete]
-      (.deleteBlob blob-store key Nimbus/NIMBUS_SUBJECT))
-    (log-debug "Creating list of key entries for blobstore inside zookeeper" all-keys "local" locally-available-active-keys)
-    (doseq [key locally-available-active-keys]
-      (.setupBlobstore storm-cluster-state key (.getNimbusHostPortInfo nimbus) (Nimbus/getVerionForKey key nimbus-host-port-info conf)))))
-
 (defn- get-errors [storm-cluster-state storm-id component-id]
   (->> (map clojurify-error (.errors storm-cluster-state storm-id component-id))
        (map #(doto (ErrorInfo. (:error %) (:time-secs %))
@@ -1239,7 +1222,7 @@
     (when (instance? LocalFsBlobStore blob-store)
       ;register call back for blob-store
       (.blobstore (.getStormClusterState nimbus) (fn [] (blob-sync conf nimbus)))
-      (setup-blobstore nimbus))
+      (.setupBlobstore nimbus))
 
     (doseq [consumer (.getClusterConsumerExecutors nimbus)]
       (.prepare consumer))
