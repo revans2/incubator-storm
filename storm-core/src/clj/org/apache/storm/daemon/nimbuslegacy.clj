@@ -102,11 +102,6 @@
   [nimbus operation topology-id]
   (.isAuthorized nimbus operation topology-id))
 
-(defn blob-rm-topology-keys [id blob-store storm-cluster-state]
-  (Nimbus/rmBlobKey blob-store (ConfigUtils/masterStormJarKey id) storm-cluster-state)
-  (Nimbus/rmBlobKey blob-store (ConfigUtils/masterStormConfKey id) storm-cluster-state)
-  (Nimbus/rmBlobKey blob-store (ConfigUtils/masterStormCodeKey id) storm-cluster-state))
-
 (defn force-delete-topo-dist-dir [conf id]
   (Utils/forceDelete (ConfigUtils/masterStormDistRoot conf id)))
 
@@ -126,7 +121,7 @@
             (.removeBackpressure storm-cluster-state id)
             (.rmDependencyJarsInTopology nimbus id)
             (force-delete-topo-dist-dir conf id)
-            (blob-rm-topology-keys id blob-store storm-cluster-state)
+            (.rmTopologyKeys nimbus id)
             (.getAndUpdate (.getHeartbeatsCache nimbus) (Nimbus$Dissoc. id))))))
 
     (log-message "not a leader, skipping cleanup")))

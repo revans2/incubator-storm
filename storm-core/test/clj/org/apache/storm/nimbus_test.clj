@@ -1740,42 +1740,40 @@
       (let [nimbus (Mockito/spy (Nimbus. conf nil mock-state nil mock-blob-store nil))]
         (.set (.getHeartbeatsCache nimbus) hb-cache)
         (.thenReturn (Mockito/when (.storedTopoIds mock-blob-store)) (java.util.TreeSet. inactive-topos))
-        (stubbing [nimbus/blob-rm-topology-keys nil]
-          (mocking
-            [teardown-heartbeats 
-             teardown-topo-errors 
-             teardown-backpressure-dirs
-             nimbus/force-delete-topo-dist-dir
-             nimbus/blob-rm-topology-keys]
+        (mocking
+          [teardown-heartbeats 
+           teardown-topo-errors 
+           teardown-backpressure-dirs
+           nimbus/force-delete-topo-dist-dir]
 
-            (nimbus/do-cleanup nimbus)
+          (nimbus/do-cleanup nimbus)
 
-            ;; removed heartbeats znode
-            (verify-nth-call-args-for 1 teardown-heartbeats "topo3")
-            (verify-nth-call-args-for 2 teardown-heartbeats "topo2")
+          ;; removed heartbeats znode
+          (verify-nth-call-args-for 1 teardown-heartbeats "topo3")
+          (verify-nth-call-args-for 2 teardown-heartbeats "topo2")
 
-            ;; removed topo errors znode
-            (verify-nth-call-args-for 1 teardown-topo-errors "topo3")
-            (verify-nth-call-args-for 2 teardown-topo-errors "topo2")
+          ;; removed topo errors znode
+          (verify-nth-call-args-for 1 teardown-topo-errors "topo3")
+          (verify-nth-call-args-for 2 teardown-topo-errors "topo2")
 
-            ;; removed backpressure znodes
-            (verify-nth-call-args-for 1 teardown-backpressure-dirs "topo3")
-            (verify-nth-call-args-for 2 teardown-backpressure-dirs "topo2")
+          ;; removed backpressure znodes
+          (verify-nth-call-args-for 1 teardown-backpressure-dirs "topo3")
+          (verify-nth-call-args-for 2 teardown-backpressure-dirs "topo2")
 
-            ;; removed topo directories
-            (verify-nth-call-args-for 1 nimbus/force-delete-topo-dist-dir conf "topo3")
-            (verify-nth-call-args-for 2 nimbus/force-delete-topo-dist-dir conf "topo2")
+          ;; removed topo directories
+          (verify-nth-call-args-for 1 nimbus/force-delete-topo-dist-dir conf "topo3")
+          (verify-nth-call-args-for 2 nimbus/force-delete-topo-dist-dir conf "topo2")
 
-            ;; removed blob store topo keys
-            (verify-nth-call-args-for 1 nimbus/blob-rm-topology-keys "topo3" mock-blob-store mock-state)
-            (verify-nth-call-args-for 2 nimbus/blob-rm-topology-keys "topo2" mock-blob-store mock-state)
+          ;; removed blob store topo keys
+          (.rmTopologyKeys (Mockito/verify nimbus) "topo2")
+          (.rmTopologyKeys (Mockito/verify nimbus) "topo3")
 
-            ;; removed topology dependencies
-            (.rmDependencyJarsInTopology (Mockito/verify nimbus) "topo3")
-            (.rmDependencyJarsInTopology (Mockito/verify nimbus) "topo2")
+          ;; removed topology dependencies
+          (.rmDependencyJarsInTopology (Mockito/verify nimbus) "topo2")
+          (.rmDependencyJarsInTopology (Mockito/verify nimbus) "topo3")
 
-            ;; remove topos from heartbeat cache
-            (is (= (count (.get (.getHeartbeatsCache nimbus))) 0))))))))
+          ;; remove topos from heartbeat cache
+          (is (= (count (.get (.getHeartbeatsCache nimbus))) 0)))))))
 
 (deftest do-cleanup-does-not-teardown-active-topos
   (let [inactive-topos ()
@@ -1785,30 +1783,27 @@
         conf {}]
     (with-open [_ (MockedZookeeper. (proxy [Zookeeper] []
                     (zkLeaderElectorImpl [conf blob-store] (mock-leader-elector))))]
-      (let [nimbus (Nimbus. conf nil mock-state nil mock-blob-store nil)]
+      (let [nimbus (Mockito/spy (Nimbus. conf nil mock-state nil mock-blob-store nil))]
         (.set (.getHeartbeatsCache nimbus) hb-cache)
         (.thenReturn (Mockito/when (.storedTopoIds mock-blob-store)) (set inactive-topos))
-        (stubbing [nimbus/blob-rm-topology-keys nil]
-          (mocking
-            [teardown-heartbeats 
-             teardown-topo-errors 
-             teardown-backpressure-dirs
-             nimbus/force-delete-topo-dist-dir
-             nimbus/blob-rm-topology-keys] 
+        (mocking
+          [teardown-heartbeats 
+           teardown-topo-errors 
+           teardown-backpressure-dirs
+           nimbus/force-delete-topo-dist-dir]
 
-            (nimbus/do-cleanup nimbus)
+          (nimbus/do-cleanup nimbus)
 
-            (verify-call-times-for teardown-heartbeats 0)
-            (verify-call-times-for teardown-topo-errors 0)
-            (verify-call-times-for teardown-backpressure-dirs 0)
-            (verify-call-times-for nimbus/force-delete-topo-dist-dir 0)
-            (verify-call-times-for nimbus/blob-rm-topology-keys 0)
+          (verify-call-times-for teardown-heartbeats 0)
+          (verify-call-times-for teardown-topo-errors 0)
+          (verify-call-times-for teardown-backpressure-dirs 0)
+          (verify-call-times-for nimbus/force-delete-topo-dist-dir 0)
+          (.rmTopologyKeys (Mockito/verify nimbus (Mockito/times 0)) (Mockito/anyObject))
 
-            ;; hb-cache goes down to 1 because only one topo was inactive
-            (is (= (count (.get (.getHeartbeatsCache nimbus))) 2))
-            (is (contains? (.get (.getHeartbeatsCache nimbus)) "topo1"))
-            (is (contains? (.get (.getHeartbeatsCache nimbus)) "topo2"))))))))
-
+          ;; hb-cache goes down to 1 because only one topo was inactive
+          (is (= (count (.get (.getHeartbeatsCache nimbus))) 2))
+          (is (contains? (.get (.getHeartbeatsCache nimbus)) "topo1"))
+          (is (contains? (.get (.getHeartbeatsCache nimbus)) "topo2")))))))
 
 (deftest user-topologies-for-supervisor
   (let [assignment (doto (Assignment.)

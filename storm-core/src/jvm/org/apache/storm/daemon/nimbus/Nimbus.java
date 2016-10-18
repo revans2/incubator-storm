@@ -1764,7 +1764,7 @@ public class Nimbus {
         }
     }
     
-    //TODO priavte
+    //TODO priavte???
     public void rmDependencyJarsInTopology(String topoId) {
         try {
             BlobStore store = getBlobStore();
@@ -1781,5 +1781,14 @@ public class Nimbus {
             //Yes eat the exception
             LOG.info("Exception {}", e);
         }
+    }
+    
+    //TODO private???
+    public void rmTopologyKeys(String topoId) {
+        BlobStore store = getBlobStore();
+        IStormClusterState state = getStormClusterState();
+        rmBlobKey(store, ConfigUtils.masterStormJarKey(topoId), state);
+        rmBlobKey(store, ConfigUtils.masterStormConfKey(topoId), state);
+        rmBlobKey(store, ConfigUtils.masterStormCodeKey(topoId), state);
     }
 }
