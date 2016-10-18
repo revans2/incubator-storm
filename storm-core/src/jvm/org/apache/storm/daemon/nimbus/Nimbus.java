@@ -57,6 +57,7 @@ import org.apache.storm.daemon.StormCommon;
 import org.apache.storm.generated.AlreadyAliveException;
 import org.apache.storm.generated.Assignment;
 import org.apache.storm.generated.AuthorizationException;
+import org.apache.storm.generated.ExecutorInfo;
 import org.apache.storm.generated.InvalidTopologyException;
 import org.apache.storm.generated.KeyNotFoundException;
 import org.apache.storm.generated.NodeInfo;
@@ -680,6 +681,13 @@ public class Nimbus {
             }
         }
     }
+    
+    //TODO private
+    public static ExecutorInfo toExecInfo(List<Long> exec) {
+        return new ExecutorInfo(exec.get(0).intValue(), exec.get(1).intValue());
+    }
+//    (defn- thriftify-executor-id [[first-task-id last-task-id]]
+//            (ExecutorInfo. (int first-task-id) (int last-task-id)))
         
     private final Map<String, Object> conf;
     private final NimbusInfo nimbusHostPortInfo;

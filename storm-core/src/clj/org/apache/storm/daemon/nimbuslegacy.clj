@@ -101,9 +101,6 @@
   [nimbus operation topology-id]
   (.isAuthorized nimbus operation topology-id))
 
-(defn- thriftify-executor-id [[first-task-id last-task-id]]
-  (ExecutorInfo. (int first-task-id) (int last-task-id)))
-
 (def DISALLOWED-TOPOLOGY-NAME-STRS #{"/" "." ":" "\\"})
 
 (defn validate-topology-name! [name]
@@ -799,7 +796,7 @@
                                             excutorstats (if excutorstats
                                                     (StatsUtil/thriftifyExecutorStats excutorstats))]
                                           (doto
-                                              (ExecutorSummary. (thriftify-executor-id executor)
+                                              (ExecutorSummary. (Nimbus/toExecInfo executor)
                                                                 (-> executor first task->component)
                                                                 host
                                                                 port
