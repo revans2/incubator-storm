@@ -698,6 +698,21 @@ public class Nimbus {
         }
     }
     
+    //TODO private???
+    public static StormTopology tryReadTopology(String topoId, BlobStore store) throws NotAliveException, AuthorizationException, IOException {
+        try {
+            return readStormTopologyAsNimbus(topoId, store);
+        } catch (KeyNotFoundException e) {
+            throw new NotAliveException(topoId);
+        }
+    }
+//  (defn try-read-storm-topology
+//          [storm-id blob-store]
+//          (try-cause
+//            (Nimbus/readStormTopologyAsNimbus storm-id blob-store)
+//            (catch KeyNotFoundException e
+//              (throw (NotAliveException. (str storm-id))))))
+    
     private final Map<String, Object> conf;
     private final NimbusInfo nimbusHostPortInfo;
     private final INimbus inimbus;

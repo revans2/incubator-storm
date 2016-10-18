@@ -1292,6 +1292,7 @@
                          "foo" "bar"}] 
       (.thenReturn (Mockito/when (.getTopoId cluster-state topology-name)) topology-id)
       (.thenReturn (Mockito/when (.readTopologyConf blob-store (Mockito/any String) (Mockito/anyObject))) expected-conf)
+      (.thenReturn (Mockito/when (.readTopology blob-store (Mockito/any String) (Mockito/anyObject))) nil)
       (testing "getTopologyConf calls check-authorization! with the correct parameters."
       (let [expected-operation "getTopologyConf"
             expected-conf-json (JSONValue/toJSONString expected-conf)]
@@ -1311,26 +1312,24 @@
                                   (systemTopologyImpl [conf topology] nil))
                          Mockito/spy)]
           (with-open [- (StormCommonInstaller. common-spy)]
-            (stubbing [nimbus/try-read-storm-topology nil]
-              (try
-                (.getTopology nimbus topology-id)
-                (catch NotAliveException e)
-                (finally
-                  (.checkAuthorization (Mockito/verify nimbus-data) topology-name expected-conf expected-operation)
-                  (. (Mockito/verify common-spy)
-                    (systemTopologyImpl (Matchers/eq expected-conf)
-                                        (Matchers/any)))))))))
-
-      (testing "getUserTopology calls check-authorization with the correct parameters."
-        (let [expected-operation "getUserTopology"]
-          (stubbing [nimbus/try-read-storm-topology nil]
             (try
-              (.getUserTopology nimbus topology-id)
+              (.getTopology nimbus topology-id)
               (catch NotAliveException e)
               (finally
                 (.checkAuthorization (Mockito/verify nimbus-data) topology-name expected-conf expected-operation)
-                (verify-first-call-args-for-indices
-                  nimbus/try-read-storm-topology [0] topology-id))))))))))
+                (. (Mockito/verify common-spy)
+                  (systemTopologyImpl (Matchers/eq expected-conf)
+                                      (Matchers/any))))))))
+
+      (testing "getUserTopology calls check-authorization with the correct parameters."
+        (let [expected-operation "getUserTopology"]
+          (try
+            (.getUserTopology nimbus topology-id)
+            (catch NotAliveException e)
+            (finally
+              (.checkAuthorization (Mockito/verify nimbus-data) topology-name expected-conf expected-operation)
+              ;;One for this time and one for getTopology call
+              (.readTopology (Mockito/verify blob-store (Mockito/times 2)) (Mockito/eq topology-id) (Mockito/anyObject))))))))))
 
 (deftest test-check-authorization-getSupervisorPageInfo
   (let [cluster-state (Mockito/mock IStormClusterState)

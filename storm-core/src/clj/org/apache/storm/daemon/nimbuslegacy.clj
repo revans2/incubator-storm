@@ -101,13 +101,6 @@
   [nimbus operation topology-id]
   (.isAuthorized nimbus operation topology-id))
 
-(defn try-read-storm-topology
-  [storm-id blob-store]
-  (try-cause
-    (Nimbus/readStormTopologyAsNimbus storm-id blob-store)
-    (catch KeyNotFoundException e
-      (throw (NotAliveException. (str storm-id))))))
-
 (defn add-topology-to-history-log
   [storm-id nimbus topology-conf]
   (log-message "Adding topo to history log: " storm-id)
@@ -373,7 +366,7 @@
                                           storm-name
                                           topology-conf
                                           operation)
-                  topology (try-read-storm-topology storm-id blob-store)
+                  topology (Nimbus/tryReadTopology storm-id blob-store)
                   task->component (clojurify-structure (StormCommon/stormTaskInfo topology topology-conf))
                   base (clojurify-storm-base (.stormBase storm-cluster-state storm-id nil))
                   launch-time-secs (get-launch-time-secs base storm-id)
@@ -723,14 +716,14 @@
         (let [topology-conf (clojurify-structure (Nimbus/tryReadTopoConf id (.getBlobStore nimbus)))
               storm-name (topology-conf TOPOLOGY-NAME)]
               (.checkAuthorization nimbus storm-name topology-conf "getTopology")
-              (StormCommon/systemTopology topology-conf (try-read-storm-topology id (.getBlobStore nimbus)))))
+              (StormCommon/systemTopology topology-conf (Nimbus/tryReadTopology id (.getBlobStore nimbus)))))
 
       (^StormTopology getUserTopology [this ^String id]
         (.mark Nimbus/getUserTopologyCalls)
         (let [topology-conf (clojurify-structure (Nimbus/tryReadTopoConf id (.getBlobStore nimbus)))
               storm-name (topology-conf TOPOLOGY-NAME)]
               (.checkAuthorization nimbus storm-name topology-conf "getUserTopology")
-              (try-read-storm-topology id blob-store)))
+              (Nimbus/tryReadTopology id blob-store)))
 
       (^ClusterSummary getClusterInfo [this]
         (.mark Nimbus/getClusterInfoCalls)
