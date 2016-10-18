@@ -102,17 +102,6 @@
   [nimbus operation topology-id]
   (.isAuthorized nimbus operation topology-id))
 
-(defn blob-rm-dependency-jars-in-topology [id blob-store storm-cluster-state]
-  (try
-    (let [storm-topology (Nimbus/readStormTopologyAsNimbus id blob-store)
-          dependency-jars (.get_dependency_jars ^StormTopology storm-topology)]
-      (log-message "Removing dependency jars from blobs - " dependency-jars)
-      (when-not (empty? dependency-jars)
-        (doseq [key dependency-jars]
-          (Nimbus/rmBlobKey blob-store key storm-cluster-state))))
-    (catch Exception e
-      (log-message "Exception" e))))
-
 (defn blob-rm-topology-keys [id blob-store storm-cluster-state]
   (Nimbus/rmBlobKey blob-store (ConfigUtils/masterStormJarKey id) storm-cluster-state)
   (Nimbus/rmBlobKey blob-store (ConfigUtils/masterStormConfKey id) storm-cluster-state)
@@ -135,7 +124,7 @@
             (.teardownHeartbeats storm-cluster-state id)
             (.teardownTopologyErrors storm-cluster-state id)
             (.removeBackpressure storm-cluster-state id)
-            (blob-rm-dependency-jars-in-topology id blob-store storm-cluster-state)
+            (.rmDependencyJarsInTopology nimbus id)
             (force-delete-topo-dist-dir conf id)
             (blob-rm-topology-keys id blob-store storm-cluster-state)
             (.getAndUpdate (.getHeartbeatsCache nimbus) (Nimbus$Dissoc. id))))))

@@ -1737,7 +1737,7 @@
         conf {}]
     (with-open [_ (MockedZookeeper. (proxy [Zookeeper] []
                     (zkLeaderElectorImpl [conf blob-store] (mock-leader-elector))))]
-      (let [nimbus (Nimbus. conf nil mock-state nil mock-blob-store nil)]
+      (let [nimbus (Mockito/spy (Nimbus. conf nil mock-state nil mock-blob-store nil))]
         (.set (.getHeartbeatsCache nimbus) hb-cache)
         (.thenReturn (Mockito/when (.storedTopoIds mock-blob-store)) (java.util.TreeSet. inactive-topos))
         (stubbing [nimbus/blob-rm-topology-keys nil]
@@ -1746,8 +1746,7 @@
              teardown-topo-errors 
              teardown-backpressure-dirs
              nimbus/force-delete-topo-dist-dir
-             nimbus/blob-rm-topology-keys
-             nimbus/blob-rm-dependency-jars-in-topology]
+             nimbus/blob-rm-topology-keys]
 
             (nimbus/do-cleanup nimbus)
 
@@ -1772,8 +1771,8 @@
             (verify-nth-call-args-for 2 nimbus/blob-rm-topology-keys "topo2" mock-blob-store mock-state)
 
             ;; removed topology dependencies
-            (verify-nth-call-args-for 1 nimbus/blob-rm-dependency-jars-in-topology "topo3" mock-blob-store mock-state)
-            (verify-nth-call-args-for 2 nimbus/blob-rm-dependency-jars-in-topology "topo2" mock-blob-store mock-state)
+            (.rmDependencyJarsInTopology (Mockito/verify nimbus) "topo3")
+            (.rmDependencyJarsInTopology (Mockito/verify nimbus) "topo2")
 
             ;; remove topos from heartbeat cache
             (is (= (count (.get (.getHeartbeatsCache nimbus))) 0))))))))

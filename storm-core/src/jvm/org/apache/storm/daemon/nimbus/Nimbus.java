@@ -665,7 +665,7 @@ public class Nimbus {
             LOG.info("Exception {}", e);
         }
     }
-    
+        
     private final Map<String, Object> conf;
     private final NimbusInfo nimbusHostPortInfo;
     private final INimbus inimbus;
@@ -1761,6 +1761,25 @@ public class Nimbus {
             return true;
         } catch (AuthorizationException e) {
             return false;
+        }
+    }
+    
+    //TODO priavte
+    public void rmDependencyJarsInTopology(String topoId) {
+        try {
+            BlobStore store = getBlobStore();
+            IStormClusterState state = getStormClusterState();
+            StormTopology topo = readStormTopologyAsNimbus(topoId, store);
+            List<String> dependencyJars = topo.get_dependency_jars();
+            LOG.info("Removing dependency jars from blobs - {}", dependencyJars);
+            if (dependencyJars != null && !dependencyJars.isEmpty()) {
+                for (String key: dependencyJars) {
+                    rmBlobKey(store, key, state);
+                }
+            }
+        } catch (Exception e) {
+            //Yes eat the exception
+            LOG.info("Exception {}", e);
         }
     }
 }
