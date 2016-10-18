@@ -1881,23 +1881,4 @@ public class Nimbus {
             state.setupBlobstore(key, nimbusInfo, getVerionForKey(key, nimbusInfo, conf));
         }
     }
-//    (defn get-key-seq-from-blob-store [blob-store]
-//            (let [key-iter (.listKeys blob-store)]
-//              (iterator-seq key-iter)))
-//    (defn setup-blobstore [nimbus]
-//            "Sets up blobstore state for all current keys."
-//            (let [storm-cluster-state (.getStormClusterState nimbus)
-//                  blob-store (.getBlobStore nimbus)
-//                  local-set-of-keys (set (get-key-seq-from-blob-store blob-store))
-//                  all-keys (set (.activeKeys storm-cluster-state))
-//                  locally-available-active-keys (set/intersection local-set-of-keys all-keys)
-//                  keys-to-delete (set/difference local-set-of-keys all-keys)
-//                  conf (.getConf nimbus)
-//                  nimbus-host-port-info (.getNimbusHostPortInfo nimbus)]
-//              (log-debug "Deleting keys not on the zookeeper" keys-to-delete)
-//              (doseq [key keys-to-delete]
-//                (.deleteBlob blob-store key Nimbus/NIMBUS_SUBJECT))
-//              (log-debug "Creating list of key entries for blobstore inside zookeeper" all-keys "local" locally-available-active-keys)
-//              (doseq [key locally-available-active-keys]
-//                (.setupBlobstore storm-cluster-state key (.getNimbusHostPortInfo nimbus) (Nimbus/getVerionForKey key nimbus-host-port-info conf)))))
 }

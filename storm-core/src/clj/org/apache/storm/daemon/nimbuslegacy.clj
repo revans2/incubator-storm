@@ -101,12 +101,6 @@
   [nimbus operation topology-id]
   (.isAuthorized nimbus operation topology-id))
 
-(defn- get-errors [storm-cluster-state storm-id component-id]
-  (->> (map clojurify-error (.errors storm-cluster-state storm-id component-id))
-       (map #(doto (ErrorInfo. (:error %) (:time-secs %))
-                   (.set_host (:host %))
-                   (.set_port (:port %))))))
-
 (defn- thriftify-executor-id [[first-task-id last-task-id]]
   (ExecutorInfo. (int first-task-id) (int last-task-id)))
 
@@ -786,13 +780,13 @@
                           NumErrorsChoice/ONE (comp #(remove nil? %)
                                                     list
                                                     get-last-error)
-                          NumErrorsChoice/ALL get-errors
+                          NumErrorsChoice/ALL (fn [state topo-id comp-id] (.errors state topo-id comp-id))
                           ;; Default
                           (do
                             (log-warn "Got invalid NumErrorsChoice '"
                                       num-err-choice
                                       "'")
-                            get-errors))
+                            (fn [state topo-id comp-id] (.errors state topo-id comp-id))))
               errors (->> all-components
                           (map (fn [c] [c (errors-fn storm-cluster-state storm-id c)]))
                           (into {}))
@@ -1139,7 +1133,7 @@
 
           (doto comp-page-info
             (.set_topology_name (:storm-name info))
-            (.set_errors (get-errors (:storm-cluster-state info)
+            (.set_errors (.errors (:storm-cluster-state info)
                                      topo-id
                                      component-id))
             (.set_topology_status (Nimbus/extractStatusStr (thriftify-storm-base (:base info)))))
