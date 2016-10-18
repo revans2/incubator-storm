@@ -172,12 +172,12 @@ public class StormCommon {
     }
 
     @SuppressWarnings("unchecked")
-    public static Map componentConf(Object component) {
-        Map<Object, Object> conf = new HashMap<>();
+    public static Map<String, Object> componentConf(Object component) {
+        Map<String, Object> conf = new HashMap<>();
         ComponentCommon common = getComponentCommon(component);
         String jconf = common.get_json_conf();
         if (jconf != null) {
-            conf.putAll((Map<Object, Object>) JSONValue.parse(jconf));
+            conf.putAll((Map<String, Object>) JSONValue.parse(jconf));
         }
         return conf;
     }

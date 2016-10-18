@@ -231,9 +231,9 @@ public class Nimbus {
                 });
     }
 
-    private static <K, V> Map<K, V> merge(Map<? extends K, ? extends V> first, Map<? extends K, ? extends V> ... others) {
+    private static <K, V> Map<K, V> merge(Map<? extends K, ? extends V> first, Map<? extends K, ? extends V> other) {
         Map<K, V> ret = new HashMap<>(first);
-        for (Map<? extends K, ? extends V> other: others) {
+        if (other != null) {
             ret.putAll(other);
         }
         return ret;
@@ -571,6 +571,26 @@ public class Nimbus {
         }
         return ret;
     }
+    
+    //TODO private
+    public static int componentParallelism(Map<String, Object> topoConf, Object component) throws InvalidTopologyException {
+        Map<String, Object> combinedConf = merge(topoConf, StormCommon.componentConf(component));
+        int numTasks = Utils.getInt(combinedConf.get(Config.TOPOLOGY_TASKS), StormCommon.numStartExecutors(component));
+        Integer maxParallel = Utils.getInt(combinedConf.get(Config.TOPOLOGY_MAX_TASK_PARALLELISM), null);
+        int ret = numTasks;
+        if (maxParallel != null) {
+            ret = Math.min(maxParallel, numTasks);
+        }
+        return ret;
+    }
+//    (defn- component-parallelism [storm-conf component]
+//            (let [storm-conf (merge storm-conf (clojurify-structure (StormCommon/componentConf component)))
+//                  num-tasks (or (storm-conf TOPOLOGY-TASKS) (StormCommon/numStartExecutors component))
+//                  max-parallelism (storm-conf TOPOLOGY-MAX-TASK-PARALLELISM)
+//                  ]
+//              (if max-parallelism
+//                (min max-parallelism num-tasks)
+//                num-tasks)))
     
     private final Map<String, Object> conf;
     private final NimbusInfo nimbusHostPortInfo;

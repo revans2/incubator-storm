@@ -102,27 +102,19 @@
   [nimbus operation topology-id]
   (.isAuthorized nimbus operation topology-id))
 
+;;TODO translate this when the code that uses it is translated
 (defn mapify-serializations [sers]
   (->> sers
        (map (fn [e] (if (map? e) e {e nil})))
        (apply merge)
        ))
 
-(defn- component-parallelism [storm-conf component]
-  (let [storm-conf (merge storm-conf (clojurify-structure (StormCommon/componentConf component)))
-        num-tasks (or (storm-conf TOPOLOGY-TASKS) (StormCommon/numStartExecutors component))
-        max-parallelism (storm-conf TOPOLOGY-MAX-TASK-PARALLELISM)
-        ]
-    (if max-parallelism
-      (min max-parallelism num-tasks)
-      num-tasks)))
-
 (defn normalize-topology [storm-conf ^StormTopology topology]
   (let [ret (.deepCopy topology)]
     (doseq [[_ component] (clojurify-structure (StormCommon/allComponents ret))]
       (.set_json_conf
         (.get_common component)
-        (->> {TOPOLOGY-TASKS (component-parallelism storm-conf component)}
+        (->> {TOPOLOGY-TASKS (Nimbus/componentParallelism storm-conf component)}
              (merge (clojurify-structure (StormCommon/componentConf component)))
              JSONValue/toJSONString)))
     ret ))
