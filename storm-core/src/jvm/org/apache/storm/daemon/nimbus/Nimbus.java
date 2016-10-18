@@ -553,10 +553,7 @@ public class Nimbus {
     
     //TODO private??
     public static Set<String> topoIdsToClean(IStormClusterState state, BlobStore store) {
-        //TODO go back to a regular hash set once we move nimbus_test into Mockito
-        // the mocked verification in clojure needs the order to be guaranteed.
-        Set<String> ret = new java.util.TreeSet<>();
-        //TODO handle nulls
+        Set<String> ret = new HashSet<>();
         ret.addAll(OR(state.heartbeatStorms(), EMPTY_STRING_LIST));
         ret.addAll(OR(state.errorTopologies(), EMPTY_STRING_LIST));
         ret.addAll(OR(store.storedTopoIds(), EMPTY_STRING_SET));
@@ -1764,7 +1761,7 @@ public class Nimbus {
         }
     }
     
-    //TODO priavte???
+    //TODO private???
     public void rmDependencyJarsInTopology(String topoId) {
         try {
             BlobStore store = getBlobStore();
@@ -1795,5 +1792,30 @@ public class Nimbus {
     //TODO private???
     public void forceDeleteTopoDistDir(String topoId) throws IOException {
         Utils.forceDelete(ConfigUtils.masterStormDistRoot(getConf(), topoId));
+    }
+    
+    //TODO private???
+    public void doCleanup() throws Exception {
+        if (!isLeader()) {
+            LOG.info("not a leader, skipping cleanup");
+            return;
+        }
+        IStormClusterState state = getStormClusterState();
+        Set<String> toClean;
+        synchronized(getSubmitLock()) {
+            toClean = topoIdsToClean(state, getBlobStore());
+        }
+        if (toClean != null) {
+            for (String topoId: toClean) {
+                LOG.info("Cleaning up {}", topoId);
+                state.teardownHeartbeats(topoId);
+                state.teardownTopologyErrors(topoId);
+                state.removeBackpressure(topoId);
+                rmDependencyJarsInTopology(topoId);
+                forceDeleteTopoDistDir(topoId);
+                rmTopologyKeys(topoId);
+                getHeartbeatsCache().getAndUpdate(new Dissoc<>(topoId));
+            }
+        }
     }
 }

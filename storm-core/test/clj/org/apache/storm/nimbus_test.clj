@@ -36,7 +36,7 @@
             TopologyInitialStatus TopologyStatus AlreadyAliveException KillOptions RebalanceOptions
             InvalidTopologyException AuthorizationException
             LogConfig LogLevel LogLevelAction Assignment NodeInfo])
-  (:import [java.util HashMap])
+  (:import [java.util HashMap HashSet])
   (:import [java.io File])
   (:import [javax.security.auth Subject])
   (:import [org.apache.storm.utils Time Utils Utils$UptimeComputer ConfigUtils IPredicate StormCommonInstaller]
@@ -1739,25 +1739,25 @@
                     (zkLeaderElectorImpl [conf blob-store] (mock-leader-elector))))]
       (let [nimbus (Mockito/spy (Nimbus. conf nil mock-state nil mock-blob-store nil))]
         (.set (.getHeartbeatsCache nimbus) hb-cache)
-        (.thenReturn (Mockito/when (.storedTopoIds mock-blob-store)) (java.util.TreeSet. inactive-topos))
+        (.thenReturn (Mockito/when (.storedTopoIds mock-blob-store)) (HashSet. inactive-topos))
         (mocking
           [teardown-heartbeats 
            teardown-topo-errors 
            teardown-backpressure-dirs]
 
-          (nimbus/do-cleanup nimbus)
+          (.doCleanup nimbus)
 
           ;; removed heartbeats znode
-          (verify-nth-call-args-for 1 teardown-heartbeats "topo3")
-          (verify-nth-call-args-for 2 teardown-heartbeats "topo2")
+          (verify-nth-call-args-for 1 teardown-heartbeats "topo2")
+          (verify-nth-call-args-for 2 teardown-heartbeats "topo3")
 
           ;; removed topo errors znode
-          (verify-nth-call-args-for 1 teardown-topo-errors "topo3")
-          (verify-nth-call-args-for 2 teardown-topo-errors "topo2")
+          (verify-nth-call-args-for 1 teardown-topo-errors "topo2")
+          (verify-nth-call-args-for 2 teardown-topo-errors "topo3")
 
           ;; removed backpressure znodes
-          (verify-nth-call-args-for 1 teardown-backpressure-dirs "topo3")
-          (verify-nth-call-args-for 2 teardown-backpressure-dirs "topo2")
+          (verify-nth-call-args-for 1 teardown-backpressure-dirs "topo2")
+          (verify-nth-call-args-for 2 teardown-backpressure-dirs "topo3")
 
           ;; removed topo directories
           (.forceDeleteTopoDistDir (Mockito/verify nimbus) "topo2")
@@ -1790,7 +1790,7 @@
            teardown-topo-errors 
            teardown-backpressure-dirs]
 
-          (nimbus/do-cleanup nimbus)
+          (.doCleanup nimbus)
 
           (verify-call-times-for teardown-heartbeats 0)
           (verify-call-times-for teardown-topo-errors 0)

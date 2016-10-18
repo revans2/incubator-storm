@@ -102,27 +102,6 @@
   [nimbus operation topology-id]
   (.isAuthorized nimbus operation topology-id))
 
-(defn do-cleanup [nimbus]
-  (if (.isLeader nimbus)
-    (let [storm-cluster-state (.getStormClusterState nimbus)
-          conf (.getConf nimbus)
-          submit-lock (.getSubmitLock nimbus)
-          blob-store (.getBlobStore nimbus)]
-      (let [to-cleanup-ids (locking submit-lock
-                             (set (Nimbus/topoIdsToClean storm-cluster-state blob-store)))]
-        (when-not (empty? to-cleanup-ids)
-          (doseq [id to-cleanup-ids]
-            (log-message "Cleaning up " id)
-            (.teardownHeartbeats storm-cluster-state id)
-            (.teardownTopologyErrors storm-cluster-state id)
-            (.removeBackpressure storm-cluster-state id)
-            (.rmDependencyJarsInTopology nimbus id)
-            (.forceDeleteTopoDistDir nimbus id)
-            (.rmTopologyKeys nimbus id)
-            (.getAndUpdate (.getHeartbeatsCache nimbus) (Nimbus$Dissoc. id))))))
-
-    (log-message "not a leader, skipping cleanup")))
-
 (defn- file-older-than? [now seconds file]
   (<= (+ (.lastModified file) (Time/secsToMillis seconds)) (Time/secsToMillis now)))
 
@@ -1299,7 +1278,7 @@
         (when-not (conf ConfigUtils/NIMBUS_DO_NOT_REASSIGN)
           (locking (.getSubmitLock nimbus)
             (.mkAssignments nimbus)))
-        (do-cleanup nimbus)))
+        (.doCleanup nimbus)))
     ;; Schedule Nimbus inbox cleaner
     (.scheduleRecurring (.getTimer nimbus)
       0
