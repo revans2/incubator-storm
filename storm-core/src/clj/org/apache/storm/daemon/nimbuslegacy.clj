@@ -101,18 +101,6 @@
   [nimbus operation topology-id]
   (.isAuthorized nimbus operation topology-id))
 
-;; We will only file at <Storm dist root>/<Topology ID>/<File>
-;; to be accessed via Thrift
-;; ex., storm-local/nimbus/stormdist/aa-1-1377104853/stormjar.jar
-(defn check-file-access [conf file-path]
-  (log-debug "check file access:" file-path)
-  (try
-    (if (not= (.getCanonicalFile (File. (ConfigUtils/masterStormDistRoot conf)))
-          (-> (File. file-path) .getCanonicalFile .getParentFile .getParentFile))
-      (throw (AuthorizationException. (str "Invalid file path: " file-path))))
-    (catch Exception e
-      (throw (AuthorizationException. (str "Invalid file path: " file-path))))))
-
 (defn try-read-storm-topology
   [storm-id blob-store]
   (try-cause
