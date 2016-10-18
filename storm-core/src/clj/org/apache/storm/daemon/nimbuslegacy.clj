@@ -78,7 +78,6 @@
 (defmulti blob-sync cluster-mode)
 
 (defmulti setup-jar cluster-mode)
-(defmulti clean-inbox cluster-mode)
 
 ;; Monitoring (or by checking when nodes go down or heartbeats aren't received):
 ;; 1. read assignment
@@ -101,20 +100,6 @@
 (defn is-authorized?
   [nimbus operation topology-id]
   (.isAuthorized nimbus operation topology-id))
-
-(defn- file-older-than? [now seconds file]
-  (<= (+ (.lastModified file) (Time/secsToMillis seconds)) (Time/secsToMillis now)))
-
-(defn clean-inbox [dir-location seconds]
-  "Deletes jar files in dir older than seconds."
-  (let [now (Time/currentTimeSecs)
-        pred #(and (.isFile %) (file-older-than? now seconds %))
-        files (filter pred (file-seq (File. dir-location)))]
-    (doseq [f files]
-      (if (.delete f)
-        (log-message "Cleaning inbox ... deleted: " (.getName f))
-        ;; This should never happen
-        (log-error "Cleaning inbox ... error deleting: " (.getName f))))))
 
 (defn clean-topology-history
   "Deletes topologies from history older than minutes."
@@ -1283,7 +1268,7 @@
     (.scheduleRecurring (.getTimer nimbus)
       0
       (conf NIMBUS-CLEANUP-INBOX-FREQ-SECS)
-      (fn [] (clean-inbox (.getInbox nimbus) (conf NIMBUS-INBOX-JAR-EXPIRATION-SECS))))
+      (fn [] (Nimbus/cleanInbox (.getInbox nimbus) (conf NIMBUS-INBOX-JAR-EXPIRATION-SECS))))
     ;; Schedule nimbus code sync thread to sync code from other nimbuses.
     (if (instance? LocalFsBlobStore blob-store)
       (.scheduleRecurring (.getTimer nimbus)

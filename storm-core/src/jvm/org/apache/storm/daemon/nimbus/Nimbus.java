@@ -20,6 +20,7 @@ package org.apache.storm.daemon.nimbus;
 import static org.apache.storm.metric.StormMetricsRegistry.registerMeter;
 import static org.apache.storm.utils.Utils.OR;
 
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -56,7 +57,6 @@ import org.apache.storm.daemon.StormCommon;
 import org.apache.storm.generated.AlreadyAliveException;
 import org.apache.storm.generated.Assignment;
 import org.apache.storm.generated.AuthorizationException;
-import org.apache.storm.generated.ComponentCommon;
 import org.apache.storm.generated.InvalidTopologyException;
 import org.apache.storm.generated.KeyNotFoundException;
 import org.apache.storm.generated.NodeInfo;
@@ -66,7 +66,6 @@ import org.apache.storm.generated.SettableBlobMeta;
 import org.apache.storm.generated.StormBase;
 import org.apache.storm.generated.StormTopology;
 import org.apache.storm.generated.SupervisorInfo;
-import org.apache.storm.generated.TopologyInitialStatus;
 import org.apache.storm.generated.TopologyStatus;
 import org.apache.storm.generated.WorkerResources;
 import org.apache.storm.logging.ThriftAccessLogger;
@@ -96,7 +95,6 @@ import org.apache.storm.security.auth.ReqContext;
 import org.apache.storm.stats.StatsUtil;
 import org.apache.storm.utils.ConfigUtils;
 import org.apache.storm.utils.LocalState;
-import org.apache.storm.utils.ThriftTopologyUtils;
 import org.apache.storm.utils.Time;
 import org.apache.storm.utils.TimeCacheMap;
 import org.apache.storm.utils.Utils;
@@ -662,6 +660,37 @@ public class Nimbus {
             LOG.info("Exception {}", e);
         }
     }
+    
+    //TODO private???
+    /**
+     * Deletes jar files in dirLoc older than seconds.
+     * @param dirLoc the location to look in for file
+     * @param seconds how old is too old and should be deleted
+     */
+    public static void cleanInbox (String dirLoc, int seconds) {
+        final long now = Time.currentTimeMillis();
+        final long ms = Time.secsToMillis(seconds);
+        File dir = new File(dirLoc);
+        for (File f : dir.listFiles((f) -> f.isFile() && ((f.lastModified() + ms) <= now))) {
+            if (f.delete()) {
+                LOG.info("Cleaning inbox ... deleted: {}", f.getName());
+            } else {
+                LOG.error("Cleaning inbox ... error deleting: {}", f.getName());
+            }
+        }
+    }
+//    (defn- file-older-than? [now seconds file]
+//            (<= (+ (.lastModified file) (Time/secsToMillis seconds)) (Time/secsToMillis now)))
+//    (defn clean-inbox [dir-location seconds]
+//            "Deletes jar files in dir older than seconds."
+//            (let [now (Time/currentTimeSecs)
+//                  pred #(and (.isFile %) (file-older-than? now seconds %))
+//                  files (filter pred (file-seq (File. dir-location)))]
+//              (doseq [f files]
+//                (if (.delete f)
+//                  (log-message "Cleaning inbox ... deleted: " (.getName f))
+//                  ;; This should never happen
+//                  (log-error "Cleaning inbox ... error deleting: " (.getName f))))))
         
     private final Map<String, Object> conf;
     private final NimbusInfo nimbusHostPortInfo;
