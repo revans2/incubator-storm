@@ -101,14 +101,6 @@
   [nimbus operation topology-id]
   (.isAuthorized nimbus operation topology-id))
 
-(defn clean-topology-history
-  "Deletes topologies from history older than minutes."
-  [mins nimbus]
-  (locking (.getTopologyHistoryLock nimbus)
-    (let [cutoff-age (- (Time/currentTimeSecs) (* mins 60))
-          topo-history-state (.getTopologyHistoryState nimbus)]
-          (.filterOldTopologies ^LocalState topo-history-state cutoff-age))))
-
 (defn setup-blobstore [nimbus]
   "Sets up blobstore state for all current keys."
   (let [storm-cluster-state (.getStormClusterState nimbus)
@@ -1280,7 +1272,7 @@
       (.scheduleRecurring (.getTimer nimbus)
         0
         (conf LOGVIEWER-CLEANUP-INTERVAL-SECS)
-        (fn [] (clean-topology-history (conf LOGVIEWER-CLEANUP-AGE-MINS) nimbus))))
+        (fn [] (.cleanTopologyHistory nimbus (conf LOGVIEWER-CLEANUP-AGE-MINS)))))
     (.scheduleRecurring (.getTimer nimbus)
       0
       (conf NIMBUS-CREDENTIAL-RENEW-FREQ-SECS)

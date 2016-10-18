@@ -679,18 +679,6 @@ public class Nimbus {
             }
         }
     }
-//    (defn- file-older-than? [now seconds file]
-//            (<= (+ (.lastModified file) (Time/secsToMillis seconds)) (Time/secsToMillis now)))
-//    (defn clean-inbox [dir-location seconds]
-//            "Deletes jar files in dir older than seconds."
-//            (let [now (Time/currentTimeSecs)
-//                  pred #(and (.isFile %) (file-older-than? now seconds %))
-//                  files (filter pred (file-seq (File. dir-location)))]
-//              (doseq [f files]
-//                (if (.delete f)
-//                  (log-message "Cleaning inbox ... deleted: " (.getName f))
-//                  ;; This should never happen
-//                  (log-error "Cleaning inbox ... error deleting: " (.getName f))))))
         
     private final Map<String, Object> conf;
     private final NimbusInfo nimbusHostPortInfo;
@@ -1845,6 +1833,19 @@ public class Nimbus {
                 rmTopologyKeys(topoId);
                 getHeartbeatsCache().getAndUpdate(new Dissoc<>(topoId));
             }
+        }
+    }
+    
+    //TODO private???
+    /**
+     * Deletes topologies from history older than mins minutes.
+     * @param mins the number of mins for old topologies
+     */
+    public void cleanTopologyHistory(int mins) {
+        int cutoffAgeSecs = Time.currentTimeSecs() - (mins * 60);
+        synchronized(getTopologyHistoryLock()) {
+            LocalState state = getTopologyHistoryState();
+            state.filterOldTopologies(cutoffAgeSecs);
         }
     }
 }
