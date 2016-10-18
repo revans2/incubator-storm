@@ -102,14 +102,6 @@
   [nimbus operation topology-id]
   (.isAuthorized nimbus operation topology-id))
 
-(defn blob-rm-key [blob-store key storm-cluster-state]
-  (try
-    (.deleteBlob blob-store key Nimbus/NIMBUS_SUBJECT)
-    (if (instance? LocalFsBlobStore blob-store)
-      (.removeBlobstoreKey storm-cluster-state key))
-    (catch Exception e
-      (log-message "Exception" e))))
-
 (defn blob-rm-dependency-jars-in-topology [id blob-store storm-cluster-state]
   (try
     (let [storm-topology (Nimbus/readStormTopologyAsNimbus id blob-store)
@@ -117,14 +109,14 @@
       (log-message "Removing dependency jars from blobs - " dependency-jars)
       (when-not (empty? dependency-jars)
         (doseq [key dependency-jars]
-          (blob-rm-key blob-store key storm-cluster-state))))
+          (Nimbus/rmBlobKey blob-store key storm-cluster-state))))
     (catch Exception e
       (log-message "Exception" e))))
 
 (defn blob-rm-topology-keys [id blob-store storm-cluster-state]
-  (blob-rm-key blob-store (ConfigUtils/masterStormJarKey id) storm-cluster-state)
-  (blob-rm-key blob-store (ConfigUtils/masterStormConfKey id) storm-cluster-state)
-  (blob-rm-key blob-store (ConfigUtils/masterStormCodeKey id) storm-cluster-state))
+  (Nimbus/rmBlobKey blob-store (ConfigUtils/masterStormJarKey id) storm-cluster-state)
+  (Nimbus/rmBlobKey blob-store (ConfigUtils/masterStormConfKey id) storm-cluster-state)
+  (Nimbus/rmBlobKey blob-store (ConfigUtils/masterStormCodeKey id) storm-cluster-state))
 
 (defn force-delete-topo-dist-dir [conf id]
   (Utils/forceDelete (ConfigUtils/masterStormDistRoot conf id)))

@@ -651,32 +651,20 @@ public class Nimbus {
         ret.put(Config.TOPOLOGY_MAX_TASK_PARALLELISM, mergedConf.get(Config.TOPOLOGY_MAX_TASK_PARALLELISM));
         return ret;
     }
-//    (defn normalize-conf [conf storm-conf ^StormTopology topology]
-//            ;; ensure that serializations are same for all tasks no matter what's on
-//            ;; the supervisors. this also allows you to declare the serializations as a sequence
-//            (let [component-confs (map
-//                                   #(-> (ThriftTopologyUtils/getComponentCommon topology %)
-//                                        .get_json_conf
-//                                        ((fn [c] (if c (JSONValue/parse c))))
-//                                        clojurify-structure)
-//                                   (ThriftTopologyUtils/getComponentIds topology))
-//                  total-conf (merge conf storm-conf)
-//
-//                  get-merged-conf-val (fn [k merge-fn]
-//                                        (merge-fn
-//                                         (concat
-//                                          (mapcat #(get % k) component-confs)
-//                                          (or (get storm-conf k)
-//                                              (get conf k)))))]
-//              ;; topology level serialization registrations take priority
-//              ;; that way, if there's a conflict, a user can force which serialization to use
-//              ;; append component conf to storm-conf
-//              (merge storm-conf
-//                     {TOPOLOGY-KRYO-DECORATORS (get-merged-conf-val TOPOLOGY-KRYO-DECORATORS distinct)
-//                      TOPOLOGY-KRYO-REGISTER (get-merged-conf-val TOPOLOGY-KRYO-REGISTER mapify-serializations)
-//                      TOPOLOGY-ACKER-EXECUTORS (total-conf TOPOLOGY-ACKER-EXECUTORS)
-//                      TOPOLOGY-EVENTLOGGER-EXECUTORS (total-conf TOPOLOGY-EVENTLOGGER-EXECUTORS)
-//                      TOPOLOGY-MAX-TASK-PARALLELISM (total-conf TOPOLOGY-MAX-TASK-PARALLELISM)})))
+    
+    //TODO private
+    //TODO can we find a way to move this into BlobStore itself???
+    public static void rmBlobKey(BlobStore store, String key, IStormClusterState state) {
+        try {
+            store.deleteBlob(key, NIMBUS_SUBJECT);
+            if (store instanceof LocalFsBlobStore) {
+                state.removeBlobstoreKey(key);
+            }
+        } catch (Exception e) {
+            //Yes eat the exception
+            LOG.info("Exception {}", e);
+        }
+    }
     
     private final Map<String, Object> conf;
     private final NimbusInfo nimbusHostPortInfo;
