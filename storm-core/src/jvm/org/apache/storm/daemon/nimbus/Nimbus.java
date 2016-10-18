@@ -1791,4 +1791,9 @@ public class Nimbus {
         rmBlobKey(store, ConfigUtils.masterStormConfKey(topoId), state);
         rmBlobKey(store, ConfigUtils.masterStormCodeKey(topoId), state);
     }
+    
+    //TODO private???
+    public void forceDeleteTopoDistDir(String topoId) throws IOException {
+        Utils.forceDelete(ConfigUtils.masterStormDistRoot(getConf(), topoId));
+    }
 }

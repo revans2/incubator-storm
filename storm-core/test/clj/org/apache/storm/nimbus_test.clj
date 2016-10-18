@@ -1743,8 +1743,7 @@
         (mocking
           [teardown-heartbeats 
            teardown-topo-errors 
-           teardown-backpressure-dirs
-           nimbus/force-delete-topo-dist-dir]
+           teardown-backpressure-dirs]
 
           (nimbus/do-cleanup nimbus)
 
@@ -1761,8 +1760,8 @@
           (verify-nth-call-args-for 2 teardown-backpressure-dirs "topo2")
 
           ;; removed topo directories
-          (verify-nth-call-args-for 1 nimbus/force-delete-topo-dist-dir conf "topo3")
-          (verify-nth-call-args-for 2 nimbus/force-delete-topo-dist-dir conf "topo2")
+          (.forceDeleteTopoDistDir (Mockito/verify nimbus) "topo2")
+          (.forceDeleteTopoDistDir (Mockito/verify nimbus) "topo3")
 
           ;; removed blob store topo keys
           (.rmTopologyKeys (Mockito/verify nimbus) "topo2")
@@ -1789,15 +1788,14 @@
         (mocking
           [teardown-heartbeats 
            teardown-topo-errors 
-           teardown-backpressure-dirs
-           nimbus/force-delete-topo-dist-dir]
+           teardown-backpressure-dirs]
 
           (nimbus/do-cleanup nimbus)
 
           (verify-call-times-for teardown-heartbeats 0)
           (verify-call-times-for teardown-topo-errors 0)
           (verify-call-times-for teardown-backpressure-dirs 0)
-          (verify-call-times-for nimbus/force-delete-topo-dist-dir 0)
+          (.forceDeleteTopoDistDir (Mockito/verify nimbus (Mockito/times 0)) (Mockito/anyObject))
           (.rmTopologyKeys (Mockito/verify nimbus (Mockito/times 0)) (Mockito/anyObject))
 
           ;; hb-cache goes down to 1 because only one topo was inactive

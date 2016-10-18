@@ -102,9 +102,6 @@
   [nimbus operation topology-id]
   (.isAuthorized nimbus operation topology-id))
 
-(defn force-delete-topo-dist-dir [conf id]
-  (Utils/forceDelete (ConfigUtils/masterStormDistRoot conf id)))
-
 (defn do-cleanup [nimbus]
   (if (.isLeader nimbus)
     (let [storm-cluster-state (.getStormClusterState nimbus)
@@ -120,7 +117,7 @@
             (.teardownTopologyErrors storm-cluster-state id)
             (.removeBackpressure storm-cluster-state id)
             (.rmDependencyJarsInTopology nimbus id)
-            (force-delete-topo-dist-dir conf id)
+            (.forceDeleteTopoDistDir nimbus id)
             (.rmTopologyKeys nimbus id)
             (.getAndUpdate (.getHeartbeatsCache nimbus) (Nimbus$Dissoc. id))))))
 
