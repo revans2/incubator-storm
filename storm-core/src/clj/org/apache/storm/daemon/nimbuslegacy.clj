@@ -101,18 +101,14 @@
   [nimbus operation topology-id]
   (.isAuthorized nimbus operation topology-id))
 
-(defn igroup-mapper
-  [storm-conf]
-  (AuthUtils/GetGroupMappingServiceProviderPlugin storm-conf))
-
 (defn user-groups
-  [user storm-conf]
-  (if (clojure.string/blank? user) [] (.getGroups (igroup-mapper storm-conf) user)))
+  [nimbus user]
+  (if (clojure.string/blank? user) [] (.getGroups (.getGroupMapper nimbus) user)))
 
 (defn does-users-group-intersect?
   "Check to see if any of the users groups intersect with the list of groups passed in"
-  [user groups-to-check storm-conf]
-  (let [groups (user-groups user storm-conf)]
+  [nimbus user groups-to-check]
+  (let [groups (user-groups nimbus user)]
     (> (.size (set/intersection (set groups) (set groups-to-check))) 0)))
 
 (defn ->topo-history
@@ -127,15 +123,15 @@
   [nimbus user admin-users]
   (let [topo-history-state (.getTopologyHistoryState nimbus)
         curr-history (vec (map ->topo-history (.getTopoHistoryList ^LocalState topo-history-state)))
-        topo-user-can-access (fn [line user storm-conf]
+        topo-user-can-access (fn [line user]
                                (if (nil? user)
                                  (line :topoid)
                                  (if (or (some #(= % user) admin-users)
-                                       (does-users-group-intersect? user (line :groups) storm-conf)
+                                       (does-users-group-intersect? nimbus user (line :groups))
                                        (some #(= % user) (line :users)))
                                    (line :topoid)
                                    nil)))]
-    (remove nil? (map #(topo-user-can-access % user (.getConf nimbus)) curr-history))))
+    (remove nil? (map #(topo-user-can-access % user) curr-history))))
 
 (defn renew-credentials [nimbus]
   (if (.isLeader nimbus)
@@ -1126,7 +1122,7 @@
                                           groups (ConfigUtils/getTopoLogsGroups topology-conf)]
                                       (or (nil? user)
                                           (some #(= % user) admin-users)
-                                          (does-users-group-intersect? user groups conf)
+                                          (does-users-group-intersect? nimbus user groups)
                                           (some #(= % user) (ConfigUtils/getTopoLogsUsers topology-conf)))))
               active-ids-for-user (filter #(user-group-match-fn % user (.getConf nimbus)) assigned-topology-ids)
               topo-history-list (read-topology-history nimbus user admin-users)]

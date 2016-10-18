@@ -94,6 +94,7 @@ import org.apache.storm.security.INimbusCredentialPlugin;
 import org.apache.storm.security.auth.AuthUtils;
 import org.apache.storm.security.auth.IAuthorizer;
 import org.apache.storm.security.auth.ICredentialsRenewer;
+import org.apache.storm.security.auth.IGroupMappingServiceProvider;
 import org.apache.storm.security.auth.NimbusPrincipal;
 import org.apache.storm.security.auth.ReqContext;
 import org.apache.storm.stats.StatsUtil;
@@ -745,6 +746,7 @@ public class Nimbus {
     private final Collection<INimbusCredentialPlugin> nimbusAutocredPlugins;
     private final ITopologyActionNotifierPlugin nimbusTopologyActionNotifier;
     private final List<ClusterMetricsConsumerExecutor> clusterConsumerExceutors;
+    private final IGroupMappingServiceProvider groupMapper;
     
     private static IStormClusterState makeStormClusterState(Map<String, Object> conf) throws Exception {
         //TODO need to change CLusterUtils to have a Map option
@@ -808,6 +810,10 @@ public class Nimbus {
         this.nimbusAutocredPlugins = AuthUtils.getNimbusAutoCredPlugins(conf);
         this.nimbusTopologyActionNotifier = createTopologyActionNotifier(conf);
         this.clusterConsumerExceutors = makeClusterMetricsConsumerExecutors(conf);
+        this.groupMapper = AuthUtils.GetGroupMappingServiceProviderPlugin(conf);
+//        (defn igroup-mapper
+//                [conf]
+//                (AuthUtils/GetGroupMappingServiceProviderPlugin conf))
     }
 
     public Map<String, Object> getConf() {
@@ -941,6 +947,10 @@ public class Nimbus {
 
     public List<ClusterMetricsConsumerExecutor> getClusterConsumerExecutors() {
         return clusterConsumerExceutors;
+    }
+    
+    public IGroupMappingServiceProvider getGroupMapper() {
+        return groupMapper;
     }
     
     public boolean isLeader() throws Exception {

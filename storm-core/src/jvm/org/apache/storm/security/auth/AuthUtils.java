@@ -167,15 +167,21 @@ public class AuthUtils {
 
     /**
      * Construct a group mapping service provider plugin
-     * @param storm_conf storm configuration
+     * @param conf daemon configuration
      * @return the plugin
      */
-    public static IGroupMappingServiceProvider GetGroupMappingServiceProviderPlugin(Map storm_conf) {
-        IGroupMappingServiceProvider gmsp;
+    public static IGroupMappingServiceProvider GetGroupMappingServiceProviderPlugin(Map conf) {
+        IGroupMappingServiceProvider gmsp = null;
         try {
-            String gmsp_klassName = (String) storm_conf.get(Config.STORM_GROUP_MAPPING_SERVICE_PROVIDER_PLUGIN);
-            gmsp = Utils.newInstance(gmsp_klassName);
-            gmsp.prepare(storm_conf);
+            String gmsp_klassName = (String) conf.get(Config.STORM_GROUP_MAPPING_SERVICE_PROVIDER_PLUGIN);
+            if (gmsp_klassName == null) {
+                LOG.warn("No group mapper given {}", Config.STORM_GROUP_MAPPING_SERVICE_PROVIDER_PLUGIN);
+            } else {
+                gmsp = Utils.newInstance(gmsp_klassName);
+                if (gmsp != null) {
+                    gmsp.prepare(conf);
+                }
+            }
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
