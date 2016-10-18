@@ -1423,7 +1423,7 @@
   (with-mocked-nimbus [cluster :cluster-state cluster-state :blob-store blob-store]
     (let [nimbus (:nimbus cluster)
           bogus-secs 42
-          bogus-type "bogusType"
+          bogus-type TopologyStatus/ACTIVE
           bogus-bases {
                  "1" nil
                  "2" {:launch-time-secs bogus-secs

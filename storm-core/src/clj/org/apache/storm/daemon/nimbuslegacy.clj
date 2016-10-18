@@ -102,11 +102,6 @@
   [nimbus operation topology-id]
   (.isAuthorized nimbus operation topology-id))
 
-(defn extract-status-str [base]
-  (let [t (-> base :status :type)]
-    (.toUpperCase (.toString t))
-    ))
-
 (defn mapify-serializations [sers]
   (->> sers
        (map (fn [e] (if (map? e) e {e nil})))
@@ -464,6 +459,7 @@
 
         topology-summaries (dofor [[id base] bases :when base]
                                   (let [assignment (clojurify-assignment (.assignmentInfo storm-cluster-state id nil))
+                                        j-base (thriftify-storm-base base)
                                         topo-summ (TopologySummary. id
                                                                     (:storm-name base)
                                                                     (->> (:executor->node+port assignment)
@@ -478,7 +474,7 @@
                                                                          set
                                                                          count)
                                                                     (Time/deltaSecs (:launch-time-secs base))
-                                                                    (extract-status-str base))]
+                                                                    (Nimbus/extractStatusStr j-base))]
                                     (when-let [owner (:owner base)] (.set_owner topo-summ owner))
                                     (when-let [sched-status (.get (.get (.getIdToSchedStatus nimbus)) id)] (.set_sched_status topo-summ sched-status))
                                     (when-let [resources (.getResourcesForTopology nimbus id)]
@@ -922,6 +918,7 @@
                       beats
                       task->component
                       base]} (get-common-topo-info storm-id "getTopologyInfo")
+              j-base (thriftify-storm-base base)
               num-err-choice (or (.get_num_err_choice options)
                                  NumErrorsChoice/ALL)
               errors-fn (condp = num-err-choice
@@ -959,7 +956,7 @@
                            storm-name
                            (Time/deltaSecs launch-time-secs)
                            executor-summaries
-                           (extract-status-str base)
+                           (Nimbus/extractStatusStr j-base)
                            errors
                            )]
             (when-let [owner (:owner base)] (.set_owner topo-info owner))
@@ -1145,6 +1142,7 @@
                       topology
                       topology-conf
                       base]} topo-info
+              j-base (thriftify-storm-base base)
               exec->node+port (:executor->node+port assignment)
               node->host (:node->host assignment)
               worker->resources (.getWorkerResourcesForTopology nimbus topo-id)
@@ -1190,7 +1188,7 @@
             (.set_assigned_cpu topo-page-info (:assigned-cpu resources)))
           (doto topo-page-info
             (.set_name storm-name)
-            (.set_status (extract-status-str base))
+            (.set_status (Nimbus/extractStatusStr j-base))
             (.set_uptime_secs (Time/deltaSecs launch-time-secs))
             (.set_topology_conf (JSONValue/toJSONString
                                   (clojurify-structure (Nimbus/tryReadTopoConf
@@ -1284,7 +1282,7 @@
             (.set_errors (get-errors (:storm-cluster-state info)
                                      topo-id
                                      component-id))
-            (.set_topology_status (extract-status-str (:base info))))
+            (.set_topology_status (Nimbus/extractStatusStr (thriftify-storm-base (:base info)))))
           (when-let [debug-options
                      (get-in info [:base :component->debug component-id])]
             (.set_debug_options

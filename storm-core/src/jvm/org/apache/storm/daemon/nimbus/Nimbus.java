@@ -562,6 +562,16 @@ public class Nimbus {
         return ret;
     }
     
+    //TODO private???
+    public static String extractStatusStr(StormBase base) {
+        String ret = null;
+        TopologyStatus status = base.get_status();
+        if (status != null) {
+            ret = status.name().toUpperCase();
+        }
+        return ret;
+    }
+    
     private final Map<String, Object> conf;
     private final NimbusInfo nimbusHostPortInfo;
     private final INimbus inimbus;
