@@ -101,16 +101,6 @@
   [nimbus operation topology-id]
   (.isAuthorized nimbus operation topology-id))
 
-(def DISALLOWED-TOPOLOGY-NAME-STRS #{"/" "." ":" "\\"})
-
-(defn validate-topology-name! [name]
-  (if (some #(.contains name %) DISALLOWED-TOPOLOGY-NAME-STRS)
-    (throw (InvalidTopologyException.
-            (str "Topology name cannot contain any of the following: " (pr-str DISALLOWED-TOPOLOGY-NAME-STRS))))
-  (if (clojure.string/blank? name)
-    (throw (InvalidTopologyException.
-            ("Topology name cannot be blank"))))))
-
 ;; We will only file at <Storm dist root>/<Topology ID>/<File>
 ;; to be accessed via Thrift
 ;; ex., storm-local/nimbus/stormdist/aa-1-1377104853/stormjar.jar
@@ -432,7 +422,7 @@
           (.mark Nimbus/submitTopologyWithOptsCalls)
           (.assertIsLeader nimbus)
           (assert (not-nil? submitOptions))
-          (validate-topology-name! storm-name)
+          (Nimbus/validateTopologyName storm-name)
           (.checkAuthorization nimbus storm-name nil "submitTopology")
           (.assertTopoActive nimbus storm-name false)
           (let [topo-conf (if-let [parsed-json (JSONValue/parse serializedConf)]

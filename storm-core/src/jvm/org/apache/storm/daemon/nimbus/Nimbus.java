@@ -39,6 +39,8 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BinaryOperator;
 import java.util.function.UnaryOperator;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import javax.security.auth.Subject;
 
@@ -686,9 +688,16 @@ public class Nimbus {
     public static ExecutorInfo toExecInfo(List<Long> exec) {
         return new ExecutorInfo(exec.get(0).intValue(), exec.get(1).intValue());
     }
-//    (defn- thriftify-executor-id [[first-task-id last-task-id]]
-//            (ExecutorInfo. (int first-task-id) (int last-task-id)))
-        
+    
+    private static final Pattern TOPOLOGY_NAME_REGEX = Pattern.compile("^[^/.:\\\\]+$");
+    //TODO private
+    public static void validateTopologyName(String name) throws InvalidTopologyException {
+        Matcher m = TOPOLOGY_NAME_REGEX.matcher(name);
+        if (!m.matches()) {
+            throw new InvalidTopologyException("Topology name must match " + TOPOLOGY_NAME_REGEX);
+        }
+    }
+    
     private final Map<String, Object> conf;
     private final NimbusInfo nimbusHostPortInfo;
     private final INimbus inimbus;
