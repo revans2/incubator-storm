@@ -109,16 +109,6 @@
        (apply merge)
        ))
 
-(defn normalize-topology [storm-conf ^StormTopology topology]
-  (let [ret (.deepCopy topology)]
-    (doseq [[_ component] (clojurify-structure (StormCommon/allComponents ret))]
-      (.set_json_conf
-        (.get_common component)
-        (->> {TOPOLOGY-TASKS (Nimbus/componentParallelism storm-conf component)}
-             (merge (clojurify-structure (StormCommon/componentConf component)))
-             JSONValue/toJSONString)))
-    ret ))
-
 (defn normalize-conf [conf storm-conf ^StormTopology topology]
   ;; ensure that serializations are same for all tasks no matter what's on
   ;; the supervisors. this also allows you to declare the serializations as a sequence
@@ -616,7 +606,7 @@
                              storm-conf
                              (dissoc storm-conf TOPOLOGY-CLASSPATH-BEGINNING))
                 total-storm-conf (merge conf storm-conf)
-                topology (normalize-topology total-storm-conf topology)
+                topology (Nimbus/normalizeTopology total-storm-conf topology)
                 storm-cluster-state (.getStormClusterState nimbus)]
             (when credentials (doseq [nimbus-autocred-plugin (.getNimbusAutocredPlugins nimbus)]
               (.populateCredentials nimbus-autocred-plugin credentials (Collections/unmodifiableMap storm-conf))))

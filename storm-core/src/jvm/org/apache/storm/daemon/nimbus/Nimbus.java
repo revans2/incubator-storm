@@ -56,6 +56,7 @@ import org.apache.storm.daemon.StormCommon;
 import org.apache.storm.generated.AlreadyAliveException;
 import org.apache.storm.generated.Assignment;
 import org.apache.storm.generated.AuthorizationException;
+import org.apache.storm.generated.ComponentCommon;
 import org.apache.storm.generated.InvalidTopologyException;
 import org.apache.storm.generated.KeyNotFoundException;
 import org.apache.storm.generated.NodeInfo;
@@ -103,6 +104,7 @@ import org.apache.storm.utils.VersionInfo;
 import org.apache.storm.zookeeper.Zookeeper;
 import org.apache.zookeeper.ZooDefs;
 import org.apache.zookeeper.data.ACL;
+import org.json.simple.JSONValue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -572,8 +574,7 @@ public class Nimbus {
         return ret;
     }
     
-    //TODO private
-    public static int componentParallelism(Map<String, Object> topoConf, Object component) throws InvalidTopologyException {
+    private static int componentParallelism(Map<String, Object> topoConf, Object component) throws InvalidTopologyException {
         Map<String, Object> combinedConf = merge(topoConf, StormCommon.componentConf(component));
         int numTasks = Utils.getInt(combinedConf.get(Config.TOPOLOGY_TASKS), StormCommon.numStartExecutors(component));
         Integer maxParallel = Utils.getInt(combinedConf.get(Config.TOPOLOGY_MAX_TASK_PARALLELISM), null);
@@ -583,14 +584,18 @@ public class Nimbus {
         }
         return ret;
     }
-//    (defn- component-parallelism [storm-conf component]
-//            (let [storm-conf (merge storm-conf (clojurify-structure (StormCommon/componentConf component)))
-//                  num-tasks (or (storm-conf TOPOLOGY-TASKS) (StormCommon/numStartExecutors component))
-//                  max-parallelism (storm-conf TOPOLOGY-MAX-TASK-PARALLELISM)
-//                  ]
-//              (if max-parallelism
-//                (min max-parallelism num-tasks)
-//                num-tasks)))
+    
+    //TODO private
+    public static StormTopology normalizeTopology(Map<String, Object> topoConf, StormTopology topology) throws InvalidTopologyException {
+        StormTopology ret = topology.deepCopy();
+        for (Object comp: StormCommon.allComponents(ret).values()) {
+            Map<String, Object> mergedConf = StormCommon.componentConf(comp);
+            mergedConf.put(Config.TOPOLOGY_TASKS, componentParallelism(topoConf, comp));
+            String jsonConf = JSONValue.toJSONString(mergedConf);
+            StormCommon.getComponentCommon(comp).set_json_conf(jsonConf);
+        }
+        return ret;
+    }
     
     private final Map<String, Object> conf;
     private final NimbusInfo nimbusHostPortInfo;
