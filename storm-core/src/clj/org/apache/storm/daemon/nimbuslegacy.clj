@@ -102,14 +102,6 @@
   [nimbus operation topology-id]
   (.isAuthorized nimbus operation topology-id))
 
-(defn cleanup-storm-ids [storm-cluster-state blob-store]
-  (let [heartbeat-ids (set (.heartbeatStorms storm-cluster-state))
-        error-ids (set (.errorTopologies storm-cluster-state))
-        store-ids (clojurify-structure (.storedTopoIds blob-store))
-        backpressure-ids (set (.backpressureTopologies storm-cluster-state))
-        assigned-ids (set (.activeStorms storm-cluster-state))]
-    (set/difference (set/union heartbeat-ids error-ids backpressure-ids store-ids) assigned-ids)))
-
 (defn extract-status-str [base]
   (let [t (-> base :status :type)]
     (.toUpperCase (.toString t))
@@ -201,7 +193,7 @@
           submit-lock (.getSubmitLock nimbus)
           blob-store (.getBlobStore nimbus)]
       (let [to-cleanup-ids (locking submit-lock
-                             (cleanup-storm-ids storm-cluster-state blob-store))]
+                             (set (Nimbus/topoIdsToClean storm-cluster-state blob-store)))]
         (when-not (empty? to-cleanup-ids)
           (doseq [id to-cleanup-ids]
             (log-message "Cleaning up " id)

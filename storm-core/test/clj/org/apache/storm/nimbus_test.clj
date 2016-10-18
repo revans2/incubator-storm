@@ -1705,7 +1705,7 @@
          (let [mock-state (mock-cluster-state (list "topo1") (list "topo1" "topo2" "topo3"))
                store (Mockito/mock BlobStore)]
               (.thenReturn (Mockito/when (.storedTopoIds store)) #{})
-              (is (= (nimbus/cleanup-storm-ids mock-state store) #{"topo2" "topo3"}))))
+              (is (= (Nimbus/topoIdsToClean mock-state store) #{"topo2" "topo3"}))))
 
 (deftest cleanup-storm-ids-performs-union-of-storm-ids-with-active-znodes
   (let [active-topos (list "hb1" "e2" "bp3")
@@ -1715,7 +1715,7 @@
         mock-state (mock-cluster-state active-topos hb-topos error-topos bp-topos)
         store (Mockito/mock BlobStore)]
     (.thenReturn (Mockito/when (.storedTopoIds store)) #{})
-    (is (= (nimbus/cleanup-storm-ids mock-state store)
+    (is (= (Nimbus/topoIdsToClean mock-state store)
            #{"hb2" "hb3" "e1" "e3" "bp1" "bp2"}))))
 
 (deftest cleanup-storm-ids-returns-empty-set-when-all-topos-are-active
@@ -1726,7 +1726,7 @@
         mock-state (mock-cluster-state active-topos hb-topos error-topos bp-topos)
         store (Mockito/mock BlobStore)]
     (.thenReturn (Mockito/when (.storedTopoIds store)) #{})
-    (is (= (nimbus/cleanup-storm-ids mock-state store) 
+    (is (= (Nimbus/topoIdsToClean mock-state store) 
            #{}))))
 
 (deftest do-cleanup-removes-inactive-znodes
@@ -1739,8 +1739,8 @@
                     (zkLeaderElectorImpl [conf blob-store] (mock-leader-elector))))]
       (let [nimbus (Nimbus. conf nil mock-state nil mock-blob-store nil)]
         (.set (.getHeartbeatsCache nimbus) hb-cache)
-        (stubbing [nimbus/blob-rm-topology-keys nil
-                   nimbus/cleanup-storm-ids inactive-topos]
+        (.thenReturn (Mockito/when (.storedTopoIds mock-blob-store)) (java.util.TreeSet. inactive-topos))
+        (stubbing [nimbus/blob-rm-topology-keys nil]
           (mocking
             [teardown-heartbeats 
              teardown-topo-errors 
@@ -1752,28 +1752,28 @@
             (nimbus/do-cleanup nimbus)
 
             ;; removed heartbeats znode
-            (verify-nth-call-args-for 1 teardown-heartbeats "topo2")
-            (verify-nth-call-args-for 2 teardown-heartbeats "topo3")
+            (verify-nth-call-args-for 1 teardown-heartbeats "topo3")
+            (verify-nth-call-args-for 2 teardown-heartbeats "topo2")
 
             ;; removed topo errors znode
-            (verify-nth-call-args-for 1 teardown-topo-errors "topo2")
-            (verify-nth-call-args-for 2 teardown-topo-errors "topo3")
+            (verify-nth-call-args-for 1 teardown-topo-errors "topo3")
+            (verify-nth-call-args-for 2 teardown-topo-errors "topo2")
 
             ;; removed backpressure znodes
-            (verify-nth-call-args-for 1 teardown-backpressure-dirs "topo2")
-            (verify-nth-call-args-for 2 teardown-backpressure-dirs "topo3")
+            (verify-nth-call-args-for 1 teardown-backpressure-dirs "topo3")
+            (verify-nth-call-args-for 2 teardown-backpressure-dirs "topo2")
 
             ;; removed topo directories
-            (verify-nth-call-args-for 1 nimbus/force-delete-topo-dist-dir conf "topo2")
-            (verify-nth-call-args-for 2 nimbus/force-delete-topo-dist-dir conf "topo3")
+            (verify-nth-call-args-for 1 nimbus/force-delete-topo-dist-dir conf "topo3")
+            (verify-nth-call-args-for 2 nimbus/force-delete-topo-dist-dir conf "topo2")
 
             ;; removed blob store topo keys
-            (verify-nth-call-args-for 1 nimbus/blob-rm-topology-keys "topo2" mock-blob-store mock-state)
-            (verify-nth-call-args-for 2 nimbus/blob-rm-topology-keys "topo3" mock-blob-store mock-state)
+            (verify-nth-call-args-for 1 nimbus/blob-rm-topology-keys "topo3" mock-blob-store mock-state)
+            (verify-nth-call-args-for 2 nimbus/blob-rm-topology-keys "topo2" mock-blob-store mock-state)
 
             ;; removed topology dependencies
-            (verify-nth-call-args-for 1 nimbus/blob-rm-dependency-jars-in-topology "topo2" mock-blob-store mock-state)
-            (verify-nth-call-args-for 2 nimbus/blob-rm-dependency-jars-in-topology "topo3" mock-blob-store mock-state)
+            (verify-nth-call-args-for 1 nimbus/blob-rm-dependency-jars-in-topology "topo3" mock-blob-store mock-state)
+            (verify-nth-call-args-for 2 nimbus/blob-rm-dependency-jars-in-topology "topo2" mock-blob-store mock-state)
 
             ;; remove topos from heartbeat cache
             (is (= (count (.get (.getHeartbeatsCache nimbus))) 0))))))))
@@ -1788,8 +1788,8 @@
                     (zkLeaderElectorImpl [conf blob-store] (mock-leader-elector))))]
       (let [nimbus (Nimbus. conf nil mock-state nil mock-blob-store nil)]
         (.set (.getHeartbeatsCache nimbus) hb-cache)
-        (stubbing [nimbus/blob-rm-topology-keys nil
-                   nimbus/cleanup-storm-ids inactive-topos]
+        (.thenReturn (Mockito/when (.storedTopoIds mock-blob-store)) (set inactive-topos))
+        (stubbing [nimbus/blob-rm-topology-keys nil]
           (mocking
             [teardown-heartbeats 
              teardown-topo-errors 

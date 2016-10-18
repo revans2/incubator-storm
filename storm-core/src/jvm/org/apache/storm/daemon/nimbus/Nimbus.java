@@ -18,6 +18,7 @@
 package org.apache.storm.daemon.nimbus;
 
 import static org.apache.storm.metric.StormMetricsRegistry.registerMeter;
+import static org.apache.storm.utils.Utils.OR;
 
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -542,6 +543,23 @@ public class Nimbus {
             }
             throw new NotAliveException(topoId);
         }
+    }
+    
+    private static final List<String> EMPTY_STRING_LIST = Collections.unmodifiableList(Collections.emptyList());
+    private static final Set<String> EMPTY_STRING_SET = Collections.unmodifiableSet(Collections.emptySet());
+    
+    //TODO private??
+    public static Set<String> topoIdsToClean(IStormClusterState state, BlobStore store) {
+        //TODO go back to a regular hash set once we move nimbus_test into Mockito
+        // the mocked verification in clojure needs the order to be guaranteed.
+        Set<String> ret = new java.util.TreeSet<>();
+        //TODO handle nulls
+        ret.addAll(OR(state.heartbeatStorms(), EMPTY_STRING_LIST));
+        ret.addAll(OR(state.errorTopologies(), EMPTY_STRING_LIST));
+        ret.addAll(OR(store.storedTopoIds(), EMPTY_STRING_SET));
+        ret.addAll(OR(state.backpressureTopologies(), EMPTY_STRING_LIST));
+        ret.removeAll(OR(state.activeStorms(), EMPTY_STRING_LIST));
+        return ret;
     }
     
     private final Map<String, Object> conf;
@@ -1641,12 +1659,4 @@ public class Nimbus {
             return false;
         }
     }
-    
-//    (defn is-authorized?
-//            [nimbus conf blob-store operation topology-id]
-//            (let [topology-conf (clojurify-structure (Nimbus/tryReadTopoConf topology-id blob-store))
-//                  storm-name (topology-conf TOPOLOGY-NAME)]
-//              (try (.checkAuthorization nimbus storm-name topology-conf operation)
-//                   true
-//                (catch AuthorizationException e false))))
 }
