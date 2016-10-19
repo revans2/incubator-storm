@@ -59,6 +59,7 @@ import org.apache.storm.daemon.StormCommon;
 import org.apache.storm.generated.AlreadyAliveException;
 import org.apache.storm.generated.Assignment;
 import org.apache.storm.generated.AuthorizationException;
+import org.apache.storm.generated.Credentials;
 import org.apache.storm.generated.ExecutorInfo;
 import org.apache.storm.generated.InvalidTopologyException;
 import org.apache.storm.generated.KeyNotFoundException;
@@ -1967,5 +1968,37 @@ public class Nimbus {
             }
         }
         return ret;
+    }
+    
+    //TODO private ???
+    public void renewCredentials() throws Exception {
+        if (!isLeader()) {
+            LOG.info("not a leader, skipping credential renewal.");
+            return;
+        }
+        IStormClusterState state = getStormClusterState();
+        BlobStore store = getBlobStore();
+        Collection<ICredentialsRenewer> renewers = getCredRenewers();
+        Object lock = getCredUpdateLock();
+        List<String> assignedIds = state.activeStorms();
+        if (assignedIds != null) {
+            for (String id: assignedIds) {
+                Map<String, Object> topoConf = Collections.unmodifiableMap(tryReadTopoConf(id, store));
+                synchronized(lock) {
+                    Credentials origCreds = state.credentials(id, null);
+                    if (origCreds != null) {
+                        Map<String, String> orig = origCreds.get_creds();
+                        Map<String, String> newCreds = new HashMap<>(orig);
+                        for (ICredentialsRenewer renewer: renewers) {
+                            LOG.info("Renewing Creds For {} with {}", id, renewer);
+                            renewer.renew(newCreds, topoConf);
+                        }
+                        if (!newCreds.equals(origCreds)) {
+                            state.setCredentials(id, new Credentials(newCreds), topoConf);
+                        }
+                    }
+                }
+            }
+        }
     }
 }

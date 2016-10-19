@@ -101,28 +101,6 @@
   [nimbus operation topology-id]
   (.isAuthorized nimbus operation topology-id))
 
-(defn renew-credentials [nimbus]
-  (if (.isLeader nimbus)
-    (let [storm-cluster-state (.getStormClusterState nimbus)
-          blob-store (.getBlobStore nimbus)
-          renewers (.getCredRenewers nimbus)
-          update-lock (.getCredUpdateLock nimbus)
-          assigned-ids (set (.activeStorms storm-cluster-state))]
-      (when-not (empty? assigned-ids)
-        (doseq [id assigned-ids]
-          (locking update-lock
-            (let [orig-creds (clojurify-crdentials (.credentials storm-cluster-state id nil))
-                  topology-conf (clojurify-structure (Nimbus/tryReadTopoConf id blob-store))]
-              (if orig-creds
-                (let [new-creds (HashMap. orig-creds)]
-                  (doseq [renewer renewers]
-                    (log-message "Renewing Creds For " id " with " renewer)
-                    (.renew renewer new-creds (Collections/unmodifiableMap topology-conf)))
-                  (when-not (= orig-creds new-creds)
-                    (.setCredentials storm-cluster-state id (thriftify-credentials new-creds) topology-conf)
-                    ))))))))
-    (log-message "not a leader, skipping credential renewal.")))
-
 ;TODO: when translating this function, you should replace the map-val with a proper for loop HERE
 (defn validate-topology-size [topo-conf nimbus-conf topology]
   (let [workers-count (get topo-conf TOPOLOGY-WORKERS)
@@ -1175,7 +1153,7 @@
       0
       (conf NIMBUS-CREDENTIAL-RENEW-FREQ-SECS)
       (fn []
-        (renew-credentials nimbus)))
+        (.renewCredentials nimbus)))
 
     (def nimbus:num-supervisors (StormMetricsRegistry/registerGauge "nimbus:num-supervisors"
       (fn [] (.size (.supervisors (.getStormClusterState nimbus) nil)))))
