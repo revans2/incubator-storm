@@ -1952,4 +1952,20 @@ public class Nimbus {
         userGroups.retainAll(groupsToCheck);
         return !userGroups.isEmpty();
     }
+
+    //TODO private
+    public List<String> readTopologyHistory(String user, Collection<String> adminUsers) throws IOException {
+        LocalState state = getTopologyHistoryState();
+        List<String> ret = new ArrayList<>();
+        for (LSTopoHistory history: state.getTopoHistoryList()) {
+            
+            if (user == null || //Security off
+                    adminUsers.contains(user) || //is admin
+                    isUserPartOf(user, history.get_groups()) || //is in allowed group
+                    history.get_users().contains(user)) { //is an allowed user
+                ret.add(history.get_topology_id());
+            }
+        }
+        return ret;
+    }
 }

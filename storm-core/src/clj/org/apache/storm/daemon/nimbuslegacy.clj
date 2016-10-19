@@ -101,28 +101,6 @@
   [nimbus operation topology-id]
   (.isAuthorized nimbus operation topology-id))
 
-(defn ->topo-history
-  [thrift-topo-hist]
-  {
-   :topoid (.get_topology_id thrift-topo-hist)
-   :timestamp (.get_time_stamp thrift-topo-hist)
-   :users (.get_users thrift-topo-hist)
-   :groups (.get_groups thrift-topo-hist)})
-
-(defn read-topology-history
-  [nimbus user admin-users]
-  (let [topo-history-state (.getTopologyHistoryState nimbus)
-        curr-history (vec (map ->topo-history (.getTopoHistoryList ^LocalState topo-history-state)))
-        topo-user-can-access (fn [line user]
-                               (if (nil? user)
-                                 (line :topoid)
-                                 (if (or (some #(= % user) admin-users)
-                                       (.isUserPartOf nimbus user (line :groups))
-                                       (some #(= % user) (line :users)))
-                                   (line :topoid)
-                                   nil)))]
-    (remove nil? (map #(topo-user-can-access % user) curr-history))))
-
 (defn renew-credentials [nimbus]
   (if (.isLeader nimbus)
     (let [storm-cluster-state (.getStormClusterState nimbus)
@@ -1115,7 +1093,7 @@
                                           (.isUserPartOf nimbus user groups)
                                           (some #(= % user) (ConfigUtils/getTopoLogsUsers topology-conf)))))
               active-ids-for-user (filter #(user-group-match-fn % user (.getConf nimbus)) assigned-topology-ids)
-              topo-history-list (read-topology-history nimbus user admin-users)]
+              topo-history-list (.readTopologyHistory nimbus user admin-users)]
           (TopologyHistoryInfo. (distinct (concat active-ids-for-user topo-history-list)))))
 
       Shutdownable
