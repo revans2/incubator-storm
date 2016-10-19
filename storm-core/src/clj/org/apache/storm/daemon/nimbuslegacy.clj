@@ -101,14 +101,10 @@
   [nimbus operation topology-id]
   (.isAuthorized nimbus operation topology-id))
 
-(defn user-groups
-  [nimbus user]
-  (if (clojure.string/blank? user) [] (.getGroups (.getGroupMapper nimbus) user)))
-
 (defn does-users-group-intersect?
   "Check to see if any of the users groups intersect with the list of groups passed in"
   [nimbus user groups-to-check]
-  (let [groups (user-groups nimbus user)]
+  (let [groups (set (.userGroups nimbus user))]
     (> (.size (set/intersection (set groups) (set groups-to-check))) 0)))
 
 (defn ->topo-history

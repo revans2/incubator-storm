@@ -1938,7 +1938,4 @@ public class Nimbus {
         }
         return getGroupMapper().getGroups(user);
     }
-//    (defn user-groups
-//            [nimbus user]
-//            (if (clojure.string/blank? user) [] (.getGroups (.getGroupMapper nimbus) user)))
 }
