@@ -64,6 +64,7 @@ import org.apache.storm.generated.ExecutorInfo;
 import org.apache.storm.generated.InvalidTopologyException;
 import org.apache.storm.generated.KeyNotFoundException;
 import org.apache.storm.generated.LSTopoHistory;
+import org.apache.storm.generated.LogLevel;
 import org.apache.storm.generated.NodeInfo;
 import org.apache.storm.generated.NotAliveException;
 import org.apache.storm.generated.RebalanceOptions;
@@ -727,6 +728,16 @@ public class Nimbus {
         if (allowedWorkers != null && workerCount > allowedWorkers) {
             throw new InvalidTopologyException("Failed to submit topology. Topology requests more than " +
                     allowedWorkers + " workers.");
+        }
+    }
+    
+    //TODO private
+    public static void setLoggerTimeouts(LogLevel level) {
+        int timeoutSecs = level.get_reset_log_level_timeout_secs();
+        if (timeoutSecs > 0) {
+            level.set_reset_log_level_timeout_epoch(Time.currentTimeSecs() + timeoutSecs);
+        } else {
+            level.unset_reset_log_level_timeout_epoch();
         }
     }
     

@@ -101,16 +101,10 @@
   [nimbus operation topology-id]
   (.isAuthorized nimbus operation topology-id))
 
+;;TODO when use inline for translation
 (defn nimbus-topology-bases [storm-cluster-state]
   (map-val #(clojurify-storm-base %) (clojurify-structure
                                         (StormCommon/topologyBases storm-cluster-state))))
-
-(defn- set-logger-timeouts [log-config]
-  (let [timeout-secs (.get_reset_log_level_timeout_secs log-config)
-       timeout (time/plus (time/now) (time/secs timeout-secs))]
-   (if (time/after? timeout (time/now))
-     (.set_reset_log_level_timeout_epoch log-config (coerce/to-long timeout))
-     (.unset_reset_log_level_timeout_epoch log-config))))
 
 (defmethod blob-sync :distributed [conf nimbus]
   (if (not (.isLeader nimbus))
@@ -519,7 +513,7 @@
                   (throw (RuntimeException. "Named loggers need a valid name. Use ROOT for the root logger")))
                 (condp = action
                   LogLevelAction/UPDATE
-                    (do (set-logger-timeouts log-config)
+                    (do (Nimbus/setLoggerTimeouts log-config)
                           (.put_to_named_logger_level merged-log-config logger-name log-config))
                   LogLevelAction/REMOVE
                     (let [named-loggers (.get_named_logger_level merged-log-config)]
