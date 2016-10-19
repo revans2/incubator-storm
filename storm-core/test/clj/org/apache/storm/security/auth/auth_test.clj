@@ -65,7 +65,7 @@
 (defn nimbus-data [storm-conf inimbus]
   (with-open [_ (MockedZookeeper. (proxy [Zookeeper] []
                   (zkLeaderElectorImpl [conf blob-store] (Mockito/mock ILeaderElector))))]
-    (org.apache.storm.daemon.nimbus.Nimbus. storm-conf inimbus (Mockito/mock IStormClusterState) nil (Mockito/mock BlobStore) nil)))
+    (org.apache.storm.daemon.nimbus.Nimbus. storm-conf inimbus (Mockito/mock IStormClusterState) nil (Mockito/mock BlobStore) nil nil)))
 
 (defn dummy-service-handler
   ([conf inimbus auth-context]

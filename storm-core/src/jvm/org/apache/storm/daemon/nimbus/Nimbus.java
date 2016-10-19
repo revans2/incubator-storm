@@ -758,10 +758,11 @@ public class Nimbus {
     }
     
     public Nimbus(Map<String, Object> conf, INimbus inimbus) throws Exception {
-        this(conf, inimbus, null, null, null, null);
+        this(conf, inimbus, null, null, null, null, null);
     }
     
-    public Nimbus(Map<String, Object> conf, INimbus inimbus, IStormClusterState stormClusterState, NimbusInfo hostPortInfo, BlobStore blobStore, ILeaderElector leaderElector) throws Exception {
+    public Nimbus(Map<String, Object> conf, INimbus inimbus, IStormClusterState stormClusterState, NimbusInfo hostPortInfo,
+            BlobStore blobStore, ILeaderElector leaderElector, IGroupMappingServiceProvider groupMapper) throws Exception {
         this.conf = conf;
         if (hostPortInfo == null) {
             hostPortInfo = NimbusInfo.fromConf(conf);
@@ -810,10 +811,10 @@ public class Nimbus {
         this.nimbusAutocredPlugins = AuthUtils.getNimbusAutoCredPlugins(conf);
         this.nimbusTopologyActionNotifier = createTopologyActionNotifier(conf);
         this.clusterConsumerExceutors = makeClusterMetricsConsumerExecutors(conf);
-        this.groupMapper = AuthUtils.GetGroupMappingServiceProviderPlugin(conf);
-//        (defn igroup-mapper
-//                [conf]
-//                (AuthUtils/GetGroupMappingServiceProviderPlugin conf))
+        if (groupMapper == null) {
+            groupMapper = AuthUtils.GetGroupMappingServiceProviderPlugin(conf);
+        }
+        this.groupMapper = groupMapper;
     }
 
     public Map<String, Object> getConf() {
@@ -1929,4 +1930,15 @@ public class Nimbus {
             state.addTopologyHistory(new LSTopoHistory(topoId, Time.currentTimeSecs(), users, groups));
         }
     }
+    
+    //TODO private
+    public Set<String> userGroups(String user) throws IOException {
+        if (user == null || user.isEmpty()) {
+            return Collections.emptySet();
+        }
+        return getGroupMapper().getGroups(user);
+    }
+//    (defn user-groups
+//            [nimbus user]
+//            (if (clojure.string/blank? user) [] (.getGroups (.getGroupMapper nimbus) user)))
 }

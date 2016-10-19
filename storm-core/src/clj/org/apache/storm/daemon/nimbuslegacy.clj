@@ -1145,9 +1145,9 @@
         (.isTimerWaiting (.getTimer nimbus))))))
 
 (defn mk-nimbus
-  [conf inimbus blob-store leader-elector cluster-state]
+  [conf inimbus blob-store leader-elector group-mapper cluster-state]
   (.prepare inimbus conf (ConfigUtils/masterInimbusDir conf))
-  (Nimbus. conf inimbus cluster-state nil blob-store leader-elector))
+  (Nimbus. conf inimbus cluster-state nil blob-store leader-elector group-mapper))
 
 ;TODO: when translating this function, you should replace the map-val with a proper for loop HERE
 (defserverfn service-handler [nimbus]

@@ -184,7 +184,9 @@
       (getAllNimbuses [this] `(leader-address))
       (close [this] true))))
 
-(defnk mk-mocked-nimbus [:daemon-conf {} :inimbus nil :blob-store nil :cluster-state nil :leader-elector nil :nimbus-daemon false :mk-nimbus nimbus/mk-nimbus]
+(defnk mk-mocked-nimbus 
+  [:daemon-conf {} :inimbus nil :blob-store nil :cluster-state nil 
+   :leader-elector nil :group-mapper nil :nimbus-daemon false :mk-nimbus nimbus/mk-nimbus]
   (let [zk-tmp (local-temp-path)
         [zk-port zk-handle] (if-not cluster-state
                               (Zookeeper/mkInprocessZookeeper zk-tmp nil))
@@ -207,6 +209,7 @@
                 (if inimbus inimbus (nimbus/standalone-nimbus))
                 blob-store
                 leader-elector
+                group-mapper
                 cluster-state)
         nimbus (nimbus/service-handler nimbus-data)
         nimbus-thrift-server (if nimbus-daemon (start-nimbus-daemon daemon-conf nimbus) nil)]
@@ -239,6 +242,7 @@
                 (nimbus/mk-nimbus
                   (assoc daemon-conf STORM-LOCAL-DIR nimbus-tmp)
                   (if inimbus inimbus (nimbus/standalone-nimbus))
+                  nil
                   nil
                   nil
                   nil))
