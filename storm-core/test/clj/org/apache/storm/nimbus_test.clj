@@ -25,7 +25,8 @@
            [org.apache.storm.daemon.nimbus Nimbus]
            [org.apache.storm.generated GlobalStreamId TopologyStatus SupervisorInfo StormTopology StormBase]
            [org.apache.storm Thrift MockAutoCred]
-           [org.apache.storm.stats BoltExecutorStats StatsUtil])
+           [org.apache.storm.stats BoltExecutorStats StatsUtil]
+           [org.apache.storm.security.auth IGroupMappingServiceProvider])
   (:import [org.apache.storm.testing.staticmocking MockedZookeeper])
   (:import [org.apache.storm.scheduler INimbus])
   (:import [org.mockito Mockito Matchers])
@@ -502,14 +503,15 @@
     )))
 
 (deftest test-topo-history
-  (with-simulated-time-local-cluster [cluster :supervisors 2 :ports-per-supervisor 5
-                                      :daemon-conf {SUPERVISOR-ENABLE false
-                                                    NIMBUS-ADMINS ["admin-user"]
-                                                    NIMBUS-TASK-TIMEOUT-SECS 30
-                                                    NIMBUS-MONITOR-FREQ-SECS 10
-                                                    TOPOLOGY-ACKER-EXECUTORS 0}]
-
-    (stubbing [nimbus/user-groups ["alice-group"]]
+  (let [group-mapper (Mockito/mock IGroupMappingServiceProvider)]
+    (with-simulated-time-local-cluster [cluster :supervisors 2 :ports-per-supervisor 5
+                                        :group-mapper group-mapper
+                                        :daemon-conf {SUPERVISOR-ENABLE false
+                                                      NIMBUS-ADMINS ["admin-user"]
+                                                      NIMBUS-TASK-TIMEOUT-SECS 30
+                                                      NIMBUS-MONITOR-FREQ-SECS 10
+                                                      TOPOLOGY-ACKER-EXECUTORS 0}]
+      (.thenReturn (Mockito/when (.getGroups group-mapper (Mockito/anyObject))) #{"alice-group"})
       (letlocals
         (bind conf (:daemon-conf cluster))
         (bind topology (Thrift/buildTopology

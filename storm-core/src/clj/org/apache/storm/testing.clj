@@ -220,7 +220,7 @@
      :nimbus-thrift-server nimbus-thrift-server
      :zookeeper (if (not-nil? zk-handle) zk-handle)}))
 
-(defnk mk-local-storm-cluster [:supervisors 2 :ports-per-supervisor 3 :daemon-conf {} :inimbus nil :supervisor-slot-port-min 1024 :nimbus-daemon false]
+(defnk mk-local-storm-cluster [:supervisors 2 :ports-per-supervisor 3 :daemon-conf {} :inimbus nil :group-mapper nil :supervisor-slot-port-min 1024 :nimbus-daemon false]
   (let [zk-tmp (local-temp-path)
         [zk-port zk-handle] (if-not (contains? daemon-conf STORM-ZOOKEEPER-SERVERS)
                               (Zookeeper/mkInprocessZookeeper zk-tmp nil))
@@ -244,7 +244,7 @@
                   (if inimbus inimbus (nimbus/standalone-nimbus))
                   nil
                   nil
-                  nil
+                  group-mapper
                   nil))
         context (mk-shared-context daemon-conf)
         nimbus-thrift-server (if nimbus-daemon (start-nimbus-daemon daemon-conf nimbus) nil)
