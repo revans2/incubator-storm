@@ -104,23 +104,6 @@
   (map-val #(clojurify-storm-base %) (clojurify-structure
                                         (StormCommon/topologyBases storm-cluster-state))))
 
-(defn make-supervisor-summary 
-  [nimbus id info]
-    (log-message "INFO: " info " ID: " id)
-    (let [ports (set (.get_meta info)) ;;TODO: this is only true for standalone
-          _ (log-message "PORTS: " ports)
-          sup-sum (SupervisorSummary. (.get_hostname info)
-                                      (.get_uptime_secs info)
-                                      (count ports)
-                                      (count (.get_used_ports info))
-                                      id)]
-      (.set_total_resources sup-sum (map-val double (.get_resources_map info)))
-      (when-let [[total-mem total-cpu used-mem used-cpu] (.get (.get (.getNodeIdToResources nimbus)) id)]
-        (.set_used_mem sup-sum (Utils/nullToZero used-mem))
-        (.set_used_cpu sup-sum (Utils/nullToZero used-cpu)))
-      (when-let [version (.get_version info)] (.set_version sup-sum version))
-      sup-sum))
-
 (defn user-and-supervisor-topos
   [nimbus conf blob-store assignments supervisor-id]
   (let [topo-id->supervisors 
@@ -153,7 +136,7 @@
         ;; TODO: need to get the port info about supervisors...
         ;; in standalone just look at metadata, otherwise just say N/A?
         supervisor-summaries (dofor [[id info] supervisor-infos]
-                                    (make-supervisor-summary nimbus id info))
+                                    (.makeSupervisorSummary nimbus id info))
         nimbus-uptime (. (.getUptime nimbus) upTime)
         bases (nimbus-topology-bases storm-cluster-state)
         nimbuses (.nimbuses storm-cluster-state)
@@ -926,7 +909,7 @@
               (doseq [sid supervisor-ids]
                 (let [supervisor-info (get supervisor-infos sid)
                       _ (log-message "SID: " sid " SI: " supervisor-info " ALL: " supervisor-infos)
-                      sup-sum (make-supervisor-summary nimbus sid supervisor-info)
+                      sup-sum (.makeSupervisorSummary nimbus sid supervisor-info)
                       _ (.add_to_supervisor_summaries page-info sup-sum)
                       topo-id->assignments (topology-assignments storm-cluster-state)
                       {:keys [user-topologies 

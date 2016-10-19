@@ -73,6 +73,7 @@ import org.apache.storm.generated.SettableBlobMeta;
 import org.apache.storm.generated.StormBase;
 import org.apache.storm.generated.StormTopology;
 import org.apache.storm.generated.SupervisorInfo;
+import org.apache.storm.generated.SupervisorSummary;
 import org.apache.storm.generated.TopologyStatus;
 import org.apache.storm.generated.WorkerResources;
 import org.apache.storm.logging.ThriftAccessLogger;
@@ -2062,5 +2063,31 @@ public class Nimbus {
                 sync.syncBlobs();
             } //else not leader (NOOP)
         } //else local (NOOP)
+    }
+    
+    //TODO private
+    public SupervisorSummary makeSupervisorSummary(String supervisorId, SupervisorInfo info) {
+        LOG.debug("INFO: {} ID: {}", info, supervisorId);
+        int numPorts = 0;
+        if (info.is_set_meta()) {
+            numPorts = info.get_meta_size();
+        }
+        int numUsedPorts = 0;
+        if (info.is_set_used_ports()) {
+            numUsedPorts = info.get_used_ports_size();
+        }
+        LOG.debug("NUM PORTS: {}", numPorts);
+        SupervisorSummary ret = new SupervisorSummary(info.get_hostname(),
+                (int) info.get_uptime_secs(), numPorts, numUsedPorts, supervisorId);
+        ret.set_total_resources(info.get_resources_map());
+        Double[] resources = getNodeIdToResources().get().get(supervisorId);
+        if (resources != null) {
+            ret.set_used_mem(Utils.nullToZero(resources[2]));
+            ret.set_used_cpu(Utils.nullToZero(resources[3]));
+        }
+        if (info.is_set_version()) {
+            ret.set_version(info.get_version());
+        }
+        return ret;
     }
 }

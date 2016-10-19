@@ -1965,7 +1965,7 @@ public class Utils {
         return dir + FILE_PATH_SEPARATOR + "launch_container.sh";
     }
 
-    public static Object nullToZero (Object v) {
+    public static double nullToZero (Double v) {
         return (v != null ? v : 0);
     }
 
