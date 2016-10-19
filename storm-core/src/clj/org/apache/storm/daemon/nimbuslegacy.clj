@@ -101,26 +101,6 @@
   [nimbus operation topology-id]
   (.isAuthorized nimbus operation topology-id))
 
-;TODO: when translating this function, you should replace the map-val with a proper for loop HERE
-(defn validate-topology-size [topo-conf nimbus-conf topology]
-  (let [workers-count (get topo-conf TOPOLOGY-WORKERS)
-        workers-allowed (get nimbus-conf NIMBUS-SLOTS-PER-TOPOLOGY)
-        num-executors (->> (StormCommon/allComponents topology) clojurify-structure (map-val #(StormCommon/numStartExecutors %)))
-        executors-count (reduce + (vals num-executors))
-        executors-allowed (get nimbus-conf NIMBUS-EXECUTORS-PER-TOPOLOGY)]
-    (when (and
-           (not (nil? executors-allowed))
-           (> executors-count executors-allowed))
-      (throw
-       (InvalidTopologyException.
-        (str "Failed to submit topology. Topology requests more than " executors-allowed " executors."))))
-    (when (and
-           (not (nil? workers-allowed))
-           (> workers-count workers-allowed))
-      (throw
-       (InvalidTopologyException.
-        (str "Failed to submit topology. Topology requests more than " workers-allowed " workers."))))))
-
 (defn nimbus-topology-bases [storm-cluster-state]
   (map-val #(clojurify-storm-base %) (clojurify-structure
                                         (StormCommon/topologyBases storm-cluster-state))))
@@ -385,7 +365,7 @@
             (if (and (conf SUPERVISOR-RUN-WORKER-AS-USER) (or (nil? submitter-user) (.isEmpty (.trim submitter-user))))
               (throw (AuthorizationException. "Could not determine the user to run this topology as.")))
             (StormCommon/systemTopology total-storm-conf topology) ;; this validates the structure of the topology
-            (validate-topology-size topo-conf conf topology)
+            (Nimbus/validateTopologySize topo-conf conf topology)
             (when (and (Utils/isZkAuthenticationConfiguredStormServer conf)
                        (not (Utils/isZkAuthenticationConfiguredTopology storm-conf)))
                 (throw (IllegalArgumentException. "The cluster is configured for zookeeper authentication, but no payload was provided.")))

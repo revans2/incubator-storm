@@ -710,6 +710,26 @@ public class Nimbus {
         }
     }
     
+    //TODO private
+    public static void validateTopologySize(Map<String, Object> topoConf, Map<String, Object> nimbusConf, StormTopology topology) throws InvalidTopologyException {
+        int workerCount = Utils.getInt(topoConf.get(Config.TOPOLOGY_WORKERS), 1);
+        Integer allowedWorkers = Utils.getInt(nimbusConf.get(Config.NIMBUS_SLOTS_PER_TOPOLOGY), null);
+        int executorsCount = 0;
+        for (Object comp : StormCommon.allComponents(topology).values()) {
+            executorsCount += StormCommon.numStartExecutors(comp);
+        }
+        Integer allowedExecutors = Utils.getInt(nimbusConf.get(Config.NIMBUS_EXECUTORS_PER_TOPOLOGY), null);
+        if (allowedExecutors != null && executorsCount > allowedExecutors) {
+            throw new InvalidTopologyException("Failed to submit topology. Topology requests more than " +
+                    allowedExecutors + " executors.");
+        }
+        
+        if (allowedWorkers != null && workerCount > allowedWorkers) {
+            throw new InvalidTopologyException("Failed to submit topology. Topology requests more than " +
+                    allowedWorkers + " workers.");
+        }
+    }
+    
     private final Map<String, Object> conf;
     private final NimbusInfo nimbusHostPortInfo;
     private final INimbus inimbus;
