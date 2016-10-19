@@ -2090,4 +2090,22 @@ public class Nimbus {
         }
         return ret;
     }
+    
+    //TODO private
+    public List<String> topologiesOnSupervisor(Map<String, Assignment> assignments, String supervisorId) {
+        Set<String> ret = new HashSet<>();
+        for (Entry<String, Assignment> entry: assignments.entrySet()) {
+            Assignment assignment = entry.getValue();
+            //TODO it might be a lot faster to use
+            //assignment.get_node_host().containsKey(supervisorId);
+            for (NodeInfo nodeInfo: assignment.get_executor_node_port().values()) {
+                if (supervisorId.equals(nodeInfo.get_node())) {
+                    ret.add(entry.getKey());
+                    break;
+                }
+            }
+        }
+        
+        return new ArrayList<>(ret);
+    }
 }

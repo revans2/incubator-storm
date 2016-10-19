@@ -1811,10 +1811,13 @@
         assignment2 (doto (Assignment.)
                      (.set_executor_node_port {[1 1] (NodeInfo. "super2" #{2}),
                                                [2 2] (NodeInfo. "super2" #{2})}))
-        assignments {"topo1" assignment, "topo2" assignment2}]
+        assignments {"topo1" assignment, "topo2" assignment2}
+        mock-state (mock-cluster-state)
+        mock-blob-store (Mockito/mock BlobStore)
+        nimbus (Nimbus. {} nil mock-state nil mock-blob-store (mock-leader-elector) nil)]
     (stubbing [nimbus/is-authorized? true]
-      (let [topos1 (nimbus/user-and-supervisor-topos nil nil nil assignments "super1")
-            topos2 (nimbus/user-and-supervisor-topos nil nil nil assignments "super2")]
+      (let [topos1 (nimbus/user-and-supervisor-topos nimbus nil nil assignments "super1")
+            topos2 (nimbus/user-and-supervisor-topos nimbus nil nil assignments "super2")]
         (is (= (list "topo1") (:supervisor-topologies topos1)))
         (is (= #{"topo1"} (:user-topologies topos1))) 
         (is (= (list "topo1" "topo2") (:supervisor-topologies topos2)))
@@ -1831,8 +1834,11 @@
         assignment2 (doto (Assignment.)
                      (.set_executor_node_port {[1 1] (NodeInfo. "super1" #{2}),
                                                [2 2] (NodeInfo. "super2" #{2})}))
-        assignments {"topo1" assignment, "authorized" assignment2}] 
+        assignments {"topo1" assignment, "authorized" assignment2}
+        mock-state (mock-cluster-state)
+        mock-blob-store (Mockito/mock BlobStore)
+        nimbus (Nimbus. {} nil mock-state nil mock-blob-store (mock-leader-elector) nil)]
     (stubbing [nimbus/is-authorized? mock-check-auth]
-      (let [topos (nimbus/user-and-supervisor-topos nil nil nil assignments "super1")]
+      (let [topos (nimbus/user-and-supervisor-topos nimbus nil nil assignments "super1")]
         (is (= (list "topo1" "authorized") (:supervisor-topologies topos)))
         (is (= #{"authorized"} (:user-topologies topos)))))))

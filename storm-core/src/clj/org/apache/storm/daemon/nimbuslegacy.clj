@@ -106,13 +106,7 @@
 
 (defn user-and-supervisor-topos
   [nimbus conf blob-store assignments supervisor-id]
-  (let [topo-id->supervisors 
-          (into {} (for [[topo-id java-assignment] assignments] 
-                     (let [assignment (clojurify-assignment java-assignment)]
-                       {topo-id (into #{} 
-                                      (map #(first (second %)) 
-                                           (:executor->node+port assignment)))})))
-        supervisor-topologies (keys (filter #(get (val %) supervisor-id) topo-id->supervisors))]
+  (let [supervisor-topologies (clojurify-structure (.topologiesOnSupervisor nimbus assignments supervisor-id))]
     {:supervisor-topologies supervisor-topologies
      :user-topologies (into #{} (filter (partial is-authorized? nimbus 
                                                  "getTopology") 
