@@ -49,6 +49,7 @@ import org.apache.storm.StormTimer;
 import org.apache.storm.blobstore.AtomicOutputStream;
 import org.apache.storm.blobstore.BlobStore;
 import org.apache.storm.blobstore.BlobStoreAclHandler;
+import org.apache.storm.blobstore.BlobSynchronizer;
 import org.apache.storm.blobstore.KeySequenceNumber;
 import org.apache.storm.blobstore.LocalFsBlobStore;
 import org.apache.storm.cluster.ClusterStateContext;
@@ -2031,5 +2032,35 @@ public class Nimbus {
                 }
             }
         }
+    }
+    
+    //TODO private?
+    public void blobSync() throws Exception {
+        Map<String, Object> conf = getConf();
+        if ("distributed".equals(conf.get(Config.STORM_CLUSTER_MODE))) {
+            if (!isLeader()) {
+                IStormClusterState state = getStormClusterState();
+                NimbusInfo nimbusInfo = getNimbusHostPortInfo();
+                BlobStore store = getBlobStore();
+                //TODO would really be great if we didn't cache all of these in memory
+                Set<String> allKeys = new HashSet<>();
+                for (Iterator<String> it = store.listKeys(); it.hasNext();) {
+                    allKeys.add(it.next());
+                }
+                Set<String> zkKeys = new HashSet<>(state.blobstore(() -> {
+                    try {
+                        this.blobSync();
+                    } catch(Exception e) {
+                        throw new RuntimeException(e);
+                    }
+                }));
+                LOG.debug("blob-sync blob-store-keys {} zookeeper-keys {}", allKeys, zkKeys);
+                BlobSynchronizer sync = new BlobSynchronizer(store, conf);
+                sync.setNimbusInfo(nimbusInfo);
+                sync.setBlobStoreKeySet(allKeys);
+                sync.setZookeeperKeySet(zkKeys);
+                sync.syncBlobs();
+            } //else not leader (NOOP)
+        } //else local (NOOP)
     }
 }

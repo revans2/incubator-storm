@@ -75,8 +75,6 @@
   (:gen-class
     :methods [^{:static true} [launch [org.apache.storm.scheduler.INimbus] void]]))
 
-(defmulti blob-sync cluster-mode)
-
 (defmulti setup-jar cluster-mode)
 
 ;; Monitoring (or by checking when nodes go down or heartbeats aren't received):
@@ -105,23 +103,6 @@
 (defn nimbus-topology-bases [storm-cluster-state]
   (map-val #(clojurify-storm-base %) (clojurify-structure
                                         (StormCommon/topologyBases storm-cluster-state))))
-
-(defmethod blob-sync :distributed [conf nimbus]
-  (if (not (.isLeader nimbus))
-    (let [storm-cluster-state (.getStormClusterState nimbus)
-          nimbus-host-port-info (.getNimbusHostPortInfo nimbus)
-          blob-store-key-set (set (get-key-seq-from-blob-store (.getBlobStore nimbus)))
-          zk-key-set (set (.blobstore storm-cluster-state (fn [] (blob-sync conf nimbus))))]
-      (log-debug "blob-sync " "blob-store-keys " blob-store-key-set "zookeeper-keys " zk-key-set)
-      (let [sync-blobs (doto
-                          (BlobSynchronizer. (.getBlobStore nimbus) conf)
-                          (.setNimbusInfo nimbus-host-port-info)
-                          (.setBlobStoreKeySet blob-store-key-set)
-                          (.setZookeeperKeySet zk-key-set))]
-        (.syncBlobs sync-blobs)))))
-
-(defmethod blob-sync :local [conf nimbus]
-  nil)
 
 (defn make-supervisor-summary 
   [nimbus id info]
@@ -1088,7 +1069,7 @@
     (.addToLeaderLockQueue (.getLeaderElector nimbus))
     (when (instance? LocalFsBlobStore blob-store)
       ;register call back for blob-store
-      (.blobstore (.getStormClusterState nimbus) (fn [] (blob-sync conf nimbus)))
+      (.blobstore (.getStormClusterState nimbus) (fn [] (.blobSync nimbus)))
       (.setupBlobstore nimbus))
 
     (doseq [consumer (.getClusterConsumerExecutors nimbus)]
@@ -1116,7 +1097,7 @@
       (.scheduleRecurring (.getTimer nimbus)
         0
         (conf NIMBUS-CODE-SYNC-FREQ-SECS)
-        (fn [] (blob-sync conf nimbus))))
+        (fn [] (.blobSync nimbus))))
     ;; Schedule topology history cleaner
     (when-let [interval (conf LOGVIEWER-CLEANUP-INTERVAL-SECS)]
       (.scheduleRecurring (.getTimer nimbus)
