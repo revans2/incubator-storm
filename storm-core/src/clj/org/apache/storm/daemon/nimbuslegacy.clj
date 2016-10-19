@@ -871,12 +871,12 @@
           (when-let [sched-status (.get (.get (.getIdToSchedStatus nimbus)) topo-id)]
             (.set_sched_status topo-page-info sched-status))
           (when-let [resources (.getResourcesForTopology nimbus topo-id)]
-            (.set_requested_memonheap topo-page-info (:requested-mem-on-heap resources))
-            (.set_requested_memoffheap topo-page-info (:requested-mem-off-heap resources))
-            (.set_requested_cpu topo-page-info (:requested-cpu resources))
-            (.set_assigned_memonheap topo-page-info (:assigned-mem-on-heap resources))
-            (.set_assigned_memoffheap topo-page-info (:assigned-mem-off-heap resources))
-            (.set_assigned_cpu topo-page-info (:assigned-cpu resources)))
+            (.set_requested_memonheap topo-page-info (.getRequestedMemOnHeap resources))
+            (.set_requested_memoffheap topo-page-info (.getRequestedMemOffHeap resources))
+            (.set_requested_cpu topo-page-info (.getRequestedCpu resources))
+            (.set_assigned_memonheap topo-page-info (.getAssignedMemOnHeap resources))
+            (.set_assigned_memoffheap topo-page-info (.getAssignedMemOffHeap resources))
+            (.set_assigned_cpu topo-page-info (.getAssignedCpu resources)))
           (doto topo-page-info
             (.set_name storm-name)
             (.set_status (Nimbus/extractStatusStr j-base))
@@ -1119,7 +1119,7 @@
 (defn launch-server! [conf nimbus]
   (StormCommon/validateDistributedMode conf)
   (validate-port-available conf)
-  (let [service-handler (service-handler (mk-nimbus conf nimbus nil nil))
+  (let [service-handler (service-handler (mk-nimbus conf nimbus nil nil nil nil))
         server (ThriftServer. conf (Nimbus$Processor. service-handler)
                               ThriftConnectionType/NIMBUS)]
     (Utils/addShutdownHookWithForceKillIn1Sec (fn []
