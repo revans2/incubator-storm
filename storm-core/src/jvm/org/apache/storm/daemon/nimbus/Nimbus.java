@@ -1938,4 +1938,18 @@ public class Nimbus {
         }
         return getGroupMapper().getGroups(user);
     }
+    
+    //TODO private?
+    /**
+     * Check to see if any of the users groups intersect with the list of groups passed in
+     * @param user the user to check
+     * @param groupsToCheck the groups to see if user is a part of
+     * @return true if user is a part of groups, else false
+     * @throws IOException on any error
+     */
+    public boolean isUserPartOf(String user, Collection<String> groupsToCheck) throws IOException {
+        Set<String> userGroups = new HashSet<>(userGroups(user));
+        userGroups.retainAll(groupsToCheck);
+        return !userGroups.isEmpty();
+    }
 }

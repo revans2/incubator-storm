@@ -101,12 +101,6 @@
   [nimbus operation topology-id]
   (.isAuthorized nimbus operation topology-id))
 
-(defn does-users-group-intersect?
-  "Check to see if any of the users groups intersect with the list of groups passed in"
-  [nimbus user groups-to-check]
-  (let [groups (set (.userGroups nimbus user))]
-    (> (.size (set/intersection (set groups) (set groups-to-check))) 0)))
-
 (defn ->topo-history
   [thrift-topo-hist]
   {
@@ -123,7 +117,7 @@
                                (if (nil? user)
                                  (line :topoid)
                                  (if (or (some #(= % user) admin-users)
-                                       (does-users-group-intersect? nimbus user (line :groups))
+                                       (.isUserPartOf nimbus user (line :groups))
                                        (some #(= % user) (line :users)))
                                    (line :topoid)
                                    nil)))]
@@ -1118,7 +1112,7 @@
                                           groups (ConfigUtils/getTopoLogsGroups topology-conf)]
                                       (or (nil? user)
                                           (some #(= % user) admin-users)
-                                          (does-users-group-intersect? nimbus user groups)
+                                          (.isUserPartOf nimbus user groups)
                                           (some #(= % user) (ConfigUtils/getTopoLogsUsers topology-conf)))))
               active-ids-for-user (filter #(user-group-match-fn % user (.getConf nimbus)) assigned-topology-ids)
               topo-history-list (read-topology-history nimbus user admin-users)]
