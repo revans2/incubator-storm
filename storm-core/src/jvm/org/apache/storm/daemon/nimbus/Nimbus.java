@@ -124,6 +124,7 @@ import org.slf4j.LoggerFactory;
 import com.codahale.metrics.Meter;
 import com.google.common.collect.ImmutableMap;
 
+import org.apache.storm.metric.api.DataPoint;
 import org.apache.storm.metric.api.IClusterMetricsConsumer;
 
 public class Nimbus {
@@ -772,6 +773,33 @@ public class Nimbus {
     public static IClusterMetricsConsumer.ClusterInfo mkClusterInfo() {
         return new IClusterMetricsConsumer.ClusterInfo(Time.currentTimeSecs());
     }
+    
+    
+    public static List<DataPoint> extractClusterMetrics(ClusterSummary summ) {
+        List<DataPoint> ret = new ArrayList<>();
+        ret.add(new DataPoint("supervisors", summ.get_supervisors_size()));
+        ret.add(new DataPoint("topologies", summ.get_topologies_size()));
+        
+        int totalSlots = 0;
+        int usedSlots = 0;
+        for (SupervisorSummary sup: summ.get_supervisors()) {
+            usedSlots += sup.get_num_used_workers();
+            totalSlots += sup.get_num_workers();
+        }
+        ret.add(new DataPoint("slotsTotal", totalSlots));
+        ret.add(new DataPoint("slotsUsed", usedSlots));
+        ret.add(new DataPoint("slotsFree", totalSlots - usedSlots));
+        
+        int totalExecutors = 0;
+        int totalTasks = 0;
+        for (TopologySummary topo: summ.get_topologies()) {
+            totalExecutors += topo.get_num_executors();
+            totalTasks += topo.get_num_tasks();
+        }
+        ret.add(new DataPoint("executorsTotal", totalExecutors));
+        ret.add(new DataPoint("tasksTotal", totalTasks));
+        return ret;
+    }
 //    (defn extract-cluster-metrics [^ClusterSummary summ]
 //            (let [cluster-summ (ui/cluster-summary summ "nimbus")]
 //              {:cluster-info (IClusterMetricsConsumer$ClusterInfo. (long (Time/currentTimeSecs)))
@@ -779,6 +807,47 @@ public class Nimbus {
 //                               (fn [[k v]] (DataPoint. k v))
 //                               (select-keys cluster-summ ["supervisors" "topologies" "slotsTotal" "slotsUsed" "slotsFree"
 //                                                          "executorsTotal" "tasksTotal"]))}))
+//    ([^ClusterSummary summ user]
+//            (let [sups (.get_supervisors summ)
+//                  used-slots (reduce + (map #(.get_num_used_workers ^SupervisorSummary %) sups))
+//                  total-slots (reduce + (map #(.get_num_workers ^SupervisorSummary %) sups))
+//                  free-slots (- total-slots used-slots)
+//                  topologies (.get_topologies_size summ)
+//                  total-tasks (->> (.get_topologies summ)
+//                                   (map #(.get_num_tasks ^TopologySummary %))
+//                                   (reduce +))
+//                  total-executors (->> (.get_topologies summ)
+//                                       (map #(.get_num_executors ^TopologySummary %))
+//                                    (reduce +))
+//                  resourceSummary (if (> (.size sups) 0)
+//                                    (reduce #(map + %1 %2)
+//                                      (for [^SupervisorSummary s sups
+//                                            :let [sup-total-mem (get (.get_total_resources s) Config/SUPERVISOR_MEMORY_CAPACITY_MB)
+//                                                  sup-total-cpu (get (.get_total_resources s) Config/SUPERVISOR_CPU_CAPACITY)
+//                                                  sup-avail-mem (max (- sup-total-mem (.get_used_mem s)) 0.0)
+//                                                  sup-avail-cpu (max (- sup-total-cpu (.get_used_cpu s)) 0.0)]]
+//                                        [sup-total-mem sup-total-cpu sup-avail-mem sup-avail-cpu]))
+//                                    [0.0 0.0 0.0 0.0])
+//                  total-mem (nth resourceSummary 0)
+//                  total-cpu (nth resourceSummary 1)
+//                  avail-mem (nth resourceSummary 2)
+//                  avail-cpu (nth resourceSummary 3)]
+//              {"user" user (ignore)
+//               "stormVersion" STORM-VERSION
+//               "supervisors" (count sups) *****
+//               "topologies" topologies *****
+//               "slotsTotal" total-slots *****
+//               "slotsUsed"  used-slots *****
+//               "slotsFree" free-slots *****
+//               "executorsTotal" total-executors *****
+//               "tasksTotal" total-tasks *****
+//               "schedulerDisplayResource" (*STORM-CONF* Config/SCHEDULER_DISPLAY_RESOURCE)
+//               "totalMem" total-mem
+//               "totalCpu" total-cpu
+//               "availMem" avail-mem
+//               "availCpu" avail-cpu
+//               "memAssignedPercentUtil" (if (and (not (nil? total-mem)) (> total-mem 0.0)) (format "%.1f" (* (/ (- total-mem avail-mem) total-mem) 100.0)) 0.0)
+//               "cpuAssignedPercentUtil" (if (and (not (nil? total-cpu)) (> total-cpu 0.0)) (format "%.1f" (* (/ (- total-cpu avail-cpu) total-cpu) 100.0)) 0.0)})))
     
     private final Map<String, Object> conf;
     private final NimbusInfo nimbusHostPortInfo;

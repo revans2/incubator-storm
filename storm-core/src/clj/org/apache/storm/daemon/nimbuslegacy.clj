@@ -107,13 +107,6 @@
   (and (>= val lower)
     (<= val upper)))
 
-(defn extract-cluster-metrics [^ClusterSummary summ]
-  (let [cluster-summ (ui/cluster-summary summ "nimbus")]
-     {:data-points  (map
-                     (fn [[k v]] (DataPoint. k v))
-                     (select-keys cluster-summ ["supervisors" "topologies" "slotsTotal" "slotsUsed" "slotsFree"
-                                                "executorsTotal" "tasksTotal"]))}))
-
 (defn extract-supervisors-metrics [^ClusterSummary summ]
   (let [sups (.get_supervisors summ)
         supervisors-summ ((ui/supervisor-summary sups) "supervisors")]
@@ -131,12 +124,12 @@
 (defn send-cluster-metrics-to-executors [nimbus]
   (let [cluster-info (Nimbus/mkClusterInfo )
         cluster-summary (.getClusterInfo nimbus)
-        cluster-metrics (extract-cluster-metrics cluster-summary)
+        cluster-metrics (Nimbus/extractClusterMetrics cluster-summary)
         supervisors-metrics (extract-supervisors-metrics cluster-summary)]
     (dofor
       [consumer-executor (.getClusterConsumerExecutors nimbus)]
       (do
-        (.handleDataPoints consumer-executor cluster-info (:data-points cluster-metrics))
+        (.handleDataPoints consumer-executor cluster-info cluster-metrics)
         (dofor
           [supervisor-metrics supervisors-metrics]
           (do
