@@ -396,19 +396,19 @@ public class ResourceAwareScheduler implements IScheduler {
     }
 
     private Map<String, Map<String, Double>> convertToDouble(Map<String, Map<String, Number>> raw) {
-        if (raw == null) {
-            return null;
-        }
 
         Map<String, Map<String, Double>> ret = new HashMap<String, Map<String, Double>>();
 
-        for (Map.Entry<String, Map<String, Number>> userPoolEntry : raw.entrySet()) {
-            String user = userPoolEntry.getKey();
-            ret.put(user, new HashMap<String, Double>());
-            for (Map.Entry<String, Number> resourceEntry : userPoolEntry.getValue().entrySet()) {
-                ret.get(user).put(resourceEntry.getKey(), resourceEntry.getValue().doubleValue());
+        if (raw != null) {
+            for (Map.Entry<String, Map<String, Number>> userPoolEntry : raw.entrySet()) {
+                String user = userPoolEntry.getKey();
+                ret.put(user, new HashMap<String, Double>());
+                for (Map.Entry<String, Number> resourceEntry : userPoolEntry.getValue().entrySet()) {
+                    ret.get(user).put(resourceEntry.getKey(), resourceEntry.getValue().doubleValue());
+                }
             }
         }
+
         return ret;
     }
 
@@ -425,7 +425,7 @@ public class ResourceAwareScheduler implements IScheduler {
             return convertToDouble((Map<String, Map<String, Number>>) raw);
         }
 
-        raw = this.conf.get(Config.RESOURCE_AWARE_SCHEDULER_USER_POOLS);
+        raw = this.conf.get(Config.RESOURCE_AWARE_SCHEDULER_USER_POOLS); 
 
         Map<String, Map<String, Double>> ret = convertToDouble((Map<String, Map<String, Number>>) raw);
 
