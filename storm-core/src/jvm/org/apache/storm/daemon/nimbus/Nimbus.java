@@ -124,6 +124,8 @@ import org.slf4j.LoggerFactory;
 import com.codahale.metrics.Meter;
 import com.google.common.collect.ImmutableMap;
 
+import org.apache.storm.metric.api.IClusterMetricsConsumer;
+
 public class Nimbus {
     private final static Logger LOG = LoggerFactory.getLogger(Nimbus.class);
     
@@ -765,6 +767,18 @@ public class Nimbus {
         
         return new ArrayList<>(ret);
     }
+    
+    //TODO private
+    public static IClusterMetricsConsumer.ClusterInfo mkClusterInfo() {
+        return new IClusterMetricsConsumer.ClusterInfo(Time.currentTimeSecs());
+    }
+//    (defn extract-cluster-metrics [^ClusterSummary summ]
+//            (let [cluster-summ (ui/cluster-summary summ "nimbus")]
+//              {:cluster-info (IClusterMetricsConsumer$ClusterInfo. (long (Time/currentTimeSecs)))
+//               :data-points  (map
+//                               (fn [[k v]] (DataPoint. k v))
+//                               (select-keys cluster-summ ["supervisors" "topologies" "slotsTotal" "slotsUsed" "slotsFree"
+//                                                          "executorsTotal" "tasksTotal"]))}))
     
     private final Map<String, Object> conf;
     private final NimbusInfo nimbusHostPortInfo;
