@@ -245,18 +245,7 @@
         (.killTopologyWithOpts this name (KillOptions.)))
 
       (^void killTopologyWithOpts [this ^String storm-name ^KillOptions options]
-        (.mark Nimbus/killTopologyWithOptsCalls)
-        (.assertTopoActive nimbus storm-name true)
-        (let [topology-conf (clojurify-structure (.tryReadTopoConfFromName nimbus storm-name))
-              storm-id (topology-conf STORM-ID)
-              operation "killTopology"]
-          (.checkAuthorization nimbus storm-name topology-conf operation)
-          (let [wait-amt (if (.is_set_wait_secs options)
-                           (.get_wait_secs options)
-                           )]
-            (.transitionName nimbus storm-name TopologyActions/KILL wait-amt true)
-            (.notifyTopologyActionListener nimbus storm-name operation))
-          (.addTopoToHistoryLog nimbus (StormCommon/getStormId (.getStormClusterState nimbus) storm-name) topology-conf)))
+        (.killTopologyWithOpts nimbus storm-name options))
 
       (^void rebalance [this ^String storm-name ^RebalanceOptions options]
         (.mark Nimbus/rebalanceCalls)

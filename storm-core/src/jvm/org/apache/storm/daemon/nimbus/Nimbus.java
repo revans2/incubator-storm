@@ -2305,12 +2305,29 @@ public class Nimbus implements Iface {
     }
 
     @Override
-    public void killTopologyWithOpts(String name, KillOptions options)
+    public void killTopologyWithOpts(String topoName, KillOptions options)
             throws NotAliveException, AuthorizationException, TException {
-        // TODO Auto-generated method stub
-        
+        killTopologyWithOptsCalls.mark();
+        assertTopoActive(topoName, true);
+        try {
+            Map<String, Object> topoConf = tryReadTopoConfFromName(topoName);
+            String operation = "killTopology";
+            checkAuthorization(topoName, topoConf, operation);
+            Integer waitAmount = null;
+            if (options.is_set_wait_secs()) {
+                waitAmount = options.get_wait_secs();
+            }
+            transitionName(topoName, TopologyActions.KILL, waitAmount, true);
+            notifyTopologyActionListener(topoName, operation);
+            addTopoToHistoryLog(StormCommon.getStormId(getStormClusterState(), topoName), topoConf);
+        } catch (Exception e) {
+            if (e instanceof TException) {
+                throw (TException)e;
+            }
+            throw new RuntimeException(e);
+        }
     }
-
+    
     @Override
     public void activate(String name) throws NotAliveException, AuthorizationException, TException {
         // TODO Auto-generated method stub
