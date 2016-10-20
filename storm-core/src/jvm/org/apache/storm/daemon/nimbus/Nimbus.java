@@ -24,6 +24,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -41,8 +42,6 @@ import java.util.function.BinaryOperator;
 import java.util.function.UnaryOperator;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.LongStream;
-import java.util.stream.Stream;
 
 import javax.security.auth.Subject;
 
@@ -62,27 +61,46 @@ import org.apache.storm.daemon.StormCommon;
 import org.apache.storm.generated.AlreadyAliveException;
 import org.apache.storm.generated.Assignment;
 import org.apache.storm.generated.AuthorizationException;
+import org.apache.storm.generated.BeginDownloadResult;
 import org.apache.storm.generated.ClusterSummary;
+import org.apache.storm.generated.ComponentPageInfo;
 import org.apache.storm.generated.Credentials;
 import org.apache.storm.generated.ExecutorInfo;
+import org.apache.storm.generated.GetInfoOptions;
 import org.apache.storm.generated.InvalidTopologyException;
+import org.apache.storm.generated.KeyAlreadyExistsException;
 import org.apache.storm.generated.KeyNotFoundException;
+import org.apache.storm.generated.KillOptions;
 import org.apache.storm.generated.LSTopoHistory;
+import org.apache.storm.generated.ListBlobsResult;
+import org.apache.storm.generated.LogConfig;
 import org.apache.storm.generated.LogLevel;
+import org.apache.storm.generated.Nimbus.Iface;
 import org.apache.storm.generated.NimbusSummary;
 import org.apache.storm.generated.NodeInfo;
 import org.apache.storm.generated.NotAliveException;
+import org.apache.storm.generated.ProfileAction;
+import org.apache.storm.generated.ProfileRequest;
+import org.apache.storm.generated.ReadableBlobMeta;
 import org.apache.storm.generated.RebalanceOptions;
 import org.apache.storm.generated.SettableBlobMeta;
 import org.apache.storm.generated.StormBase;
 import org.apache.storm.generated.StormTopology;
+import org.apache.storm.generated.SubmitOptions;
 import org.apache.storm.generated.SupervisorInfo;
+import org.apache.storm.generated.SupervisorPageInfo;
 import org.apache.storm.generated.SupervisorSummary;
+import org.apache.storm.generated.TopologyHistoryInfo;
+import org.apache.storm.generated.TopologyInfo;
+import org.apache.storm.generated.TopologyPageInfo;
 import org.apache.storm.generated.TopologyStatus;
 import org.apache.storm.generated.TopologySummary;
 import org.apache.storm.generated.WorkerResources;
 import org.apache.storm.logging.ThriftAccessLogger;
 import org.apache.storm.metric.ClusterMetricsConsumerExecutor;
+import org.apache.storm.metric.api.DataPoint;
+import org.apache.storm.metric.api.IClusterMetricsConsumer;
+import org.apache.storm.metric.api.IClusterMetricsConsumer.ClusterInfo;
 import org.apache.storm.nimbus.DefaultTopologyValidator;
 import org.apache.storm.nimbus.ILeaderElector;
 import org.apache.storm.nimbus.ITopologyActionNotifierPlugin;
@@ -115,6 +133,7 @@ import org.apache.storm.utils.Utils;
 import org.apache.storm.utils.Utils.UptimeComputer;
 import org.apache.storm.utils.VersionInfo;
 import org.apache.storm.zookeeper.Zookeeper;
+import org.apache.thrift.TException;
 import org.apache.zookeeper.ZooDefs;
 import org.apache.zookeeper.data.ACL;
 import org.json.simple.JSONValue;
@@ -124,11 +143,7 @@ import org.slf4j.LoggerFactory;
 import com.codahale.metrics.Meter;
 import com.google.common.collect.ImmutableMap;
 
-import org.apache.storm.metric.api.DataPoint;
-import org.apache.storm.metric.api.IClusterMetricsConsumer;
-import org.apache.storm.metric.api.IClusterMetricsConsumer.ClusterInfo;
-
-public class Nimbus {
+public class Nimbus implements Iface {
     private final static Logger LOG = LoggerFactory.getLogger(Nimbus.class);
     
     public static final Meter submitTopologyWithOptsCalls = registerMeter("nimbus:num-submitTopologyWithOpts-calls");
@@ -2182,7 +2197,7 @@ public class Nimbus {
     }
 
     //TODO private
-    public ClusterSummary getClusterInfo() throws Exception {
+    public ClusterSummary getClusterInfoImpl() throws Exception {
         IStormClusterState state = getStormClusterState();
         Map<String, SupervisorInfo> infos = state.allSupervisorInfo();
         List<SupervisorSummary> summaries = new ArrayList<>(infos.size());
@@ -2254,7 +2269,7 @@ public class Nimbus {
     //TODO Executors????
     public void sendClusterMetricsToExecutors() throws Exception {
         ClusterInfo clusterInfo = mkClusterInfo();
-        ClusterSummary clusterSummary = getClusterInfo();
+        ClusterSummary clusterSummary = getClusterInfoImpl();
         List<DataPoint> clusterMetrics = extractClusterMetrics(clusterSummary);
         Map<IClusterMetricsConsumer.SupervisorInfo, List<DataPoint>> supervisorMetrics = extractSupervisorMetrics(clusterSummary);
         for (ClusterMetricsConsumerExecutor consumerExecutor: getClusterConsumerExecutors()) {
@@ -2263,5 +2278,282 @@ public class Nimbus {
                 consumerExecutor.handleDataPoints(entry.getKey(), entry.getValue());
             }
         }
+    }
+
+    
+    //THRIFT SERVER METHODS...
+    
+    @Override
+    public void submitTopology(String name, String uploadedJarLocation, String jsonConf, StormTopology topology)
+            throws AlreadyAliveException, InvalidTopologyException, AuthorizationException, TException {
+        // TODO Auto-generated method stub
+        
+    }
+
+    @Override
+    public void submitTopologyWithOpts(String name, String uploadedJarLocation, String jsonConf, StormTopology topology,
+            SubmitOptions options)
+            throws AlreadyAliveException, InvalidTopologyException, AuthorizationException, TException {
+        // TODO Auto-generated method stub
+        
+    }
+
+    @Override
+    public void killTopology(String name) throws NotAliveException, AuthorizationException, TException {
+        // TODO Auto-generated method stub
+        
+    }
+
+    @Override
+    public void killTopologyWithOpts(String name, KillOptions options)
+            throws NotAliveException, AuthorizationException, TException {
+        // TODO Auto-generated method stub
+        
+    }
+
+    @Override
+    public void activate(String name) throws NotAliveException, AuthorizationException, TException {
+        // TODO Auto-generated method stub
+        
+    }
+
+    @Override
+    public void deactivate(String name) throws NotAliveException, AuthorizationException, TException {
+        // TODO Auto-generated method stub
+        
+    }
+
+    @Override
+    public void rebalance(String name, RebalanceOptions options)
+            throws NotAliveException, InvalidTopologyException, AuthorizationException, TException {
+        // TODO Auto-generated method stub
+        
+    }
+
+    @Override
+    public void setLogConfig(String name, LogConfig config) throws TException {
+        // TODO Auto-generated method stub
+        
+    }
+
+    @Override
+    public LogConfig getLogConfig(String name) throws TException {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
+    public void debug(String name, String component, boolean enable, double samplingPercentage)
+            throws NotAliveException, AuthorizationException, TException {
+        // TODO Auto-generated method stub
+        
+    }
+
+    @Override
+    public void setWorkerProfiler(String id, ProfileRequest profileRequest) throws TException {
+        // TODO Auto-generated method stub
+        
+    }
+
+    @Override
+    public List<ProfileRequest> getComponentPendingProfileActions(String id, String component_id, ProfileAction action)
+            throws TException {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
+    public void uploadNewCredentials(String name, Credentials creds)
+            throws NotAliveException, InvalidTopologyException, AuthorizationException, TException {
+        // TODO Auto-generated method stub
+        
+    }
+
+    @Override
+    public String beginCreateBlob(String key, SettableBlobMeta meta)
+            throws AuthorizationException, KeyAlreadyExistsException, TException {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
+    public String beginUpdateBlob(String key) throws AuthorizationException, KeyNotFoundException, TException {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
+    public void uploadBlobChunk(String session, ByteBuffer chunk) throws AuthorizationException, TException {
+        // TODO Auto-generated method stub
+        
+    }
+
+    @Override
+    public void finishBlobUpload(String session) throws AuthorizationException, TException {
+        // TODO Auto-generated method stub
+        
+    }
+
+    @Override
+    public void cancelBlobUpload(String session) throws AuthorizationException, TException {
+        // TODO Auto-generated method stub
+        
+    }
+
+    @Override
+    public ReadableBlobMeta getBlobMeta(String key) throws AuthorizationException, KeyNotFoundException, TException {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
+    public void setBlobMeta(String key, SettableBlobMeta meta)
+            throws AuthorizationException, KeyNotFoundException, TException {
+        // TODO Auto-generated method stub
+        
+    }
+
+    @Override
+    public BeginDownloadResult beginBlobDownload(String key)
+            throws AuthorizationException, KeyNotFoundException, TException {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
+    public ByteBuffer downloadBlobChunk(String session) throws AuthorizationException, TException {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
+    public void deleteBlob(String key) throws AuthorizationException, KeyNotFoundException, TException {
+        // TODO Auto-generated method stub
+        
+    }
+
+    @Override
+    public ListBlobsResult listBlobs(String session) throws TException {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
+    public int getBlobReplication(String key) throws AuthorizationException, KeyNotFoundException, TException {
+        // TODO Auto-generated method stub
+        return 0;
+    }
+
+    @Override
+    public int updateBlobReplication(String key, int replication)
+            throws AuthorizationException, KeyNotFoundException, TException {
+        // TODO Auto-generated method stub
+        return 0;
+    }
+
+    @Override
+    public void createStateInZookeeper(String key) throws TException {
+        // TODO Auto-generated method stub
+        
+    }
+
+    @Override
+    public String beginFileUpload() throws AuthorizationException, TException {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
+    public void uploadChunk(String location, ByteBuffer chunk) throws AuthorizationException, TException {
+        // TODO Auto-generated method stub
+        
+    }
+
+    @Override
+    public void finishFileUpload(String location) throws AuthorizationException, TException {
+        // TODO Auto-generated method stub
+        
+    }
+
+    @Override
+    public String beginFileDownload(String file) throws AuthorizationException, TException {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
+    public ByteBuffer downloadChunk(String id) throws AuthorizationException, TException {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
+    public String getNimbusConf() throws AuthorizationException, TException {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
+    public TopologyInfo getTopologyInfo(String id) throws NotAliveException, AuthorizationException, TException {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
+    public TopologyInfo getTopologyInfoWithOpts(String id, GetInfoOptions options)
+            throws NotAliveException, AuthorizationException, TException {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
+    public TopologyPageInfo getTopologyPageInfo(String id, String window, boolean is_include_sys)
+            throws NotAliveException, AuthorizationException, TException {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
+    public SupervisorPageInfo getSupervisorPageInfo(String id, String host, boolean is_include_sys)
+            throws NotAliveException, AuthorizationException, TException {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
+    public ComponentPageInfo getComponentPageInfo(String topology_id, String component_id, String window,
+            boolean is_include_sys) throws NotAliveException, AuthorizationException, TException {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
+    public String getTopologyConf(String id) throws NotAliveException, AuthorizationException, TException {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
+    public StormTopology getTopology(String id) throws NotAliveException, AuthorizationException, TException {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
+    public StormTopology getUserTopology(String id) throws NotAliveException, AuthorizationException, TException {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
+    public TopologyHistoryInfo getTopologyHistory(String user) throws AuthorizationException, TException {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
+    public ClusterSummary getClusterInfo() throws AuthorizationException, TException {
+        // TODO Auto-generated method stub
+        return null;
     }
 }

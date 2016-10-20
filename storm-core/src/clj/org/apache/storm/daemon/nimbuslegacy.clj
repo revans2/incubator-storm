@@ -480,7 +480,7 @@
       (^ClusterSummary getClusterInfo [this]
         (.mark Nimbus/getClusterInfoCalls)
         (.checkAuthorization nimbus nil nil "getClusterInfo")
-        (.getClusterInfo nimbus))
+        (.getClusterInfoImpl nimbus))
 
       (^TopologyInfo getTopologyInfoWithOpts [this ^String storm-id ^GetInfoOptions options]
         (.mark Nimbus/getTopologyInfoWithOptsCalls)
