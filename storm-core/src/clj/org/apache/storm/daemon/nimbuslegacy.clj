@@ -93,12 +93,6 @@
 ;; 2. set assignments
 ;; 3. start storm - necessary in case master goes down, when goes back up can remember to take down the storm (2 states: on or off)
 
-;; no-throw version of check-authorization!
-;;TODO when used inline
-(defn is-authorized?
-  [nimbus operation topology-id]
-  (.isAuthorized nimbus operation topology-id))
-
 ;;TODO when use inline for translation
 (defn nimbus-topology-bases [storm-cluster-state]
   (map-val #(clojurify-storm-base %) (clojurify-structure
@@ -106,11 +100,9 @@
 
 (defn user-and-supervisor-topos
   [nimbus conf blob-store assignments supervisor-id]
-  (let [supervisor-topologies (clojurify-structure (.topologiesOnSupervisor nimbus assignments supervisor-id))]
+  (let [supervisor-topologies (clojurify-structure (Nimbus/topologiesOnSupervisor assignments supervisor-id))]
     {:supervisor-topologies supervisor-topologies
-     :user-topologies (into #{} (filter (partial is-authorized? nimbus 
-                                                 "getTopology") 
-                  supervisor-topologies))}))
+     :user-topologies (clojurify-structure (.filterAuthorized nimbus "getTopology" supervisor-topologies))}))
 
 (defn topology-assignments 
   [storm-cluster-state]

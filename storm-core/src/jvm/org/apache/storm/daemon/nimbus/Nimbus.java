@@ -743,10 +743,28 @@ public class Nimbus {
         }
     }
     
+    //TODO private
+    public static List<String> topologiesOnSupervisor(Map<String, Assignment> assignments, String supervisorId) {
+        Set<String> ret = new HashSet<>();
+        for (Entry<String, Assignment> entry: assignments.entrySet()) {
+            Assignment assignment = entry.getValue();
+            //TODO it might be a lot faster to use
+            //assignment.get_node_host().containsKey(supervisorId);
+            for (NodeInfo nodeInfo: assignment.get_executor_node_port().values()) {
+                if (supervisorId.equals(nodeInfo.get_node())) {
+                    ret.add(entry.getKey());
+                    break;
+                }
+            }
+        }
+        
+        return new ArrayList<>(ret);
+    }
+    
     private final Map<String, Object> conf;
     private final NimbusInfo nimbusHostPortInfo;
     private final INimbus inimbus;
-    private final IAuthorizer authorizationHandler;
+    private IAuthorizer authorizationHandler;
     private final IAuthorizer impersonationAuthorizationHandler;
     private final AtomicLong submittedCount;
     private final IStormClusterState stormClusterState;
@@ -865,6 +883,10 @@ public class Nimbus {
 
     public IAuthorizer getAuthorizationHandler() {
         return authorizationHandler;
+    }
+    
+    public void setAuthorizationHandler(IAuthorizer authorizationHandler) {
+        this.authorizationHandler = authorizationHandler;
     }
 
     public IAuthorizer getImpersonationAuthorizationHandler() {
@@ -1796,7 +1818,6 @@ public class Nimbus {
     }
     
     public void checkAuthorization(String topoName, Map<String, Object> topoConf, String operation, ReqContext context) throws AuthorizationException {
-        //if (true) {throw new RuntimeException("HERE");}
         IAuthorizer aclHandler = getAuthorizationHandler();
         IAuthorizer impersonationAuthorizer = getImpersonationAuthorizationHandler();
         if (context == null) {
@@ -1849,6 +1870,17 @@ public class Nimbus {
         } catch (AuthorizationException e) {
             return false;
         }
+    }
+    
+    //TODO private
+    public Set<String> filterAuthorized(String operation, Collection<String> topoIds) throws NotAliveException, AuthorizationException, IOException {
+        Set<String> ret = new HashSet<>();
+        for (String topoId : topoIds) {
+            if (isAuthorized(operation, topoId)) {
+                ret.add(topoId);
+            }
+        }
+        return ret;
     }
     
     //TODO private???
@@ -2089,23 +2121,5 @@ public class Nimbus {
             ret.set_version(info.get_version());
         }
         return ret;
-    }
-    
-    //TODO private
-    public List<String> topologiesOnSupervisor(Map<String, Assignment> assignments, String supervisorId) {
-        Set<String> ret = new HashSet<>();
-        for (Entry<String, Assignment> entry: assignments.entrySet()) {
-            Assignment assignment = entry.getValue();
-            //TODO it might be a lot faster to use
-            //assignment.get_node_host().containsKey(supervisorId);
-            for (NodeInfo nodeInfo: assignment.get_executor_node_port().values()) {
-                if (supervisorId.equals(nodeInfo.get_node())) {
-                    ret.add(entry.getKey());
-                    break;
-                }
-            }
-        }
-        
-        return new ArrayList<>(ret);
     }
 }

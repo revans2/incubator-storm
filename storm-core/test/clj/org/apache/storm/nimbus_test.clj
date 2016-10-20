@@ -26,7 +26,7 @@
            [org.apache.storm.generated GlobalStreamId TopologyStatus SupervisorInfo StormTopology StormBase]
            [org.apache.storm Thrift MockAutoCred]
            [org.apache.storm.stats BoltExecutorStats StatsUtil]
-           [org.apache.storm.security.auth IGroupMappingServiceProvider])
+           [org.apache.storm.security.auth IGroupMappingServiceProvider IAuthorizer])
   (:import [org.apache.storm.testing.staticmocking MockedZookeeper])
   (:import [org.apache.storm.scheduler INimbus])
   (:import [org.mockito Mockito Matchers])
@@ -1815,17 +1815,12 @@
         mock-state (mock-cluster-state)
         mock-blob-store (Mockito/mock BlobStore)
         nimbus (Nimbus. {} nil mock-state nil mock-blob-store (mock-leader-elector) nil)]
-    (stubbing [nimbus/is-authorized? true]
-      (let [topos1 (nimbus/user-and-supervisor-topos nimbus nil nil assignments "super1")
-            topos2 (nimbus/user-and-supervisor-topos nimbus nil nil assignments "super2")]
-        (is (= (list "topo1") (:supervisor-topologies topos1)))
-        (is (= #{"topo1"} (:user-topologies topos1))) 
-        (is (= (list "topo1" "topo2") (:supervisor-topologies topos2)))
-        (is (= #{"topo1" "topo2"} (:user-topologies topos2)))))))
-
-(defn- mock-check-auth 
-  [nimbus op topo-name]
-  (= topo-name "authorized"))
+    (let [topos1 (nimbus/user-and-supervisor-topos nimbus nil nil assignments "super1")
+          topos2 (nimbus/user-and-supervisor-topos nimbus nil nil assignments "super2")]
+      (is (= (list "topo1") (:supervisor-topologies topos1)))
+      (is (= #{"topo1"} (:user-topologies topos1))) 
+      (is (= (list "topo1" "topo2") (:supervisor-topologies topos2)))
+      (is (= #{"topo1" "topo2"} (:user-topologies topos2))))))
 
 (deftest user-topologies-for-supervisor-with-unauthorized-user
   (let [assignment (doto (Assignment.)
@@ -1838,7 +1833,9 @@
         mock-state (mock-cluster-state)
         mock-blob-store (Mockito/mock BlobStore)
         nimbus (Nimbus. {} nil mock-state nil mock-blob-store (mock-leader-elector) nil)]
-    (stubbing [nimbus/is-authorized? mock-check-auth]
-      (let [topos (nimbus/user-and-supervisor-topos nimbus nil nil assignments "super1")]
-        (is (= (list "topo1" "authorized") (:supervisor-topologies topos)))
-        (is (= #{"authorized"} (:user-topologies topos)))))))
+    (.thenReturn (Mockito/when (.readTopologyConf mock-blob-store (Mockito/eq "authorized") (Mockito/anyObject))) {TOPOLOGY-NAME "authorized"})
+    (.thenReturn (Mockito/when (.readTopologyConf mock-blob-store (Mockito/eq "topo1") (Mockito/anyObject))) {TOPOLOGY-NAME "topo1"})
+    (.setAuthorizationHandler nimbus (reify IAuthorizer (permit [this context operation topo-conf] (= "authorized" (get topo-conf TOPOLOGY-NAME)))))
+    (let [topos (nimbus/user-and-supervisor-topos nimbus nil nil assignments "super1")]
+      (is (= (list "topo1" "authorized") (:supervisor-topologies topos)))
+      (is (= #{"authorized"} (:user-topologies topos))))))
