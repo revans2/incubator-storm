@@ -1427,13 +1427,13 @@
           bogus-type TopologyStatus/ACTIVE
           bogus-bases {
                  "1" nil
-                 "2" {:launch-time-secs bogus-secs
+                 "2" (thriftify-storm-base {:launch-time-secs bogus-secs
                         :storm-name "id2-name"
-                        :status {:type bogus-type}}
+                        :status {:type bogus-type}})
                  "3" nil
-                 "4" {:launch-time-secs bogus-secs
+                 "4" (thriftify-storm-base {:launch-time-secs bogus-secs
                         :storm-name "id4-name"
-                        :status {:type bogus-type}}
+                        :status {:type bogus-type}})
                 }
           topo-name "test-topo"
           topo-conf {TOPOLOGY-NAME topo-name
@@ -1446,26 +1446,25 @@
                      (.set_state_spouts {}))
         ]
       (.thenReturn (Mockito/when (.stormBase cluster-state (Mockito/any String) (Mockito/anyObject))) storm-base)
+      (.thenReturn (Mockito/when (.topologyBases cluster-state)) bogus-bases)
       (.thenReturn (Mockito/when (.readTopologyConf blob-store (Mockito/any String) (Mockito/any Subject))) topo-conf)
       (.thenReturn (Mockito/when (.readTopology blob-store (Mockito/any String) (Mockito/any Subject))) topology)
  
-      (stubbing [nimbus/nimbus-topology-bases bogus-bases]
-        (let [topos (.get_topologies (.getClusterInfo nimbus))]
-          ; The number of topologies in the summary is correct.
-          (is (= (count
-            (filter (fn [b] (second b)) bogus-bases)) (count topos)))
-          ; Each topology present has a valid name.
-          (is (empty?
-            (filter (fn [t] (or (nil? t) (nil? (.get_name t)))) topos)))
-          ; The topologies are those with valid bases.
-          (is (empty?
-            (filter (fn [t]
-              (or
-                (nil? t)
-                (not (number? (read-string (.get_id t))))
-                (odd? (read-string (.get_id t)))
-              )) topos)))
-        )
+      (let [topos (.get_topologies (.getClusterInfo nimbus))]
+        ; The number of topologies in the summary is correct.
+        (is (= (count
+          (filter (fn [b] (second b)) bogus-bases)) (count topos)))
+        ; Each topology present has a valid name.
+        (is (empty?
+          (filter (fn [t] (or (nil? t) (nil? (.get_name t)))) topos)))
+        ; The topologies are those with valid bases.
+        (is (empty?
+          (filter (fn [t]
+            (or
+              (nil? t)
+              (not (number? (read-string (.get_id t))))
+              (odd? (read-string (.get_id t)))
+            )) topos)))
       )
     )
   )

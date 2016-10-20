@@ -98,20 +98,6 @@ public class StormCommon {
         return stormClusterState.getTopoId(topologyName);
     }
 
-    public static Map<String, StormBase> topologyBases(IStormClusterState stormClusterState) {
-        return _instance.topologyBasesImpl(stormClusterState);
-    }
-
-    protected Map<String, StormBase> topologyBasesImpl(IStormClusterState stormClusterState) {
-        List<String> activeTopologys = stormClusterState.activeStorms();
-        Map<String, StormBase> stormBases = new HashMap<>();
-        for (String topologyId : activeTopologys) {
-            StormBase base = stormClusterState.stormBase(topologyId, null);
-            stormBases.put(topologyId, base);
-        }
-        return stormBases;
-    }
-
     public static void validateDistributedMode(Map conf) {
         if (ConfigUtils.isLocalMode(conf)) {
             throw new IllegalArgumentException("Cannot start server in local mode!");

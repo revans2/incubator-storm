@@ -93,70 +93,12 @@
 ;; 2. set assignments
 ;; 3. start storm - necessary in case master goes down, when goes back up can remember to take down the storm (2 states: on or off)
 
-;;TODO when use inline for translation
-(defn nimbus-topology-bases [storm-cluster-state]
-  (map-val #(clojurify-storm-base %) (clojurify-structure
-                                        (StormCommon/topologyBases storm-cluster-state))))
-
+;;TODO inline this when it is translated
 (defn get-launch-time-secs 
   [base storm-id]
   (if base (:launch-time-secs base)
     (throw
       (NotAliveException. (str storm-id)))))
-
-(defn get-cluster-info [nimbus]
-  (let [storm-cluster-state (.getStormClusterState nimbus)
-        supervisor-infos (.allSupervisorInfo storm-cluster-state)
-        ;; TODO: need to get the port info about supervisors...
-        ;; in standalone just look at metadata, otherwise just say N/A?
-        supervisor-summaries (dofor [[id info] supervisor-infos]
-                                    (.makeSupervisorSummary nimbus id info))
-        nimbus-uptime (. (.getUptime nimbus) upTime)
-        bases (nimbus-topology-bases storm-cluster-state)
-        nimbuses (.nimbuses storm-cluster-state)
-
-        ;;update the isLeader field for each nimbus summary
-        _ (let [leader (.getLeader (.getLeaderElector nimbus))
-                leader-host (.getHost leader)
-                leader-port (.getPort leader)]
-            (doseq [nimbus-summary nimbuses]
-              (.set_uptime_secs nimbus-summary (Time/deltaSecs (.get_uptime_secs nimbus-summary)))
-              (.set_isLeader nimbus-summary (and (= leader-host (.get_host nimbus-summary)) (= leader-port (.get_port nimbus-summary))))))
-
-        topology-summaries (dofor [[id base] bases :when base]
-                                  (let [assignment (clojurify-assignment (.assignmentInfo storm-cluster-state id nil))
-                                        j-base (thriftify-storm-base base)
-                                        topo-summ (TopologySummary. id
-                                                                    (:storm-name base)
-                                                                    (->> (:executor->node+port assignment)
-                                                                         keys
-                                                                         (mapcat #(clojurify-structure (StormCommon/executorIdToTasks %)))
-                                                                         count)
-                                                                    (->> (:executor->node+port assignment)
-                                                                         keys
-                                                                         count)
-                                                                    (->> (:executor->node+port assignment)
-                                                                         vals
-                                                                         set
-                                                                         count)
-                                                                    (Time/deltaSecs (:launch-time-secs base))
-                                                                    (Nimbus/extractStatusStr j-base))]
-                                    (when-let [owner (:owner base)] (.set_owner topo-summ owner))
-                                    (when-let [sched-status (.get (.get (.getIdToSchedStatus nimbus)) id)] (.set_sched_status topo-summ sched-status))
-                                    (when-let [resources (.getResourcesForTopology nimbus id)]
-                                      (.set_requested_memonheap topo-summ (.getRequestedMemOnHeap resources))
-                                      (.set_requested_memoffheap topo-summ (.getRequestedMemOffHeap resources))
-                                      (.set_requested_cpu topo-summ (.getRequestedCpu resources))
-                                      (.set_assigned_memonheap topo-summ (.getAssignedMemOnHeap resources))
-                                      (.set_assigned_memoffheap topo-summ (.getAssignedMemOffHeap resources))
-                                      (.set_assigned_cpu topo-summ (.getAssignedCpu resources)))
-                                    (.set_replication_count topo-summ (.getBlobReplicationCount nimbus (ConfigUtils/masterStormCodeKey id)))
-                                    topo-summ))
-        ret (ClusterSummary. supervisor-summaries
-                             topology-summaries
-                             nimbuses)
-        _ (.set_nimbus_uptime_secs ret nimbus-uptime)]
-    ret))
 
 (defn- between?
   "val >= lower and val <= upper"
@@ -186,7 +128,7 @@
          supervisors-summ)))
 
 (defn send-cluster-metrics-to-executors [nimbus]
-  (let [cluster-summary (get-cluster-info nimbus)
+  (let [cluster-summary (.getClusterInfo nimbus)
         cluster-metrics (extract-cluster-metrics cluster-summary)
         supervisors-metrics (extract-supervisors-metrics cluster-summary)]
     (dofor
@@ -571,7 +513,7 @@
       (^ClusterSummary getClusterInfo [this]
         (.mark Nimbus/getClusterInfoCalls)
         (.checkAuthorization nimbus nil nil "getClusterInfo")
-        (get-cluster-info nimbus))
+        (.getClusterInfo nimbus))
 
       (^TopologyInfo getTopologyInfoWithOpts [this ^String storm-id ^GetInfoOptions options]
         (.mark Nimbus/getTopologyInfoWithOptsCalls)

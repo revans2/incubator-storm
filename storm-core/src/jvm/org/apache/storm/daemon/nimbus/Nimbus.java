@@ -41,6 +41,8 @@ import java.util.function.BinaryOperator;
 import java.util.function.UnaryOperator;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.LongStream;
+import java.util.stream.Stream;
 
 import javax.security.auth.Subject;
 
@@ -60,12 +62,14 @@ import org.apache.storm.daemon.StormCommon;
 import org.apache.storm.generated.AlreadyAliveException;
 import org.apache.storm.generated.Assignment;
 import org.apache.storm.generated.AuthorizationException;
+import org.apache.storm.generated.ClusterSummary;
 import org.apache.storm.generated.Credentials;
 import org.apache.storm.generated.ExecutorInfo;
 import org.apache.storm.generated.InvalidTopologyException;
 import org.apache.storm.generated.KeyNotFoundException;
 import org.apache.storm.generated.LSTopoHistory;
 import org.apache.storm.generated.LogLevel;
+import org.apache.storm.generated.NimbusSummary;
 import org.apache.storm.generated.NodeInfo;
 import org.apache.storm.generated.NotAliveException;
 import org.apache.storm.generated.RebalanceOptions;
@@ -75,6 +79,7 @@ import org.apache.storm.generated.StormTopology;
 import org.apache.storm.generated.SupervisorInfo;
 import org.apache.storm.generated.SupervisorSummary;
 import org.apache.storm.generated.TopologyStatus;
+import org.apache.storm.generated.TopologySummary;
 import org.apache.storm.generated.WorkerResources;
 import org.apache.storm.logging.ThriftAccessLogger;
 import org.apache.storm.metric.ClusterMetricsConsumerExecutor;
@@ -2122,4 +2127,130 @@ public class Nimbus {
         }
         return ret;
     }
+
+    //TODO private
+    public ClusterSummary getClusterInfo() throws Exception {
+        IStormClusterState state = getStormClusterState();
+        Map<String, SupervisorInfo> infos = state.allSupervisorInfo();
+        List<SupervisorSummary> summaries = new ArrayList<>(infos.size());
+        for (Entry<String, SupervisorInfo> entry: infos.entrySet()) {
+            summaries.add(makeSupervisorSummary(entry.getKey(), entry.getValue()));
+        }
+        int uptime = getUptime().upTime();
+        Map<String, StormBase> bases = state.topologyBases();
+
+        List<NimbusSummary> nimbuses = state.nimbuses();
+        //update the isLeader field for each nimbus summary
+        NimbusInfo leader = getLeaderElector().getLeader();
+        for (NimbusSummary nimbusSummary: nimbuses) {
+            nimbusSummary.set_uptime_secs(Time.deltaSecs(nimbusSummary.get_uptime_secs()));
+            nimbusSummary.set_isLeader(leader.getHost().equals(nimbusSummary.get_host()) &&
+                    leader.getPort() == nimbusSummary.get_port());
+        }
+        
+        List<TopologySummary> topologySummaries = new ArrayList<>();
+        for (Entry<String, StormBase> entry: bases.entrySet()) {
+            StormBase base = entry.getValue();
+            if (base == null) {
+                continue;
+            }
+            String topoId = entry.getKey();
+            Assignment assignment = state.assignmentInfo(topoId, null);
+            
+            int numTasks = 0;
+            int numExecutors = 0;
+            int numWorkers = 0;
+            if (assignment != null && assignment.is_set_executor_node_port()) {
+                for (List<Long> ids: assignment.get_executor_node_port().keySet()) {
+                    numTasks += StormCommon.executorIdToTasks(ids).size();
+                }
+            
+                numExecutors = assignment.get_executor_node_port_size();
+                numWorkers = new HashSet<>(assignment.get_executor_node_port().values()).size();
+            }
+            
+            TopologySummary summary = new TopologySummary(topoId, base.get_name(), numTasks, numExecutors, numWorkers,
+                    Time.deltaSecs(base.get_launch_time_secs()), extractStatusStr(base));
+            
+            if (base.is_set_owner()) {
+                summary.set_owner(base.get_owner());
+            }
+            String status = getIdToSchedStatus().get().get(topoId);
+            if (status != null) {
+                summary.set_sched_status(status);
+            }
+            TopologyResources resources = getResourcesForTopology(topoId);
+            if (resources != null) {
+                summary.set_requested_memonheap(resources.getRequestedMemOnHeap());
+                summary.set_requested_memoffheap(resources.getRequestedMemOffHeap());
+                summary.set_requested_cpu(resources.getRequestedCpu());
+                summary.set_assigned_memonheap(resources.getAssignedMemOnHeap());
+                summary.set_assigned_memoffheap(resources.getAssignedMemOffHeap());
+                summary.set_assigned_cpu(resources.getAssignedCpu());
+            }
+            summary.set_replication_count(getBlobReplicationCount(ConfigUtils.masterStormCodeKey(topoId)));
+            topologySummaries.add(summary);
+        }
+        
+        ClusterSummary ret = new ClusterSummary(summaries, topologySummaries, nimbuses);
+        ret.set_nimbus_uptime_secs(uptime);
+        return ret;
+    }
+    
+//    (defn nimbus-topology-bases [storm-cluster-state]
+//            (map-val #(clojurify-storm-base %) (clojurify-structure
+//                                                  (StormCommon/topologyBases storm-cluster-state))))
+//    (defn get-cluster-info [nimbus]
+//            (let [storm-cluster-state (.getStormClusterState nimbus)
+//                  supervisor-infos (.allSupervisorInfo storm-cluster-state)
+//                  ;; TODO: need to get the port info about supervisors...
+//                  ;; in standalone just look at metadata, otherwise just say N/A?
+//                  supervisor-summaries (dofor [[id info] supervisor-infos]
+//                                              (.makeSupervisorSummary nimbus id info))
+//                  nimbus-uptime (. (.getUptime nimbus) upTime)
+//                  bases (nimbus-topology-bases storm-cluster-state)
+//                  nimbuses (.nimbuses storm-cluster-state)
+//
+//                  ;;update the isLeader field for each nimbus summary
+//                  _ (let [leader (.getLeader (.getLeaderElector nimbus))
+//                          leader-host (.getHost leader)
+//                          leader-port (.getPort leader)]
+//                      (doseq [nimbus-summary nimbuses]
+//                        (.set_uptime_secs nimbus-summary (Time/deltaSecs (.get_uptime_secs nimbus-summary)))
+//                        (.set_isLeader nimbus-summary (and (= leader-host (.get_host nimbus-summary)) (= leader-port (.get_port nimbus-summary))))))
+//
+//                  topology-summaries (dofor [[id base] bases :when base]
+//                                            (let [assignment (clojurify-assignment (.assignmentInfo storm-cluster-state id nil))
+//                                                  j-base (thriftify-storm-base base)
+//                                                  topo-summ (TopologySummary. id
+//                                                                              (:storm-name base)
+//                                                                              (->> (:executor->node+port assignment)
+//                                                                                   keys
+//                                                                                   (mapcat #(clojurify-structure (StormCommon/executorIdToTasks %)))
+//                                                                                   count)
+//                                                                              (->> (:executor->node+port assignment)
+//                                                                                   keys
+//                                                                                   count)
+//                                                                              (->> (:executor->node+port assignment)
+//                                                                                   vals
+//                                                                                   set
+//                                                                                   count)
+//                                                                              (Time/deltaSecs (:launch-time-secs base))
+//                                                                              (Nimbus/extractStatusStr j-base))]
+//                                              (when-let [owner (:owner base)] (.set_owner topo-summ owner))
+//                                              (when-let [sched-status (.get (.get (.getIdToSchedStatus nimbus)) id)] (.set_sched_status topo-summ sched-status))
+//                                              (when-let [resources (.getResourcesForTopology nimbus id)]
+//                                                (.set_requested_memonheap topo-summ (.getRequestedMemOnHeap resources))
+//                                                (.set_requested_memoffheap topo-summ (.getRequestedMemOffHeap resources))
+//                                                (.set_requested_cpu topo-summ (.getRequestedCpu resources))
+//                                                (.set_assigned_memonheap topo-summ (.getAssignedMemOnHeap resources))
+//                                                (.set_assigned_memoffheap topo-summ (.getAssignedMemOffHeap resources))
+//                                                (.set_assigned_cpu topo-summ (.getAssignedCpu resources)))
+//                                              (.set_replication_count topo-summ (.getBlobReplicationCount nimbus (ConfigUtils/masterStormCodeKey id)))
+//                                              topo-summ))
+//                  ret (ClusterSummary. supervisor-summaries
+//                                       topology-summaries
+//                                       nimbuses)
+//                  _ (.set_nimbus_uptime_secs ret nimbus-uptime)]
+//              ret))
 }
