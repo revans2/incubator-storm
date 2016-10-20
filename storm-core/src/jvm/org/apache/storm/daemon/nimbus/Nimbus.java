@@ -2553,7 +2553,12 @@ public class Nimbus implements Iface {
 
     @Override
     public ClusterSummary getClusterInfo() throws AuthorizationException, TException {
-        // TODO Auto-generated method stub
-        return null;
+        getClusterInfoCalls.mark();
+        checkAuthorization(null, null, "getClusterInfo");
+        try {
+            return getClusterInfoImpl();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 }

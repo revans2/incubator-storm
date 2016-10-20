@@ -478,9 +478,7 @@
               (Nimbus/tryReadTopology id blob-store)))
 
       (^ClusterSummary getClusterInfo [this]
-        (.mark Nimbus/getClusterInfoCalls)
-        (.checkAuthorization nimbus nil nil "getClusterInfo")
-        (.getClusterInfoImpl nimbus))
+        (.getClusterInfo nimbus))
 
       (^TopologyInfo getTopologyInfoWithOpts [this ^String storm-id ^GetInfoOptions options]
         (.mark Nimbus/getTopologyInfoWithOptsCalls)
