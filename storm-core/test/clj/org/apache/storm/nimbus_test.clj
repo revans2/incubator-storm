@@ -1815,12 +1815,14 @@
         mock-state (mock-cluster-state)
         mock-blob-store (Mockito/mock BlobStore)
         nimbus (Nimbus. {} nil mock-state nil mock-blob-store (mock-leader-elector) nil)]
-    (let [topos1 (nimbus/user-and-supervisor-topos nimbus nil nil assignments "super1")
-          topos2 (nimbus/user-and-supervisor-topos nimbus nil nil assignments "super2")]
-      (is (= (list "topo1") (:supervisor-topologies topos1)))
-      (is (= #{"topo1"} (:user-topologies topos1))) 
-      (is (= (list "topo1" "topo2") (:supervisor-topologies topos2)))
-      (is (= #{"topo1" "topo2"} (:user-topologies topos2))))))
+    (let [supervisor1-topologies (clojurify-structure (Nimbus/topologiesOnSupervisor assignments "super1"))
+          user1-topologies (clojurify-structure (.filterAuthorized nimbus "getTopology" supervisor1-topologies))
+          supervisor2-topologies (clojurify-structure (Nimbus/topologiesOnSupervisor assignments "super2"))
+          user2-topologies (clojurify-structure (.filterAuthorized nimbus "getTopology" supervisor2-topologies))]
+      (is (= (list "topo1") supervisor1-topologies))
+      (is (= #{"topo1"} user1-topologies)) 
+      (is (= (list "topo1" "topo2") supervisor2-topologies))
+      (is (= #{"topo1" "topo2"} user2-topologies)))))
 
 (deftest user-topologies-for-supervisor-with-unauthorized-user
   (let [assignment (doto (Assignment.)
@@ -1836,6 +1838,8 @@
     (.thenReturn (Mockito/when (.readTopologyConf mock-blob-store (Mockito/eq "authorized") (Mockito/anyObject))) {TOPOLOGY-NAME "authorized"})
     (.thenReturn (Mockito/when (.readTopologyConf mock-blob-store (Mockito/eq "topo1") (Mockito/anyObject))) {TOPOLOGY-NAME "topo1"})
     (.setAuthorizationHandler nimbus (reify IAuthorizer (permit [this context operation topo-conf] (= "authorized" (get topo-conf TOPOLOGY-NAME)))))
-    (let [topos (nimbus/user-and-supervisor-topos nimbus nil nil assignments "super1")]
-      (is (= (list "topo1" "authorized") (:supervisor-topologies topos)))
-      (is (= #{"authorized"} (:user-topologies topos))))))
+    (let [supervisor-topologies (clojurify-structure (Nimbus/topologiesOnSupervisor assignments "super1"))
+          user-topologies (clojurify-structure (.filterAuthorized nimbus "getTopology" supervisor-topologies))]
+ 
+      (is (= (list "topo1" "authorized") supervisor-topologies))
+      (is (= #{"authorized"} user-topologies)))))

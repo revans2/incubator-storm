@@ -98,12 +98,6 @@
   (map-val #(clojurify-storm-base %) (clojurify-structure
                                         (StormCommon/topologyBases storm-cluster-state))))
 
-(defn user-and-supervisor-topos
-  [nimbus conf blob-store assignments supervisor-id]
-  (let [supervisor-topologies (clojurify-structure (Nimbus/topologiesOnSupervisor assignments supervisor-id))]
-    {:supervisor-topologies supervisor-topologies
-     :user-topologies (clojurify-structure (.filterAuthorized nimbus "getTopology" supervisor-topologies))}))
-
 (defn topology-assignments 
   [storm-cluster-state]
   (let [assigned-topology-ids (.assignments storm-cluster-state nil)]
@@ -898,12 +892,8 @@
                       sup-sum (.makeSupervisorSummary nimbus sid supervisor-info)
                       _ (.add_to_supervisor_summaries page-info sup-sum)
                       topo-id->assignments (topology-assignments storm-cluster-state)
-                      {:keys [user-topologies 
-                              supervisor-topologies]} (user-and-supervisor-topos nimbus
-                                                                                 conf
-                                                                                 blob-store
-                                                                                 topo-id->assignments 
-                                                                                 sid)]
+                      supervisor-topologies (clojurify-structure (Nimbus/topologiesOnSupervisor topo-id->assignments sid))
+                      user-topologies (clojurify-structure (.filterAuthorized nimbus "getTopology" supervisor-topologies))]
                   (doseq [storm-id supervisor-topologies]
                       (let [topo-info (get-common-topo-info storm-id "getSupervisorPageInfo")
                             {:keys [storm-name
