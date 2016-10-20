@@ -241,8 +241,7 @@
                                  (SubmitOptions. TopologyInitialStatus/ACTIVE)))
 
       (^void killTopology [this ^String name]
-        (.mark Nimbus/killTopologyCalls)
-        (.killTopologyWithOpts this name (KillOptions.)))
+        (.killTopology nimbus name))
 
       (^void killTopologyWithOpts [this ^String storm-name ^KillOptions options]
         (.killTopologyWithOpts nimbus storm-name options))

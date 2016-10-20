@@ -2300,10 +2300,10 @@ public class Nimbus implements Iface {
 
     @Override
     public void killTopology(String name) throws NotAliveException, AuthorizationException, TException {
-        // TODO Auto-generated method stub
-        
+        killTopologyCalls.mark();
+        killTopologyWithOpts(name, new KillOptions());
     }
-
+    
     @Override
     public void killTopologyWithOpts(String topoName, KillOptions options)
             throws NotAliveException, AuthorizationException, TException {
