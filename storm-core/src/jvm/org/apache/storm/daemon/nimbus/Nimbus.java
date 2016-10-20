@@ -126,6 +126,7 @@ import com.google.common.collect.ImmutableMap;
 
 import org.apache.storm.metric.api.DataPoint;
 import org.apache.storm.metric.api.IClusterMetricsConsumer;
+import org.apache.storm.metric.api.IClusterMetricsConsumer.ClusterInfo;
 
 public class Nimbus {
     private final static Logger LOG = LoggerFactory.getLogger(Nimbus.class);
@@ -2249,60 +2250,18 @@ public class Nimbus {
         return ret;
     }
     
-//    (defn nimbus-topology-bases [storm-cluster-state]
-//            (map-val #(clojurify-storm-base %) (clojurify-structure
-//                                                  (StormCommon/topologyBases storm-cluster-state))))
-//    (defn get-cluster-info [nimbus]
-//            (let [storm-cluster-state (.getStormClusterState nimbus)
-//                  supervisor-infos (.allSupervisorInfo storm-cluster-state)
-//                  ;; TODO: need to get the port info about supervisors...
-//                  ;; in standalone just look at metadata, otherwise just say N/A?
-//                  supervisor-summaries (dofor [[id info] supervisor-infos]
-//                                              (.makeSupervisorSummary nimbus id info))
-//                  nimbus-uptime (. (.getUptime nimbus) upTime)
-//                  bases (nimbus-topology-bases storm-cluster-state)
-//                  nimbuses (.nimbuses storm-cluster-state)
-//
-//                  ;;update the isLeader field for each nimbus summary
-//                  _ (let [leader (.getLeader (.getLeaderElector nimbus))
-//                          leader-host (.getHost leader)
-//                          leader-port (.getPort leader)]
-//                      (doseq [nimbus-summary nimbuses]
-//                        (.set_uptime_secs nimbus-summary (Time/deltaSecs (.get_uptime_secs nimbus-summary)))
-//                        (.set_isLeader nimbus-summary (and (= leader-host (.get_host nimbus-summary)) (= leader-port (.get_port nimbus-summary))))))
-//
-//                  topology-summaries (dofor [[id base] bases :when base]
-//                                            (let [assignment (clojurify-assignment (.assignmentInfo storm-cluster-state id nil))
-//                                                  j-base (thriftify-storm-base base)
-//                                                  topo-summ (TopologySummary. id
-//                                                                              (:storm-name base)
-//                                                                              (->> (:executor->node+port assignment)
-//                                                                                   keys
-//                                                                                   (mapcat #(clojurify-structure (StormCommon/executorIdToTasks %)))
-//                                                                                   count)
-//                                                                              (->> (:executor->node+port assignment)
-//                                                                                   keys
-//                                                                                   count)
-//                                                                              (->> (:executor->node+port assignment)
-//                                                                                   vals
-//                                                                                   set
-//                                                                                   count)
-//                                                                              (Time/deltaSecs (:launch-time-secs base))
-//                                                                              (Nimbus/extractStatusStr j-base))]
-//                                              (when-let [owner (:owner base)] (.set_owner topo-summ owner))
-//                                              (when-let [sched-status (.get (.get (.getIdToSchedStatus nimbus)) id)] (.set_sched_status topo-summ sched-status))
-//                                              (when-let [resources (.getResourcesForTopology nimbus id)]
-//                                                (.set_requested_memonheap topo-summ (.getRequestedMemOnHeap resources))
-//                                                (.set_requested_memoffheap topo-summ (.getRequestedMemOffHeap resources))
-//                                                (.set_requested_cpu topo-summ (.getRequestedCpu resources))
-//                                                (.set_assigned_memonheap topo-summ (.getAssignedMemOnHeap resources))
-//                                                (.set_assigned_memoffheap topo-summ (.getAssignedMemOffHeap resources))
-//                                                (.set_assigned_cpu topo-summ (.getAssignedCpu resources)))
-//                                              (.set_replication_count topo-summ (.getBlobReplicationCount nimbus (ConfigUtils/masterStormCodeKey id)))
-//                                              topo-summ))
-//                  ret (ClusterSummary. supervisor-summaries
-//                                       topology-summaries
-//                                       nimbuses)
-//                  _ (.set_nimbus_uptime_secs ret nimbus-uptime)]
-//              ret))
+    //TODO private
+    //TODO Executors????
+    public void sendClusterMetricsToExecutors() throws Exception {
+        ClusterInfo clusterInfo = mkClusterInfo();
+        ClusterSummary clusterSummary = getClusterInfo();
+        List<DataPoint> clusterMetrics = extractClusterMetrics(clusterSummary);
+        Map<IClusterMetricsConsumer.SupervisorInfo, List<DataPoint>> supervisorMetrics = extractSupervisorMetrics(clusterSummary);
+        for (ClusterMetricsConsumerExecutor consumerExecutor: getClusterConsumerExecutors()) {
+            consumerExecutor.handleDataPoints(clusterInfo, clusterMetrics);
+            for (Entry<IClusterMetricsConsumer.SupervisorInfo, List<DataPoint>> entry: supervisorMetrics.entrySet()) {
+                consumerExecutor.handleDataPoints(entry.getKey(), entry.getValue());
+            }
+        }
+    }
 }

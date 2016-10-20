@@ -107,20 +107,6 @@
   (and (>= val lower)
     (<= val upper)))
 
-(defn send-cluster-metrics-to-executors [nimbus]
-  (let [cluster-info (Nimbus/mkClusterInfo )
-        cluster-summary (.getClusterInfo nimbus)
-        cluster-metrics (Nimbus/extractClusterMetrics cluster-summary)
-        supervisors-metrics (clojurify-structure (Nimbus/extractSupervisorMetrics cluster-summary))]
-    (dofor
-      [consumer-executor (.getClusterConsumerExecutors nimbus)]
-      (do
-        (.handleDataPoints consumer-executor cluster-info cluster-metrics)
-        (dofor
-          [[supervisor-info data-points] supervisors-metrics]
-          (do
-            (.handleDataPoints consumer-executor supervisor-info data-points)))))))
-
 (defn mk-reified-nimbus [nimbus conf blob-store]
   (let [principal-to-local (AuthUtils/GetPrincipalToLocalPlugin conf)
         admin-users (or (.get conf NIMBUS-ADMINS) [])
@@ -997,7 +983,7 @@
         (conf STORM-CLUSTER-METRICS-CONSUMER-PUBLISH-INTERVAL-SECS)
         (fn []
           (when (.isLeader nimbus)
-            (send-cluster-metrics-to-executors nimbus)))))
+            (.sendClusterMetricsToExecutors nimbus)))))
 
     (mk-reified-nimbus nimbus conf blob-store)))
 
