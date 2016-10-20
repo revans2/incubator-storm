@@ -98,12 +98,6 @@
   (map-val #(clojurify-storm-base %) (clojurify-structure
                                         (StormCommon/topologyBases storm-cluster-state))))
 
-(defn topology-assignments 
-  [storm-cluster-state]
-  (let [assigned-topology-ids (.assignments storm-cluster-state nil)]
-    (into {} (for [tid assigned-topology-ids]
-               {tid (.assignmentInfo storm-cluster-state tid nil)}))))
-
 (defn get-launch-time-secs 
   [base storm-id]
   (if base (:launch-time-secs base)
@@ -891,7 +885,7 @@
                       _ (log-message "SID: " sid " SI: " supervisor-info " ALL: " supervisor-infos)
                       sup-sum (.makeSupervisorSummary nimbus sid supervisor-info)
                       _ (.add_to_supervisor_summaries page-info sup-sum)
-                      topo-id->assignments (topology-assignments storm-cluster-state)
+                      topo-id->assignments (clojurify-structure (.topologyAssignments storm-cluster-state))
                       supervisor-topologies (clojurify-structure (Nimbus/topologiesOnSupervisor topo-id->assignments sid))
                       user-topologies (clojurify-structure (.filterAuthorized nimbus "getTopology" supervisor-topologies))]
                   (doseq [storm-id supervisor-topologies]

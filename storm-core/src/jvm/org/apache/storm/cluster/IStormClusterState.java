@@ -159,4 +159,12 @@ public interface IStormClusterState {
         }
         return null;
     }
+    
+    default Map<String, Assignment> topologyAssignments() {
+        Map<String, Assignment> ret = new HashMap<>();
+        for (String topoId: assignments(null)) {
+            ret.put(topoId, assignmentInfo(topoId, null));
+        }
+        return ret;
+    }
 }

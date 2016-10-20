@@ -1371,8 +1371,8 @@
       (.thenReturn (Mockito/when (.allSupervisorInfo cluster-state)) all-supervisors)
       (.thenReturn (Mockito/when (.readTopologyConf blob-store (Mockito/any String) (Mockito/any Subject))) expected-conf)
       (.thenReturn (Mockito/when (.readTopology blob-store (Mockito/any String) (Mockito/any Subject))) topology)
+      (.thenReturn (Mockito/when (.topologyAssignments cluster-state)) topo-assignment)
       (stubbing [clojurify-assignment clojurified-assignment
-                 nimbus/topology-assignments topo-assignment
                  nimbus/get-launch-time-secs 0]
         (.getSupervisorPageInfo nimbus "super1" nil true)
  
