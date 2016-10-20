@@ -107,33 +107,19 @@
   (and (>= val lower)
     (<= val upper)))
 
-(defn extract-supervisors-metrics [^ClusterSummary summ]
-  (let [sups (.get_supervisors summ)
-        supervisors-summ ((ui/supervisor-summary sups) "supervisors")]
-    (map (fn [supervisor-summ]
-           {:supervisor-info (IClusterMetricsConsumer$SupervisorInfo.
-                               (supervisor-summ "host")
-                               (supervisor-summ "id")
-                               (long (Time/currentTimeSecs)))
-            :data-points     (map
-                               (fn [[k v]] (DataPoint. k v))
-                               (select-keys supervisor-summ ["slotsTotal" "slotsUsed" "totalMem" "totalCpu"
-                                                             "usedMem" "usedCpu"]))})
-         supervisors-summ)))
-
 (defn send-cluster-metrics-to-executors [nimbus]
   (let [cluster-info (Nimbus/mkClusterInfo )
         cluster-summary (.getClusterInfo nimbus)
         cluster-metrics (Nimbus/extractClusterMetrics cluster-summary)
-        supervisors-metrics (extract-supervisors-metrics cluster-summary)]
+        supervisors-metrics (clojurify-structure (Nimbus/extractSupervisorMetrics cluster-summary))]
     (dofor
       [consumer-executor (.getClusterConsumerExecutors nimbus)]
       (do
         (.handleDataPoints consumer-executor cluster-info cluster-metrics)
         (dofor
-          [supervisor-metrics supervisors-metrics]
+          [[supervisor-info data-points] supervisors-metrics]
           (do
-            (.handleDataPoints consumer-executor (:supervisor-info supervisor-metrics) (:data-points supervisor-metrics))))))))
+            (.handleDataPoints consumer-executor supervisor-info data-points)))))))
 
 (defn mk-reified-nimbus [nimbus conf blob-store]
   (let [principal-to-local (AuthUtils/GetPrincipalToLocalPlugin conf)
