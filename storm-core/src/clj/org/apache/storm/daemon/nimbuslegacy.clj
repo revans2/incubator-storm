@@ -191,15 +191,7 @@
         (.uploadNewCredentials nimbus storm-name credentials))
 
       (beginFileUpload [this]
-        (.mark Nimbus/beginFileUploadCalls)
-        (.checkAuthorization nimbus nil nil "fileUpload")
-        (let [fileloc (str (.getInbox nimbus) "/stormjar-" (Utils/uuid) ".jar")]
-          (.put (.getUploaders nimbus)
-                fileloc
-                (Channels/newChannel (FileOutputStream. fileloc)))
-          (log-message "Uploading file from client to " fileloc)
-          fileloc
-          ))
+        (.beginFileUpload nimbus))
 
       (^void uploadChunk [this ^String location ^ByteBuffer chunk]
         (.mark Nimbus/uploadChunkCalls)

@@ -22,9 +22,11 @@ import static org.apache.storm.utils.Utils.OR;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
+import java.nio.channels.Channels;
 import java.security.Principal;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -2718,16 +2720,6 @@ public class Nimbus implements Iface {
         }
     }
     
-//    (uploadNewCredentials [this storm-name credentials]
-//            (.mark Nimbus/uploadNewCredentialsCalls)
-//            (let [storm-cluster-state (.getStormClusterState nimbus)
-//                  storm-id (StormCommon/getStormId storm-cluster-state storm-name)
-//                  _ (when (nil? storm-id) (throw (NotAliveException. (str storm-name " is not alive"))))
-//                  topology-conf (clojurify-structure (Nimbus/tryReadTopoConf storm-id blob-store))
-//                  creds (when credentials (.get_creds credentials))]
-//              (.checkAuthorization nimbus storm-name topology-conf "uploadNewCredentials")
-//              (locking (.getCredUpdateLock nimbus) (.setCredentials storm-cluster-state storm-id (thriftify-credentials creds) topology-conf))))
-
     @Override
     public String beginCreateBlob(String key, SettableBlobMeta meta)
             throws AuthorizationException, KeyAlreadyExistsException, TException {
@@ -2816,10 +2808,22 @@ public class Nimbus implements Iface {
         
     }
 
+    @SuppressWarnings("deprecation")
     @Override
     public String beginFileUpload() throws AuthorizationException, TException {
-        // TODO Auto-generated method stub
-        return null;
+        try {
+            beginFileUploadCalls.mark();
+            checkAuthorization(null, null, "fileUpload");
+            String fileloc = getInbox() + "/stormjar-" + Utils.uuid() + ".jar";
+            getUploaders().put(fileloc, Channels.newChannel(new FileOutputStream(fileloc)));
+            LOG.info("Uploading file from client to {}", fileloc);
+            return fileloc;
+        } catch (Exception e) {
+            if (e instanceof TException) {
+                throw (TException)e;
+            }
+            throw new RuntimeException(e);
+        }
     }
 
     @Override
