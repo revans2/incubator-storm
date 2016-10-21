@@ -2977,8 +2977,18 @@ public class Nimbus implements Iface {
 
     @Override
     public String getTopologyConf(String id) throws NotAliveException, AuthorizationException, TException {
-        // TODO Auto-generated method stub
-        return null;
+        try {
+            getTopologyConfCalls.mark();
+            Map<String, Object> topoConf = tryReadTopoConf(id, getBlobStore());
+            String topoName = (String) topoConf.get(Config.TOPOLOGY_NAME);
+            checkAuthorization(topoName, topoConf, "getTopologyConf");
+            return JSONValue.toJSONString(topoConf);
+        } catch (Exception e) {
+            if (e instanceof TException) {
+                throw (TException)e;
+            }
+            throw new RuntimeException(e);
+        }
     }
 
     @Override
