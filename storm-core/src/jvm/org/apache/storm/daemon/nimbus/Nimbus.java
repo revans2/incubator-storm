@@ -254,6 +254,19 @@ public class Nimbus implements Iface {
         }
     }
     
+    private static class CommonTopoInfo {
+        public Map<String, Object> topoConf;
+        public String topoName;
+        public StormTopology topology;
+        public Map<Integer, String> taskToComponent;
+        public StormBase base;
+        public int launchTimeSecs;
+        public Assignment assignment;
+        public Map<List<Integer>, Map<String, Object>> beats;
+        public HashSet allComponents;
+
+    }
+    
     @SuppressWarnings("deprecation")
     public static TimeCacheMap<String, AutoCloseable> fileCacheMap(Map<String, Object> conf) {
         return new TimeCacheMap<>(Utils.getInt(conf.get(Config.NIMBUS_FILE_COPY_EXPIRATION_SECS), 600),
@@ -2281,6 +2294,23 @@ public class Nimbus implements Iface {
         }
     }
 
+    //TODO private
+    public CommonTopoInfo getCommonTopoInfo(String topoId, String operation) throws NotAliveException, AuthorizationException, IOException, InvalidTopologyException {
+        BlobStore store = getBlobStore();
+        IStormClusterState state = getStormClusterState();
+        CommonTopoInfo ret = new CommonTopoInfo();
+        ret.topoConf = tryReadTopoConf(topoId, store);
+        ret.topoName = (String)ret.topoConf.get(Config.TOPOLOGY_NAME);
+        checkAuthorization(ret.topoName, ret.topoConf, operation);
+        ret.topology = tryReadTopology(topoId, store);
+        ret.taskToComponent = StormCommon.stormTaskInfo(ret.topology, ret.topoConf);
+        ret.base = state.stormBase(topoId, null);
+        ret.launchTimeSecs = ret.base.get_launch_time_secs();
+        ret.assignment = state.assignmentInfo(topoId, null);
+        ret.beats = OR(getHeartbeatsCache().get().get(topoId), Collections.emptyMap());
+        ret.allComponents = new HashSet<>(ret.taskToComponent.values());
+        return ret;
+    }
     
     //THRIFT SERVER METHODS...
     
@@ -2460,10 +2490,49 @@ public class Nimbus implements Iface {
     }
     
     @Override
-    public List<ProfileRequest> getComponentPendingProfileActions(String id, String component_id, ProfileAction action)
+    public List<ProfileRequest> getComponentPendingProfileActions(String id, String componentId, ProfileAction action)
             throws TException {
-        // TODO Auto-generated method stub
-        return null;
+        try {
+            getComponentPendingProfileActionsCalls.mark();
+            CommonTopoInfo info = getCommonTopoInfo(id, "getComponentPendingProfileActions");
+            Map<String, String> nodeToHost = info.assignment.get_node_host();
+            Map<List<? extends Number>, List<Object>> exec2hostPort = new HashMap<>();
+            for (Entry<List<Long>, NodeInfo> entry: info.assignment.get_executor_node_port().entrySet()) {
+                NodeInfo ni = entry.getValue();
+                List<Object> hostPort = Arrays.asList(nodeToHost.get(ni.get_node()), ni.get_port_iterator().next().intValue());
+                exec2hostPort.put(entry.getKey(), hostPort);
+            }
+            List<Map<String, Object>> nodeInfos = StatsUtil.extractNodeInfosFromHbForComp(exec2hostPort, info.taskToComponent, false, componentId);
+            List<ProfileRequest> ret = new ArrayList<>();
+            for (Map<String, Object> ni : nodeInfos) {
+                String niHost = (String) ni.get("host");
+                int niPort = ((Integer) ni.get("port")).intValue();
+                ProfileRequest newestMatch = null;
+                long reqTime = -1;
+                for (ProfileRequest req : getStormClusterState().getTopologyProfileRequests(id)) {
+                    String expectedHost = req.get_nodeInfo().get_node();
+                    int expectedPort = req.get_nodeInfo().get_port_iterator().next().intValue();
+                    ProfileAction expectedAction = req.get_action();
+                    if (niHost.equals(expectedHost) && niPort == expectedPort && action == expectedAction) {
+                        long time = req.get_time_stamp();
+                        if (time > reqTime) {
+                            reqTime = time;
+                            newestMatch = req;
+                        }
+                    }
+                }
+                if (newestMatch != null) {
+                    ret.add(newestMatch);
+                }
+            }
+            LOG.info("Latest profile actions for topology {} component {} {}", id, componentId, ret);
+            return ret;
+        } catch (Exception e) {
+            if (e instanceof TException) {
+                throw (TException)e;
+            }
+            throw new RuntimeException(e);
+        }
     }
 
     @Override

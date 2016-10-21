@@ -264,27 +264,7 @@
 
       (^List getComponentPendingProfileActions
         [this ^String id ^String component_id ^ProfileAction action]
-        (.mark Nimbus/getComponentPendingProfileActionsCalls)
-        (let [info (get-common-topo-info id "getComponentPendingProfileActions")
-              storm-cluster-state (:storm-cluster-state info)
-              task->component (:task->component info)
-              {:keys [executor->node+port node->host]} (:assignment info)
-              ;TODO: when translating this function, you should replace the map-val with a proper for loop HERE
-              executor->host+port (map-val (fn [[node port]]
-                                             [(node->host node) port])
-                                    executor->node+port)
-              nodeinfos (clojurify-structure (StatsUtil/extractNodeInfosFromHbForComp executor->host+port task->component false component_id))
-              all-pending-actions-for-topology (clojurify-profile-request (.getTopologyProfileRequests storm-cluster-state id))
-              latest-profile-actions (remove nil? (map (fn [nodeInfo]
-                                                         (->> all-pending-actions-for-topology
-                                                              (filter #(and (= (:host nodeInfo) (.get_node (.get_nodeInfo %)))
-                                                                         (= (:port nodeInfo) (first (.get_port (.get_nodeInfo  %))))))
-                                                              (filter #(= action (.get_action %)))
-                                                              (sort-by #(.get_time_stamp %) >)
-                                                              first))
-                                                    nodeinfos))]
-          (log-message "Latest profile actions for topology " id " component " component_id " " (pr-str latest-profile-actions))
-          latest-profile-actions))
+        (.getComponentPendingProfileActions nimbus id component_id action))
 
       (^void setLogConfig [this ^String id ^LogConfig log-config-msg]
         (.mark Nimbus/setLogConfigCalls)

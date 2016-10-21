@@ -56,6 +56,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 
 @SuppressWarnings("unchecked")
@@ -1505,19 +1506,18 @@ public class StatsUtil {
      * @return a list of host+port
      */
     public static List<Map<String, Object>> extractNodeInfosFromHbForComp(
-            Map exec2hostPort, Map task2component, boolean includeSys, String compId) {
+            Map<List<? extends Number>, List<Object>> exec2hostPort, Map<Integer, String> task2component, boolean includeSys, String compId) {
         List<Map<String, Object>> ret = new ArrayList<>();
 
         Set<List> hostPorts = new HashSet<>();
-        for (Object o : exec2hostPort.entrySet()) {
-            Map.Entry entry = (Map.Entry) o;
-            List key = (List) entry.getKey();
-            List value = (List) entry.getValue();
+        for (Entry<List<? extends Number>, List<Object>> entry : exec2hostPort.entrySet()) {
+            List<? extends Number> key = entry.getKey();
+            List value = entry.getValue();
 
-            Integer start = ((Number) key.get(0)).intValue();
+            Integer start = key.get(0).intValue();
             String host = (String) value.get(0);
             Integer port = (Integer) value.get(1);
-            String comp = (String) task2component.get(start);
+            String comp = task2component.get(start);
             if ((compId == null || compId.equals(comp)) && (includeSys || !Utils.isSystemId(comp))) {
                 hostPorts.add(Lists.newArrayList(host, port));
             }
