@@ -188,14 +188,7 @@
         (.setLogConfig nimbus id log-config-msg))
 
       (uploadNewCredentials [this storm-name credentials]
-        (.mark Nimbus/uploadNewCredentialsCalls)
-        (let [storm-cluster-state (.getStormClusterState nimbus)
-              storm-id (StormCommon/getStormId storm-cluster-state storm-name)
-              _ (when (nil? storm-id) (throw (NotAliveException. (str storm-name " is not alive"))))
-              topology-conf (clojurify-structure (Nimbus/tryReadTopoConf storm-id blob-store))
-              creds (when credentials (.get_creds credentials))]
-          (.checkAuthorization nimbus storm-name topology-conf "uploadNewCredentials")
-          (locking (.getCredUpdateLock nimbus) (.setCredentials storm-cluster-state storm-id (thriftify-credentials creds) topology-conf))))
+        (.uploadNewCredentials nimbus storm-name credentials))
 
       (beginFileUpload [this]
         (.mark Nimbus/beginFileUploadCalls)

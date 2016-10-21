@@ -2693,11 +2693,40 @@ public class Nimbus implements Iface {
     }
 
     @Override
-    public void uploadNewCredentials(String name, Credentials creds)
+    public void uploadNewCredentials(String topoName, Credentials credentials)
             throws NotAliveException, InvalidTopologyException, AuthorizationException, TException {
-        // TODO Auto-generated method stub
-        
+        try {
+            uploadNewCredentialsCalls.mark();
+            IStormClusterState state = getStormClusterState();
+            String topoId = StormCommon.getStormId(state, topoName);
+            if (topoId == null) {
+                throw new NotAliveException(topoName + " is not alive");
+            }
+            Map<String, Object> topoConf = tryReadTopoConf(topoId, getBlobStore());
+            if (credentials == null) {
+                credentials = new Credentials(Collections.emptyMap());
+            }
+            checkAuthorization(topoName, topoConf, "uploadNewCredentials");
+            synchronized(getCredUpdateLock()) {
+                state.setCredentials(topoId, credentials, topoConf);
+            }
+        } catch (Exception e) {
+            if (e instanceof TException) {
+                throw (TException)e;
+            }
+            throw new RuntimeException(e);
+        }
     }
+    
+//    (uploadNewCredentials [this storm-name credentials]
+//            (.mark Nimbus/uploadNewCredentialsCalls)
+//            (let [storm-cluster-state (.getStormClusterState nimbus)
+//                  storm-id (StormCommon/getStormId storm-cluster-state storm-name)
+//                  _ (when (nil? storm-id) (throw (NotAliveException. (str storm-name " is not alive"))))
+//                  topology-conf (clojurify-structure (Nimbus/tryReadTopoConf storm-id blob-store))
+//                  creds (when credentials (.get_creds credentials))]
+//              (.checkAuthorization nimbus storm-name topology-conf "uploadNewCredentials")
+//              (locking (.getCredUpdateLock nimbus) (.setCredentials storm-cluster-state storm-id (thriftify-credentials creds) topology-conf))))
 
     @Override
     public String beginCreateBlob(String key, SettableBlobMeta meta)
