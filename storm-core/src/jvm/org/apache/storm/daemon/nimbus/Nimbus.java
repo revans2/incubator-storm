@@ -25,6 +25,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
+import java.security.Principal;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -93,6 +94,7 @@ import org.apache.storm.generated.SupervisorPageInfo;
 import org.apache.storm.generated.SupervisorSummary;
 import org.apache.storm.generated.TopologyHistoryInfo;
 import org.apache.storm.generated.TopologyInfo;
+import org.apache.storm.generated.TopologyInitialStatus;
 import org.apache.storm.generated.TopologyPageInfo;
 import org.apache.storm.generated.TopologyStatus;
 import org.apache.storm.generated.TopologySummary;
@@ -123,6 +125,7 @@ import org.apache.storm.security.auth.AuthUtils;
 import org.apache.storm.security.auth.IAuthorizer;
 import org.apache.storm.security.auth.ICredentialsRenewer;
 import org.apache.storm.security.auth.IGroupMappingServiceProvider;
+import org.apache.storm.security.auth.IPrincipalToLocal;
 import org.apache.storm.security.auth.NimbusPrincipal;
 import org.apache.storm.security.auth.ReqContext;
 import org.apache.storm.stats.StatsUtil;
@@ -133,6 +136,7 @@ import org.apache.storm.utils.TimeCacheMap;
 import org.apache.storm.utils.Utils;
 import org.apache.storm.utils.Utils.UptimeComputer;
 import org.apache.storm.utils.VersionInfo;
+import org.apache.storm.validation.ConfigValidation;
 import org.apache.storm.zookeeper.Zookeeper;
 import org.apache.thrift.TException;
 import org.apache.zookeeper.ZooDefs;
@@ -886,6 +890,7 @@ public class Nimbus implements Iface {
     private final ITopologyActionNotifierPlugin nimbusTopologyActionNotifier;
     private final List<ClusterMetricsConsumerExecutor> clusterConsumerExceutors;
     private final IGroupMappingServiceProvider groupMapper;
+    private final IPrincipalToLocal principalToLocal;
     
     private static IStormClusterState makeStormClusterState(Map<String, Object> conf) throws Exception {
         //TODO need to change CLusterUtils to have a Map option
@@ -954,6 +959,7 @@ public class Nimbus implements Iface {
             groupMapper = AuthUtils.GetGroupMappingServiceProviderPlugin(conf);
         }
         this.groupMapper = groupMapper;
+        this.principalToLocal = AuthUtils.GetPrincipalToLocalPlugin(conf);
     }
 
     public Map<String, Object> getConf() {
@@ -2322,13 +2328,117 @@ public class Nimbus implements Iface {
     }
 
     @Override
-    public void submitTopologyWithOpts(String name, String uploadedJarLocation, String jsonConf, StormTopology topology,
+    public void submitTopologyWithOpts(String topoName, String uploadedJarLocation, String jsonConf, StormTopology topology,
             SubmitOptions options)
             throws AlreadyAliveException, InvalidTopologyException, AuthorizationException, TException {
-        // TODO Auto-generated method stub
-        
+        try {
+            submitTopologyWithOptsCalls.mark();
+            assertIsLeader();
+            assert(options != null);
+            validateTopologyName(topoName);
+            checkAuthorization(topoName, null, "submitTopology");
+            assertTopoActive(topoName, false);
+            @SuppressWarnings("unchecked")
+            Map<String, Object> topoConf = (Map<String, Object>) JSONValue.parse(jsonConf);
+            try {
+                ConfigValidation.validateFields(topoConf);
+            } catch (IllegalArgumentException ex) {
+                throw new InvalidTopologyException(ex.getMessage());
+            }
+            getValidator().validate(topoName, topoConf, topology);
+            long uniqueNum = getSubmittedCount().incrementAndGet();
+            String topoId = topoName + "-" + uniqueNum + "-" + Time.currentTimeSecs();
+            Map<String, String> creds = null;
+            if (options.is_set_creds()) {
+                creds = options.get_creds().get_creds();
+            }
+            topoConf.put(Config.STORM_ID, topoId);
+            topoConf.put(Config.TOPOLOGY_NAME, topoName);
+            topoConf = normalizeConf(getConf(), topoConf, topology);
+            
+            ReqContext req = ReqContext.context();
+            Principal principal = req.principal();
+            String submitterPrincipal = principal == null ? null : principal.toString();
+            String submitterUser = principalToLocal.toLocal(principal);
+            String systemUser = System.getProperty("user.name");
+            @SuppressWarnings("unchecked")
+            Set<String> topoAcl = new HashSet<>((List<String>)topoConf.getOrDefault(Config.TOPOLOGY_USERS, Collections.emptyList()));
+            topoAcl.add(submitterPrincipal);
+            topoAcl.add(submitterUser);
+            
+            topoConf.put(Config.TOPOLOGY_SUBMITTER_PRINCIPAL, OR(submitterPrincipal, ""));
+            topoConf.put(Config.TOPOLOGY_SUBMITTER_USER, OR(submitterUser, systemUser)); //Don't let the user set who we launch as
+            topoConf.put(Config.TOPOLOGY_USERS, new ArrayList<>(topoAcl));
+            topoConf.put(Config.STORM_ZOOKEEPER_SUPERACL, conf.get(Config.STORM_ZOOKEEPER_SUPERACL));
+            if (!Utils.isZkAuthenticationConfiguredStormServer(conf)) {
+                topoConf.remove(Config.STORM_ZOOKEEPER_TOPOLOGY_AUTH_SCHEME);
+                topoConf.remove(Config.STORM_ZOOKEEPER_TOPOLOGY_AUTH_PAYLOAD);
+            }
+            if (!(Boolean)conf.getOrDefault(Config.STORM_TOPOLOGY_CLASSPATH_BEGINNING_ENABLED, false)) {
+                topoConf.remove(Config.TOPOLOGY_CLASSPATH_BEGINNING);
+            }
+            Map<String, Object> totalConf = merge(conf, topoConf);
+            topology = normalizeTopology(totalConf, topology);
+            IStormClusterState state = getStormClusterState();
+            
+            if (creds != null) {
+                Map<String, Object> finalConf = Collections.unmodifiableMap(topoConf);
+                for (INimbusCredentialPlugin autocred: getNimbusAutocredPlugins()) {
+                    autocred.populateCredentials(creds, finalConf);
+                }
+            }
+            
+            if (Utils.getBoolean(conf.get(Config.SUPERVISOR_RUN_WORKER_AS_USER), false) &&
+                    (submitterUser == null || submitterUser.isEmpty())) {
+                throw new AuthorizationException("Could not determine the user to run this topology as.");
+            }
+            StormCommon.systemTopology(totalConf, topology); //this validates the structure of the topology
+            validateTopologySize(topoConf, conf, topology);
+            if (Utils.isZkAuthenticationConfiguredStormServer(conf) &&
+                    !Utils.isZkAuthenticationConfiguredTopology(topoConf)) {
+                throw new IllegalArgumentException("The cluster is configured for zookeeper authentication, but no payload was provided.");
+            }
+            LOG.info("Received topology submission for {} with conf {}", topoName, Utils.redactValue(topoConf, Config.STORM_ZOOKEEPER_TOPOLOGY_AUTH_PAYLOAD));
+            
+            // lock protects against multiple topologies being submitted at once and
+            // cleanup thread killing topology in b/w assignment and starting the topology
+            synchronized(getSubmitLock()) {
+                assertTopoActive(topoName, false);
+                //cred-update-lock is not needed here because creds are being added for the first time.
+                if (creds != null) {
+                    state.setCredentials(topoId, new Credentials(creds), topoConf);
+                }
+                LOG.info("uploadedJar {}", uploadedJarLocation);
+                setupStormCode(conf, topoId, uploadedJarLocation, totalConf, topology);
+                waitForDesiredCodeReplication(totalConf, topoId);
+                state.setupHeatbeats(topoId);
+                if (Utils.getBoolean(totalConf.get(Config.TOPOLOGY_BACKPRESSURE_ENABLE), false)) {
+                    state.setupBackpressure(topoId);
+                }
+                notifyTopologyActionListener(topoName, "submitTopology");
+                TopologyStatus status = null;
+                switch (options.get_initial_status()) {
+                    case INACTIVE:
+                        status = TopologyStatus.INACTIVE;
+                        break;
+                    case ACTIVE:
+                        status = TopologyStatus.ACTIVE;
+                        break;
+                    default:
+                        throw new IllegalArgumentException("Inital Status of " + options.get_initial_status() + " is not allowed.");
+                            
+                }
+                startStorm(topoName, topoId, status);
+            }
+        } catch (Exception e) {
+            LOG.warn("Topology submission exception. (topology name='{}')", topoName, e);
+            if (e instanceof TException) {
+                throw (TException)e;
+            }
+            throw new RuntimeException(e);
+        }
     }
-
+    
     @Override
     public void killTopology(String name) throws NotAliveException, AuthorizationException, TException {
         killTopologyCalls.mark();

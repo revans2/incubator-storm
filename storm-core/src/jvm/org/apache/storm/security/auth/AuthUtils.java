@@ -153,12 +153,20 @@ public class AuthUtils {
      * @param storm_conf storm configuration
      * @return the plugin
      */
-    public static IPrincipalToLocal GetPrincipalToLocalPlugin(Map storm_conf) {
-        IPrincipalToLocal ptol;
+    public static IPrincipalToLocal GetPrincipalToLocalPlugin(Map<String, Object> storm_conf) {
+        IPrincipalToLocal ptol = null;
         try {
             String ptol_klassName = (String) storm_conf.get(Config.STORM_PRINCIPAL_TO_LOCAL_PLUGIN);
-            ptol = Utils.newInstance(ptol_klassName);
-            ptol.prepare(storm_conf);
+            if (ptol_klassName == null) {
+                LOG.warn("No principal to local given {}", Config.STORM_PRINCIPAL_TO_LOCAL_PLUGIN);
+            } else {
+                ptol = Utils.newInstance(ptol_klassName);
+                //TODO this can only ever be null if someone is doing something odd with mocking
+                // We should really fix the mocking and remove this
+                if (ptol != null) {
+                    ptol.prepare(storm_conf);
+                }
+            }
         } catch (Exception e) {
             throw new RuntimeException(e);
         }

@@ -1673,11 +1673,12 @@ public class Utils {
      * @param key The key pointing to the value to be redacted
      * @return a new map with the value redacted. The original map will not be modified.
      */
-    public static Map<Object, String> redactValue(Map<Object, String> m, Object key) {
-        if(m.containsKey(key)) {
-            HashMap<Object, String> newMap = new HashMap<>(m);
-            String value = newMap.get(key);
-            String redacted = new String(new char[value.length()]).replace("\0", "#");
+    public static Map<String, Object> redactValue(Map<String, Object> m, String key) {
+        if (m.containsKey(key)) {
+            HashMap<String, Object> newMap = new HashMap<>(m);
+            Object value = newMap.get(key);
+            String v = value.toString();
+            String redacted = new String(new char[v.length()]).replace("\0", "#");
             newMap.put(key, redacted);
             return newMap;
         }
