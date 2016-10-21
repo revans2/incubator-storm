@@ -253,12 +253,7 @@
          (.activate nimbus storm-name))
 
       (deactivate [this storm-name]
-        (.mark Nimbus/deactivateCalls)
-        (let [topology-conf (clojurify-structure (.tryReadTopoConfFromName nimbus storm-name))
-              operation "deactivate"]
-          (.checkAuthorization nimbus storm-name topology-conf operation)
-          (.transitionName nimbus storm-name TopologyActions/INACTIVATE nil true)
-          (.notifyTopologyActionListener nimbus storm-name operation)))
+         (.deactivate nimbus storm-name))
 
       (debug [this storm-name component-id enable? samplingPct]
         (.mark Nimbus/debugCalls)

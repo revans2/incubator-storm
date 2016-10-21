@@ -2346,9 +2346,20 @@ public class Nimbus implements Iface {
     }
 
     @Override
-    public void deactivate(String name) throws NotAliveException, AuthorizationException, TException {
-        // TODO Auto-generated method stub
-        
+    public void deactivate(String topoName) throws NotAliveException, AuthorizationException, TException {
+        deactivateCalls.mark();
+        try {
+            Map<String, Object> topoConf = tryReadTopoConfFromName(topoName);
+            final String operation = "deactivate";
+            checkAuthorization(topoName, topoConf, operation);
+            transitionName(topoName, TopologyActions.INACTIVATE, null, true);
+            notifyTopologyActionListener(topoName, operation);
+        } catch (Exception e) {
+            if (e instanceof TException) {
+                throw (TException)e;
+            }
+            throw new RuntimeException(e);
+        }
     }
 
     @Override
