@@ -207,9 +207,7 @@
         (.downloadChunk nimbus id))
 
       (^String getNimbusConf [this]
-        (.mark Nimbus/getNimbusConfCalls)
-        (.checkAuthorization nimbus nil nil "getNimbusConf")
-        (JSONValue/toJSONString (.getConf nimbus)))
+        (.getNimbusConf nimbus))
 
       (^LogConfig getLogConfig [this ^String id]
         (.mark Nimbus/getLogConfigCalls)

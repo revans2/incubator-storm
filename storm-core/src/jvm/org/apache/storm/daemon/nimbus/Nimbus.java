@@ -2914,10 +2914,18 @@ public class Nimbus implements Iface {
 
     @Override
     public String getNimbusConf() throws AuthorizationException, TException {
-        // TODO Auto-generated method stub
-        return null;
+        try {
+            getNimbusConfCalls.mark();
+            checkAuthorization(null, null, "getNimbusConf");
+            return JSONValue.toJSONString(getConf());
+        } catch (Exception e) {
+            if (e instanceof TException) {
+                throw (TException)e;
+            }
+            throw new RuntimeException(e);
+        }
     }
-
+    
     @Override
     public TopologyInfo getTopologyInfo(String id) throws NotAliveException, AuthorizationException, TException {
         // TODO Auto-generated method stub
