@@ -185,30 +185,7 @@
         (.getComponentPendingProfileActions nimbus id component_id action))
 
       (^void setLogConfig [this ^String id ^LogConfig log-config-msg]
-        (.mark Nimbus/setLogConfigCalls)
-        (let [topology-conf (clojurify-structure (Nimbus/tryReadTopoConf id (.getBlobStore nimbus)))
-              storm-name (topology-conf TOPOLOGY-NAME)
-              _ (.checkAuthorization nimbus storm-name topology-conf "setLogConfig")
-              storm-cluster-state (.getStormClusterState nimbus)
-              merged-log-config (or (.topologyLogConfig storm-cluster-state id nil) (LogConfig.))
-              named-loggers (.get_named_logger_level merged-log-config)]
-            (doseq [[_ level] named-loggers]
-              (.set_action level LogLevelAction/UNCHANGED))
-            (doseq [[logger-name log-config] (.get_named_logger_level log-config-msg)]
-              (let [action (.get_action log-config)]
-                (if (clojure.string/blank? logger-name)
-                  (throw (RuntimeException. "Named loggers need a valid name. Use ROOT for the root logger")))
-                (condp = action
-                  LogLevelAction/UPDATE
-                    (do (Nimbus/setLoggerTimeouts log-config)
-                          (.put_to_named_logger_level merged-log-config logger-name log-config))
-                  LogLevelAction/REMOVE
-                    (let [named-loggers (.get_named_logger_level merged-log-config)]
-                      (if (and (not (nil? named-loggers))
-                               (.containsKey named-loggers logger-name))
-                        (.remove named-loggers logger-name))))))
-            (log-message "Setting log config for " storm-name ":" merged-log-config)
-            (.setTopologyLogConfig storm-cluster-state id merged-log-config)))
+        (.setLogConfig nimbus id log-config-msg))
 
       (uploadNewCredentials [this storm-name credentials]
         (.mark Nimbus/uploadNewCredentialsCalls)

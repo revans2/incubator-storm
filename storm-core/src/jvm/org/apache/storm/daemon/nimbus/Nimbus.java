@@ -77,6 +77,7 @@ import org.apache.storm.generated.LSTopoHistory;
 import org.apache.storm.generated.ListBlobsResult;
 import org.apache.storm.generated.LogConfig;
 import org.apache.storm.generated.LogLevel;
+import org.apache.storm.generated.LogLevelAction;
 import org.apache.storm.generated.Nimbus.Iface;
 import org.apache.storm.generated.NimbusSummary;
 import org.apache.storm.generated.NodeInfo;
@@ -2529,9 +2530,55 @@ public class Nimbus implements Iface {
     }
 
     @Override
-    public void setLogConfig(String name, LogConfig config) throws TException {
-        // TODO Auto-generated method stub
-        
+    public void setLogConfig(String topoId, LogConfig config) throws TException {
+        try {
+            setLogConfigCalls.mark();
+            Map<String, Object> topoConf = tryReadTopoConf(topoId, getBlobStore());
+            String topoName = (String) topoConf.get(Config.TOPOLOGY_NAME);
+            checkAuthorization(topoName, topoConf, "setLogConfig");
+            IStormClusterState state = getStormClusterState();
+            LogConfig mergedLogConfig = state.topologyLogConfig(topoId, null);
+            if (mergedLogConfig == null) {
+                mergedLogConfig = new LogConfig();
+            }
+            Map<String, LogLevel> namedLoggers = mergedLogConfig.get_named_logger_level();
+            for (LogLevel level: namedLoggers.values()) {
+                level.set_action(LogLevelAction.UNCHANGED);
+            }
+            
+            if (config.is_set_named_logger_level()) {
+                for (Entry<String, LogLevel> entry: config.get_named_logger_level().entrySet()) {
+                    LogLevel logConfig = entry.getValue();
+                    String loggerName = entry.getKey();
+                    LogLevelAction action = logConfig.get_action();
+                    if (loggerName.isEmpty()) {
+                        throw new RuntimeException("Named loggers need a valid name. Use ROOT for the root logger");
+                    }
+                    switch (action) {
+                        case UPDATE:
+                            setLoggerTimeouts(logConfig);
+                            mergedLogConfig.put_to_named_logger_level(loggerName, logConfig);
+                            break;
+                        case REMOVE:
+                            Map<String, LogLevel> nl = mergedLogConfig.get_named_logger_level();
+                            if (nl != null) {
+                                nl.remove(loggerName);
+                            }
+                            break;
+                        default:
+                            //NOOP
+                            break;
+                    }
+                }
+            }
+            LOG.info("Setting log config for {}:{}", topoName, mergedLogConfig);
+            state.setTopologyLogConfig(topoId, mergedLogConfig);
+        } catch (Exception e) {
+            if (e instanceof TException) {
+                throw (TException)e;
+            }
+            throw new RuntimeException(e);
+        }
     }
 
     @Override
