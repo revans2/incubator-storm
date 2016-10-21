@@ -966,7 +966,7 @@
       (is (thrown? InvalidTopologyException
                    (.rebalance (:nimbus cluster) "test"
                      (doto (RebalanceOptions.)
-                       (.set_num_executors {"1" 0})
+                       (.set_num_executors {"1" (int 0)})
                        ))))
       )))
 

@@ -247,21 +247,7 @@
         (.killTopologyWithOpts nimbus storm-name options))
 
       (^void rebalance [this ^String storm-name ^RebalanceOptions options]
-        (.mark Nimbus/rebalanceCalls)
-        (.assertTopoActive nimbus storm-name true)
-        (let [topology-conf (clojurify-structure (.tryReadTopoConfFromName nimbus storm-name))
-              operation "rebalance"]
-          (.checkAuthorization nimbus storm-name topology-conf operation)
-          (let [executor-overrides (if (.is_set_num_executors options)
-                                     (.get_num_executors options)
-                                     {})]
-            (doseq [[c num-executors] executor-overrides]
-              (when (<= num-executors 0)
-                (throw (InvalidTopologyException. "Number of executors must be greater than 0"))
-                ))
-            (.transitionName nimbus storm-name TopologyActions/REBALANCE options true)
-
-            (.notifyTopologyActionListener nimbus storm-name operation))))
+        (.rebalance nimbus storm-name options))
 
       (activate [this storm-name]
         (.mark Nimbus/activateCalls)

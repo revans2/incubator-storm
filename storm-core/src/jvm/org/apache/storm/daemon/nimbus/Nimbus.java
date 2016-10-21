@@ -2311,7 +2311,7 @@ public class Nimbus implements Iface {
         assertTopoActive(topoName, true);
         try {
             Map<String, Object> topoConf = tryReadTopoConfFromName(topoName);
-            String operation = "killTopology";
+            final String operation = "killTopology";
             checkAuthorization(topoName, topoConf, operation);
             Integer waitAmount = null;
             if (options.is_set_wait_secs()) {
@@ -2341,10 +2341,28 @@ public class Nimbus implements Iface {
     }
 
     @Override
-    public void rebalance(String name, RebalanceOptions options)
+    public void rebalance(String topoName, RebalanceOptions options)
             throws NotAliveException, InvalidTopologyException, AuthorizationException, TException {
-        // TODO Auto-generated method stub
-        
+        rebalanceCalls.mark();
+        assertTopoActive(topoName, true);
+        try {
+            Map<String, Object> topoConf = tryReadTopoConfFromName(topoName);
+            final String operation = "rebalance";
+            checkAuthorization(topoName, topoConf, operation);
+            Map<String, Integer> execOverrides = options.is_set_num_executors() ? options.get_num_executors() : Collections.emptyMap();
+            for (Integer value : execOverrides.values()) {
+                if (value == null || value <= 0) {
+                    throw new InvalidTopologyException("Number of executors must be greater than 0");
+                }
+            }
+            transitionName(topoName, TopologyActions.REBALANCE, options, true);
+            notifyTopologyActionListener(topoName, operation);
+        } catch (Exception e) {
+            if (e instanceof TException) {
+                throw (TException)e;
+            }
+            throw new RuntimeException(e);
+        }
     }
 
     @Override
