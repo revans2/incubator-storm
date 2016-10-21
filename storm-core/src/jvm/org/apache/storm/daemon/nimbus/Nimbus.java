@@ -65,6 +65,7 @@ import org.apache.storm.generated.BeginDownloadResult;
 import org.apache.storm.generated.ClusterSummary;
 import org.apache.storm.generated.ComponentPageInfo;
 import org.apache.storm.generated.Credentials;
+import org.apache.storm.generated.DebugOptions;
 import org.apache.storm.generated.ExecutorInfo;
 import org.apache.storm.generated.GetInfoOptions;
 import org.apache.storm.generated.InvalidTopologyException;
@@ -2400,12 +2401,67 @@ public class Nimbus implements Iface {
     }
 
     @Override
-    public void debug(String name, String component, boolean enable, double samplingPercentage)
+    public void debug(String topoName, String componentId, boolean enable, double samplingPercentage)
             throws NotAliveException, AuthorizationException, TException {
-        // TODO Auto-generated method stub
-        
+        debugCalls.mark();
+        try {
+            IStormClusterState state = getStormClusterState();
+            String topoId = StormCommon.getStormId(state, topoName);
+            Map<String, Object> topoConf = tryReadTopoConf(topoId, getBlobStore());
+            // make sure samplingPct is within bounds.
+            double spct = Math.max(Math.min(samplingPercentage, 100.0), 0.0);
+            // while disabling we retain the sampling pct.
+            checkAuthorization(topoName, topoConf, "debug");
+            if (topoId == null) {
+                throw new NotAliveException(topoName);
+            }
+            boolean hasCompId = componentId != null && !componentId.isEmpty();
+            
+            DebugOptions options = new DebugOptions();
+            options.set_enable(enable);
+            if (enable) {
+                options.set_samplingpct(spct);
+            }
+            StormBase updates = new StormBase();
+            //For backwards compatability
+            updates.set_component_executors(Collections.emptyMap());
+            String key = hasCompId ? componentId : topoId;
+            updates.put_to_component_debug(key, options);
+            
+            LOG.info("Nimbus setting debug to {} for storm-name '{}' storm-id '{}' sanpling pct '{}'" + 
+                    (hasCompId ? " component-id '" + componentId + "'" : ""),
+                    enable, topoName, topoId, spct);
+            synchronized(getSubmitLock()) {
+                state.updateStorm(topoId, updates);
+            }
+        } catch (Exception e) {
+            if (e instanceof TException) {
+                throw (TException)e;
+            }
+            throw new RuntimeException(e);
+        }
     }
 
+//    (debug [this storm-name component-id enable? samplingPct]
+//            (.mark Nimbus/debugCalls)
+//            (let [storm-cluster-state (.getStormClusterState nimbus)
+//                  storm-id (StormCommon/getStormId storm-cluster-state storm-name)
+//                  topology-conf (clojurify-structure (Nimbus/tryReadTopoConf storm-id blob-store))
+//                  ;; make sure samplingPct is within bounds.
+//                  spct (Math/max (Math/min samplingPct 100.0) 0.0)
+//                  ;; while disabling we retain the sampling pct.
+//                  debug-options (if enable? {:enable enable? :samplingpct spct} {:enable enable?})
+//                  storm-base-updates (assoc {} :component->debug (if (empty? component-id)
+//                                                                   {storm-id debug-options}
+//                                                                   {component-id debug-options}))]
+//              (.checkAuthorization nimbus storm-name topology-conf "debug")
+//              (when-not storm-id
+//                (throw (NotAliveException. storm-name)))
+//              (log-message "Nimbus setting debug to " enable? " for storm-name '" storm-name "' storm-id '" storm-id "' sampling pct '" spct "'"
+//                (if (not (clojure.string/blank? component-id)) (str " component-id '" component-id "'")))
+//              (locking (.getSubmitLock nimbus)
+//                (.updateStorm storm-cluster-state storm-id  (converter/thriftify-storm-base storm-base-updates)))))
+    
     @Override
     public void setWorkerProfiler(String id, ProfileRequest profileRequest) throws TException {
         // TODO Auto-generated method stub
