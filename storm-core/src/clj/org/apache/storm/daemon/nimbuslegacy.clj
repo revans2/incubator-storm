@@ -219,11 +219,7 @@
         (.getTopology nimbus id))
 
       (^StormTopology getUserTopology [this ^String id]
-        (.mark Nimbus/getUserTopologyCalls)
-        (let [topology-conf (clojurify-structure (Nimbus/tryReadTopoConf id (.getBlobStore nimbus)))
-              storm-name (topology-conf TOPOLOGY-NAME)]
-              (.checkAuthorization nimbus storm-name topology-conf "getUserTopology")
-              (Nimbus/tryReadTopology id blob-store)))
+        (.getUserTopology nimbus id))
 
       (^ClusterSummary getClusterInfo [this]
         (.getClusterInfo nimbus))
