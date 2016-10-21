@@ -201,14 +201,7 @@
 
       (^String beginFileDownload
         [this ^String file]
-        (.mark Nimbus/beginFileDownloadCalls)
-        (.checkAuthorization nimbus nil nil "fileDownload")
-        (let [is (BufferInputStream. (.getBlob (.getBlobStore nimbus) file nil)
-              ^Integer (Utils/getInt (conf STORM-BLOBSTORE-INPUTSTREAM-BUFFER-SIZE-BYTES)
-              (int 65536)))
-              id (Utils/uuid)]
-          (.put (.getDownloaders nimbus) id is)
-          id))
+        (.beginFileDownload nimbus file))
 
       (^ByteBuffer downloadChunk [this ^String id]
         (.mark Nimbus/downloadChunkCalls)

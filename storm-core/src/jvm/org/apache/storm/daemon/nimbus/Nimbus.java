@@ -20,6 +20,7 @@ package org.apache.storm.daemon.nimbus;
 import static org.apache.storm.metric.StormMetricsRegistry.registerMeter;
 import static org.apache.storm.utils.Utils.OR;
 
+import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -2868,10 +2869,23 @@ public class Nimbus implements Iface {
         }
     }
 
+    @SuppressWarnings("deprecation")
     @Override
     public String beginFileDownload(String file) throws AuthorizationException, TException {
-        // TODO Auto-generated method stub
-        return null;
+        try {
+            beginFileDownloadCalls.mark();
+            checkAuthorization(null, null, "fileDownload");
+            BufferedInputStream is = new BufferedInputStream(getBlobStore().getBlob(file, null),
+                    Utils.getInt(conf.get(Config.STORM_BLOBSTORE_INPUTSTREAM_BUFFER_SIZE_BYTES), 65536));
+            String id = Utils.uuid();
+            getDownloaders().put(id, is);
+            return id;
+        } catch (Exception e) {
+            if (e instanceof TException) {
+                throw (TException)e;
+            }
+            throw new RuntimeException(e);
+        }
     }
 
     @Override
