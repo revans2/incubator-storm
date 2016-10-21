@@ -20,7 +20,6 @@ package org.apache.storm.daemon.nimbus;
 import static org.apache.storm.metric.StormMetricsRegistry.registerMeter;
 import static org.apache.storm.utils.Utils.OR;
 
-import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -134,6 +133,7 @@ import org.apache.storm.security.auth.IPrincipalToLocal;
 import org.apache.storm.security.auth.NimbusPrincipal;
 import org.apache.storm.security.auth.ReqContext;
 import org.apache.storm.stats.StatsUtil;
+import org.apache.storm.utils.BufferInputStream;
 import org.apache.storm.utils.ConfigUtils;
 import org.apache.storm.utils.LocalState;
 import org.apache.storm.utils.Time;
@@ -869,7 +869,7 @@ public class Nimbus implements Iface {
     private final Object logUpdateLock;
     private final AtomicReference<Map<String, Map<List<Integer>, Map<String, Object>>>> heartbeatsCache;
     @SuppressWarnings("deprecation")
-    private final TimeCacheMap<String, AutoCloseable> downloaders;
+    private final TimeCacheMap<String, BufferInputStream> downloaders;
     @SuppressWarnings("deprecation")
     private final TimeCacheMap<String, WritableByteChannel> uploaders;
     private final BlobStore blobStore;
@@ -1016,7 +1016,7 @@ public class Nimbus implements Iface {
     }
 
     @SuppressWarnings("deprecation")
-    public TimeCacheMap<String, AutoCloseable> getDownloaders() {
+    public TimeCacheMap<String, BufferInputStream> getDownloaders() {
         return downloaders;
     }
 
@@ -2875,7 +2875,7 @@ public class Nimbus implements Iface {
         try {
             beginFileDownloadCalls.mark();
             checkAuthorization(null, null, "fileDownload");
-            BufferedInputStream is = new BufferedInputStream(getBlobStore().getBlob(file, null),
+            BufferInputStream is = new BufferInputStream(getBlobStore().getBlob(file, null),
                     Utils.getInt(conf.get(Config.STORM_BLOBSTORE_INPUTSTREAM_BUFFER_SIZE_BYTES), 65536));
             String id = Utils.uuid();
             getDownloaders().put(id, is);
@@ -2888,10 +2888,28 @@ public class Nimbus implements Iface {
         }
     }
 
+    @SuppressWarnings("deprecation")
     @Override
     public ByteBuffer downloadChunk(String id) throws AuthorizationException, TException {
-        // TODO Auto-generated method stub
-        return null;
+        try {
+            downloadChunkCalls.mark();
+            checkAuthorization(null, null, "fileDownload");
+            BufferInputStream is = getDownloaders().get(id);
+            if (is == null) {
+                throw new RuntimeException("Could not find input stream for id " + id);
+            }
+            byte[] ret = is.read();
+            if (ret.length == 0) {
+                is.close();
+                getDownloaders().remove(id);
+            }
+            return ByteBuffer.wrap(ret);
+        } catch (Exception e) {
+            if (e instanceof TException) {
+                throw (TException)e;
+            }
+            throw new RuntimeException(e);
+        }
     }
 
     @Override
