@@ -2586,9 +2586,24 @@ public class Nimbus implements Iface {
     }
 
     @Override
-    public LogConfig getLogConfig(String name) throws TException {
-        // TODO Auto-generated method stub
-        return null;
+    public LogConfig getLogConfig(String topoId) throws TException {
+        try {
+            getLogConfigCalls.mark();
+            Map<String, Object> topoConf = tryReadTopoConf(topoId, getBlobStore());
+            String topoName = (String) topoConf.get(Config.TOPOLOGY_NAME);
+            checkAuthorization(topoName, topoConf, "getLogConfig");
+            IStormClusterState state = getStormClusterState();
+            LogConfig logConfig = state.topologyLogConfig(topoId, null);
+            if (logConfig == null) {
+                logConfig = new LogConfig();
+            }
+            return logConfig;
+        } catch (Exception e) {
+            if (e instanceof TException) {
+                throw (TException)e;
+            }
+            throw new RuntimeException(e);
+        }
     }
 
     @Override

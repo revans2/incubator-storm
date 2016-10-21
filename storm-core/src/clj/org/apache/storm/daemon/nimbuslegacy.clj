@@ -210,13 +210,7 @@
         (.getNimbusConf nimbus))
 
       (^LogConfig getLogConfig [this ^String id]
-        (.mark Nimbus/getLogConfigCalls)
-        (let [topology-conf (clojurify-structure (Nimbus/tryReadTopoConf id (.getBlobStore nimbus)))
-              storm-name (topology-conf TOPOLOGY-NAME)
-              _ (.checkAuthorization nimbus storm-name topology-conf "getLogConfig")
-             storm-cluster-state (.getStormClusterState nimbus)
-             log-config (.topologyLogConfig storm-cluster-state id nil)]
-           (if log-config log-config (LogConfig.))))
+        (.getLogConfig nimbus id))
 
       (^String getTopologyConf [this ^String id]
         (.mark Nimbus/getTopologyConfCalls)
