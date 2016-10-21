@@ -250,12 +250,7 @@
         (.rebalance nimbus storm-name options))
 
       (activate [this storm-name]
-        (.mark Nimbus/activateCalls)
-        (let [topology-conf (clojurify-structure (.tryReadTopoConfFromName nimbus storm-name))
-              operation "activate"]
-          (.checkAuthorization nimbus storm-name topology-conf operation)
-          (.transitionName nimbus storm-name TopologyActions/ACTIVATE nil true)
-          (.notifyTopologyActionListener nimbus storm-name operation)))
+         (.activate nimbus storm-name))
 
       (deactivate [this storm-name]
         (.mark Nimbus/deactivateCalls)
