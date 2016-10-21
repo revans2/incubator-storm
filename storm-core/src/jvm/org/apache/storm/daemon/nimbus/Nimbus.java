@@ -2847,10 +2847,25 @@ public class Nimbus implements Iface {
         }
     }
 
+    @SuppressWarnings("deprecation")
     @Override
     public void finishFileUpload(String location) throws AuthorizationException, TException {
-        // TODO Auto-generated method stub
-        
+        try {
+            finishFileUploadCalls.mark();
+            checkAuthorization(null, null, "fileUpload");
+            WritableByteChannel channel = getUploaders().get(location);
+            if (channel == null) {
+                throw new RuntimeException("File for that location does not exist (or timed out)");
+            }
+            channel.close();
+            LOG.info("Finished uploading file from client: {}", location);
+            getUploaders().remove(location);
+        } catch (Exception e) {
+            if (e instanceof TException) {
+                throw (TException)e;
+            }
+            throw new RuntimeException(e);
+        }
     }
 
     @Override

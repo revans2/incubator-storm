@@ -197,17 +197,7 @@
         (.uploadChunk nimbus location chunk))
 
       (^void finishFileUpload [this ^String location]
-        (.mark Nimbus/finishFileUploadCalls)
-        (.checkAuthorization nimbus nil nil "fileUpload")
-        (let [uploaders (.getUploaders nimbus)
-              ^WritableByteChannel channel (.get uploaders location)]
-          (when-not channel
-            (throw (RuntimeException.
-                    "File for that location does not exist (or timed out)")))
-          (.close channel)
-          (log-message "Finished uploading file from client: " location)
-          (.remove uploaders location)
-          ))
+        (.finishFileUpload nimbus location))
 
       (^String beginFileDownload
         [this ^String file]
