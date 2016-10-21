@@ -260,12 +260,7 @@
 
       (^void setWorkerProfiler
         [this ^String id ^ProfileRequest profileRequest]
-        (.mark Nimbus/setWorkerProfilerCalls)
-        (let [topology-conf (clojurify-structure (Nimbus/tryReadTopoConf id (.getBlobStore nimbus)))
-              storm-name (topology-conf TOPOLOGY-NAME)
-              _ (.checkAuthorization nimbus storm-name topology-conf "setWorkerProfiler")
-              storm-cluster-state (.getStormClusterState nimbus)]
-          (.setWorkerProfileRequest storm-cluster-state id profileRequest)))
+         (.setWorkerProfiler nimbus id profileRequest))
 
       (^List getComponentPendingProfileActions
         [this ^String id ^String component_id ^ProfileAction action]

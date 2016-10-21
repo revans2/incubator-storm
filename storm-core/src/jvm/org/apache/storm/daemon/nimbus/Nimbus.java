@@ -2441,33 +2441,24 @@ public class Nimbus implements Iface {
             throw new RuntimeException(e);
         }
     }
-
-//    (debug [this storm-name component-id enable? samplingPct]
-//            (.mark Nimbus/debugCalls)
-//            (let [storm-cluster-state (.getStormClusterState nimbus)
-//                  storm-id (StormCommon/getStormId storm-cluster-state storm-name)
-//                  topology-conf (clojurify-structure (Nimbus/tryReadTopoConf storm-id blob-store))
-//                  ;; make sure samplingPct is within bounds.
-//                  spct (Math/max (Math/min samplingPct 100.0) 0.0)
-//                  ;; while disabling we retain the sampling pct.
-//                  debug-options (if enable? {:enable enable? :samplingpct spct} {:enable enable?})
-//                  storm-base-updates (assoc {} :component->debug (if (empty? component-id)
-//                                                                   {storm-id debug-options}
-//                                                                   {component-id debug-options}))]
-//              (.checkAuthorization nimbus storm-name topology-conf "debug")
-//              (when-not storm-id
-//                (throw (NotAliveException. storm-name)))
-//              (log-message "Nimbus setting debug to " enable? " for storm-name '" storm-name "' storm-id '" storm-id "' sampling pct '" spct "'"
-//                (if (not (clojure.string/blank? component-id)) (str " component-id '" component-id "'")))
-//              (locking (.getSubmitLock nimbus)
-//                (.updateStorm storm-cluster-state storm-id  (converter/thriftify-storm-base storm-base-updates)))))
     
     @Override
-    public void setWorkerProfiler(String id, ProfileRequest profileRequest) throws TException {
-        // TODO Auto-generated method stub
-        
+    public void setWorkerProfiler(String topoId, ProfileRequest profileRequest) throws TException {
+        try {
+            setWorkerProfilerCalls.mark();
+            Map<String, Object> topoConf = tryReadTopoConf(topoId, getBlobStore());
+            String topoName = (String) topoConf.get(Config.TOPOLOGY_NAME);
+            checkAuthorization(topoName, topoConf, "setWorkerProfiler");
+            IStormClusterState state = getStormClusterState();
+            state.setWorkerProfileRequest(topoId, profileRequest);
+        } catch (Exception e) {
+            if (e instanceof TException) {
+                throw (TException)e;
+            }
+            throw new RuntimeException(e);
+        }
     }
-
+    
     @Override
     public List<ProfileRequest> getComponentPendingProfileActions(String id, String component_id, ProfileAction action)
             throws TException {
