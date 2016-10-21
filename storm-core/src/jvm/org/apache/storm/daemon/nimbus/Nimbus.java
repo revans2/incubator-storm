@@ -27,6 +27,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.nio.channels.Channels;
+import java.nio.channels.WritableByteChannel;
 import java.security.Principal;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -275,7 +276,7 @@ public class Nimbus implements Iface {
     }
     
     @SuppressWarnings("deprecation")
-    public static TimeCacheMap<String, AutoCloseable> fileCacheMap(Map<String, Object> conf) {
+    public static <T extends AutoCloseable> TimeCacheMap<String, T> fileCacheMap(Map<String, Object> conf) {
         return new TimeCacheMap<>(Utils.getInt(conf.get(Config.NIMBUS_FILE_COPY_EXPIRATION_SECS), 600),
                 (id, stream) -> {
                     try {
@@ -869,7 +870,7 @@ public class Nimbus implements Iface {
     @SuppressWarnings("deprecation")
     private final TimeCacheMap<String, AutoCloseable> downloaders;
     @SuppressWarnings("deprecation")
-    private final TimeCacheMap<String, AutoCloseable> uploaders;
+    private final TimeCacheMap<String, WritableByteChannel> uploaders;
     private final BlobStore blobStore;
     @SuppressWarnings("deprecation")
     private final TimeCacheMap<String, OutputStream> blobDownloaders;
@@ -1019,7 +1020,7 @@ public class Nimbus implements Iface {
     }
 
     @SuppressWarnings("deprecation")
-    public TimeCacheMap<String, AutoCloseable> getUploaders() {
+    public TimeCacheMap<String, WritableByteChannel> getUploaders() {
         return uploaders;
     }
 
@@ -2826,10 +2827,24 @@ public class Nimbus implements Iface {
         }
     }
 
+    @SuppressWarnings("deprecation")
     @Override
     public void uploadChunk(String location, ByteBuffer chunk) throws AuthorizationException, TException {
-        // TODO Auto-generated method stub
-        
+        try {
+            uploadChunkCalls.mark();
+            checkAuthorization(null, null, "fileUpload");
+            WritableByteChannel channel = getUploaders().get(location);
+            if (channel == null) {
+                throw new RuntimeException("File for that location does not exist (or timed out)");
+            }
+            channel.write(chunk);
+            getUploaders().put(location, channel);
+        } catch (Exception e) {
+            if (e instanceof TException) {
+                throw (TException)e;
+            }
+            throw new RuntimeException(e);
+        }
     }
 
     @Override

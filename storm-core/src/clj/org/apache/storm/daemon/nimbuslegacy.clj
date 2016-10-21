@@ -194,16 +194,7 @@
         (.beginFileUpload nimbus))
 
       (^void uploadChunk [this ^String location ^ByteBuffer chunk]
-        (.mark Nimbus/uploadChunkCalls)
-        (.checkAuthorization nimbus nil nil "fileUpload")
-        (let [uploaders (.getUploaders nimbus)
-              ^WritableByteChannel channel (.get uploaders location)]
-          (when-not channel
-            (throw (RuntimeException.
-                    "File for that location does not exist (or timed out)")))
-          (.write channel chunk)
-          (.put uploaders location channel)
-          ))
+        (.uploadChunk nimbus location chunk))
 
       (^void finishFileUpload [this ^String location]
         (.mark Nimbus/finishFileUploadCalls)
