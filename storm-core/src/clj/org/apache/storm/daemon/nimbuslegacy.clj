@@ -156,9 +156,7 @@
 
       (^void submitTopology
         [this ^String storm-name ^String uploadedJarLocation ^String serializedConf ^StormTopology topology]
-        (.mark Nimbus/submitTopologyCalls)
-        (.submitTopologyWithOpts this storm-name uploadedJarLocation serializedConf topology
-                                 (SubmitOptions. TopologyInitialStatus/ACTIVE)))
+        (.submitTopology nimbus storm-name uploadedJarLocation serializedConf topology))
 
       (^void killTopology [this ^String name]
         (.killTopology nimbus name))

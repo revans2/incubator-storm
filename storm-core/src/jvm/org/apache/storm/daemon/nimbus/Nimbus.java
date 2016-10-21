@@ -2323,8 +2323,8 @@ public class Nimbus implements Iface {
     @Override
     public void submitTopology(String name, String uploadedJarLocation, String jsonConf, StormTopology topology)
             throws AlreadyAliveException, InvalidTopologyException, AuthorizationException, TException {
-        // TODO Auto-generated method stub
-        
+        submitTopologyCalls.mark();
+        submitTopologyWithOpts(name, uploadedJarLocation, jsonConf, topology, new SubmitOptions(TopologyInitialStatus.ACTIVE));
     }
 
     @Override
