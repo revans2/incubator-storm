@@ -254,9 +254,7 @@
         (.getBlobMeta nimbus blob-key))
 
       (^void setBlobMeta [this ^String blob-key ^SettableBlobMeta blob-meta]
-        (->> (ReqContext/context)
-          (.subject)
-          (.setBlobMeta (.getBlobStore nimbus) blob-key blob-meta)))
+        (.setBlobMeta nimbus blob-key blob-meta))
 
       (^BeginDownloadResult beginBlobDownload [this ^String blob-key]
         (let [^InputStreamWithMeta is (.getBlob (.getBlobStore nimbus)

@@ -2868,8 +2868,15 @@ public class Nimbus implements Iface {
     @Override
     public void setBlobMeta(String key, SettableBlobMeta meta)
             throws AuthorizationException, KeyNotFoundException, TException {
-        // TODO Auto-generated method stub
-        
+        try {
+            getBlobStore().setBlobMeta(key, meta, getSubject());
+        } catch (Exception e) {
+            LOG.warn("set blob meta exception.", e);
+            if (e instanceof TException) {
+                throw (TException)e;
+            }
+            throw new RuntimeException(e);
+        }
     }
 
     @Override
