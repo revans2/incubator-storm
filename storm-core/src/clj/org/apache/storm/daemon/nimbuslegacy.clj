@@ -242,16 +242,7 @@
         (.createStateInZookeeper nimbus blob-key))
 
       (^void uploadBlobChunk [this ^String session ^ByteBuffer blob-chunk]
-        (let [uploaders (.getBlobUploaders nimbus)]
-          (if-let [^AtomicOutputStream os (.get uploaders session)]
-            (let [chunk-array (.array blob-chunk)
-                  remaining (.remaining blob-chunk)
-                  array-offset (.arrayOffset blob-chunk)
-                  position (.position blob-chunk)]
-              (.write os chunk-array (+ array-offset position) remaining)
-              (.put uploaders session os))
-            (throw (RuntimeException. (str "Blob for session " session
-                                           " does not exist (or timed out)"))))))
+        (.uploadBlobChunk nimbus session blob-chunk))
 
       (^void finishBlobUpload [this ^String session]
         (if-let [^AtomicOutputStream os (.get (.getBlobUploaders nimbus) session)]

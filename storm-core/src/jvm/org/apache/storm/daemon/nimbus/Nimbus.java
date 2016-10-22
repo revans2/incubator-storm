@@ -2789,10 +2789,27 @@ public class Nimbus implements Iface {
         }
     }
 
+    @SuppressWarnings("deprecation")
     @Override
     public void uploadBlobChunk(String session, ByteBuffer chunk) throws AuthorizationException, TException {
-        // TODO Auto-generated method stub
-        
+        try {
+            OutputStream os = getBlobUploaders().get(session);
+            if (os == null) {
+                throw new RuntimeException("Blob for session " + session + " does not exist (or timed out)");
+            }
+            byte[] array = chunk.array();
+            int remaining = chunk.remaining();
+            int offset = chunk.arrayOffset();
+            int position = chunk.position();
+            os.write(array, offset + position, remaining);
+            getBlobUploaders().put(session, os);
+        } catch (Exception e) {
+            LOG.warn("upload blob chunk exception.", e);
+            if (e instanceof TException) {
+                throw (TException)e;
+            }
+            throw new RuntimeException(e);
+        }
     }
 
     @Override
