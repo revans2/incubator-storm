@@ -2946,10 +2946,46 @@ public class Nimbus implements Iface {
         }
     }
 
+    @SuppressWarnings("deprecation")
     @Override
     public ListBlobsResult listBlobs(String session) throws TException {
-        // TODO Auto-generated method stub
-        return null;
+        try {
+            Iterator<String> keyIt;
+            //Create a new session id if the user gave an empty session string.
+            // This is the use case when the user wishes to list blobs
+            // starting from the beginning.
+            if (session == null || session.isEmpty()) {
+                keyIt = getBlobStore().listKeys();
+                session = Utils.uuid();
+            } else {
+                keyIt = getBlobListers().get(session);
+            }
+            
+            if (keyIt == null) {
+                throw new RuntimeException("Blob list for session " + session + " does not exist (or timed out)");
+            }
+
+            if (!keyIt.hasNext()) {
+                getBlobListers().remove(session);
+                LOG.info("No more blobs to list for session {}", session);
+                // A blank result communicates that there are no more blobs.
+                return new ListBlobsResult(Collections.emptyList(), session);
+            }
+            
+            ArrayList<String> listChunk = new ArrayList<>();
+            for (int i = 0; i < 100 && keyIt.hasNext(); i++) {
+                listChunk.add(keyIt.next());
+            }
+            getBlobListers().put(session, keyIt);
+            LOG.info("Downloading {} entries", listChunk.size());
+            return new ListBlobsResult(listChunk, session);
+        } catch (Exception e) {
+            LOG.warn("list blobs exception.", e);
+            if (e instanceof TException) {
+                throw (TException)e;
+            }
+            throw new RuntimeException(e);
+        }
     }
 
     @Override

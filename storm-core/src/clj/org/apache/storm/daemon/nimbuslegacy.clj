@@ -266,35 +266,7 @@
         (.deleteBlob nimbus blob-key))
 
       (^ListBlobsResult listBlobs [this ^String session]
-        (let [listers (.getBlobListers nimbus)
-              ^Iterator keys-it (or
-                                 (if (clojure.string/blank? session)
-                                   (.listKeys (.getBlobStore nimbus))
-                                   (.get listers session))
-                                 (throw (RuntimeException. (str "Blob list for session "
-                                                                session
-                                                                " does not exist (or timed out)"))))
-              ;; Create a new session id if the user gave an empty session string.
-              ;; This is the use case when the user wishes to list blobs
-              ;; starting from the beginning.
-              session (if (clojure.string/blank? session)
-                        (let [new-session (Utils/uuid)]
-                          (log-message "Creating new session for downloading list " new-session)
-                          new-session)
-                        session)]
-          (if-not (.hasNext keys-it)
-            (do
-              (.remove listers session)
-              (log-message "No more blobs to list for session " session)
-              ;; A blank result communicates that there are no more blobs.
-              (ListBlobsResult. (ArrayList. 0) (str session)))
-            (let [^List list-chunk (->> keys-it
-                                     (iterator-seq)
-                                     (take 100) ;; Limit to next 100 keys
-                                     (ArrayList.))]
-              (log-message session " downloading " (.size list-chunk) " entries")
-              (.put listers session keys-it)
-              (ListBlobsResult. list-chunk (str session))))))
+        (.listBlobs nimbus session))
 
       (^int getBlobReplication [this ^String blob-key]
         (->> (ReqContext/context)
