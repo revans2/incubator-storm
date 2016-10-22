@@ -2812,16 +2812,44 @@ public class Nimbus implements Iface {
         }
     }
 
+    @SuppressWarnings("deprecation")
     @Override
     public void finishBlobUpload(String session) throws AuthorizationException, TException {
-        // TODO Auto-generated method stub
-        
+        try {
+            OutputStream os = getBlobUploaders().get(session);
+            if (os == null) {
+                throw new RuntimeException("Blob for session " + session + " does not exist (or timed out)");
+            }
+            os.close();
+            LOG.info("Finished uploading blob for session {}. Closing session.", session);
+            getBlobUploaders().remove(session);
+        } catch (Exception e) {
+            LOG.warn("finish blob upload exception.", e);
+            if (e instanceof TException) {
+                throw (TException)e;
+            }
+            throw new RuntimeException(e);
+        }
     }
 
+    @SuppressWarnings("deprecation")
     @Override
     public void cancelBlobUpload(String session) throws AuthorizationException, TException {
-        // TODO Auto-generated method stub
-        
+        try {
+            AtomicOutputStream os = (AtomicOutputStream)getBlobUploaders().get(session);
+            if (os == null) {
+                throw new RuntimeException("Blob for session " + session + " does not exist (or timed out)");
+            }
+            os.cancel();
+            LOG.info("Canceled uploading blob for session {}. Closing session.", session);
+            getBlobUploaders().remove(session);
+        } catch (Exception e) {
+            LOG.warn("finish blob upload exception.", e);
+            if (e instanceof TException) {
+                throw (TException)e;
+            }
+            throw new RuntimeException(e);
+        }
     }
 
     @Override

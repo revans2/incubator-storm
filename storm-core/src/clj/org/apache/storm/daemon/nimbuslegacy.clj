@@ -245,26 +245,10 @@
         (.uploadBlobChunk nimbus session blob-chunk))
 
       (^void finishBlobUpload [this ^String session]
-        (if-let [^AtomicOutputStream os (.get (.getBlobUploaders nimbus) session)]
-          (do
-            (.close os)
-            (log-message "Finished uploading blob for session "
-              session
-              ". Closing session.")
-            (.remove (.getBlobUploaders nimbus) session))
-          (throw (RuntimeException. (str "Blob for session " session
-                                         " does not exist (or timed out)")))))
+        (.finishBlobUpload nimbus session))
 
       (^void cancelBlobUpload [this ^String session]
-        (if-let [^AtomicOutputStream os (.get (.getBlobUploaders nimbus) session)]
-          (do
-            (.cancel os)
-            (log-message "Canceled uploading blob for session "
-              session
-              ". Closing session.")
-            (.remove (.getBlobUploaders nimbus) session))
-          (throw (RuntimeException. (str "Blob for session " session
-                                         " does not exist (or timed out)")))))
+        (.cancelBlobUpload nimbus session))
 
       (^ReadableBlobMeta getBlobMeta [this ^String blob-key]
         (let [^ReadableBlobMeta ret (.getBlobMeta (.getBlobStore nimbus)
