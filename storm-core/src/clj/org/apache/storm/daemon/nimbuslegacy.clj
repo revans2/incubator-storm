@@ -257,15 +257,7 @@
         (.setBlobMeta nimbus blob-key blob-meta))
 
       (^BeginDownloadResult beginBlobDownload [this ^String blob-key]
-        (let [^InputStreamWithMeta is (.getBlob (.getBlobStore nimbus)
-                                        blob-key (Nimbus/getSubject))]
-          (let [session-id (Utils/uuid)
-                ret (BeginDownloadResult. (.getVersion is) (str session-id))]
-            (.set_data_size ret (.getFileLength is))
-            (.put (.getBlobDownloaders nimbus) session-id (BufferInputStream. is (Utils/getInt (conf STORM-BLOBSTORE-INPUTSTREAM-BUFFER-SIZE-BYTES) (int 65536))))
-            (log-message "Created download session for " blob-key
-              " with id " session-id)
-            ret)))
+        (.beginBlobDownload nimbus blob-key))
 
       (^ByteBuffer downloadBlobChunk [this ^String session]
         (let [downloaders (.getBlobDownloaders nimbus)

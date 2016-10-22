@@ -55,6 +55,7 @@ import org.apache.storm.blobstore.AtomicOutputStream;
 import org.apache.storm.blobstore.BlobStore;
 import org.apache.storm.blobstore.BlobStoreAclHandler;
 import org.apache.storm.blobstore.BlobSynchronizer;
+import org.apache.storm.blobstore.InputStreamWithMeta;
 import org.apache.storm.blobstore.KeySequenceNumber;
 import org.apache.storm.blobstore.LocalFsBlobStore;
 import org.apache.storm.cluster.ClusterStateContext;
@@ -335,7 +336,7 @@ public class Nimbus implements Iface {
      * @return the newly created map
      */
     @SuppressWarnings("deprecation")
-    public static TimeCacheMap<String, OutputStream> makeBlobCachMap(Map<String, Object> conf) {
+    public static <T extends AutoCloseable> TimeCacheMap<String, T> makeBlobCachMap(Map<String, Object> conf) {
         return new TimeCacheMap<>(Utils.getInt(conf.get(Config.NIMBUS_BLOBSTORE_EXPIRATION_SECS), 600),
                 (id, stream) -> {
                     try {
@@ -878,7 +879,7 @@ public class Nimbus implements Iface {
     private final TimeCacheMap<String, WritableByteChannel> uploaders;
     private final BlobStore blobStore;
     @SuppressWarnings("deprecation")
-    private final TimeCacheMap<String, OutputStream> blobDownloaders;
+    private final TimeCacheMap<String, BufferInputStream> blobDownloaders;
     @SuppressWarnings("deprecation")
     private final TimeCacheMap<String, OutputStream> blobUploaders;
     @SuppressWarnings("deprecation")
@@ -1034,7 +1035,7 @@ public class Nimbus implements Iface {
     }
 
     @SuppressWarnings("deprecation")
-    public TimeCacheMap<String, OutputStream> getBlobDownloaders() {
+    public TimeCacheMap<String, BufferInputStream> getBlobDownloaders() {
         return blobDownloaders;
     }
 
@@ -2761,7 +2762,7 @@ public class Nimbus implements Iface {
         try {
             String sessionId = Utils.uuid();
             getBlobUploaders().put(sessionId, getBlobStore().createBlob(key, meta, getSubject()));
-            LOG.info("Created blob for {} with session id ", key, sessionId);
+            LOG.info("Created blob for {}", key);
             return sessionId;
         } catch (Exception e) {
             LOG.warn("begin create blob exception.", e);
@@ -2778,7 +2779,7 @@ public class Nimbus implements Iface {
         try {
             String sessionId = Utils.uuid();
             getBlobUploaders().put(sessionId, getBlobStore().updateBlob(key, getSubject()));
-            LOG.info("Created upload session for {} with session id ", key, sessionId);
+            LOG.info("Created upload session for {}", key);
             return sessionId;
         } catch (Exception e) {
             LOG.warn("begin update blob exception.", e);
@@ -2879,11 +2880,26 @@ public class Nimbus implements Iface {
         }
     }
 
+    @SuppressWarnings("deprecation")
     @Override
     public BeginDownloadResult beginBlobDownload(String key)
             throws AuthorizationException, KeyNotFoundException, TException {
-        // TODO Auto-generated method stub
-        return null;
+        try {
+            InputStreamWithMeta is = getBlobStore().getBlob(key, getSubject());
+            String sessionId = Utils.uuid();
+            BeginDownloadResult ret = new BeginDownloadResult(is.getVersion(), sessionId);
+            ret.set_data_size(is.getFileLength());
+            getBlobDownloaders().put(sessionId, new BufferInputStream(is, 
+                    (int) conf.getOrDefault(Config.STORM_BLOBSTORE_INPUTSTREAM_BUFFER_SIZE_BYTES, 65536)));
+            LOG.info("Created download session for {}", key);
+            return ret;
+        } catch (Exception e) {
+            LOG.warn("begin blob download exception.", e);
+            if (e instanceof TException) {
+                throw (TException)e;
+            }
+            throw new RuntimeException(e);
+        }
     }
 
     @Override
