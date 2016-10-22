@@ -70,7 +70,10 @@ import org.apache.storm.generated.ClusterSummary;
 import org.apache.storm.generated.ComponentPageInfo;
 import org.apache.storm.generated.Credentials;
 import org.apache.storm.generated.DebugOptions;
+import org.apache.storm.generated.ErrorInfo;
 import org.apache.storm.generated.ExecutorInfo;
+import org.apache.storm.generated.ExecutorStats;
+import org.apache.storm.generated.ExecutorSummary;
 import org.apache.storm.generated.GetInfoOptions;
 import org.apache.storm.generated.InvalidTopologyException;
 import org.apache.storm.generated.KeyAlreadyExistsException;
@@ -85,6 +88,7 @@ import org.apache.storm.generated.Nimbus.Iface;
 import org.apache.storm.generated.NimbusSummary;
 import org.apache.storm.generated.NodeInfo;
 import org.apache.storm.generated.NotAliveException;
+import org.apache.storm.generated.NumErrorsChoice;
 import org.apache.storm.generated.ProfileAction;
 import org.apache.storm.generated.ProfileRequest;
 import org.apache.storm.generated.ReadableBlobMeta;
@@ -272,7 +276,7 @@ public class Nimbus implements Iface {
         public int launchTimeSecs;
         public Assignment assignment;
         public Map<List<Integer>, Map<String, Object>> beats;
-        public HashSet allComponents;
+        public HashSet<String> allComponents;
 
     }
     
@@ -1310,6 +1314,9 @@ public class Nimbus implements Iface {
         LOG.debug("Updating heartbeats for {} {}", topoId, allExecutors);
         IStormClusterState state = getStormClusterState();
         Map<List<Integer>, Map<String, Object>> executorBeats = StatsUtil.convertExecutorBeats(state.executorBeats(topoId, existingAssignment.get_executor_node_port()));
+        for (Map<String, Object> tmp: executorBeats.values()) {
+            LOG.warn("EXEC BEATS {}", tmp.keySet());
+        }
         Map<List<Integer>, Map<String, Object>> cache = StatsUtil.updateHeartbeatCache(getHeartbeatsCache().get().get(topoId), executorBeats, allExecutors, Utils.getInt(getConf().get(Config.NIMBUS_TASK_TIMEOUT_SECS)));
         getHeartbeatsCache().getAndUpdate(new Assoc<String, Map<List<Integer>, Map<String, Object>>>(topoId, cache));
     }
@@ -2467,6 +2474,7 @@ public class Nimbus implements Iface {
             notifyTopologyActionListener(topoName, operation);
             addTopoToHistoryLog(StormCommon.getStormId(getStormClusterState(), topoName), topoConf);
         } catch (Exception e) {
+            LOG.warn("Kill topology exception. (topology name='{}')", topoName, e);
             if (e instanceof TException) {
                 throw (TException)e;
             }
@@ -2484,6 +2492,7 @@ public class Nimbus implements Iface {
             transitionName(topoName, TopologyActions.ACTIVATE, null, true);
             notifyTopologyActionListener(topoName, operation);
         } catch (Exception e) {
+            LOG.warn("Activate topology exception. (topology name='{}')", topoName, e);
             if (e instanceof TException) {
                 throw (TException)e;
             }
@@ -2501,6 +2510,7 @@ public class Nimbus implements Iface {
             transitionName(topoName, TopologyActions.INACTIVATE, null, true);
             notifyTopologyActionListener(topoName, operation);
         } catch (Exception e) {
+            LOG.warn("Deactivate topology exception. (topology name='{}')", topoName, e);
             if (e instanceof TException) {
                 throw (TException)e;
             }
@@ -2526,6 +2536,7 @@ public class Nimbus implements Iface {
             transitionName(topoName, TopologyActions.REBALANCE, options, true);
             notifyTopologyActionListener(topoName, operation);
         } catch (Exception e) {
+            LOG.warn("rebalance topology exception. (topology name='{}')", topoName, e);
             if (e instanceof TException) {
                 throw (TException)e;
             }
@@ -2578,6 +2589,7 @@ public class Nimbus implements Iface {
             LOG.info("Setting log config for {}:{}", topoName, mergedLogConfig);
             state.setTopologyLogConfig(topoId, mergedLogConfig);
         } catch (Exception e) {
+            LOG.warn("set log config topology exception. (topology id='{}')", topoId, e);
             if (e instanceof TException) {
                 throw (TException)e;
             }
@@ -2599,6 +2611,7 @@ public class Nimbus implements Iface {
             }
             return logConfig;
         } catch (Exception e) {
+            LOG.warn("get log conf topology exception. (topology id='{}')", topoId, e);
             if (e instanceof TException) {
                 throw (TException)e;
             }
@@ -2641,6 +2654,7 @@ public class Nimbus implements Iface {
                 state.updateStorm(topoId, updates);
             }
         } catch (Exception e) {
+            LOG.warn("debug topology exception. (topology name='{}')", topoName, e);
             if (e instanceof TException) {
                 throw (TException)e;
             }
@@ -2658,6 +2672,7 @@ public class Nimbus implements Iface {
             IStormClusterState state = getStormClusterState();
             state.setWorkerProfileRequest(topoId, profileRequest);
         } catch (Exception e) {
+            LOG.warn("set worker profiler topology exception. (topology id='{}')", topoId, e);
             if (e instanceof TException) {
                 throw (TException)e;
             }
@@ -2704,6 +2719,7 @@ public class Nimbus implements Iface {
             LOG.info("Latest profile actions for topology {} component {} {}", id, componentId, ret);
             return ret;
         } catch (Exception e) {
+            LOG.warn("Get comp actions topology exception. (topology id='{}')", id, e);
             if (e instanceof TException) {
                 throw (TException)e;
             }
@@ -2730,6 +2746,7 @@ public class Nimbus implements Iface {
                 state.setCredentials(topoId, credentials, topoConf);
             }
         } catch (Exception e) {
+            LOG.warn("Upload Creds topology exception. (topology name='{}')", topoName, e);
             if (e instanceof TException) {
                 throw (TException)e;
             }
@@ -2836,6 +2853,7 @@ public class Nimbus implements Iface {
             LOG.info("Uploading file from client to {}", fileloc);
             return fileloc;
         } catch (Exception e) {
+            LOG.warn("Begin file upload exception", e);
             if (e instanceof TException) {
                 throw (TException)e;
             }
@@ -2856,6 +2874,7 @@ public class Nimbus implements Iface {
             channel.write(chunk);
             getUploaders().put(location, channel);
         } catch (Exception e) {
+            LOG.warn("uploadChunk exception.", e);
             if (e instanceof TException) {
                 throw (TException)e;
             }
@@ -2877,6 +2896,7 @@ public class Nimbus implements Iface {
             LOG.info("Finished uploading file from client: {}", location);
             getUploaders().remove(location);
         } catch (Exception e) {
+            LOG.warn("finish file upload exception.", e);
             if (e instanceof TException) {
                 throw (TException)e;
             }
@@ -2896,6 +2916,7 @@ public class Nimbus implements Iface {
             getDownloaders().put(id, is);
             return id;
         } catch (Exception e) {
+            LOG.warn("begin file download exception.", e);
             if (e instanceof TException) {
                 throw (TException)e;
             }
@@ -2920,6 +2941,7 @@ public class Nimbus implements Iface {
             }
             return ByteBuffer.wrap(ret);
         } catch (Exception e) {
+            LOG.warn("download chunk exception.", e);
             if (e instanceof TException) {
                 throw (TException)e;
             }
@@ -2934,6 +2956,7 @@ public class Nimbus implements Iface {
             checkAuthorization(null, null, "getNimbusConf");
             return JSONValue.toJSONString(getConf());
         } catch (Exception e) {
+            LOG.warn("get nimbus conf exception.", e);
             if (e instanceof TException) {
                 throw (TException)e;
             }
@@ -2948,10 +2971,94 @@ public class Nimbus implements Iface {
     }
 
     @Override
-    public TopologyInfo getTopologyInfoWithOpts(String id, GetInfoOptions options)
+    public TopologyInfo getTopologyInfoWithOpts(String topoId, GetInfoOptions options)
             throws NotAliveException, AuthorizationException, TException {
-        // TODO Auto-generated method stub
-        return null;
+        try {
+            getTopologyInfoWithOptsCalls.mark();
+            CommonTopoInfo common = getCommonTopoInfo(topoId, "getTopologyInfo");
+            IStormClusterState state = getStormClusterState();
+            NumErrorsChoice numErrChoice = OR(options.get_num_err_choice(), NumErrorsChoice.ALL);
+            Map<String, List<ErrorInfo>> errors = new HashMap<>();
+            for (String component: common.allComponents) {
+                switch (numErrChoice) {
+                    case NONE:
+                        errors.put(component, Collections.emptyList());
+                        break;
+                    case ONE:
+                        List<ErrorInfo> errList = new ArrayList<>();
+                        ErrorInfo info = state.lastError(topoId, component);
+                        if (info != null) {
+                            errList.add(info);
+                        }
+                        errors.put(component, errList);
+                        break;
+                    case ALL:
+                        errors.put(component, state.errors(topoId, component));
+                        break;
+                    default:
+                        LOG.warn("Got invalid NumErrorsChoice '{}'", numErrChoice);
+                        errors.put(component, state.errors(topoId, component));
+                        break;
+                }
+            }
+            
+            List<ExecutorSummary> summaries = new ArrayList<>();
+            if (common.assignment != null) {
+                for (Entry<List<Long>, NodeInfo> entry: common.assignment.get_executor_node_port().entrySet()) {
+                    NodeInfo ni = entry.getValue();
+                    ExecutorInfo execInfo = toExecInfo(entry.getKey());
+                    String host = entry.getValue().get_node();
+                    Map<String, Object> heartbeat = common.beats.get(StatsUtil.convertExecutor(entry.getKey()));
+                    if (heartbeat == null) {
+                        heartbeat = Collections.emptyMap();
+                    }
+                    ExecutorSummary summ = new ExecutorSummary(execInfo, common.taskToComponent.get(execInfo.get_task_start()),
+                            ni.get_node(), ni.get_port_iterator().next().intValue(),
+                            (Integer) heartbeat.getOrDefault("uptime", 0));
+
+                    //heartbeats "stats"
+                    Map<String, Object> hb = (Map<String, Object>)heartbeat.get("heartbeat");
+                    LOG.warn("HB!!!: {}", hb);
+                    if (hb != null) {
+                        Map ex = (Map) hb.get("stats");
+                        if (ex != null) {
+                            ExecutorStats stats = StatsUtil.thriftifyExecutorStats(ex);
+                            summ.set_stats(stats);
+                        }
+                    }
+                    summaries.add(summ);
+                }
+            }
+            TopologyInfo topoInfo = new TopologyInfo(topoId, common.topoName, Time.deltaSecs(common.launchTimeSecs),
+                    summaries, extractStatusStr(common.base), errors);
+            if (common.base.is_set_owner()) {
+                topoInfo.set_owner(common.base.get_owner());
+            }
+            String schedStatus = getIdToSchedStatus().get().get(topoId);
+            if (schedStatus != null) {
+                topoInfo.set_sched_status(schedStatus);
+            }
+            TopologyResources resources = getResourcesForTopology(topoId);
+            if (resources != null) {
+                topoInfo.set_requested_memonheap(resources.getRequestedMemOnHeap());
+                topoInfo.set_requested_memoffheap(resources.getRequestedMemOffHeap());
+                topoInfo.set_requested_cpu(resources.getRequestedCpu());
+                topoInfo.set_assigned_memonheap(resources.getAssignedMemOnHeap());
+                topoInfo.set_assigned_memoffheap(resources.getAssignedMemOffHeap());
+                topoInfo.set_assigned_cpu(resources.getAssignedCpu());
+            }
+            if (common.base.is_set_component_debug()) {
+                topoInfo.set_component_debug(common.base.get_component_debug());
+            }
+            topoInfo.set_replication_count(getBlobReplicationCount(ConfigUtils.masterStormCodeKey(topoId)));
+            return topoInfo;
+        } catch (Exception e) {
+            LOG.warn("Get topo info exception. (topology id='{}')", topoId, e);
+            if (e instanceof TException) {
+                throw (TException)e;
+            }
+            throw new RuntimeException(e);
+        }
     }
 
     @Override
@@ -2984,6 +3091,7 @@ public class Nimbus implements Iface {
             checkAuthorization(topoName, topoConf, "getTopologyConf");
             return JSONValue.toJSONString(topoConf);
         } catch (Exception e) {
+            LOG.warn("Get topo conf exception. (topology id='{}')", id, e);
             if (e instanceof TException) {
                 throw (TException)e;
             }
@@ -3000,6 +3108,7 @@ public class Nimbus implements Iface {
             checkAuthorization(topoName, topoConf, "getTopology");
             return StormCommon.systemTopology(topoConf, tryReadTopology(id, getBlobStore()));
         } catch (Exception e) {
+            LOG.warn("Get topology exception. (topology id='{}')", id, e);
             if (e instanceof TException) {
                 throw (TException)e;
             }
@@ -3016,6 +3125,7 @@ public class Nimbus implements Iface {
             checkAuthorization(topoName, topoConf, "getUserTopology");
             return tryReadTopology(id, getBlobStore());
         } catch (Exception e) {
+            LOG.warn("Get user topology exception. (topology id='{}')", id, e);
             if (e instanceof TException) {
                 throw (TException)e;
             }
@@ -3031,11 +3141,15 @@ public class Nimbus implements Iface {
 
     @Override
     public ClusterSummary getClusterInfo() throws AuthorizationException, TException {
-        getClusterInfoCalls.mark();
-        checkAuthorization(null, null, "getClusterInfo");
         try {
+            getClusterInfoCalls.mark();
+            checkAuthorization(null, null, "getClusterInfo");
             return getClusterInfoImpl();
         } catch (Exception e) {
+            LOG.warn("Get cluster info exception.", e);
+            if (e instanceof TException) {
+                throw (TException)e;
+            }
             throw new RuntimeException(e);
         }
     }

@@ -225,70 +225,7 @@
         (.getClusterInfo nimbus))
 
       (^TopologyInfo getTopologyInfoWithOpts [this ^String storm-id ^GetInfoOptions options]
-        (.mark Nimbus/getTopologyInfoWithOptsCalls)
-        (let [{:keys [storm-name
-                      storm-cluster-state
-                      all-components
-                      launch-time-secs
-                      assignment
-                      beats
-                      task->component
-                      base]} (get-common-topo-info storm-id "getTopologyInfo")
-              j-base (thriftify-storm-base base)
-              num-err-choice (or (.get_num_err_choice options)
-                                 NumErrorsChoice/ALL)
-              errors-fn (condp = num-err-choice
-                          NumErrorsChoice/NONE (fn [& _] ()) ;; empty list only
-                          NumErrorsChoice/ONE (comp #(remove nil? %)
-                                                    list
-                                                    get-last-error)
-                          NumErrorsChoice/ALL (fn [state topo-id comp-id] (.errors state topo-id comp-id))
-                          ;; Default
-                          (do
-                            (log-warn "Got invalid NumErrorsChoice '"
-                                      num-err-choice
-                                      "'")
-                            (fn [state topo-id comp-id] (.errors state topo-id comp-id))))
-              errors (->> all-components
-                          (map (fn [c] [c (errors-fn storm-cluster-state storm-id c)]))
-                          (into {}))
-              executor-summaries (dofor [[executor [node port]] (:executor->node+port assignment)]
-                                   (let [host (-> assignment :node->host (get node))
-                                            heartbeat (.get beats (StatsUtil/convertExecutor executor))
-                                            heartbeat (or heartbeat {})
-                                            hb (.get heartbeat "heartbeat")
-                                            excutorstats (if hb (.get hb "stats"))
-                                            excutorstats (if excutorstats
-                                                    (StatsUtil/thriftifyExecutorStats excutorstats))]
-                                          (doto
-                                              (ExecutorSummary. (Nimbus/toExecInfo executor)
-                                                                (-> executor first task->component)
-                                                                host
-                                                                port
-                                                                (Utils/nullToZero (.get heartbeat "uptime")))
-                                            (.set_stats excutorstats))
-                                          ))
-              topo-info  (TopologyInfo. storm-id
-                           storm-name
-                           (Time/deltaSecs launch-time-secs)
-                           executor-summaries
-                           (Nimbus/extractStatusStr j-base)
-                           errors
-                           )]
-            (when-let [owner (:owner base)] (.set_owner topo-info owner))
-            (when-let [sched-status (.get (.get (.getIdToSchedStatus nimbus)) storm-id)] (.set_sched_status topo-info sched-status))
-            (when-let [resources (.getResourcesForTopology nimbus storm-id)]
-              (.set_requested_memonheap topo-info (.getRequestedMemOnHeap resources))
-              (.set_requested_memoffheap topo-info (.getRequestedMemOffHeap resources))
-              (.set_requested_cpu topo-info (.getRequestedCpu resources))
-              (.set_assigned_memonheap topo-info (.getAssignedMemOnHeap resources))
-              (.set_assigned_memoffheap topo-info (.getAssignedMemOffHeap resources))
-              (.set_assigned_cpu topo-info (.getAssignedCpu resources)))
-            (when-let [component->debug (:component->debug base)]
-              ;TODO: when translating this function, you should replace the map-val with a proper for loop HERE
-              (.set_component_debug topo-info (map-val converter/thriftify-debugoptions component->debug)))
-            (.set_replication_count topo-info (.getBlobReplicationCount nimbus (ConfigUtils/masterStormCodeKey storm-id)))
-          topo-info))
+        (.getTopologyInfoWithOpts nimbus storm-id options))
 
       (^TopologyInfo getTopologyInfo [this ^String topology-id]
         (.mark Nimbus/getTopologyInfoCalls)
