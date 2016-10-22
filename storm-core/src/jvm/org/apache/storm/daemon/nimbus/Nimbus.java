@@ -2990,15 +2990,29 @@ public class Nimbus implements Iface {
 
     @Override
     public int getBlobReplication(String key) throws AuthorizationException, KeyNotFoundException, TException {
-        // TODO Auto-generated method stub
-        return 0;
+        try {
+            return getBlobStore().getBlobReplication(key, getSubject());
+        } catch (Exception e) {
+            LOG.warn("get blob replication exception.", e);
+            if (e instanceof TException) {
+                throw (TException)e;
+            }
+            throw new RuntimeException(e);
+        }
     }
-
+    
     @Override
     public int updateBlobReplication(String key, int replication)
             throws AuthorizationException, KeyNotFoundException, TException {
-        // TODO Auto-generated method stub
-        return 0;
+        try {
+            return getBlobStore().updateBlobReplication(key, replication, getSubject());
+        } catch (Exception e) {
+            LOG.warn("update blob replication exception.", e);
+            if (e instanceof TException) {
+                throw (TException)e;
+            }
+            throw new RuntimeException(e);
+        }
     }
 
     @Override

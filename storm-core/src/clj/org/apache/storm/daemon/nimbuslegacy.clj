@@ -269,14 +269,10 @@
         (.listBlobs nimbus session))
 
       (^int getBlobReplication [this ^String blob-key]
-        (->> (ReqContext/context)
-          (.subject)
-          (.getBlobReplication (.getBlobStore nimbus) blob-key)))
+        (.getBlobReplication nimbus blob-key))
 
       (^int updateBlobReplication [this ^String blob-key ^int replication]
-        (->> (ReqContext/context)
-          (.subject)
-          (.updateBlobReplication (.getBlobStore nimbus) blob-key replication)))
+        (.updateBlobReplication nimbus replication blob-key))
 
       (^TopologyPageInfo getTopologyPageInfo
         [this ^String topo-id ^String window ^boolean include-sys?]
