@@ -283,43 +283,7 @@
          ^String supervisor-id
          ^String host 
          ^boolean include-sys?]
-        (.mark Nimbus/getSupervisorPageInfoCalls)
-        (let [storm-cluster-state (.getStormClusterState nimbus)
-              supervisor-infos (.allSupervisorInfo storm-cluster-state)
-              host->supervisor-id (Utils/reverseMap (map-val (fn [info] (.get_hostname info)) supervisor-infos))
-              supervisor-ids (if (nil? supervisor-id)
-                                (get host->supervisor-id host)
-                                  [supervisor-id])
-              page-info (SupervisorPageInfo.)]
-              (doseq [sid supervisor-ids]
-                (let [supervisor-info (get supervisor-infos sid)
-                      _ (log-message "SID: " sid " SI: " supervisor-info " ALL: " supervisor-infos)
-                      sup-sum (.makeSupervisorSummary nimbus sid supervisor-info)
-                      _ (.add_to_supervisor_summaries page-info sup-sum)
-                      topo-id->assignments (clojurify-structure (.topologyAssignments storm-cluster-state))
-                      supervisor-topologies (clojurify-structure (Nimbus/topologiesOnSupervisor topo-id->assignments sid))
-                      user-topologies (clojurify-structure (.filterAuthorized nimbus "getTopology" supervisor-topologies))]
-                  (doseq [storm-id supervisor-topologies]
-                      (let [topo-info (get-common-topo-info storm-id "getSupervisorPageInfo")
-                            {:keys [storm-name
-                                    assignment
-                                    beats
-                                    task->component]} topo-info
-                            exec->node+port (:executor->node+port assignment)
-                            node->host (:node->host assignment)
-                            worker->resources (.getWorkerResourcesForTopology nimbus storm-id)]
-                        (doseq [worker-summary (StatsUtil/aggWorkerStats storm-id 
-                                                                         storm-name
-                                                                         task->component
-                                                                         beats
-                                                                         exec->node+port
-                                                                         node->host
-                                                                         worker->resources
-                                                                         include-sys?
-                                                                         (boolean (get user-topologies storm-id))
-                                                                         sid)]
-                          (.add_to_worker_summaries page-info worker-summary)))))) 
-              page-info))
+        (.getSupervisorPageInfo nimbus supervisor-id host include-sys?))
 
       (^ComponentPageInfo getComponentPageInfo
         [this

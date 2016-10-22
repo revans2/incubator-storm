@@ -2337,7 +2337,11 @@ public class Nimbus implements Iface {
         ret.topology = tryReadTopology(topoId, store);
         ret.taskToComponent = StormCommon.stormTaskInfo(ret.topology, ret.topoConf);
         ret.base = state.stormBase(topoId, null);
-        ret.launchTimeSecs = ret.base.get_launch_time_secs();
+        if (ret.base != null && ret.base.is_set_launch_time_secs()) {
+            ret.launchTimeSecs = ret.base.get_launch_time_secs();
+        } else {
+            ret.launchTimeSecs = 0;
+        }
         ret.assignment = state.assignmentInfo(topoId, null);
         ret.beats = OR(getHeartbeatsCache().get().get(topoId), Collections.emptyMap());
         ret.allComponents = new HashSet<>(ret.taskToComponent.values());
@@ -3370,12 +3374,75 @@ public class Nimbus implements Iface {
     }
     
     @Override
-    public SupervisorPageInfo getSupervisorPageInfo(String id, String host, boolean is_include_sys)
+    public SupervisorPageInfo getSupervisorPageInfo(String superId, String host, boolean includeSys)
             throws NotAliveException, AuthorizationException, TException {
-        // TODO Auto-generated method stub
-        return null;
+        try {
+            getSupervisorPageInfoCalls.mark();
+            IStormClusterState state = getStormClusterState();
+            Map<String, SupervisorInfo> superInfos = state.allSupervisorInfo();
+            //TODO the check for superId and host should all be a part of a single pass through superInfos
+            Map<String, List<String>> hostToSuperId = new HashMap<>();
+            for (Entry<String, SupervisorInfo> entry: superInfos.entrySet()) {
+                String h = entry.getValue().get_hostname();
+                List<String> superIds = hostToSuperId.get(h);
+                if (superIds == null) {
+                    superIds = new ArrayList<>();
+                    hostToSuperId.put(h, superIds);
+                }
+                superIds.add(entry.getKey());
+            }
+            List<String> supervisorIds = null;
+            if (superId == null) {
+                supervisorIds = hostToSuperId.get(host);
+            } else {
+                supervisorIds = Arrays.asList(superId);
+            }
+            SupervisorPageInfo pageInfo = new SupervisorPageInfo();
+            Map<String, Assignment> topoToAssignment = state.topologyAssignments();
+            for (String sid: supervisorIds) {
+                SupervisorInfo info = superInfos.get(sid);
+                LOG.info("SIDL {} SI: {} ALL: {}", sid, info, superInfos);
+                SupervisorSummary supSum = makeSupervisorSummary(sid, info);
+                pageInfo.add_to_supervisor_summaries(supSum);
+                List<String> superTopologies = topologiesOnSupervisor(topoToAssignment, sid);
+                Set<String> userTopologies = filterAuthorized("getTopology", superTopologies);
+                for (String topoId: superTopologies) {
+                    CommonTopoInfo common = getCommonTopoInfo(topoId, "getSupervisorPageInfo");
+                    String topoName = common.topoName;
+                    Assignment assignment = common.assignment;
+                    Map<List<Integer>, Map<String, Object>> beats = common.beats;
+                    Map<Integer, String> taskToComp = common.taskToComponent;
+                    Map<List<Long>, List<Object>> exec2NodePort = new HashMap<>();
+                    Map<String, String> nodeToHost;
+                    if (assignment != null) {
+                        Map<List<Long>, NodeInfo> execToNodeInfo = assignment.get_executor_node_port();
+                        for (Entry<List<Long>, NodeInfo> entry: execToNodeInfo.entrySet()) {
+                            NodeInfo ni = entry.getValue();
+                            List<Object> nodePort = Arrays.asList(ni.get_node(), ni.get_port_iterator().next());
+                            exec2NodePort.put(entry.getKey(), nodePort);
+                        }
+                        nodeToHost = assignment.get_node_host();
+                    } else {
+                        nodeToHost = Collections.emptyMap();
+                    }
+                    Map<WorkerSlot, WorkerResources> workerResources = getWorkerResourcesForTopology(topoId);
+                    boolean isAllowed = userTopologies.contains(topoId);
+                    for (WorkerSummary workerSummary: StatsUtil.aggWorkerStats(topoId, topoName, taskToComp, beats, 
+                            exec2NodePort, nodeToHost, workerResources, includeSys, isAllowed, sid)) {
+                        pageInfo.add_to_worker_summaries(workerSummary);
+                    }
+                }
+            }
+            return pageInfo;
+        } catch (Exception e) {
+            LOG.warn("Get super page info exception. (super id='{}')", superId, e);
+            if (e instanceof TException) {
+                throw (TException)e;
+            }
+            throw new RuntimeException(e);
+        }
     }
-
+    
     @Override
     public ComponentPageInfo getComponentPageInfo(String topology_id, String component_id, String window,
             boolean is_include_sys) throws NotAliveException, AuthorizationException, TException {
