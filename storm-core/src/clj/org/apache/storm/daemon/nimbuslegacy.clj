@@ -260,18 +260,7 @@
         (.beginBlobDownload nimbus blob-key))
 
       (^ByteBuffer downloadBlobChunk [this ^String session]
-        (let [downloaders (.getBlobDownloaders nimbus)
-              ^BufferInputStream is (.get downloaders session)]
-          (when-not is
-            (throw (RuntimeException.
-                     "Could not find input stream for session " session)))
-          (let [ret (.read is)]
-            (.put downloaders session is)
-            (when (empty? ret)
-              (.close is)
-              (.remove downloaders session))
-            (log-debug "Sending " (alength ret) " bytes")
-            (ByteBuffer/wrap ret))))
+        (.downloadBlobChunk nimbus session))
 
       (^void deleteBlob [this ^String blob-key]
         (let [subject (->> (ReqContext/context)

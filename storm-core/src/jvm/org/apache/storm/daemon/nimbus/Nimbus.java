@@ -2902,12 +2902,32 @@ public class Nimbus implements Iface {
         }
     }
 
+    @SuppressWarnings("deprecation")
     @Override
     public ByteBuffer downloadBlobChunk(String session) throws AuthorizationException, TException {
-        // TODO Auto-generated method stub
-        return null;
+        try {
+            BufferInputStream is = getBlobDownloaders().get(session);
+            if (is == null) {
+                throw new RuntimeException("Blob for session " + session + " does not exist (or timed out)");
+            }
+            byte[] ret = is.read();
+            if (ret.length == 0) {
+                is.close();
+                getBlobDownloaders().remove(session);
+            } else {
+                getBlobDownloaders().put(session, is);
+            }
+            LOG.debug("Sending {} bytes", ret.length);
+            return ByteBuffer.wrap(ret);
+        } catch (Exception e) {
+            LOG.warn("download blob chunk exception.", e);
+            if (e instanceof TException) {
+                throw (TException)e;
+            }
+            throw new RuntimeException(e);
+        }
     }
-
+    
     @Override
     public void deleteBlob(String key) throws AuthorizationException, KeyNotFoundException, TException {
         // TODO Auto-generated method stub
