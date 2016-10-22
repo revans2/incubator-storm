@@ -2860,8 +2860,22 @@ public class Nimbus implements Iface {
 
     @Override
     public void createStateInZookeeper(String key) throws TException {
-        // TODO Auto-generated method stub
-        
+        try {
+            IStormClusterState state = getStormClusterState();
+            BlobStore store = getBlobStore();
+            NimbusInfo ni = getNimbusHostPortInfo();
+            Map<String, Object> conf = getConf();
+            if (store instanceof LocalFsBlobStore) {
+                state.setupBlobstore(key, ni, getVerionForKey(key, ni, conf));
+            }
+            LOG.debug("Created state in zookeeper {} {} {}", state, store, ni);
+        } catch (Exception e) {
+            LOG.warn("Begin file upload exception", e);
+            if (e instanceof TException) {
+                throw (TException)e;
+            }
+            throw new RuntimeException(e);
+        }
     }
 
     @SuppressWarnings("deprecation")

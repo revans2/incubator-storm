@@ -239,13 +239,7 @@
         (.beginUpdateBlob nimbus blob-key))
 
       (^void createStateInZookeeper [this ^String blob-key]
-        (let [storm-cluster-state (.getStormClusterState nimbus)
-              blob-store (.getBlobStore nimbus)
-              nimbus-host-port-info (.getNimbusHostPortInfo nimbus)
-              conf (.getConf nimbus)]
-          (if (instance? LocalFsBlobStore blob-store)
-              (.setupBlobstore storm-cluster-state blob-key nimbus-host-port-info (Nimbus/getVerionForKey blob-key nimbus-host-port-info conf)))
-          (log-debug "Created state in zookeeper" storm-cluster-state blob-store nimbus-host-port-info)))
+        (.createStateInZookeeper nimbus blob-key))
 
       (^void uploadBlobChunk [this ^String session ^ByteBuffer blob-chunk]
         (let [uploaders (.getBlobUploaders nimbus)]
