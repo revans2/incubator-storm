@@ -2966,8 +2966,18 @@ public class Nimbus implements Iface {
     
     @Override
     public TopologyInfo getTopologyInfo(String id) throws NotAliveException, AuthorizationException, TException {
-        // TODO Auto-generated method stub
-        return null;
+        try {
+            getTopologyInfoCalls.mark();
+            GetInfoOptions options = new GetInfoOptions();
+            options.set_num_err_choice(NumErrorsChoice.ALL);
+            return getTopologyInfoWithOpts(id, options);
+        } catch (Exception e) {
+            LOG.warn("get topology ino exception. (topology id={})", id, e);
+            if (e instanceof TException) {
+                throw (TException)e;
+            }
+            throw new RuntimeException(e);
+        }
     }
 
     @Override

@@ -228,11 +228,7 @@
         (.getTopologyInfoWithOpts nimbus storm-id options))
 
       (^TopologyInfo getTopologyInfo [this ^String topology-id]
-        (.mark Nimbus/getTopologyInfoCalls)
-        (.getTopologyInfoWithOpts this
-                                  topology-id
-                                  (doto (GetInfoOptions.) (.set_num_err_choice NumErrorsChoice/ALL))))
-
+        (.getTopologyInfo nimbus topology-id))
 
       (^String beginCreateBlob [this
                                 ^String blob-key
