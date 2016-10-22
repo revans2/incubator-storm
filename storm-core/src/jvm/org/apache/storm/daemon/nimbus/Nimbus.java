@@ -2772,10 +2772,21 @@ public class Nimbus implements Iface {
         }
     }
 
+    @SuppressWarnings("deprecation")
     @Override
     public String beginUpdateBlob(String key) throws AuthorizationException, KeyNotFoundException, TException {
-        // TODO Auto-generated method stub
-        return null;
+        try {
+            String sessionId = Utils.uuid();
+            getBlobUploaders().put(sessionId, getBlobStore().updateBlob(key, getSubject()));
+            LOG.info("Created upload session for {} with session id ", key, sessionId);
+            return sessionId;
+        } catch (Exception e) {
+            LOG.warn("begin update blob exception.", e);
+            if (e instanceof TException) {
+                throw (TException)e;
+            }
+            throw new RuntimeException(e);
+        }
     }
 
     @Override

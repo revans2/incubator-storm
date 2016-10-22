@@ -236,13 +236,7 @@
         (.beginCreateBlob nimbus, blob-key, blob-meta))
 
       (^String beginUpdateBlob [this ^String blob-key]
-        (let [^AtomicOutputStream os (.updateBlob (.getBlobStore nimbus)
-                                       blob-key (Nimbus/getSubject))]
-          (let [session-id (Utils/uuid)]
-            (.put (.getBlobUploaders nimbus) session-id os)
-            (log-message "Created upload session for " blob-key
-              " with id " session-id)
-            (str session-id))))
+        (.beginUpdateBlob nimbus blob-key))
 
       (^void createStateInZookeeper [this ^String blob-key]
         (let [storm-cluster-state (.getStormClusterState nimbus)
