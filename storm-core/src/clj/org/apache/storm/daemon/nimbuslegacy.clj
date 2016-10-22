@@ -251,9 +251,7 @@
         (.cancelBlobUpload nimbus session))
 
       (^ReadableBlobMeta getBlobMeta [this ^String blob-key]
-        (let [^ReadableBlobMeta ret (.getBlobMeta (.getBlobStore nimbus)
-                                      blob-key (Nimbus/getSubject))]
-          ret))
+        (.getBlobMeta nimbus blob-key))
 
       (^void setBlobMeta [this ^String blob-key ^SettableBlobMeta blob-meta]
         (->> (ReqContext/context)
