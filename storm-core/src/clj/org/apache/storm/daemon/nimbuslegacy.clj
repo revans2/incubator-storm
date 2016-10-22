@@ -263,13 +263,7 @@
         (.downloadBlobChunk nimbus session))
 
       (^void deleteBlob [this ^String blob-key]
-        (let [subject (->> (ReqContext/context)
-                           (.subject))]
-          (.deleteBlob (.getBlobStore nimbus) blob-key subject)
-          (when (instance? LocalFsBlobStore blob-store)
-            (.removeBlobstoreKey (.getStormClusterState nimbus) blob-key)
-            (.removeKeyVersion (.getStormClusterState nimbus) blob-key))
-          (log-message "Deleted blob for key " blob-key)))
+        (.deleteBlob nimbus blob-key))
 
       (^ListBlobsResult listBlobs [this ^String session]
         (let [listers (.getBlobListers nimbus)

@@ -2930,8 +2930,20 @@ public class Nimbus implements Iface {
     
     @Override
     public void deleteBlob(String key) throws AuthorizationException, KeyNotFoundException, TException {
-        // TODO Auto-generated method stub
-        
+        try {
+            getBlobStore().deleteBlob(key, getSubject());
+            if (getBlobStore() instanceof LocalFsBlobStore) {
+                getStormClusterState().removeBlobstoreKey(key);
+                getStormClusterState().removeKeyVersion(key);
+            }
+            LOG.info("Deleted blob for key {}", key);
+        } catch (Exception e) {
+            LOG.warn("delete blob exception.", e);
+            if (e instanceof TException) {
+                throw (TException)e;
+            }
+            throw new RuntimeException(e);
+        }
     }
 
     @Override
