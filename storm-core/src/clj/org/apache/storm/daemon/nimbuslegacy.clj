@@ -233,13 +233,7 @@
       (^String beginCreateBlob [this
                                 ^String blob-key
                                 ^SettableBlobMeta blob-meta]
-        (let [session-id (Utils/uuid)]
-          (.put (.getBlobUploaders nimbus)
-            session-id
-            (.createBlob (.getBlobStore nimbus) blob-key blob-meta (Nimbus/getSubject)))
-          (log-message "Created blob for " blob-key
-            " with session id " session-id)
-          (str session-id)))
+        (.beginCreateBlob nimbus, blob-key, blob-meta))
 
       (^String beginUpdateBlob [this ^String blob-key]
         (let [^AtomicOutputStream os (.updateBlob (.getBlobStore nimbus)

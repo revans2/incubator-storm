@@ -2754,11 +2754,22 @@ public class Nimbus implements Iface {
         }
     }
     
+    @SuppressWarnings("deprecation")
     @Override
     public String beginCreateBlob(String key, SettableBlobMeta meta)
             throws AuthorizationException, KeyAlreadyExistsException, TException {
-        // TODO Auto-generated method stub
-        return null;
+        try {
+            String sessionId = Utils.uuid();
+            getBlobUploaders().put(sessionId, getBlobStore().createBlob(key, meta, getSubject()));
+            LOG.info("Created blob for {} with session id ", key, sessionId);
+            return sessionId;
+        } catch (Exception e) {
+            LOG.warn("begin create blob exception.", e);
+            if (e instanceof TException) {
+                throw (TException)e;
+            }
+            throw new RuntimeException(e);
+        }
     }
 
     @Override
