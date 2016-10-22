@@ -36,6 +36,7 @@ import org.apache.storm.generated.ExecutorSpecificStats;
 import org.apache.storm.generated.ExecutorStats;
 import org.apache.storm.generated.ExecutorSummary;
 import org.apache.storm.generated.GlobalStreamId;
+import org.apache.storm.generated.NodeInfo;
 import org.apache.storm.generated.SpecificAggregateStats;
 import org.apache.storm.generated.SpoutAggregateStats;
 import org.apache.storm.generated.SpoutStats;
@@ -51,6 +52,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -1354,7 +1356,7 @@ public class StatsUtil {
         }
         return new ArrayList<WorkerSummary>(workerSummaryMap.values());
     }
-
+    
     /**
      * Aggregate statistics per worker for a topology. Optionally filtering on specific supervisors
      * 

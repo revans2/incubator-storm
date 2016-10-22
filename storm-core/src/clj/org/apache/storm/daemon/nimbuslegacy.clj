@@ -276,76 +276,7 @@
 
       (^TopologyPageInfo getTopologyPageInfo
         [this ^String topo-id ^String window ^boolean include-sys?]
-        (.mark Nimbus/getTopologyPageInfoCalls)
-        (let [topo-info (get-common-topo-info topo-id "getTopologyPageInfo")
-              {:keys [storm-name
-                      storm-cluster-state
-                      launch-time-secs
-                      assignment
-                      beats
-                      task->component
-                      topology
-                      topology-conf
-                      base]} topo-info
-              j-base (thriftify-storm-base base)
-              exec->node+port (:executor->node+port assignment)
-              node->host (:node->host assignment)
-              worker->resources (.getWorkerResourcesForTopology nimbus topo-id)
-              worker-summaries (StatsUtil/aggWorkerStats topo-id 
-                                                         storm-name
-                                                         task->component
-                                                         beats
-                                                         exec->node+port
-                                                         node->host
-                                                         worker->resources
-                                                         include-sys?
-                                                         true)  ;; this is the topology page, so we know the user is authorized 
-              topo-page-info (StatsUtil/aggTopoExecsStats topo-id
-                                                          exec->node+port
-                                                          task->component
-                                                          beats
-                                                          topology
-                                                          window
-                                                          include-sys?
-                                                          storm-cluster-state)]
-
-          (doseq [[spout-id component-aggregate-stats] (.get_id_to_spout_agg_stats topo-page-info)]
-            (let [common-stats (.get_common_stats component-aggregate-stats)
-                  resources (ResourceUtils/getSpoutsResources topology topology-conf)]
-              (.set_resources_map common-stats (set-resources-default-if-not-set resources spout-id topology-conf))))
-
-          (doseq [[bolt-id component-aggregate-stats] (.get_id_to_bolt_agg_stats topo-page-info)]
-            (let [common-stats (.get_common_stats component-aggregate-stats)
-                  resources (ResourceUtils/getBoltsResources topology topology-conf)]
-              (.set_resources_map common-stats (set-resources-default-if-not-set resources bolt-id topology-conf))))
-
-          (.set_workers topo-page-info worker-summaries)
-          (when-let [owner (:owner base)]
-            (.set_owner topo-page-info owner))
-          (when-let [sched-status (.get (.get (.getIdToSchedStatus nimbus)) topo-id)]
-            (.set_sched_status topo-page-info sched-status))
-          (when-let [resources (.getResourcesForTopology nimbus topo-id)]
-            (.set_requested_memonheap topo-page-info (.getRequestedMemOnHeap resources))
-            (.set_requested_memoffheap topo-page-info (.getRequestedMemOffHeap resources))
-            (.set_requested_cpu topo-page-info (.getRequestedCpu resources))
-            (.set_assigned_memonheap topo-page-info (.getAssignedMemOnHeap resources))
-            (.set_assigned_memoffheap topo-page-info (.getAssignedMemOffHeap resources))
-            (.set_assigned_cpu topo-page-info (.getAssignedCpu resources)))
-          (doto topo-page-info
-            (.set_name storm-name)
-            (.set_status (Nimbus/extractStatusStr j-base))
-            (.set_uptime_secs (Time/deltaSecs launch-time-secs))
-            (.set_topology_conf (JSONValue/toJSONString
-                                  (clojurify-structure (Nimbus/tryReadTopoConf
-                                                       topo-id
-                                                       (.getBlobStore nimbus)))))
-            (.set_replication_count (.getBlobReplicationCount nimbus (ConfigUtils/masterStormCodeKey topo-id))))
-          (when-let [debug-options
-                     (get-in topo-info [:base :component->debug topo-id])]
-            (.set_debug_options
-              topo-page-info
-              (converter/thriftify-debugoptions debug-options)))
-          topo-page-info))
+        (.getTopologyPageInfo nimbus topo-id window include-sys?))
 
       (^SupervisorPageInfo getSupervisorPageInfo
         [this

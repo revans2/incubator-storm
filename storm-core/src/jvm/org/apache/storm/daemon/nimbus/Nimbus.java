@@ -68,6 +68,8 @@ import org.apache.storm.generated.Assignment;
 import org.apache.storm.generated.AuthorizationException;
 import org.apache.storm.generated.BeginDownloadResult;
 import org.apache.storm.generated.ClusterSummary;
+import org.apache.storm.generated.CommonAggregateStats;
+import org.apache.storm.generated.ComponentAggregateStats;
 import org.apache.storm.generated.ComponentPageInfo;
 import org.apache.storm.generated.Credentials;
 import org.apache.storm.generated.DebugOptions;
@@ -108,6 +110,7 @@ import org.apache.storm.generated.TopologyPageInfo;
 import org.apache.storm.generated.TopologyStatus;
 import org.apache.storm.generated.TopologySummary;
 import org.apache.storm.generated.WorkerResources;
+import org.apache.storm.generated.WorkerSummary;
 import org.apache.storm.logging.ThriftAccessLogger;
 import org.apache.storm.metric.ClusterMetricsConsumerExecutor;
 import org.apache.storm.metric.api.DataPoint;
@@ -129,6 +132,7 @@ import org.apache.storm.scheduler.SupervisorDetails;
 import org.apache.storm.scheduler.Topologies;
 import org.apache.storm.scheduler.TopologyDetails;
 import org.apache.storm.scheduler.WorkerSlot;
+import org.apache.storm.scheduler.resource.ResourceUtils;
 import org.apache.storm.security.INimbusCredentialPlugin;
 import org.apache.storm.security.auth.AuthUtils;
 import org.apache.storm.security.auth.IAuthorizer;
@@ -862,6 +866,15 @@ public class Nimbus implements Iface {
         return ret;
     }
     
+    private static Map<String, Double> setResourcesDefaultIfNotSet(Map<String, Map<String, Double>> compResourcesMap, String compId, Map<String, Object> topoConf) {
+        Map<String, Double> resourcesMap = compResourcesMap.get(compId);
+        if (resourcesMap == null) {
+            resourcesMap = new HashMap<>();
+        }
+        ResourceUtils.checkIntialization(resourcesMap, compId, topoConf);
+        return resourcesMap;
+    }
+
     private final Map<String, Object> conf;
     private final NimbusInfo nimbusHostPortInfo;
     private final INimbus inimbus;
@@ -3263,14 +3276,99 @@ public class Nimbus implements Iface {
             throw new RuntimeException(e);
         }
     }
-
+    
     @Override
-    public TopologyPageInfo getTopologyPageInfo(String id, String window, boolean is_include_sys)
+    public TopologyPageInfo getTopologyPageInfo(String topoId, String window, boolean includeSys)
             throws NotAliveException, AuthorizationException, TException {
-        // TODO Auto-generated method stub
-        return null;
+        try {
+            getTopologyPageInfoCalls.mark();
+            CommonTopoInfo common = getCommonTopoInfo(topoId, "getTopologyPageInfo");
+            String topoName = common.topoName;
+            IStormClusterState state = getStormClusterState();
+            int launchTimeSecs = common.launchTimeSecs;
+            Assignment assignment = common.assignment;
+            Map<List<Integer>, Map<String, Object>> beats = common.beats;
+            Map<Integer, String> taskToComp = common.taskToComponent;
+            StormTopology topology = common.topology;
+            Map<String, Object> topoConf = common.topoConf;
+            StormBase base = common.base;
+            Map<List<Long>, NodeInfo> execToNodeInfo = assignment.get_executor_node_port();
+            Map<String, String> nodeToHost = assignment.get_node_host();
+            Map<WorkerSlot, WorkerResources> workerToResources = getWorkerResourcesForTopology(topoId);
+            Map<List<Long>, List<Object>> exec2NodePort = new HashMap<>();
+            for (Entry<List<Long>, NodeInfo> entry: execToNodeInfo.entrySet()) {
+                NodeInfo ni = entry.getValue();
+                List<Object> nodePort = Arrays.asList(ni.get_node(), ni.get_port_iterator().next());
+                exec2NodePort.put(entry.getKey(), nodePort);
+            }
+            List<WorkerSummary> workerSummaries = StatsUtil.aggWorkerStats(topoId,
+                    topoName,
+                    taskToComp,
+                    beats,
+                    exec2NodePort,
+                    nodeToHost,
+                    workerToResources,
+                    includeSys,
+                    true); //this is the topology page, so we know the user is authorized
+            TopologyPageInfo topoPageInfo = StatsUtil.aggTopoExecsStats(topoId,
+                    exec2NodePort,
+                    taskToComp,
+                    beats,
+                    topology,
+                    window,
+                    includeSys,
+                    state);
+            
+            Map<String, Map<String, Double>> spoutResources = ResourceUtils.getSpoutsResources(topology, topoConf);
+            for (Entry<String, ComponentAggregateStats> entry: topoPageInfo.get_id_to_spout_agg_stats().entrySet()) {
+                CommonAggregateStats commonStats = entry.getValue().get_common_stats();
+                commonStats.set_resources_map(setResourcesDefaultIfNotSet(spoutResources, entry.getKey(), topoConf));
+            }
+            
+            Map<String, Map<String, Double>> boltResources = ResourceUtils.getBoltsResources(topology, topoConf);
+            for (Entry<String, ComponentAggregateStats> entry: topoPageInfo.get_id_to_bolt_agg_stats().entrySet()) {
+                CommonAggregateStats commonStats = entry.getValue().get_common_stats();
+                commonStats.set_resources_map(setResourcesDefaultIfNotSet(boltResources, entry.getKey(), topoConf));
+            }
+            
+            topoPageInfo.set_workers(workerSummaries);
+            if (base.is_set_owner()) {
+                topoPageInfo.set_owner(base.get_owner());
+            }
+            String schedStatus = getIdToSchedStatus().get().get(topoId);
+            if (schedStatus != null) {
+                topoPageInfo.set_sched_status(schedStatus);
+            }
+            TopologyResources resources = getResourcesForTopology(topoId);
+            if (resources != null) {
+                topoPageInfo.set_requested_memonheap(resources.getRequestedMemOnHeap());
+                topoPageInfo.set_requested_memoffheap(resources.getRequestedMemOffHeap());
+                topoPageInfo.set_requested_cpu(resources.getRequestedCpu());
+                topoPageInfo.set_assigned_memonheap(resources.getAssignedMemOnHeap());
+                topoPageInfo.set_assigned_memoffheap(resources.getAssignedMemOffHeap());
+                topoPageInfo.set_assigned_cpu(resources.getAssignedCpu());
+            }
+            topoPageInfo.set_name(topoName);
+            topoPageInfo.set_status(extractStatusStr(base));
+            topoPageInfo.set_uptime_secs(Time.deltaSecs(launchTimeSecs));
+            topoPageInfo.set_topology_conf(JSONValue.toJSONString(topoConf));
+            topoPageInfo.set_replication_count(getBlobReplicationCount(ConfigUtils.masterStormCodeKey(topoId)));
+            if (base.is_set_component_debug()) {
+                DebugOptions debug = base.get_component_debug().get(topoId);
+                if (debug != null) {
+                    topoPageInfo.set_debug_options(debug);
+                }
+            }
+            return topoPageInfo;
+        } catch (Exception e) {
+            LOG.warn("Get topo page info exception. (topology id='{}')", topoId, e);
+            if (e instanceof TException) {
+                throw (TException)e;
+            }
+            throw new RuntimeException(e);
+        }
     }
-
+    
     @Override
     public SupervisorPageInfo getSupervisorPageInfo(String id, String host, boolean is_include_sys)
             throws NotAliveException, AuthorizationException, TException {
