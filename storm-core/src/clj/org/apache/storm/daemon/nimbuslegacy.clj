@@ -380,18 +380,7 @@
           comp-page-info))
 
       (^TopologyHistoryInfo getTopologyHistory [this ^String user]
-        (let [storm-cluster-state (.getStormClusterState nimbus)
-              assigned-topology-ids (.assignments storm-cluster-state nil)
-              user-group-match-fn (fn [topo-id user conf]
-                                    (let [topology-conf (clojurify-structure (Nimbus/tryReadTopoConf topo-id (.getBlobStore nimbus)))
-                                          groups (ConfigUtils/getTopoLogsGroups topology-conf)]
-                                      (or (nil? user)
-                                          (some #(= % user) admin-users)
-                                          (.isUserPartOf nimbus user groups)
-                                          (some #(= % user) (ConfigUtils/getTopoLogsUsers topology-conf)))))
-              active-ids-for-user (filter #(user-group-match-fn % user (.getConf nimbus)) assigned-topology-ids)
-              topo-history-list (.readTopologyHistory nimbus user admin-users)]
-          (TopologyHistoryInfo. (distinct (concat active-ids-for-user topo-history-list)))))
+        (.getTopologyHistory nimbus user))
 
       Shutdownable
       (shutdown [this]

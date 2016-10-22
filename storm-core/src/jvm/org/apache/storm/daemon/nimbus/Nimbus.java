@@ -3434,10 +3434,35 @@ public class Nimbus implements Iface {
         }
     }
 
+    @SuppressWarnings("unchecked")
     @Override
     public TopologyHistoryInfo getTopologyHistory(String user) throws AuthorizationException, TException {
-        // TODO Auto-generated method stub
-        return null;
+        try {
+            List<String> adminUsers = (List<String>) conf.getOrDefault(Config.NIMBUS_ADMINS, Collections.emptyList());
+            IStormClusterState state = getStormClusterState();
+            BlobStore store = getBlobStore();
+            List<String> assignedIds = state.assignments(null);
+            Set<String> ret = new HashSet<>();
+            boolean isAdmin = adminUsers.contains(user);
+            for (String topoId: assignedIds) {
+                Map<String, Object> topoConf = tryReadTopoConf(topoId, store);
+                List<String> groups = ConfigUtils.getTopoLogsGroups(topoConf);
+                List<String> topoLogUsers = ConfigUtils.getTopoLogsUsers(topoConf);
+                if (user == null || isAdmin ||
+                        isUserPartOf(user, groups) ||
+                        topoLogUsers.contains(user)) {
+                    ret.add(topoId);
+                }
+            }
+            ret.addAll(readTopologyHistory(user, adminUsers));
+            return new TopologyHistoryInfo(new ArrayList<>(ret));
+        } catch (Exception e) {
+            LOG.warn("Get topology history. (user='{}')", user, e);
+            if (e instanceof TException) {
+                throw (TException)e;
+            }
+            throw new RuntimeException(e);
+        }
     }
 
     @Override
