@@ -62,6 +62,7 @@ import org.apache.storm.cluster.ClusterStateContext;
 import org.apache.storm.cluster.ClusterUtils;
 import org.apache.storm.cluster.DaemonType;
 import org.apache.storm.cluster.IStormClusterState;
+import org.apache.storm.daemon.Shutdownable;
 import org.apache.storm.daemon.StormCommon;
 import org.apache.storm.generated.AlreadyAliveException;
 import org.apache.storm.generated.Assignment;
@@ -164,7 +165,7 @@ import org.slf4j.LoggerFactory;
 import com.codahale.metrics.Meter;
 import com.google.common.collect.ImmutableMap;
 
-public class Nimbus implements Iface {
+public class Nimbus implements Iface, Shutdownable {
     private final static Logger LOG = LoggerFactory.getLogger(Nimbus.class);
     
     public static final Meter submitTopologyWithOptsCalls = registerMeter("nimbus:num-submitTopologyWithOpts-calls");
@@ -3618,6 +3619,28 @@ public class Nimbus implements Iface {
             if (e instanceof TException) {
                 throw (TException)e;
             }
+            throw new RuntimeException(e);
+        }
+    }
+
+    @SuppressWarnings("deprecation")
+    @Override
+    public void shutdown() {
+        shutdownCalls.mark();
+        try {
+            LOG.info("Shutting down master");
+            getTimer().close();
+            getStormClusterState().disconnect();
+            getDownloaders().cleanup();
+            getUploaders().cleanup();
+            getBlobStore().shutdown();
+            getLeaderElector().close();
+            ITopologyActionNotifierPlugin actionNotifier = getNimbusTopologyActionNotifier();
+            if (actionNotifier != null) {
+                actionNotifier.cleanup();
+            }
+            LOG.info("Shut down master");
+        } catch (Exception e) {
             throw new RuntimeException(e);
         }
     }

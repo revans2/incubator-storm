@@ -298,16 +298,8 @@
 
       Shutdownable
       (shutdown [this]
-        (.mark Nimbus/shutdownCalls)
-        (log-message "Shutting down master")
-        (.close (.getTimer nimbus))
-        (.disconnect (.getStormClusterState nimbus))
-        (.cleanup (.getDownloaders nimbus))
-        (.cleanup (.getUploaders nimbus))
-        (.shutdown (.getBlobStore nimbus))
-        (.close (.getLeaderElector nimbus))
-        (when (.getNimbusTopologyActionNotifier nimbus) (.cleanup (.getNimbusTopologyActionNotifier nimbus)))
-        (log-message "Shut down master"))
+        (.shutdown nimbus))
+
       DaemonCommon
       (isWaiting [this]
         (.isTimerWaiting (.getTimer nimbus))))))
