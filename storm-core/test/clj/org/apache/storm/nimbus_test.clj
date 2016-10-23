@@ -1196,7 +1196,7 @@
                         STORM-ZOOKEEPER-PORT zk-port
                         STORM-LOCAL-DIR nimbus-dir}))
           (bind cluster-state (ClusterUtils/mkStormClusterState conf nil (ClusterStateContext.)))
-          (bind nimbus (nimbus/service-handler (nimbus/mk-nimbus conf (nimbus/standalone-nimbus) nil nil nil nil)))
+          (bind nimbus (nimbus/service-handler (mk-nimbus conf (nimbus/standalone-nimbus) nil nil nil nil)))
           (bind topology (Thrift/buildTopology
                            {"1" (Thrift/prepareSpoutDetails
                                   (TestPlannerSpout. true) (Integer. 3))}
@@ -1207,7 +1207,7 @@
 
             (letlocals
               (bind non-leader-cluster-state (ClusterUtils/mkStormClusterState conf nil (ClusterStateContext.)))
-              (bind non-leader-nimbus (nimbus/service-handler (nimbus/mk-nimbus conf (nimbus/standalone-nimbus) nil nil nil nil)))
+              (bind non-leader-nimbus (nimbus/service-handler (mk-nimbus conf (nimbus/standalone-nimbus) nil nil nil nil)))
 
               ;first we verify that the master nimbus can perform all actions, even with another nimbus present.
               (submit-local-topology nimbus "t1" {} topology)
@@ -1281,7 +1281,7 @@
         blob-store (Mockito/mock BlobStore)
         mk-nimbus (fn
                     [conf inimbus blob-store leader-elector group-mapper cluster-state]
-                    (Mockito/spy (nimbus/mk-nimbus conf inimbus blob-store leader-elector group-mapper cluster-state)))] 
+                    (Mockito/spy (mk-nimbus conf inimbus blob-store leader-elector group-mapper cluster-state)))] 
   (with-mocked-nimbus [cluster :cluster-state cluster-state :blob-store blob-store :mk-nimbus mk-nimbus
                        :daemon-conf {NIMBUS-AUTHORIZER "org.apache.storm.security.auth.authorizer.NoopAuthorizer"}]
     (let [nimbus (:nimbus cluster)
@@ -1338,7 +1338,7 @@
         blob-store (Mockito/mock BlobStore)
         mk-nimbus (fn
                     [conf inimbus blob-store leader-elector group-mapper cluster-state]
-                    (Mockito/spy (nimbus/mk-nimbus conf inimbus blob-store leader-elector group-mapper cluster-state)))]
+                    (Mockito/spy (mk-nimbus conf inimbus blob-store leader-elector group-mapper cluster-state)))]
   (with-mocked-nimbus [cluster :cluster-state cluster-state :blob-store blob-store :mk-nimbus mk-nimbus
                        :daemon-conf {NIMBUS-AUTHORIZER "org.apache.storm.security.auth.authorizer.NoopAuthorizer"}]
     (let [nimbus (:nimbus cluster)
@@ -1530,7 +1530,7 @@
                       STORM-ZOOKEEPER-PORT zk-port
                       STORM-LOCAL-DIR nimbus-dir}))
         (bind cluster-state (ClusterUtils/mkStormClusterState conf nil (ClusterStateContext.)))
-        (bind nimbus (nimbus/service-handler (nimbus/mk-nimbus conf (nimbus/standalone-nimbus) nil nil nil nil)))
+        (bind nimbus (nimbus/service-handler (mk-nimbus conf (nimbus/standalone-nimbus) nil nil nil nil)))
         (Time/sleepSecs 1)
         (bind topology (Thrift/buildTopology
                          {"1" (Thrift/prepareSpoutDetails
@@ -1545,7 +1545,7 @@
         ; in startup of nimbus it reads cluster state and take proper actions
         ; in this case nimbus registers topology transition event to scheduler again
         ; before applying STORM-856 nimbus was killed with NPE
-        (bind nimbus (nimbus/service-handler (nimbus/mk-nimbus conf (nimbus/standalone-nimbus) nil nil nil nil)))
+        (bind nimbus (nimbus/service-handler (mk-nimbus conf (nimbus/standalone-nimbus) nil nil nil nil)))
         (.shutdown nimbus)
         (.disconnect cluster-state)
         ))))
@@ -1563,7 +1563,7 @@
                         STORM-LOCAL-DIR nimbus-dir
                         NIMBUS-TOPOLOGY-ACTION-NOTIFIER-PLUGIN (.getName InMemoryTopologyActionNotifier)}))
           (bind cluster-state (ClusterUtils/mkStormClusterState conf nil (ClusterStateContext.)))
-          (bind nimbus (nimbus/service-handler (nimbus/mk-nimbus conf (nimbus/standalone-nimbus) nil nil nil nil)))
+          (bind nimbus (nimbus/service-handler (mk-nimbus conf (nimbus/standalone-nimbus) nil nil nil nil)))
           (bind notifier (InMemoryTopologyActionNotifier.))
           (Time/sleepSecs 1)
           (bind topology (Thrift/buildTopology

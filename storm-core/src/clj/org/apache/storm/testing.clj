@@ -52,9 +52,10 @@
   (:import [org.apache.storm Config])
   (:import [org.apache.storm.generated StormTopology])
   (:import [org.apache.storm.task TopologyContext]
-           (org.apache.storm.messaging IContext)
+           [org.apache.storm.messaging IContext]
            [org.json.simple JSONValue]
-           (org.apache.storm.daemon StormCommon Acker DaemonCommon))
+           [org.apache.storm.daemon.nimbus Nimbus]
+           [org.apache.storm.daemon StormCommon Acker DaemonCommon])
   (:import [org.apache.storm.cluster ZKStateStorage ClusterStateContext StormClusterStateImpl ClusterUtils])
   (:use [org.apache.storm util config log local-state-converter converter])
   (:use [org.apache.storm.internal thrift]))
@@ -184,9 +185,13 @@
       (getAllNimbuses [this] `(leader-address))
       (close [this] true))))
 
+(defn mk-nimbus
+  [conf inimbus blob-store leader-elector group-mapper cluster-state]
+  (Nimbus. conf inimbus cluster-state nil blob-store leader-elector group-mapper))
+
 (defnk mk-mocked-nimbus 
   [:daemon-conf {} :inimbus nil :blob-store nil :cluster-state nil 
-   :leader-elector nil :group-mapper nil :nimbus-daemon false :mk-nimbus nimbus/mk-nimbus]
+   :leader-elector nil :group-mapper nil :nimbus-daemon false :mk-nimbus mk-nimbus]
   (let [zk-tmp (local-temp-path)
         [zk-port zk-handle] (if-not cluster-state
                               (Zookeeper/mkInprocessZookeeper zk-tmp nil))
@@ -239,7 +244,7 @@
                            daemon-conf)
         port-counter (mk-counter supervisor-slot-port-min)
         nimbus (nimbus/service-handler
-                (nimbus/mk-nimbus
+                (mk-nimbus
                   (assoc daemon-conf STORM-LOCAL-DIR nimbus-tmp)
                   (if inimbus inimbus (nimbus/standalone-nimbus))
                   nil

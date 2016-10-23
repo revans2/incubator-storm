@@ -77,10 +77,6 @@
 
 (defmulti setup-jar cluster-mode)
 
-(defn mk-nimbus
-  [conf inimbus blob-store leader-elector group-mapper cluster-state]
-  (Nimbus. conf inimbus cluster-state nil blob-store leader-elector group-mapper))
-
 ;TODO: when translating this function, you should replace the map-val with a proper for loop HERE
 (defserverfn service-handler [nimbus]
   (let [conf (.getConf nimbus)
@@ -164,10 +160,10 @@
       (log-error e (conf NIMBUS-THRIFT-PORT) " is not available. Check if another process is already listening on " (conf NIMBUS-THRIFT-PORT))
       (System/exit 0))))
 
-(defn launch-server! [conf nimbus]
+(defn launch-server! [conf inimbus]
   (StormCommon/validateDistributedMode conf)
   (validate-port-available conf)
-  (let [service-handler (service-handler (mk-nimbus conf nimbus nil nil nil nil))
+  (let [service-handler (service-handler (Nimbus. conf inimbus))
         server (ThriftServer. conf (Nimbus$Processor. service-handler)
                               ThriftConnectionType/NIMBUS)]
     (Utils/addShutdownHookWithForceKillIn1Sec (fn []
@@ -196,11 +192,11 @@
   nil
   )
 
-(defn -launch [nimbus]
+(defn -launch [inimbus]
   (let [conf (merge
                (clojurify-structure (ConfigUtils/readStormConfig))
                (clojurify-structure (ConfigUtils/readYamlConfig "storm-cluster-auth.yaml" false)))]
-  (launch-server! conf nimbus)))
+  (launch-server! conf inimbus)))
 
 (defn standalone-nimbus []
   (reify INimbus
