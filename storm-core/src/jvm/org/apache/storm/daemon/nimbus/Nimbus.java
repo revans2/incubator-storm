@@ -71,6 +71,7 @@ import org.apache.storm.generated.ClusterSummary;
 import org.apache.storm.generated.CommonAggregateStats;
 import org.apache.storm.generated.ComponentAggregateStats;
 import org.apache.storm.generated.ComponentPageInfo;
+import org.apache.storm.generated.ComponentType;
 import org.apache.storm.generated.Credentials;
 import org.apache.storm.generated.DebugOptions;
 import org.apache.storm.generated.ErrorInfo;
@@ -147,6 +148,7 @@ import org.apache.storm.utils.ConfigUtils;
 import org.apache.storm.utils.LocalState;
 import org.apache.storm.utils.Time;
 import org.apache.storm.utils.TimeCacheMap;
+import org.apache.storm.utils.TupleUtils;
 import org.apache.storm.utils.Utils;
 import org.apache.storm.utils.Utils.UptimeComputer;
 import org.apache.storm.utils.VersionInfo;
@@ -3444,10 +3446,83 @@ public class Nimbus implements Iface {
     }
     
     @Override
-    public ComponentPageInfo getComponentPageInfo(String topology_id, String component_id, String window,
-            boolean is_include_sys) throws NotAliveException, AuthorizationException, TException {
-        // TODO Auto-generated method stub
-        return null;
+    public ComponentPageInfo getComponentPageInfo(String topoId, String componentId, String window,
+            boolean includeSys) throws NotAliveException, AuthorizationException, TException {
+        try {
+            getComponentPageInfoCalls.mark();
+            CommonTopoInfo info = getCommonTopoInfo(topoId, "getComponentPageInfo");
+            StormTopology topology = info.topology;
+            Map<String, Object> topoConf = info.topoConf;
+            Assignment assignment = info.assignment;
+            Map<List<Long>, List<Object>> exec2NodePort = new HashMap<>();
+            Map<String, String> nodeToHost;
+            Map<List<Long>, List<Object>> exec2HostPort = new HashMap<>();
+            if (assignment != null) {
+                Map<List<Long>, NodeInfo> execToNodeInfo = assignment.get_executor_node_port();
+                nodeToHost = assignment.get_node_host();
+                for (Entry<List<Long>, NodeInfo> entry: execToNodeInfo.entrySet()) {
+                    NodeInfo ni = entry.getValue();
+                    List<Object> nodePort = Arrays.asList(ni.get_node(), ni.get_port_iterator().next());
+                    List<Object> hostPort = Arrays.asList(nodeToHost.get(ni.get_node()), ni.get_port_iterator().next());
+                    exec2NodePort.put(entry.getKey(), nodePort);
+                    exec2HostPort.put(entry.getKey(), hostPort);
+                }
+            } else {
+                nodeToHost = Collections.emptyMap();
+            }
+             
+            ComponentPageInfo compPageInfo = StatsUtil.aggCompExecsStats(exec2HostPort, info.taskToComponent, info.beats, window, 
+                    includeSys, topoId, topology, componentId);
+            if (compPageInfo.get_component_type() == ComponentType.SPOUT) {
+                compPageInfo.set_resources_map(setResourcesDefaultIfNotSet(
+                        ResourceUtils.getSpoutsResources(topology, topoConf), componentId, topoConf));
+            } else { //bolt
+                compPageInfo.set_resources_map(setResourcesDefaultIfNotSet(
+                        ResourceUtils.getBoltsResources(topology, topoConf), componentId, topoConf));
+            }
+            compPageInfo.set_topology_name(info.topoName);
+            compPageInfo.set_errors(getStormClusterState().errors(topoId, componentId));
+            compPageInfo.set_topology_status(extractStatusStr(info.base));
+            if (info.base != null && info.base.is_set_component_debug()) {
+                DebugOptions debug = info.base.get_component_debug().get(componentId);
+                if (debug != null) {
+                    compPageInfo.set_debug_options(debug);
+                }
+            }
+            // Add the event logger details.
+            Map<String, List<Integer>> compToTasks = Utils.reverseMap(info.taskToComponent);
+            if (compToTasks.containsKey(StormCommon.EVENTLOGGER_COMPONENT_ID)) {
+                List<Integer> tasks = compToTasks.get(StormCommon.EVENTLOGGER_COMPONENT_ID);
+                tasks.sort(null);
+                // Find the task the events from this component route to.
+                int taskIndex = TupleUtils.listHashCode(Arrays.asList(componentId)) %
+                        tasks.size();
+                int taskId = tasks.get(taskIndex);
+                String host = null;
+                Integer port = null;
+                for (Entry<List<Long>, List<Object>> entry: exec2HostPort.entrySet()) {
+                    int start = entry.getKey().get(0).intValue();
+                    int end = entry.getKey().get(1).intValue();
+                    if (taskId >= start && taskId <= end) {
+                        host = (String) entry.getValue().get(0);
+                        port = (Integer) entry.getValue().get(1);
+                        break;
+                    }
+                }
+                
+                if (host != null && port != null) {
+                    compPageInfo.set_eventlog_host(host);
+                    compPageInfo.set_eventlog_port(port);
+                }
+            }
+            return compPageInfo;
+        } catch (Exception e) {
+            LOG.warn("getComponentPageInfo exception. (topo id='{}')", topoId, e);
+            if (e instanceof TException) {
+                throw (TException)e;
+            }
+            throw new RuntimeException(e);
+        }
     }
 
     @Override

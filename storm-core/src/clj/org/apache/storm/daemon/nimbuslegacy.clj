@@ -291,57 +291,7 @@
          ^String component-id
          ^String window
          ^boolean include-sys?]
-        (.mark Nimbus/getComponentPageInfoCalls)
-        (let [info (get-common-topo-info topo-id "getComponentPageInfo")
-              {:keys [topology topology-conf]} info
-              {:keys [executor->node+port node->host]} (:assignment info)
-              ;TODO: when translating this function, you should replace the map-val with a proper for loop HERE
-              executor->host+port (map-val (fn [[node port]]
-                                             [(node->host node) port])
-                                           executor->node+port)
-              comp-page-info (StatsUtil/aggCompExecsStats executor->host+port
-                                                         (:task->component info)
-                                                         (:beats info)
-                                                         window
-                                                         include-sys?
-                                                         topo-id
-                                                         (:topology info)
-                                                         component-id)]
-          (if (.equals (.get_component_type comp-page-info) ComponentType/SPOUT)
-            (.set_resources_map comp-page-info 
-              (set-resources-default-if-not-set (ResourceUtils/getSpoutsResources topology topology-conf) component-id topology-conf))
-            (.set_resources_map comp-page-info
-              (set-resources-default-if-not-set (ResourceUtils/getBoltsResources topology topology-conf) component-id topology-conf)))
-
-          (doto comp-page-info
-            (.set_topology_name (:storm-name info))
-            (.set_errors (.errors (:storm-cluster-state info)
-                                     topo-id
-                                     component-id))
-            (.set_topology_status (Nimbus/extractStatusStr (thriftify-storm-base (:base info)))))
-          (when-let [debug-options
-                     (get-in info [:base :component->debug component-id])]
-            (.set_debug_options
-              comp-page-info
-              (converter/thriftify-debugoptions debug-options)))
-          ;; Add the event logger details.
-          (let [component->tasks (clojurify-structure (Utils/reverseMap (:task->component info)))]
-            (if (contains? component->tasks StormCommon/EVENTLOGGER_COMPONENT_ID)
-              (let [eventlogger-tasks (sort (get component->tasks
-                                                 StormCommon/EVENTLOGGER_COMPONENT_ID))
-                    ;; Find the task the events from this component route to.
-                    task-index (mod (TupleUtils/listHashCode [component-id])
-                                    (count eventlogger-tasks))
-                    task-id (nth eventlogger-tasks task-index)
-                    eventlogger-exec (first (filter (fn [[start stop]]
-                                                      (between? task-id start stop))
-                                                    (keys executor->host+port)))
-                    [host port] (get executor->host+port eventlogger-exec)]
-                (if (and host port)
-                  (doto comp-page-info
-                    (.set_eventlog_host host)
-                    (.set_eventlog_port port))))))
-          comp-page-info))
+        (.getComponentPageInfo nimbus topo-id component-id window include-sys?))
 
       (^TopologyHistoryInfo getTopologyHistory [this ^String user]
         (.getTopologyHistory nimbus user))
