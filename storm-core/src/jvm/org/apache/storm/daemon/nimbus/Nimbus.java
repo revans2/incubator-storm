@@ -62,6 +62,7 @@ import org.apache.storm.cluster.ClusterStateContext;
 import org.apache.storm.cluster.ClusterUtils;
 import org.apache.storm.cluster.DaemonType;
 import org.apache.storm.cluster.IStormClusterState;
+import org.apache.storm.daemon.DaemonCommon;
 import org.apache.storm.daemon.Shutdownable;
 import org.apache.storm.daemon.StormCommon;
 import org.apache.storm.generated.AlreadyAliveException;
@@ -165,7 +166,7 @@ import org.slf4j.LoggerFactory;
 import com.codahale.metrics.Meter;
 import com.google.common.collect.ImmutableMap;
 
-public class Nimbus implements Iface, Shutdownable {
+public class Nimbus implements Iface, Shutdownable, DaemonCommon {
     private final static Logger LOG = LoggerFactory.getLogger(Nimbus.class);
     
     public static final Meter submitTopologyWithOptsCalls = registerMeter("nimbus:num-submitTopologyWithOpts-calls");
@@ -3643,5 +3644,10 @@ public class Nimbus implements Iface, Shutdownable {
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
+    }
+
+    @Override
+    public boolean isWaiting() {
+        return getTimer().isTimerWaiting();
     }
 }
