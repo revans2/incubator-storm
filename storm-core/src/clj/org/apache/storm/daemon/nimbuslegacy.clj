@@ -75,8 +75,6 @@
   (:gen-class
     :methods [^{:static true} [launch [org.apache.storm.scheduler.INimbus] void]]))
 
-(defmulti setup-jar cluster-mode)
-
 ;TODO: when translating this function, you should replace the map-val with a proper for loop HERE
 (defserverfn service-handler [nimbus]
   (let [conf (.getConf nimbus)
@@ -174,23 +172,6 @@
                  "'")
     (.serve server)
     service-handler))
-
-;; distributed implementation
-
-(defmethod setup-jar :distributed [conf tmp-jar-location stormroot]
-           (let [src-file (File. tmp-jar-location)]
-             (if-not (.exists src-file)
-               (throw
-                (IllegalArgumentException.
-                 (str tmp-jar-location " to copy to " stormroot " does not exist!"))))
-             (FileUtils/copyFile src-file (File. (ConfigUtils/masterStormJarPath stormroot)))
-             ))
-
-;; local implementation
-
-(defmethod setup-jar :local [conf & args]
-  nil
-  )
 
 (defn -launch [inimbus]
   (let [conf (merge
