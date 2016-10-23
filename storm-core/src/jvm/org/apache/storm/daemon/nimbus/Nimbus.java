@@ -939,6 +939,10 @@ public class Nimbus implements Iface, Shutdownable, DaemonCommon {
             hostPortInfo = NimbusInfo.fromConf(conf);
         }
         this.nimbusHostPortInfo = hostPortInfo;
+        //for testing
+        if (inimbus != null) {
+            inimbus.prepare(conf, ConfigUtils.masterInimbusDir(conf));
+        }
         this.inimbus = inimbus;
         this.authorizationHandler = StormCommon.mkAuthorizationHandler((String) conf.get(Config.NIMBUS_AUTHORIZER), conf);
         this.impersonationAuthorizationHandler = StormCommon.mkAuthorizationHandler((String) conf.get(Config.NIMBUS_IMPERSONATION_AUTHORIZER), conf);

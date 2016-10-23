@@ -1479,7 +1479,7 @@
                      STORM-PRINCIPAL-TO-LOCAL-PLUGIN "org.apache.storm.security.auth.DefaultPrincipalToLocal"
                      NIMBUS-THRIFT-PORT 6666})
           expected-acls Nimbus/ZK_ACLS
-          fake-inimbus (reify INimbus (getForcedScheduler [this] nil))
+          fake-inimbus (reify INimbus (getForcedScheduler [this] nil) (prepare [this conf dir] nil))
           fake-cu (proxy [ConfigUtils] []
                     (nimbusTopoHistoryStateImpl [conf] nil))
           fake-utils (proxy [Utils] []
