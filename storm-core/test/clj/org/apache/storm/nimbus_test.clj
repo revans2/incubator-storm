@@ -1372,8 +1372,7 @@
       (.thenReturn (Mockito/when (.readTopologyConf blob-store (Mockito/any String) (Mockito/any Subject))) expected-conf)
       (.thenReturn (Mockito/when (.readTopology blob-store (Mockito/any String) (Mockito/any Subject))) topology)
       (.thenReturn (Mockito/when (.topologyAssignments cluster-state)) topo-assignment)
-      (stubbing [clojurify-assignment clojurified-assignment
-                 nimbus/get-launch-time-secs 0]
+      (stubbing [clojurify-assignment clojurified-assignment]
         (.getSupervisorPageInfo nimbus "super1" nil true)
  
         ;; afterwards, it should get called twice

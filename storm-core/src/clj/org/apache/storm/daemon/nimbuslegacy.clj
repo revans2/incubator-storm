@@ -77,39 +77,6 @@
 
 (defmulti setup-jar cluster-mode)
 
-;; Monitoring (or by checking when nodes go down or heartbeats aren't received):
-;; 1. read assignment
-;; 2. see which executors/nodes are up
-;; 3. make new assignment to fix any problems
-;; 4. if a storm exists but is not taken down fully, ensure that storm takedown is launched (step by step remove executors and finally remove assignments)
-
-(defn get-key-seq-from-blob-store [blob-store]
-  (let [key-iter (.listKeys blob-store)]
-    (iterator-seq key-iter)))
-
-;; Master:
-;; job submit:
-;; 1. read which nodes are available
-;; 2. set assignments
-;; 3. start storm - necessary in case master goes down, when goes back up can remember to take down the storm (2 states: on or off)
-
-;;TODO inline this when it is translated
-(defn get-launch-time-secs 
-  [base storm-id]
-  (if base (:launch-time-secs base)
-    (throw
-      (NotAliveException. (str storm-id)))))
-
-;;TODO inline this when it's use is translated
-(defn- between?
-  "val >= lower and val <= upper"
-  [val lower upper]
-  (and (>= val lower)
-    (<= val upper)))
-
-(defn mk-reified-nimbus [nimbus conf blob-store]
-  nimbus)
-
 (defn mk-nimbus
   [conf inimbus blob-store leader-elector group-mapper cluster-state]
   (.prepare inimbus conf (ConfigUtils/masterInimbusDir conf))
@@ -188,7 +155,7 @@
           (when (.isLeader nimbus)
             (.sendClusterMetricsToExecutors nimbus)))))
 
-    (mk-reified-nimbus nimbus conf blob-store)))
+    nimbus))
 
 (defn validate-port-available[conf]
   (try
