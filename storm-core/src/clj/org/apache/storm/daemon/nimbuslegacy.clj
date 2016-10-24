@@ -75,27 +75,11 @@
   (:gen-class
     :methods [^{:static true} [launch [org.apache.storm.scheduler.INimbus] void]]))
 
-(defn launch-server! [conf inimbus]
-  (StormCommon/validateDistributedMode conf)
-  (Nimbus/validatePortAvailable conf)
-  (let [service-handler (Nimbus. conf inimbus)
-        _ (.launchServer service-handler)
-        server (ThriftServer. conf (Nimbus$Processor. service-handler)
-                              ThriftConnectionType/NIMBUS)]
-    (Utils/addShutdownHookWithForceKillIn1Sec (fn []
-                                                  (.shutdown service-handler)
-                                                  (.stop server)))
-    (log-message "Starting nimbus server for storm version '"
-                 Nimbus/STORM_VERSION
-                 "'")
-    (.serve server)
-    service-handler))
-
 (defn -launch [inimbus]
   (let [conf (merge
                (clojurify-structure (ConfigUtils/readStormConfig))
                (clojurify-structure (ConfigUtils/readYamlConfig "storm-cluster-auth.yaml" false)))]
-  (launch-server! conf inimbus)))
+  (Nimbus/launchServer conf inimbus)))
 
 (defn standalone-nimbus []
   (reify INimbus

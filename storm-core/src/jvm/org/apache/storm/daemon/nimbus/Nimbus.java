@@ -94,6 +94,7 @@ import org.apache.storm.generated.LogConfig;
 import org.apache.storm.generated.LogLevel;
 import org.apache.storm.generated.LogLevelAction;
 import org.apache.storm.generated.Nimbus.Iface;
+import org.apache.storm.generated.Nimbus.Processor;
 import org.apache.storm.generated.NimbusSummary;
 import org.apache.storm.generated.NodeInfo;
 import org.apache.storm.generated.NotAliveException;
@@ -148,6 +149,8 @@ import org.apache.storm.security.auth.IGroupMappingServiceProvider;
 import org.apache.storm.security.auth.IPrincipalToLocal;
 import org.apache.storm.security.auth.NimbusPrincipal;
 import org.apache.storm.security.auth.ReqContext;
+import org.apache.storm.security.auth.ThriftConnectionType;
+import org.apache.storm.security.auth.ThriftServer;
 import org.apache.storm.stats.StatsUtil;
 import org.apache.storm.utils.BufferInputStream;
 import org.apache.storm.utils.ConfigUtils;
@@ -883,6 +886,7 @@ public class Nimbus implements Iface, Shutdownable, DaemonCommon {
         return resourcesMap;
     }
     
+    //TODO private
     public static void validatePortAvailable(Map<String, Object> conf) throws IOException {
         int port = Utils.getInt(conf.get(Config.NIMBUS_THRIFT_PORT));
         try (ServerSocket socket = new ServerSocket(port)) {
@@ -891,6 +895,22 @@ public class Nimbus implements Iface, Shutdownable, DaemonCommon {
             LOG.error("{} is not available. Check if another process is already listening on {}", port, port);
             System.exit(0);
         }
+    }
+    
+    //TODO private
+    public static Nimbus launchServer(Map<String, Object> conf, INimbus inimbus) throws Exception {
+        StormCommon.validateDistributedMode(conf);
+        validatePortAvailable(conf);
+        final Nimbus nimbus = new Nimbus(conf, inimbus);
+        nimbus.launchServer();
+        final ThriftServer server = new ThriftServer(conf, new Processor<>(nimbus), ThriftConnectionType.NIMBUS);
+        Utils.addShutdownHookWithForceKillIn1Sec(() -> {
+            nimbus.shutdown();
+            server.stop();
+        });
+        LOG.info("Starting nimbus server for storm version '{}'", STORM_VERSION);
+        server.serve();
+        return nimbus;
     }
     
     private final Map<String, Object> conf;
