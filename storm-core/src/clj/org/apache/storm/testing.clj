@@ -16,7 +16,6 @@
 
 (ns org.apache.storm.testing
   (:require [org.apache.storm.daemon
-             [nimbuslegacy :as nimbus]
              [local-executor :as local-executor]
              [local-supervisor :as local-supervisor]
              [common :as common]

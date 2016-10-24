@@ -963,6 +963,11 @@ public class Nimbus implements Iface, Shutdownable, DaemonCommon {
         return launchServer(conf, inimbus);
     }
     
+    public static void main(String[] args) throws Exception {
+        Utils.setupDefaultUncaughtExceptionHandler();
+        launch(new StandAloneINimbus());
+    }
+    
     private final Map<String, Object> conf;
     private final NimbusInfo nimbusHostPortInfo;
     private final INimbus inimbus;

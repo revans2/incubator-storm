@@ -16,8 +16,6 @@
 (ns org.apache.storm.nimbus-test
   (:use [clojure test])
   (:require [org.apache.storm [util :as util]])
-  (:require [org.apache.storm.daemon [nimbuslegacy :as nimbus]])
-  (:require [org.apache.storm [converter :as converter]])
   (:import [org.apache.storm.testing TestWordCounter TestWordSpout TestGlobalCount
             TestAggregatesCounter TestPlannerSpout TestPlannerBolt]
            [org.apache.storm.blobstore BlobStore]

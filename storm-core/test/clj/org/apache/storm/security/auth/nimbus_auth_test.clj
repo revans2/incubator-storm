@@ -16,7 +16,6 @@
 (ns org.apache.storm.security.auth.nimbus-auth-test
   (:use [clojure test])
   (:require [org.apache.storm [testing :as testing]])
-  (:require [org.apache.storm.daemon [nimbuslegacy :as nimbus]])
   (:require [org.apache.storm.security.auth [auth-test :refer [nimbus-timeout]]])
   (:import [java.nio ByteBuffer])
   (:import [org.apache.storm Config])
@@ -31,7 +30,6 @@
   (:import [org.apache.storm.cluster IStormClusterState])
   (:import [org.mockito Mockito Matchers])
   (:use [org.apache.storm util config log testing])
-  (:use [org.apache.storm.daemon common nimbuslegacy])
   (:require [conjure.core])
   (:use [conjure core]))
 

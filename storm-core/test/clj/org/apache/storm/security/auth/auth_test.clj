@@ -15,7 +15,6 @@
 ;; limitations under the License.
 (ns org.apache.storm.security.auth.auth-test
   (:use [clojure test])
-  (:require [org.apache.storm.daemon [nimbuslegacy :as nimbus]])
   (:import [org.apache.thrift TException]
            [org.json.simple JSONValue]
            [org.apache.storm.utils Utils]

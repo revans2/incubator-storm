@@ -18,7 +18,6 @@
   (:use [org.apache.storm util config testing])
   (:import [org.apache.storm.scheduler EvenScheduler])
   (:import [org.apache.storm.daemon.nimbus Nimbus$StandAloneINimbus])
-  (:require [org.apache.storm.daemon [nimbuslegacy :as nimbus]])
   (:import [org.apache.storm.generated StormTopology])
   (:import [org.apache.storm.scheduler Cluster SupervisorDetails WorkerSlot ExecutorDetails
             SchedulerAssignmentImpl Topologies TopologyDetails]))
