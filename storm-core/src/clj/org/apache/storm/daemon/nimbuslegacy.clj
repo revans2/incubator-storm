@@ -17,7 +17,7 @@
   (:import [org.apache.thrift.server THsHaServer THsHaServer$Args]
            [org.apache.storm.stats StatsUtil]
            [org.apache.storm.metric StormMetricsRegistry])
-  (:import [org.apache.storm.daemon.nimbus Nimbus TopologyResources TopologyStateTransition Nimbus$Dissoc TopologyActions])
+  (:import [org.apache.storm.daemon.nimbus Nimbus Nimbus$StandAloneINimbus TopologyResources TopologyStateTransition Nimbus$Dissoc TopologyActions])
   (:import [org.apache.storm.generated KeyNotFoundException TopologyStatus])
   (:import [org.apache.storm.blobstore LocalFsBlobStore])
   (:import [org.apache.thrift.protocol TBinaryProtocol TBinaryProtocol$Factory])
@@ -82,23 +82,7 @@
   (Nimbus/launchServer conf inimbus)))
 
 (defn standalone-nimbus []
-  (reify INimbus
-    (prepare [this conf local-dir]
-      )
-    (allSlotsAvailableForScheduling [this supervisors topologies topologies-missing-assignments]
-      (->> supervisors
-           (mapcat (fn [^SupervisorDetails s]
-                     (for [p (.getMeta s)]
-                       (WorkerSlot. (.getId s) p))))
-           set ))
-    (assignSlots [this topology slots]
-      )
-    (getForcedScheduler [this]
-      nil )
-    (getHostName [this supervisors node-id]
-      (if-let [^SupervisorDetails supervisor (get supervisors node-id)]
-        (.getHost supervisor)))
-    ))
+  (Nimbus$StandAloneINimbus.))
 
 (defn -main []
   (Utils/setupDefaultUncaughtExceptionHandler)

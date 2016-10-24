@@ -250,6 +250,7 @@ public class Nimbus implements Iface, Shutdownable, DaemonCommon {
                     .build())
             .build();
     
+    //TODO private
     //TODO is it possible to move these to a ConcurrentMap?
     public static final class Assoc<K,V> implements UnaryOperator<Map<K, V>> {
         private final K key;
@@ -268,6 +269,7 @@ public class Nimbus implements Iface, Shutdownable, DaemonCommon {
         }
     }
     
+    //TODO private
     public static final class Dissoc<K,V> implements UnaryOperator<Map<K, V>> {
         private final K key;
         
@@ -282,6 +284,48 @@ public class Nimbus implements Iface, Shutdownable, DaemonCommon {
             return ret;
         }
     }
+    
+    public static class StandAloneINimbus implements INimbus {
+
+        @Override
+        public void prepare(Map stormConf, String schedulerLocalDir) {
+            //NOOP
+        }
+
+        @SuppressWarnings("unchecked")
+        @Override
+        public Collection<WorkerSlot> allSlotsAvailableForScheduling(Collection<SupervisorDetails> supervisors,
+                Topologies topologies, Set<String> topologiesMissingAssignments) {
+            Set<WorkerSlot> ret = new HashSet<>();
+            for (SupervisorDetails sd: supervisors) {
+                String id = sd.getId();
+                for (Number port: (Collection<Number>)sd.getMeta()) {
+                    ret.add(new WorkerSlot(id, port));
+                }
+            }
+            return ret;
+        }
+
+        @Override
+        public void assignSlots(Topologies topologies, Map<String, Collection<WorkerSlot>> newSlotsByTopologyId) {
+            //NOOP
+        }
+
+        @Override
+        public String getHostName(Map<String, SupervisorDetails> supervisors, String nodeId) {
+            SupervisorDetails sd = supervisors.get(nodeId);
+            if (sd != null) {
+                return sd.getHost();
+            }
+            return null;
+        }
+
+        @Override
+        public IScheduler getForcedScheduler() {
+            return null;
+        }
+        
+    };
     
     private static class CommonTopoInfo {
         public Map<String, Object> topoConf;
@@ -911,6 +955,12 @@ public class Nimbus implements Iface, Shutdownable, DaemonCommon {
         LOG.info("Starting nimbus server for storm version '{}'", STORM_VERSION);
         server.serve();
         return nimbus;
+    }
+    
+    public static Nimbus launch(INimbus inimbus) throws Exception {
+        Map<String, Object> conf = merge(ConfigUtils.readStormConfig(),
+                ConfigUtils.readYamlConfig("storm-cluster-auth.yaml", false));
+        return launchServer(conf, inimbus);
     }
     
     private final Map<String, Object> conf;
