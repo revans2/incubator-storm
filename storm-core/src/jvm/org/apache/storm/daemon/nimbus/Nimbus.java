@@ -216,7 +216,6 @@ public class Nimbus implements Iface, Shutdownable, DaemonCommon {
         NIMBUS_SUBJECT.setReadOnly();
     }
     
-    //TODO perhaps this should all go to a few switch statements?
     public static final Map<TopologyStatus, Map<TopologyActions, TopologyStateTransition>> TOPO_STATE_TRANSITIONS = 
             new ImmutableMap.Builder<TopologyStatus, Map<TopologyActions, TopologyStateTransition>>()
             .put(TopologyStatus.ACTIVE, new ImmutableMap.Builder<TopologyActions, TopologyStateTransition>()
@@ -243,9 +242,7 @@ public class Nimbus implements Iface, Shutdownable, DaemonCommon {
                     .build())
             .build();
     
-    //TODO private
-    //TODO is it possible to move these to a ConcurrentMap?
-    public static final class Assoc<K,V> implements UnaryOperator<Map<K, V>> {
+    private static final class Assoc<K,V> implements UnaryOperator<Map<K, V>> {
         private final K key;
         private final V value;
         
@@ -262,8 +259,7 @@ public class Nimbus implements Iface, Shutdownable, DaemonCommon {
         }
     }
     
-    //TODO private
-    public static final class Dissoc<K,V> implements UnaryOperator<Map<K, V>> {
+    private static final class Dissoc<K,V> implements UnaryOperator<Map<K, V>> {
         private final K key;
         
         public Dissoc(K key) {
@@ -278,6 +274,7 @@ public class Nimbus implements Iface, Shutdownable, DaemonCommon {
         }
     }
     
+    @VisibleForTesting
     public static class StandAloneINimbus implements INimbus {
 
         @Override
@@ -334,7 +331,7 @@ public class Nimbus implements Iface, Shutdownable, DaemonCommon {
     }
     
     @SuppressWarnings("deprecation")
-    public static <T extends AutoCloseable> TimeCacheMap<String, T> fileCacheMap(Map<String, Object> conf) {
+    private static <T extends AutoCloseable> TimeCacheMap<String, T> fileCacheMap(Map<String, Object> conf) {
         return new TimeCacheMap<>(Utils.getInt(conf.get(Config.NIMBUS_FILE_COPY_EXPIRATION_SECS), 600),
                 (id, stream) -> {
                     try {
@@ -353,8 +350,7 @@ public class Nimbus implements Iface, Shutdownable, DaemonCommon {
         return ret;
     }
     
-    //TODO private
-    public static <K, V> Map<K, V> mapDiff(Map<? extends K, ? extends V> first, Map<? extends K, ? extends V> second) {
+    private static <K, V> Map<K, V> mapDiff(Map<? extends K, ? extends V> first, Map<? extends K, ? extends V> second) {
         Map<K, V> ret = new HashMap<>();
         for (Entry<? extends K, ? extends V> entry: second.entrySet()) {
             if (!entry.getValue().equals(first.get(entry.getKey()))) {
@@ -364,7 +360,7 @@ public class Nimbus implements Iface, Shutdownable, DaemonCommon {
         return ret;
     }
 
-    public static IScheduler makeScheduler(Map<String, Object> conf, INimbus inimbus) {
+    private static IScheduler makeScheduler(Map<String, Object> conf, INimbus inimbus) {
         String schedClass = (String) conf.get(Config.STORM_SCHEDULER);
         IScheduler scheduler = inimbus == null ? null : inimbus.getForcedScheduler();
         if (scheduler != null) {
@@ -388,7 +384,7 @@ public class Nimbus implements Iface, Shutdownable, DaemonCommon {
      * @return the newly created map
      */
     @SuppressWarnings("deprecation")
-    public static <T extends AutoCloseable> TimeCacheMap<String, T> makeBlobCachMap(Map<String, Object> conf) {
+    private static <T extends AutoCloseable> TimeCacheMap<String, T> makeBlobCachMap(Map<String, Object> conf) {
         return new TimeCacheMap<>(Utils.getInt(conf.get(Config.NIMBUS_BLOBSTORE_EXPIRATION_SECS), 600),
                 (id, stream) -> {
                     try {
@@ -409,11 +405,11 @@ public class Nimbus implements Iface, Shutdownable, DaemonCommon {
      * @return
      */
     @SuppressWarnings("deprecation")
-    public static TimeCacheMap<String, Iterator<String>> makeBlobListCachMap(Map<String, Object> conf) {
+    private static TimeCacheMap<String, Iterator<String>> makeBlobListCachMap(Map<String, Object> conf) {
         return new TimeCacheMap<>(Utils.getInt(conf.get(Config.NIMBUS_BLOBSTORE_EXPIRATION_SECS), 600));
     }
     
-    public static ITopologyActionNotifierPlugin createTopologyActionNotifier(Map<String, Object> conf) {
+    private static ITopologyActionNotifierPlugin createTopologyActionNotifier(Map<String, Object> conf) {
         String clazz = (String) conf.get(Config.NIMBUS_TOPOLOGY_ACTION_NOTIFIER_PLUGIN);
         ITopologyActionNotifierPlugin ret = null;
         if (clazz != null && !clazz.isEmpty()) {
@@ -429,7 +425,7 @@ public class Nimbus implements Iface, Shutdownable, DaemonCommon {
     }
     
     @SuppressWarnings("unchecked")
-    public static List<ClusterMetricsConsumerExecutor> makeClusterMetricsConsumerExecutors(Map<String, Object> conf) {
+    private static List<ClusterMetricsConsumerExecutor> makeClusterMetricsConsumerExecutors(Map<String, Object> conf) {
         Collection<Map<String, Object>> consumers = (Collection<Map<String, Object>>) conf.get(Config.STORM_CLUSTER_METRICS_CONSUMER_REGISTER);
         List<ClusterMetricsConsumerExecutor> ret = new ArrayList<>();
         if (consumers != null) {
@@ -440,18 +436,15 @@ public class Nimbus implements Iface, Shutdownable, DaemonCommon {
         return ret;
     }
     
-    //TODO private
-    public static Subject getSubject() {
+    private static Subject getSubject() {
         return ReqContext.context().subject();
     }
     
-    //TODO private
-    public static Map<String, Object> readTopoConf(String topoId, BlobStore blobStore) throws KeyNotFoundException, AuthorizationException, IOException {
+    static Map<String, Object> readTopoConf(String topoId, BlobStore blobStore) throws KeyNotFoundException, AuthorizationException, IOException {
         return blobStore.readTopologyConf(topoId, getSubject());
     }
     
-    //TODO private
-    public static List<String> getKeyListFromId(Map<String, Object> conf, String id) {
+    static List<String> getKeyListFromId(Map<String, Object> conf, String id) {
         List<String> ret = new ArrayList<>(3);
         ret.add(ConfigUtils.masterStormCodeKey(id));
         ret.add(ConfigUtils.masterStormConfKey(id));
@@ -461,36 +454,29 @@ public class Nimbus implements Iface, Shutdownable, DaemonCommon {
         return ret;
     }
     
-    //TODO private
-    //TODO fix spelling
-    public static int getVerionForKey(String key, NimbusInfo nimbusInfo, Map<String, Object> conf) {
+    private static int getVersionForKey(String key, NimbusInfo nimbusInfo, Map<String, Object> conf) {
         KeySequenceNumber kseq = new KeySequenceNumber(key, nimbusInfo);
         return kseq.getKeySequenceNumber(conf);
     }
     
-    //TODO private
-    public static StormTopology readStormTopology(String topoId, BlobStore store) throws KeyNotFoundException, AuthorizationException, IOException {
+    private static StormTopology readStormTopology(String topoId, BlobStore store) throws KeyNotFoundException, AuthorizationException, IOException {
         return store.readTopology(topoId, getSubject());
     }
     
-    //TODO private
-    public static Map<String, Object> readTopoConfAsNimbus(String topoId, BlobStore store) throws KeyNotFoundException, AuthorizationException, IOException {
+    private static Map<String, Object> readTopoConfAsNimbus(String topoId, BlobStore store) throws KeyNotFoundException, AuthorizationException, IOException {
         return store.readTopologyConf(topoId, NIMBUS_SUBJECT);
     }
     
-    //TODO private
-    public static StormTopology readStormTopologyAsNimbus(String topoId, BlobStore store) throws KeyNotFoundException, AuthorizationException, IOException {
+    private static StormTopology readStormTopologyAsNimbus(String topoId, BlobStore store) throws KeyNotFoundException, AuthorizationException, IOException {
         return store.readTopology(topoId, NIMBUS_SUBJECT);
     }
     
-    //TODO private
-    //TODO lets not use lists for all of this but real objects
     /**
      * convert {topology-id -> SchedulerAssignment} to
      *         {topology-id -> {executor [node port]}}
      * @return
      */
-    public static Map<String, Map<List<Long>, List<Object>>> computeTopoToExecToNodePort(Map<String, SchedulerAssignment> schedAssignments) {
+    private static Map<String, Map<List<Long>, List<Object>>> computeTopoToExecToNodePort(Map<String, SchedulerAssignment> schedAssignments) {
         Map<String, Map<List<Long>, List<Object>>> ret = new HashMap<>();
         for (Entry<String, SchedulerAssignment> schedEntry: schedAssignments.entrySet()) {
             Map<List<Long>, List<Object>> execToNodePort = new HashMap<>();
@@ -1328,19 +1314,19 @@ public class Nimbus implements Iface, Shutdownable, DaemonCommon {
                 store.createBlob(jarKey, fin, new SettableBlobMeta(BlobStoreAclHandler.DEFAULT), subject);
             }
             if (store instanceof LocalFsBlobStore) {
-                clusterState.setupBlobstore(jarKey, hostPortInfo, getVerionForKey(jarKey, hostPortInfo, conf));
+                clusterState.setupBlobstore(jarKey, hostPortInfo, getVersionForKey(jarKey, hostPortInfo, conf));
             }
         }
         
         //TODO looks like some code reuse potential here
         store.createBlob(confKey, Utils.toCompressedJsonConf(topoConf), new SettableBlobMeta(BlobStoreAclHandler.DEFAULT), subject);
         if (store instanceof LocalFsBlobStore) {
-            clusterState.setupBlobstore(confKey, hostPortInfo, getVerionForKey(confKey, hostPortInfo, conf));
+            clusterState.setupBlobstore(confKey, hostPortInfo, getVersionForKey(confKey, hostPortInfo, conf));
         }
         
         store.createBlob(codeKey, Utils.serialize(topology), new SettableBlobMeta(BlobStoreAclHandler.DEFAULT), subject);
         if (store instanceof LocalFsBlobStore) {
-            clusterState.setupBlobstore(codeKey, hostPortInfo, getVerionForKey(codeKey, hostPortInfo, conf));
+            clusterState.setupBlobstore(codeKey, hostPortInfo, getVersionForKey(codeKey, hostPortInfo, conf));
         }
     }
     
@@ -2189,7 +2175,7 @@ public class Nimbus implements Iface, Shutdownable, DaemonCommon {
         }
         LOG.debug("Creating list of key entries for blobstore inside zookeeper {} local {}", activeKeys, activeLocalKeys);
         for (String key: activeLocalKeys) {
-            state.setupBlobstore(key, nimbusInfo, getVerionForKey(key, nimbusInfo, conf));
+            state.setupBlobstore(key, nimbusInfo, getVersionForKey(key, nimbusInfo, conf));
         }
     }
     
@@ -3255,7 +3241,7 @@ public class Nimbus implements Iface, Shutdownable, DaemonCommon {
             NimbusInfo ni = getNimbusHostPortInfo();
             Map<String, Object> conf = getConf();
             if (store instanceof LocalFsBlobStore) {
-                state.setupBlobstore(key, ni, getVerionForKey(key, ni, conf));
+                state.setupBlobstore(key, ni, getVersionForKey(key, ni, conf));
             }
             LOG.debug("Created state in zookeeper {} {} {}", state, store, ni);
         } catch (Exception e) {
