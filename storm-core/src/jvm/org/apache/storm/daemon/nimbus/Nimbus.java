@@ -1426,9 +1426,6 @@ public class Nimbus implements Iface, Shutdownable, DaemonCommon {
         LOG.debug("Updating heartbeats for {} {}", topoId, allExecutors);
         IStormClusterState state = getStormClusterState();
         Map<List<Integer>, Map<String, Object>> executorBeats = StatsUtil.convertExecutorBeats(state.executorBeats(topoId, existingAssignment.get_executor_node_port()));
-        for (Map<String, Object> tmp: executorBeats.values()) {
-            LOG.warn("EXEC BEATS {}", tmp.keySet());
-        }
         Map<List<Integer>, Map<String, Object>> cache = StatsUtil.updateHeartbeatCache(getHeartbeatsCache().get().get(topoId), executorBeats, allExecutors, Utils.getInt(getConf().get(Config.NIMBUS_TASK_TIMEOUT_SECS)));
         getHeartbeatsCache().getAndUpdate(new Assoc<String, Map<List<Integer>, Map<String, Object>>>(topoId, cache));
     }
@@ -3463,7 +3460,6 @@ public class Nimbus implements Iface, Shutdownable, DaemonCommon {
 
                     //heartbeats "stats"
                     Map<String, Object> hb = (Map<String, Object>)heartbeat.get("heartbeat");
-                    LOG.warn("HB!!!: {}", hb);
                     if (hb != null) {
                         Map ex = (Map) hb.get("stats");
                         if (ex != null) {
@@ -3521,6 +3517,9 @@ public class Nimbus implements Iface, Shutdownable, DaemonCommon {
             StormTopology topology = common.topology;
             Map<String, Object> topoConf = common.topoConf;
             StormBase base = common.base;
+            if (assignment == null) {
+                throw new NotAliveException(topoId);
+            }
             Map<List<Long>, NodeInfo> execToNodeInfo = assignment.get_executor_node_port();
             Map<String, String> nodeToHost = assignment.get_node_host();
             Map<WorkerSlot, WorkerResources> workerToResources = getWorkerResourcesForTopology(topoId);
@@ -3728,7 +3727,7 @@ public class Nimbus implements Iface, Shutdownable, DaemonCommon {
                     int end = entry.getKey().get(1).intValue();
                     if (taskId >= start && taskId <= end) {
                         host = (String) entry.getValue().get(0);
-                        port = (Integer) entry.getValue().get(1);
+                        port = ((Number) entry.getValue().get(1)).intValue();
                         break;
                     }
                 }
