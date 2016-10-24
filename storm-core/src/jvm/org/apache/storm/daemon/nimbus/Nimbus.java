@@ -278,7 +278,7 @@ public class Nimbus implements Iface, Shutdownable, DaemonCommon {
     public static class StandAloneINimbus implements INimbus {
 
         @Override
-        public void prepare(Map stormConf, String schedulerLocalDir) {
+        public void prepare(@SuppressWarnings("rawtypes") Map stormConf, String schedulerLocalDir) {
             //NOOP
         }
 
@@ -499,16 +499,13 @@ public class Nimbus implements Iface, Shutdownable, DaemonCommon {
         return ret;
     }
     
-    //TODO private
-    public static int numUsedWorkers(SchedulerAssignment assignment) {
+    private static int numUsedWorkers(SchedulerAssignment assignment) {
         if (assignment == null) {
             return 0;
         }
         return assignment.getSlots().size();
     }
     
-    //TODO private
-    //TODO lets use real objects again
     /**
      * convert {topology-id -> SchedulerAssignment} to
      *         {topology-id -> {[node port] [mem-on-heap mem-off-heap cpu]}}
@@ -517,7 +514,7 @@ public class Nimbus implements Iface, Shutdownable, DaemonCommon {
      * @param schedAssignments the assignments
      * @return  {topology-id {[node port] [mem-on-heap mem-off-heap cpu]}}
      */
-    public static Map<String, Map<List<Object>, List<Double>>> computeTopoToNodePortToResources(Map<String, SchedulerAssignment> schedAssignments) {
+    private static Map<String, Map<List<Object>, List<Double>>> computeTopoToNodePortToResources(Map<String, SchedulerAssignment> schedAssignments) {
         Map<String, Map<List<Object>, List<Double>>> ret = new HashMap<>();
         for (Entry<String, SchedulerAssignment> schedEntry: schedAssignments.entrySet()) {
             Map<List<Object>, List<Double>> nodePortToResources = new HashMap<>();
@@ -538,8 +535,7 @@ public class Nimbus implements Iface, Shutdownable, DaemonCommon {
         return ret;
     }
 
-    //TODO private
-    public static Map<String, Map<List<Long>, List<Object>>> computeNewTopoToExecToNodePort(Map<String, SchedulerAssignment> schedAssignments,
+    private static Map<String, Map<List<Long>, List<Object>>> computeNewTopoToExecToNodePort(Map<String, SchedulerAssignment> schedAssignments,
             Map<String, Assignment> existingAssignments) {
         Map<String, Map<List<Long>, List<Object>>> ret = computeTopoToExecToNodePort(schedAssignments);
         //Print some useful information
@@ -574,8 +570,7 @@ public class Nimbus implements Iface, Shutdownable, DaemonCommon {
         return ret;
     }
     
-    //TODO private
-    public static List<List<Long>> changedExecutors(Map<List<Long>, NodeInfo> map,
+    private static List<List<Long>> changedExecutors(Map<List<Long>, NodeInfo> map,
             Map<List<Long>, List<Object>> newExecToNodePort) {
         HashMap<NodeInfo, List<List<Long>>> tmpSlotAssigned = map == null ? new HashMap<>() : Utils.reverseMap(map);
         HashMap<List<Object>, List<List<Long>>> slotAssigned = new HashMap<>();
@@ -603,8 +598,7 @@ public class Nimbus implements Iface, Shutdownable, DaemonCommon {
         return ret;
     }
 
-    //TODO private
-    public static Set<WorkerSlot> newlyAddedSlots(Assignment old, Assignment current) {
+    private static Set<WorkerSlot> newlyAddedSlots(Assignment old, Assignment current) {
         Set<NodeInfo> oldSlots = new HashSet<>(old.get_executor_node_port().values());
         Set<NodeInfo> niRet = new HashSet<>(current.get_executor_node_port().values());
         niRet.removeAll(oldSlots);
@@ -615,8 +609,7 @@ public class Nimbus implements Iface, Shutdownable, DaemonCommon {
         return ret;
     }
     
-    //TODO private
-    public static Map<String, SupervisorDetails> basicSupervisorDetailsMap(IStormClusterState state) {
+    private static Map<String, SupervisorDetails> basicSupervisorDetailsMap(IStormClusterState state) {
         Map<String, SupervisorDetails> ret = new HashMap<>();
         for (Entry<String, SupervisorInfo> entry: state.allSupervisorInfo().entrySet()) {
             String id = entry.getKey();
@@ -627,13 +620,11 @@ public class Nimbus implements Iface, Shutdownable, DaemonCommon {
         return ret;
     }
     
-    //TODO private
-    public static boolean isTopologyActive(IStormClusterState state, String topoName) {
+    private static boolean isTopologyActive(IStormClusterState state, String topoName) {
         return StormCommon.getStormId(state, topoName) != null;
     }
     
-    //TODO private
-    public static Map<String, Object> tryReadTopoConf(String topoId, BlobStore store) throws NotAliveException, AuthorizationException, IOException {
+    private static Map<String, Object> tryReadTopoConf(String topoId, BlobStore store) throws NotAliveException, AuthorizationException, IOException {
         try {
             return readTopoConfAsNimbus(topoId, store);
             //Was a try-cause but I looked at the code around this and key not found is not wrapped in runtime,
@@ -649,7 +640,7 @@ public class Nimbus implements Iface, Shutdownable, DaemonCommon {
     private static final List<String> EMPTY_STRING_LIST = Collections.unmodifiableList(Collections.emptyList());
     private static final Set<String> EMPTY_STRING_SET = Collections.unmodifiableSet(Collections.emptySet());
     
-    //TODO private??
+    @VisibleForTesting
     public static Set<String> topoIdsToClean(IStormClusterState state, BlobStore store) {
         Set<String> ret = new HashSet<>();
         ret.addAll(OR(state.heartbeatStorms(), EMPTY_STRING_LIST));
@@ -660,8 +651,7 @@ public class Nimbus implements Iface, Shutdownable, DaemonCommon {
         return ret;
     }
     
-    //TODO private???
-    public static String extractStatusStr(StormBase base) {
+    private static String extractStatusStr(StormBase base) {
         String ret = null;
         TopologyStatus status = base.get_status();
         if (status != null) {
@@ -681,8 +671,7 @@ public class Nimbus implements Iface, Shutdownable, DaemonCommon {
         return ret;
     }
     
-    //TODO private
-    public static StormTopology normalizeTopology(Map<String, Object> topoConf, StormTopology topology) throws InvalidTopologyException {
+    private static StormTopology normalizeTopology(Map<String, Object> topoConf, StormTopology topology) throws InvalidTopologyException {
         StormTopology ret = topology.deepCopy();
         for (Object comp: StormCommon.allComponents(ret).values()) {
             Map<String, Object> mergedConf = StormCommon.componentConf(comp);
@@ -712,9 +701,8 @@ public class Nimbus implements Iface, Shutdownable, DaemonCommon {
         }
     }
     
-    //TODO private
     @SuppressWarnings("unchecked")
-    public static Map<String, Object> normalizeConf(Map<String,Object> conf, Map<String, Object> topoConf, StormTopology topology) {
+    private static Map<String, Object> normalizeConf(Map<String,Object> conf, Map<String, Object> topoConf, StormTopology topology) {
         //ensure that serializations are same for all tasks no matter what's on
         // the supervisors. this also allows you to declare the serializations as a sequence
         List<Map<String, Object>> allConfs = new ArrayList<>();
@@ -723,15 +711,12 @@ public class Nimbus implements Iface, Shutdownable, DaemonCommon {
         }
 
         Set<String> decorators = new HashSet<>();
-        //TODO we are putting in a config that is not the same type we pulled out.
-        // Why don't we just use a single map instead from the beginning?
+        //Yes we are putting in a config that is not the same type we pulled out.
         Map<String, String> serializers = new HashMap<>();
         for (Map<String, Object> c: allConfs) {
             addToDecorators(decorators, (List<String>) c.get(Config.TOPOLOGY_KRYO_DECORATORS));
             addToSerializers(serializers, (List<Object>) c.get(Config.TOPOLOGY_KRYO_REGISTER));
         }
-        //TODO this seems like of dumb that we take all of nothing on the topoConf vs daemon conf
-        // Why not just merge them like we do for the other configs.
         addToDecorators(decorators, (List<String>)topoConf.getOrDefault(Config.TOPOLOGY_KRYO_DECORATORS, 
                 conf.get(Config.TOPOLOGY_KRYO_DECORATORS)));
         addToSerializers(serializers, (List<Object>)topoConf.getOrDefault(Config.TOPOLOGY_KRYO_REGISTER, 
@@ -747,9 +732,7 @@ public class Nimbus implements Iface, Shutdownable, DaemonCommon {
         return ret;
     }
     
-    //TODO private
-    //TODO can we find a way to move this into BlobStore itself???
-    public static void rmBlobKey(BlobStore store, String key, IStormClusterState state) {
+    private static void rmBlobKey(BlobStore store, String key, IStormClusterState state) {
         try {
             store.deleteBlob(key, NIMBUS_SUBJECT);
             if (store instanceof LocalFsBlobStore) {
@@ -761,13 +744,13 @@ public class Nimbus implements Iface, Shutdownable, DaemonCommon {
         }
     }
     
-    //TODO private???
     /**
      * Deletes jar files in dirLoc older than seconds.
      * @param dirLoc the location to look in for file
      * @param seconds how old is too old and should be deleted
      */
-    public static void cleanInbox (String dirLoc, int seconds) {
+    @VisibleForTesting
+    public static void cleanInbox(String dirLoc, int seconds) {
         final long now = Time.currentTimeMillis();
         final long ms = Time.secsToMillis(seconds);
         File dir = new File(dirLoc);
@@ -780,22 +763,19 @@ public class Nimbus implements Iface, Shutdownable, DaemonCommon {
         }
     }
     
-    //TODO private
-    public static ExecutorInfo toExecInfo(List<Long> exec) {
+    private static ExecutorInfo toExecInfo(List<Long> exec) {
         return new ExecutorInfo(exec.get(0).intValue(), exec.get(1).intValue());
     }
     
     private static final Pattern TOPOLOGY_NAME_REGEX = Pattern.compile("^[^/.:\\\\]+$");
-    //TODO private
-    public static void validateTopologyName(String name) throws InvalidTopologyException {
+    private static void validateTopologyName(String name) throws InvalidTopologyException {
         Matcher m = TOPOLOGY_NAME_REGEX.matcher(name);
         if (!m.matches()) {
             throw new InvalidTopologyException("Topology name must match " + TOPOLOGY_NAME_REGEX);
         }
     }
     
-    //TODO private???
-    public static StormTopology tryReadTopology(String topoId, BlobStore store) throws NotAliveException, AuthorizationException, IOException {
+    private static StormTopology tryReadTopology(String topoId, BlobStore store) throws NotAliveException, AuthorizationException, IOException {
         try {
             return readStormTopologyAsNimbus(topoId, store);
         } catch (KeyNotFoundException e) {
@@ -803,8 +783,7 @@ public class Nimbus implements Iface, Shutdownable, DaemonCommon {
         }
     }
     
-    //TODO private
-    public static void validateTopologySize(Map<String, Object> topoConf, Map<String, Object> nimbusConf, StormTopology topology) throws InvalidTopologyException {
+    private static void validateTopologySize(Map<String, Object> topoConf, Map<String, Object> nimbusConf, StormTopology topology) throws InvalidTopologyException {
         int workerCount = Utils.getInt(topoConf.get(Config.TOPOLOGY_WORKERS), 1);
         Integer allowedWorkers = Utils.getInt(nimbusConf.get(Config.NIMBUS_SLOTS_PER_TOPOLOGY), null);
         int executorsCount = 0;
@@ -823,8 +802,7 @@ public class Nimbus implements Iface, Shutdownable, DaemonCommon {
         }
     }
     
-    //TODO private
-    public static void setLoggerTimeouts(LogLevel level) {
+    private static void setLoggerTimeouts(LogLevel level) {
         int timeoutSecs = level.get_reset_log_level_timeout_secs();
         if (timeoutSecs > 0) {
             level.set_reset_log_level_timeout_epoch(Time.currentTimeSecs() + timeoutSecs);
@@ -833,13 +811,11 @@ public class Nimbus implements Iface, Shutdownable, DaemonCommon {
         }
     }
     
-    //TODO private
+    @VisibleForTesting
     public static List<String> topologiesOnSupervisor(Map<String, Assignment> assignments, String supervisorId) {
         Set<String> ret = new HashSet<>();
         for (Entry<String, Assignment> entry: assignments.entrySet()) {
             Assignment assignment = entry.getValue();
-            //TODO it might be a lot faster to use
-            //assignment.get_node_host().containsKey(supervisorId);
             for (NodeInfo nodeInfo: assignment.get_executor_node_port().values()) {
                 if (supervisorId.equals(nodeInfo.get_node())) {
                     ret.add(entry.getKey());
@@ -851,13 +827,11 @@ public class Nimbus implements Iface, Shutdownable, DaemonCommon {
         return new ArrayList<>(ret);
     }
     
-    //TODO private
-    public static IClusterMetricsConsumer.ClusterInfo mkClusterInfo() {
+    private static IClusterMetricsConsumer.ClusterInfo mkClusterInfo() {
         return new IClusterMetricsConsumer.ClusterInfo(Time.currentTimeSecs());
     }
     
-    //TODO private???
-    public static List<DataPoint> extractClusterMetrics(ClusterSummary summ) {
+    private static List<DataPoint> extractClusterMetrics(ClusterSummary summ) {
         List<DataPoint> ret = new ArrayList<>();
         ret.add(new DataPoint("supervisors", summ.get_supervisors_size()));
         ret.add(new DataPoint("topologies", summ.get_topologies_size()));
@@ -883,8 +857,7 @@ public class Nimbus implements Iface, Shutdownable, DaemonCommon {
         return ret;
     }
 
-    //TODO private
-    public static Map<IClusterMetricsConsumer.SupervisorInfo, List<DataPoint>> extractSupervisorMetrics(ClusterSummary summ) {
+    private static Map<IClusterMetricsConsumer.SupervisorInfo, List<DataPoint>> extractSupervisorMetrics(ClusterSummary summ) {
         Map<IClusterMetricsConsumer.SupervisorInfo, List<DataPoint>> ret = new HashMap<>();
         for (SupervisorSummary sup: summ.get_supervisors()) {
             IClusterMetricsConsumer.SupervisorInfo info = new IClusterMetricsConsumer.SupervisorInfo(sup.get_host(), sup.get_supervisor_id(), Time.currentTimeSecs());
@@ -909,8 +882,7 @@ public class Nimbus implements Iface, Shutdownable, DaemonCommon {
         return resourcesMap;
     }
     
-    //TODO private
-    public static void validatePortAvailable(Map<String, Object> conf) throws IOException {
+    private static void validatePortAvailable(Map<String, Object> conf) throws IOException {
         int port = Utils.getInt(conf.get(Config.NIMBUS_THRIFT_PORT));
         try (ServerSocket socket = new ServerSocket(port)) {
             //Nothing
@@ -920,8 +892,7 @@ public class Nimbus implements Iface, Shutdownable, DaemonCommon {
         }
     }
     
-    //TODO private
-    public static Nimbus launchServer(Map<String, Object> conf, INimbus inimbus) throws Exception {
+    private static Nimbus launchServer(Map<String, Object> conf, INimbus inimbus) throws Exception {
         StormCommon.validateDistributedMode(conf);
         validatePortAvailable(conf);
         final Nimbus nimbus = new Nimbus(conf, inimbus);
@@ -988,7 +959,6 @@ public class Nimbus implements Iface, Shutdownable, DaemonCommon {
     private final IPrincipalToLocal principalToLocal;
     
     private static IStormClusterState makeStormClusterState(Map<String, Object> conf) throws Exception {
-        //TODO need to change CLusterUtils to have a Map option
         List<ACL> acls = null;
         if (Utils.isZkAuthenticationConfiguredStormServer(conf)) {
             acls = ZK_ACLS;
@@ -1007,7 +977,6 @@ public class Nimbus implements Iface, Shutdownable, DaemonCommon {
             hostPortInfo = NimbusInfo.fromConf(conf);
         }
         this.nimbusHostPortInfo = hostPortInfo;
-        //TODO in the future for testing we should just create the stand alone inimbus
         if (inimbus != null) {
             inimbus.prepare(conf, ConfigUtils.masterInimbusDir(conf));
         }
@@ -1020,7 +989,6 @@ public class Nimbus implements Iface, Shutdownable, DaemonCommon {
             stormClusterState =  makeStormClusterState(conf);
         }
         this.stormClusterState = stormClusterState;
-        //TODO we need a better lock for this...
         this.submitLock = new Object();
         this.credUpdateLock = new Object();
         this.logUpdateLock = new Object();
@@ -1218,8 +1186,7 @@ public class Nimbus implements Iface, Shutdownable, DaemonCommon {
         return ConfigUtils.masterInbox(getConf());
     }
     
-    //TODO private
-    public void delayEvent(String topoId, int delaySecs, TopologyActions event, Object args) {
+    void delayEvent(String topoId, int delaySecs, TopologyActions event, Object args) {
         LOG.info("Delaying event {} for {} secs for {}", event, delaySecs, topoId);
         getTimer().schedule(delaySecs, () -> {
             try {
@@ -1298,8 +1265,7 @@ public class Nimbus implements Iface, Shutdownable, DaemonCommon {
         }
     }
     
-    //TODO private
-    public void setupStormCode(Map<String, Object> conf, String topoId, String tmpJarLocation, 
+    private void setupStormCode(Map<String, Object> conf, String topoId, String tmpJarLocation, 
             Map<String, Object> topoConf, StormTopology topology) throws Exception {
         Subject subject = getSubject();
         IStormClusterState clusterState = getStormClusterState();
@@ -1318,7 +1284,6 @@ public class Nimbus implements Iface, Shutdownable, DaemonCommon {
             }
         }
         
-        //TODO looks like some code reuse potential here
         store.createBlob(confKey, Utils.toCompressedJsonConf(topoConf), new SettableBlobMeta(BlobStoreAclHandler.DEFAULT), subject);
         if (store instanceof LocalFsBlobStore) {
             clusterState.setupBlobstore(confKey, hostPortInfo, getVersionForKey(confKey, hostPortInfo, conf));
@@ -1330,19 +1295,15 @@ public class Nimbus implements Iface, Shutdownable, DaemonCommon {
         }
     }
     
-    //TODO private
-    //TODO can this go to int
-    public Integer getBlobReplicationCount(String key) throws Exception {
+    private Integer getBlobReplicationCount(String key) throws Exception {
         BlobStore store = getBlobStore();
-        if (store != null) { //TODO why is this ever null
+        if (store != null) {
             return store.getBlobReplication(key, NIMBUS_SUBJECT);
         }
         return null;
     }
     
-    //TODO private
-    public void waitForDesiredCodeReplication(Map<String, Object> topoConf, String topoId) throws Exception {
-        //TODO is this the topo conf?  Why not get this from nimbus itself?
+    private void waitForDesiredCodeReplication(Map<String, Object> topoConf, String topoId) throws Exception {
         int minReplicationCount = Utils.getInt(topoConf.get(Config.TOPOLOGY_MIN_REPLICATION_COUNT));
         int maxWaitTime = Utils.getInt(topoConf.get(Config.TOPOLOGY_MAX_REPLICATION_WAIT_TIME_SEC));
         int jarCount = minReplicationCount;
@@ -1409,21 +1370,19 @@ public class Nimbus implements Iface, Shutdownable, DaemonCommon {
         getHeartbeatsCache().getAndUpdate(new Assoc<String, Map<List<Integer>, Map<String, Object>>>(topoId, cache));
     }
     
-    //TODO private
     /**
      * update all the heartbeats for all the topologies' executors
      * @param existingAssignments current assignments (thrift)
      * @param topologyToExecutors topology ID to executors.
      */
-    public void updateAllHeartbeats(Map<String, Assignment> existingAssignments, Map<String, Set<List<Integer>>> topologyToExecutors) {
+    private void updateAllHeartbeats(Map<String, Assignment> existingAssignments, Map<String, Set<List<Integer>>> topologyToExecutors) {
         for (Entry<String, Assignment> entry: existingAssignments.entrySet()) {
             String topoId = entry.getKey();
             updateHeartbeats(topoId, topologyToExecutors.get(topoId), entry.getValue());
         }
     }
     
-    //TODO private
-    public Set<List<Integer>> aliveExecutors(TopologyDetails td, Set<List<Integer>> allExecutors, Assignment assignment) {
+    private Set<List<Integer>> aliveExecutors(TopologyDetails td, Set<List<Integer>> allExecutors, Assignment assignment) {
         String topoId = td.getId();
         Map<List<Integer>, Map<String, Object>> hbCache = getHeartbeatsCache().get().get(topoId);
         LOG.debug("NEW  Computing alive executors for {}\nExecutors: {}\nAssignment: {}\nHeartbeat cache: {}",
