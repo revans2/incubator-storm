@@ -54,7 +54,7 @@
   (:import [org.apache.storm.task TopologyContext]
            [org.apache.storm.messaging IContext]
            [org.json.simple JSONValue]
-           [org.apache.storm.daemon.nimbus Nimbus]
+           [org.apache.storm.daemon.nimbus Nimbus Nimbus$StandAloneINimbus]
            [org.apache.storm.daemon StormCommon Acker DaemonCommon])
   (:import [org.apache.storm.cluster ZKStateStorage ClusterStateContext StormClusterStateImpl ClusterUtils])
   (:use [org.apache.storm util config log local-state-converter converter])
@@ -211,7 +211,7 @@
                            daemon-conf)
         nimbus (mk-nimbus
                 (assoc daemon-conf STORM-LOCAL-DIR nimbus-tmp)
-                (if inimbus inimbus (nimbus/standalone-nimbus))
+                (if inimbus inimbus (Nimbus$StandAloneINimbus.))
                 blob-store
                 leader-elector
                 group-mapper
@@ -245,7 +245,7 @@
         port-counter (mk-counter supervisor-slot-port-min)
         nimbus (mk-nimbus
                  (assoc daemon-conf STORM-LOCAL-DIR nimbus-tmp)
-                 (if inimbus inimbus (nimbus/standalone-nimbus))
+                 (if inimbus inimbus (Nimbus$StandAloneINimbus.))
                  nil
                  nil
                  group-mapper

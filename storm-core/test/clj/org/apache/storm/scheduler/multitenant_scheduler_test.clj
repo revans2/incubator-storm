@@ -18,6 +18,7 @@
   (:use [org.apache.storm config testing log])
   (:require [org.apache.storm.daemon [nimbuslegacy :as nimbus]])
   (:import [org.apache.storm.generated StormTopology])
+  (:import [org.apache.storm.daemon.nimbus Nimbus$StandAloneINimbus])
   (:import [org.apache.storm.scheduler Cluster SupervisorDetails WorkerSlot ExecutorDetails
             SchedulerAssignmentImpl Topologies TopologyDetails])
   (:import [org.apache.storm.scheduler.multitenant Node NodePool FreePool DefaultPool
@@ -42,7 +43,7 @@
 
 (deftest test-node
   (let [supers (gen-supervisors 5)
-       cluster (Cluster. (nimbus/standalone-nimbus) supers {} nil)
+       cluster (Cluster. (Nimbus$StandAloneINimbus.) supers {} nil)
        node-map (Node/getAllNodesFrom cluster)]
     (is (= 5 (.size node-map)))
     (let [node (.get node-map "super0")]
@@ -87,7 +88,7 @@
 
 (deftest test-free-pool
   (let [supers (gen-supervisors 5)
-       cluster (Cluster. (nimbus/standalone-nimbus) supers {} nil)
+       cluster (Cluster. (Nimbus$StandAloneINimbus.) supers {} nil)
        node-map (Node/getAllNodesFrom cluster)
        free-pool (FreePool. )]
     ;; assign one node so it is not in the pool
@@ -125,7 +126,7 @@
 
 (deftest test-default-pool-simple
   (let [supers (gen-supervisors 5)
-       cluster (Cluster. (nimbus/standalone-nimbus) supers {} nil)
+       cluster (Cluster. (Nimbus$StandAloneINimbus.) supers {} nil)
        node-map (Node/getAllNodesFrom cluster)
        free-pool (FreePool. )
        default-pool (DefaultPool. )
@@ -162,7 +163,7 @@
 
 (deftest test-default-pool-big-request
   (let [supers (gen-supervisors 5)
-       cluster (Cluster. (nimbus/standalone-nimbus) supers {} nil)
+       cluster (Cluster. (Nimbus$StandAloneINimbus.) supers {} nil)
        node-map (Node/getAllNodesFrom cluster)
        free-pool (FreePool. )
        default-pool (DefaultPool. )
@@ -199,7 +200,7 @@
 
 (deftest test-default-pool-big-request-2
   (let [supers (gen-supervisors 1)
-       cluster (Cluster. (nimbus/standalone-nimbus) supers {} nil)
+       cluster (Cluster. (Nimbus$StandAloneINimbus.) supers {} nil)
        node-map (Node/getAllNodesFrom cluster)
        free-pool (FreePool. )
        default-pool (DefaultPool. )
@@ -241,7 +242,7 @@
 (deftest test-default-pool-full
   (let [supers (gen-supervisors 2) ;;make 2 supervisors but only schedule with one of them
        single-super {(ffirst supers) (second (first supers))}
-       single-cluster (Cluster. (nimbus/standalone-nimbus) single-super {} nil)
+       single-cluster (Cluster. (Nimbus$StandAloneINimbus.) single-super {} nil)
        executor1 (ed 1)
        executor2 (ed 2)
        executor3 (ed 3)
@@ -268,7 +269,7 @@
       (is (= "Running with fewer slots than requested (4/5)" (.get (.getStatusMap single-cluster) "topology1")))
     )
 
-    (let [cluster (Cluster. (nimbus/standalone-nimbus) supers (.getAssignments single-cluster) nil)
+    (let [cluster (Cluster. (Nimbus$StandAloneINimbus.) supers (.getAssignments single-cluster) nil)
          node-map (Node/getAllNodesFrom cluster)
          free-pool (FreePool. )
          default-pool (DefaultPool. )]
@@ -285,7 +286,7 @@
 
 (deftest test-default-pool-complex
   (let [supers (gen-supervisors 5)
-       cluster (Cluster. (nimbus/standalone-nimbus) supers {} nil)
+       cluster (Cluster. (Nimbus$StandAloneINimbus.) supers {} nil)
        node-map (Node/getAllNodesFrom cluster)
        free-pool (FreePool. )
        default-pool (DefaultPool. )
@@ -367,7 +368,7 @@
 
 (deftest test-isolated-pool-simple
   (let [supers (gen-supervisors 5)
-       cluster (Cluster. (nimbus/standalone-nimbus) supers {} nil)
+       cluster (Cluster. (Nimbus$StandAloneINimbus.) supers {} nil)
        node-map (Node/getAllNodesFrom cluster)
        free-pool (FreePool. )
        isolated-pool (IsolatedPool. 5)
@@ -411,7 +412,7 @@
 
 (deftest test-isolated-pool-big-ask
   (let [supers (gen-supervisors 5)
-       cluster (Cluster. (nimbus/standalone-nimbus) supers {} nil)
+       cluster (Cluster. (Nimbus$StandAloneINimbus.) supers {} nil)
        node-map (Node/getAllNodesFrom cluster)
        free-pool (FreePool. )
        isolated-pool (IsolatedPool. 5)
@@ -455,7 +456,7 @@
 
 (deftest test-isolated-pool-complex
   (let [supers (gen-supervisors 5)
-       cluster (Cluster. (nimbus/standalone-nimbus) supers {} nil)
+       cluster (Cluster. (Nimbus$StandAloneINimbus.) supers {} nil)
        node-map (Node/getAllNodesFrom cluster)
        free-pool (FreePool. )
        isolated-pool (IsolatedPool. 5)
@@ -559,7 +560,7 @@
 
 (deftest test-isolated-pool-complex-2
   (let [supers (gen-supervisors 5)
-       cluster (Cluster. (nimbus/standalone-nimbus) supers {} nil)
+       cluster (Cluster. (Nimbus$StandAloneINimbus.) supers {} nil)
        node-map (Node/getAllNodesFrom cluster)
        free-pool (FreePool. )
        ;;like before but now we can only hold 2 nodes max.  Don't go over
@@ -657,7 +658,7 @@
                                 ["bolt22" 10 20]
                                 ["bolt23" 20 30]
                                 ["bolt24" 30 40]]))
-       cluster (Cluster. (nimbus/standalone-nimbus) supers {} nil)
+       cluster (Cluster. (Nimbus$StandAloneINimbus.) supers {} nil)
        node-map (Node/getAllNodesFrom cluster)
        topologies (Topologies. (to-top-map [topology1 topology2 topology3]))
        conf {MULTITENANT-SCHEDULER-USER-POOLS {"userA" 5 "userB" 5}}
@@ -696,7 +697,7 @@
                                                                                   (ExecutorDetails. 10 15) (WorkerSlot. "super0" 1)
                                                                                   (ExecutorDetails. 15 20) (WorkerSlot. "super0" 1)})
                                }
-        cluster (Cluster. (nimbus/standalone-nimbus) supers existing-assignments nil)
+        cluster (Cluster. (Nimbus$StandAloneINimbus.) supers existing-assignments nil)
         node-map (Node/getAllNodesFrom cluster)
         topologies (Topologies. (to-top-map [topology1]))
         conf {MULTITENANT-SCHEDULER-USER-POOLS {"userA" 5 "userB" 5}}
@@ -741,7 +742,7 @@
           worker-slot-with-multiple-assignments (WorkerSlot. "super1" 1)
           existing-assignments {"topology2" (SchedulerAssignmentImpl. "topology2" {(ExecutorDetails. 1 1) worker-slot-with-multiple-assignments})
                                 "topology3" (SchedulerAssignmentImpl. "topology3" {(ExecutorDetails. 2 2) worker-slot-with-multiple-assignments})}
-          cluster (Cluster. (nimbus/standalone-nimbus) supers existing-assignments nil)
+          cluster (Cluster. (Nimbus$StandAloneINimbus.) supers existing-assignments nil)
           topologies (Topologies. (to-top-map [topology1 topology2 topology3]))
           conf {MULTITENANT-SCHEDULER-USER-POOLS {"userA" 2 "userB" 1}}
           scheduler (MultitenantScheduler.)]
@@ -769,7 +770,7 @@
           existing-assignments {"topology1"
                                 (SchedulerAssignmentImpl. "topology1"
                                   {(ExecutorDetails. 0 0) (WorkerSlot. "super0" port-not-reported-by-supervisor)})}
-          cluster (Cluster. (nimbus/standalone-nimbus) supers existing-assignments nil)
+          cluster (Cluster. (Nimbus$StandAloneINimbus.) supers existing-assignments nil)
           topologies (Topologies. (to-top-map [topology1]))
           conf {}
           scheduler (MultitenantScheduler.)]
@@ -809,7 +810,7 @@
                                 (SchedulerAssignmentImpl. "topology2"
                                   {(ExecutorDetails. 4 4) worker-slot-with-multiple-assignments
                                    (ExecutorDetails. 5 5) (WorkerSlot. dead-supervisor port-not-reported-by-supervisor)})}
-          cluster (Cluster. (nimbus/standalone-nimbus) supers existing-assignments nil)
+          cluster (Cluster. (Nimbus$StandAloneINimbus.) supers existing-assignments nil)
           topologies (Topologies. (to-top-map [topology1 topology2]))
           conf {}
           scheduler (MultitenantScheduler.)]
@@ -850,7 +851,7 @@
                                  (ExecutorDetails. 3 3) (WorkerSlot. "super1" 4)
                                  (ExecutorDetails. 4 4) (WorkerSlot. "super2" 1)
                                  (ExecutorDetails. 5 5) (WorkerSlot. "super2" 2)})}
-        cluster (Cluster. (nimbus/standalone-nimbus) supers existing-assignments nil)
+        cluster (Cluster. (Nimbus$StandAloneINimbus.) supers existing-assignments nil)
         topologies (Topologies. (to-top-map [topology1]))
         conf {MULTITENANT-SCHEDULER-USER-POOLS {"userA" 2}}
         scheduler (MultitenantScheduler.)]

@@ -34,6 +34,7 @@
   (:import [java.net InetAddress])
   (:import [org.apache.storm Config])
   (:import [org.apache.storm.generated AuthorizationException])
+  (:import [org.apache.storm.daemon.nimbus Nimbus$StandAloneINimbus])
   (:import [org.apache.storm.utils NimbusClient ConfigUtils])
   (:import [org.apache.storm.security.auth.authorizer SimpleWhitelistAuthorizer SimpleACLAuthorizer])
   (:import [org.apache.storm.security.auth AuthUtils ThriftServer ThriftClient ShellBasedGroupsMapping
@@ -129,7 +130,7 @@
                       STORM-THRIFT-TRANSPORT-PLUGIN transportPluginClass})
         conf2 (if login-cfg (merge conf1 {"java.security.auth.login.config" login-cfg}) conf1)
         conf (if serverConf (merge conf2 serverConf) conf2)
-        nimbus (nimbus/standalone-nimbus)
+        nimbus (Nimbus$StandAloneINimbus.)
         service-handler (dummy-service-handler conf nimbus)
         server (ThriftServer.
                 conf

@@ -71,19 +71,8 @@
            [org.json.simple JSONValue])
   (:require [clj-time.core :as time])
   (:require [clj-time.coerce :as coerce])
-  (:import [org.apache.storm StormTimer])
-  (:gen-class
-    :methods [^{:static true} [launch [org.apache.storm.scheduler.INimbus] void]]))
-
-(defn -launch [inimbus]
-  (let [conf (merge
-               (clojurify-structure (ConfigUtils/readStormConfig))
-               (clojurify-structure (ConfigUtils/readYamlConfig "storm-cluster-auth.yaml" false)))]
-  (Nimbus/launchServer conf inimbus)))
-
-(defn standalone-nimbus []
-  (Nimbus$StandAloneINimbus.))
+  (:import [org.apache.storm StormTimer]))
 
 (defn -main []
   (Utils/setupDefaultUncaughtExceptionHandler)
-  (-launch (standalone-nimbus)))
+  (Nimbus/launch (Nimbus$StandAloneINimbus.)))

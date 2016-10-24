@@ -22,7 +22,7 @@
             TestAggregatesCounter TestPlannerSpout TestPlannerBolt]
            [org.apache.storm.blobstore BlobStore]
            [org.apache.storm.nimbus InMemoryTopologyActionNotifier]
-           [org.apache.storm.daemon.nimbus Nimbus]
+           [org.apache.storm.daemon.nimbus Nimbus Nimbus$StandAloneINimbus]
            [org.apache.storm.generated GlobalStreamId TopologyStatus SupervisorInfo StormTopology StormBase]
            [org.apache.storm Thrift MockAutoCred]
            [org.apache.storm.stats BoltExecutorStats StatsUtil]
@@ -281,7 +281,7 @@
       )))
 
 (defn isolation-nimbus []
-  (let [standalone (nimbus/standalone-nimbus)]
+  (let [standalone (Nimbus$StandAloneINimbus.)]
     (reify INimbus
       (prepare [this conf local-dir]
         (.prepare standalone conf local-dir)
@@ -1196,7 +1196,7 @@
                         STORM-ZOOKEEPER-PORT zk-port
                         STORM-LOCAL-DIR nimbus-dir}))
           (bind cluster-state (ClusterUtils/mkStormClusterState conf nil (ClusterStateContext.)))
-          (bind nimbus (mk-nimbus conf (nimbus/standalone-nimbus) nil nil nil nil))
+          (bind nimbus (mk-nimbus conf (Nimbus$StandAloneINimbus.) nil nil nil nil))
           (.launchServer nimbus)
           (bind topology (Thrift/buildTopology
                            {"1" (Thrift/prepareSpoutDetails
@@ -1208,7 +1208,7 @@
 
             (letlocals
               (bind non-leader-cluster-state (ClusterUtils/mkStormClusterState conf nil (ClusterStateContext.)))
-              (bind non-leader-nimbus (mk-nimbus conf (nimbus/standalone-nimbus) nil nil nil nil))
+              (bind non-leader-nimbus (mk-nimbus conf (Nimbus$StandAloneINimbus.) nil nil nil nil))
               (.launchServer non-leader-nimbus)
 
               ;first we verify that the master nimbus can perform all actions, even with another nimbus present.
@@ -1532,7 +1532,7 @@
                       STORM-ZOOKEEPER-PORT zk-port
                       STORM-LOCAL-DIR nimbus-dir}))
         (bind cluster-state (ClusterUtils/mkStormClusterState conf nil (ClusterStateContext.)))
-        (bind nimbus (mk-nimbus conf (nimbus/standalone-nimbus) nil nil nil nil))
+        (bind nimbus (mk-nimbus conf (Nimbus$StandAloneINimbus.) nil nil nil nil))
         (.launchServer nimbus)
         (Time/sleepSecs 1)
         (bind topology (Thrift/buildTopology
@@ -1548,7 +1548,7 @@
         ; in startup of nimbus it reads cluster state and take proper actions
         ; in this case nimbus registers topology transition event to scheduler again
         ; before applying STORM-856 nimbus was killed with NPE
-        (bind nimbus (mk-nimbus conf (nimbus/standalone-nimbus) nil nil nil nil))
+        (bind nimbus (mk-nimbus conf (Nimbus$StandAloneINimbus.) nil nil nil nil))
         (.launchServer nimbus)
         (.shutdown nimbus)
         (.disconnect cluster-state)
@@ -1567,7 +1567,7 @@
                         STORM-LOCAL-DIR nimbus-dir
                         NIMBUS-TOPOLOGY-ACTION-NOTIFIER-PLUGIN (.getName InMemoryTopologyActionNotifier)}))
           (bind cluster-state (ClusterUtils/mkStormClusterState conf nil (ClusterStateContext.)))
-          (bind nimbus (mk-nimbus conf (nimbus/standalone-nimbus) nil nil nil nil))
+          (bind nimbus (mk-nimbus conf (Nimbus$StandAloneINimbus.) nil nil nil nil))
           (.launchServer nimbus)
           (bind notifier (InMemoryTopologyActionNotifier.))
           (Time/sleepSecs 1)
