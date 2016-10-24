@@ -216,7 +216,7 @@ public class Nimbus implements Iface, Shutdownable, DaemonCommon {
         NIMBUS_SUBJECT.setReadOnly();
     }
     
-    public static final Map<TopologyStatus, Map<TopologyActions, TopologyStateTransition>> TOPO_STATE_TRANSITIONS = 
+    private static final Map<TopologyStatus, Map<TopologyActions, TopologyStateTransition>> TOPO_STATE_TRANSITIONS = 
             new ImmutableMap.Builder<TopologyStatus, Map<TopologyActions, TopologyStateTransition>>()
             .put(TopologyStatus.ACTIVE, new ImmutableMap.Builder<TopologyActions, TopologyStateTransition>()
                     .put(TopologyActions.INACTIVATE, TopologyStateTransition.INACTIVE)
@@ -1030,7 +1030,7 @@ public class Nimbus implements Iface, Shutdownable, DaemonCommon {
         this.principalToLocal = AuthUtils.GetPrincipalToLocalPlugin(conf);
     }
 
-    public Map<String, Object> getConf() {
+    Map<String, Object> getConf() {
         return conf;
     }
 
