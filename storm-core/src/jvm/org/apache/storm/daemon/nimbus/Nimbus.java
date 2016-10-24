@@ -176,35 +176,35 @@ import com.google.common.collect.ImmutableMap;
 public class Nimbus implements Iface, Shutdownable, DaemonCommon {
     private final static Logger LOG = LoggerFactory.getLogger(Nimbus.class);
     
-    public static final Meter submitTopologyWithOptsCalls = registerMeter("nimbus:num-submitTopologyWithOpts-calls");
-    public static final Meter submitTopologyCalls = registerMeter("nimbus:num-submitTopology-calls");
-    public static final Meter killTopologyWithOptsCalls = registerMeter("nimbus:num-killTopologyWithOpts-calls");
-    public static final Meter killTopologyCalls = registerMeter("nimbus:num-killTopology-calls");
-    public static final Meter rebalanceCalls = registerMeter("nimbus:num-rebalance-calls");
-    public static final Meter activateCalls = registerMeter("nimbus:num-activate-calls");
-    public static final Meter deactivateCalls = registerMeter("nimbus:num-deactivate-calls");
-    public static final Meter debugCalls = registerMeter("nimbus:num-debug-calls");
-    public static final Meter setWorkerProfilerCalls = registerMeter("nimbus:num-setWorkerProfiler-calls");
-    public static final Meter getComponentPendingProfileActionsCalls = registerMeter("nimbus:num-getComponentPendingProfileActions-calls");
-    public static final Meter setLogConfigCalls = registerMeter("nimbus:num-setLogConfig-calls");
-    public static final Meter uploadNewCredentialsCalls = registerMeter("nimbus:num-uploadNewCredentials-calls");
-    public static final Meter beginFileUploadCalls = registerMeter("nimbus:num-beginFileUpload-calls");
-    public static final Meter uploadChunkCalls = registerMeter("nimbus:num-uploadChunk-calls");
-    public static final Meter finishFileUploadCalls = registerMeter("nimbus:num-finishFileUpload-calls");
-    public static final Meter beginFileDownloadCalls = registerMeter("nimbus:num-beginFileDownload-calls");
-    public static final Meter downloadChunkCalls = registerMeter("nimbus:num-downloadChunk-calls");
-    public static final Meter getNimbusConfCalls = registerMeter("nimbus:num-getNimbusConf-calls");
-    public static final Meter getLogConfigCalls = registerMeter("nimbus:num-getLogConfig-calls");
-    public static final Meter getTopologyConfCalls = registerMeter("nimbus:num-getTopologyConf-calls");
-    public static final Meter getTopologyCalls = registerMeter("nimbus:num-getTopology-calls");
-    public static final Meter getUserTopologyCalls = registerMeter("nimbus:num-getUserTopology-calls");
-    public static final Meter getClusterInfoCalls = registerMeter("nimbus:num-getClusterInfo-calls");
-    public static final Meter getTopologyInfoWithOptsCalls = registerMeter("nimbus:num-getTopologyInfoWithOpts-calls");
-    public static final Meter getTopologyInfoCalls = registerMeter("nimbus:num-getTopologyInfo-calls");
-    public static final Meter getTopologyPageInfoCalls = registerMeter("nimbus:num-getTopologyPageInfo-calls");
-    public static final Meter getSupervisorPageInfoCalls = registerMeter("nimbus:num-getSupervisorPageInfo-calls");
-    public static final Meter getComponentPageInfoCalls = registerMeter("nimbus:num-getComponentPageInfo-calls");
-    public static final Meter shutdownCalls = registerMeter("nimbus:num-shutdown-calls");
+    private static final Meter submitTopologyWithOptsCalls = registerMeter("nimbus:num-submitTopologyWithOpts-calls");
+    private static final Meter submitTopologyCalls = registerMeter("nimbus:num-submitTopology-calls");
+    private static final Meter killTopologyWithOptsCalls = registerMeter("nimbus:num-killTopologyWithOpts-calls");
+    private static final Meter killTopologyCalls = registerMeter("nimbus:num-killTopology-calls");
+    private static final Meter rebalanceCalls = registerMeter("nimbus:num-rebalance-calls");
+    private static final Meter activateCalls = registerMeter("nimbus:num-activate-calls");
+    private static final Meter deactivateCalls = registerMeter("nimbus:num-deactivate-calls");
+    private static final Meter debugCalls = registerMeter("nimbus:num-debug-calls");
+    private static final Meter setWorkerProfilerCalls = registerMeter("nimbus:num-setWorkerProfiler-calls");
+    private static final Meter getComponentPendingProfileActionsCalls = registerMeter("nimbus:num-getComponentPendingProfileActions-calls");
+    private static final Meter setLogConfigCalls = registerMeter("nimbus:num-setLogConfig-calls");
+    private static final Meter uploadNewCredentialsCalls = registerMeter("nimbus:num-uploadNewCredentials-calls");
+    private static final Meter beginFileUploadCalls = registerMeter("nimbus:num-beginFileUpload-calls");
+    private static final Meter uploadChunkCalls = registerMeter("nimbus:num-uploadChunk-calls");
+    private static final Meter finishFileUploadCalls = registerMeter("nimbus:num-finishFileUpload-calls");
+    private static final Meter beginFileDownloadCalls = registerMeter("nimbus:num-beginFileDownload-calls");
+    private static final Meter downloadChunkCalls = registerMeter("nimbus:num-downloadChunk-calls");
+    private static final Meter getNimbusConfCalls = registerMeter("nimbus:num-getNimbusConf-calls");
+    private static final Meter getLogConfigCalls = registerMeter("nimbus:num-getLogConfig-calls");
+    private static final Meter getTopologyConfCalls = registerMeter("nimbus:num-getTopologyConf-calls");
+    private static final Meter getTopologyCalls = registerMeter("nimbus:num-getTopology-calls");
+    private static final Meter getUserTopologyCalls = registerMeter("nimbus:num-getUserTopology-calls");
+    private static final Meter getClusterInfoCalls = registerMeter("nimbus:num-getClusterInfo-calls");
+    private static final Meter getTopologyInfoWithOptsCalls = registerMeter("nimbus:num-getTopologyInfoWithOpts-calls");
+    private static final Meter getTopologyInfoCalls = registerMeter("nimbus:num-getTopologyInfo-calls");
+    private static final Meter getTopologyPageInfoCalls = registerMeter("nimbus:num-getTopologyPageInfo-calls");
+    private static final Meter getSupervisorPageInfoCalls = registerMeter("nimbus:num-getSupervisorPageInfo-calls");
+    private static final Meter getComponentPageInfoCalls = registerMeter("nimbus:num-getComponentPageInfo-calls");
+    private static final Meter shutdownCalls = registerMeter("nimbus:num-shutdown-calls");
     
     public static final String STORM_VERSION = VersionInfo.getVersion();
     public static final List<ACL> ZK_ACLS = Arrays.asList(ZooDefs.Ids.CREATOR_ALL_ACL.get(0),
@@ -3784,7 +3784,7 @@ public class Nimbus implements Iface, Shutdownable, DaemonCommon {
     @Override
     public StormTopology getUserTopology(String id) throws NotAliveException, AuthorizationException, TException {
         try {
-            getTopologyCalls.mark();
+            getUserTopologyCalls.mark();
             Map<String, Object> topoConf = tryReadTopoConf(id, getBlobStore());
             String topoName = (String) topoConf.get(Config.TOPOLOGY_NAME);
             checkAuthorization(topoName, topoConf, "getUserTopology");
