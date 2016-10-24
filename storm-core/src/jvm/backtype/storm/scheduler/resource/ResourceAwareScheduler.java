@@ -395,6 +395,23 @@ public class ResourceAwareScheduler implements IScheduler {
         return configLoader.load();
     }
 
+    private Map<String, Map<String, Double>> convertToDouble(Map<String, Map<String, Number>> raw) {
+
+        Map<String, Map<String, Double>> ret = new HashMap<String, Map<String, Double>>();
+
+        if (raw != null) {
+            for (Map.Entry<String, Map<String, Number>> userPoolEntry : raw.entrySet()) {
+                String user = userPoolEntry.getKey();
+                ret.put(user, new HashMap<String, Double>());
+                for (Map.Entry<String, Number> resourceEntry : userPoolEntry.getValue().entrySet()) {
+                    ret.get(user).put(resourceEntry.getKey(), resourceEntry.getValue().doubleValue());
+                }
+            }
+        }
+
+        return ret;
+    }
+
     /**
      * Get resource guarantee configs
      *
@@ -404,22 +421,13 @@ public class ResourceAwareScheduler implements IScheduler {
     private Map<String, Map<String, Double>> getUserResourcePools() {
 
         Object raw = readFromLoader();
-        if (raw == null) {
-            // Fall back to standard configs if it did not return a usable map
-            raw = this.conf.get(Config.RESOURCE_AWARE_SCHEDULER_USER_POOLS);
-        }
-
-        Map<String, Map<String, Double>> ret = new HashMap<String, Map<String, Double>>();
-
         if (raw != null) {
-            for (Map.Entry<String, Map<String, Number>> userPoolEntry : ((Map<String, Map<String, Number>>) raw).entrySet()) {
-                String user = userPoolEntry.getKey();
-                ret.put(user, new HashMap<String, Double>());
-                for (Map.Entry<String, Number> resourceEntry : userPoolEntry.getValue().entrySet()) {
-                    ret.get(user).put(resourceEntry.getKey(), resourceEntry.getValue().doubleValue());
-                }
-            }
+            return convertToDouble((Map<String, Map<String, Number>>) raw);
         }
+
+        raw = this.conf.get(Config.RESOURCE_AWARE_SCHEDULER_USER_POOLS); 
+
+        Map<String, Map<String, Double>> ret = convertToDouble((Map<String, Map<String, Number>>) raw);
 
         Map fromFile = Utils.findAndReadConfigFile("user-resource-pools.yaml", false);
         Map<String, Map<String, Number>> tmp = (Map<String, Map<String, Number>>) fromFile.get(Config.RESOURCE_AWARE_SCHEDULER_USER_POOLS);
