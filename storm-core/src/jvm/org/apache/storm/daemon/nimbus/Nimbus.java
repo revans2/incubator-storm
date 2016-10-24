@@ -26,6 +26,8 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InterruptedIOException;
 import java.io.OutputStream;
+import java.net.BindException;
+import java.net.ServerSocket;
 import java.nio.ByteBuffer;
 import java.nio.channels.Channels;
 import java.nio.channels.WritableByteChannel;
@@ -879,6 +881,16 @@ public class Nimbus implements Iface, Shutdownable, DaemonCommon {
         }
         ResourceUtils.checkIntialization(resourcesMap, compId, topoConf);
         return resourcesMap;
+    }
+    
+    public static void validatePortAvailable(Map<String, Object> conf) throws IOException {
+        int port = Utils.getInt(conf.get(Config.NIMBUS_THRIFT_PORT));
+        try (ServerSocket socket = new ServerSocket(port)) {
+            //Nothing
+        } catch (BindException e) {
+            LOG.error("{} is not available. Check if another process is already listening on {}", port, port);
+            System.exit(0);
+        }
     }
     
     private final Map<String, Object> conf;

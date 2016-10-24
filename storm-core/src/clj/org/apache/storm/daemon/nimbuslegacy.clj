@@ -75,17 +75,9 @@
   (:gen-class
     :methods [^{:static true} [launch [org.apache.storm.scheduler.INimbus] void]]))
 
-(defn validate-port-available[conf]
-  (try
-    (let [socket (ServerSocket. (conf NIMBUS-THRIFT-PORT))]
-      (.close socket))
-    (catch BindException e
-      (log-error e (conf NIMBUS-THRIFT-PORT) " is not available. Check if another process is already listening on " (conf NIMBUS-THRIFT-PORT))
-      (System/exit 0))))
-
 (defn launch-server! [conf inimbus]
   (StormCommon/validateDistributedMode conf)
-  (validate-port-available conf)
+  (Nimbus/validatePortAvailable conf)
   (let [service-handler (Nimbus. conf inimbus)
         _ (.launchServer service-handler)
         server (ThriftServer. conf (Nimbus$Processor. service-handler)
