@@ -45,7 +45,6 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.BinaryOperator;
 import java.util.function.UnaryOperator;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -171,6 +170,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.codahale.metrics.Meter;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
 
 public class Nimbus implements Iface, Shutdownable, DaemonCommon {
@@ -206,22 +206,15 @@ public class Nimbus implements Iface, Shutdownable, DaemonCommon {
     private static final Meter getComponentPageInfoCalls = registerMeter("nimbus:num-getComponentPageInfo-calls");
     private static final Meter shutdownCalls = registerMeter("nimbus:num-shutdown-calls");
     
-    public static final String STORM_VERSION = VersionInfo.getVersion();
+    private static final String STORM_VERSION = VersionInfo.getVersion();
+    @VisibleForTesting
     public static final List<ACL> ZK_ACLS = Arrays.asList(ZooDefs.Ids.CREATOR_ALL_ACL.get(0),
             new ACL(ZooDefs.Perms.READ | ZooDefs.Perms.CREATE, ZooDefs.Ids.ANYONE_ID_UNSAFE));
-    public static final Subject NIMBUS_SUBJECT = new Subject();
+    private static final Subject NIMBUS_SUBJECT = new Subject();
     static {
         NIMBUS_SUBJECT.getPrincipals().add(new NimbusPrincipal());
         NIMBUS_SUBJECT.setReadOnly();
     }
-    
-    public static final BinaryOperator<Map<String, Map<WorkerSlot, WorkerResources>>> MERGE_ID_TO_WORKER_RESOURCES = (orig, update) -> {
-        return merge(orig, update);
-    };
-    
-    public static final BinaryOperator<Map<String, TopologyResources>> MERGE_ID_TO_RESOURCES = (orig, update) -> {
-        return merge(orig, update);
-    };
     
     //TODO perhaps this should all go to a few switch statements?
     public static final Map<TopologyStatus, Map<TopologyActions, TopologyStateTransition>> TOPO_STATE_TRANSITIONS = 
@@ -1735,7 +1728,7 @@ public class Nimbus implements Iface, Shutdownable, DaemonCommon {
             Double[] r = uglyResources.getValue();
             resources.put(uglyResources.getKey(), new TopologyResources(r[0], r[1], r[2], r[3], r[4], r[5]));
         }
-        getIdToResources().getAndAccumulate(resources, MERGE_ID_TO_RESOURCES);
+        getIdToResources().getAndAccumulate(resources, (orig, update) -> merge(orig, update));
         
         //TODO remove this also at first chance
         Map<String, Map<WorkerSlot, WorkerResources>> workerResources = new HashMap<>();
@@ -1751,7 +1744,7 @@ public class Nimbus implements Iface, Shutdownable, DaemonCommon {
             }
             workerResources.put(uglyWorkerResources.getKey(), slotToResources);
         }
-        getIdToWorkerResources().getAndAccumulate(workerResources, MERGE_ID_TO_WORKER_RESOURCES);
+        getIdToWorkerResources().getAndAccumulate(workerResources, (orig, update) -> merge(orig, update));
         
         return cluster.getAssignments();
     }
