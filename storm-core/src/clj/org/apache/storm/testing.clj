@@ -209,17 +209,17 @@
                              {STORM-ZOOKEEPER-PORT zk-port
                               STORM-ZOOKEEPER-SERVERS ["localhost"]})
                            daemon-conf)
-        nimbus-data (mk-nimbus
+        nimbus (mk-nimbus
                 (assoc daemon-conf STORM-LOCAL-DIR nimbus-tmp)
                 (if inimbus inimbus (nimbus/standalone-nimbus))
                 blob-store
                 leader-elector
                 group-mapper
                 cluster-state)
-        nimbus (nimbus/service-handler nimbus-data)
+        _ (.launchServer nimbus)
         nimbus-thrift-server (if nimbus-daemon (start-nimbus-daemon daemon-conf nimbus) nil)]
     {:nimbus nimbus
-     :nimbus-data nimbus-data
+     :nimbus-data nimbus ;;TODO remove this
      :daemon-conf daemon-conf
      :tmp-dirs (atom [nimbus-tmp zk-tmp])
      :nimbus-thrift-server nimbus-thrift-server
@@ -243,14 +243,14 @@
                               STORM-ZOOKEEPER-SERVERS ["localhost"]})
                            daemon-conf)
         port-counter (mk-counter supervisor-slot-port-min)
-        nimbus (nimbus/service-handler
-                (mk-nimbus
-                  (assoc daemon-conf STORM-LOCAL-DIR nimbus-tmp)
-                  (if inimbus inimbus (nimbus/standalone-nimbus))
-                  nil
-                  nil
-                  group-mapper
-                  nil))
+        nimbus (mk-nimbus
+                 (assoc daemon-conf STORM-LOCAL-DIR nimbus-tmp)
+                 (if inimbus inimbus (nimbus/standalone-nimbus))
+                 nil
+                 nil
+                 group-mapper
+                 nil)
+        _ (.launchServer nimbus)
         context (mk-shared-context daemon-conf)
         nimbus-thrift-server (if nimbus-daemon (start-nimbus-daemon daemon-conf nimbus) nil)
         cluster-map {:nimbus nimbus

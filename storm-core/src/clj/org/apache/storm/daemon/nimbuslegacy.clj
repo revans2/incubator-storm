@@ -75,81 +75,6 @@
   (:gen-class
     :methods [^{:static true} [launch [org.apache.storm.scheduler.INimbus] void]]))
 
-;TODO: when translating this function, you should replace the map-val with a proper for loop HERE
-(defserverfn service-handler [nimbus]
-  (let [conf (.getConf nimbus)
-        blob-store (.getBlobStore nimbus)]
-    (log-message "Starting Nimbus with conf " conf)
-    (.prepare ^org.apache.storm.nimbus.ITopologyValidator (.getValidator nimbus) conf)
-
-    ;add to nimbuses
-    (.addNimbusHost (.getStormClusterState nimbus) (.toHostPortString (.getNimbusHostPortInfo nimbus))
-      (NimbusSummary.
-        (.getHost (.getNimbusHostPortInfo nimbus))
-        (.getPort (.getNimbusHostPortInfo nimbus))
-        (Time/currentTimeSecs)
-        false ;is-leader
-        Nimbus/STORM_VERSION))
-
-    (.addToLeaderLockQueue (.getLeaderElector nimbus))
-    (when (instance? LocalFsBlobStore blob-store)
-      ;register call back for blob-store
-      (.blobstore (.getStormClusterState nimbus) (fn [] (.blobSync nimbus)))
-      (.setupBlobstore nimbus))
-
-    (doseq [consumer (.getClusterConsumerExecutors nimbus)]
-      (.prepare consumer))
-
-    (when (.isLeader nimbus)
-      (doseq [storm-id (.activeStorms (.getStormClusterState nimbus))]
-        (.transition nimbus storm-id TopologyActions/STARTUP nil)))
-
-    (.scheduleRecurring (.getTimer nimbus)
-      0
-      (conf NIMBUS-MONITOR-FREQ-SECS)
-      (fn []
-        (when-not (conf ConfigUtils/NIMBUS_DO_NOT_REASSIGN)
-          (locking (.getSubmitLock nimbus)
-            (.mkAssignments nimbus)))
-        (.doCleanup nimbus)))
-    ;; Schedule Nimbus inbox cleaner
-    (.scheduleRecurring (.getTimer nimbus)
-      0
-      (conf NIMBUS-CLEANUP-INBOX-FREQ-SECS)
-      (fn [] (Nimbus/cleanInbox (.getInbox nimbus) (conf NIMBUS-INBOX-JAR-EXPIRATION-SECS))))
-    ;; Schedule nimbus code sync thread to sync code from other nimbuses.
-    (if (instance? LocalFsBlobStore blob-store)
-      (.scheduleRecurring (.getTimer nimbus)
-        0
-        (conf NIMBUS-CODE-SYNC-FREQ-SECS)
-        (fn [] (.blobSync nimbus))))
-    ;; Schedule topology history cleaner
-    (when-let [interval (conf LOGVIEWER-CLEANUP-INTERVAL-SECS)]
-      (.scheduleRecurring (.getTimer nimbus)
-        0
-        (conf LOGVIEWER-CLEANUP-INTERVAL-SECS)
-        (fn [] (.cleanTopologyHistory nimbus (conf LOGVIEWER-CLEANUP-AGE-MINS)))))
-    (.scheduleRecurring (.getTimer nimbus)
-      0
-      (conf NIMBUS-CREDENTIAL-RENEW-FREQ-SECS)
-      (fn []
-        (.renewCredentials nimbus)))
-
-    (def nimbus:num-supervisors (StormMetricsRegistry/registerGauge "nimbus:num-supervisors"
-      (fn [] (.size (.supervisors (.getStormClusterState nimbus) nil)))))
-
-    (StormMetricsRegistry/startMetricsReporters conf)
-
-    (if (.getClusterConsumerExecutors nimbus)
-      (.scheduleRecurring (.getTimer nimbus)
-        0
-        (conf STORM-CLUSTER-METRICS-CONSUMER-PUBLISH-INTERVAL-SECS)
-        (fn []
-          (when (.isLeader nimbus)
-            (.sendClusterMetricsToExecutors nimbus)))))
-
-    nimbus))
-
 (defn validate-port-available[conf]
   (try
     (let [socket (ServerSocket. (conf NIMBUS-THRIFT-PORT))]
@@ -161,7 +86,8 @@
 (defn launch-server! [conf inimbus]
   (StormCommon/validateDistributedMode conf)
   (validate-port-available conf)
-  (let [service-handler (service-handler (Nimbus. conf inimbus))
+  (let [service-handler (Nimbus. conf inimbus)
+        _ (.launchServer service-handler)
         server (ThriftServer. conf (Nimbus$Processor. service-handler)
                               ThriftConnectionType/NIMBUS)]
     (Utils/addShutdownHookWithForceKillIn1Sec (fn []

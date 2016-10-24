@@ -24,6 +24,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InterruptedIOException;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.nio.channels.Channels;
@@ -116,6 +117,7 @@ import org.apache.storm.generated.WorkerResources;
 import org.apache.storm.generated.WorkerSummary;
 import org.apache.storm.logging.ThriftAccessLogger;
 import org.apache.storm.metric.ClusterMetricsConsumerExecutor;
+import org.apache.storm.metric.StormMetricsRegistry;
 import org.apache.storm.metric.api.DataPoint;
 import org.apache.storm.metric.api.IClusterMetricsConsumer;
 import org.apache.storm.metric.api.IClusterMetricsConsumer.ClusterInfo;
@@ -878,7 +880,7 @@ public class Nimbus implements Iface, Shutdownable, DaemonCommon {
         ResourceUtils.checkIntialization(resourcesMap, compId, topoConf);
         return resourcesMap;
     }
-
+    
     private final Map<String, Object> conf;
     private final NimbusInfo nimbusHostPortInfo;
     private final INimbus inimbus;
@@ -939,10 +941,11 @@ public class Nimbus implements Iface, Shutdownable, DaemonCommon {
             hostPortInfo = NimbusInfo.fromConf(conf);
         }
         this.nimbusHostPortInfo = hostPortInfo;
-        //for testing
+        //TODO in the future for testing we should just create the stand alone inimbus
         if (inimbus != null) {
             inimbus.prepare(conf, ConfigUtils.masterInimbusDir(conf));
         }
+        
         this.inimbus = inimbus;
         this.authorizationHandler = StormCommon.mkAuthorizationHandler((String) conf.get(Config.NIMBUS_AUTHORIZER), conf);
         this.impersonationAuthorizationHandler = StormCommon.mkAuthorizationHandler((String) conf.get(Config.NIMBUS_IMPERSONATION_AUTHORIZER), conf);
@@ -2356,6 +2359,133 @@ public class Nimbus implements Iface, Shutdownable, DaemonCommon {
         return ret;
     }
     
+    public void launchServer() throws Exception {
+        try {
+            Map<String, Object> conf = getConf();
+            BlobStore store = getBlobStore();
+            IStormClusterState state = getStormClusterState();
+            NimbusInfo hpi = getNimbusHostPortInfo();
+            StormTimer timer = getTimer();
+            
+            LOG.info("Starting Nimbus with conf {}", conf);
+            getValidator().prepare(conf);
+            
+            //add to nimbuses
+            state.addNimbusHost(hpi.getHost(), new NimbusSummary(hpi.getHost(), hpi.getPort(), Time.currentTimeSecs(), false, STORM_VERSION));
+            getLeaderElector().addToLeaderLockQueue();
+            
+            if (store instanceof LocalFsBlobStore) {
+                //register call back for blob-store
+                state.blobstore(() -> {
+                    try {
+                        blobSync();
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
+                    }
+                });
+                setupBlobstore();
+            }
+            
+            for (ClusterMetricsConsumerExecutor exec: getClusterConsumerExecutors()) {
+                exec.prepare();
+            }
+            
+            if (isLeader()) {
+                for (String topoId: state.activeStorms()) {
+                    transition(topoId, TopologyActions.STARTUP, null);
+                }
+            }
+            
+            final boolean doNotReassign = (Boolean)conf.getOrDefault(ConfigUtils.NIMBUS_DO_NOT_REASSIGN, false);
+            timer.scheduleRecurring(0, Utils.getInt(conf.get(Config.NIMBUS_MONITOR_FREQ_SECS)),
+                    () -> {
+                        try {
+                            if (!doNotReassign) {
+                                synchronized(getSubmitLock()) {
+                                    mkAssignments();
+                                }
+                            }
+                            doCleanup();
+                        } catch (Exception e) {
+                            throw new RuntimeException(e);
+                        }
+                    });
+
+            // Schedule Nimbus inbox cleaner
+            final int jarExpSecs = Utils.getInt(conf.get(Config.NIMBUS_INBOX_JAR_EXPIRATION_SECS));
+            timer.scheduleRecurring(0, Utils.getInt(conf.get(Config.NIMBUS_CLEANUP_INBOX_FREQ_SECS)),
+                    () -> {
+                        try {
+                            cleanInbox(getInbox(), jarExpSecs);
+                        } catch (Exception e) {
+                            throw new RuntimeException(e);
+                        }
+                    });
+            
+            //Schedule nimbus code sync thread to sync code from other nimbuses.
+            if (store instanceof LocalFsBlobStore) {
+                timer.scheduleRecurring(0, Utils.getInt(conf.get(Config.NIMBUS_CODE_SYNC_FREQ_SECS)),
+                        () -> {
+                            try {
+                                blobSync();
+                            } catch (Exception e) {
+                                throw new RuntimeException(e);
+                            }
+                        });
+            }
+            
+            // Schedule topology history cleaner
+            Integer interval = Utils.getInt(conf.get(Config.LOGVIEWER_CLEANUP_INTERVAL_SECS), null);
+            if (interval != null) {
+                final int lvCleanupAgeMins = Utils.getInt(conf.get(Config.LOGVIEWER_CLEANUP_AGE_MINS));
+                timer.scheduleRecurring(0, interval,
+                        () -> {
+                            try {
+                                cleanTopologyHistory(lvCleanupAgeMins);
+                            } catch (Exception e) {
+                                throw new RuntimeException(e);
+                            }
+                        });
+            }
+            
+            timer.scheduleRecurring(0, Utils.getInt(conf.get(Config.NIMBUS_CREDENTIAL_RENEW_FREQ_SECS)),
+                    () -> {
+                        try {
+                            renewCredentials();
+                        } catch (Exception e) {
+                            throw new RuntimeException(e);
+                        }
+                    });
+            
+            StormMetricsRegistry.registerGauge("nimbus:num-supervisors", () -> state.supervisors(null));
+            StormMetricsRegistry.startMetricsReporters(conf);
+            
+            if (getClusterConsumerExecutors() != null) {
+                timer.scheduleRecurring(0, Utils.getInt(conf.get(Config.STORM_CLUSTER_METRICS_CONSUMER_PUBLISH_INTERVAL_SECS)),
+                        () -> {
+                            try {
+                                if (isLeader()) {
+                                    sendClusterMetricsToExecutors();
+                                }
+                            } catch (Exception e) {
+                                throw new RuntimeException(e);
+                            }
+                        });
+            }
+        } catch (Exception e) {
+            //TODO we really should get to the point that we no longer wrap exceptions in Runtime
+            if (Utils.exceptionCauseIsInstanceOf(InterruptedException.class, e)) {
+                throw e;
+            }
+            
+            if (Utils.exceptionCauseIsInstanceOf(InterruptedIOException.class, e)) {
+                throw e;
+            }
+            LOG.error("Error on initialization of nimbus", e);
+            Utils.exitProcess(13, "Error on initialization of nimbus");
+        }
+    }
+    
     //THRIFT SERVER METHODS...
     
     @Override
@@ -3628,6 +3758,8 @@ public class Nimbus implements Iface, Shutdownable, DaemonCommon {
         }
     }
 
+    // Shutdownable methods
+    
     @SuppressWarnings("deprecation")
     @Override
     public void shutdown() {
@@ -3650,6 +3782,8 @@ public class Nimbus implements Iface, Shutdownable, DaemonCommon {
         }
     }
 
+    //Daemon common methods
+    
     @Override
     public boolean isWaiting() {
         return getTimer().isTimerWaiting();
