@@ -927,7 +927,6 @@ public class Nimbus implements Iface, Shutdownable, DaemonCommon {
     private final IStormClusterState stormClusterState;
     private final Object submitLock;
     private final Object credUpdateLock;
-    private final Object logUpdateLock;
     private final AtomicReference<Map<String, Map<List<Integer>, Map<String, Object>>>> heartbeatsCache;
     @SuppressWarnings("deprecation")
     private final TimeCacheMap<String, BufferInputStream> downloaders;
@@ -991,7 +990,6 @@ public class Nimbus implements Iface, Shutdownable, DaemonCommon {
         this.stormClusterState = stormClusterState;
         this.submitLock = new Object();
         this.credUpdateLock = new Object();
-        this.logUpdateLock = new Object();
         this.heartbeatsCache = new AtomicReference<>(new HashMap<>());
         this.downloaders = fileCacheMap(conf);
         this.uploaders = fileCacheMap(conf);
@@ -1034,155 +1032,153 @@ public class Nimbus implements Iface, Shutdownable, DaemonCommon {
         return conf;
     }
 
-    public NimbusInfo getNimbusHostPortInfo() {
+    private NimbusInfo getNimbusHostPortInfo() {
         return nimbusHostPortInfo;
     }
 
-    public INimbus getINimbus() {
+    private INimbus getINimbus() {
         return inimbus;
     }
 
-    public IAuthorizer getAuthorizationHandler() {
+    private IAuthorizer getAuthorizationHandler() {
         return authorizationHandler;
     }
     
+    @VisibleForTesting
     public void setAuthorizationHandler(IAuthorizer authorizationHandler) {
         this.authorizationHandler = authorizationHandler;
     }
 
-    public IAuthorizer getImpersonationAuthorizationHandler() {
+    private IAuthorizer getImpersonationAuthorizationHandler() {
         return impersonationAuthorizationHandler;
     }
 
-    public AtomicLong getSubmittedCount() {
+    private AtomicLong getSubmittedCount() {
         return submittedCount;
     }
 
-    public IStormClusterState getStormClusterState() {
+    IStormClusterState getStormClusterState() {
         return stormClusterState;
     }
 
-    public Object getSubmitLock() {
+    private Object getSubmitLock() {
         return submitLock;
     }
 
-    public Object getCredUpdateLock() {
+    private Object getCredUpdateLock() {
         return credUpdateLock;
     }
 
-    public Object getLogUpdateLock() {
-        return logUpdateLock;
-    }
-
+    @VisibleForTesting
     public AtomicReference<Map<String,Map<List<Integer>,Map<String,Object>>>> getHeartbeatsCache() {
         return heartbeatsCache;
     }
 
     @SuppressWarnings("deprecation")
-    public TimeCacheMap<String, BufferInputStream> getDownloaders() {
+    private TimeCacheMap<String, BufferInputStream> getDownloaders() {
         return downloaders;
     }
 
     @SuppressWarnings("deprecation")
-    public TimeCacheMap<String, WritableByteChannel> getUploaders() {
+    private TimeCacheMap<String, WritableByteChannel> getUploaders() {
         return uploaders;
     }
 
-    public BlobStore getBlobStore() {
+    BlobStore getBlobStore() {
         return blobStore;
     }
 
     @SuppressWarnings("deprecation")
-    public TimeCacheMap<String, BufferInputStream> getBlobDownloaders() {
+    private TimeCacheMap<String, BufferInputStream> getBlobDownloaders() {
         return blobDownloaders;
     }
 
     @SuppressWarnings("deprecation")
-    public TimeCacheMap<String, OutputStream> getBlobUploaders() {
+    private TimeCacheMap<String, OutputStream> getBlobUploaders() {
         return blobUploaders;
     }
 
     @SuppressWarnings("deprecation")
-    public TimeCacheMap<String, Iterator<String>> getBlobListers() {
+    private TimeCacheMap<String, Iterator<String>> getBlobListers() {
         return blobListers;
     }
 
-    public UptimeComputer getUptime() {
+    private UptimeComputer getUptime() {
         return uptime;
     }
 
-    public ITopologyValidator getValidator() {
+    private ITopologyValidator getValidator() {
         return validator;
     }
 
-    public StormTimer getTimer() {
+    private StormTimer getTimer() {
         return timer;
     }
 
-    public IScheduler getScheduler() {
+    private IScheduler getScheduler() {
         return scheduler;
     }
 
-    public ILeaderElector getLeaderElector() {
+    private ILeaderElector getLeaderElector() {
         return leaderElector;
     }
 
-    public AtomicReference<Map<String, String>> getIdToSchedStatus() {
+    private AtomicReference<Map<String, String>> getIdToSchedStatus() {
         return idToSchedStatus;
     }
 
-    public AtomicReference<Map<String, Double[]>> getNodeIdToResources() {
+    private AtomicReference<Map<String, Double[]>> getNodeIdToResources() {
         return nodeIdToResources;
     }
 
-    public AtomicReference<Map<String, TopologyResources>> getIdToResources() {
+    private AtomicReference<Map<String, TopologyResources>> getIdToResources() {
         return idToResources;
     }
 
-    public AtomicReference<Map<String, Map<WorkerSlot, WorkerResources>>> getIdToWorkerResources() {
+    private AtomicReference<Map<String, Map<WorkerSlot, WorkerResources>>> getIdToWorkerResources() {
         return idToWorkerResources;
     }
 
-    public Collection<ICredentialsRenewer> getCredRenewers() {
+    private Collection<ICredentialsRenewer> getCredRenewers() {
         return credRenewers;
     }
 
-    public Object getTopologyHistoryLock() {
+    private Object getTopologyHistoryLock() {
         return topologyHistoryLock;
     }
 
-    public LocalState getTopologyHistoryState() {
+    private LocalState getTopologyHistoryState() {
         return topologyHistoryState;
     }
 
-    public Collection<INimbusCredentialPlugin> getNimbusAutocredPlugins() {
+    private Collection<INimbusCredentialPlugin> getNimbusAutocredPlugins() {
         return nimbusAutocredPlugins;
     }
 
-    public ITopologyActionNotifierPlugin getNimbusTopologyActionNotifier() {
+    private ITopologyActionNotifierPlugin getNimbusTopologyActionNotifier() {
         return nimbusTopologyActionNotifier;
     }
 
-    public List<ClusterMetricsConsumerExecutor> getClusterConsumerExecutors() {
+    private List<ClusterMetricsConsumerExecutor> getClusterConsumerExecutors() {
         return clusterConsumerExceutors;
     }
     
-    public IGroupMappingServiceProvider getGroupMapper() {
+    private IGroupMappingServiceProvider getGroupMapper() {
         return groupMapper;
     }
     
-    public boolean isLeader() throws Exception {
+    private boolean isLeader() throws Exception {
         return getLeaderElector().isLeader();
     }
     
-    public void assertIsLeader() throws Exception {
+    private void assertIsLeader() throws Exception {
         if (!isLeader()) {
             NimbusInfo leaderAddress = getLeaderElector().getLeader();
             throw new RuntimeException("not a leader, current leader is " + leaderAddress);
         }
     }
     
-    public String getInbox() throws IOException {
+    private String getInbox() throws IOException {
         return ConfigUtils.masterInbox(getConf());
     }
     
@@ -1222,19 +1218,15 @@ public class Nimbus implements Iface, Shutdownable, DaemonCommon {
         return topoId;
     }
     
-    public void transitionName(String topoName, TopologyActions event, Object eventArg) throws Exception {
-        transition(toTopoId(topoName), event, eventArg);
-    }
-    
-    public void transitionName(String topoName, TopologyActions event, Object eventArg, boolean errorOnNoTransition) throws Exception {
+    private void transitionName(String topoName, TopologyActions event, Object eventArg, boolean errorOnNoTransition) throws Exception {
         transition(toTopoId(topoName), event, eventArg, errorOnNoTransition);
     }
 
-    public void transition(String topoId, TopologyActions event, Object eventArg) throws Exception {
+    private void transition(String topoId, TopologyActions event, Object eventArg) throws Exception {
         transition(topoId, event, eventArg, false);
     }
     
-    public void transition(String topoId, TopologyActions event, Object eventArg, boolean errorOnNoTransition) throws Exception {
+    private void transition(String topoId, TopologyActions event, Object eventArg, boolean errorOnNoTransition) throws Exception {
         LOG.info("TRANSITION: {} {} {} {}", topoId, event, eventArg, errorOnNoTransition);
         assertIsLeader();
         synchronized(getSubmitLock()) {
@@ -1340,7 +1332,7 @@ public class Nimbus implements Iface, Shutdownable, DaemonCommon {
                 minReplicationCount, confCount, codeCount, jarCount);
     }
     
-    public TopologyDetails readTopologyDetails(String topoId) throws NotAliveException, KeyNotFoundException, AuthorizationException, IOException, InvalidTopologyException {
+    private TopologyDetails readTopologyDetails(String topoId) throws NotAliveException, KeyNotFoundException, AuthorizationException, IOException, InvalidTopologyException {
         StormBase base = getStormClusterState().stormBase(topoId, null);
         if (base == null) {
             if (topoId == null) {
