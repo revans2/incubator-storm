@@ -517,9 +517,9 @@
     (TopologyDetails. storm-id
                       topology-conf
                       topology
-                      (:num-workers storm-base)
+                      (if storm-base (:num-workers storm-base) 0)
                       executor->component
-                      (:launch-time-secs storm-base))))
+                      (if storm-base (:launch-time-secs storm-base) 0))))
 
 ;; Does not assume that clocks are synchronized. Executor heartbeat is only used so that
 ;; nimbus knows when it's received a new heartbeat. All timing is done by nimbus and
