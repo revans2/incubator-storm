@@ -410,9 +410,12 @@
     ))
 
 (defn- supervisor-info
-  [storm-cluster-state id include-non-readable?]
+  [storm-cluster-state id include-non-readable? min-age]
   (try
-    (.supervisor-info storm-cluster-state id)
+    (let [ret (.supervisor-info storm-cluster-state id)]
+      (if (<= min-age (or (:uptime-secs ret) 0))
+         ret
+         (log-debug "DISALLOWING SUPERVISOR (too young): " (pr-str ret) " min-age " min-age)))
     (catch RuntimeException
       rte
       (log-message (str "The supervisor [" id "] is sending older heartbeat version"))
@@ -424,12 +427,13 @@
 (defn all-supervisor-info
   ([storm-cluster-state] (all-supervisor-info storm-cluster-state nil false))
   ([storm-cluster-state callback]  (all-supervisor-info storm-cluster-state callback false))
-  ([storm-cluster-state callback include-non-readable?]
+  ([storm-cluster-state callback include-non-readable?] (all-supervisor-info storm-cluster-state callback include-non-readable? 0))
+  ([storm-cluster-state callback include-non-readable? min-age]
      (let [supervisor-ids (.supervisors storm-cluster-state callback)]
        (into {}
              (mapcat
               (fn [id]
-                (if-let [info (supervisor-info storm-cluster-state id include-non-readable?)]
+                (if-let [info (supervisor-info storm-cluster-state id include-non-readable? min-age)]
                   [[id info]]
                   ))
               supervisor-ids)))))
@@ -685,7 +689,7 @@
   [nimbus supervisor->dead-ports topologies missing-assignment-topologies]
   "return a map: {supervisor-id SupervisorDetails}"
   (let [storm-cluster-state (:storm-cluster-state nimbus)
-        supervisor-infos (all-supervisor-info storm-cluster-state)
+        supervisor-infos (all-supervisor-info storm-cluster-state nil false ((:conf nimbus) NIMBUS-SUPERVISOR-MIN-AGE-SECS))
         supervisor-details (for [[id info] supervisor-infos]
                              (SupervisorDetails. id (:meta info) (:resources-map info)))
         all-scheduling-slots (->> (.allSlotsAvailableForScheduling
@@ -900,8 +904,8 @@
     (set/difference new-slots old-slots)))
 
 
-(defn basic-supervisor-details-map [storm-cluster-state]
-  (let [infos (all-supervisor-info storm-cluster-state)]
+(defn basic-supervisor-details-map [storm-cluster-state min-age]
+  (let [infos (all-supervisor-info storm-cluster-state nil true min-age)]
     (->> infos
          (map (fn [[id info]]
                  [id (SupervisorDetails. id (:hostname info) (:scheduler-meta info) nil (:resources-map info))]))
@@ -945,7 +949,7 @@
         new-assigned-worker->resources (convert-assignments-to-worker->resources new-scheduler-assignments)
         now-secs (current-time-secs)
 
-        basic-supervisor-details-map (basic-supervisor-details-map storm-cluster-state)
+        basic-supervisor-details-map (basic-supervisor-details-map storm-cluster-state (conf NIMBUS-SUPERVISOR-MIN-AGE-SECS))
 
         ;; construct the final Assignments by adding start-times etc into it
         new-assignments (into {} (for [[topology-id executor->node+port] topology->executor->node+port

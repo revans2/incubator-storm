@@ -596,6 +596,13 @@ public class Config extends HashMap<String, Object> {
     @isString
     public static final String NIMBUS_CHILDOPTS = "nimbus.childopts";
 
+    /**
+     * How long a supervisor should be up for, before nimbus considers it for scheduling.
+     * This prevents supervisors that crash a lot from being scheduled on.
+     */
+    @isInteger
+    @isPositiveNumber(includeZero = true)
+    public static final String NIMBUS_SUPERVISOR_MIN_AGE_SECS = "nimbus.supervisor.min.age.secs";
 
     /**
      * How long without heartbeating a task can go before nimbus will consider the
