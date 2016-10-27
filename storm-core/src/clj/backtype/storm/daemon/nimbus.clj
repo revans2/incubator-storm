@@ -505,21 +505,23 @@
     (Utils/fromCompressedJsonConf
       (.readBlob blob-store (master-stormconf-key storm-id) subject))))
 
-(defn read-topology-details [nimbus storm-id]
-  (let [conf (:conf nimbus)
-        blob-store (:blob-store nimbus)
-        storm-base (.storm-base (:storm-cluster-state nimbus) storm-id nil)
-        topology-conf (read-storm-conf-as-nimbus conf storm-id blob-store)
-        topology (read-storm-topology-as-nimbus storm-id blob-store)
-        executor->component (->> (compute-executor->component nimbus storm-id)
-                                 (map-key (fn [[start-task end-task]]
-                                            (ExecutorDetails. (int start-task) (int end-task)))))]
-    (TopologyDetails. storm-id
-                      topology-conf
-                      topology
-                      (:num-workers storm-base)
-                      executor->component
-                      (:launch-time-secs storm-base))))
+(defn read-topology-details 
+  ([nimbus storm-id]
+    (read-topology-details nimbus storm-id (.storm-base (:storm-cluster-state nimbus) storm-id nil)))
+  ([nimbus storm-id storm-base]
+    (let [conf (:conf nimbus)
+          blob-store (:blob-store nimbus)
+          topology-conf (read-storm-conf-as-nimbus conf storm-id blob-store)
+          topology (read-storm-topology-as-nimbus storm-id blob-store)
+          executor->component (->> (compute-executor->component nimbus storm-id)
+                                   (map-key (fn [[start-task end-task]]
+                                              (ExecutorDetails. (int start-task) (int end-task)))))]
+      (TopologyDetails. storm-id
+                        topology-conf
+                        topology
+                        (or (:num-workers storm-base) 0)
+                        executor->component
+                        (or (:launch-time-secs storm-base) 0)))))
 
 ;; Does not assume that clocks are synchronized. Executor heartbeat is only used so that
 ;; nimbus knows when it's received a new heartbeat. All timing is done by nimbus and
@@ -840,11 +842,11 @@
 
     (.getAssignments cluster)))
 
-(defn- get-resources-for-topology [nimbus topo-id]
+(defn- get-resources-for-topology [nimbus topo-id storm-base]
   (or (get @(:id->resources nimbus) topo-id)
       (try
         (let [storm-cluster-state (:storm-cluster-state nimbus)
-              topology-details (read-topology-details nimbus topo-id)
+              topology-details (read-topology-details nimbus topo-id storm-base)
               assigned-resources (->> (.assignment-info storm-cluster-state topo-id nil)
                                       :worker->resources
                                       (vals)
@@ -1811,7 +1813,7 @@
                                                             (extract-status-str base))]
                                                (when-let [owner (:owner base)] (.set_owner topo-summ owner))
                                                (when-let [sched-status (.get @(:id->sched-status nimbus) id)] (.set_sched_status topo-summ sched-status))
-                                               (when-let [resources (get-resources-for-topology nimbus id)]
+                                               (when-let [resources (get-resources-for-topology nimbus id base)]
                                                  (.set_requested_memonheap topo-summ (:requested-mem-on-heap resources))
                                                  (.set_requested_memoffheap topo-summ (:requested-mem-off-heap resources))
                                                  (.set_requested_cpu topo-summ (:requested-cpu resources))
@@ -1875,7 +1877,7 @@
                            )]
             (when-let [owner (:owner base)] (.set_owner topo-info owner))
             (when-let [sched-status (.get @(:id->sched-status nimbus) storm-id)] (.set_sched_status topo-info sched-status))
-            (when-let [resources (get-resources-for-topology nimbus storm-id)]
+            (when-let [resources (get-resources-for-topology nimbus storm-id base)]
               (.set_requested_memonheap topo-info (:requested-mem-on-heap resources))
               (.set_requested_memoffheap topo-info (:requested-mem-off-heap resources))
               (.set_requested_cpu topo-info (:requested-cpu resources))
@@ -1945,7 +1947,7 @@
             (.set_owner topo-page-info owner))
           (when-let [sched-status (.get @(:id->sched-status nimbus) storm-id)]
             (.set_sched_status topo-page-info sched-status))
-          (when-let [resources (get-resources-for-topology nimbus storm-id)]
+          (when-let [resources (get-resources-for-topology nimbus storm-id base)]
             (.set_requested_memonheap topo-page-info (:requested-mem-on-heap resources))
             (.set_requested_memoffheap topo-page-info (:requested-mem-off-heap resources))
             (.set_requested_cpu topo-page-info (:requested-cpu resources))
