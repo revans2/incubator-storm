@@ -33,10 +33,11 @@ import java.util.Collection;
 import java.util.Map;
 
 /**
- * Automatically take a user's SSL files and serialize them into credentials to be sent to
- * the workers and then deserialized back into the same files.
+ * This plugin is intended to be used for user topologies to send SSL keystore/truststore files
+ * to the remote workers. It automatically takes a user's SSL files and serializes them into
+ * the credentials to be sent to the workers and then deserialized back into a file.
  *
- * User is responsible for referencing them from the code as ./<filename>.
+ * User is responsible for referencing them from the topology code as ./<filename>.
  */
 public class AutoSSL implements IAutoCredentials {
     private static final Logger LOG = LoggerFactory.getLogger(AutoSSL.class);
