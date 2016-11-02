@@ -323,9 +323,10 @@ def jar(jarfile, klass, *args):
                     ["-Dstorm.dependency.artifacts=" + json.dumps(artifact_to_file_jars)])
 
 def sql(sql_file, topology_name):
-    """Syntax: [storm sql sql-file topology-name]
+    """Syntax: [storm sql sql-file topology-name], or [storm sql sql-file --explain] when activating explain mode
 
     Compiles the SQL statements into a Trident topology and submits it to Storm.
+    If user activates explain mode, SQL Runner analyzes each query statement and shows query plan instead of submitting topology.
 
     --jars and --artifacts options available for jar are also applied to sql command.
     Please refer "help jar" to see how to use --jars and --artifacts options.
@@ -349,11 +350,16 @@ def sql(sql_file, topology_name):
     # include this for running StormSqlRunner, but not for generated topology
     extrajars.extend(sql_core_jars)
 
+    if topology_name == "--explain":
+        args = ["--file", sql_file, "--explain"]
+    else:
+        args = ["--file", sql_file, "--topology", topology_name]
+
     exec_storm_class(
         "org.apache.storm.sql.StormSqlRunner",
         jvmtype="-client",
         extrajars=extrajars,
-        args=[sql_file, topology_name],
+        args=args,
         daemon=False,
         jvmopts=["-Dstorm.dependency.jars=" + ",".join(local_jars)] +
                 ["-Dstorm.dependency.artifacts=" + json.dumps(artifact_to_file_jars)])
@@ -571,6 +577,24 @@ def kill_workers(*args):
         args=args,
         jvmtype="-client",
         extrajars=[USER_CONF_DIR, os.path.join(STORM_DIR, "bin")])
+
+def admin(*args):
+    """Syntax: [storm admin cmd]
+
+    This is a proxy of nimbus and allow to execute admin commands. As of now it supports
+    command to remove corrupt topologies.
+    Nimbus doesn't clean up corrupted topologies automatically. This command should clean
+    up corrupt topologies i.e.topologies whose codes are not available on blobstore.
+    In future this command would support more admin commands.
+    Supported command
+    storm admin remove_corrupt_topologies
+    """
+    exec_storm_class(
+        "org.apache.storm.command.AdminCommands",
+        args=args,
+        jvmtype="-client",
+        extrajars=[USER_CONF_DIR, os.path.join(STORM_DIR, "bin")])
+
 
 def shell(resourcesdir, command, *args):
     """Syntax: [storm shell resourcesdir command args]
@@ -820,7 +844,7 @@ COMMANDS = {"jar": jar, "kill": kill, "shell": shell, "nimbus": nimbus, "ui": ui
             "list": listtopos, "dev-zookeeper": dev_zookeeper, "version": version, "monitor": monitor,
             "upload-credentials": upload_credentials, "pacemaker": pacemaker, "heartbeats": heartbeats, "blobstore": blobstore,
             "get-errors": get_errors, "set_log_level": set_log_level, "kill_workers": kill_workers,
-            "node-health-check": healthcheck, "sql": sql}
+            "node-health-check": healthcheck, "sql": sql, "admin": admin}
 
 def parse_config(config_list):
     global CONFIG_OPTS
