@@ -16,7 +16,6 @@ import javax.security.auth.Subject;
 
 import static org.junit.Assert.*;
 
-import backtype.storm.blobstore.HdfsBlobStoreImpl;
 import org.apache.commons.io.FileUtils;
 import org.junit.Test;
 import org.slf4j.Logger;
