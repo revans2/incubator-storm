@@ -16,6 +16,7 @@ import javax.security.auth.Subject;
 
 import static org.junit.Assert.*;
 
+import backtype.storm.blobstore.HdfsBlobStoreImpl;
 import org.apache.commons.io.FileUtils;
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -23,6 +24,21 @@ import org.slf4j.LoggerFactory;
 
 public class AutoSSLTest {
     final static Logger LOG = LoggerFactory.getLogger(AutoSSLTest.class);
+
+    // Test class to override the write directory
+    public class TestAutoSSL extends AutoSSL {
+
+        String baseDir = null;
+
+        TestAutoSSL(String newDir) {
+            baseDir = newDir;
+        }
+
+        @Override
+        protected String getSSLWriteDirFromConf(Map conf) {
+            return baseDir;
+        }
+    }
 
     @Test
     public void testgetSSLFilesFromConf() throws Exception {
@@ -59,7 +75,6 @@ public class AutoSSLTest {
 
     @Test
     public void testpopulateCredentials() throws Exception {
-        AutoSSL assl = new AutoSSL();
         File temp = File.createTempFile("tmp-autossl-test", ".txt");
         temp.deleteOnExit();
         List<String> lines = Arrays.asList("The first line", "The second line");
@@ -70,12 +85,12 @@ public class AutoSSLTest {
             if (!baseDir.mkdir()) {
                 throw new IOException("failed to create base directory");
             }
+            AutoSSL assl = new TestAutoSSL(baseDir.getPath());
+
             LOG.debug("base dir is; " + baseDir);
             Map sslconf = new HashMap();
 
             sslconf.put(AutoSSL.SSL_FILES_CONF, temp.getPath());
-            // file should normally go in ./ change for testing 
-            sslconf.put(AutoSSL.SSL_WRITE_DIR_CONF, baseDir.getPath());
             assl.prepare(sslconf);
             Collection<String> sslFiles = assl.getSSLFilesFromConf(sslconf);
  

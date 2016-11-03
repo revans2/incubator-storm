@@ -34,8 +34,12 @@ import java.util.Map;
 
 /**
  * This plugin is intended to be used for user topologies to send SSL keystore/truststore files
- * to the remote workers. It automatically takes a user's SSL files and serializes them into
- * the credentials to be sent to the workers and then deserialized back into a file.
+ * to the remote workers.
+ * On the client side, this takes the files specified in ssl.credential.files, reads the
+ * file contents, base64's it, converts it to a String, and adds it to the credentials map.
+ * The key in the credentials map is the name of the file. On the worker side it uses the
+ * filenames from the ssl.credential.files config to lookup the keys in the credentials map and
+ * decodes it and writes it back out as a file.
  *
  * User is responsible for referencing them from the topology code as ./<filename>.
  */
@@ -45,25 +49,15 @@ public class AutoSSL implements IAutoCredentials {
     private String writeDir = "./";
 
     public static final String SSL_FILES_CONF = "ssl.credential.files";
-    // used for testing only
-    @VisibleForTesting
-    public static final String SSL_WRITE_DIR_CONF = "ssl.credential.write.dir";
 
     public void prepare(Map conf) {
         this.conf = conf;
         writeDir = getSSLWriteDirFromConf(this.conf);
     }
 
-    private String getSSLWriteDirFromConf(Map conf) {
-        Object sslConf = conf.get(SSL_WRITE_DIR_CONF);
-        if (sslConf == null) {
-            return "./";
-        }
-        if (sslConf instanceof String) {
-            return (String) sslConf;
-        }
-        throw new RuntimeException(
-            SSL_WRITE_DIR_CONF + " is not set to something that I know how to use " + sslConf);
+    @VisibleForTesting
+    protected String getSSLWriteDirFromConf(Map conf) {
+      return "./";
     }
 
     @VisibleForTesting
@@ -93,7 +87,7 @@ public class AutoSSL implements IAutoCredentials {
             if (sslFiles == null) {
                 return;
             }
-            LOG.info("AutoSSL files: " + sslFiles);
+            LOG.info("AutoSSL files: {}", sslFiles);
             for (String inputFile : sslFiles) {
                 serializeSSLFile(inputFile, credentials);
             }
@@ -102,10 +96,12 @@ public class AutoSSL implements IAutoCredentials {
         }
     }
 
+    // Adds the serialized and base64 file to the credentials map as a string with the filename as
+    // the key.
     public static void serializeSSLFile(String readFile, Map<String, String> credentials) {
         try {
             FileInputStream in = new FileInputStream(readFile);
-            LOG.debug("serializing ssl file: " + readFile);
+            LOG.debug("serializing ssl file: {}", readFile);
             ByteArrayOutputStream result = new ByteArrayOutputStream();
             byte[] buffer = new byte[4096];
             int length;
@@ -115,7 +111,7 @@ public class AutoSSL implements IAutoCredentials {
             String resultStr = DatatypeConverter.printBase64Binary(result.toByteArray());
 
             File f = new File(readFile);
-            LOG.debug("ssl read files is name " + f.getName());
+            LOG.debug("ssl read files is name: {}", f.getName());
             credentials.put(f.getName(), resultStr);
         } catch (Exception e) {
             throw new RuntimeException(e);
@@ -125,7 +121,7 @@ public class AutoSSL implements IAutoCredentials {
     public static void deserializeSSLFile(String credsKey, String directory, 
         Map<String, String> credentials) {
         try {
-            LOG.debug("deserializing ssl file with key: " + credsKey);
+            LOG.debug("deserializing ssl file with key: {}", credsKey);
             String resultStr = null;
 
             if (credentials != null &&
