@@ -189,14 +189,14 @@ char *get_container_launcher_file(const char* work_dir) {
   return ret;
 }
 
-/**
- * Get the tmp directory under the working directory
- */
-char *get_tmp_directory(const char *work_dir) {
-  char *ret;
-  asprintf(&ret, "%s/%s", work_dir, TMP_DIR);
-  return ret;
-}
+///**
+// * Get the tmp directory under the working directory
+  // */
+//char *get_tmp_directory(const char *work_dir) {
+//  char *ret;
+//  asprintf(&ret, "%s/%s", work_dir, TMP_DIR);
+//  return ret;
+//}
 
 /**
  * Load the user information for a given user name.
