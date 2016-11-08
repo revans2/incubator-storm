@@ -203,8 +203,6 @@ public class AuthUtils {
         try {
             Set<IAutoCredentials> autos = new HashSet<IAutoCredentials>();
             Collection<String> clazzes = (Collection<String>)storm_conf.get(Config.TOPOLOGY_AUTO_CREDENTIALS);
-            LOG.info("Conf is: {}", storm_conf);
-            LOG.info("Classes are: {}", clazzes);
             if (clazzes != null) {
                 for (String clazz : clazzes) {
                     IAutoCredentials a = (IAutoCredentials)Class.forName(clazz).newInstance();

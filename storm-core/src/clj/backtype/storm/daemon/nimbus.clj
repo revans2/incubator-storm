@@ -1484,7 +1484,6 @@
           (check-authorization! nimbus storm-name nil "submitTopology")
           (check-storm-active! nimbus storm-name false)
           (let [topo-conf (from-json serializedConf)]
-            (log-message "TOPO-CONFIG is: " topo-conf)
             (try
               (validate-configs-with-schemas topo-conf)
               (catch IllegalArgumentException ex
