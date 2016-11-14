@@ -100,6 +100,7 @@
 (defmeter nimbus:num-listBlobs-calls)
 (defmeter nimbus:num-getTopologyHistory-calls)
 (defmeter nimbus:num-setWorkerProfiler-calls)
+(defmeter nimbus:num-getSupervisorPageInfo-calls)
 
 (def STORM-VERSION (VersionInfo/getVersion))
 
@@ -110,7 +111,6 @@
 (declare read-storm-topology-as-subject)
 (declare read-storm-conf-as-subject)
 (declare compute-executor->component)
-(declare num-getSupervisorPageInfo-calls)
 
 (defn mk-file-cache-map
   "Constructs a TimeCacheMap instance with a nimbus file timeout whose expiration
@@ -2026,7 +2026,7 @@
          ^String supervisor-id
          ^String host 
          ^boolean include-sys?]
-        (mark! num-getSupervisorPageInfo-calls)
+        (mark! nimbus:num-getSupervisorPageInfo-calls)
         (let [storm-cluster-state (:storm-cluster-state nimbus)
               supervisor-infos (all-supervisor-info storm-cluster-state)
               host->supervisor-id (reverse-map (map-val :hostname supervisor-infos))
