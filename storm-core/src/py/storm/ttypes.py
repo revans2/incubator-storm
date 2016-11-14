@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-#
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
 # distributed with this work for additional information
@@ -10556,6 +10554,396 @@ class GetInfoOptions:
   def __ne__(self, other):
     return not (self == other)
 
+class OwnerResourceSummaries:
+  """
+  Attributes:
+   - summaries
+  """
+
+  thrift_spec = (
+    None, # 0
+    (1, TType.LIST, 'summaries', (TType.STRUCT,(OwnerResourceSummary, OwnerResourceSummary.thrift_spec)), None, ), # 1
+  )
+
+  def __init__(self, summaries=None,):
+    self.summaries = summaries
+
+  def read(self, iprot):
+    if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
+      fastbinary.decode_binary(self, iprot.trans, (self.__class__, self.thrift_spec))
+      return
+    iprot.readStructBegin()
+    while True:
+      (fname, ftype, fid) = iprot.readFieldBegin()
+      if ftype == TType.STOP:
+        break
+      if fid == 1:
+        if ftype == TType.LIST:
+          self.summaries = []
+          (_etype689, _size686) = iprot.readListBegin()
+          for _i690 in xrange(_size686):
+            _elem691 = OwnerResourceSummary()
+            _elem691.read(iprot)
+            self.summaries.append(_elem691)
+          iprot.readListEnd()
+        else:
+          iprot.skip(ftype)
+      else:
+        iprot.skip(ftype)
+      iprot.readFieldEnd()
+    iprot.readStructEnd()
+
+  def write(self, oprot):
+    if oprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and self.thrift_spec is not None and fastbinary is not None:
+      oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
+      return
+    oprot.writeStructBegin('OwnerResourceSummaries')
+    if self.summaries is not None:
+      oprot.writeFieldBegin('summaries', TType.LIST, 1)
+      oprot.writeListBegin(TType.STRUCT, len(self.summaries))
+      for iter692 in self.summaries:
+        iter692.write(oprot)
+      oprot.writeListEnd()
+      oprot.writeFieldEnd()
+    oprot.writeFieldStop()
+    oprot.writeStructEnd()
+
+  def validate(self):
+    if self.summaries is None:
+      raise TProtocol.TProtocolException(message='Required field summaries is unset!')
+    return
+
+
+  def __hash__(self):
+    value = 17
+    value = (value * 31) ^ hash(self.summaries)
+    return value
+
+  def __repr__(self):
+    L = ['%s=%r' % (key, value)
+      for key, value in self.__dict__.iteritems()]
+    return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+  def __eq__(self, other):
+    return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+  def __ne__(self, other):
+    return not (self == other)
+
+class OwnerResourceSummary:
+  """
+  Attributes:
+   - owner
+   - total_topologies
+   - total_executors
+   - total_workers
+   - memory_usage
+   - cpu_usage
+   - memory_guarantee
+   - cpu_guarantee
+   - memory_guarantee_remaining
+   - cpu_guarantee_remaining
+   - isolated_node_guarantee
+   - total_tasks
+   - requested_on_heap_memory
+   - requested_off_heap_memory
+   - requested_total_memory
+   - requested_cpu
+   - assigned_on_heap_memory
+   - assigned_off_heap_memory
+   - assigned_ras_total_memory
+   - assigned_ras_cpu
+  """
+
+  thrift_spec = (
+    None, # 0
+    (1, TType.STRING, 'owner', None, None, ), # 1
+    (2, TType.I32, 'total_topologies', None, None, ), # 2
+    (3, TType.I32, 'total_executors', None, None, ), # 3
+    (4, TType.I32, 'total_workers', None, None, ), # 4
+    (5, TType.I64, 'memory_usage', None, None, ), # 5
+    (6, TType.I32, 'cpu_usage', None, None, ), # 6
+    (7, TType.I64, 'memory_guarantee', None, None, ), # 7
+    (8, TType.I32, 'cpu_guarantee', None, None, ), # 8
+    (9, TType.I64, 'memory_guarantee_remaining', None, None, ), # 9
+    (10, TType.I32, 'cpu_guarantee_remaining', None, None, ), # 10
+    (11, TType.I32, 'isolated_node_guarantee', None, None, ), # 11
+    (12, TType.I32, 'total_tasks', None, None, ), # 12
+    (13, TType.I64, 'requested_on_heap_memory', None, None, ), # 13
+    (14, TType.I64, 'requested_off_heap_memory', None, None, ), # 14
+    (15, TType.I64, 'requested_total_memory', None, None, ), # 15
+    (16, TType.I32, 'requested_cpu', None, None, ), # 16
+    (17, TType.I64, 'assigned_on_heap_memory', None, None, ), # 17
+    (18, TType.I64, 'assigned_off_heap_memory', None, None, ), # 18
+    (19, TType.I64, 'assigned_ras_total_memory', None, None, ), # 19
+    (20, TType.I32, 'assigned_ras_cpu', None, None, ), # 20
+  )
+
+  def __init__(self, owner=None, total_topologies=None, total_executors=None, total_workers=None, memory_usage=None, cpu_usage=None, memory_guarantee=None, cpu_guarantee=None, memory_guarantee_remaining=None, cpu_guarantee_remaining=None, isolated_node_guarantee=None, total_tasks=None, requested_on_heap_memory=None, requested_off_heap_memory=None, requested_total_memory=None, requested_cpu=None, assigned_on_heap_memory=None, assigned_off_heap_memory=None, assigned_ras_total_memory=None, assigned_ras_cpu=None,):
+    self.owner = owner
+    self.total_topologies = total_topologies
+    self.total_executors = total_executors
+    self.total_workers = total_workers
+    self.memory_usage = memory_usage
+    self.cpu_usage = cpu_usage
+    self.memory_guarantee = memory_guarantee
+    self.cpu_guarantee = cpu_guarantee
+    self.memory_guarantee_remaining = memory_guarantee_remaining
+    self.cpu_guarantee_remaining = cpu_guarantee_remaining
+    self.isolated_node_guarantee = isolated_node_guarantee
+    self.total_tasks = total_tasks
+    self.requested_on_heap_memory = requested_on_heap_memory
+    self.requested_off_heap_memory = requested_off_heap_memory
+    self.requested_total_memory = requested_total_memory
+    self.requested_cpu = requested_cpu
+    self.assigned_on_heap_memory = assigned_on_heap_memory
+    self.assigned_off_heap_memory = assigned_off_heap_memory
+    self.assigned_ras_total_memory = assigned_ras_total_memory
+    self.assigned_ras_cpu = assigned_ras_cpu
+
+  def read(self, iprot):
+    if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
+      fastbinary.decode_binary(self, iprot.trans, (self.__class__, self.thrift_spec))
+      return
+    iprot.readStructBegin()
+    while True:
+      (fname, ftype, fid) = iprot.readFieldBegin()
+      if ftype == TType.STOP:
+        break
+      if fid == 1:
+        if ftype == TType.STRING:
+          self.owner = iprot.readString().decode('utf-8')
+        else:
+          iprot.skip(ftype)
+      elif fid == 2:
+        if ftype == TType.I32:
+          self.total_topologies = iprot.readI32()
+        else:
+          iprot.skip(ftype)
+      elif fid == 3:
+        if ftype == TType.I32:
+          self.total_executors = iprot.readI32()
+        else:
+          iprot.skip(ftype)
+      elif fid == 4:
+        if ftype == TType.I32:
+          self.total_workers = iprot.readI32()
+        else:
+          iprot.skip(ftype)
+      elif fid == 5:
+        if ftype == TType.I64:
+          self.memory_usage = iprot.readI64()
+        else:
+          iprot.skip(ftype)
+      elif fid == 6:
+        if ftype == TType.I32:
+          self.cpu_usage = iprot.readI32()
+        else:
+          iprot.skip(ftype)
+      elif fid == 7:
+        if ftype == TType.I64:
+          self.memory_guarantee = iprot.readI64()
+        else:
+          iprot.skip(ftype)
+      elif fid == 8:
+        if ftype == TType.I32:
+          self.cpu_guarantee = iprot.readI32()
+        else:
+          iprot.skip(ftype)
+      elif fid == 9:
+        if ftype == TType.I64:
+          self.memory_guarantee_remaining = iprot.readI64()
+        else:
+          iprot.skip(ftype)
+      elif fid == 10:
+        if ftype == TType.I32:
+          self.cpu_guarantee_remaining = iprot.readI32()
+        else:
+          iprot.skip(ftype)
+      elif fid == 11:
+        if ftype == TType.I32:
+          self.isolated_node_guarantee = iprot.readI32()
+        else:
+          iprot.skip(ftype)
+      elif fid == 12:
+        if ftype == TType.I32:
+          self.total_tasks = iprot.readI32()
+        else:
+          iprot.skip(ftype)
+      elif fid == 13:
+        if ftype == TType.I64:
+          self.requested_on_heap_memory = iprot.readI64()
+        else:
+          iprot.skip(ftype)
+      elif fid == 14:
+        if ftype == TType.I64:
+          self.requested_off_heap_memory = iprot.readI64()
+        else:
+          iprot.skip(ftype)
+      elif fid == 15:
+        if ftype == TType.I64:
+          self.requested_total_memory = iprot.readI64()
+        else:
+          iprot.skip(ftype)
+      elif fid == 16:
+        if ftype == TType.I32:
+          self.requested_cpu = iprot.readI32()
+        else:
+          iprot.skip(ftype)
+      elif fid == 17:
+        if ftype == TType.I64:
+          self.assigned_on_heap_memory = iprot.readI64()
+        else:
+          iprot.skip(ftype)
+      elif fid == 18:
+        if ftype == TType.I64:
+          self.assigned_off_heap_memory = iprot.readI64()
+        else:
+          iprot.skip(ftype)
+      elif fid == 19:
+        if ftype == TType.I64:
+          self.assigned_ras_total_memory = iprot.readI64()
+        else:
+          iprot.skip(ftype)
+      elif fid == 20:
+        if ftype == TType.I32:
+          self.assigned_ras_cpu = iprot.readI32()
+        else:
+          iprot.skip(ftype)
+      else:
+        iprot.skip(ftype)
+      iprot.readFieldEnd()
+    iprot.readStructEnd()
+
+  def write(self, oprot):
+    if oprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and self.thrift_spec is not None and fastbinary is not None:
+      oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
+      return
+    oprot.writeStructBegin('OwnerResourceSummary')
+    if self.owner is not None:
+      oprot.writeFieldBegin('owner', TType.STRING, 1)
+      oprot.writeString(self.owner.encode('utf-8'))
+      oprot.writeFieldEnd()
+    if self.total_topologies is not None:
+      oprot.writeFieldBegin('total_topologies', TType.I32, 2)
+      oprot.writeI32(self.total_topologies)
+      oprot.writeFieldEnd()
+    if self.total_executors is not None:
+      oprot.writeFieldBegin('total_executors', TType.I32, 3)
+      oprot.writeI32(self.total_executors)
+      oprot.writeFieldEnd()
+    if self.total_workers is not None:
+      oprot.writeFieldBegin('total_workers', TType.I32, 4)
+      oprot.writeI32(self.total_workers)
+      oprot.writeFieldEnd()
+    if self.memory_usage is not None:
+      oprot.writeFieldBegin('memory_usage', TType.I64, 5)
+      oprot.writeI64(self.memory_usage)
+      oprot.writeFieldEnd()
+    if self.cpu_usage is not None:
+      oprot.writeFieldBegin('cpu_usage', TType.I32, 6)
+      oprot.writeI32(self.cpu_usage)
+      oprot.writeFieldEnd()
+    if self.memory_guarantee is not None:
+      oprot.writeFieldBegin('memory_guarantee', TType.I64, 7)
+      oprot.writeI64(self.memory_guarantee)
+      oprot.writeFieldEnd()
+    if self.cpu_guarantee is not None:
+      oprot.writeFieldBegin('cpu_guarantee', TType.I32, 8)
+      oprot.writeI32(self.cpu_guarantee)
+      oprot.writeFieldEnd()
+    if self.memory_guarantee_remaining is not None:
+      oprot.writeFieldBegin('memory_guarantee_remaining', TType.I64, 9)
+      oprot.writeI64(self.memory_guarantee_remaining)
+      oprot.writeFieldEnd()
+    if self.cpu_guarantee_remaining is not None:
+      oprot.writeFieldBegin('cpu_guarantee_remaining', TType.I32, 10)
+      oprot.writeI32(self.cpu_guarantee_remaining)
+      oprot.writeFieldEnd()
+    if self.isolated_node_guarantee is not None:
+      oprot.writeFieldBegin('isolated_node_guarantee', TType.I32, 11)
+      oprot.writeI32(self.isolated_node_guarantee)
+      oprot.writeFieldEnd()
+    if self.total_tasks is not None:
+      oprot.writeFieldBegin('total_tasks', TType.I32, 12)
+      oprot.writeI32(self.total_tasks)
+      oprot.writeFieldEnd()
+    if self.requested_on_heap_memory is not None:
+      oprot.writeFieldBegin('requested_on_heap_memory', TType.I64, 13)
+      oprot.writeI64(self.requested_on_heap_memory)
+      oprot.writeFieldEnd()
+    if self.requested_off_heap_memory is not None:
+      oprot.writeFieldBegin('requested_off_heap_memory', TType.I64, 14)
+      oprot.writeI64(self.requested_off_heap_memory)
+      oprot.writeFieldEnd()
+    if self.requested_total_memory is not None:
+      oprot.writeFieldBegin('requested_total_memory', TType.I64, 15)
+      oprot.writeI64(self.requested_total_memory)
+      oprot.writeFieldEnd()
+    if self.requested_cpu is not None:
+      oprot.writeFieldBegin('requested_cpu', TType.I32, 16)
+      oprot.writeI32(self.requested_cpu)
+      oprot.writeFieldEnd()
+    if self.assigned_on_heap_memory is not None:
+      oprot.writeFieldBegin('assigned_on_heap_memory', TType.I64, 17)
+      oprot.writeI64(self.assigned_on_heap_memory)
+      oprot.writeFieldEnd()
+    if self.assigned_off_heap_memory is not None:
+      oprot.writeFieldBegin('assigned_off_heap_memory', TType.I64, 18)
+      oprot.writeI64(self.assigned_off_heap_memory)
+      oprot.writeFieldEnd()
+    if self.assigned_ras_total_memory is not None:
+      oprot.writeFieldBegin('assigned_ras_total_memory', TType.I64, 19)
+      oprot.writeI64(self.assigned_ras_total_memory)
+      oprot.writeFieldEnd()
+    if self.assigned_ras_cpu is not None:
+      oprot.writeFieldBegin('assigned_ras_cpu', TType.I32, 20)
+      oprot.writeI32(self.assigned_ras_cpu)
+      oprot.writeFieldEnd()
+    oprot.writeFieldStop()
+    oprot.writeStructEnd()
+
+  def validate(self):
+    if self.owner is None:
+      raise TProtocol.TProtocolException(message='Required field owner is unset!')
+    return
+
+
+  def __hash__(self):
+    value = 17
+    value = (value * 31) ^ hash(self.owner)
+    value = (value * 31) ^ hash(self.total_topologies)
+    value = (value * 31) ^ hash(self.total_executors)
+    value = (value * 31) ^ hash(self.total_workers)
+    value = (value * 31) ^ hash(self.memory_usage)
+    value = (value * 31) ^ hash(self.cpu_usage)
+    value = (value * 31) ^ hash(self.memory_guarantee)
+    value = (value * 31) ^ hash(self.cpu_guarantee)
+    value = (value * 31) ^ hash(self.memory_guarantee_remaining)
+    value = (value * 31) ^ hash(self.cpu_guarantee_remaining)
+    value = (value * 31) ^ hash(self.isolated_node_guarantee)
+    value = (value * 31) ^ hash(self.total_tasks)
+    value = (value * 31) ^ hash(self.requested_on_heap_memory)
+    value = (value * 31) ^ hash(self.requested_off_heap_memory)
+    value = (value * 31) ^ hash(self.requested_total_memory)
+    value = (value * 31) ^ hash(self.requested_cpu)
+    value = (value * 31) ^ hash(self.assigned_on_heap_memory)
+    value = (value * 31) ^ hash(self.assigned_off_heap_memory)
+    value = (value * 31) ^ hash(self.assigned_ras_total_memory)
+    value = (value * 31) ^ hash(self.assigned_ras_cpu)
+    return value
+
+  def __repr__(self):
+    L = ['%s=%r' % (key, value)
+      for key, value in self.__dict__.iteritems()]
+    return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+  def __eq__(self, other):
+    return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+  def __ne__(self, other):
+    return not (self == other)
+
 class BlobReplication:
   """
   Attributes:
@@ -11247,11 +11635,11 @@ class HBRecords:
       if fid == 1:
         if ftype == TType.LIST:
           self.pulses = []
-          (_etype689, _size686) = iprot.readListBegin()
-          for _i690 in xrange(_size686):
-            _elem691 = HBPulse()
-            _elem691.read(iprot)
-            self.pulses.append(_elem691)
+          (_etype696, _size693) = iprot.readListBegin()
+          for _i697 in xrange(_size693):
+            _elem698 = HBPulse()
+            _elem698.read(iprot)
+            self.pulses.append(_elem698)
           iprot.readListEnd()
         else:
           iprot.skip(ftype)
@@ -11268,8 +11656,8 @@ class HBRecords:
     if self.pulses is not None:
       oprot.writeFieldBegin('pulses', TType.LIST, 1)
       oprot.writeListBegin(TType.STRUCT, len(self.pulses))
-      for iter692 in self.pulses:
-        iter692.write(oprot)
+      for iter699 in self.pulses:
+        iter699.write(oprot)
       oprot.writeListEnd()
       oprot.writeFieldEnd()
     oprot.writeFieldStop()
@@ -11321,10 +11709,10 @@ class HBNodes:
       if fid == 1:
         if ftype == TType.LIST:
           self.pulseIds = []
-          (_etype696, _size693) = iprot.readListBegin()
-          for _i697 in xrange(_size693):
-            _elem698 = iprot.readString().decode('utf-8')
-            self.pulseIds.append(_elem698)
+          (_etype703, _size700) = iprot.readListBegin()
+          for _i704 in xrange(_size700):
+            _elem705 = iprot.readString().decode('utf-8')
+            self.pulseIds.append(_elem705)
           iprot.readListEnd()
         else:
           iprot.skip(ftype)
@@ -11341,8 +11729,8 @@ class HBNodes:
     if self.pulseIds is not None:
       oprot.writeFieldBegin('pulseIds', TType.LIST, 1)
       oprot.writeListBegin(TType.STRING, len(self.pulseIds))
-      for iter699 in self.pulseIds:
-        oprot.writeString(iter699.encode('utf-8'))
+      for iter706 in self.pulseIds:
+        oprot.writeString(iter706.encode('utf-8'))
       oprot.writeListEnd()
       oprot.writeFieldEnd()
     oprot.writeFieldStop()

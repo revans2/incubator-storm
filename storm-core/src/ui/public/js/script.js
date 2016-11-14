@@ -438,7 +438,7 @@ var makeUserSummaryTable = function(response, elId, parentId) {
     }, {
         data: 'totalWorkers',
     }, {
-        data: 'memoryUsage',
+        data: 'totalMemoryUsage',
     }];
 
     if (showCpu) {
@@ -452,7 +452,7 @@ var makeUserSummaryTable = function(response, elId, parentId) {
             }
         });
         columns.push({
-            data: 'cpuUsage'
+            data: 'totalCpuUsage'
         });
         columns.push({
             data: 'cpuGuarantee'

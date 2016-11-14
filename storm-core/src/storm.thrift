@@ -587,6 +587,33 @@ struct GetInfoOptions {
   1: optional NumErrorsChoice num_err_choice;
 }
 
+struct OwnerResourceSummaries {
+  1: required list<OwnerResourceSummary> summaries;
+}
+
+struct OwnerResourceSummary {
+  1: required string owner;
+  2: optional i32 total_topologies;
+  3: optional i32 total_executors;
+  4: optional i32 total_workers;
+  5: optional i64 memory_usage;
+  6: optional i32 cpu_usage;
+  7: optional i64 memory_guarantee;
+  8: optional i32 cpu_guarantee;
+  9: optional i64 memory_guarantee_remaining;
+  10: optional i32 cpu_guarantee_remaining;
+  11: optional i32 isolated_node_guarantee;
+  12: optional i32 total_tasks;
+  13: optional i64 requested_on_heap_memory;
+  14: optional i64 requested_off_heap_memory;
+  15: optional i64 requested_total_memory;
+  16: optional i32 requested_cpu;
+  17: optional i64 assigned_on_heap_memory;
+  18: optional i64 assigned_off_heap_memory;
+  19: optional i64 assigned_ras_total_memory;
+  20: optional i32 assigned_ras_cpu;
+}
+
 service Nimbus {
   void submitTopology(1: string name, 2: string uploadedJarLocation, 3: string jsonConf, 4: StormTopology topology) throws (1: AlreadyAliveException e, 2: InvalidTopologyException ite, 3: AuthorizationException aze);
   void submitTopologyWithOpts(1: string name, 2: string uploadedJarLocation, 3: string jsonConf, 4: StormTopology topology, 5: SubmitOptions options) throws (1: AlreadyAliveException e, 2: InvalidTopologyException ite, 3: AuthorizationException aze);
@@ -652,6 +679,7 @@ service Nimbus {
   ComponentPageInfo getComponentPageInfo(1: string topology_id, 2: string component_id, 3: string window, 4: bool is_include_sys) throws (1: NotAliveException e, 2: AuthorizationException aze);
   //returns json
   string getTopologyConf(1: string id) throws (1: NotAliveException e, 2: AuthorizationException aze);
+  OwnerResourceSummaries getOwnerResourceSummaries (1: string owner) throws (1: NotAliveException e);
   /**
    * Returns the compiled topology that contains ackers and metrics consumsers. Compare {@link #getUserTopology(String id)}.
    */

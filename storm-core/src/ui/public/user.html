@@ -127,7 +127,6 @@
         $.getJSON(url, function(response, status, jqXHR) {
             getStatic("/templates/user-page-template.html", function(template) {
                 jsError(function() {
-
                     //userId,totalTopologies,totalTasks,totalExecutors,totalWorkers
                     userSummary.append(
                         Mustache.render($(template).filter("#user-summary-template").html(), response));
