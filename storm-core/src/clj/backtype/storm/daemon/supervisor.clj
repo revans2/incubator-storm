@@ -43,8 +43,6 @@
     :methods [^{:static true} [launch [backtype.storm.scheduler.ISupervisor] void]])
   (:require [clojure.string :as str]))
 
-(defmeter num-workers-launched)
-
 (defmulti download-storm-code cluster-mode)
 (defmulti launch-worker (fn [supervisor & _] (cluster-mode (:conf supervisor))))
 
@@ -55,6 +53,8 @@
   (get-conf [this])
   (shutdown-all-workers [this])
   )
+
+(declare supervisor:num-workers-launched)
 
 (defn- assignments-snapshot [storm-cluster-state callback assignment-versions]
   (let [storm-ids (.assignments storm-cluster-state callback)]
@@ -453,7 +453,7 @@
                                          id
                                          resources)
                           (swap! (:worker-launchtime-atom supervisor) assoc id {:launchtime (current-time-secs) :port port})
-                          (mark! num-workers-launched)
+                          (mark! supervisor:num-workers-launched)
                           [port id])
                         (log-message "Worker slot " port " still occupied! Will retry later.")))
                     (do
@@ -1260,7 +1260,8 @@
     (validate-distributed-mode! conf)
     (let [supervisor (mk-supervisor conf nil supervisor)]
       (add-shutdown-hook-with-force-kill-in-1-sec #(.shutdown supervisor)))
-    (defgauge num-slots-used-gauge #(count (my-worker-ids conf)))
+    (defgauge supervisor:num-slots-used-gauge #(count (my-worker-ids conf)))
+    (defmeter supervisor:num-workers-launched)
     (start-metrics-reporters conf)))
 
 (defn standalone-supervisor []

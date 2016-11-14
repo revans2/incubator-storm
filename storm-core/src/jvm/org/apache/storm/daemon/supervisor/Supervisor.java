@@ -244,7 +244,7 @@ public class Supervisor implements DaemonCommon, AutoCloseable {
             }
             launch();
             Utils.addShutdownHookWithForceKillIn1Sec(() -> {this.close();});
-            registerWorkerNumGauge("supervisor:num-slots-used-gauge", conf);
+            registerWorkerNumGauge("supervisor:num-slots-used", conf);
             StormMetricsRegistry.startMetricsReporters(conf);
         } catch (Exception e) {
             LOG.error("Failed to start supervisor\n", e);

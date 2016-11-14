@@ -38,14 +38,17 @@
             [compojure.handler :as handler])
   (:require [metrics.meters :refer [defmeter mark!]]))
 
-(defmeter num-requests)
+(defn metrics-middleware
+  "Coda Hale metric for counting the number of web requests."
+  [handler daemon-counter-web-requests]
+  (fn [req]
+    (mark! daemon-counter-web-requests)
+    (handler req)))
 
-(defn requests-middleware
-  "Wrap request with Coda Hale metric for counting the number of web requests,
-  and add Cache-Control: no-cache for html files in root directory (index.html, topology.html, etc)"
+(defn nocache-middleware
+  "add Cache-Control: no-cache for html files in root directory (index.html, topology.html, etc)"
   [handler]
   (fn [req]
-    (mark! num-requests)
     (let [uri (:uri req)
           res (handler req)
           content-type (response/get-header res "Content-Type")]

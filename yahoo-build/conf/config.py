@@ -48,11 +48,13 @@ remappedKeys = {"storm.messaging.netty.buffer.size":"storm.messaging.netty.buffe
                 "nimbus.thrift.max.buffer.size":"nimbus.thrift.max_buffer_size"}
 
 listKeys = set(["storm.auth.simple-white-list.users", "supervisor.slots.ports",
- "storm.zookeeper.servers", "topology.kryo.register", "drpc.servers",
+ "storm.zookeeper.servers", "topology.kryo.register", "drpc.servers", "simon.servers",
  "worker.childopts", "ui.users", "ui.groups", "logs.users", "logs.groups", "nimbus.supervisor.users",
  "nimbus.admins", "topology.users", "topology.groups", "nimbus.credential.renewers.classes",
  "topology.auto-credentials", "pacemaker.kerberos.users", "pacemaker.servers",
- "multitenant.scheduler.user.pools.loaders", "resource.aware.scheduler.user.pools.loaders"])
+ "multitenant.scheduler.user.pools.loaders", "resource.aware.scheduler.user.pools.loaders",
+ "storm.daemon.metrics.reporter.plugins"])
+
 mapKeys = set(["isolation.scheduler.machines", "ui.filter.params", "drpc.http.filter.params",
                "supervisor.scheduler.meta", "storm.group.mapping.service.params",
                "multitenant.scheduler.user.pools.loader.params",

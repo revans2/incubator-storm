@@ -52,7 +52,10 @@
 (def STORM-VERSION (VersionInfo/getVersion))
 
 ;; Coda Hale Metrics
-(defmeter num-file-downloads)
+(defmeter logviewer:num-file-downloads)
+(defmeter logviewer:num-log-page-httpRequests)
+(defmeter logviewer:num-list-logs-httpRequests)
+(defmeter logviewer:num-web-requests)
 
 (defn cleanup-cutoff-age-millis [conf now-millis]
   (- now-millis (* (conf LOGVIEWER-CLEANUP-AGE-MINS) 60 1000)))
@@ -1011,6 +1014,7 @@ Note that if anything goes wrong, this will throw an Error and exit."
 (defroutes log-routes
   (GET "/log" [:as req & m]
        (try
+         (mark! logviewer:num-log-page-httpRequests)
          (let [servlet-request (:servlet-request req)
                log-root (:log-root req)
                user (.getUserName http-creds-handler servlet-request)
@@ -1028,9 +1032,9 @@ Note that if anything goes wrong, this will throw an Error and exit."
        ;; :keys list, or this rule could stop working when an authentication
        ;; filter is configured.
        (try
-         (mark! num-file-downloads)
+         (mark! logviewer:num-file-downloads)
          (set-log-file-permissions file log-root)
-         (let [user (.getUserName http-creds-handler servlet-request)]/
+         (let [user (.getUserName http-creds-handler servlet-request)]
            (download-log-file file servlet-request servlet-response user log-root))
          (catch InvalidRequestException ex
            (log-error ex)
@@ -1165,6 +1169,7 @@ Note that if anything goes wrong, this will throw an Error and exit."
         (json-response (exception->json ex) (:callback m) :status 400))))
   (GET "/listLogs" [:as req & m]
     (try
+      (mark! logviewer:num-list-logs-httpRequests)
       (let [servlet-request (:servlet-request req)
             user (.getUserName http-creds-handler servlet-request)]
         (list-log-files user
@@ -1192,7 +1197,8 @@ Note that if anything goes wrong, this will throw an Error and exit."
           filter-class (conf UI-FILTER)
           filter-params (conf UI-FILTER-PARAMS)
           logapp (handler/api (-> log-routes
-                                  requests-middleware)) 
+                                  nocache-middleware
+                                  (metrics-middleware logviewer:num-web-requests))) 
           middle (conf-middleware logapp log-root-dir daemonlog-root-dir)
           filters-confs (if (conf UI-FILTER)
                           [{:filter-class filter-class

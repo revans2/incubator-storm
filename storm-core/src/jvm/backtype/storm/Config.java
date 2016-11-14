@@ -204,7 +204,7 @@ public class Config extends HashMap<String, Object> {
      */
     @isString
     public static final String STORM_DAEMON_METRICS_REPORTER_CSV_LOG_DIR = "storm.daemon.metrics.reporter.csv.log.dir";
-    
+
     /**
      * A list of hosts of ZooKeeper servers used to manage the cluster.
      */

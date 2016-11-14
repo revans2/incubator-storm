@@ -24,9 +24,21 @@
             HBServerMessageType HBMessage HBMessageData HBPulse]
            [backtype.storm.utils VersionInfo])
   (:use [clojure.string :only [replace-first split]]
-        [backtype.storm log config util])
-  (:require [clojure.java.jmx :as jmx])
+        [backtype.storm log config util]
+        [backtype.storm.daemon common])
+  (:require [clojure.java.jmx :as jmx]
+            [metrics.meters :refer [defmeter mark!]]
+            [metrics.gauges :refer [defgauge]])
   (:gen-class))
+
+(defmeter pacemaker:create-path)
+(defmeter pacemaker:exists)
+(defmeter pacemaker:send-pulse)
+(defmeter pacemaker:get-all-pulse-for-path)
+(defmeter pacemaker:get-all-nodes-for-path)
+(defmeter pacemaker:get-pulse)
+(defmeter pacemaker:delete-path)
+(defmeter pacemaker:delete-pulse-id)
 
 ;; This is the old Thrift service that this server is emulating.
 ;  void createPath(1: string path) throws (1: HBExecutionException e, 2: HBAuthorizationException aze);
@@ -113,15 +125,18 @@
   (ConcurrentHashMap.))
 
 (defn create-path [^String path heartbeats]
+  (mark! pacemaker:create-path)
   (HBMessage. HBServerMessageType/CREATE_PATH_RESPONSE nil))
 
 (defn exists [^String path heartbeats]
+  (mark! pacemaker:exists)
   (let [it-does (.containsKey heartbeats path)]
     (log-debug (str "Checking if path [" path "] exists..." it-does "."))
     (HBMessage. HBServerMessageType/EXISTS_RESPONSE
                 (HBMessageData/boolval it-does))))
 
 (defn send-pulse [^HBPulse pulse heartbeats pacemaker-stats]
+  (mark! pacemaker:send-pulse)
   (let [id (.get_id pulse)
         details (.get_details pulse)]
     (log-debug (str "Saving Pulse for id [" id "] data [" + (str details) "]."))
@@ -135,9 +150,11 @@
     (HBMessage. HBServerMessageType/SEND_PULSE_RESPONSE nil)))
 
 (defn get-all-pulse-for-path [^String path heartbeats]
+  (mark! pacemaker:get-all-pulse-for-path)
   (HBMessage. HBServerMessageType/GET_ALL_PULSE_FOR_PATH_RESPONSE nil))
 
 (defn get-all-nodes-for-path [^String path ^ConcurrentHashMap heartbeats]
+  (mark! pacemaker:get-all-nodes-for-path)
   (log-debug "List all nodes for path " path)
   (HBMessage. HBServerMessageType/GET_ALL_NODES_FOR_PATH_RESPONSE
               (HBMessageData/nodes
@@ -151,6 +168,7 @@
                                      trimmed-k))))))
 
 (defn get-pulse [^String path heartbeats pacemaker-stats]
+  (mark! pacemaker:get-pulse)
   (let [details (.get heartbeats path)]
     (log-debug (str "Getting Pulse for path [" path "]...data " (str details) "]."))
 
@@ -164,11 +182,13 @@
                  (doto (HBPulse. ) (.set_id path) (.set_details details))))))
 
 (defn delete-pulse-id [^String path heartbeats]
+  (mark! pacemaker:delete-pulse-id)
   (log-debug (str "Deleting Pulse for id [" path "]."))
   (.remove heartbeats path)
   (HBMessage. HBServerMessageType/DELETE_PULSE_ID_RESPONSE nil))
 
 (defn delete-path [^String path heartbeats]
+  (mark! pacemaker:delete-path)
   (let [prefix (if (= \/ (last path)) path (str path "/"))]
     (doseq [k (.keySet heartbeats)
             :when (= (.indexOf k prefix) 0)]
@@ -246,7 +266,8 @@
                STORM-VERSION
                "'")
   (let [conf (override-login-config-with-system-property (read-storm-config))]
-    (PacemakerServer. (mk-handler conf) conf)))
+    (PacemakerServer. (mk-handler conf) conf)
+    (start-metrics-reporters conf)))
 
 (defn -main []
   (redirect-stdio-to-slf4j!)

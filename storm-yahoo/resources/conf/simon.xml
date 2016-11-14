@@ -1,0 +1,226 @@
+<?xml version="1.0"?>
+
+<simonConfig name="ystorm" >
+
+    <!-- BLURBS (AGGREGATOR INPUT) -->
+    <blurbMessage name="storm" version="1" period="5" staleAccumulatorPolicy="free">
+
+        <blurb name="nimbus">
+            <tag     name="Hostname"                          type="string" />
+            <tag     name="IpAddress"                         type="string" />
+            <counter name="num_submitTopologyWithOpts_calls" type="long" />
+            <counter name="num_submitTopology_calls" type="long" />
+            <counter name="num_killTopologyWithOpts_calls"   type="long" />
+            <counter name="num_killTopology_calls"   type="long" />
+            <counter name="num_rebalance_calls"  type="long" />
+            <counter name="num_activate_calls"   type="long" />
+            <counter name="num_deactivate_calls" type="long" />
+            <counter name="num_setLogConfig_calls"   type="long" />
+            <counter name="num_uploadNewCredentials_calls"   type="long" />
+            <counter name="num_beginFileUpload_calls"    type="long" />
+            <counter name="num_uploadChunk_calls"    type="long" />
+            <counter name="num_finishFileUpload_calls"   type="long" />
+            <counter name="num_beginFileDownload_calls"  type="long" />
+            <counter name="num_downloadChunk_calls"  type="long" />
+            <counter name="num_getNimbusConf_calls"  type="long" />
+            <counter name="num_getLogConfig_calls"   type="long" />
+            <counter name="num_getTopologyConf_calls"    type="long" />
+            <counter name="num_getTopology_calls"    type="long" />
+            <counter name="num_getUserTopology_calls"    type="long" />
+            <counter name="num_getClusterInfo_calls" type="long" />
+            <counter name="num_getTopologyInfoWithOpts_calls"    type="long" />
+            <counter name="num_getTopologyInfo_calls"    type="long" />
+            <counter name="num_getTopologyPageInfo_calls"    type="long" />
+            <counter name="num_getComponentPageInfo_calls"   type="long" />
+            <counter name="num_shutdown_calls"   type="long" />
+            <counter name="num_getComponentPendingProfileActions_calls"  type="long" />
+            <counter name="num_beginCreateBlob_calls"    type="long" />
+            <counter name="num_beginUpdateBlob_calls"    type="long" />
+            <counter name="num_deleteBlob_calls" type="long" />
+            <counter name="num_listBlobs_calls"  type="long" />
+            <counter name="num_getTopologyHistory_calls" type="long" />
+            <counter name="num_setWorkerProfiler_calls"  type="long" />
+            <gauge   name="num_supervisors"              type="long"   cf="last" />
+        </blurb>
+
+        <blurb name="supervisor">
+            <tag     name="Hostname"        type="string" />
+            <tag     name="IpAddress"       type="string" />
+            <counter name="num_workers_launched" type="long"   />
+            <gauge   name="num_slots_used" type="long"   cf="last" />
+        </blurb>
+
+        <blurb name="logviewer">
+            <tag     name="Hostname"      type="string" />
+            <tag     name="IpAddress"     type="string" />
+            <counter name="num_file_downloads" type="long" />
+            <counter name="num_log_page_httpRequests" type="long" />
+            <counter name="num_list_logs_httpRequests" type="long" />
+            <counter name="num_web_requests" type="long" />
+        </blurb>
+
+        <blurb name="ui">
+            <tag     name="Hostname"        type="string" />
+            <tag     name="IpAddress"       type="string" />
+            <counter name="num_getTopologyInfo_calls" type="long" />
+            <counter name="num_cluster_configuration_httpRequests" type="long" />
+            <counter name="num_cluster_summary_httpRequests" type="long" />
+            <counter name="num_nimbus_summary_httpRequests" type="long" />
+            <counter name="num_supervisor_summary_httpRequests" type="long" />
+            <counter name="num_all_topologies_summary_httpRequests" type="long" />
+            <counter name="num_topology_page_httpRequests" type="long" />
+            <counter name="num_topology_workers_page_httpRequests" type="long" />
+            <counter name="num_build_visualization_httpRequests" type="long" />
+            <counter name="num_mk_visualization_data_httpRequests" type="long" />
+            <counter name="num_component_page_httpRequests" type="long" />
+            <counter name="num_log_config_httpRequests" type="long" />
+            <counter name="num_activate_topology_httpRequests" type="long" />
+            <counter name="num_deactivate_topology_httpRequests" type="long" />
+            <counter name="num_debug_topology_httpRequests" type="long" />
+            <counter name="num_component_op_response_httpRequests" type="long" />
+            <counter name="num_topology_op_response_httpRequests" type="long" />
+            <counter name="num_main_page_httpRequests" type="long" />
+            <counter name="num_web_requests" type="long" />
+        </blurb>
+
+        <blurb name="drpc">
+            <tag     name="Hostname"        type="string" />
+            <tag     name="IpAddress"       type="string" />
+            <counter name="num_execute_http_requests" type="long" />
+            <counter name="num_execute_calls" type="long" />
+            <counter name="num_result_calls" type="long" />
+            <counter name="num_failRequest_calls" type="long" />
+            <counter name="num_fetchRequest_calls" type="long" />
+            <counter name="num_shutdown_calls" type="long" />
+            <counter name="num_web_requests" type="long" />
+        </blurb>
+
+        <blurb name="pacemaker">
+            <tag     name="Hostname"               type="string" />
+            <tag     name="IpAddress"              type="string" />
+            <counter name="create_path"            type="long"   />
+            <counter name="exists"                 type="long"   />
+            <counter name="send_pulse"             type="long"   />
+            <counter name="get_all_pulse_for_path" type="long"   />
+            <counter name="get_all_nodes_for_path" type="long"   />
+            <counter name="get_pulse"              type="long"   />
+            <counter name="delete_path"            type="long"   />
+            <counter name="delete_pulse_id"        type="long"   />
+        </blurb>
+
+    </blurbMessage>
+
+    <!-- REPORT PERIODS -->
+    <reportPeriod name="perMinute" seconds="60"/>
+
+    <!-- REPORTS (AGGREGATOR OUTPUT) -->
+    <report name="storm" version="1.0.0" periods="perMinute">
+
+        <!--
+            Notes:
+            #pids means the number of processes that reported in the report period. For
+            reportItems that include the Hostname, #pids should normally be 1, but it
+            could be 2 in the case where the process restarted in the report period.
+            #restarts is the number of new processes that were seen in a report period.
+            This should be 0 normally, but 1 when a jobtracker/tasktracker process started
+            or re-started in the report period.
+        -->
+        <reportItem name="nimbus daemon" blurb="nimbus">
+            <key   name="hostname" tag="Hostname"/>
+            <value name="Avg. submitTopologyWithOpts">            num_submitTopologyWithOpts_calls/period            </value>
+            <value name="Avg. killTopologyWithOpts">              num_killTopologyWithOpts_calls/period              </value>
+            <value name="Avg. setLogConfig">                      num_setLogConfig_calls/period                      </value>
+            <value name="Avg. uploadNewCredentials">              num_uploadNewCredentials_calls/period              </value>
+            <value name="Avg. beginFileUpload">                   num_beginFileUpload_calls/period                   </value>
+            <value name="Avg. uploadChunk">                       num_uploadChunk_calls/period                       </value>
+            <value name="Avg. beginFileDownload">                 num_beginFileDownload_calls/period                 </value>
+            <value name="Avg. downloadChunk">                     num_downloadChunk_calls/period                     </value>
+            <value name="Avg. getNimbusConf">                     num_getNimbusConf_calls/period                     </value>
+            <value name="Avg. getLogConfig">                      num_getLogConfig_calls/period                      </value>
+            <value name="Avg. getTopologyConf">                   num_getTopologyConf_calls/period                   </value>
+            <value name="Avg. getTopologyInfoWithOpts">           num_getTopologyInfoWithOpts_calls/period           </value>
+            <value name="Avg. shutdown">                          num_shutdown_calls/period                          </value>
+            <value name="Avg. activate">                          num_activate_calls/period                          </value>
+            <value name="Avg. deactivate">                        num_deactivate_calls/period                        </value>
+            <value name="Avg. beginCreateBlob">                   num_beginCreateBlob_calls/period                   </value>
+            <value name="Avg. beginUpdateBlob">                   num_beginUpdateBlob_calls/period                   </value>
+            <value name="Avg. deleteBlob">                        num_deleteBlob_calls/period                        </value>
+            <value name="Avg. getClusterInfo">                    num_getClusterInfo_calls/period                    </value>
+            <value name="Avg. getComponentPageInfo">              num_getComponentPageInfo_calls/period              </value>
+            <value name="Avg. getComponentPendingProfileActions"> num_getComponentPendingProfileActions_calls/period </value>
+            <value name="Avg. getTopology">                       num_getTopology_calls/period                       </value>
+            <value name="Avg. getTopologyHistory">                num_getTopologyHistory_calls/period                </value>
+            <value name="Avg. getTopologyInfo">                   num_getTopologyInfo_calls/period                   </value>
+            <value name="Avg. getTopologyPageInfo">               num_getTopologyPageInfo_calls/period               </value>
+            <value name="Avg. getUserTopology">                   num_getUserTopology_calls/period                   </value>
+            <value name="Avg. killTopology">                      num_killTopology_calls/period                      </value>
+            <value name="Avg. listBlobs">                         num_listBlobs_calls/period                         </value>
+            <value name="Avg. rebalance">                         num_rebalance_calls/period                         </value>
+            <value name="Avg. setWorkerProfiler">                 num_setWorkerProfiler_calls/period                 </value>
+            <value name="Avg. submitTopology">                    num_submitTopology_calls/period                    </value>
+            <value name="numSupervisors">                         num_supervisors                                    </value>
+        </reportItem>
+
+        <reportItem name="supervisor daemon" blurb="supervisor">
+            <key   name="hostname" tag="Hostname"/>
+            <value name="Avg. workersLaunched">                   num_workers_launched/period                 </value>
+            <value name="Num Slots Used">                         num_slots_used                              </value>
+        </reportItem>
+
+        <reportItem name="drpc daemon" blurb="drpc">
+            <key   name="hostname" tag="Hostname"/>
+            <value name="Avg. executeHttpRequests">               num_execute_http_requests/period               </value>
+            <value name="Avg. executeCalls">                      num_execute_calls/period                       </value>
+            <value name="Avg. resultCalls">                       num_result_calls/period                        </value>
+            <value name="Avg. failRequest">                       num_failRequest_calls/period                   </value>
+            <value name="Avg. fetchRequest">                      num_fetchRequest_calls/period                  </value>
+            <value name="Avg. shutdown">                          num_shutdown_calls/period                      </value>
+            <value name="Avg. webRequests">                       num_web_requests/period                        </value>
+        </reportItem>
+
+        <reportItem name="logviewer daemon" blurb="logviewer">
+            <key   name="hostname" tag="Hostname"/>
+            <value name="Avg. fileDownloads">                      num_file_downloads/period                     </value>
+            <value name="Avg. logPageHttpRequests">                num_log_page_httpRequests/period              </value>
+            <value name="Avg. listLogsHttpRequests">               num_list_logs_httpRequests/period             </value>
+            <value name="Avg. webRequests">                        num_web_requests/period                       </value>
+        </reportItem>
+
+        <reportItem name="ui daemon" blurb="ui">
+            <key   name="hostname" tag="Hostname"/>
+            <value name="Avg. getTopologyInfo">                    num_getTopologyInfo_calls/period                          </value>
+            <value name="Avg. clusterConfigurationHttpReq">        num_cluster_configuration_httpRequests/period             </value>
+            <value name="Avg. clusterSummaryHttpReq">              num_cluster_summary_httpRequests/period                   </value>
+            <value name="Avg. nimbusSummaryHttpReq">               num_nimbus_summary_httpRequests/period                    </value>
+            <value name="Avg. supSummaryHttpReq">                  num_supervisor_summary_httpRequests/period                </value>
+            <value name="Avg. allTopologySummaryHttpReq">          num_all_topologies_summary_httpRequests/period            </value>
+            <value name="Avg. topologyPageHttpReq">                num_topology_page_httpRequests/period                     </value>
+            <value name="Avg. topologyWorkerPageHttpReq">          num_topology_workers_page_httpRequests/period             </value>
+            <value name="Avg. buildVisualHttpReq">                 num_build_visualization_httpRequests/period               </value>
+            <value name="Avg. mkVisualizationDataHttpReq">         num_mk_visualization_data_httpRequests/period             </value>
+            <value name="Avg. componentPageHttpReq">               num_component_page_httpRequests/period                    </value>
+            <value name="Avg. logConfigHttpReq">                   num_log_config_httpRequests/period                        </value>
+            <value name="Avg. activateTopoHttpReq">                num_activate_topology_httpRequests/period                 </value>
+            <value name="Avg. deactivateTopoHttpReq">              num_deactivate_topology_httpRequests/period               </value>
+            <value name="Avg. debugTopoHttpReq">                   num_debug_topology_httpRequests/period                    </value>
+            <value name="Avg. componentOpReqponseHttpReq">         num_component_op_response_httpRequests/period             </value>
+            <value name="Avg. topologyOpResponseHttpReq">          num_topology_op_response_httpRequests/period              </value>
+            <value name="Avg. mainPageHttpReq">                    num_main_page_httpRequests/period                         </value>
+            <value name="Avg. webRequests">                        num_web_requests/period                                   </value>
+        </reportItem>
+
+        <reportItem name="pacemaker daemon" blurb="pacemaker">
+            <key   name="hostname" tag="Hostname"/>
+            <value name="Avg. create_path">             create_path/period            </value>
+            <value name="Avg. exists">                  exists/period                 </value>
+            <value name="Avg. send_pulse">              send_pulse/period             </value>
+            <value name="Avg. get_all_pulse_for_path">  get_all_pulse_for_path/period </value>
+            <value name="Avg. get_all_nodes_for_path">  get_all_nodes_for_path/period </value>
+            <value name="Avg. get_pulse">               get_pulse/period              </value>
+            <value name="Avg. delete_path">             delete_path/period            </value>
+            <value name="Avg. delete_pulse_id">         delete_pulse_id/period        </value>
+        </reportItem>
+
+    </report>
+
+</simonConfig>
