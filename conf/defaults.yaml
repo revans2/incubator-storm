@@ -304,8 +304,7 @@ storm.cgroup.memory.enforcement.enable: false ### Temporary config ###
 storm.topology.classpath.beginning.enabled: false
 storm.cgroup.oom.monitoring.enable: false
 #default storm daemon metrics reporter plugins
-storm.daemon.metrics.reporter.plugins:
-     - "org.apache.storm.daemon.metrics.reporters.JmxPreparableReporter"
+storm.daemon.metrics.reporter.plugins: []
 simon.cluster: nosuch.cluster
 simon.config: conf/simon.xml
 simon.config.schema: conf/simon.xsd
