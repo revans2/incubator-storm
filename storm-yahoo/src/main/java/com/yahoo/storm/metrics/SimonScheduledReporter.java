@@ -144,10 +144,10 @@ public class SimonScheduledReporter extends ScheduledReporter {
             schemaStream = getClass().getResourceAsStream(SimonDefaults.SIMON_CONFIG_SCHEMA);
         }
         if (confStream == null) {
-            throw new IllegalArgumentException( "Failed to open simon config " + conf + " or from resource " + SimonDefaults.SIMON_CONFIG);
+            throw new IllegalArgumentException("Failed to open simon config " + conf + " or from resource " + SimonDefaults.SIMON_CONFIG);
         }
         if (schemaStream == null) {
-            throw new IllegalArgumentException( "Failed to open simon config schema " + schema + " or from resource " + SimonDefaults.SIMON_CONFIG_SCHEMA);
+            throw new IllegalArgumentException("Failed to open simon config schema " + schema + " or from resource " + SimonDefaults.SIMON_CONFIG_SCHEMA);
         }
         _config = new SimonConfig();
         try {
@@ -175,11 +175,11 @@ public class SimonScheduledReporter extends ScheduledReporter {
         }
     }
 
-    private BlurbType getBlurbTypeForMetric( String metricName ) {
+    private BlurbType getBlurbTypeForMetric(String metricName) {
         String convertedMetricName = metricName.replace('-','_');
         String[] splitIt = convertedMetricName.split("[\\.:]");
         int pos = splitIt.length - 2;
-        if ( pos >= 0) {
+        if (pos >= 0) {
             return blurbTypeMap.get(splitIt[pos]);
         }
 
@@ -187,18 +187,18 @@ public class SimonScheduledReporter extends ScheduledReporter {
         return null;
     }
 
-    private String getFieldNameForMetric( String metricName ) {
+    private String getFieldNameForMetric(String metricName) {
         String convertedMetricName = metricName.replace('-','_');
         String[] splitIt = convertedMetricName.split("[\\.:]");
         int pos = splitIt.length - 1;
-        if ( pos >= 0) {
+        if (pos >= 0) {
             return splitIt[pos];
         }
 
         return null;
     }
 
-    private void checkAndAddMetric( String metricName, Object metricValue, Map<BlurbType, Map<String,Object>> blurbTypeToObjMap ) {
+    private void checkAndAddMetric(String metricName, Object metricValue, Map<BlurbType, Map<String,Object>> blurbTypeToObjMap) {
 
         BlurbType bt = getBlurbTypeForMetric(metricName);
         if (bt == null) {
@@ -207,18 +207,18 @@ public class SimonScheduledReporter extends ScheduledReporter {
         }
 
         HashSet<String> nameSet = metricMap.get(bt);
-        if ( nameSet == null ) {
+        if (nameSet == null) {
             LOG.warn("No metric names for " + metricName);
             return;
         }
 
         String fieldName = getFieldNameForMetric(metricName);
         if (!nameSet.contains(fieldName)) {
-            LOG.warn("Metric " + fieldName + " does not exist in blurb type " + metricName );
+            LOG.warn("Metric " + fieldName + " does not exist in blurb type " + metricName);
             return;
         }
 
-        if ( blurbTypeToObjMap.get(bt) == null ) {
+        if (blurbTypeToObjMap.get(bt) == null) {
             blurbTypeToObjMap.put(bt, new HashMap<String, Object>());
         }
 
@@ -229,36 +229,37 @@ public class SimonScheduledReporter extends ScheduledReporter {
     public void report(SortedMap<String, Gauge> guages,
                        SortedMap<String, Counter> counters,
                        SortedMap<String, Histogram> histograms,
-                       SortedMap<String, Meter> meters) {
+                       SortedMap<String, Meter> meters,
+                       SortedMap<String, Timer> timers) {
 
         Map<BlurbType, Map<String,Object>> blurbTypeToObjMap = new HashMap<>(blurbTypeMap.size());
 
         // Let's go through each type of metric.
         if (!guages.isEmpty()) {
             for (Map.Entry<String, Gauge> entry : guages.entrySet()) {
-                checkAndAddMetric( entry.getKey(), entry.getValue().getValue(), blurbTypeToObjMap );
+                checkAndAddMetric(entry.getKey(), entry.getValue().getValue(), blurbTypeToObjMap);
             }
         }
 
         if (!counters.isEmpty()) {
             for (Map.Entry<String, Counter> entry : counters.entrySet()) {
-                checkAndAddMetric( entry.getKey(), (int) entry.getValue().getCount(), blurbTypeToObjMap );
+                checkAndAddMetric(entry.getKey(), (int) entry.getValue().getCount(), blurbTypeToObjMap);
             }
         }
 
         if (!histograms.isEmpty()) {
             for (Map.Entry<String, Histogram> entry : histograms.entrySet()) {
-                checkAndAddMetric( entry.getKey(), (int) entry.getValue().getCount(), blurbTypeToObjMap );
+                checkAndAddMetric(entry.getKey(), (int) entry.getValue().getCount(), blurbTypeToObjMap);
             }
         }
 
         if (!meters.isEmpty()) {
             for (Map.Entry<String, Meter> entry : meters.entrySet()) {
-                checkAndAddMetric( entry.getKey(), (int) entry.getValue().getCount(), blurbTypeToObjMap );
+                checkAndAddMetric(entry.getKey(), (int) entry.getValue().getCount(), blurbTypeToObjMap);
             }
         }
 
-        if ( _client == null ) {
+        if (_client == null) {
             throw new RuntimeException("Simon client not created");
         }
 
@@ -267,7 +268,7 @@ public class SimonScheduledReporter extends ScheduledReporter {
             BlurbType type = entry.getKey();
             Map<String,Object> objMap = entry.getValue();
             // Our blurbs should be empty for most blurb types.  Skip the empty ones.
-            if ( objMap == null || objMap.isEmpty()) {
+            if (objMap == null || objMap.isEmpty()) {
                 LOG.warn("Skipping empty obj map.");
                 continue;
             }
@@ -277,7 +278,7 @@ public class SimonScheduledReporter extends ScheduledReporter {
             HashSet<String> nameSet = metricMap.get(type);
             Boolean hasAll = true;
             for (String name : nameSet) {
-                if ( !objMap.containsKey(name) && !sentFullBlurb ) {
+                if (!objMap.containsKey(name) && !sentFullBlurb) {
                     if (!sentFullBlurb) {
                         LOG.warn("Obj map missing metric " + name + ". Send will fail.");
                     }

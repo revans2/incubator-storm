@@ -44,9 +44,6 @@ public class MetricsUtils {
                 reporterList.add(getPreparableReporter(clazz));
             }
         }
-        if (reporterList.isEmpty()) {
-            reporterList.add(new JmxPreparableReporter());
-        }
         return reporterList;
     }
 
