@@ -46,7 +46,7 @@ public class SimonScheduledReporter extends ScheduledReporter {
     private String _hostname;
     private Map<String,BlurbType> blurbTypeMap = new HashMap<String,BlurbType>();
     private Map<BlurbType,HashSet> metricMap = new HashMap<BlurbType,HashSet>();
-    private Boolean sentFullBlurb = false;  // Used to work around YSTORM-3376
+    private Boolean sentFullBlurb = false;
 
     // Default port is "SIMO" on a telephone key pad
     static final int DEFAULT_PORT = 7466;
@@ -82,11 +82,9 @@ public class SimonScheduledReporter extends ScheduledReporter {
                     _hostname = InetAddress.getByName(_ip).getHostName();
                 }
             }
-        } catch (UnknownHostException e) {
+        } catch (UnknownHostException | SocketException e) {
             throw new RuntimeException(e);
-        } catch (SocketException e) {
-            throw new RuntimeException(e);
-        } 
+        }
     }
 
     private void initBlurbTypeMap() {
@@ -137,7 +135,7 @@ public class SimonScheduledReporter extends ScheduledReporter {
         InputStream schemaStream = null;
         try {
             confStream = new FileInputStream(conf);
-        } catch (FileNotFoundException e) { // Ingore exception.  We'll try loading conf from jar.
+        } catch (FileNotFoundException e) { // Ignore exception.  We'll try loading conf from jar.
             confStream = getClass().getResourceAsStream(SimonDefaults.SIMON_CONFIG);
         }
         try {
@@ -156,7 +154,7 @@ public class SimonScheduledReporter extends ScheduledReporter {
             _config.parseStream(confStream, schemaStream);
             try {
                 confStream = new FileInputStream(conf);
-            } catch (FileNotFoundException e) { // Ingore exception.  We'll try loading conf from jar.
+            } catch (FileNotFoundException e) { // Ignore exception.  We'll try loading conf from jar.
                 confStream = getClass().getResourceAsStream(SimonDefaults.SIMON_CONFIG);
             }
             _compressedConfig = _config.getCompressedConfig(confStream);
@@ -231,8 +229,7 @@ public class SimonScheduledReporter extends ScheduledReporter {
     public void report(SortedMap<String, Gauge> guages,
                        SortedMap<String, Counter> counters,
                        SortedMap<String, Histogram> histograms,
-                       SortedMap<String, Meter> meters,
-                       SortedMap<String, Timer> timers) {
+                       SortedMap<String, Meter> meters) {
 
         Map<BlurbType, Map<String,Object>> blurbTypeToObjMap = new HashMap<>(blurbTypeMap.size());
 
@@ -303,7 +300,7 @@ public class SimonScheduledReporter extends ScheduledReporter {
             }
         }
         // Remember if we sent any blurb successfully.  This prevents the log from getting
-        // filled with warnings because of YSTORM-3376
+        // filled with endless warnings if something gets misconfigured. 
         sentFullBlurb = sentOne;
     }
 }

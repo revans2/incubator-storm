@@ -14,9 +14,7 @@ import org.slf4j.LoggerFactory;
 
 public class SimonReporter implements PreparableReporter {
     private final static Logger LOG = LoggerFactory.getLogger(SimonReporter.class);
-    private volatile boolean _isMonitoring = false;
     private SimonScheduledReporter _reporter;
-
 
     private List<InetSocketAddress> parseServersConfig(Map<String, ?> conf) {
         List<String> _metricServerNames =
@@ -32,10 +30,6 @@ public class SimonReporter implements PreparableReporter {
             ret.add(new InetSocketAddress(host_port[0], port));
         }
         return ret;
-    }
-
-    public boolean isMonitoring() {
-        return _isMonitoring;
     }
 
     @Override

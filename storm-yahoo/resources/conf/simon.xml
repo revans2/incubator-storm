@@ -6,93 +6,93 @@
     <blurbMessage name="storm" version="1" period="5" staleAccumulatorPolicy="free">
 
         <blurb name="nimbus">
-            <tag     name="Hostname"                          type="string" />
-            <tag     name="IpAddress"                         type="string" />
-            <counter name="num_submitTopologyWithOpts_calls" type="long" />
-            <counter name="num_submitTopology_calls" type="long" />
-            <counter name="num_killTopologyWithOpts_calls"   type="long" />
-            <counter name="num_killTopology_calls"   type="long" />
-            <counter name="num_rebalance_calls"  type="long" />
-            <counter name="num_activate_calls"   type="long" />
-            <counter name="num_deactivate_calls" type="long" />
-            <counter name="num_setLogConfig_calls"   type="long" />
-            <counter name="num_uploadNewCredentials_calls"   type="long" />
-            <counter name="num_beginFileUpload_calls"    type="long" />
-            <counter name="num_uploadChunk_calls"    type="long" />
-            <counter name="num_finishFileUpload_calls"   type="long" />
-            <counter name="num_beginFileDownload_calls"  type="long" />
-            <counter name="num_downloadChunk_calls"  type="long" />
-            <counter name="num_getNimbusConf_calls"  type="long" />
-            <counter name="num_getLogConfig_calls"   type="long" />
-            <counter name="num_getTopologyConf_calls"    type="long" />
-            <counter name="num_getTopology_calls"    type="long" />
-            <counter name="num_getUserTopology_calls"    type="long" />
-            <counter name="num_getClusterInfo_calls" type="long" />
-            <counter name="num_getTopologyInfoWithOpts_calls"    type="long" />
-            <counter name="num_getTopologyInfo_calls"    type="long" />
-            <counter name="num_getTopologyPageInfo_calls"    type="long" />
-            <counter name="num_getComponentPageInfo_calls"   type="long" />
-            <counter name="num_shutdown_calls"   type="long" />
-            <counter name="num_getComponentPendingProfileActions_calls"  type="long" />
-            <counter name="num_beginCreateBlob_calls"    type="long" />
-            <counter name="num_beginUpdateBlob_calls"    type="long" />
-            <counter name="num_deleteBlob_calls" type="long" />
-            <counter name="num_listBlobs_calls"  type="long" />
-            <counter name="num_getTopologyHistory_calls" type="long" />
-            <counter name="num_setWorkerProfiler_calls"  type="long" />
-            <gauge   name="num_supervisors"              type="long"   cf="last" />
+            <tag     name="Hostname"                                    type="string" />
+            <tag     name="IpAddress"                                   type="string" />
+            <counter name="num_submitTopologyWithOpts_calls"            type="long" />
+            <counter name="num_submitTopology_calls"                    type="long" />
+            <counter name="num_killTopologyWithOpts_calls"              type="long" />
+            <counter name="num_killTopology_calls"                      type="long" />
+            <counter name="num_rebalance_calls"                         type="long" />
+            <counter name="num_activate_calls"                          type="long" />
+            <counter name="num_deactivate_calls"                        type="long" />
+            <counter name="num_setLogConfig_calls"                      type="long" />
+            <counter name="num_uploadNewCredentials_calls"              type="long" />
+            <counter name="num_beginFileUpload_calls"                   type="long" />
+            <counter name="num_uploadChunk_calls"                       type="long" />
+            <counter name="num_finishFileUpload_calls"                  type="long" />
+            <counter name="num_beginFileDownload_calls"                 type="long" />
+            <counter name="num_downloadChunk_calls"                     type="long" />
+            <counter name="num_getNimbusConf_calls"                     type="long" />
+            <counter name="num_getLogConfig_calls"                      type="long" />
+            <counter name="num_getTopologyConf_calls"                   type="long" />
+            <counter name="num_getTopology_calls"                       type="long" />
+            <counter name="num_getUserTopology_calls"                   type="long" />
+            <counter name="num_getClusterInfo_calls"                    type="long" />
+            <counter name="num_getTopologyInfoWithOpts_calls"           type="long" />
+            <counter name="num_getTopologyInfo_calls"                   type="long" />
+            <counter name="num_getTopologyPageInfo_calls"               type="long" />
+            <counter name="num_getComponentPageInfo_calls"              type="long" />
+            <counter name="num_shutdown_calls"                          type="long" />
+            <counter name="num_getComponentPendingProfileActions_calls" type="long" />
+            <counter name="num_beginCreateBlob_calls"                   type="long" />
+            <counter name="num_beginUpdateBlob_calls"                   type="long" />
+            <counter name="num_deleteBlob_calls"                        type="long" />
+            <counter name="num_listBlobs_calls"                         type="long" />
+            <counter name="num_getTopologyHistory_calls"                type="long" />
+            <counter name="num_setWorkerProfiler_calls"                 type="long" />
+            <gauge   name="num_supervisors"                             type="long"   cf="last" />
         </blurb>
 
         <blurb name="supervisor">
-            <tag     name="Hostname"        type="string" />
-            <tag     name="IpAddress"       type="string" />
+            <tag     name="Hostname"             type="string" />
+            <tag     name="IpAddress"            type="string" />
             <counter name="num_workers_launched" type="long"   />
-            <gauge   name="num_slots_used" type="long"   cf="last" />
+            <gauge   name="num_slots_used"       type="long"   cf="last" />
         </blurb>
 
         <blurb name="logviewer">
-            <tag     name="Hostname"      type="string" />
-            <tag     name="IpAddress"     type="string" />
-            <counter name="num_file_downloads" type="long" />
-            <counter name="num_log_page_httpRequests" type="long" />
+            <tag     name="Hostname"                   type="string" />
+            <tag     name="IpAddress"                  type="string" />
+            <counter name="num_file_downloads"         type="long" />
+            <counter name="num_log_page_httpRequests"  type="long" />
             <counter name="num_list_logs_httpRequests" type="long" />
-            <counter name="num_web_requests" type="long" />
+            <counter name="num_web_requests"           type="long" />
         </blurb>
 
         <blurb name="ui">
-            <tag     name="Hostname"        type="string" />
-            <tag     name="IpAddress"       type="string" />
-            <counter name="num_getTopologyInfo_calls" type="long" />
-            <counter name="num_cluster_configuration_httpRequests" type="long" />
-            <counter name="num_cluster_summary_httpRequests" type="long" />
-            <counter name="num_nimbus_summary_httpRequests" type="long" />
-            <counter name="num_supervisor_summary_httpRequests" type="long" />
+            <tag     name="Hostname"                                type="string" />
+            <tag     name="IpAddress"                               type="string" />
+            <counter name="num_getTopologyInfo_calls"               type="long" />
+            <counter name="num_cluster_configuration_httpRequests"  type="long" />
+            <counter name="num_cluster_summary_httpRequests"        type="long" />
+            <counter name="num_nimbus_summary_httpRequests"         type="long" />
+            <counter name="num_supervisor_summary_httpRequests"     type="long" />
             <counter name="num_all_topologies_summary_httpRequests" type="long" />
-            <counter name="num_topology_page_httpRequests" type="long" />
-            <counter name="num_topology_workers_page_httpRequests" type="long" />
-            <counter name="num_build_visualization_httpRequests" type="long" />
-            <counter name="num_mk_visualization_data_httpRequests" type="long" />
-            <counter name="num_component_page_httpRequests" type="long" />
-            <counter name="num_log_config_httpRequests" type="long" />
-            <counter name="num_activate_topology_httpRequests" type="long" />
-            <counter name="num_deactivate_topology_httpRequests" type="long" />
-            <counter name="num_debug_topology_httpRequests" type="long" />
-            <counter name="num_component_op_response_httpRequests" type="long" />
-            <counter name="num_topology_op_response_httpRequests" type="long" />
-            <counter name="num_main_page_httpRequests" type="long" />
-            <counter name="num_web_requests" type="long" />
+            <counter name="num_topology_page_httpRequests"          type="long" />
+            <counter name="num_topology_workers_page_httpRequests"  type="long" />
+            <counter name="num_build_visualization_httpRequests"    type="long" />
+            <counter name="num_mk_visualization_data_httpRequests"  type="long" />
+            <counter name="num_component_page_httpRequests"         type="long" />
+            <counter name="num_log_config_httpRequests"             type="long" />
+            <counter name="num_activate_topology_httpRequests"      type="long" />
+            <counter name="num_deactivate_topology_httpRequests"    type="long" />
+            <counter name="num_debug_topology_httpRequests"         type="long" />
+            <counter name="num_component_op_response_httpRequests"  type="long" />
+            <counter name="num_topology_op_response_httpRequests"   type="long" />
+            <counter name="num_main_page_httpRequests"              type="long" />
+            <counter name="num_web_requests"                        type="long" />
         </blurb>
 
         <blurb name="drpc">
-            <tag     name="Hostname"        type="string" />
-            <tag     name="IpAddress"       type="string" />
+            <tag     name="Hostname"                  type="string" />
+            <tag     name="IpAddress"                 type="string" />
             <counter name="num_execute_http_requests" type="long" />
-            <counter name="num_execute_calls" type="long" />
-            <counter name="num_result_calls" type="long" />
-            <counter name="num_failRequest_calls" type="long" />
-            <counter name="num_fetchRequest_calls" type="long" />
-            <counter name="num_shutdown_calls" type="long" />
-            <counter name="num_web_requests" type="long" />
+            <counter name="num_execute_calls"         type="long" />
+            <counter name="num_result_calls"          type="long" />
+            <counter name="num_failRequest_calls"     type="long" />
+            <counter name="num_fetchRequest_calls"    type="long" />
+            <counter name="num_shutdown_calls"        type="long" />
+            <counter name="num_web_requests"          type="long" />
         </blurb>
 
         <blurb name="pacemaker">
@@ -116,15 +116,6 @@
     <!-- REPORTS (AGGREGATOR OUTPUT) -->
     <report name="storm" version="1.0.0" periods="perMinute">
 
-        <!--
-            Notes:
-            #pids means the number of processes that reported in the report period. For
-            reportItems that include the Hostname, #pids should normally be 1, but it
-            could be 2 in the case where the process restarted in the report period.
-            #restarts is the number of new processes that were seen in a report period.
-            This should be 0 normally, but 1 when a jobtracker/tasktracker process started
-            or re-started in the report period.
-        -->
         <reportItem name="nimbus daemon" blurb="nimbus">
             <key   name="hostname" tag="Hostname"/>
             <value name="Avg. submitTopologyWithOpts">            num_submitTopologyWithOpts_calls/period            </value>

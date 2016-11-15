@@ -7,8 +7,8 @@ public class SimonConfig {
     private SimonConfig() {}
 
     /**
-     * A list of simon servers specified as "$server:$port".
-     * Example: "mysimonhost:8080"
+     * A YAML list of simon servers specified as "$server:$port".
+     * Example: "[mysimonhost:8080, myothersimonhost:8080]"
      */
     public static final String SIMON_SERVERS = "simon.servers";
     public static final String SIMON_CLUSTER = "simon.cluster";
