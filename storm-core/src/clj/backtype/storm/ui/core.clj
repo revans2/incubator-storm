@@ -898,7 +898,7 @@
         cpu-guarantee-remaining (if (.is_set_cpu_guarantee_remaining summary)
                                   (.get_cpu_guarantee_remaining summary)
                                   "N/A")]
-    {"userId" (.get_owner summary)
+    {"owner" (.get_owner summary)
      "totalTopologies" (.get_total_topologies summary)
      "totalExecutors" (.get_total_executors summary)
      "totalWorkers" (.get_total_workers summary)
@@ -923,19 +923,19 @@
   (with-nimbus nimbus
     (let [summaries (.getOwnerResourceSummaries nimbus nil)]
       {"schedulerDisplayResource" (*STORM-CONF* SCHEDULER-DISPLAY-RESOURCE)
-       "users"
+       "owners"
          (for [summary summaries]
            (unpack-owner-resource-summary summary))})))
 
-(defn owner-resource-summary [userId]
+(defn owner-resource-summary [owner]
   (with-nimbus nimbus
-    (let [summaries (.getOwnerResourceSummaries nimbus userId)]
+    (let [summaries (.getOwnerResourceSummaries nimbus owner)]
       (merge {"schedulerDisplayResource" (*STORM-CONF* SCHEDULER-DISPLAY-RESOURCE)}
              (if (empty? summaries)
                ;; send a default value, we couldn't find topos by that owner
-               (unpack-owner-resource-summary (OwnerResourceSummary. userId))
+               (unpack-owner-resource-summary (OwnerResourceSummary. owner))
                (let [topologies (.get_topologies (.getClusterInfo ^Nimbus$Client nimbus))
-                     data (get-topologies-map topologies :conditional (fn [t] (= (.get_owner t) userId)))]
+                     data (get-topologies-map topologies :conditional (fn [t] (= (.get_owner t) owner)))]
                  (merge {"topologies" data}
                         (unpack-owner-resource-summary (first summaries)))))))))
 
@@ -985,13 +985,13 @@
   (.getUserName http-creds-handler servlet-request))
 
 (defroutes main-routes
-  (GET "/api/v1/user/summary" [:as {:keys [cookies servlet-request scheme]} id & m]
+  (GET "/api/v1/owner/summary" [:as {:keys [cookies servlet-request scheme]} id & m]
     (populate-context! servlet-request)
     (let [user (get-user-name servlet-request)]
       (populate-context! servlet-request)
       (assert-authorized-user "getClusterInfo")
       (json-response (owner-resource-summaries) (:callback m))))
-  (GET "/api/v1/user/:id" [:as {:keys [cookies servlet-request scheme]} id & m]
+  (GET "/api/v1/owner/:id" [:as {:keys [cookies servlet-request scheme]} id & m]
     (populate-context! servlet-request)
     (let [user (get-user-name servlet-request)]
       (populate-context! servlet-request)

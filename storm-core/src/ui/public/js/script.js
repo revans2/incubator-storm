@@ -420,15 +420,15 @@ function getResourceGuaranteeRemainingFormat(type, data) {
     return data;
 }
 
-var makeUserSummaryTable = function(response, elId, parentId) {
+var makeOwnerSummaryTable = function(response, elId, parentId) {
     var showCpu = response.schedulerDisplayResource;
 
     var columns = [
     {
-        data: 'userId',
+        data: 'owner',
         render: function(data, type, row) {
             return type === 'display' ?
-                ('<a href="/user.html?id=' + data + '">' + data + '</a>') :
+                ('<a href="/owner.html?id=' + data + '">' + data + '</a>') :
                 data;
         }
     }, {
@@ -469,7 +469,7 @@ var makeUserSummaryTable = function(response, elId, parentId) {
     }
 
     var userSummaryTable = dtAutoPage(elId, {
-        data: response.users,
+        data: response.owners,
         autoWidth: false,
         columns: columns,
     });

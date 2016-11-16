@@ -123,12 +123,12 @@
   </table>
 </script>
 
-<script id="user-summary-template" type="text/html">
-  <table class="table table-striped compact" id="user-summary-table">
+<script id="owner-summary-template" type="text/html">
+  <table class="table table-striped compact" id="owner-summary-table">
     <thead>
     <tr>
       <th>
-        User Name
+        Owner
       </th>
       <th>
         <span data-toggle="tooltip" data-placement="top" title="Total number of topologies owned by user.">
@@ -162,7 +162,7 @@
         </span>
       </th>
       <th>
-          <span data-toggle="tooltip" data-placement="top" title="Total CPU Resource Assigned on behalf of User. Every 100 means 1 core.">
+          <span data-toggle="tooltip" data-placement="top" title="Total CPU Resource Assigned on behalf of Owner. Every 100 means 1 core.">
            CPU Usage (%)
           </span>
       </th>
@@ -251,7 +251,7 @@
       {{#topologies}}
       <tr>
         <td><a href="/topology.html?id={{encodedId}}">{{name}}</a></td>
-        <td><a href="/user.html?id={{owner}}">{{owner}}</a></td>
+        <td><a href="/.html?id={{owner}}">{{owner}}</a></td>
         <td>{{status}}</td>
         <td>{{uptime}}</td>
         <td>{{workersTotal}}</td>
@@ -416,7 +416,7 @@
         <tbody>
         {{#config}}
         <tr>
-            <td><a href="/user.html?id={{key}}">{{key}}</a></td>
+            <td><a href="/owner.html?id={{key}}">{{key}}</a></td>
             <td>{{value}}</td>
         </tr>
         {{/config}}

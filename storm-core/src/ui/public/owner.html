@@ -50,25 +50,25 @@
     </div>
     <div class="row">
         <div class="col-md-12">
-            <h2>User Summary</h2>
-            <div id="user-summary"></div>
+            <h2>Owner Summary</h2>
+            <div id="owner-summary"></div>
         </div>
     </div>
     <div class="row">
         <div class="col-md-12">
-            <h2 id="user-resource-usage-summary-header">User Resource Usage</h2>
-            <div id="user-resource-usage-summary"></div>
+            <h2 id="owner-resource-usage-summary-header">Owner Resource Usage</h2>
+            <div id="owner-resource-usage-summary"></div>
         </div>
     </div>
     <div class="row">
         <div class="col-md-12">
-            <h2 id="user-resource-guarantee-summary-header">User Resource Guarantees (RAS Topologies Only)</h2>
-            <div id="user-resource-guarantee-summary"></div>
+            <h2 id="owner-resource-guarantee-summary-header">Owner Resource Guarantees (RAS Topologies Only)</h2>
+            <div id="owner-resource-guarantee-summary"></div>
         </div>
     </div>
     <div class="row">
         <div class="col-md-12">
-            <h2>User Topologies</h2>
+            <h2>Owner Topologies</h2>
             <div id="topology-summary"></div>
         </div>
     </div>
@@ -86,8 +86,8 @@
     });
     $(document).ready(function() {
 
-        var userId = $.url("?id");
-        var url = "/api/v1/user/" + userId;
+        var owner = $.url("?id");
+        var url = "/api/v1/owner/" + owner;
 
         $.extend($.fn.dataTable.defaults, {
             stateSave: true,
@@ -121,49 +121,49 @@
         }
 
         var topologySummary = $("#topology-summary");
-        var userResourceUsage = $("#user-resource-usage-summary");
-        var userSummary = $("#user-summary");
-        var userResourceGuarantee = $("#user-resource-guarantee-summary");
+        var ownerResourceUsage = $("#owner-resource-usage-summary");
+        var ownerSummary = $("#owner-summary");
+        var ownerResourceGuarantee = $("#owner-resource-guarantee-summary");
         $.getJSON(url, function(response, status, jqXHR) {
-            getStatic("/templates/user-page-template.html", function(template) {
+            getStatic("/templates/owner-page-template.html", function(template) {
                 jsError(function() {
-                    //userId,totalTopologies,totalTasks,totalExecutors,totalWorkers
-                    userSummary.append(
-                        Mustache.render($(template).filter("#user-summary-template").html(), response));
+                    //owner,totalTopologies,totalTasks,totalExecutors,totalWorkers
+                    ownerSummary.append(
+                        Mustache.render($(template).filter("#owner-summary-template").html(), response));
 
                     //totalReqOnHeapMem,totalReqOffHeapMem,totalReqMem,totalReqCpu,totalAssignedOnHeapMem,totalAssignedOffHeapMem,totalAssignedMem,totalAssignedCpu
-                    userResourceUsage.append(
-                        Mustache.render($(template).filter("#user-resource-usage-template").html(), response));
-                    $('#user-resource-usage-summary [data-toggle="tooltip"]').tooltip();
+                    ownerResourceUsage.append(
+                        Mustache.render($(template).filter("#owner-resource-usage-template").html(), response));
+                    $('#owner-resource-usage-summary [data-toggle="tooltip"]').tooltip();
 
                     if (response["cpuGuarantee"] != "N/A" || response["memoryGuarantee"] != "N/A") {
-                        userResourceGuarantee.append(
-                            Mustache.render($(template).filter("#user-resource-guarantee-template").html(), response));
-                        $('#user-resource-guarantee-summary [data-toggle="tooltip"]').tooltip();
+                        ownerResourceGuarantee.append(
+                            Mustache.render($(template).filter("#owner-resource-guarantee-template").html(), response));
+                        $('#owner-resource-guarantee-summary [data-toggle="tooltip"]').tooltip();
 
                         $('#mem-guarantee-util').html(getResourceGuaranteeRemainingFormat("display", response["memoryGuaranteeRemaining"]));
 
                         $('#cpu-guarantee-util').html(getResourceGuaranteeRemainingFormat("display", response["cpuGuaranteeRemaining"]));
 
                     } else {
-                        $('#user-resource-guarantee-summary-header').hide();
-                        $('#user-resource-guarantee-summary').hide();
+                        $('#owner-resource-guarantee-summary-header').hide();
+                        $('#owner-resource-guarantee-summary').hide();
                     }
 
                     var displayResource = response["schedulerDisplayResource"];
                     if (!displayResource) {
-                        $('#user-resource-usage-summary-header').hide();
-                        $('#user-resource-usage-summary').hide();
-                        $('#user-resource-guarantee-summary-header').hide();
-                        $('#user-resource-guarantee-summary').hide();
+                        $('#owner-resource-usage-summary-header').hide();
+                        $('#owner-resource-usage-summary').hide();
+                        $('#owner-resource-guarantee-summary-header').hide();
+                        $('#owner-resource-guarantee-summary').hide();
                     }
 
-                    $('#user-resource-usage-summary [data-toggle="tooltip"]').tooltip();
+                    $('#owner-resource-usage-summary [data-toggle="tooltip"]').tooltip();
 
                     topologySummary.append(
-                        Mustache.render($(template).filter("#user-topology-summary-template").html(), response));
+                        Mustache.render($(template).filter("#owner-topology-summary-template").html(), response));
                     //name, owner, status, uptime, num workers, num executors, num tasks, assigned total mem, assigned total cpu, scheduler info
-                    dtAutoPage("#user-topology-summary-table", {
+                    dtAutoPage("#owner-topology-summary-table", {
                         columnDefs: [{
                             type: "num",
                             targets: [4, 5, 6, 7, 8]

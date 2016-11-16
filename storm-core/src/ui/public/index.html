@@ -55,8 +55,8 @@
   </div>
   <div class="row">
     <div class="col-md-12">
-      <h2>User Summary</h2>
-      <div id="user-summary"></div>
+      <h2>Owner Summary</h2>
+      <div id="owner-summary"></div>
     </div>
   </div>
   <div class="row">
@@ -130,7 +130,7 @@ $(document).ready(function() {
     var uiUser = $("#ui-user");
     var clusterSummary = $("#cluster-summary");
     var clusterResources = $("#cluster-resources");
-    var userSummary = $("#user-summary");
+    var ownerSummary = $("#owner-summary");
     var topologySummary = $("#topology-summary");
     var topologyResources = $("#topology-resources");
     var supervisorSummary = $("#supervisor-summary");
@@ -163,11 +163,11 @@ $(document).ready(function() {
         });
     });
 
-    $.getJSON("/api/v1/user/summary", function(response, status, jqXHR) {
+    $.getJSON("/api/v1/owner/summary", function(response, status, jqXHR) {
         getStatic("/templates/index-page-template.html", function(template) {
             jsError(function() {
-                userSummary.append(Mustache.render($(template).filter("#user-summary-template").html(), response));
-                makeUserSummaryTable(response, '#user-summary-table', '#user-summary');
+                ownerSummary.append(Mustache.render($(template).filter("#owner-summary-template").html(), response));
+                makeOwnerSummaryTable(response, '#owner-summary-table', '#owner-summary');
             });
         });
     });
