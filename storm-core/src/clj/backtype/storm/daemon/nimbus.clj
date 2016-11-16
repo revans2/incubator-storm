@@ -65,7 +65,6 @@
   (:require [clj-time.coerce :as coerce])
   (:require [metrics.meters :refer [defmeter mark!]])
   (:require [metrics.gauges :refer [defgauge]])
-  (:require [backtype.storm.daemon.supervisor :refer [is-RAS?]])
   (:gen-class
     :methods [^{:static true} [launch [backtype.storm.scheduler.INimbus] void]]))
 
@@ -1805,29 +1804,29 @@
                             (filter #(= owner (:owner (val %))) storm-id->bases))
               cluster-scheduler-config (.config (:scheduler nimbus))
               storm-conf (read-storm-config)
+              default-resources {:assigned-mem-on-heap 0
+                                 :assigned-mem-off-heap 0
+                                 :assigned-cpu 0}
               summaries (OwnerResourceSummaries.)]
               ;; for each owner, get resources, configs, and aggregate
               (.set_summaries summaries (for [[owner owner-bases] (group-by #(:owner (val %)) query-bases)] 
                 (let [scheduler-config (get cluster-scheduler-config owner)
                       resources (zipmap (keys owner-bases) 
                                         (map #(get-resources-for-topology nimbus (key %) (val %)) owner-bases))
-                      ras-topos (filter #(is-RAS? storm-conf (try-read-storm-conf conf % blob-store)) (keys owner-bases))
-                      default-resources {:assigned-mem-on-heap 0
-                                        :assigned-mem-off-heap 0
-                                        :assigned-cpu 0}
+                      ras-topos (filter #(Utils/isRAS storm-conf (try-read-storm-conf conf % blob-store)) (keys owner-bases))
                       ras-resources (select-keys resources ras-topos)
-                      total-aggregates (if (or (nil? resources)
-                                               (empty? resources))
+                      total-aggregates (if (empty? resources)
                                          default-resources
                                          (apply merge-with + (vals resources)))
-                      ras-aggregates (if (or (nil? ras-resources) 
-                                             (empty? ras-resources))
+                      ras-aggregates (if (empty? ras-resources)
                                        default-resources
                                        (apply merge-with + (vals ras-resources)))
-                      total-memory (+ (:assigned-mem-on-heap total-aggregates)
-                                      (:assigned-mem-off-heap total-aggregates)) 
-                      ras-total-memory (+ (:assigned-mem-on-heap ras-aggregates)
-                                          (:assigned-mem-off-heap ras-aggregates))
+                      requested-total-memory (+ (:requested-mem-on-heap total-aggregates)
+                                                (:requested-mem-off-heap total-aggregates))
+                      assigned-total-memory (+ (:assigned-mem-on-heap total-aggregates)
+                                               (:assigned-mem-off-heap total-aggregates)) 
+                      assigned-ras-total-memory (+ (:assigned-mem-on-heap ras-aggregates)
+                                                   (:assigned-mem-off-heap ras-aggregates))
                       total-cpu (:assigned-cpu total-aggregates)
                       ras-total-cpu (:assigned-cpu ras-aggregates)
                       owner-assignments (map #(get assignments (first %)) owner-bases) 
@@ -1837,28 +1836,24 @@
                       memory-guarantee (get-in scheduler-config ["ResourceAwareScheduler" "memory"])
                       cpu-guarantee (get-in scheduler-config ["ResourceAwareScheduler" "cpu"])
                       isolated-nodes (get-in scheduler-config ["MultitenantScheduler"])
-                      memory-guarantee-remaining (if (not-nil? memory-guarantee) 
-                                                   (- memory-guarantee (or ras-total-memory 0))
-                                                   "N/A")
-                      cpu-guarantee-remaining (if (not-nil? cpu-guarantee) 
-                                                (- cpu-guarantee (or ras-total-cpu 0))
-                                                "N/A")
+                      memory-guarantee-remaining (- (or memory-guarantee 0)
+                                                    (or assigned-ras-total-memory 0))
+                      cpu-guarantee-remaining (- (or cpu-guarantee) 
+                                                 (or ras-total-cpu 0))
                       summary (doto (OwnerResourceSummary. owner)
                                 (.set_total_topologies (count owner-bases))
-                                (.set_total_executors (or total-executors 0))
-                                (.set_total_workers (or total-workers 0))
-                                (.set_memory_usage (or total-memory 0))
-                                (.set_cpu_usage (or total-cpu 0))
-
+                                (.set_total_executors total-executors)
+                                (.set_total_workers total-workers)
+                                (.set_memory_usage assigned-total-memory)
+                                (.set_cpu_usage total-cpu)
                                 (.set_total_tasks total-tasks) 
                                 (.set_requested_on_heap_memory (:requested-mem-on-heap total-aggregates))
                                 (.set_requested_off_heap_memory (:requested-mem-off-heap total-aggregates))
-                                (.set_requested_total_memory (+ (:requested-mem-on-heap total-aggregates)
-                                                                (:requested-mem-off-heap total-aggregates)))
+                                (.set_requested_total_memory requested-total-memory)
                                 (.set_requested_cpu (:requested-cpu total-aggregates))
                                 (.set_assigned_on_heap_memory (:assigned-mem-on-heap total-aggregates))
                                 (.set_assigned_off_heap_memory (:assigned-mem-off-heap total-aggregates))
-                                (.set_assigned_ras_total_memory ras-total-memory)
+                                (.set_assigned_ras_total_memory assigned-ras-total-memory)
                                 (.set_assigned_ras_cpu ras-total-cpu))]
 
                       (when memory-guarantee

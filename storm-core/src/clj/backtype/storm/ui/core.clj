@@ -49,7 +49,6 @@
             [ring.util.response :as resp]
             [backtype.storm [thrift :as thrift]])
   (:require [metrics.meters :refer [defmeter mark!]])
-  (:require [backtype.storm.daemon.supervisor :refer [is-RAS?]])
   (:import [org.apache.commons.lang StringEscapeUtils])
   (:import [org.apache.logging.log4j Level])
   (:gen-class))

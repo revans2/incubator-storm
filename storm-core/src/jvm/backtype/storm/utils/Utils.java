@@ -2260,4 +2260,12 @@ public class Utils {
         return ret;
     }
 
+    public static boolean isRAS(Map<String, Object> conf, Map<String, Object> topoConf) {
+        String scheduler = (String)conf.get(Config.STORM_SCHEDULER);
+        String strategy = (String)topoConf.get(Config.TOPOLOGY_SCHEDULER_STRATEGY);
+        return ! (scheduler.equals("backtype.storm.scheduler.bridge.MultitenantResourceAwareBridgeScheduler") &&
+                    (strategy == null || 
+                     strategy.equals("backtype.storm.scheduler.resource.strategies.scheduling.MultitenantStrategy")));
+    }
+
 }
