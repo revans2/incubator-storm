@@ -43,9 +43,12 @@ import backtype.storm.utils.Time;
 import backtype.storm.utils.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import com.codahale.metrics.Meter;
+import org.apache.storm.metric.StormMetricsRegistry;
 
 public class Slot extends Thread implements AutoCloseable {
     private static final Logger LOG = LoggerFactory.getLogger(Slot.class);
+    private static final Meter _numWorkersLaunched = StormMetricsRegistry.registerMeter("supervisor:num-workers-launched");
     
     static enum MachineState {
         EMPTY,
@@ -384,6 +387,7 @@ public class Slot extends Thread implements AutoCloseable {
                 staticState.localizer.releaseSlotFor(dynamicState.pendingLocalization, staticState.port);
                 return prepareForNewAssignmentNoWorkersRunning(dynamicState, staticState);
             }
+            _numWorkersLaunched.mark();
             Container c = staticState.containerLauncher.launchContainer(staticState.port, dynamicState.pendingLocalization, staticState.localState);
             return dynamicState.withCurrentAssignment(c, dynamicState.pendingLocalization).withState(MachineState.WAITING_FOR_WORKER_START).withPendingLocalization(null, null);
         } catch (TimeoutException e) {

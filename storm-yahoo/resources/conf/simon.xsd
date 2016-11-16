@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+
+ <xsd:element name='simonConfig'>
+  <xsd:complexType>
+   <xsd:sequence>
+    <xsd:element ref='blurbMessage'/>
+    <xsd:element ref='reportPeriod' maxOccurs='unbounded'/>
+    <xsd:element ref='report' maxOccurs='unbounded'/>
+   </xsd:sequence>
+   <xsd:attribute name='name' type='xsd:string' use='required'/>
+  </xsd:complexType>
+ </xsd:element>
+
+ <xsd:element name='blurbMessage'>
+  <xsd:complexType>
+   <xsd:sequence>
+    <xsd:element ref='blurb' maxOccurs='unbounded'/>
+   </xsd:sequence>
+   <xsd:attribute name='name' type='xsd:string' use='required'/>
+   <xsd:attribute name='period' type='xsd:string' use='required'/>
+   <xsd:attribute name='version' type='xsd:string' use='required'/>
+   <xsd:attribute name='staleAccumulatorPolicy' default='ignore'>
+    <xsd:simpleType>
+     <xsd:restriction base='xsd:string'>
+      <xsd:enumeration value='ignore'/>
+      <xsd:enumeration value='ok'/>
+      <xsd:enumeration value='free'/>
+     </xsd:restriction>
+    </xsd:simpleType>
+   </xsd:attribute>
+  </xsd:complexType>
+ </xsd:element>
+
+ <xsd:element name='blurb'>
+  <xsd:complexType>
+   <xsd:sequence>
+    <xsd:element ref='tag' minOccurs='0'  maxOccurs='unbounded'/>
+    <xsd:choice minOccurs='0' maxOccurs='unbounded'>
+     <xsd:element ref='counter'/>
+     <xsd:element ref='gauge'/>
+    </xsd:choice>
+   </xsd:sequence>
+   <xsd:attribute name='name' type='xsd:string' use='required'/>
+   <xsd:attribute name='staleAccumulatorPolicy'>
+    <xsd:simpleType>
+     <xsd:restriction base='xsd:string'>
+      <xsd:enumeration value='ignore'/>
+      <xsd:enumeration value='ok'/>
+      <xsd:enumeration value='free'/>
+     </xsd:restriction>
+    </xsd:simpleType>
+   </xsd:attribute>
+  </xsd:complexType>
+ </xsd:element>
+
+ <xsd:element name='tag'>
+  <xsd:complexType>
+   <xsd:attribute name='name' type='xsd:string' use='required'/>
+   <xsd:attribute name='type' use='required'>
+    <xsd:simpleType>
+     <xsd:restriction base='xsd:string'>
+      <xsd:enumeration value='byte'/>
+      <xsd:enumeration value='short'/>
+      <xsd:enumeration value='long'/>
+      <xsd:enumeration value='string'/>
+     </xsd:restriction>
+    </xsd:simpleType>
+   </xsd:attribute>
+  </xsd:complexType>
+ </xsd:element>
+
+ <xsd:element name='counter'>
+  <xsd:complexType>
+   <xsd:attribute name='name' type='xsd:string' use='required'/>
+   <xsd:attribute name='type' use='required'>
+    <xsd:simpleType>
+     <xsd:restriction base='xsd:string'>
+      <xsd:enumeration value='byte'/>
+      <xsd:enumeration value='short'/>
+      <xsd:enumeration value='long'/>
+      <xsd:enumeration value='float'/>
+      <xsd:enumeration value='int64'/>
+     </xsd:restriction>
+    </xsd:simpleType>
+   </xsd:attribute>
+  </xsd:complexType>
+ </xsd:element>
+
+ <xsd:element name='gauge'>
+  <xsd:complexType>
+   <xsd:attribute name='name' type='xsd:string' use='required'/>
+   <xsd:attribute name='cf' default='average'>
+    <xsd:simpleType>
+     <xsd:restriction base='xsd:string'>
+      <xsd:enumeration value='average'/>
+      <xsd:enumeration value='last'/>
+      <xsd:enumeration value='min'/>
+      <xsd:enumeration value='max'/>
+     </xsd:restriction>
+    </xsd:simpleType>
+   </xsd:attribute>
+   <xsd:attribute name='type' use='required'>
+    <xsd:simpleType>
+     <xsd:restriction base='xsd:string'>
+      <xsd:enumeration value='byte'/>
+      <xsd:enumeration value='short'/>
+      <xsd:enumeration value='long'/>
+      <xsd:enumeration value='float'/>
+      <xsd:enumeration value='int64'/>
+     </xsd:restriction>
+    </xsd:simpleType>
+   </xsd:attribute>
+  </xsd:complexType>
+ </xsd:element>
+
+ <xsd:element name='reportPeriod'>
+  <xsd:complexType>
+   <xsd:attribute name='name' type='xsd:string' use='required'/>
+   <xsd:attribute name='seconds' type='xsd:string' use='required'/>
+  </xsd:complexType>
+ </xsd:element>
+ 
+ <xsd:element name='report'>
+  <xsd:complexType>
+   <xsd:sequence>
+    <xsd:element ref='reportItem' maxOccurs='unbounded'/>
+   </xsd:sequence>
+   <xsd:attribute name='name' type='xsd:string' use='required'/>
+   <xsd:attribute name='periods' type='xsd:string' use='required'/>
+   <xsd:attribute name='version' type='xsd:string' use='required'/>
+  </xsd:complexType>
+ </xsd:element>
+
+ <xsd:element name='reportItem'>
+  <xsd:complexType>
+   <xsd:sequence>
+    <xsd:element ref='key' minOccurs='0' maxOccurs='unbounded'/>
+    <xsd:element ref='value' maxOccurs='unbounded'/>
+   </xsd:sequence>
+   <xsd:attribute name='name' type='xsd:string' use='required'/>
+   <xsd:attribute name='blurb' type='xsd:string' use='required'/>
+  </xsd:complexType>
+ </xsd:element>
+
+ <xsd:element name='key'>
+  <xsd:complexType>
+   <xsd:attribute name='name' type='xsd:string' use='required'/>
+   <xsd:attribute name='tag' type='xsd:string' use='required'/>
+  </xsd:complexType>
+ </xsd:element>
+
+ <xsd:element name='value'>
+  <xsd:complexType mixed='true'>
+   <xsd:attribute name='name' type='xsd:string' use='required'/>
+   <xsd:attribute name='decimals' type='xsd:byte' default='-1'/>
+  </xsd:complexType>
+ </xsd:element>
+ 
+</xsd:schema>

@@ -46,18 +46,31 @@
               <overWriteSnapshots>false</overWriteSnapshots>
               <overWriteIfNewer>true</overWriteIfNewer>
               <includeScope>runtime</includeScope>
+              <sources>
+                <source>src/main/java</source>
+              </sources>
             </configuration>
           </execution>
         </executions>
       </plugin>
       <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-compiler-plugin</artifactId>
-        <version>3.0</version>
-        <configuration>
-          <source>1.7</source>
-          <target>1.7</target>
-        </configuration>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>build-helper-maven-plugin</artifactId>
+        <version>1.7</version>
+        <executions>
+          <execution>
+            <id>add-source</id>
+            <phase>generate-sources</phase>
+            <goals>
+              <goal>add-source</goal>
+            </goals>
+            <configuration>
+              <sources>
+                <source>src/main/java</source>
+              </sources>
+            </configuration>
+          </execution>
+        </executions>
       </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
@@ -141,6 +154,45 @@
               </execution>
             </executions>
           </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-shade-plugin</artifactId>
+          <executions>
+              <execution>
+                  <phase>package</phase>
+                  <goals>
+                      <goal>shade</goal>
+                  </goals>
+              </execution>
+          </executions>
+          <configuration>
+              <keepDependenciesWithProvidedScope>false</keepDependenciesWithProvidedScope>
+              <promoteTransitiveDependencies>false</promoteTransitiveDependencies>
+              <createDependencyReducedPom>true</createDependencyReducedPom>
+              <minimizeJar>false</minimizeJar>
+              <artifactSet>
+                  <includes>
+                      <include>org.apache.hadoop:hadoop-common</include>
+                  </includes>
+              </artifactSet>
+              <filters>
+                  <filter>
+                      <artifact>org.apache.hadoop:hadoop-common</artifact>
+                      <excludes>
+                          <exclude>META-INF/services/*</exclude>
+                          <exclude>common-version-info.properties</exclude>
+                          <exclude>core-default.xml</exclude>
+                      </excludes>
+                  </filter>
+              </filters>
+              <relocations>
+                  <relocation>
+                      <pattern>org.apache.hadoop</pattern>
+                      <shadedPattern>com.yahoo.storm.shade.org.apache.hadoop</shadedPattern>
+                  </relocation>
+              </relocations>
+          </configuration>
+        </plugin>
         </plugins>
       </build>
     </profile>
@@ -288,6 +340,33 @@
       <artifactId>yjava_yca</artifactId>
       <version>0.23.218</version>
       <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.hadoop</groupId>
+      <artifactId>hadoop-common</artifactId>
+      <version>${hadoop.version}</version>
+      <type>jar</type>
+      <scope>compile</scope>
+      <exclusions>
+        <exclusion>
+          <groupId>log4j</groupId>
+          <artifactId>log4j</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>org.slf4j</groupId>
+          <artifactId>slf4j-api</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>org.slf4j</groupId>
+          <artifactId>slf4j-log4j12</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+    <dependency>
+      <groupId>yahoo.yinst.simon_plugin_java</groupId>
+      <artifactId>SimonPlugin</artifactId>
+      <version>1.1.12</version>
+      <scope>compile</scope>
     </dependency>
   </dependencies>
 </project>

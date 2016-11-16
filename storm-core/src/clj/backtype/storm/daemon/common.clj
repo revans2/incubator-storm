@@ -16,8 +16,11 @@
 (ns backtype.storm.daemon.common
   (:use [backtype.storm log config util])
   (:import [backtype.storm.generated StormTopology
-            InvalidTopologyException GlobalStreamId])
+            InvalidTopologyException GlobalStreamId]
+           [org.apache.storm.daemon.metrics.reporters PreparableReporter]
+           [com.codahale.metrics MetricRegistry])
   (:import [backtype.storm.utils Utils])
+  (:import [org.apache.storm.daemon.metrics MetricsUtils])
   (:import [backtype.storm.task WorkerTopologyContext])
   (:import [backtype.storm Constants])
   (:import [backtype.storm.metric SystemBolt])
