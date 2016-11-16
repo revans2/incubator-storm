@@ -130,6 +130,67 @@ Sample response:
     }
 ```
 
+### /api/v1/owner/summary (GET)
+
+Returns summary information aggregated at the topology owner level.
+
+Response fields:
+
+|Field  |Value|Description|
+|---	|---	|---
+|owner  |String |Topology owner
+|totalTopologies|Integer|Total number of topologies owner is running
+|totalExecutors |Integer|Total number of executors used by owner
+|totalWorkers |Integer|Total number of workers used by owner
+|totalTasks|Integer|Total number of tasks used by owner
+|totalMemoryUsage|Integer|Total Memory Assigned on behalf of owner in MB
+|totalCpuUsage|Integer|Total CPU Resource Assigned on behalf of User. Every 100 means 1 core
+|memoryGuarantee|Integer|The amount of memory resource (in MB) guaranteed to owner
+|cpuGuarantee|Integer|The amount of CPU resource (every 100 means 1 core) guaranteed to owner
+|isolatedNodes|Integer|The amount of nodes that are guaranteed isolated to owner
+|memoryGuaranteeRemaining|Integer|The amount of guaranteed memory resources (in MB) remaining
+|cpuGuaranteeRemaining|Integer|The amount of guaranteed CPU resource (every 100 means 1 core) remaining
+|totalReqOnHeapMem|Integer| Total On-Heap Memory Requested by User in MB
+|totalReqOffHeapMem|Integer|Total Off-Heap Memory Requested by User in MB
+|totalReqMem|Integer|Total Memory Requested by User in MB
+|totalReqCpu|Integer|Total CPU Resource Requested by User. Every 100 means 1 core
+|totalAssignedOnHeapMem|Integer|Total On-Heap Memory Assigned on behalf of owner in MB
+|totalAssignedOffHeapMem|Integer|Total Off-Heap Memory Assigned on behalf of owner in MB
+|rasTopologiesAssignedMem|Integer|RAS Memory Assigned on behalf of owner in MB
+|rasTopologiesAssignedCpu|Integer|RAS CPU Assigned (every 100 means 1 core)
+
+Sample response:
+
+```json
+{
+    "owners": [
+        {
+            "owner":"topology_user",
+            "totalReqOnHeapMem":0,
+            "totalExecutors":28,
+            "cpuGuaranteeRemaining":123,
+            "totalReqMem":0,
+            "cpuGuarantee":123,
+            "isolatedNodes":3,
+            "memoryGuarantee":555,
+            "rasTopologiesAssignedCpu":0,
+            "memoryGuaranteeRemaining":555,
+            "totalTasks":28,
+            "totalMemoryUsage":2496,
+            "totalReqOffHeapMem":0,
+            "totalReqCpu":0,
+            "totalWorkers":3,
+            "totalCpuUsage":300,
+            "rasTopologiesAssignedMem":0,
+            "totalAssignedOffHeapMem":0,
+            "totalAssignedOnHeapMem":2496,
+            "totalTopologies":1
+        }
+    ],
+    "schedulerDisplayResource": true
+}
+```
+
 ### /api/v1/supervisor/summary (GET)
 
 Returns summary information for all supervisors.
