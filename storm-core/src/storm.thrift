@@ -587,10 +587,6 @@ struct GetInfoOptions {
   1: optional NumErrorsChoice num_err_choice;
 }
 
-struct OwnerResourceSummaries {
-  1: required list<OwnerResourceSummary> summaries;
-}
-
 struct OwnerResourceSummary {
   1: required string owner;
   2: optional i32 total_topologies;
@@ -679,7 +675,7 @@ service Nimbus {
   ComponentPageInfo getComponentPageInfo(1: string topology_id, 2: string component_id, 3: string window, 4: bool is_include_sys) throws (1: NotAliveException e, 2: AuthorizationException aze);
   //returns json
   string getTopologyConf(1: string id) throws (1: NotAliveException e, 2: AuthorizationException aze);
-  OwnerResourceSummaries getOwnerResourceSummaries (1: string owner) throws (1: NotAliveException e);
+  list<OwnerResourceSummary> getOwnerResourceSummaries (1: string owner) throws (1: NotAliveException e);
   /**
    * Returns the compiled topology that contains ackers and metrics consumsers. Compare {@link #getUserTopology(String id)}.
    */

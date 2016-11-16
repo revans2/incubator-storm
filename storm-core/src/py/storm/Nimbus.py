@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+#
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
 # distributed with this work for additional information
@@ -4595,11 +4597,11 @@ class getComponentPendingProfileActions_result:
       if fid == 0:
         if ftype == TType.LIST:
           self.success = []
-          (_etype710, _size707) = iprot.readListBegin()
-          for _i711 in xrange(_size707):
-            _elem712 = ProfileRequest()
-            _elem712.read(iprot)
-            self.success.append(_elem712)
+          (_etype703, _size700) = iprot.readListBegin()
+          for _i704 in xrange(_size700):
+            _elem705 = ProfileRequest()
+            _elem705.read(iprot)
+            self.success.append(_elem705)
           iprot.readListEnd()
         else:
           iprot.skip(ftype)
@@ -4616,8 +4618,8 @@ class getComponentPendingProfileActions_result:
     if self.success is not None:
       oprot.writeFieldBegin('success', TType.LIST, 0)
       oprot.writeListBegin(TType.STRUCT, len(self.success))
-      for iter713 in self.success:
-        iter713.write(oprot)
+      for iter706 in self.success:
+        iter706.write(oprot)
       oprot.writeListEnd()
       oprot.writeFieldEnd()
     oprot.writeFieldStop()
@@ -8626,7 +8628,7 @@ class getOwnerResourceSummaries_result:
   """
 
   thrift_spec = (
-    (0, TType.STRUCT, 'success', (OwnerResourceSummaries, OwnerResourceSummaries.thrift_spec), None, ), # 0
+    (0, TType.LIST, 'success', (TType.STRUCT,(OwnerResourceSummary, OwnerResourceSummary.thrift_spec)), None, ), # 0
     (1, TType.STRUCT, 'e', (NotAliveException, NotAliveException.thrift_spec), None, ), # 1
   )
 
@@ -8644,9 +8646,14 @@ class getOwnerResourceSummaries_result:
       if ftype == TType.STOP:
         break
       if fid == 0:
-        if ftype == TType.STRUCT:
-          self.success = OwnerResourceSummaries()
-          self.success.read(iprot)
+        if ftype == TType.LIST:
+          self.success = []
+          (_etype710, _size707) = iprot.readListBegin()
+          for _i711 in xrange(_size707):
+            _elem712 = OwnerResourceSummary()
+            _elem712.read(iprot)
+            self.success.append(_elem712)
+          iprot.readListEnd()
         else:
           iprot.skip(ftype)
       elif fid == 1:
@@ -8666,8 +8673,11 @@ class getOwnerResourceSummaries_result:
       return
     oprot.writeStructBegin('getOwnerResourceSummaries_result')
     if self.success is not None:
-      oprot.writeFieldBegin('success', TType.STRUCT, 0)
-      self.success.write(oprot)
+      oprot.writeFieldBegin('success', TType.LIST, 0)
+      oprot.writeListBegin(TType.STRUCT, len(self.success))
+      for iter713 in self.success:
+        iter713.write(oprot)
+      oprot.writeListEnd()
       oprot.writeFieldEnd()
     if self.e is not None:
       oprot.writeFieldBegin('e', TType.STRUCT, 1)

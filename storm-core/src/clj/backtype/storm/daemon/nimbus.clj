@@ -41,7 +41,7 @@
                                      ReadableBlobMeta RebalanceOptions SubmitOptions SupervisorSummary StormTopology
                                      WorkerSummary SettableBlobMeta TopologyHistoryInfo TopologyInfo TopologyInitialStatus
                                      TopologyPageInfo TopologyStats TopologySummary
-                                     ProfileRequest ProfileAction NodeInfo ComponentType OwnerResourceSummary OwnerResourceSummaries])
+                                     ProfileRequest ProfileAction NodeInfo ComponentType OwnerResourceSummary])
   (:import [backtype.storm.blobstore AtomicOutputStream
                                      BlobStore
                                      BlobStoreAclHandler
@@ -1795,7 +1795,7 @@
               (check-authorization! nimbus storm-name topology-conf "getTopologyConf")
               (to-json topology-conf)))
 
-      (^OwnerResourceSummaries getOwnerResourceSummaries [this ^String owner]
+      (^List getOwnerResourceSummaries [this ^String owner]
         (let [storm-cluster-state (:storm-cluster-state nimbus)
               assignments (topology-assignments storm-cluster-state)
               storm-id->bases (into {} (topology-bases storm-cluster-state))
@@ -1806,10 +1806,9 @@
               storm-conf (read-storm-config)
               default-resources {:assigned-mem-on-heap 0
                                  :assigned-mem-off-heap 0
-                                 :assigned-cpu 0}
-              summaries (OwnerResourceSummaries.)]
+                                 :assigned-cpu 0}]
               ;; for each owner, get resources, configs, and aggregate
-              (.set_summaries summaries (for [[owner owner-bases] (group-by #(:owner (val %)) query-bases)] 
+              (for [[owner owner-bases] (group-by #(:owner (val %)) query-bases)] 
                 (let [scheduler-config (get cluster-scheduler-config owner)
                       resources (zipmap (keys owner-bases) 
                                         (map #(get-resources-for-topology nimbus (key %) (val %)) owner-bases))
@@ -1838,7 +1837,7 @@
                       isolated-nodes (get-in scheduler-config ["MultitenantScheduler"])
                       memory-guarantee-remaining (- (or memory-guarantee 0)
                                                     (or assigned-ras-total-memory 0))
-                      cpu-guarantee-remaining (- (or cpu-guarantee) 
+                      cpu-guarantee-remaining (- (or cpu-guarantee 0) 
                                                  (or ras-total-cpu 0))
                       summary (doto (OwnerResourceSummary. owner)
                                 (.set_total_topologies (count owner-bases))
@@ -1867,8 +1866,7 @@
                       (when isolated-nodes
                         (.set_isolated_node_guarantee summary isolated-nodes))
 
-                      summary)))
-              summaries))
+                      summary))))
 
       (^StormTopology getTopology [this ^String id]
         (mark! nimbus:num-getTopology-calls)

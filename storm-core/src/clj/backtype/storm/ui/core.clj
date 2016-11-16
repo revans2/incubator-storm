@@ -924,20 +924,20 @@
     (let [summaries (.getOwnerResourceSummaries nimbus nil)]
       {"schedulerDisplayResource" (*STORM-CONF* SCHEDULER-DISPLAY-RESOURCE)
        "users"
-         (for [summary (.get_summaries summaries)]
+         (for [summary summaries]
            (unpack-owner-resource-summary summary))})))
 
 (defn owner-resource-summary [userId]
   (with-nimbus nimbus
     (let [summaries (.getOwnerResourceSummaries nimbus userId)]
       (merge {"schedulerDisplayResource" (*STORM-CONF* SCHEDULER-DISPLAY-RESOURCE)}
-             (if (empty? (.get_summaries summaries))
+             (if (empty? summaries)
                ;; send a default value, we couldn't find topos by that owner
                (unpack-owner-resource-summary (OwnerResourceSummary. userId))
                (let [topologies (.get_topologies (.getClusterInfo ^Nimbus$Client nimbus))
                      data (get-topologies-map topologies :conditional (fn [t] (= (.get_owner t) userId)))]
                  (merge {"topologies" data}
-                        (unpack-owner-resource-summary (first (.get_summaries summaries))))))))))
+                        (unpack-owner-resource-summary (first summaries)))))))))
 
 (defn- level-to-dict [level]
   (if level

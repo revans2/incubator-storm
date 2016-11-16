@@ -130,7 +130,7 @@ public class Nimbus {
 
     public String getTopologyConf(String id) throws NotAliveException, AuthorizationException, org.apache.thrift.TException;
 
-    public OwnerResourceSummaries getOwnerResourceSummaries(String owner) throws NotAliveException, org.apache.thrift.TException;
+    public List<OwnerResourceSummary> getOwnerResourceSummaries(String owner) throws NotAliveException, org.apache.thrift.TException;
 
     /**
      * Returns the compiled topology that contains ackers and metrics consumsers. Compare {@link #getUserTopology(String id)}.
@@ -1266,7 +1266,7 @@ public class Nimbus {
       throw new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.MISSING_RESULT, "getTopologyConf failed: unknown result");
     }
 
-    public OwnerResourceSummaries getOwnerResourceSummaries(String owner) throws NotAliveException, org.apache.thrift.TException
+    public List<OwnerResourceSummary> getOwnerResourceSummaries(String owner) throws NotAliveException, org.apache.thrift.TException
     {
       send_getOwnerResourceSummaries(owner);
       return recv_getOwnerResourceSummaries();
@@ -1279,7 +1279,7 @@ public class Nimbus {
       sendBase("getOwnerResourceSummaries", args);
     }
 
-    public OwnerResourceSummaries recv_getOwnerResourceSummaries() throws NotAliveException, org.apache.thrift.TException
+    public List<OwnerResourceSummary> recv_getOwnerResourceSummaries() throws NotAliveException, org.apache.thrift.TException
     {
       getOwnerResourceSummaries_result result = new getOwnerResourceSummaries_result();
       receiveBase(result, "getOwnerResourceSummaries");
@@ -2725,7 +2725,7 @@ public class Nimbus {
         prot.writeMessageEnd();
       }
 
-      public OwnerResourceSummaries getResult() throws NotAliveException, org.apache.thrift.TException {
+      public List<OwnerResourceSummary> getResult() throws NotAliveException, org.apache.thrift.TException {
         if (getState() != org.apache.thrift.async.TAsyncMethodCall.State.RESPONSE_READ) {
           throw new IllegalStateException("Method call not finished!");
         }
@@ -6266,7 +6266,7 @@ public class Nimbus {
       }
     }
 
-    public static class getOwnerResourceSummaries<I extends AsyncIface> extends org.apache.thrift.AsyncProcessFunction<I, getOwnerResourceSummaries_args, OwnerResourceSummaries> {
+    public static class getOwnerResourceSummaries<I extends AsyncIface> extends org.apache.thrift.AsyncProcessFunction<I, getOwnerResourceSummaries_args, List<OwnerResourceSummary>> {
       public getOwnerResourceSummaries() {
         super("getOwnerResourceSummaries");
       }
@@ -6275,10 +6275,10 @@ public class Nimbus {
         return new getOwnerResourceSummaries_args();
       }
 
-      public AsyncMethodCallback<OwnerResourceSummaries> getResultHandler(final AsyncFrameBuffer fb, final int seqid) {
+      public AsyncMethodCallback<List<OwnerResourceSummary>> getResultHandler(final AsyncFrameBuffer fb, final int seqid) {
         final org.apache.thrift.AsyncProcessFunction fcall = this;
-        return new AsyncMethodCallback<OwnerResourceSummaries>() { 
-          public void onComplete(OwnerResourceSummaries o) {
+        return new AsyncMethodCallback<List<OwnerResourceSummary>>() { 
+          public void onComplete(List<OwnerResourceSummary> o) {
             getOwnerResourceSummaries_result result = new getOwnerResourceSummaries_result();
             result.success = o;
             try {
@@ -6318,7 +6318,7 @@ public class Nimbus {
         return false;
       }
 
-      public void start(I iface, getOwnerResourceSummaries_args args, org.apache.thrift.async.AsyncMethodCallback<OwnerResourceSummaries> resultHandler) throws TException {
+      public void start(I iface, getOwnerResourceSummaries_args args, org.apache.thrift.async.AsyncMethodCallback<List<OwnerResourceSummary>> resultHandler) throws TException {
         iface.getOwnerResourceSummaries(args.owner,resultHandler);
       }
     }
@@ -16717,14 +16717,14 @@ public class Nimbus {
             case 0: // SUCCESS
               if (schemeField.type == org.apache.thrift.protocol.TType.LIST) {
                 {
-                  org.apache.thrift.protocol.TList _list792 = iprot.readListBegin();
-                  struct.success = new ArrayList<ProfileRequest>(_list792.size);
-                  ProfileRequest _elem793;
-                  for (int _i794 = 0; _i794 < _list792.size; ++_i794)
+                  org.apache.thrift.protocol.TList _list784 = iprot.readListBegin();
+                  struct.success = new ArrayList<ProfileRequest>(_list784.size);
+                  ProfileRequest _elem785;
+                  for (int _i786 = 0; _i786 < _list784.size; ++_i786)
                   {
-                    _elem793 = new ProfileRequest();
-                    _elem793.read(iprot);
-                    struct.success.add(_elem793);
+                    _elem785 = new ProfileRequest();
+                    _elem785.read(iprot);
+                    struct.success.add(_elem785);
                   }
                   iprot.readListEnd();
                 }
@@ -16750,9 +16750,9 @@ public class Nimbus {
           oprot.writeFieldBegin(SUCCESS_FIELD_DESC);
           {
             oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, struct.success.size()));
-            for (ProfileRequest _iter795 : struct.success)
+            for (ProfileRequest _iter787 : struct.success)
             {
-              _iter795.write(oprot);
+              _iter787.write(oprot);
             }
             oprot.writeListEnd();
           }
@@ -16783,9 +16783,9 @@ public class Nimbus {
         if (struct.is_set_success()) {
           {
             oprot.writeI32(struct.success.size());
-            for (ProfileRequest _iter796 : struct.success)
+            for (ProfileRequest _iter788 : struct.success)
             {
-              _iter796.write(oprot);
+              _iter788.write(oprot);
             }
           }
         }
@@ -16797,14 +16797,14 @@ public class Nimbus {
         BitSet incoming = iprot.readBitSet(1);
         if (incoming.get(0)) {
           {
-            org.apache.thrift.protocol.TList _list797 = new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, iprot.readI32());
-            struct.success = new ArrayList<ProfileRequest>(_list797.size);
-            ProfileRequest _elem798;
-            for (int _i799 = 0; _i799 < _list797.size; ++_i799)
+            org.apache.thrift.protocol.TList _list789 = new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, iprot.readI32());
+            struct.success = new ArrayList<ProfileRequest>(_list789.size);
+            ProfileRequest _elem790;
+            for (int _i791 = 0; _i791 < _list789.size; ++_i791)
             {
-              _elem798 = new ProfileRequest();
-              _elem798.read(iprot);
-              struct.success.add(_elem798);
+              _elem790 = new ProfileRequest();
+              _elem790.read(iprot);
+              struct.success.add(_elem790);
             }
           }
           struct.set_success_isSet(true);
@@ -40092,7 +40092,7 @@ public class Nimbus {
   public static class getOwnerResourceSummaries_result implements org.apache.thrift.TBase<getOwnerResourceSummaries_result, getOwnerResourceSummaries_result._Fields>, java.io.Serializable, Cloneable, Comparable<getOwnerResourceSummaries_result>   {
     private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("getOwnerResourceSummaries_result");
 
-    private static final org.apache.thrift.protocol.TField SUCCESS_FIELD_DESC = new org.apache.thrift.protocol.TField("success", org.apache.thrift.protocol.TType.STRUCT, (short)0);
+    private static final org.apache.thrift.protocol.TField SUCCESS_FIELD_DESC = new org.apache.thrift.protocol.TField("success", org.apache.thrift.protocol.TType.LIST, (short)0);
     private static final org.apache.thrift.protocol.TField E_FIELD_DESC = new org.apache.thrift.protocol.TField("e", org.apache.thrift.protocol.TType.STRUCT, (short)1);
 
     private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
@@ -40101,7 +40101,7 @@ public class Nimbus {
       schemes.put(TupleScheme.class, new getOwnerResourceSummaries_resultTupleSchemeFactory());
     }
 
-    private OwnerResourceSummaries success; // required
+    private List<OwnerResourceSummary> success; // required
     private NotAliveException e; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
@@ -40170,7 +40170,8 @@ public class Nimbus {
     static {
       Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
       tmpMap.put(_Fields.SUCCESS, new org.apache.thrift.meta_data.FieldMetaData("success", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, OwnerResourceSummaries.class)));
+          new org.apache.thrift.meta_data.ListMetaData(org.apache.thrift.protocol.TType.LIST, 
+              new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, OwnerResourceSummary.class))));
       tmpMap.put(_Fields.E, new org.apache.thrift.meta_data.FieldMetaData("e", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRUCT)));
       metaDataMap = Collections.unmodifiableMap(tmpMap);
@@ -40181,7 +40182,7 @@ public class Nimbus {
     }
 
     public getOwnerResourceSummaries_result(
-      OwnerResourceSummaries success,
+      List<OwnerResourceSummary> success,
       NotAliveException e)
     {
       this();
@@ -40194,7 +40195,11 @@ public class Nimbus {
      */
     public getOwnerResourceSummaries_result(getOwnerResourceSummaries_result other) {
       if (other.is_set_success()) {
-        this.success = new OwnerResourceSummaries(other.success);
+        List<OwnerResourceSummary> __this__success = new ArrayList<OwnerResourceSummary>(other.success.size());
+        for (OwnerResourceSummary other_element : other.success) {
+          __this__success.add(new OwnerResourceSummary(other_element));
+        }
+        this.success = __this__success;
       }
       if (other.is_set_e()) {
         this.e = new NotAliveException(other.e);
@@ -40211,11 +40216,26 @@ public class Nimbus {
       this.e = null;
     }
 
-    public OwnerResourceSummaries get_success() {
+    public int get_success_size() {
+      return (this.success == null) ? 0 : this.success.size();
+    }
+
+    public java.util.Iterator<OwnerResourceSummary> get_success_iterator() {
+      return (this.success == null) ? null : this.success.iterator();
+    }
+
+    public void add_to_success(OwnerResourceSummary elem) {
+      if (this.success == null) {
+        this.success = new ArrayList<OwnerResourceSummary>();
+      }
+      this.success.add(elem);
+    }
+
+    public List<OwnerResourceSummary> get_success() {
       return this.success;
     }
 
-    public void set_success(OwnerResourceSummaries success) {
+    public void set_success(List<OwnerResourceSummary> success) {
       this.success = success;
     }
 
@@ -40263,7 +40283,7 @@ public class Nimbus {
         if (value == null) {
           unset_success();
         } else {
-          set_success((OwnerResourceSummaries)value);
+          set_success((List<OwnerResourceSummary>)value);
         }
         break;
 
@@ -40426,9 +40446,6 @@ public class Nimbus {
     public void validate() throws org.apache.thrift.TException {
       // check for required fields
       // check for sub-struct validity
-      if (success != null) {
-        success.validate();
-      }
     }
 
     private void writeObject(java.io.ObjectOutputStream out) throws java.io.IOException {
@@ -40466,9 +40483,19 @@ public class Nimbus {
           }
           switch (schemeField.id) {
             case 0: // SUCCESS
-              if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.success = new OwnerResourceSummaries();
-                struct.success.read(iprot);
+              if (schemeField.type == org.apache.thrift.protocol.TType.LIST) {
+                {
+                  org.apache.thrift.protocol.TList _list792 = iprot.readListBegin();
+                  struct.success = new ArrayList<OwnerResourceSummary>(_list792.size);
+                  OwnerResourceSummary _elem793;
+                  for (int _i794 = 0; _i794 < _list792.size; ++_i794)
+                  {
+                    _elem793 = new OwnerResourceSummary();
+                    _elem793.read(iprot);
+                    struct.success.add(_elem793);
+                  }
+                  iprot.readListEnd();
+                }
                 struct.set_success_isSet(true);
               } else { 
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
@@ -40498,7 +40525,14 @@ public class Nimbus {
         oprot.writeStructBegin(STRUCT_DESC);
         if (struct.success != null) {
           oprot.writeFieldBegin(SUCCESS_FIELD_DESC);
-          struct.success.write(oprot);
+          {
+            oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, struct.success.size()));
+            for (OwnerResourceSummary _iter795 : struct.success)
+            {
+              _iter795.write(oprot);
+            }
+            oprot.writeListEnd();
+          }
           oprot.writeFieldEnd();
         }
         if (struct.e != null) {
@@ -40532,7 +40566,13 @@ public class Nimbus {
         }
         oprot.writeBitSet(optionals, 2);
         if (struct.is_set_success()) {
-          struct.success.write(oprot);
+          {
+            oprot.writeI32(struct.success.size());
+            for (OwnerResourceSummary _iter796 : struct.success)
+            {
+              _iter796.write(oprot);
+            }
+          }
         }
         if (struct.is_set_e()) {
           struct.e.write(oprot);
@@ -40544,8 +40584,17 @@ public class Nimbus {
         TTupleProtocol iprot = (TTupleProtocol) prot;
         BitSet incoming = iprot.readBitSet(2);
         if (incoming.get(0)) {
-          struct.success = new OwnerResourceSummaries();
-          struct.success.read(iprot);
+          {
+            org.apache.thrift.protocol.TList _list797 = new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, iprot.readI32());
+            struct.success = new ArrayList<OwnerResourceSummary>(_list797.size);
+            OwnerResourceSummary _elem798;
+            for (int _i799 = 0; _i799 < _list797.size; ++_i799)
+            {
+              _elem798 = new OwnerResourceSummary();
+              _elem798.read(iprot);
+              struct.success.add(_elem798);
+            }
+          }
           struct.set_success_isSet(true);
         }
         if (incoming.get(1)) {

@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+#
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
 # distributed with this work for additional information
@@ -10554,82 +10556,6 @@ class GetInfoOptions:
   def __ne__(self, other):
     return not (self == other)
 
-class OwnerResourceSummaries:
-  """
-  Attributes:
-   - summaries
-  """
-
-  thrift_spec = (
-    None, # 0
-    (1, TType.LIST, 'summaries', (TType.STRUCT,(OwnerResourceSummary, OwnerResourceSummary.thrift_spec)), None, ), # 1
-  )
-
-  def __init__(self, summaries=None,):
-    self.summaries = summaries
-
-  def read(self, iprot):
-    if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
-      fastbinary.decode_binary(self, iprot.trans, (self.__class__, self.thrift_spec))
-      return
-    iprot.readStructBegin()
-    while True:
-      (fname, ftype, fid) = iprot.readFieldBegin()
-      if ftype == TType.STOP:
-        break
-      if fid == 1:
-        if ftype == TType.LIST:
-          self.summaries = []
-          (_etype689, _size686) = iprot.readListBegin()
-          for _i690 in xrange(_size686):
-            _elem691 = OwnerResourceSummary()
-            _elem691.read(iprot)
-            self.summaries.append(_elem691)
-          iprot.readListEnd()
-        else:
-          iprot.skip(ftype)
-      else:
-        iprot.skip(ftype)
-      iprot.readFieldEnd()
-    iprot.readStructEnd()
-
-  def write(self, oprot):
-    if oprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and self.thrift_spec is not None and fastbinary is not None:
-      oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
-      return
-    oprot.writeStructBegin('OwnerResourceSummaries')
-    if self.summaries is not None:
-      oprot.writeFieldBegin('summaries', TType.LIST, 1)
-      oprot.writeListBegin(TType.STRUCT, len(self.summaries))
-      for iter692 in self.summaries:
-        iter692.write(oprot)
-      oprot.writeListEnd()
-      oprot.writeFieldEnd()
-    oprot.writeFieldStop()
-    oprot.writeStructEnd()
-
-  def validate(self):
-    if self.summaries is None:
-      raise TProtocol.TProtocolException(message='Required field summaries is unset!')
-    return
-
-
-  def __hash__(self):
-    value = 17
-    value = (value * 31) ^ hash(self.summaries)
-    return value
-
-  def __repr__(self):
-    L = ['%s=%r' % (key, value)
-      for key, value in self.__dict__.iteritems()]
-    return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
-
-  def __eq__(self, other):
-    return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
-
-  def __ne__(self, other):
-    return not (self == other)
-
 class OwnerResourceSummary:
   """
   Attributes:
@@ -11635,11 +11561,11 @@ class HBRecords:
       if fid == 1:
         if ftype == TType.LIST:
           self.pulses = []
-          (_etype696, _size693) = iprot.readListBegin()
-          for _i697 in xrange(_size693):
-            _elem698 = HBPulse()
-            _elem698.read(iprot)
-            self.pulses.append(_elem698)
+          (_etype689, _size686) = iprot.readListBegin()
+          for _i690 in xrange(_size686):
+            _elem691 = HBPulse()
+            _elem691.read(iprot)
+            self.pulses.append(_elem691)
           iprot.readListEnd()
         else:
           iprot.skip(ftype)
@@ -11656,8 +11582,8 @@ class HBRecords:
     if self.pulses is not None:
       oprot.writeFieldBegin('pulses', TType.LIST, 1)
       oprot.writeListBegin(TType.STRUCT, len(self.pulses))
-      for iter699 in self.pulses:
-        iter699.write(oprot)
+      for iter692 in self.pulses:
+        iter692.write(oprot)
       oprot.writeListEnd()
       oprot.writeFieldEnd()
     oprot.writeFieldStop()
@@ -11709,10 +11635,10 @@ class HBNodes:
       if fid == 1:
         if ftype == TType.LIST:
           self.pulseIds = []
-          (_etype703, _size700) = iprot.readListBegin()
-          for _i704 in xrange(_size700):
-            _elem705 = iprot.readString().decode('utf-8')
-            self.pulseIds.append(_elem705)
+          (_etype696, _size693) = iprot.readListBegin()
+          for _i697 in xrange(_size693):
+            _elem698 = iprot.readString().decode('utf-8')
+            self.pulseIds.append(_elem698)
           iprot.readListEnd()
         else:
           iprot.skip(ftype)
@@ -11729,8 +11655,8 @@ class HBNodes:
     if self.pulseIds is not None:
       oprot.writeFieldBegin('pulseIds', TType.LIST, 1)
       oprot.writeListBegin(TType.STRING, len(self.pulseIds))
-      for iter706 in self.pulseIds:
-        oprot.writeString(iter706.encode('utf-8'))
+      for iter699 in self.pulseIds:
+        oprot.writeString(iter699.encode('utf-8'))
       oprot.writeListEnd()
       oprot.writeFieldEnd()
     oprot.writeFieldStop()
