@@ -987,16 +987,12 @@
 (defroutes main-routes
   (GET "/api/v1/owner/summary" [:as {:keys [cookies servlet-request scheme]} id & m]
     (populate-context! servlet-request)
-    (let [user (get-user-name servlet-request)]
-      (populate-context! servlet-request)
-      (assert-authorized-user "getClusterInfo")
-      (json-response (owner-resource-summaries) (:callback m))))
+    (assert-authorized-user "getOwnerResourceSummaries")
+    (json-response (owner-resource-summaries) (:callback m)))
   (GET "/api/v1/owner/:id" [:as {:keys [cookies servlet-request scheme]} id & m]
     (populate-context! servlet-request)
-    (let [user (get-user-name servlet-request)]
-      (populate-context! servlet-request)
-      (assert-authorized-user "getClusterInfo")
-      (json-response (owner-resource-summary id) (:callback m))))
+    (assert-authorized-user "getOwnerResourceSummaries")
+    (json-response (owner-resource-summary id) (:callback m)))
   (GET "/api/v1/cluster/configuration" [& m]
     (mark! ui:num-cluster-configuration-httpRequests)
     (json-response (cluster-configuration)
