@@ -101,7 +101,7 @@
 (defmeter nimbus:num-getTopologyHistory-calls)
 (defmeter nimbus:num-setWorkerProfiler-calls)
 (defmeter nimbus:num-getSupervisorPageInfo-calls)
-(defmeter num-getOwnerResourceSummaries-calls)
+(defmeter nimbus:num-getOwnerResourceSummaries-calls)
 
 (def STORM-VERSION (VersionInfo/getVersion))
 
@@ -1797,7 +1797,7 @@
               (to-json topology-conf)))
 
       (^List getOwnerResourceSummaries [this ^String owner]
-        (mark! num-getOwnerResourceSummaries-calls)
+        (mark! nimbus:num-getOwnerResourceSummaries-calls)
         (let [_ (check-authorization! nimbus nil nil "getOwnerResourceSummaries")
               storm-cluster-state (:storm-cluster-state nimbus)
               assignments (topology-assignments storm-cluster-state)
