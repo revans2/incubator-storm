@@ -32,6 +32,7 @@
             <counter name="num_getTopologyInfo_calls"                   type="long" />
             <counter name="num_getTopologyPageInfo_calls"               type="long" />
             <counter name="num_getComponentPageInfo_calls"              type="long" />
+            <counter name="num_getSupervisorPageInfo_calls"             type="long" />
             <counter name="num_shutdown_calls"                          type="long" />
             <counter name="num_getComponentPendingProfileActions_calls" type="long" />
             <counter name="num_beginCreateBlob_calls"                   type="long" />
