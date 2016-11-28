@@ -173,6 +173,7 @@
               <artifactSet>
                   <includes>
                       <include>org.apache.hadoop:hadoop-common</include>
+                      <include>yahoo.yinst.simon_plugin_java:SimonPlugin</include>
                   </includes>
               </artifactSet>
               <filters>
