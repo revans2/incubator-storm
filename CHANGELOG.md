@@ -1,4 +1,6 @@
 ## 2.0.0
+ * STORM-1281: LocalCluster, testing4j and testing.clj to java
+ * STORM-2226: Fix kafka spout offset lag ui for kerberized kafka
  * STORM-1276: line for line translation of nimbus to java
  * STORM-2224: Exposed a method to override in computing the field from given tuple in FieldSelector
  * STORM-2220: Added config support for each bolt in Cassandra bolts, fixed the bolts to be used also as sinks.
@@ -178,6 +180,8 @@
  * STORM-1769: Added a test to check local nimbus with notifier plugin
 
 ## 1.1.0
+ * STORM-2215: validate blobs are present before submitting
+ * STORM-2170: [Storm SQL] Add built-in socket datasource to runtime
  * STORM-2087: storm-kafka-client - tuples not always being replayed.
  * STORM-2182: Refactor Storm Kafka Examples Into Own Modules.
  * STORM-1694: Kafka Spout Trident Implementation Using New Kafka Consumer API.
