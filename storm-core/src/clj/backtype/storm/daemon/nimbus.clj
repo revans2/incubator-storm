@@ -1806,12 +1806,16 @@
                             storm-id->bases ;; all your bases are belong to us
                             (filter #(= owner (:owner (val %))) storm-id->bases))
               cluster-scheduler-config (.config (:scheduler nimbus))
+              owners-with-guarantees (zipmap (keys cluster-scheduler-config) (repeat []))
               storm-conf (read-storm-config)
-              default-resources {:assigned-mem-on-heap 0
+              default-resources {:requested-mem-on-heap 0
+                                 :requested-mem-off-heap 0
+                                 :requested-cpu 0
+                                 :assigned-mem-on-heap 0
                                  :assigned-mem-off-heap 0
                                  :assigned-cpu 0}]
               ;; for each owner, get resources, configs, and aggregate
-              (for [[owner owner-bases] (group-by #(:owner (val %)) query-bases)] 
+              (for [[owner owner-bases] (merge-with concat (group-by #(:owner (val %)) query-bases) owners-with-guarantees)] 
                 (let [scheduler-config (get cluster-scheduler-config owner)
                       resources (zipmap (keys owner-bases) 
                                         (map #(get-resources-for-topology nimbus (key %) (val %)) owner-bases))
