@@ -1564,7 +1564,7 @@
                                               TopologyInitialStatus/ACTIVE :active}]
                 (start-storm nimbus storm-name storm-id (thrift-status->kw-status (.get_initial_status submitOptions))))))
           (catch Throwable e
-            (log-warn-error e "Topology submission exception. (topology name='" storm-name "')")
+            (log-error e "Topology submission exception. (topology name='" storm-name "')")
             (throw e))))
       
       (^void submitTopology
