@@ -26,7 +26,7 @@ dist_tag: RELEASE
 
 #TODO need a good way to see if these values would have changed and update only then
 BASE_VERSION: ../pom.xml
-	cd .. && $(MVN) help:evaluate -Dexpression=project.version | grep -v "^\[" | tail -1 > yahoo-build/BASE_VERSION
+	cd .. && $(MVN) help:evaluate -Dexpression=project.version | grep -v '\(^\[\|Download\)' | tail -1 > yahoo-build/BASE_VERSION
 
 BASE_VERSION_UNDERSCORE: BASE_VERSION
 	echo "$(BASE_VERSION)" | sed -e 's/-/_/g' > BASE_VERSION_UNDERSCORE
