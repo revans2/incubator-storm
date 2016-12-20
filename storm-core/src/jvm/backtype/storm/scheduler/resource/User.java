@@ -214,7 +214,7 @@ public class User {
             return false;
         }
         if (dest.contains(topo)) {
-            LOG.warn("Topo {} already in in User: {} {} queue!", topo.getName(), this.userId, destName);
+            LOG.warn("Topo {} already in User: {} {} queue!", topo.getName(), this.userId, destName);
             return false;
         }
         src.remove(topo);
