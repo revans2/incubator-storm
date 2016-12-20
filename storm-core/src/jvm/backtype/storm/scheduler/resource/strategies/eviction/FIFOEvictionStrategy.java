@@ -56,13 +56,12 @@ public class FIFOEvictionStrategy implements IEvictionStrategy{
     @Override
     public boolean makeSpaceForTopo(TopologyDetails td) {
         LOG.debug("attempting to make space for topo {} from user {}", td.getName(), td.getTopologySubmitter());
-        User submitter = this.userMap.get(td.getTopologySubmitter());
         TreeSet<TopologyDetails> topos = getTopoOrderedByUptime();
         if (topos.size() > 0 ) {
             TopologyDetails topoToEvict = topos.first();
             if (topoToEvict.getUpTime() > td.getUpTime()) {
-                EvictionCommon.evictTopology(topos.first(), this.cluster, this.userMap, this.nodes);
-                return true;
+                return EvictionCommon.evictTopology(topos.first(),
+                        this.cluster, this.userMap, this.nodes);
             }
         }
         return false;

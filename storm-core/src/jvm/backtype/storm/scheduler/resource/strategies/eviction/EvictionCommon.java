@@ -32,12 +32,24 @@ import java.util.Map;
 public class EvictionCommon {
     private static final Logger LOG = LoggerFactory
             .getLogger(EvictionCommon.class);
-    public static void evictTopology(TopologyDetails topologyEvict, Cluster cluster, Map<String, User> userMap, RAS_Nodes nodes) {
+
+    /**
+     * Evicts a topology
+     * @param topologyEvict the topology to evict
+     * @param cluster the cluster on which to operate
+     * @param userMap a map of user names to User instances
+     * @param nodes nodes on which slots may be freed.
+     * @return true if eviction was successful, false otherwise.
+     */
+    public static boolean evictTopology(TopologyDetails topologyEvict, Cluster cluster, Map<String, User> userMap, RAS_Nodes nodes) {
         Collection<WorkerSlot> workersToEvict = cluster.getUsedSlotsByTopologyId(topologyEvict.getId());
         User submitter = userMap.get(topologyEvict.getTopologySubmitter());
 
         LOG.info("Evicting Topology {} with workers: {} from user {}", topologyEvict.getName(), workersToEvict, topologyEvict.getTopologySubmitter());
-        nodes.freeSlots(workersToEvict);
-        submitter.moveTopoFromRunningToPending(topologyEvict, cluster);
+        if (submitter.moveTopoFromRunningToPending(topologyEvict, cluster)) {
+            nodes.freeSlots(workersToEvict);
+            return true;
+        }
+        return false;
     }
 }
