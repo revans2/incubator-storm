@@ -558,7 +558,9 @@ static int remove_files_from_dir(const char *path) {
       }
       free(newpath);
     }
-    closedir(dir);
+    if(closedir(dir) != 0) {
+        fprintf(LOGFILE, "Failed to close directory stream %p for path %s\n", dir, path);
+    }
     return exit_code;
   }
   int err = errno;
