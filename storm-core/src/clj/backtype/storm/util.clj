@@ -171,9 +171,9 @@
     (if-let [cause-found? (some (partial instance? klass) causal-chain)]
       true
       (do
-        (log-warn "Exception "
+        (log-warn "Expecting exception of class: "
                   klass
-                  " not found among thrown Exceptions: "
+                  ", but exception chain only contains: "
                   (pr-str causal-chain))
         false))))
 
