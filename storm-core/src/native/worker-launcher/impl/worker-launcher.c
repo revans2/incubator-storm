@@ -552,6 +552,7 @@ static int remove_files_from_dir(const char *path) {
         // Recur on anything in the directory.
         int new_exit = recursive_delete(newpath, 0);
         if(!exit_code) {
+          // This only grabs the first non-zero exit code, but keeps trying to delete stuff anyway.
           exit_code = new_exit;
         }
       }
@@ -560,6 +561,8 @@ static int remove_files_from_dir(const char *path) {
     closedir(dir);
     return exit_code;
   }
+  int err = errno;
+  fprintf(LOGFILE, "Failed to open path %s: %s\n", path, strerror(err));
   return -1;
 }
 
