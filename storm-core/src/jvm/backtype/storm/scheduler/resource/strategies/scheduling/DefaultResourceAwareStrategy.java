@@ -103,7 +103,7 @@ public class DefaultResourceAwareStrategy implements IStrategy {
         SchedulingResult result;
         executorsNotScheduled.removeAll(scheduledTasks);
         if (executorsNotScheduled.size() > 0) {
-            LOG.error("Not all executors successfully scheduled: {}",
+            LOG.trace("Not all executors successfully scheduled: {}",
                     executorsNotScheduled);
             schedulerAssignmentMap = null;
             result = SchedulingResult.failure(SchedulingStatus.FAIL_NOT_ENOUGH_RESOURCES,
@@ -113,7 +113,7 @@ public class DefaultResourceAwareStrategy implements IStrategy {
             result = SchedulingResult.successWithMsg(schedulerAssignmentMap, "Fully Scheduled by DefaultResourceAwareStrategy");
         }
         if (schedulerAssignmentMap == null) {
-            LOG.error("Topology {} not successfully scheduled!", td.getId());
+            LOG.info("Topology {} not successfully scheduled!", td.getId());
         }
         return result;
     }
@@ -143,7 +143,7 @@ public class DefaultResourceAwareStrategy implements IStrategy {
                     targetNode.getAvailableCpuResources(), targetNode.getTotalMemoryResources(),
                     targetNode.getTotalCpuResources(), targetSlot, nodeToRack(targetNode));
         } else {
-            LOG.error("Not Enough Resources to schedule Task {}", exec);
+            LOG.debug("Not Enough Resources to schedule Task {}", exec);
         }
     }
 
