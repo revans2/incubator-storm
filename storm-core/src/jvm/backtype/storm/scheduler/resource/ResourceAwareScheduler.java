@@ -438,7 +438,7 @@ public class ResourceAwareScheduler implements IScheduler {
         return ret;
     }
 
-    private SchedulingState checkpointSchedulingState() {
+    public SchedulingState checkpointSchedulingState() {
         LOG.debug("/*********Checkpoint scheduling state************/");
         for (User user : this.schedulingState.userMap.values()) {
             LOG.debug(user.getDetailedInfo());
