@@ -35,13 +35,13 @@ public class User {
     //Topologies yet to be scheduled sorted by priority for each user
     private TreeSet<TopologyDetails> pendingQueue = new TreeSet<TopologyDetails>(new PQsortByPriorityAndSubmittionTime());
 
-    //Topologies yet to be scheduled sorted by priority for each user
+    //Topologies already scheduled sorted by priority for each user
     private TreeSet<TopologyDetails> runningQueue = new TreeSet<TopologyDetails>(new PQsortByPriorityAndSubmittionTime());
 
-    //Topologies that was attempted to be scheduled but wasn't successful
+    //Topologies that were attempted to be scheduled but weren't successful
     private TreeSet<TopologyDetails> attemptedQueue = new TreeSet<TopologyDetails>(new PQsortByPriorityAndSubmittionTime());
 
-    //Topologies that was deemed to be invalid
+    //Topologies that were deemed to be invalid
     private TreeSet<TopologyDetails> invalidQueue = new TreeSet<TopologyDetails>(new PQsortByPriorityAndSubmittionTime());
 
     private Map<String, Double> resourcePool = new HashMap<String, Double>();
@@ -57,12 +57,8 @@ public class User {
         if (resourcePool != null) {
             this.resourcePool.putAll(resourcePool);
         }
-        if (this.resourcePool.get("cpu") == null) {
-            this.resourcePool.put("cpu", 0.0);
-        }
-        if (this.resourcePool.get("memory") == null) {
-            this.resourcePool.put("memory", 0.0);
-        }
+        this.resourcePool.putIfAbsent("cpu", 0.0);
+        this.resourcePool.putIfAbsent("memory", 0.0);
     }
 
     /**
@@ -149,80 +145,91 @@ public class User {
         return null;
     }
 
-    public void moveTopoFromPendingToRunning(TopologyDetails topo, Cluster cluster) {
-        moveTopology(topo, this.pendingQueue, "pending", this.runningQueue, "running");
-        if (cluster != null) {
+    public boolean moveTopoFromPendingToRunning(TopologyDetails topo, Cluster cluster) {
+        boolean ret = moveTopology(topo, this.pendingQueue, "pending", this.runningQueue, "running");
+        if (ret && cluster != null) {
             cluster.setStatus(topo.getId(), "Fully Scheduled");
         }
+        return ret;
     }
 
-    public void moveTopoFromPendingToRunning(TopologyDetails topo) {
-        this.moveTopoFromPendingToRunning(topo, null);
+    public boolean moveTopoFromPendingToRunning(TopologyDetails topo) {
+        return this.moveTopoFromPendingToRunning(topo, null);
     }
 
-    public void moveTopoFromPendingToAttempted(TopologyDetails topo, Cluster cluster) {
-        moveTopology(topo, this.pendingQueue, "pending", this.attemptedQueue, "attempted");
-        if (cluster != null) {
+    public boolean moveTopoFromPendingToAttempted(TopologyDetails topo, Cluster cluster) {
+        boolean ret = moveTopology(topo, this.pendingQueue, "pending", this.attemptedQueue, "attempted");
+        if (ret && cluster != null) {
             cluster.setStatus(topo.getId(), "Scheduling Attempted but Failed");
         }
+        return ret;
     }
 
-    public void moveTopoFromPendingToAttempted(TopologyDetails topo) {
-        this.moveTopoFromPendingToAttempted(topo, null);
+    public boolean moveTopoFromPendingToAttempted(TopologyDetails topo) {
+        return this.moveTopoFromPendingToAttempted(topo, null);
     }
 
-    public void moveTopoFromPendingToInvalid(TopologyDetails topo, Cluster cluster) {
-        moveTopology(topo, this.pendingQueue, "pending", this.invalidQueue, "invalid");
-        if (cluster != null) {
+    public boolean moveTopoFromPendingToInvalid(TopologyDetails topo, Cluster cluster) {
+        boolean ret = moveTopology(topo, this.pendingQueue, "pending", this.invalidQueue, "invalid");
+        if (ret && cluster != null) {
             cluster.setStatus(topo.getId(), "Scheduling Attempted but topology is invalid");
         }
+        return ret;
     }
 
-    public void moveTopoFromPendingToInvalid(TopologyDetails topo) {
-        this.moveTopoFromPendingToInvalid(topo, null);
+    public boolean moveTopoFromPendingToInvalid(TopologyDetails topo) {
+        return this.moveTopoFromPendingToInvalid(topo, null);
     }
 
-    public void moveTopoFromRunningToPending(TopologyDetails topo, Cluster cluster) {
-        moveTopology(topo, this.runningQueue, "running", this.pendingQueue, "pending");
-        if (cluster != null) {
+    public boolean moveTopoFromRunningToPending(TopologyDetails topo, Cluster cluster) {
+        boolean ret = moveTopology(topo, this.runningQueue, "running", this.pendingQueue, "pending");
+        if (ret && cluster != null) {
             cluster.setStatus(topo.getId(), "Scheduling Pending");
         }
+        return ret;
     }
 
-    public void moveTopoFromRunningToPending(TopologyDetails topo) {
-        this.moveTopoFromRunningToPending(topo, null);
+    public boolean moveTopoFromRunningToPending(TopologyDetails topo) {
+        return this.moveTopoFromRunningToPending(topo, null);
     }
 
-    private void moveTopology(TopologyDetails topo, Set<TopologyDetails> src, String srcName, Set<TopologyDetails> dest, String destName) {
+    /**
+     * Moves a topology from one set to another, with checks.
+     * @param topo the topology that we wish to move
+     * @param src the source from which to move the topology
+     * @param srcName a readable name for the source
+     * @param dest the destination to which to move the topology
+     * @param destName a readable name for the destination
+     * @return true if the move was successful, false otherwise.
+     */
+    private boolean moveTopology(TopologyDetails topo, Set<TopologyDetails> src, String srcName, Set<TopologyDetails> dest, String destName) {
         if (topo == null) {
-            return;
+            return false;
         }
 
         LOG.debug("For User {} Moving topo {} from {} to {}", this.userId, topo.getName(), srcName, destName);
 
         if (!src.contains(topo)) {
             LOG.warn("Topo {} not in User: {} {} queue!", topo.getName(), this.userId, srcName);
-            return;
+            return false;
         }
         if (dest.contains(topo)) {
-            LOG.warn("Topo {} already in in User: {} {} queue!", topo.getName(), this.userId, destName);
-            return;
+            LOG.warn("Topo {} already in User: {} {} queue!", topo.getName(), this.userId, destName);
+            return false;
         }
         src.remove(topo);
         dest.add(topo);
+        return true;
     }
 
     public double getResourcePoolAverageUtilization() {
-        Double cpuResourcePoolUtilization = this.getCPUResourcePoolUtilization();
-        Double memoryResourcePoolUtilization = this.getMemoryResourcePoolUtilization();
+        double cpuResourcePoolUtilization = this.getCPUResourcePoolUtilization();
+        double memoryResourcePoolUtilization = this.getMemoryResourcePoolUtilization();
 
-        if (cpuResourcePoolUtilization != null && memoryResourcePoolUtilization != null) {
-            //cannot be (cpuResourcePoolUtilization + memoryResourcePoolUtilization)/2
-            //since memoryResourcePoolUtilization or cpuResourcePoolUtilization can be Double.MAX_VALUE
-            //Should not return infinity in that case
-            return ((cpuResourcePoolUtilization) / 2.0) + ((memoryResourcePoolUtilization) / 2.0);
-        }
-        return Double.MAX_VALUE;
+        //cannot be (cpuResourcePoolUtilization + memoryResourcePoolUtilization)/2
+        //since memoryResourcePoolUtilization or cpuResourcePoolUtilization can be Double.MAX_VALUE
+        //Should not return infinity in that case
+        return ((cpuResourcePoolUtilization) / 2.0) + ((memoryResourcePoolUtilization) / 2.0);
     }
 
     public double getCPUResourcePoolUtilization() {

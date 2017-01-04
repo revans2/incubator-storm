@@ -78,13 +78,8 @@ public class ResourceAwareScheduler implements IScheduler {
         while (true) {
 
             if (schedulingPrioritystrategy == null) {
-                try {
-                    schedulingPrioritystrategy = (ISchedulingPriorityStrategy) Utils.newInstance((String) this.conf.get(Config.RESOURCE_AWARE_SCHEDULER_PRIORITY_STRATEGY));
-                } catch (Exception ex) {
-                    LOG.error(String.format("failed to create instance of priority strategy: %s with error: %s! No topologies will be scheduled.",
-                                    this.conf.get(Config.RESOURCE_AWARE_SCHEDULER_PRIORITY_STRATEGY), ex.getMessage()), ex);
-                    break;
-                }
+                String strategyClassName = (String) this.conf.get(Config.RESOURCE_AWARE_SCHEDULER_PRIORITY_STRATEGY);
+                schedulingPrioritystrategy = Utils.newInstance(strategyClassName);
             }
             TopologyDetails td;
             try {
@@ -93,8 +88,8 @@ public class ResourceAwareScheduler implements IScheduler {
                 //Call scheduling priority strategy
                 td = schedulingPrioritystrategy.getNextTopologyToSchedule();
             } catch (Exception ex) {
-                LOG.error(String.format("Exception thrown when running priority strategy %s. No topologies will be scheduled! Error: %s"
-                        , schedulingPrioritystrategy.getClass().getName(), ex.getMessage()), ex.getStackTrace());
+                LOG.error(String.format("Exception thrown when running priority strategy %s. No topologies will be scheduled!"
+                        , schedulingPrioritystrategy.getClass().getName()), ex);
                 break;
             }
             if (td == null) {
@@ -443,7 +438,7 @@ public class ResourceAwareScheduler implements IScheduler {
         return ret;
     }
 
-    private SchedulingState checkpointSchedulingState() {
+    public SchedulingState checkpointSchedulingState() {
         LOG.debug("/*********Checkpoint scheduling state************/");
         for (User user : this.schedulingState.userMap.values()) {
             LOG.debug(user.getDetailedInfo());

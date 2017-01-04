@@ -68,8 +68,7 @@ public class DefaultEvictionStrategy implements IEvictionStrategy {
                         "\n(1.0 - submitter.getMemoryResourcePoolUtilization()) = {} >= memoryNeeded = {}"
                         , td, submitter, topologyEvict, evictUser, (1.0 - submitter.getCPUResourcePoolUtilization())
                         , cpuNeeded, (1.0 - submitter.getMemoryResourcePoolUtilization()), memoryNeeded);
-                EvictionCommon.evictTopology(topologyEvict, this.cluster, this.userMap, this.nodes);
-                return true;
+                return EvictionCommon.evictTopology(topologyEvict, this.cluster, this.userMap, this.nodes);
             }
         } else {
             if (evictUser != null) {
@@ -82,8 +81,7 @@ public class DefaultEvictionStrategy implements IEvictionStrategy {
                             , topologyEvict, evictUser, (evictUser.getResourcePoolAverageUtilization() - 1.0), ((cpuNeeded + memoryNeeded) / 2)
                             , (submitter.getResourcePoolAverageUtilization() - 1.0), (evictUser.getResourcePoolAverageUtilization() - 1.0)
                             , (((cpuNeeded + memoryNeeded) / 2) + (submitter.getResourcePoolAverageUtilization() - 1.0)));
-                    EvictionCommon.evictTopology(topologyEvict, this.cluster, this.userMap, this.nodes);
-                    return true;
+                    return EvictionCommon.evictTopology(topologyEvict, this.cluster, this.userMap, this.nodes);
                 }
             }
         }
@@ -95,8 +93,7 @@ public class DefaultEvictionStrategy implements IEvictionStrategy {
             if (topo.getTopologyPriority() > td.getTopologyPriority()) {
                 LOG.debug("POTENTIALLY Evicting Topology {} from user {} (itself) since topology {} has a lower priority than topology {}"
                         , topo, submitter, topo, td);
-                EvictionCommon.evictTopology(topo, this.cluster, this.userMap, this.nodes);
-                return true;
+                return EvictionCommon.evictTopology(topo, this.cluster, this.userMap, this.nodes);
             }
         }
         return false;
