@@ -59,14 +59,26 @@ import backtype.storm.metric.internal.RateTracker;
  * the ability to catch up to the producer by processing tuples in batches.
  */
 public class DisruptorQueue implements IStatefulObject {
-    private static final Logger LOG = LoggerFactory.getLogger(DisruptorQueue.class);    
+    private static final Logger LOG = LoggerFactory.getLogger(DisruptorQueue.class);
     private static final Object INTERRUPT = new Object();
     private static final String PREFIX = "disruptor-";
     private static final FlusherPool FLUSHER = new FlusherPool();
 
+    private static int getNumFlusherPoolThreads() {
+        int numThreads = 100;
+        try{
+            String threads = System.getProperty("num_flusher_pool_threads", "100");
+            numThreads = Integer.parseInt(threads);
+        } catch (Exception e) {
+            LOG.warn("Error while parsing number of flusher pool threads", e);
+        }
+        LOG.debug("Reading num_flusher_pool_threads Flusher pool threads: {}", numThreads);
+        return numThreads;
+    }
+
     private static class FlusherPool { 
         private Timer _timer = new Timer("disruptor-flush-trigger", true);
-        private ThreadPoolExecutor _exec = new ThreadPoolExecutor(1, 100, 10, TimeUnit.SECONDS, new ArrayBlockingQueue<Runnable>(1024), new ThreadPoolExecutor.DiscardPolicy());
+        private ThreadPoolExecutor _exec = new ThreadPoolExecutor(1, getNumFlusherPoolThreads(), 10, TimeUnit.SECONDS, new ArrayBlockingQueue<Runnable>(1024), new ThreadPoolExecutor.DiscardPolicy());
         private HashMap<Long, ArrayList<Flusher>> _pendingFlush = new HashMap<>();
         private HashMap<Long, TimerTask> _tt = new HashMap<>();
 
