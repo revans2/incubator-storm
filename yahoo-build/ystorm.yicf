@@ -86,6 +86,7 @@ symlink - - - lib64/storm/$(BASE_VERSION)/lib/yjava_yca.jar             /home/y/
 symlink - - - lib64/storm/$(BASE_VERSION)/lib/zts_java_client.jar       /home/y/lib/jars/zts_java_client.jar
 symlink - - - lib64/storm/$(BASE_VERSION)/lib/zts_core.jar              /home/y/lib/jars/zts_core.jar
 symlink - - - lib64/storm/$(BASE_VERSION)/lib/bcpkix.jar                /home/y/lib/jars/bcpkix.jar
+symlink - - - lib64/storm/$(BASE_VERSION)/lib/bcprov.jar                /home/y/lib/jars/bcprov.jar
 symlink - - - lib64/storm/$(BASE_VERSION)/lib/sia_java_client.jar       /home/y/lib/jars/sia_java_client.jar
 symlink - - - lib64/storm/$(BASE_VERSION)/lib/junixsocket.jar           /home/y/lib/jars/junixsocket.jar
 symlink - - - lib64/storm/$(BASE_VERSION)/lib/auth_core.jar             /home/y/lib/jars/auth_core.jar
