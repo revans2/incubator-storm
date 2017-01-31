@@ -156,7 +156,7 @@ $(document).ready(function() {
         });
     });
 
-    $.getJSON("/api/v1/owner/summary", function(response, status, jqXHR) {
+    $.getJSON("/api/v1/owner-resources", function(response, status, jqXHR) {
         getStatic("/templates/index-page-template.html", function(template) {
             jsError(function() {
                 ownerSummary.append(Mustache.render($(template).filter("#owner-summary-template").html(), response));

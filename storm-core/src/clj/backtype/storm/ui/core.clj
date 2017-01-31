@@ -985,11 +985,11 @@
   (.getUserName http-creds-handler servlet-request))
 
 (defroutes main-routes
-  (GET "/api/v1/owner/summary" [:as {:keys [cookies servlet-request scheme]} id & m]
+  (GET "/api/v1/owner-resources" [:as {:keys [cookies servlet-request scheme]} id & m]
     (populate-context! servlet-request)
     (assert-authorized-user "getOwnerResourceSummaries")
     (json-response (owner-resource-summaries) (:callback m)))
-  (GET "/api/v1/owner/:id" [:as {:keys [cookies servlet-request scheme]} id & m]
+  (GET "/api/v1/owner-resources/:id" [:as {:keys [cookies servlet-request scheme]} id & m]
     (populate-context! servlet-request)
     (assert-authorized-user "getOwnerResourceSummaries")
     (json-response (owner-resource-summary id) (:callback m)))
