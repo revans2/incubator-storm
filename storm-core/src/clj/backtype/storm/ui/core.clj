@@ -1282,6 +1282,10 @@
   (GET "/" [:as {cookies :cookies}]
     (mark! ui:num-main-page-httpRequests)
     (resp/redirect "/index.html"))
+  
+  ;; TODO: remove before going to the Apache
+  (GET "/user.html" req
+    (resp/redirect (str "owner.html?" (:query-string req))))
 
   (route/resources "/")
   (route/not-found "Page not found"))

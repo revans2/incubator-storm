@@ -87,6 +87,16 @@
     $(document).ready(function() {
 
         var owner = $.url("?id");
+        if (!owner) {
+            // this page is designed to be per owner, handle the case where the URL is malformed
+            getStatic("/templates/json-error-template.html", function(template) {
+                $("#json-response-error").append(Mustache.render($(template).filter("#json-error-template").html(), {
+                    "error": "Invalid owner",
+                    "errorMessage": "Please pass an owner id with the id URL parameter"
+                }));
+            });
+            return;
+        }
         var url = "/api/v1/owner/" + owner;
 
         $.extend($.fn.dataTable.defaults, {
