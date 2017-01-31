@@ -130,7 +130,7 @@ public class Nimbus {
 
     public String getTopologyConf(String id) throws NotAliveException, AuthorizationException, org.apache.thrift.TException;
 
-    public List<OwnerResourceSummary> getOwnerResourceSummaries(String owner) throws NotAliveException, org.apache.thrift.TException;
+    public List<OwnerResourceSummary> getOwnerResourceSummaries(String owner) throws AuthorizationException, org.apache.thrift.TException;
 
     /**
      * Returns the compiled topology that contains ackers and metrics consumsers. Compare {@link #getUserTopology(String id)}.
@@ -1266,7 +1266,7 @@ public class Nimbus {
       throw new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.MISSING_RESULT, "getTopologyConf failed: unknown result");
     }
 
-    public List<OwnerResourceSummary> getOwnerResourceSummaries(String owner) throws NotAliveException, org.apache.thrift.TException
+    public List<OwnerResourceSummary> getOwnerResourceSummaries(String owner) throws AuthorizationException, org.apache.thrift.TException
     {
       send_getOwnerResourceSummaries(owner);
       return recv_getOwnerResourceSummaries();
@@ -1279,15 +1279,15 @@ public class Nimbus {
       sendBase("getOwnerResourceSummaries", args);
     }
 
-    public List<OwnerResourceSummary> recv_getOwnerResourceSummaries() throws NotAliveException, org.apache.thrift.TException
+    public List<OwnerResourceSummary> recv_getOwnerResourceSummaries() throws AuthorizationException, org.apache.thrift.TException
     {
       getOwnerResourceSummaries_result result = new getOwnerResourceSummaries_result();
       receiveBase(result, "getOwnerResourceSummaries");
       if (result.is_set_success()) {
         return result.success;
       }
-      if (result.e != null) {
-        throw result.e;
+      if (result.aze != null) {
+        throw result.aze;
       }
       throw new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.MISSING_RESULT, "getOwnerResourceSummaries failed: unknown result");
     }
@@ -2725,7 +2725,7 @@ public class Nimbus {
         prot.writeMessageEnd();
       }
 
-      public List<OwnerResourceSummary> getResult() throws NotAliveException, org.apache.thrift.TException {
+      public List<OwnerResourceSummary> getResult() throws AuthorizationException, org.apache.thrift.TException {
         if (getState() != org.apache.thrift.async.TAsyncMethodCall.State.RESPONSE_READ) {
           throw new IllegalStateException("Method call not finished!");
         }
@@ -3890,8 +3890,8 @@ public class Nimbus {
         getOwnerResourceSummaries_result result = new getOwnerResourceSummaries_result();
         try {
           result.success = iface.getOwnerResourceSummaries(args.owner);
-        } catch (NotAliveException e) {
-          result.e = e;
+        } catch (AuthorizationException aze) {
+          result.aze = aze;
         }
         return result;
       }
@@ -6293,9 +6293,9 @@ public class Nimbus {
             byte msgType = org.apache.thrift.protocol.TMessageType.REPLY;
             org.apache.thrift.TBase msg;
             getOwnerResourceSummaries_result result = new getOwnerResourceSummaries_result();
-            if (e instanceof NotAliveException) {
-                        result.e = (NotAliveException) e;
-                        result.set_e_isSet(true);
+            if (e instanceof AuthorizationException) {
+                        result.aze = (AuthorizationException) e;
+                        result.set_aze_isSet(true);
                         msg = result;
             }
              else 
@@ -40093,7 +40093,7 @@ public class Nimbus {
     private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("getOwnerResourceSummaries_result");
 
     private static final org.apache.thrift.protocol.TField SUCCESS_FIELD_DESC = new org.apache.thrift.protocol.TField("success", org.apache.thrift.protocol.TType.LIST, (short)0);
-    private static final org.apache.thrift.protocol.TField E_FIELD_DESC = new org.apache.thrift.protocol.TField("e", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+    private static final org.apache.thrift.protocol.TField AZE_FIELD_DESC = new org.apache.thrift.protocol.TField("aze", org.apache.thrift.protocol.TType.STRUCT, (short)1);
 
     private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
     static {
@@ -40102,12 +40102,12 @@ public class Nimbus {
     }
 
     private List<OwnerResourceSummary> success; // required
-    private NotAliveException e; // required
+    private AuthorizationException aze; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       SUCCESS((short)0, "success"),
-      E((short)1, "e");
+      AZE((short)1, "aze");
 
       private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
 
@@ -40124,8 +40124,8 @@ public class Nimbus {
         switch(fieldId) {
           case 0: // SUCCESS
             return SUCCESS;
-          case 1: // E
-            return E;
+          case 1: // AZE
+            return AZE;
           default:
             return null;
         }
@@ -40172,7 +40172,7 @@ public class Nimbus {
       tmpMap.put(_Fields.SUCCESS, new org.apache.thrift.meta_data.FieldMetaData("success", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.ListMetaData(org.apache.thrift.protocol.TType.LIST, 
               new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, OwnerResourceSummary.class))));
-      tmpMap.put(_Fields.E, new org.apache.thrift.meta_data.FieldMetaData("e", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+      tmpMap.put(_Fields.AZE, new org.apache.thrift.meta_data.FieldMetaData("aze", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRUCT)));
       metaDataMap = Collections.unmodifiableMap(tmpMap);
       org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(getOwnerResourceSummaries_result.class, metaDataMap);
@@ -40183,11 +40183,11 @@ public class Nimbus {
 
     public getOwnerResourceSummaries_result(
       List<OwnerResourceSummary> success,
-      NotAliveException e)
+      AuthorizationException aze)
     {
       this();
       this.success = success;
-      this.e = e;
+      this.aze = aze;
     }
 
     /**
@@ -40201,8 +40201,8 @@ public class Nimbus {
         }
         this.success = __this__success;
       }
-      if (other.is_set_e()) {
-        this.e = new NotAliveException(other.e);
+      if (other.is_set_aze()) {
+        this.aze = new AuthorizationException(other.aze);
       }
     }
 
@@ -40213,7 +40213,7 @@ public class Nimbus {
     @Override
     public void clear() {
       this.success = null;
-      this.e = null;
+      this.aze = null;
     }
 
     public int get_success_size() {
@@ -40254,26 +40254,26 @@ public class Nimbus {
       }
     }
 
-    public NotAliveException get_e() {
-      return this.e;
+    public AuthorizationException get_aze() {
+      return this.aze;
     }
 
-    public void set_e(NotAliveException e) {
-      this.e = e;
+    public void set_aze(AuthorizationException aze) {
+      this.aze = aze;
     }
 
-    public void unset_e() {
-      this.e = null;
+    public void unset_aze() {
+      this.aze = null;
     }
 
-    /** Returns true if field e is set (has been assigned a value) and false otherwise */
-    public boolean is_set_e() {
-      return this.e != null;
+    /** Returns true if field aze is set (has been assigned a value) and false otherwise */
+    public boolean is_set_aze() {
+      return this.aze != null;
     }
 
-    public void set_e_isSet(boolean value) {
+    public void set_aze_isSet(boolean value) {
       if (!value) {
-        this.e = null;
+        this.aze = null;
       }
     }
 
@@ -40287,11 +40287,11 @@ public class Nimbus {
         }
         break;
 
-      case E:
+      case AZE:
         if (value == null) {
-          unset_e();
+          unset_aze();
         } else {
-          set_e((NotAliveException)value);
+          set_aze((AuthorizationException)value);
         }
         break;
 
@@ -40303,8 +40303,8 @@ public class Nimbus {
       case SUCCESS:
         return get_success();
 
-      case E:
-        return get_e();
+      case AZE:
+        return get_aze();
 
       }
       throw new IllegalStateException();
@@ -40319,8 +40319,8 @@ public class Nimbus {
       switch (field) {
       case SUCCESS:
         return is_set_success();
-      case E:
-        return is_set_e();
+      case AZE:
+        return is_set_aze();
       }
       throw new IllegalStateException();
     }
@@ -40347,12 +40347,12 @@ public class Nimbus {
           return false;
       }
 
-      boolean this_present_e = true && this.is_set_e();
-      boolean that_present_e = true && that.is_set_e();
-      if (this_present_e || that_present_e) {
-        if (!(this_present_e && that_present_e))
+      boolean this_present_aze = true && this.is_set_aze();
+      boolean that_present_aze = true && that.is_set_aze();
+      if (this_present_aze || that_present_aze) {
+        if (!(this_present_aze && that_present_aze))
           return false;
-        if (!this.e.equals(that.e))
+        if (!this.aze.equals(that.aze))
           return false;
       }
 
@@ -40368,10 +40368,10 @@ public class Nimbus {
       if (present_success)
         list.add(success);
 
-      boolean present_e = true && (is_set_e());
-      list.add(present_e);
-      if (present_e)
-        list.add(e);
+      boolean present_aze = true && (is_set_aze());
+      list.add(present_aze);
+      if (present_aze)
+        list.add(aze);
 
       return list.hashCode();
     }
@@ -40394,12 +40394,12 @@ public class Nimbus {
           return lastComparison;
         }
       }
-      lastComparison = Boolean.valueOf(is_set_e()).compareTo(other.is_set_e());
+      lastComparison = Boolean.valueOf(is_set_aze()).compareTo(other.is_set_aze());
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (is_set_e()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.e, other.e);
+      if (is_set_aze()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.aze, other.aze);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -40432,11 +40432,11 @@ public class Nimbus {
       }
       first = false;
       if (!first) sb.append(", ");
-      sb.append("e:");
-      if (this.e == null) {
+      sb.append("aze:");
+      if (this.aze == null) {
         sb.append("null");
       } else {
-        sb.append(this.e);
+        sb.append(this.aze);
       }
       first = false;
       sb.append(")");
@@ -40501,11 +40501,11 @@ public class Nimbus {
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
-            case 1: // E
+            case 1: // AZE
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.e = new NotAliveException();
-                struct.e.read(iprot);
-                struct.set_e_isSet(true);
+                struct.aze = new AuthorizationException();
+                struct.aze.read(iprot);
+                struct.set_aze_isSet(true);
               } else { 
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
@@ -40535,9 +40535,9 @@ public class Nimbus {
           }
           oprot.writeFieldEnd();
         }
-        if (struct.e != null) {
-          oprot.writeFieldBegin(E_FIELD_DESC);
-          struct.e.write(oprot);
+        if (struct.aze != null) {
+          oprot.writeFieldBegin(AZE_FIELD_DESC);
+          struct.aze.write(oprot);
           oprot.writeFieldEnd();
         }
         oprot.writeFieldStop();
@@ -40561,7 +40561,7 @@ public class Nimbus {
         if (struct.is_set_success()) {
           optionals.set(0);
         }
-        if (struct.is_set_e()) {
+        if (struct.is_set_aze()) {
           optionals.set(1);
         }
         oprot.writeBitSet(optionals, 2);
@@ -40574,8 +40574,8 @@ public class Nimbus {
             }
           }
         }
-        if (struct.is_set_e()) {
-          struct.e.write(oprot);
+        if (struct.is_set_aze()) {
+          struct.aze.write(oprot);
         }
       }
 
@@ -40598,9 +40598,9 @@ public class Nimbus {
           struct.set_success_isSet(true);
         }
         if (incoming.get(1)) {
-          struct.e = new NotAliveException();
-          struct.e.read(iprot);
-          struct.set_e_isSet(true);
+          struct.aze = new AuthorizationException();
+          struct.aze.read(iprot);
+          struct.set_aze_isSet(true);
         }
       }
     }

@@ -1059,6 +1059,13 @@
     (catch KeyNotFoundException e
        (throw (NotAliveException. (str storm-id))))))
 
+;; used when we want o ignore the exception
+(defn try-read-storm-conf-or-nil [conf storm-id blob-store]
+  (try-cause
+    (read-storm-conf-as-nimbus conf storm-id blob-store)
+    (catch KeyNotFoundException e
+        nil)))
+
 (defn try-read-storm-conf-from-name [conf storm-name nimbus]
   (let [storm-cluster-state (:storm-cluster-state nimbus)
         blob-store (:blob-store nimbus)
@@ -1806,8 +1813,9 @@
                             storm-id->bases ;; all your bases are belong to us
                             (filter #(= owner (:owner (val %))) storm-id->bases))
               cluster-scheduler-config (.config (:scheduler nimbus))
-              owners-with-guarantees (zipmap (keys cluster-scheduler-config) (repeat []))
-              storm-conf (read-storm-config)
+              owners-with-guarantees (if (nil? owner)
+                                       (zipmap (keys cluster-scheduler-config) (repeat []))
+                                       {owner []})
               default-resources {:requested-mem-on-heap 0
                                  :requested-mem-off-heap 0
                                  :requested-cpu 0
@@ -1817,9 +1825,15 @@
               ;; for each owner, get resources, configs, and aggregate
               (for [[owner owner-bases] (merge-with concat (group-by #(:owner (val %)) query-bases) owners-with-guarantees)] 
                 (let [scheduler-config (get cluster-scheduler-config owner)
-                      resources (zipmap (keys owner-bases) 
-                                        (map #(get-resources-for-topology nimbus (key %) (val %)) owner-bases))
-                      ras-topos (filter #(Utils/isRAS storm-conf (try-read-storm-conf conf % blob-store)) (keys owner-bases))
+                      topo-confs (into {} 
+                                       (filter (comp some? val)
+                                         (into {} 
+                                           (map #(into {} {% (try-read-storm-conf-or-nil conf % blob-store)}) (keys owner-bases)))))
+                      resources (into {}
+                                      (map #(into {} {% (get-resources-for-topology nimbus % (get owner-bases %))})
+                                                  (keys topo-confs)))
+                      ras-topos (filter #(Utils/isRAS conf (topo-confs %)) 
+                                        (keys topo-confs))
                       ras-resources (select-keys resources ras-topos)
                       total-aggregates (if (empty? resources)
                                          default-resources

@@ -1652,8 +1652,8 @@ class Client(Iface):
     iprot.readMessageEnd()
     if result.success is not None:
       return result.success
-    if result.e is not None:
-      raise result.e
+    if result.aze is not None:
+      raise result.aze
     raise TApplicationException(TApplicationException.MISSING_RESULT, "getOwnerResourceSummaries failed: unknown result")
 
   def getTopology(self, id):
@@ -2785,9 +2785,9 @@ class Processor(Iface, TProcessor):
       msg_type = TMessageType.REPLY
     except (TTransport.TTransportException, KeyboardInterrupt, SystemExit):
       raise
-    except NotAliveException as e:
+    except AuthorizationException as aze:
       msg_type = TMessageType.REPLY
-      result.e = e
+      result.aze = aze
     except Exception as ex:
       msg_type = TMessageType.EXCEPTION
       logging.exception(ex)
@@ -8624,17 +8624,17 @@ class getOwnerResourceSummaries_result:
   """
   Attributes:
    - success
-   - e
+   - aze
   """
 
   thrift_spec = (
     (0, TType.LIST, 'success', (TType.STRUCT,(OwnerResourceSummary, OwnerResourceSummary.thrift_spec)), None, ), # 0
-    (1, TType.STRUCT, 'e', (NotAliveException, NotAliveException.thrift_spec), None, ), # 1
+    (1, TType.STRUCT, 'aze', (AuthorizationException, AuthorizationException.thrift_spec), None, ), # 1
   )
 
-  def __init__(self, success=None, e=None,):
+  def __init__(self, success=None, aze=None,):
     self.success = success
-    self.e = e
+    self.aze = aze
 
   def read(self, iprot):
     if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
@@ -8658,8 +8658,8 @@ class getOwnerResourceSummaries_result:
           iprot.skip(ftype)
       elif fid == 1:
         if ftype == TType.STRUCT:
-          self.e = NotAliveException()
-          self.e.read(iprot)
+          self.aze = AuthorizationException()
+          self.aze.read(iprot)
         else:
           iprot.skip(ftype)
       else:
@@ -8679,9 +8679,9 @@ class getOwnerResourceSummaries_result:
         iter713.write(oprot)
       oprot.writeListEnd()
       oprot.writeFieldEnd()
-    if self.e is not None:
-      oprot.writeFieldBegin('e', TType.STRUCT, 1)
-      self.e.write(oprot)
+    if self.aze is not None:
+      oprot.writeFieldBegin('aze', TType.STRUCT, 1)
+      self.aze.write(oprot)
       oprot.writeFieldEnd()
     oprot.writeFieldStop()
     oprot.writeStructEnd()
@@ -8693,7 +8693,7 @@ class getOwnerResourceSummaries_result:
   def __hash__(self):
     value = 17
     value = (value * 31) ^ hash(self.success)
-    value = (value * 31) ^ hash(self.e)
+    value = (value * 31) ^ hash(self.aze)
     return value
 
   def __repr__(self):
