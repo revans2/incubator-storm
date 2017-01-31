@@ -130,9 +130,9 @@ Sample response:
     }
 ```
 
-### /api/v1/owner/summary (GET)
+### /api/v1/owner-resources (GET)
 
-Returns summary information aggregated at the topology owner level.
+Returns summary information aggregated at the topology owner level. Pass an optional id for a specific owner (e.g. /api/v1/owner-resources/theowner)
 
 Response fields:
 
