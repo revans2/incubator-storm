@@ -257,7 +257,7 @@
                                     (exception-cause? InterruptedException error)
                                     (and
                                         (exception-cause? java.io.InterruptedIOException error)
-                                        (not (exception-cause? java.net.SocketTimeoutException))))
+                                        (not (exception-cause? java.net.SocketTimeoutException error))))
                                (log-message "Got interrupted exception shutting thread down...")
                                ((:suicide-fn <>))))
      :sampler (mk-stats-sampler storm-conf)
