@@ -178,6 +178,11 @@ worker.profiler.command: "flight.bash"
 worker.heartbeat.frequency.secs: 1
 # check whether dynamic log levels can be reset from DEBUG to INFO in workers
 worker.log.level.reset.poll.secs: 30
+worker.metrics:
+    "CGroupMemory": "org.apache.storm.metric.cgroup.CGroupMemoryUsage"
+    "CGroupMemoryLimit": "org.apache.storm.metric.cgroup.CGroupMemoryLimit"
+    "CGroupCpu": "org.apache.storm.metric.cgroup.CGroupCpu"
+    "CGroupCpuGuarantee": "org.apache.storm.metric.cgroup.CGroupCpuGuarantee"
 
 # control how many worker receiver threads we need per worker
 topology.worker.receiver.thread.count: 1
@@ -271,7 +276,6 @@ topology.worker.max.heap.size.mb: 768.0
 topology.scheduler.strategy: "backtype.storm.scheduler.resource.strategies.scheduling.MultitenantStrategy"
 resource.aware.scheduler.eviction.strategy: "backtype.storm.scheduler.resource.strategies.eviction.DefaultEvictionStrategy"
 resource.aware.scheduler.priority.strategy: "backtype.storm.scheduler.resource.strategies.priority.DefaultSchedulingPriorityStrategy"
-
 client.blobstore.class: "backtype.storm.blobstore.NimbusBlobStore"
 
 dev.zookeeper.path: "/tmp/dev-storm-zookeeper"
