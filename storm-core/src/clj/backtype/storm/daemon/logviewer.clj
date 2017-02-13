@@ -334,6 +334,7 @@
                              (conf NIMBUS-ADMINS)
                              user-wl)
           logs-groups (concat (conf LOGS-GROUPS)
+                              (conf NIMBUS-ADMINS-GROUPS)
                               group-wl)]
        (or (some #(= % user) logs-users)
            (< 0 (.size (intersection (set groups) (set group-wl))))))))

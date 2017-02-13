@@ -17,6 +17,7 @@
  */
 package backtype.storm.blobstore;
 
+import java.io.IOException;
 import java.security.Principal;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -34,6 +35,7 @@ import backtype.storm.generated.SettableBlobMeta;
 import backtype.storm.security.auth.NimbusPrincipal;
 import backtype.storm.security.auth.AuthUtils;
 import backtype.storm.security.auth.IPrincipalToLocal;
+import backtype.storm.security.auth.IGroupMappingServiceProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -44,6 +46,7 @@ import org.slf4j.LoggerFactory;
 public class BlobStoreAclHandler {
   public static final Logger LOG = LoggerFactory.getLogger(BlobStoreAclHandler.class);
   private final IPrincipalToLocal _ptol;
+  private final IGroupMappingServiceProvider _groupMappingProvider;
 
   public static final int READ = 0x01;
   public static final int WRITE = 0x02;
@@ -53,17 +56,23 @@ public class BlobStoreAclHandler {
   public static final List<AccessControl> DEFAULT = new ArrayList<AccessControl>();
   private Set<String> _supervisors;
   private Set<String> _admins;
+  private Set<String> _adminsGroups;
   private boolean doAclValidation;
 
   public BlobStoreAclHandler(Map conf) {
     _ptol = AuthUtils.GetPrincipalToLocalPlugin(conf);
+    _groupMappingProvider = AuthUtils.GetGroupMappingServiceProviderPlugin(conf);
     _supervisors = new HashSet<String>();
     _admins = new HashSet<String>();
+    _adminsGroups = new HashSet<String>();
     if (conf.containsKey(Config.NIMBUS_SUPERVISOR_USERS)) {
       _supervisors.addAll((List<String>)conf.get(Config.NIMBUS_SUPERVISOR_USERS));
     }
     if (conf.containsKey(Config.NIMBUS_ADMINS)) {
       _admins.addAll((List<String>)conf.get(Config.NIMBUS_ADMINS));
+    }
+    if (conf.containsKey(Config.NIMBUS_ADMINS_GROUPS)) {
+      _adminsGroups.addAll((List<String>)conf.get(Config.NIMBUS_ADMINS_GROUPS));
     }
     if (conf.containsKey(Config.STORM_BLOBSTORE_ACL_VALIDATION_ENABLED)) {
         doAclValidation = (boolean)conf.get(Config.STORM_BLOBSTORE_ACL_VALIDATION_ENABLED);
@@ -197,6 +206,22 @@ public class BlobStoreAclHandler {
       if (_admins.contains(u)) {
         isAdmin = true;
         break;
+      }
+      if (_adminsGroups.size() > 0 && _groupMappingProvider != null) {
+        Set<String> userGroups = null;
+        try {
+          userGroups = _groupMappingProvider.getGroups(u);
+        } catch(IOException e) {
+          LOG.warn("Error while trying to fetch user groups",e);
+        }
+        if (userGroups !=null) {
+          for (String tgroup : userGroups) {
+            if (_adminsGroups.contains(tgroup)){
+              isAdmin = true;
+              break;
+            }
+          }
+        }
       }
     }
     if (mask > 0 && !isAdmin) {

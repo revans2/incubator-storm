@@ -68,6 +68,7 @@ public class SimpleACLAuthorizer implements IAuthorizer {
             "uploadNewCredentials"));
 
     protected Set<String> _admins;
+    protected Set<String> _adminsGroups;
     protected Set<String> _supervisors;
     protected Set<String> _nimbusUsers;
     protected Set<String> _nimbusGroups;
@@ -80,12 +81,17 @@ public class SimpleACLAuthorizer implements IAuthorizer {
     @Override
     public void prepare(Map conf) {
         _admins = new HashSet<String>();
+        _adminsGroups = new HashSet<String>();
         _supervisors = new HashSet<String>();
         _nimbusUsers = new HashSet<String>();
         _nimbusGroups = new HashSet<String>();
 
         if (conf.containsKey(Config.NIMBUS_ADMINS)) {
             _admins.addAll((Collection<String>)conf.get(Config.NIMBUS_ADMINS));
+        }
+
+        if (conf.containsKey(Config.NIMBUS_ADMINS_GROUPS)) {
+            _adminsGroups.addAll((Collection<String>)conf.get(Config.NIMBUS_ADMINS_GROUPS));
         }
 
         if (conf.containsKey(Config.NIMBUS_SUPERVISOR_USERS)) {
@@ -125,7 +131,7 @@ public class SimpleACLAuthorizer implements IAuthorizer {
             }
         }
 
-        if (_admins.contains(principal) || _admins.contains(user)) {
+        if (_admins.contains(principal) || _admins.contains(user) || checkUserGroupAllowed(userGroups, _adminsGroups)) {
             return true;
         }
 
