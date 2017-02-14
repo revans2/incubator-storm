@@ -61,7 +61,11 @@ public class BlobStoreAclHandler {
 
   public BlobStoreAclHandler(Map conf) {
     _ptol = AuthUtils.GetPrincipalToLocalPlugin(conf);
-    _groupMappingProvider = AuthUtils.GetGroupMappingServiceProviderPlugin(conf);
+    if (conf.get(Config.STORM_GROUP_MAPPING_SERVICE_PROVIDER_PLUGIN) != null) {
+      _groupMappingProvider = AuthUtils.GetGroupMappingServiceProviderPlugin(conf);
+    } else {
+      _groupMappingProvider = null;
+    }
     _supervisors = new HashSet<String>();
     _admins = new HashSet<String>();
     _adminsGroups = new HashSet<String>();
@@ -222,6 +226,7 @@ public class BlobStoreAclHandler {
             }
           }
         }
+        if (isAdmin) break;
       }
     }
     if (mask > 0 && !isAdmin) {
