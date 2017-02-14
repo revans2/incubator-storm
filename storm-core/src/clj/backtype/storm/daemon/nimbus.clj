@@ -2212,7 +2212,7 @@
               assigned-topology-ids (.assignments storm-cluster-state nil)
               user-group-match-fn (fn [topo-id user conf]
                                     (let [topology-conf (try-read-storm-conf conf topo-id (:blob-store nimbus))
-                                          groups (concat (:conf NIMBUS-ADMINS-GROUPS) (get-topo-logs-groups topology-conf))]
+                                          groups (concat (conf NIMBUS-ADMINS-GROUPS) (get-topo-logs-groups topology-conf))]
                                       (or (nil? user)
                                           (some #(= % user) admin-users)
                                           (does-users-group-intersect? user groups conf)
