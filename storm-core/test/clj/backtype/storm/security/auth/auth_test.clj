@@ -27,6 +27,7 @@
   (:import [backtype.storm Config])
   (:import [backtype.storm.generated AuthorizationException])
   (:import [backtype.storm.utils NimbusClient])
+  (:import [backtype.storm.security.auth FixedGroupsMapping FixedGroupsMapping])
   (:import [backtype.storm.security.auth.authorizer SimpleWhitelistAuthorizer SimpleACLAuthorizer])
   (:import [backtype.storm.security.auth AuthUtils ThriftServer ThriftClient ShellBasedGroupsMapping 
             ReqContext SimpleTransportPlugin KerberosPrincipalToLocal ThriftConnectionType])
@@ -289,6 +290,25 @@
                             {NIMBUS-ADMINS ["admin"]
                              NIMBUS-SUPERVISOR-USERS ["supervisor"]
                              NIMBUS-USERS ["user-a"]})
+        authorizer (SimpleACLAuthorizer. )
+        admin-user (mk-subject "admin")
+        supervisor-user (mk-subject "supervisor")
+        user-a (mk-subject "user-a")
+        user-b (mk-subject "user-b")]
+    (.prepare authorizer cluster-conf)
+    (is (= true (.permit authorizer (ReqContext. user-a) "submitTopology" {})))
+    (is (= false (.permit authorizer (ReqContext. user-b) "submitTopology" {})))
+    (is (= true (.permit authorizer (ReqContext. admin-user) "fileUpload" nil)))
+    (is (= true (.permit authorizer (ReqContext. supervisor-user) "fileDownload" nil)))))
+
+(deftest simple-acl-nimbus-groups-auth-test
+  (let [cluster-conf (merge (read-storm-config)
+                            {NIMBUS-ADMINS-GROUPS ["admin-group"]
+                             NIMBUS-SUPERVISOR-USERS ["supervisor"]
+                             NIMBUS-USERS ["user-a"]
+                             STORM-GROUP-MAPPING-SERVICE-PROVIDER-PLUGIN "backtype.storm.security.auth.FixedGroupsMapping"
+                             STORM-GROUP-MAPPING-SERVICE-PARAMS { FixedGroupsMapping/STORM_FIXED_GROUP_MAPPING
+                                                                  {"admin" #{"admin-group"}}}})
         authorizer (SimpleACLAuthorizer. )
         admin-user (mk-subject "admin")
         supervisor-user (mk-subject "supervisor")
