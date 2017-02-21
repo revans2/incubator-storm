@@ -191,8 +191,7 @@
   (mark! pacemaker:delete-path)
   (let [prefix (if (= \/ (last path)) path (str path "/"))]
     (doseq [k (.keySet heartbeats)
-            :when (or (= (.indexOf k prefix) 0)
-                      (= (.indexOf (str k "/") prefix) 0))]
+            :when (= (.indexOf (str k "/") prefix) 0)]
       (delete-pulse-id k heartbeats)))
   (HBMessage. HBServerMessageType/DELETE_PATH_RESPONSE nil))
 
