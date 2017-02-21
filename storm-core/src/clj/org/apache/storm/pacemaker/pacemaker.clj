@@ -193,7 +193,8 @@
     (log-debug (str "Prefix: " prefix))
     (log-debug (str "Keyset: " (pr-str (.keySet heartbeats))))
     (doseq [k (.keySet heartbeats)
-            :when (= (.indexOf k prefix) 0)]
+            :when (or (= (.indexOf k prefix) 0)
+                      (= (.indexOf (str k "/") prefix) 0))]
       (delete-pulse-id k heartbeats)))
   (HBMessage. HBServerMessageType/DELETE_PATH_RESPONSE nil))
 
