@@ -547,6 +547,12 @@ public class Config extends HashMap<String, Object> {
     public static final String NIMBUS_ADMINS = "nimbus.admins";
 
     /**
+     * A list of groups that are cluster admins and can run any command.
+     */
+    @isStringList
+    public static final String NIMBUS_ADMINS_GROUPS = "nimbus.admins.groups";
+
+    /**
      * A list of users that are the only ones allowed to run user operation on storm cluster.
      * To use this set nimbus.authorizer to backtype.storm.security.auth.authorizer.SimpleACLAuthorizer
      */
