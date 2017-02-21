@@ -211,8 +211,7 @@
                               @pacemaker-client-pool)]
              (when (every? (fn [result] (= :error result)) results)
                (throw (HBExecutionException. "Cannot connect to any pacemaker servers"))))
-          (fn delete_worker_hb_error [err]
-            (shutdown-rotate servers pacemaker-client-pool))))
+          nil))
 
       ;; aggregating worker heartbeat details
       (get_worker_hb [this path watch?]
