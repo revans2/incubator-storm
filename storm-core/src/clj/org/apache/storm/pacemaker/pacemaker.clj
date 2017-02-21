@@ -190,8 +190,6 @@
 (defn delete-path [^String path heartbeats]
   (mark! pacemaker:delete-path)
   (let [prefix (if (= \/ (last path)) path (str path "/"))]
-    (log-debug (str "Prefix: " prefix))
-    (log-debug (str "Keyset: " (pr-str (.keySet heartbeats))))
     (doseq [k (.keySet heartbeats)
             :when (or (= (.indexOf k prefix) 0)
                       (= (.indexOf (str k "/") prefix) 0))]
