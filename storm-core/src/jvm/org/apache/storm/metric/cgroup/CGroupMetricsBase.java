@@ -19,6 +19,7 @@ package org.apache.storm.metric.cgroup;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.util.Map;
 
@@ -94,6 +95,9 @@ public abstract class CGroupMetricsBase<T> implements IMetric {
         }
         try {
             return getDataFrom(core);
+        } catch (FileNotFoundException ioe) {
+            // Ignore this exception
+            return null;
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
