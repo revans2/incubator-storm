@@ -122,9 +122,12 @@
   [stats stream amt]
   (.incBy ^MultiCountStatAndMetric (stats-transferred stats) ^Object stream ^long (* (stats-rate stats) amt)))
 
+(defn internalize-str [^String key]
+  (.intern ^String key))
+
 (defn bolt-execute-tuple!
   [^BoltExecutorStats stats component stream latency-ms]
-  (let [key [component stream]
+  (let [key [(internalize-str component) (internalize-str stream)]
         ^MultiCountStatAndMetric executed (stats-executed stats)
         ^MultiLatencyStatAndMetric exec-lat (stats-execute-latencies stats)]
     (.incBy executed key (stats-rate stats))
@@ -132,7 +135,7 @@
 
 (defn bolt-acked-tuple!
   [^BoltExecutorStats stats component stream latency-ms]
-  (let [key [component stream]
+  (let [key [(internalize-str component) (internalize-str stream)]
         ^MultiCountStatAndMetric acked (stats-acked stats)
         ^MultiLatencyStatAndMetric process-lat (stats-process-latencies stats)]
     (.incBy acked key (stats-rate stats))
@@ -140,7 +143,7 @@
 
 (defn bolt-failed-tuple!
   [^BoltExecutorStats stats component stream latency-ms]
-  (let [key [component stream]
+  (let [key [(internalize-str component) (internalize-str stream)]
         ^MultiCountStatAndMetric failed (stats-failed stats)]
     (.incBy failed key (stats-rate stats))))
 
@@ -234,10 +237,10 @@
 
 (defn to-global-stream-id
   [[component stream]]
-  (GlobalStreamId. component stream))
+  (GlobalStreamId. (internalize-str component) (internalize-str stream)))
 
 (defn from-global-stream-id [global-stream-id]
-  [(.get_componentId global-stream-id) (.get_streamId global-stream-id)])
+  [(internalize-str (.get_componentId global-stream-id)) (internalize-str (.get_streamId global-stream-id))])
 
 (defmethod clojurify-specific-stats BoltStats [^BoltStats stats]
   [(window-set-converter (.get_acked stats) from-global-stream-id identity)
