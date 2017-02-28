@@ -131,7 +131,9 @@ $(document).ready(function() {
                                 withCredentials: true
                             },
                             success: $.proxy(function(data,status,jqXHR) {
-                                if(port == "*") {
+                                if(data.length == 0) {
+                                    render_file({}, this.host, logviewerPort, count, template);
+                                } else if(port == "*") {
                                     for(var by_port in data) {
                                         for(var i in data[by_port].matches) {
                                             render_file(data[by_port].matches[i], this.host, logviewerPort, count, template);
