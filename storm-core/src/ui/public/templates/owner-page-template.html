@@ -14,30 +14,30 @@
  See the License for the specific language governing permissions and
  limitations under the License.
 -->
-<script id="user-summary-template" type="text/html">
-    <table id="user-summary-table" class="table compact">
+<script id="owner-summary-template" type="text/html">
+    <table id="owner-summary-table" class="table compact">
         <thead>
         <tr>
             <th>
-                User Name
+                Owner
             </th>
             <th>
-                <span data-toggle="tooltip" data-placement="above" title="Total number of topologies owned by user.">
+                <span data-toggle="tooltip" data-placement="above" title="Total number of topologies owned by owner.">
                     Total Topologies
                 </span>
             </th>
             <th>
-                <span data-toggle="tooltip" data-placement="above" title="Total number of tasks used by user.)">
+                <span data-toggle="tooltip" data-placement="above" title="Total number of tasks used by owner.">
                     Total Tasks
                 </span>
             </th>
             <th>
-                <span data-toggle="tooltip" data-placement="above" title="Total number of executors used by user.">
+                <span data-toggle="tooltip" data-placement="above" title="Total number of executors used by owner.">
                     Total Executors
                 </span>
             </th>
             <th>
-                <span data-toggle="tooltip" data-placement="above" title="Total number of workers used by user.">
+                <span data-toggle="tooltip" data-placement="above" title="Total number of workers used by owner.">
                     Total Workers
                 </span>
             </th>
@@ -45,7 +45,7 @@
         </thead>
         <tbody>
         <tr>
-            <td>{{userId}}</td>
+            <td>{{owner}}</td>
             <td>{{totalTopologies}}</td>
             <td>{{totalTasks}}</td>
             <td>{{totalExecutors}}</td>
@@ -55,8 +55,8 @@
     </table>
 </script>
 
-<script id="user-resource-usage-template" type="text/html">
-    <table id="user-resource-usage-table" class="table compact">
+<script id="owner-resource-usage-template" type="text/html">
+    <table id="owner-resource-usage-table" class="table compact">
         <thead>
         <tr>
             <th>
@@ -80,17 +80,17 @@
                 </span>
             </th>
             <th>
-                <span data-toggle="tooltip" data-placement="top" title="Total On-Heap Memory Assigned on behalf of user in MB.">
+                <span data-toggle="tooltip" data-placement="top" title="Total On-Heap Memory Assigned on behalf of owner in MB.">
                     Total Assigned On-Heap Mem (MB)
                 </span>
             </th>
             <th>
-                <span data-toggle="tooltip" data-placement="top" title="Total Off-Heap Memory Assigned on behalf of user in MB.">
+                <span data-toggle="tooltip" data-placement="top" title="Total Off-Heap Memory Assigned on behalf of owner in MB.">
                     Total Assigned Off-Heap Mem (MB)
                 </span>
             </th>
             <th>
-                <span data-toggle="tooltip" data-placement="top" title="Total Memory Assigned on behalf of user in MB.">
+                <span data-toggle="tooltip" data-placement="top" title="Total Memory Assigned on behalf of owner in MB.">
                     Total Assigned Mem (MB)
                 </span>
             </th>
@@ -109,24 +109,24 @@
             <td>{{totalReqCpu}}</td>
             <td>{{totalAssignedOnHeapMem}}</td>
             <td>{{totalAssignedOffHeapMem}}</td>
-            <td>{{totalAssignedMem}}</td>
-            <td>{{totalAssignedCpu}}</td>
+            <td>{{totalMemoryUsage}}</td>
+            <td>{{totalCpuUsage}}</td>
         </tr>
         </tbody>
     </table>
 </script>
 
-<script id="user-resource-guarantee-template" type="text/html">
-    <table id="user-resource-guarantee-table" class="table compact">
+<script id="owner-resource-guarantee-template" type="text/html">
+    <table id="owner-resource-guarantee-table" class="table compact">
         <thead>
         <tr>
             <th>
-                <span data-toggle="tooltip" data-placement="top" title="The amount of CPU resource (every 100 means 1 core) guaranteed to user.">
+                <span data-toggle="tooltip" data-placement="top" title="The amount of CPU resource (every 100 means 1 core) guaranteed to owner.">
                     CPU Guarantee (%)
                 </span>
             </th>
             <th>
-                <span data-toggle="tooltip" data-placement="top" title="The amount of CPU resource (every 100 means 1 core) used by user.">
+                <span data-toggle="tooltip" data-placement="top" title="The amount of CPU resource (every 100 means 1 core) used by owner.">
                     CPU Usage (%)
                 </span>
             </th>
@@ -147,12 +147,12 @@
         <thead>
         <tr>
             <th>
-                <span data-toggle="tooltip" data-placement="top" title="The amount of memory resource (in MB) guaranteed to user.">
+                <span data-toggle="tooltip" data-placement="top" title="The amount of memory resource (in MB) guaranteed to owner.">
                     Memory Guarantee (MB)
                 </span>
             </th>
             <th>
-                <span data-toggle="tooltip" data-placement="top" title="The amount of memory resource (in MB) used by user.">
+                <span data-toggle="tooltip" data-placement="top" title="The amount of memory resource (in MB) used by owner.">
                     Memory Usage (MB)
                 </span>
             </th>
@@ -173,8 +173,8 @@
     </table>
 </script>
 
-<script id="user-topology-summary-template" type="text/html">
-    <table id="user-topology-summary-table" class="table table-striped compact">
+<script id="owner-topology-summary-template" type="text/html">
+    <table id="owner-topology-summary-table" class="table table-striped compact">
         <thead>
         <tr>
             <th>
@@ -183,7 +183,7 @@
                 </span>
             </th>
             <th>
-                <span data-toggle="tooltip" data-placement="top" title="The user that submitted the Topology, if authentication is enabled.">
+                <span data-toggle="tooltip" data-placement="top" title="The owner that submitted the Topology, if authentication is enabled.">
                     Owner
                 </span>
             </th>
@@ -235,7 +235,7 @@
         {{#topologies}}
         <tr>
             <td><a href="/topology.html?id={{encodedId}}">{{name}}</a></td>
-            <td><a href="/user.html?id={{owner}}">{{owner}}</a></td>
+            <td><a href="/owner.html?id={{owner}}">{{owner}}</a></td>
             <td>{{status}}</td>
             <td>{{uptime}}</td>
             <td>{{workersTotal}}</td>

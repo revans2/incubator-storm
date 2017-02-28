@@ -41,7 +41,7 @@
                                      ReadableBlobMeta RebalanceOptions SubmitOptions SupervisorSummary StormTopology
                                      WorkerSummary SettableBlobMeta TopologyHistoryInfo TopologyInfo TopologyInitialStatus
                                      TopologyPageInfo TopologyStats TopologySummary
-                                     ProfileRequest ProfileAction NodeInfo ComponentType])
+                                     ProfileRequest ProfileAction NodeInfo ComponentType OwnerResourceSummary])
   (:import [backtype.storm.blobstore AtomicOutputStream
                                      BlobStore
                                      BlobStoreAclHandler
@@ -101,6 +101,7 @@
 (defmeter nimbus:num-getTopologyHistory-calls)
 (defmeter nimbus:num-setWorkerProfiler-calls)
 (defmeter nimbus:num-getSupervisorPageInfo-calls)
+(defmeter nimbus:num-getOwnerResourceSummaries-calls)
 
 (def STORM-VERSION (VersionInfo/getVersion))
 
@@ -1058,6 +1059,13 @@
     (catch KeyNotFoundException e
        (throw (NotAliveException. (str storm-id))))))
 
+;; used when we want o ignore the exception
+(defn try-read-storm-conf-or-nil [conf storm-id blob-store]
+  (try-cause
+    (read-storm-conf-as-nimbus conf storm-id blob-store)
+    (catch KeyNotFoundException e
+        nil)))
+
 (defn try-read-storm-conf-from-name [conf storm-name nimbus]
   (let [storm-cluster-state (:storm-cluster-state nimbus)
         blob-store (:blob-store nimbus)
@@ -1794,6 +1802,92 @@
               storm-name (topology-conf TOPOLOGY-NAME)]
               (check-authorization! nimbus storm-name topology-conf "getTopologyConf")
               (to-json topology-conf)))
+
+      (^List getOwnerResourceSummaries [this ^String owner]
+        (mark! nimbus:num-getOwnerResourceSummaries-calls)
+        (let [_ (check-authorization! nimbus nil nil "getOwnerResourceSummaries")
+              storm-cluster-state (:storm-cluster-state nimbus)
+              assignments (topology-assignments storm-cluster-state)
+              storm-id->bases (into {} (topology-bases storm-cluster-state))
+              query-bases (if (nil? owner)
+                            storm-id->bases ;; all your bases are belong to us
+                            (filter #(= owner (:owner (val %))) storm-id->bases))
+              cluster-scheduler-config (.config (:scheduler nimbus))
+              owners-with-guarantees (if (nil? owner)
+                                       (zipmap (keys cluster-scheduler-config) (repeat []))
+                                       {owner []})
+              default-resources {:requested-mem-on-heap 0
+                                 :requested-mem-off-heap 0
+                                 :requested-cpu 0
+                                 :assigned-mem-on-heap 0
+                                 :assigned-mem-off-heap 0
+                                 :assigned-cpu 0}]
+              ;; for each owner, get resources, configs, and aggregate
+              (for [[owner owner-bases] (merge-with concat (group-by #(:owner (val %)) query-bases) owners-with-guarantees)] 
+                (let [scheduler-config (get cluster-scheduler-config owner)
+                      topo-confs (into {} 
+                                       (filter (comp some? val)
+                                         (into {} 
+                                           (map #(into {} {% (try-read-storm-conf-or-nil conf % blob-store)}) (keys owner-bases)))))
+                      resources (into {}
+                                      (map #(into {} {% (get-resources-for-topology nimbus % (get owner-bases %))})
+                                                  (keys topo-confs)))
+                      ras-topos (filter #(Utils/isRAS conf (topo-confs %)) 
+                                        (keys topo-confs))
+                      ras-resources (select-keys resources ras-topos)
+                      total-aggregates (if (empty? resources)
+                                         default-resources
+                                         (apply merge-with + (vals resources)))
+                      ras-aggregates (if (empty? ras-resources)
+                                       default-resources
+                                       (apply merge-with + (vals ras-resources)))
+                      requested-total-memory (+ (:requested-mem-on-heap total-aggregates)
+                                                (:requested-mem-off-heap total-aggregates))
+                      assigned-total-memory (+ (:assigned-mem-on-heap total-aggregates)
+                                               (:assigned-mem-off-heap total-aggregates)) 
+                      assigned-ras-total-memory (+ (:assigned-mem-on-heap ras-aggregates)
+                                                   (:assigned-mem-off-heap ras-aggregates))
+                      total-cpu (:assigned-cpu total-aggregates)
+                      ras-total-cpu (:assigned-cpu ras-aggregates)
+                      owner-assignments (map #(get assignments (first %)) owner-bases) 
+                      total-executors (reduce + (flatten (map #(->> (:executor->node+port %) keys count) owner-assignments)))
+                      total-workers (reduce + (flatten (map #(->> (:executor->node+port %) vals set count) owner-assignments)))
+                      total-tasks (reduce + (flatten (map #(->> (:executor->node+port %) keys (mapcat executor-id->tasks) count) owner-assignments)))
+                      memory-guarantee (get-in scheduler-config ["ResourceAwareScheduler" "memory"])
+                      cpu-guarantee (get-in scheduler-config ["ResourceAwareScheduler" "cpu"])
+                      isolated-nodes (get-in scheduler-config ["MultitenantScheduler"])
+                      memory-guarantee-remaining (- (or memory-guarantee 0)
+                                                    (or assigned-ras-total-memory 0))
+                      cpu-guarantee-remaining (- (or cpu-guarantee 0) 
+                                                 (or ras-total-cpu 0))
+                      summary (doto (OwnerResourceSummary. owner)
+                                (.set_total_topologies (count owner-bases))
+                                (.set_total_executors total-executors)
+                                (.set_total_workers total-workers)
+                                (.set_memory_usage assigned-total-memory)
+                                (.set_cpu_usage total-cpu)
+                                (.set_total_tasks total-tasks) 
+                                (.set_requested_on_heap_memory (:requested-mem-on-heap total-aggregates))
+                                (.set_requested_off_heap_memory (:requested-mem-off-heap total-aggregates))
+                                (.set_requested_total_memory requested-total-memory)
+                                (.set_requested_cpu (:requested-cpu total-aggregates))
+                                (.set_assigned_on_heap_memory (:assigned-mem-on-heap total-aggregates))
+                                (.set_assigned_off_heap_memory (:assigned-mem-off-heap total-aggregates))
+                                (.set_assigned_ras_total_memory assigned-ras-total-memory)
+                                (.set_assigned_ras_cpu ras-total-cpu))]
+
+                      (when memory-guarantee
+                        (.set_memory_guarantee summary memory-guarantee)
+                        (.set_memory_guarantee_remaining summary memory-guarantee-remaining))
+
+                      (when cpu-guarantee
+                        (.set_cpu_guarantee summary cpu-guarantee)
+                        (.set_cpu_guarantee_remaining summary cpu-guarantee-remaining))
+
+                      (when isolated-nodes
+                        (.set_isolated_node_guarantee summary isolated-nodes))
+
+                      summary))))
 
       (^StormTopology getTopology [this ^String id]
         (mark! nimbus:num-getTopology-calls)
