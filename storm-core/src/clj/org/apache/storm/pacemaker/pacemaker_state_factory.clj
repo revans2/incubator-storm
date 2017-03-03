@@ -201,14 +201,14 @@
           max-retries
           "delete-worker-hb"
           #(let [pacemaker-client-pool (makeClientPool conf pacemaker-client-pool servers)
-                 results (map (fn [[host client]]
-                                (try
-                                  (if (is-connection-ready client)
-                                    (delete-worker-hb path client)
-                                    :error)
-                                  (catch Exception e
-                                    :error)))
-                              @pacemaker-client-pool)]
+                 results (doall (map (fn [[host client]]
+                                       (try
+                                         (if (is-connection-ready client)
+                                           (delete-worker-hb path client)
+                                           :error)
+                                         (catch Exception e
+                                           :error)))
+                                     @pacemaker-client-pool))]
              (when (every? (fn [result] (= :error result)) results)
                (throw (HBExecutionException. "Cannot connect to any pacemaker servers"))))
           nil))
@@ -219,18 +219,18 @@
           max-retries
           "get-worker-hb"
           #(let [pacemaker-client-pool (makeClientPool conf pacemaker-client-pool servers)
-                 results (map (fn [[host client]]
-                                (try
-                                  (if (is-connection-ready client)
-                                    (get-worker-hb path client)
-                                    (do
-                                      (log-error (HBExecutionException.) "Connection not ready for host " client)
-                                      :error))
-                                  (catch Exception e
-                                    (do
-                                      (log-error e "Error getting worker heartbeat for host " host client)
-                                      :error))))
-                              @pacemaker-client-pool)]
+                 results (doall (map (fn [[host client]]
+                                       (try
+                                         (if (is-connection-ready client)
+                                           (get-worker-hb path client)
+                                           (do
+                                             (log-error (HBExecutionException.) "Connection not ready for host " client)
+                                             :error))
+                                         (catch Exception e
+                                           (do
+                                             (log-error e "Error getting worker heartbeat for host " host client)
+                                             :error))))
+                                     @pacemaker-client-pool))]
              (if (every? (fn [result] (= :error result)) results)
                (throw (HBExecutionException. "Cannot connect to any pacemaker servers"))
                (->> results
@@ -249,18 +249,18 @@
           max-retries
           "get_worker_hb_children"
           #(let [pacemaker-client-pool (makeClientPool conf pacemaker-client-pool servers)
-                 results (map (fn [[host client]]
-                                (try
-                                  (if (is-connection-ready client)
-                                    (get-worker-hb-children path client)
-                                    (do
-                                      (log-error (HBExecutionException.) "Connection not ready for host " client)
-                                      :error))
-                                  (catch Exception e
-                                    (do
-                                      (log-error e str "Error getting worker heartbeat children for host " client)
-                                      :error))))
-                              @pacemaker-client-pool)]
+                 results (doall (map (fn [[host client]]
+                                       (try
+                                         (if (is-connection-ready client)
+                                           (get-worker-hb-children path client)
+                                           (do
+                                             (log-error (HBExecutionException.) "Connection not ready for host " client)
+                                             :error))
+                                         (catch Exception e
+                                           (do
+                                             (log-error e str "Error getting worker heartbeat children for host " client)
+                                             :error))))
+                                     @pacemaker-client-pool))]
              ;; If all connections are throwing exceptions or not ready we throw exception up the stack
              (if (every? (fn [result] (= :error result)) results)
                (throw (HBExecutionException. "Cannot connect to any pacemaker servers"))
