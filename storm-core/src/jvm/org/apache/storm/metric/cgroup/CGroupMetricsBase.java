@@ -84,6 +84,13 @@ public abstract class CGroupMetricsBase<T> implements IMetric {
             LOG.warn("{} is disabled error trying to read or parse {}", simpleName, cgroupFile);
             return;
         }
+
+        try {
+            getDataFrom(core);
+        } catch (Exception e) {
+            LOG.warn("{} is disabled error trying to get the data {}", simpleName, e);
+            return; 
+        }
         enabled = true;
         LOG.info("{} is ENABLED {} exists...", simpleName);
     }
