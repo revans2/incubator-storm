@@ -86,12 +86,14 @@ public abstract class CGroupMetricsBase<T> implements IMetric {
         }
 
         try {
+            //enable for testing if this works (disable it again if it fails)
+            enabled = true;
             getDataFrom(core);
         } catch (Exception e) {
+            enabled = false;
             LOG.warn("{} is disabled error trying to get the data {}", simpleName, e);
-            return; 
+            return;
         }
-        enabled = true;
         LOG.info("{} is ENABLED {} exists...", simpleName);
     }
     
