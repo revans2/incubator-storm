@@ -631,7 +631,7 @@
         task->component (storm-task-info topology storm-conf)]
     (if (nil? component->executors)
       []
-      (->> (storm-task-info topology storm-conf)
+      (->> task->component
            reverse-map
            (map-val sort)
            (join-maps component->executors)
