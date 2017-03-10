@@ -54,6 +54,7 @@
   (:use [backtype.storm util config log timer local-state])
   (:require [backtype.storm [cluster :as cluster] [stats :as stats]])
   (:require [clojure.set :as set])
+  (:require [clojure.core.reducers :as reducers])
   (:import [backtype.storm.daemon.common StormBase Assignment])
   (:use [backtype.storm.daemon common])
   (:use [clojure.string :only [blank?]])
@@ -654,8 +655,8 @@
 
 (defn- compute-topology->executors [nimbus storm-ids]
   "compute a topology-id -> executors map"
-  (into {} (for [tid storm-ids]
-             {tid (set (compute-executors nimbus tid))})))
+  (into {} (reducers/map (fn [tid]
+             {tid (set (compute-executors nimbus tid))}) storm-ids)))
 
 (defn- compute-topology->alive-executors [nimbus existing-assignments topologies topology->executors scratch-topology-id]
   "compute a topology-id -> alive executors map"
@@ -940,8 +941,10 @@
         storm-cluster-state (:storm-cluster-state nimbus)
         ^INimbus inimbus (:inimbus nimbus)
         ;; read all the topologies
-        topologies (locking (:submit-lock nimbus) (into {} (for [tid (.active-storms storm-cluster-state)]
-                              {tid (read-topology-details nimbus tid)})))
+        topologies (locking (:submit-lock nimbus)
+                     (into {} (reducers/map
+                        (fn [tid] {tid (read-topology-details nimbus tid)})
+                        (.active-storms storm-cluster-state))))
         topologies (Topologies. topologies)
         ;; read all the assignments
         assigned-topology-ids (.assignments storm-cluster-state nil)
