@@ -327,8 +327,8 @@
 
 (defn storm-task-info
   "Returns map from task -> component id"
-  [^StormTopology user-topology storm-conf]
-  (->> (system-topology! storm-conf user-topology)
+  [^StormTopology system-topology storm-conf]
+  (->> system-topology
        all-components
        (map-val (comp #(get % TOPOLOGY-TASKS) component-conf))
        (sort-by first)
