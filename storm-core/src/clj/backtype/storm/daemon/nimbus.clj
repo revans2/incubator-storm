@@ -256,7 +256,7 @@
 
 (defn- read-storm-topology-as-nimbus [storm-id nimbus]
   (let [blob-store (:blob-store nimbus)
-        _ (if (nil? (get (:id->topology-code nimbus) storm-id))
+        _ (if (nil? (get @(:id->topology-code nimbus) storm-id))
             (swap! (:id->topology-code nimbus) assoc storm-id
                    (read-storm-topology-as-subject storm-id blob-store (get-nimbus-subject))))]
     (get @(:id->topology-code nimbus) storm-id)))
@@ -358,7 +358,7 @@
   {:active {:inactivate :inactive
             :activate nil
             :rebalance (rebalance-transition nimbus storm-id status)
-            :kill (kill-transition nimbus  storm-id)
+            :kill (kill-transition nimbus storm-id)
             }
    :inactive {:activate :active
               :inactivate nil
