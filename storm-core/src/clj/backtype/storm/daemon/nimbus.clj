@@ -230,12 +230,13 @@
 
 (defn get-system-topology [storm-conf ^StormTopology topology storm-id nimbus]
   (let [_ (if (nil? (get @(:id->system-topology nimbus) storm-id))
-            (swap! @(:id->system-topology nimbus) assoc storm-id (system-topology! storm-conf topology)) )]
+            (swap! (:id->system-topology nimbus) assoc storm-id (system-topology! storm-conf topology)) )]
     (get @(:id->system-topology nimbus) storm-id)))
 
 (defn get-key-seq-from-blob-store [blob-store]
   (let [key-iter (.listKeys blob-store nimbus-subject)]
     (iterator-seq key-iter)))
+
 
 (defn- get-nimbus-subject []
   (let [nimbus-subject (Subject.)
@@ -248,24 +249,24 @@
   (Utils/deserialize
     (.readBlob blob-store (master-stormcode-key storm-id) subject) StormTopology))
 
+(defn read-storm-conf-as-subject [conf storm-id blob-store subject]
+  (clojurify-structure
+    (Utils/fromCompressedJsonConf
+      (.readBlob blob-store (master-stormconf-key storm-id) subject))))
+
 (defn- read-storm-topology-as-nimbus [storm-id nimbus]
   (let [blob-store (:blob-store nimbus)
         _ (if (nil? (get (:id->topology-code nimbus) storm-id))
             (swap! (:id->topology-code nimbus) assoc storm-id
                    (read-storm-topology-as-subject storm-id blob-store (get-nimbus-subject))))]
-    (get (:id->topology-code nimbus) storm-id)))
+    (get @(:id->topology-code nimbus) storm-id)))
 
 (defn read-storm-conf-as-nimbus [conf storm-id nimbus]
   (let [blob-store (:blob-store nimbus)
         _ (if (nil? (get (:id->topology-conf nimbus) storm-id))
             (swap! (:id->topology-conf nimbus) assoc storm-id
                    (read-storm-conf-as-subject conf storm-id blob-store (get-nimbus-subject))))]
-    (get (:id->topology-conf nimbus) storm-id)))
-
-(defn read-storm-conf-as-subject [conf storm-id blob-store subject]
-  (clojurify-structure
-    (Utils/fromCompressedJsonConf
-      (.readBlob blob-store (master-stormconf-key storm-id) subject))))
+    (get @(:id->topology-conf nimbus) storm-id)))
 
 (defn try-read-storm-conf [conf storm-id nimbus]
   (try-cause
