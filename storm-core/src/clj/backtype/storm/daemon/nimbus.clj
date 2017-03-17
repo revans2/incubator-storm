@@ -545,17 +545,17 @@
   (let [blob-store (:blob-store nimbus)
         ^StormTopology topology (read-storm-topology-as-subject storm-id blob-store subject)]
     (ResourceUtils/updateStormTopologyResources topology resource-overrides)
-    (update-storm-code storm-id blob-store :topology topology :subject subject)
     (swap! (:id->topology-code nimbus) assoc storm-id topology)
-    (swap! (:id->topology-code nimbus) dissoc storm-id topology)))
+    (swap! (:id->system-topology nimbus) dissoc storm-id)
+    (update-storm-code storm-id blob-store :topology topology :subject subject)))
 
 (defn update-topology-config [nimbus storm-id topology-config-override subject]
   (let [blob-store (:blob-store nimbus)
         conf (:conf nimbus)
         current-config (read-storm-conf-as-subject conf storm-id blob-store subject)
         merged-config (merge current-config topology-config-override)]
-    (update-storm-code storm-id blob-store :topology-conf merged-config :subject subject)
-    (swap! (:id->topology-conf nimbus) assoc storm-id merged-config)))
+    (swap! (:id->topology-conf nimbus) assoc storm-id merged-config)
+    (update-storm-code storm-id blob-store :topology-conf merged-config :subject subject)))
 
 (defn update-blob-store [nimbus storm-id rebalance-options subject]
   (if (not (empty? (:component->resources rebalance-options)))
