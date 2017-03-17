@@ -1252,7 +1252,7 @@
                 }
         ]
       (stubbing [topology-bases bogus-bases]
-        (let [topos (.get_topologies (.getClusterInfo nimbus:q!
+        (let [topos (.get_topologies (.getClusterInfo nimbus
                                                       ))]
           ; The number of topologies in the summary is correct.
           (is (= (count 
