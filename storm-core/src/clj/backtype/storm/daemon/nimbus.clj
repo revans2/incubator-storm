@@ -232,11 +232,9 @@
             (swap! (:id->system-topology nimbus) assoc storm-id (system-topology! storm-conf topology)))
     (get @(:id->system-topology nimbus) storm-id))
 
-
 (defn get-key-seq-from-blob-store [blob-store]
   (let [key-iter (.listKeys blob-store nimbus-subject)]
     (iterator-seq key-iter)))
-
 
 (defn- get-nimbus-subject []
   (let [nimbus-subject (Subject.)
@@ -269,7 +267,7 @@
     (catch KeyNotFoundException e
       (throw (NotAliveException. (str storm-id))))))
 
-;; used when we want o ignore the exception
+;; used when we want to ignore the exception
 (defn try-read-storm-conf-or-nil [conf storm-id nimbus]
   (try-cause
     (read-storm-conf-as-nimbus conf storm-id nimbus)
@@ -280,7 +278,6 @@
   (let [storm-cluster-state (:storm-cluster-state nimbus)
         id (get-storm-id storm-cluster-state storm-name)]
     (try-read-storm-conf conf id nimbus)))
-
 
 (defn try-read-storm-topology [storm-id nimbus]
   (try-cause
