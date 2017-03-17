@@ -31,9 +31,9 @@
   (:use [backtype.storm testing MockAutoCred util config log timer])
   (:use [backtype.storm.daemon common])
   (:require [conjure.core])
-  (:require [backtype.storm
-             [thrift :as thrift]
-             [cluster :as cluster]])
+    (:require [backtype.storm
+               [thrift :as thrift]
+               [cluster :as cluster]] [backtype.storm.daemon.nimbus :as nimbus])
   (:use [conjure core]))
 
 (defn storm-component->task-info [cluster storm-name]
@@ -1174,6 +1174,7 @@
            (stubbing [nimbus/check-authorization! mock-check-authorization
                       nimbus/try-read-storm-conf expected-conf
                       nimbus/try-read-storm-topology nil
+                      nimbus/get-system-topology nil
                       storm-task-info nil
                       nimbus/all-supervisor-info {"super1" {:meta [1234], :uptime-secs 123}
                                                   "super2" {:meta [1234], :uptime-secs 123}}
@@ -1251,7 +1252,8 @@
                 }
         ]
       (stubbing [topology-bases bogus-bases]
-        (let [topos (.get_topologies (.getClusterInfo nimbus))]
+        (let [topos (.get_topologies (.getClusterInfo nimbus:q!
+                                                      ))]
           ; The number of topologies in the summary is correct.
           (is (= (count 
             (filter (fn [b] (second b)) bogus-bases)) (count topos)))
@@ -1400,9 +1402,9 @@
       (backpressure-topologies [this] bp-topos))))
 
 (deftest cleanup-storm-ids-returns-inactive-topos
-  (let [mock-state (mock-cluster-state (list "topo1") (list "topo1" "topo2" "topo3"))]
-    (stubbing [nimbus/code-ids {}] 
-    (is (= (nimbus/cleanup-storm-ids mock-state nil) #{"topo2" "topo3"})))))
+         (let [mock-state (mock-cluster-state (list "topo1") (list "topo1" "topo2" "topo3"))]
+              (stubbing [nimbus/code-ids {}]
+                        (is (= (nimbus/cleanup-storm-ids mock-state nil) #{"topo2" "topo3"})))))
 
 (deftest cleanup-storm-ids-performs-union-of-storm-ids-with-active-znodes
   (let [active-topos (list "hb1" "e2" "bp3")
@@ -1427,6 +1429,9 @@
 (deftest do-cleanup-removes-inactive-znodes
   (let [inactive-topos (list "topo2" "topo3")
         hb-cache (atom (into {}(map vector inactive-topos '(nil nil))))
+        conf-cache (atom (into {}(map vector inactive-topos '(nil nil))))
+        topo-cache (atom (into {}(map vector inactive-topos '(nil nil))))
+        sys-topo-cache (atom (into {}(map vector inactive-topos '(nil nil))))
         mock-state (mock-cluster-state)
         mock-blob-store {}
         conf {}
@@ -1434,7 +1439,10 @@
                 :submit-lock mock-blob-store 
                 :blob-store {}
                 :storm-cluster-state mock-state
-                :heartbeats-cache hb-cache}]
+                :heartbeats-cache hb-cache
+                :id->topology-code topo-cache
+                :id->topology-conf conf-cache
+                :id->system-topology sys-topo-cache}]
 
     (stubbing [nimbus/rm-from-blob-store nil
                nimbus/cleanup-storm-ids inactive-topos]
