@@ -1486,6 +1486,9 @@
 (deftest do-cleanup-does-not-teardown-active-topos
   (let [inactive-topos ()
         hb-cache (atom {"topo1" nil "topo2" nil})
+        conf-cache (atom {"topo1" nil "topo2" nil})
+        topo-cache (atom {"topo1" nil "topo2" nil})
+        sys-topo-cache (atom {"topo1" nil "topo2" nil})
         mock-state (mock-cluster-state)
         mock-blob-store {}
         conf {}
@@ -1493,6 +1496,9 @@
                 :submit-lock mock-blob-store 
                 :blob-store {}
                 :storm-cluster-state mock-state
+                :id->topology-code topo-cache
+                :id->topology-conf conf-cache
+                :id->system-topology sys-topo-cache
                 :heartbeats-cache hb-cache}]
 
     (stubbing [nimbus/rm-from-blob-store nil
