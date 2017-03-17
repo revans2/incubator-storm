@@ -1430,7 +1430,6 @@
   (let [inactive-topos (list "topo2" "topo3")
         hb-cache (atom (into {}(map vector inactive-topos '(nil nil))))
         conf-cache (atom (into {}(map vector inactive-topos '(nil nil))))
-        topo-cache (atom (into {}(map vector inactive-topos '(nil nil))))
         sys-topo-cache (atom (into {}(map vector inactive-topos '(nil nil))))
         mock-state (mock-cluster-state)
         mock-blob-store {}
@@ -1440,7 +1439,6 @@
                 :blob-store {}
                 :storm-cluster-state mock-state
                 :heartbeats-cache hb-cache
-                :id->topology-code topo-cache
                 :id->topology-conf conf-cache
                 :id->system-topology sys-topo-cache}]
 
@@ -1487,7 +1485,6 @@
   (let [inactive-topos ()
         hb-cache (atom {"topo1" nil "topo2" nil})
         conf-cache (atom {"topo1" nil "topo2" nil})
-        topo-cache (atom {"topo1" nil "topo2" nil})
         sys-topo-cache (atom {"topo1" nil "topo2" nil})
         mock-state (mock-cluster-state)
         mock-blob-store {}
@@ -1496,7 +1493,6 @@
                 :submit-lock mock-blob-store 
                 :blob-store {}
                 :storm-cluster-state mock-state
-                :id->topology-code topo-cache
                 :id->topology-conf conf-cache
                 :id->system-topology sys-topo-cache
                 :heartbeats-cache hb-cache}]

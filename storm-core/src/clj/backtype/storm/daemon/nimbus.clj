@@ -197,7 +197,6 @@
                                  ))
      :scheduler (mk-scheduler conf inimbus)
      :id->sched-status (atom {})
-     :id->topology-code (atom {}) ; cache of topolog code
      :id->topology-conf (atom {}) ; cache of topology conf
      :id->system-topology (atom {}) ; cache of system topology
      :node-id->resources (atom {}) ; resources of supervisors
@@ -256,10 +255,7 @@
       (.readBlob blob-store (master-stormconf-key storm-id) subject))))
 
 (defn- read-storm-topology-as-nimbus [storm-id nimbus]
-  (when (not (get @(:id->topology-code nimbus) storm-id))
-        (swap! (:id->topology-code nimbus) assoc storm-id
-              (read-storm-topology-as-subject storm-id (:blob-store nimbus) (get-nimbus-subject))))
-  (get @(:id->topology-code nimbus) storm-id))
+  (read-storm-topology-as-subject storm-id (:blob-store nimbus) (get-nimbus-subject)))
 
 (defn read-storm-conf-as-nimbus [conf storm-id nimbus]
   (when (not (get (:id->topology-conf nimbus) storm-id))
@@ -542,17 +538,18 @@
   (let [blob-store (:blob-store nimbus)
         ^StormTopology topology (read-storm-topology-as-subject storm-id blob-store subject)]
     (ResourceUtils/updateStormTopologyResources topology resource-overrides)
-    (swap! (:id->topology-code nimbus) assoc storm-id topology)
+    (update-storm-code storm-id blob-store :topology topology :subject subject)
     (swap! (:id->system-topology nimbus) dissoc storm-id)
-    (update-storm-code storm-id blob-store :topology topology :subject subject)))
+    nil))
 
 (defn update-topology-config [nimbus storm-id topology-config-override subject]
   (let [blob-store (:blob-store nimbus)
         conf (:conf nimbus)
         current-config (read-storm-conf-as-subject conf storm-id blob-store subject)
         merged-config (merge current-config topology-config-override)]
+    (update-storm-code storm-id blob-store :topology-conf merged-config :subject subject)
     (swap! (:id->topology-conf nimbus) assoc storm-id merged-config)
-    (update-storm-code storm-id blob-store :topology-conf merged-config :subject subject)))
+    nil))
 
 (defn update-blob-store [nimbus storm-id rebalance-options subject]
   (if (not (empty? (:component->resources rebalance-options)))
@@ -680,9 +677,12 @@
   (let [conf (:conf nimbus)
         blob-store (:blob-store nimbus)
         executors (compute-executors nimbus storm-id)
-        topology (read-storm-topology-as-nimbus storm-id nimbus)
         storm-conf (read-storm-conf-as-nimbus conf storm-id nimbus)
-        task->component (storm-task-info (get-system-topology storm-conf topology storm-id nimbus) storm-conf)
+        task->component (storm-task-info
+                          (get-system-topology storm-conf
+                                               (read-storm-topology-as-nimbus storm-id nimbus)
+                                               storm-id nimbus)
+                          storm-conf)
         executor->component (into {} (for [executor executors
                                            :let [start-task (first executor)
                                                  component (task->component start-task)]]
@@ -1223,7 +1223,6 @@
           (.teardown-topology-profiler-requests storm-cluster-state id)
           (.remove-backpressure! storm-cluster-state id)
           (rm-from-blob-store id blob-store)
-          (swap! (:id->topology-code nimbus) dissoc id)
           (swap! (:id->topology-conf nimbus) dissoc id)
           (swap! (:id->system-topology nimbus) dissoc id)
           (swap! (:heartbeats-cache nimbus) dissoc id))))))
@@ -1440,8 +1439,8 @@
                                           storm-name
                                           topology-conf
                                           operation)
-                  topology (try-read-storm-topology storm-id nimbus)
-                  task->component (storm-task-info (get-system-topology topology-conf topology storm-id nimbus) topology-conf)
+                  topology (get-system-topology topology-conf (try-read-storm-topology storm-id nimbus) storm-id nimbus)
+                  task->component (storm-task-info topology topology-conf)
                   base (.storm-base storm-cluster-state storm-id nil)
                   launch-time-secs (get-launch-time-secs base storm-id)
                   assignment (.assignment-info storm-cluster-state storm-id nil)
