@@ -351,10 +351,13 @@
   (let [state (:storm-cluster-state cluster-map)
         nimbus (:nimbus cluster-map)
         storm-id (common/get-storm-id state storm-name)
+        topology-conf (from-json (.getTopologyConf nimbus storm-id))
         component->tasks (reverse-map
                            (common/storm-task-info
-                             (.getUserTopology nimbus storm-id)
-                             (from-json (.getTopologyConf nimbus storm-id))))
+                             (common/system-topology!
+                               topology-conf
+                               (.getUserTopology nimbus storm-id))
+                             topology-conf))
         component->tasks (if component-ids
                            (select-keys component->tasks component-ids)
                            component->tasks)
