@@ -257,9 +257,9 @@
 
 (defn read-storm-conf-as-nimbus [conf storm-id nimbus]
   (when (not (get (:id->topology-conf nimbus) storm-id))
-            (swap! (:id->topology-conf nimbus) assoc storm-id
-                   (read-storm-conf-as-subject conf storm-id (:blob-store nimbus) (get-nimbus-subject))))
-    (get @(:id->topology-conf nimbus) storm-id))
+    (swap! (:id->topology-conf nimbus) assoc storm-id
+      (read-storm-conf-as-subject conf storm-id (:blob-store nimbus) (get-nimbus-subject))))
+  (get @(:id->topology-conf nimbus) storm-id))
 
 (defn try-read-storm-conf [conf storm-id nimbus]
   (try-cause

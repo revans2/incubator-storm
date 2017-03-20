@@ -31,9 +31,9 @@
   (:use [backtype.storm testing MockAutoCred util config log timer])
   (:use [backtype.storm.daemon common])
   (:require [conjure.core])
-    (:require [backtype.storm
-               [thrift :as thrift]
-               [cluster :as cluster]] [backtype.storm.daemon.nimbus :as nimbus])
+  (:require [backtype.storm
+             [thrift :as thrift]
+             [cluster :as cluster]] [backtype.storm.daemon.nimbus :as nimbus])
   (:use [conjure core]))
 
 (defn storm-component->task-info [cluster storm-name]
@@ -1252,8 +1252,7 @@
                 }
         ]
       (stubbing [topology-bases bogus-bases]
-        (let [topos (.get_topologies (.getClusterInfo nimbus
-                                                      ))]
+        (let [topos (.get_topologies (.getClusterInfo nimbus))]
           ; The number of topologies in the summary is correct.
           (is (= (count 
             (filter (fn [b] (second b)) bogus-bases)) (count topos)))
@@ -1402,9 +1401,9 @@
       (backpressure-topologies [this] bp-topos))))
 
 (deftest cleanup-storm-ids-returns-inactive-topos
-         (let [mock-state (mock-cluster-state (list "topo1") (list "topo1" "topo2" "topo3"))]
-              (stubbing [nimbus/code-ids {}]
-                        (is (= (nimbus/cleanup-storm-ids mock-state nil) #{"topo2" "topo3"})))))
+  (let [mock-state (mock-cluster-state (list "topo1") (list "topo1" "topo2" "topo3"))]
+    (stubbing [nimbus/code-ids {}]
+      (is (= (nimbus/cleanup-storm-ids mock-state nil) #{"topo2" "topo3"})))))
 
 (deftest cleanup-storm-ids-performs-union-of-storm-ids-with-active-znodes
   (let [active-topos (list "hb1" "e2" "bp3")
