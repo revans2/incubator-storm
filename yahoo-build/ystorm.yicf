@@ -50,6 +50,7 @@ PERM = 0444
 OWNER = root
 GROUP = users
 
+dir 3777 - - lib/storm
 dir 3777 - - lib64/storm/$(BASE_VERSION)/logs
 dir 3777 - - lib64/storm/$(BASE_VERSION)/extlib
 dir 3777 - - lib64/storm/$(BASE_VERSION)/extlib-daemon
