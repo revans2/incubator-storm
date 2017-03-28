@@ -2368,11 +2368,13 @@ public class Config extends HashMap<String, Object> {
     public static String STORM_CGROUP_CGEXEC_CMD = "storm.cgroup.cgexec.cmd";
 
     /**
-     * The amount of memory a worker can exceed its allocation before cgroup will kill it
+     * Please use STORM_SUPERVISOR_MEMORY_LIMIT_TOLERANCE_MARGIN_MB instead.
+     * The amount of memory a worker can exceed its allocation before cgroup will kill it.
      */
     @isPositiveNumber
+    @Deprecated
     public static String STORM_CGROUP_MEMORY_LIMIT_TOLERANCE_MARGIN_MB = "storm.cgroup.memory.limit.tolerance.margin.mb";
-
+    
     /**
      * To determine whether or not to cgroups should inherit cpuset.cpus and cpuset.mems config values form parent cgroup
      * Note that cpuset.cpus and cpuset.mems configs in a cgroup must be initialized (i.e. contain a valid value) prior to being able to launch
@@ -2388,11 +2390,63 @@ public class Config extends HashMap<String, Object> {
     public static String STORM_CGROUP_OOM_MONITORING_ENABLE = "storm.cgroup.oom.monitoring.enable";
 
     /**
-     * !!!!! - TEMPORARY CONFIG - !!!!!
+     * Java does not always play nicely with cgroups.  It is coming but not fully implemented and not for the way storm uses cgroups.
+     * In the short term you can disable the hard memory enforcement by cgroups and let the supervisor handle shooting
+     * workers going over their limit in a kinder way.
      */
     @isBoolean
     public static String STORM_CGROUP_MEMORY_ENFORCEMENT_ENABLE = "storm.cgroup.memory.enforcement.enable";
 
+    // Configs for memory enforcement does by the supervisor (not cgroups directly)
+    
+    /**
+     * Memory given to each worker for free (because java and storm have some overhead).  This is memory on the box
+     * that the workers can use. This should not be included in SUPERVISOR_MEMORY_CAPACITY_MB, as nimbus does not use
+     * this memory for scheduling.
+     */
+    @isPositiveNumber
+    public static String STORM_SUPERVISOR_MEMORY_LIMIT_TOLERANCE_MARGIN_MB = "storm.supervisor.memory.limit.tolerance.margin.mb";
+    
+    /**
+     * A multiplier for the memory limit of a worker that will have the supervisor shoot it immediately.
+     * 1.0 means shoot the worker as soon as it goes over.  2.0 means shoot the worker if its usage is
+     * double what was requested.  This value is combined with STORM_SUPERVISOR_HARD_MEMORY_LIMIT_OVERAGE
+     * and which ever is greater is used for enforcement. This allows small workers to not be shot.
+     */
+    @isPositiveNumber
+    public static String STORM_SUPERVISOR_HARD_MEMORY_LIMIT_MULTIPLIER = "storm.supervisor.hard.memory.limit.multiplier";
+    
+    /**
+     * If the memory usage of a worker goes over its limit by this value is it shot immediately.
+     * This value is combined with STORM_SUPERVISOR_HARD_LIMIT_MEMORY_MULTIPLIER and which ever is
+     * greater is used for enforcement. This allows small workers to not be shot.
+     */
+    @isPositiveNumber(includeZero=true)
+    public static String STORM_SUPERVISOR_HARD_LIMIT_MEMORY_OVERAGE = "storm.supervisor.hard.memory.limit.overage";
+
+    /**
+     * If the amount of memory that is free in the system (either on the box or in the supervisor's cgroup)
+     * is below this number (in MB) consider the system to be in low memory mode and start shooting workers
+     * if they are over their limit. 
+     */
+    @isPositiveNumber
+    public static String STORM_SUPERVISOR_LOW_MEMORY_THRESHOLD = "storm.supervisor.low.memory.threshold";
+    
+    /**
+     * If the amount of memory that is free in the system (either on the box or in the supervisor's cgroup) is
+     * below this number (in MB) consider the system to be a little low on memory and start shooting workers if
+     * they are over their limit for a given grace period STORM_SUPERVISOR_MEDIUM_MEMORY_GRACE_PERIOD.
+     */
+    @isPositiveNumber
+    public static String STORM_SUPERVISOR_MEDIUM_MEMORY_THRESHOLD = "storm.supervisor.medium.memory.threshold";
+    
+    /**
+     * The number of milliseconds that a worker is allowed to be over their limit when there is a medium amount
+     * of memory free in the system.
+     */
+    @isPositiveNumber
+    public static String STORM_SUPERVISOR_MEDIUM_MEMORY_GRACE_PERIOD = "storm.supervisor.medium.memory.grace.period";
+    
     /**
      * Whether workers wait until each of its connections to remote workers are
      * in ready state before opening spouts and preparing workers.

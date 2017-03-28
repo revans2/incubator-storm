@@ -522,6 +522,15 @@ public abstract class Container implements Killable {
     }
     
     /**
+     * @return true if the container is over its memory limit AND needs to be killed.
+     * This does not necessarily mean that it just went over the limit.
+     * @throws IOException on any error
+     */
+    public boolean isMemoryLimitViolated() throws IOException {
+        return false;
+    }
+    
+    /**
      * Launch the process for the first time
      * PREREQUISITE: setup has run and passed
      * @throws IOException on any error
