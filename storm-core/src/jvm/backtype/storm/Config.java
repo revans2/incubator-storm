@@ -2371,7 +2371,7 @@ public class Config extends HashMap<String, Object> {
      * Please use STORM_SUPERVISOR_MEMORY_LIMIT_TOLERANCE_MARGIN_MB instead.
      * The amount of memory a worker can exceed its allocation before cgroup will kill it.
      */
-    @isPositiveNumber
+    @isPositiveNumber(includeZero=true)
     @Deprecated
     public static String STORM_CGROUP_MEMORY_LIMIT_TOLERANCE_MARGIN_MB = "storm.cgroup.memory.limit.tolerance.margin.mb";
     

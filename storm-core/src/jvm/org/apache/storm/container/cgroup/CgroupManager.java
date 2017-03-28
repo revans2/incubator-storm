@@ -178,7 +178,7 @@ public class CgroupManager implements ResourceIsolationInterface {
         // TEMPORARY CHECK TO DEAL WITH KERNEL BUGS
         if ((boolean)this.conf.get(Config.STORM_CGROUP_MEMORY_ENFORCEMENT_ENABLE)) {
             if (totalMem != null) {
-                int cGroupMem = (int) (Math.ceil((double) this.conf.get(Config.STORM_CGROUP_MEMORY_LIMIT_TOLERANCE_MARGIN_MB)));
+                int cGroupMem = (int) (Math.ceil(Utils.getDouble(this.conf.get(Config.STORM_CGROUP_MEMORY_LIMIT_TOLERANCE_MARGIN_MB), 0.0)));
                 long memLimit = Long.valueOf((totalMem.longValue() + cGroupMem)* 1024 * 1024);
                 MemoryCore memCore = (MemoryCore) workerGroup.getCores().get(SubSystemType.memory);
                 try {
