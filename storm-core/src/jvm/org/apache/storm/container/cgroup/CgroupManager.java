@@ -18,7 +18,10 @@
 
 package org.apache.storm.container.cgroup;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -29,6 +32,8 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.apache.storm.container.ResourceIsolationInterface;
 import org.apache.storm.container.cgroup.core.CpuCore;
@@ -61,9 +66,10 @@ public class CgroupManager implements ResourceIsolationInterface {
     private CgroupOOMMonitor oomMonitor;
 
     /**
-     * initialize intial data structures
+     * initialize data structures
      * @param conf storm confs
      */
+    @Override
     public void prepare(Map<String, Object> conf) throws IOException {
         this.conf = conf;
         this.rootDir = Config.getCgroupRootDir(this.conf);
@@ -73,7 +79,7 @@ public class CgroupManager implements ResourceIsolationInterface {
 
         File file = new File(Config.getCgroupStormHierarchyDir(conf) + "/" + this.rootDir);
         if (!file.exists()) {
-            LOG.error("{} is not existing.", file.getPath());
+            LOG.error("{} does not exist", file.getPath());
             throw new RuntimeException("Check if cgconfig service starts or /etc/cgconfig.conf is consistent with configuration file.");
         }
         this.center = CgroupCenter.getInstance();
@@ -95,7 +101,7 @@ public class CgroupManager implements ResourceIsolationInterface {
     }
 
     /**
-     * initalize subsystems
+     * Initialize subsystems
      */
     private void prepareSubSystem(Map<String, Object> conf) throws IOException {
         List<SubSystemType> subSystemTypes = new LinkedList<>();
@@ -134,6 +140,7 @@ public class CgroupManager implements ResourceIsolationInterface {
         }
     }
 
+    @Override
     public void reserveResourcesForWorker(String workerId, Map resourcesMap) throws SecurityException {
         LOG.info("Creating cgroup for worker {} with resources {}", workerId, resourcesMap);
         Number cpuNum = null;
@@ -171,7 +178,8 @@ public class CgroupManager implements ResourceIsolationInterface {
         // TEMPORARY CHECK TO DEAL WITH KERNEL BUGS
         if ((boolean)this.conf.get(Config.STORM_CGROUP_MEMORY_ENFORCEMENT_ENABLE)) {
             if (totalMem != null) {
-                long memLimit = Long.valueOf(totalMem.longValue() * 1024 * 1024);
+                int cGroupMem = (int) (Math.ceil(Utils.getDouble(this.conf.get(Config.STORM_CGROUP_MEMORY_LIMIT_TOLERANCE_MARGIN_MB), 0.0)));
+                long memLimit = Long.valueOf((totalMem.longValue() + cGroupMem)* 1024 * 1024);
                 MemoryCore memCore = (MemoryCore) workerGroup.getCores().get(SubSystemType.memory);
                 try {
                     memCore.setPhysicalUsageLimit(memLimit);
@@ -209,8 +217,7 @@ public class CgroupManager implements ResourceIsolationInterface {
         }
     }
 
-
-
+    @Override
     public void releaseResourcesForWorker(String workerId) {
         LOG.info("Cleaning up cgroups for worker {}", workerId);
         CgroupCommon workerGroup = new CgroupCommon(workerId, hierarchy, this.rootCgroup);
@@ -270,10 +277,6 @@ public class CgroupManager implements ResourceIsolationInterface {
         return newCommand;
     }
 
-    public void close() throws IOException {
-        this.center.deleteCgroup(this.rootCgroup);
-    }
-
     @Override
     public Set<Long> getRunningPIDs(String workerId) throws IOException {
         CgroupCommon workerGroup = new CgroupCommon(workerId, this.hierarchy, this.rootCgroup);
@@ -282,5 +285,59 @@ public class CgroupManager implements ResourceIsolationInterface {
             return Collections.emptySet();
         }
         return workerGroup.getPids();
+    }
+
+    @Override
+    public long getMemoryUsage(String workerId) throws IOException {
+        CgroupCommon workerGroup = new CgroupCommon(workerId, this.hierarchy, this.rootCgroup);
+        MemoryCore memCore = (MemoryCore) workerGroup.getCores().get(SubSystemType.memory);
+        return memCore.getPhysicalUsage();
+    }
+
+    private static final Pattern MEMINFO_PATTERN = Pattern.compile("^([^:\\s]+):\\s*([0-9]+)\\s*kB$");
+    
+    static long getMemInfoFreeMB() throws IOException {
+        //MemFree:        14367072 kB
+        //Buffers:          536512 kB
+        //Cached:          1192096 kB
+        // MemFree + Buffers + Cached
+        long memFree = 0;
+        long buffers = 0;
+        long cached = 0;
+        try (BufferedReader in = new BufferedReader(new FileReader("/proc/meminfo"))) {
+            String line = null;
+            while((line = in.readLine()) != null) {
+                Matcher m = MEMINFO_PATTERN.matcher(line);
+                if (m.matches()) {
+                    String tag = m.group(1);
+                    if (tag.equalsIgnoreCase("MemFree")) {
+                        memFree = Long.parseLong(m.group(2));
+                    } else if (tag.equalsIgnoreCase("Buffers")) {
+                        buffers = Long.parseLong(m.group(2));
+                    } else if (tag.equalsIgnoreCase("Cached")) {
+                        cached = Long.parseLong(m.group(2));
+                    }
+                }
+            }
+        }
+        return (memFree + buffers + cached) / 1024;
+    }
+    
+    @Override
+    public long getSystemFreeMemoryMB() throws IOException {
+        long rootCgroupLimitFree = Long.MAX_VALUE;
+        try {
+            MemoryCore memRoot = (MemoryCore) rootCgroup.getCores().get(SubSystemType.memory);
+            if (memRoot != null) {
+                //For cgroups no limit is max long.
+                long limit = memRoot.getPhysicalUsageLimit();
+                long used = memRoot.getMaxPhysicalUsage();
+                rootCgroupLimitFree = (limit - used)/1024/1024;
+            }
+        } catch (FileNotFoundException e) {
+            //Ignored if cgroups is not setup don't do anything with it
+        }
+
+        return Long.min(rootCgroupLimitFree, getMemInfoFreeMB());
     }
 }

@@ -38,10 +38,10 @@ import org.apache.storm.container.ResourceIsolationInterface;
 import backtype.storm.generated.LocalAssignment;
 import backtype.storm.generated.ProfileAction;
 import backtype.storm.generated.ProfileRequest;
-import backtype.storm.generated.StormTopology;
 import backtype.storm.generated.WorkerResources;
 import org.apache.storm.utils.ConfigUtils;
 import backtype.storm.utils.LocalState;
+import backtype.storm.utils.Time;
 import backtype.storm.utils.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -62,6 +62,13 @@ public class BasicContainer extends Container {
     protected final String _profileCmd;
     protected final String _stormHome = System.getProperty("storm.home");
     protected volatile boolean _exitedEarly = false;
+    protected volatile long _memoryLimitMB;
+    protected volatile long _memoryLimitExceededStart;
+    protected final double _hardMemoryLimitMultiplier;
+    protected final long _hardMemoryLimitOver;
+    protected final long _lowMemoryThresholdMB;
+    protected final long _mediumMemoryThresholdMB;
+    protected final long _mediumMemoryGracePeriodMs;
 
     private class ProcessExitCallback implements ExitCodeCallback {
         private final String _logPrefix;
@@ -143,6 +150,12 @@ public class BasicContainer extends Container {
                     + conf.get(Config.WORKER_PROFILER_COMMAND);
         }
         _profileCmd = profileCmd;
+        
+        _hardMemoryLimitMultiplier = Utils.getDouble(conf.get(Config.STORM_SUPERVISOR_HARD_MEMORY_LIMIT_MULTIPLIER), 2.0);
+        _hardMemoryLimitOver = Utils.getInt(conf.get(Config.STORM_SUPERVISOR_HARD_LIMIT_MEMORY_OVERAGE), 0);
+        _lowMemoryThresholdMB = Utils.getInt(conf.get(Config.STORM_SUPERVISOR_LOW_MEMORY_THRESHOLD), 1024);
+        _mediumMemoryThresholdMB = Utils.getInt(conf.get(Config.STORM_SUPERVISOR_MEDIUM_MEMORY_THRESHOLD), 1536);
+        _mediumMemoryGracePeriodMs = Utils.getInt(conf.get(Config.STORM_SUPERVISOR_MEDIUM_MEMORY_GRACE_PERIOD), 20_000);
     }
 
     /**
@@ -396,6 +409,9 @@ public class BasicContainer extends Container {
             if (memOnheap > 0) {
                 string = string.replace("%HEAP-MEM%", String.valueOf(memOnheap));
             }
+            if (_memoryLimitMB > 0) {
+                string = string.replace("%LIMIT-MEM%", String.valueOf(_memoryLimitMB));
+            }
         }
         return string;
     }
@@ -523,6 +539,9 @@ public class BasicContainer extends Container {
         commonParams.add("-Dlog4j.configurationFile=" + log4jConfigurationFile);
         commonParams.add("-DLog4jContextSelector=org.apache.logging.log4j.core.selector.BasicContextSelector");
         commonParams.add("-Dstorm.local.dir=" + _conf.get(Config.STORM_LOCAL_DIR));
+        if (_memoryLimitMB > 0) {
+            commonParams.add("-Dworker.memory_limit_mb="+_memoryLimitMB);
+        }
         return commonParams;
     }
     
@@ -617,7 +636,60 @@ public class BasicContainer extends Container {
         
         return commandList;
     }
-
+    
+    @Override
+    public boolean isMemoryLimitViolated() throws IOException {
+        if (_resourceIsolationManager != null) {
+            // In the short term the goal is to not shoot anyone unless we really need to.
+            // The on heap should limit the memory usage in most cases to a reasonable amount
+            // If someone is using way more than they requested this is a bug and we should
+            // not allow it
+            long usageBytes = _resourceIsolationManager.getMemoryUsage(_workerId);
+            if (usageBytes < 0) {
+                // Memory usages is not supported by this
+                return false;
+            }
+            long usageMB = usageBytes / 1024 / 1024;
+            long hardLimitMB = _memoryLimitMB + 
+                    Math.max((long)(_memoryLimitMB * (_hardMemoryLimitMultiplier - 1.0)), _hardMemoryLimitOver);
+            if (usageMB > hardLimitMB) {
+                LOG.warn("WORKER {} is using {} MB > adjusted hard limit {} MB", _workerId, usageMB, hardLimitMB);
+                return true;
+            }
+            if (usageMB > _memoryLimitMB) {
+                //For others using too much it is really a question of how much memory is free in the system to be used
+                long systemFreeMemoryMB = _resourceIsolationManager.getSystemFreeMemoryMB();
+                LOG.debug("SYSTEM MEMORY FREE {} MB", systemFreeMemoryMB);
+                //If the system is low on memory we cannot be kind and need to shoot something
+                if (systemFreeMemoryMB <= _lowMemoryThresholdMB) {
+                    LOG.warn("WORKER {} is using {} MB > memory limit {} MB and system is low on memory {} free", _workerId, usageMB, _memoryLimitMB, systemFreeMemoryMB);
+                    return true;
+                }
+                
+                //If the system still has some free memory give them a grace period to 
+                // drop back down.
+                if (systemFreeMemoryMB < _mediumMemoryThresholdMB) {
+                    if (_memoryLimitExceededStart < 0) {
+                        _memoryLimitExceededStart = Time.currentTimeMillis();
+                    } else {
+                        long timeInViolation = Time.currentTimeMillis() - _memoryLimitExceededStart;
+                        if (timeInViolation > _mediumMemoryGracePeriodMs) {
+                            LOG.warn("WORKER {} is using {} MB > memory limit {} MB for {} seconds", _workerId, usageMB, _memoryLimitMB, timeInViolation/1000);
+                            return true;
+                        }
+                    }
+                } else {
+                    //Otherwise don't bother them
+                    LOG.debug("WORKER {} is using {} MB > memory limit {} MB", _workerId, usageMB, _memoryLimitMB);
+                    _memoryLimitExceededStart = -1;
+                }
+            } else {
+                _memoryLimitExceededStart = -1;
+            }
+        }
+        return false;
+    }
+    
     @Override
     public void launch() throws IOException {
         _type.assertFull();
@@ -651,13 +723,14 @@ public class BasicContainer extends Container {
         if (_resourceIsolationManager != null) {
             int memoffheap = (int) Math.ceil(resources.get_mem_off_heap());
             int cpu = (int) Math.ceil(resources.get_cpu());
-            
-            int cGroupMem = (int) (Math.ceil((double) _conf.get(Config.STORM_CGROUP_MEMORY_LIMIT_TOLERANCE_MARGIN_MB)));
-            int memoryValue = memoffheap + memOnheap + cGroupMem;
+            int extraMem = (int) (Math.ceil(Utils.getDouble(_conf.get(Config.STORM_SUPERVISOR_MEMORY_LIMIT_TOLERANCE_MARGIN_MB), 0.0)));
+            int memoryValue = memoffheap + memOnheap + extraMem;
             int cpuValue = cpu;
             Map<String, Number> map = new HashMap<>();
             map.put("cpu", cpuValue);
             map.put("memory", memoryValue);
+            //Save the memory limit so we can enforce it less strictly
+            _memoryLimitMB = memoryValue;
             _resourceIsolationManager.reserveResourcesForWorker(_workerId, map);
         }
 

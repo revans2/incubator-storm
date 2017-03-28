@@ -534,6 +534,10 @@ public class Slot extends Thread implements AutoCloseable {
             LOG.warn("SLOT {}: main process has exited", staticState.port);
             return killAndRelaunchContainer(dynamicState, staticState);
         }
+        if (dynamicState.container.isMemoryLimitViolated()) {
+            LOG.warn("SLOT {}: violated memory limits", staticState.port);
+            return killAndRelaunchContainer(dynamicState, staticState);
+        }
         
         LSWorkerHeartbeat hb = dynamicState.container.readHeartbeat();
         if (hb == null) {

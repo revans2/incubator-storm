@@ -73,4 +73,20 @@ public interface ResourceIsolationInterface {
      * @throws IOException on any error
      */
     Set<Long> getRunningPIDs(String workerId) throws IOException;
+    
+    /**
+     * Get the current memory usage of the a give worker.
+     * @param workerId the id of the worker
+     * @return the amount of memory the worker is using in bytes or -1
+     * if not supported
+     * @throws IOException on any error.
+     */
+    long getMemoryUsage(String workerId) throws IOException;
+
+    /**
+     * @return The amount of memory in bytes that are free on the system.
+     * This might not be the entire box, it might be within a parent resource group.
+     * @throws IOException on any error.
+     */
+    long getSystemFreeMemoryMB() throws IOException;
 }
