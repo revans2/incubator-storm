@@ -284,7 +284,7 @@ public class AsyncLocalizer implements ILocalizer, Shutdownable {
 
                 return null;
             } catch (Exception e) {
-                LOG.warn("Caught exception while downloading blobs for {}", _topologyId, e);
+                LOG.warn("Caught exception while downloading blobs for {} ({})", _topologyId, e.getMessage());
                 return null; 
             }
         }
