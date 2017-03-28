@@ -34,6 +34,7 @@ import org.apache.curator.ensemble.exhibitor.ExhibitorEnsembleProvider;
 import org.apache.curator.ensemble.exhibitor.Exhibitors;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
+import org.apache.storm.daemon.supervisor.SupervisorUtils;
 
 import backtype.storm.Config;
 import backtype.storm.blobstore.BlobStore;
@@ -819,7 +820,7 @@ public class Utils {
             return Integer.parseInt((String) o);
         }
 
-        throw new IllegalArgumentException("Don't know how to convert " + o + " to int");
+        throw new IllegalArgumentException("Don't know how to convert " + o + " (" + o.getClass().getName() + ") to int");
     }
 
     public static Double getDouble(Object o) {
@@ -837,7 +838,7 @@ public class Utils {
         if (o instanceof Number) {
             return ((Number) o).doubleValue();
         } else {
-            throw new IllegalArgumentException("Don't know how to convert " + o + " + to double");
+            throw new IllegalArgumentException("Don't know how to convert " + o + " (" + o.getClass().getName() + ") to double");
         }
     }
 
@@ -848,7 +849,7 @@ public class Utils {
         if (o instanceof Boolean) {
             return (Boolean) o;
         } else {
-            throw new IllegalArgumentException("Don't know how to convert " + o + " + to boolean");
+            throw new IllegalArgumentException("Don't know how to convert " + o + " (" + o.getClass().getName() + ") to boolean");
         }
     }
 
@@ -859,7 +860,7 @@ public class Utils {
         if (o instanceof String) {
             return (String) o;
         } else {
-            throw new IllegalArgumentException("Don't know how to convert " + o + " + to String");
+            throw new IllegalArgumentException("Don't know how to convert " + o + " (" + o.getClass().getName() + ") to String");
         }
     }
 
@@ -1366,6 +1367,15 @@ public class Utils {
                 if (!blobStoreKeys.contains(key)) {
                     containsAllBlobs = false;
                     missingKeys.add(key);
+                }
+
+                Map<String, Object> blobInfo = (Map<String, Object>)blobStoreMap.get(key);
+                SupervisorUtils.shouldUncompressBlob(blobInfo);
+                if (blobInfo != null && blobInfo.containsKey("localname")) {
+                    String symlinkName = (String) blobInfo.get("localname");
+                    if (symlinkName.length() == 0) {
+                        throw new InvalidTopologyException("Blob info for " + key + " has an invalid localname.");
+                    }
                 }
             }
             if (!containsAllBlobs) {
