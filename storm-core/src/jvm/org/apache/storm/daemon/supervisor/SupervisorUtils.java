@@ -147,8 +147,13 @@ public class SupervisorUtils {
         List<LocalResource> localResourceList = new ArrayList<>();
         if (blobstoreMap != null) {
             for (Map.Entry<String, Map<String, Object>> map : blobstoreMap.entrySet()) {
-                LocalResource localResource = new LocalResource(map.getKey(), shouldUncompressBlob(map.getValue()));
-                localResourceList.add(localResource);
+                try {
+                    LocalResource localResource = new LocalResource(map.getKey(), shouldUncompressBlob(map.getValue()));
+                    localResourceList.add(localResource);
+                }
+                catch (IllegalArgumentException e) {
+                    LOG.warn("Failed to get local resources for blob: {} ({})", blobstoreMap, e.getMessage());
+                }
             }
         }
         return localResourceList;
