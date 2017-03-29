@@ -644,12 +644,11 @@ public class BasicContainer extends Container {
             // The on heap should limit the memory usage in most cases to a reasonable amount
             // If someone is using way more than they requested this is a bug and we should
             // not allow it
-            long usageBytes = _resourceIsolationManager.getMemoryUsage(_workerId);
-            if (usageBytes < 0) {
-                // Memory usages is not supported by this
+            long usageMB = getMemoryUsageMB();
+            if (usageMB <= 0) {
+                //Looks like usage might now be supported
                 return false;
             }
-            long usageMB = usageBytes / 1024 / 1024;
             long hardLimitMB = _memoryLimitMB + 
                     Math.max((long)(_memoryLimitMB * (_hardMemoryLimitMultiplier - 1.0)), _hardMemoryLimitOver);
             if (usageMB > hardLimitMB) {
@@ -688,6 +687,23 @@ public class BasicContainer extends Container {
             }
         }
         return false;
+    }
+    
+    @Override
+    public long getMemoryUsageMB() throws IOException {
+        long ret = 0;
+        if (_resourceIsolationManager != null) {
+            long usageBytes = _resourceIsolationManager.getMemoryUsage(_workerId);
+            if (usageBytes >= 0) {
+                ret = usageBytes / 1024 / 1024;
+            }
+        }
+        return ret;
+    }
+
+    @Override
+    public long getMemoryReservationMB() throws IOException {
+        return _memoryLimitMB;
     }
     
     @Override
