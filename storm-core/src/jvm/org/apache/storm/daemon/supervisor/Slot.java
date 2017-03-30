@@ -24,6 +24,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -43,12 +44,29 @@ import backtype.storm.utils.Time;
 import backtype.storm.utils.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import com.codahale.metrics.Meter;
 import org.apache.storm.metric.StormMetricsRegistry;
 
 public class Slot extends Thread implements AutoCloseable {
     private static final Logger LOG = LoggerFactory.getLogger(Slot.class);
     private static final Meter _numWorkersLaunched = StormMetricsRegistry.registerMeter("supervisor:num-workers-launched");
+    private static final Meter _numWorkersKilledProcessExit = StormMetricsRegistry.registerMeter("supervisor:num-workers-killed-process-exit");
+    private static final Meter _numWorkersKilledMemoryViolation = StormMetricsRegistry.registerMeter("supervisor:num-workers-killed-memory-violation");
+    private static final Meter _numWorkersKilledHBTimeout = StormMetricsRegistry.registerMeter("supervisor:num-workers-killed-hb-timeout");
+    private static final Meter _numWorkersKilledHBNull = StormMetricsRegistry.registerMeter("supervisor:num-workers-killed-hb-null");
+    private static final Meter _numForceKill = StormMetricsRegistry.registerMeter("supervisor:num-workers-force-kill");
+    private static final ConcurrentHashMap<Integer, Long> _usedMemory = new ConcurrentHashMap<>();
+    private static final ConcurrentHashMap<Integer, Long> _reservedMemory = new ConcurrentHashMap<>();
+    
+    static {
+        StormMetricsRegistry.registerGauge("supervisor:current-used-memory", () -> {
+            return _usedMemory.values().stream().reduce(0l, (o, n) -> 0 + n);
+        });
+        StormMetricsRegistry.registerGauge("supervisor:current-reserved-memory", () -> {
+            return _reservedMemory.values().stream().reduce(0l, (o, n) -> 0 + n);
+        });
+    }
     
     static enum MachineState {
         EMPTY,
@@ -355,6 +373,8 @@ public class Slot extends Thread implements AutoCloseable {
         
         dynamicState.container.cleanUp();
         staticState.localizer.releaseSlotFor(dynamicState.currentAssignment, staticState.port);
+        _usedMemory.remove(staticState.port);
+        _reservedMemory.remove(staticState.port);
         DynamicState ret = dynamicState.withCurrentAssignment(null, null);
         if (nextState != null) {
             ret = ret.withState(nextState);
@@ -442,6 +462,7 @@ public class Slot extends Thread implements AutoCloseable {
         }
 
         LOG.warn("SLOT {} force kill and wait...", staticState.port);
+        _numForceKill.mark();
         dynamicState.container.forceKill();
         Time.sleep(staticState.killSleepMs);
         return dynamicState;
@@ -473,6 +494,7 @@ public class Slot extends Thread implements AutoCloseable {
         if ((Time.currentTimeMillis() - dynamicState.startTime) > 120_000) {
             throw new RuntimeException("Not all processes in " + dynamicState.container + " exited after 120 seconds");
         }
+        _numForceKill.mark();
         dynamicState.container.forceKill();
         Time.sleep(staticState.killSleepMs);
         return dynamicState;
@@ -531,16 +553,22 @@ public class Slot extends Thread implements AutoCloseable {
             return killContainerForChangedAssignment(dynamicState, staticState);
         }
         if (dynamicState.container.didMainProcessExit()) {
+            _numWorkersKilledProcessExit.mark();
             LOG.warn("SLOT {}: main process has exited", staticState.port);
             return killAndRelaunchContainer(dynamicState, staticState);
         }
+        
+        _usedMemory.put(staticState.port, dynamicState.container.getMemoryUsageMB());
+        _reservedMemory.put(staticState.port, dynamicState.container.getMemoryReservationMB());
         if (dynamicState.container.isMemoryLimitViolated()) {
+            _numWorkersKilledMemoryViolation.mark();
             LOG.warn("SLOT {}: violated memory limits", staticState.port);
             return killAndRelaunchContainer(dynamicState, staticState);
         }
         
         LSWorkerHeartbeat hb = dynamicState.container.readHeartbeat();
         if (hb == null) {
+            _numWorkersKilledHBNull.mark();
             LOG.warn("SLOT {}: HB returned as null", staticState.port);
             //This can happen if the supervisor crashed after launching a
             // worker that never came up.
@@ -549,6 +577,7 @@ public class Slot extends Thread implements AutoCloseable {
         
         long timeDiffMs = (Time.currentTimeSecs() - hb.get_time_secs()) * 1000;
         if (timeDiffMs > staticState.hbTimeoutMs) {
+            _numWorkersKilledHBTimeout.mark();
             LOG.warn("SLOT {}: HB is too old {} > {}", staticState.port, timeDiffMs, staticState.hbTimeoutMs);
             return killAndRelaunchContainer(dynamicState, staticState);
         }

@@ -638,18 +638,17 @@ public class BasicContainer extends Container {
     }
     
     @Override
-    public boolean isMemoryLimitViolated() throws IOException {
+    public boolean isMemoryLimitViolated() {
         if (_resourceIsolationManager != null) {
             // In the short term the goal is to not shoot anyone unless we really need to.
             // The on heap should limit the memory usage in most cases to a reasonable amount
             // If someone is using way more than they requested this is a bug and we should
             // not allow it
-            long usageBytes = _resourceIsolationManager.getMemoryUsage(_workerId);
-            if (usageBytes < 0) {
-                // Memory usages is not supported by this
+            long usageMB = getMemoryUsageMB();
+            if (usageMB <= 0) {
+                //Looks like usage might now be supported
                 return false;
             }
-            long usageMB = usageBytes / 1024 / 1024;
             long hardLimitMB = _memoryLimitMB + 
                     Math.max((long)(_memoryLimitMB * (_hardMemoryLimitMultiplier - 1.0)), _hardMemoryLimitOver);
             if (usageMB > hardLimitMB) {
@@ -658,7 +657,13 @@ public class BasicContainer extends Container {
             }
             if (usageMB > _memoryLimitMB) {
                 //For others using too much it is really a question of how much memory is free in the system to be used
-                long systemFreeMemoryMB = _resourceIsolationManager.getSystemFreeMemoryMB();
+                // If we cannot calculate it assume that it is bad
+                long systemFreeMemoryMB = 0;
+                try {
+                    systemFreeMemoryMB = _resourceIsolationManager.getSystemFreeMemoryMB();
+                } catch (IOException e) {
+                    LOG.warn("Error trying to calculate free memory on the system {}", e);
+                }
                 LOG.debug("SYSTEM MEMORY FREE {} MB", systemFreeMemoryMB);
                 //If the system is low on memory we cannot be kind and need to shoot something
                 if (systemFreeMemoryMB <= _lowMemoryThresholdMB) {
@@ -688,6 +693,28 @@ public class BasicContainer extends Container {
             }
         }
         return false;
+    }
+    
+    @Override
+    public long getMemoryUsageMB() {
+        try {
+            long ret = 0;
+            if (_resourceIsolationManager != null) {
+                long usageBytes = _resourceIsolationManager.getMemoryUsage(_workerId);
+                if (usageBytes >= 0) {
+                    ret = usageBytes / 1024 / 1024;
+                }
+            }
+            return ret;
+        } catch (IOException e) {
+            LOG.warn("Error trying to calculate worker memory usage {}", e);
+            return 0;
+        }
+    }
+
+    @Override
+    public long getMemoryReservationMB() {
+        return _memoryLimitMB;
     }
     
     @Override

@@ -531,6 +531,20 @@ public abstract class Container implements Killable {
     }
     
     /**
+     * @return the current memory usage of this container.
+     */
+    public long getMemoryUsageMB() {
+        return 0;
+    }
+
+    /**
+     * @return the current memory reservation of this container.
+     */
+    public long getMemoryReservationMB() {
+        return 0;
+    }
+    
+    /**
      * Launch the process for the first time
      * PREREQUISITE: setup has run and passed
      * @throws IOException on any error
