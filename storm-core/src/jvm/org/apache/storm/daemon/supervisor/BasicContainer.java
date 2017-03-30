@@ -707,6 +707,7 @@ public class BasicContainer extends Container {
             }
             return ret;
         } catch (IOException e) {
+            LOG.warn("Error trying to calculate worker memory usage {}", e);
             return 0;
         }
     }
