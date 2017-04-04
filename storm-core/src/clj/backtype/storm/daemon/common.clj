@@ -209,7 +209,10 @@
                                           }
                                          :p num-executors
                                          :conf {TOPOLOGY-TASKS num-executors
-                                                TOPOLOGY-TICK-TUPLE-FREQ-SECS (storm-conf TOPOLOGY-MESSAGE-TIMEOUT-SECS)})]
+                                                TOPOLOGY-TICK-TUPLE-FREQ-SECS (storm-conf TOPOLOGY-MESSAGE-TIMEOUT-SECS)
+                                                TOPOLOGY-COMPONENT-RESOURCES-OFFHEAP-MEMORY-MB (storm-conf TOPOLOGY-ACKER-OFFHEAP-MEMORY-MB)
+                                                TOPOLOGY-COMPONENT-RESOURCES-ONHEAP-MEMORY-MB (storm-conf TOPOLOGY-ACKER-ONHEAP-MEMORY-MB)
+                                                TOPOLOGY-COMPONENT-CPU-PCORE-PERCENT (storm-conf TOPOLOGY-ACKER-CPU-PCORE-PERCENT)})]
     (dofor [[_ bolt] (.get_bolts ret)
             :let [common (.get_common bolt)]]
            (do

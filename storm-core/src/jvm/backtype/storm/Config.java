@@ -2292,6 +2292,28 @@ public class Config extends HashMap<String, Object> {
     public static final String TOPOLOGY_MAX_REPLICATION_WAIT_TIME_SEC = "topology.max.replication.wait.time.sec";
 
     /**
+     * The maximum amount of memory an instance of an acker will take off heap. This enables the scheduler
+     * to allocate slots on machines with enough available memory.  A default value will be set for this config if user does not override
+     */
+    @isPositiveNumber(includeZero = true)
+    public static final String TOPOLOGY_ACKER_OFFHEAP_MEMORY_MB = "topology.acker.offheap.memory.mb";
+
+    /**
+     * The maximum amount of memory an instance of an acker will take on heap. This enables the scheduler
+     * to allocate slots on machines with enough available memory.  A default value will be set for this config if user does not override
+     */
+    @isPositiveNumber(includeZero = true)
+    public static final String TOPOLOGY_ACKER_ONHEAP_MEMORY_MB = "topology.acker.onheap.memory.mb";
+
+    /**
+     * The config indicates the percentage of cpu for a core an instance(executor) of an acker will use.
+     * Assuming the a core value to be 100, a value of 10 indicates 10% of the core.
+     * The P in PCORE represents the term "physical".  A default value will be set for this config if user does not override
+     */
+    @isPositiveNumber(includeZero = true)
+    public static final String TOPOLOGY_ACKER_CPU_PCORE_PERCENT = "topology.acker.cpu.pcore.percent";
+
+    /**
      * How often nimbus's background thread to sync code for missing topologies should run.
      */
     @isInteger
