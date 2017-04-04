@@ -54,8 +54,8 @@
             <counter name="num_workers_killed_hb_null"                  type="long"   />
             <counter name="num_workers_force_kill"                      type="long"   />
             <gauge   name="num_slots_used"                              type="long"   cf="last" />
-            <gauge   name="current_used_memory"                         type="long"   cf="last" />
-            <gauge   name="current_reserved_memory"                     type="long"   cf="last" />
+            <gauge   name="current_used_memory_mb"                      type="long"   cf="last" />
+            <gauge   name="current_reserved_memory_mb"                  type="long"   cf="last" />
         </blurb>
 
         <blurb name="logviewer">

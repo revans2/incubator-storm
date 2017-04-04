@@ -56,15 +56,25 @@ public class Slot extends Thread implements AutoCloseable {
     private static final Meter _numWorkersKilledHBTimeout = StormMetricsRegistry.registerMeter("supervisor:num-workers-killed-hb-timeout");
     private static final Meter _numWorkersKilledHBNull = StormMetricsRegistry.registerMeter("supervisor:num-workers-killed-hb-null");
     private static final Meter _numForceKill = StormMetricsRegistry.registerMeter("supervisor:num-workers-force-kill");
-    private static final ConcurrentHashMap<Integer, Integer> _usedMemory = new ConcurrentHashMap<>();
-    private static final ConcurrentHashMap<Integer, Integer> _reservedMemory = new ConcurrentHashMap<>();
+    private static final ConcurrentHashMap<Integer, Long> _usedMemory = new ConcurrentHashMap<>();
+    private static final ConcurrentHashMap<Integer, Long> _reservedMemory = new ConcurrentHashMap<>();
     
     static {
-        StormMetricsRegistry.registerGauge("supervisor:current-used-memory", () -> {
-            return _usedMemory.values().stream().reduce(0, (o, n) -> 0 + n);
+        StormMetricsRegistry.registerGauge("supervisor:current-used-memory-mb", () -> {
+            Long val = _usedMemory.values().stream().reduce(0l, (o, n) -> 0 + n);
+            int ret = val.intValue();
+            if (val > Integer.MAX_VALUE) {  // Would only happen at 2 PB so we are OK for now
+                ret = Integer.MAX_VALUE;
+            }
+            return ret;
         });
-        StormMetricsRegistry.registerGauge("supervisor:current-reserved-memory", () -> {
-            return _reservedMemory.values().stream().reduce(0, (o, n) -> 0 + n);
+        StormMetricsRegistry.registerGauge("supervisor:current-reserved-memory-mb", () -> {
+            Long val =  _reservedMemory.values().stream().reduce(0l, (o, n) -> 0 + n);
+            int ret = val.intValue();
+            if (val > Integer.MAX_VALUE) {  // Would only happen at 2 PB so we are OK for now
+                ret = Integer.MAX_VALUE;
+            }
+            return ret;
         });
     }
     
@@ -558,8 +568,8 @@ public class Slot extends Thread implements AutoCloseable {
             return killAndRelaunchContainer(dynamicState, staticState);
         }
         
-        _usedMemory.put(staticState.port, (int)dynamicState.container.getMemoryUsageMB());
-        _reservedMemory.put(staticState.port, (int)dynamicState.container.getMemoryReservationMB());
+        _usedMemory.put(staticState.port, dynamicState.container.getMemoryUsageMB());
+        _reservedMemory.put(staticState.port, dynamicState.container.getMemoryReservationMB());
         if (dynamicState.container.isMemoryLimitViolated()) {
             _numWorkersKilledMemoryViolation.mark();
             LOG.warn("SLOT {}: violated memory limits", staticState.port);
