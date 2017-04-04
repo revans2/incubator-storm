@@ -56,15 +56,15 @@ public class Slot extends Thread implements AutoCloseable {
     private static final Meter _numWorkersKilledHBTimeout = StormMetricsRegistry.registerMeter("supervisor:num-workers-killed-hb-timeout");
     private static final Meter _numWorkersKilledHBNull = StormMetricsRegistry.registerMeter("supervisor:num-workers-killed-hb-null");
     private static final Meter _numForceKill = StormMetricsRegistry.registerMeter("supervisor:num-workers-force-kill");
-    private static final ConcurrentHashMap<Integer, Long> _usedMemory = new ConcurrentHashMap<>();
-    private static final ConcurrentHashMap<Integer, Long> _reservedMemory = new ConcurrentHashMap<>();
+    private static final ConcurrentHashMap<Integer, Integer> _usedMemory = new ConcurrentHashMap<>();
+    private static final ConcurrentHashMap<Integer, Integer> _reservedMemory = new ConcurrentHashMap<>();
     
     static {
         StormMetricsRegistry.registerGauge("supervisor:current-used-memory", () -> {
-            return _usedMemory.values().stream().reduce(0l, (o, n) -> 0 + n);
+            return _usedMemory.values().stream().reduce(0, (o, n) -> 0 + n);
         });
         StormMetricsRegistry.registerGauge("supervisor:current-reserved-memory", () -> {
-            return _reservedMemory.values().stream().reduce(0l, (o, n) -> 0 + n);
+            return _reservedMemory.values().stream().reduce(0, (o, n) -> 0 + n);
         });
     }
     
@@ -558,8 +558,8 @@ public class Slot extends Thread implements AutoCloseable {
             return killAndRelaunchContainer(dynamicState, staticState);
         }
         
-        _usedMemory.put(staticState.port, dynamicState.container.getMemoryUsageMB());
-        _reservedMemory.put(staticState.port, dynamicState.container.getMemoryReservationMB());
+        _usedMemory.put(staticState.port, (int)dynamicState.container.getMemoryUsageMB());
+        _reservedMemory.put(staticState.port, (int)dynamicState.container.getMemoryReservationMB());
         if (dynamicState.container.isMemoryLimitViolated()) {
             _numWorkersKilledMemoryViolation.mark();
             LOG.warn("SLOT {}: violated memory limits", staticState.port);
