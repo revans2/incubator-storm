@@ -60,11 +60,21 @@ public class Slot extends Thread implements AutoCloseable {
     private static final ConcurrentHashMap<Integer, Long> _reservedMemory = new ConcurrentHashMap<>();
     
     static {
-        StormMetricsRegistry.registerGauge("supervisor:current-used-memory", () -> {
-            return _usedMemory.values().stream().reduce(0l, (o, n) -> 0 + n);
+        StormMetricsRegistry.registerGauge("supervisor:current-used-memory-mb", () -> {
+            Long val = _usedMemory.values().stream().reduce(0l, (o, n) -> 0 + n);
+            int ret = val.intValue();
+            if (val > Integer.MAX_VALUE) {  // Would only happen at 2 PB so we are OK for now
+                ret = Integer.MAX_VALUE;
+            }
+            return ret;
         });
-        StormMetricsRegistry.registerGauge("supervisor:current-reserved-memory", () -> {
-            return _reservedMemory.values().stream().reduce(0l, (o, n) -> 0 + n);
+        StormMetricsRegistry.registerGauge("supervisor:current-reserved-memory-mb", () -> {
+            Long val =  _reservedMemory.values().stream().reduce(0l, (o, n) -> 0 + n);
+            int ret = val.intValue();
+            if (val > Integer.MAX_VALUE) {  // Would only happen at 2 PB so we are OK for now
+                ret = Integer.MAX_VALUE;
+            }
+            return ret;
         });
     }
     
