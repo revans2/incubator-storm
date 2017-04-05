@@ -1342,15 +1342,15 @@
       (doseq [id assigned-ids]
         (locking update-lock
           (let [orig-creds (.credentials storm-cluster-state id nil)
-                topology-conf (try-read-storm-conf (:conf nimbus) id nimbus)]
-            (if orig-creds
-              (let [new-creds (HashMap. orig-creds)]
-                (doseq [renewer renewers]
-                  (log-message "Renewing Creds For " id " with " renewer)
-                  (.renew renewer new-creds (Collections/unmodifiableMap topology-conf)))
-                (when-not (= orig-creds new-creds)
-                  (.set-credentials! storm-cluster-state id new-creds topology-conf)
-                  )))))))))
+                topology-conf (try-read-storm-conf-or-nil (:conf nimbus) id nimbus)]
+            (if topology-conf
+              (if orig-creds
+                (let [new-creds (HashMap. orig-creds)]
+                  (doseq [renewer renewers]
+                    (log-message "Renewing Creds For " id " with " renewer)
+                    (.renew renewer new-creds (Collections/unmodifiableMap topology-conf)))
+                  (when-not (= orig-creds new-creds)
+                    (.set-credentials! storm-cluster-state id new-creds topology-conf)))))))))))
 
 (defn validate-topology-size [topo-conf nimbus-conf topology]
   (let [workers-count (get topo-conf TOPOLOGY-WORKERS)
@@ -1474,7 +1474,10 @@
                         (conf NIMBUS-MONITOR-FREQ-SECS)
                         (fn []
                           (when-not (conf NIMBUS-DO-NOT-REASSIGN)
-                            (mk-assignments nimbus))
+                            (try-cause
+                              (mk-assignments nimbus)
+                              (catch KeyNotFoundException e
+                                (log-error e "Failed make new assignments! Will retry..."))))
                           (do-cleanup nimbus)
                           ))
     ;; Schedule Nimbus inbox cleaner
