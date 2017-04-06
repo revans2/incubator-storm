@@ -200,6 +200,14 @@
                              ))]
     (merge spout-inputs bolt-inputs)))
 
+(defn- build-acker-conf [storm-conf num-executors]
+  (into {} (filter val
+                   {TOPOLOGY-TASKS num-executors
+                    TOPOLOGY-TICK-TUPLE-FREQ-SECS (storm-conf TOPOLOGY-MESSAGE-TIMEOUT-SECS)
+                    TOPOLOGY-COMPONENT-RESOURCES-OFFHEAP-MEMORY-MB (storm-conf TOPOLOGY-ACKER-OFFHEAP-MEMORY-MB)
+                    TOPOLOGY-COMPONENT-RESOURCES-ONHEAP-MEMORY-MB (storm-conf TOPOLOGY-ACKER-ONHEAP-MEMORY-MB)
+                    TOPOLOGY-COMPONENT-CPU-PCORE-PERCENT (storm-conf TOPOLOGY-ACKER-CPU-PCORE-PERCENT)})))
+
 (defn add-acker! [storm-conf ^StormTopology ret]
   (let [num-executors (if (nil? (storm-conf TOPOLOGY-ACKER-EXECUTORS)) (storm-conf TOPOLOGY-WORKERS) (storm-conf TOPOLOGY-ACKER-EXECUTORS))
         acker-bolt (thrift/mk-bolt-spec* (acker-inputs ret)
@@ -208,11 +216,7 @@
                                           ACKER-FAIL-STREAM-ID (thrift/direct-output-fields ["id"])
                                           }
                                          :p num-executors
-                                         :conf {TOPOLOGY-TASKS num-executors
-                                                TOPOLOGY-TICK-TUPLE-FREQ-SECS (storm-conf TOPOLOGY-MESSAGE-TIMEOUT-SECS)
-                                                TOPOLOGY-COMPONENT-RESOURCES-OFFHEAP-MEMORY-MB (storm-conf TOPOLOGY-ACKER-OFFHEAP-MEMORY-MB)
-                                                TOPOLOGY-COMPONENT-RESOURCES-ONHEAP-MEMORY-MB (storm-conf TOPOLOGY-ACKER-ONHEAP-MEMORY-MB)
-                                                TOPOLOGY-COMPONENT-CPU-PCORE-PERCENT (storm-conf TOPOLOGY-ACKER-CPU-PCORE-PERCENT)})]
+                                         :conf (build-acker-conf storm-conf num-executors))]
     (dofor [[_ bolt] (.get_bolts ret)
             :let [common (.get_common bolt)]]
            (do
