@@ -18,24 +18,24 @@
 package backtype.storm.metric.api;
 
 import backtype.storm.metric.api.IMetric;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class CountMetric implements IMetric {
-    long _value = 0;
+    AtomicLong _value;
 
     public CountMetric() {
+        _value = new AtomicLong(0);
     }
     
-    public synchronized void incr() {
-        _value++;
+    public void incr() {
+        _value.getAndIncrement();
     }
 
-    public synchronized void incrBy(long incrementBy) {
-        _value += incrementBy;
+    public void incrBy(long incrementBy) {
+        _value.addAndGet(incrementBy);
     }
 
-    public synchronized Object getValueAndReset() {
-        long ret = _value;
-        _value = 0;
-        return ret;
+    public Object getValueAndReset() {
+        return _value.getAndSet(0);
     }
 }
