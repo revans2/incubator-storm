@@ -1343,14 +1343,13 @@
         (locking update-lock
           (let [orig-creds (.credentials storm-cluster-state id nil)
                 topology-conf (try-read-storm-conf-or-nil (:conf nimbus) id nimbus)]
-            (if topology-conf
-              (if orig-creds
-                (let [new-creds (HashMap. orig-creds)]
-                  (doseq [renewer renewers]
-                    (log-message "Renewing Creds For " id " with " renewer)
-                    (.renew renewer new-creds (Collections/unmodifiableMap topology-conf)))
-                  (when-not (= orig-creds new-creds)
-                    (.set-credentials! storm-cluster-state id new-creds topology-conf)))))))))))
+            (when (and topology-conf orig-creds)
+              (let [new-creds (HashMap. orig-creds)]
+                (doseq [renewer renewers]
+                  (log-message "Renewing Creds For " id " with " renewer)
+                  (.renew renewer new-creds (Collections/unmodifiableMap topology-conf)))
+                (when-not (= orig-creds new-creds)
+                  (.set-credentials! storm-cluster-state id new-creds topology-conf))))))))))
 
 (defn validate-topology-size [topo-conf nimbus-conf topology]
   (let [workers-count (get topo-conf TOPOLOGY-WORKERS)
