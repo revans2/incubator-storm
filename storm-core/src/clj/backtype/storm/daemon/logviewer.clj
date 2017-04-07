@@ -1197,9 +1197,12 @@ Note that if anything goes wrong, this will throw an Error and exit."
     (let [header-buffer-size (int (.get conf UI-HEADER-BUFFER-BYTES))
           filter-class (conf UI-FILTER)
           filter-params (conf UI-FILTER-PARAMS)
+          https-port (int (or (conf LOGVIEWER-HTTPS-PORT) 0))
+          ns-redirect (non-secure-redirect https-port)
           logapp (handler/api (-> log-routes
                                   nocache-middleware
-                                  (metrics-middleware logviewer:num-web-requests))) 
+                                  (metrics-middleware logviewer:num-web-requests)
+                                  ns-redirect))
           middle (conf-middleware logapp log-root-dir daemonlog-root-dir)
           filters-confs (if (conf UI-FILTER)
                           [{:filter-class filter-class
@@ -1209,7 +1212,6 @@ Note that if anything goes wrong, this will throw an Error and exit."
                           [{:filter-class "org.eclipse.jetty.servlets.GzipFilter"
                             :filter-name "Gzipper"
                             :filter-params {}}])
-          https-port (int (or (conf LOGVIEWER-HTTPS-PORT) 0))
           keystore-path (conf LOGVIEWER-HTTPS-KEYSTORE-PATH)
           keystore-pass (conf LOGVIEWER-HTTPS-KEYSTORE-PASSWORD)
           keystore-type (conf LOGVIEWER-HTTPS-KEYSTORE-TYPE)

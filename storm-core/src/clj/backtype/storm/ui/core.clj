@@ -1298,14 +1298,15 @@
       (catch Exception ex
         (json-response (exception->json ex) ((:query-params request) "callback") :status 500)))))
 
-
-(def app
-  (handler/site (-> main-routes
-                    (wrap-multipart-params)
-                    (wrap-reload '[backtype.storm.ui.core])
-                    nocache-middleware
-                    (metrics-middleware ui:num-web-requests)
-                    catch-errors )))
+(defn app [https-port]
+  (let [ns-redirect (non-secure-redirect https-port)]
+    (handler/site (-> main-routes
+                      (wrap-multipart-params)
+                      (wrap-reload '[backtype.storm.ui.core])
+                      nocache-middleware
+                      (metrics-middleware ui:num-web-requests)
+                      catch-errors
+                      ns-redirect))))
 
 (defn start-server!
   []
@@ -1345,7 +1346,7 @@
                                                     https-want-client-auth)
                                         (doseq [connector (.getConnectors server)]
                                           (.setRequestHeaderSize connector header-buffer-size))
-                                        (config-filter server app filters-confs))}))
+                                        (config-filter server (app https-port) filters-confs))}))
    (catch Exception ex
      (log-error ex))))
 

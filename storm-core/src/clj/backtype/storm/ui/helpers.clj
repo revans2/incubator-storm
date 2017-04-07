@@ -217,12 +217,21 @@
    :status 400
    :body (.getMessage ex)})
 
-(defn- remove-non-ssl-connectors [server]
-  (doseq [c (.getConnectors server)]
-    (when-not (or (nil? c) (instance? SslSocketConnector c))
-      (.removeConnector server c)
-      ))
-  server)
+(defn non-secure-redirect [https-port]
+  (if (and (not-nil? https-port) (> https-port 0))
+    (fn [handler]
+      (fn [request]
+        (if (not= https-port (:server-port request))
+          (let [qs (:query-string request)
+                nurl (str "https://" (:server-name request) 
+                          (if (not= https-port 443) (str ":" https-port) "") 
+                          (:uri request)
+                          (if qs (str "?" qs) ""))]
+            (response/redirect nurl))
+          (handler request))))
+    (fn [handler]
+      (fn [request]
+        (handler request)))))
 
 ;; Modified from ring.adapter.jetty 1.3.0
 (defn- jetty-create-server
@@ -236,7 +245,6 @@
                     (.addConnector connector)
                     (.setSendDateHeader true))
         https-port (options :https-port)]
-    (if (and (not-nil? https-port) (> https-port 0)) (remove-non-ssl-connectors server))
     server))
 
 (defn storm-run-jetty
