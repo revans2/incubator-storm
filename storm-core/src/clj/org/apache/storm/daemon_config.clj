@@ -14,14 +14,14 @@
 ;; See the License for the specific language governing permissions and
 ;; limitations under the License.
 
-(ns org.apache.storm.config
+(ns org.apache.storm.daemon-config
   (:import [org.apache.storm DaemonConfig]))
 
 (defn- clojure-config-name [name]
   (.replace (.toUpperCase name) "_" "-"))
 
 ; define clojure constants for every configuration parameter
-(doseq [f (seq (.getFields DaemonConfig))]
+(doseq [f (seq (.getDeclaredFields DaemonConfig))]
   (let [name (.getName f)
         new-name (clojure-config-name name)]
     (eval
