@@ -119,7 +119,7 @@ public class HdfsBlobStore extends BlobStore {
       // logged in already or running insecure HDFS.
       if (conf.get(Config.BLOBSTORE_HDFS_PRINCIPAL) != null &&
           conf.get(Config.BLOBSTORE_HDFS_KEYTAB) != null) {
-        UserGroupInformation.loginUserFromKeytab((String) conf.get(Config.BLOBSTORE_HDFS_PRINCIPAL),
+        UserGroupInformation.loginUserFromKeytab(Config.getBlobstoreHDFSPrincipal(conf),
             (String) conf.get(Config.BLOBSTORE_HDFS_KEYTAB));
       } else {
         if (conf.get(Config.BLOBSTORE_HDFS_PRINCIPAL) == null &&
