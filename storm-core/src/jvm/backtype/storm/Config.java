@@ -1299,7 +1299,7 @@ public class Config extends HashMap<String, Object> {
 
     /**
      * principal for nimbus/supervisor to use to access secure hdfs for the blobstore.
-     * If there is an instance af the string "${HOSTNAME}" within the principal, it will
+     * If there is an instance of the string "${HOSTNAME}" within the principal, it will
      * be replaced with the host name of the server the daemon is running on.
      */
     @isString
