@@ -22,12 +22,12 @@ import java.lang.management.ManagementFactory;
 import java.lang.management.MemoryMXBean;
 import java.lang.management.MemoryUsage;
 import java.lang.management.RuntimeMXBean;
+import java.lang.management.ThreadMXBean;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Supplier;
 
 import backtype.storm.Config;
-import backtype.storm.metric.api.AssignableMetric;
 import backtype.storm.metric.api.IMetric;
 import backtype.storm.task.IBolt;
 import backtype.storm.task.OutputCollector;
@@ -36,10 +36,6 @@ import backtype.storm.tuple.Tuple;
 import backtype.storm.utils.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
 
 // There is one task inside one executor for each worker of the topology.
@@ -106,20 +102,12 @@ public class SystemBolt implements IBolt {
         int bucketSize = Utils.getInt(topoConf.get(Config.TOPOLOGY_BUILTIN_METRICS_BUCKET_SIZE_SECS));
 
         final RuntimeMXBean jvmRT = ManagementFactory.getRuntimeMXBean();
+        context.registerMetric("uptimeSecs", () -> jvmRT.getUptime()/1000.0, bucketSize);
+        context.registerMetric("startTimeSecs", () -> jvmRT.getStartTime()/1000.0, bucketSize);
 
-        context.registerMetric("uptimeSecs", new IMetric() {
-            @Override
-            public Object getValueAndReset() {
-                return jvmRT.getUptime()/1000.0;
-            }
-        }, bucketSize);
-
-        context.registerMetric("startTimeSecs", new IMetric() {
-            @Override
-            public Object getValueAndReset() {
-                return jvmRT.getStartTime()/1000.0;
-            }
-        }, bucketSize);
+        // Count the number of threads in a worker
+        final ThreadMXBean threadBean = ManagementFactory.getThreadMXBean();
+        context.registerMetric("threadCount", threadBean::getThreadCount, bucketSize);
 
         context.registerMetric("newWorkerEvent", new IMetric() {
             boolean doEvent = true;
