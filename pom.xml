@@ -308,6 +308,7 @@
         <qpid.version>0.32</qpid.version>
         <eventhubs.client.version>1.0.1</eventhubs.client.version>
         <jersey.version>2.24.1</jersey.version>
+        <objenesis.version>2.1</objenesis.version>
 
         <!-- see intellij profile below... This fixes an annoyance with intellij -->
         <provided.scope>provided</provided.scope>
@@ -620,6 +621,11 @@
                 <artifactId>jersey-container-jetty-http</artifactId>
                 <version>${jersey.version}</version>
             </dependency> 
+            <dependency>
+                <groupId>org.objenesis</groupId>
+                <artifactId>objenesis</artifactId>
+                <version>${objenesis.version}</version>
+            </dependency>
             <dependency>
                 <groupId>org.hdrhistogram</groupId>
                 <artifactId>HdrHistogram</artifactId>
