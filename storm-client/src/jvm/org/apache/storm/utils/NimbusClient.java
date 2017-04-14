@@ -84,6 +84,14 @@ public class NimbusClient extends ThriftClient {
     }
 
     public static NimbusClient getConfiguredClientAs(Map conf, String asUser) {
+        if (!conf.containsKey(Config.NIMBUS_SEEDS) &&
+                !conf.containsKey(Config.NIMBUS_HOST)) {
+            //Read in the defaults because it looks like it was not setup properly
+            Map<String, Object> tmp = Utils.readStormConfig();
+            tmp.putAll(conf);
+            conf = tmp;
+            conf.putAll(Utils.readCommandLineOpts());
+        }
         Nimbus.Iface override = _localOverrideClient;
         if (override != null) {
             return new NimbusClient(override);
