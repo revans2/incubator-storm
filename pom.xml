@@ -238,14 +238,14 @@
         <java_jmx.version>0.3.1</java_jmx.version>
         <compojure.version>1.1.9</compojure.version>
         <hiccup.version>0.3.6</hiccup.version>
-        <commons-compress.version>1.4.1</commons-compress.version>
+        <commons-compress.version>1.13</commons-compress.version>
         <commons-io.version>2.5</commons-io.version>
-        <commons-lang.version>2.5</commons-lang.version>
-        <commons-exec.version>1.1</commons-exec.version>
+        <commons-lang.version>2.6</commons-lang.version>
+        <commons-exec.version>1.3</commons-exec.version>
         <commons-collections.version>3.2.2</commons-collections.version>
         <commons-fileupload.version>1.3.2</commons-fileupload.version>
-        <commons-codec.version>1.6</commons-codec.version>
-        <commons-cli.version>1.3.1</commons-cli.version>
+        <commons-codec.version>1.10</commons-codec.version>
+        <commons-cli.version>1.4</commons-cli.version>
         <clj-time.version>0.8.0</clj-time.version>
         <curator.version>2.12.0</curator.version>
         <json-simple.version>1.1</json-simple.version>
