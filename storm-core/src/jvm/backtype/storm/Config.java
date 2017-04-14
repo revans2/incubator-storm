@@ -50,6 +50,7 @@ import backtype.storm.validation.ConfigValidationAnnotations.isStringList;
 import backtype.storm.validation.ConfigValidationAnnotations.isStringOrStringList;
 import backtype.storm.validation.ConfigValidationAnnotations.isType;
 import backtype.storm.validation.ConfigValidationAnnotations.isImplementationOfClass;
+import backtype.storm.utils.Utils;
 import com.esotericsoftware.kryo.Serializer;
 
 import java.util.ArrayList;
@@ -57,6 +58,7 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.net.UnknownHostException;
 
 /**
  * Topology configs are specified as a plain old map. This class provides a
@@ -1297,6 +1299,8 @@ public class Config extends HashMap<String, Object> {
 
     /**
      * principal for nimbus/supervisor to use to access secure hdfs for the blobstore.
+     * If there is an instance of the string "${HOSTNAME}" within the principal, it will
+     * be replaced with the host name of the server the daemon is running on.
      */
     @isString
     public static final String BLOBSTORE_HDFS_PRINCIPAL = "blobstore.hdfs.principal";
@@ -2752,5 +2756,17 @@ public class Config extends HashMap<String, Object> {
 
     public static String getCgroupStormHierarchyName(Map conf) {
         return (String) conf.get(Config.STORM_CGROUP_HIERARCHY_NAME);
+    }
+
+    public static String getBlobstoreHDFSPrincipal(Map conf) throws UnknownHostException {
+        String principal = (String)conf.get(Config.BLOBSTORE_HDFS_PRINCIPAL);
+        if (principal != null) {
+            principal = principal.replace("${HOSTNAME}", Utils.localHostname());
+        }
+        return principal;
+    }
+
+    public String getBlobstoreHDFSPrincipal() throws UnknownHostException {
+        return Config.getBlobstoreHDFSPrincipal(this);
     }
 }
