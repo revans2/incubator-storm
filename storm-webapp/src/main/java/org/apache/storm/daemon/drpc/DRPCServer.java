@@ -28,8 +28,8 @@ import org.apache.storm.daemon.drpc.webapp.ReqContextFilter;
 import org.apache.storm.generated.DistributedRPC;
 import org.apache.storm.generated.DistributedRPCInvocations;
 import org.apache.storm.metric.StormMetricsRegistry;
-import org.apache.storm.security.auth.AuthUtils;
 import org.apache.storm.security.auth.IHttpCredentialsPlugin;
+import org.apache.storm.security.auth.ServerAuthUtils;
 import org.apache.storm.security.auth.ThriftConnectionType;
 import org.apache.storm.security.auth.ThriftServer;
 import org.apache.storm.ui.FilterConfiguration;
@@ -54,7 +54,7 @@ public class DRPCServer implements AutoCloseable {
    
     //TODO in the future this might be better in a common webapp location
     public static void addRequestContextFilter(ServletContextHandler context, String configName, Map<String, Object> conf) {
-        IHttpCredentialsPlugin auth = AuthUtils.GetHttpCredentialsPlugin(conf, (String)conf.get(configName));
+        IHttpCredentialsPlugin auth = ServerAuthUtils.GetHttpCredentialsPlugin(conf, (String)conf.get(configName));
         ReqContextFilter filter = new ReqContextFilter(auth);
         context.addFilter(new FilterHolder(filter), "/*", FilterMapping.ALL);
     }

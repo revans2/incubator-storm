@@ -155,12 +155,6 @@
             <scope>compile</scope>
         </dependency>
 
-        <!-- servlet -->
-        <dependency>
-            <groupId>javax.servlet</groupId>
-            <artifactId>servlet-api</artifactId>
-        </dependency>
-
         <!-- belows are transitive dependencies which are version managed in storm pom -->
         <!-- httpclient is derived from thrift -->
         <dependency>

@@ -30,7 +30,6 @@ import java.security.URIParameter;
 import java.security.MessageDigest;
 
 import org.apache.commons.codec.binary.Hex;
-import org.apache.commons.lang.StringUtils;
 import org.apache.storm.security.INimbusCredentialPlugin;
 import org.apache.storm.utils.ReflectionUtils;
 import org.slf4j.Logger;
@@ -317,42 +316,6 @@ public class AuthUtils {
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
-    }
-
-    public static IHttpCredentialsPlugin GetHttpCredentialsPlugin(Map<String, Object> conf,
-            String klassName) {
-        try {
-            IHttpCredentialsPlugin plugin = null;
-            if (StringUtils.isNotBlank(klassName)) {
-                plugin = ReflectionUtils.newInstance(klassName);
-                plugin.prepare(conf);
-            }
-            return plugin;
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    /**
-     * Construct an HttpServletRequest credential plugin specified by the UI
-     * storm configuration
-     * @param conf storm configuration
-     * @return the plugin
-     */
-    public static IHttpCredentialsPlugin GetUiHttpCredentialsPlugin(Map conf) {
-        String klassName = (String)conf.get(Config.UI_HTTP_CREDS_PLUGIN);
-        return AuthUtils.GetHttpCredentialsPlugin(conf, klassName);
-    }
-
-    /**
-     * Construct an HttpServletRequest credential plugin specified by the DRPC
-     * storm configuration
-     * @param conf storm configuration
-     * @return the plugin
-     */
-    public static IHttpCredentialsPlugin GetDrpcHttpCredentialsPlugin(Map conf) {
-        String klassName = (String)conf.get(Config.DRPC_HTTP_CREDS_PLUGIN);
-        return klassName == null ? null : AuthUtils.GetHttpCredentialsPlugin(conf, klassName);
     }
 
     private static final String USERNAME = "username";

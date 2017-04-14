@@ -60,6 +60,12 @@
             <artifactId>commons-compress</artifactId>
         </dependency>
 
+        <!-- servlet -->
+        <dependency>
+            <groupId>javax.servlet</groupId>
+            <artifactId>servlet-api</artifactId>
+        </dependency>
+
         <!-- test -->
         <dependency>
             <groupId>org.apache.curator</groupId>

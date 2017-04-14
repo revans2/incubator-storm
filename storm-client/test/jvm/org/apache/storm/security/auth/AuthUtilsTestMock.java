@@ -23,34 +23,21 @@ import java.util.Map;
 import java.util.Set;
 
 import javax.security.auth.Subject;
-import javax.servlet.http.HttpServletRequest;
 
 import org.apache.storm.security.INimbusCredentialPlugin;
 
 public class AuthUtilsTestMock implements IAutoCredentials, 
                                           ICredentialsRenewer,
-                                          IHttpCredentialsPlugin, 
                                           INimbusCredentialPlugin,
                                           IPrincipalToLocal,
                                           IGroupMappingServiceProvider {
 
     // IAutoCredentials
     // ICredentialsRenewer
-    // IHttpCredentialsPlugin
     // INimbusCredentialPlugin 
     // IPrincipalToLocal 
     // IGroupMappingServiceProvider 
     public void prepare(Map conf) {}
-
-    // IHttpCredentialsPlugin
-    public ReqContext populateContext(ReqContext ctx, HttpServletRequest req) {
-        return null;
-    }
-
-    // IHttpCredentialsPlugin
-    public String getUserName(HttpServletRequest req){
-        return null;
-    }
 
     // IPrincipalToLocal 
     public String toLocal(Principal principal) {

@@ -197,22 +197,12 @@ public class AuthUtilsTest {
     public void uiHttpCredentialsPluginTest(){
         Map conf = new HashMap<String, String>();
         conf.put(
-            Config.UI_HTTP_CREDS_PLUGIN, 
-            "org.apache.storm.security.auth.AuthUtilsTestMock");
-        conf.put(
-            Config.DRPC_HTTP_CREDS_PLUGIN, 
-            "org.apache.storm.security.auth.AuthUtilsTestMock");
-        conf.put(
             Config.STORM_PRINCIPAL_TO_LOCAL_PLUGIN, 
             "org.apache.storm.security.auth.AuthUtilsTestMock");
         conf.put(
             Config.STORM_GROUP_MAPPING_SERVICE_PROVIDER_PLUGIN, 
             "org.apache.storm.security.auth.AuthUtilsTestMock");
 
-        Assert.assertTrue(
-            AuthUtils.GetUiHttpCredentialsPlugin(conf).getClass() == AuthUtilsTestMock.class);
-        Assert.assertTrue(
-            AuthUtils.GetDrpcHttpCredentialsPlugin(conf).getClass() == AuthUtilsTestMock.class);
         Assert.assertTrue(
             AuthUtils.GetPrincipalToLocalPlugin(conf).getClass() == AuthUtilsTestMock.class);
         Assert.assertTrue(

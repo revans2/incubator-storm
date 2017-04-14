@@ -35,7 +35,7 @@
   (:import [java.nio ByteBuffer])
   (:import [org.apache.storm.daemon DirectoryCleaner])
   (:import [org.apache.storm.ui InvalidRequestException UIHelpers IConfigurator FilterConfiguration]
-           [org.apache.storm.security.auth AuthUtils])
+           [org.apache.storm.security.auth AuthUtils ServerAuthUtils])
   (:require [compojure.route :as route]
             [compojure.handler :as handler]
             [ring.middleware.keyword-params]
@@ -958,7 +958,7 @@
         (seq body))
       ])))
 
-(def http-creds-handler (AuthUtils/GetUiHttpCredentialsPlugin *STORM-CONF*))
+(def http-creds-handler (ServerAuthUtils/GetUiHttpCredentialsPlugin *STORM-CONF*))
 
 (defn- parse-long-from-map [m k]
   (try

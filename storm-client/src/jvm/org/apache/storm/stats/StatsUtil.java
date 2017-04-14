@@ -2377,7 +2377,7 @@ public class StatsUtil {
         return map.get(key);
     }
 
-    public static Map getMapByKey(Map map, String key) {
+    public static <K,V> Map<K, V> getMapByKey(Map map, String key) {
         if (map == null) {
             return null;
         }
