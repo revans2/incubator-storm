@@ -67,6 +67,14 @@ public class DRPCClient extends ThriftClient implements DistributedRPC.Iface {
             return new DRPCClient(override);
         }
 
+        if (!conf.containsKey(Config.DRPC_SERVERS)) {
+            //Read in the defaults because it looks like it was not setup properly
+            Map<String, Object> tmp = Utils.readStormConfig();
+            tmp.putAll(conf);
+            conf = tmp;
+            conf.putAll(Utils.readCommandLineOpts());
+        }
+        
         List<String> servers = (List<String>) conf.get(Config.DRPC_SERVERS);
         Collections.shuffle(servers);
         String host = servers.get(0);
