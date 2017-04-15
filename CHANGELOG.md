@@ -1,4 +1,7 @@
 ﻿## 2.0.0
+ * STORM-832: Allow config validation to be used by plugins/etc.
+ * STORM-2471: Add metric for thread count
+ * STORM-1114: Race condition in trident zookeeper zk-node create/delete
  * STORM-2469: fix integration-test dependencies issue
  * STORM-2455: Expose the window start and end timestamp in TupleWindow
  * STORM-2435: Logging levels and consistency with console.log etc
@@ -230,6 +233,8 @@
  * STORM-1769: Added a test to check local nimbus with notifier plugin
 
 ## 1.1.1
+ * STORM-2315: New kafka spout can't commit offset when ack is disabled
+ * STORM-2467: Use explicit charset when decoding from array backed buffer
  * STORM-2429: Properly validate supervisor.scheduler.meta
  * STORM-2451: windows storm.cmd does not set log4j2 config file correctly by default
 
