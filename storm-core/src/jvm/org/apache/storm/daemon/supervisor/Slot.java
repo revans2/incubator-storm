@@ -24,7 +24,6 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -56,27 +55,6 @@ public class Slot extends Thread implements AutoCloseable {
     private static final Meter _numWorkersKilledHBTimeout = StormMetricsRegistry.registerMeter("supervisor:num-workers-killed-hb-timeout");
     private static final Meter _numWorkersKilledHBNull = StormMetricsRegistry.registerMeter("supervisor:num-workers-killed-hb-null");
     private static final Meter _numForceKill = StormMetricsRegistry.registerMeter("supervisor:num-workers-force-kill");
-    private static final ConcurrentHashMap<Integer, Long> _usedMemory = new ConcurrentHashMap<>();
-    private static final ConcurrentHashMap<Integer, Long> _reservedMemory = new ConcurrentHashMap<>();
-    
-    static {
-        StormMetricsRegistry.registerGauge("supervisor:current-used-memory-mb", () -> {
-            Long val = _usedMemory.values().stream().reduce(0l, (o, n) -> 0 + n);
-            int ret = val.intValue();
-            if (val > Integer.MAX_VALUE) {  // Would only happen at 2 PB so we are OK for now
-                ret = Integer.MAX_VALUE;
-            }
-            return ret;
-        });
-        StormMetricsRegistry.registerGauge("supervisor:current-reserved-memory-mb", () -> {
-            Long val =  _reservedMemory.values().stream().reduce(0l, (o, n) -> 0 + n);
-            int ret = val.intValue();
-            if (val > Integer.MAX_VALUE) {  // Would only happen at 2 PB so we are OK for now
-                ret = Integer.MAX_VALUE;
-            }
-            return ret;
-        });
-    }
     
     static enum MachineState {
         EMPTY,
@@ -233,6 +211,16 @@ public class Slot extends Thread implements AutoCloseable {
         }
     };
     
+    //In some cases the new LocalAssignment may be equivalent to the old, but
+    // It is not equal.  In those cases we want to update the current assignment to
+    // be the same as the new assignment
+    private static DynamicState updateAssignmentIfNeeded(DynamicState dynamicState) {
+        if (dynamicState.newAssignment != null && !dynamicState.newAssignment.equals(dynamicState.currentAssignment)) {
+            dynamicState = dynamicState.withCurrentAssignment(dynamicState.container, dynamicState.newAssignment);
+        }
+        return dynamicState;
+    }
+    
     static class TopoProfileAction {
         public final String topoId;
         public final ProfileRequest request;
@@ -383,8 +371,6 @@ public class Slot extends Thread implements AutoCloseable {
         
         dynamicState.container.cleanUp();
         staticState.localizer.releaseSlotFor(dynamicState.currentAssignment, staticState.port);
-        _usedMemory.remove(staticState.port);
-        _reservedMemory.remove(staticState.port);
         DynamicState ret = dynamicState.withCurrentAssignment(null, null);
         if (nextState != null) {
             ret = ret.withState(nextState);
@@ -417,6 +403,7 @@ public class Slot extends Thread implements AutoCloseable {
                 staticState.localizer.releaseSlotFor(dynamicState.pendingLocalization, staticState.port);
                 return prepareForNewAssignmentNoWorkersRunning(dynamicState, staticState);
             }
+            dynamicState = updateAssignmentIfNeeded(dynamicState);
             _numWorkersLaunched.mark();
             Container c = staticState.containerLauncher.launchContainer(staticState.port, dynamicState.pendingLocalization, staticState.localState);
             return dynamicState.withCurrentAssignment(c, dynamicState.pendingLocalization).withState(MachineState.WAITING_FOR_WORKER_START).withPendingLocalization(null, null);
@@ -535,7 +522,8 @@ public class Slot extends Thread implements AutoCloseable {
             LOG.warn("SLOT {}: Assignment Changed from {} to {}", staticState.port, dynamicState.currentAssignment, dynamicState.newAssignment);
             return killContainerForChangedAssignment(dynamicState, staticState);
         }
-        
+        dynamicState = updateAssignmentIfNeeded(dynamicState);
+
         long timeDiffms = (Time.currentTimeMillis() - dynamicState.startTime);
         if (timeDiffms > staticState.firstHbTimeoutMs) {
             LOG.warn("SLOT {}: Container {} failed to launch in {} ms.", staticState.port, dynamicState.container, staticState.firstHbTimeoutMs);
@@ -562,15 +550,15 @@ public class Slot extends Thread implements AutoCloseable {
             //Scheduling changed while running...
             return killContainerForChangedAssignment(dynamicState, staticState);
         }
+        dynamicState = updateAssignmentIfNeeded(dynamicState);
+
         if (dynamicState.container.didMainProcessExit()) {
             _numWorkersKilledProcessExit.mark();
             LOG.warn("SLOT {}: main process has exited", staticState.port);
             return killAndRelaunchContainer(dynamicState, staticState);
         }
-        
-        _usedMemory.put(staticState.port, dynamicState.container.getMemoryUsageMB());
-        _reservedMemory.put(staticState.port, dynamicState.container.getMemoryReservationMB());
-        if (dynamicState.container.isMemoryLimitViolated()) {
+
+        if (dynamicState.container.isMemoryLimitViolated(dynamicState.currentAssignment)) {
             _numWorkersKilledMemoryViolation.mark();
             LOG.warn("SLOT {}: violated memory limits", staticState.port);
             return killAndRelaunchContainer(dynamicState, staticState);
@@ -648,6 +636,8 @@ public class Slot extends Thread implements AutoCloseable {
         if (!equivalent(dynamicState.newAssignment, dynamicState.currentAssignment)) {
             return prepareForNewAssignmentNoWorkersRunning(dynamicState, staticState);
         }
+        dynamicState = updateAssignmentIfNeeded(dynamicState);
+        
         //Both assignments are null, just wait
         if (dynamicState.profileActions != null && !dynamicState.profileActions.isEmpty()) {
             //Nothing is scheduled here so throw away all of the profileActions
@@ -657,7 +647,7 @@ public class Slot extends Thread implements AutoCloseable {
         Time.sleep(1000);
         return dynamicState;
     }
-    
+
     private final AtomicReference<LocalAssignment> newAssignment = new AtomicReference<>();
     private final AtomicReference<Set<TopoProfileAction>> profiling =
             new AtomicReference<Set<TopoProfileAction>>(new HashSet<TopoProfileAction>());
@@ -792,7 +782,8 @@ public class Slot extends Thread implements AutoCloseable {
                     LOG.info("STATE {} -> {}", dynamicState, nextState);
                 }
                 //Save the current state for recovery
-                if (!equivalent(nextState.currentAssignment, dynamicState.currentAssignment)) {
+                if ((nextState.currentAssignment != null && !nextState.currentAssignment.equals(dynamicState.currentAssignment)) ||
+                        (dynamicState.currentAssignment != null && !dynamicState.currentAssignment.equals(nextState.currentAssignment))) {
                     LOG.info("SLOT {}: Changing current assignment from {} to {}", staticState.port, dynamicState.currentAssignment, nextState.currentAssignment);
                     saveNewAssignment(nextState.currentAssignment);
                 }

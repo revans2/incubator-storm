@@ -799,15 +799,15 @@ public class RebalanceOptions implements org.apache.thrift.TBase<RebalanceOption
           case 3: // NUM_EXECUTORS
             if (schemeField.type == org.apache.thrift.protocol.TType.MAP) {
               {
-                org.apache.thrift.protocol.TMap _map504 = iprot.readMapBegin();
-                struct.num_executors = new HashMap<String,Integer>(2*_map504.size);
-                String _key505;
-                int _val506;
-                for (int _i507 = 0; _i507 < _map504.size; ++_i507)
+                org.apache.thrift.protocol.TMap _map532 = iprot.readMapBegin();
+                struct.num_executors = new HashMap<String,Integer>(2*_map532.size);
+                String _key533;
+                int _val534;
+                for (int _i535 = 0; _i535 < _map532.size; ++_i535)
                 {
-                  _key505 = iprot.readString();
-                  _val506 = iprot.readI32();
-                  struct.num_executors.put(_key505, _val506);
+                  _key533 = iprot.readString();
+                  _val534 = iprot.readI32();
+                  struct.num_executors.put(_key533, _val534);
                 }
                 iprot.readMapEnd();
               }
@@ -819,27 +819,27 @@ public class RebalanceOptions implements org.apache.thrift.TBase<RebalanceOption
           case 4: // TOPOLOGY_RESOURCES_OVERRIDES
             if (schemeField.type == org.apache.thrift.protocol.TType.MAP) {
               {
-                org.apache.thrift.protocol.TMap _map508 = iprot.readMapBegin();
-                struct.topology_resources_overrides = new HashMap<String,Map<String,Double>>(2*_map508.size);
-                String _key509;
-                Map<String,Double> _val510;
-                for (int _i511 = 0; _i511 < _map508.size; ++_i511)
+                org.apache.thrift.protocol.TMap _map536 = iprot.readMapBegin();
+                struct.topology_resources_overrides = new HashMap<String,Map<String,Double>>(2*_map536.size);
+                String _key537;
+                Map<String,Double> _val538;
+                for (int _i539 = 0; _i539 < _map536.size; ++_i539)
                 {
-                  _key509 = iprot.readString();
+                  _key537 = iprot.readString();
                   {
-                    org.apache.thrift.protocol.TMap _map512 = iprot.readMapBegin();
-                    _val510 = new HashMap<String,Double>(2*_map512.size);
-                    String _key513;
-                    double _val514;
-                    for (int _i515 = 0; _i515 < _map512.size; ++_i515)
+                    org.apache.thrift.protocol.TMap _map540 = iprot.readMapBegin();
+                    _val538 = new HashMap<String,Double>(2*_map540.size);
+                    String _key541;
+                    double _val542;
+                    for (int _i543 = 0; _i543 < _map540.size; ++_i543)
                     {
-                      _key513 = iprot.readString();
-                      _val514 = iprot.readDouble();
-                      _val510.put(_key513, _val514);
+                      _key541 = iprot.readString();
+                      _val542 = iprot.readDouble();
+                      _val538.put(_key541, _val542);
                     }
                     iprot.readMapEnd();
                   }
-                  struct.topology_resources_overrides.put(_key509, _val510);
+                  struct.topology_resources_overrides.put(_key537, _val538);
                 }
                 iprot.readMapEnd();
               }
@@ -892,10 +892,10 @@ public class RebalanceOptions implements org.apache.thrift.TBase<RebalanceOption
           oprot.writeFieldBegin(NUM_EXECUTORS_FIELD_DESC);
           {
             oprot.writeMapBegin(new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.I32, struct.num_executors.size()));
-            for (Map.Entry<String, Integer> _iter516 : struct.num_executors.entrySet())
+            for (Map.Entry<String, Integer> _iter544 : struct.num_executors.entrySet())
             {
-              oprot.writeString(_iter516.getKey());
-              oprot.writeI32(_iter516.getValue());
+              oprot.writeString(_iter544.getKey());
+              oprot.writeI32(_iter544.getValue());
             }
             oprot.writeMapEnd();
           }
@@ -907,15 +907,15 @@ public class RebalanceOptions implements org.apache.thrift.TBase<RebalanceOption
           oprot.writeFieldBegin(TOPOLOGY_RESOURCES_OVERRIDES_FIELD_DESC);
           {
             oprot.writeMapBegin(new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.MAP, struct.topology_resources_overrides.size()));
-            for (Map.Entry<String, Map<String,Double>> _iter517 : struct.topology_resources_overrides.entrySet())
+            for (Map.Entry<String, Map<String,Double>> _iter545 : struct.topology_resources_overrides.entrySet())
             {
-              oprot.writeString(_iter517.getKey());
+              oprot.writeString(_iter545.getKey());
               {
-                oprot.writeMapBegin(new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.DOUBLE, _iter517.getValue().size()));
-                for (Map.Entry<String, Double> _iter518 : _iter517.getValue().entrySet())
+                oprot.writeMapBegin(new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.DOUBLE, _iter545.getValue().size()));
+                for (Map.Entry<String, Double> _iter546 : _iter545.getValue().entrySet())
                 {
-                  oprot.writeString(_iter518.getKey());
-                  oprot.writeDouble(_iter518.getValue());
+                  oprot.writeString(_iter546.getKey());
+                  oprot.writeDouble(_iter546.getValue());
                 }
                 oprot.writeMapEnd();
               }
@@ -985,25 +985,25 @@ public class RebalanceOptions implements org.apache.thrift.TBase<RebalanceOption
       if (struct.is_set_num_executors()) {
         {
           oprot.writeI32(struct.num_executors.size());
-          for (Map.Entry<String, Integer> _iter519 : struct.num_executors.entrySet())
+          for (Map.Entry<String, Integer> _iter547 : struct.num_executors.entrySet())
           {
-            oprot.writeString(_iter519.getKey());
-            oprot.writeI32(_iter519.getValue());
+            oprot.writeString(_iter547.getKey());
+            oprot.writeI32(_iter547.getValue());
           }
         }
       }
       if (struct.is_set_topology_resources_overrides()) {
         {
           oprot.writeI32(struct.topology_resources_overrides.size());
-          for (Map.Entry<String, Map<String,Double>> _iter520 : struct.topology_resources_overrides.entrySet())
+          for (Map.Entry<String, Map<String,Double>> _iter548 : struct.topology_resources_overrides.entrySet())
           {
-            oprot.writeString(_iter520.getKey());
+            oprot.writeString(_iter548.getKey());
             {
-              oprot.writeI32(_iter520.getValue().size());
-              for (Map.Entry<String, Double> _iter521 : _iter520.getValue().entrySet())
+              oprot.writeI32(_iter548.getValue().size());
+              for (Map.Entry<String, Double> _iter549 : _iter548.getValue().entrySet())
               {
-                oprot.writeString(_iter521.getKey());
-                oprot.writeDouble(_iter521.getValue());
+                oprot.writeString(_iter549.getKey());
+                oprot.writeDouble(_iter549.getValue());
               }
             }
           }
@@ -1031,41 +1031,41 @@ public class RebalanceOptions implements org.apache.thrift.TBase<RebalanceOption
       }
       if (incoming.get(2)) {
         {
-          org.apache.thrift.protocol.TMap _map522 = new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.I32, iprot.readI32());
-          struct.num_executors = new HashMap<String,Integer>(2*_map522.size);
-          String _key523;
-          int _val524;
-          for (int _i525 = 0; _i525 < _map522.size; ++_i525)
+          org.apache.thrift.protocol.TMap _map550 = new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.I32, iprot.readI32());
+          struct.num_executors = new HashMap<String,Integer>(2*_map550.size);
+          String _key551;
+          int _val552;
+          for (int _i553 = 0; _i553 < _map550.size; ++_i553)
           {
-            _key523 = iprot.readString();
-            _val524 = iprot.readI32();
-            struct.num_executors.put(_key523, _val524);
+            _key551 = iprot.readString();
+            _val552 = iprot.readI32();
+            struct.num_executors.put(_key551, _val552);
           }
         }
         struct.set_num_executors_isSet(true);
       }
       if (incoming.get(3)) {
         {
-          org.apache.thrift.protocol.TMap _map526 = new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.MAP, iprot.readI32());
-          struct.topology_resources_overrides = new HashMap<String,Map<String,Double>>(2*_map526.size);
-          String _key527;
-          Map<String,Double> _val528;
-          for (int _i529 = 0; _i529 < _map526.size; ++_i529)
+          org.apache.thrift.protocol.TMap _map554 = new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.MAP, iprot.readI32());
+          struct.topology_resources_overrides = new HashMap<String,Map<String,Double>>(2*_map554.size);
+          String _key555;
+          Map<String,Double> _val556;
+          for (int _i557 = 0; _i557 < _map554.size; ++_i557)
           {
-            _key527 = iprot.readString();
+            _key555 = iprot.readString();
             {
-              org.apache.thrift.protocol.TMap _map530 = new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.DOUBLE, iprot.readI32());
-              _val528 = new HashMap<String,Double>(2*_map530.size);
-              String _key531;
-              double _val532;
-              for (int _i533 = 0; _i533 < _map530.size; ++_i533)
+              org.apache.thrift.protocol.TMap _map558 = new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.DOUBLE, iprot.readI32());
+              _val556 = new HashMap<String,Double>(2*_map558.size);
+              String _key559;
+              double _val560;
+              for (int _i561 = 0; _i561 < _map558.size; ++_i561)
               {
-                _key531 = iprot.readString();
-                _val532 = iprot.readDouble();
-                _val528.put(_key531, _val532);
+                _key559 = iprot.readString();
+                _val560 = iprot.readDouble();
+                _val556.put(_key559, _val560);
               }
             }
-            struct.topology_resources_overrides.put(_key527, _val528);
+            struct.topology_resources_overrides.put(_key555, _val556);
           }
         }
         struct.set_topology_resources_overrides_isSet(true);

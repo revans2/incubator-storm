@@ -156,6 +156,11 @@ public class BasicContainer extends Container {
         _lowMemoryThresholdMB = Utils.getInt(conf.get(Config.STORM_SUPERVISOR_LOW_MEMORY_THRESHOLD), 1024);
         _mediumMemoryThresholdMB = Utils.getInt(conf.get(Config.STORM_SUPERVISOR_MEDIUM_MEMORY_THRESHOLD), 1536);
         _mediumMemoryGracePeriodMs = Utils.getInt(conf.get(Config.STORM_SUPERVISOR_MEDIUM_MEMORY_GRACE_PERIOD), 20_000);
+        
+        if (assignment != null) {
+            WorkerResources resources = assignment.get_resources();
+            _memoryLimitMB = calculateMemoryLimit(resources, getMemOnHeap(resources));
+        }
     }
 
     /**
@@ -638,24 +643,48 @@ public class BasicContainer extends Container {
     }
     
     @Override
-    public boolean isMemoryLimitViolated() {
+    public boolean isMemoryLimitViolated(LocalAssignment withUpdatedLimits) throws IOException {
+        if (super.isMemoryLimitViolated(withUpdatedLimits)) {
+            return true;
+        }
         if (_resourceIsolationManager != null) {
             // In the short term the goal is to not shoot anyone unless we really need to.
             // The on heap should limit the memory usage in most cases to a reasonable amount
             // If someone is using way more than they requested this is a bug and we should
             // not allow it
-            long usageMB = getMemoryUsageMB();
+            long usageMB; 
+            long memoryLimitMB;
+            long hardMemoryLimitOver;
+            String typeOfCheck;
+            
+            if (withUpdatedLimits.is_has_node_shared_memory()) {
+                //We need to do enforcement on a topology level, not a single worker level...
+                // Because in for cgroups each page in shared memory goes to the worker that touched it first
+                // We may need to make this more plugable in the future and let the resource isolation manager
+                // tell us what to do
+                usageMB = getTotalTopologyMemoryUsed();
+                memoryLimitMB = getTotalTopologyMemoryReserved(withUpdatedLimits);
+                hardMemoryLimitOver = _hardMemoryLimitOver * getTotalWorkersForThisTopology();
+                typeOfCheck = "TOPOLOGY " + _topologyId;
+            } else {
+                usageMB = getMemoryUsageMB();
+                memoryLimitMB = _memoryLimitMB;
+                hardMemoryLimitOver = _hardMemoryLimitOver;
+                typeOfCheck = "WORKER " + _workerId;
+            }
+            LOG.debug("Enforcing memory usage for {} with usgae of {} out of {} total and a hard limit of {}", typeOfCheck, usageMB, memoryLimitMB, hardMemoryLimitOver);
+
             if (usageMB <= 0) {
                 //Looks like usage might now be supported
                 return false;
             }
-            long hardLimitMB = _memoryLimitMB + 
-                    Math.max((long)(_memoryLimitMB * (_hardMemoryLimitMultiplier - 1.0)), _hardMemoryLimitOver);
+            long hardLimitMB = memoryLimitMB + 
+                    Math.max((long)(memoryLimitMB * (_hardMemoryLimitMultiplier - 1.0)), hardMemoryLimitOver);
             if (usageMB > hardLimitMB) {
-                LOG.warn("WORKER {} is using {} MB > adjusted hard limit {} MB", _workerId, usageMB, hardLimitMB);
+                LOG.warn("{} is using {} MB > adjusted hard limit {} MB", typeOfCheck, usageMB, hardLimitMB);
                 return true;
             }
-            if (usageMB > _memoryLimitMB) {
+            if (usageMB > memoryLimitMB) {
                 //For others using too much it is really a question of how much memory is free in the system to be used
                 // If we cannot calculate it assume that it is bad
                 long systemFreeMemoryMB = 0;
@@ -667,7 +696,7 @@ public class BasicContainer extends Container {
                 LOG.debug("SYSTEM MEMORY FREE {} MB", systemFreeMemoryMB);
                 //If the system is low on memory we cannot be kind and need to shoot something
                 if (systemFreeMemoryMB <= _lowMemoryThresholdMB) {
-                    LOG.warn("WORKER {} is using {} MB > memory limit {} MB and system is low on memory {} free", _workerId, usageMB, _memoryLimitMB, systemFreeMemoryMB);
+                    LOG.warn("{} is using {} MB > memory limit {} MB and system is low on memory {} free", typeOfCheck, usageMB, memoryLimitMB, systemFreeMemoryMB);
                     return true;
                 }
                 
@@ -679,13 +708,13 @@ public class BasicContainer extends Container {
                     } else {
                         long timeInViolation = Time.currentTimeMillis() - _memoryLimitExceededStart;
                         if (timeInViolation > _mediumMemoryGracePeriodMs) {
-                            LOG.warn("WORKER {} is using {} MB > memory limit {} MB for {} seconds", _workerId, usageMB, _memoryLimitMB, timeInViolation/1000);
+                            LOG.warn("{} is using {} MB > memory limit {} MB for {} seconds", typeOfCheck, usageMB, memoryLimitMB, timeInViolation/1000);
                             return true;
                         }
                     }
                 } else {
                     //Otherwise don't bother them
-                    LOG.debug("WORKER {} is using {} MB > memory limit {} MB", _workerId, usageMB, _memoryLimitMB);
+                    LOG.debug("{} is using {} MB > memory limit {} MB", typeOfCheck, usageMB, memoryLimitMB);
                     _memoryLimitExceededStart = -1;
                 }
             } else {
@@ -694,7 +723,7 @@ public class BasicContainer extends Container {
         }
         return false;
     }
-    
+
     @Override
     public long getMemoryUsageMB() {
         try {
@@ -717,6 +746,16 @@ public class BasicContainer extends Container {
         return _memoryLimitMB;
     }
     
+    private long calculateMemoryLimit(final WorkerResources resources, final int memOnHeap) {
+        long ret = memOnHeap;
+        if (_resourceIsolationManager != null) {
+            final int memoffheap = (int) Math.ceil(resources.get_mem_off_heap());
+            final int extraMem = (int) (Math.ceil(Utils.getDouble(_conf.get(Config.STORM_SUPERVISOR_MEMORY_LIMIT_TOLERANCE_MARGIN_MB), 0.0)));
+            ret += memoffheap + extraMem;
+        }
+        return ret;
+    }
+    
     @Override
     public void launch() throws IOException {
         _type.assertFull();
@@ -727,7 +766,8 @@ public class BasicContainer extends Container {
         _exitedEarly = false;
         
         final WorkerResources resources = _assignment.get_resources();
-        final int memOnheap = getMemOnHeap(resources);
+        final int memOnHeap = getMemOnHeap(resources);
+        _memoryLimitMB = calculateMemoryLimit(resources, memOnHeap);
         final String stormRoot = ConfigUtils.supervisorStormDistRoot(_conf, _topologyId);
         String jlp = javaLibraryPath(stormRoot, _conf);
 
@@ -746,20 +786,12 @@ public class BasicContainer extends Container {
         topEnvironment.put("LD_LIBRARY_PATH", jlp);
 
         if (_resourceIsolationManager != null) {
-            int memoffheap = (int) Math.ceil(resources.get_mem_off_heap());
-            int cpu = (int) Math.ceil(resources.get_cpu());
-            int extraMem = (int) (Math.ceil(Utils.getDouble(_conf.get(Config.STORM_SUPERVISOR_MEMORY_LIMIT_TOLERANCE_MARGIN_MB), 0.0)));
-            int memoryValue = memoffheap + memOnheap + extraMem;
-            int cpuValue = cpu;
-            Map<String, Number> map = new HashMap<>();
-            map.put("cpu", cpuValue);
-            map.put("memory", memoryValue);
+            final int cpu = (int) Math.ceil(resources.get_cpu());
             //Save the memory limit so we can enforce it less strictly
-            _memoryLimitMB = memoryValue;
-            _resourceIsolationManager.reserveResourcesForWorker(_workerId, map);
+            _resourceIsolationManager.reserveResourcesForWorker(_workerId, (int)_memoryLimitMB, cpu);
         }
 
-        List<String> commandList = mkLaunchCommand(memOnheap, stormRoot, jlp);
+        List<String> commandList = mkLaunchCommand(memOnHeap, stormRoot, jlp);
 
         LOG.info("Launching worker with command: {}. ", Utils.shellCmd(commandList));
 

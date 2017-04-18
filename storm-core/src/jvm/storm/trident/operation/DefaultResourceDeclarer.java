@@ -18,8 +18,12 @@
 package storm.trident.operation;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
+
 import backtype.storm.Config;
+import backtype.storm.generated.SharedMemory;
 import backtype.storm.utils.Utils;
 import backtype.storm.topology.ResourceDeclarer;
 
@@ -29,8 +33,8 @@ import backtype.storm.topology.ResourceDeclarer;
  */
 public class DefaultResourceDeclarer<T extends DefaultResourceDeclarer> implements ResourceDeclarer<T>, ITridentResource {
 
-    private Map<String, Number> resources = new HashMap<>();
-    private static Map conf = Utils.readStormConfig();
+    private final transient Map<String, Number> resources = new HashMap<>();
+    private final transient Set<SharedMemory> sharedMemory = new HashSet<>();
 
     @Override
     public T setMemoryLoad(Number onHeap) {
@@ -64,5 +68,16 @@ public class DefaultResourceDeclarer<T extends DefaultResourceDeclarer> implemen
     @Override
     public Map<String, Number> getResources() {
         return new HashMap<String, Number>(resources);
+    }
+
+    @Override
+    public Set<SharedMemory> getSharedMemory() {
+        return sharedMemory;
+    }
+
+    @Override
+    public T addSharedMemory(SharedMemory request) {
+        sharedMemory.add(request);
+        return (T) this;
     }
 }

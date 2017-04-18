@@ -57,6 +57,7 @@
                                                                   [(map long k)
                                                                    (NodeInfo. (first v) (set (map long (rest v))))])
                                                                 (:executor->node+port assignment))))
+                            (.set_total_shared_off_heap (into {} (map (fn [[k v]] {k (Double. v)}) (:total-shared-off-heap assignment))))
                             (.set_executor_start_time_secs
                               (into {}
                                     (map (fn [[k v]]
@@ -103,7 +104,8 @@
       (clojurify-executor->node_port (into {} (.get_executor_node_port assignment)))
       (map-key (fn [executor] (into [] executor))
         (into {} (.get_executor_start_time_secs assignment)))
-      (clojurify-node-info-worker-resources (into {} (.get_worker_resources assignment))))))
+      (clojurify-node-info-worker-resources (into {} (.get_worker_resources assignment)))
+      (.get_total_shared_off_heap assignment))))
 
 (defn convert-to-symbol-from-status [status]
   (condp = status

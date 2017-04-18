@@ -47,6 +47,10 @@ public class Topologies {
         this(src.topologies);
     }
     
+    public Collection<String> getAllIds() {
+        return topologies.keySet();
+    }
+    
     public TopologyDetails getById(String topologyId) {
         return this.topologies.get(topologyId);
     }

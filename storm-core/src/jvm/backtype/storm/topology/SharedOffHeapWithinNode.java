@@ -15,25 +15,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package storm.trident.planner;
+package backtype.storm.topology;
 
-import backtype.storm.tuple.Fields;
+import backtype.storm.generated.SharedMemory;
+import backtype.storm.utils.Utils;
 
-public class ProcessorNode extends Node {
-    private static final long serialVersionUID = -7875331342234909685L;
-    
-    public boolean committer; // for partitionpersist
-    public TridentProcessor processor;
-    public Fields selfOutFields;
-    
-    public ProcessorNode(String streamId, String name, Fields allOutputFields, Fields selfOutFields, TridentProcessor processor) {
-        super(streamId, name, allOutputFields);
-        this.processor = processor;
-        this.selfOutFields = selfOutFields;
-    }
+/**
+ * A request for a shared memory region off heap between workers on a node
+ */
+public class SharedOffHeapWithinNode extends SharedMemory {
+    private static final long serialVersionUID = 1L;
 
-    @Override
-    public String shortString() {
-        return super.shortString() + ", processor: " + processor + ", selfOutFields: " + selfOutFields;
+    /**
+     * Create a new request for a shared memory region off heap between workers on a node
+     * @param amount the number of MB to share
+     * @param name the name of the shared region (for tracking purposes)
+     */
+    public SharedOffHeapWithinNode(double amount, String name) {
+        super(name == null ? Utils.uuid() : name);
+        set_off_heap_node(amount);
     }
 }

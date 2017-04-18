@@ -43,7 +43,6 @@
 ;; check if scheduling is correct
 (deftest test-schedule-multitenant
   (let [supers (gen-supervisors 5 4)
-        cluster (Cluster. (nimbus/standalone-nimbus) supers {} {})
         builder (TopologyBuilder.)
         _ (doto (.setSpout builder "spout1" (TestWordSpout.) 5))
         conf (Config.)
@@ -61,6 +60,7 @@
                     5
                     (mk-ed-map [["spout1" 0 5]]))
         topologies (Topologies. (to-top-map [topology1]))
+        cluster (Cluster. (nimbus/standalone-nimbus) supers {} topologies {})
         scheduler (MultitenantResourceAwareBridgeScheduler.)]
     (.prepare scheduler conf_scheduler)
     (.schedule scheduler topologies cluster)
@@ -69,9 +69,6 @@
 ;; test scheduling a topology with only using resource aware scheduler
 (deftest test-schedule-resource-aware
   (let [supers (gen-supervisors 5 4)
-        cluster (Cluster. (nimbus/standalone-nimbus) supers {}
-                  {STORM-NETWORK-TOPOGRAPHY-PLUGIN
-                   "backtype.storm.networktopography.DefaultRackDNSToSwitchMapping"})
         builder (TopologyBuilder.)
         _ (doto (.setSpout builder "spout1" (TestWordSpout.) 5)
             (.setMemoryLoad 500.0 12.0)
@@ -93,6 +90,9 @@
                     (mk-ed-map [["spout1" 0 5]]))
 
         topologies (Topologies. (to-top-map [topology1]))
+        cluster (Cluster. (nimbus/standalone-nimbus) supers {} topologies
+                  {STORM-NETWORK-TOPOGRAPHY-PLUGIN
+                   "backtype.storm.networktopography.DefaultRackDNSToSwitchMapping"})
         scheduler (MultitenantResourceAwareBridgeScheduler.)]
     (.prepare scheduler conf)
     (.schedule scheduler topologies cluster)
@@ -101,9 +101,6 @@
 ;; test multiple schedulings with scheduling multitenant topologies first
 (deftest test-consecutive-scheduling-multitenant-first
   (let [supers (gen-supervisors 5 4)
-        cluster (Cluster. (nimbus/standalone-nimbus) supers {}
-                  {STORM-NETWORK-TOPOGRAPHY-PLUGIN
-                   "backtype.storm.networktopography.DefaultRackDNSToSwitchMapping"})
         builder1 (TopologyBuilder.)
         _ (doto (.setSpout builder1 "spout1" (TestWordSpout.) 1))
         conf_scheduler {MULTITENANT-SCHEDULER-USER-POOLS {"userJerry" 1}}
@@ -170,6 +167,9 @@
                     (mk-ed-map [["spout1" 0 5]]))
 
         topologies (Topologies. (to-top-map [topology1 topology2 topology3]))
+        cluster (Cluster. (nimbus/standalone-nimbus) supers {} topologies
+                  {STORM-NETWORK-TOPOGRAPHY-PLUGIN
+                   "backtype.storm.networktopography.DefaultRackDNSToSwitchMapping"})
         scheduler (MultitenantResourceAwareBridgeScheduler.)]
     (.prepare scheduler conf_scheduler)
     (.schedule scheduler topologies cluster)
@@ -184,9 +184,6 @@
 ;; test multiple schedulings with scheduling resource aware topology first
 (deftest test-consecutive-scheduling-resource-aware-first
   (let [supers (gen-supervisors 5 4)
-        cluster (Cluster. (nimbus/standalone-nimbus) supers {}
-                  {STORM-NETWORK-TOPOGRAPHY-PLUGIN
-                   "backtype.storm.networktopography.DefaultRackDNSToSwitchMapping"})
         conf_scheduler {MULTITENANT-SCHEDULER-USER-POOLS {"userJerry" 1}
                         RESOURCE-AWARE-SCHEDULER-EVICTION-STRATEGY "backtype.storm.scheduler.resource.strategies.eviction.DefaultEvictionStrategy"
                         RESOURCE-AWARE-SCHEDULER-PRIORITY-STRATEGY "backtype.storm.scheduler.resource.strategies.priority.DefaultSchedulingPriorityStrategy"}
@@ -257,6 +254,9 @@
                     5
                     (mk-ed-map [["spout1" 0 5]]))
         topologies2 (Topologies. (to-top-map [topology1 topology2 topology3]))
+        cluster (Cluster. (nimbus/standalone-nimbus) supers {} topologies2
+                  {STORM-NETWORK-TOPOGRAPHY-PLUGIN
+                   "backtype.storm.networktopography.DefaultRackDNSToSwitchMapping"})
         scheduler (MultitenantResourceAwareBridgeScheduler.)]
     (.prepare scheduler conf_scheduler)
     (.schedule scheduler topologies cluster)
@@ -320,10 +320,10 @@
                                 ["bolt22" 10 20]
                                 ["bolt23" 20 30]
                                 ["bolt24" 30 40]]))
-        cluster (Cluster. (nimbus/standalone-nimbus) supers {} nil)
-        node-map (Node/getAllNodesFrom cluster)
         topologies (Topologies. (to-top-map [topology1 topology2 topology3]))
         conf {MULTITENANT-SCHEDULER-USER-POOLS {"userA" 5 "userB" 5}}
+        cluster (Cluster. (nimbus/standalone-nimbus) supers {} topologies conf)
+        node-map (Node/getAllNodesFrom cluster)
         scheduler (MultitenantResourceAwareBridgeScheduler.)]
     (.assign (.get node-map "id0") "topology1" (list (ed 1)) cluster)
     (.assign (.get node-map "id1") "topology2" (list (ed 5)) cluster)
@@ -363,10 +363,10 @@
                                 ["bolt1" 4 12]
                                 ["_acker" 12 24]
                                 ["_metricsConsumer" 24 25]]))
-        cluster (Cluster. (nimbus/standalone-nimbus) supers {} nil)
-        node-map (Node/getAllNodesFrom cluster)
         topologies (Topologies. (to-top-map [topology1]))
         conf {MULTITENANT-SCHEDULER-USER-POOLS {"userA" 5 "userB" 5 }}
+        cluster (Cluster. (nimbus/standalone-nimbus) supers {} topologies conf)
+        node-map (Node/getAllNodesFrom cluster)
         scheduler (MultitenantResourceAwareBridgeScheduler.)]
     (.assign (.get node-map "id0") "topology1" (list (ed 1)) cluster)
     (.prepare scheduler conf)
@@ -405,12 +405,12 @@
                                "topology1" (SchedulerAssignmentImpl. "topology1" {(ExecutorDetails. 0 5) (WorkerSlot. "id0" 1)
                                                                                   (ExecutorDetails. 5 10) (WorkerSlot. "id0" 20)
                                                                                   (ExecutorDetails. 10 15) (WorkerSlot. "id0" 1)
-                                                                                  (ExecutorDetails. 15 20) (WorkerSlot. "id0" 1)})
+                                                                                  (ExecutorDetails. 15 20) (WorkerSlot. "id0" 1)} nil nil)
                                }
-        cluster (Cluster. (nimbus/standalone-nimbus) supers existing-assignments nil)
-        node-map (Node/getAllNodesFrom cluster)
         topologies (Topologies. (to-top-map [topology1]))
         conf {MULTITENANT-SCHEDULER-USER-POOLS {"userA" 5 "userB" 5}}
+        cluster (Cluster. (nimbus/standalone-nimbus) supers existing-assignments topologies conf)
+        node-map (Node/getAllNodesFrom cluster)
         scheduler (MultitenantResourceAwareBridgeScheduler.)]
     (.assign (.get node-map "id0") "topology1" (list (ed 1)) cluster)
     (.prepare scheduler conf)
@@ -468,11 +468,11 @@
                       1
                       (mk-ed-map [["spout21" 2 3]]))
           worker-slot-with-multiple-assignments (WorkerSlot. "id1" 1)
-          existing-assignments {"topology2" (SchedulerAssignmentImpl. "topology2" {(ExecutorDetails. 1 1) worker-slot-with-multiple-assignments})
-                                "topology3" (SchedulerAssignmentImpl. "topology3" {(ExecutorDetails. 2 2) worker-slot-with-multiple-assignments})}
-          cluster (Cluster. (nimbus/standalone-nimbus) supers existing-assignments nil)
+          existing-assignments {"topology2" (SchedulerAssignmentImpl. "topology2" {(ExecutorDetails. 1 1) worker-slot-with-multiple-assignments} nil nil)
+                                "topology3" (SchedulerAssignmentImpl. "topology3" {(ExecutorDetails. 2 2) worker-slot-with-multiple-assignments} nil nil)}
           topologies (Topologies. (to-top-map [topology1 topology2 topology3]))
           conf {MULTITENANT-SCHEDULER-USER-POOLS {"userA" 2 "userB" 1}}
+          cluster (Cluster. (nimbus/standalone-nimbus) supers existing-assignments topologies conf)
           scheduler (MultitenantResourceAwareBridgeScheduler.)]
       (.prepare scheduler conf)
       (.schedule scheduler topologies cluster)
@@ -503,10 +503,10 @@
                       (mk-ed-map [["spout11" 0 1]]))
           existing-assignments {"topology1"
                                 (SchedulerAssignmentImpl. "topology1"
-                                  {(ExecutorDetails. 0 0) (WorkerSlot. "id0" port-not-reported-by-supervisor)})}
-          cluster (Cluster. (nimbus/standalone-nimbus) supers existing-assignments nil)
+                                  {(ExecutorDetails. 0 0) (WorkerSlot. "id0" port-not-reported-by-supervisor)} nil nil)}
           topologies (Topologies. (to-top-map [topology1]))
           conf {}
+          cluster (Cluster. (nimbus/standalone-nimbus) supers existing-assignments topologies conf)
           scheduler (MultitenantResourceAwareBridgeScheduler.)]
       (.prepare scheduler conf)
       (.schedule scheduler topologies cluster)
@@ -551,14 +551,14 @@
           existing-assignments {"topology1"
                                 (SchedulerAssignmentImpl. "topology1"
                                   {(ExecutorDetails. 0 0) worker-slot-with-multiple-assignments
-                                   (ExecutorDetails. 1 1) (WorkerSlot. dead-supervisor 3)})
+                                   (ExecutorDetails. 1 1) (WorkerSlot. dead-supervisor 3)} nil nil)
                                 "topology2"
                                 (SchedulerAssignmentImpl. "topology2"
                                   {(ExecutorDetails. 4 4) worker-slot-with-multiple-assignments
-                                   (ExecutorDetails. 5 5) (WorkerSlot. dead-supervisor port-not-reported-by-supervisor)})}
-          cluster (Cluster. (nimbus/standalone-nimbus) supers existing-assignments nil)
+                                   (ExecutorDetails. 5 5) (WorkerSlot. dead-supervisor port-not-reported-by-supervisor)} nil nil)}
           topologies (Topologies. (to-top-map [topology1 topology2]))
           conf {}
+          cluster (Cluster. (nimbus/standalone-nimbus) supers existing-assignments topologies conf)
           scheduler (MultitenantResourceAwareBridgeScheduler.)]
       (.prepare scheduler conf)
       (.schedule scheduler topologies cluster)
@@ -566,14 +566,12 @@
             assigned-slots (.getSlots assignment)
             executors (.getExecutors assignment)]
         (is (= 2 (.size assigned-slots)))
-        (is (= 2 (.size (into #{} (for [slot assigned-slots] (.getNodeId slot))))))
         (is (= 2 (.size executors))))
       (is (= "(MT) Fully Scheduled" (.get (.getStatusMap cluster) "topology1")))
       (let [assignment (.getAssignmentById cluster "topology2")
             assigned-slots (.getSlots assignment)
             executors (.getExecutors assignment)]
         (is (= 2 (.size assigned-slots)))
-        (is (= 2 (.size (into #{} (for [slot assigned-slots] (.getNodeId slot))))))
         (is (= 2 (.size executors))))
       (is (= "(MT) Fully Scheduled" (.get (.getStatusMap cluster) "topology2"))))))
 
@@ -598,10 +596,10 @@
                     1
                     (mk-ed-map [["wordSpout" 0 1]
                                 ["wordCountBolt" 1 2]]))
-        cluster (Cluster. (nimbus/standalone-nimbus) supers {}
+        topologies (Topologies. (to-top-map [topology1]))
+        cluster (Cluster. (nimbus/standalone-nimbus) supers {} topologies
                   {STORM-NETWORK-TOPOGRAPHY-PLUGIN
                    "backtype.storm.networktopography.DefaultRackDNSToSwitchMapping"})
-        topologies (Topologies. (to-top-map [topology1]))
         node-map (RAS_Nodes/getAllNodesFrom cluster topologies)
         scheduler (MultitenantResourceAwareBridgeScheduler.)]
     (.prepare scheduler {
@@ -666,10 +664,10 @@
                     (mk-ed-map [["wordSpoutX" 0 1]
                                 ["wordSpoutY" 1 2]]))
         supers (gen-supervisors 2 4)
-        cluster (Cluster. (nimbus/standalone-nimbus) supers {}
+        topologies (Topologies. (to-top-map [topology1 topology2]))
+        cluster (Cluster. (nimbus/standalone-nimbus) supers {} topologies
                   {STORM-NETWORK-TOPOGRAPHY-PLUGIN
                    "backtype.storm.networktopography.DefaultRackDNSToSwitchMapping"})
-        topologies (Topologies. (to-top-map [topology1 topology2]))
         scheduler (MultitenantResourceAwareBridgeScheduler.)]
     (.prepare scheduler {
                           RESOURCE-AWARE-SCHEDULER-EVICTION-STRATEGY "backtype.storm.scheduler.resource.strategies.eviction.DefaultEvictionStrategy"
@@ -714,10 +712,10 @@
                     2
                     (mk-ed-map [["wordSpout" 0 1]
                                 ["wordCountBolt" 1 2]]))
-        cluster (Cluster. (nimbus/standalone-nimbus) supers {}
+        topologies (Topologies. (to-top-map [topology2]))
+        cluster (Cluster. (nimbus/standalone-nimbus) supers {} topologies
                   {STORM-NETWORK-TOPOGRAPHY-PLUGIN
                    "backtype.storm.testing.AlternateRackDNSToSwitchMapping"})
-        topologies (Topologies. (to-top-map [topology2]))
         scheduler (MultitenantResourceAwareBridgeScheduler.)]
     (.prepare scheduler {
                           RESOURCE-AWARE-SCHEDULER-EVICTION-STRATEGY "backtype.storm.scheduler.resource.strategies.eviction.DefaultEvictionStrategy"
@@ -756,10 +754,10 @@
                     2 ;; need two workers, each on one node
                     (mk-ed-map [["wordSpout" 0 2]
                                 ["wordCountBolt" 2 3]]))
-        cluster (Cluster. (nimbus/standalone-nimbus) supers {}
+        topologies (Topologies. (to-top-map [topology1]))
+        cluster (Cluster. (nimbus/standalone-nimbus) supers {} topologies
                   {STORM-NETWORK-TOPOGRAPHY-PLUGIN
                    "backtype.storm.networktopography.DefaultRackDNSToSwitchMapping"})
-        topologies (Topologies. (to-top-map [topology1]))
         scheduler (MultitenantResourceAwareBridgeScheduler.)]
     (.prepare scheduler {
                           RESOURCE-AWARE-SCHEDULER-EVICTION-STRATEGY "backtype.storm.scheduler.resource.strategies.eviction.DefaultEvictionStrategy"
@@ -835,10 +833,10 @@
         scheduler (MultitenantResourceAwareBridgeScheduler.)]
 
     (testing "When a worker fails, RAS does not alter existing assignments on healthy workers"
-      (let [cluster (Cluster. (nimbus/standalone-nimbus) supers {}
+      (let [topologies (Topologies. (to-top-map [topology2]))
+            cluster (Cluster. (nimbus/standalone-nimbus) supers {} topologies
                       {STORM-NETWORK-TOPOGRAPHY-PLUGIN
                        "backtype.storm.networktopography.DefaultRackDNSToSwitchMapping"})
-            topologies (Topologies. (to-top-map [topology2]))
             _ (.prepare scheduler {
                                     RESOURCE-AWARE-SCHEDULER-EVICTION-STRATEGY "backtype.storm.scheduler.resource.strategies.eviction.DefaultEvictionStrategy"
                                     RESOURCE-AWARE-SCHEDULER-PRIORITY-STRATEGY "backtype.storm.scheduler.resource.strategies.priority.DefaultSchedulingPriorityStrategy"
@@ -867,11 +865,11 @@
       (let [existing-assignments {"topology1" (SchedulerAssignmentImpl. "topology1"
                                                 {(ExecutorDetails. 0 0) (WorkerSlot. "id0" 0)    ;; worker 0 on the failed super
                                                  (ExecutorDetails. 1 1) (WorkerSlot. "id0" 1)    ;; worker 1 on the failed super
-                                                 (ExecutorDetails. 2 2) (WorkerSlot. "id1" 1)})} ;; worker 2 on the health super
-            cluster (Cluster. (nimbus/standalone-nimbus) supers existing-assignments
+                                                 (ExecutorDetails. 2 2) (WorkerSlot. "id1" 1)} nil nil)} ;; worker 2 on the health super
+            topologies (Topologies. (to-top-map [topology1]))
+            cluster (Cluster. (nimbus/standalone-nimbus) supers existing-assignments topologies
                       {STORM-NETWORK-TOPOGRAPHY-PLUGIN
                        "backtype.storm.networktopography.DefaultRackDNSToSwitchMapping"})
-            topologies (Topologies. (to-top-map [topology1]))
             assignment (.getAssignmentById cluster "topology1")
             ed->slot (.getExecutorToSlot assignment)
             copy-old-mapping (HashMap. ed->slot)
@@ -879,6 +877,7 @@
             new-cluster (Cluster. (nimbus/standalone-nimbus)
                           (dissoc supers "id0")        ;; mock the super0 as a failed supervisor
                           (.getAssignments cluster)
+                          topologies
                           {STORM-NETWORK-TOPOGRAPHY-PLUGIN
                            "backtype.storm.networktopography.DefaultRackDNSToSwitchMapping"})
             _ (.prepare scheduler {
@@ -896,11 +895,11 @@
       (let [existing-assignments {"topology1" (SchedulerAssignmentImpl. "topology1"
                                                 {(ExecutorDetails. 0 0) (WorkerSlot. "id0" 1)    ;; the worker to orphan
                                                  (ExecutorDetails. 1 1) (WorkerSlot. "id0" 2)    ;; the worker to kill
-                                                 (ExecutorDetails. 2 2) (WorkerSlot. "id1" 1)})} ;; the healthy worker
-            cluster (Cluster. (nimbus/standalone-nimbus) supers existing-assignments
+                                                 (ExecutorDetails. 2 2) (WorkerSlot. "id1" 1)} nil nil)} ;; the healthy worker
+            topologies (Topologies. (to-top-map [topology1]))
+            cluster (Cluster. (nimbus/standalone-nimbus) supers existing-assignments topologies
                       {STORM-NETWORK-TOPOGRAPHY-PLUGIN
                        "backtype.storm.networktopography.DefaultRackDNSToSwitchMapping"})
-            topologies (Topologies. (to-top-map [topology1]))
             assignment (.getAssignmentById cluster "topology1")
             ed->slot (.getExecutorToSlot assignment)
             _ (.remove ed->slot (ExecutorDetails. 1 1))  ;; delete one worker of super0 (failed) from topo1 assignment to enable actual schedule for testing
@@ -909,6 +908,7 @@
             new-cluster (Cluster. (nimbus/standalone-nimbus)
                           (dissoc supers "id0")        ;; mock the super0 as a failed supervisor
                           (.getAssignments cluster)
+                          topologies
                           {STORM-NETWORK-TOPOGRAPHY-PLUGIN
                            "backtype.storm.networktopography.DefaultRackDNSToSwitchMapping"})
             _ (.prepare scheduler {
@@ -923,10 +923,11 @@
         (is (= "(RAS) Running - Fully Scheduled by DefaultResourceAwareStrategy" (.get (.getStatusMap new-cluster) "topology1")))))
 
     (testing "Scheduling a new topology does not disturb other assignments unnecessarily"
-      (let [cluster (Cluster. (nimbus/standalone-nimbus) supers {}
+      (let [topologies (Topologies. (to-top-map [topology1]))
+            cluster (Cluster. (nimbus/standalone-nimbus) supers {} topologies
                       {STORM-NETWORK-TOPOGRAPHY-PLUGIN
                        "backtype.storm.networktopography.DefaultRackDNSToSwitchMapping"})
-            topologies (Topologies. (to-top-map [topology1]))
+
             _ (.prepare scheduler {
                                     RESOURCE-AWARE-SCHEDULER-EVICTION-STRATEGY "backtype.storm.scheduler.resource.strategies.eviction.DefaultEvictionStrategy"
                                     RESOURCE-AWARE-SCHEDULER-PRIORITY-STRATEGY "backtype.storm.scheduler.resource.strategies.priority.DefaultSchedulingPriorityStrategy"
@@ -936,6 +937,9 @@
             ed->slot (.getExecutorToSlot assignment)
             copy-old-mapping (HashMap. ed->slot)
             new-topologies (Topologies. (to-top-map [topology1 topology2]))  ;; a second topology joins
+            cluster (Cluster. (nimbus/standalone-nimbus) supers {} new-topologies
+                      {STORM-NETWORK-TOPOGRAPHY-PLUGIN
+                       "backtype.storm.networktopography.DefaultRackDNSToSwitchMapping"})
             _ (.prepare scheduler {
                                     RESOURCE-AWARE-SCHEDULER-EVICTION-STRATEGY "backtype.storm.scheduler.resource.strategies.eviction.DefaultEvictionStrategy"
                                     RESOURCE-AWARE-SCHEDULER-PRIORITY-STRATEGY "backtype.storm.scheduler.resource.strategies.priority.DefaultSchedulingPriorityStrategy"
@@ -1049,10 +1053,10 @@
         scheduler (MultitenantResourceAwareBridgeScheduler.)]
 
     (testing "Launch topo 1-3 together, it should be able to use up either mem or cpu resource due to exact division"
-      (let [cluster (Cluster. (nimbus/standalone-nimbus) supers {}
+      (let [topologies (Topologies. (to-top-map [topology1 topology2 topology3]))
+            cluster (Cluster. (nimbus/standalone-nimbus) supers {} topologies
                       {STORM-NETWORK-TOPOGRAPHY-PLUGIN
                        "backtype.storm.networktopography.DefaultRackDNSToSwitchMapping"})
-            topologies (Topologies. (to-top-map [topology1 topology2 topology3]))
             _ (.prepare scheduler {
                                     RESOURCE-AWARE-SCHEDULER-EVICTION-STRATEGY "backtype.storm.scheduler.resource.strategies.eviction.DefaultEvictionStrategy"
                                     RESOURCE-AWARE-SCHEDULER-PRIORITY-STRATEGY "backtype.storm.scheduler.resource.strategies.priority.DefaultSchedulingPriorityStrategy"
@@ -1072,10 +1076,10 @@
                   (<= (Math/abs (- cpu-avail cpu-used)) epsilon)))))))
 
     (testing "Launch topo 1, 2 and 4, they together request a little more mem than available, so one of the 3 topos will not be scheduled"
-      (let [cluster (Cluster. (nimbus/standalone-nimbus) supers {}
+      (let [topologies (Topologies. (to-top-map [topology1 topology2 topology3]))
+            cluster (Cluster. (nimbus/standalone-nimbus) supers {} topologies
                       {STORM-NETWORK-TOPOGRAPHY-PLUGIN
                        "backtype.storm.networktopography.DefaultRackDNSToSwitchMapping"})
-            topologies (Topologies. (to-top-map [topology1 topology2 topology3]))
             _ (.prepare scheduler {
                                     RESOURCE-AWARE-SCHEDULER-EVICTION-STRATEGY "backtype.storm.scheduler.resource.strategies.eviction.DefaultEvictionStrategy"
                                     RESOURCE-AWARE-SCHEDULER-PRIORITY-STRATEGY "backtype.storm.scheduler.resource.strategies.priority.DefaultSchedulingPriorityStrategy"
@@ -1087,10 +1091,10 @@
         (is (= scheduled-topos 2)))) ;; only 2 topos will get (fully) scheduled
 
     (testing "Launch topo5 only, both mem and cpu should be exactly used up"
-      (let [cluster (Cluster. (nimbus/standalone-nimbus) supers {}
+      (let [topologies (Topologies. (to-top-map [topology5]))
+            cluster (Cluster. (nimbus/standalone-nimbus) supers {} topologies
                       {STORM-NETWORK-TOPOGRAPHY-PLUGIN
                        "backtype.storm.networktopography.DefaultRackDNSToSwitchMapping"})
-            topologies (Topologies. (to-top-map [topology5]))
             _ (.prepare scheduler {
                                     RESOURCE-AWARE-SCHEDULER-EVICTION-STRATEGY "backtype.storm.scheduler.resource.strategies.eviction.DefaultEvictionStrategy"
                                     RESOURCE-AWARE-SCHEDULER-PRIORITY-STRATEGY "backtype.storm.scheduler.resource.strategies.priority.DefaultSchedulingPriorityStrategy"
@@ -1110,10 +1114,7 @@
 (deftest test-topology-worker-max-heap-size
   (let [supers (gen-supervisors 2 2)]
     (testing "test if RAS will spread executors across mulitple workers based on the set limit for a worker used by the topology"
-      (let [cluster (Cluster. (nimbus/standalone-nimbus) supers {}
-                      {STORM-NETWORK-TOPOGRAPHY-PLUGIN
-                       "backtype.storm.networktopography.DefaultRackDNSToSwitchMapping"})
-            scheduler (MultitenantResourceAwareBridgeScheduler.)
+      (let [scheduler (MultitenantResourceAwareBridgeScheduler.)
             builder1 (TopologyBuilder.)
             _ (.setSpout builder1 "spout1" (TestWordSpout.) 2)
             storm-topology1 (.createTopology builder1)
@@ -1129,7 +1130,10 @@
                         storm-topology1
                         1
                         (mk-ed-map [["spout1" 0 4]]))
-            topologies (Topologies. (to-top-map [topology1]))]
+            topologies (Topologies. (to-top-map [topology1]))
+            cluster (Cluster. (nimbus/standalone-nimbus) supers {} topologies
+                      {STORM-NETWORK-TOPOGRAPHY-PLUGIN
+                       "backtype.storm.networktopography.DefaultRackDNSToSwitchMapping"})]
         (.prepare scheduler {
                               RESOURCE-AWARE-SCHEDULER-EVICTION-STRATEGY "backtype.storm.scheduler.resource.strategies.eviction.DefaultEvictionStrategy"
                               RESOURCE-AWARE-SCHEDULER-PRIORITY-STRATEGY "backtype.storm.scheduler.resource.strategies.priority.DefaultSchedulingPriorityStrategy"
@@ -1138,10 +1142,7 @@
         (is (= (.get (.getStatusMap cluster) "topology1") "(RAS) Running - Fully Scheduled by DefaultResourceAwareStrategy"))
         (is (= (.getAssignedNumWorkers cluster topology1) 4))))
     (testing "test when no more workers are available due to topology worker max heap size limit but there is memory is still available"
-      (let [cluster (Cluster. (nimbus/standalone-nimbus) supers {}
-                      {STORM-NETWORK-TOPOGRAPHY-PLUGIN
-                       "backtype.storm.networktopography.DefaultRackDNSToSwitchMapping"})
-            scheduler (MultitenantResourceAwareBridgeScheduler.)
+      (let [scheduler (MultitenantResourceAwareBridgeScheduler.)
             builder1 (TopologyBuilder.)
             _ (.setSpout builder1 "spout1" (TestWordSpout.) 2)
             storm-topology1 (.createTopology builder1)
@@ -1157,7 +1158,10 @@
                         storm-topology1
                         1
                         (mk-ed-map [["spout1" 0 5]]))
-            topologies (Topologies. (to-top-map [topology1]))]
+            topologies (Topologies. (to-top-map [topology1]))
+            cluster (Cluster. (nimbus/standalone-nimbus) supers {} topologies
+                      {STORM-NETWORK-TOPOGRAPHY-PLUGIN
+                       "backtype.storm.networktopography.DefaultRackDNSToSwitchMapping"})]
         (.prepare scheduler {
                               RESOURCE-AWARE-SCHEDULER-EVICTION-STRATEGY "backtype.storm.scheduler.resource.strategies.eviction.DefaultEvictionStrategy"
                               RESOURCE-AWARE-SCHEDULER-PRIORITY-STRATEGY "backtype.storm.scheduler.resource.strategies.priority.DefaultSchedulingPriorityStrategy"

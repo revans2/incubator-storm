@@ -60,55 +60,55 @@
         <thead>
         <tr>
             <th>
-                <span data-toggle="tooltip" data-placement="top" title="Total On-Heap Memory Requested by User in MB.">
-                    Total Request On-Heap Mem (MB)
+            </th>
+            <th>
+                <span data-toggle="tooltip" data-placement="top" title="On-Heap memory that is not shared between executors">
+                    Not Shared On-Heap Mem (MB)
                 </span>
             </th>
             <th>
-                <span data-toggle="tooltip" data-placement="top" title="Total Off-Heap Memory Requested by User in MB.">
-                    Total Request Off-Heap Mem (MB)
+                <span data-toggle="tooltip" data-placement="top" title="On-Heap memory that is shared between executors">
+                    Shared On-Heap Mem (MB)
+                </span>
+            </th>
+             <th>
+                <span data-toggle="tooltip" data-placement="top" title="Off-Heap memory that is not shared between executors">
+                    Not Shared Off-Heap Mem (MB)
                 </span>
             </th>
             <th>
-                <span data-toggle="tooltip" data-placement="top" title="Total Memory Requested by User in MB.">
-                    Total Request Mem (MB)
+                <span data-toggle="tooltip" data-placement="top" title="Off-Heap memory that is shared between executors, either within a worker or between workers on a node">
+                    Shared Off-Heap Mem (MB)
                 </span>
             </th>
             <th>
-                <span data-toggle="tooltip" data-placement="top" title="Total CPU Resource Requested by User. Every 100 means 1 core.">
-                    Total Request CPU (%)
+                <span data-toggle="tooltip" data-placement="top" title="Total memory MB.  For requested only one copy of each shared region is included so assigned may be more than requested.">
+                    Total Mem (MB)
                 </span>
             </th>
             <th>
-                <span data-toggle="tooltip" data-placement="top" title="Total On-Heap Memory Assigned on behalf of owner in MB.">
-                    Total Assigned On-Heap Mem (MB)
-                </span>
-            </th>
-            <th>
-                <span data-toggle="tooltip" data-placement="top" title="Total Off-Heap Memory Assigned on behalf of owner in MB.">
-                    Total Assigned Off-Heap Mem (MB)
-                </span>
-            </th>
-            <th>
-                <span data-toggle="tooltip" data-placement="top" title="Total Memory Assigned on behalf of owner in MB.">
-                    Total Assigned Mem (MB)
-                </span>
-            </th>
-            <th>
-                <span data-toggle="tooltip" data-placement="top" title="Total CPU Resource Assigned on behalf of User. Every 100 means 1 core.">
-                    Total Assigned CPU (%)
+                <span data-toggle="tooltip" data-placement="top" title="Total CPU Resource. Every 100 means 1 core.">
+                    Total CPU (%)
                 </span>
             </th>
         </tr>
         </thead>
         <tbody>
         <tr>
-            <td>{{totalReqOnHeapMem}}</td>
-            <td>{{totalReqOffHeapMem}}</td>
+            <td>Requested</td>
+            <td>{{totalReqRegularOnHeapMem}}</td>
+            <td>{{totalReqSharedOnHeapMem}}</td>
+            <td>{{totalReqRegularOffHeapMem}}</td>
+            <td>{{totalReqSharedOffHeapMem}}</td>
             <td>{{totalReqMem}}</td>
             <td>{{totalReqCpu}}</td>
-            <td>{{totalAssignedOnHeapMem}}</td>
-            <td>{{totalAssignedOffHeapMem}}</td>
+        </tr>
+        <tr>
+            <td>Assigned</td>
+            <td>{{totalAssignedRegularOnHeapMem}}</td>
+            <td>{{totalAssignedSharedOnHeapMem}}</td>
+            <td>{{totalAssignedRegularOffHeapMem}}</td>
+            <td>{{totalAssignedSharedOffHeapMem}}</td>
             <td>{{totalMemoryUsage}}</td>
             <td>{{totalCpuUsage}}</td>
         </tr>

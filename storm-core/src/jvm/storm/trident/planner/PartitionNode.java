@@ -22,12 +22,11 @@ import backtype.storm.tuple.Fields;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import java.util.ArrayList;
-import java.util.List;
 import storm.trident.util.TridentUtils;
 
 
 public class PartitionNode extends Node {
+    private static final long serialVersionUID = 3075125244487469669L;
     public transient Grouping thriftGrouping;
     
     //has the streamid/outputFields of the node it's doing the partitioning on

@@ -27,6 +27,7 @@ import org.apache.commons.lang.builder.ToStringStyle;
 
 
 public class Node extends DefaultResourceDeclarer<Node> implements Serializable {
+    private static final long serialVersionUID = 8667651608404285707L;
     private static AtomicInteger INDEX = new AtomicInteger(0);
     private String nodeId;
 

@@ -44,7 +44,6 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -80,11 +79,8 @@ public class TestCgroups {
         CgroupManager manager = new CgroupManager();
         manager.prepare(config);
 
-        Map<String, Number> resourcesMap = new HashMap<>();
-        resourcesMap.put("cpu", 200);
-        resourcesMap.put("memory", 1024);
         String workerId = UUID.randomUUID().toString();
-        manager.reserveResourcesForWorker(workerId, resourcesMap);
+        manager.reserveResourcesForWorker(workerId, 1024, 200);
 
         List<String> commandList = manager.getLaunchCommand(workerId, new ArrayList<String>());
         StringBuilder command = new StringBuilder();

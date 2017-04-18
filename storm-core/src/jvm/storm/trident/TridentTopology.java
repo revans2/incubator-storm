@@ -22,6 +22,7 @@ import backtype.storm.ILocalDRPC;
 import backtype.storm.drpc.DRPCSpout;
 import backtype.storm.generated.GlobalStreamId;
 import backtype.storm.generated.Grouping;
+import backtype.storm.generated.SharedMemory;
 import backtype.storm.generated.StormTopology;
 import backtype.storm.grouping.CustomStreamGrouping;
 import backtype.storm.topology.BoltDeclarer;
@@ -465,6 +466,10 @@ public class TridentTopology {
 
                 if(cpuLoad != null) {
                     d.setCPULoad(cpuLoad);
+                }
+                
+                for (SharedMemory request: g.getSharedMemory()) {
+                    d.addSharedMemory(request);
                 }
 
                 Collection<PartitionNode> inputs = uniquedSubscriptions(externalGroupInputs(g));

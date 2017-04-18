@@ -37,9 +37,7 @@ import backtype.storm.scheduler.WorkerSlot;
 
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
-import java.util.Set;
 
 public class ResourceAwareScheduler implements IScheduler {
 
@@ -105,15 +103,9 @@ public class ResourceAwareScheduler implements IScheduler {
     }
 
     private void updateChanges(Cluster cluster, Topologies topologies) {
-        //Cannot simply set this.cluster=schedulingState.cluster since clojure is immutable
-        cluster.setAssignments(schedulingState.cluster.getAssignments());
+        cluster.setAssignments(schedulingState.cluster.getAssignments(), false);
         cluster.setBlacklistedHosts(schedulingState.cluster.getBlacklistedHosts());
         cluster.setStatusMap(schedulingState.cluster.getStatusMap());
-        cluster.setSupervisorsResourcesMap(schedulingState.cluster.getSupervisorsResourcesMap());
-        cluster.setTopologyResourcesMap(schedulingState.cluster.getTopologyResourcesMap());
-        cluster.setWorkerResourcesMap(schedulingState.cluster.getWorkerResourcesMap());
-        //updating resources used by supervisor
-        updateSupervisorsResources(cluster, topologies);
     }
 
     public void scheduleTopology(TopologyDetails td) {
@@ -236,53 +228,17 @@ public class ResourceAwareScheduler implements IScheduler {
 
     private boolean mkAssignment(TopologyDetails td, Map<WorkerSlot, Collection<ExecutorDetails>> schedulerAssignmentMap) {
         if (schedulerAssignmentMap != null) {
-            double requestedMemOnHeap = td.getTotalRequestedMemOnHeap();
-            double requestedMemOffHeap = td.getTotalRequestedMemOffHeap();
-            double requestedCpu = td.getTotalRequestedCpu();
-            double assignedMemOnHeap = 0.0;
-            double assignedMemOffHeap = 0.0;
-            double assignedCpu = 0.0;
-
-            Map<WorkerSlot, Double[]> workerResources = new HashMap<WorkerSlot, Double[]>();
-
-            Set<String> nodesUsed = new HashSet<String>();
             for (Map.Entry<WorkerSlot, Collection<ExecutorDetails>> workerToTasksEntry : schedulerAssignmentMap.entrySet()) {
                 WorkerSlot targetSlot = workerToTasksEntry.getKey();
                 Collection<ExecutorDetails> execsNeedScheduling = workerToTasksEntry.getValue();
                 RAS_Node targetNode = this.schedulingState.nodes.getNodeById(targetSlot.getNodeId());
-
-                targetSlot = allocateResourceToSlot(td, execsNeedScheduling, targetSlot);
-
+                
                 targetNode.assign(targetSlot, td, execsNeedScheduling);
 
-                LOG.info("ASSIGNMENT    TOPOLOGY: {}  TASKS: {} To Node: {} on Slot: {}",
-                        td.getName(), execsNeedScheduling, targetNode.getHostname(), targetSlot.getPort());
-
-                for (ExecutorDetails exec : execsNeedScheduling) {
-                    targetNode.consumeResourcesforTask(exec, td);
-                }
-                if (!nodesUsed.contains(targetNode.getId())) {
-                    nodesUsed.add(targetNode.getId());
-                }
-                assignedMemOnHeap += targetSlot.getAllocatedMemOnHeap();
-                assignedMemOffHeap += targetSlot.getAllocatedMemOffHeap();
-                assignedCpu += targetSlot.getAllocatedCpu();
-
-                Double[] worker_resources = {
-                    requestedMemOnHeap, requestedMemOffHeap, requestedCpu,
-                    targetSlot.getAllocatedMemOnHeap(), targetSlot.getAllocatedMemOffHeap(), targetSlot.getAllocatedCpu()};
-                workerResources.put (targetSlot, worker_resources);
+                LOG.info("ASSIGNMENT    TOPOLOGY: {}  TASKS: {} To {} with {} MB and {} % CPU left",
+                        td.getName(), execsNeedScheduling, targetSlot, targetNode.getAvailableMemoryResources(),
+                        targetNode.getAvailableCpuResources());
             }
-
-            Double[] resources = {requestedMemOnHeap, requestedMemOffHeap, requestedCpu,
-                    assignedMemOnHeap, assignedMemOffHeap, assignedCpu};
-            LOG.debug("setTopologyResources for {}: requested on-heap mem, off-heap mem, cpu: {} {} {} " +
-                            "assigned on-heap mem, off-heap mem, cpu: {} {} {}",
-                    td.getId(), requestedMemOnHeap, requestedMemOffHeap, requestedCpu,
-                    assignedMemOnHeap, assignedMemOffHeap, assignedCpu);
-            //updating resources used for a topology
-            this.schedulingState.cluster.setTopologyResources(td.getId(), resources);
-            this.schedulingState.cluster.setWorkerResources(td.getId(), workerResources);
             return true;
         } else {
             LOG.warn("schedulerAssignmentMap for topo {} is null. This shouldn't happen!", td.getName());
@@ -290,47 +246,10 @@ public class ResourceAwareScheduler implements IScheduler {
         }
     }
 
-    private WorkerSlot allocateResourceToSlot (TopologyDetails td, Collection<ExecutorDetails> executors, WorkerSlot slot) {
-        double onHeapMem = 0.0;
-        double offHeapMem = 0.0;
-        double cpu = 0.0;
-        for (ExecutorDetails exec : executors) {
-            Double onHeapMemForExec = td.getOnHeapMemoryRequirement(exec);
-            if (onHeapMemForExec != null) {
-                onHeapMem += onHeapMemForExec;
-            }
-            Double offHeapMemForExec = td.getOffHeapMemoryRequirement(exec);
-            if (offHeapMemForExec != null) {
-                offHeapMem += offHeapMemForExec;
-            }
-            Double cpuForExec = td.getTotalCpuReqTask(exec);
-            if (cpuForExec != null) {
-                cpu += cpuForExec;
-            }
-        }
-        return new WorkerSlot(slot.getNodeId(), slot.getPort(), onHeapMem, offHeapMem, cpu);
-    }
-
-    private void updateSupervisorsResources(Cluster cluster, Topologies topologies) {
-        Map<String, Double[]> supervisors_resources = new HashMap<String, Double[]>();
-        Map<String, RAS_Node> nodes = RAS_Nodes.getAllNodesFrom(cluster, topologies);
-        for (Map.Entry<String, RAS_Node> entry : nodes.entrySet()) {
-            RAS_Node node = entry.getValue();
-            Double totalMem = node.getTotalMemoryResources();
-            Double totalCpu = node.getTotalCpuResources();
-            Double usedMem = totalMem - node.getAvailableMemoryResources();
-            Double usedCpu = totalCpu - node.getAvailableCpuResources();
-            Double[] resources = {totalMem, totalCpu, usedMem, usedCpu};
-            supervisors_resources.put(entry.getKey(), resources);
-        }
-        cluster.setSupervisorsResourcesMap(supervisors_resources);
-    }
-
     @Override
     public Map<String, Object> config() {
-        return (Map)  getUserResourcePools();
+        return (Map) getUserResourcePools();
     }
-
 
     public User getUser(String user) {
         return this.schedulingState.userMap.get(user);
@@ -341,7 +260,7 @@ public class ResourceAwareScheduler implements IScheduler {
     }
 
     /**
-     * Intialize scheduling and running queues
+     * Initialize scheduling and running queues
      *
      * @param topologies
      * @param cluster
@@ -381,7 +300,7 @@ public class ResourceAwareScheduler implements IScheduler {
         this.schedulingState = new SchedulingState(userMap, cluster, topologies, this.conf);
     }
 
-    private Object readFromLoader() {
+    private Map readFromLoader() {
         // If loader plugin is not configured, then leave and fall back
         if (this.configLoader == null) {
             return null;

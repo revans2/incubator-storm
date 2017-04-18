@@ -61,7 +61,7 @@
 ;; the task id is the virtual port
 ;; node->host is here so that tasks know who to talk to just from assignment
 ;; this avoid situation where node goes down and task doesn't know what to do information-wise
-(defrecord Assignment [master-code-dir node->host executor->node+port executor->start-time-secs worker->resources])
+(defrecord Assignment [master-code-dir node->host executor->node+port executor->start-time-secs worker->resources total-shared-off-heap])
 
 
 ;; component->executors is a map from spout/bolt id to number of executors for that component
@@ -119,30 +119,28 @@
         (exit-process! 13 "Error on initialization")
         )))))
 
+(defn all-components [^StormTopology topology]
+  (apply merge {}
+         (.get_bolts topology)
+         (.get_spouts topology)
+         (.get_state_spouts topology)))
+
 (defn- validate-ids! [^StormTopology topology]
-  (let [sets (map #(.getFieldValue topology %) thrift/STORM-TOPOLOGY-FIELDS)
-        offending (apply any-intersection sets)]
+  (let [sets [(.get_bolts topology) (.get_spouts topology) (.get_state_spouts topology)]
+        offending (apply any-intersection sets)
+        all-comps (all-components topology)]
     (if-not (empty? offending)
       (throw (InvalidTopologyException.
               (str "Duplicate component ids: " offending))))
-    (doseq [f thrift/STORM-TOPOLOGY-FIELDS
-            :let [obj-map (.getFieldValue topology f)]]
-      (doseq [id (keys obj-map)]
-        (if (Utils/isSystemId id)
-          (throw (InvalidTopologyException.
-                  (str id " is not a valid component id")))))
-      (doseq [obj (vals obj-map)
-              id (-> obj .get_common .get_streams keys)]
-        (if (Utils/isSystemId id)
-          (throw (InvalidTopologyException.
-                  (str id " is not a valid stream id"))))))
-    ))
-
-(defn all-components [^StormTopology topology]
-  (apply merge {}
-         (for [f thrift/STORM-TOPOLOGY-FIELDS]
-           (.getFieldValue topology f)
-           )))
+    (doseq [id (keys all-comps)]
+      (if (Utils/isSystemId id)
+        (throw (InvalidTopologyException.
+                (str id " is not a valid component id")))))
+    (doseq [obj (vals all-comps)
+            id (-> obj .get_common .get_streams keys)]
+      (if (Utils/isSystemId id)
+        (throw (InvalidTopologyException.
+                (str id " is not a valid stream id")))))))
 
 (defn component-conf [component]
   (->> component

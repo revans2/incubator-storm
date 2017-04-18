@@ -24,6 +24,7 @@ import backtype.storm.generated.ComponentObject;
 import backtype.storm.generated.GlobalStreamId;
 import backtype.storm.generated.Grouping;
 import backtype.storm.generated.NullStruct;
+import backtype.storm.generated.SharedMemory;
 import backtype.storm.generated.SpoutSpec;
 import backtype.storm.generated.StateSpoutSpec;
 import backtype.storm.generated.StormTopology;
@@ -33,7 +34,10 @@ import backtype.storm.tuple.Fields;
 import backtype.storm.utils.Utils;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
+
 import org.json.simple.JSONValue;
 
 /**
@@ -89,11 +93,11 @@ import org.json.simple.JSONValue;
  * the inputs for that component.</p>
  */
 public class TopologyBuilder {
-    private Map<String, IRichBolt> _bolts = new HashMap<String, IRichBolt>();
-    private Map<String, IRichSpout> _spouts = new HashMap<String, IRichSpout>();
-    private Map<String, ComponentCommon> _commons = new HashMap<String, ComponentCommon>();
-
-//    private Map<String, Map<GlobalStreamId, Grouping>> _inputs = new HashMap<String, Map<GlobalStreamId, Grouping>>();
+    private final Map<String, IRichBolt> _bolts = new HashMap<>();
+    private final Map<String, IRichSpout> _spouts = new HashMap<>();
+    private final Map<String, ComponentCommon> _commons = new HashMap<>();
+    private final Map<String, Set<String>> _componentToSharedMemory = new HashMap<>();
+    private final Map<String, SharedMemory> _sharedMemory = new HashMap<>();
 
     private Map<String, StateSpoutSpec> _stateSpouts = new HashMap<String, StateSpoutSpec>();
     
@@ -112,9 +116,15 @@ public class TopologyBuilder {
             spoutSpecs.put(spoutId, new SpoutSpec(ComponentObject.serialized_java(Utils.javaSerialize(spout)), common));
             
         }
-        return new StormTopology(spoutSpecs,
+        StormTopology ret = new StormTopology(spoutSpecs,
                                  boltSpecs,
                                  new HashMap<String, StateSpoutSpec>());
+        
+        if (!_componentToSharedMemory.isEmpty()) {
+            ret.set_component_to_shared_memory(_componentToSharedMemory);
+            ret.set_shared_memory(_sharedMemory);
+        }
+        return ret;
     }
 
     /**
@@ -257,6 +267,7 @@ public class TopologyBuilder {
             _id = id;
         }
         
+        @SuppressWarnings("unchecked")
         @Override
         public T addConfigurations(Map conf) {
             if(conf!=null && conf.containsKey(Config.TOPOLOGY_KRYO_REGISTER)) {
@@ -264,6 +275,23 @@ public class TopologyBuilder {
             }
             String currConf = _commons.get(_id).get_json_conf();
             _commons.get(_id).set_json_conf(mergeIntoJson(parseJson(currConf), conf));
+            return (T) this;
+        }
+        
+        @SuppressWarnings("unchecked")
+        @Override
+        public T addSharedMemory(SharedMemory request) {
+            SharedMemory found = _sharedMemory.get(request.get_name());
+            if (found != null && !found.equals(request)) {
+                throw new IllegalArgumentException("Cannot have multiple different shared memory regions with the same name");
+            }
+            _sharedMemory.put(request.get_name(), request);
+            Set<String> mems = _componentToSharedMemory.get(_id);
+            if (mems == null) {
+                mems = new HashSet<>();
+                _componentToSharedMemory.put(_id, mems);
+            }
+            mems.add(request.get_name());
             return (T) this;
         }
     }

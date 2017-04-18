@@ -30,7 +30,7 @@
   (:import [backtype.storm.security.auth ThriftServer ThriftConnectionType ReqContext AuthUtils])
   (:use [backtype.storm.scheduler.DefaultScheduler])
   (:import [backtype.storm.scheduler INimbus SupervisorDetails WorkerSlot TopologyDetails
-            Cluster Topologies SchedulerAssignment SchedulerAssignmentImpl DefaultScheduler ExecutorDetails])
+            Cluster TopologyResources Topologies SchedulerAssignment SchedulerAssignmentImpl DefaultScheduler ExecutorDetails])
   (:import [backtype.storm.scheduler.resource ResourceUtils])
   (:import [backtype.storm.utils TimeCacheMap TimeCacheMap$ExpiredCallback Utils ThriftTopologyUtils BufferInputStream])
   (:import [backtype.storm.generated AuthorizationException AlreadyAliveException BeginDownloadResult
@@ -60,6 +60,7 @@
   (:use [clojure.string :only [blank?]])
   (:use [clojure.set :only [intersection]])
   (:use [org.apache.storm.pacemaker pacemaker-state-factory])
+  (:use [backtype.storm.converter])
   (:import [org.apache.zookeeper data.ACL ZooDefs$Ids ZooDefs$Perms])
   (:import [backtype.storm.utils VersionInfo])
   (:require [clj-time.core :as time])
@@ -723,9 +724,15 @@
                        executor->node+port (:executor->node+port assignment)
                        worker->resources (:worker->resources assignment)
                        ;; making a map from node+port to WorkerSlot with allocated resources
-                       node+port->slot (into {} (for [[[node port] [mem-on-heap mem-off-heap cpu]] worker->resources]
+                       node+port->slot (into {} (for [[_ [node port]] executor->node+port]
                                                   {[node port]
-                                                   (WorkerSlot. node port mem-on-heap mem-off-heap cpu)}))
+                                                   (WorkerSlot. node port)}))
+                       slot->resources (into {} (for [[[node port] [mem-on-heap mem-off-heap cpu]] worker->resources]
+                                                  {(WorkerSlot. node port)
+                                                   (doto (backtype.storm.generated.WorkerResources.)
+                                                         (.set_mem_off_heap mem-off-heap)
+                                                         (.set_cpu cpu)
+                                                         (.set_mem_on_heap mem-on-heap))}))
                        executor->slot (into {} (for [[executor [node port]] executor->node+port]
                                                  ;; filter out the dead executors
                                                  (if (contains? alive-executors executor)
@@ -733,7 +740,7 @@
                                                                       (second executor))
                                                     (get node+port->slot [node port])}
                                                    {})))]]
-             {tid (SchedulerAssignmentImpl. tid executor->slot)})))
+             {tid (SchedulerAssignmentImpl. tid executor->slot slot->resources nil)})))
 
 (defn- read-all-supervisor-details
   [nimbus supervisor->dead-ports topologies missing-assignment-topologies]
@@ -805,11 +812,10 @@
    later we may further support map-for-any-resources"
   (map-val (fn [^SchedulerAssignment assignment]
              (->> assignment
-                  .getExecutorToSlot
-                  .values
-                  (#(into {} (for [^WorkerSlot slot %]
+                  .getScheduledResources
+                  (#(into {} (for [[^WorkerSlot slot resources]  %]
                               {[(.getNodeId slot) (.getPort slot)]
-                               [(.getAllocatedMemOnHeap slot) (.getAllocatedMemOffHeap slot) (.getAllocatedCpu slot)]
+                               [(.get_mem_on_heap resources) (.get_mem_off_heap resources) (.get_cpu resources)]
                                })))))
            new-scheduler-assignments))
 
@@ -831,9 +837,6 @@
           (log-message "Reassign executors: " (vec reassign-executors)))))
 
     new-topology->executor->node+port))
-
-(defrecord TopologyResources [requested-mem-on-heap requested-mem-off-heap requested-cpu
-                              assigned-mem-on-heap assigned-mem-off-heap assigned-cpu])
 
 ;; public so it can be mocked out
 (defn compute-new-scheduler-assignments [nimbus existing-assignments topologies scratch-topology-id]
@@ -871,7 +874,7 @@
                                                  supervisor->dead-ports
                                                  topologies
                                                  missing-assignment-topologies)
-        cluster (Cluster. (:inimbus nimbus) supervisors topology->scheduler-assignment conf)]
+        cluster (Cluster. (:inimbus nimbus) supervisors topology->scheduler-assignment topologies conf)]
 
     ;; set the status map with existing topology statuses
     (.setStatusMap cluster (deref (:id->sched-status nimbus)))
@@ -884,12 +887,10 @@
     (reset! (:node-id->resources nimbus) (.getSupervisorsResourcesMap cluster))
 
     ; Remove both of swaps below at first opportunity. This is a hack for multitenant swags with RAS Bridge Scheduler.
-    (swap! (:id->resources nimbus) merge (into {} (map (fn [[k v]] [k (->TopologyResources (nth v 0) (nth v 1) (nth v 2)
-                                                                                           (nth v 3) (nth v 4) (nth v 5))])
-                                                       (.getTopologyResourcesMap cluster))))
+    (swap! (:id->resources nimbus) merge (.getTopologyResourcesMap cluster))
     ; Remove this also at first chance
     (swap! (:id->worker-resources nimbus) merge 
-           (into {} (map (fn [[k v]] [k (map-val #(->WorkerResources (nth % 0) (nth % 1) (nth % 2)) v)])
+           (into {} (map (fn [[k v]] [k (map-val #(->WorkerResources (.get_mem_on_heap %) (.get_mem_off_heap %) (.get_cpu %)) v)])
                          (.getWorkerResourcesMap cluster))))
 
     (.getAssignments cluster)))
@@ -899,28 +900,15 @@
       (try
         (let [storm-cluster-state (:storm-cluster-state nimbus)
               topology-details (read-topology-details nimbus topo-id storm-base)
-              assigned-resources (->> (.assignment-info storm-cluster-state topo-id nil)
-                                      :worker->resources
-                                      (vals)
-                                        ; Default to [[0 0 0]] if there are no values
-                                      (#(or % [[0 0 0]]))
-                                        ; [[on-heap, off-heap, cpu]] -> [[on-heap], [off-heap], [cpu]]
-                                      (apply map vector)
-                                        ; [[on-heap], [off-heap], [cpu]] -> [on-heap-sum, off-heap-sum, cpu-sum]
-                                      (map (partial reduce +)))
-              worker-resources (->TopologyResources (.getTotalRequestedMemOnHeap topology-details)
-                                                    (.getTotalRequestedMemOffHeap topology-details)
-                                                    (.getTotalRequestedCpu topology-details)
-                                                    (nth assigned-resources 0)
-                                                    (nth assigned-resources 1)
-                                                    (nth assigned-resources 2))]
-          (swap! (:id->resources nimbus) assoc topo-id worker-resources)
-          worker-resources)
+              assignmentInfo (thriftify-assignment (.assignment-info storm-cluster-state topo-id nil))
+              topo-resources (TopologyResources. topology-details assignmentInfo)]
+          (swap! (:id->resources nimbus) assoc topo-id topo-resources)
+          topo-resources)
         (catch KeyNotFoundException e
           ; This can happen when a topology is first coming up.
           ; It's thrown by the blobstore code.
           (log-error e "Failed to get topology details")
-          (->TopologyResources 0 0 0 0 0 0)))))
+          (TopologyResources. )))))
 
 (defn- get-worker-resources-for-topology [nimbus topo-id]
   (or (get @(:id->worker-resources nimbus) topo-id)
@@ -929,9 +917,9 @@
               assigned-resources (->> (.assignment-info storm-cluster-state topo-id nil)
                                       :worker->resources)
               worker-resources (into {} (map #(identity {(WorkerSlot. (first (key %)) (second (key %)))  
-                                                         (->WorkerResources (nth (val %) 0)
-                                                                            (nth (val %) 1)
-                                                                            (nth (val %) 2))}) assigned-resources))]
+                                                         (->WorkerResources (.get_mem_on_heap (val %))
+                                                                            (.get_mem_off_heap (val %))
+                                                                            (.get_cpu (val %)))}) assigned-resources))]
           (swap! (:id->worker-resources nimbus) assoc topo-id worker-resources)
           worker-resources))))
 
@@ -1019,13 +1007,18 @@
                                                                       (for [id reassign-executors]
                                                                         [id now-secs]
                                                                         )))
-                                              worker->resources (get new-assigned-worker->resources topology-id)]]
+                                              worker->resources (get new-assigned-worker->resources topology-id)
+                                              assignment-impl (.get new-scheduler-assignments topology-id)
+                                              shared-off-heap (if assignment-impl
+                                                                (.getTotalSharedOffHeapMemory assignment-impl)
+                                                                {})]]
                                    {topology-id (Assignment. ;; construct the record common/Assignment, not the java class
                                                  (conf STORM-LOCAL-DIR)
                                                  (select-keys all-node->host all-nodes)
                                                  executor->node+port
                                                  start-times
-                                                 worker->resources)}))]
+                                                 worker->resources
+                                                 shared-off-heap)}))]
 
     (when (not= new-assignments existing-assignments)
       (log-debug "RESETTING id->resources and id->worker-resources cache!")
@@ -1386,9 +1379,9 @@
                                       (count (:used-ports info))
                                       id)]
       (.set_total_resources sup-sum (map-val double (:resources-map info)))
-      (when-let [[total-mem total-cpu used-mem used-cpu] (.get @(:node-id->resources nimbus) id)]
-        (.set_used_mem sup-sum (nil-to-zero used-mem))
-        (.set_used_cpu sup-sum (nil-to-zero used-cpu)))
+      (when-let [supervisor-resources (.get @(:node-id->resources nimbus) id)]
+        (.set_used_mem sup-sum (.getUsedMem supervisor-resources))
+        (.set_used_cpu sup-sum (.getUsedCpu supervisor-resources)))
       (when-let [version (:version info)] (.set_version sup-sum version))
       sup-sum))
 
@@ -1426,6 +1419,9 @@
       (if (Utils/isRAS nimbus-conf storm-conf)
         (Utils/getEstimatedWorkerCountForRASTopo topology storm-conf)
         (storm-conf TOPOLOGY-WORKERS))))
+
+(defn sum-topo-resources [^TopologyResources a ^TopologyResources b]
+  (.add a b))
 
 (defserverfn service-handler [conf inimbus]
   (.prepare inimbus conf (master-inimbus-dir conf))
@@ -1838,12 +1834,7 @@
               owners-with-guarantees (if (nil? owner)
                                        (zipmap (keys cluster-scheduler-config) (repeat []))
                                        {owner []})
-              default-resources {:requested-mem-on-heap 0
-                                 :requested-mem-off-heap 0
-                                 :requested-cpu 0
-                                 :assigned-mem-on-heap 0
-                                 :assigned-mem-off-heap 0
-                                 :assigned-cpu 0}]
+              default-resources (TopologyResources. )]
               ;; for each owner, get resources, configs, and aggregate
               (for [[owner owner-bases] (merge-with concat (group-by #(:owner (val %)) query-bases) owners-with-guarantees)] 
                 (let [scheduler-config (get cluster-scheduler-config owner)
@@ -1859,18 +1850,18 @@
                       ras-resources (select-keys resources ras-topos)
                       total-aggregates (if (empty? resources)
                                          default-resources
-                                         (apply merge-with + (vals resources)))
+                                         (reduce sum-topo-resources (vals resources)))
                       ras-aggregates (if (empty? ras-resources)
                                        default-resources
-                                       (apply merge-with + (vals ras-resources)))
-                      requested-total-memory (+ (:requested-mem-on-heap total-aggregates)
-                                                (:requested-mem-off-heap total-aggregates))
-                      assigned-total-memory (+ (:assigned-mem-on-heap total-aggregates)
-                                               (:assigned-mem-off-heap total-aggregates)) 
-                      assigned-ras-total-memory (+ (:assigned-mem-on-heap ras-aggregates)
-                                                   (:assigned-mem-off-heap ras-aggregates))
-                      total-cpu (:assigned-cpu total-aggregates)
-                      ras-total-cpu (:assigned-cpu ras-aggregates)
+                                       (reduce sum-topo-resources (vals ras-resources)))
+                      requested-total-memory (+ (.getRequestedMemOnHeap total-aggregates)
+                                                (.getRequestedMemOffHeap total-aggregates))
+                      assigned-total-memory (+ (.getAssignedMemOnHeap total-aggregates)
+                                               (.getAssignedMemOffHeap total-aggregates)) 
+                      assigned-ras-total-memory (+ (.getAssignedMemOnHeap ras-aggregates)
+                                                   (.getAssignedMemOffHeap ras-aggregates))
+                      total-cpu (.getAssignedCpu total-aggregates)
+                      ras-total-cpu (.getAssignedCpu ras-aggregates)
                       owner-assignments (map #(get assignments (first %)) owner-bases) 
                       total-executors (reduce + (flatten (map #(->> (:executor->node+port %) keys count) owner-assignments)))
                       total-workers (reduce + (flatten (map #(->> (:executor->node+port %) vals set count) owner-assignments)))
@@ -1889,14 +1880,22 @@
                                 (.set_memory_usage assigned-total-memory)
                                 (.set_cpu_usage total-cpu)
                                 (.set_total_tasks total-tasks) 
-                                (.set_requested_on_heap_memory (:requested-mem-on-heap total-aggregates))
-                                (.set_requested_off_heap_memory (:requested-mem-off-heap total-aggregates))
+                                (.set_requested_on_heap_memory (.getRequestedMemOnHeap total-aggregates))
+                                (.set_requested_off_heap_memory (.getRequestedMemOffHeap total-aggregates))
                                 (.set_requested_total_memory requested-total-memory)
-                                (.set_requested_cpu (:requested-cpu total-aggregates))
-                                (.set_assigned_on_heap_memory (:assigned-mem-on-heap total-aggregates))
-                                (.set_assigned_off_heap_memory (:assigned-mem-off-heap total-aggregates))
+                                (.set_requested_cpu (.getRequestedCpu total-aggregates))
+                                (.set_assigned_on_heap_memory (.getAssignedMemOnHeap total-aggregates))
+                                (.set_assigned_off_heap_memory (.getAssignedMemOffHeap total-aggregates))
                                 (.set_assigned_ras_total_memory assigned-ras-total-memory)
-                                (.set_assigned_ras_cpu ras-total-cpu))]
+                                (.set_assigned_ras_cpu ras-total-cpu)
+                                (.set_requested_shared_off_heap_memory (.getRequestedSharedMemOffHeap total-aggregates))
+                                (.set_requested_regular_off_heap_memory (.getRequestedNonSharedMemOffHeap total-aggregates))
+                                (.set_requested_shared_on_heap_memory (.getRequestedSharedMemOnHeap total-aggregates))
+                                (.set_requested_regular_on_heap_memory (.getRequestedNonSharedMemOnHeap total-aggregates))
+                                (.set_assigned_shared_off_heap_memory (.getAssignedSharedMemOffHeap total-aggregates))
+                                (.set_assigned_regular_off_heap_memory (.getAssignedNonSharedMemOffHeap total-aggregates))
+                                (.set_assigned_shared_on_heap_memory (.getAssignedSharedMemOnHeap total-aggregates))
+                                (.set_assigned_regular_on_heap_memory (.getAssignedNonSharedMemOnHeap total-aggregates)))]
 
                       (when memory-guarantee
                         (.set_memory_guarantee summary memory-guarantee)
@@ -1956,12 +1955,12 @@
                                                (when-let [owner (:owner base)] (.set_owner topo-summ owner))
                                                (when-let [sched-status (.get @(:id->sched-status nimbus) id)] (.set_sched_status topo-summ sched-status))
                                                (when-let [resources (get-resources-for-topology nimbus id base)]
-                                                 (.set_requested_memonheap topo-summ (:requested-mem-on-heap resources))
-                                                 (.set_requested_memoffheap topo-summ (:requested-mem-off-heap resources))
-                                                 (.set_requested_cpu topo-summ (:requested-cpu resources))
-                                                 (.set_assigned_memonheap topo-summ (:assigned-mem-on-heap resources))
-                                                 (.set_assigned_memoffheap topo-summ (:assigned-mem-off-heap resources))
-                                                 (.set_assigned_cpu topo-summ (:assigned-cpu resources)))
+                                                 (.set_requested_memonheap topo-summ (.getRequestedMemOnHeap resources))
+                                                 (.set_requested_memoffheap topo-summ (.getRequestedMemOffHeap resources))
+                                                 (.set_requested_cpu topo-summ (.getRequestedCpu resources))
+                                                 (.set_assigned_memonheap topo-summ (.getAssignedMemOnHeap resources))
+                                                 (.set_assigned_memoffheap topo-summ (.getAssignedMemOffHeap resources))
+                                                 (.set_assigned_cpu topo-summ (.getAssignedCpu resources)))
                                                topo-summ
                                           ))]
           (ClusterSummary. supervisor-summaries
@@ -2020,12 +2019,12 @@
             (when-let [owner (:owner base)] (.set_owner topo-info owner))
             (when-let [sched-status (.get @(:id->sched-status nimbus) storm-id)] (.set_sched_status topo-info sched-status))
             (when-let [resources (get-resources-for-topology nimbus storm-id base)]
-              (.set_requested_memonheap topo-info (:requested-mem-on-heap resources))
-              (.set_requested_memoffheap topo-info (:requested-mem-off-heap resources))
-              (.set_requested_cpu topo-info (:requested-cpu resources))
-              (.set_assigned_memonheap topo-info (:assigned-mem-on-heap resources))
-              (.set_assigned_memoffheap topo-info (:assigned-mem-off-heap resources))
-              (.set_assigned_cpu topo-info (:assigned-cpu resources)))
+              (.set_requested_memonheap topo-info (.getRequestedMemOnHeap resources))
+              (.set_requested_memoffheap topo-info (.getRequestedMemOffHeap resources))
+              (.set_requested_cpu topo-info (.getRequestedCpu resources))
+              (.set_assigned_memonheap topo-info (.getAssignedMemOnHeap resources))
+              (.set_assigned_memoffheap topo-info (.getAssignedMemOffHeap resources))
+              (.set_assigned_cpu topo-info (.getAssignedCpu resources)))
             topo-info
           ))
 
@@ -2091,12 +2090,21 @@
           (when-let [sched-status (.get @(:id->sched-status nimbus) storm-id)]
             (.set_sched_status topo-page-info sched-status))
           (when-let [resources (get-resources-for-topology nimbus storm-id base)]
-            (.set_requested_memonheap topo-page-info (:requested-mem-on-heap resources))
-            (.set_requested_memoffheap topo-page-info (:requested-mem-off-heap resources))
-            (.set_requested_cpu topo-page-info (:requested-cpu resources))
-            (.set_assigned_memonheap topo-page-info (:assigned-mem-on-heap resources))
-            (.set_assigned_memoffheap topo-page-info (:assigned-mem-off-heap resources))
-            (.set_assigned_cpu topo-page-info (:assigned-cpu resources)))
+            (.set_requested_memonheap topo-page-info (.getRequestedMemOnHeap resources))
+            (.set_requested_memoffheap topo-page-info (.getRequestedMemOffHeap resources))
+            (.set_requested_cpu topo-page-info (.getRequestedCpu resources))
+            (.set_assigned_memonheap topo-page-info (.getAssignedMemOnHeap resources))
+            (.set_assigned_memoffheap topo-page-info (.getAssignedMemOffHeap resources))
+            (.set_assigned_cpu topo-page-info (.getAssignedCpu resources))
+            (.set_requested_shared_off_heap_memory topo-page-info (.getRequestedSharedMemOffHeap resources))
+            (.set_requested_regular_off_heap_memory topo-page-info (.getRequestedNonSharedMemOffHeap resources))
+            (.set_requested_shared_on_heap_memory topo-page-info (.getRequestedSharedMemOnHeap resources))
+            (.set_requested_regular_on_heap_memory topo-page-info (.getRequestedNonSharedMemOnHeap resources))
+            (.set_assigned_shared_off_heap_memory topo-page-info (.getAssignedSharedMemOffHeap resources))
+            (.set_assigned_regular_off_heap_memory topo-page-info (.getAssignedNonSharedMemOffHeap resources))
+            (.set_assigned_shared_on_heap_memory topo-page-info (.getAssignedSharedMemOnHeap resources))
+            (.set_assigned_regular_on_heap_memory topo-page-info (.getAssignedNonSharedMemOnHeap resources)))
+
           (doto topo-page-info
             (.set_name storm-name)
             (.set_status (extract-status-str base))

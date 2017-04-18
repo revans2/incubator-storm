@@ -158,6 +158,14 @@ Response fields:
 |totalAssignedOffHeapMem|Integer|Total Off-Heap Memory Assigned on behalf of owner in MB
 |rasTopologiesAssignedMem|Integer|RAS Memory Assigned on behalf of owner in MB
 |rasTopologiesAssignedCpu|Integer|RAS CPU Assigned (every 100 means 1 core)
+|totalReqRegularOffHeapMem|Integer|Total non-shared off heap memory requested
+|totalAssignedRegularOffHeapMem|Integer|Total non-shared off heap memory assigned
+|totalReqRegularOnHeapMem|Integer|Total non-shared on heap memory requested
+|totalAssignedRegularOnHeapMem|Integer|Total non-shared on heap memory assigned
+|totalReqSharedOffHeapMem|Integer|Total shared off heap memory requested
+|totalAssignedSharedOffHeapMem|Integer|Total shared off heap memory assigned.  This may be larger than the requested because packing was not perfect.
+|totalReqSharedOnHeapMem|Integer|Total shared on heap memory requested
+|totalAssignedSharedOnHeapMem|Integer|Total shared off heap memory assigned.  This may be larger than requested because packing was not prefect.
 
 Sample response:
 
@@ -166,25 +174,33 @@ Sample response:
     "owners": [
         {
             "owner":"topology_user",
-            "totalReqOnHeapMem":0,
-            "totalExecutors":28,
-            "cpuGuaranteeRemaining":123,
-            "totalReqMem":0,
-            "cpuGuarantee":123,
-            "isolatedNodes":3,
-            "memoryGuarantee":555,
-            "rasTopologiesAssignedCpu":0,
-            "memoryGuaranteeRemaining":555,
-            "totalTasks":28,
-            "totalMemoryUsage":2496,
-            "totalReqOffHeapMem":0,
-            "totalReqCpu":0,
+            "totalTopologies":1,
             "totalWorkers":3,
-            "totalCpuUsage":300,
+            "totalExecutors":28,
+            "totalTasks":28,
+            "cpuGuarantee":123,
+            "cpuGuaranteeRemaining":123,
+            "memoryGuarantee":555,
+            "memoryGuaranteeRemaining":555,
+            "isolatedNodes":3,
+            "rasTopologiesAssignedCpu":0,
             "rasTopologiesAssignedMem":0,
-            "totalAssignedOffHeapMem":0,
+            "totalReqMem":0,
+            "totalMemoryUsage":2496,
+            "totalReqOnHeapMem":0,
             "totalAssignedOnHeapMem":2496,
-            "totalTopologies":1
+            "totalReqOffHeapMem":0,
+            "totalAssignedOffHeapMem":0,
+            "totalReqRegularOffHeapMem":0,
+            "totalAssignedRegularOffHeapMem":0,
+            "totalReqRegularOnHeapMem":0,
+            "totalAssignedRegularOnHeapMem":0, 
+            "totalReqSharedOffHeapMem":0,
+            "totalAssignedSharedOffHeapMem":0,
+            "totalReqSharedOnHeapMem":0,
+            "totalAssignedSharedOnHeapMem":0, 
+            "totalReqCpu":0,
+            "totalCpuUsage":300,
         }
     ],
     "schedulerDisplayResource": true
@@ -300,7 +316,7 @@ Sample response:
     "supervisors": [{ 
         "totalMem": 4096.0, 
         "host":"192.168.10.237",
-        "id":"bdfe8eff-f1d8-4bce-81f5-9d3ae1bf432e-169.254.129.212",
+        "id":"bdfe8eff-f1d8-4bce-81f5-9d3ae1bf432e",
         "uptime":"7m 8s",
         "totalCpu":400.0,
         "usedCpu":495.0,
@@ -315,12 +331,12 @@ Sample response:
         "topologyName":"ras",
         "topologyId":"ras-4-1460229987",
         "host":"192.168.10.237",
-        "supervisorId":"bdfe8eff-f1d8-4bce-81f5-9d3ae1bf432e-169.254.129.212",
+        "supervisorId":"bdfe8eff-f1d8-4bce-81f5-9d3ae1bf432e",
         "assignedMemOnHeap":704.0,
         "uptime":"2m 47s",
         "uptimeSeconds":167,
         "port":6707,
-        "workerLogLink":"http:\/\/192.168.10.237:8000\/log?file=ras-4-1460229987%2F6707%2Fworker.log",
+        "workerLogLink":"http:\/\/host:8000\/log?file=ras-4-1460229987%2F6707%2Fworker.log",
         "componentNumTasks": {
             "word":5
         },
@@ -332,11 +348,11 @@ Sample response:
         "topologyName":"ras",
         "topologyId":"ras-4-1460229987",
         "host":"192.168.10.237",
-        "supervisorId":"bdfe8eff-f1d8-4bce-81f5-9d3ae1bf432e-169.254.129.212",
+        "supervisorId":"bdfe8eff-f1d8-4bce-81f5-9d3ae1bf432e",
         "assignedMemOnHeap":904.0,
         "uptime":"2m 53s",
         "port":6706,
-        "workerLogLink":"http:\/\/192.168.10.237:8000\/log?file=ras-4-1460229987%2F6706%2Fworker.log",
+        "workerLogLink":"http:\/\/host:8000\/log?file=ras-4-1460229987%2F6706%2Fworker.log",
         "componentNumTasks":{
             "exclaim2":2,
             "exclaim1":3,
@@ -465,6 +481,7 @@ Response fields:
 |bolts.errorLapsedSecs| Integer |Number of seconds elapsed since that last error happened in a bolt|
 |bolts.errorWorkerLogLink| String | Link to the worker log that reported the exception |
 |bolts.emitted| Long |Number of tuples emitted|
+|workers| Array | Array of worker summaries |
 
 Examples:
 
@@ -490,6 +507,25 @@ Sample response:
     "msgTimeout": 30,
     "windowHint": "10m 0s",
     "schedulerDisplayResource": true,
+    "workers": [{
+        "topologyName": "WordCount3",
+        "topologyId": "WordCount3-1-1402960825",
+        "host": "my-host",
+        "supervisorId": "9124ca9a-42e8-481e-9bf3-a041d9595430",
+        "assignedMemOnHeap": 1452.0,
+        "uptime": "27m 26s",
+        "port": 6702,
+        "workerLogLink": "logs",
+        "componentNumTasks": {
+            "spout": 2,
+            "count": 3,
+            "split": 10
+        },
+        "executorsTotal": 15,
+        "uptimeSeconds": 1646,
+        "assignedCpu": 260.0,
+        "assignedMemOffHeap": 160.0
+    }]
     "topologyStats": [
         {
             "windowPretty": "10m 0s",

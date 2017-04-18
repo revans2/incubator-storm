@@ -20,23 +20,12 @@ package backtype.storm.scheduler;
 public class WorkerSlot {
     private String nodeId;
     private int port;
-    // amount of on-heap memory allocated to it
-    private double memOnHeap = 0.0;
-    // amount of off-heap memory allocated to it
-    private double memOffHeap = 0.0;
-    // amount of cpu allocated to it
-    private double cpu = 0.0;
-    
-    public WorkerSlot(String nodeId, Number port) {
-        this(nodeId, port, 0.0, 0.0, 0.0);
-    }
 
-    public WorkerSlot(String nodeId, Number port, double memOnHeap, double memOffHeap, double cpu) {
+    public WorkerSlot(String nodeId, Number port) {
+        if (port == null) throw new NullPointerException("port cannot be null");
+        if (nodeId == null) throw new NullPointerException("node id cannot be null");
         this.nodeId = nodeId;
         this.port = port.intValue();
-        this.memOnHeap = memOnHeap;
-        this.memOffHeap = memOffHeap;
-        this.cpu = cpu;
     }
     
     public String getNodeId() {
@@ -51,18 +40,6 @@ public class WorkerSlot {
         return getNodeId() + ":" + getPort();
     }
 
-    public double getAllocatedMemOnHeap() {
-        return memOnHeap;
-    }
-
-    public double getAllocatedMemOffHeap() {
-        return memOffHeap;
-    }
-
-    public double getAllocatedCpu() {
-        return cpu;
-    }
-
     @Override
     public int hashCode() {
         return nodeId.hashCode() + 13 * ((Integer) port).hashCode();
@@ -70,12 +47,13 @@ public class WorkerSlot {
 
     @Override
     public boolean equals(Object o) {
+        if (!(o instanceof WorkerSlot)) return false;
         WorkerSlot other = (WorkerSlot) o;
         return this.port == other.port && this.nodeId.equals(other.nodeId);
     }    
     
     @Override
     public String toString() {
-        return String.valueOf(this.port);
+        return getId();
     }
 }

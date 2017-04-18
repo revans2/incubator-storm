@@ -20,12 +20,13 @@ package storm.trident.graph;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import org.jgrapht.DirectedGraph;
+
+import backtype.storm.generated.SharedMemory;
 import storm.trident.planner.Node;
 import storm.trident.util.IndexedEdge;
 import storm.trident.util.TridentUtils;
@@ -72,6 +73,17 @@ public class Group {
         return ret;        
     }
 
+    /**
+     * @return the shared memory requests for the entire group
+     */
+    public Set<SharedMemory> getSharedMemory() {
+        Set<SharedMemory> ret = new HashSet<>();
+        for (Node n: nodes) {
+            ret.addAll(n.getSharedMemory());
+        }
+        return ret;
+    }
+    
     /**
      * In case no resources are specified, returns empty map.
      * In case differing types of resources are specified, throw.
