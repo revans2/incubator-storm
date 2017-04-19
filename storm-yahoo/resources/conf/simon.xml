@@ -163,6 +163,13 @@
         <reportItem name="supervisor daemon" blurb="supervisor">
             <key   name="hostname" tag="Hostname"/>
             <value name="Avg. workersLaunched">                   num_workers_launched/period                 </value>
+            <value name="Num Workers process killed">             num_workers_killed_process_exit/period      </value>
+            <value name="Num Workers killed memory violation">    num_workers_killed_memory_violation/period  </value>
+            <value name="Num Workers killed hb timeout">          num_workers_killed_hb_timeout/period        </value>
+            <value name="Num Workers killed hb null">             num_workers_killed_hb_null/period           </value>
+            <value name="Num Workers force killed">               num_workers_force_kill/period               </value>
+            <value name="memory used mb">                         current_used_memory_mb                      </value>
+            <value name="memory reserved mb">                     current_reserved_memory_mb                  </value>
             <value name="Num Slots Used">                         num_slots_used                              </value>
         </reportItem>
 
