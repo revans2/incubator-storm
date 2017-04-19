@@ -744,8 +744,6 @@ public class BasicContainer extends Container {
         }
         
         topEnvironment.put("LD_LIBRARY_PATH", jlp);
-        
-        List<String> commandList = mkLaunchCommand(memOnheap, stormRoot, jlp);
 
         if (_resourceIsolationManager != null) {
             int memoffheap = (int) Math.ceil(resources.get_mem_off_heap());
@@ -760,6 +758,8 @@ public class BasicContainer extends Container {
             _memoryLimitMB = memoryValue;
             _resourceIsolationManager.reserveResourcesForWorker(_workerId, map);
         }
+
+        List<String> commandList = mkLaunchCommand(memOnheap, stormRoot, jlp);
 
         LOG.info("Launching worker with command: {}. ", Utils.shellCmd(commandList));
 
