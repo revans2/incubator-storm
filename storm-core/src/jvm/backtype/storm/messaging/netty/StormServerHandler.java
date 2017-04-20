@@ -67,8 +67,17 @@ public class StormServerHandler extends SimpleChannelUpstreamHandler  {
 
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, ExceptionEvent e) {
-        LOG.error("server errors in handling the request", e.getCause());
-        Utils.handleUncaughtException(e.getCause());
-        server.closeChannel(e.getChannel());
+        try {
+            LOG.error("server errors in handling the request", e.getCause());
+        } catch (Throwable err) {
+            // Doing nothing (probably due to an oom issue) and hoping Utils.handleUncaughtException will handle it
+        }
+        try {
+            Utils.handleUncaughtException(e.getCause());
+        } catch (Throwable throwable) {
+            LOG.error("Exception thrown while handling uncaught exception " + throwable.getCause());
+        }
+        LOG.info("Received error in netty thread.. terminating server...");
+        Runtime.getRuntime().exit(1);
     }
 }
