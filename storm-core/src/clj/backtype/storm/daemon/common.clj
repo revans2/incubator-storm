@@ -283,17 +283,18 @@
                       {[comp-id METRICS-STREAM-ID] :shuffle})
                     (into {}))
         
-        mk-bolt-spec (fn [class arg p]
+        mk-bolt-spec (fn [class arg p user_conf_map]
                        (thrift/mk-bolt-spec*
                         inputs
                         (backtype.storm.metric.MetricsConsumerBolt. class arg)
-                        {} :p p :conf {TOPOLOGY-TASKS p}))]
+                        {} :p p :conf (merge {TOPOLOGY-TASKS p} user_conf_map)))]
     
     (map
      (fn [component-id register]           
        [component-id (mk-bolt-spec (get register "class")
                                    (get register "argument")
-                                   (or (get register "parallelism.hint") 1))])
+                                   (or (get register "parallelism.hint") 1)
+                                   (or (get register "user.conf") {}))])
      
      (metrics-consumer-register-ids storm-conf)
      (get storm-conf TOPOLOGY-METRICS-CONSUMER-REGISTER))))

@@ -2561,16 +2561,25 @@ public class Config extends HashMap<String, Object> {
         registerSerialization(this, klass, serializerClass);
     }
 
-    public static void registerMetricsConsumer(Map conf, Class klass, Object argument, long parallelismHint) {
+    public static void registerMetricsConsumer(Map conf, Class klass, Object argument, long parallelismHint, Map userConf) {
         HashMap m = new HashMap();
         m.put("class", klass.getCanonicalName());
         m.put("parallelism.hint", parallelismHint);
         m.put("argument", argument);
+        m.put("user.conf", userConf);
 
         List l = (List)conf.get(TOPOLOGY_METRICS_CONSUMER_REGISTER);
         if (l == null) { l = new ArrayList(); }
         l.add(m);
         conf.put(TOPOLOGY_METRICS_CONSUMER_REGISTER, l);
+    }
+
+    public void registerMetricsConsumer(Class klass, Object argument, long parallelismHint, Map userConf) {
+        registerMetricsConsumer(this, klass, argument, parallelismHint, userConf);
+    }
+
+    public static void registerMetricsConsumer(Map conf, Class klass, Object argument, long parallelismHint) {
+        registerMetricsConsumer(conf, klass, argument, parallelismHint, null);
     }
 
     public void registerMetricsConsumer(Class klass, Object argument, long parallelismHint) {
