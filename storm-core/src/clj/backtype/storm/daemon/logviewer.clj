@@ -526,14 +526,18 @@ Note that if anything goes wrong, this will throw an Error and exit."
 
 (defn logviewer-port
   []
-  (int (*STORM-CONF* LOGVIEWER-PORT)))
+  (int (if (= (*STORM-CONF* LOGVIEWER-HTTPS-PORT) -1) (*STORM-CONF* LOGVIEWER-PORT) (*STORM-CONF* LOGVIEWER-HTTPS-PORT))))
+
+(defn get-scheme
+  []
+  (if (= (*STORM-CONF* LOGVIEWER-HTTPS-PORT) -1) "http" "https"))
 
 (defn url-to-match-centered-in-log-page
   [needle fname offset port]
   (let [host (local-hostname)
         port (logviewer-port)
         fname (clojure.string/join file-path-separator (take-last 3 (split fname (re-pattern file-path-separator))))]
-    (url (str "http://" host ":" port "/log")
+    (url (str (get-scheme) "://" host ":" port "/log")
          {:file fname
           :start (max 0
                       (- offset
@@ -546,7 +550,7 @@ Note that if anything goes wrong, this will throw an Error and exit."
   (let [host (local-hostname)
         port (logviewer-port)
         fname (clojure.string/join file-path-separator (take-last 1 (split fname (re-pattern file-path-separator))))]
-    (url (str "http://" host ":" port "/daemonlog")
+    (url (str (get-scheme) "://" host ":" port "/daemonlog")
       {:file fname
        :start (max 0
                 (- offset
@@ -619,6 +623,7 @@ Note that if anything goes wrong, this will throw an Error and exit."
      "beforeString" before-string
      "afterString" after-string
      "matchString" (String. needle "UTF-8")
+     "scheme" (get-scheme)
      "logviewerURL" url}))
 
 (defn- try-read-ahead!

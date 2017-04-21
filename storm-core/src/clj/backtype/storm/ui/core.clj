@@ -167,8 +167,11 @@
 (defn nimbus-log-link [host]
   (url-format "http://%s:%s/daemonlog?file=nimbus.log" host (*STORM-CONF* LOGVIEWER-PORT)))
 
-(defn supervisor-log-link [host]
-  (url-format "http://%s:%s/daemonlog?file=supervisor.log" host (*STORM-CONF* LOGVIEWER-PORT)))
+(defn supervisor-log-link [scheme host]
+  (url-format "%s://%s:%s/daemonlog?file=supervisor.log"
+              (name scheme)
+              host
+              (if (= scheme :https) (*STORM-CONF* LOGVIEWER-HTTPS-PORT) (*STORM-CONF* LOGVIEWER-PORT))))
 
 (defn get-error-time
   [error]
@@ -409,7 +412,7 @@
      "workerLogLink" (worker-log-link host port topology-id secure-link?)}))
 
 (defn supervisor-summary-to-json 
-  [summary]
+  [summary scheme]
   (let [slotsTotal (.get_num_workers summary)
         slotsUsed (.get_num_used_workers summary)
         slotsFree (max (- slotsTotal slotsUsed) 0)
@@ -432,7 +435,7 @@
    "usedCpu" usedCpu
    "availMem" availMem
    "availCpu" availCpu
-   "logLink" (supervisor-log-link (.get_host summary))
+   "logLink" (supervisor-log-link scheme (.get_host summary))
    "version" (.get_version summary)}))
 
 (defn supervisor-page-info
@@ -452,15 +455,15 @@
                             (worker-summary-to-json secure? worker-summary)))})))
 
 (defn supervisor-summary
-  ([]
+  ([scheme]
    (with-nimbus nimbus
      (supervisor-summary
-       (.get_supervisors (.getClusterInfo ^Nimbus$Client nimbus)))))
-  ([summs]
+       (.get_supervisors (.getClusterInfo ^Nimbus$Client nimbus)) scheme)))
+  ([summs scheme]
    (let [bad-supervisors (filter #(= "unknown" (.get_host ^SupervisorSummary %)) summs)
          good-supervisors (filter #(not= "unknown" (.get_host ^SupervisorSummary %)) summs)]
      {"supervisors" (for [^SupervisorSummary s good-supervisors]
-                      (supervisor-summary-to-json s))
+                      (supervisor-summary-to-json s scheme))
       "schedulerDisplayResource" (*STORM-CONF* Config/SCHEDULER_DISPLAY_RESOURCE)
       "has-bad-supervisors" (not (empty? bad-supervisors))
       "bad-supervisors"
@@ -1013,12 +1016,14 @@
     (populate-context! servlet-request)
     (let [user (get-user-name servlet-request)]
       (json-response (topology-history-info user) (:callback m))))
-  (GET "/api/v1/supervisor/summary" [:as {:keys [cookies servlet-request]} & m]
+  (GET "/api/v1/supervisor/summary" [:as {:keys [cookies servlet-request scheme]} & m]
     (mark! ui:num-supervisor-summary-httpRequests)
     (populate-context! servlet-request)
     (assert-authorized-user "getClusterInfo")
-    (json-response (assoc (supervisor-summary)
-                          "logviewerPort" (*STORM-CONF* LOGVIEWER-PORT)) (:callback m)))
+    (json-response (assoc (supervisor-summary scheme)
+                          "scheme" (name scheme)
+                          "logviewerPort" (if (= scheme :https) (*STORM-CONF* LOGVIEWER-HTTPS-PORT) (*STORM-CONF* LOGVIEWER-PORT)))
+                   (:callback m)))
   (GET "/api/v1/supervisor" [:as {:keys [cookies servlet-request scheme]} & m]
     (populate-context! servlet-request)
     (assert-authorized-user "getSupervisorPageInfo")
@@ -1027,19 +1032,22 @@
     (let [id (:id m)
           host (:host m)]
       (json-response (assoc (supervisor-page-info id host (check-include-sys? (:sys m)) (= scheme :https))
-                            "logviewerPort" (*STORM-CONF* LOGVIEWER-PORT)
-                            "logLink" (supervisor-log-link host)) (:callback m))))
+                            "scheme" (name scheme)
+                            "logviewerPort" (if (= scheme :https) (*STORM-CONF* LOGVIEWER-HTTPS-PORT) (*STORM-CONF* LOGVIEWER-PORT))
+                            "logLink" (supervisor-log-link (name scheme) host)) (:callback m))))
   (GET "/api/v1/topology/summary" [:as {:keys [cookies servlet-request]} & m]
     (mark! ui:num-all-topologies-summary-httpRequests)
     (populate-context! servlet-request)
     (assert-authorized-user "getClusterInfo")
     (json-response (all-topologies-summary) (:callback m)))
-  (GET "/api/v1/topology-workers/:id" [:as {:keys [cookies servlet-request]} id & m]
+  (GET "/api/v1/topology-workers/:id" [:as {:keys [cookies servlet-request scheme]} id & m]
     (mark! ui:num-topology-workers-page-httpRequests)
     (populate-context! servlet-request)
     (let [id (url-decode id)]
       (json-response {"hostPortList" (worker-host-port id)
-                      "logviewerPort" (*STORM-CONF* LOGVIEWER-PORT)} (:callback m))))
+                      "scheme" (name scheme)
+                      "logviewerPort" (if (= scheme :https) (*STORM-CONF* LOGVIEWER-HTTPS-PORT) (*STORM-CONF* LOGVIEWER-PORT))}
+        (:callback m))))
   (GET "/api/v1/topology/:id" [:as {:keys [cookies servlet-request scheme]} id & m]
     (mark! ui:num-topology-page-httpRequests)
     (populate-context! servlet-request)
