@@ -140,6 +140,15 @@ The user can set some default configurations for the Resource Aware Scheduler in
     //customize _acker component CPU requirement
     topology.acker.cpu.pcore.percent: 30.0
 
+    //customize metrics consumer component on heap requirement
+    topology.metrics.consumer.onheap.memory.mb: 512.0
+
+    //customize metrics consumer component off heap requirement
+    topology.metrics.consumer.offheap.memory.mb: 32.0
+
+    //customize metrics consumer component CPU requirement
+    topology.metrics.consumer.cpu.pcore.percent: 25.0
+
 # Topology Priorities and Per User Resource 
 
 The Resource Aware Scheduler or RAS also has multitenant capabilities since many Storm users typically share a Storm cluster.  Resource Aware Scheduler can allocate resources on a per user basis.  Each user can be guaranteed a certain amount of resources to run his or her topologies and the Resource Aware Scheduler will meet those guarantees when possible.  When the Storm cluster has extra free resources, Resource Aware Scheduler will to be able allocate additional resources to user in a fair manner. The importance of topologies can also vary.  Topologies can be used for actual production or just experimentation, thus Resource Aware Scheduler will take into account the importance of a topology when determining the order in which to schedule topologies or when to evict topologies.
