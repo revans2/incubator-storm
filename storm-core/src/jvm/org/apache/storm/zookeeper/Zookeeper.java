@@ -156,7 +156,8 @@ public class Zookeeper {
                 zk.delete().deletingChildrenIfNeeded().forPath(normalizePath(path));
             }
         } catch (Exception e) {
-            if (Utils.exceptionCauseIsInstanceOf(KeeperException.NodeExistsException.class, e)) {
+            if (Utils.exceptionCauseIsInstanceOfAnyOneOf(e, KeeperException.NodeExistsException.class,
+                    KeeperException.ConnectionLossException.class)) {
                 // do nothing
                 LOG.info("delete {} failed.", path, e);
             } else {

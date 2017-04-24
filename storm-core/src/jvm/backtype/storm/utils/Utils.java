@@ -1217,6 +1217,20 @@ public class Utils {
     }
 
     /**
+     * Checks if a throwable is an instance of a list of particular classes
+     * @param klasses The list of classes you're expecting
+     * @param throwable The throwable you expect to be an instance of klass
+     * @return true if throwable is instance of klass, false otherwise.
+     */
+    public static boolean exceptionCauseIsInstanceOfAnyOneOf(Throwable throwable, Class... klasses) {
+        for (Class klass: klasses ) {
+            if(exceptionCauseIsInstanceOf(klass, throwable))
+                return true;
+        }
+        return false;
+    }
+
+    /**
      * Is the cluster configured to interact with ZooKeeper in a secure way?
      * This only works when called from within Nimbus or a Supervisor process.
      * @param conf the storm configuration, not the topology configuration
