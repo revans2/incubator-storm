@@ -40,6 +40,11 @@
 <script src="/js/dataTables.bootstrap.min.js" type="text/javascript"></script>
 </head>
 <body>
+<div class="ras-warning" id="ras-warning-fixed-buffer">
+  <H1>This topology is in danger of being unscheduled due to the owner's over-use of cluster resources.</H1>
+  <p>Please keep this user's resource consumption within guaranteed bounds to ensure topologies for this user will continue to run.</p>
+</div>
+<div class="ras-warning" id="ras-warning-top-buffer"></div>
 <div class="container-fluid">
   <div class="row">
     <div class="col-md-11">
@@ -293,6 +298,20 @@ $(document).ready(function() {
             uiUser.append(Mustache.render($(template).filter("#user-template").html(),response));
             $('#ui-user [data-toggle="tooltip"]').tooltip();
           });
+        });
+
+        var owner = response["owner"];
+        $.getJSON("/api/v1/owner-resources", function(response, status, jqXHR) {
+          var owner_obj = null;
+          var owners = response["owners"];
+          for(var o = 0; o < owners.length; o++) {
+            if(owners[o]["owner"] == owner) {
+              owner_obj = owners[o];
+            }
+          }
+          if(owner_obj && (owner_obj["memoryGuaranteeRemaining"] < 0 || owner_obj["cpuGuaranteeRemaining"] < 0)) {
+            $(".ras-warning").show();
+          }
         });
 
         var topologySummary = $("#topology-summary");
