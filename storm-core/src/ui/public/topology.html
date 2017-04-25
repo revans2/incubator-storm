@@ -40,11 +40,11 @@
 <script src="/js/dataTables.bootstrap.min.js" type="text/javascript"></script>
 </head>
 <body>
-<div class="ras-warning" id="ras-warning-fixed-buffer">
+<div class="warning" id="ras-warning-fixed-buffer">
   <H1>This topology is in danger of being unscheduled due to the owner's over-use of cluster resources.</H1>
   <p>Please keep this user's resource consumption within guaranteed bounds to ensure topologies for this user will continue to run.</p>
 </div>
-<div class="ras-warning" id="ras-warning-top-buffer"></div>
+<div class="warning" id="ras-warning-top-buffer"></div>
 <div class="container-fluid">
   <div class="row">
     <div class="col-md-11">
@@ -301,16 +301,9 @@ $(document).ready(function() {
         });
 
         var owner = response["owner"];
-        $.getJSON("/api/v1/owner-resources", function(response, status, jqXHR) {
-          var owner_obj = null;
-          var owners = response["owners"];
-          for(var o = 0; o < owners.length; o++) {
-            if(owners[o]["owner"] == owner) {
-              owner_obj = owners[o];
-            }
-          }
-          if(owner_obj && (owner_obj["memoryGuaranteeRemaining"] < 0 || owner_obj["cpuGuaranteeRemaining"] < 0)) {
-            $(".ras-warning").show();
+        $.getJSON("/api/v1/owner-resources/" + owner, function(response, status, jqXHR) {
+          if(response && (response["memoryGuaranteeRemaining"] < 0 || response["cpuGuaranteeRemaining"] < 0)) {
+            $(".warning").show();
           }
         });
 
