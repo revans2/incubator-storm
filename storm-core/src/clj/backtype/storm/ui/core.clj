@@ -439,20 +439,20 @@
    "version" (.get_version summary)}))
 
 (defn supervisor-page-info
-  ([supervisor-id host include-sys? secure?]
+  ([supervisor-id host include-sys? scheme]
      (with-nimbus nimbus
         (supervisor-page-info (.getSupervisorPageInfo ^Nimbus$Client nimbus
                                                       supervisor-id
                                                       host
-                                                      include-sys?) secure?)))
-  ([^SupervisorPageInfo supervisor-page-info secure?]
+                                                      include-sys?) scheme)))
+  ([^SupervisorPageInfo supervisor-page-info scheme]
     ;; ask nimbus to return supervisor workers + any details user is allowed
     ;; access on a per-topology basis (i.e. components)
-    (let [supervisors-json (map supervisor-summary-to-json (.get_supervisor_summaries supervisor-page-info))]
+    (let [supervisors-json (map #(supervisor-summary-to-json % scheme) (.get_supervisor_summaries supervisor-page-info))]
       {"supervisors" supervisors-json
        "schedulerDisplayResource" (*STORM-CONF* Config/SCHEDULER_DISPLAY_RESOURCE)
        "workers" (into [] (for [^WorkerSummary worker-summary (.get_worker_summaries supervisor-page-info)]
-                            (worker-summary-to-json secure? worker-summary)))})))
+                            (worker-summary-to-json (= scheme :https) worker-summary)))})))
 
 (defn supervisor-summary
   ([scheme]
@@ -1031,7 +1031,7 @@
     ;; that said, if both the id and host are provided, the id wins
     (let [id (:id m)
           host (:host m)]
-      (json-response (assoc (supervisor-page-info id host (check-include-sys? (:sys m)) (= scheme :https))
+      (json-response (assoc (supervisor-page-info id host (check-include-sys? (:sys m)) scheme)
                             "scheme" (name scheme)
                             "logviewerPort" (if (= scheme :https) (*STORM-CONF* LOGVIEWER-HTTPS-PORT) (*STORM-CONF* LOGVIEWER-PORT))
                             "logLink" (supervisor-log-link (name scheme) host)) (:callback m))))
