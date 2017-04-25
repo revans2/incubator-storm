@@ -296,3 +296,18 @@ PRE.jsonFormatter-codeContainer {
 #toggle-on-components-btn .btn {
   margin: 10px;
 }
+
+.warning {
+    width: 100%;
+    height: 150px;
+    display: none;
+}
+
+#ras-warning-fixed-buffer {
+    background: #FF0000;
+    float:left;
+    position:fixed;
+    z-index:999999 !important;
+    text-align:center;
+    color:#FFFFFF;
+}
