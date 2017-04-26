@@ -1299,7 +1299,7 @@ public class Config extends HashMap<String, Object> {
 
     /**
      * principal for nimbus/supervisor to use to access secure hdfs for the blobstore.
-     * If there is an instance of the string "${HOSTNAME}" within the principal, it will
+     * If there is an instance of the string "HOSTNAME" within the principal, it will
      * be replaced with the host name of the server the daemon is running on.
      */
     @isString
@@ -2792,7 +2792,7 @@ public class Config extends HashMap<String, Object> {
     public static String getBlobstoreHDFSPrincipal(Map conf) throws UnknownHostException {
         String principal = (String)conf.get(Config.BLOBSTORE_HDFS_PRINCIPAL);
         if (principal != null) {
-            principal = principal.replace("${HOSTNAME}", Utils.localHostname());
+            principal = principal.replace("HOSTNAME", Utils.localHostname());
         }
         return principal;
     }
