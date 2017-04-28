@@ -17,6 +17,7 @@
  */
 package backtype.storm.utils;
 
+import backtype.storm.scheduler.resource.ResourceUtils;
 import clojure.lang.Keyword;
 import com.google.common.annotations.VisibleForTesting;
 
@@ -2307,10 +2308,37 @@ public class Utils {
 
     public static boolean isRAS(Map<String, Object> conf, Map<String, Object> topoConf) {
         String scheduler = (String)conf.get(Config.STORM_SCHEDULER);
+        if (scheduler == null) {
+            scheduler = "backtype.storm.scheduler.DefaultScheduler";
+        }
+
         String strategy = (String)topoConf.get(Config.TOPOLOGY_SCHEDULER_STRATEGY);
-        return ! (scheduler.equals("backtype.storm.scheduler.bridge.MultitenantResourceAwareBridgeScheduler") &&
-                    (strategy == null || 
-                     strategy.equals("backtype.storm.scheduler.resource.strategies.scheduling.MultitenantStrategy")));
+        if (strategy == null) {
+            strategy = "backtype.storm.scheduler.resource.strategies.scheduling.MultitenantStrategy";
+        }
+
+        return scheduler.equals("backtype.storm.scheduler.resource.ResourceAwareScheduler") ||
+                (scheduler.equals("backtype.storm.scheduler.bridge.MultitenantResourceAwareBridgeScheduler") &&
+                        !strategy.equals("backtype.storm.scheduler.resource.strategies.scheduling.MultitenantStrategy"));
+    }
+
+    public static double getEstimatedTotalHeapMemoryRequiredByTopo(StormTopology topology, Map topologyConf) {
+        double totalMemoryRequired = 0.0;
+        for (Map<String, Double> entry : ResourceUtils.getBoltsResources(topology, topologyConf).values()) {
+            double memoryRequirement = entry.get(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB);
+            totalMemoryRequired += memoryRequirement;
+        }
+        for (Map<String, Double> entry : ResourceUtils.getSpoutsResources(topology, topologyConf).values()) {
+            double memoryRequirement = entry.get(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB);
+            totalMemoryRequired += memoryRequirement;
+        }
+        return totalMemoryRequired;
+    }
+
+    public static double getEstimatedWorkerCountForRASTopo(StormTopology topology, Map topologyConf) {
+        Double temp = Math.ceil(getEstimatedTotalHeapMemoryRequiredByTopo(topology, topologyConf) /
+                Utils.getDouble(topologyConf.get(Config.WORKER_HEAP_MEMORY_MB)));
+        return temp;
     }
 
 }

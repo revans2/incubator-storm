@@ -1419,6 +1419,14 @@
     (throw
       (NotAliveException. (str storm-id)))))
 
+(defn num-acker-executors [storm-conf topology nimbus-conf]
+  (or
+    (.get storm-conf TOPOLOGY-ACKER-EXECUTORS)
+    (.get storm-conf TOPOLOGY-WORKERS)
+      (if (Utils/isRAS nimbus-conf storm-conf)
+        (Utils/getEstimatedWorkerCountForRASTopo topology storm-conf)
+        (storm-conf TOPOLOGY-WORKERS))))
+
 (defserverfn service-handler [conf inimbus]
   (.prepare inimbus conf (master-inimbus-dir conf))
   (log-message "Starting Nimbus with conf " conf)
@@ -1555,6 +1563,7 @@
                              storm-conf
                              (dissoc storm-conf TOPOLOGY-CLASSPATH-BEGINNING))
                 total-storm-conf (merge conf storm-conf)
+                total-storm-conf (-> total-storm-conf (assoc TOPOLOGY-ACKER-EXECUTORS (num-acker-executors total-storm-conf topology (:conf nimbus))))
                 topology (normalize-topology total-storm-conf topology)
 
                 storm-cluster-state (:storm-cluster-state nimbus)]
