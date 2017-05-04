@@ -593,7 +593,7 @@ public abstract class Container implements Killable {
           .filter((topoAndMem) -> _topologyId.equals(topoAndMem.topoId))
           .mapToLong((topoAndMem) -> topoAndMem.memory)
           .sum();
-        if (withUpdatedLimits.is_has_node_shared_memory()) {
+        if (withUpdatedLimits.is_set_total_node_shared()) {
             ret += withUpdatedLimits.get_total_node_shared();
         }
         return ret;

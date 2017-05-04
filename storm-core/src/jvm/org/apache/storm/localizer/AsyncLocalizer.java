@@ -156,7 +156,7 @@ public class AsyncLocalizer implements ILocalizer, Shutdownable {
                         _fsOps.setupStormCodeDir(topoConf, _stormRoot);
                     }
 
-                    if (_assignment.is_has_node_shared_memory()) {
+                    if (_assignment.is_set_total_node_shared()) {
                         //We need to create a directory for shared memory to write to (we should not encourage this though)
                         File sharedMemoryDir = new File(_stormRoot, "shared_by_topology");
                         if (!sharedMemoryDir.mkdirs()) {

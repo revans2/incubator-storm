@@ -284,7 +284,6 @@ public class ReadClusterState implements Runnable, AutoCloseable {
                             if (slotsResources.containsKey(port)) {
                                 localAssignment.set_resources(slotsResources.get(port));
                             }
-                            localAssignment.set_has_node_shared_memory(hasShared);
                             if (hasShared) {
                                 localAssignment.set_total_node_shared(amountShared);
                             }

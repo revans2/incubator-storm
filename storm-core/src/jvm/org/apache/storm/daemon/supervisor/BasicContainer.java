@@ -657,7 +657,7 @@ public class BasicContainer extends Container {
             long hardMemoryLimitOver;
             String typeOfCheck;
             
-            if (withUpdatedLimits.is_has_node_shared_memory()) {
+            if (withUpdatedLimits.is_set_total_node_shared()) {
                 //We need to do enforcement on a topology level, not a single worker level...
                 // Because in for cgroups each page in shared memory goes to the worker that touched it first
                 // We may need to make this more plugable in the future and let the resource isolation manager

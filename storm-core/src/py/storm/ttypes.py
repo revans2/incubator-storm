@@ -7018,14 +7018,14 @@ class TopologyPageInfo:
     (524, TType.DOUBLE, 'assigned_memonheap', None, None, ), # 524
     (525, TType.DOUBLE, 'assigned_memoffheap', None, None, ), # 525
     (526, TType.DOUBLE, 'assigned_cpu', None, None, ), # 526
-    (527, TType.I64, 'requested_regular_on_heap_memory', None, None, ), # 527
-    (528, TType.I64, 'requested_shared_on_heap_memory', None, None, ), # 528
-    (529, TType.I64, 'requested_regular_off_heap_memory', None, None, ), # 529
-    (530, TType.I64, 'requested_shared_off_heap_memory', None, None, ), # 530
-    (531, TType.I64, 'assigned_regular_on_heap_memory', None, None, ), # 531
-    (532, TType.I64, 'assigned_shared_on_heap_memory', None, None, ), # 532
-    (533, TType.I64, 'assigned_regular_off_heap_memory', None, None, ), # 533
-    (534, TType.I64, 'assigned_shared_off_heap_memory', None, None, ), # 534
+    (527, TType.DOUBLE, 'requested_regular_on_heap_memory', None, None, ), # 527
+    (528, TType.DOUBLE, 'requested_shared_on_heap_memory', None, None, ), # 528
+    (529, TType.DOUBLE, 'requested_regular_off_heap_memory', None, None, ), # 529
+    (530, TType.DOUBLE, 'requested_shared_off_heap_memory', None, None, ), # 530
+    (531, TType.DOUBLE, 'assigned_regular_on_heap_memory', None, None, ), # 531
+    (532, TType.DOUBLE, 'assigned_shared_on_heap_memory', None, None, ), # 532
+    (533, TType.DOUBLE, 'assigned_regular_off_heap_memory', None, None, ), # 533
+    (534, TType.DOUBLE, 'assigned_shared_off_heap_memory', None, None, ), # 534
   )
 
   def __init__(self, id=None, name=None, uptime_secs=None, status=None, num_tasks=None, num_workers=None, num_executors=None, topology_conf=None, id_to_spout_agg_stats=None, id_to_bolt_agg_stats=None, sched_status=None, topology_stats=None, owner=None, workers=None, errors=None, requested_memonheap=None, requested_memoffheap=None, requested_cpu=None, assigned_memonheap=None, assigned_memoffheap=None, assigned_cpu=None, requested_regular_on_heap_memory=None, requested_shared_on_heap_memory=None, requested_regular_off_heap_memory=None, requested_shared_off_heap_memory=None, assigned_regular_on_heap_memory=None, assigned_shared_on_heap_memory=None, assigned_regular_off_heap_memory=None, assigned_shared_off_heap_memory=None,):
@@ -7201,43 +7201,43 @@ class TopologyPageInfo:
         else:
           iprot.skip(ftype)
       elif fid == 527:
-        if ftype == TType.I64:
-          self.requested_regular_on_heap_memory = iprot.readI64()
+        if ftype == TType.DOUBLE:
+          self.requested_regular_on_heap_memory = iprot.readDouble()
         else:
           iprot.skip(ftype)
       elif fid == 528:
-        if ftype == TType.I64:
-          self.requested_shared_on_heap_memory = iprot.readI64()
+        if ftype == TType.DOUBLE:
+          self.requested_shared_on_heap_memory = iprot.readDouble()
         else:
           iprot.skip(ftype)
       elif fid == 529:
-        if ftype == TType.I64:
-          self.requested_regular_off_heap_memory = iprot.readI64()
+        if ftype == TType.DOUBLE:
+          self.requested_regular_off_heap_memory = iprot.readDouble()
         else:
           iprot.skip(ftype)
       elif fid == 530:
-        if ftype == TType.I64:
-          self.requested_shared_off_heap_memory = iprot.readI64()
+        if ftype == TType.DOUBLE:
+          self.requested_shared_off_heap_memory = iprot.readDouble()
         else:
           iprot.skip(ftype)
       elif fid == 531:
-        if ftype == TType.I64:
-          self.assigned_regular_on_heap_memory = iprot.readI64()
+        if ftype == TType.DOUBLE:
+          self.assigned_regular_on_heap_memory = iprot.readDouble()
         else:
           iprot.skip(ftype)
       elif fid == 532:
-        if ftype == TType.I64:
-          self.assigned_shared_on_heap_memory = iprot.readI64()
+        if ftype == TType.DOUBLE:
+          self.assigned_shared_on_heap_memory = iprot.readDouble()
         else:
           iprot.skip(ftype)
       elif fid == 533:
-        if ftype == TType.I64:
-          self.assigned_regular_off_heap_memory = iprot.readI64()
+        if ftype == TType.DOUBLE:
+          self.assigned_regular_off_heap_memory = iprot.readDouble()
         else:
           iprot.skip(ftype)
       elif fid == 534:
-        if ftype == TType.I64:
-          self.assigned_shared_off_heap_memory = iprot.readI64()
+        if ftype == TType.DOUBLE:
+          self.assigned_shared_off_heap_memory = iprot.readDouble()
         else:
           iprot.skip(ftype)
       else:
@@ -7349,36 +7349,36 @@ class TopologyPageInfo:
       oprot.writeDouble(self.assigned_cpu)
       oprot.writeFieldEnd()
     if self.requested_regular_on_heap_memory is not None:
-      oprot.writeFieldBegin('requested_regular_on_heap_memory', TType.I64, 527)
-      oprot.writeI64(self.requested_regular_on_heap_memory)
+      oprot.writeFieldBegin('requested_regular_on_heap_memory', TType.DOUBLE, 527)
+      oprot.writeDouble(self.requested_regular_on_heap_memory)
       oprot.writeFieldEnd()
     if self.requested_shared_on_heap_memory is not None:
-      oprot.writeFieldBegin('requested_shared_on_heap_memory', TType.I64, 528)
-      oprot.writeI64(self.requested_shared_on_heap_memory)
+      oprot.writeFieldBegin('requested_shared_on_heap_memory', TType.DOUBLE, 528)
+      oprot.writeDouble(self.requested_shared_on_heap_memory)
       oprot.writeFieldEnd()
     if self.requested_regular_off_heap_memory is not None:
-      oprot.writeFieldBegin('requested_regular_off_heap_memory', TType.I64, 529)
-      oprot.writeI64(self.requested_regular_off_heap_memory)
+      oprot.writeFieldBegin('requested_regular_off_heap_memory', TType.DOUBLE, 529)
+      oprot.writeDouble(self.requested_regular_off_heap_memory)
       oprot.writeFieldEnd()
     if self.requested_shared_off_heap_memory is not None:
-      oprot.writeFieldBegin('requested_shared_off_heap_memory', TType.I64, 530)
-      oprot.writeI64(self.requested_shared_off_heap_memory)
+      oprot.writeFieldBegin('requested_shared_off_heap_memory', TType.DOUBLE, 530)
+      oprot.writeDouble(self.requested_shared_off_heap_memory)
       oprot.writeFieldEnd()
     if self.assigned_regular_on_heap_memory is not None:
-      oprot.writeFieldBegin('assigned_regular_on_heap_memory', TType.I64, 531)
-      oprot.writeI64(self.assigned_regular_on_heap_memory)
+      oprot.writeFieldBegin('assigned_regular_on_heap_memory', TType.DOUBLE, 531)
+      oprot.writeDouble(self.assigned_regular_on_heap_memory)
       oprot.writeFieldEnd()
     if self.assigned_shared_on_heap_memory is not None:
-      oprot.writeFieldBegin('assigned_shared_on_heap_memory', TType.I64, 532)
-      oprot.writeI64(self.assigned_shared_on_heap_memory)
+      oprot.writeFieldBegin('assigned_shared_on_heap_memory', TType.DOUBLE, 532)
+      oprot.writeDouble(self.assigned_shared_on_heap_memory)
       oprot.writeFieldEnd()
     if self.assigned_regular_off_heap_memory is not None:
-      oprot.writeFieldBegin('assigned_regular_off_heap_memory', TType.I64, 533)
-      oprot.writeI64(self.assigned_regular_off_heap_memory)
+      oprot.writeFieldBegin('assigned_regular_off_heap_memory', TType.DOUBLE, 533)
+      oprot.writeDouble(self.assigned_regular_off_heap_memory)
       oprot.writeFieldEnd()
     if self.assigned_shared_off_heap_memory is not None:
-      oprot.writeFieldBegin('assigned_shared_off_heap_memory', TType.I64, 534)
-      oprot.writeI64(self.assigned_shared_off_heap_memory)
+      oprot.writeFieldBegin('assigned_shared_off_heap_memory', TType.DOUBLE, 534)
+      oprot.writeDouble(self.assigned_shared_off_heap_memory)
       oprot.writeFieldEnd()
     oprot.writeFieldStop()
     oprot.writeStructEnd()
@@ -10070,7 +10070,6 @@ class LocalAssignment:
    - topology_id
    - executors
    - resources
-   - has_node_shared_memory
    - total_node_shared
   """
 
@@ -10079,15 +10078,13 @@ class LocalAssignment:
     (1, TType.STRING, 'topology_id', None, None, ), # 1
     (2, TType.LIST, 'executors', (TType.STRUCT,(ExecutorInfo, ExecutorInfo.thrift_spec)), None, ), # 2
     (3, TType.STRUCT, 'resources', (WorkerResources, WorkerResources.thrift_spec), None, ), # 3
-    (4, TType.BOOL, 'has_node_shared_memory', None, False, ), # 4
-    (5, TType.DOUBLE, 'total_node_shared', None, None, ), # 5
+    (4, TType.DOUBLE, 'total_node_shared', None, None, ), # 4
   )
 
-  def __init__(self, topology_id=None, executors=None, resources=None, has_node_shared_memory=thrift_spec[4][4], total_node_shared=None,):
+  def __init__(self, topology_id=None, executors=None, resources=None, total_node_shared=None,):
     self.topology_id = topology_id
     self.executors = executors
     self.resources = resources
-    self.has_node_shared_memory = has_node_shared_memory
     self.total_node_shared = total_node_shared
 
   def read(self, iprot):
@@ -10122,11 +10119,6 @@ class LocalAssignment:
         else:
           iprot.skip(ftype)
       elif fid == 4:
-        if ftype == TType.BOOL:
-          self.has_node_shared_memory = iprot.readBool()
-        else:
-          iprot.skip(ftype)
-      elif fid == 5:
         if ftype == TType.DOUBLE:
           self.total_node_shared = iprot.readDouble()
         else:
@@ -10156,12 +10148,8 @@ class LocalAssignment:
       oprot.writeFieldBegin('resources', TType.STRUCT, 3)
       self.resources.write(oprot)
       oprot.writeFieldEnd()
-    if self.has_node_shared_memory is not None:
-      oprot.writeFieldBegin('has_node_shared_memory', TType.BOOL, 4)
-      oprot.writeBool(self.has_node_shared_memory)
-      oprot.writeFieldEnd()
     if self.total_node_shared is not None:
-      oprot.writeFieldBegin('total_node_shared', TType.DOUBLE, 5)
+      oprot.writeFieldBegin('total_node_shared', TType.DOUBLE, 4)
       oprot.writeDouble(self.total_node_shared)
       oprot.writeFieldEnd()
     oprot.writeFieldStop()
@@ -10180,7 +10168,6 @@ class LocalAssignment:
     value = (value * 31) ^ hash(self.topology_id)
     value = (value * 31) ^ hash(self.executors)
     value = (value * 31) ^ hash(self.resources)
-    value = (value * 31) ^ hash(self.has_node_shared_memory)
     value = (value * 31) ^ hash(self.total_node_shared)
     return value
 
@@ -10958,14 +10945,14 @@ class OwnerResourceSummary:
     (18, TType.I64, 'assigned_off_heap_memory', None, None, ), # 18
     (19, TType.I64, 'assigned_ras_total_memory', None, None, ), # 19
     (20, TType.I32, 'assigned_ras_cpu', None, None, ), # 20
-    (21, TType.I64, 'requested_regular_on_heap_memory', None, None, ), # 21
-    (22, TType.I64, 'requested_shared_on_heap_memory', None, None, ), # 22
-    (23, TType.I64, 'requested_regular_off_heap_memory', None, None, ), # 23
-    (24, TType.I64, 'requested_shared_off_heap_memory', None, None, ), # 24
-    (25, TType.I64, 'assigned_regular_on_heap_memory', None, None, ), # 25
-    (26, TType.I64, 'assigned_shared_on_heap_memory', None, None, ), # 26
-    (27, TType.I64, 'assigned_regular_off_heap_memory', None, None, ), # 27
-    (28, TType.I64, 'assigned_shared_off_heap_memory', None, None, ), # 28
+    (21, TType.DOUBLE, 'requested_regular_on_heap_memory', None, None, ), # 21
+    (22, TType.DOUBLE, 'requested_shared_on_heap_memory', None, None, ), # 22
+    (23, TType.DOUBLE, 'requested_regular_off_heap_memory', None, None, ), # 23
+    (24, TType.DOUBLE, 'requested_shared_off_heap_memory', None, None, ), # 24
+    (25, TType.DOUBLE, 'assigned_regular_on_heap_memory', None, None, ), # 25
+    (26, TType.DOUBLE, 'assigned_shared_on_heap_memory', None, None, ), # 26
+    (27, TType.DOUBLE, 'assigned_regular_off_heap_memory', None, None, ), # 27
+    (28, TType.DOUBLE, 'assigned_shared_off_heap_memory', None, None, ), # 28
   )
 
   def __init__(self, owner=None, total_topologies=None, total_executors=None, total_workers=None, memory_usage=None, cpu_usage=None, memory_guarantee=None, cpu_guarantee=None, memory_guarantee_remaining=None, cpu_guarantee_remaining=None, isolated_node_guarantee=None, total_tasks=None, requested_on_heap_memory=None, requested_off_heap_memory=None, requested_total_memory=None, requested_cpu=None, assigned_on_heap_memory=None, assigned_off_heap_memory=None, assigned_ras_total_memory=None, assigned_ras_cpu=None, requested_regular_on_heap_memory=None, requested_shared_on_heap_memory=None, requested_regular_off_heap_memory=None, requested_shared_off_heap_memory=None, assigned_regular_on_heap_memory=None, assigned_shared_on_heap_memory=None, assigned_regular_off_heap_memory=None, assigned_shared_off_heap_memory=None,):
@@ -11108,43 +11095,43 @@ class OwnerResourceSummary:
         else:
           iprot.skip(ftype)
       elif fid == 21:
-        if ftype == TType.I64:
-          self.requested_regular_on_heap_memory = iprot.readI64()
+        if ftype == TType.DOUBLE:
+          self.requested_regular_on_heap_memory = iprot.readDouble()
         else:
           iprot.skip(ftype)
       elif fid == 22:
-        if ftype == TType.I64:
-          self.requested_shared_on_heap_memory = iprot.readI64()
+        if ftype == TType.DOUBLE:
+          self.requested_shared_on_heap_memory = iprot.readDouble()
         else:
           iprot.skip(ftype)
       elif fid == 23:
-        if ftype == TType.I64:
-          self.requested_regular_off_heap_memory = iprot.readI64()
+        if ftype == TType.DOUBLE:
+          self.requested_regular_off_heap_memory = iprot.readDouble()
         else:
           iprot.skip(ftype)
       elif fid == 24:
-        if ftype == TType.I64:
-          self.requested_shared_off_heap_memory = iprot.readI64()
+        if ftype == TType.DOUBLE:
+          self.requested_shared_off_heap_memory = iprot.readDouble()
         else:
           iprot.skip(ftype)
       elif fid == 25:
-        if ftype == TType.I64:
-          self.assigned_regular_on_heap_memory = iprot.readI64()
+        if ftype == TType.DOUBLE:
+          self.assigned_regular_on_heap_memory = iprot.readDouble()
         else:
           iprot.skip(ftype)
       elif fid == 26:
-        if ftype == TType.I64:
-          self.assigned_shared_on_heap_memory = iprot.readI64()
+        if ftype == TType.DOUBLE:
+          self.assigned_shared_on_heap_memory = iprot.readDouble()
         else:
           iprot.skip(ftype)
       elif fid == 27:
-        if ftype == TType.I64:
-          self.assigned_regular_off_heap_memory = iprot.readI64()
+        if ftype == TType.DOUBLE:
+          self.assigned_regular_off_heap_memory = iprot.readDouble()
         else:
           iprot.skip(ftype)
       elif fid == 28:
-        if ftype == TType.I64:
-          self.assigned_shared_off_heap_memory = iprot.readI64()
+        if ftype == TType.DOUBLE:
+          self.assigned_shared_off_heap_memory = iprot.readDouble()
         else:
           iprot.skip(ftype)
       else:
@@ -11238,36 +11225,36 @@ class OwnerResourceSummary:
       oprot.writeI32(self.assigned_ras_cpu)
       oprot.writeFieldEnd()
     if self.requested_regular_on_heap_memory is not None:
-      oprot.writeFieldBegin('requested_regular_on_heap_memory', TType.I64, 21)
-      oprot.writeI64(self.requested_regular_on_heap_memory)
+      oprot.writeFieldBegin('requested_regular_on_heap_memory', TType.DOUBLE, 21)
+      oprot.writeDouble(self.requested_regular_on_heap_memory)
       oprot.writeFieldEnd()
     if self.requested_shared_on_heap_memory is not None:
-      oprot.writeFieldBegin('requested_shared_on_heap_memory', TType.I64, 22)
-      oprot.writeI64(self.requested_shared_on_heap_memory)
+      oprot.writeFieldBegin('requested_shared_on_heap_memory', TType.DOUBLE, 22)
+      oprot.writeDouble(self.requested_shared_on_heap_memory)
       oprot.writeFieldEnd()
     if self.requested_regular_off_heap_memory is not None:
-      oprot.writeFieldBegin('requested_regular_off_heap_memory', TType.I64, 23)
-      oprot.writeI64(self.requested_regular_off_heap_memory)
+      oprot.writeFieldBegin('requested_regular_off_heap_memory', TType.DOUBLE, 23)
+      oprot.writeDouble(self.requested_regular_off_heap_memory)
       oprot.writeFieldEnd()
     if self.requested_shared_off_heap_memory is not None:
-      oprot.writeFieldBegin('requested_shared_off_heap_memory', TType.I64, 24)
-      oprot.writeI64(self.requested_shared_off_heap_memory)
+      oprot.writeFieldBegin('requested_shared_off_heap_memory', TType.DOUBLE, 24)
+      oprot.writeDouble(self.requested_shared_off_heap_memory)
       oprot.writeFieldEnd()
     if self.assigned_regular_on_heap_memory is not None:
-      oprot.writeFieldBegin('assigned_regular_on_heap_memory', TType.I64, 25)
-      oprot.writeI64(self.assigned_regular_on_heap_memory)
+      oprot.writeFieldBegin('assigned_regular_on_heap_memory', TType.DOUBLE, 25)
+      oprot.writeDouble(self.assigned_regular_on_heap_memory)
       oprot.writeFieldEnd()
     if self.assigned_shared_on_heap_memory is not None:
-      oprot.writeFieldBegin('assigned_shared_on_heap_memory', TType.I64, 26)
-      oprot.writeI64(self.assigned_shared_on_heap_memory)
+      oprot.writeFieldBegin('assigned_shared_on_heap_memory', TType.DOUBLE, 26)
+      oprot.writeDouble(self.assigned_shared_on_heap_memory)
       oprot.writeFieldEnd()
     if self.assigned_regular_off_heap_memory is not None:
-      oprot.writeFieldBegin('assigned_regular_off_heap_memory', TType.I64, 27)
-      oprot.writeI64(self.assigned_regular_off_heap_memory)
+      oprot.writeFieldBegin('assigned_regular_off_heap_memory', TType.DOUBLE, 27)
+      oprot.writeDouble(self.assigned_regular_off_heap_memory)
       oprot.writeFieldEnd()
     if self.assigned_shared_off_heap_memory is not None:
-      oprot.writeFieldBegin('assigned_shared_off_heap_memory', TType.I64, 28)
-      oprot.writeI64(self.assigned_shared_off_heap_memory)
+      oprot.writeFieldBegin('assigned_shared_off_heap_memory', TType.DOUBLE, 28)
+      oprot.writeDouble(self.assigned_shared_off_heap_memory)
       oprot.writeFieldEnd()
     oprot.writeFieldStop()
     oprot.writeStructEnd()

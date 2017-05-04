@@ -348,14 +348,14 @@ struct TopologyPageInfo {
 524: optional double assigned_memonheap;
 525: optional double assigned_memoffheap;
 526: optional double assigned_cpu;
-527: optional i64 requested_regular_on_heap_memory;
-528: optional i64 requested_shared_on_heap_memory;
-529: optional i64 requested_regular_off_heap_memory;
-530: optional i64 requested_shared_off_heap_memory;
-531: optional i64 assigned_regular_on_heap_memory;
-532: optional i64 assigned_shared_on_heap_memory;
-533: optional i64 assigned_regular_off_heap_memory;
-534: optional i64 assigned_shared_off_heap_memory;
+527: optional double requested_regular_on_heap_memory;
+528: optional double requested_shared_on_heap_memory;
+529: optional double requested_regular_off_heap_memory;
+530: optional double requested_shared_off_heap_memory;
+531: optional double assigned_regular_on_heap_memory;
+532: optional double assigned_shared_on_heap_memory;
+533: optional double assigned_regular_off_heap_memory;
+534: optional double assigned_shared_off_heap_memory;
 }
 
 struct ExecutorAggregateStats {
@@ -553,10 +553,8 @@ struct LocalAssignment {
   1: required string topology_id;
   2: required list<ExecutorInfo> executors;
   3: optional WorkerResources resources;
-  //True if this worker has off heap memory shared with other workers
-  4: optional bool has_node_shared_memory = false;
   //The total amount of memory shared between workers on this node and topology
-  5: optional double total_node_shared;
+  4: optional double total_node_shared;
 }
 
 struct LSSupervisorId {
@@ -635,14 +633,14 @@ struct OwnerResourceSummary {
   18: optional i64 assigned_off_heap_memory;
   19: optional i64 assigned_ras_total_memory;
   20: optional i32 assigned_ras_cpu;
-  21: optional i64 requested_regular_on_heap_memory;
-  22: optional i64 requested_shared_on_heap_memory;
-  23: optional i64 requested_regular_off_heap_memory;
-  24: optional i64 requested_shared_off_heap_memory;
-  25: optional i64 assigned_regular_on_heap_memory;
-  26: optional i64 assigned_shared_on_heap_memory;
-  27: optional i64 assigned_regular_off_heap_memory;
-  28: optional i64 assigned_shared_off_heap_memory;
+  21: optional double requested_regular_on_heap_memory;
+  22: optional double requested_shared_on_heap_memory;
+  23: optional double requested_regular_off_heap_memory;
+  24: optional double requested_shared_off_heap_memory;
+  25: optional double assigned_regular_on_heap_memory;
+  26: optional double assigned_shared_on_heap_memory;
+  27: optional double assigned_regular_off_heap_memory;
+  28: optional double assigned_shared_off_heap_memory;
 }
 
 service Nimbus {
