@@ -815,8 +815,7 @@
                   .getScheduledResources
                   (#(into {} (for [[^WorkerSlot slot resources]  %]
                               {[(.getNodeId slot) (.getPort slot)]
-                               [(.get_mem_on_heap resources) (.get_mem_off_heap resources) (.get_cpu resources)]
-                               })))))
+                               [(.get_mem_on_heap resources) (.get_mem_off_heap resources) (.get_cpu resources)]})))))
            new-scheduler-assignments))
 
 (defn compute-new-topology->executor->node+port [new-scheduler-assignments existing-assignments]

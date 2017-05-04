@@ -17,6 +17,7 @@
  */
 package backtype.storm.scheduler;
 
+import java.util.Collection;
 import java.util.Map;
 
 import backtype.storm.generated.Assignment;
@@ -38,9 +39,8 @@ public class TopologyResources {
     private double assignedNonSharedMemOnHeap;
     private double assignedNonSharedMemOffHeap;
     private double assignedCpu;
-    
-    
-    public TopologyResources(TopologyDetails td, SchedulerAssignment assignment) {
+
+    private TopologyResources(TopologyDetails td, Collection<WorkerResources> workers, Map<String, Double> sharedOffHeap) {
         requestedMemOnHeap = td.getTotalRequestedMemOnHeap();
         requestedMemOffHeap = td.getTotalRequestedMemOffHeap();
         requestedSharedMemOnHeap = td.getRequestedSharedOnHeap();
@@ -56,89 +56,83 @@ public class TopologyResources {
         assignedNonSharedMemOffHeap = 0.0;
         assignedCpu = 0.0;
 
+        if (workers != null) {
+            for (WorkerResources resources : workers) {
+                assignedMemOnHeap += resources.get_mem_on_heap();
+                assignedMemOffHeap += resources.get_mem_off_heap();
+                assignedCpu += resources.get_cpu();
+                assignedNonSharedMemOnHeap += resources.get_mem_on_heap();
+                assignedNonSharedMemOffHeap += resources.get_mem_off_heap();
+
+                if (resources.is_set_mem_on_heap()) {
+                    assignedNonSharedMemOnHeap -= resources.get_shared_mem_on_heap();
+                    assignedSharedMemOnHeap += resources.get_shared_mem_on_heap();
+                }
+
+                if (resources.is_set_shared_mem_off_heap()) {
+                    assignedSharedMemOffHeap += resources.get_shared_mem_off_heap();
+                    assignedNonSharedMemOffHeap -= resources.get_shared_mem_off_heap();
+                }
+            }
+        }
+
+        if (sharedOffHeap != null) {
+            double sharedOff = sharedOffHeap.values().stream().reduce(0.0, (a, b) -> a + b);
+            assignedSharedMemOffHeap += sharedOff;
+            assignedMemOffHeap += sharedOff;
+        }
+    }
+    
+    private static Collection<WorkerResources> getWorkerResources(SchedulerAssignment assignment) {
+        Collection<WorkerResources> ret = null;
         if (assignment != null) {
             Map<WorkerSlot, WorkerResources> allResources = assignment.getScheduledResources();
             if (allResources != null) {
-                for (WorkerResources resources : allResources.values()) {
-                    assignedMemOnHeap += resources.get_mem_on_heap();
-                    assignedMemOffHeap += resources.get_mem_off_heap();
-                    assignedCpu += resources.get_cpu();
-                    assignedNonSharedMemOnHeap += resources.get_mem_on_heap();
-                    assignedNonSharedMemOffHeap += resources.get_mem_off_heap();
-                    
-                    if (resources.is_set_mem_on_heap()) {
-                        assignedNonSharedMemOnHeap -= resources.get_shared_mem_on_heap();
-                        assignedSharedMemOnHeap += resources.get_shared_mem_on_heap();
-                    }
-                    
-                    if (resources.is_set_shared_mem_off_heap()) {
-                        assignedSharedMemOffHeap += resources.get_shared_mem_off_heap();
-                        assignedNonSharedMemOffHeap -= resources.get_shared_mem_off_heap();
-                    }
-                }
-            }
-            Map<String, Double> sharedOffHeap = assignment.getTotalSharedOffHeapMemory();
-            if (sharedOffHeap != null) {
-                double sharedOff = sharedOffHeap.values().stream().reduce(0.0, (a, b) -> a + b);
-                assignedSharedMemOffHeap += sharedOff;
-                assignedMemOffHeap += sharedOff;
+                ret = allResources.values();
             }
         }
+        return ret;
     }
     
-    public TopologyResources(TopologyDetails td, Assignment assignment) {
-        //TODO in the future we need to have a good way to covert back and forth between the two assignments
-        // and get rid of one of these constructors.
-        requestedMemOnHeap = td.getTotalRequestedMemOnHeap();
-        requestedMemOffHeap = td.getTotalRequestedMemOffHeap();
-        requestedSharedMemOnHeap = td.getRequestedSharedOnHeap();
-        requestedSharedMemOffHeap = td.getRequestedSharedOffHeap();
-        requestedNonSharedMemOnHeap = td.getRequestedNonSharedOnHeap();
-        requestedNonSharedMemOffHeap = td.getRequestedNonSharedOffHeap();
-        requestedCpu = td.getTotalRequestedCpu();
-        assignedMemOnHeap = 0.0;
-        assignedMemOffHeap = 0.0;
-        assignedSharedMemOnHeap = 0.0;
-        assignedSharedMemOffHeap = 0.0;
-        assignedNonSharedMemOnHeap = 0.0;
-        assignedNonSharedMemOffHeap = 0.0;
-        assignedCpu = 0.0;
+    private static Map<String, Double> getSharedOffHeap(SchedulerAssignment assignment) {
+        Map<String, Double> ret = null;
+        if (assignment != null) {
+            ret = assignment.getTotalSharedOffHeapMemory();
+        }
+        return ret;
+    }
+    
+    public TopologyResources(TopologyDetails td, SchedulerAssignment assignment) {
+        this(td, getWorkerResources(assignment), getSharedOffHeap(assignment));
+    }
 
+    private static Collection<WorkerResources> getWorkerResources(Assignment assignment) {
+        Collection<WorkerResources> ret = null;
         if (assignment != null) {
             Map<NodeInfo, WorkerResources> allResources = assignment.get_worker_resources();
             if (allResources != null) {
-                for (WorkerResources resources : allResources.values()) {
-                    assignedMemOnHeap += resources.get_mem_on_heap();
-                    assignedMemOffHeap += resources.get_mem_off_heap();
-                    assignedCpu += resources.get_cpu();
-                    assignedNonSharedMemOnHeap += resources.get_mem_on_heap();
-                    assignedNonSharedMemOffHeap += resources.get_mem_off_heap();
-                    
-                    if (resources.is_set_mem_on_heap()) {
-                        assignedNonSharedMemOnHeap -= resources.get_shared_mem_on_heap();
-                        assignedSharedMemOnHeap += resources.get_shared_mem_on_heap();
-                    }
-                    
-                    if (resources.is_set_shared_mem_off_heap()) {
-                        assignedSharedMemOffHeap += resources.get_shared_mem_off_heap();
-                        assignedNonSharedMemOffHeap -= resources.get_shared_mem_off_heap();
-                    }
-                }
-            }
-            Map<String, Double> sharedOffHeap = assignment.get_total_shared_off_heap();
-            if (sharedOffHeap != null) {
-                double sharedOff = sharedOffHeap.values().stream().reduce(0.0, (a, b) -> a + b);
-                assignedSharedMemOffHeap += sharedOff;
-                assignedMemOffHeap += sharedOff;
+                ret = allResources.values();
             }
         }
+        return ret;
     }
     
+    private static Map<String, Double> getSharedOffHeap(Assignment assignment) {
+        Map<String, Double> ret = null;
+        if (assignment != null) {
+            ret = assignment.get_total_shared_off_heap();
+        }
+        return ret;
+    }
+    
+    public TopologyResources(TopologyDetails td, Assignment assignment) {
+        this(td, getWorkerResources(assignment), getSharedOffHeap(assignment));
+    }
+
     public TopologyResources() {
         this(0,0,0,0,0,0,0,0,0,0,0,0,0,0);
     }
-    
-    //TODO 14 args is way too many, we need a builder or something
+
     protected TopologyResources(double requestedMemOnHeap, double requestedMemOffHeap, 
             double requestedSharedMemOnHeap, double requestedSharedMemOffHeap,
             double requestedNonSharedMemOnHeap, double requestedNonSharedMemOffHeap,

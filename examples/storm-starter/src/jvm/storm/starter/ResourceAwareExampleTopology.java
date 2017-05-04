@@ -23,7 +23,6 @@ import backtype.storm.StormSubmitter;
 import backtype.storm.task.OutputCollector;
 import backtype.storm.task.TopologyContext;
 import backtype.storm.testing.TestWordSpout;
-import backtype.storm.topology.BoltDeclarer;
 import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.topology.SharedOffHeapWithinNode;
 import backtype.storm.topology.SharedOnHeap;
@@ -54,7 +53,7 @@ public class
         
         protected static void addToCache(String key, String value) {
             myCrummyCache.putIfAbsent(key, value);
-            int numToRemove = CACHE_SIZE - myCrummyCache.size();
+            int numToRemove = myCrummyCache.size() - CACHE_SIZE;
             if (numToRemove > 0) {
                 //Remove something randomly...
                 Iterator<Entry<String, String>> it = myCrummyCache.entrySet().iterator();

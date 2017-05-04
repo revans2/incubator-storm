@@ -112,30 +112,30 @@ public class SchedulerAssignmentImpl implements SchedulerAssignment {
      */
     public void unassignBySlot(WorkerSlot slot) {
         List<ExecutorDetails> executors = new ArrayList<>();
-        for (ExecutorDetails executor : this.executorToSlot.keySet()) {
-            WorkerSlot ws = this.executorToSlot.get(executor);
+        for (ExecutorDetails executor : executorToSlot.keySet()) {
+            WorkerSlot ws = executorToSlot.get(executor);
             if (ws.equals(slot)) {
                 executors.add(executor);
             }
         }
-        
+
         // remove
         for (ExecutorDetails executor : executors) {
-            this.executorToSlot.remove(executor);
+            executorToSlot.remove(executor);
         }
-        
+
         resources.remove(slot);
-        
-        String wsHost = slot.getNodeId();
+
+        String node = slot.getNodeId();
         boolean isFound = false;
         for (WorkerSlot ws: executorToSlot.values()) {
-            if (wsHost.equals(ws.getId())) {
+            if (node.equals(ws.getNodeId())) {
                 isFound = true;
                 break;
             }
         }
         if (!isFound) {
-            totalSharedOffHeap.remove(wsHost);
+            totalSharedOffHeap.remove(node);
         }
     }
 

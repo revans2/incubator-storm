@@ -58,7 +58,7 @@ The entire memory requested for this topology is 16.5 GB. That is from 10 spouts
 
 #### Shared Memory
 
-In some cases you may have memory that is shared between components. It may be a cahce shared within a worker between instances of a bolt, or it might be static data that is memory mapped into a bolt and is shared accross a worker.  In any case you can specify your share memory request by
+In some cases you may have memory that is shared between components. It may be a cache shared within a worker between instances of a bolt, or it might be static data that is memory mapped into a bolt and is shared accross a worker.  In any case you can specify your share memory request by
 creating one of `SharedOffHeapWithinNode`, `SharedOffHeapWithinWorker`, or `SharedOnHeap` and adding it to bolts and spouts that use that shared memory.
 
 Example of Usage:

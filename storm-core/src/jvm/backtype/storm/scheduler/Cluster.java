@@ -19,6 +19,7 @@ package backtype.storm.scheduler;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -114,7 +115,22 @@ public class Cluster {
     private final Set<String> blackListedHosts = new HashSet<String>();
     private final INimbus inimbus;
 
-    public Cluster(INimbus nimbus, Map<String, SupervisorDetails> supervisors, Map<String, SchedulerAssignmentImpl> assignments, Topologies topologies, Map<String, Object> storm_conf) {
+    public Cluster(INimbus nimbus, Map<String, SupervisorDetails> supervisors, 
+            Map<String, SchedulerAssignmentImpl> assignments, Topologies topologies, 
+            Map<String, Object> conf) {
+        this(nimbus, supervisors, assignments, topologies, conf, null, null, null);
+    }
+    
+    /**
+     * Copy constructor
+     */
+    public Cluster(Cluster src) {
+        this(src.inimbus, src.supervisors, src.assignments, src.topologies, new HashMap<>(src.conf), src.status, src.blackListedHosts, src.networkTopography);
+    }
+    
+    private Cluster(INimbus nimbus, Map<String, SupervisorDetails> supervisors,
+            Map<String, SchedulerAssignmentImpl> assignments, Topologies topologies, Map<String, Object> conf,
+            Map<String, String> status, Set<String> blackListedHosts, Map<String, List<String>> networkTopography) {
         this.inimbus = nimbus;
         this.supervisors.putAll(supervisors);
 
@@ -129,7 +145,7 @@ public class Cluster {
             }
             ids.add(nodeId);
         }
-        this.conf = storm_conf;
+        this.conf = conf;
         this.topologies = topologies;
 
         ArrayList<String> supervisorHostNames = new ArrayList<String>();
@@ -137,35 +153,37 @@ public class Cluster {
             supervisorHostNames.add(s.getHost());
         }
 
-        //Initialize the network topography
-        String clazz = (String) conf.get(Config.STORM_NETWORK_TOPOGRAPHY_PLUGIN);
-        if (clazz != null && !clazz.isEmpty()) {
-            DNSToSwitchMapping topographyMapper = (DNSToSwitchMapping) Utils.newInstance(clazz);
+        if (networkTopography == null || networkTopography.isEmpty()) {
+            //Initialize the network topography
+            String clazz = (String) conf.get(Config.STORM_NETWORK_TOPOGRAPHY_PLUGIN);
+            if (clazz != null && !clazz.isEmpty()) {
+                DNSToSwitchMapping topographyMapper = (DNSToSwitchMapping) Utils.newInstance(clazz);
 
-            Map<String, String> resolvedSuperVisors = topographyMapper.resolve(supervisorHostNames);
-            for (Map.Entry<String, String> entry : resolvedSuperVisors.entrySet()) {
-                String hostName = entry.getKey();
-                String rack = entry.getValue();
-                List<String> nodesForRack = networkTopography.get(rack);
-                if (nodesForRack == null) {
-                    nodesForRack = new ArrayList<String>();
-                    networkTopography.put(rack, nodesForRack);
+                Map<String, String> resolvedSuperVisors = topographyMapper.resolve(supervisorHostNames);
+                for (Map.Entry<String, String> entry : resolvedSuperVisors.entrySet()) {
+                    String hostName = entry.getKey();
+                    String rack = entry.getValue();
+                    List<String> nodesForRack = this.networkTopography.get(rack);
+                    if (nodesForRack == null) {
+                        nodesForRack = new ArrayList<String>();
+                        this.networkTopography.put(rack, nodesForRack);
+                    }
+                    nodesForRack.add(hostName);
                 }
-                nodesForRack.add(hostName);
             }
+        } else {
+            this.networkTopography.putAll(networkTopography);
+        }
+        
+        if (status != null) {
+            this.status.putAll(status);
+        }
+        
+        if (blackListedHosts != null) {
+            this.blackListedHosts.addAll(blackListedHosts);
         }
         
         setAssignments(assignments, true);
-    }
-
-    /**
-     * Copy constructor
-     */
-    public Cluster(Cluster src) {
-        this(src.inimbus, src.supervisors, src.assignments, src.topologies, new HashMap<>(src.conf));
-        status.putAll(src.status);
-        blackListedHosts.addAll(src.blackListedHosts);
-        setNetworkTopography(src.networkTopography);
     }
 
     public void setBlacklistedHosts(Set<String> hosts) {
@@ -290,7 +308,9 @@ public class Cluster {
     }
 
     public Set<Integer> getAssignablePorts(SupervisorDetails supervisor) {
-        if(isBlackListed(supervisor.id)) return new HashSet<>();
+        if (isBlackListed(supervisor.id)) {
+            return Collections.emptySet();
+        }
         return supervisor.allPorts;
     }
 
@@ -550,7 +570,7 @@ public class Cluster {
      * @param slots
      */
     public void freeSlots(Collection<WorkerSlot> slots) {
-        if(slots!=null) {
+        if (slots != null) {
             for (WorkerSlot slot : slots) {
                 freeSlot(slot);
             }
@@ -586,21 +606,18 @@ public class Cluster {
      * get slots used by a topology
      */
     public Collection<WorkerSlot> getUsedSlotsByTopologyId(String topologyId) {
-        if (!assignments.containsKey(topologyId)) {
-            return null;
+        SchedulerAssignmentImpl assignment = assignments.get(topologyId);
+        if (assignment == null) {
+            return Collections.emptySet();
         }
-        return assignments.get(topologyId).getSlots();
+        return assignment.getSlots();
     }
 
     /**
      * Get a specific supervisor with the <code>nodeId</code>
      */
     public SupervisorDetails getSupervisorById(String nodeId) {
-        if (supervisors.containsKey(nodeId)) {
-            return supervisors.get(nodeId);
-        }
-
-        return null;
+        return supervisors.get(nodeId);
     }
 
     public Collection<WorkerSlot> getUsedSlots() {

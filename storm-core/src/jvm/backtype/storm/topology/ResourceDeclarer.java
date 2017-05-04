@@ -49,7 +49,7 @@ public interface ResourceDeclarer <T extends ResourceDeclarer> {
     /**
      * Add in request for shared memory that this component will use.
      * See {@link SharedOnHeap}, {@link SharedOffHeapWithinNode}, and 
-     * {@link SharedOSharedOffHeapWithinWorker} for convenient ways
+     * {@link SharedOffHeapWithinWorker} for convenient ways
      * to create shared memory requests.
      * @param request the shared memory request for this component
      * @return this for chaining
