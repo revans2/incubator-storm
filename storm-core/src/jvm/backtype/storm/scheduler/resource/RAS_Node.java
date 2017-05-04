@@ -140,7 +140,6 @@ public class RAS_Node {
             ret.addAll(workerIdsToWorkers(assigned.keySet()));
         }
         ret.addAll(getFreeSlots());
-        //TODO we should make RAS Node (or cluster) enforce this everywhere....
         ret.retainAll(_originallyFreeSlots); //RAS does not let you move things or modify existing assignments
         return ret;
     }
@@ -217,7 +216,6 @@ public class RAS_Node {
      * @param exec is the executor to free
      * @param topo the topology the executor is a part of
      */
-    //TODO make this more efficient
     public void freeSingleExecutor(ExecutorDetails exec, TopologyDetails topo) {
         Map<String, Collection<ExecutorDetails>> usedSlots = _topIdToUsedSlots.get(topo.getId());
         if (usedSlots == null) {
@@ -320,7 +318,6 @@ public class RAS_Node {
         _topIdToUsedSlots.get(td.getId()).get(target.getId()).addAll(executors);
     }
     
-    //TODO it would be great to make this much less resource intensive
     public void assignSingleExecutor(WorkerSlot ws, ExecutorDetails exec, TopologyDetails td) {
         if (!_isAlive) {
             throw new IllegalStateException("Trying to adding to a dead node " + _nodeId);
@@ -380,7 +377,6 @@ public class RAS_Node {
                 + this._slots.values() + " ]}";
     }
 
-    //TODO move this over to the test
     public static int countFreeSlotsAlive(Collection<RAS_Node> nodes) {
         int total = 0;
         for (RAS_Node n : nodes) {
@@ -391,7 +387,6 @@ public class RAS_Node {
         return total;
     }
 
-    //TODO move this over to the test
     public static int countTotalSlotsAlive(Collection<RAS_Node> nodes) {
         int total = 0;
         for (RAS_Node n : nodes) {

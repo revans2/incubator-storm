@@ -2,20 +2,23 @@ package backtype.storm.scheduler.resource.strategies.scheduling;
 
 import backtype.storm.Config;
 import backtype.storm.generated.StormTopology;
+import backtype.storm.generated.WorkerResources;
 import backtype.storm.networktopography.DNSToSwitchMapping;
 import backtype.storm.scheduler.Cluster;
 import backtype.storm.scheduler.Cluster.SupervisorResources;
 import backtype.storm.scheduler.ExecutorDetails;
 import backtype.storm.scheduler.INimbus;
+import backtype.storm.scheduler.SchedulerAssignment;
 import backtype.storm.scheduler.SchedulerAssignmentImpl;
 import backtype.storm.scheduler.SupervisorDetails;
 import backtype.storm.scheduler.Topologies;
 import backtype.storm.scheduler.TopologyDetails;
 import backtype.storm.scheduler.WorkerSlot;
 import backtype.storm.scheduler.resource.RAS_Node;
-import backtype.storm.scheduler.resource.RAS_Nodes;
 import backtype.storm.scheduler.resource.ResourceAwareScheduler;
 import backtype.storm.scheduler.resource.SchedulingResult;
+import backtype.storm.scheduler.resource.strategies.eviction.DefaultEvictionStrategy;
+import backtype.storm.scheduler.resource.strategies.priority.DefaultSchedulingPriorityStrategy;
 import backtype.storm.scheduler.resource.strategies.scheduling.DefaultResourceAwareStrategy.ObjectResources;
 import backtype.storm.scheduler.resource.SchedulingState;
 import backtype.storm.scheduler.resource.TestUtilsForResourceAwareScheduler;
@@ -44,7 +47,6 @@ import java.util.Map.Entry;
 import java.util.TreeSet;
 
 public class TestDefaultResourceAwareStrategy {
-
     private static final Logger LOG = LoggerFactory.getLogger(TestDefaultResourceAwareStrategy.class);
 
     private static int currentTime = 1450418597;
@@ -54,17 +56,24 @@ public class TestDefaultResourceAwareStrategy {
      */
     @Test
     public void testDefaultResourceAwareStrategySharedMemory() {
-        int spoutParallelism = 5;
-        int boltParallelism = 5;
+        int spoutParallelism = 2;
+        int boltParallelism = 2;
+        int numBolts = 3;
+        double cpuPercent = 10;
+        double memoryOnHeap = 10;
+        double memoryOffHeap = 10;
+        double sharedOnHeap = 500;
+        double sharedOffHeapNode = 700;
+        double sharedOffHeapWorker = 500;
         TopologyBuilder builder = new TopologyBuilder();
         builder.setSpout("spout", new TestUtilsForResourceAwareScheduler.TestSpout(),
                 spoutParallelism);
         builder.setBolt("bolt-1", new TestUtilsForResourceAwareScheduler.TestBolt(),
-                boltParallelism).addSharedMemory(new SharedOffHeapWithinWorker(500, "bolt-1 shared off heap worker")).shuffleGrouping("spout");
+                boltParallelism).addSharedMemory(new SharedOffHeapWithinWorker(sharedOffHeapWorker, "bolt-1 shared off heap worker")).shuffleGrouping("spout");
         builder.setBolt("bolt-2", new TestUtilsForResourceAwareScheduler.TestBolt(),
-                boltParallelism).addSharedMemory(new SharedOffHeapWithinNode(2000, "bolt-2 shared node")).shuffleGrouping("bolt-1");
+                boltParallelism).addSharedMemory(new SharedOffHeapWithinNode(sharedOffHeapNode, "bolt-2 shared node")).shuffleGrouping("bolt-1");
         builder.setBolt("bolt-3", new TestUtilsForResourceAwareScheduler.TestBolt(),
-                boltParallelism).addSharedMemory(new SharedOnHeap(500, "bolt-3 shared worker")).shuffleGrouping("bolt-2");
+                boltParallelism).addSharedMemory(new SharedOnHeap(sharedOnHeap, "bolt-3 shared worker")).shuffleGrouping("bolt-2");
 
         StormTopology stormToplogy = builder.createTopology();
 
@@ -72,15 +81,15 @@ public class TestDefaultResourceAwareStrategy {
         INimbus iNimbus = new TestUtilsForResourceAwareScheduler.INimbusTest();
         Map<String, Number> resourceMap = new HashMap<String, Number>();
         resourceMap.put(Config.SUPERVISOR_CPU_CAPACITY, 500.0);
-        resourceMap.put(Config.SUPERVISOR_MEMORY_CAPACITY_MB, 5000.0);
+        resourceMap.put(Config.SUPERVISOR_MEMORY_CAPACITY_MB, 2000.0);
         Map<String, SupervisorDetails> supMap = TestUtilsForResourceAwareScheduler.genSupervisors(4, 4, resourceMap);
         conf.putAll(Utils.readDefaultConfig());
-        conf.put(Config.RESOURCE_AWARE_SCHEDULER_EVICTION_STRATEGY, backtype.storm.scheduler.resource.strategies.eviction.DefaultEvictionStrategy.class.getName());
-        conf.put(Config.RESOURCE_AWARE_SCHEDULER_PRIORITY_STRATEGY, backtype.storm.scheduler.resource.strategies.priority.DefaultSchedulingPriorityStrategy.class.getName());
-        conf.put(Config.TOPOLOGY_SCHEDULER_STRATEGY, backtype.storm.scheduler.resource.strategies.scheduling.DefaultResourceAwareStrategy.class.getName());
-        conf.put(Config.TOPOLOGY_COMPONENT_CPU_PCORE_PERCENT, 50.0);
-        conf.put(Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB, 250);
-        conf.put(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB, 250);
+        conf.put(Config.RESOURCE_AWARE_SCHEDULER_EVICTION_STRATEGY, DefaultEvictionStrategy.class.getName());
+        conf.put(Config.RESOURCE_AWARE_SCHEDULER_PRIORITY_STRATEGY, DefaultSchedulingPriorityStrategy.class.getName());
+        conf.put(Config.TOPOLOGY_SCHEDULER_STRATEGY, DefaultResourceAwareStrategy.class.getName());
+        conf.put(Config.TOPOLOGY_COMPONENT_CPU_PCORE_PERCENT, cpuPercent);
+        conf.put(Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB, memoryOffHeap);
+        conf.put(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB, memoryOnHeap);
         conf.put(Config.TOPOLOGY_PRIORITY, 0);
         conf.put(Config.TOPOLOGY_NAME, "testTopology");
         conf.put(Config.TOPOLOGY_WORKER_MAX_HEAP_SIZE_MB, 2000);
@@ -98,16 +107,6 @@ public class TestDefaultResourceAwareStrategy {
 
         rs.prepare(conf);
         rs.schedule(topologies, cluster);
-
-        Map<String, List<String>> nodeToComps = new HashMap<String, List<String>>();
-        for (Map.Entry<ExecutorDetails, WorkerSlot> entry : cluster.getAssignments().get("testTopology-id").getExecutorToSlot().entrySet()) {
-            WorkerSlot ws = entry.getValue();
-            ExecutorDetails exec = entry.getKey();
-            if (!nodeToComps.containsKey(ws.getNodeId())) {
-                nodeToComps.put(ws.getNodeId(), new LinkedList<String>());
-            }
-            nodeToComps.get(ws.getNodeId()).add(topo.getExecutorToComponent().get(exec));
-        }
         
         for (Entry<String, SupervisorResources> entry: cluster.getSupervisorsResourcesMap().entrySet()) {
             String supervisorId = entry.getKey();
@@ -116,7 +115,25 @@ public class TestDefaultResourceAwareStrategy {
             assertTrue(supervisorId, resources.getTotalMem() >= resources.getUsedMem());
         }
 
-        //TODO we need to check that the shared memory regions make since with the scheduling
+        // Everything should fit in a single slot
+        int totalNumberOfTasks = (spoutParallelism + (boltParallelism * numBolts));
+        double totalExpectedCPU = totalNumberOfTasks * cpuPercent;
+        double totalExpectedOnHeap = (totalNumberOfTasks * memoryOnHeap) + sharedOnHeap;
+        double totalExpectedWorkerOffHeap = (totalNumberOfTasks * memoryOffHeap) + sharedOffHeapWorker;
+        
+        SchedulerAssignment assignment = cluster.getAssignmentById(topo.getId());
+        assertEquals(1, assignment.getSlots().size());
+        WorkerSlot ws = assignment.getSlots().iterator().next();
+        String nodeId = ws.getNodeId();
+        assertEquals(1, assignment.getTotalSharedOffHeapMemory().size());
+        assertEquals(sharedOffHeapNode, assignment.getTotalSharedOffHeapMemory().get(nodeId), 0.01);
+        assertEquals(1, assignment.getScheduledResources().size());
+        WorkerResources resources = assignment.getScheduledResources().get(ws);
+        assertEquals(totalExpectedCPU, resources.get_cpu(), 0.01);
+        assertEquals(totalExpectedOnHeap, resources.get_mem_on_heap(), 0.01);
+        assertEquals(totalExpectedWorkerOffHeap, resources.get_mem_off_heap(), 0.01);
+        assertEquals(sharedOnHeap, resources.get_shared_mem_on_heap(), 0.01);
+        assertEquals(sharedOffHeapWorker, resources.get_shared_mem_off_heap(), 0.01);
     }
     
     
