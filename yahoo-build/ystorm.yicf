@@ -18,7 +18,7 @@ YINST bug-product jira-ystorm
 YINST requires pkg python27              2.7.10.41   2.7.9999.9999
 YINST requires pkg yjava_jdk             1.7.0_11.64 1.8.999999
 YINST requires pkg bouncer_auth_java     0.17.9      *
-YINST requires pkg yjava_servlet_filters 0.22.495    *
+YINST requires pkg yjava_servlet_filters 0.78.28    *
 YINST requires pkg yjava_yca             0.23.218    *
 YINST requires pkg bycookieauthkey       1.0.4.1     *
 YINST requires pkg zts_java_client       1.5.35      *
@@ -39,7 +39,8 @@ YINST set daemon_max_rolled_logs          9
 
 # Bouncer UI Filter Configuration
 #YINST set ui_filter                yjava.servlet.filter.BouncerFilter
-YINST set ui_filter_params bouncer_cookie_timeout,480,bouncer_url,https://by.bouncer.login.yahoo.com/login/
+YINST set ui_filter_params bouncer_cookie_timeout,480,bouncer_url,https://by.bouncer.login.yahoo.com/login/,bouncer.https.redirect.port,4443
+YINST set logviewer_filter_params bouncer_cookie_timeout,480,bouncer_url,https://by.bouncer.login.yahoo.com/login/,bouncer.https.redirect.port,4443
 
 # DRPC HTTP Filter Configuration
 #YINST set drpc_http_filter yjava.servlet.filter.YCAFilter
