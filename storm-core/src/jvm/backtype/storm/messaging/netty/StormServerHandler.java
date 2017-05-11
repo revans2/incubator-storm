@@ -26,10 +26,16 @@ import org.jboss.netty.channel.MessageEvent;
 import org.jboss.netty.channel.SimpleChannelUpstreamHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class StormServerHandler extends SimpleChannelUpstreamHandler  {
     private static final Logger LOG = LoggerFactory.getLogger(StormServerHandler.class);
+    private static final Set<Class> allowedExceptions = new HashSet<>(Arrays.asList(new Class[] {IOException.class}));
     IServer server;
     private AtomicInteger failure_count; 
     private Channel channel;
@@ -73,11 +79,10 @@ public class StormServerHandler extends SimpleChannelUpstreamHandler  {
             // Doing nothing (probably due to an oom issue) and hoping Utils.handleUncaughtException will handle it
         }
         try {
-            Utils.handleUncaughtException(e.getCause());
-        } catch (Throwable throwable) {
-            LOG.error("Exception thrown while handling uncaught exception " + throwable.getCause());
+            Utils.handleUncaughtException(e.getCause(), allowedExceptions);
+        } catch (Error error) {
+            LOG.info("Received error in netty thread.. terminating server...");
+            Runtime.getRuntime().exit(1);
         }
-        // LOG.info("Received error in netty thread.. terminating server...");
-        // Runtime.getRuntime().exit(1);
     }
 }

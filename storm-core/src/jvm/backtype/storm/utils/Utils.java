@@ -162,6 +162,7 @@ public class Utils {
     public static final String DEFAULT_BLOB_VERSION_SUFFIX = ".version";
     public static final String CURRENT_BLOB_SUFFIX_ID = "current";
     public static final String DEFAULT_CURRENT_BLOB_SUFFIX = "." + CURRENT_BLOB_SUFFIX_ID;
+    private static final Set<Class> defaultAllowedExceptions = new HashSet<>();
     private static ThreadLocal<TSerializer> threadSer = new ThreadLocal<TSerializer>();
     private static ThreadLocal<TDeserializer> threadDes = new ThreadLocal<TDeserializer>();
 
@@ -1356,7 +1357,11 @@ public class Utils {
     }
 
     public static void handleUncaughtException(Throwable t) {
-        if (t != null && t instanceof Error) {
+       handleUncaughtException(t, defaultAllowedExceptions);
+    }
+
+    public static void handleUncaughtException(Throwable t, Set<Class> allowedExceptions) {
+        if (t != null) {
             if (t instanceof OutOfMemoryError) {
                 try {
                     System.err.println("Halting due to Out Of Memory Error..." + Thread.currentThread().getName());
@@ -1364,10 +1369,14 @@ public class Utils {
                     //Again we don't want to exit because of logging issues.
                 }
                 Runtime.getRuntime().halt(-1);
-            } else {
-                //Running in daemon mode, we would pass Error to calling thread.
-                throw (Error) t;
             }
+
+            if(allowedExceptions.contains(t.getClass())) {
+                LOG.info("Swallowing {} {}", t.getClass(), t);
+                return;
+            }
+            //Running in daemon mode, we would pass Error to calling thread.
+            throw new Error(t);
         }
     }
 
