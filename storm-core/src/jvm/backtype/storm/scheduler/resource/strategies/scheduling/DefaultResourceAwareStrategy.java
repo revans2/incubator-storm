@@ -20,7 +20,6 @@ package backtype.storm.scheduler.resource.strategies.scheduling;
 
 import backtype.storm.scheduler.Cluster;
 import backtype.storm.scheduler.ExecutorDetails;
-import backtype.storm.scheduler.Topologies;
 import backtype.storm.scheduler.TopologyDetails;
 import backtype.storm.scheduler.WorkerSlot;
 import backtype.storm.scheduler.resource.Component;
@@ -50,7 +49,6 @@ import java.util.TreeSet;
 public class DefaultResourceAwareStrategy implements IStrategy {
     private static final Logger LOG = LoggerFactory.getLogger(DefaultResourceAwareStrategy.class);
     private Cluster _cluster;
-    private Topologies _topologies;
     private Map<String, List<String>> _clusterInfo;
     private RAS_Nodes _nodes;
 
@@ -59,7 +57,6 @@ public class DefaultResourceAwareStrategy implements IStrategy {
 
     public void prepare(SchedulingState schedulingState) {
         _cluster = schedulingState.cluster;
-        _topologies = schedulingState.topologies;
         _nodes = schedulingState.nodes;
         _clusterInfo = schedulingState.cluster.getNetworkTopography();
         LOG.debug(this.getClusterInfo());
@@ -87,7 +84,7 @@ public class DefaultResourceAwareStrategy implements IStrategy {
         Collection<ExecutorDetails> executorsNotScheduled = new HashSet<>(unassignedExecutors);
 
         for (ExecutorDetails exec : orderedExecutors) {
-            LOG.debug("\n\nAttempting to schedule: {} of component {}[ REQ {} ]",
+            LOG.debug("Attempting to schedule: {} of component {}[ REQ {} ]",
                     exec, td.getExecutorToComponent().get(exec),
                     td.getTaskResourceReqList(exec));
             scheduleExecutor(exec, td, schedulerAssignmentMap, scheduledTasks);
@@ -128,22 +125,22 @@ public class DefaultResourceAwareStrategy implements IStrategy {
      */
     private void scheduleExecutor(ExecutorDetails exec, TopologyDetails td, Map<WorkerSlot,
             Collection<ExecutorDetails>> schedulerAssignmentMap, Collection<ExecutorDetails> scheduledTasks) {
-        WorkerSlot targetSlot = this.findWorkerForExec(exec, td, schedulerAssignmentMap);
+        WorkerSlot targetSlot = findWorkerForExec(exec, td, schedulerAssignmentMap);
         if (targetSlot != null) {
-            RAS_Node targetNode = this.idToNode(targetSlot.getNodeId());
+            RAS_Node targetNode = idToNode(targetSlot.getNodeId());
             if (!schedulerAssignmentMap.containsKey(targetSlot)) {
                 schedulerAssignmentMap.put(targetSlot, new LinkedList<ExecutorDetails>());
             }
 
             schedulerAssignmentMap.get(targetSlot).add(exec);
-            targetNode.consumeResourcesforTask(exec, td);
+            targetNode.assignSingleExecutor(targetSlot, exec, td);
             scheduledTasks.add(exec);
             LOG.debug("TASK {} assigned to Node: {} avail [ mem: {} cpu: {} ] total [ mem: {} cpu: {} ] on slot: {} on Rack: {}", exec,
                     targetNode.getHostname(), targetNode.getAvailableMemoryResources(),
                     targetNode.getAvailableCpuResources(), targetNode.getTotalMemoryResources(),
                     targetNode.getTotalCpuResources(), targetSlot, nodeToRack(targetNode));
         } else {
-            LOG.debug("Not Enough Resources to schedule Task {}", exec);
+            LOG.warn("Not Enough Resources to schedule Task {}", exec);
         }
     }
 
@@ -165,7 +162,7 @@ public class DefaultResourceAwareStrategy implements IStrategy {
         }
 
         for (ObjectResources rack : _sortedRacks) {
-            ws = this.getBestWorker(exec, td, rack.id, scheduleAssignmentMap);
+            ws = getBestWorker(exec, td, rack.id, scheduleAssignmentMap);
             if (ws != null) {
                 LOG.debug("best rack: {}", rack.id);
                 break;
@@ -191,15 +188,11 @@ public class DefaultResourceAwareStrategy implements IStrategy {
 
         TreeSet<ObjectResources> sortedNodes = _rackIdToSortedNodes.get(rackId);
 
-        double taskMem = td.getTotalMemReqTask(exec);
-        double taskCPU = td.getTotalCpuReqTask(exec);
         for (ObjectResources nodeResources : sortedNodes) {
             RAS_Node n = _nodes.getNodeById(nodeResources.id);
-            if (n.getAvailableCpuResources() >= taskCPU && n.getAvailableMemoryResources() >= taskMem && n.getFreeSlots().size() > 0) {
-                for (WorkerSlot ws : n.getFreeSlots()) {
-                    if (checkWorkerConstraints(exec, ws, td, scheduleAssignmentMap)) {
-                        return ws;
-                    }
+            for (WorkerSlot ws : n.getSlotsAvailbleTo(td)) {
+                if (n.wouldFit(ws, exec, td)) {
+                    return ws;
                 }
             }
         }
@@ -269,7 +262,6 @@ public class DefaultResourceAwareStrategy implements IStrategy {
     private TreeSet<ObjectResources> sortNodes(List<RAS_Node> availNodes, String rackId, final String topoId, final Map<WorkerSlot, Collection<ExecutorDetails>> scheduleAssignmentMap) {
         AllResources allResources = new AllResources("RACK");
         List<ObjectResources> nodes = allResources.objectResources;
-        final Map<String, String> nodeIdToRackId = new HashMap<String, String>();
 
         for (RAS_Node ras_node : availNodes) {
             String nodeId = ras_node.getId();
@@ -277,10 +269,8 @@ public class DefaultResourceAwareStrategy implements IStrategy {
 
             double availMem = ras_node.getAvailableMemoryResources();
             double availCpu = ras_node.getAvailableCpuResources();
-            int freeSlots = ras_node.totalSlotsFree();
             double totalMem = ras_node.getTotalMemoryResources();
             double totalCpu = ras_node.getTotalCpuResources();
-            int totalSlots = ras_node.totalSlots();
 
             node.availMem = availMem;
             node.totalMem = totalMem;
@@ -304,7 +294,7 @@ public class DefaultResourceAwareStrategy implements IStrategy {
             public int getNumExistingSchedule(String objectId) {
 
                 //Get execs already assigned in rack
-                Collection<ExecutorDetails> execs = new LinkedList<ExecutorDetails>();
+                Collection<ExecutorDetails> execs = new LinkedList<>();
                 if (_cluster.getAssignmentById(topoId) != null) {
                     for (Map.Entry<ExecutorDetails, WorkerSlot> entry : _cluster.getAssignmentById(topoId).getExecutorToSlot().entrySet()) {
                         WorkerSlot workerSlot = entry.getValue();
@@ -681,24 +671,6 @@ public class DefaultResourceAwareStrategy implements IStrategy {
             }
         }
         return totalMem;
-    }
-
-    /**
-     * Checks whether we can schedule an Executor exec on the worker slot ws
-     * Only considers memory currently.  May include CPU in the future
-     *
-     * @param exec                  the executor to check whether it can be asssigned to worker ws
-     * @param ws                    the worker to check whether executor exec can be assigned to it
-     * @param td                    the topology that the exec is from
-     * @param scheduleAssignmentMap the schedulings calculated so far
-     * @return a boolean: True denoting the exec can be scheduled on ws and false if it cannot
-     */
-    private boolean checkWorkerConstraints(ExecutorDetails exec, WorkerSlot ws, TopologyDetails td, Map<WorkerSlot, Collection<ExecutorDetails>> scheduleAssignmentMap) {
-        boolean retVal = false;
-        if (this.getWorkerScheduledMemoryAvailable(ws, td, scheduleAssignmentMap) >= td.getTotalMemReqTask(exec)) {
-            retVal = true;
-        }
-        return retVal;
     }
 
     /**

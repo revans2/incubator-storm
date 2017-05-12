@@ -126,16 +126,11 @@ public class Node {
     _freeSlots.add(ws);
   }
  
-  boolean assignInternal(WorkerSlot ws, String topId, boolean dontThrow) {
+  boolean assignInternal(WorkerSlot ws, String topId) {
     validateSlot(ws);
     if (!_freeSlots.remove(ws)) {
       for (Entry<String, Set<WorkerSlot>> topologySetEntry : _topIdToUsedSlots.entrySet()) {
         if (topologySetEntry.getValue().contains(ws)) {
-          if (dontThrow) {
-            LOG.warn("Worker slot [" + ws + "] can't be assigned to " + topId +
-                    ". Its already assigned to " + topologySetEntry.getKey() + ".");
-            return true;
-          }
           throw new IllegalStateException("Worker slot [" + ws + "] can't be assigned to "
                   + topId + ". Its already assigned to " + topologySetEntry.getKey() + ".");
         }
@@ -243,7 +238,7 @@ public class Node {
     } else {
       WorkerSlot slot = _freeSlots.iterator().next();
       cluster.assign(slot, topId, executors);
-      assignInternal(slot, topId, false);
+      assignInternal(slot, topId);
     }
   }
   
@@ -323,11 +318,7 @@ public class Node {
           //The supervisor on the node down so add an orphaned slot to hold the unsupervised worker 
           node.addOrphanedSlot(ws);
         }
-        if (node.assignInternal(ws, topId, true)) {
-          LOG.warn("Bad scheduling state for topology [" + topId+ "], the slot " +
-                  ws + " assigned to multiple workers, un-assigning everything...");
-          node.free(ws, cluster, true);
-        }
+        node.assignInternal(ws, topId);
       }
     }
     

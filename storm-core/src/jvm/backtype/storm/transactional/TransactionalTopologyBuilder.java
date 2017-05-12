@@ -26,6 +26,7 @@ import backtype.storm.coordination.CoordinatedBolt.IdStreamSpec;
 import backtype.storm.coordination.CoordinatedBolt.SourceArgs;
 import backtype.storm.generated.GlobalStreamId;
 import backtype.storm.generated.Grouping;
+import backtype.storm.generated.SharedMemory;
 import backtype.storm.generated.StormTopology;
 import backtype.storm.grouping.CustomStreamGrouping;
 import backtype.storm.grouping.PartialKeyGrouping;
@@ -56,12 +57,13 @@ import java.util.Set;
  */
 @Deprecated
 public class TransactionalTopologyBuilder {
-    String _id;
-    String _spoutId;
-    ITransactionalSpout _spout;
-    Map<String, Component> _bolts = new HashMap<String, Component>();
-    Integer _spoutParallelism;
-    List<Map> _spoutConfs = new ArrayList();
+    final String _id;
+    final String _spoutId;
+    final ITransactionalSpout _spout;
+    final Map<String, Component> _bolts = new HashMap<String, Component>();
+    final Integer _spoutParallelism;
+    final List<Map> _spoutConfs = new ArrayList<>();
+    final Set<SharedMemory> _spoutSharedMemory = new HashSet<>();
     
     // id is used to store the state of this transactionalspout in zookeeper
     // it would be very dangerous to have 2 topologies active with the same id in the same cluster    
@@ -132,6 +134,9 @@ public class TransactionalTopologyBuilder {
         String coordinator = _spoutId + "/coordinator";
         TopologyBuilder builder = new TopologyBuilder();
         SpoutDeclarer declarer = builder.setSpout(coordinator, new TransactionalSpoutCoordinator(_spout));
+        for (SharedMemory request: _spoutSharedMemory) {
+            declarer.addSharedMemory(request);
+        }
         for(Map conf: _spoutConfs) {
             declarer.addConfigurations(conf);
         }
@@ -164,6 +169,9 @@ public class TransactionalTopologyBuilder {
                                                                       coordinatedArgs,
                                                                       idSpec),
                                                   component.parallelism);
+            for (SharedMemory request: component.sharedMemory) {
+                input.addSharedMemory(request);
+            }
             for(Map conf: component.componentConfs) {
                 input.addConfigurations(conf);
             }
@@ -193,11 +201,12 @@ public class TransactionalTopologyBuilder {
     }
 
     private static class Component {
-        public IRichBolt bolt;
-        public Integer parallelism;
-        public List<InputDeclaration> declarations = new ArrayList<InputDeclaration>();
-        public List<Map> componentConfs = new ArrayList<Map>();
-        public boolean committer;
+        public final IRichBolt bolt;
+        public final Integer parallelism;
+        public final List<InputDeclaration> declarations = new ArrayList<>();
+        public final List<Map> componentConfs = new ArrayList<>();
+        public final boolean committer;
+        public final Set<SharedMemory> sharedMemory = new HashSet<>();
         
         public Component(IRichBolt bolt, Integer parallelism, boolean committer) {
             this.bolt = bolt;
@@ -215,6 +224,12 @@ public class TransactionalTopologyBuilder {
         @Override
         public SpoutDeclarer addConfigurations(Map conf) {
             _spoutConfs.add(conf);
+            return this;
+        }
+
+        @Override
+        public SpoutDeclarer addSharedMemory(SharedMemory request) {
+            _spoutSharedMemory.add(request);
             return this;
         }        
     }
@@ -515,6 +530,12 @@ public class TransactionalTopologyBuilder {
         @Override
         public BoltDeclarer addConfigurations(Map conf) {
             _component.componentConfs.add(conf);
+            return this;
+        }
+
+        @Override
+        public BoltDeclarer addSharedMemory(SharedMemory request) {
+            _component.sharedMemory.add(request);
             return this;
         }
     }

@@ -20,6 +20,7 @@ package storm.trident.topology;
 import backtype.storm.Config;
 import backtype.storm.generated.GlobalStreamId;
 import backtype.storm.generated.Grouping;
+import backtype.storm.generated.SharedMemory;
 import backtype.storm.generated.StormTopology;
 import backtype.storm.grouping.CustomStreamGrouping;
 import backtype.storm.grouping.PartialKeyGrouping;
@@ -161,7 +162,9 @@ public class TridentTopologyBuilder {
                       builder.setBolt(spoutCoordinator(id), new TridentSpoutCoordinator(c.commitStateId, (ITridentSpout) c.spout))
                         .globalGrouping(masterCoordinator(c.batchGroupId), MasterBatchCoordinator.BATCH_STREAM_ID)
                         .globalGrouping(masterCoordinator(c.batchGroupId), MasterBatchCoordinator.SUCCESS_STREAM_ID);
-                
+                for (SharedMemory request: c.sharedMemory) {
+                    scd.addSharedMemory(request);
+                }
                 for(Map m: c.componentConfs) {
                     scd.addConfigurations(m);
                 }
@@ -222,7 +225,7 @@ public class TridentTopologyBuilder {
         for(String id: _bolts.keySet()) {
             Component c = _bolts.get(id);
             
-            Map<String, CoordSpec> specs = new HashMap();
+            Map<String, CoordSpec> specs = new HashMap<>();
             
             for(GlobalStreamId s: getBoltSubscriptionStreams(id)) {
                 String batch = batchIdsForBolts.get(s);
@@ -242,6 +245,9 @@ public class TridentTopologyBuilder {
             }
             
             BoltDeclarer d = builder.setBolt(id, new TridentBoltExecutor(c.bolt, batchIdsForBolts, specs), c.parallelism);
+            for (SharedMemory request: c.sharedMemory) {
+                d.addSharedMemory(request);
+            }
             for(Map conf: c.componentConfs) {
                 d.addConfigurations(conf);
             }
@@ -273,11 +279,12 @@ public class TridentTopologyBuilder {
     
     
     private static class SpoutComponent {
-        public Object spout;
-        public Integer parallelism;
-        public List<Map> componentConfs = new ArrayList<Map>();
-        String batchGroupId;
-        String streamName;
+        public final Object spout;
+        public final Integer parallelism;
+        public final List<Map> componentConfs = new ArrayList<>();
+        final String batchGroupId;
+        final String streamName;
+        final Set<SharedMemory> sharedMemory = new HashSet<>();
         
         public SpoutComponent(Object spout, String streamName, Integer parallelism, String batchGroupId) {
             this.spout = spout;
@@ -307,11 +314,12 @@ public class TridentTopologyBuilder {
     }    
     
     private static class Component {
-        public ITridentBatchBolt bolt;
-        public Integer parallelism;
-        public List<InputDeclaration> declarations = new ArrayList<InputDeclaration>();
-        public List<Map> componentConfs = new ArrayList<Map>();
-        public Set<String> committerBatches;
+        public final ITridentBatchBolt bolt;
+        public final Integer parallelism;
+        public final List<InputDeclaration> declarations = new ArrayList<>();
+        public final List<Map> componentConfs = new ArrayList<>();
+        public final Set<String> committerBatches;
+        public final Set<SharedMemory> sharedMemory = new HashSet<>();
         
         public Component(ITridentBatchBolt bolt, Integer parallelism,Set<String> committerBatches) {
             this.bolt = bolt;
@@ -360,6 +368,12 @@ public class TridentTopologyBuilder {
         @Override
         public SpoutDeclarer addConfigurations(Map conf) {
             _component.componentConfs.add(conf);
+            return this;
+        }
+
+        @Override
+        public SpoutDeclarer addSharedMemory(SharedMemory request) {
+            _component.sharedMemory.add(request);
             return this;
         }        
     }
@@ -745,6 +759,12 @@ public class TridentTopologyBuilder {
         @Override
         public BoltDeclarer addConfigurations(Map conf) {
             _component.componentConfs.add(conf);
+            return this;
+        }
+
+        @Override
+        public BoltDeclarer addSharedMemory(SharedMemory request) {
+            _component.sharedMemory.add(request);
             return this;
         }
     }    

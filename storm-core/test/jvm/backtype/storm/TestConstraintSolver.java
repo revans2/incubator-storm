@@ -88,11 +88,6 @@ public class TestConstraintSolver {
         return null;
       }
     };
-    Cluster cluster = new Cluster(iNimbus, supMap, new HashMap<String, SchedulerAssignmentImpl>(), new Config());
-
-    for(Node n : Node.getAllNodesFrom(cluster).values()) {
-      LOG.info("Node: {} slots: {}", n.getId(), n.getFreeSlots());
-    }
 
     List<List<String>> constraints = new LinkedList<>();
     addContraints("spout-0", "bolt-0", constraints);
@@ -129,6 +124,12 @@ public class TestConstraintSolver {
 
     ms.prepare(conf);
 
+    Cluster cluster = new Cluster(iNimbus, supMap, new HashMap<String, SchedulerAssignmentImpl>(), topologies, new Config());
+
+    for(Node n : Node.getAllNodesFrom(cluster).values()) {
+      LOG.info("Node: {} slots: {}", n.getId(), n.getFreeSlots());
+    }
+    
     ms.schedule(topologies, cluster);
 
     LOG.info("status: {}", cluster.getStatusMap());

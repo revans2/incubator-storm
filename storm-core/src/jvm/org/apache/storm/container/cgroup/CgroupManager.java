@@ -44,6 +44,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import backtype.storm.Config;
+import backtype.storm.generated.WorkerResources;
 import backtype.storm.utils.Utils;
 
 /**
@@ -141,22 +142,16 @@ public class CgroupManager implements ResourceIsolationInterface {
     }
 
     @Override
-    public void reserveResourcesForWorker(String workerId, Map resourcesMap) throws SecurityException {
-        LOG.info("Creating cgroup for worker {} with resources {}", workerId, resourcesMap);
-        Number cpuNum = null;
+    public void reserveResourcesForWorker(String workerId, Integer totalMem, Integer cpuNum) throws SecurityException {
+        LOG.info("Creating cgroup for worker {} with resources {} MB {} % CPU", workerId, totalMem, cpuNum);
         // The manually set STORM_WORKER_CGROUP_CPU_LIMIT config on supervisor will overwrite resources assigned by RAS (Resource Aware Scheduler)
-        if (this.conf.get(Config.STORM_WORKER_CGROUP_CPU_LIMIT) != null) {
-            cpuNum = (Number) this.conf.get(Config.STORM_WORKER_CGROUP_CPU_LIMIT);
-        } else if(resourcesMap.get("cpu") != null) {
-            cpuNum = (Number) resourcesMap.get("cpu");
+        if (conf.get(Config.STORM_WORKER_CGROUP_CPU_LIMIT) != null) {
+            cpuNum = ((Number) conf.get(Config.STORM_WORKER_CGROUP_CPU_LIMIT)).intValue();
         }
 
-        Number totalMem = null;
         // The manually set STORM_WORKER_CGROUP_MEMORY_MB_LIMIT config on supervisor will overwrite resources assigned by RAS (Resource Aware Scheduler)
         if (this.conf.get(Config.STORM_WORKER_CGROUP_MEMORY_MB_LIMIT) != null) {
-            totalMem = (Number) this.conf.get(Config.STORM_WORKER_CGROUP_MEMORY_MB_LIMIT);
-        } else if (resourcesMap.get("memory") != null) {
-            totalMem = (Number) resourcesMap.get("memory");
+            totalMem = ((Number) this.conf.get(Config.STORM_WORKER_CGROUP_MEMORY_MB_LIMIT)).intValue();
         }
 
         CgroupCommon workerGroup = new CgroupCommon(workerId, this.hierarchy, this.rootCgroup);
@@ -175,7 +170,6 @@ public class CgroupManager implements ResourceIsolationInterface {
             }
         }
 
-        // TEMPORARY CHECK TO DEAL WITH KERNEL BUGS
         if ((boolean)this.conf.get(Config.STORM_CGROUP_MEMORY_ENFORCEMENT_ENABLE)) {
             if (totalMem != null) {
                 int cGroupMem = (int) (Math.ceil(Utils.getDouble(this.conf.get(Config.STORM_CGROUP_MEMORY_LIMIT_TOLERANCE_MARGIN_MB), 0.0)));

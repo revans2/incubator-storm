@@ -21,6 +21,7 @@ import backtype.storm.Constants;
 import backtype.storm.coordination.CoordinatedBolt.SourceArgs;
 import backtype.storm.generated.GlobalStreamId;
 import backtype.storm.generated.Grouping;
+import backtype.storm.generated.SharedMemory;
 import backtype.storm.grouping.CustomStreamGrouping;
 import backtype.storm.grouping.PartialKeyGrouping;
 import backtype.storm.topology.BaseConfigurationDeclarer;
@@ -108,6 +109,9 @@ public class BatchSubtopologyBuilder {
                                                                       coordinatedArgs,
                                                                       null),
                                                   component.parallelism);
+            for (SharedMemory request: component.sharedMemory) {
+                input.addSharedMemory(request);
+            }
             for(Map conf: component.componentConfs) {
                 input.addConfigurations(conf);
             }
@@ -129,10 +133,11 @@ public class BatchSubtopologyBuilder {
     }
 
     private static class Component {
-        public IRichBolt bolt;
-        public Integer parallelism;
-        public List<InputDeclaration> declarations = new ArrayList<InputDeclaration>();
-        public List<Map> componentConfs = new ArrayList<Map>();
+        public final IRichBolt bolt;
+        public final Integer parallelism;
+        public final List<InputDeclaration> declarations = new ArrayList<InputDeclaration>();
+        public final List<Map> componentConfs = new ArrayList<>();
+        public final Set<SharedMemory> sharedMemory = new HashSet<>();
         
         public Component(IRichBolt bolt, Integer parallelism) {
             this.bolt = bolt;
@@ -441,6 +446,12 @@ public class BatchSubtopologyBuilder {
         @Override
         public BoltDeclarer addConfigurations(Map conf) {
             _component.componentConfs.add(conf);
+            return this;
+        }
+
+        @Override
+        public BoltDeclarer addSharedMemory(SharedMemory request) {
+            _component.sharedMemory.add(request);
             return this;
         }
     }

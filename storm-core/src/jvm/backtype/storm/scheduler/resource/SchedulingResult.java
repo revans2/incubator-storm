@@ -30,20 +30,19 @@ import java.util.Map;
  * This class serves as a mechanism to return results and messages from a scheduling strategy to the Resource Aware Scheduler
  */
 public class SchedulingResult {
-
+    private static final Logger LOG = LoggerFactory.getLogger(SchedulingResult.class);
+    
     //contains the result for the attempted scheduling
-    private Map<WorkerSlot, Collection<ExecutorDetails>> schedulingResultMap = null;
+    private final Map<WorkerSlot, Collection<ExecutorDetails>> schedulingResultMap;
 
     //status of scheduling the topology e.g. success or fail?
-    private SchedulingStatus status = null;
+    private final SchedulingStatus status;
 
     //arbitrary message to be returned when scheduling is done
-    private String message = null;
+    private final String message;
 
     //error message returned is something went wrong
-    private String errorMessage = null;
-
-    private static final Logger LOG = LoggerFactory.getLogger(SchedulingResult.class);
+    private final String errorMessage;
 
     private SchedulingResult(SchedulingStatus status, Map<WorkerSlot, Collection<ExecutorDetails>> schedulingResultMap, String message, String errorMessage) {
         this.status = status;
@@ -106,7 +105,7 @@ public class SchedulingResult {
     @Override
     public String toString() {
         String ret = null;
-        if(this.isSuccess()) {
+        if (isSuccess()) {
             ret = "Status: " + this.getStatus() + " message: " + this.getMessage() + " scheduling: " + this.getSchedulingResultMap();
         } else {
             ret = "Status: " + this.getStatus() + " error message: " + this.getErrorMessage();

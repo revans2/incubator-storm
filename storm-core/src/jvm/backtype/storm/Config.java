@@ -1498,7 +1498,7 @@ public class Config extends HashMap<String, Object> {
     public static final String WORKER_PROFILER_CHILDOPTS = "worker.profiler.childopts";
 
     /**
-     * This configuration would enable or disable component page profiing and debugging for workers.
+     * This configuration would enable or disable component page profiling and debugging for workers.
      */
     @isBoolean
     public static final String WORKER_PROFILER_ENABLED = "worker.profiler.enabled";

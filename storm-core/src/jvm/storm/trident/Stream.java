@@ -19,6 +19,7 @@ package storm.trident;
 
 import backtype.storm.generated.Grouping;
 import backtype.storm.generated.NullStruct;
+import backtype.storm.generated.SharedMemory;
 import storm.trident.fluent.ChainedAggregatorDeclarer;
 import backtype.storm.grouping.CustomStreamGrouping;
 import backtype.storm.topology.ResourceDeclarer;
@@ -104,6 +105,12 @@ public class Stream implements IAggregatableStream, ResourceDeclarer<Stream> {
     @Override
     public Stream setMemoryLoad(Number onHeap, Number offHeap) {
         _node.setMemoryLoad(onHeap, offHeap);
+        return this;
+    }
+    
+    @Override
+    public Stream addSharedMemory(SharedMemory request) {
+        _node.addSharedMemory(request);
         return this;
     }
 

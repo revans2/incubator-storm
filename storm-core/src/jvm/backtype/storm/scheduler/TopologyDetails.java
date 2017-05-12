@@ -20,28 +20,34 @@ package backtype.storm.scheduler;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import backtype.storm.Config;
+import backtype.storm.generated.Assignment;
 import backtype.storm.generated.Bolt;
 import backtype.storm.generated.GlobalStreamId;
 import backtype.storm.generated.Grouping;
+import backtype.storm.generated.NodeInfo;
+import backtype.storm.generated.SharedMemory;
 import backtype.storm.generated.SpoutSpec;
 import backtype.storm.generated.StormTopology;
+import backtype.storm.generated.WorkerResources;
 import backtype.storm.scheduler.resource.Component;
 import backtype.storm.scheduler.resource.ResourceUtils;
 import backtype.storm.scheduler.resource.strategies.scheduling.IStrategy;
 import backtype.storm.utils.Time;
 import backtype.storm.utils.Utils;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 
 public class TopologyDetails {
     private String topologyId;
-    private Map topologyConf;
+    private Map<String, Object> topologyConf;
     private StormTopology topology;
     private Map<ExecutorDetails, String> executorToComponent;
     private int numWorkers;
@@ -58,16 +64,16 @@ public class TopologyDetails {
 
     private static final Logger LOG = LoggerFactory.getLogger(TopologyDetails.class);
 
-    public TopologyDetails(String topologyId, Map topologyConf, StormTopology topology, int numWorkers) {
+    public TopologyDetails(String topologyId, Map<String, Object> topologyConf, StormTopology topology, int numWorkers) {
         this(topologyId, topologyConf, topology,  numWorkers,  null, 0);
     }
 
-    public TopologyDetails(String topologyId, Map topologyConf, StormTopology topology,
+    public TopologyDetails(String topologyId, Map<String, Object> topologyConf, StormTopology topology,
                            int numWorkers, Map<ExecutorDetails, String> executorToComponents) {
         this(topologyId, topologyConf, topology,  numWorkers,  executorToComponents, 0);
     }
 
-    public TopologyDetails(String topologyId, Map topologyConf, StormTopology topology,
+    public TopologyDetails(String topologyId, Map<String, Object> topologyConf, StormTopology topology,
                            int numWorkers, Map<ExecutorDetails, String> executorToComponents, int launchTime) {
         this.topologyId = topologyId;
         this.topologyConf = topologyConf;
@@ -77,10 +83,10 @@ public class TopologyDetails {
         if (executorToComponents != null) {
             this.executorToComponent.putAll(executorToComponents);
         }
-        if (this.topology != null) {
-            this.initResourceList();
+        if (topology != null) {
+            initResourceList();
         }
-        this.initConfigs();
+        initConfigs();
         this.launchTime = launchTime;
     }
 
@@ -92,7 +98,7 @@ public class TopologyDetails {
         return (String) this.topologyConf.get(Config.TOPOLOGY_NAME);
     }
 
-    public Map getConf() {
+    public Map<String, Object> getConf() {
         return this.topologyConf;
     }
 
@@ -324,6 +330,33 @@ public class TopologyDetails {
         }
         return ret;
     }
+    
+    public Set<SharedMemory> getSharedMemoryRequests(Collection<ExecutorDetails> executors) {
+        Set<String> components = new HashSet<>();
+        for (ExecutorDetails exec : executors) {
+            String component = executorToComponent.get(exec);
+            if (component != null) {
+                components.add(component);
+            }
+        }
+        Set<SharedMemory> ret = new HashSet<>();
+        if (topology != null) {
+            //topology being null is used for tests  We probably should fix that at some point,
+            // but it is not trivial to do...
+            Map<String, Set<String>> compToSharedName = topology.get_component_to_shared_memory();
+            if (compToSharedName != null) {
+                for (String component: components) {
+                    Set<String> sharedNames = compToSharedName.get(component);
+                    if (sharedNames != null) {
+                        for (String name : sharedNames) {
+                            ret.add(topology.get_shared_memory().get(name));
+                        }
+                    }
+                }
+            }
+        }
+        return ret;
+    }
 
     /**
      * Get the total CPU requirement for executor
@@ -344,8 +377,22 @@ public class TopologyDetails {
      *
      * @return the total on-heap memory requested for this topology
      */
-    public Double getTotalRequestedMemOnHeap() {
-        Double total_memonheap = 0.0;
+    public double getTotalRequestedMemOnHeap() {
+        return getRequestedSharedOnHeap() + getRequestedNonSharedOnHeap();
+    }
+    
+    public double getRequestedSharedOnHeap() {
+        double ret = 0.0;
+        if (topology.is_set_shared_memory()) {
+            for (SharedMemory req: topology.get_shared_memory().values()) {
+                ret += req.get_on_heap();
+            }
+        }
+        return ret;
+    }
+
+    public double getRequestedNonSharedOnHeap() {
+        double total_memonheap = 0.0;
         for (ExecutorDetails exec : this.getExecutors()) {
             Double exec_mem = getOnHeapMemoryRequirement(exec);
             if (exec_mem != null) {
@@ -361,8 +408,12 @@ public class TopologyDetails {
      *
      * @return the total off-heap memory requested for this topology
      */
-    public Double getTotalRequestedMemOffHeap() {
-        Double total_memoffheap = 0.0;
+    public double getTotalRequestedMemOffHeap() {
+        return getRequestedNonSharedOffHeap() + getRequestedSharedOffHeap();
+    }
+    
+    public double getRequestedNonSharedOffHeap() {
+        double total_memoffheap = 0.0;
         for (ExecutorDetails exec : this.getExecutors()) {
             Double exec_mem = getOffHeapMemoryRequirement(exec);
             if (exec_mem != null) {
@@ -371,6 +422,16 @@ public class TopologyDetails {
         }
         return total_memoffheap;
     }
+    
+    public double getRequestedSharedOffHeap() {
+        double ret = 0.0;
+        if (topology.is_set_shared_memory()) {
+            for (SharedMemory req: topology.get_shared_memory().values()) {
+                ret += req.get_off_heap_worker() + req.get_off_heap_node();
+            }
+        }
+        return ret;
+    }
 
     /**
      * Note: The public API relevant to resource aware scheduling is unstable as of May 2015.
@@ -378,8 +439,8 @@ public class TopologyDetails {
      *
      * @return the total cpu requested for this topology
      */
-    public Double getTotalRequestedCpu() {
-        Double total_cpu = 0.0;
+    public double getTotalRequestedCpu() {
+        double total_cpu = 0.0;
         for (ExecutorDetails exec : this.getExecutors()) {
             Double exec_cpu = getTotalCpuReqTask(exec);
             if (exec_cpu != null) {
@@ -405,14 +466,14 @@ public class TopologyDetails {
      * Checks if a executor is part of this topology
      * @return Boolean whether or not a certain ExecutorDetail is included in the resourceList.
      */
-    public boolean hasExecInTopo(ExecutorDetails exec) {
+    private boolean hasExecInTopo(ExecutorDetails exec) {
         return this.resourceList != null && this.resourceList.containsKey(exec);
     }
 
     /**
      * add resource requirements for a executor
      */
-    public void addResourcesForExec(ExecutorDetails exec, Map<String, Double> resourceList) {
+    private void addResourcesForExec(ExecutorDetails exec, Map<String, Double> resourceList) {
         if (hasExecInTopo(exec)) {
             LOG.warn("Executor {} already exists...ResourceList: {}", exec, getTaskResourceReqList(exec));
             return;
@@ -496,7 +557,7 @@ public class TopologyDetails {
     }
 
     /**
-     * get teh priority of this topology
+     * get the priority of this topology
      */
     public int getTopologyPriority() {
        return this.topologyPriority;

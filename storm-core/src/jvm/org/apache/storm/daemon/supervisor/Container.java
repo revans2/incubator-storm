@@ -31,9 +31,12 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 import backtype.storm.Config;
 import org.apache.storm.container.ResourceIsolationInterface;
+import org.apache.storm.metric.StormMetricsRegistry;
+
 import backtype.storm.generated.LSWorkerHeartbeat;
 import backtype.storm.generated.LocalAssignment;
 import backtype.storm.generated.ProfileRequest;
@@ -75,6 +78,41 @@ public abstract class Container implements Killable {
         public boolean isOnlyKillable() {
             return _onlyKillable;
         }
+    }
+    private static class TopoAndMemory {
+        public final String topoId;
+        public final long memory;
+        
+        public TopoAndMemory(String id, long mem) {
+            topoId = id;
+            memory = mem;
+        }
+        
+        @Override
+        public String toString() {
+            return "{TOPO: " + topoId + " at " + memory + " MB}";
+        }
+    }
+    private static final ConcurrentHashMap<Integer, TopoAndMemory> _usedMemory = new ConcurrentHashMap<>();
+    private static final ConcurrentHashMap<Integer, TopoAndMemory> _reservedMemory = new ConcurrentHashMap<>();
+    
+    static {
+        StormMetricsRegistry.registerGauge("supervisor:current-used-memory-mb", () -> {
+            Long val = _usedMemory.values().stream().mapToLong((topoAndMem) -> topoAndMem.memory).sum();
+            int ret = val.intValue();
+            if (val > Integer.MAX_VALUE) {  // Would only happen at 2 PB so we are OK for now
+                ret = Integer.MAX_VALUE;
+            }
+            return ret;
+        });
+        StormMetricsRegistry.registerGauge("supervisor:current-reserved-memory-mb", () -> {
+            Long val =  _reservedMemory.values().stream().mapToLong((topoAndMem) -> topoAndMem.memory).sum();
+            int ret = val.intValue();
+            if (val > Integer.MAX_VALUE) {  // Would only happen at 2 PB so we are OK for now
+                ret = Integer.MAX_VALUE;
+            }
+            return ret;
+        });
     }
     
     protected final Map<String, Object> _conf;
@@ -300,6 +338,8 @@ public abstract class Container implements Killable {
 
     @Override
     public void cleanUp() throws IOException {
+        _usedMemory.remove(_port);
+        _reservedMemory.remove(_port);
         cleanUpForRestart();
     }
     
@@ -526,8 +566,43 @@ public abstract class Container implements Killable {
      * This does not necessarily mean that it just went over the limit.
      * @throws IOException on any error
      */
-    public boolean isMemoryLimitViolated() throws IOException {
+    public boolean isMemoryLimitViolated(LocalAssignment withUpdatedLimits) throws IOException {
+        updateMemoryAccounting();
         return false;
+    }
+    
+    protected void updateMemoryAccounting() {
+        _type.assertFull();
+        long used = getMemoryUsageMB();
+        long reserved = getMemoryReservationMB();
+        _usedMemory.put(_port, new TopoAndMemory(_topologyId, used));
+        _reservedMemory.put(_port, new TopoAndMemory(_topologyId, reserved));
+    }
+    
+    public long getTotalTopologyMemoryUsed() {
+        updateMemoryAccounting();
+        return _usedMemory.values().stream()
+          .filter((topoAndMem) -> _topologyId.equals(topoAndMem.topoId))
+          .mapToLong((topoAndMem) -> topoAndMem.memory)
+          .sum();
+    }
+    
+    public long getTotalTopologyMemoryReserved(LocalAssignment withUpdatedLimits) {
+        updateMemoryAccounting();
+        long ret = _reservedMemory.values().stream()
+          .filter((topoAndMem) -> _topologyId.equals(topoAndMem.topoId))
+          .mapToLong((topoAndMem) -> topoAndMem.memory)
+          .sum();
+        if (withUpdatedLimits.is_set_total_node_shared()) {
+            ret += withUpdatedLimits.get_total_node_shared();
+        }
+        return ret;
+    }
+    
+    public long getTotalWorkersForThisTopology() {
+        return _usedMemory.values().stream()
+                .filter((topoAndMem) -> _topologyId.equals(topoAndMem.topoId))
+                .count();
     }
     
     /**
@@ -578,5 +653,13 @@ public abstract class Container implements Killable {
      */
     public String getWorkerId() {
         return _workerId;
+    }
+    
+    /**
+     * @return the topology this is a part of
+     */
+    public String getTopoogyId() {
+        _type.assertFull(); //Topology is not set if it is not a full container
+        return _topologyId;
     }
 }

@@ -21,6 +21,7 @@ import backtype.storm.tuple.Fields;
 
 
 public class SpoutNode extends Node {
+    private static final long serialVersionUID = -6868807270003581503L;
     public static enum SpoutType {
         DRPC,
         BATCH

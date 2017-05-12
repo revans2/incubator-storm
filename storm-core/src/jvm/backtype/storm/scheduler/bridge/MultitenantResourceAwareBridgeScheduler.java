@@ -94,10 +94,8 @@ public class MultitenantResourceAwareBridgeScheduler implements IScheduler{
         //Even though all the topologies are passed into the multitenant scheduler
         //Topologies marked as RAS will be skipped by the multitenant scheduler
         multitenantScheduler.schedule(topologies, cluster);
-        //Update memory assignment information for each multitenant topology and supervisor nodes
-        cluster.updateAssignedMemoryForTopologyAndSupervisor(mtTopologies);
-        //Update Cpu assignment information for each multitenant topology and supervisor nodes
-        cluster.updateAssignedCpuForTopologyAndSupervisor(mtTopologies);
+        //Update resource assignment information for each multitenant topology
+        cluster.addMTResourceEstimates(mtTopologies);
 
         LOG.debug("/* Translating to RAS cluster */");
         Cluster rasCluster = translateToRASCluster(cluster, rasTopologies, topologies,
@@ -153,7 +151,7 @@ public class MultitenantResourceAwareBridgeScheduler implements IScheduler{
         Map<String, SupervisorDetails> rasClusterSups = this.getRASClusterSups(cluster, rasTopologies, allTopologies, nodesRASCanUse);
         Map<String, SchedulerAssignmentImpl> rasClusterAssignments = this.getRASClusterAssignments(cluster, rasTopologies);
 
-        Cluster rasCluster = new Cluster(cluster.getINimbus(), rasClusterSups, rasClusterAssignments, cluster.getConf());
+        Cluster rasCluster = new Cluster(cluster.getINimbus(), rasClusterSups, rasClusterAssignments, rasTopologies, cluster.getConf());
         //set existing statuses
         for (Entry<String, String> entry : cluster.getStatusMap().entrySet()) {
             String topoId = entry.getKey();
@@ -211,7 +209,7 @@ public class MultitenantResourceAwareBridgeScheduler implements IScheduler{
         Map<String, SchedulerAssignmentImpl> rasClusterAssignments =  new HashMap<String, SchedulerAssignmentImpl>();
         for(String topoId : cluster.getAssignments().keySet()) {
             if(rasTopologies.getById(topoId) != null) {
-                rasClusterAssignments.put(topoId, new SchedulerAssignmentImpl(topoId, cluster.getAssignments().get(topoId).getExecutorToSlot()));
+                rasClusterAssignments.put(topoId, new SchedulerAssignmentImpl(cluster.getAssignments().get(topoId)));
             }
         }
         printAssignment(rasClusterAssignments);
@@ -238,7 +236,7 @@ public class MultitenantResourceAwareBridgeScheduler implements IScheduler{
                 Set<WorkerSlot> usedSlots = assignment.getSlots();
                 LOG.debug("->usedSlots: {})", usedSlots);
                 Map topConf = allTopologies.getById(topoId).getConf();
-                Double topologyWorkerMemory = cluster.getAssignedMemoryForSlot(topConf);
+                double topologyWorkerMemory = cluster.getAssignedMemoryForSlot(topConf);
                 for (WorkerSlot ws : usedSlots) {
                     if (sup.getId().equals(ws.getNodeId())) {
                         memoryUsedOnNode += topologyWorkerMemory;
@@ -256,44 +254,22 @@ public class MultitenantResourceAwareBridgeScheduler implements IScheduler{
     }
 
     /**
-     * merge mock RAS cluster object into the actual cluster object
+     * Merge mock RAS cluster object into the actual cluster object
      * so that scheduling done by RAS with actually materialize.
      * @param target
      * @param ephemeral
      */
     public void mergeCluster(Cluster target, Cluster ephemeral) {
-        if (target.hashCode() != ephemeral.hashCode()) {
-            Map<String, Map<WorkerSlot, Collection<ExecutorDetails>>> schedMap = new HashMap<String, Map<WorkerSlot, Collection<ExecutorDetails>>>();
-            for (Entry<String, SchedulerAssignment> entry : ephemeral.getAssignments().entrySet()) {
-                String topoId = entry.getKey();
-                //free existing assignments of topo so new assignments can be assigned
-                LOG.debug("free slots {} already used by topology {}", target.getUsedSlotsByTopologyId(topoId), topoId);
-                target.freeSlots(target.getUsedSlotsByTopologyId(topoId));
-
-                for (Map.Entry<ExecutorDetails, WorkerSlot> execToWs : entry.getValue().getExecutorToSlot().entrySet()) {
-                    ExecutorDetails exec = execToWs.getKey();
-                    WorkerSlot ws = execToWs.getValue();
-
-                    if (!schedMap.containsKey(topoId)) {
-                        schedMap.put(topoId, new HashMap<WorkerSlot, Collection<ExecutorDetails>>());
-                    }
-                    if (!schedMap.get(topoId).containsKey(ws)) {
-                        schedMap.get(topoId).put(ws, new LinkedList<ExecutorDetails>());
-                    }
-                    schedMap.get(topoId).get(ws).add(exec);
-                }
+        //Not the same object
+        if (target != ephemeral) {
+            //Unassign everything first in case things have moved and there is overlap
+            for (String id : ephemeral.getAssignments().keySet()) {
+                target.unassign(id);
             }
-            for (Entry<String, Map<WorkerSlot, Collection<ExecutorDetails>>> schedEntry : schedMap.entrySet()) {
-                String topoId = schedEntry.getKey();
-
-                for (Entry<WorkerSlot, Collection<ExecutorDetails>> workerToExecs : schedEntry.getValue().entrySet()) {
-                    WorkerSlot ws = workerToExecs.getKey();
-                    Collection<ExecutorDetails> execs = workerToExecs.getValue();
-                    LOG.debug("For topoId {}, assign slot with {} {}", topoId, ws.getNodeId(), ws.getPort());
-                    target.assign(ws, topoId, execs);
-                }
+            for (SchedulerAssignment assignment : ephemeral.getAssignments().values()) {
+                target.assign(assignment, false);
             }
-            //add scheduler identifier
+            //add scheduler identifier and merge scheduler set status
             for (Entry<String, String> statusEntry : target.getStatusMap().entrySet()) {
                 String topoId = statusEntry.getKey();
                 String status = statusEntry.getValue();
@@ -303,7 +279,6 @@ public class MultitenantResourceAwareBridgeScheduler implements IScheduler{
                     target.setStatus(topoId, status);
                 }
             }
-            //merge scheduler set status
             for (Entry<String, String> statusEntry : ephemeral.getStatusMap().entrySet()) {
                 String topoId = statusEntry.getKey();
                 String status =  statusEntry.getValue();
@@ -311,24 +286,6 @@ public class MultitenantResourceAwareBridgeScheduler implements IScheduler{
                     target.setStatus(topoId, "(RAS) " + status);
                 } else {
                     target.setStatus(topoId, status);
-                }
-            }
-            //merge resources map of MT and RAS for all topologies
-            target.setTopologyResourcesMap(ephemeral.getTopologyResourcesMap());
-            //merge resources map of MT and RAS for all workers
-            target.setWorkerResourcesMap(ephemeral.getWorkerResourcesMap());
-            //merge resources map of MT and RAS for all supervisors, considering that one node may run topologies with both strategies
-            for (Map.Entry<String, Double[]> supervisorResource : ephemeral.getSupervisorsResourcesMap().entrySet()) {
-                String supervisorId = supervisorResource.getKey();
-                Double[] ras_resources = supervisorResource.getValue();
-                if (!target.getSupervisorsResourcesMap().containsKey(supervisorId)) {
-                    target.setSupervisorResources(supervisorId, ras_resources);
-                } else {
-                    Double[] mt_resources = target.getSupervisorsResourcesMap().get(supervisorId);
-                    for (int i = 0; i < mt_resources.length; i++) {
-                        mt_resources[i] += ras_resources[i];
-                    }
-                    target.setSupervisorResources(supervisorId, mt_resources);
                 }
             }
         }

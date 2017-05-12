@@ -865,15 +865,15 @@ public class CommonAggregateStats implements org.apache.thrift.TBase<CommonAggre
           case 7: // RESOURCES_MAP
             if (schemeField.type == org.apache.thrift.protocol.TType.MAP) {
               {
-                org.apache.thrift.protocol.TMap _map326 = iprot.readMapBegin();
-                struct.resources_map = new HashMap<String,Double>(2*_map326.size);
-                String _key327;
-                double _val328;
-                for (int _i329 = 0; _i329 < _map326.size; ++_i329)
+                org.apache.thrift.protocol.TMap _map354 = iprot.readMapBegin();
+                struct.resources_map = new HashMap<String,Double>(2*_map354.size);
+                String _key355;
+                double _val356;
+                for (int _i357 = 0; _i357 < _map354.size; ++_i357)
                 {
-                  _key327 = iprot.readString();
-                  _val328 = iprot.readDouble();
-                  struct.resources_map.put(_key327, _val328);
+                  _key355 = iprot.readString();
+                  _val356 = iprot.readDouble();
+                  struct.resources_map.put(_key355, _val356);
                 }
                 iprot.readMapEnd();
               }
@@ -930,10 +930,10 @@ public class CommonAggregateStats implements org.apache.thrift.TBase<CommonAggre
           oprot.writeFieldBegin(RESOURCES_MAP_FIELD_DESC);
           {
             oprot.writeMapBegin(new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.DOUBLE, struct.resources_map.size()));
-            for (Map.Entry<String, Double> _iter330 : struct.resources_map.entrySet())
+            for (Map.Entry<String, Double> _iter358 : struct.resources_map.entrySet())
             {
-              oprot.writeString(_iter330.getKey());
-              oprot.writeDouble(_iter330.getValue());
+              oprot.writeString(_iter358.getKey());
+              oprot.writeDouble(_iter358.getValue());
             }
             oprot.writeMapEnd();
           }
@@ -1001,10 +1001,10 @@ public class CommonAggregateStats implements org.apache.thrift.TBase<CommonAggre
       if (struct.is_set_resources_map()) {
         {
           oprot.writeI32(struct.resources_map.size());
-          for (Map.Entry<String, Double> _iter331 : struct.resources_map.entrySet())
+          for (Map.Entry<String, Double> _iter359 : struct.resources_map.entrySet())
           {
-            oprot.writeString(_iter331.getKey());
-            oprot.writeDouble(_iter331.getValue());
+            oprot.writeString(_iter359.getKey());
+            oprot.writeDouble(_iter359.getValue());
           }
         }
       }
@@ -1040,15 +1040,15 @@ public class CommonAggregateStats implements org.apache.thrift.TBase<CommonAggre
       }
       if (incoming.get(6)) {
         {
-          org.apache.thrift.protocol.TMap _map332 = new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.DOUBLE, iprot.readI32());
-          struct.resources_map = new HashMap<String,Double>(2*_map332.size);
-          String _key333;
-          double _val334;
-          for (int _i335 = 0; _i335 < _map332.size; ++_i335)
+          org.apache.thrift.protocol.TMap _map360 = new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.DOUBLE, iprot.readI32());
+          struct.resources_map = new HashMap<String,Double>(2*_map360.size);
+          String _key361;
+          double _val362;
+          for (int _i363 = 0; _i363 < _map360.size; ++_i363)
           {
-            _key333 = iprot.readString();
-            _val334 = iprot.readDouble();
-            struct.resources_map.put(_key333, _val334);
+            _key361 = iprot.readString();
+            _val362 = iprot.readDouble();
+            struct.resources_map.put(_key361, _val362);
           }
         }
         struct.set_resources_map_isSet(true);

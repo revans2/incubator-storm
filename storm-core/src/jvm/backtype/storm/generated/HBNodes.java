@@ -364,13 +364,13 @@ public class HBNodes implements org.apache.thrift.TBase<HBNodes, HBNodes._Fields
           case 1: // PULSE_IDS
             if (schemeField.type == org.apache.thrift.protocol.TType.LIST) {
               {
-                org.apache.thrift.protocol.TList _list776 = iprot.readListBegin();
-                struct.pulseIds = new ArrayList<String>(_list776.size);
-                String _elem777;
-                for (int _i778 = 0; _i778 < _list776.size; ++_i778)
+                org.apache.thrift.protocol.TList _list814 = iprot.readListBegin();
+                struct.pulseIds = new ArrayList<String>(_list814.size);
+                String _elem815;
+                for (int _i816 = 0; _i816 < _list814.size; ++_i816)
                 {
-                  _elem777 = iprot.readString();
-                  struct.pulseIds.add(_elem777);
+                  _elem815 = iprot.readString();
+                  struct.pulseIds.add(_elem815);
                 }
                 iprot.readListEnd();
               }
@@ -396,9 +396,9 @@ public class HBNodes implements org.apache.thrift.TBase<HBNodes, HBNodes._Fields
         oprot.writeFieldBegin(PULSE_IDS_FIELD_DESC);
         {
           oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRING, struct.pulseIds.size()));
-          for (String _iter779 : struct.pulseIds)
+          for (String _iter817 : struct.pulseIds)
           {
-            oprot.writeString(_iter779);
+            oprot.writeString(_iter817);
           }
           oprot.writeListEnd();
         }
@@ -429,9 +429,9 @@ public class HBNodes implements org.apache.thrift.TBase<HBNodes, HBNodes._Fields
       if (struct.is_set_pulseIds()) {
         {
           oprot.writeI32(struct.pulseIds.size());
-          for (String _iter780 : struct.pulseIds)
+          for (String _iter818 : struct.pulseIds)
           {
-            oprot.writeString(_iter780);
+            oprot.writeString(_iter818);
           }
         }
       }
@@ -443,13 +443,13 @@ public class HBNodes implements org.apache.thrift.TBase<HBNodes, HBNodes._Fields
       BitSet incoming = iprot.readBitSet(1);
       if (incoming.get(0)) {
         {
-          org.apache.thrift.protocol.TList _list781 = new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRING, iprot.readI32());
-          struct.pulseIds = new ArrayList<String>(_list781.size);
-          String _elem782;
-          for (int _i783 = 0; _i783 < _list781.size; ++_i783)
+          org.apache.thrift.protocol.TList _list819 = new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRING, iprot.readI32());
+          struct.pulseIds = new ArrayList<String>(_list819.size);
+          String _elem820;
+          for (int _i821 = 0; _i821 < _list819.size; ++_i821)
           {
-            _elem782 = iprot.readString();
-            struct.pulseIds.add(_elem782);
+            _elem820 = iprot.readString();
+            struct.pulseIds.add(_elem820);
           }
         }
         struct.set_pulseIds_isSet(true);

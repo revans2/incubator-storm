@@ -25,6 +25,7 @@ import backtype.storm.coordination.CoordinatedBolt.FinishedCallback;
 import backtype.storm.coordination.CoordinatedBolt.IdStreamSpec;
 import backtype.storm.coordination.CoordinatedBolt.SourceArgs;
 import backtype.storm.coordination.IBatchBolt;
+import backtype.storm.generated.SharedMemory;
 import backtype.storm.generated.StormTopology;
 import backtype.storm.generated.StreamInfo;
 import backtype.storm.grouping.CustomStreamGrouping;
@@ -40,8 +41,10 @@ import backtype.storm.topology.TopologyBuilder;
 import backtype.storm.tuple.Fields;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 
 // Trident subsumes the functionality provided by this class, so it's deprecated
@@ -120,6 +123,10 @@ public class LinearDRPCTopologyBuilder {
                     new CoordinatedBolt(component.bolt, source, idSpec),
                     component.parallelism);
             
+            for (SharedMemory request: component.sharedMemory) {
+                declarer.addSharedMemory(request);
+            }
+            
             for(Map conf: component.componentConfs) {
                 declarer.addConfigurations(conf);
             }
@@ -172,15 +179,16 @@ public class LinearDRPCTopologyBuilder {
     }
     
     private static class Component {
-        public IRichBolt bolt;
-        public int parallelism;
-        public List<Map> componentConfs;
-        public List<InputDeclaration> declarations = new ArrayList<InputDeclaration>();
+        public final IRichBolt bolt;
+        public final int parallelism;
+        public final List<Map> componentConfs;
+        public final List<InputDeclaration> declarations = new ArrayList<>();
+        public final Set<SharedMemory> sharedMemory = new HashSet<>();
         
         public Component(IRichBolt bolt, int parallelism) {
             this.bolt = bolt;
             this.parallelism = parallelism;
-            this.componentConfs = new ArrayList();
+            this.componentConfs = new ArrayList<>();
         }
     }
     
@@ -389,6 +397,12 @@ public class LinearDRPCTopologyBuilder {
         public LinearDRPCInputDeclarer addConfigurations(Map conf) {
             _component.componentConfs.add(conf);
             return this;
+        }
+
+        @Override
+        public LinearDRPCInputDeclarer addSharedMemory(SharedMemory request) {
+            _component.sharedMemory.add(request);
+            return null;
         }
     }
 }

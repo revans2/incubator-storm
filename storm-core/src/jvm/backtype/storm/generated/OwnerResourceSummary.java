@@ -75,6 +75,14 @@ public class OwnerResourceSummary implements org.apache.thrift.TBase<OwnerResour
   private static final org.apache.thrift.protocol.TField ASSIGNED_OFF_HEAP_MEMORY_FIELD_DESC = new org.apache.thrift.protocol.TField("assigned_off_heap_memory", org.apache.thrift.protocol.TType.I64, (short)18);
   private static final org.apache.thrift.protocol.TField ASSIGNED_RAS_TOTAL_MEMORY_FIELD_DESC = new org.apache.thrift.protocol.TField("assigned_ras_total_memory", org.apache.thrift.protocol.TType.I64, (short)19);
   private static final org.apache.thrift.protocol.TField ASSIGNED_RAS_CPU_FIELD_DESC = new org.apache.thrift.protocol.TField("assigned_ras_cpu", org.apache.thrift.protocol.TType.I32, (short)20);
+  private static final org.apache.thrift.protocol.TField REQUESTED_REGULAR_ON_HEAP_MEMORY_FIELD_DESC = new org.apache.thrift.protocol.TField("requested_regular_on_heap_memory", org.apache.thrift.protocol.TType.DOUBLE, (short)21);
+  private static final org.apache.thrift.protocol.TField REQUESTED_SHARED_ON_HEAP_MEMORY_FIELD_DESC = new org.apache.thrift.protocol.TField("requested_shared_on_heap_memory", org.apache.thrift.protocol.TType.DOUBLE, (short)22);
+  private static final org.apache.thrift.protocol.TField REQUESTED_REGULAR_OFF_HEAP_MEMORY_FIELD_DESC = new org.apache.thrift.protocol.TField("requested_regular_off_heap_memory", org.apache.thrift.protocol.TType.DOUBLE, (short)23);
+  private static final org.apache.thrift.protocol.TField REQUESTED_SHARED_OFF_HEAP_MEMORY_FIELD_DESC = new org.apache.thrift.protocol.TField("requested_shared_off_heap_memory", org.apache.thrift.protocol.TType.DOUBLE, (short)24);
+  private static final org.apache.thrift.protocol.TField ASSIGNED_REGULAR_ON_HEAP_MEMORY_FIELD_DESC = new org.apache.thrift.protocol.TField("assigned_regular_on_heap_memory", org.apache.thrift.protocol.TType.DOUBLE, (short)25);
+  private static final org.apache.thrift.protocol.TField ASSIGNED_SHARED_ON_HEAP_MEMORY_FIELD_DESC = new org.apache.thrift.protocol.TField("assigned_shared_on_heap_memory", org.apache.thrift.protocol.TType.DOUBLE, (short)26);
+  private static final org.apache.thrift.protocol.TField ASSIGNED_REGULAR_OFF_HEAP_MEMORY_FIELD_DESC = new org.apache.thrift.protocol.TField("assigned_regular_off_heap_memory", org.apache.thrift.protocol.TType.DOUBLE, (short)27);
+  private static final org.apache.thrift.protocol.TField ASSIGNED_SHARED_OFF_HEAP_MEMORY_FIELD_DESC = new org.apache.thrift.protocol.TField("assigned_shared_off_heap_memory", org.apache.thrift.protocol.TType.DOUBLE, (short)28);
 
   private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
   static {
@@ -102,6 +110,14 @@ public class OwnerResourceSummary implements org.apache.thrift.TBase<OwnerResour
   private long assigned_off_heap_memory; // optional
   private long assigned_ras_total_memory; // optional
   private int assigned_ras_cpu; // optional
+  private double requested_regular_on_heap_memory; // optional
+  private double requested_shared_on_heap_memory; // optional
+  private double requested_regular_off_heap_memory; // optional
+  private double requested_shared_off_heap_memory; // optional
+  private double assigned_regular_on_heap_memory; // optional
+  private double assigned_shared_on_heap_memory; // optional
+  private double assigned_regular_off_heap_memory; // optional
+  private double assigned_shared_off_heap_memory; // optional
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift.TFieldIdEnum {
@@ -124,7 +140,15 @@ public class OwnerResourceSummary implements org.apache.thrift.TBase<OwnerResour
     ASSIGNED_ON_HEAP_MEMORY((short)17, "assigned_on_heap_memory"),
     ASSIGNED_OFF_HEAP_MEMORY((short)18, "assigned_off_heap_memory"),
     ASSIGNED_RAS_TOTAL_MEMORY((short)19, "assigned_ras_total_memory"),
-    ASSIGNED_RAS_CPU((short)20, "assigned_ras_cpu");
+    ASSIGNED_RAS_CPU((short)20, "assigned_ras_cpu"),
+    REQUESTED_REGULAR_ON_HEAP_MEMORY((short)21, "requested_regular_on_heap_memory"),
+    REQUESTED_SHARED_ON_HEAP_MEMORY((short)22, "requested_shared_on_heap_memory"),
+    REQUESTED_REGULAR_OFF_HEAP_MEMORY((short)23, "requested_regular_off_heap_memory"),
+    REQUESTED_SHARED_OFF_HEAP_MEMORY((short)24, "requested_shared_off_heap_memory"),
+    ASSIGNED_REGULAR_ON_HEAP_MEMORY((short)25, "assigned_regular_on_heap_memory"),
+    ASSIGNED_SHARED_ON_HEAP_MEMORY((short)26, "assigned_shared_on_heap_memory"),
+    ASSIGNED_REGULAR_OFF_HEAP_MEMORY((short)27, "assigned_regular_off_heap_memory"),
+    ASSIGNED_SHARED_OFF_HEAP_MEMORY((short)28, "assigned_shared_off_heap_memory");
 
     private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
 
@@ -179,6 +203,22 @@ public class OwnerResourceSummary implements org.apache.thrift.TBase<OwnerResour
           return ASSIGNED_RAS_TOTAL_MEMORY;
         case 20: // ASSIGNED_RAS_CPU
           return ASSIGNED_RAS_CPU;
+        case 21: // REQUESTED_REGULAR_ON_HEAP_MEMORY
+          return REQUESTED_REGULAR_ON_HEAP_MEMORY;
+        case 22: // REQUESTED_SHARED_ON_HEAP_MEMORY
+          return REQUESTED_SHARED_ON_HEAP_MEMORY;
+        case 23: // REQUESTED_REGULAR_OFF_HEAP_MEMORY
+          return REQUESTED_REGULAR_OFF_HEAP_MEMORY;
+        case 24: // REQUESTED_SHARED_OFF_HEAP_MEMORY
+          return REQUESTED_SHARED_OFF_HEAP_MEMORY;
+        case 25: // ASSIGNED_REGULAR_ON_HEAP_MEMORY
+          return ASSIGNED_REGULAR_ON_HEAP_MEMORY;
+        case 26: // ASSIGNED_SHARED_ON_HEAP_MEMORY
+          return ASSIGNED_SHARED_ON_HEAP_MEMORY;
+        case 27: // ASSIGNED_REGULAR_OFF_HEAP_MEMORY
+          return ASSIGNED_REGULAR_OFF_HEAP_MEMORY;
+        case 28: // ASSIGNED_SHARED_OFF_HEAP_MEMORY
+          return ASSIGNED_SHARED_OFF_HEAP_MEMORY;
         default:
           return null;
       }
@@ -238,8 +278,16 @@ public class OwnerResourceSummary implements org.apache.thrift.TBase<OwnerResour
   private static final int __ASSIGNED_OFF_HEAP_MEMORY_ISSET_ID = 16;
   private static final int __ASSIGNED_RAS_TOTAL_MEMORY_ISSET_ID = 17;
   private static final int __ASSIGNED_RAS_CPU_ISSET_ID = 18;
+  private static final int __REQUESTED_REGULAR_ON_HEAP_MEMORY_ISSET_ID = 19;
+  private static final int __REQUESTED_SHARED_ON_HEAP_MEMORY_ISSET_ID = 20;
+  private static final int __REQUESTED_REGULAR_OFF_HEAP_MEMORY_ISSET_ID = 21;
+  private static final int __REQUESTED_SHARED_OFF_HEAP_MEMORY_ISSET_ID = 22;
+  private static final int __ASSIGNED_REGULAR_ON_HEAP_MEMORY_ISSET_ID = 23;
+  private static final int __ASSIGNED_SHARED_ON_HEAP_MEMORY_ISSET_ID = 24;
+  private static final int __ASSIGNED_REGULAR_OFF_HEAP_MEMORY_ISSET_ID = 25;
+  private static final int __ASSIGNED_SHARED_OFF_HEAP_MEMORY_ISSET_ID = 26;
   private int __isset_bitfield = 0;
-  private static final _Fields optionals[] = {_Fields.TOTAL_TOPOLOGIES,_Fields.TOTAL_EXECUTORS,_Fields.TOTAL_WORKERS,_Fields.MEMORY_USAGE,_Fields.CPU_USAGE,_Fields.MEMORY_GUARANTEE,_Fields.CPU_GUARANTEE,_Fields.MEMORY_GUARANTEE_REMAINING,_Fields.CPU_GUARANTEE_REMAINING,_Fields.ISOLATED_NODE_GUARANTEE,_Fields.TOTAL_TASKS,_Fields.REQUESTED_ON_HEAP_MEMORY,_Fields.REQUESTED_OFF_HEAP_MEMORY,_Fields.REQUESTED_TOTAL_MEMORY,_Fields.REQUESTED_CPU,_Fields.ASSIGNED_ON_HEAP_MEMORY,_Fields.ASSIGNED_OFF_HEAP_MEMORY,_Fields.ASSIGNED_RAS_TOTAL_MEMORY,_Fields.ASSIGNED_RAS_CPU};
+  private static final _Fields optionals[] = {_Fields.TOTAL_TOPOLOGIES,_Fields.TOTAL_EXECUTORS,_Fields.TOTAL_WORKERS,_Fields.MEMORY_USAGE,_Fields.CPU_USAGE,_Fields.MEMORY_GUARANTEE,_Fields.CPU_GUARANTEE,_Fields.MEMORY_GUARANTEE_REMAINING,_Fields.CPU_GUARANTEE_REMAINING,_Fields.ISOLATED_NODE_GUARANTEE,_Fields.TOTAL_TASKS,_Fields.REQUESTED_ON_HEAP_MEMORY,_Fields.REQUESTED_OFF_HEAP_MEMORY,_Fields.REQUESTED_TOTAL_MEMORY,_Fields.REQUESTED_CPU,_Fields.ASSIGNED_ON_HEAP_MEMORY,_Fields.ASSIGNED_OFF_HEAP_MEMORY,_Fields.ASSIGNED_RAS_TOTAL_MEMORY,_Fields.ASSIGNED_RAS_CPU,_Fields.REQUESTED_REGULAR_ON_HEAP_MEMORY,_Fields.REQUESTED_SHARED_ON_HEAP_MEMORY,_Fields.REQUESTED_REGULAR_OFF_HEAP_MEMORY,_Fields.REQUESTED_SHARED_OFF_HEAP_MEMORY,_Fields.ASSIGNED_REGULAR_ON_HEAP_MEMORY,_Fields.ASSIGNED_SHARED_ON_HEAP_MEMORY,_Fields.ASSIGNED_REGULAR_OFF_HEAP_MEMORY,_Fields.ASSIGNED_SHARED_OFF_HEAP_MEMORY};
   public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
   static {
     Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
@@ -283,6 +331,22 @@ public class OwnerResourceSummary implements org.apache.thrift.TBase<OwnerResour
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I64)));
     tmpMap.put(_Fields.ASSIGNED_RAS_CPU, new org.apache.thrift.meta_data.FieldMetaData("assigned_ras_cpu", org.apache.thrift.TFieldRequirementType.OPTIONAL, 
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I32)));
+    tmpMap.put(_Fields.REQUESTED_REGULAR_ON_HEAP_MEMORY, new org.apache.thrift.meta_data.FieldMetaData("requested_regular_on_heap_memory", org.apache.thrift.TFieldRequirementType.OPTIONAL, 
+        new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.DOUBLE)));
+    tmpMap.put(_Fields.REQUESTED_SHARED_ON_HEAP_MEMORY, new org.apache.thrift.meta_data.FieldMetaData("requested_shared_on_heap_memory", org.apache.thrift.TFieldRequirementType.OPTIONAL, 
+        new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.DOUBLE)));
+    tmpMap.put(_Fields.REQUESTED_REGULAR_OFF_HEAP_MEMORY, new org.apache.thrift.meta_data.FieldMetaData("requested_regular_off_heap_memory", org.apache.thrift.TFieldRequirementType.OPTIONAL, 
+        new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.DOUBLE)));
+    tmpMap.put(_Fields.REQUESTED_SHARED_OFF_HEAP_MEMORY, new org.apache.thrift.meta_data.FieldMetaData("requested_shared_off_heap_memory", org.apache.thrift.TFieldRequirementType.OPTIONAL, 
+        new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.DOUBLE)));
+    tmpMap.put(_Fields.ASSIGNED_REGULAR_ON_HEAP_MEMORY, new org.apache.thrift.meta_data.FieldMetaData("assigned_regular_on_heap_memory", org.apache.thrift.TFieldRequirementType.OPTIONAL, 
+        new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.DOUBLE)));
+    tmpMap.put(_Fields.ASSIGNED_SHARED_ON_HEAP_MEMORY, new org.apache.thrift.meta_data.FieldMetaData("assigned_shared_on_heap_memory", org.apache.thrift.TFieldRequirementType.OPTIONAL, 
+        new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.DOUBLE)));
+    tmpMap.put(_Fields.ASSIGNED_REGULAR_OFF_HEAP_MEMORY, new org.apache.thrift.meta_data.FieldMetaData("assigned_regular_off_heap_memory", org.apache.thrift.TFieldRequirementType.OPTIONAL, 
+        new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.DOUBLE)));
+    tmpMap.put(_Fields.ASSIGNED_SHARED_OFF_HEAP_MEMORY, new org.apache.thrift.meta_data.FieldMetaData("assigned_shared_off_heap_memory", org.apache.thrift.TFieldRequirementType.OPTIONAL, 
+        new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.DOUBLE)));
     metaDataMap = Collections.unmodifiableMap(tmpMap);
     org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(OwnerResourceSummary.class, metaDataMap);
   }
@@ -324,6 +388,14 @@ public class OwnerResourceSummary implements org.apache.thrift.TBase<OwnerResour
     this.assigned_off_heap_memory = other.assigned_off_heap_memory;
     this.assigned_ras_total_memory = other.assigned_ras_total_memory;
     this.assigned_ras_cpu = other.assigned_ras_cpu;
+    this.requested_regular_on_heap_memory = other.requested_regular_on_heap_memory;
+    this.requested_shared_on_heap_memory = other.requested_shared_on_heap_memory;
+    this.requested_regular_off_heap_memory = other.requested_regular_off_heap_memory;
+    this.requested_shared_off_heap_memory = other.requested_shared_off_heap_memory;
+    this.assigned_regular_on_heap_memory = other.assigned_regular_on_heap_memory;
+    this.assigned_shared_on_heap_memory = other.assigned_shared_on_heap_memory;
+    this.assigned_regular_off_heap_memory = other.assigned_regular_off_heap_memory;
+    this.assigned_shared_off_heap_memory = other.assigned_shared_off_heap_memory;
   }
 
   public OwnerResourceSummary deepCopy() {
@@ -371,6 +443,22 @@ public class OwnerResourceSummary implements org.apache.thrift.TBase<OwnerResour
     this.assigned_ras_total_memory = 0;
     set_assigned_ras_cpu_isSet(false);
     this.assigned_ras_cpu = 0;
+    set_requested_regular_on_heap_memory_isSet(false);
+    this.requested_regular_on_heap_memory = 0.0;
+    set_requested_shared_on_heap_memory_isSet(false);
+    this.requested_shared_on_heap_memory = 0.0;
+    set_requested_regular_off_heap_memory_isSet(false);
+    this.requested_regular_off_heap_memory = 0.0;
+    set_requested_shared_off_heap_memory_isSet(false);
+    this.requested_shared_off_heap_memory = 0.0;
+    set_assigned_regular_on_heap_memory_isSet(false);
+    this.assigned_regular_on_heap_memory = 0.0;
+    set_assigned_shared_on_heap_memory_isSet(false);
+    this.assigned_shared_on_heap_memory = 0.0;
+    set_assigned_regular_off_heap_memory_isSet(false);
+    this.assigned_regular_off_heap_memory = 0.0;
+    set_assigned_shared_off_heap_memory_isSet(false);
+    this.assigned_shared_off_heap_memory = 0.0;
   }
 
   public String get_owner() {
@@ -814,6 +902,182 @@ public class OwnerResourceSummary implements org.apache.thrift.TBase<OwnerResour
     __isset_bitfield = EncodingUtils.setBit(__isset_bitfield, __ASSIGNED_RAS_CPU_ISSET_ID, value);
   }
 
+  public double get_requested_regular_on_heap_memory() {
+    return this.requested_regular_on_heap_memory;
+  }
+
+  public void set_requested_regular_on_heap_memory(double requested_regular_on_heap_memory) {
+    this.requested_regular_on_heap_memory = requested_regular_on_heap_memory;
+    set_requested_regular_on_heap_memory_isSet(true);
+  }
+
+  public void unset_requested_regular_on_heap_memory() {
+    __isset_bitfield = EncodingUtils.clearBit(__isset_bitfield, __REQUESTED_REGULAR_ON_HEAP_MEMORY_ISSET_ID);
+  }
+
+  /** Returns true if field requested_regular_on_heap_memory is set (has been assigned a value) and false otherwise */
+  public boolean is_set_requested_regular_on_heap_memory() {
+    return EncodingUtils.testBit(__isset_bitfield, __REQUESTED_REGULAR_ON_HEAP_MEMORY_ISSET_ID);
+  }
+
+  public void set_requested_regular_on_heap_memory_isSet(boolean value) {
+    __isset_bitfield = EncodingUtils.setBit(__isset_bitfield, __REQUESTED_REGULAR_ON_HEAP_MEMORY_ISSET_ID, value);
+  }
+
+  public double get_requested_shared_on_heap_memory() {
+    return this.requested_shared_on_heap_memory;
+  }
+
+  public void set_requested_shared_on_heap_memory(double requested_shared_on_heap_memory) {
+    this.requested_shared_on_heap_memory = requested_shared_on_heap_memory;
+    set_requested_shared_on_heap_memory_isSet(true);
+  }
+
+  public void unset_requested_shared_on_heap_memory() {
+    __isset_bitfield = EncodingUtils.clearBit(__isset_bitfield, __REQUESTED_SHARED_ON_HEAP_MEMORY_ISSET_ID);
+  }
+
+  /** Returns true if field requested_shared_on_heap_memory is set (has been assigned a value) and false otherwise */
+  public boolean is_set_requested_shared_on_heap_memory() {
+    return EncodingUtils.testBit(__isset_bitfield, __REQUESTED_SHARED_ON_HEAP_MEMORY_ISSET_ID);
+  }
+
+  public void set_requested_shared_on_heap_memory_isSet(boolean value) {
+    __isset_bitfield = EncodingUtils.setBit(__isset_bitfield, __REQUESTED_SHARED_ON_HEAP_MEMORY_ISSET_ID, value);
+  }
+
+  public double get_requested_regular_off_heap_memory() {
+    return this.requested_regular_off_heap_memory;
+  }
+
+  public void set_requested_regular_off_heap_memory(double requested_regular_off_heap_memory) {
+    this.requested_regular_off_heap_memory = requested_regular_off_heap_memory;
+    set_requested_regular_off_heap_memory_isSet(true);
+  }
+
+  public void unset_requested_regular_off_heap_memory() {
+    __isset_bitfield = EncodingUtils.clearBit(__isset_bitfield, __REQUESTED_REGULAR_OFF_HEAP_MEMORY_ISSET_ID);
+  }
+
+  /** Returns true if field requested_regular_off_heap_memory is set (has been assigned a value) and false otherwise */
+  public boolean is_set_requested_regular_off_heap_memory() {
+    return EncodingUtils.testBit(__isset_bitfield, __REQUESTED_REGULAR_OFF_HEAP_MEMORY_ISSET_ID);
+  }
+
+  public void set_requested_regular_off_heap_memory_isSet(boolean value) {
+    __isset_bitfield = EncodingUtils.setBit(__isset_bitfield, __REQUESTED_REGULAR_OFF_HEAP_MEMORY_ISSET_ID, value);
+  }
+
+  public double get_requested_shared_off_heap_memory() {
+    return this.requested_shared_off_heap_memory;
+  }
+
+  public void set_requested_shared_off_heap_memory(double requested_shared_off_heap_memory) {
+    this.requested_shared_off_heap_memory = requested_shared_off_heap_memory;
+    set_requested_shared_off_heap_memory_isSet(true);
+  }
+
+  public void unset_requested_shared_off_heap_memory() {
+    __isset_bitfield = EncodingUtils.clearBit(__isset_bitfield, __REQUESTED_SHARED_OFF_HEAP_MEMORY_ISSET_ID);
+  }
+
+  /** Returns true if field requested_shared_off_heap_memory is set (has been assigned a value) and false otherwise */
+  public boolean is_set_requested_shared_off_heap_memory() {
+    return EncodingUtils.testBit(__isset_bitfield, __REQUESTED_SHARED_OFF_HEAP_MEMORY_ISSET_ID);
+  }
+
+  public void set_requested_shared_off_heap_memory_isSet(boolean value) {
+    __isset_bitfield = EncodingUtils.setBit(__isset_bitfield, __REQUESTED_SHARED_OFF_HEAP_MEMORY_ISSET_ID, value);
+  }
+
+  public double get_assigned_regular_on_heap_memory() {
+    return this.assigned_regular_on_heap_memory;
+  }
+
+  public void set_assigned_regular_on_heap_memory(double assigned_regular_on_heap_memory) {
+    this.assigned_regular_on_heap_memory = assigned_regular_on_heap_memory;
+    set_assigned_regular_on_heap_memory_isSet(true);
+  }
+
+  public void unset_assigned_regular_on_heap_memory() {
+    __isset_bitfield = EncodingUtils.clearBit(__isset_bitfield, __ASSIGNED_REGULAR_ON_HEAP_MEMORY_ISSET_ID);
+  }
+
+  /** Returns true if field assigned_regular_on_heap_memory is set (has been assigned a value) and false otherwise */
+  public boolean is_set_assigned_regular_on_heap_memory() {
+    return EncodingUtils.testBit(__isset_bitfield, __ASSIGNED_REGULAR_ON_HEAP_MEMORY_ISSET_ID);
+  }
+
+  public void set_assigned_regular_on_heap_memory_isSet(boolean value) {
+    __isset_bitfield = EncodingUtils.setBit(__isset_bitfield, __ASSIGNED_REGULAR_ON_HEAP_MEMORY_ISSET_ID, value);
+  }
+
+  public double get_assigned_shared_on_heap_memory() {
+    return this.assigned_shared_on_heap_memory;
+  }
+
+  public void set_assigned_shared_on_heap_memory(double assigned_shared_on_heap_memory) {
+    this.assigned_shared_on_heap_memory = assigned_shared_on_heap_memory;
+    set_assigned_shared_on_heap_memory_isSet(true);
+  }
+
+  public void unset_assigned_shared_on_heap_memory() {
+    __isset_bitfield = EncodingUtils.clearBit(__isset_bitfield, __ASSIGNED_SHARED_ON_HEAP_MEMORY_ISSET_ID);
+  }
+
+  /** Returns true if field assigned_shared_on_heap_memory is set (has been assigned a value) and false otherwise */
+  public boolean is_set_assigned_shared_on_heap_memory() {
+    return EncodingUtils.testBit(__isset_bitfield, __ASSIGNED_SHARED_ON_HEAP_MEMORY_ISSET_ID);
+  }
+
+  public void set_assigned_shared_on_heap_memory_isSet(boolean value) {
+    __isset_bitfield = EncodingUtils.setBit(__isset_bitfield, __ASSIGNED_SHARED_ON_HEAP_MEMORY_ISSET_ID, value);
+  }
+
+  public double get_assigned_regular_off_heap_memory() {
+    return this.assigned_regular_off_heap_memory;
+  }
+
+  public void set_assigned_regular_off_heap_memory(double assigned_regular_off_heap_memory) {
+    this.assigned_regular_off_heap_memory = assigned_regular_off_heap_memory;
+    set_assigned_regular_off_heap_memory_isSet(true);
+  }
+
+  public void unset_assigned_regular_off_heap_memory() {
+    __isset_bitfield = EncodingUtils.clearBit(__isset_bitfield, __ASSIGNED_REGULAR_OFF_HEAP_MEMORY_ISSET_ID);
+  }
+
+  /** Returns true if field assigned_regular_off_heap_memory is set (has been assigned a value) and false otherwise */
+  public boolean is_set_assigned_regular_off_heap_memory() {
+    return EncodingUtils.testBit(__isset_bitfield, __ASSIGNED_REGULAR_OFF_HEAP_MEMORY_ISSET_ID);
+  }
+
+  public void set_assigned_regular_off_heap_memory_isSet(boolean value) {
+    __isset_bitfield = EncodingUtils.setBit(__isset_bitfield, __ASSIGNED_REGULAR_OFF_HEAP_MEMORY_ISSET_ID, value);
+  }
+
+  public double get_assigned_shared_off_heap_memory() {
+    return this.assigned_shared_off_heap_memory;
+  }
+
+  public void set_assigned_shared_off_heap_memory(double assigned_shared_off_heap_memory) {
+    this.assigned_shared_off_heap_memory = assigned_shared_off_heap_memory;
+    set_assigned_shared_off_heap_memory_isSet(true);
+  }
+
+  public void unset_assigned_shared_off_heap_memory() {
+    __isset_bitfield = EncodingUtils.clearBit(__isset_bitfield, __ASSIGNED_SHARED_OFF_HEAP_MEMORY_ISSET_ID);
+  }
+
+  /** Returns true if field assigned_shared_off_heap_memory is set (has been assigned a value) and false otherwise */
+  public boolean is_set_assigned_shared_off_heap_memory() {
+    return EncodingUtils.testBit(__isset_bitfield, __ASSIGNED_SHARED_OFF_HEAP_MEMORY_ISSET_ID);
+  }
+
+  public void set_assigned_shared_off_heap_memory_isSet(boolean value) {
+    __isset_bitfield = EncodingUtils.setBit(__isset_bitfield, __ASSIGNED_SHARED_OFF_HEAP_MEMORY_ISSET_ID, value);
+  }
+
   public void setFieldValue(_Fields field, Object value) {
     switch (field) {
     case OWNER:
@@ -976,6 +1240,70 @@ public class OwnerResourceSummary implements org.apache.thrift.TBase<OwnerResour
       }
       break;
 
+    case REQUESTED_REGULAR_ON_HEAP_MEMORY:
+      if (value == null) {
+        unset_requested_regular_on_heap_memory();
+      } else {
+        set_requested_regular_on_heap_memory((Double)value);
+      }
+      break;
+
+    case REQUESTED_SHARED_ON_HEAP_MEMORY:
+      if (value == null) {
+        unset_requested_shared_on_heap_memory();
+      } else {
+        set_requested_shared_on_heap_memory((Double)value);
+      }
+      break;
+
+    case REQUESTED_REGULAR_OFF_HEAP_MEMORY:
+      if (value == null) {
+        unset_requested_regular_off_heap_memory();
+      } else {
+        set_requested_regular_off_heap_memory((Double)value);
+      }
+      break;
+
+    case REQUESTED_SHARED_OFF_HEAP_MEMORY:
+      if (value == null) {
+        unset_requested_shared_off_heap_memory();
+      } else {
+        set_requested_shared_off_heap_memory((Double)value);
+      }
+      break;
+
+    case ASSIGNED_REGULAR_ON_HEAP_MEMORY:
+      if (value == null) {
+        unset_assigned_regular_on_heap_memory();
+      } else {
+        set_assigned_regular_on_heap_memory((Double)value);
+      }
+      break;
+
+    case ASSIGNED_SHARED_ON_HEAP_MEMORY:
+      if (value == null) {
+        unset_assigned_shared_on_heap_memory();
+      } else {
+        set_assigned_shared_on_heap_memory((Double)value);
+      }
+      break;
+
+    case ASSIGNED_REGULAR_OFF_HEAP_MEMORY:
+      if (value == null) {
+        unset_assigned_regular_off_heap_memory();
+      } else {
+        set_assigned_regular_off_heap_memory((Double)value);
+      }
+      break;
+
+    case ASSIGNED_SHARED_OFF_HEAP_MEMORY:
+      if (value == null) {
+        unset_assigned_shared_off_heap_memory();
+      } else {
+        set_assigned_shared_off_heap_memory((Double)value);
+      }
+      break;
+
     }
   }
 
@@ -1041,6 +1369,30 @@ public class OwnerResourceSummary implements org.apache.thrift.TBase<OwnerResour
     case ASSIGNED_RAS_CPU:
       return get_assigned_ras_cpu();
 
+    case REQUESTED_REGULAR_ON_HEAP_MEMORY:
+      return get_requested_regular_on_heap_memory();
+
+    case REQUESTED_SHARED_ON_HEAP_MEMORY:
+      return get_requested_shared_on_heap_memory();
+
+    case REQUESTED_REGULAR_OFF_HEAP_MEMORY:
+      return get_requested_regular_off_heap_memory();
+
+    case REQUESTED_SHARED_OFF_HEAP_MEMORY:
+      return get_requested_shared_off_heap_memory();
+
+    case ASSIGNED_REGULAR_ON_HEAP_MEMORY:
+      return get_assigned_regular_on_heap_memory();
+
+    case ASSIGNED_SHARED_ON_HEAP_MEMORY:
+      return get_assigned_shared_on_heap_memory();
+
+    case ASSIGNED_REGULAR_OFF_HEAP_MEMORY:
+      return get_assigned_regular_off_heap_memory();
+
+    case ASSIGNED_SHARED_OFF_HEAP_MEMORY:
+      return get_assigned_shared_off_heap_memory();
+
     }
     throw new IllegalStateException();
   }
@@ -1092,6 +1444,22 @@ public class OwnerResourceSummary implements org.apache.thrift.TBase<OwnerResour
       return is_set_assigned_ras_total_memory();
     case ASSIGNED_RAS_CPU:
       return is_set_assigned_ras_cpu();
+    case REQUESTED_REGULAR_ON_HEAP_MEMORY:
+      return is_set_requested_regular_on_heap_memory();
+    case REQUESTED_SHARED_ON_HEAP_MEMORY:
+      return is_set_requested_shared_on_heap_memory();
+    case REQUESTED_REGULAR_OFF_HEAP_MEMORY:
+      return is_set_requested_regular_off_heap_memory();
+    case REQUESTED_SHARED_OFF_HEAP_MEMORY:
+      return is_set_requested_shared_off_heap_memory();
+    case ASSIGNED_REGULAR_ON_HEAP_MEMORY:
+      return is_set_assigned_regular_on_heap_memory();
+    case ASSIGNED_SHARED_ON_HEAP_MEMORY:
+      return is_set_assigned_shared_on_heap_memory();
+    case ASSIGNED_REGULAR_OFF_HEAP_MEMORY:
+      return is_set_assigned_regular_off_heap_memory();
+    case ASSIGNED_SHARED_OFF_HEAP_MEMORY:
+      return is_set_assigned_shared_off_heap_memory();
     }
     throw new IllegalStateException();
   }
@@ -1289,6 +1657,78 @@ public class OwnerResourceSummary implements org.apache.thrift.TBase<OwnerResour
         return false;
     }
 
+    boolean this_present_requested_regular_on_heap_memory = true && this.is_set_requested_regular_on_heap_memory();
+    boolean that_present_requested_regular_on_heap_memory = true && that.is_set_requested_regular_on_heap_memory();
+    if (this_present_requested_regular_on_heap_memory || that_present_requested_regular_on_heap_memory) {
+      if (!(this_present_requested_regular_on_heap_memory && that_present_requested_regular_on_heap_memory))
+        return false;
+      if (this.requested_regular_on_heap_memory != that.requested_regular_on_heap_memory)
+        return false;
+    }
+
+    boolean this_present_requested_shared_on_heap_memory = true && this.is_set_requested_shared_on_heap_memory();
+    boolean that_present_requested_shared_on_heap_memory = true && that.is_set_requested_shared_on_heap_memory();
+    if (this_present_requested_shared_on_heap_memory || that_present_requested_shared_on_heap_memory) {
+      if (!(this_present_requested_shared_on_heap_memory && that_present_requested_shared_on_heap_memory))
+        return false;
+      if (this.requested_shared_on_heap_memory != that.requested_shared_on_heap_memory)
+        return false;
+    }
+
+    boolean this_present_requested_regular_off_heap_memory = true && this.is_set_requested_regular_off_heap_memory();
+    boolean that_present_requested_regular_off_heap_memory = true && that.is_set_requested_regular_off_heap_memory();
+    if (this_present_requested_regular_off_heap_memory || that_present_requested_regular_off_heap_memory) {
+      if (!(this_present_requested_regular_off_heap_memory && that_present_requested_regular_off_heap_memory))
+        return false;
+      if (this.requested_regular_off_heap_memory != that.requested_regular_off_heap_memory)
+        return false;
+    }
+
+    boolean this_present_requested_shared_off_heap_memory = true && this.is_set_requested_shared_off_heap_memory();
+    boolean that_present_requested_shared_off_heap_memory = true && that.is_set_requested_shared_off_heap_memory();
+    if (this_present_requested_shared_off_heap_memory || that_present_requested_shared_off_heap_memory) {
+      if (!(this_present_requested_shared_off_heap_memory && that_present_requested_shared_off_heap_memory))
+        return false;
+      if (this.requested_shared_off_heap_memory != that.requested_shared_off_heap_memory)
+        return false;
+    }
+
+    boolean this_present_assigned_regular_on_heap_memory = true && this.is_set_assigned_regular_on_heap_memory();
+    boolean that_present_assigned_regular_on_heap_memory = true && that.is_set_assigned_regular_on_heap_memory();
+    if (this_present_assigned_regular_on_heap_memory || that_present_assigned_regular_on_heap_memory) {
+      if (!(this_present_assigned_regular_on_heap_memory && that_present_assigned_regular_on_heap_memory))
+        return false;
+      if (this.assigned_regular_on_heap_memory != that.assigned_regular_on_heap_memory)
+        return false;
+    }
+
+    boolean this_present_assigned_shared_on_heap_memory = true && this.is_set_assigned_shared_on_heap_memory();
+    boolean that_present_assigned_shared_on_heap_memory = true && that.is_set_assigned_shared_on_heap_memory();
+    if (this_present_assigned_shared_on_heap_memory || that_present_assigned_shared_on_heap_memory) {
+      if (!(this_present_assigned_shared_on_heap_memory && that_present_assigned_shared_on_heap_memory))
+        return false;
+      if (this.assigned_shared_on_heap_memory != that.assigned_shared_on_heap_memory)
+        return false;
+    }
+
+    boolean this_present_assigned_regular_off_heap_memory = true && this.is_set_assigned_regular_off_heap_memory();
+    boolean that_present_assigned_regular_off_heap_memory = true && that.is_set_assigned_regular_off_heap_memory();
+    if (this_present_assigned_regular_off_heap_memory || that_present_assigned_regular_off_heap_memory) {
+      if (!(this_present_assigned_regular_off_heap_memory && that_present_assigned_regular_off_heap_memory))
+        return false;
+      if (this.assigned_regular_off_heap_memory != that.assigned_regular_off_heap_memory)
+        return false;
+    }
+
+    boolean this_present_assigned_shared_off_heap_memory = true && this.is_set_assigned_shared_off_heap_memory();
+    boolean that_present_assigned_shared_off_heap_memory = true && that.is_set_assigned_shared_off_heap_memory();
+    if (this_present_assigned_shared_off_heap_memory || that_present_assigned_shared_off_heap_memory) {
+      if (!(this_present_assigned_shared_off_heap_memory && that_present_assigned_shared_off_heap_memory))
+        return false;
+      if (this.assigned_shared_off_heap_memory != that.assigned_shared_off_heap_memory)
+        return false;
+    }
+
     return true;
   }
 
@@ -1395,6 +1835,46 @@ public class OwnerResourceSummary implements org.apache.thrift.TBase<OwnerResour
     list.add(present_assigned_ras_cpu);
     if (present_assigned_ras_cpu)
       list.add(assigned_ras_cpu);
+
+    boolean present_requested_regular_on_heap_memory = true && (is_set_requested_regular_on_heap_memory());
+    list.add(present_requested_regular_on_heap_memory);
+    if (present_requested_regular_on_heap_memory)
+      list.add(requested_regular_on_heap_memory);
+
+    boolean present_requested_shared_on_heap_memory = true && (is_set_requested_shared_on_heap_memory());
+    list.add(present_requested_shared_on_heap_memory);
+    if (present_requested_shared_on_heap_memory)
+      list.add(requested_shared_on_heap_memory);
+
+    boolean present_requested_regular_off_heap_memory = true && (is_set_requested_regular_off_heap_memory());
+    list.add(present_requested_regular_off_heap_memory);
+    if (present_requested_regular_off_heap_memory)
+      list.add(requested_regular_off_heap_memory);
+
+    boolean present_requested_shared_off_heap_memory = true && (is_set_requested_shared_off_heap_memory());
+    list.add(present_requested_shared_off_heap_memory);
+    if (present_requested_shared_off_heap_memory)
+      list.add(requested_shared_off_heap_memory);
+
+    boolean present_assigned_regular_on_heap_memory = true && (is_set_assigned_regular_on_heap_memory());
+    list.add(present_assigned_regular_on_heap_memory);
+    if (present_assigned_regular_on_heap_memory)
+      list.add(assigned_regular_on_heap_memory);
+
+    boolean present_assigned_shared_on_heap_memory = true && (is_set_assigned_shared_on_heap_memory());
+    list.add(present_assigned_shared_on_heap_memory);
+    if (present_assigned_shared_on_heap_memory)
+      list.add(assigned_shared_on_heap_memory);
+
+    boolean present_assigned_regular_off_heap_memory = true && (is_set_assigned_regular_off_heap_memory());
+    list.add(present_assigned_regular_off_heap_memory);
+    if (present_assigned_regular_off_heap_memory)
+      list.add(assigned_regular_off_heap_memory);
+
+    boolean present_assigned_shared_off_heap_memory = true && (is_set_assigned_shared_off_heap_memory());
+    list.add(present_assigned_shared_off_heap_memory);
+    if (present_assigned_shared_off_heap_memory)
+      list.add(assigned_shared_off_heap_memory);
 
     return list.hashCode();
   }
@@ -1607,6 +2087,86 @@ public class OwnerResourceSummary implements org.apache.thrift.TBase<OwnerResour
         return lastComparison;
       }
     }
+    lastComparison = Boolean.valueOf(is_set_requested_regular_on_heap_memory()).compareTo(other.is_set_requested_regular_on_heap_memory());
+    if (lastComparison != 0) {
+      return lastComparison;
+    }
+    if (is_set_requested_regular_on_heap_memory()) {
+      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.requested_regular_on_heap_memory, other.requested_regular_on_heap_memory);
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+    }
+    lastComparison = Boolean.valueOf(is_set_requested_shared_on_heap_memory()).compareTo(other.is_set_requested_shared_on_heap_memory());
+    if (lastComparison != 0) {
+      return lastComparison;
+    }
+    if (is_set_requested_shared_on_heap_memory()) {
+      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.requested_shared_on_heap_memory, other.requested_shared_on_heap_memory);
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+    }
+    lastComparison = Boolean.valueOf(is_set_requested_regular_off_heap_memory()).compareTo(other.is_set_requested_regular_off_heap_memory());
+    if (lastComparison != 0) {
+      return lastComparison;
+    }
+    if (is_set_requested_regular_off_heap_memory()) {
+      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.requested_regular_off_heap_memory, other.requested_regular_off_heap_memory);
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+    }
+    lastComparison = Boolean.valueOf(is_set_requested_shared_off_heap_memory()).compareTo(other.is_set_requested_shared_off_heap_memory());
+    if (lastComparison != 0) {
+      return lastComparison;
+    }
+    if (is_set_requested_shared_off_heap_memory()) {
+      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.requested_shared_off_heap_memory, other.requested_shared_off_heap_memory);
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+    }
+    lastComparison = Boolean.valueOf(is_set_assigned_regular_on_heap_memory()).compareTo(other.is_set_assigned_regular_on_heap_memory());
+    if (lastComparison != 0) {
+      return lastComparison;
+    }
+    if (is_set_assigned_regular_on_heap_memory()) {
+      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.assigned_regular_on_heap_memory, other.assigned_regular_on_heap_memory);
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+    }
+    lastComparison = Boolean.valueOf(is_set_assigned_shared_on_heap_memory()).compareTo(other.is_set_assigned_shared_on_heap_memory());
+    if (lastComparison != 0) {
+      return lastComparison;
+    }
+    if (is_set_assigned_shared_on_heap_memory()) {
+      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.assigned_shared_on_heap_memory, other.assigned_shared_on_heap_memory);
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+    }
+    lastComparison = Boolean.valueOf(is_set_assigned_regular_off_heap_memory()).compareTo(other.is_set_assigned_regular_off_heap_memory());
+    if (lastComparison != 0) {
+      return lastComparison;
+    }
+    if (is_set_assigned_regular_off_heap_memory()) {
+      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.assigned_regular_off_heap_memory, other.assigned_regular_off_heap_memory);
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+    }
+    lastComparison = Boolean.valueOf(is_set_assigned_shared_off_heap_memory()).compareTo(other.is_set_assigned_shared_off_heap_memory());
+    if (lastComparison != 0) {
+      return lastComparison;
+    }
+    if (is_set_assigned_shared_off_heap_memory()) {
+      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.assigned_shared_off_heap_memory, other.assigned_shared_off_heap_memory);
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+    }
     return 0;
   }
 
@@ -1746,6 +2306,54 @@ public class OwnerResourceSummary implements org.apache.thrift.TBase<OwnerResour
       if (!first) sb.append(", ");
       sb.append("assigned_ras_cpu:");
       sb.append(this.assigned_ras_cpu);
+      first = false;
+    }
+    if (is_set_requested_regular_on_heap_memory()) {
+      if (!first) sb.append(", ");
+      sb.append("requested_regular_on_heap_memory:");
+      sb.append(this.requested_regular_on_heap_memory);
+      first = false;
+    }
+    if (is_set_requested_shared_on_heap_memory()) {
+      if (!first) sb.append(", ");
+      sb.append("requested_shared_on_heap_memory:");
+      sb.append(this.requested_shared_on_heap_memory);
+      first = false;
+    }
+    if (is_set_requested_regular_off_heap_memory()) {
+      if (!first) sb.append(", ");
+      sb.append("requested_regular_off_heap_memory:");
+      sb.append(this.requested_regular_off_heap_memory);
+      first = false;
+    }
+    if (is_set_requested_shared_off_heap_memory()) {
+      if (!first) sb.append(", ");
+      sb.append("requested_shared_off_heap_memory:");
+      sb.append(this.requested_shared_off_heap_memory);
+      first = false;
+    }
+    if (is_set_assigned_regular_on_heap_memory()) {
+      if (!first) sb.append(", ");
+      sb.append("assigned_regular_on_heap_memory:");
+      sb.append(this.assigned_regular_on_heap_memory);
+      first = false;
+    }
+    if (is_set_assigned_shared_on_heap_memory()) {
+      if (!first) sb.append(", ");
+      sb.append("assigned_shared_on_heap_memory:");
+      sb.append(this.assigned_shared_on_heap_memory);
+      first = false;
+    }
+    if (is_set_assigned_regular_off_heap_memory()) {
+      if (!first) sb.append(", ");
+      sb.append("assigned_regular_off_heap_memory:");
+      sb.append(this.assigned_regular_off_heap_memory);
+      first = false;
+    }
+    if (is_set_assigned_shared_off_heap_memory()) {
+      if (!first) sb.append(", ");
+      sb.append("assigned_shared_off_heap_memory:");
+      sb.append(this.assigned_shared_off_heap_memory);
       first = false;
     }
     sb.append(")");
@@ -1957,6 +2565,70 @@ public class OwnerResourceSummary implements org.apache.thrift.TBase<OwnerResour
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
             break;
+          case 21: // REQUESTED_REGULAR_ON_HEAP_MEMORY
+            if (schemeField.type == org.apache.thrift.protocol.TType.DOUBLE) {
+              struct.requested_regular_on_heap_memory = iprot.readDouble();
+              struct.set_requested_regular_on_heap_memory_isSet(true);
+            } else { 
+              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+            }
+            break;
+          case 22: // REQUESTED_SHARED_ON_HEAP_MEMORY
+            if (schemeField.type == org.apache.thrift.protocol.TType.DOUBLE) {
+              struct.requested_shared_on_heap_memory = iprot.readDouble();
+              struct.set_requested_shared_on_heap_memory_isSet(true);
+            } else { 
+              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+            }
+            break;
+          case 23: // REQUESTED_REGULAR_OFF_HEAP_MEMORY
+            if (schemeField.type == org.apache.thrift.protocol.TType.DOUBLE) {
+              struct.requested_regular_off_heap_memory = iprot.readDouble();
+              struct.set_requested_regular_off_heap_memory_isSet(true);
+            } else { 
+              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+            }
+            break;
+          case 24: // REQUESTED_SHARED_OFF_HEAP_MEMORY
+            if (schemeField.type == org.apache.thrift.protocol.TType.DOUBLE) {
+              struct.requested_shared_off_heap_memory = iprot.readDouble();
+              struct.set_requested_shared_off_heap_memory_isSet(true);
+            } else { 
+              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+            }
+            break;
+          case 25: // ASSIGNED_REGULAR_ON_HEAP_MEMORY
+            if (schemeField.type == org.apache.thrift.protocol.TType.DOUBLE) {
+              struct.assigned_regular_on_heap_memory = iprot.readDouble();
+              struct.set_assigned_regular_on_heap_memory_isSet(true);
+            } else { 
+              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+            }
+            break;
+          case 26: // ASSIGNED_SHARED_ON_HEAP_MEMORY
+            if (schemeField.type == org.apache.thrift.protocol.TType.DOUBLE) {
+              struct.assigned_shared_on_heap_memory = iprot.readDouble();
+              struct.set_assigned_shared_on_heap_memory_isSet(true);
+            } else { 
+              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+            }
+            break;
+          case 27: // ASSIGNED_REGULAR_OFF_HEAP_MEMORY
+            if (schemeField.type == org.apache.thrift.protocol.TType.DOUBLE) {
+              struct.assigned_regular_off_heap_memory = iprot.readDouble();
+              struct.set_assigned_regular_off_heap_memory_isSet(true);
+            } else { 
+              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+            }
+            break;
+          case 28: // ASSIGNED_SHARED_OFF_HEAP_MEMORY
+            if (schemeField.type == org.apache.thrift.protocol.TType.DOUBLE) {
+              struct.assigned_shared_off_heap_memory = iprot.readDouble();
+              struct.set_assigned_shared_off_heap_memory_isSet(true);
+            } else { 
+              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+            }
+            break;
           default:
             org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
         }
@@ -2070,6 +2742,46 @@ public class OwnerResourceSummary implements org.apache.thrift.TBase<OwnerResour
         oprot.writeI32(struct.assigned_ras_cpu);
         oprot.writeFieldEnd();
       }
+      if (struct.is_set_requested_regular_on_heap_memory()) {
+        oprot.writeFieldBegin(REQUESTED_REGULAR_ON_HEAP_MEMORY_FIELD_DESC);
+        oprot.writeDouble(struct.requested_regular_on_heap_memory);
+        oprot.writeFieldEnd();
+      }
+      if (struct.is_set_requested_shared_on_heap_memory()) {
+        oprot.writeFieldBegin(REQUESTED_SHARED_ON_HEAP_MEMORY_FIELD_DESC);
+        oprot.writeDouble(struct.requested_shared_on_heap_memory);
+        oprot.writeFieldEnd();
+      }
+      if (struct.is_set_requested_regular_off_heap_memory()) {
+        oprot.writeFieldBegin(REQUESTED_REGULAR_OFF_HEAP_MEMORY_FIELD_DESC);
+        oprot.writeDouble(struct.requested_regular_off_heap_memory);
+        oprot.writeFieldEnd();
+      }
+      if (struct.is_set_requested_shared_off_heap_memory()) {
+        oprot.writeFieldBegin(REQUESTED_SHARED_OFF_HEAP_MEMORY_FIELD_DESC);
+        oprot.writeDouble(struct.requested_shared_off_heap_memory);
+        oprot.writeFieldEnd();
+      }
+      if (struct.is_set_assigned_regular_on_heap_memory()) {
+        oprot.writeFieldBegin(ASSIGNED_REGULAR_ON_HEAP_MEMORY_FIELD_DESC);
+        oprot.writeDouble(struct.assigned_regular_on_heap_memory);
+        oprot.writeFieldEnd();
+      }
+      if (struct.is_set_assigned_shared_on_heap_memory()) {
+        oprot.writeFieldBegin(ASSIGNED_SHARED_ON_HEAP_MEMORY_FIELD_DESC);
+        oprot.writeDouble(struct.assigned_shared_on_heap_memory);
+        oprot.writeFieldEnd();
+      }
+      if (struct.is_set_assigned_regular_off_heap_memory()) {
+        oprot.writeFieldBegin(ASSIGNED_REGULAR_OFF_HEAP_MEMORY_FIELD_DESC);
+        oprot.writeDouble(struct.assigned_regular_off_heap_memory);
+        oprot.writeFieldEnd();
+      }
+      if (struct.is_set_assigned_shared_off_heap_memory()) {
+        oprot.writeFieldBegin(ASSIGNED_SHARED_OFF_HEAP_MEMORY_FIELD_DESC);
+        oprot.writeDouble(struct.assigned_shared_off_heap_memory);
+        oprot.writeFieldEnd();
+      }
       oprot.writeFieldStop();
       oprot.writeStructEnd();
     }
@@ -2146,7 +2858,31 @@ public class OwnerResourceSummary implements org.apache.thrift.TBase<OwnerResour
       if (struct.is_set_assigned_ras_cpu()) {
         optionals.set(18);
       }
-      oprot.writeBitSet(optionals, 19);
+      if (struct.is_set_requested_regular_on_heap_memory()) {
+        optionals.set(19);
+      }
+      if (struct.is_set_requested_shared_on_heap_memory()) {
+        optionals.set(20);
+      }
+      if (struct.is_set_requested_regular_off_heap_memory()) {
+        optionals.set(21);
+      }
+      if (struct.is_set_requested_shared_off_heap_memory()) {
+        optionals.set(22);
+      }
+      if (struct.is_set_assigned_regular_on_heap_memory()) {
+        optionals.set(23);
+      }
+      if (struct.is_set_assigned_shared_on_heap_memory()) {
+        optionals.set(24);
+      }
+      if (struct.is_set_assigned_regular_off_heap_memory()) {
+        optionals.set(25);
+      }
+      if (struct.is_set_assigned_shared_off_heap_memory()) {
+        optionals.set(26);
+      }
+      oprot.writeBitSet(optionals, 27);
       if (struct.is_set_total_topologies()) {
         oprot.writeI32(struct.total_topologies);
       }
@@ -2204,6 +2940,30 @@ public class OwnerResourceSummary implements org.apache.thrift.TBase<OwnerResour
       if (struct.is_set_assigned_ras_cpu()) {
         oprot.writeI32(struct.assigned_ras_cpu);
       }
+      if (struct.is_set_requested_regular_on_heap_memory()) {
+        oprot.writeDouble(struct.requested_regular_on_heap_memory);
+      }
+      if (struct.is_set_requested_shared_on_heap_memory()) {
+        oprot.writeDouble(struct.requested_shared_on_heap_memory);
+      }
+      if (struct.is_set_requested_regular_off_heap_memory()) {
+        oprot.writeDouble(struct.requested_regular_off_heap_memory);
+      }
+      if (struct.is_set_requested_shared_off_heap_memory()) {
+        oprot.writeDouble(struct.requested_shared_off_heap_memory);
+      }
+      if (struct.is_set_assigned_regular_on_heap_memory()) {
+        oprot.writeDouble(struct.assigned_regular_on_heap_memory);
+      }
+      if (struct.is_set_assigned_shared_on_heap_memory()) {
+        oprot.writeDouble(struct.assigned_shared_on_heap_memory);
+      }
+      if (struct.is_set_assigned_regular_off_heap_memory()) {
+        oprot.writeDouble(struct.assigned_regular_off_heap_memory);
+      }
+      if (struct.is_set_assigned_shared_off_heap_memory()) {
+        oprot.writeDouble(struct.assigned_shared_off_heap_memory);
+      }
     }
 
     @Override
@@ -2211,7 +2971,7 @@ public class OwnerResourceSummary implements org.apache.thrift.TBase<OwnerResour
       TTupleProtocol iprot = (TTupleProtocol) prot;
       struct.owner = iprot.readString();
       struct.set_owner_isSet(true);
-      BitSet incoming = iprot.readBitSet(19);
+      BitSet incoming = iprot.readBitSet(27);
       if (incoming.get(0)) {
         struct.total_topologies = iprot.readI32();
         struct.set_total_topologies_isSet(true);
@@ -2287,6 +3047,38 @@ public class OwnerResourceSummary implements org.apache.thrift.TBase<OwnerResour
       if (incoming.get(18)) {
         struct.assigned_ras_cpu = iprot.readI32();
         struct.set_assigned_ras_cpu_isSet(true);
+      }
+      if (incoming.get(19)) {
+        struct.requested_regular_on_heap_memory = iprot.readDouble();
+        struct.set_requested_regular_on_heap_memory_isSet(true);
+      }
+      if (incoming.get(20)) {
+        struct.requested_shared_on_heap_memory = iprot.readDouble();
+        struct.set_requested_shared_on_heap_memory_isSet(true);
+      }
+      if (incoming.get(21)) {
+        struct.requested_regular_off_heap_memory = iprot.readDouble();
+        struct.set_requested_regular_off_heap_memory_isSet(true);
+      }
+      if (incoming.get(22)) {
+        struct.requested_shared_off_heap_memory = iprot.readDouble();
+        struct.set_requested_shared_off_heap_memory_isSet(true);
+      }
+      if (incoming.get(23)) {
+        struct.assigned_regular_on_heap_memory = iprot.readDouble();
+        struct.set_assigned_regular_on_heap_memory_isSet(true);
+      }
+      if (incoming.get(24)) {
+        struct.assigned_shared_on_heap_memory = iprot.readDouble();
+        struct.set_assigned_shared_on_heap_memory_isSet(true);
+      }
+      if (incoming.get(25)) {
+        struct.assigned_regular_off_heap_memory = iprot.readDouble();
+        struct.set_assigned_regular_off_heap_memory_isSet(true);
+      }
+      if (incoming.get(26)) {
+        struct.assigned_shared_off_heap_memory = iprot.readDouble();
+        struct.set_assigned_shared_off_heap_memory_isSet(true);
       }
     }
   }

@@ -43,7 +43,6 @@ import backtype.storm.localizer.LocalResource;
 import backtype.storm.localizer.LocalizedResource;
 import backtype.storm.localizer.Localizer;
 import backtype.storm.generated.LocalAssignment;
-import backtype.storm.generated.StormTopology;
 import org.apache.storm.utils.ConfigUtils;
 import backtype.storm.utils.Utils;
 import org.slf4j.Logger;
@@ -101,10 +100,12 @@ public class AsyncLocalizer implements ILocalizer, Shutdownable {
     private class DownloadBaseBlobsDistributed implements Callable<Void> {
         protected final String _topologyId;
         protected final File _stormRoot;
+        protected final LocalAssignment _assignment;
         
-        public DownloadBaseBlobsDistributed(String topologyId) throws IOException {
+        public DownloadBaseBlobsDistributed(String topologyId, LocalAssignment assignment) throws IOException {
             _topologyId = topologyId;
             _stormRoot = new File(ConfigUtils.supervisorStormDistRoot(_conf, _topologyId));
+            _assignment = assignment;
         }
         
         protected void downloadBaseBlobs(File tmproot) throws Exception {
@@ -154,6 +155,15 @@ public class AsyncLocalizer implements ILocalizer, Shutdownable {
                     else {
                         _fsOps.setupStormCodeDir(topoConf, _stormRoot);
                     }
+
+                    if (_assignment.is_set_total_node_shared()) {
+                        //We need to create a directory for shared memory to write to (we should not encourage this though)
+                        File sharedMemoryDir = new File(_stormRoot, "shared_by_topology");
+                        if (!sharedMemoryDir.mkdirs()) {
+                            throw new RuntimeException("We were not able to create " + sharedMemoryDir);
+                        }
+                        _fsOps.setupWorkerArtifactsDir(topoConf, sharedMemoryDir);
+                    }
                     deleteAll = false;
                 } finally {
                     if (deleteAll) {
@@ -172,8 +182,8 @@ public class AsyncLocalizer implements ILocalizer, Shutdownable {
     
     private class DownloadBaseBlobsLocal extends DownloadBaseBlobsDistributed {
 
-        public DownloadBaseBlobsLocal(String topologyId) throws IOException {
-            super(topologyId);
+        public DownloadBaseBlobsLocal(String topologyId, LocalAssignment assignment) throws IOException {
+            super(topologyId, assignment);
         }
         
         @Override
@@ -315,9 +325,9 @@ public class AsyncLocalizer implements ILocalizer, Shutdownable {
         if (localResource == null) {
             Callable<Void> c;
             if (_isLocalMode) {
-                c = new DownloadBaseBlobsLocal(topologyId);
+                c = new DownloadBaseBlobsLocal(topologyId, assignment);
             } else {
-                c = new DownloadBaseBlobsDistributed(topologyId);
+                c = new DownloadBaseBlobsDistributed(topologyId, assignment);
             }
             localResource = new LocalDownloadedResource(_execService.submit(c));
             _basicPending.put(topologyId, localResource);

@@ -46,7 +46,8 @@ import java.util.Stack;
 import java.util.TreeMap;
 
 public class ConstraintSolverStrategy implements IStrategy{
-
+    private static final Logger LOG = LoggerFactory.getLogger(ConstraintSolverStrategy.class);
+    
     private Map<String, RAS_Node> nodes;
     private Cluster cluster;
     private ArrayList<WorkerSlot> workerSlots;
@@ -76,20 +77,18 @@ public class ConstraintSolverStrategy implements IStrategy{
 
     private TopologyDetails topo;
 
-    private static final Logger LOG = LoggerFactory.getLogger(ConstraintSolverStrategy.class);
-
     @Override
     public void prepare(SchedulingState schedulingState) {
-        this.nodes = schedulingState.nodes.getNodeMap();
-        this.cluster = schedulingState.cluster;
-        this.sortedExecs = new ArrayList<ExecutorDetails>();
-        this.execToWorker = new HashMap<ExecutorDetails, WorkerSlot>();
-        this.workerCompAssignment = new HashMap<WorkerSlot, Set<String>>();
-        this.nodeCompAssignment = new HashMap<RAS_Node, Set<String>>();
-        this.workerToExecs = new HashMap<WorkerSlot, Set<ExecutorDetails>>();
-        this.numBacktrack = 0;
-        this.traversalDepth = 0;
-        this.stackFrames = 0;
+        nodes = schedulingState.nodes.getNodeMap();
+        cluster = schedulingState.cluster;
+        sortedExecs = new ArrayList<ExecutorDetails>();
+        execToWorker = new HashMap<ExecutorDetails, WorkerSlot>();
+        workerCompAssignment = new HashMap<WorkerSlot, Set<String>>();
+        nodeCompAssignment = new HashMap<RAS_Node, Set<String>>();
+        workerToExecs = new HashMap<WorkerSlot, Set<ExecutorDetails>>();
+        numBacktrack = 0;
+        traversalDepth = 0;
+        stackFrames = 0;
     }
 
     @Override
@@ -97,12 +96,12 @@ public class ConstraintSolverStrategy implements IStrategy{
         initialize(td);
 
         //early detection/early fail
-        if (!this.checkSchedulingFeasibility()) {
+        if (!checkSchedulingFeasibility()) {
             //Scheduling Status set to FAIL_OTHER so no eviction policy will be attempted to make space for this topology
             return SchedulingResult.failure(SchedulingStatus.FAIL_OTHER, "Scheduling not feasible!");
         }
+        Collection<ExecutorDetails> unassigned = cluster.getUnassignedExecutors(td);
         Map<ExecutorDetails, WorkerSlot> result = findScheduling();
-
         if (result == null) {
             return SchedulingResult.failure(SchedulingStatus.FAIL_NOT_ENOUGH_RESOURCES, "Cannot find Scheduling that satisfy constraints");
         } else {
@@ -110,40 +109,42 @@ public class ConstraintSolverStrategy implements IStrategy{
             for (Map.Entry<ExecutorDetails, WorkerSlot> entry : result.entrySet()) {
                 ExecutorDetails exec = entry.getKey();
                 WorkerSlot workerSlot = entry.getValue();
-                if (this.cluster.getUnassignedExecutors(td).contains(exec)) {
-                    if (!resultOrganized.containsKey(workerSlot)) {
-                        resultOrganized.put(workerSlot, new LinkedList<ExecutorDetails>());
+                if (unassigned.contains(exec)) {
+                    Collection<ExecutorDetails> execs = resultOrganized.get(workerSlot);
+                    if (execs == null) {
+                        execs = new LinkedList<>();
+                        resultOrganized.put(workerSlot, execs);
                     }
-                    resultOrganized.get(workerSlot).add(exec);
+                    execs.add(exec);
                 }
             }
-            return SchedulingResult.successWithMsg(resultOrganized, "Fully Scheduled by ConstraintSolverStrategy (" + this.getTraversalDepth() + " states traversed)");
+            return SchedulingResult.successWithMsg(resultOrganized, "Fully Scheduled by ConstraintSolverStrategy (" + getTraversalDepth() + " states traversed)");
         }
     }
 
     private Map<ExecutorDetails, WorkerSlot> findScheduling() {
-        return this.backtrackSearch(this.sortedExecs, 0);
+        return backtrackSearch(sortedExecs, 0);
     }
 
     /**
      * checks if a scheduling is even feasible
      */
     private boolean checkSchedulingFeasibility() {
-        if (this.workerSlots.isEmpty()) {
+        if (workerSlots.isEmpty()) {
             LOG.error("No Valid Slots specified");
             return false;
         }
-        for (String comp : this.spreadComps) {
-            int numExecs = this.compToExecs.get(comp).size();
-            if (numExecs > this.nodes.size()) {
+        for (String comp : spreadComps) {
+            int numExecs = compToExecs.get(comp).size();
+            if (numExecs > nodes.size()) {
                 LOG.error("Unsatisfiable constraint: Component: {} marked as spread has {} executors which is larger than number of nodes: {}", comp, numExecs, nodes.size());
                 return false;
             }
         }
-        if (this.execToComp.size() >= MAX_RECURSIVE_DEPTH) {
+        if (execToComp.size() >= MAX_RECURSIVE_DEPTH) {
             LOG.error("Number of executors is greater than the MAX_RECURSION_DEPTH.  " +
                     "Either reduce number of executors or increase jvm stack size and increase MAX_RECURSION_DEPTH size. " +
-                    "# of executors: {} Max recursive depth: {}", this.execToComp.size(), MAX_RECURSIVE_DEPTH);
+                    "# of executors: {} Max recursive depth: {}", execToComp.size(), MAX_RECURSIVE_DEPTH);
             return false;
         }
         return true;
@@ -152,67 +153,68 @@ public class ConstraintSolverStrategy implements IStrategy{
     /**
      * Constructor initializes some structures for fast lookups
      */
+    @SuppressWarnings("unchecked")
     public void initialize(TopologyDetails topo) {
         this.topo = topo;
         //set max traversal depth
-        this.maxTraversalDepth = Utils.getInt(topo.getConf().get(Config.TOPOLOGY_CONSTRAINTS_MAX_DEPTH_TRAVERSAL));
+        maxTraversalDepth = Utils.getInt(topo.getConf().get(Config.TOPOLOGY_CONSTRAINTS_MAX_DEPTH_TRAVERSAL));
 
         //get worker to node mapping
-        this.workerToNodes = getFreeWorkerToNodeMapping(this.nodes.values());
+        workerToNodes = getFreeWorkerToNodeMapping(nodes.values());
 
         //get all workerslots to use
-        this.workerSlots = new ArrayList<WorkerSlot>(this.workerToNodes.keySet());
+        workerSlots = new ArrayList<WorkerSlot>(workerToNodes.keySet());
 
         //get mapping of execs to components
-        this.execToComp = topo.getExecutorToComponent();
+        execToComp = topo.getExecutorToComponent();
         //get mapping of components to executors
-        this.compToExecs = getCompToExecs(this.execToComp);
+        compToExecs = getCompToExecs(execToComp);
 
         //get topology constraints
         List<List<String>> constraints = (List<List<String>>) topo.getConf().get(Config.TOPOLOGY_CONSTRAINTS);
-        this.constraintMatrix = getConstraintMap(constraints, this.compToExecs.keySet());
+        constraintMatrix = getConstraintMap(constraints, compToExecs.keySet());
 
         //get spread components
         if (topo.getConf().get(Config.TOPOLOGY_SPREAD_COMPONENTS) != null) {
-            this.spreadComps = getSpreadComps((List<String>) topo.getConf()
-                    .get(Config.TOPOLOGY_SPREAD_COMPONENTS), this.compToExecs.keySet());
+            spreadComps = getSpreadComps((List<String>) topo.getConf()
+                    .get(Config.TOPOLOGY_SPREAD_COMPONENTS), compToExecs.keySet());
         }
 
         //get a sorted list of unassigned executors based on number of constraints
-        Set<ExecutorDetails> unassignedExecutors = new HashSet<ExecutorDetails>(this.cluster.getUnassignedExecutors(topo));
-        for (ExecutorDetails exec : getSortedExecs(this.spreadComps, this.constraintMatrix, this.compToExecs)) {
+        Set<ExecutorDetails> unassignedExecutors = new HashSet<ExecutorDetails>(cluster.getUnassignedExecutors(topo));
+        for (ExecutorDetails exec : getSortedExecs(spreadComps, constraintMatrix, compToExecs)) {
             if (unassignedExecutors.contains(exec)) {
-                this.sortedExecs.add(exec);
+                sortedExecs.add(exec);
             }
         }
 
         //initialize structures
-        for (RAS_Node node : this.nodes.values()) {
-            this.nodeCompAssignment.put(node, new HashSet<String>());
+        for (RAS_Node node : nodes.values()) {
+            nodeCompAssignment.put(node, new HashSet<String>());
         }
-        for (WorkerSlot worker : this.workerSlots) {
-            this.workerCompAssignment.put(worker, new HashSet<String>());
-            this.workerToExecs.put(worker, new HashSet<ExecutorDetails>());
+        for (WorkerSlot worker : workerSlots) {
+            workerCompAssignment.put(worker, new HashSet<String>());
+            workerToExecs.put(worker, new HashSet<ExecutorDetails>());
         }
         //populate with existing assignments
         SchedulerAssignment existingAssignment = cluster.getAssignmentById(topo.getId());
         if (existingAssignment != null) {
             for (Map.Entry<ExecutorDetails, WorkerSlot> entry : existingAssignment.getExecutorToSlot().entrySet()) {
                 ExecutorDetails exec = entry.getKey();
-                String compId = this.execToComp.get(exec);
+                String compId = execToComp.get(exec);
                 WorkerSlot ws = entry.getValue();
-                RAS_Node node = this.nodes.get(ws.getNodeId());
+                RAS_Node node = nodes.get(ws.getNodeId());
                 //populate node to component Assignments
-                this.nodeCompAssignment.get(node).add(compId);
+                nodeCompAssignment.get(node).add(compId);
                 //populate worker to comp assignments
-                if (!this.workerCompAssignment.containsKey(ws)) {
-                    this.workerCompAssignment.put(ws, new HashSet<String>());
-                    this.workerToExecs.put(ws, new HashSet<ExecutorDetails>());
+                if (!workerCompAssignment.containsKey(ws)) {
+                    workerCompAssignment.put(ws, new HashSet<String>());
+                    workerToExecs.put(ws, new HashSet<ExecutorDetails>());
                 }
-                this.workerCompAssignment.get(ws).add(compId);
-                this.workerToExecs.get(ws).add(exec);
+                workerCompAssignment.get(ws).add(compId);
+                workerToExecs.get(ws).add(exec);
                 //populate executor to worker assignments
-                this.execToWorker.put(exec, ws);
+                execToWorker.put(exec, ws);
             }
         }
         printDebugMessages(constraints);
@@ -221,59 +223,57 @@ public class ConstraintSolverStrategy implements IStrategy{
     /**
      * Backtracking algorithm does not take into account the ordering of executors in worker to reduce traversal space
      */
-
     private Map<ExecutorDetails, WorkerSlot> backtrackSearch(ArrayList<ExecutorDetails> execs, int execIndex) {
 
-        if (this.traversalDepth % 100000 == 0) {
-            LOG.debug("Traversal Depth: {}", this.traversalDepth);
-            LOG.debug("stack frames: {}", this.stackFrames);
-            LOG.debug("backtrack: {}", this.numBacktrack);
+        if (traversalDepth % 100000 == 0) {
+            LOG.debug("Traversal Depth: {}", traversalDepth);
+            LOG.debug("stack frames: {}", stackFrames);
+            LOG.debug("backtrack: {}", numBacktrack);
         }
-        if (this.traversalDepth > this.maxTraversalDepth || this.stackFrames >= MAX_RECURSIVE_DEPTH) {
+        if (traversalDepth > maxTraversalDepth || stackFrames >= MAX_RECURSIVE_DEPTH) {
             LOG.warn("Exceeded max depth");
             return null;
         }
-        this.traversalDepth++;
+        traversalDepth++;
 
-        if (this.isValidAssignment(this.execToWorker)) {
-            return this.execToWorker;
+        if (isValidAssignment(execToWorker)) {
+            return execToWorker;
         }
 
-        for (int i = 0; i< this.workerSlots.size(); i++) {
+        for (WorkerSlot workerSlot : workerSlots) {
             if (execIndex >= execs.size()) {
                 break;
             }
-            WorkerSlot workerSlot = this.workerSlots.get(i);
             ExecutorDetails exec = execs.get(execIndex);
-            if (this.isExecAssignmentToWorkerValid(exec, workerSlot)) {
-                RAS_Node node = this.workerToNodes.get(workerSlot);
-                String comp = this.execToComp.get(exec);
+            if (isExecAssignmentToWorkerValid(exec, workerSlot)) {
+                RAS_Node node = workerToNodes.get(workerSlot);
+                String comp = execToComp.get(exec);
 
-                this.workerCompAssignment.get(workerSlot).add(comp);
+                workerCompAssignment.get(workerSlot).add(comp);
 
-                this.nodeCompAssignment.get(node).add(comp);
+                nodeCompAssignment.get(node).add(comp);
 
-                this.execToWorker.put(exec, workerSlot);
+                execToWorker.put(exec, workerSlot);
 
-                this.workerToExecs.get(workerSlot).add(exec);
-                node.consumeResourcesforTask(exec, this.topo);
+                workerToExecs.get(workerSlot).add(exec);
+                node.assignSingleExecutor(workerSlot, exec, topo);
 
-                this.stackFrames++;
+                stackFrames++;
                 execIndex ++;
-                Map<ExecutorDetails, WorkerSlot> results = this.backtrackSearch(execs, execIndex);;
+                Map<ExecutorDetails, WorkerSlot> results = backtrackSearch(execs, execIndex);;
 
                 if (results != null) {
                     return results;
                 }
 
                 //backtracking
-                this.workerCompAssignment.get(workerSlot).remove(comp);
-                this.nodeCompAssignment.get(node).remove(comp);
-                this.execToWorker.remove(exec);
-                this.workerToExecs.get(workerSlot).remove(exec);
-                node.freeResourcesForTask(exec, this.topo);
-                this.numBacktrack++;
-                execIndex --;
+                workerCompAssignment.get(workerSlot).remove(comp);
+                nodeCompAssignment.get(node).remove(comp);
+                execToWorker.remove(exec);
+                workerToExecs.get(workerSlot).remove(exec);
+                node.freeSingleExecutor(exec, topo);
+                numBacktrack++;
+                execIndex--;
             }
         }
         return null;
@@ -285,68 +285,38 @@ public class ConstraintSolverStrategy implements IStrategy{
      */
     public boolean isExecAssignmentToWorkerValid(ExecutorDetails exec, WorkerSlot worker) {
         //check if we have already scheduled this exec
-        if (this.execToWorker.containsKey(exec)) {
+        if (execToWorker.containsKey(exec)) {
             return false;
         }
 
         //check resources
-        RAS_Node node = this.workerToNodes.get(worker);
-        double taskMem = this.topo.getTotalMemReqTask(exec);
-        double taskCPU = this.topo.getTotalCpuReqTask(exec);
-        if (!(node.getAvailableCpuResources() >= taskCPU && node.getAvailableMemoryResources() >= taskMem)) {
-            return false;
-        }
-
-        //check max heap memory worker
-        if(!(this.getWorkerScheduledMemoryAvailable(worker, this.topo, this.workerToExecs) >= taskMem)) {
+        RAS_Node node = workerToNodes.get(worker);
+        if (!node.wouldFit(worker, exec, topo)) {
             return false;
         }
 
         //check if exec can be on worker based on user defined component exclusions
-        String execComp = this.execToComp.get(exec);
-        for (String comp : this.workerCompAssignment.get(worker)) {
-            if (this.constraintMatrix.get(execComp).get(comp) !=0) {
+        String execComp = execToComp.get(exec);
+        for (String comp : workerCompAssignment.get(worker)) {
+            if (constraintMatrix.get(execComp).get(comp) !=0) {
                 return false;
             }
         }
 
         //check if exec satisfy spread
-        if (this.spreadComps.contains(execComp)) {
-            if (this.nodeCompAssignment.get(node).contains(execComp)) {
+        if (spreadComps.contains(execComp)) {
+            if (nodeCompAssignment.get(node).contains(execComp)) {
                 return false;
             }
         }
         return true;
     }
 
-    private Double getWorkerScheduledMemoryAvailable(WorkerSlot ws, TopologyDetails td, Map<WorkerSlot, Set<ExecutorDetails>> scheduleAssignmentMap) {
-        Double memScheduleUsed = this.getWorkerScheduledMemoryUse(ws, td, scheduleAssignmentMap);
-        return td.getTopologyWorkerMaxHeapSize() - memScheduleUsed;
-    }
-
-    /**
-     * Get the amount of memory already assigned to a worker
-     * @param ws
-     * @param td
-     * @param scheduleAssignmentMap
-     * @return the amount of memory
-     */
-    private Double getWorkerScheduledMemoryUse(WorkerSlot ws, TopologyDetails td, Map<WorkerSlot, Set<ExecutorDetails>> scheduleAssignmentMap) {
-        Double totalMem = 0.0;
-        Collection<ExecutorDetails> execs = scheduleAssignmentMap.get(ws);
-        if(execs != null) {
-            for(ExecutorDetails exec : execs) {
-                totalMem += td.getTotalMemReqTask(exec);
-            }
-        }
-        return totalMem;
-    }
-
     /**
      * Checks if we are done with computing the scheduling
      */
     public boolean isValidAssignment(Map<ExecutorDetails, WorkerSlot> execWorkerAssignment) {
-        return execWorkerAssignment.size() == this.execToComp.size();
+        return execWorkerAssignment.size() == execToComp.size();
     }
 
     Map<String, Map<String, Integer>> getConstraintMap(List<List<String>> constraints, Set<String> comps) {
@@ -377,15 +347,15 @@ public class ConstraintSolverStrategy implements IStrategy{
     }
 
     public int getNumBacktrack() {
-        return this.numBacktrack;
+        return numBacktrack;
     }
 
     public int getTraversalDepth() {
-        return this.traversalDepth;
+        return traversalDepth;
     }
 
     public int getRecursionDepth() {
-        return this.stackFrames;
+        return stackFrames;
     }
 
     /**
@@ -395,7 +365,7 @@ public class ConstraintSolverStrategy implements IStrategy{
         if (result == null) {
             return false;
         }
-        return this.checkSpreadSchedulingValid(result) && this.checkConstraintsSatisfied(result) && this.checkResourcesCorrect(result);
+        return checkSpreadSchedulingValid(result) && checkConstraintsSatisfied(result) && checkResourcesCorrect(result);
     }
 
     /**
@@ -406,7 +376,7 @@ public class ConstraintSolverStrategy implements IStrategy{
         for (Map.Entry<ExecutorDetails, WorkerSlot> entry : result.entrySet()) {
             WorkerSlot worker = entry.getValue();
             ExecutorDetails exec = entry.getKey();
-            String comp = this.execToComp.get(exec);
+            String comp = execToComp.get(exec);
             if (!workerCompMap.containsKey(worker)) {
                 workerCompMap.put(worker, new LinkedList<String>());
             }
@@ -416,7 +386,7 @@ public class ConstraintSolverStrategy implements IStrategy{
             List<String> comps = entry.getValue();
             for (int i=0; i<comps.size(); i++) {
                 for (int j=0; j<comps.size(); j++) {
-                    if (i != j && this.constraintMatrix.get(comps.get(i)).get(comps.get(j)) == 1) {
+                    if (i != j && constraintMatrix.get(comps.get(i)).get(comps.get(j)) == 1) {
                         LOG.error("Incorrect Scheduling: worker exclusion for Component {} and {} not satisfied on WorkerSlot: {}", comps.get(i), comps.get(j), entry.getKey());
                         return false;
                     }
@@ -437,8 +407,8 @@ public class ConstraintSolverStrategy implements IStrategy{
         for (Map.Entry<ExecutorDetails, WorkerSlot> entry : result.entrySet()) {
             ExecutorDetails exec = entry.getKey();
             WorkerSlot worker = entry.getValue();
-            String comp = this.execToComp.get(exec);
-            RAS_Node node = this.workerToNodes.get(worker);
+            String comp = execToComp.get(exec);
+            RAS_Node node = workerToNodes.get(worker);
 
             if (!workerExecMap.containsKey(worker)) {
                 workerExecMap.put(worker, new HashSet<ExecutorDetails>());
@@ -454,7 +424,7 @@ public class ConstraintSolverStrategy implements IStrategy{
             }
             workerExecMap.get(worker).add(exec);
             workerCompMap.get(worker).add(comp);
-            if (this.spreadComps.contains(comp)) {
+            if (spreadComps.contains(comp)) {
                 if (nodeCompMap.get(node).contains(comp)) {
                     LOG.error("Incorrect Scheduling: Spread for Component: {} not satisfied", comp);
                     return false;
@@ -473,16 +443,16 @@ public class ConstraintSolverStrategy implements IStrategy{
         Map<RAS_Node, Collection<ExecutorDetails>> nodeToExecs = new HashMap<RAS_Node, Collection<ExecutorDetails>>();
         Map<ExecutorDetails, WorkerSlot> mergedExecToWorker = new HashMap<ExecutorDetails, WorkerSlot>();
         //merge with existing assignments
-        if (this.cluster.getAssignmentById(this.topo.getId()) != null
-                && this.cluster.getAssignmentById(this.topo.getId()).getExecutorToSlot() != null) {
-            mergedExecToWorker.putAll(this.cluster.getAssignmentById(this.topo.getId()).getExecutorToSlot());
+        if (cluster.getAssignmentById(topo.getId()) != null
+                && cluster.getAssignmentById(topo.getId()).getExecutorToSlot() != null) {
+            mergedExecToWorker.putAll(cluster.getAssignmentById(topo.getId()).getExecutorToSlot());
         }
         mergedExecToWorker.putAll(result);
 
         for (Map.Entry<ExecutorDetails, WorkerSlot> entry : mergedExecToWorker.entrySet()) {
             ExecutorDetails exec = entry.getKey();
             WorkerSlot worker = entry.getValue();
-            RAS_Node node = this.nodes.get(worker.getNodeId());
+            RAS_Node node = nodes.get(worker.getNodeId());
 
             if (node.getAvailableMemoryResources() < 0.0 && node.getAvailableCpuResources() < 0.0) {
                 LOG.error("Incorrect Scheduling: found node that negative available resources");
@@ -500,8 +470,8 @@ public class ConstraintSolverStrategy implements IStrategy{
             double cpuUsed = 0.0;
             double memoryUsed = 0.0;
             for (ExecutorDetails exec : execs) {
-                cpuUsed += this.topo.getTotalCpuReqTask(exec);
-                memoryUsed += this.topo.getTotalMemReqTask(exec);
+                cpuUsed += topo.getTotalCpuReqTask(exec);
+                memoryUsed += topo.getTotalMemReqTask(exec);
             }
             if (node.getAvailableCpuResources() != (node.getTotalCpuResources() - cpuUsed)) {
                 LOG.error("Incorrect Scheduling: node {} has consumed incorrect amount of cpu. Expected: {} Actual: {} Executors scheduled on node: {}",
@@ -518,10 +488,10 @@ public class ConstraintSolverStrategy implements IStrategy{
     }
 
     private Map<WorkerSlot, RAS_Node> getFreeWorkerToNodeMapping(Collection<RAS_Node> nodes) {
-        Map<WorkerSlot, RAS_Node> workers = new LinkedHashMap<WorkerSlot, RAS_Node>();
-        Map<RAS_Node, Stack<WorkerSlot>> nodeWorkerMap = new HashMap<RAS_Node, Stack<WorkerSlot>>();
+        Map<WorkerSlot, RAS_Node> workers = new LinkedHashMap<>();
+        Map<RAS_Node, Stack<WorkerSlot>> nodeWorkerMap = new HashMap<>();
         for (RAS_Node node : nodes) {
-            nodeWorkerMap.put(node, new Stack<WorkerSlot>());
+            nodeWorkerMap.put(node, new Stack<>());
             nodeWorkerMap.get(node).addAll(node.getFreeSlots());
         }
 
@@ -590,17 +560,17 @@ public class ConstraintSolverStrategy implements IStrategy{
 
     private void printDebugMessages(List<List<String>> constraints) {
         LOG.debug("maxTraversalDepth: {}", maxTraversalDepth);
-        LOG.debug("Components to Spread: {}", this.spreadComps);
+        LOG.debug("Components to Spread: {}", spreadComps);
         LOG.debug("Constraints: {}", constraints);
-        for (Map.Entry<String, Map<String, Integer>> entry : this.constraintMatrix.entrySet()) {
+        for (Map.Entry<String, Map<String, Integer>> entry : constraintMatrix.entrySet()) {
             LOG.debug(entry.getKey() + " -> " + entry.getValue());
         }
-        for (Map.Entry<String, HashSet<ExecutorDetails>> entry : this.compToExecs.entrySet()) {
+        for (Map.Entry<String, HashSet<ExecutorDetails>> entry : compToExecs.entrySet()) {
             LOG.debug("{} -> {}", entry.getKey(), entry.getValue());
         }
-        LOG.debug("Size: {} Sorted Executors: {}", this.sortedExecs.size(), this.sortedExecs);
-        LOG.debug("Size: {} nodes: {}", this.nodes.size(), this.nodes.values());
-        LOG.debug("Size: {} workers: {}", this.workerSlots.size(), this.workerSlots);
+        LOG.debug("Size: {} Sorted Executors: {}", sortedExecs.size(), sortedExecs);
+        LOG.debug("Size: {} nodes: {}", nodes.size(), nodes.values());
+        LOG.debug("Size: {} workers: {}", workerSlots.size(), workerSlots);
     }
 
     /**

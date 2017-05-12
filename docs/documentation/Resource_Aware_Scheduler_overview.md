@@ -20,10 +20,10 @@ Parameters:
 * Class<? extends IStrategy> clazz - Specify which scheduling strategy to use. Pass "backtype.storm.scheduler.resource.scheduling.DefaultResourceAwareStrategy" as parameter to use the Resource Aware Scheduler to schedule the topology.  Pass "backtype.storm.scheduler.resource.scheduling.MultitenantStrategy" as parameter to use Multitenant Scheduler to schedule the topology.  If the topology strategy is not set, the topology will be scheduled by the Multitenant Scheduler by default.
 
 Example Usage:
-
+```
     Config conf = new Config();
     conf.setTopologyStrategy(backtype.storm.scheduler.resource.strategies.scheduling.DefaultResourceAwareStrategy.class);
-
+```
 ## API Overview
 
 For a Storm Topology, the user can now specify the amount of resources a topology component (i.e. Spout or Bolt) is required to run a single instance (or executor) of the component.  The user can specify the resource requirement for a topology component by using the following API calls.
@@ -48,13 +48,28 @@ Parameters:
 If no value is provided for offHeap, 0.0 will be used. If no value is provided for onHeap, or if the API is never called for a component, the default value will be used.
 
 Example of Usage:
-
+```
     SpoutDeclarer s1 = builder.setSpout("word", new TestWordSpout(), 10);
     s1.setMemoryLoad(1024.0, 512.0);
     builder.setBolt("exclaim1", new ExclamationBolt(), 3)
                 .shuffleGrouping("word").setMemoryLoad(512.0);
-
+```
 The entire memory requested for this topology is 16.5 GB. That is from 10 spouts with 1GB on heap memory and 0.5 GB off heap memory each and 3 bolts with 0.5 GB on heap memory each.
+
+#### Shared Memory
+
+In some cases you may have memory that is shared between components. It may be a cache shared within a worker between instances of a bolt, or it might be static data that is memory mapped into a bolt and is shared accross a worker.  In any case you can specify your share memory request by
+creating one of `SharedOffHeapWithinNode`, `SharedOffHeapWithinWorker`, or `SharedOnHeap` and adding it to bolts and spouts that use that shared memory.
+
+Example of Usage:
+
+```
+ builder.setBolt("exclaim1", new ExclamationBolt(), 3).shuffleGrouping("word")
+          .addSharedMemory(new SharedOnHeap(100, "exclaim-cache"));
+```
+
+In the above example all of the "exclaim1" bolts in a worker will share 100MB of memory.
+
 
 ### Setting CPU Requirement
 

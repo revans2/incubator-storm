@@ -21,11 +21,14 @@ import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
 
+import backtype.storm.generated.Assignment;
+import backtype.storm.generated.WorkerResources;
+
 public interface SchedulerAssignment {
     /**
      * Does this slot occupied by this assignment?
      * @param slot
-     * @return
+     * @return true the slot is occupied else false
      */
     public boolean isSlotOccupied(WorkerSlot slot);
 
@@ -33,29 +36,36 @@ public interface SchedulerAssignment {
      * is the executor assigned?
      * 
      * @param executor
-     * @return
+     * @return true it is assigned else false
      */
     public boolean isExecutorAssigned(ExecutorDetails executor);
     
     /**
-     * get the topology-id this assignment is for.
-     * @return
+     * @return the topology-id this assignment is for.
      */
     public String getTopologyId();
 
     /**
-     * get the executor -> slot map.
-     * @return
+     * @return the executor -> slot map.
      */
     public Map<ExecutorDetails, WorkerSlot> getExecutorToSlot();
 
     /**
-     * Return the executors covered by this assignments
-     * @return
+     * @return  the executors covered by this assignments
      */
     public Set<ExecutorDetails> getExecutors();
     
     public Set<WorkerSlot> getSlots();
 
     public Map<WorkerSlot, Collection<ExecutorDetails>> getSlotToExecutors();
+    
+    /**
+     * @return The slot to resource mapping
+     */
+    public Map<WorkerSlot, WorkerResources> getScheduledResources();
+    
+    /**
+     * @return host to total shared off heap memory mapping.
+     */
+    public Map<String, Double> getTotalSharedOffHeapMemory();
 }

@@ -60,7 +60,6 @@ public class TestFIFOEvictionStrategy {
 
 
         config.put(Config.RESOURCE_AWARE_SCHEDULER_USER_POOLS, resourceUserPool);
-        Cluster cluster = new Cluster(iNimbus, supMap, new HashMap<String, SchedulerAssignmentImpl>(), config);
 
         config.put(Config.TOPOLOGY_SUBMITTER_USER, "jerry");
 
@@ -83,7 +82,8 @@ public class TestFIFOEvictionStrategy {
         topoMap.put(topo4.getId(), topo4);
 
         Topologies topologies = new Topologies(topoMap);
-
+        Cluster cluster = new Cluster(iNimbus, supMap, new HashMap<String, SchedulerAssignmentImpl>(), topologies, config);
+        
         ResourceAwareScheduler rs = new ResourceAwareScheduler();
 
         rs.prepare(config);
@@ -120,7 +120,7 @@ public class TestFIFOEvictionStrategy {
         TopologyDetails topo5 = TestUtilsForResourceAwareScheduler.getTopology("topo-5", config, 1, 0, 1, 0, currentTime - 15, 29);
         topoMap.put(topo5.getId(), topo5);
         topologies = new Topologies(topoMap);
-
+        cluster = new Cluster(iNimbus, supMap, new HashMap<String, SchedulerAssignmentImpl>(), topologies, config);
         rs.schedule(topologies, cluster);
 
         for (TopologyDetails topo : rs.getUser("jerry").getTopologiesRunning()) {
@@ -155,7 +155,7 @@ public class TestFIFOEvictionStrategy {
         TopologyDetails topo6 = TestUtilsForResourceAwareScheduler.getTopology("topo-6", config, 1, 0, 1, 0, currentTime - 10, 29);
         topoMap.put(topo6.getId(), topo6);
         topologies = new Topologies(topoMap);
-
+        cluster = new Cluster(iNimbus, supMap, new HashMap<String, SchedulerAssignmentImpl>(), topologies, config);
         rs.schedule(topologies, cluster);
 
         for (TopologyDetails topo : rs.getUser("jerry").getTopologiesRunning()) {
