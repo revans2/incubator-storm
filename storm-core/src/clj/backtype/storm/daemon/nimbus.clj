@@ -915,10 +915,10 @@
         (let [storm-cluster-state (:storm-cluster-state nimbus)
               assigned-resources (->> (.assignment-info storm-cluster-state topo-id nil)
                                       :worker->resources)
-              worker-resources (into {} (map #(identity {(WorkerSlot. (first (key %)) (second (key %)))  
-                                                         (->WorkerResources (.get_mem_on_heap (val %))
-                                                                            (.get_mem_off_heap (val %))
-                                                                            (.get_cpu (val %)))}) assigned-resources))]
+              worker-resources (into {} (map #(identity {(WorkerSlot. (first (key %)) (second (key %)))
+                                                         (->WorkerResources (nth (val %) 0)
+                                                                            (nth (val %) 1)
+                                                                            (nth (val %) 2))}) assigned-resources))]
           (swap! (:id->worker-resources nimbus) assoc topo-id worker-resources)
           worker-resources))))
 
