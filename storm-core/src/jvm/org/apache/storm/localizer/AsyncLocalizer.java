@@ -167,9 +167,13 @@ public class AsyncLocalizer implements ILocalizer, Shutdownable {
                     deleteAll = false;
                 } finally {
                     if (deleteAll) {
-                        LOG.warn("Failed to download basic resources for topology-id {}", _topologyId);
-                        _fsOps.deleteIfExists(tr);
-                        _fsOps.deleteIfExists(_stormRoot);
+                        try {
+                            LOG.warn("Failed to download basic resources for topology-id {}", _topologyId);
+                            _fsOps.deleteIfExists(tr);
+                            _fsOps.deleteIfExists(_stormRoot);
+                        } catch (IOException e) {
+                            LOG.warn("Failed to delete: {} or {}", tr, _stormRoot, e); 
+                        }
                     }
                 }
                 return null;
