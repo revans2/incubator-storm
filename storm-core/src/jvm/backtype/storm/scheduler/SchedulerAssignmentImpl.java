@@ -228,6 +228,17 @@ public class SchedulerAssignmentImpl implements SchedulerAssignment {
     }
     
     @Override
+    public int hashCode() {
+        final int prime = 31;
+        int result = 1;
+        result = prime * result + ((topologyId == null) ? 0 : topologyId.hashCode());
+        result = prime * result + ((executorToSlot == null) ? 0 : executorToSlot.hashCode());
+        result = prime * result + ((resources == null) ? 0 : resources.hashCode());
+        result = prime * result + ((totalSharedOffHeap == null) ? 0 : totalSharedOffHeap.hashCode());
+        return result;
+    }
+
+    @Override
     public boolean equals(Object other) {
         if (!equalsIgnoreResources(other)) {
             return false;

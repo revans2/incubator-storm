@@ -39,6 +39,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -158,14 +159,14 @@ public class TestDefaultResourceAwareStrategy {
 
         Config conf = new Config();
         INimbus iNimbus = new TestUtilsForResourceAwareScheduler.INimbusTest();
-        Map<String, Number> resourceMap = new HashMap<String, Number>();
+        Map<String, Number> resourceMap = new HashMap<>();
         resourceMap.put(Config.SUPERVISOR_CPU_CAPACITY, 150.0);
         resourceMap.put(Config.SUPERVISOR_MEMORY_CAPACITY_MB, 1500.0);
         Map<String, SupervisorDetails> supMap = TestUtilsForResourceAwareScheduler.genSupervisors(4, 4, resourceMap);
         conf.putAll(Utils.readDefaultConfig());
-        conf.put(Config.RESOURCE_AWARE_SCHEDULER_EVICTION_STRATEGY, backtype.storm.scheduler.resource.strategies.eviction.DefaultEvictionStrategy.class.getName());
-        conf.put(Config.RESOURCE_AWARE_SCHEDULER_PRIORITY_STRATEGY, backtype.storm.scheduler.resource.strategies.priority.DefaultSchedulingPriorityStrategy.class.getName());
-        conf.put(Config.TOPOLOGY_SCHEDULER_STRATEGY, backtype.storm.scheduler.resource.strategies.scheduling.DefaultResourceAwareStrategy.class.getName());
+        conf.put(Config.RESOURCE_AWARE_SCHEDULER_EVICTION_STRATEGY, DefaultEvictionStrategy.class.getName());
+        conf.put(Config.RESOURCE_AWARE_SCHEDULER_PRIORITY_STRATEGY, DefaultSchedulingPriorityStrategy.class.getName());
+        conf.put(Config.TOPOLOGY_SCHEDULER_STRATEGY, DefaultResourceAwareStrategy.class.getName());
         conf.put(Config.TOPOLOGY_COMPONENT_CPU_PCORE_PERCENT, 50.0);
         conf.put(Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB, 250);
         conf.put(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB, 250);
@@ -177,65 +178,32 @@ public class TestDefaultResourceAwareStrategy {
                 TestUtilsForResourceAwareScheduler.genExecsAndComps(stormToplogy)
                 , this.currentTime);
 
-        Map<String, TopologyDetails> topoMap = new HashMap<String, TopologyDetails>();
+        Map<String, TopologyDetails> topoMap = new HashMap<>();
         topoMap.put(topo.getId(), topo);
         Topologies topologies = new Topologies(topoMap);
-        Cluster cluster = new Cluster(iNimbus, supMap, new HashMap<String, SchedulerAssignmentImpl>(), topologies, conf);
+        Cluster cluster = new Cluster(iNimbus, supMap, new HashMap<>(), topologies, conf);
 
         ResourceAwareScheduler rs = new ResourceAwareScheduler();
 
         rs.prepare(conf);
         rs.schedule(topologies, cluster);
 
-        Map<String, List<String>> nodeToComps = new HashMap<String, List<String>>();
-        for (Map.Entry<ExecutorDetails, WorkerSlot> entry : cluster.getAssignments().get("testTopology-id").getExecutorToSlot().entrySet()) {
-            WorkerSlot ws = entry.getValue();
-            ExecutorDetails exec = entry.getKey();
-            if (!nodeToComps.containsKey(ws.getNodeId())) {
-                nodeToComps.put(ws.getNodeId(), new LinkedList<String>());
-            }
-            nodeToComps.get(ws.getNodeId()).add(topo.getExecutorToComponent().get(exec));
+        HashSet<HashSet<ExecutorDetails>> expectedScheduling = new HashSet<>();
+        expectedScheduling.add(new HashSet<>(Arrays.asList(new ExecutorDetails(0, 0)))); //Spout
+        expectedScheduling.add(new HashSet<>(Arrays.asList(
+            new ExecutorDetails(2, 2), //bolt-1
+            new ExecutorDetails(4, 4), //bolt-2
+            new ExecutorDetails(6, 6)))); //bolt-3
+        expectedScheduling.add(new HashSet<>(Arrays.asList(
+            new ExecutorDetails(1, 1), //bolt-1
+            new ExecutorDetails(3, 3), //bolt-2
+            new ExecutorDetails(5, 5)))); //bolt-3
+        HashSet<HashSet<ExecutorDetails>> foundScheduling = new HashSet<>();
+        SchedulerAssignment assignment = cluster.getAssignmentById("testTopology-id");
+        for (Collection<ExecutorDetails> execs : assignment.getSlotToExecutors().values()) {
+            foundScheduling.add(new HashSet<>(execs));
         }
-
-        /**
-         * check for correct scheduling
-         * Since all the resource availabilites on nodes are the same in the beginining
-         * DefaultResourceAwareStrategy can arbitrarily pick one thus we must find if a particular scheduling
-         * exists on a node the the cluster.
-         */
-
-        //one node should have the below scheduling
-        List<String> node1 = new LinkedList<>();
-        node1.add("spout");
-        node1.add("bolt-1");
-        node1.add("bolt-2");
-        Assert.assertTrue("Check DefaultResourceAwareStrategy scheduling", checkDefaultStrategyScheduling(nodeToComps, node1));
-
-        //one node should have the below scheduling
-        List<String> node2 = new LinkedList<>();
-        node2.add("bolt-3");
-        node2.add("bolt-1");
-        node2.add("bolt-2");
-
-        Assert.assertTrue("Check DefaultResourceAwareStrategy scheduling", checkDefaultStrategyScheduling(nodeToComps, node2));
-
-        //one node should have the below scheduling
-        List<String> node3 = new LinkedList<>();
-        node3.add("bolt-3");
-
-        Assert.assertTrue("Check DefaultResourceAwareStrategy scheduling", checkDefaultStrategyScheduling(nodeToComps, node3));
-
-        //three used and one node should be empty
-        Assert.assertEquals("only three nodes should be used", 3, nodeToComps.size());
-    }
-
-    private boolean checkDefaultStrategyScheduling(Map<String, List<String>> nodeToComps, List<String> schedulingToFind) {
-        for (List<String> entry : nodeToComps.values()) {
-            if (schedulingToFind.containsAll(entry) && entry.containsAll(schedulingToFind)) {
-                return true;
-            }
-        }
-        return false;
+	assertEquals(expectedScheduling, foundScheduling);
     }
 
 
