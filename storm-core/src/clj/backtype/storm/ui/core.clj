@@ -196,10 +196,11 @@
     (.get_host ^ErrorInfo error)
     ""))
 
-(defn worker-dump-link [host port topology-id]
-  (url-format "http://%s:%s/dumps/%s/%s"
+(defn worker-dump-link [scheme host port topology-id]
+  (url-format "%s://%s:%s/dumps/%s/%s"
+              (name scheme)
               (url-encode host)
-              (*STORM-CONF* LOGVIEWER-PORT)
+              (if (= scheme :https) (*STORM-CONF* LOGVIEWER-HTTPS-PORT) (*STORM-CONF* LOGVIEWER-PORT))
               (url-encode topology-id)
               (str (url-encode host) ":" (url-encode port))))
 
@@ -587,7 +588,7 @@
                                               (.get_error e)))})))
 
 (defn topology-errors
-  [errors-list topology-id secure?]
+  [errors-list topology-id]
   (let [errors (->> errors-list
                  (sort-by #(.get_error_time_secs ^ErrorInfo %))
                  reverse)]
@@ -647,7 +648,7 @@
        "bolts" (map (partial comp-agg-stats-json id)
                     (.get_id_to_bolt_agg_stats topo-info))
        "configuration" (.get_topology_conf topo-info)}
-      (topology-errors (.get_errors topo-info) id secure?))))
+      (topology-errors (.get_errors topo-info) id))))
 
 (defn exec-host-port
   [executors]
@@ -843,7 +844,7 @@
     (component-errors (.get_errors info) topology-id secure?)))
 
 (defn get-active-profile-actions
-  [nimbus topology-id component]
+  [nimbus topology-id component scheme]
   (let [profile-actions  (.getComponentPendingProfileActions nimbus
                                                topology-id
                                                component
@@ -852,7 +853,7 @@
         active-actions (map (fn [profile-action]
                               {"host" (:host profile-action)
                                "port" (str (:port profile-action))
-                               "dumplink" (worker-dump-link (:host profile-action) (str (:port profile-action)) topology-id)
+                               "dumplink" (worker-dump-link scheme (:host profile-action) (str (:port profile-action)) topology-id)
                                "timestamp" (str (- (:timestamp profile-action) (System/currentTimeMillis)))})
                             latest-profile-actions)]
     (log-message "Latest-active actions are: " (pr-str active-actions))
@@ -892,7 +893,7 @@
        "window" window
        "componentType" (-> comp-page-info .get_component_type str lower-case)
        "windowHint" window-hint
-       "profilerActive" (get-active-profile-actions nimbus topology-id component)))))
+       "profilerActive" (get-active-profile-actions nimbus topology-id component (if secure? ":https" ":http"))))))
 
 (defn unpack-owner-resource-summary [summary]
   (let [memory-guarantee (if (.is_set_memory_guarantee summary) 
@@ -1185,7 +1186,7 @@
         (json-response (log-config id) (m "callback")))))
 
   (GET "/api/v1/topology/:id/profiling/start/:host-port/:timeout"
-       [:as {:keys [servlet-request]} id host-port timeout & m]
+       [:as {:keys [servlet-request scheme]} id host-port timeout & m]
        (populate-context! servlet-request)
        (with-nimbus nimbus
          (let [user (get-user-name servlet-request)
@@ -1204,6 +1205,7 @@
                            "id" host-port
                            "timeout" timeout
                            "dumplink" (worker-dump-link
+                                       scheme
                                        host
                                        port
                                        id)}
