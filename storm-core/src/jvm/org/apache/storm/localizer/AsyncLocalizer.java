@@ -23,6 +23,8 @@ import java.io.OutputStream;
 import java.net.JarURLConnection;
 import java.net.URL;
 import java.net.URLDecoder;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -145,24 +147,24 @@ public class AsyncLocalizer implements ILocalizer, Shutdownable {
                 File tr = new File(tmproot);
                 try {
                     downloadBaseBlobs(tr);
+                    if (_assignment.is_set_total_node_shared()) {
+                        File sharedMemoryDirTmpLocation = new File(tr, "shared_by_topology");
+                        //We need to create a directory for shared memory to write to (we should not encourage this though)
+                        Path path = sharedMemoryDirTmpLocation.toPath();
+                        Files.createDirectories(path);
+                    }
                     _fsOps.moveDirectoryPreferAtomic(tr, _stormRoot);
                     Map topoConf = ConfigUtils.readSupervisorStormConf(_conf, _topologyId);
                     // This is a truly awful hack. We need to remove this ASAP.
                     Boolean writeableStormdist = (Boolean)topoConf.get(Config.STORM_WORKER_STORMDIST_DIR_WRITE);
                     if(writeableStormdist != null && writeableStormdist == true) {
                         _fsOps.setupWorkerArtifactsDir(topoConf, _stormRoot);
-                    }
-                    else {
+                    } else {
                         _fsOps.setupStormCodeDir(topoConf, _stormRoot);
-                    }
-
-                    if (_assignment.is_set_total_node_shared()) {
-                        //We need to create a directory for shared memory to write to (we should not encourage this though)
-                        File sharedMemoryDir = new File(_stormRoot, "shared_by_topology");
-                        if (!sharedMemoryDir.mkdirs()) {
-                            throw new RuntimeException("We were not able to create " + sharedMemoryDir);
+                        if (_assignment.is_set_total_node_shared()) {
+                            File sharedMemoryDirFinalLocation = new File(_stormRoot, "shared_by_topology");
+                            _fsOps.setupWorkerArtifactsDir(topoConf, sharedMemoryDirFinalLocation);
                         }
-                        _fsOps.setupWorkerArtifactsDir(topoConf, sharedMemoryDir);
                     }
                     deleteAll = false;
                 } finally {
