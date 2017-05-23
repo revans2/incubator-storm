@@ -1509,8 +1509,10 @@ class StormTopology:
     None, # 4
     None, # 5
     None, # 6
-    (7, TType.MAP, 'component_to_shared_memory', (TType.STRING,None,TType.SET,(TType.STRING,None)), None, ), # 7
-    (8, TType.MAP, 'shared_memory', (TType.STRING,None,TType.STRUCT,(SharedMemory, SharedMemory.thrift_spec)), None, ), # 8
+    None, # 7
+    None, # 8
+    (9, TType.MAP, 'component_to_shared_memory', (TType.STRING,None,TType.SET,(TType.STRING,None)), None, ), # 9
+    (10, TType.MAP, 'shared_memory', (TType.STRING,None,TType.STRUCT,(SharedMemory, SharedMemory.thrift_spec)), None, ), # 10
   )
 
   def __init__(self, spouts=None, bolts=None, state_spouts=None, component_to_shared_memory=None, shared_memory=None,):
@@ -1565,7 +1567,7 @@ class StormTopology:
           iprot.readMapEnd()
         else:
           iprot.skip(ftype)
-      elif fid == 7:
+      elif fid == 9:
         if ftype == TType.MAP:
           self.component_to_shared_memory = {}
           (_ktype61, _vtype62, _size60 ) = iprot.readMapBegin()
@@ -1581,7 +1583,7 @@ class StormTopology:
           iprot.readMapEnd()
         else:
           iprot.skip(ftype)
-      elif fid == 8:
+      elif fid == 10:
         if ftype == TType.MAP:
           self.shared_memory = {}
           (_ktype74, _vtype75, _size73 ) = iprot.readMapBegin()
@@ -1628,7 +1630,7 @@ class StormTopology:
       oprot.writeMapEnd()
       oprot.writeFieldEnd()
     if self.component_to_shared_memory is not None:
-      oprot.writeFieldBegin('component_to_shared_memory', TType.MAP, 7)
+      oprot.writeFieldBegin('component_to_shared_memory', TType.MAP, 9)
       oprot.writeMapBegin(TType.STRING, TType.SET, len(self.component_to_shared_memory))
       for kiter86,viter87 in self.component_to_shared_memory.items():
         oprot.writeString(kiter86.encode('utf-8'))
@@ -1639,7 +1641,7 @@ class StormTopology:
       oprot.writeMapEnd()
       oprot.writeFieldEnd()
     if self.shared_memory is not None:
-      oprot.writeFieldBegin('shared_memory', TType.MAP, 8)
+      oprot.writeFieldBegin('shared_memory', TType.MAP, 10)
       oprot.writeMapBegin(TType.STRING, TType.STRUCT, len(self.shared_memory))
       for kiter89,viter90 in self.shared_memory.items():
         oprot.writeString(kiter89.encode('utf-8'))

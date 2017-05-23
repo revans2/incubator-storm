@@ -78,22 +78,24 @@ public class AdvancedFSOps {
         @Override
         public void deleteIfExists(File path, String user, String logPrefix) throws IOException {
             String absolutePath = path.getAbsolutePath();
-            LOG.info("Deleting path (runAsUser) {}", absolutePath);
-            if (user == null) {
-                user = Files.getOwner(path.toPath()).getName();
-            }
-            List<String> commands = new ArrayList<>();
-            commands.add("rmr");
-            commands.add(absolutePath);
-            SupervisorUtils.processLauncherAndWait(_conf, user, commands, null, logPrefix);
-
             if (Utils.checkFileExists(absolutePath)) {
-                // It's possible that permissions were not set properly on the directory, and
-                // the user who is *supposed* to own the dir does not. In this case, try the
-                // delete as the supervisor user.
-                Utils.forceDelete(absolutePath);
+                LOG.info("Deleting path (runAsUser) {}", absolutePath);
+                if (user == null) {
+                    user = Files.getOwner(path.toPath()).getName();
+                }
+                List<String> commands = new ArrayList<>();
+                commands.add("rmr");
+                commands.add(absolutePath);
+                SupervisorUtils.processLauncherAndWait(_conf, user, commands, null, logPrefix);
+
                 if (Utils.checkFileExists(absolutePath)) {
-                    throw new RuntimeException(path + " was not deleted.");
+                    // It's possible that permissions were not set properly on the directory, and
+                    // the user who is *supposed* to own the dir does not. In this case, try the
+                    // delete as the supervisor user.
+                    Utils.forceDelete(absolutePath);
+                    if (Utils.checkFileExists(absolutePath)) {
+                        throw new RuntimeException(path + " was not deleted.");
+                    }
                 }
             }
         }
