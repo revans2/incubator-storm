@@ -112,7 +112,7 @@ public class TestUtilsForResourceAwareScheduler {
     public static Map<ExecutorDetails, String> genExecsAndComps(StormTopology topology) {
         Map<ExecutorDetails, String> retMap = new HashMap<ExecutorDetails, String>();
         int startTask = 0;
-        int endTask = 1;
+        int endTask = 0;
         for (Map.Entry<String, SpoutSpec> entry : topology.get_spouts().entrySet()) {
             SpoutSpec spout = entry.getValue();
             String spoutId = entry.getKey();

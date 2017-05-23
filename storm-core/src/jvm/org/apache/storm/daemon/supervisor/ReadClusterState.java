@@ -194,7 +194,7 @@ public class ReadClusterState implements Runnable, AutoCloseable {
             }
             if (version == null) {
                 // ignore
-            } else if (version == recordedVersion) {
+            } else if (version.equals(recordedVersion)) {
                 updateAssignmentVersion.put(topoId, locAssignment);
             } else {
                 VersionedData<Assignment> assignmentVersion = stormClusterState.assignmentInfoWithVersion(topoId, callback);
