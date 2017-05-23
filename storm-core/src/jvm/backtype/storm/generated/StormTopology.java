@@ -58,8 +58,8 @@ public class StormTopology implements org.apache.thrift.TBase<StormTopology, Sto
   private static final org.apache.thrift.protocol.TField SPOUTS_FIELD_DESC = new org.apache.thrift.protocol.TField("spouts", org.apache.thrift.protocol.TType.MAP, (short)1);
   private static final org.apache.thrift.protocol.TField BOLTS_FIELD_DESC = new org.apache.thrift.protocol.TField("bolts", org.apache.thrift.protocol.TType.MAP, (short)2);
   private static final org.apache.thrift.protocol.TField STATE_SPOUTS_FIELD_DESC = new org.apache.thrift.protocol.TField("state_spouts", org.apache.thrift.protocol.TType.MAP, (short)3);
-  private static final org.apache.thrift.protocol.TField COMPONENT_TO_SHARED_MEMORY_FIELD_DESC = new org.apache.thrift.protocol.TField("component_to_shared_memory", org.apache.thrift.protocol.TType.MAP, (short)7);
-  private static final org.apache.thrift.protocol.TField SHARED_MEMORY_FIELD_DESC = new org.apache.thrift.protocol.TField("shared_memory", org.apache.thrift.protocol.TType.MAP, (short)8);
+  private static final org.apache.thrift.protocol.TField COMPONENT_TO_SHARED_MEMORY_FIELD_DESC = new org.apache.thrift.protocol.TField("component_to_shared_memory", org.apache.thrift.protocol.TType.MAP, (short)9);
+  private static final org.apache.thrift.protocol.TField SHARED_MEMORY_FIELD_DESC = new org.apache.thrift.protocol.TField("shared_memory", org.apache.thrift.protocol.TType.MAP, (short)10);
 
   private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
   static {
@@ -78,8 +78,8 @@ public class StormTopology implements org.apache.thrift.TBase<StormTopology, Sto
     SPOUTS((short)1, "spouts"),
     BOLTS((short)2, "bolts"),
     STATE_SPOUTS((short)3, "state_spouts"),
-    COMPONENT_TO_SHARED_MEMORY((short)7, "component_to_shared_memory"),
-    SHARED_MEMORY((short)8, "shared_memory");
+    COMPONENT_TO_SHARED_MEMORY((short)9, "component_to_shared_memory"),
+    SHARED_MEMORY((short)10, "shared_memory");
 
     private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
 
@@ -100,9 +100,9 @@ public class StormTopology implements org.apache.thrift.TBase<StormTopology, Sto
           return BOLTS;
         case 3: // STATE_SPOUTS
           return STATE_SPOUTS;
-        case 7: // COMPONENT_TO_SHARED_MEMORY
+        case 9: // COMPONENT_TO_SHARED_MEMORY
           return COMPONENT_TO_SHARED_MEMORY;
-        case 8: // SHARED_MEMORY
+        case 10: // SHARED_MEMORY
           return SHARED_MEMORY;
         default:
           return null;
@@ -870,7 +870,7 @@ public class StormTopology implements org.apache.thrift.TBase<StormTopology, Sto
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
             break;
-          case 7: // COMPONENT_TO_SHARED_MEMORY
+          case 9: // COMPONENT_TO_SHARED_MEMORY
             if (schemeField.type == org.apache.thrift.protocol.TType.MAP) {
               {
                 org.apache.thrift.protocol.TMap _map56 = iprot.readMapBegin();
@@ -900,7 +900,7 @@ public class StormTopology implements org.apache.thrift.TBase<StormTopology, Sto
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
             break;
-          case 8: // SHARED_MEMORY
+          case 10: // SHARED_MEMORY
             if (schemeField.type == org.apache.thrift.protocol.TType.MAP) {
               {
                 org.apache.thrift.protocol.TMap _map63 = iprot.readMapBegin();
