@@ -24,6 +24,7 @@ import backtype.storm.scheduler.resource.strategies.priority.ISchedulingPriority
 import backtype.storm.scheduler.resource.strategies.scheduling.IStrategy;
 import backtype.storm.scheduler.utils.IConfigLoader;
 import backtype.storm.utils.Utils;
+import org.apache.commons.collections.map.HashedMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -73,6 +74,9 @@ public class ResourceAwareScheduler implements IScheduler {
         }
 
         ISchedulingPriorityStrategy schedulingPrioritystrategy = null;
+
+        Map<String, Integer> topologySchedulingAttempts = new HashMap<>();
+
         while (true) {
 
             if (schedulingPrioritystrategy == null) {
@@ -93,7 +97,10 @@ public class ResourceAwareScheduler implements IScheduler {
             if (td == null) {
                 break;
             }
-            scheduleTopology(td);
+
+            topologySchedulingAttempts.putIfAbsent(td.getName(), 0);
+
+            topologySchedulingAttempts.put(td.getName(), scheduleTopology(td, topologySchedulingAttempts.get(td.getName())));
 
             LOG.debug("Nodes after scheduling:\n{}", this.schedulingState.nodes);
         }
@@ -108,7 +115,7 @@ public class ResourceAwareScheduler implements IScheduler {
         cluster.setStatusMap(schedulingState.cluster.getStatusMap());
     }
 
-    public void scheduleTopology(TopologyDetails td) {
+    public int scheduleTopology(TopologyDetails td, Integer schedulingAttemptsSoFar) {
         User topologySubmitter = this.schedulingState.userMap.get(td.getTopologySubmitter());
         if (this.schedulingState.cluster.getUnassignedExecutors(td).size() > 0) {
             LOG.info("/********Scheduling topology {} from User {}************/", td.getName(), topologySubmitter);
@@ -124,9 +131,15 @@ public class ResourceAwareScheduler implements IScheduler {
                 topologySubmitter.moveTopoFromPendingToInvalid(td);
                 this.schedulingState.cluster.setStatus(td.getId(), "Unsuccessful in scheduling - failed to create instance of topology strategy "
                         + td.getConf().get(Config.TOPOLOGY_SCHEDULER_STRATEGY) + ". Please check logs for details");
-                return;
+                return schedulingAttemptsSoFar;
             }
             IEvictionStrategy evictionStrategy = null;
+
+            int maxSchedulingAttempts = ((Number) this.conf.getOrDefault(Config.RESOURCE_AWARE_SCHEDULER_MAX_TOPOLOGY_SCHEDULING_ATTEMPTS, 5)).intValue();
+
+            LOG.debug("Will attempt to schedule topology {} maximum of %d times using strategy {}",
+                    td.getName(), maxSchedulingAttempts, rasStrategy.getClass().getName());
+
             while (true) {
                 SchedulingResult result = null;
                 try {
@@ -144,6 +157,7 @@ public class ResourceAwareScheduler implements IScheduler {
                             + rasStrategy.getClass().getName() + ". Please check logs for details");
                 }
                 LOG.debug("scheduling result: {}", result);
+                schedulingAttemptsSoFar++;
                 if (result != null && result.isValid()) {
                     if (result.isSuccess()) {
                         try {
@@ -193,21 +207,25 @@ public class ResourceAwareScheduler implements IScheduler {
                                 this.schedulingState.cluster.setStatus(td.getId(), "Not enough resources to schedule - " + result.getErrorMessage());
                                 break;
                             }
-                            continue;
+                            if (schedulingAttemptsSoFar < maxSchedulingAttempts) {
+                                LOG.debug("Attempt {} of {} to schedule topology {}", schedulingAttemptsSoFar, maxSchedulingAttempts, td.getName());
+                                continue;
+                            } else {
+                                LOG.debug("Attempt {} of {} to schedule topology {}, moving to attempted", schedulingAttemptsSoFar, maxSchedulingAttempts, td.getName());
+                                cleanUpAttempted(schedulingState, td);
+                                break;
+                            }
                         } else if (result.getStatus() == SchedulingStatus.FAIL_INVALID_TOPOLOGY) {
-                            topologySubmitter = cleanup(schedulingState, td);
-                            topologySubmitter.moveTopoFromPendingToInvalid(td, this.schedulingState.cluster);
+                            cleanUpInvalid(schedulingState, td);
                             break;
                         } else {
-                            topologySubmitter = cleanup(schedulingState, td);
-                            topologySubmitter.moveTopoFromPendingToAttempted(td, this.schedulingState.cluster);
+                            cleanUpAttempted(schedulingState, td);
                             break;
                         }
                     }
                 } else {
                     LOG.warn("Scheduling results returned from topology {} is not vaild! Topology with be ignored.", td.getName());
-                    topologySubmitter = cleanup(schedulingState, td);
-                    topologySubmitter.moveTopoFromPendingToInvalid(td, this.schedulingState.cluster);
+                    cleanUpInvalid(schedulingState, td);
                     break;
                 }
             }
@@ -218,6 +236,17 @@ public class ResourceAwareScheduler implements IScheduler {
                 this.schedulingState.cluster.setStatus(td.getId(), "Fully Scheduled");
             }
         }
+        return schedulingAttemptsSoFar;
+    }
+
+    private void cleanUpInvalid(SchedulingState schedulingState, TopologyDetails td) {
+        User topologySubmitter = cleanup(schedulingState, td);
+        topologySubmitter.moveTopoFromPendingToInvalid(td, this.schedulingState.cluster);
+    }
+
+    private void cleanUpAttempted(SchedulingState schedulingState, TopologyDetails td) {
+        User topologySubmitter = cleanup(schedulingState, td);
+        topologySubmitter.moveTopoFromPendingToAttempted(td, this.schedulingState.cluster);
     }
 
     private User cleanup(SchedulingState schedulingState, TopologyDetails td) {

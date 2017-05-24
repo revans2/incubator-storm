@@ -2225,6 +2225,13 @@ public class Config extends HashMap<String, Object> {
     public static final String RESOURCE_AWARE_SCHEDULER_USER_POOLS_LOADER = "resource.aware.scheduler.user.pools.loader";
 
     /**
+     * The maximum number of times that the RAS will attempt to schedule a topology. The default is 5.
+     */
+    @isInteger
+    @isPositiveNumber
+    public static final String RESOURCE_AWARE_SCHEDULER_MAX_TOPOLOGY_SCHEDULING_ATTEMPTS = "resource.aware.scheduler.max.topology.scheduling.attempts";
+
+    /**
      * Configuration elements for scheduler config loader
      */
     @isMapEntryType(keyType = String.class, valueType = String.class)
