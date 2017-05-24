@@ -132,30 +132,38 @@
   (fast-list-iter [[task tuple :as pair] tuple-batch]
     (.serialize serializer tuple)))
 
+(defn should-trigger-backpressure [executors worker]
+  (or (.getThrottleOn (:transfer-queue worker))
+      (reduce #(or %1 %2) (map #(.get-backpressure-flag %1) executors))))
+
 (defn- mk-backpressure-handler [executors]
   "make a handler that checks and updates worker's backpressure flag"
   (disruptor/worker-backpressure-handler
-    (fn [worker]
-      (let [storm-id (:storm-id worker)
-            assignment-id (:assignment-id worker)
-            port (:port worker)
-            storm-cluster-state (:storm-cluster-state worker)
-            prev-backpressure-flag @(:backpressure worker)
-            ;; the backpressure flag is true if at least one of the disruptor queues has throttle-on
-            curr-backpressure-flag (if executors
-                                     (or (.getThrottleOn (:transfer-queue worker))
-                                       (reduce #(or %1 %2) (map #(.get-backpressure-flag %1) executors)))
-                                     prev-backpressure-flag)]
-        ;; update the worker's backpressure flag to zookeeper only when it has changed
-        (when (not= prev-backpressure-flag curr-backpressure-flag)
-          (try
-            (log-debug "worker backpressure flag changing from " prev-backpressure-flag " to " curr-backpressure-flag)
-            (.worker-backpressure! storm-cluster-state storm-id assignment-id port curr-backpressure-flag)
-            ;; doing the local reset after the zk update succeeds is very important to avoid a bad state upon zk exception
-            (reset! (:backpressure worker) curr-backpressure-flag)
-            (catch Exception exc
-              (log-error exc "workerBackpressure update failed when connecting to ZK ... will retry"))))
-        ))))
+   (if executors
+     (fn [worker]
+       (let [storm-id (:storm-id worker)
+             assignment-id (:assignment-id worker)
+             port (:port worker)
+             storm-cluster-state (:storm-cluster-state worker)
+             prev-backpressure-timestamp @(:backpressure worker)
+             curr-timestamp (System/currentTimeMillis)
+             ;; the backpressure flag is true if at least one of the disruptor queues has throttle-on
+             curr-backpressure-timestamp (if (should-trigger-backpressure executors worker)
+                                           ;; Update the backpressure timestamp every 15 seconds
+                                           (if (> 15000 (- curr-timestamp (or prev-backpressure-timestamp 0)))
+                                             curr-timestamp
+                                             prev-backpressure-timestamp)
+                                           nil)]
+         ;; update the worker's backpressure flag to zookeeper only when it has changed
+         (when (not= prev-backpressure-timestamp curr-backpressure-timestamp)
+           (try
+             (log-debug "worker backpressure flag changing from " prev-backpressure-timestamp " to " curr-backpressure-timestamp)
+             (.worker-backpressure! storm-cluster-state storm-id assignment-id port curr-backpressure-timestamp)
+             ;; doing the local reset after the zk update succeeds is very important to avoid a bad state upon zk exception
+             (reset! (:backpressure worker) curr-backpressure-timestamp)
+             (catch Exception exc
+               (log-error exc "workerBackpressure update failed when connecting to ZK ... will retry"))))))
+     (fn [workers]))))
 
 (defn- mk-disruptor-backpressure-handler [worker]
   "make a handler for the worker's send disruptor queue to
