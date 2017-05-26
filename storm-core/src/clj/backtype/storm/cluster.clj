@@ -17,7 +17,8 @@
 (ns backtype.storm.cluster
   (:import [org.apache.zookeeper.data Stat ACL Id]
            [backtype.storm.generated SupervisorInfo Assignment StormBase ClusterWorkerHeartbeat ErrorInfo Credentials LogConfig ProfileAction ProfileRequest NodeInfo]
-           [java.io Serializable])
+           [java.io Serializable]
+           [java.nio ByteBuffer])
   (:import [org.apache.zookeeper KeeperException KeeperException$NoNodeException ZooDefs ZooDefs$Ids ZooDefs$Perms])
   (:import [backtype.storm.utils Utils])
   (:import [backtype.storm.cluster ClusterState ClusterStateContext])
@@ -212,6 +213,19 @@
                       :stats (get executor-stats t)}})))
          (into {}))))
 
+(defn max-timestamp
+  "Reduces the timestamps (e.g. those set by worker-backpressure!)
+  to the most recent timestamp"
+  [cluster-state paths]
+  (reduce (fn [acc path]
+            (let [data (.get_data cluster-state path)
+                  timestamp (if data
+                              (.. (ByteBuffer/wrap data) (getLong))
+                              0)]
+              (Math/max acc timestamp)))
+          0
+          paths))
+
 ;; Watches should be used for optimization. When ZK is reconnecting, they're not guaranteed to be called.
 (defnk mk-storm-cluster-state
   [cluster-state-spec :acls nil :context (ClusterStateContext.)]
@@ -397,16 +411,17 @@
             (log-warn-error e "Could not teardown heartbeats for " storm-id))))
 
       (worker-backpressure!
-        [this storm-id node port on?]
+        [this storm-id node port timestamp]
         "if znode exists and to be not on?, delete; if exists and on?, do nothing;
         if not exists and to be on?, create; if not exists and not on?, do nothing"
         (let [path (backpressure-path storm-id node port)
               existed (.node_exists cluster-state path false)]
           (if existed
-            (when (not on?)
+            (when (not timestamp)
               (.delete_node cluster-state path))
-            (when on?
-              (.set_ephemeral_node cluster-state path nil acls)))))
+            (when timestamp
+              (let [bytes (.. (ByteBuffer/allocate (Long/BYTES)) (putLong timestamp) (array))]
+                (.set_ephemeral_node cluster-state path bytes acls))))))
     
       (topology-backpressure
         [this storm-id callback]
@@ -416,8 +431,10 @@
           (swap! backpressure-callback assoc storm-id callback))
         (let [path (backpressure-storm-root storm-id)
               children (if (.node_exists cluster-state path false)
-                         (.get_children cluster-state path (not-nil? callback))) ]
-              (> (count children) 0)))
+                         (.get_children cluster-state path (not-nil? callback)))
+              most-recent-backpressure (max-timestamp cluster-state children)
+              current-time (System/currentTimeMillis)]
+          (> 30000 (- current-time most-recent-backpressure))))
       
       (setup-backpressure!
         [this storm-id]
