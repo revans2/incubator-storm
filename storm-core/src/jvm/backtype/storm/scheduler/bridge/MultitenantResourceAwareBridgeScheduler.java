@@ -267,7 +267,14 @@ public class MultitenantResourceAwareBridgeScheduler implements IScheduler{
                 target.unassign(id);
             }
             for (SchedulerAssignment assignment : ephemeral.getAssignments().values()) {
-                target.assign(assignment, false);
+                try {
+                    target.assign(assignment, false);
+                } catch (RuntimeException e) {
+                    LOG.error("Looks like RAS scheduled something on a slot it was not supposed to use.  Unassigning offending topology {}",
+                        assignment.getTopologyId(), e);
+                    target.unassign(assignment.getTopologyId());
+                    target.setStatus(assignment.getTopologyId(), "Internal Scheduling Error...");
+                }
             }
             //add scheduler identifier and merge scheduler set status
             for (Entry<String, String> statusEntry : target.getStatusMap().entrySet()) {
