@@ -96,7 +96,7 @@
        free-pool (FreePool. )]
     ;; assign one node so it is not in the pool
     (.assign (.get node-map "super0") "topology1" (list (ExecutorDetails. 1 1)) cluster)
-    (.init free-pool cluster node-map)
+    (.init free-pool cluster node-map {})
     (is (= 4 (.nodesAvailable free-pool)))
     (is (= (* 4 4) (.slotsAvailable free-pool)))
     (let [ns-count-1 (.getNodeAndSlotCountIfSlotsWereTaken free-pool 1)
@@ -151,8 +151,8 @@
        node-map (Node/getAllNodesFrom cluster)]
     ;; assign one node so it is not in the pool
     (.assign (.get node-map "super0") "topology1" (list executor1) cluster)
-    (.init free-pool cluster node-map)
-    (.init default-pool cluster node-map)
+    (.init free-pool cluster node-map {})
+    (.init default-pool cluster node-map {})
     (is (= true (.canAdd default-pool topology1)))
     (.addTopology default-pool topology1)
     ;;Only 1 node is in the default-pool because only one nodes was scheduled already
@@ -194,8 +194,8 @@
        node-map (Node/getAllNodesFrom cluster)]
     ;; assign one node so it is not in the pool
     (.assign (.get node-map "super0") "topology1" (list executor1) cluster)
-    (.init free-pool cluster node-map)
-    (.init default-pool cluster node-map)
+    (.init free-pool cluster node-map {})
+    (.init default-pool cluster node-map {})
     (is (= true (.canAdd default-pool topology1)))
     (.addTopology default-pool topology1)
     ;;Only 1 node is in the default-pool because only one nodes was scheduled already
@@ -240,8 +240,8 @@
        node-map (Node/getAllNodesFrom cluster)]
     ;; assign one node so it is not in the pool
     (.assign (.get node-map "super0") "topology1" (list executor1) cluster)
-    (.init free-pool cluster node-map)
-    (.init default-pool cluster node-map)
+    (.init free-pool cluster node-map {})
+    (.init default-pool cluster node-map {})
     (is (= true (.canAdd default-pool topology1)))
     (.addTopology default-pool topology1)
     ;;Only 1 node is in the default-pool because only one nodes was scheduled already
@@ -286,8 +286,8 @@
     (let [node-map (Node/getAllNodesFrom single-cluster)
          free-pool (FreePool. )
          default-pool (DefaultPool. )]
-      (.init free-pool single-cluster node-map)
-      (.init default-pool single-cluster node-map)
+      (.init free-pool single-cluster node-map {})
+      (.init default-pool single-cluster node-map {})
       (.addTopology default-pool topology1)
       (.scheduleAsNeeded default-pool (into-array NodePool [free-pool]))
       ;; The cluster should be full and have 4 slots used, but the topology would like 1 more
@@ -299,8 +299,8 @@
          node-map (Node/getAllNodesFrom cluster)
          free-pool (FreePool. )
          default-pool (DefaultPool. )]
-      (.init free-pool cluster node-map)
-      (.init default-pool cluster node-map)
+      (.init free-pool cluster node-map {})
+      (.init default-pool cluster node-map {})
       (.addTopology default-pool topology1)
       (.scheduleAsNeeded default-pool (into-array NodePool [free-pool]))
       ;; The cluster should now have 5 slots used
@@ -351,8 +351,8 @@
        node-map (Node/getAllNodesFrom cluster)]
     ;; assign one node so it is not in the pool
     (.assign (.get node-map "super0") "topology1" (list executor1) cluster)
-    (.init free-pool cluster node-map)
-    (.init default-pool cluster node-map)
+    (.init free-pool cluster node-map {})
+    (.init default-pool cluster node-map {})
     (is (= true (.canAdd default-pool topology1)))
     (.addTopology default-pool topology1)
     (is (= true (.canAdd default-pool topology2)))
@@ -430,8 +430,8 @@
        node-map (Node/getAllNodesFrom cluster)]
     ;; assign one node so it is not in the pool
     (.assign (.get node-map "super0") "topology1" (list executor1) cluster)
-    (.init free-pool cluster node-map)
-    (.init isolated-pool cluster node-map)
+    (.init free-pool cluster node-map {})
+    (.init isolated-pool cluster node-map {})
     (is (= true (.canAdd isolated-pool topology1)))
     (.addTopology isolated-pool topology1)
     ;;Isolated topologies cannot have their resources stolen
@@ -480,8 +480,8 @@
        node-map (Node/getAllNodesFrom cluster)]
     ;; assign one node so it is not in the pool
     (.assign (.get node-map "super0") "topology1" (list executor1) cluster)
-    (.init free-pool cluster node-map)
-    (.init isolated-pool cluster node-map)
+    (.init free-pool cluster node-map {})
+    (.init isolated-pool cluster node-map {})
     (is (= true (.canAdd isolated-pool topology1)))
     (.addTopology isolated-pool topology1)
     ;;Isolated topologies cannot have their resources stolen
@@ -547,8 +547,8 @@
        node-map (Node/getAllNodesFrom cluster)]
     ;; assign one node so it is not in the pool
     (.assign (.get node-map "super0") "topology1" (list executor1) cluster)
-    (.init free-pool cluster node-map)
-    (.init isolated-pool cluster node-map)
+    (.init free-pool cluster node-map {})
+    (.init isolated-pool cluster node-map {})
     (is (= true (.canAdd isolated-pool topology1)))
     (.addTopology isolated-pool topology1)
     (is (= true (.canAdd isolated-pool topology2)))
@@ -664,8 +664,8 @@
        node-map (Node/getAllNodesFrom cluster)]
     ;; assign one node so it is not in the pool
     (.assign (.get node-map "super0") "topology1" (list executor1) cluster)
-    (.init free-pool cluster node-map)
-    (.init isolated-pool cluster node-map)
+    (.init free-pool cluster node-map {})
+    (.init isolated-pool cluster node-map {})
     (is (= true (.canAdd isolated-pool topology1)))
     (.addTopology isolated-pool topology1)
     (is (= true (.canAdd isolated-pool topology2)))

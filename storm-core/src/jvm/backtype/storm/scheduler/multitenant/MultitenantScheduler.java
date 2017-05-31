@@ -97,11 +97,11 @@ public class MultitenantScheduler implements IScheduler {
     DefaultPool defaultPool = new DefaultPool();
     FreePool freePool = new FreePool();
     
-    freePool.init(cluster, nodeIdToNode);
+    freePool.init(cluster, nodeIdToNode, _conf);
     for (IsolatedPool pool : userPools.values()) {
-      pool.init(cluster, nodeIdToNode);
+      pool.init(cluster, nodeIdToNode, _conf);
     }
-    defaultPool.init(cluster, nodeIdToNode);
+    defaultPool.init(cluster, nodeIdToNode, _conf);
     
     for (TopologyDetails td: topologies.getTopologies()) {
       String user = (String)td.getConf().get(Config.TOPOLOGY_SUBMITTER_USER);

@@ -39,8 +39,8 @@ public class FreePool extends NodePool {
   private int _totalSlots = 0;
 
   @Override
-  public void init(Cluster cluster, Map<String, Node> nodeIdToNode) {
-    super.init(cluster, nodeIdToNode);
+  public void init(Cluster cluster, Map<String, Node> nodeIdToNode, Map<String, Object> conf) {
+    super.init(cluster, nodeIdToNode, conf);
     for (Node n: nodeIdToNode.values()) {
       if(n.isTotallyFree() && n.isAlive()) {
         _nodes.add(n);

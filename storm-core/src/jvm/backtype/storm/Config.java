@@ -2193,6 +2193,12 @@ public class Config extends HashMap<String, Object> {
     public static final String ISOLATION_SCHEDULER_MACHINES = "isolation.scheduler.machines";
 
     /**
+     * True if only isolated topologies should be allowed, false if all should be allowed.
+     */
+    @isBoolean
+    public static final String MULTITENANT_SCHEDULER_ONLY_ALLOW_ISOLATED = "multitenant.scheduler.only.allow.isolated";
+
+    /**
      * A map from the user name to the number of machines that should that user is allowed to use. Set storm.scheduler
      * to backtype.storm.scheduler.multitenant.MultitenantScheduler
      */
