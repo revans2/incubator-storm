@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -172,33 +173,30 @@ public class MultitenantResourceAwareBridgeScheduler implements IScheduler{
      * @return a map of supervisors that RAS can use
      */
     Map<String, SupervisorDetails> getRASClusterSups(Cluster cluster, Topologies rasTopologies, Topologies allTopologies, Map<String, Node> nodesRASCanUse) {
-        Map<String, SupervisorDetails> rasClusterSups = new HashMap<String, SupervisorDetails>();
+        Map<String, SupervisorDetails> rasClusterSups = new HashMap<>();
         for(SupervisorDetails sup : cluster.getSupervisors().values()) {
-            if(nodesRASCanUse.containsKey(sup.getId())) {
+            Node n = nodesRASCanUse.get(sup.getId());
+            if(n != null) {
                 LOG.debug("RAS Supervisor: {}-{}", sup.getHost(), sup.getId());
-                Set<Number> availPorts = new HashSet<Number>();
-                Set<Integer> allPorts = cluster.getAssignablePorts(sup);
-                for(Integer port : allPorts) {
-                    WorkerSlot ws = this.findWorker(sup.getId(), port, nodesRASCanUse.get(sup.getId()).getFreeSlots());
-                    if(ws != null) {
-                        availPorts.add(ws.getPort());
-                    }
-                }
-                for(String topoId : nodesRASCanUse.get(sup.getId()).getRunningTopologies()) {
-                    if(rasTopologies.getById(topoId) != null) {
-                        for(WorkerSlot slot : cluster.getAssignments().get(topoId).getSlots()) {
-                            if(slot.getNodeId().equals(sup.getId())) {
-                                availPorts.add(slot.getPort());
-                            }
+                Set<Number> availPorts = new HashSet<>(cluster.getAssignablePorts(sup));
+                //Find the slots currently occupied by MT topologies
+                for (Map.Entry<WorkerSlot, String> entry: n.getWorkerToTopo().entrySet()) {
+                    String topoId = entry.getValue();
+                    if(rasTopologies.getById(topoId) == null) {
+                        //Non-RAS topo so remove the slot
+                        int port = entry.getKey().getPort();
+                        if (!availPorts.remove(port)) {
+                            LOG.warn("MT assigned a slot to non-existent port {} {}", topoId, entry.getKey());
                         }
                     }
                 }
+
                 LOG.debug("->free ports: {}", availPorts);
                 //calculate resources available
-                Map<String, Double> sup_resources = swagMultitenantResourceUsageForRAS(cluster, allTopologies,  nodesRASCanUse.get(sup.getId()), sup);
-                LOG.debug("->sup_resource: {}", sup_resources);
+                Map<String, Double> supResources = swagMultitenantResourceUsageForRAS(cluster, allTopologies,  nodesRASCanUse.get(sup.getId()), sup);
+                LOG.debug("->sup_resource: {}", supResources);
                 SupervisorDetails newRasSup = new SupervisorDetails(sup.getId(), sup.getHost(),
-                        sup.getMeta(), sup.getSchedulerMeta(), availPorts, sup_resources);
+                        sup.getMeta(), sup.getSchedulerMeta(), availPorts, supResources);
                 rasClusterSups.put(newRasSup.getId(), newRasSup);
             }
         }
