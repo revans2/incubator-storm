@@ -182,7 +182,7 @@ public class Cluster {
         if (blackListedHosts != null) {
             this.blackListedHosts.addAll(blackListedHosts);
         }
-        
+
         setAssignments(assignments, true);
     }
 

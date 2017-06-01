@@ -355,18 +355,14 @@ public class Node {
     return ret;
   }
 
-  public Map<WorkerSlot, List<String>> getWorkerToTopo() {
-    Map<WorkerSlot, List<String>> workerToTopo = new HashMap<WorkerSlot, List<String>>();
+  public Map<WorkerSlot, String> getWorkerToTopo() {
+    Map<WorkerSlot, String> workerToTopo = new HashMap<>();
     for (Entry<String, Set<WorkerSlot>> entry : this._topIdToUsedSlots.entrySet()) {
       String topoId = entry.getKey();
       Set<WorkerSlot> slots = entry.getValue();
       for (WorkerSlot ws : slots) {
-        if (!workerToTopo.containsKey(ws)) {
-          workerToTopo.put(ws, new LinkedList<String>());
-        }
-        workerToTopo.get(ws).add(topoId);
-        if (workerToTopo.get(ws).size() > 1) {
-          LOG.error("Worker: {} has executors from more than one topology assigned to it!");
+        if (workerToTopo.put(ws, topoId) != null) {
+            LOG.error("Worker: {} has executors from more than one topology assigned to it (internal error)!", ws);
         }
       }
     }

@@ -204,7 +204,7 @@ public abstract class NodePool {
    * @param cluster the cluster
    * @param nodeIdToNode the mapping of node id to nodes
    */
-  public void init(Cluster cluster, Map<String, Node> nodeIdToNode) {
+  public void init(Cluster cluster, Map<String, Node> nodeIdToNode, Map<String, Object> conf) {
     _cluster = cluster;
     _nodeIdToNode = nodeIdToNode;
   }

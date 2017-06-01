@@ -18,11 +18,14 @@
 
 package backtype.storm.scheduler.multitenant;
 
+import backtype.storm.Config;
+import backtype.storm.scheduler.Cluster;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
+import java.util.Map;
 import java.util.Set;
 
 import org.slf4j.Logger;
@@ -39,7 +42,14 @@ public class DefaultPool extends NodePool {
   private static final Logger LOG = LoggerFactory.getLogger(DefaultPool.class);
   private Set<Node> _nodes = new HashSet<>();
   private HashMap<String, TopologyDetails> _tds = new HashMap<>();
-  
+  private boolean onlyAllowIsolated = false;
+
+  @Override
+  public void init(Cluster cluster, Map<String, Node> nodeIdToNode, Map<String, Object> conf) {
+      super.init(cluster, nodeIdToNode, conf);
+      onlyAllowIsolated = (boolean) conf.getOrDefault(Config.MULTITENANT_SCHEDULER_ONLY_ALLOW_ISOLATED, false);
+  }
+
   @Override
   public void addTopology(TopologyDetails td) {
     String topId = td.getId();
@@ -137,6 +147,11 @@ public class DefaultPool extends NodePool {
       if (_cluster.needsScheduling(td) && 
               isTopologyScheduledByMultitenant(td) == true) {
         LOG.debug("Scheduling topology {}",topId);
+        if (onlyAllowIsolated) {
+            _cluster.unassign(topId);
+            _cluster.setStatus(topId, "Only Isolated MT topologies are allowed to run on this cluster.");
+            continue;
+        }
         int totalTasks = td.getExecutors().size();
         int origRequest = td.getNumWorkers();
         int slotsRequested = Math.min(totalTasks, origRequest);
