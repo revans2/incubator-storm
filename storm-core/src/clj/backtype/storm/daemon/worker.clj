@@ -22,7 +22,7 @@
   (:require [backtype.storm [disruptor :as disruptor] [cluster :as cluster]])
   (:require [clojure.set :as set])
   (:require [backtype.storm.messaging.loader :as msg-loader])
-  (:import [java.util.concurrent Executors])
+  (:import [java.util.concurrent Executors ConcurrentHashMap])
   (:import [java.util ArrayList HashMap])
   (:import [backtype.storm.grouping LoadMapping])
   (:import [backtype.storm.utils DisruptorQueue Utils TransferDrainer ThriftTopologyUtils])
@@ -298,6 +298,7 @@
       :heartbeat-timer (mk-halting-timer "heartbeat-timer")
       :refresh-load-timer (mk-halting-timer "refresh-load-timer")
       :refresh-connections-timer (mk-halting-timer "refresh-connections-timer")
+      :check-updated-blobs-timer (mk-halting-timer "check-updated-blobs-timer")
       :refresh-credentials-timer (mk-halting-timer "refresh-credentials-timer")
       :reset-log-levels-timer (mk-halting-timer "reset-log-levels-timer")
       :refresh-active-timer (mk-halting-timer "refresh-active-timer")
@@ -306,6 +307,7 @@
       :task->component (HashMap. (storm-task-info (system-topology! storm-conf topology) storm-conf)) ; for optimized access when used in tasks later on
       :component->stream->fields (component->stream->fields (:system-topology <>))
       :component->sorted-tasks (->> (:task->component <>) reverse-map (map-val sort))
+      :blobToLastKnownVersion (ConcurrentHashMap.)
       :endpoint-socket-lock (mk-rw-lock)
       :cached-node+port->socket (atom {})
       :cached-task->node+port (atom {})
@@ -365,6 +367,10 @@
                    (pr-str assigned-worker-executors) ", Current: " (pr-str current-executors))
       (when suicide-fn
         (suicide-fn)))))
+
+(defn mk-update-blob-versions-for-worker [worker]
+  (fn []  (do (.putAll (:blobToLastKnownVersion worker) (Utils/getCurrentBlobVersions (:storm-conf worker) (:storm-id worker)))
+              )))
 
 (defn mk-refresh-connections [worker]
   (let [outbound-tasks (worker-outbound-tasks worker)
@@ -625,6 +631,7 @@
 
         refresh-connections (mk-refresh-connections worker)
         refresh-load (mk-refresh-load worker)
+        update-blob-versions-for-workers (mk-update-blob-versions-for-worker worker)
 
         _ (refresh-connections nil)
 
@@ -682,6 +689,7 @@
                     (log-message "Shut down backpressure thread")
                     (cancel-timer (:heartbeat-timer worker))
                     (cancel-timer (:refresh-connections-timer worker))
+                    (cancel-timer (:check-updated-blobs-timer worker))
                     (cancel-timer (:refresh-credentials-timer worker))
                     (cancel-timer (:reset-log-levels-timer worker))
                     (cancel-timer (:refresh-active-timer worker))
@@ -709,6 +717,7 @@
                (and
                  (timer-waiting? (:heartbeat-timer worker))
                  (timer-waiting? (:refresh-connections-timer worker))
+                 (timer-waiting? (:check-updated-blobs-timer worker))
                  (timer-waiting? (:refresh-load-timer worker))
                  (timer-waiting? (:refresh-credentials-timer worker))
                  (timer-waiting? (:refresh-active-timer worker))
@@ -744,6 +753,7 @@
     (when-not (storm-conf TOPOLOGY-DISABLE-LOADAWARE-MESSAGING)
       (schedule-recurring-with-jitter (:refresh-load-timer worker) 0 1 500 refresh-load))
     (schedule-recurring (:refresh-connections-timer worker) 0 (conf TASK-REFRESH-POLL-SECS) refresh-connections)
+    (schedule-recurring (:check-updated-blobs-timer worker) 0 (conf WORKER-BLOB-UPDATE-POLL-INTERVAL-SECS) update-blob-versions-for-workers)
     (schedule-recurring (:reset-log-levels-timer worker) 0 (conf WORKER-LOG-LEVEL-RESET-POLL-SECS) (fn [] (reset-log-levels latest-log-config)))
     (schedule-recurring (:refresh-active-timer worker) 0 (conf TASK-REFRESH-POLL-SECS) (partial refresh-storm-active worker))
 

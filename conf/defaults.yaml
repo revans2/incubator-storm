@@ -178,6 +178,7 @@ worker.profiler.command: "flight.bash"
 worker.heartbeat.frequency.secs: 1
 # check whether dynamic log levels can be reset from DEBUG to INFO in workers
 worker.log.level.reset.poll.secs: 30
+worker.blob.update.poll.interval.secs: 10
 worker.metrics:
     "CGroupMemory": "org.apache.storm.metric.cgroup.CGroupMemoryUsage"
     "CGroupMemoryLimit": "org.apache.storm.metric.cgroup.CGroupMemoryLimit"
