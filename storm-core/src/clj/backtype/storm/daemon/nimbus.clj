@@ -557,16 +557,9 @@
 
 (defn fixup-storm-base
   [storm-base topo-conf]
-  (StormBase.
-    (:storm-name storm-base)
-    (:launch-time-secs storm-base)
-    (:status storm-base)
-    (:num-workers storm-base)
-    (:component->executors storm-base)
-    (.get topo-conf TOPOLOGY-SUBMITTER-USER)
-    (:topology-action-options storm-base)
-    (:prev-status storm-base)
-    (.get topo-conf TOPOLOGY-SUBMITTER-PRINCIPAL)))
+  (assoc storm-base
+         :owner (.get topo-conf TOPOLOGY-SUBMITTER-USER)
+         :principal (.get topo-conf TOPOLOGY-SUBMITTER-PRINCIPAL)))
 
 (defn read-topology-details 
   ([nimbus storm-id]
@@ -967,6 +960,11 @@
 (defn- to-worker-slot [[node port]]
   (WorkerSlot. node port))
 
+(defn- fixup-assignment
+  [assignment td]
+  (assoc assignment
+         :owner (.getTopologySubmitter td)))
+
 ;; get existing assignment (just the executor->node+port map) -> default to {}
 ;; filter out ones which have a executor timeout
 ;; figure out available slots on cluster. add to that the used valid slots to get total slots. figure out how many executors should be in each slot (e.g., 4, 4, 4, 5)
@@ -990,20 +988,11 @@
                                         ;; will be treated as free slot in the scheduler code.
                                         (when (or (nil? scratch-topology-id) (not= tid scratch-topology-id))
                                           (let [assignment (.assignment-info storm-cluster-state tid nil)
-                                                assignment (if (not (:owner assignment))
-                                                             (let [td (.get tds tid)]
-                                                               (if td
-                                                                 (let [new-assignment (Assignment.
-                                                                                        (:master-code-dir assignment)
-                                                                                        (:node->host assignment)
-                                                                                        (:executor->node+port assignment)
-                                                                                        (:executor->start-time-secs assignment)
-                                                                                        (:worker->resources assignment)
-                                                                                        (:total-shared-off-heap assignment)
-                                                                                        (.getTopologySubmitter td))]
-                                                                   (.set-assignment! storm-cluster-state tid new-assignment)
-                                                                   new-assignment)
-                                                                 assignment))
+                                                td (.get tds tid)
+                                                assignment (if (and (not (:owner assignment)) (not (nil? td)))
+                                                             (let [new-assignment (fixup-assignment assignment td)]
+                                                               (.set-assignment! storm-cluster-state tid new-assignment)
+                                                               new-assignment)
                                                              assignment)]
                                             {tid assignment}))))
         ;; make the new assignments for topologies
