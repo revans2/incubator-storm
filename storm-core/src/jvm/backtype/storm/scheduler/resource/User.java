@@ -240,12 +240,54 @@ public class User {
         return this.getCPUResourceUsedByUser() / cpuGuarantee;
     }
 
+    public double getCPUResourceRequestUtilization() {
+        Double cpuGuarantee = this.resourcePool.get("cpu");
+        if (cpuGuarantee == null || cpuGuarantee == 0.0) {
+            return Double.MAX_VALUE;
+        }
+        return this.getCPUResourceRequest() / cpuGuarantee;
+    }
+
+    public double getCPUResourceRequest() {
+        double sum = 0.0;
+        Set<TopologyDetails> topologyDetailsSet = new TreeSet<>();
+        topologyDetailsSet.addAll(runningQueue);
+        topologyDetailsSet.addAll(pendingQueue);
+        topologyDetailsSet.addAll(invalidQueue);
+        topologyDetailsSet.addAll(attemptedQueue);
+        for (TopologyDetails topo : topologyDetailsSet) {
+            sum += topo.getTotalRequestedCpu();
+        }
+        return sum;
+    }
+
     public double getMemoryResourcePoolUtilization() {
         Double memoryGuarantee = this.resourcePool.get("memory");
         if (memoryGuarantee == null || memoryGuarantee == 0.0) {
             return Double.MAX_VALUE;
         }
         return this.getMemoryResourceUsedByUser() / memoryGuarantee;
+    }
+
+    public double getMemoryResourceRequestUtilzation() {
+        Double memoryGuarantee = this.resourcePool.get("memory");
+        if (memoryGuarantee == null || memoryGuarantee == 0.0) {
+            return Double.MAX_VALUE;
+        }
+        return this.getMemoryResourceRequest() / memoryGuarantee;
+    }
+
+    public double getMemoryResourceRequest() {
+        double sum = 0.0;
+        Set<TopologyDetails> topologyDetailsSet = new TreeSet<>();
+        topologyDetailsSet.addAll(runningQueue);
+        topologyDetailsSet.addAll(pendingQueue);
+        topologyDetailsSet.addAll(invalidQueue);
+        topologyDetailsSet.addAll(attemptedQueue);
+        for (TopologyDetails topo : topologyDetailsSet) {
+            sum += topo.getTotalRequestedMemOnHeap() + topo.getTotalRequestedMemOffHeap();
+        }
+        return sum;
     }
 
     public double getCPUResourceUsedByUser() {

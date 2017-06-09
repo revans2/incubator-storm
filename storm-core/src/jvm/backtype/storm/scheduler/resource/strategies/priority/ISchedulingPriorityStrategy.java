@@ -21,6 +21,8 @@ package backtype.storm.scheduler.resource.strategies.priority;
 import backtype.storm.scheduler.TopologyDetails;
 import backtype.storm.scheduler.resource.SchedulingState;
 
+import java.util.List;
+
 public interface ISchedulingPriorityStrategy {
 
     /**
@@ -30,7 +32,7 @@ public interface ISchedulingPriorityStrategy {
 
     /**
      * Gets the next topology to schedule
-     * @return return the next topology to schedule.  If there is no topologies left to schedule, return null
+     * @return return ordered list of topologies to schedule.
      */
-    public TopologyDetails getNextTopologyToSchedule();
+    public List<TopologyDetails> getOrderedTopologies();
 }
