@@ -62,6 +62,7 @@ import backtype.storm.localizer.Localizer;
 import backtype.storm.security.auth.SingleUserPrincipal;
 import backtype.storm.serialization.DefaultSerializationDelegate;
 import backtype.storm.serialization.SerializationDelegate;
+import org.apache.storm.utils.ConfigUtils;
 import org.apache.thrift.TBase;
 import org.apache.thrift.TDeserializer;
 import org.apache.thrift.TException;
@@ -163,6 +164,7 @@ public class Utils {
     public static final String CURRENT_BLOB_SUFFIX_ID = "current";
     public static final String DEFAULT_CURRENT_BLOB_SUFFIX = "." + CURRENT_BLOB_SUFFIX_ID;
     private static final Set<Class> defaultAllowedExceptions = new HashSet<>();
+    private static final Pattern BLOB_VERSION_EXTRACTION = Pattern.compile(".*\\.([0-9]+)$");
     private static ThreadLocal<TSerializer> threadSer = new ThreadLocal<TSerializer>();
     private static ThreadLocal<TDeserializer> threadDes = new ThreadLocal<TDeserializer>();
 
@@ -2348,6 +2350,29 @@ public class Utils {
         Double temp = Math.ceil(getEstimatedTotalHeapMemoryRequiredByTopo(topology, topologyConf) /
                 Utils.getDouble(topologyConf.get(Config.WORKER_HEAP_MEMORY_MB)));
         return temp;
+    }
+
+    public static Map<String, Long> getCurrentBlobVersions(Map topoConf, String topologyId) throws IOException {
+        Map<String, Long> results = new HashMap<>();
+        Map<String, Map<String, Object>> blobstoreMap = (Map<String, Map<String, Object>>) topoConf.get(Config.TOPOLOGY_BLOBSTORE_MAP);
+        if (blobstoreMap != null) {
+            String stormRoot = ConfigUtils.supervisorStormDistRoot(topoConf, topologyId);
+            for (Map.Entry<String, Map<String, Object>> entry : blobstoreMap.entrySet()) {
+                String localFileName = entry.getKey();
+                Map<String, Object> blobInfo = entry.getValue();
+                if (blobInfo != null && blobInfo.containsKey("localname")) {
+                    localFileName = (String) blobInfo.get("localname");
+                }
+
+                String blobWithVersion = new File(stormRoot, localFileName).getCanonicalFile().getName();
+                Matcher m = BLOB_VERSION_EXTRACTION.matcher(blobWithVersion);
+                if (m.matches()) {
+                    results.put(localFileName, Long.valueOf(m.group(1)));
+                }
+            }
+        }
+        LOG.debug("Latest versions for blobs {}", results);
+        return results;
     }
 
 }

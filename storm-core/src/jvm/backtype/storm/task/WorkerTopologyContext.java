@@ -34,6 +34,7 @@ public class WorkerTopologyContext extends GeneralTopologyContext {
     private String _pidDir;
     Map<String, Object> _userResources;
     Map<String, Object> _defaultResources;
+    private Map<String, Long> blobToLastKnownVersion;
     
     public WorkerTopologyContext(
             StormTopology topology,
@@ -41,6 +42,7 @@ public class WorkerTopologyContext extends GeneralTopologyContext {
             Map<Integer, String> taskToComponent,
             Map<String, List<Integer>> componentToSortedTasks,
             Map<String, Map<String, Fields>> componentToStreamToFields,
+            Map<String, Long> blobToLastKnownVersionShared,
             String stormId,
             String codeDir,
             String pidDir,
@@ -53,6 +55,7 @@ public class WorkerTopologyContext extends GeneralTopologyContext {
         _codeDir = codeDir;
         _defaultResources = defaultResources;
         _userResources = userResources;
+        blobToLastKnownVersion = blobToLastKnownVersionShared;
         try {
             if(pidDir!=null) {
                 _pidDir = new File(pidDir).getCanonicalPath();
@@ -102,5 +105,9 @@ public class WorkerTopologyContext extends GeneralTopologyContext {
     
     public ExecutorService getSharedExecutor() {
         return (ExecutorService) _defaultResources.get(SHARED_EXECUTOR);
+    }
+
+    public Map<String, Long> getBlobToLastKnownVersion() {
+        return blobToLastKnownVersion;
     }
 }
