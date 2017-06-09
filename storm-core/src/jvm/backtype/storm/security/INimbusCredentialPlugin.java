@@ -30,7 +30,7 @@ public interface INimbusCredentialPlugin extends Shutdownable {
 
     /**
      * This method will be called when nimbus initializes.
-     * @param conf teh cluster config
+     * @param conf the cluster config
      */
     void prepare(Map conf);
 

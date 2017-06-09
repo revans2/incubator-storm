@@ -1074,7 +1074,6 @@
         topology (get-system-topology storm-conf (try-read-storm-topology storm-id nimbus) storm-id nimbus)
         num-executors (->> (all-components topology) (map-val num-start-executors))]
     (log-message "Activating " storm-name ": " storm-id)
-    ;;TODO need to make sure that principal is set on storm-base too???
     (.activate-storm! storm-cluster-state
                       storm-id
                       (StormBase. storm-name
@@ -1086,12 +1085,6 @@
                                   nil
                                   nil
                                   (storm-conf TOPOLOGY-SUBMITTER-PRINCIPAL)))))
-
-;; Master:
-;; job submit:
-;; 1. read which nodes are available
-;; 2. set assignments
-;; 3. start storm - necessary in case master goes down, when goes back up can remember to take down the storm (2 states: on or off)
 
 (defn storm-active? [storm-cluster-state storm-name]
   (not-nil? (get-storm-id storm-cluster-state storm-name)))
