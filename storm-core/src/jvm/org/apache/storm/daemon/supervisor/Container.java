@@ -366,7 +366,7 @@ public abstract class Container implements Killable {
         File workerArtifacts = new File(ConfigUtils.workerArtifactsRoot(_conf, _topologyId, _port));
         if (!_ops.fileExists(workerArtifacts)) {
             _ops.forceMkdir(workerArtifacts);
-            _ops.setupWorkerArtifactsDir(_topoConf, workerArtifacts);
+            _ops.setupWorkerArtifactsDir(_assignment.get_owner(), workerArtifacts);
         }
     
         String user = getWorkerUser();
@@ -504,8 +504,10 @@ public abstract class Container implements Killable {
 
         if (_ops.fileExists(file)) {
             return _ops.slurpString(file).trim();
-        } else if (_topoConf != null) { 
-            return (String) _topoConf.get(Config.TOPOLOGY_SUBMITTER_USER);
+        } else if (_assignment != null && _assignment.is_set_owner()) {
+            return _assignment.get_owner();
+        //} else if (_topoConf != null) {
+        //    return (String) _topoConf.get(Config.TOPOLOGY_SUBMITTER_USER);
         }
         if (ConfigUtils.isLocalMode(_conf)) {
             return System.getProperty("user.name");
