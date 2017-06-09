@@ -71,9 +71,9 @@ public class AutoHDFS implements IAutoCredentials, ICredentialsRenewer, INimbusC
     }
 
     @Override
-    public void populateCredentials(Map<String, String> credentials, Map conf) {
+    public void populateCredentials(Map<String, String> credentials, Map<String, Object> conf, String user) {
         try {
-            credentials.put(getCredentialKey(), DatatypeConverter.printBase64Binary(getHadoopCredentials(conf)));
+            credentials.put(getCredentialKey(), DatatypeConverter.printBase64Binary(getHadoopCredentials(conf, user)));
             LOG.info("HDFS tokens added to credentials map.");
         } catch (Exception e) {
             LOG.error("Could not populate HDFS credentials.", e);
@@ -194,14 +194,12 @@ public class AutoHDFS implements IAutoCredentials, ICredentialsRenewer, INimbusC
     }
 
     @SuppressWarnings("unchecked")
-    protected byte[] getHadoopCredentials(Map conf) {
+    protected byte[] getHadoopCredentials(Map conf, final String topologySubmitterUser) {
         try {
             if(UserGroupInformation.isSecurityEnabled()) {
                 final Configuration configuration = new Configuration();
 
                 login(configuration);
-
-                final String topologySubmitterUser = (String) conf.get(Config.TOPOLOGY_SUBMITTER_PRINCIPAL);
 
                 final URI nameNodeURI = conf.containsKey(TOPOLOGY_HDFS_URI) ? new URI(conf.get(TOPOLOGY_HDFS_URI).toString())
                         : FileSystem.getDefaultUri(configuration);

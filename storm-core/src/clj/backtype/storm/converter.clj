@@ -72,6 +72,8 @@
                                                                (.set_mem_off_heap (second resources))
                                                                (.set_cpu (last resources)))])
                                                           (:worker->resources assignment)))))
+    (if (:owner assignment)
+      (.set_owner thrift-assignment (:owner assignment)))
     thrift-assignment))
 
 (defn clojurify-executor->node_port [executor->node_port]
@@ -105,7 +107,8 @@
       (map-key (fn [executor] (into [] executor))
         (into {} (.get_executor_start_time_secs assignment)))
       (clojurify-node-info-worker-resources (into {} (.get_worker_resources assignment)))
-      (.get_total_shared_off_heap assignment))))
+      (.get_total_shared_off_heap assignment)
+      (.get_owner assignment))))
 
 (defn convert-to-symbol-from-status [status]
   (condp = status
@@ -190,7 +193,8 @@
     (.set_component_executors (map-val int (:component->executors storm-base)))
     (.set_owner (:owner storm-base))
     (.set_topology_action_options (thriftify-topology-action-options storm-base))
-    (.set_prev_status (convert-to-status-from-symbol (:prev-status storm-base)))))
+    (.set_prev_status (convert-to-status-from-symbol (:prev-status storm-base)))
+    (.set_principal (:principal storm-base))))
 
 (defn clojurify-storm-base [^StormBase storm-base]
   (if storm-base
@@ -202,7 +206,8 @@
       (into {} (.get_component_executors storm-base))
       (.get_owner storm-base)
       (clojurify-topology-action-options (.get_topology_action_options storm-base))
-      (convert-to-symbol-from-status (.get_prev_status storm-base)))))
+      (convert-to-symbol-from-status (.get_prev_status storm-base))
+      (.get_principal storm-base))))
 
 (defn thriftify-stats [stats]
   (if stats

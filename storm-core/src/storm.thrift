@@ -165,8 +165,10 @@ struct TopologySummary {
   5: required i32 num_workers;
   6: required i32 uptime_secs;
   7: required string status;
+  //8: optional string storm_version;
 513: optional string sched_status;
 514: optional string owner;
+//515: optional i32 replication_count;
 521: optional double requested_memonheap;
 522: optional double requested_memoffheap;
 523: optional double requested_cpu;
@@ -249,8 +251,11 @@ struct TopologyInfo {
   4: required list<ExecutorSummary> executors;
   5: required string status;
   6: required map<string, list<ErrorInfo>> errors;
+  //7: optional map<string, DebugOptions> component_debug;
+  //8: optional string storm_version;
 513: optional string sched_status;
 514: optional string owner;
+//515: optional i32 replication_count;
 521: optional double requested_memonheap;
 522: optional double requested_memoffheap;
 523: optional double requested_cpu;
@@ -266,7 +271,7 @@ struct CommonAggregateStats {
 4: optional i64 transferred;
 5: optional i64 acked;
 6: optional i64 failed;
-7: optional map<string, double> resources_map
+7: optional map<string, double> resources_map;
 }
 
 struct SpoutAggregateStats {
@@ -342,8 +347,14 @@ struct TopologyPageInfo {
 11: optional string sched_status;
 12: optional TopologyStats topology_stats;
 13: optional string owner;
+//START CONFICT WITH OPEN SOURCE
+//14: optional DebugOptions debug_options;
+//15: optional i32 replication_count;
+//16: optional list<WorkerSummary> workers;
+//END CONFLICT WITH OPEN SOURCE
 14: optional list<WorkerSummary> workers;
 15: optional list<ErrorInfo> errors;
+//17: optional string storm_version;
 521: optional double requested_memonheap;
 522: optional double requested_memoffheap;
 523: optional double requested_cpu;
@@ -377,6 +388,13 @@ struct ComponentPageInfo {
  9: optional map<string,ComponentAggregateStats> sid_to_output_stats;
 10: optional list<ExecutorAggregateStats> exec_stats;
 11: optional list<ErrorInfo> errors;
+//START CONFLICT WITH OPEN SOURCE
+//12: optional string eventlog_host;
+//13: optional i32 eventlog_port;
+//14: optional DebugOptions debug_options;
+//15: optional string topology_status;
+//16: optional map<string, double> resources_map;
+//END CONFLICT WITH OPEN SOURCE
 12: optional map<string, double> resources_map
 }
 
@@ -443,42 +461,6 @@ struct BeginDownloadResult {
   3: optional i64 data_size;
 }
 
-enum LogLevelAction {
-  UNCHANGED = 1,
-  UPDATE    = 2,
-  REMOVE    = 3
-}
-
-struct LogLevel {
-  1: required LogLevelAction action;
-
-  // during this thrift call, we'll move logger to target_log_level
-  2: optional string target_log_level;
-
-  // number of seconds that target_log_level should be kept
-  // after this timeout, the loggers will be reset to reset_log_level
-  // if timeout is 0, we will not reset 
-  3: optional i32 reset_log_level_timeout_secs;
-
-  // number of seconds since unix epoch corresponding to 
-  // current time (when message gets to nimbus) + reset_log_level_timeout_secs 
-  // NOTE: this field gets set in Nimbus 
-  4: optional i64 reset_log_level_timeout_epoch;
-
-  // if reset timeout was set, then we would reset 
-  // to this level after timeout (or INFO by default)
-  5: optional string reset_log_level;
-}
-
-struct LogConfig { 
-  // logger name -> log level map
-  1: optional map<string, LogLevel> named_logger_level;
-}
-
-struct TopologyHistoryInfo {
-  1: list<string> topo_ids;
-}
-
 struct SupervisorInfo {
     1: required i64 time_secs;
     2: required string hostname;
@@ -510,6 +492,7 @@ struct Assignment {
     4: optional map<list<i64>, i64> executor_start_time_secs = {};
     5: optional map<NodeInfo, WorkerResources> worker_resources = {};
     6: optional map<string, double> total_shared_off_heap = {};
+    7: optional string owner;
 }
 
 enum TopologyStatus {
@@ -533,6 +516,8 @@ struct StormBase {
     6: optional string owner;
     7: optional TopologyActionOptions topology_action_options;
     8: optional TopologyStatus prev_status;//currently only used during rebalance action.
+    //9: optional map<string, DebugOptions> component_debug; // topology/component level debug option.
+   10: optional string principal;
 }
 
 struct ClusterWorkerHeartbeat {
@@ -557,6 +542,7 @@ struct LocalAssignment {
   3: optional WorkerResources resources;
   //The total amount of memory shared between workers on this node and topology
   4: optional double total_node_shared;
+  5: optional string owner;
 }
 
 struct LSSupervisorId {
@@ -614,6 +600,45 @@ struct GetInfoOptions {
   1: optional NumErrorsChoice num_err_choice;
 }
 
+enum LogLevelAction {
+  UNCHANGED = 1,
+  UPDATE    = 2,
+  REMOVE    = 3
+}
+
+struct LogLevel {
+  1: required LogLevelAction action;
+
+  // during this thrift call, we'll move logger to target_log_level
+  2: optional string target_log_level;
+
+  // number of seconds that target_log_level should be kept
+  // after this timeout, the loggers will be reset to reset_log_level
+  // if timeout is 0, we will not reset 
+  3: optional i32 reset_log_level_timeout_secs;
+
+  // number of seconds since unix epoch corresponding to 
+  // current time (when message gets to nimbus) + reset_log_level_timeout_secs 
+  // NOTE: this field gets set in Nimbus 
+  4: optional i64 reset_log_level_timeout_epoch;
+
+  // if reset timeout was set, then we would reset 
+  // to this level after timeout (or INFO by default)
+  5: optional string reset_log_level;
+}
+
+struct LogConfig { 
+  // logger name -> log level map
+  1: optional map<string, LogLevel> named_logger_level;
+  //BEGIN CONFICT WITH OPEN SOURCE
+  //2: optional map<string, LogLevel> named_logger_level;
+  //END CONFLICT WITH OPEN SOURCE
+}
+
+struct TopologyHistoryInfo {
+  1: list<string> topo_ids;
+}
+
 struct OwnerResourceSummary {
   1: required string owner;
   2: optional i32 total_topologies;
@@ -657,6 +682,10 @@ service Nimbus {
   // dynamic log levels
   void setLogConfig(1: string id, 2: LogConfig config);
   LogConfig getLogConfig(1: string id);
+  //BEGIN CONFLICT WITH OPEN SOURCE
+  //void setLogConfig(1: string name, 2: LogConfig config);
+  //LogConfig getLogConfig(1: string name);
+  //END CONFLICT WITH OPEN SOURCE
 
   // dynamic profile actions
   void setWorkerProfiler(1: string id, 2: ProfileRequest  profileRequest);
@@ -756,7 +785,6 @@ service DistributedRPCInvocations {
   void failRequest(1: string id) throws (1: AuthorizationException aze);  
 }
 
-
 enum HBServerMessageType {
   CREATE_PATH,
   CREATE_PATH_RESPONSE,
@@ -777,6 +805,19 @@ enum HBServerMessageType {
   CONTROL_MESSAGE,
   SASL_MESSAGE_TOKEN,
   NOT_AUTHORIZED
+}
+
+struct HBPulse {
+  1: required string id;
+  2: binary details;
+}
+
+struct HBRecords {
+  1: list<HBPulse> pulses;
+}
+
+struct HBNodes {
+  1: list<string> pulseIds;
 }
 
 union HBMessageData {
@@ -801,17 +842,4 @@ exception HBAuthorizationException {
 
 exception HBExecutionException {
   1: required string msg;
-}
-
-struct HBPulse {
-  1: required string id;
-  2: binary details;
-}
-
-struct HBRecords {
-  1: list<HBPulse> pulses;
-}
-
-struct HBNodes {
-  1: list<string> pulseIds;
 }

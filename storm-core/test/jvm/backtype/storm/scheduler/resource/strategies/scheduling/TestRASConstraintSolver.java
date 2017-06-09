@@ -55,7 +55,6 @@ public class TestRASConstraintSolver {
     private static final int NUM_WORKERS_PER_SUP = 4;
     private static final int MAX_TRAVERSAL_DEPTH = 1000000;
     private static final int NUM_WORKERS = NUM_SUPS * NUM_WORKERS_PER_SUP;
-    private final String TOPOLOGY_SUBMITTER = "jerry";
     
     @Test
     public void testConstraintSolver() {
@@ -77,7 +76,6 @@ public class TestRASConstraintSolver {
         config.put(Config.TOPOLOGY_SPREAD_COMPONENTS, spread);
         config.put(Config.TOPOLOGY_CONSTRAINTS, constraints);
         config.put(Config.TOPOLOGY_CONSTRAINTS_MAX_DEPTH_TRAVERSAL, MAX_TRAVERSAL_DEPTH);
-        config.put(Config.TOPOLOGY_SUBMITTER_USER, TOPOLOGY_SUBMITTER);
         config.put(Config.TOPOLOGY_WORKERS, NUM_WORKERS);
         config.put(Config.TOPOLOGY_WORKER_MAX_HEAP_SIZE_MB, 100000);
         config.put(Config.TOPOLOGY_PRIORITY, 1);
@@ -85,7 +83,7 @@ public class TestRASConstraintSolver {
         config.put(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB, 100);
         config.put(Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB, 0.0);
 
-        TopologyDetails topo = TestUtilsForResourceAwareScheduler.getTopology("testTopo", config, 2, 3, 30, 300, 0, 0);
+        TopologyDetails topo = TestUtilsForResourceAwareScheduler.getTopology("testTopo", config, 2, 3, 30, 300, 0, 0, "user");
         Map<String, TopologyDetails> topoMap = new HashMap<String, TopologyDetails>();
         topoMap.put(topo.getId(), topo);
         Topologies topologies = new Topologies(topoMap);
@@ -151,7 +149,6 @@ public class TestRASConstraintSolver {
         config.put(Config.TOPOLOGY_SPREAD_COMPONENTS, spread);
         config.put(Config.TOPOLOGY_CONSTRAINTS, constraints);
         config.put(Config.TOPOLOGY_CONSTRAINTS_MAX_DEPTH_TRAVERSAL, MAX_TRAVERSAL_DEPTH);
-        config.put(Config.TOPOLOGY_SUBMITTER_USER, TOPOLOGY_SUBMITTER);
         config.put(Config.TOPOLOGY_WORKERS, NUM_WORKERS);
         config.put(Config.TOPOLOGY_WORKER_MAX_HEAP_SIZE_MB, 100000);
         config.put(Config.TOPOLOGY_PRIORITY, 1);
@@ -159,7 +156,7 @@ public class TestRASConstraintSolver {
         config.put(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB, 100);
         config.put(Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB, 0.0);
 
-        TopologyDetails topo = TestUtilsForResourceAwareScheduler.getTopology("testTopo", config, 2, 3, 30, 300, 0, 0);
+        TopologyDetails topo = TestUtilsForResourceAwareScheduler.getTopology("testTopo", config, 2, 3, 30, 300, 0, 0, "user");
         Map<String, TopologyDetails> topoMap = new HashMap<String, TopologyDetails>();
         topoMap.put(topo.getId(), topo);
         Topologies topologies = new Topologies(topoMap);

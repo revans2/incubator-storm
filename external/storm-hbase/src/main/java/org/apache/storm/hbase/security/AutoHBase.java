@@ -71,9 +71,9 @@ public class AutoHBase implements IAutoCredentials, ICredentialsRenewer, INimbus
     }
 
     @Override
-    public void populateCredentials(Map<String, String> credentials, Map conf) {
+    public void populateCredentials(Map<String, String> credentials, Map<String, Object> conf, String user) {
         try {
-            credentials.put(getCredentialKey(), DatatypeConverter.printBase64Binary(getHadoopCredentials(conf)));
+            credentials.put(getCredentialKey(), DatatypeConverter.printBase64Binary(getHadoopCredentials(conf, user)));
         } catch (Exception e) {
             LOG.error("Could not populate HBase credentials.", e);
         }
@@ -163,11 +163,10 @@ public class AutoHBase implements IAutoCredentials, ICredentialsRenewer, INimbus
     }
 
     @SuppressWarnings("unchecked")
-    protected byte[] getHadoopCredentials(Map conf) {
+    protected byte[] getHadoopCredentials(Map conf, final String topologySubmitterUser) {
         try {
             final Configuration hbaseConf = HBaseConfiguration.create();
             if(UserGroupInformation.isSecurityEnabled()) {
-                final String topologySubmitterUser = (String) conf.get(Config.TOPOLOGY_SUBMITTER_PRINCIPAL);
 
                 UserProvider provider = UserProvider.instantiate(hbaseConf);
 

@@ -55,7 +55,7 @@
   (:require [backtype.storm [cluster :as cluster] [stats :as stats]])
   (:require [clojure.set :as set])
   (:require [clojure.core.reducers :as reducers])
-  (:import [backtype.storm.daemon.common StormBase Assignment])
+  (:import [backtype.storm.daemon.common Assignment StormBase])
   (:use [backtype.storm.daemon common])
   (:use [clojure.string :only [blank?]])
   (:use [clojure.set :only [intersection]])
@@ -555,7 +555,18 @@
   (if (not (empty? (:topology->config rebalance-options)))
     (update-topology-config nimbus storm-id (:topology->config rebalance-options) subject)))
 
-
+(defn fixup-storm-base
+  [storm-base topo-conf]
+  (StormBase.
+    (:storm-name storm-base)
+    (:launch-time-secs storm-base)
+    (:status storm-base)
+    (:num-workers storm-base)
+    (:component->executors storm-base)
+    (.get topo-conf TOPOLOGY-SUBMITTER-USER)
+    (:topology-action-options storm-base)
+    (:prev-status storm-base)
+    (.get topo-conf TOPOLOGY-SUBMITTER-PRINCIPAL)))
 
 (defn read-topology-details 
   ([nimbus storm-id]
@@ -563,6 +574,11 @@
   ([nimbus storm-id storm-base]
     (let [conf (:conf nimbus)
           topology-conf (read-storm-conf-as-nimbus conf storm-id nimbus)
+          storm-base (if (nil? (:principal storm-base))
+                       (let [new-sb (fixup-storm-base storm-base topology-conf)]
+                           (.update-storm! (:storm-cluster-state nimbus) storm-id new-sb)
+                           new-sb)
+                       storm-base)
           topology (read-storm-topology-as-nimbus storm-id nimbus)
           executor->component (->> (compute-executor->component nimbus storm-id)
                                    (map-key (fn [[start-task end-task]]
@@ -572,7 +588,7 @@
                         topology
                         (or (:num-workers storm-base) 0)
                         executor->component
-                        (or (:launch-time-secs storm-base) 0)))))
+                        (or (:launch-time-secs storm-base) 0) (:owner storm-base)))))
 
 ;; Does not assume that clocks are synchronized. Executor heartbeat is only used so that
 ;; nimbus knows when it's received a new heartbeat. All timing is done by nimbus and
@@ -961,11 +977,11 @@
         storm-cluster-state (:storm-cluster-state nimbus)
         ^INimbus inimbus (:inimbus nimbus)
         ;; read all the topologies
-        topologies (locking (:submit-lock nimbus)
+        tds (locking (:submit-lock nimbus)
                      (into {} (reducers/map
                         (fn [tid] {tid (read-topology-details nimbus tid)})
                         (.active-storms storm-cluster-state))))
-        topologies (Topologies. topologies)
+        topologies (Topologies. tds)
         ;; read all the assignments
         assigned-topology-ids (.assignments storm-cluster-state nil)
         existing-assignments (into {} (for [tid assigned-topology-ids]
@@ -973,7 +989,23 @@
                                         ;; we exclude its assignment, meaning that all the slots occupied by its assignment
                                         ;; will be treated as free slot in the scheduler code.
                                         (when (or (nil? scratch-topology-id) (not= tid scratch-topology-id))
-                                          {tid (.assignment-info storm-cluster-state tid nil)})))
+                                          (let [assignment (.assignment-info storm-cluster-state tid nil)
+                                                assignment (if (not (:owner assignment))
+                                                             (let [td (.get tds tid)]
+                                                               (if td
+                                                                 (let [new-assignment (Assignment.
+                                                                                        (:master-code-dir assignment)
+                                                                                        (:node->host assignment)
+                                                                                        (:executor->node+port assignment)
+                                                                                        (:executor->start-time-secs assignment)
+                                                                                        (:worker->resources assignment)
+                                                                                        (:total-shared-off-heap assignment)
+                                                                                        (.getTopologySubmitter td))]
+                                                                   (.set-assignment! storm-cluster-state tid new-assignment)
+                                                                   new-assignment)
+                                                                 assignment))
+                                                             assignment)]
+                                            {tid assignment}))))
         ;; make the new assignments for topologies
         new-scheduler-assignments (locking (:sched-lock nimbus) (compute-new-scheduler-assignments
                                        nimbus
@@ -1017,7 +1049,8 @@
                                                  executor->node+port
                                                  start-times
                                                  worker->resources
-                                                 shared-off-heap)}))]
+                                                 shared-off-heap
+                                                 (.getTopologySubmitter (.get tds topology-id)))}))]
 
     (when (not= new-assignments existing-assignments)
       (log-debug "RESETTING id->resources and id->worker-resources cache!")
@@ -1052,6 +1085,7 @@
         topology (get-system-topology storm-conf (try-read-storm-topology storm-id nimbus) storm-id nimbus)
         num-executors (->> (all-components topology) (map-val num-start-executors))]
     (log-message "Activating " storm-name ": " storm-id)
+    ;;TODO need to make sure that principal is set on storm-base too???
     (.activate-storm! storm-cluster-state
                       storm-id
                       (StormBase. storm-name
@@ -1061,7 +1095,8 @@
                                   num-executors
                                   (storm-conf TOPOLOGY-SUBMITTER-USER)
                                   nil
-                                  nil))))
+                                  nil
+                                  (storm-conf TOPOLOGY-SUBMITTER-PRINCIPAL)))))
 
 ;; Master:
 ;; job submit:

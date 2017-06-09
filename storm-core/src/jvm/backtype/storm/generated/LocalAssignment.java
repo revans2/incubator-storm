@@ -59,6 +59,7 @@ public class LocalAssignment implements org.apache.thrift.TBase<LocalAssignment,
   private static final org.apache.thrift.protocol.TField EXECUTORS_FIELD_DESC = new org.apache.thrift.protocol.TField("executors", org.apache.thrift.protocol.TType.LIST, (short)2);
   private static final org.apache.thrift.protocol.TField RESOURCES_FIELD_DESC = new org.apache.thrift.protocol.TField("resources", org.apache.thrift.protocol.TType.STRUCT, (short)3);
   private static final org.apache.thrift.protocol.TField TOTAL_NODE_SHARED_FIELD_DESC = new org.apache.thrift.protocol.TField("total_node_shared", org.apache.thrift.protocol.TType.DOUBLE, (short)4);
+  private static final org.apache.thrift.protocol.TField OWNER_FIELD_DESC = new org.apache.thrift.protocol.TField("owner", org.apache.thrift.protocol.TType.STRING, (short)5);
 
   private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
   static {
@@ -70,13 +71,15 @@ public class LocalAssignment implements org.apache.thrift.TBase<LocalAssignment,
   private List<ExecutorInfo> executors; // required
   private WorkerResources resources; // optional
   private double total_node_shared; // optional
+  private String owner; // optional
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift.TFieldIdEnum {
     TOPOLOGY_ID((short)1, "topology_id"),
     EXECUTORS((short)2, "executors"),
     RESOURCES((short)3, "resources"),
-    TOTAL_NODE_SHARED((short)4, "total_node_shared");
+    TOTAL_NODE_SHARED((short)4, "total_node_shared"),
+    OWNER((short)5, "owner");
 
     private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
 
@@ -99,6 +102,8 @@ public class LocalAssignment implements org.apache.thrift.TBase<LocalAssignment,
           return RESOURCES;
         case 4: // TOTAL_NODE_SHARED
           return TOTAL_NODE_SHARED;
+        case 5: // OWNER
+          return OWNER;
         default:
           return null;
       }
@@ -141,7 +146,7 @@ public class LocalAssignment implements org.apache.thrift.TBase<LocalAssignment,
   // isset id assignments
   private static final int __TOTAL_NODE_SHARED_ISSET_ID = 0;
   private byte __isset_bitfield = 0;
-  private static final _Fields optionals[] = {_Fields.RESOURCES,_Fields.TOTAL_NODE_SHARED};
+  private static final _Fields optionals[] = {_Fields.RESOURCES,_Fields.TOTAL_NODE_SHARED,_Fields.OWNER};
   public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
   static {
     Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
@@ -154,6 +159,8 @@ public class LocalAssignment implements org.apache.thrift.TBase<LocalAssignment,
         new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, WorkerResources.class)));
     tmpMap.put(_Fields.TOTAL_NODE_SHARED, new org.apache.thrift.meta_data.FieldMetaData("total_node_shared", org.apache.thrift.TFieldRequirementType.OPTIONAL, 
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.DOUBLE)));
+    tmpMap.put(_Fields.OWNER, new org.apache.thrift.meta_data.FieldMetaData("owner", org.apache.thrift.TFieldRequirementType.OPTIONAL, 
+        new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
     metaDataMap = Collections.unmodifiableMap(tmpMap);
     org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(LocalAssignment.class, metaDataMap);
   }
@@ -189,6 +196,9 @@ public class LocalAssignment implements org.apache.thrift.TBase<LocalAssignment,
       this.resources = new WorkerResources(other.resources);
     }
     this.total_node_shared = other.total_node_shared;
+    if (other.is_set_owner()) {
+      this.owner = other.owner;
+    }
   }
 
   public LocalAssignment deepCopy() {
@@ -202,6 +212,7 @@ public class LocalAssignment implements org.apache.thrift.TBase<LocalAssignment,
     this.resources = null;
     set_total_node_shared_isSet(false);
     this.total_node_shared = 0.0;
+    this.owner = null;
   }
 
   public String get_topology_id() {
@@ -310,6 +321,29 @@ public class LocalAssignment implements org.apache.thrift.TBase<LocalAssignment,
     __isset_bitfield = EncodingUtils.setBit(__isset_bitfield, __TOTAL_NODE_SHARED_ISSET_ID, value);
   }
 
+  public String get_owner() {
+    return this.owner;
+  }
+
+  public void set_owner(String owner) {
+    this.owner = owner;
+  }
+
+  public void unset_owner() {
+    this.owner = null;
+  }
+
+  /** Returns true if field owner is set (has been assigned a value) and false otherwise */
+  public boolean is_set_owner() {
+    return this.owner != null;
+  }
+
+  public void set_owner_isSet(boolean value) {
+    if (!value) {
+      this.owner = null;
+    }
+  }
+
   public void setFieldValue(_Fields field, Object value) {
     switch (field) {
     case TOPOLOGY_ID:
@@ -344,6 +378,14 @@ public class LocalAssignment implements org.apache.thrift.TBase<LocalAssignment,
       }
       break;
 
+    case OWNER:
+      if (value == null) {
+        unset_owner();
+      } else {
+        set_owner((String)value);
+      }
+      break;
+
     }
   }
 
@@ -360,6 +402,9 @@ public class LocalAssignment implements org.apache.thrift.TBase<LocalAssignment,
 
     case TOTAL_NODE_SHARED:
       return get_total_node_shared();
+
+    case OWNER:
+      return get_owner();
 
     }
     throw new IllegalStateException();
@@ -380,6 +425,8 @@ public class LocalAssignment implements org.apache.thrift.TBase<LocalAssignment,
       return is_set_resources();
     case TOTAL_NODE_SHARED:
       return is_set_total_node_shared();
+    case OWNER:
+      return is_set_owner();
     }
     throw new IllegalStateException();
   }
@@ -433,6 +480,15 @@ public class LocalAssignment implements org.apache.thrift.TBase<LocalAssignment,
         return false;
     }
 
+    boolean this_present_owner = true && this.is_set_owner();
+    boolean that_present_owner = true && that.is_set_owner();
+    if (this_present_owner || that_present_owner) {
+      if (!(this_present_owner && that_present_owner))
+        return false;
+      if (!this.owner.equals(that.owner))
+        return false;
+    }
+
     return true;
   }
 
@@ -459,6 +515,11 @@ public class LocalAssignment implements org.apache.thrift.TBase<LocalAssignment,
     list.add(present_total_node_shared);
     if (present_total_node_shared)
       list.add(total_node_shared);
+
+    boolean present_owner = true && (is_set_owner());
+    list.add(present_owner);
+    if (present_owner)
+      list.add(owner);
 
     return list.hashCode();
   }
@@ -507,6 +568,16 @@ public class LocalAssignment implements org.apache.thrift.TBase<LocalAssignment,
     }
     if (is_set_total_node_shared()) {
       lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.total_node_shared, other.total_node_shared);
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+    }
+    lastComparison = Boolean.valueOf(is_set_owner()).compareTo(other.is_set_owner());
+    if (lastComparison != 0) {
+      return lastComparison;
+    }
+    if (is_set_owner()) {
+      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.owner, other.owner);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -560,6 +631,16 @@ public class LocalAssignment implements org.apache.thrift.TBase<LocalAssignment,
       if (!first) sb.append(", ");
       sb.append("total_node_shared:");
       sb.append(this.total_node_shared);
+      first = false;
+    }
+    if (is_set_owner()) {
+      if (!first) sb.append(", ");
+      sb.append("owner:");
+      if (this.owner == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.owner);
+      }
       first = false;
     }
     sb.append(")");
@@ -629,14 +710,14 @@ public class LocalAssignment implements org.apache.thrift.TBase<LocalAssignment,
           case 2: // EXECUTORS
             if (schemeField.type == org.apache.thrift.protocol.TType.LIST) {
               {
-                org.apache.thrift.protocol.TList _list746 = iprot.readListBegin();
-                struct.executors = new ArrayList<ExecutorInfo>(_list746.size);
-                ExecutorInfo _elem747;
-                for (int _i748 = 0; _i748 < _list746.size; ++_i748)
+                org.apache.thrift.protocol.TList _list728 = iprot.readListBegin();
+                struct.executors = new ArrayList<ExecutorInfo>(_list728.size);
+                ExecutorInfo _elem729;
+                for (int _i730 = 0; _i730 < _list728.size; ++_i730)
                 {
-                  _elem747 = new ExecutorInfo();
-                  _elem747.read(iprot);
-                  struct.executors.add(_elem747);
+                  _elem729 = new ExecutorInfo();
+                  _elem729.read(iprot);
+                  struct.executors.add(_elem729);
                 }
                 iprot.readListEnd();
               }
@@ -658,6 +739,14 @@ public class LocalAssignment implements org.apache.thrift.TBase<LocalAssignment,
             if (schemeField.type == org.apache.thrift.protocol.TType.DOUBLE) {
               struct.total_node_shared = iprot.readDouble();
               struct.set_total_node_shared_isSet(true);
+            } else { 
+              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+            }
+            break;
+          case 5: // OWNER
+            if (schemeField.type == org.apache.thrift.protocol.TType.STRING) {
+              struct.owner = iprot.readString();
+              struct.set_owner_isSet(true);
             } else { 
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
@@ -684,9 +773,9 @@ public class LocalAssignment implements org.apache.thrift.TBase<LocalAssignment,
         oprot.writeFieldBegin(EXECUTORS_FIELD_DESC);
         {
           oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, struct.executors.size()));
-          for (ExecutorInfo _iter749 : struct.executors)
+          for (ExecutorInfo _iter731 : struct.executors)
           {
-            _iter749.write(oprot);
+            _iter731.write(oprot);
           }
           oprot.writeListEnd();
         }
@@ -703,6 +792,13 @@ public class LocalAssignment implements org.apache.thrift.TBase<LocalAssignment,
         oprot.writeFieldBegin(TOTAL_NODE_SHARED_FIELD_DESC);
         oprot.writeDouble(struct.total_node_shared);
         oprot.writeFieldEnd();
+      }
+      if (struct.owner != null) {
+        if (struct.is_set_owner()) {
+          oprot.writeFieldBegin(OWNER_FIELD_DESC);
+          oprot.writeString(struct.owner);
+          oprot.writeFieldEnd();
+        }
       }
       oprot.writeFieldStop();
       oprot.writeStructEnd();
@@ -724,9 +820,9 @@ public class LocalAssignment implements org.apache.thrift.TBase<LocalAssignment,
       oprot.writeString(struct.topology_id);
       {
         oprot.writeI32(struct.executors.size());
-        for (ExecutorInfo _iter750 : struct.executors)
+        for (ExecutorInfo _iter732 : struct.executors)
         {
-          _iter750.write(oprot);
+          _iter732.write(oprot);
         }
       }
       BitSet optionals = new BitSet();
@@ -736,12 +832,18 @@ public class LocalAssignment implements org.apache.thrift.TBase<LocalAssignment,
       if (struct.is_set_total_node_shared()) {
         optionals.set(1);
       }
-      oprot.writeBitSet(optionals, 2);
+      if (struct.is_set_owner()) {
+        optionals.set(2);
+      }
+      oprot.writeBitSet(optionals, 3);
       if (struct.is_set_resources()) {
         struct.resources.write(oprot);
       }
       if (struct.is_set_total_node_shared()) {
         oprot.writeDouble(struct.total_node_shared);
+      }
+      if (struct.is_set_owner()) {
+        oprot.writeString(struct.owner);
       }
     }
 
@@ -751,18 +853,18 @@ public class LocalAssignment implements org.apache.thrift.TBase<LocalAssignment,
       struct.topology_id = iprot.readString();
       struct.set_topology_id_isSet(true);
       {
-        org.apache.thrift.protocol.TList _list751 = new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, iprot.readI32());
-        struct.executors = new ArrayList<ExecutorInfo>(_list751.size);
-        ExecutorInfo _elem752;
-        for (int _i753 = 0; _i753 < _list751.size; ++_i753)
+        org.apache.thrift.protocol.TList _list733 = new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, iprot.readI32());
+        struct.executors = new ArrayList<ExecutorInfo>(_list733.size);
+        ExecutorInfo _elem734;
+        for (int _i735 = 0; _i735 < _list733.size; ++_i735)
         {
-          _elem752 = new ExecutorInfo();
-          _elem752.read(iprot);
-          struct.executors.add(_elem752);
+          _elem734 = new ExecutorInfo();
+          _elem734.read(iprot);
+          struct.executors.add(_elem734);
         }
       }
       struct.set_executors_isSet(true);
-      BitSet incoming = iprot.readBitSet(2);
+      BitSet incoming = iprot.readBitSet(3);
       if (incoming.get(0)) {
         struct.resources = new WorkerResources();
         struct.resources.read(iprot);
@@ -771,6 +873,10 @@ public class LocalAssignment implements org.apache.thrift.TBase<LocalAssignment,
       if (incoming.get(1)) {
         struct.total_node_shared = iprot.readDouble();
         struct.set_total_node_shared_isSet(true);
+      }
+      if (incoming.get(2)) {
+        struct.owner = iprot.readString();
+        struct.set_owner_isSet(true);
       }
     }
   }

@@ -106,7 +106,6 @@ public class TestConstraintSolver {
     config.put(Config.TOPOLOGY_SPREAD_COMPONENTS, spread);
     config.put(Config.TOPOLOGY_CONSTRAINTS, constraints);
     config.put(Config.TOPOLOGY_CONSTRAINTS_MAX_DEPTH_TRAVERSAL, MAX_TRAVERSAL_DEPTH);
-    config.put(Config.TOPOLOGY_SUBMITTER_USER, TOPOLOGY_SUBMITTER);
     config.put(Config.TOPOLOGY_WORKERS, NUM_WORKERS);
     config.put(Config.TOPOLOGY_WORKER_MAX_HEAP_SIZE_MB, 100000);
     config.put(Config.TOPOLOGY_PRIORITY, 1);
@@ -154,7 +153,6 @@ public class TestConstraintSolver {
     config.put(Config.TOPOLOGY_SPREAD_COMPONENTS, spread);
     config.put(Config.TOPOLOGY_CONSTRAINTS, constraints);
     config.put(Config.TOPOLOGY_CONSTRAINTS_MAX_DEPTH_TRAVERSAL, MAX_TRAVERSAL_DEPTH);
-    config.put(Config.TOPOLOGY_SUBMITTER_USER, TOPOLOGY_SUBMITTER);
     config.put(Config.TOPOLOGY_WORKERS, NUM_WORKERS);
     config.put(Config.TOPOLOGY_WORKER_MAX_HEAP_SIZE_MB, 100000);
     config.put(Config.TOPOLOGY_PRIORITY, 1);
@@ -239,7 +237,8 @@ public class TestConstraintSolver {
                                       int spoutParallelism, int boltParallelism) {
 
     StormTopology topology = buildTopology(numSpout,numBolt, spoutParallelism, boltParallelism);
-    TopologyDetails topo = new TopologyDetails("topo-1", config, topology, (Integer) config.get(Config.TOPOLOGY_WORKERS), genExecsAndComps(topology, spoutParallelism, boltParallelism));
+    TopologyDetails topo = new TopologyDetails("topo-1", config, topology, (Integer) config.get(Config.TOPOLOGY_WORKERS),
+        genExecsAndComps(topology, spoutParallelism, boltParallelism), "jerry");
     return topo;
   }
 
