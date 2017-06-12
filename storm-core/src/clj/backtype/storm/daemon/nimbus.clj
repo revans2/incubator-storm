@@ -1065,7 +1065,7 @@
             (into {})
             (.assignSlots inimbus topologies)))))
 
-(defn- start-storm [nimbus storm-name storm-id topology-initial-status]
+(defn- start-storm [nimbus storm-name storm-id topology-initial-status owner principal]
   {:pre [(#{:active :inactive} topology-initial-status)]}
   (let [storm-cluster-state (:storm-cluster-state nimbus)
         conf (:conf nimbus)
@@ -1081,10 +1081,10 @@
                                   {:type topology-initial-status}
                                   (storm-conf TOPOLOGY-WORKERS)
                                   num-executors
-                                  (storm-conf TOPOLOGY-SUBMITTER-USER)
+                                  owner
                                   nil
                                   nil
-                                  (storm-conf TOPOLOGY-SUBMITTER-PRINCIPAL)))))
+                                  principal))))
 
 (defn storm-active? [storm-cluster-state storm-name]
   (not-nil? (get-storm-id storm-cluster-state storm-name)))
@@ -1563,9 +1563,11 @@
                 submitter-user (.toLocal principal-to-local principal)
                 system-user (. System (getProperty "user.name")) ;should only be used for non-secure mode
                 topo-acl (distinct (remove nil? (conj (.get storm-conf-submitted TOPOLOGY-USERS) submitter-principal, submitter-user)))
+                submitter-principal (if submitter-principal submitter-principal "")
+                submitter-user (if submitter-user submitter-user system-user)
                 storm-conf (-> storm-conf-submitted
-                               (assoc TOPOLOGY-SUBMITTER-PRINCIPAL (if submitter-principal submitter-principal ""))
-                               (assoc TOPOLOGY-SUBMITTER-USER (if submitter-user submitter-user system-user)) ;if there is no kerberos principal, then use the user name
+                               (assoc TOPOLOGY-SUBMITTER-PRINCIPAL submitter-principal)
+                               (assoc TOPOLOGY-SUBMITTER-USER submitter-user) ;if there is no kerberos principal, then use the user name
                                (assoc TOPOLOGY-USERS topo-acl)
                                (assoc STORM-ZOOKEEPER-SUPERACL (.get conf STORM-ZOOKEEPER-SUPERACL)))
                 storm-conf (if (Utils/isZkAuthenticationConfiguredStormServer conf)
@@ -1604,7 +1606,7 @@
                 (.setup-backpressure! storm-cluster-state storm-id))
               (let [thrift-status->kw-status {TopologyInitialStatus/INACTIVE :inactive
                                               TopologyInitialStatus/ACTIVE :active}]
-                (start-storm nimbus storm-name storm-id (thrift-status->kw-status (.get_initial_status submitOptions))))))
+                (start-storm nimbus storm-name storm-id (thrift-status->kw-status (.get_initial_status submitOptions)) submitter-user submitter-principal))))
           (catch Throwable e
             (log-error e "Topology submission exception. (topology name='" storm-name "')")
             (throw e))))
