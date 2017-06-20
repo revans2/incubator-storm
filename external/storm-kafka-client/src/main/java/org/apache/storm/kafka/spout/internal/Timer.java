@@ -18,7 +18,7 @@
 
 package org.apache.storm.kafka.spout.internal;
 
-import org.apache.storm.utils.Time;
+import backtype.storm.utils.Time;
 
 import java.util.concurrent.TimeUnit;
 
