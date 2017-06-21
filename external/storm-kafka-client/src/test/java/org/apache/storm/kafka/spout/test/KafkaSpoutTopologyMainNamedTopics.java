@@ -35,6 +35,8 @@ import backtype.storm.generated.StormTopology;
 import backtype.storm.topology.TopologyBuilder;
 import backtype.storm.tuple.Fields;
 import backtype.storm.tuple.Values;
+import backtype.storm.LocalCluster;
+
 
 import static org.apache.storm.kafka.spout.KafkaSpoutConfig.FirstPollOffsetStrategy.EARLIEST;
 
@@ -56,9 +58,9 @@ public class KafkaSpoutTopologyMainNamedTopics {
     }
 
     protected void submitTopologyLocalCluster(StormTopology topology, Config config) throws Exception {
-        /*LocalCluster cluster = new LocalCluster();
+        LocalCluster cluster = new LocalCluster();
         cluster.submitTopology("test", config, topology);
-        stopWaitingForInput();*/
+        stopWaitingForInput();
     }
 
     protected void submitTopologyRemoteCluster(String arg, StormTopology topology, Config config) throws Exception {
