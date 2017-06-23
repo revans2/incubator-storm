@@ -1358,11 +1358,19 @@ public class Utils {
         return delegate;
     }
 
-    public static void handleUncaughtException(Throwable t) {
-       handleUncaughtException(t, defaultAllowedExceptions);
+    public static void handleUncaughtExceptionWithoutKillingProcess(Throwable t) {
+        handleUncaughtException(t, defaultAllowedExceptions, true);
     }
 
     public static void handleUncaughtException(Throwable t, Set<Class> allowedExceptions) {
+        handleUncaughtException(t, allowedExceptions, false);
+    }
+
+    public static void handleUncaughtException(Throwable t) {
+       handleUncaughtException(t, defaultAllowedExceptions, false);
+    }
+
+    public static void handleUncaughtException(Throwable t, Set<Class> allowedExceptions, Boolean alwaysSwallow) {
         if (t != null) {
             if (t instanceof OutOfMemoryError) {
                 try {
@@ -1373,7 +1381,7 @@ public class Utils {
                 Runtime.getRuntime().halt(-1);
             }
 
-            if(allowedExceptions.contains(t.getClass())) {
+            if(alwaysSwallow || allowedExceptions.contains(t.getClass())) {
                 LOG.info("Swallowing {} {}", t.getClass(), t);
                 return;
             }

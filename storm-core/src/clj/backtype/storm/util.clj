@@ -1096,7 +1096,7 @@
     (proxy [Thread$UncaughtExceptionHandler] []
       (uncaughtException [thread thrown]
         (try
-          (Utils/handleUncaughtException thrown)
+          (Utils/handleUncaughtExceptionWithoutKillingProcess thrown)
           (catch Error err
             (do
               (log-error err "Received error in main thread.. terminating server...")
