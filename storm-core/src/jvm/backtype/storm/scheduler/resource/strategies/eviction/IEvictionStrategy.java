@@ -21,12 +21,14 @@ package backtype.storm.scheduler.resource.strategies.eviction;
 import backtype.storm.scheduler.TopologyDetails;
 import backtype.storm.scheduler.resource.SchedulingState;
 
+import java.util.List;
+
 public interface IEvictionStrategy {
 
     /**
      * Initialization
      */
-    public void prepare(SchedulingState schedulingState);
+    public void prepare(SchedulingState schedulingState, List<TopologyDetails> topologyDetailsList);
 
     /**
      * This method when invoked should attempt to make space on the cluster so that the topology specified can be scheduled

@@ -21,9 +21,11 @@ import backtype.storm.scheduler.TopologyDetails;
 import backtype.storm.scheduler.resource.SchedulingState;
 import backtype.storm.scheduler.resource.strategies.eviction.IEvictionStrategy;
 
+import java.util.List;
+
 public class AlwaysMakesSpaceEvictionStrategy implements IEvictionStrategy {
     @Override
-    public void prepare(SchedulingState schedulingState) {
+    public void prepare(SchedulingState schedulingState, List<TopologyDetails> topologyDetailsList) {
     }
 
     @Override
