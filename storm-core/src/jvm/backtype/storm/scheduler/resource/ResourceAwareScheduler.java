@@ -84,7 +84,7 @@ public class ResourceAwareScheduler implements IScheduler {
 
         Map<String, Integer> topologySchedulingAttempts = new HashMap<>();
 
-        List<TopologyDetails> orderedTopologies = schedulingPrioritystrategy.getOrderedTopologies();
+        List<TopologyDetails> orderedTopologies = Collections.unmodifiableList(schedulingPrioritystrategy.getOrderedTopologies());
 
         for(TopologyDetails td : orderedTopologies) {
             User submitter = getUser(td.getTopologySubmitter());
@@ -96,7 +96,7 @@ public class ResourceAwareScheduler implements IScheduler {
 
             topologySchedulingAttempts.putIfAbsent(td.getName(), 0);
 
-            topologySchedulingAttempts.put(td.getName(), scheduleTopology(td, topologySchedulingAttempts.get(td.getName())));
+            topologySchedulingAttempts.put(td.getName(), scheduleTopology(td, orderedTopologies, topologySchedulingAttempts.get(td.getName())));
 
             LOG.debug("Nodes after scheduling:\n{}", this.schedulingState.nodes);
         }
@@ -111,7 +111,7 @@ public class ResourceAwareScheduler implements IScheduler {
         cluster.setStatusMap(schedulingState.cluster.getStatusMap());
     }
 
-    public int scheduleTopology(TopologyDetails td, Integer schedulingAttemptsSoFar) {
+    public int scheduleTopology(TopologyDetails td, List<TopologyDetails> orderedTopologies, Integer schedulingAttemptsSoFar) {
         User topologySubmitter = this.schedulingState.userMap.get(td.getTopologySubmitter());
         if (this.schedulingState.cluster.getUnassignedExecutors(td).size() > 0) {
             LOG.info("/********Scheduling topology {} from User {}************/", td.getName(), topologySubmitter);
@@ -187,7 +187,7 @@ public class ResourceAwareScheduler implements IScheduler {
                             boolean madeSpace = false;
                             try {
                                 //need to re prepare since scheduling state might have been restored
-                                evictionStrategy.prepare(this.schedulingState);
+                                evictionStrategy.prepare(this.schedulingState, orderedTopologies);
                                 madeSpace = evictionStrategy.makeSpaceForTopo(td);
                             } catch (Exception ex) {
                                 LOG.error(String.format("Exception thrown when running eviction strategy %s to schedule topology %s. No evictions will be done! Error: %s"
