@@ -150,7 +150,7 @@
              ;; the backpressure flag is true if at least one of the disruptor queues has throttle-on
              curr-backpressure-timestamp (if (should-trigger-backpressure executors worker)
                                            ;; Update the backpressure timestamp every 15 seconds
-                                           (if (> 15000 (- curr-timestamp (or prev-backpressure-timestamp 0)))
+                                           (if (> (- curr-timestamp (or prev-backpressure-timestamp 0)) 15000)
                                              curr-timestamp
                                              prev-backpressure-timestamp)
                                            nil)]
