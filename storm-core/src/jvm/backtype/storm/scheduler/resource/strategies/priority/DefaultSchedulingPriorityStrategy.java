@@ -49,9 +49,9 @@ public class DefaultSchedulingPriorityStrategy implements ISchedulingPriorityStr
             topologyDetailsList.addAll(user.getTopologiesInvalid());
             topologyDetailsList.addAll(user.getTopologiesPending());
             topologyDetailsList.addAll(user.getTopologiesRunning());
-            Collections.sort(topologyDetailsList, new SortByUserGuaranteePriorityAndSubmittionTime(userMap, cluster.getClusterTotalCPUResource(), cluster.getClusterTotalMemoryResource()));
             allUserTopologies.addAll(topologyDetailsList);
         }
+        Collections.sort(allUserTopologies, new SortByUserGuaranteePriorityAndSubmittionTime(userMap, cluster.getClusterTotalCPUResource(), cluster.getClusterTotalMemoryResource()));
         return allUserTopologies;
     }
 
@@ -67,6 +67,8 @@ public class DefaultSchedulingPriorityStrategy implements ISchedulingPriorityStr
 
         @Override
         public int compare(User user, User otherUser) {
+
+            if(user == otherUser) return 0;
 
             Double cpuResourceGuaranteed = user.getCPUResourceGuaranteed();
             Double cpuResourceGuaranteedOther = otherUser.getCPUResourceGuaranteed();
@@ -96,25 +98,25 @@ public class DefaultSchedulingPriorityStrategy implements ISchedulingPriorityStr
             }
 
             if (memoryRequestedPercentage < 0 || cpuRequestedPercentage < 0) {
-                return 1;
+                return -1;
             }
 
             if (memoryRequestedPercentageOther < 0 || cpuRequestedPercentageOther < 0) {
-                return -1;
+                return 1;
             }
 
             double userAvgResourcePercentage = getAvgResourceGuaranteePercentage(user);
             double otherAvgResourcePercentage = getAvgResourceGuaranteePercentage(otherUser);
 
             if (userAvgResourcePercentage < otherAvgResourcePercentage) {
-                return -1;
-            } else if (userAvgResourcePercentage > otherAvgResourcePercentage) {
                 return 1;
+            } else if (userAvgResourcePercentage > otherAvgResourcePercentage) {
+                return -1;
             }
 
             double userAvgResourceRequestPercentage = getAvgResourceRequestPercentage(user);
-            double otherResourceRequestPercentage = getAvgResourceRequestPercentage(otherUser);
-            return Double.compare(userAvgResourceRequestPercentage, otherResourceRequestPercentage);
+            double otherAvgResourceRequestPercentage = getAvgResourceRequestPercentage(otherUser);
+            return Double.compare(userAvgResourceRequestPercentage, otherAvgResourceRequestPercentage);
         }
 
         private double getMemoryRequestedPercentage(User user) {

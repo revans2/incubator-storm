@@ -250,7 +250,7 @@ public class User {
 
     public double getCPUResourceRequest() {
         double sum = 0.0;
-        Set<TopologyDetails> topologyDetailsSet = new TreeSet<>();
+        Set<TopologyDetails> topologyDetailsSet = new TreeSet<TopologyDetails>(new PQsortByPriorityAndSubmittionTime());
         topologyDetailsSet.addAll(runningQueue);
         topologyDetailsSet.addAll(pendingQueue);
         topologyDetailsSet.addAll(invalidQueue);
@@ -279,7 +279,7 @@ public class User {
 
     public double getMemoryResourceRequest() {
         double sum = 0.0;
-        Set<TopologyDetails> topologyDetailsSet = new TreeSet<>();
+        Set<TopologyDetails> topologyDetailsSet = new TreeSet<TopologyDetails>(new PQsortByPriorityAndSubmittionTime());
         topologyDetailsSet.addAll(runningQueue);
         topologyDetailsSet.addAll(pendingQueue);
         topologyDetailsSet.addAll(invalidQueue);
