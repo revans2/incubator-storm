@@ -18,6 +18,7 @@
 package org.apache.storm.daemon.supervisor.timer;
 
 import backtype.storm.Config;
+import java.util.HashMap;
 import org.apache.storm.daemon.supervisor.Supervisor;
 import org.apache.storm.daemon.supervisor.SupervisorUtils;
 import backtype.storm.generated.AuthorizationException;
@@ -58,15 +59,16 @@ public class UpdateBlobs implements Runnable {
             Map<String, Object> conf = supervisor.getConf();
             Set<String> downloadedStormIds = SupervisorUtils.readDownloadedTopologyIds(conf);
             AtomicReference<Map<Long, LocalAssignment>> newAssignment = supervisor.getCurrAssignment();
-            Set<String> assignedStormIds = new HashSet<>();
+            Map<String, LocalAssignment> assignedStormIds = new HashMap<>();
             for (LocalAssignment localAssignment : newAssignment.get().values()) {
-                assignedStormIds.add(localAssignment.get_topology_id());
+                assignedStormIds.put(localAssignment.get_topology_id(), localAssignment);
             }
             for (String stormId : downloadedStormIds) {
-                if (assignedStormIds.contains(stormId)) {
+                LocalAssignment la = assignedStormIds.get(stormId);
+                if (la != null) {
                     String stormRoot = ConfigUtils.supervisorStormDistRoot(conf, stormId);
                     LOG.debug("Checking Blob updates for storm topology id {} With target_dir: {}", stormId, stormRoot);
-                    updateBlobsForTopology(conf, stormId, supervisor.getLocalizer());
+                    updateBlobsForTopology(conf, stormId, supervisor.getLocalizer(), la.get_owner());
                 }
             }
         } catch (Exception e) {
@@ -86,10 +88,9 @@ public class UpdateBlobs implements Runnable {
      * @param localizer
      * @throws IOException
      */
-    private void updateBlobsForTopology(Map conf, String stormId, Localizer localizer) throws IOException {
+    private void updateBlobsForTopology(Map conf, String stormId, Localizer localizer, String user) throws IOException {
         Map stormConf = ConfigUtils.readSupervisorStormConf(conf, stormId);
         Map<String, Map<String, Object>> blobstoreMap = (Map<String, Map<String, Object>>) stormConf.get(Config.TOPOLOGY_BLOBSTORE_MAP);
-        String user = (String) stormConf.get(Config.TOPOLOGY_SUBMITTER_USER);
         List<LocalResource> localresources = SupervisorUtils.blobstoreMapToLocalresources(blobstoreMap);
         try {
             localizer.updateBlobs(localresources, user);

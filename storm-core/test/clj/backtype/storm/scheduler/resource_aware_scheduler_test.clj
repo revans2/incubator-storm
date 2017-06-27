@@ -104,14 +104,14 @@
           TOPOLOGY-COMPONENT-CPU-PCORE-PERCENT 0
           TOPOLOGY-COMPONENT-RESOURCES-OFFHEAP-MEMORY-MB 0
           TOPOLOGY-COMPONENT-RESOURCES-ONHEAP-MEMORY-MB 0
-        } nil 0)
+        } nil 0 "user")
         topology2 (TopologyDetails. "topology2" {
           TOPOLOGY-WORKER-MAX-HEAP-SIZE-MB 100000
           TOPOLOGY-PRIORITY 1
           TOPOLOGY-COMPONENT-CPU-PCORE-PERCENT 0
           TOPOLOGY-COMPONENT-RESOURCES-OFFHEAP-MEMORY-MB 0
           TOPOLOGY-COMPONENT-RESOURCES-ONHEAP-MEMORY-MB 0
-        } nil 0)
+        } nil 0 "user")
         topologies (Topologies. (to-top-map [topology1 topology2]))
         cluster (Cluster. (nimbus/standalone-nimbus) supers {} topologies {})
         node-map (RAS_Nodes/getAllNodesFrom cluster topologies)] 
@@ -164,7 +164,6 @@
         storm-topology (.createTopology builder)
         topology1 (TopologyDetails. "topology1"
                     {TOPOLOGY-NAME "topology-name-1"
-                     TOPOLOGY-SUBMITTER-USER "userC"
                      TOPOLOGY-COMPONENT-RESOURCES-ONHEAP-MEMORY-MB 128.0
                      TOPOLOGY-COMPONENT-RESOURCES-OFFHEAP-MEMORY-MB 0.0
                      TOPOLOGY-COMPONENT-CPU-PCORE-PERCENT 10.0
@@ -174,7 +173,7 @@
                     storm-topology
                     1
                     (mk-ed-map [["wordSpout" 0 1]
-                                ["wordCountBolt" 1 2]]))
+                                ["wordCountBolt" 1 2]]) "userC")
         topologies (Topologies. (to-top-map [topology1]))
         cluster (Cluster. (nimbus/standalone-nimbus) supers {} topologies
                   {STORM-NETWORK-TOPOGRAPHY-PLUGIN
@@ -207,7 +206,6 @@
         storm-topology1 (.createTopology builder1)
         topology1 (TopologyDetails. "topology1"
                     {TOPOLOGY-NAME "topology-name-1"
-                     TOPOLOGY-SUBMITTER-USER "userC"
                      TOPOLOGY-COMPONENT-RESOURCES-ONHEAP-MEMORY-MB 128.0
                      TOPOLOGY-COMPONENT-RESOURCES-OFFHEAP-MEMORY-MB 0.0
                      TOPOLOGY-COMPONENT-CPU-PCORE-PERCENT 10.0
@@ -222,14 +220,13 @@
                                 ["wordCountBolt2" 3 4]
                                 ["wordCountBolt3" 4 5]
                                 ["wordCountBolt4" 5 6]
-                                ["wordCountBolt5" 6 7]]))
+                                ["wordCountBolt5" 6 7]]) "userC")
         builder2 (TopologyBuilder.)  ;; a topology with two unconnected partitions
         _ (.setSpout builder2 "wordSpoutX" (TestWordSpout.) 1)
         _ (.setSpout builder2 "wordSpoutY" (TestWordSpout.) 1)
         storm-topology2 (.createTopology builder1)
         topology2 (TopologyDetails. "topology2"
                     {TOPOLOGY-NAME "topology-name-2"
-                     TOPOLOGY-SUBMITTER-USER "userC"
                      TOPOLOGY-COMPONENT-RESOURCES-ONHEAP-MEMORY-MB 128.0
                      TOPOLOGY-COMPONENT-RESOURCES-OFFHEAP-MEMORY-MB 0.0
                      TOPOLOGY-COMPONENT-CPU-PCORE-PERCENT 10.0
@@ -239,7 +236,7 @@
                     storm-topology2
                     1
                     (mk-ed-map [["wordSpoutX" 0 1]
-                                ["wordSpoutY" 1 2]]))
+                                ["wordSpoutY" 1 2]]) "userC")
         supers (gen-supervisors 2 4)
         topologies (Topologies. (to-top-map [topology1 topology2]))
         cluster (Cluster. (nimbus/standalone-nimbus) supers {} topologies
@@ -276,7 +273,6 @@
         storm-topology (.createTopology builder)
         topology2 (TopologyDetails. "topology2"
                     {TOPOLOGY-NAME "topology-name-2"
-                     TOPOLOGY-SUBMITTER-USER "userC"
                      TOPOLOGY-COMPONENT-RESOURCES-ONHEAP-MEMORY-MB 128.0
                      TOPOLOGY-COMPONENT-RESOURCES-OFFHEAP-MEMORY-MB 0.0
                      TOPOLOGY-COMPONENT-CPU-PCORE-PERCENT 10.0
@@ -286,7 +282,7 @@
                     storm-topology
                     2
                     (mk-ed-map [["wordSpout" 0 1]
-                                ["wordCountBolt" 1 2]]))
+                                ["wordCountBolt" 1 2]]) "userC")
         topologies (Topologies. (to-top-map [topology2]))
         cluster (Cluster. (nimbus/standalone-nimbus) supers {} topologies
                   {STORM-NETWORK-TOPOGRAPHY-PLUGIN
@@ -317,7 +313,6 @@
         storm-topology (.createTopology builder)
         topology1 (TopologyDetails. "topology1"
                     {TOPOLOGY-NAME "topology-name-1"
-                     TOPOLOGY-SUBMITTER-USER "userC"
                      TOPOLOGY-COMPONENT-RESOURCES-ONHEAP-MEMORY-MB 128.0
                      TOPOLOGY-COMPONENT-RESOURCES-OFFHEAP-MEMORY-MB 0.0
                      TOPOLOGY-COMPONENT-CPU-PCORE-PERCENT 10.0
@@ -327,7 +322,7 @@
                     storm-topology
                     2 ;; need two workers, each on one node
                     (mk-ed-map [["wordSpout" 0 2]
-                                ["wordCountBolt" 2 3]]))
+                                ["wordCountBolt" 2 3]]) "userC")
         topologies (Topologies. (to-top-map [topology1]))
         cluster (Cluster. (nimbus/standalone-nimbus) supers {} topologies
                   {STORM-NETWORK-TOPOGRAPHY-PLUGIN
@@ -377,7 +372,6 @@
          storm-topology1 (.createTopology builder1)
          topology1 (TopologyDetails. "topology1"
                      {TOPOLOGY-NAME "topology-name-1"
-                      TOPOLOGY-SUBMITTER-USER "userC"
                       TOPOLOGY-COMPONENT-RESOURCES-ONHEAP-MEMORY-MB 128.0
                       TOPOLOGY-COMPONENT-RESOURCES-OFFHEAP-MEMORY-MB 0.0
                       TOPOLOGY-COMPONENT-CPU-PCORE-PERCENT 10.0
@@ -386,13 +380,12 @@
                       TOPOLOGY-SCHEDULER-STRATEGY DEFAULT_SCHEDULING_STRATEGY}
                      storm-topology1
                      3 ;; three workers to hold three executors
-                     (mk-ed-map [["spout1" 0 3]]))
+                     (mk-ed-map [["spout1" 0 3]]) "userC")
          builder2 (TopologyBuilder.)
          _ (.setSpout builder2 "spout2" (TestWordSpout.) 2)
          storm-topology2 (.createTopology builder2)
          topology2 (TopologyDetails. "topology2"
                      {TOPOLOGY-NAME "topology-name-2"
-                      TOPOLOGY-SUBMITTER-USER "userC"
                       TOPOLOGY-COMPONENT-RESOURCES-ONHEAP-MEMORY-MB 1280.0 ;; large enough thus two eds can not be fully assigned to one node
                       TOPOLOGY-COMPONENT-RESOURCES-OFFHEAP-MEMORY-MB 0.0
                       TOPOLOGY-COMPONENT-CPU-PCORE-PERCENT 10.0
@@ -401,7 +394,7 @@
                       TOPOLOGY-SCHEDULER-STRATEGY DEFAULT_SCHEDULING_STRATEGY}
                      storm-topology2
                      2  ;; two workers, each holds one executor and resides on one node
-                     (mk-ed-map [["spout2" 0 2]]))
+                     (mk-ed-map [["spout2" 0 2]]) "userC")
         scheduler (ResourceAwareScheduler.)]
 
     (testing "When a worker fails, RAS does not alter existing assignments on healthy workers"
@@ -485,7 +478,7 @@
             new-ed->slot (.getExecutorToSlot new-assignment)]
         (doseq [ed existing-eds]
           (is (.equals (.get copy-old-mapping ed) (.get new-ed->slot ed))))
-        (is (= "Running - Fully Scheduled by DefaultResourceAwareStrategy" (.get (.getStatusMap new-cluster) "topology1")))))
+        (is (= "Fully Scheduled" (.get (.getStatusMap new-cluster) "topology1")))))
 
     (testing "Scheduling a new topology does not disturb other assignments unnecessarily"
       (let [topologies (Topologies. (to-top-map [topology1]))
@@ -531,7 +524,6 @@
         storm-topology1 (.createTopology builder1)
         topology1 (TopologyDetails. "topology1"
                     {TOPOLOGY-NAME "topology-name-1"
-                     TOPOLOGY-SUBMITTER-USER "userC"
                      TOPOLOGY-COMPONENT-RESOURCES-ONHEAP-MEMORY-MB 128.0
                      TOPOLOGY-COMPONENT-RESOURCES-OFFHEAP-MEMORY-MB 0.0
                      TOPOLOGY-COMPONENT-CPU-PCORE-PERCENT 10.0
@@ -540,7 +532,7 @@
                      TOPOLOGY-SCHEDULER-STRATEGY DEFAULT_SCHEDULING_STRATEGY}
                     storm-topology1
                     1
-                    (mk-ed-map [["spout1" 0 1]]))
+                    (mk-ed-map [["spout1" 0 1]]) "userC")
         builder2 (TopologyBuilder.)  ;; topo2 has 4 large tasks
         _ (doto (.setSpout builder2 "spout2" (TestWordSpout.) 4)
             (.setMemoryLoad 500.0 12.0)
@@ -548,7 +540,6 @@
         storm-topology2 (.createTopology builder2)
         topology2 (TopologyDetails. "topology2"
                     {TOPOLOGY-NAME "topology-name-2"
-                     TOPOLOGY-SUBMITTER-USER "userC"
                      TOPOLOGY-COMPONENT-RESOURCES-ONHEAP-MEMORY-MB 128.0
                      TOPOLOGY-COMPONENT-RESOURCES-OFFHEAP-MEMORY-MB 0.0
                      TOPOLOGY-COMPONENT-CPU-PCORE-PERCENT 10.0
@@ -557,7 +548,7 @@
                      TOPOLOGY-SCHEDULER-STRATEGY DEFAULT_SCHEDULING_STRATEGY}
                     storm-topology2
                     2
-                    (mk-ed-map [["spout2" 0 4]]))
+                    (mk-ed-map [["spout2" 0 4]]) "userC")
         builder3 (TopologyBuilder.) ;; topo3 has 4 medium tasks, launching topo 1-3 together requires the same mem as the cluster's mem capacity (5G)
         _ (doto (.setSpout builder3 "spout3" (TestWordSpout.) 4)
             (.setMemoryLoad 200.0 56.0)
@@ -565,7 +556,6 @@
         storm-topology3 (.createTopology builder3)
         topology3 (TopologyDetails. "topology3"
                     {TOPOLOGY-NAME "topology-name-3"
-                     TOPOLOGY-SUBMITTER-USER "userC"
                      TOPOLOGY-COMPONENT-RESOURCES-ONHEAP-MEMORY-MB 128.0
                      TOPOLOGY-COMPONENT-RESOURCES-OFFHEAP-MEMORY-MB 0.0
                      TOPOLOGY-COMPONENT-CPU-PCORE-PERCENT 10.0
@@ -574,7 +564,7 @@
                      TOPOLOGY-SCHEDULER-STRATEGY DEFAULT_SCHEDULING_STRATEGY}
                     storm-topology3
                     2
-                    (mk-ed-map [["spout3" 0 4]]))
+                    (mk-ed-map [["spout3" 0 4]]) "userC")
         builder4 (TopologyBuilder.) ;; topo4 has 12 small tasks, each's mem req does not exactly divide a node's mem capacity
         _ (doto (.setSpout builder4 "spout4" (TestWordSpout.) 2)
             (.setMemoryLoad 100.0 0.0)
@@ -582,7 +572,6 @@
         storm-topology4 (.createTopology builder4)
         topology4 (TopologyDetails. "topology4"
                     {TOPOLOGY-NAME "topology-name-4"
-                     TOPOLOGY-SUBMITTER-USER "userC"
                      TOPOLOGY-COMPONENT-RESOURCES-ONHEAP-MEMORY-MB 128.0
                      TOPOLOGY-COMPONENT-RESOURCES-OFFHEAP-MEMORY-MB 0.0
                      TOPOLOGY-COMPONENT-CPU-PCORE-PERCENT 10.0
@@ -591,7 +580,7 @@
                      TOPOLOGY-SCHEDULER-STRATEGY DEFAULT_SCHEDULING_STRATEGY}
                     storm-topology4
                     2
-                    (mk-ed-map [["spout4" 0 12]]))
+                    (mk-ed-map [["spout4" 0 12]]) "userC")
         builder5 (TopologyBuilder.) ;; topo5 has 40 small tasks, it should be able to exactly use up both the cpu and mem in teh cluster
         _ (doto (.setSpout builder5 "spout5" (TestWordSpout.) 40)
             (.setMemoryLoad 100.0 28.0)
@@ -599,7 +588,6 @@
         storm-topology5 (.createTopology builder5)
         topology5 (TopologyDetails. "topology5"
                     {TOPOLOGY-NAME "topology-name-5"
-                     TOPOLOGY-SUBMITTER-USER "userC"
                      TOPOLOGY-COMPONENT-RESOURCES-ONHEAP-MEMORY-MB 128.0
                      TOPOLOGY-COMPONENT-RESOURCES-OFFHEAP-MEMORY-MB 0.0
                      TOPOLOGY-COMPONENT-CPU-PCORE-PERCENT 10.0
@@ -608,7 +596,7 @@
                      TOPOLOGY-SCHEDULER-STRATEGY DEFAULT_SCHEDULING_STRATEGY}
                     storm-topology5
                     2
-                    (mk-ed-map [["spout5" 0 40]]))
+                    (mk-ed-map [["spout5" 0 40]]) "userC")
         epsilon 0.000001
         topologies (Topologies. (to-top-map [topology1 topology2]))]
 
@@ -680,7 +668,6 @@
           storm-topology1 (.createTopology builder1)
           topology1 (TopologyDetails. "topology1"
                       {TOPOLOGY-NAME "topology-name-1"
-                       TOPOLOGY-SUBMITTER-USER "userA"
                        TOPOLOGY-COMPONENT-RESOURCES-ONHEAP-MEMORY-MB 128.0
                        TOPOLOGY-COMPONENT-RESOURCES-OFFHEAP-MEMORY-MB 0.0
                        TOPOLOGY-COMPONENT-CPU-PCORE-PERCENT 10.0
@@ -689,7 +676,7 @@
                        TOPOLOGY-SCHEDULER-STRATEGY DEFAULT_SCHEDULING_STRATEGY}
                       storm-topology1
                       1
-                      (mk-ed-map [["spout1" 0 4]]))
+                      (mk-ed-map [["spout1" 0 4]]) "userA")
           topologies (Topologies. (to-top-map [topology1]))
           cluster (Cluster. (nimbus/standalone-nimbus) supers {} topologies
                               {STORM-NETWORK-TOPOGRAPHY-PLUGIN
@@ -706,7 +693,6 @@
           storm-topology1 (.createTopology builder1)
           topology1 (TopologyDetails. "topology1"
                       {TOPOLOGY-NAME "topology-name-1"
-                       TOPOLOGY-SUBMITTER-USER "userC"
                        TOPOLOGY-COMPONENT-RESOURCES-ONHEAP-MEMORY-MB 128.0
                        TOPOLOGY-COMPONENT-RESOURCES-OFFHEAP-MEMORY-MB 0.0
                        TOPOLOGY-COMPONENT-CPU-PCORE-PERCENT 10.0
@@ -715,7 +701,7 @@
                        TOPOLOGY-SCHEDULER-STRATEGY DEFAULT_SCHEDULING_STRATEGY}
                       storm-topology1
                       1
-                      (mk-ed-map [["spout1" 0 5]]))
+                      (mk-ed-map [["spout1" 0 5]]) "userC")
           topologies (Topologies. (to-top-map [topology1]))
           cluster (Cluster. (nimbus/standalone-nimbus) supers {} topologies
                               {STORM-NETWORK-TOPOGRAPHY-PLUGIN
@@ -734,7 +720,6 @@
           _ (.setSpout builder1 "spout1" (TestWordSpout.) 2)
           storm-topology1 (.createTopology builder1)
           conf  {TOPOLOGY-NAME "topology-name-1"
-                 TOPOLOGY-SUBMITTER-USER "userC"
                  TOPOLOGY-COMPONENT-RESOURCES-ONHEAP-MEMORY-MB 129.0
                  TOPOLOGY-COMPONENT-RESOURCES-OFFHEAP-MEMORY-MB 0.0
                  TOPOLOGY-COMPONENT-CPU-PCORE-PERCENT 10.0
@@ -745,7 +730,7 @@
                       conf
                       storm-topology1
                       1
-                      (mk-ed-map [["spout1" 0 5]]))
+                      (mk-ed-map [["spout1" 0 5]]) "userC")
           topologies (Topologies. (to-top-map [topology1]))]
       (is (thrown? IllegalArgumentException
             (StormSubmitter/submitTopologyWithProgressBar "test" conf storm-topology1)))

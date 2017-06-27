@@ -1521,6 +1521,14 @@ public class Config extends HashMap<String, Object> {
     public static final String WORKER_GC_CHILDOPTS = "worker.gc.childopts";
 
     /**
+     * Interval to check for the worker to check for updated blobs and refresh worker state accordingly.
+     * The default is 10 seconds
+     */
+    @isInteger
+    @isPositiveNumber
+    public static final String WORKER_BLOB_UPDATE_POLL_INTERVAL_SECS = "worker.blob.update.poll.interval.secs";
+
+    /**
      * control how many worker receiver threads we need per worker
      */
     @isInteger

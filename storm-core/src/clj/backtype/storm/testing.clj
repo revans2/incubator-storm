@@ -641,6 +641,7 @@
                   {(int 1) component}
                   {component [(int 1)]}
                   {component {stream (Fields. fields)}}
+                  {}
                   "test-storm-id"
                   nil
                   nil

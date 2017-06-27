@@ -61,11 +61,11 @@
 ;; the task id is the virtual port
 ;; node->host is here so that tasks know who to talk to just from assignment
 ;; this avoid situation where node goes down and task doesn't know what to do information-wise
-(defrecord Assignment [master-code-dir node->host executor->node+port executor->start-time-secs worker->resources total-shared-off-heap])
+(defrecord Assignment [master-code-dir node->host executor->node+port executor->start-time-secs worker->resources total-shared-off-heap owner])
 
 
 ;; component->executors is a map from spout/bolt id to number of executors for that component
-(defrecord StormBase [storm-name launch-time-secs status num-workers component->executors owner topology-action-options prev-status])
+(defrecord StormBase [storm-name launch-time-secs status num-workers component->executors owner topology-action-options prev-status principal])
 
 (defrecord SupervisorInfo [time-secs hostname assignment-id used-ports meta scheduler-meta uptime-secs version resources-map])
 
@@ -359,6 +359,7 @@
                           (:task->component worker)
                           (:component->sorted-tasks worker)
                           (:component->stream->fields worker)
+                          (:blobToLastKnownVersion worker)
                           (:storm-id worker)
                           (supervisor-storm-resources-path
                             (supervisor-stormdist-root (:conf worker) (:storm-id worker)))

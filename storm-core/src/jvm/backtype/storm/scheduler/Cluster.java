@@ -495,6 +495,8 @@ public class Cluster {
         assignment.assign(slot, executors, resources);
         String nodeId = slot.getNodeId();
         assignment.setTotalSharedOffHeapMemory(nodeId, calculateSharedOffHeapMemory(nodeId, assignment));
+        scheduledCPUCache.remove(nodeId);
+        scheduledMemoryCache.remove(nodeId);
     }
     
     /**
@@ -560,6 +562,8 @@ public class Cluster {
 
                 String nodeId = slot.getNodeId();
                 assignment.setTotalSharedOffHeapMemory(nodeId, calculateSharedOffHeapMemory(nodeId, assignment));
+                scheduledCPUCache.remove(nodeId);
+                scheduledMemoryCache.remove(nodeId);
             }
         }
     }
@@ -902,9 +906,14 @@ public class Cluster {
         }
         return ret;
     }
-    
+
+    private final Map<String, Double> scheduledMemoryCache = new HashMap<>();
 
     public double getScheduledMemoryForNode(String nodeId) {
+        Double ret = scheduledMemoryCache.get(nodeId);
+        if (ret != null) {
+            return ret;
+        }
         double totalMemory = 0.0;
         for (SchedulerAssignmentImpl assignment: assignments.values()) {
             for (Entry<WorkerSlot, WorkerResources> entry: assignment.getScheduledResources().entrySet()) {
@@ -918,10 +927,17 @@ public class Cluster {
                 totalMemory += sharedOffHeap;
             }
         }
+        scheduledMemoryCache.put(nodeId, totalMemory);
         return totalMemory;
     }
-    
+
+    private final Map<String, Double> scheduledCPUCache = new HashMap<>();
+
     public double getScheduledCpuForNode(String nodeId) {
+        Double ret = scheduledCPUCache.get(nodeId);
+        if (ret != null) {
+            return ret;
+        }
         double totalCPU = 0.0;
         for (SchedulerAssignmentImpl assignment: assignments.values()) {
             for (Entry<WorkerSlot, WorkerResources> entry: assignment.getScheduledResources().entrySet()) {
@@ -931,6 +947,7 @@ public class Cluster {
                 }
             }
         }
+        scheduledCPUCache.put(nodeId, totalCPU);
         return totalCPU;
     }
 

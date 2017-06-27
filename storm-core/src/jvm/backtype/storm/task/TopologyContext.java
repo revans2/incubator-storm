@@ -60,13 +60,13 @@ public class TopologyContext extends WorkerTopologyContext implements IMetricsCo
 
     public TopologyContext(StormTopology topology, Map stormConf,
             Map<Integer, String> taskToComponent, Map<String, List<Integer>> componentToSortedTasks,
-            Map<String, Map<String, Fields>> componentToStreamToFields,
+            Map<String, Map<String, Fields>> componentToStreamToFields, Map<String, Long> blobToLastKnownVersionShared,
             String stormId, String codeDir, String pidDir, Integer taskId,
             Integer workerPort, List<Integer> workerTasks, Map<String, Object> defaultResources,
             Map<String, Object> userResources, Map<String, Object> executorData, Map<Integer, Map<Integer, Map<String, IMetric>>> registeredMetrics,
             clojure.lang.Atom openOrPrepareWasCalled) {
         super(topology, stormConf, taskToComponent, componentToSortedTasks,
-                componentToStreamToFields, stormId, codeDir, pidDir,
+                componentToStreamToFields, blobToLastKnownVersionShared, stormId, codeDir, pidDir,
                 workerPort, workerTasks, defaultResources, userResources);
         _taskId = taskId;
         _executorData = executorData;

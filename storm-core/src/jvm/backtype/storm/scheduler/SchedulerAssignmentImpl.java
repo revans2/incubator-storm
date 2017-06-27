@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import java.util.concurrent.atomic.AtomicReference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -105,12 +106,14 @@ public class SchedulerAssignmentImpl implements SchedulerAssignment {
         } else {
             resources.remove(slot);
         }
+        slotToExecutorsCache.set(null);
     }
     
     /**
      * Release the slot occupied by this assignment.
      */
     public void unassignBySlot(WorkerSlot slot) {
+        slotToExecutorsCache.set(null);
         List<ExecutorDetails> executors = new ArrayList<>();
         for (ExecutorDetails executor : executorToSlot.keySet()) {
             WorkerSlot ws = executorToSlot.get(executor);
@@ -166,8 +169,14 @@ public class SchedulerAssignmentImpl implements SchedulerAssignment {
         return this.executorToSlot.keySet();
     }
 
+    private final AtomicReference<Map<WorkerSlot, Collection<ExecutorDetails>>> slotToExecutorsCache = new AtomicReference<>(null);
+
     public Map<WorkerSlot, Collection<ExecutorDetails>> getSlotToExecutors() {
-        Map<WorkerSlot, Collection<ExecutorDetails>> ret = new HashMap<WorkerSlot, Collection<ExecutorDetails>>();
+        Map<WorkerSlot, Collection<ExecutorDetails>> ret = slotToExecutorsCache.get();
+        if (ret != null) {
+            return ret;
+        }
+        ret = new HashMap<>();
         for (Map.Entry<ExecutorDetails, WorkerSlot> entry : executorToSlot.entrySet()) {
             ExecutorDetails exec = entry.getKey();
             WorkerSlot ws = entry.getValue();
@@ -176,6 +185,7 @@ public class SchedulerAssignmentImpl implements SchedulerAssignment {
             }
             ret.get(ws).add(exec);
         }
+        slotToExecutorsCache.set(ret);
         return ret;
     }
 
