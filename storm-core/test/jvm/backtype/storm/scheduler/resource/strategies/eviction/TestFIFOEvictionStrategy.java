@@ -143,10 +143,10 @@ public class TestFIFOEvictionStrategy {
             Assert.assertTrue("assert topology success", TestUtilsForResourceAwareScheduler.assertStatusSuccess(cluster.getStatusMap().get(topo.getId())));
         }
         Assert.assertEquals("# of running topologies", 1, rs.getUser("bobby").getTopologiesRunning().size());
-        Assert.assertEquals("# of pending topologies", 0, rs.getUser("bobby").getTopologiesPending().size());
-        Assert.assertEquals("# of attempted topologies", 1, rs.getUser("bobby").getTopologiesAttempted().size());
+        Assert.assertEquals("# of pending topologies", 1, rs.getUser("bobby").getTopologiesPending().size());
+        Assert.assertEquals("# of attempted topologies", 0, rs.getUser("bobby").getTopologiesAttempted().size());
         Assert.assertEquals("# of invalid topologies", 0, rs.getUser("bobby").getTopologiesInvalid().size());
-        Assert.assertEquals("correct topology to evict", rs.getUser("bobby").getTopologiesAttempted().iterator().next().getName(), "topo-3");
+        Assert.assertEquals("correct topology to evict", rs.getUser("bobby").getTopologiesPending().iterator().next().getName(), "topo-3");
 
 
         //new topology needs to be scheduled.  topo-4 should be evicted. Even though topo-1 from user jerry is older, topo-1 will not be evicted
@@ -170,10 +170,10 @@ public class TestFIFOEvictionStrategy {
             Assert.assertTrue("assert topology success", TestUtilsForResourceAwareScheduler.assertStatusSuccess(cluster.getStatusMap().get(topo.getId())));
         }
         Assert.assertEquals("# of running topologies", 1, rs.getUser("derek").getTopologiesRunning().size());
-        Assert.assertEquals("# of pending topologies", 0, rs.getUser("derek").getTopologiesPending().size());
-        Assert.assertEquals("# of attempted topologies", 1, rs.getUser("derek").getTopologiesAttempted().size());
+        Assert.assertEquals("# of pending topologies", 1, rs.getUser("derek").getTopologiesPending().size());
+        Assert.assertEquals("# of attempted topologies", 0, rs.getUser("derek").getTopologiesAttempted().size());
         Assert.assertEquals("# of invalid topologies", 0, rs.getUser("derek").getTopologiesInvalid().size());
-        Assert.assertEquals("correct topology to evict", rs.getUser("derek").getTopologiesAttempted().iterator().next().getName(), "topo-4");
+        Assert.assertEquals("correct topology to evict", rs.getUser("derek").getTopologiesPending().iterator().next().getName(), "topo-4");
 
         for (TopologyDetails topo : rs.getUser("bobby").getTopologiesRunning()) {
             Assert.assertTrue("assert topology success", TestUtilsForResourceAwareScheduler.assertStatusSuccess(cluster.getStatusMap().get(topo.getId())));
