@@ -52,7 +52,7 @@ public class DefaultSchedulingPriorityStrategy implements ISchedulingPriorityStr
             topologyDetailsList.addAll(user.getTopologiesInvalid());
             topologyDetailsList.addAll(user.getTopologiesPending());
             topologyDetailsList.addAll(user.getTopologiesRunning());
-             Collections.sort(topologyDetailsList, new TopologyByPriorityAndSubmittionTimeComparator());
+            Collections.sort(topologyDetailsList, new TopologyByPriorityAndSubmittionTimeComparator());
             allUserTopologies.addAll(topologyDetailsList);
         }
         return allUserTopologies;
@@ -91,8 +91,7 @@ public class DefaultSchedulingPriorityStrategy implements ISchedulingPriorityStr
             double memoryRequestedPercentage = getMemoryRequestedPercentage(user);
             double memoryRequestedPercentageOther = getMemoryRequestedPercentage(otherUser);
             if(memoryRequestedPercentage != memoryRequestedPercentageOther) {
-                if ((memoryRequestedPercentage > 0 && memoryRequestedPercentageOther > 0)
-                    || (memoryRequestedPercentage < 0 && memoryRequestedPercentageOther < 0)) {
+                if (memoryRequestedPercentage > 0 && memoryRequestedPercentageOther > 0) {
                     return Double.compare(memoryRequestedPercentage, memoryRequestedPercentageOther);
                 } else {
                     return Double.compare(memoryRequestedPercentageOther, memoryRequestedPercentage);
@@ -102,22 +101,14 @@ public class DefaultSchedulingPriorityStrategy implements ISchedulingPriorityStr
             double cpuRequestedPercentage = getCPURequestedPercentage(user);
             double cpuRequestedPercentageOther = getCPURequestedPercentage(otherUser);
             if(cpuRequestedPercentage != cpuRequestedPercentageOther) {
-                if((cpuRequestedPercentage > 0 && cpuRequestedPercentageOther > 0)
-                    || (cpuRequestedPercentage < 0 && cpuRequestedPercentageOther < 0)) {
+                if (cpuRequestedPercentage > 0 && cpuRequestedPercentageOther > 0) {
                     return Double.compare(cpuRequestedPercentage, cpuRequestedPercentageOther);
                 } else {
                     return Double.compare(cpuRequestedPercentageOther, cpuRequestedPercentage);
                 }
             }
-
-            if (memoryRequestedPercentage < 0 || cpuRequestedPercentage < 0) {
-                return -1;
-            }
-
-            if (memoryRequestedPercentageOther < 0 || cpuRequestedPercentageOther < 0) {
-                return 1;
-            }
-            return 0;
+            //Now that cpu and memory requirements and guarantees match, we compare Ids to sort alphabetically
+            return user.getId().compareTo(otherUser.getId());
         }
 
         private double getMemoryRequestedPercentage(User user) {

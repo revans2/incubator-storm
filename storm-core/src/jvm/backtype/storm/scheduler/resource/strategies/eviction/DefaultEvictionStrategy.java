@@ -58,17 +58,7 @@ public class DefaultEvictionStrategy implements IEvictionStrategy {
             return false;
         }
 
-        // Do not evict any topology for user who is requesting more CPU/Memory than other
-        if(submitter.getCPUResourceRequest() > submitter.getCPUResourceGuaranteed()
-            || submitter.getMemoryResourceRequest() > submitter.getMemoryResourceGuaranteed()) {
-            return false;
-        }
-
-        double cpuNeeded = td.getTotalRequestedCpu() / submitter.getCPUResourceGuaranteed();
-        double memoryNeeded = (td.getTotalRequestedMemOffHeap() + td.getTotalRequestedMemOnHeap()) / submitter.getMemoryResourceGuaranteed();
-
         int tdIndex = this.topologyDetailsList.indexOf(td);
-
         for(int index = 0; index < tdIndex; index++) {
             TopologyDetails topologyEvict = topologyDetailsList.get(index);
             User tUser = this.userMap.get(topologyEvict.getTopologySubmitter());
