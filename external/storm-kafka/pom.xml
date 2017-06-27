@@ -154,7 +154,6 @@
             <groupId>org.apache.kafka</groupId>
             <artifactId>kafka-clients</artifactId>
             <scope>provided</scope>
-            <version>${kafka.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.storm</groupId>

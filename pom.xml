@@ -220,7 +220,6 @@
         <junit.version>4.11</junit.version>
         <metrics-clojure.version>2.5.1</metrics-clojure.version>
         <kafka.version>0.9.0.1.20</kafka.version>
-        <kafka.client.version>0.10.0.0</kafka.client.version>
         <hdrhistogram.version>2.1.7</hdrhistogram.version>
         <calcite.version>1.4.0-incubating</calcite.version>
         <kafka.artifact.id>kafka_2_10</kafka.artifact.id>
@@ -758,7 +757,7 @@
             <dependency>
                 <groupId>org.apache.kafka</groupId>
                 <artifactId>kafka-clients</artifactId>
-                <version>${kafka.client.version}</version>
+                <version>${kafka.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.hadoop</groupId>
