@@ -135,13 +135,15 @@ public class AutoAthens implements IAutoCredentials {
 
     @Override
     public void populateSubject(Subject subject, Map<String, String> credentials) {
-        for (Map.Entry<String, String> entry: credentials.entrySet()) {
-            String key = entry.getKey();
-            if (isAthensTokenKey(key)) {
-                int num = getAthensTokenKeyNum(key);
-                String roleName = credentials.get(asRoleKey(num)); //can be null
-                String trustDomain = credentials.get(asTrustKey(num)); //can be null
-                ZTSClientTokenCacher.setRoleToken(entry.getValue(), roleName, trustDomain);
+        if (credentials != null) {
+            for (Map.Entry<String, String> entry: credentials.entrySet()) {
+                String key = entry.getKey();
+                if (isAthensTokenKey(key)) {
+                    int num = getAthensTokenKeyNum(key);
+                    String roleName = credentials.get(asRoleKey(num)); //can be null
+                    String trustDomain = credentials.get(asTrustKey(num)); //can be null
+                    ZTSClientTokenCacher.setRoleToken(entry.getValue(), roleName, trustDomain);
+                }
             }
         }
     }
