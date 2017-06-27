@@ -43,15 +43,18 @@ public class DefaultSchedulingPriorityStrategy implements ISchedulingPriorityStr
     @Override
     public List<TopologyDetails> getOrderedTopologies() {
         List<TopologyDetails> allUserTopologies = new ArrayList<>();
-        for (User user : userMap.values()) {
+        List<User> users = new ArrayList<>(userMap.values());
+        Collections.sort(users, new UserByGuarantees(cluster.getClusterTotalCPUResource(), cluster.getClusterTotalMemoryResource()));
+
+         for (User user : users) {
             List<TopologyDetails> topologyDetailsList = new ArrayList<>();
             topologyDetailsList.addAll(user.getTopologiesAttempted());
             topologyDetailsList.addAll(user.getTopologiesInvalid());
             topologyDetailsList.addAll(user.getTopologiesPending());
             topologyDetailsList.addAll(user.getTopologiesRunning());
+             Collections.sort(topologyDetailsList, new TopologyByPriorityAndSubmittionTimeComparator());
             allUserTopologies.addAll(topologyDetailsList);
         }
-        Collections.sort(allUserTopologies, new SortByUserGuaranteePriorityAndSubmittionTime(userMap, cluster.getClusterTotalCPUResource(), cluster.getClusterTotalMemoryResource()));
         return allUserTopologies;
     }
 
@@ -87,14 +90,24 @@ public class DefaultSchedulingPriorityStrategy implements ISchedulingPriorityStr
 
             double memoryRequestedPercentage = getMemoryRequestedPercentage(user);
             double memoryRequestedPercentageOther = getMemoryRequestedPercentage(otherUser);
-            if (memoryRequestedPercentage < 0 && memoryRequestedPercentageOther < 0) {
-                return Double.compare(memoryRequestedPercentage, memoryRequestedPercentageOther);
+            if(memoryRequestedPercentage != memoryRequestedPercentageOther) {
+                if ((memoryRequestedPercentage > 0 && memoryRequestedPercentageOther > 0)
+                    || (memoryRequestedPercentage < 0 && memoryRequestedPercentageOther < 0)) {
+                    return Double.compare(memoryRequestedPercentage, memoryRequestedPercentageOther);
+                } else {
+                    return Double.compare(memoryRequestedPercentageOther, memoryRequestedPercentage);
+                }
             }
 
             double cpuRequestedPercentage = getCPURequestedPercentage(user);
             double cpuRequestedPercentageOther = getCPURequestedPercentage(otherUser);
-            if (cpuRequestedPercentage < 0 && cpuRequestedPercentageOther < 0) {
-                return Double.compare(cpuRequestedPercentage, cpuRequestedPercentageOther);
+            if(cpuRequestedPercentage != cpuRequestedPercentageOther) {
+                if((cpuRequestedPercentage > 0 && cpuRequestedPercentageOther > 0)
+                    || (cpuRequestedPercentage < 0 && cpuRequestedPercentageOther < 0)) {
+                    return Double.compare(cpuRequestedPercentage, cpuRequestedPercentageOther);
+                } else {
+                    return Double.compare(cpuRequestedPercentageOther, cpuRequestedPercentage);
+                }
             }
 
             if (memoryRequestedPercentage < 0 || cpuRequestedPercentage < 0) {
@@ -104,19 +117,7 @@ public class DefaultSchedulingPriorityStrategy implements ISchedulingPriorityStr
             if (memoryRequestedPercentageOther < 0 || cpuRequestedPercentageOther < 0) {
                 return 1;
             }
-
-            double userAvgResourcePercentage = getAvgResourceGuaranteePercentage(user);
-            double otherAvgResourcePercentage = getAvgResourceGuaranteePercentage(otherUser);
-
-            if (userAvgResourcePercentage < otherAvgResourcePercentage) {
-                return 1;
-            } else if (userAvgResourcePercentage > otherAvgResourcePercentage) {
-                return -1;
-            }
-
-            double userAvgResourceRequestPercentage = getAvgResourceRequestPercentage(user);
-            double otherAvgResourceRequestPercentage = getAvgResourceRequestPercentage(otherUser);
-            return Double.compare(userAvgResourceRequestPercentage, otherAvgResourceRequestPercentage);
+            return 0;
         }
 
         private double getMemoryRequestedPercentage(User user) {
@@ -144,26 +145,10 @@ public class DefaultSchedulingPriorityStrategy implements ISchedulingPriorityStr
      * Comparator that sorts topologies by priority and then by submission time
      * First sort by Topology Priority, if there is a tie for topology priority, topology uptime is used to sort
      */
-    class SortByUserGuaranteePriorityAndSubmittionTime implements Comparator<TopologyDetails> {
-        private final UserByGuarantees userByGuarantees;
-        private final Map<String, User> userMap;
-
-        public SortByUserGuaranteePriorityAndSubmittionTime(Map<String, User> userMap, double clusterTotalCPUResource, double clusterTotalMemoryResource) {
-            this.userMap = userMap;
-            userByGuarantees = new UserByGuarantees(clusterTotalCPUResource, clusterTotalMemoryResource);
-        }
+    class TopologyByPriorityAndSubmittionTimeComparator implements Comparator<TopologyDetails> {
 
         @Override
         public int compare(TopologyDetails topo1, TopologyDetails topo2) {
-            User userTopo1 = userMap.get(topo1.getTopologySubmitter());
-            User userTopo2 = userMap.get(topo2.getTopologySubmitter());
-
-            int res = userByGuarantees.compare(userTopo1, userTopo2);
-            if(res > 0) {
-                return 1;
-            } else if (res < 0) {
-                return -1;
-            }
             if (topo1.getTopologyPriority() > topo2.getTopologyPriority()) {
                 return 1;
             } else if (topo1.getTopologyPriority() < topo2.getTopologyPriority()) {
