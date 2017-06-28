@@ -302,8 +302,11 @@ $(document).ready(function() {
 
         var owner = response["owner"];
         $.getJSON("/api/v1/owner-resources/" + owner, function(response, status, jqXHR) {
-          if(response && (response["memoryGuaranteeRemaining"] < 0 || response["cpuGuaranteeRemaining"] < 0)) {
+          if(response && (response["memoryGuaranteeRemaining"] < 0 || response["cpuGuaranteeRemaining"] < 0
+              || response["memoryGuaranteeRemaining"] == "N/A" || response["cpuGuaranteeRemaining"] == "N/A")) {
             $(".warning").show();
+          } else {
+            $(".warning").hide();
           }
         });
 
