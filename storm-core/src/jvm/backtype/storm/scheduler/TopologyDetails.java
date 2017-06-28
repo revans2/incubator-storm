@@ -61,6 +61,7 @@ public class TopologyDetails {
     //when topology was launched
     private final int launchTime;
     private final String owner;
+    private final String topoName;
 
     private static final Logger LOG = LoggerFactory.getLogger(TopologyDetails.class);
 
@@ -89,6 +90,7 @@ public class TopologyDetails {
         }
         initConfigs();
         this.launchTime = launchTime;
+        this.topoName = (String) topologyConf.get(Config.TOPOLOGY_NAME);
     }
 
     public String getId() {
@@ -96,7 +98,7 @@ public class TopologyDetails {
     }
 
     public String getName() {
-        return (String) this.topologyConf.get(Config.TOPOLOGY_NAME);
+        return topoName;
     }
 
     public Map<String, Object> getConf() {

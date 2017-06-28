@@ -422,10 +422,13 @@ public class Cluster {
      */
     public boolean wouldFit(WorkerSlot ws, ExecutorDetails exec, TopologyDetails td, double maxHeap,
             double memoryAvailable, double cpuAvailable) {
+        //NOTE this is called lots and lots by schedulers, so anything we can do to make it faster is going to help a lot.
         //CPU is simplest because it does not have odd interactions.
         double cpuNeeded = td.getTotalCpuReqTask(exec);
         if (cpuNeeded > cpuAvailable) {
-            LOG.debug("Could not schedule {}:{} on {} not enough CPU {} > {}", td.getName(), exec, ws, cpuNeeded, cpuAvailable);
+            if (LOG.isTraceEnabled()) {
+                LOG.trace("Could not schedule {}:{} on {} not enough CPU {} > {}", td.getName(), exec, ws, cpuNeeded, cpuAvailable);
+            }
             //Not enough CPU no need to try any more
             return false;
         }
@@ -453,11 +456,15 @@ public class Cluster {
 
         double memoryAdded = afterTotal - currentTotal;
         if (memoryAdded > memoryAvailable) {
-            LOG.debug("Could not schedule {}:{} on {} not enough Mem {} > {}", td.getName(), exec, ws, memoryAdded, memoryAvailable);
+            if (LOG.isTraceEnabled()) {
+                LOG.trace("Could not schedule {}:{} on {} not enough Mem {} > {}", td.getName(), exec, ws, memoryAdded, memoryAvailable);
+            }
             return false;
         }
         if (afterOnHeap > maxHeap) {
-            LOG.debug("Could not schedule {}:{} on {} HEAP would be too large {} > {}", td.getName(), exec, ws, afterOnHeap, maxHeap);
+            if (LOG.isTraceEnabled()) {
+                LOG.trace("Could not schedule {}:{} on {} HEAP would be too large {} > {}", td.getName(), exec, ws, afterOnHeap, maxHeap);
+            }
             return false;
         }
         return true;
