@@ -173,8 +173,11 @@
                         $('#owner-resource-guarantee-summary').hide();
                     }
 
-                    if(response && (response["memoryGuaranteeRemaining"] < 0 || response["cpuGuaranteeRemaining"] < 0)) {
+                    if(response && (response["memoryGuaranteeRemaining"] < 0 || response["cpuGuaranteeRemaining"] < 0
+                        || response["memoryGuaranteeRemaining"] == "N/A" || response["cpuGuaranteeRemaining"] == "N/A")) {
                         $(".warning").show();
+                    } else {
+                        $(".warning").hide();
                     }
 
                     $('#owner-resource-usage-summary [data-toggle="tooltip"]').tooltip();
