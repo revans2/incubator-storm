@@ -888,7 +888,9 @@
     (.setStatusMap cluster (deref (:id->sched-status nimbus)))
     ;; call scheduler.schedule to schedule all the topologies
     ;; the new assignments for all the topologies are in the cluster object.
-    (.schedule (:scheduler nimbus) topologies cluster)
+    (let [before-schedule (current-time-millis)]
+      (.schedule (:scheduler nimbus) topologies cluster)
+      (log-message "Scheduling took " (- (current-time-millis) before-schedule) " ms."))
 
     ;;merge with existing statuses
     (reset! (:id->sched-status nimbus) (merge (deref (:id->sched-status nimbus)) (.getStatusMap cluster)))
