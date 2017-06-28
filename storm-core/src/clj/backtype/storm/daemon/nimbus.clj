@@ -890,7 +890,8 @@
     ;; the new assignments for all the topologies are in the cluster object.
     (let [before-schedule (current-time-millis)]
       (.schedule (:scheduler nimbus) topologies cluster)
-      (log-message "Scheduling took " (- (current-time-millis) before-schedule) " ms."))
+      (log-message "Scheduling took " (- (current-time-millis) before-schedule)
+                   " ms for " (.. topologies topologies size)))
 
     ;;merge with existing statuses
     (reset! (:id->sched-status nimbus) (merge (deref (:id->sched-status nimbus)) (.getStatusMap cluster)))
