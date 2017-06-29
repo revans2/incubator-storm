@@ -252,7 +252,7 @@ public class User {
     public double getCPUResourceRequest() {
         double sum = 0.0;
 
-        Set<TopologyDetails> topologyDetailsSet = new TreeSet<TopologyDetails>(Comparator.comparing(TopologyDetails::getId));
+        Set<TopologyDetails> topologyDetailsSet = new HashSet<>();
         topologyDetailsSet.addAll(runningQueue);
         topologyDetailsSet.addAll(pendingQueue);
         topologyDetailsSet.addAll(invalidQueue);
@@ -281,7 +281,7 @@ public class User {
 
     public double getMemoryResourceRequest() {
         double sum = 0.0;
-        Set<TopologyDetails> topologyDetailsSet = new TreeSet<TopologyDetails>(Comparator.comparing(TopologyDetails::getId));
+        Set<TopologyDetails> topologyDetailsSet = new HashSet<>();
         topologyDetailsSet.addAll(runningQueue);
         topologyDetailsSet.addAll(pendingQueue);
         topologyDetailsSet.addAll(invalidQueue);
