@@ -26,6 +26,7 @@ import org.slf4j.LoggerFactory;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
@@ -233,7 +234,7 @@ public class User {
     }
 
     public double getCPUResourcePoolUtilization() {
-        Double cpuGuarantee = this.resourcePool.get("cpu");
+        Double cpuGuarantee = resourcePool.get("cpu");
         if (cpuGuarantee == null || cpuGuarantee == 0.0) {
             return Double.MAX_VALUE;
         }
@@ -241,7 +242,7 @@ public class User {
     }
 
     public double getCPUResourceRequestUtilization() {
-        Double cpuGuarantee = this.resourcePool.get("cpu");
+        Double cpuGuarantee = resourcePool.get("cpu");
         if (cpuGuarantee == null || cpuGuarantee == 0.0) {
             return Double.MAX_VALUE;
         }
@@ -250,7 +251,8 @@ public class User {
 
     public double getCPUResourceRequest() {
         double sum = 0.0;
-        Set<TopologyDetails> topologyDetailsSet = new TreeSet<TopologyDetails>(new PQsortByPriorityAndSubmittionTime());
+
+        Set<TopologyDetails> topologyDetailsSet = new TreeSet<TopologyDetails>(Comparator.comparing(TopologyDetails::getId));
         topologyDetailsSet.addAll(runningQueue);
         topologyDetailsSet.addAll(pendingQueue);
         topologyDetailsSet.addAll(invalidQueue);
@@ -279,7 +281,7 @@ public class User {
 
     public double getMemoryResourceRequest() {
         double sum = 0.0;
-        Set<TopologyDetails> topologyDetailsSet = new TreeSet<TopologyDetails>(new PQsortByPriorityAndSubmittionTime());
+        Set<TopologyDetails> topologyDetailsSet = new TreeSet<TopologyDetails>(Comparator.comparing(TopologyDetails::getId));
         topologyDetailsSet.addAll(runningQueue);
         topologyDetailsSet.addAll(pendingQueue);
         topologyDetailsSet.addAll(invalidQueue);

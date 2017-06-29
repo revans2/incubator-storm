@@ -19,23 +19,26 @@
 package backtype.storm.scheduler.resource;
 
 import backtype.storm.Config;
+import backtype.storm.scheduler.Cluster;
+import backtype.storm.scheduler.ExecutorDetails;
+import backtype.storm.scheduler.IScheduler;
+import backtype.storm.scheduler.Topologies;
+import backtype.storm.scheduler.TopologyDetails;
+import backtype.storm.scheduler.WorkerSlot;
 import backtype.storm.scheduler.resource.strategies.eviction.IEvictionStrategy;
 import backtype.storm.scheduler.resource.strategies.priority.ISchedulingPriorityStrategy;
 import backtype.storm.scheduler.resource.strategies.scheduling.IStrategy;
 import backtype.storm.scheduler.utils.IConfigLoader;
+import backtype.storm.scheduler.utils.SchedulerUtils;
 import backtype.storm.utils.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import backtype.storm.scheduler.Cluster;
-import backtype.storm.scheduler.ExecutorDetails;
-import backtype.storm.scheduler.IScheduler;
-import backtype.storm.scheduler.utils.SchedulerUtils;
-import backtype.storm.scheduler.Topologies;
-import backtype.storm.scheduler.TopologyDetails;
-import backtype.storm.scheduler.WorkerSlot;
-
-import java.util.*;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 public class ResourceAwareScheduler implements IScheduler {
 
@@ -45,10 +48,6 @@ public class ResourceAwareScheduler implements IScheduler {
     @SuppressWarnings("rawtypes")
     private Map conf;
     private IConfigLoader configLoader;
-
-    private List<User> users;
-
-
 
     private static final Logger LOG = LoggerFactory
             .getLogger(ResourceAwareScheduler.class);

@@ -46,7 +46,7 @@ public class DefaultEvictionStrategy implements IEvictionStrategy {
         this.cluster = schedulingState.cluster;
         this.userMap = schedulingState.userMap;
         this.nodes = schedulingState.nodes;
-        this.topologyDetailsList = ImmutableList.copyOf(topologyDetailsList).reverse();;
+        this.topologyDetailsList = ImmutableList.copyOf(topologyDetailsList).reverse();
     }
 
     @Override
@@ -54,7 +54,7 @@ public class DefaultEvictionStrategy implements IEvictionStrategy {
         LOG.debug("attempting to make space for topo {} from user {}", td.getName(), td.getTopologySubmitter());
         User submitter = this.userMap.get(td.getTopologySubmitter());
         if (submitter.getCPUResourceGuaranteed() == null || submitter.getMemoryResourceGuaranteed() == null
-            || submitter.getCPUResourceGuaranteed() == 0.0 || submitter.getMemoryResourceGuaranteed() == 0.0) {
+                || submitter.getCPUResourceGuaranteed() == 0.0 || submitter.getMemoryResourceGuaranteed() == 0.0) {
             return false;
         }
 
@@ -64,8 +64,9 @@ public class DefaultEvictionStrategy implements IEvictionStrategy {
             User tUser = this.userMap.get(topologyEvict.getTopologySubmitter());
 
             //Do not another evict topology for same user.
-            if (topologyEvict.getTopologySubmitter().equals(td.getTopologySubmitter()))
+            if (topologyEvict.getTopologySubmitter().equals(td.getTopologySubmitter())) {
                 continue;
+            }
 
             if (tUser.getTopologiesRunning().contains(topologyEvict)) {
                 // Can not remove for topology for user with abundant guarantees.
