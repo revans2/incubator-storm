@@ -56,7 +56,7 @@ public class DefaultSchedulingPriorityStrategy implements ISchedulingPriorityStr
             topologyDetailsList.addAll(user.getTopologiesInvalid());
             topologyDetailsList.addAll(user.getTopologiesPending());
             topologyDetailsList.addAll(user.getTopologiesRunning());
-            Collections.sort(topologyDetailsList, new TopologyByPriorityAndSubmittionTimeComparator());
+            Collections.sort(topologyDetailsList, new TopologyByPriorityAndSubmissionTimeComparator());
             allUserTopologies.addAll(topologyDetailsList);
         }
         return allUserTopologies;
@@ -140,7 +140,7 @@ public class DefaultSchedulingPriorityStrategy implements ISchedulingPriorityStr
      * Comparator that sorts topologies by priority and then by submission time
      * First sort by Topology Priority, if there is a tie for topology priority, topology uptime is used to sort
      */
-    class TopologyByPriorityAndSubmittionTimeComparator implements Comparator<TopologyDetails> {
+    class TopologyByPriorityAndSubmissionTimeComparator implements Comparator<TopologyDetails> {
 
         @Override
         public int compare(TopologyDetails topo1, TopologyDetails topo2) {
