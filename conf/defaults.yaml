@@ -290,6 +290,8 @@ pacemaker.thread.timeout: 10
 pacemaker.childopts: "-Xmx1024m"
 pacemaker.auth.method: "NONE"
 pacemaker.kerberos.users: []
+# Default max pacemaker heartbeat size of 10 MiB
+pacemaker.thrift.message.size.max: 10485760
 
 storm.resource.isolation.plugin: "org.apache.storm.container.cgroup.CgroupManager"
 # Also determines whether the unit tests for cgroup runs.  
