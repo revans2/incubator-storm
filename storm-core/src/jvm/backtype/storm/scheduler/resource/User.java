@@ -316,26 +316,6 @@ public class User {
         return this.resourcePool.get("cpu");
     }
 
-    public TopologyDetails getNextTopologyToSchedule() {
-        for (TopologyDetails topo : this.pendingQueue) {
-            if (!this.attemptedQueue.contains(topo)) {
-                return topo;
-            }
-        }
-        return null;
-    }
-
-    public boolean hasTopologyNeedSchedule() {
-        return (!this.pendingQueue.isEmpty());
-    }
-
-    public TopologyDetails getRunningTopologyWithLowestPriority() {
-        if (this.runningQueue.isEmpty()) {
-            return null;
-        }
-        return this.runningQueue.last();
-    }
-
     @Override
     public int hashCode() {
         return this.userId.hashCode();
