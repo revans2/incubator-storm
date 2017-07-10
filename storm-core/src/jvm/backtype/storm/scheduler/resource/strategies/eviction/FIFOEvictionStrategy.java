@@ -28,6 +28,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Comparator;
+import java.util.List;
 import java.util.Map;
 import java.util.TreeSet;
 
@@ -46,7 +47,7 @@ public class FIFOEvictionStrategy implements IEvictionStrategy{
     private Topologies topologies;
 
     @Override
-    public void prepare(SchedulingState schedulingState) {
+    public void prepare(SchedulingState schedulingState, List<TopologyDetails> topologyDetailsList) {
         this.cluster = schedulingState.cluster;
         this.userMap = schedulingState.userMap;
         this.nodes = schedulingState.nodes;

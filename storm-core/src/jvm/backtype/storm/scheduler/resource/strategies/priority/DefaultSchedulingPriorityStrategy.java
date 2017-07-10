@@ -25,6 +25,10 @@ import backtype.storm.scheduler.resource.User;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
 import java.util.Map;
 
 public class DefaultSchedulingPriorityStrategy implements ISchedulingPriorityStrategy {
@@ -41,40 +45,118 @@ public class DefaultSchedulingPriorityStrategy implements ISchedulingPriorityStr
     }
 
     @Override
-    public TopologyDetails getNextTopologyToSchedule() {
-        User nextUser = this.getNextUser();
-        if (nextUser == null) {
-            return null;
+    public List<TopologyDetails> getOrderedTopologies() {
+        List<TopologyDetails> allUserTopologies = new ArrayList<>();
+        List<User> users = new ArrayList<>(userMap.values());
+        Collections.sort(users, new UserByGuarantees(cluster.getClusterTotalCPUResource(), cluster.getClusterTotalMemoryResource()));
+
+         for (User user : users) {
+            List<TopologyDetails> topologyDetailsList = new ArrayList<>();
+            topologyDetailsList.addAll(user.getTopologiesAttempted());
+            topologyDetailsList.addAll(user.getTopologiesInvalid());
+            topologyDetailsList.addAll(user.getTopologiesPending());
+            topologyDetailsList.addAll(user.getTopologiesRunning());
+            Collections.sort(topologyDetailsList, new TopologyByPriorityAndSubmissionTimeComparator());
+            allUserTopologies.addAll(topologyDetailsList);
         }
-        return nextUser.getNextTopologyToSchedule();
+        return allUserTopologies;
     }
 
-    public User getNextUser() {
-        Double least = Double.POSITIVE_INFINITY;
-        User ret = null;
-        for (User user : this.userMap.values()) {
-            if (user.hasTopologyNeedSchedule()) {
-                Double userResourcePoolAverageUtilization = user.getResourcePoolAverageUtilization();
-                if (least > userResourcePoolAverageUtilization) {
-                    ret = user;
-                    least = userResourcePoolAverageUtilization;
-                }
-                // if ResourcePoolAverageUtilization is equal to the user that is being compared
-                else if (Math.abs(least - userResourcePoolAverageUtilization) < 0.0001) {
-                    double currentCpuPercentage = ret.getCPUResourceGuaranteed() / this.cluster.getClusterTotalCPUResource();
-                    double currentMemoryPercentage = ret.getMemoryResourceGuaranteed() / this.cluster.getClusterTotalMemoryResource();
-                    double currentAvgPercentage = (currentCpuPercentage + currentMemoryPercentage) / 2.0;
+    class UserByGuarantees implements Comparator<User> {
 
-                    double userCpuPercentage = user.getCPUResourceGuaranteed() / this.cluster.getClusterTotalCPUResource();
-                    double userMemoryPercentage = user.getMemoryResourceGuaranteed() / this.cluster.getClusterTotalMemoryResource();
-                    double userAvgPercentage = (userCpuPercentage + userMemoryPercentage) / 2.0;
-                    if (userAvgPercentage > currentAvgPercentage) {
-                        ret = user;
-                        least = userResourcePoolAverageUtilization;
-                    }
+        private final double clusterTotalCPUResource;
+        private final double clusterTotalMemoryResource;
+
+        public UserByGuarantees(double clusterTotalCPUResource, double clusterTotalMemoryResource) {
+            this.clusterTotalCPUResource = clusterTotalCPUResource;
+            this.clusterTotalMemoryResource = clusterTotalMemoryResource;
+        }
+
+        @Override
+        public int compare(User user, User otherUser) {
+
+            if(user == otherUser) return 0;
+
+            Double cpuResourceGuaranteed = user.getCPUResourceGuaranteed();
+            Double cpuResourceGuaranteedOther = otherUser.getCPUResourceGuaranteed();
+            Double memoryResourceGuaranteed = user.getMemoryResourceGuaranteed();
+            Double memoryResourceGuaranteedOther = otherUser.getMemoryResourceGuaranteed();
+
+            if ((memoryResourceGuaranteed > 0 && memoryResourceGuaranteedOther == 0)
+                || (cpuResourceGuaranteed > 0 && cpuResourceGuaranteedOther == 0)) {
+                return -1;
+            }
+
+            if ((memoryResourceGuaranteed == 0 && memoryResourceGuaranteedOther > 0)
+                || (cpuResourceGuaranteed == 0 && cpuResourceGuaranteedOther > 0)) {
+                return 1;
+            }
+
+            double memoryRequestedPercentage = getMemoryRequestedPercentage(user);
+            double memoryRequestedPercentageOther = getMemoryRequestedPercentage(otherUser);
+            if(memoryRequestedPercentage != memoryRequestedPercentageOther) {
+                if (memoryRequestedPercentage > 0 && memoryRequestedPercentageOther > 0) {
+                    return Double.compare(memoryRequestedPercentage, memoryRequestedPercentageOther);
+                } else {
+                    return Double.compare(memoryRequestedPercentageOther, memoryRequestedPercentage);
+                }
+            }
+
+            double cpuRequestedPercentage = getCPURequestedPercentage(user);
+            double cpuRequestedPercentageOther = getCPURequestedPercentage(otherUser);
+            if(cpuRequestedPercentage != cpuRequestedPercentageOther) {
+                if (cpuRequestedPercentage > 0 && cpuRequestedPercentageOther > 0) {
+                    return Double.compare(cpuRequestedPercentage, cpuRequestedPercentageOther);
+                } else {
+                    return Double.compare(cpuRequestedPercentageOther, cpuRequestedPercentage);
+                }
+            }
+            //Now that cpu and memory requirements and guarantees match, we compare Ids to sort alphabetically
+            return user.getId().compareTo(otherUser.getId());
+        }
+
+        private double getMemoryRequestedPercentage(User user) {
+            return (user.getMemoryResourceGuaranteed() - user.getMemoryResourceRequest()) / clusterTotalMemoryResource;
+        }
+
+        private double getCPURequestedPercentage(User user) {
+            return (user.getCPUResourceGuaranteed() - user.getCPUResourceRequest()) / clusterTotalCPUResource;
+        }
+
+        private double getAvgResourceGuaranteePercentage(User user) {
+            double userCPUPercentage = user.getCPUResourceGuaranteed() / clusterTotalCPUResource;
+            double userMemoryPercentage = user.getMemoryResourceGuaranteed() / clusterTotalMemoryResource;
+            return (userCPUPercentage + userMemoryPercentage) / 2.0;
+        }
+
+        private double getAvgResourceRequestPercentage(User user) {
+            double userCPUPercentage = user.getCPUResourceRequestUtilization() / clusterTotalCPUResource;
+            double userMemoryPercentage = user.getMemoryResourceRequestUtilzation() / clusterTotalMemoryResource;
+            return (userCPUPercentage + userMemoryPercentage) / 2.0;
+        }
+    }
+
+    /**
+     * Comparator that sorts topologies by priority and then by submission time
+     * First sort by Topology Priority, if there is a tie for topology priority, topology uptime is used to sort
+     */
+    class TopologyByPriorityAndSubmissionTimeComparator implements Comparator<TopologyDetails> {
+
+        @Override
+        public int compare(TopologyDetails topo1, TopologyDetails topo2) {
+            if (topo1.getTopologyPriority() > topo2.getTopologyPriority()) {
+                return 1;
+            } else if (topo1.getTopologyPriority() < topo2.getTopologyPriority()) {
+                return -1;
+            } else {
+                if (topo1.getUpTime() > topo2.getUpTime()) {
+                    return -1;
+                } else if (topo1.getUpTime() < topo2.getUpTime()) {
+                    return 1;
+                } else {
+                    return topo1.getId().compareTo(topo2.getId());
                 }
             }
         }
-        return ret;
     }
 }

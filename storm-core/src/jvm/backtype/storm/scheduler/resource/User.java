@@ -26,6 +26,7 @@ import org.slf4j.LoggerFactory;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
@@ -233,11 +234,33 @@ public class User {
     }
 
     public double getCPUResourcePoolUtilization() {
-        Double cpuGuarantee = this.resourcePool.get("cpu");
+        Double cpuGuarantee = resourcePool.get("cpu");
         if (cpuGuarantee == null || cpuGuarantee == 0.0) {
             return Double.MAX_VALUE;
         }
         return this.getCPUResourceUsedByUser() / cpuGuarantee;
+    }
+
+    public double getCPUResourceRequestUtilization() {
+        Double cpuGuarantee = resourcePool.get("cpu");
+        if (cpuGuarantee == null || cpuGuarantee == 0.0) {
+            return Double.MAX_VALUE;
+        }
+        return this.getCPUResourceRequest() / cpuGuarantee;
+    }
+
+    public double getCPUResourceRequest() {
+        double sum = 0.0;
+
+        Set<TopologyDetails> topologyDetailsSet = new HashSet<>();
+        topologyDetailsSet.addAll(runningQueue);
+        topologyDetailsSet.addAll(pendingQueue);
+        topologyDetailsSet.addAll(invalidQueue);
+        topologyDetailsSet.addAll(attemptedQueue);
+        for (TopologyDetails topo : topologyDetailsSet) {
+            sum += topo.getTotalRequestedCpu();
+        }
+        return sum;
     }
 
     public double getMemoryResourcePoolUtilization() {
@@ -246,6 +269,27 @@ public class User {
             return Double.MAX_VALUE;
         }
         return this.getMemoryResourceUsedByUser() / memoryGuarantee;
+    }
+
+    public double getMemoryResourceRequestUtilzation() {
+        Double memoryGuarantee = this.resourcePool.get("memory");
+        if (memoryGuarantee == null || memoryGuarantee == 0.0) {
+            return Double.MAX_VALUE;
+        }
+        return this.getMemoryResourceRequest() / memoryGuarantee;
+    }
+
+    public double getMemoryResourceRequest() {
+        double sum = 0.0;
+        Set<TopologyDetails> topologyDetailsSet = new HashSet<>();
+        topologyDetailsSet.addAll(runningQueue);
+        topologyDetailsSet.addAll(pendingQueue);
+        topologyDetailsSet.addAll(invalidQueue);
+        topologyDetailsSet.addAll(attemptedQueue);
+        for (TopologyDetails topo : topologyDetailsSet) {
+            sum += topo.getTotalRequestedMemOnHeap() + topo.getTotalRequestedMemOffHeap();
+        }
+        return sum;
     }
 
     public double getCPUResourceUsedByUser() {
@@ -270,26 +314,6 @@ public class User {
 
     public Double getCPUResourceGuaranteed() {
         return this.resourcePool.get("cpu");
-    }
-
-    public TopologyDetails getNextTopologyToSchedule() {
-        for (TopologyDetails topo : this.pendingQueue) {
-            if (!this.attemptedQueue.contains(topo)) {
-                return topo;
-            }
-        }
-        return null;
-    }
-
-    public boolean hasTopologyNeedSchedule() {
-        return (!this.pendingQueue.isEmpty());
-    }
-
-    public TopologyDetails getRunningTopologyWithLowestPriority() {
-        if (this.runningQueue.isEmpty()) {
-            return null;
-        }
-        return this.runningQueue.last();
     }
 
     @Override

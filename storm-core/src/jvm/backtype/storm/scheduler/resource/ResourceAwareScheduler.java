@@ -19,25 +19,25 @@
 package backtype.storm.scheduler.resource;
 
 import backtype.storm.Config;
+import backtype.storm.scheduler.Cluster;
+import backtype.storm.scheduler.ExecutorDetails;
+import backtype.storm.scheduler.IScheduler;
+import backtype.storm.scheduler.Topologies;
+import backtype.storm.scheduler.TopologyDetails;
+import backtype.storm.scheduler.WorkerSlot;
 import backtype.storm.scheduler.resource.strategies.eviction.IEvictionStrategy;
 import backtype.storm.scheduler.resource.strategies.priority.ISchedulingPriorityStrategy;
 import backtype.storm.scheduler.resource.strategies.scheduling.IStrategy;
 import backtype.storm.scheduler.utils.IConfigLoader;
+import backtype.storm.scheduler.utils.SchedulerUtils;
 import backtype.storm.utils.Utils;
-import org.apache.commons.collections.map.HashedMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import backtype.storm.scheduler.Cluster;
-import backtype.storm.scheduler.ExecutorDetails;
-import backtype.storm.scheduler.IScheduler;
-import backtype.storm.scheduler.utils.SchedulerUtils;
-import backtype.storm.scheduler.Topologies;
-import backtype.storm.scheduler.TopologyDetails;
-import backtype.storm.scheduler.WorkerSlot;
-
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class ResourceAwareScheduler implements IScheduler {
@@ -75,32 +75,27 @@ public class ResourceAwareScheduler implements IScheduler {
 
         ISchedulingPriorityStrategy schedulingPrioritystrategy = null;
 
+        if (schedulingPrioritystrategy == null) {
+            String strategyClassName = (String) this.conf.get(Config.RESOURCE_AWARE_SCHEDULER_PRIORITY_STRATEGY);
+            schedulingPrioritystrategy = Utils.newInstance(strategyClassName);
+        }
+        schedulingPrioritystrategy.prepare(schedulingState);
+
         Map<String, Integer> topologySchedulingAttempts = new HashMap<>();
 
-        while (true) {
+        List<TopologyDetails> orderedTopologies = Collections.unmodifiableList(schedulingPrioritystrategy.getOrderedTopologies());
 
-            if (schedulingPrioritystrategy == null) {
-                String strategyClassName = (String) this.conf.get(Config.RESOURCE_AWARE_SCHEDULER_PRIORITY_STRATEGY);
-                schedulingPrioritystrategy = Utils.newInstance(strategyClassName);
-            }
-            TopologyDetails td;
-            try {
-                //need to re prepare since scheduling state might have been restored
-                schedulingPrioritystrategy.prepare(this.schedulingState);
-                //Call scheduling priority strategy
-                td = schedulingPrioritystrategy.getNextTopologyToSchedule();
-            } catch (Exception ex) {
-                LOG.error(String.format("Exception thrown when running priority strategy %s. No topologies will be scheduled!"
-                        , schedulingPrioritystrategy.getClass().getName()), ex);
-                break;
-            }
-            if (td == null) {
-                break;
+        for(TopologyDetails td : orderedTopologies) {
+            User submitter = getUser(td.getTopologySubmitter());
+            if(submitter.getTopologiesRunning().contains(td) ||
+                submitter.getTopologiesInvalid().contains(td) ||
+                submitter.getTopologiesAttempted().contains(td)) {
+                continue;
             }
 
             topologySchedulingAttempts.putIfAbsent(td.getName(), 0);
 
-            topologySchedulingAttempts.put(td.getName(), scheduleTopology(td, topologySchedulingAttempts.get(td.getName())));
+            topologySchedulingAttempts.put(td.getName(), scheduleTopology(td, orderedTopologies, topologySchedulingAttempts.get(td.getName())));
 
             LOG.debug("Nodes after scheduling:\n{}", this.schedulingState.nodes);
         }
@@ -115,7 +110,7 @@ public class ResourceAwareScheduler implements IScheduler {
         cluster.setStatusMap(schedulingState.cluster.getStatusMap());
     }
 
-    public int scheduleTopology(TopologyDetails td, Integer schedulingAttemptsSoFar) {
+    public int scheduleTopology(TopologyDetails td, List<TopologyDetails> orderedTopologies, Integer schedulingAttemptsSoFar) {
         User topologySubmitter = this.schedulingState.userMap.get(td.getTopologySubmitter());
         if (this.schedulingState.cluster.getUnassignedExecutors(td).size() > 0) {
             LOG.info("/********Scheduling topology {} from User {}************/", td.getName(), topologySubmitter);
@@ -191,7 +186,7 @@ public class ResourceAwareScheduler implements IScheduler {
                             boolean madeSpace = false;
                             try {
                                 //need to re prepare since scheduling state might have been restored
-                                evictionStrategy.prepare(this.schedulingState);
+                                evictionStrategy.prepare(this.schedulingState, orderedTopologies);
                                 madeSpace = evictionStrategy.makeSpaceForTopo(td);
                             } catch (Exception ex) {
                                 LOG.error(String.format("Exception thrown when running eviction strategy %s to schedule topology %s. No evictions will be done! Error: %s"
