@@ -145,6 +145,10 @@ public class ResourceAwareScheduler implements IScheduler {
         return scheduleTopologyRecursively(rasStrategy, topologySubmitter, td, orderedTopologies, maxSchedulingAttempts, schedulingAttemptsSoFar);
     }
 
+    /**
+     * scheduleTopologyRecursively makes up to maxSchedulingAttempts - schedulingAttemptsSoFar attempts to schedule the topology.
+     * The only condition that will cause it to recur is when eviction is used to make room on the cluster.
+     */
     private int scheduleTopologyRecursively(IStrategy rasStrategy, User topologySubmitter, TopologyDetails td, List<TopologyDetails> orderedTopologies, int maxSchedulingAttempts, Integer schedulingAttemptsSoFar) {
         schedulingAttemptsSoFar++;
         LOG.debug("Attempt {} of {} to schedule topology {}", schedulingAttemptsSoFar, maxSchedulingAttempts, td.getName());
@@ -172,7 +176,7 @@ public class ResourceAwareScheduler implements IScheduler {
                     this.schedulingState.cluster.setStatus(td.getId(), "Unsuccessful in scheduling - Unable to assign executors to nodes. Please check logs for details");
                 }
             } else if (result.getStatus() == SchedulingStatus.FAIL_NOT_ENOUGH_RESOURCES) {
-                // Failure
+                // Failure with possibility of eviction.
                 boolean madeSpace = false;
                 IEvictionStrategy evictionStrategy = null;
                 String strategyName =  (String)this.conf.get(Config.RESOURCE_AWARE_SCHEDULER_EVICTION_STRATEGY);
@@ -203,8 +207,10 @@ public class ResourceAwareScheduler implements IScheduler {
                     topologySubmitter.moveTopoFromPendingToAttempted(td);
                 }
             } else if (result.getStatus() == SchedulingStatus.FAIL_INVALID_TOPOLOGY) {
+                // Failure with bad configuration or some such.
                 cleanUpInvalid(schedulingState, td);
             } else {
+                // Failure of an unknown type.
                 cleanUpAttempted(schedulingState, td);
             }
 
