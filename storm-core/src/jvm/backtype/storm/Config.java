@@ -1615,6 +1615,20 @@ public class Config extends HashMap<String, Object> {
     public static final String TOPOLOGY_GROUPS = "topology.groups";
 
     /**
+     * A list of readonly users that are allowed to interact with the topology.  To use this set
+     * nimbus.authorizer to backtype.storm.security.auth.authorizer.SimpleACLAuthorizer
+     */
+    @isStringList
+    public static final String TOPOLOGY_READONLY_USERS="topology.readonly.users";
+
+    /**
+     * A list of readonly groups that are allowed to interact with the topology.  To use this set
+     * nimbus.authorizer to backtype.storm.security.auth.authorizer.SimpleACLAuthorizer
+     */
+    @isStringList
+    public static final String TOPOLOGY_READONLY_GROUPS = "topology.readonly.groups";
+
+    /**
      * True if Storm should timeout messages or not. Defaults to true. This is meant to be used
      * in unit tests to prevent tuples from being accidentally timed out during the test.
      */
