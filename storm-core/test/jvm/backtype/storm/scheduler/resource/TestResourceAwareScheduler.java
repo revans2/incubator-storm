@@ -641,11 +641,6 @@ public class TestResourceAwareScheduler {
             for (TopologyDetails topo : users.get("derek").getTopologiesRunning()) {
                 Assert.assertTrue("assert topology success", TestUtilsForResourceAwareScheduler.assertStatusSuccess(cluster.getStatusMap().get(topo.getId())));
             }
-            LOG.info("######################################");
-            LOG.info("Running: {}", users.get("derek").getTopologiesRunning().size());
-            LOG.info("Pending: {}", users.get("derek").getTopologiesPending().size());
-            LOG.info("Attempted: {}", users.get("derek").getTopologiesAttempted().size());
-            LOG.info("Invalid: {}", users.get("derek").getTopologiesInvalid().size());
 
             Assert.assertEquals("# of running topologies", 2, users.get("derek").getTopologiesRunning().size());
             Assert.assertEquals("# of pending topologies", 0, users.get("derek").getTopologiesPending().size());
