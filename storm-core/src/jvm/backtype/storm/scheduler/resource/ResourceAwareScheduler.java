@@ -84,12 +84,6 @@ public class ResourceAwareScheduler implements IScheduler {
         List<TopologyDetails> orderedTopologies = Collections.unmodifiableList(schedulingPrioritystrategy.getOrderedTopologies());
 
         for(TopologyDetails td : orderedTopologies) {
-//            User submitter = getUser(td.getTopologySubmitter(), schedulingState);
-//            if(submitter.getTopologiesRunning().contains(td) ||
-//               submitter.getTopologiesInvalid().contains(td) ||
-//               submitter.getTopologiesAttempted().contains(td)) {
-//                continue;
-//            }
             schedulingState = scheduleTopology(schedulingState, td, orderedTopologies);
             alreadyScheduled.add(td);
             LOG.debug("Nodes after scheduling:\n{}", schedulingState.nodes);
@@ -126,7 +120,6 @@ public class ResourceAwareScheduler implements IScheduler {
         } catch (RuntimeException e) {
             LOG.error("failed to create instance of IStrategy: {} with error: {}! Topology {} will not be scheduled.",
                       td.getName(), td.getConf().get(Config.TOPOLOGY_SCHEDULER_STRATEGY), e.getMessage());
-            //topologySubmitter = cleanup(newSchedulingState, td);
             topologySubmitter.moveTopoFromPendingToInvalid(td);
             schedulingState.cluster.setStatus(td.getId(), "Unsuccessful in scheduling - failed to create instance of topology strategy "
                                               + td.getConf().get(Config.TOPOLOGY_SCHEDULER_STRATEGY) + ". Please check logs for details");
@@ -213,7 +206,6 @@ public class ResourceAwareScheduler implements IScheduler {
             if (result == null || !result.isValid()) {
                 // Invalid result
                 LOG.warn("Scheduling results returned from topology {} is not vaild! Topology with be ignored.", td.getName());
-                //cleanUpInvalid(schedulingState, td);
                 schedulingError = "Scheduling strategy returned an invalid result. Topology will not be scheduled.";
                 failType = Result.FailType.INVALID;
             } else if (result.isSuccess()) {
@@ -223,10 +215,6 @@ public class ResourceAwareScheduler implements IScheduler {
                     schedulingState.cluster.setStatus(td.getId(), "Running - " + result.getMessage());
                     return new Result(schedulingState);
                 } else {
-                    //topologySubmitter = this.cleanup(schedulingState, td);
-                    //topologySubmitter.moveTopoFromPendingToAttempted(td);
-                    //schedulingState.cluster.setStatus(td.getId(), "Unsuccessful in scheduling - Unable to assign executors to nodes. Please check logs for details");
-                    //return new Result("Unsuccessful in scheduling - Unable to assign executors to nodes. Please check logs for details");
                     schedulingError = "Unsuccessful in scheduling - Unable to assign executors to nodes. Please check logs for details";
                 }
             } else if (result.getStatus() == SchedulingStatus.FAIL_NOT_ENOUGH_RESOURCES) {
@@ -243,9 +231,6 @@ public class ResourceAwareScheduler implements IScheduler {
                         madeSpace = evictionStrategy.makeSpaceForTopo(td);
                         if (!madeSpace) {
                             LOG.info("Could not make space for topo {} will move to attempted", td);
-                            //topologySubmitter = cleanup(schedulingState, td);
-                            //topologySubmitter.moveTopoFromPendingToAttempted(td);
-                            //schedulingState.cluster.setStatus(td.getId(), "Not enough resources to schedule - " + result.getErrorMessage());
                             schedulingError = "Not enough resources to schedule - " + result.getErrorMessage();
                         } else {
                             return scheduleTopologyRecursively(schedulingState, rasStrategy, topologySubmitter, td, orderedTopologies, maxSchedulingAttempts, schedulingAttemptsSoFar);
@@ -253,45 +238,22 @@ public class ResourceAwareScheduler implements IScheduler {
                     } catch (Exception ex) {
                         LOG.error(String.format("Exception thrown when running eviction strategy %s to schedule topology %s. No evictions will be done! Error: %s",
                                 strategyName, td.getName(), ex.getClass().getName()), ex);
-                        //topologySubmitter = cleanup(schedulingState, td);
-                        //topologySubmitter.moveTopoFromPendingToAttempted(td);
                     }
                 }
             }
             else if (result.getStatus() == SchedulingStatus.FAIL_INVALID_TOPOLOGY) {
                 // Failure with bad configuration or some such.
-                //cleanUpInvalid(schedulingState, td);
                 schedulingError = "The scheduling strategy determined that the topology is invalid.";
                 failType = Result.FailType.INVALID;
             }
         } catch (Exception ex) {
             LOG.error(String.format("Exception thrown when running strategy %s to schedule topology %s. Topology will not be scheduled!",
                                     rasStrategy.getClass().getName(), td.getName()), ex);
-            //topologySubmitter = cleanup(schedulingState, td);
-            //topologySubmitter.moveTopoFromPendingToInvalid(td);
-//            schedulingState.cluster.setStatus(td.getId(), "Unsuccessful in scheduling - Exception thrown when running strategy {}"
-//                                              + rasStrategy.getClass().getName() + ". Please check logs for details");
             schedulingError = String.format("Unsuccessful in scheduling - Exception thrown when running strategy %s . Please check logs for details.", rasStrategy.getClass().getName());
             failType = Result.FailType.INVALID;
         }
         return new Result(schedulingError, failType);
     }
-
-//    private void cleanUpInvalid(SchedulingState schedulingState, TopologyDetails td) {
-//        User topologySubmitter = cleanup(schedulingState, td);
-//        topologySubmitter.moveTopoFromPendingToInvalid(td, this.schedulingState.cluster);
-//    }
-//
-//    private void cleanUpAttempted(SchedulingState schedulingState, TopologyDetails td) {
-//        User topologySubmitter = cleanup(schedulingState, td);
-//        topologySubmitter.moveTopoFromPendingToAttempted(td, this.schedulingState.cluster);
-//    }
-//
-//    private User cleanup(SchedulingState schedulingState, TopologyDetails td) {
-//        restoreCheckpointSchedulingState(schedulingState);
-//        //since state is restored need the update User topologySubmitter to the new User object in userMap
-//        return this.schedulingState.userMap.get(td.getTopologySubmitter());
-//    }
 
     private boolean mkAssignment(SchedulingState schedulingState, TopologyDetails td, Map<WorkerSlot, Collection<ExecutorDetails>> schedulerAssignmentMap) {
         if (schedulerAssignmentMap != null) {
@@ -433,16 +395,4 @@ public class ResourceAwareScheduler implements IScheduler {
         LOG.debug("/*********End************/");
         return new SchedulingState(schedulingState);
     }
-
-//    private void restoreCheckpointSchedulingState(SchedulingState schedulingState) {
-//        LOG.debug("/*********restoring scheduling state************/");
-//        //reseting cluster
-//        this.schedulingState = schedulingState;
-//        for (User user : this.schedulingState.userMap.values()) {
-//            LOG.debug(user.getDetailedInfo());
-//        }
-//        LOG.debug(ResourceUtils.printScheduling(this.schedulingState.cluster, this.schedulingState.topologies));
-//        LOG.debug("nodes:\n{}", this.schedulingState.nodes);
-//        LOG.debug("/*********End************/");
-//    }
 }
