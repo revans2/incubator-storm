@@ -218,7 +218,7 @@
   to the most recent timestamp"
   [cluster-state paths]
   (reduce (fn [acc path]
-            (let [data (.get_data cluster-state path nil)
+            (let [data (.get_data cluster-state path false)
                   timestamp (if data
                               (.. (ByteBuffer/wrap data) (getLong))
                               0)]
