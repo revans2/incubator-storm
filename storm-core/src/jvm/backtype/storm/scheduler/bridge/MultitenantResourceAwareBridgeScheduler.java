@@ -111,7 +111,11 @@ public class MultitenantResourceAwareBridgeScheduler implements IScheduler{
         }
 
         LOG.debug("/* Merge RAS Cluster with actual cluster */");
-
+        //Unassign everything first in case things have moved and there can be overlap
+        Map<String, SchedulerAssignmentImpl> rasAssignments = this.getRASClusterAssignments(cluster, rasTopologies);
+        for (String id : rasAssignments.keySet()) {
+            cluster.unassign(id);
+        }
         this.mergeCluster(cluster, rasCluster);
     }
 

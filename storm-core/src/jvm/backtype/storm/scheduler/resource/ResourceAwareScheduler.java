@@ -84,6 +84,7 @@ public class ResourceAwareScheduler implements IScheduler {
         Map<String, Integer> topologySchedulingAttempts = new HashMap<>();
 
         List<TopologyDetails> orderedTopologies = Collections.unmodifiableList(schedulingPrioritystrategy.getOrderedTopologies());
+        LOG.info("Ordered list of topologies is: {}", orderedTopologies.stream().map(t -> t.getId()).toArray());
 
         for(TopologyDetails td : orderedTopologies) {
             User submitter = getUser(td.getTopologySubmitter());
@@ -132,7 +133,7 @@ public class ResourceAwareScheduler implements IScheduler {
 
             int maxSchedulingAttempts = ((Number) this.conf.getOrDefault(Config.RESOURCE_AWARE_SCHEDULER_MAX_TOPOLOGY_SCHEDULING_ATTEMPTS, 5)).intValue();
 
-            LOG.debug("Will attempt to schedule topology {} maximum of %d times using strategy {}",
+            LOG.debug("Will attempt to schedule topology {} maximum of {} times using strategy {}",
                     td.getName(), maxSchedulingAttempts, rasStrategy.getClass().getName());
 
             while (true) {
