@@ -1025,6 +1025,13 @@ public class Config extends HashMap<String, Object> {
     public static final String PACEMAKER_KERBEROS_USERS = "pacemaker.kerberos.users";
 
     /**
+     * Pacemaker Thrift Max Message Size (bytes)
+     */
+    @isInteger
+    @isPositiveNumber
+    public static final String PACEMAKER_THRIFT_MESSAGE_SIZE_MAX = "pacemaker.thrift.message.size.max";
+
+    /**
      * List of DRPC servers so that the DRPCSpout knows who to talk to.
      */
     @isStringList

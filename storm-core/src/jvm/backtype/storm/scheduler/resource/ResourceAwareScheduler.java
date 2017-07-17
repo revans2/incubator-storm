@@ -82,6 +82,7 @@ public class ResourceAwareScheduler implements IScheduler {
 
         Set<TopologyDetails> alreadyScheduled = new HashSet<>();
         List<TopologyDetails> orderedTopologies = Collections.unmodifiableList(schedulingPrioritystrategy.getOrderedTopologies());
+        LOG.info("Ordered list of topologies is: {}", orderedTopologies.stream().map(t -> t.getId()).toArray());
 
         for(TopologyDetails td : orderedTopologies) {
             schedulingState = scheduleTopology(schedulingState, td, orderedTopologies);

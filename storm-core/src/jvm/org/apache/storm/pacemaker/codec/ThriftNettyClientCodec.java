@@ -17,6 +17,7 @@
  */
 package org.apache.storm.pacemaker.codec;
 
+import backtype.storm.Config;
 import backtype.storm.messaging.netty.KerberosSaslClientHandler;
 import backtype.storm.messaging.netty.SaslStormClientHandler;
 import backtype.storm.security.auth.AuthUtils;
@@ -61,7 +62,7 @@ public class ThriftNettyClientCodec {
             public ChannelPipeline getPipeline() {
                 ChannelPipeline pipeline = Channels.pipeline();
                 pipeline.addLast("encoder", new ThriftEncoder());
-                pipeline.addLast("decoder", new ThriftDecoder());
+                pipeline.addLast("decoder", new ThriftDecoder((Integer)storm_conf.get(Config.PACEMAKER_THRIFT_MESSAGE_SIZE_MAX)));
 
                 if (authMethod == AuthMethod.KERBEROS) {
                     try {

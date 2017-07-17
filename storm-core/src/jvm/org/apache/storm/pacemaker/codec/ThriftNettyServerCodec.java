@@ -63,7 +63,7 @@ public class ThriftNettyServerCodec {
 
                 ChannelPipeline pipeline = Channels.pipeline();
                 pipeline.addLast("encoder", new ThriftEncoder());
-                pipeline.addLast("decoder", new ThriftDecoder());
+                pipeline.addLast("decoder", new ThriftDecoder((Integer)storm_conf.get(Config.PACEMAKER_THRIFT_MESSAGE_SIZE_MAX)));
                 if(authMethod == AuthMethod.DIGEST) {
                     try {
                         LOG.debug("Adding SaslStormServerHandler to pacemaker server pipeline.");

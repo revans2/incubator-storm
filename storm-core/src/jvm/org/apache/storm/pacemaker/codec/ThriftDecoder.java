@@ -27,9 +27,16 @@ import backtype.storm.utils.Utils;
 import backtype.storm.messaging.netty.ControlMessage;
 import backtype.storm.messaging.netty.SaslMessageToken;
 
+import java.io.IOException;
+
 public class ThriftDecoder extends FrameDecoder {
 
     private static final int INTEGER_SIZE = 4;
+    private int maxLength;
+
+    public ThriftDecoder(int maxLength) {
+        this.maxLength = maxLength;
+    }
 
     @Override
     protected Object decode(ChannelHandlerContext ctx, Channel channel, ChannelBuffer buf) throws Exception {
@@ -42,6 +49,13 @@ public class ThriftDecoder extends FrameDecoder {
         buf.markReaderIndex();
 
         int thriftLen = buf.readInt();
+
+        if(thriftLen < 0 || thriftLen > maxLength) {
+            throw new IOException("Thrift message of length " + Integer.toString(thriftLen)
+                                  + " is greater than allowed " + maxLength
+                                  + " or less than 0.");
+        }
+
         available -= INTEGER_SIZE;
 
         if(available < thriftLen) {
