@@ -71,6 +71,9 @@
       <p id="toggle-switch" style="display: block;" class="js-only"></p>
     </div>
   </div>
+  <div>
+     <p id="page-rendered-at-timestamp"></p>
+  </div>
 <script>
 $(document).ajaxStop($.unblockUI);
 $(document).ajaxStart(function(){
@@ -276,6 +279,8 @@ $(document).ready(function() {
         });
     });
 });
+
+getPageRenderedTimestamp("page-rendered-at-timestamp");
 
 function profiler_selected_worker() {
     return $("#selected_worker").val();
