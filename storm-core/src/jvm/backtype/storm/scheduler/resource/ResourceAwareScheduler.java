@@ -233,6 +233,7 @@ public class ResourceAwareScheduler implements IScheduler {
                         if (!madeSpace) {
                             LOG.info("Could not make space for topo {} will move to attempted", td);
                             schedulingError = "Not enough resources to schedule - " + result.getErrorMessage();
+
                         } else {
                             return scheduleTopologyRecursively(schedulingState, rasStrategy, topologySubmitter, td, orderedTopologies, maxSchedulingAttempts, schedulingAttemptsSoFar);
                         }
