@@ -108,27 +108,28 @@ public class TestResourceAwareScheduler {
 
         Topologies topologies = new Topologies(topoMap);
         Cluster cluster = new Cluster(iNimbus, supMap, new HashMap<String, SchedulerAssignmentImpl>(), topologies, config);
-        
+
         ResourceAwareScheduler rs = new ResourceAwareScheduler();
 
         rs.prepare(config);
         rs.schedule(topologies, cluster);
+        Map<String, User> users = rs.getUserMap(rs.getLastSchedulingState());
 
-        for (TopologyDetails topo : rs.getUser("jerry").getTopologiesRunning()) {
+        for (TopologyDetails topo : users.get("jerry").getTopologiesRunning()) {
             Assert.assertTrue("assert topology success", TestUtilsForResourceAwareScheduler.assertStatusSuccess(cluster.getStatusMap().get(topo.getId())));
         }
-        Assert.assertEquals("# of running topologies", 3, rs.getUser("jerry").getTopologiesRunning().size());
-        Assert.assertEquals("# of pending topologies", 0, rs.getUser("jerry").getTopologiesPending().size());
-        Assert.assertEquals("# of attempted topologies", 0, rs.getUser("jerry").getTopologiesAttempted().size());
-        Assert.assertEquals("# of invalid topologies", 0, rs.getUser("jerry").getTopologiesInvalid().size());
+        Assert.assertEquals("# of running topologies", 3, users.get("jerry").getTopologiesRunning().size());
+        Assert.assertEquals("# of pending topologies", 0, users.get("jerry").getTopologiesPending().size());
+        Assert.assertEquals("# of attempted topologies", 0, users.get("jerry").getTopologiesAttempted().size());
+        Assert.assertEquals("# of invalid topologies", 0, users.get("jerry").getTopologiesInvalid().size());
 
-        for (TopologyDetails topo : rs.getUser("bobby").getTopologiesRunning()) {
+        for (TopologyDetails topo : users.get("bobby").getTopologiesRunning()) {
             Assert.assertTrue("assert topology success", TestUtilsForResourceAwareScheduler.assertStatusSuccess(cluster.getStatusMap().get(topo.getId())));
         }
-        Assert.assertEquals("# of running topologies", 1, rs.getUser("bobby").getTopologiesRunning().size());
-        Assert.assertEquals("# of pending topologies", 0, rs.getUser("bobby").getTopologiesPending().size());
-        Assert.assertEquals("# of attempted topologies", 1, rs.getUser("bobby").getTopologiesAttempted().size());
-        Assert.assertEquals("# of invalid topologies", 0, rs.getUser("bobby").getTopologiesInvalid().size());
+        Assert.assertEquals("# of running topologies", 1, users.get("bobby").getTopologiesRunning().size());
+        Assert.assertEquals("# of pending topologies", 0, users.get("bobby").getTopologiesPending().size());
+        Assert.assertEquals("# of attempted topologies", 1, users.get("bobby").getTopologiesAttempted().size());
+        Assert.assertEquals("# of invalid topologies", 0, users.get("bobby").getTopologiesInvalid().size());
     }
 
     @Test
@@ -183,16 +184,16 @@ public class TestResourceAwareScheduler {
 
         Topologies topologies = new Topologies(topoMap);
         Cluster cluster = new Cluster(iNimbus, supMap, new HashMap<String, SchedulerAssignmentImpl>(), topologies, config);
-        
-        ResourceAwareScheduler rs = new ResourceAwareScheduler();
 
+        ResourceAwareScheduler rs = new ResourceAwareScheduler();
         rs.prepare(config);
         rs.schedule(topologies, cluster);
+        Map<String, User> users = rs.getUserMap(rs.getLastSchedulingState());
 
-        Set<TopologyDetails> queue = rs.getUser("jerry").getTopologiesPending();
+        Set<TopologyDetails> queue = users.get("jerry").getTopologiesPending();
         Assert.assertEquals("check size", queue.size(), 0);
 
-        queue = rs.getUser("jerry").getTopologiesRunning();
+        queue = users.get("jerry").getTopologiesRunning();
 
         Iterator<TopologyDetails> itr = queue.iterator();
 
@@ -217,15 +218,16 @@ public class TestResourceAwareScheduler {
         Assert.assertEquals("check order", topo.getName(), "topo-2");
 
         TopologyDetails topo6 = TestUtilsForResourceAwareScheduler.getTopology("topo-6", config, 5, 15, 1, 1, currentTime - 30,
-            10, TOPOLOGY_SUBMITTER);
+                10, TOPOLOGY_SUBMITTER);
         topoMap.put(topo6.getId(), topo6);
 
         topologies = new Topologies(topoMap);
         cluster = new Cluster(iNimbus, supMap, new HashMap<String, SchedulerAssignmentImpl>(), topologies, config);
 
         rs.schedule(topologies, cluster);
+        users = rs.getUserMap(rs.getLastSchedulingState());
 
-        queue = rs.getUser("jerry").getTopologiesRunning();
+        queue = users.get("jerry").getTopologiesRunning();
         itr = queue.iterator();
 
         topo = itr.next();
@@ -246,7 +248,7 @@ public class TestResourceAwareScheduler {
         topo = itr.next();
         Assert.assertEquals("check order", topo.getName(), "topo-2");
 
-        queue = rs.getUser("jerry").getTopologiesPending();
+        queue = users.get("jerry").getTopologiesPending();
         Assert.assertEquals("check size", queue.size(), 0);
     }
 
@@ -329,7 +331,7 @@ public class TestResourceAwareScheduler {
 
         Topologies topologies = new Topologies(topoMap);
         Cluster cluster = new Cluster(iNimbus, supMap, new HashMap<String, SchedulerAssignmentImpl>(), topologies, config);
-        
+
         ResourceAwareScheduler rs = new ResourceAwareScheduler();
 
         rs.prepare(config);
@@ -339,7 +341,7 @@ public class TestResourceAwareScheduler {
             Assert.assertTrue(TestUtilsForResourceAwareScheduler.assertStatusSuccess(cluster.getStatusMap().get(topo.getId())));
         }
 
-        for (User user : rs.getUserMap().values()) {
+        for (User user : rs.getUserMap(rs.getLastSchedulingState()).values()) {
             Assert.assertEquals(user.getTopologiesPending().size(), 0);
             Assert.assertEquals(user.getTopologiesRunning().size(), 5);
         }
@@ -387,6 +389,7 @@ public class TestResourceAwareScheduler {
 
         rs.prepare(config);
         rs.schedule(topologies, cluster);
+        Map<String, User> users = rs.getUserMap(rs.getLastSchedulingState());
 
         int fullyScheduled = 0;
         for (TopologyDetails topo : topoMap.values()) {
@@ -395,9 +398,9 @@ public class TestResourceAwareScheduler {
             }
         }
         Assert.assertEquals("# of Fully scheduled", 1, fullyScheduled);
-        Assert.assertEquals("# of topologies schedule attempted", 1, rs.getUser("jerry").getTopologiesAttempted().size());
-        Assert.assertEquals("# of topologies running", 1, rs.getUser("jerry").getTopologiesRunning().size());
-        Assert.assertEquals("# of topologies schedule pending", 0, rs.getUser("jerry").getTopologiesPending().size());
+        Assert.assertEquals("# of topologies schedule attempted", 1, users.get("jerry").getTopologiesAttempted().size());
+        Assert.assertEquals("# of topologies running", 1, users.get("jerry").getTopologiesRunning().size());
+        Assert.assertEquals("# of topologies schedule pending", 0, users.get("jerry").getTopologiesPending().size());
     }
 
     /**
@@ -456,70 +459,71 @@ public class TestResourceAwareScheduler {
 
         Topologies topologies = new Topologies(topoMap);
         Cluster cluster = new Cluster(iNimbus, supMap, new HashMap<String, SchedulerAssignmentImpl>(), topologies, config);
-        
-        ResourceAwareScheduler rs = new ResourceAwareScheduler();
 
+        ResourceAwareScheduler rs = new ResourceAwareScheduler();
         rs.prepare(config);
         rs.schedule(topologies, cluster);
+        Map<String, User> users = rs.getUserMap(rs.getLastSchedulingState());
 
-        for (TopologyDetails topo : rs.getUser("jerry").getTopologiesRunning()) {
+        for (TopologyDetails topo : users.get("jerry").getTopologiesRunning()) {
             Assert.assertTrue("assert topology success", TestUtilsForResourceAwareScheduler.assertStatusSuccess(cluster.getStatusMap().get(topo.getId())));
         }
-        Assert.assertEquals("# of running topologies", 1, rs.getUser("jerry").getTopologiesRunning().size());
-        Assert.assertEquals("# of pending topologies", 0, rs.getUser("jerry").getTopologiesPending().size());
-        Assert.assertEquals("# of attempted topologies", 0, rs.getUser("jerry").getTopologiesAttempted().size());
-        Assert.assertEquals("# of invalid topologies", 0, rs.getUser("jerry").getTopologiesInvalid().size());
+        Assert.assertEquals("# of running topologies", 1, users.get("jerry").getTopologiesRunning().size());
+        Assert.assertEquals("# of pending topologies", 0, users.get("jerry").getTopologiesPending().size());
+        Assert.assertEquals("# of attempted topologies", 0, users.get("jerry").getTopologiesAttempted().size());
+        Assert.assertEquals("# of invalid topologies", 0, users.get("jerry").getTopologiesInvalid().size());
 
-        for (TopologyDetails topo : rs.getUser("derek").getTopologiesRunning()) {
+        for (TopologyDetails topo : users.get("derek").getTopologiesRunning()) {
             Assert.assertTrue("assert topology success", TestUtilsForResourceAwareScheduler.assertStatusSuccess(cluster.getStatusMap().get(topo.getId())));
         }
-        Assert.assertEquals("# of running topologies", 1, rs.getUser("derek").getTopologiesRunning().size());
-        Assert.assertEquals("# of pending topologies", 0, rs.getUser("derek").getTopologiesPending().size());
-        Assert.assertEquals("# of attempted topologies", 0, rs.getUser("derek").getTopologiesAttempted().size());
-        Assert.assertEquals("# of invalid topologies", 0, rs.getUser("derek").getTopologiesInvalid().size());
+        Assert.assertEquals("# of running topologies", 1, users.get("derek").getTopologiesRunning().size());
+        Assert.assertEquals("# of pending topologies", 0, users.get("derek").getTopologiesPending().size());
+        Assert.assertEquals("# of attempted topologies", 0, users.get("derek").getTopologiesAttempted().size());
+        Assert.assertEquals("# of invalid topologies", 0, users.get("derek").getTopologiesInvalid().size());
 
-        for (TopologyDetails topo : rs.getUser("bobby").getTopologiesRunning()) {
+        for (TopologyDetails topo : users.get("bobby").getTopologiesRunning()) {
             Assert.assertTrue("assert topology success", TestUtilsForResourceAwareScheduler.assertStatusSuccess(cluster.getStatusMap().get(topo.getId())));
         }
-        Assert.assertEquals("# of running topologies", 2, rs.getUser("bobby").getTopologiesRunning().size());
-        Assert.assertEquals("# of pending topologies", 0, rs.getUser("bobby").getTopologiesPending().size());
-        Assert.assertEquals("# of attempted topologies", 0, rs.getUser("bobby").getTopologiesAttempted().size());
-        Assert.assertEquals("# of invalid topologies", 0, rs.getUser("bobby").getTopologiesInvalid().size());
+        Assert.assertEquals("# of running topologies", 2, users.get("bobby").getTopologiesRunning().size());
+        Assert.assertEquals("# of pending topologies", 0, users.get("bobby").getTopologiesPending().size());
+        Assert.assertEquals("# of attempted topologies", 0, users.get("bobby").getTopologiesAttempted().size());
+        Assert.assertEquals("# of invalid topologies", 0, users.get("bobby").getTopologiesInvalid().size());
 
         //user jerry submits another topology
         topoMap.put(topo6.getId(), topo6);
         topologies = new Topologies(topoMap);
         cluster = new Cluster(iNimbus, supMap, new HashMap<String, SchedulerAssignmentImpl>(), topologies, config);
         rs.schedule(topologies, cluster);
+        users = rs.getUserMap(rs.getLastSchedulingState());
 
-        for (TopologyDetails topo : rs.getUser("jerry").getTopologiesRunning()) {
+        for (TopologyDetails topo : users.get("jerry").getTopologiesRunning()) {
             Assert.assertTrue("assert topology success", TestUtilsForResourceAwareScheduler.assertStatusSuccess(cluster.getStatusMap().get(topo.getId())));
         }
-        Assert.assertEquals("# of running topologies", 2, rs.getUser("jerry").getTopologiesRunning().size());
-        Assert.assertEquals("# of pending topologies", 0, rs.getUser("jerry").getTopologiesPending().size());
-        Assert.assertEquals("# of attempted topologies", 0, rs.getUser("jerry").getTopologiesAttempted().size());
-        Assert.assertEquals("# of invalid topologies", 0, rs.getUser("jerry").getTopologiesInvalid().size());
+        Assert.assertEquals("# of running topologies", 2, users.get("jerry").getTopologiesRunning().size());
+        Assert.assertEquals("# of pending topologies", 0, users.get("jerry").getTopologiesPending().size());
+        Assert.assertEquals("# of attempted topologies", 0, users.get("jerry").getTopologiesAttempted().size());
+        Assert.assertEquals("# of invalid topologies", 0, users.get("jerry").getTopologiesInvalid().size());
 
-        for (TopologyDetails topo : rs.getUser("derek").getTopologiesRunning()) {
+        for (TopologyDetails topo : users.get("derek").getTopologiesRunning()) {
             Assert.assertTrue("assert topology success", TestUtilsForResourceAwareScheduler.assertStatusSuccess(cluster.getStatusMap().get(topo.getId())));
         }
-        Assert.assertEquals("# of running topologies", 1, rs.getUser("derek").getTopologiesRunning().size());
-        Assert.assertEquals("# of pending topologies", 0, rs.getUser("derek").getTopologiesPending().size());
-        Assert.assertEquals("# of attempted topologies", 0, rs.getUser("derek").getTopologiesAttempted().size());
-        Assert.assertEquals("# of invalid topologies", 0, rs.getUser("derek").getTopologiesInvalid().size());
+        Assert.assertEquals("# of running topologies", 1, users.get("derek").getTopologiesRunning().size());
+        Assert.assertEquals("# of pending topologies", 0, users.get("derek").getTopologiesPending().size());
+        Assert.assertEquals("# of attempted topologies", 0, users.get("derek").getTopologiesAttempted().size());
+        Assert.assertEquals("# of invalid topologies", 0, users.get("derek").getTopologiesInvalid().size());
 
-        for (TopologyDetails topo : rs.getUser("bobby").getTopologiesRunning()) {
+        for (TopologyDetails topo : users.get("bobby").getTopologiesRunning()) {
             Assert.assertTrue("assert topology success", TestUtilsForResourceAwareScheduler.assertStatusSuccess(cluster.getStatusMap().get(topo.getId())));
         }
-        Assert.assertEquals("# of running topologies", 1, rs.getUser("bobby").getTopologiesRunning().size());
+        Assert.assertEquals("# of running topologies", 1, users.get("bobby").getTopologiesRunning().size());
 
-        for (TopologyDetails topo : rs.getUser("bobby").getTopologiesAttempted()) {
+        for (TopologyDetails topo : users.get("bobby").getTopologiesAttempted()) {
             Assert.assertFalse("assert topology success", TestUtilsForResourceAwareScheduler.assertStatusSuccess(cluster.getStatusMap().get(topo.getId())));
         }
-        Assert.assertEquals("# of attempted topologies", 1, rs.getUser("bobby").getTopologiesAttempted().size());
-        Assert.assertEquals("# of pending topologies", 0, rs.getUser("bobby").getTopologiesPending().size());
-        Assert.assertEquals("# of invalid topologies", 0, rs.getUser("bobby").getTopologiesInvalid().size());
-        Assert.assertEquals("correct topology to evict", "topo-3", rs.getUser("bobby").getTopologiesAttempted().iterator().next().getName());
+        Assert.assertEquals("# of attempted topologies", 1, users.get("bobby").getTopologiesAttempted().size());
+        Assert.assertEquals("# of pending topologies", 0, users.get("bobby").getTopologiesPending().size());
+        Assert.assertEquals("# of invalid topologies", 0, users.get("bobby").getTopologiesInvalid().size());
+        Assert.assertEquals("correct topology to evict", "topo-3", users.get("bobby").getTopologiesAttempted().iterator().next().getName());
     }
 
     @Test
@@ -549,17 +553,17 @@ public class TestResourceAwareScheduler {
         config.put(Config.RESOURCE_AWARE_SCHEDULER_USER_POOLS, resourceUserPool);
 
         TopologyDetails topo1 = TestUtilsForResourceAwareScheduler.getTopology("topo-1", config, 2, 0, 1, 0, currentTime - 2, 10,
-            "jerry");
+                                                                               "jerry");
 
         TopologyDetails topo2 = TestUtilsForResourceAwareScheduler.getTopology("topo-2", config, 1, 0, 1, 0, currentTime - 2, 10,
-            "bobby");
+                                                                               "bobby");
         TopologyDetails topo3 = TestUtilsForResourceAwareScheduler.getTopology("topo-3", config, 1, 0, 1, 0, currentTime - 2, 20,
-            "bobby");
+                                                                               "bobby");
 
         TopologyDetails topo4 = TestUtilsForResourceAwareScheduler.getTopology("topo-4", config, 1, 0, 1, 0, currentTime - 2, 29,
-            "derek");
+                                                                               "derek");
         TopologyDetails topo5 = TestUtilsForResourceAwareScheduler.getTopology("topo-5", config, 1, 0, 1, 0, currentTime - 2, 29,
-            "derek");
+                                                                               "derek");
 
         Map<String, TopologyDetails> topoMap = new HashMap<String, TopologyDetails>();
         topoMap.put(topo2.getId(), topo2);
@@ -570,55 +574,58 @@ public class TestResourceAwareScheduler {
         Topologies topologies = new Topologies(topoMap);
         Cluster cluster = new Cluster(iNimbus, supMap, new HashMap<String, SchedulerAssignmentImpl>(), topologies, config);
         ResourceAwareScheduler rs = new ResourceAwareScheduler();
-
         rs.prepare(config);
         rs.schedule(topologies, cluster);
+        Map<String, User> users = rs.getUserMap(rs.getLastSchedulingState());
 
-        for (TopologyDetails topo : rs.getUser("derek").getTopologiesRunning()) {
+        for (TopologyDetails topo : users.get("derek").getTopologiesRunning()) {
             Assert.assertTrue("assert topology success", TestUtilsForResourceAwareScheduler.assertStatusSuccess(cluster.getStatusMap().get(topo.getId())));
         }
-        Assert.assertEquals("# of running topologies", 2, rs.getUser("derek").getTopologiesRunning().size());
-        Assert.assertEquals("# of pending topologies", 0, rs.getUser("derek").getTopologiesPending().size());
-        Assert.assertEquals("# of attempted topologies", 0, rs.getUser("derek").getTopologiesAttempted().size());
-        Assert.assertEquals("# of invalid topologies", 0, rs.getUser("derek").getTopologiesInvalid().size());
 
-        for (TopologyDetails topo : rs.getUser("bobby").getTopologiesRunning()) {
+        Assert.assertEquals("# of running topologies", 2, users.get("derek").getTopologiesRunning().size());
+        Assert.assertEquals("# of pending topologies", 0, users.get("derek").getTopologiesPending().size());
+        Assert.assertEquals("# of attempted topologies", 0, users.get("derek").getTopologiesAttempted().size());
+        Assert.assertEquals("# of invalid topologies", 0, users.get("derek").getTopologiesInvalid().size());
+
+        for (TopologyDetails topo : users.get("bobby").getTopologiesRunning()) {
             Assert.assertTrue("assert topology success", TestUtilsForResourceAwareScheduler.assertStatusSuccess(cluster.getStatusMap().get(topo.getId())));
         }
-        Assert.assertEquals("# of running topologies", 2, rs.getUser("bobby").getTopologiesRunning().size());
-        Assert.assertEquals("# of pending topologies", 0, rs.getUser("bobby").getTopologiesPending().size());
-        Assert.assertEquals("# of invalid topologies", 0, rs.getUser("bobby").getTopologiesInvalid().size());
-        Assert.assertEquals("# of attempted topologies", 0, rs.getUser("bobby").getTopologiesAttempted().size());
+        Assert.assertEquals("# of running topologies", 2, users.get("bobby").getTopologiesRunning().size());
+        Assert.assertEquals("# of pending topologies", 0, users.get("bobby").getTopologiesPending().size());
+        Assert.assertEquals("# of invalid topologies", 0, users.get("bobby").getTopologiesInvalid().size());
+        Assert.assertEquals("# of attempted topologies", 0, users.get("bobby").getTopologiesAttempted().size());
 
         //user jerry submits another topology
         topoMap.put(topo1.getId(), topo1);
         topologies = new Topologies(topoMap);
         cluster = new Cluster(iNimbus, supMap, new HashMap<String, SchedulerAssignmentImpl>(), topologies, config);
         rs.schedule(topologies, cluster);
+        users = rs.getUserMap(rs.getLastSchedulingState());
 
-        for (TopologyDetails topo : rs.getUser("jerry").getTopologiesRunning()) {
+        for (TopologyDetails topo : users.get("jerry").getTopologiesRunning()) {
             Assert.assertTrue("assert topology success", TestUtilsForResourceAwareScheduler.assertStatusSuccess(cluster.getStatusMap().get(topo.getId())));
         }
-        Assert.assertEquals("# of running topologies", 1, rs.getUser("jerry").getTopologiesRunning().size());
-        Assert.assertEquals("# of pending topologies", 0, rs.getUser("jerry").getTopologiesPending().size());
-        Assert.assertEquals("# of attempted topologies", 0, rs.getUser("jerry").getTopologiesAttempted().size());
-        Assert.assertEquals("# of invalid topologies", 0, rs.getUser("jerry").getTopologiesInvalid().size());
+        Assert.assertEquals("# of running topologies", 1, users.get("jerry").getTopologiesRunning().size());
+        Assert.assertEquals("# of pending topologies", 0, users.get("jerry").getTopologiesPending().size());
+        Assert.assertEquals("# of attempted topologies", 0, users.get("jerry").getTopologiesAttempted().size());
+        Assert.assertEquals("# of invalid topologies", 0, users.get("jerry").getTopologiesInvalid().size());
 
-        for (TopologyDetails topo : rs.getUser("derek").getTopologiesRunning()) {
+        for (TopologyDetails topo : users.get("derek").getTopologiesRunning()) {
             Assert.assertTrue("assert topology success", TestUtilsForResourceAwareScheduler.assertStatusSuccess(cluster.getStatusMap().get(topo.getId())));
         }
-        Assert.assertEquals("# of running topologies", 2, rs.getUser("derek").getTopologiesRunning().size());
-        Assert.assertEquals("# of pending topologies", 0, rs.getUser("derek").getTopologiesPending().size());
-        Assert.assertEquals("# of attempted topologies", 0, rs.getUser("derek").getTopologiesAttempted().size());
-        Assert.assertEquals("# of invalid topologies", 0, rs.getUser("derek").getTopologiesInvalid().size());
+        Assert.assertEquals("# of running topologies", 2, users.get("derek").getTopologiesRunning().size());
+        Assert.assertEquals("# of pending topologies", 0, users.get("derek").getTopologiesPending().size());
+        Assert.assertEquals("# of attempted topologies", 0, users.get("derek").getTopologiesAttempted().size());
+        Assert.assertEquals("# of invalid topologies", 0, users.get("derek").getTopologiesInvalid().size());
 
-        for (TopologyDetails topo : rs.getUser("bobby").getTopologiesAttempted()) {
+        for (TopologyDetails topo : users.get("bobby").getTopologiesAttempted()) {
             Assert.assertFalse("assert topology success", TestUtilsForResourceAwareScheduler.assertStatusSuccess(cluster.getStatusMap().get(topo.getId())));
         }
-        Assert.assertEquals("# of attempted topologies", 2, rs.getUser("bobby").getTopologiesAttempted().size());
-        Assert.assertEquals("# of pending topologies", 0, rs.getUser("bobby").getTopologiesPending().size());
-        Assert.assertEquals("# of invalid topologies", 0, rs.getUser("bobby").getTopologiesInvalid().size());
-        Assert.assertEquals("# of running topologies", 0, rs.getUser("bobby").getTopologiesRunning().size());
+
+        Assert.assertEquals("# of attempted topologies", 2, users.get("bobby").getTopologiesAttempted().size());
+        Assert.assertEquals("# of pending topologies", 0, users.get("bobby").getTopologiesPending().size());
+        Assert.assertEquals("# of invalid topologies", 0, users.get("bobby").getTopologiesInvalid().size());
+        Assert.assertEquals("# of running topologies", 0, users.get("bobby").getTopologiesRunning().size());
     }
 
     /**
@@ -680,127 +687,130 @@ public class TestResourceAwareScheduler {
         Topologies topologies = new Topologies(topoMap);
         Cluster cluster = new Cluster(iNimbus, supMap, new HashMap<String, SchedulerAssignmentImpl>(), topologies, config);
         ResourceAwareScheduler rs = new ResourceAwareScheduler();
-
         rs.prepare(config);
         rs.schedule(topologies, cluster);
+        Map<String, User> users = rs.getUserMap(rs.getLastSchedulingState());
 
-        for (TopologyDetails topo : rs.getUser("derek").getTopologiesRunning()) {
+        for (TopologyDetails topo : users.get("derek").getTopologiesRunning()) {
             Assert.assertTrue("Assert scheduling topology success", TestUtilsForResourceAwareScheduler.assertStatusSuccess(cluster.getStatusMap().get(topo.getId())));
         }
-        Assert.assertEquals("# of running topologies", 2, rs.getUser("derek").getTopologiesRunning().size());
-        Assert.assertEquals("# of pending topologies", 0, rs.getUser("derek").getTopologiesPending().size());
-        Assert.assertEquals("# of attempted topologies", 0, rs.getUser("derek").getTopologiesAttempted().size());
-        Assert.assertEquals("# of invalid topologies", 0, rs.getUser("derek").getTopologiesInvalid().size());
+        Assert.assertEquals("# of running topologies", 2, users.get("derek").getTopologiesRunning().size());
+        Assert.assertEquals("# of pending topologies", 0, users.get("derek").getTopologiesPending().size());
+        Assert.assertEquals("# of attempted topologies", 0, users.get("derek").getTopologiesAttempted().size());
+        Assert.assertEquals("# of invalid topologies", 0, users.get("derek").getTopologiesInvalid().size());
 
-        for (TopologyDetails topo : rs.getUser("bobby").getTopologiesRunning()) {
+        for (TopologyDetails topo : users.get("bobby").getTopologiesRunning()) {
             Assert.assertTrue("Assert scheduling topology success", TestUtilsForResourceAwareScheduler.assertStatusSuccess(cluster.getStatusMap().get(topo.getId())));
         }
-        Assert.assertEquals("# of running topologies", 2, rs.getUser("bobby").getTopologiesRunning().size());
-        Assert.assertEquals("# of pending topologies", 0, rs.getUser("bobby").getTopologiesPending().size());
-        Assert.assertEquals("# of invalid topologies", 0, rs.getUser("bobby").getTopologiesInvalid().size());
-        Assert.assertEquals("# of attempted topologies", 0, rs.getUser("bobby").getTopologiesAttempted().size());
+        Assert.assertEquals("# of running topologies", 2, users.get("bobby").getTopologiesRunning().size());
+        Assert.assertEquals("# of pending topologies", 0, users.get("bobby").getTopologiesPending().size());
+        Assert.assertEquals("# of invalid topologies", 0, users.get("bobby").getTopologiesInvalid().size());
+        Assert.assertEquals("# of attempted topologies", 0, users.get("bobby").getTopologiesAttempted().size());
 
         //user jerry submits another topology
         topoMap.put(topo1.getId(), topo1);
         topologies = new Topologies(topoMap);
         cluster = new Cluster(iNimbus, supMap, new HashMap<String, SchedulerAssignmentImpl>(), topologies, config);
         rs.schedule(topologies, cluster);
+        users = rs.getUserMap(rs.getLastSchedulingState());
 
-        for (TopologyDetails topo : rs.getUser("jerry").getTopologiesRunning()) {
+        for (TopologyDetails topo : users.get("jerry").getTopologiesRunning()) {
             Assert.assertTrue("Assert scheduling topology success", TestUtilsForResourceAwareScheduler.assertStatusSuccess(cluster.getStatusMap().get(topo.getId())));
         }
-        Assert.assertEquals("# of running topologies", 1, rs.getUser("jerry").getTopologiesRunning().size());
-        Assert.assertEquals("# of pending topologies", 0, rs.getUser("jerry").getTopologiesPending().size());
-        Assert.assertEquals("# of attempted topologies", 0, rs.getUser("jerry").getTopologiesAttempted().size());
-        Assert.assertEquals("# of invalid topologies", 0, rs.getUser("jerry").getTopologiesInvalid().size());
+        Assert.assertEquals("# of running topologies", 1, users.get("jerry").getTopologiesRunning().size());
+        Assert.assertEquals("# of pending topologies", 0, users.get("jerry").getTopologiesPending().size());
+        Assert.assertEquals("# of attempted topologies", 0, users.get("jerry").getTopologiesAttempted().size());
+        Assert.assertEquals("# of invalid topologies", 0, users.get("jerry").getTopologiesInvalid().size());
 
-        for (TopologyDetails topo : rs.getUser("derek").getTopologiesRunning()) {
+        for (TopologyDetails topo : users.get("derek").getTopologiesRunning()) {
             Assert.assertTrue("Assert scheduling topology success", TestUtilsForResourceAwareScheduler.assertStatusSuccess(cluster.getStatusMap().get(topo.getId())));
         }
-        Assert.assertEquals("# of running topologies", 2, rs.getUser("derek").getTopologiesRunning().size());
-        Assert.assertEquals("# of pending topologies", 0, rs.getUser("derek").getTopologiesPending().size());
-        Assert.assertEquals("# of attempted topologies", 0, rs.getUser("derek").getTopologiesAttempted().size());
-        Assert.assertEquals("# of invalid topologies", 0, rs.getUser("derek").getTopologiesInvalid().size());
+        Assert.assertEquals("# of running topologies", 2, users.get("derek").getTopologiesRunning().size());
+        Assert.assertEquals("# of pending topologies", 0, users.get("derek").getTopologiesPending().size());
+        Assert.assertEquals("# of attempted topologies", 0, users.get("derek").getTopologiesAttempted().size());
+        Assert.assertEquals("# of invalid topologies", 0, users.get("derek").getTopologiesInvalid().size());
 
-        for (TopologyDetails topo : rs.getUser("bobby").getTopologiesAttempted()) {
+        for (TopologyDetails topo : users.get("bobby").getTopologiesAttempted()) {
             Assert.assertFalse("Assert scheduling topology success", TestUtilsForResourceAwareScheduler.assertStatusSuccess(cluster.getStatusMap().get(topo.getId())));
         }
-        for (TopologyDetails topo : rs.getUser("bobby").getTopologiesRunning()) {
+        for (TopologyDetails topo : users.get("bobby").getTopologiesRunning()) {
             Assert.assertTrue("Assert scheduling topology success", TestUtilsForResourceAwareScheduler.assertStatusSuccess(cluster.getStatusMap().get(topo.getId())));
         }
-        Assert.assertEquals("# of attempted topologies", 1, rs.getUser("bobby").getTopologiesAttempted().size());
-        Assert.assertEquals("# of pending topologies", 0, rs.getUser("bobby").getTopologiesPending().size());
-        Assert.assertEquals("# of invalid topologies", 0, rs.getUser("bobby").getTopologiesInvalid().size());
-        Assert.assertEquals("# of running topologies", 1, rs.getUser("bobby").getTopologiesRunning().size());
-        Assert.assertEquals("correct topology to evict", rs.getUser("bobby").getTopologiesAttempted().iterator().next().getName(), "topo-3");
+        Assert.assertEquals("# of attempted topologies", 1, users.get("bobby").getTopologiesAttempted().size());
+        Assert.assertEquals("# of pending topologies", 0, users.get("bobby").getTopologiesPending().size());
+        Assert.assertEquals("# of invalid topologies", 0, users.get("bobby").getTopologiesInvalid().size());
+        Assert.assertEquals("# of running topologies", 1, users.get("bobby").getTopologiesRunning().size());
+        Assert.assertEquals("correct topology to evict", users.get("bobby").getTopologiesAttempted().iterator().next().getName(), "topo-3");
 
         topoMap.put(topo6.getId(), topo6);
         topologies = new Topologies(topoMap);
         cluster = new Cluster(iNimbus, supMap, new HashMap<String, SchedulerAssignmentImpl>(), topologies, config);
         rs.schedule(topologies, cluster);
+        users = rs.getUserMap(rs.getLastSchedulingState());
 
-        for (TopologyDetails topo : rs.getUser("jerry").getTopologiesRunning()) {
+        for (TopologyDetails topo : users.get("jerry").getTopologiesRunning()) {
             Assert.assertTrue("Assert scheduling topology success", TestUtilsForResourceAwareScheduler.assertStatusSuccess(cluster.getStatusMap().get(topo.getId())));
         }
-        Assert.assertEquals("# of running topologies", 2, rs.getUser("jerry").getTopologiesRunning().size());
-        Assert.assertEquals("# of pending topologies", 0, rs.getUser("jerry").getTopologiesPending().size());
-        Assert.assertEquals("# of attempted topologies", 0, rs.getUser("jerry").getTopologiesAttempted().size());
-        Assert.assertEquals("# of invalid topologies", 0, rs.getUser("jerry").getTopologiesInvalid().size());
+        Assert.assertEquals("# of running topologies", 2, users.get("jerry").getTopologiesRunning().size());
+        Assert.assertEquals("# of pending topologies", 0, users.get("jerry").getTopologiesPending().size());
+        Assert.assertEquals("# of attempted topologies", 0, users.get("jerry").getTopologiesAttempted().size());
+        Assert.assertEquals("# of invalid topologies", 0, users.get("jerry").getTopologiesInvalid().size());
 
-        for (TopologyDetails topo : rs.getUser("derek").getTopologiesRunning()) {
+        for (TopologyDetails topo : users.get("derek").getTopologiesRunning()) {
             Assert.assertTrue("Assert scheduling topology success", TestUtilsForResourceAwareScheduler.assertStatusSuccess(cluster.getStatusMap().get(topo.getId())));
         }
-        Assert.assertEquals("# of running topologies", 2, rs.getUser("derek").getTopologiesRunning().size());
-        Assert.assertEquals("# of pending topologies", 0, rs.getUser("derek").getTopologiesPending().size());
-        Assert.assertEquals("# of attempted topologies", 0, rs.getUser("derek").getTopologiesAttempted().size());
-        Assert.assertEquals("# of invalid topologies", 0, rs.getUser("derek").getTopologiesInvalid().size());
+        Assert.assertEquals("# of running topologies", 2, users.get("derek").getTopologiesRunning().size());
+        Assert.assertEquals("# of pending topologies", 0, users.get("derek").getTopologiesPending().size());
+        Assert.assertEquals("# of attempted topologies", 0, users.get("derek").getTopologiesAttempted().size());
+        Assert.assertEquals("# of invalid topologies", 0, users.get("derek").getTopologiesInvalid().size());
 
-        for (TopologyDetails topo : rs.getUser("bobby").getTopologiesAttempted()) {
+        for (TopologyDetails topo : users.get("bobby").getTopologiesAttempted()) {
             Assert.assertFalse("Assert scheduling topology success", TestUtilsForResourceAwareScheduler.assertStatusSuccess(cluster.getStatusMap().get(topo.getId())));
         }
-        Assert.assertEquals("# of attempted topologies", 2, rs.getUser("bobby").getTopologiesAttempted().size());
-        Assert.assertEquals("# of pending topologies", 0, rs.getUser("bobby").getTopologiesPending().size());
-        Assert.assertEquals("# of invalid topologies", 0, rs.getUser("bobby").getTopologiesInvalid().size());
-        Assert.assertEquals("# of running topologies", 0, rs.getUser("bobby").getTopologiesRunning().size());
+        Assert.assertEquals("# of attempted topologies", 2, users.get("bobby").getTopologiesAttempted().size());
+        Assert.assertEquals("# of pending topologies", 0, users.get("bobby").getTopologiesPending().size());
+        Assert.assertEquals("# of invalid topologies", 0, users.get("bobby").getTopologiesInvalid().size());
+        Assert.assertEquals("# of running topologies", 0, users.get("bobby").getTopologiesRunning().size());
 
-        Assert.assertTrue("correct topology to evict", TestUtilsForResourceAwareScheduler.findTopologyInSetFromName("topo-2", rs.getUser("bobby").getTopologiesAttempted()) != null);
-        Assert.assertTrue("correct topology to evict", TestUtilsForResourceAwareScheduler.findTopologyInSetFromName("topo-3", rs.getUser("bobby").getTopologiesAttempted()) != null);
+        Assert.assertTrue("correct topology to evict", TestUtilsForResourceAwareScheduler.findTopologyInSetFromName("topo-2", users.get("bobby").getTopologiesAttempted()) != null);
+        Assert.assertTrue("correct topology to evict", TestUtilsForResourceAwareScheduler.findTopologyInSetFromName("topo-3", users.get("bobby").getTopologiesAttempted()) != null);
 
         topoMap.put(topo7.getId(), topo7);
         topologies = new Topologies(topoMap);
         cluster = new Cluster(iNimbus, supMap, new HashMap<String, SchedulerAssignmentImpl>(), topologies, config);
         rs.schedule(topologies, cluster);
+        users = rs.getUserMap(rs.getLastSchedulingState());
 
-        for (TopologyDetails topo : rs.getUser("jerry").getTopologiesRunning()) {
+        for (TopologyDetails topo : users.get("jerry").getTopologiesRunning()) {
             Assert.assertTrue("Assert scheduling topology success", TestUtilsForResourceAwareScheduler.assertStatusSuccess(cluster.getStatusMap().get(topo.getId())));
         }
-        Assert.assertEquals("# of running topologies", 3, rs.getUser("jerry").getTopologiesRunning().size());
-        Assert.assertEquals("# of pending topologies", 0, rs.getUser("jerry").getTopologiesPending().size());
-        Assert.assertEquals("# of attempted topologies", 0, rs.getUser("jerry").getTopologiesAttempted().size());
-        Assert.assertEquals("# of invalid topologies", 0, rs.getUser("jerry").getTopologiesInvalid().size());
+        Assert.assertEquals("# of running topologies", 3, users.get("jerry").getTopologiesRunning().size());
+        Assert.assertEquals("# of pending topologies", 0, users.get("jerry").getTopologiesPending().size());
+        Assert.assertEquals("# of attempted topologies", 0, users.get("jerry").getTopologiesAttempted().size());
+        Assert.assertEquals("# of invalid topologies", 0, users.get("jerry").getTopologiesInvalid().size());
 
-        for (TopologyDetails topo : rs.getUser("derek").getTopologiesRunning()) {
+        for (TopologyDetails topo : users.get("derek").getTopologiesRunning()) {
             Assert.assertTrue("Assert scheduling topology success", TestUtilsForResourceAwareScheduler.assertStatusSuccess(cluster.getStatusMap().get(topo.getId())));
         }
-        for (TopologyDetails topo : rs.getUser("derek").getTopologiesAttempted()) {
+        for (TopologyDetails topo : users.get("derek").getTopologiesAttempted()) {
             Assert.assertFalse("Assert scheduling topology success", TestUtilsForResourceAwareScheduler.assertStatusSuccess(cluster.getStatusMap().get(topo.getId())));
         }
-        Assert.assertEquals("# of running topologies", 1, rs.getUser("derek").getTopologiesRunning().size());
-        Assert.assertEquals("# of pending topologies", 0, rs.getUser("derek").getTopologiesPending().size());
-        Assert.assertEquals("# of attempted topologies", 1, rs.getUser("derek").getTopologiesAttempted().size());
-        Assert.assertEquals("# of invalid topologies", 0, rs.getUser("derek").getTopologiesInvalid().size());
-        Assert.assertEquals("correct topology to evict", rs.getUser("derek").getTopologiesAttempted().iterator().next().getName(), "topo-4");
+        Assert.assertEquals("# of running topologies", 1, users.get("derek").getTopologiesRunning().size());
+        Assert.assertEquals("# of pending topologies", 0, users.get("derek").getTopologiesPending().size());
+        Assert.assertEquals("# of attempted topologies", 1, users.get("derek").getTopologiesAttempted().size());
+        Assert.assertEquals("# of invalid topologies", 0, users.get("derek").getTopologiesInvalid().size());
+        Assert.assertEquals("correct topology to evict", users.get("derek").getTopologiesAttempted().iterator().next().getName(), "topo-4");
 
-        for (TopologyDetails topo : rs.getUser("bobby").getTopologiesAttempted()) {
+        for (TopologyDetails topo : users.get("bobby").getTopologiesAttempted()) {
             Assert.assertFalse("Assert scheduling topology success", TestUtilsForResourceAwareScheduler.assertStatusSuccess(cluster.getStatusMap().get(topo.getId())));
         }
-        Assert.assertEquals("# of attempted topologies", 2, rs.getUser("bobby").getTopologiesAttempted().size());
-        Assert.assertEquals("# of pending topologies", 0, rs.getUser("bobby").getTopologiesPending().size());
-        Assert.assertEquals("# of invalid topologies", 0, rs.getUser("bobby").getTopologiesInvalid().size());
-        Assert.assertEquals("# of running topologies", 0, rs.getUser("bobby").getTopologiesRunning().size());
+        Assert.assertEquals("# of attempted topologies", 2, users.get("bobby").getTopologiesAttempted().size());
+        Assert.assertEquals("# of pending topologies", 0, users.get("bobby").getTopologiesPending().size());
+        Assert.assertEquals("# of invalid topologies", 0, users.get("bobby").getTopologiesInvalid().size());
+        Assert.assertEquals("# of running topologies", 0, users.get("bobby").getTopologiesRunning().size());
 
-        Assert.assertTrue("correct topology to evict", TestUtilsForResourceAwareScheduler.findTopologyInSetFromName("topo-2", rs.getUser("bobby").getTopologiesAttempted()) != null);
-        Assert.assertTrue("correct topology to evict", TestUtilsForResourceAwareScheduler.findTopologyInSetFromName("topo-3", rs.getUser("bobby").getTopologiesAttempted()) != null);
+        Assert.assertTrue("correct topology to evict", TestUtilsForResourceAwareScheduler.findTopologyInSetFromName("topo-2", users.get("bobby").getTopologiesAttempted()) != null);
+        Assert.assertTrue("correct topology to evict", TestUtilsForResourceAwareScheduler.findTopologyInSetFromName("topo-3", users.get("bobby").getTopologiesAttempted()) != null);
     }
 
     /**
@@ -861,67 +871,68 @@ public class TestResourceAwareScheduler {
         Topologies topologies = new Topologies(topoMap);
         Cluster cluster = new Cluster(iNimbus, supMap, new HashMap<String, SchedulerAssignmentImpl>(), topologies, config);
         ResourceAwareScheduler rs = new ResourceAwareScheduler();
-
         rs.prepare(config);
         rs.schedule(topologies, cluster);
+        Map<String, User> users = rs.getUserMap(rs.getLastSchedulingState());
 
-        for (TopologyDetails topo : rs.getUser("jerry").getTopologiesRunning()) {
+        for (TopologyDetails topo : users.get("jerry").getTopologiesRunning()) {
             Assert.assertTrue("Assert scheduling topology success", TestUtilsForResourceAwareScheduler.assertStatusSuccess(cluster.getStatusMap().get(topo.getId())));
         }
-        Assert.assertEquals("# of running topologies", 2, rs.getUser("jerry").getTopologiesRunning().size());
-        Assert.assertEquals("# of pending topologies", 0, rs.getUser("jerry").getTopologiesPending().size());
-        Assert.assertEquals("# of attempted topologies", 0, rs.getUser("jerry").getTopologiesAttempted().size());
-        Assert.assertEquals("# of invalid topologies", 0, rs.getUser("jerry").getTopologiesInvalid().size());
+        Assert.assertEquals("# of running topologies", 2, users.get("jerry").getTopologiesRunning().size());
+        Assert.assertEquals("# of pending topologies", 0, users.get("jerry").getTopologiesPending().size());
+        Assert.assertEquals("# of attempted topologies", 0, users.get("jerry").getTopologiesAttempted().size());
+        Assert.assertEquals("# of invalid topologies", 0, users.get("jerry").getTopologiesInvalid().size());
 
 
-        for (TopologyDetails topo : rs.getUser("derek").getTopologiesRunning()) {
+        for (TopologyDetails topo : users.get("derek").getTopologiesRunning()) {
             Assert.assertTrue("Assert scheduling topology success", TestUtilsForResourceAwareScheduler.assertStatusSuccess(cluster.getStatusMap().get(topo.getId())));
         }
-        Assert.assertEquals("# of running topologies", 1, rs.getUser("derek").getTopologiesRunning().size());
-        Assert.assertEquals("# of pending topologies", 0, rs.getUser("derek").getTopologiesPending().size());
-        Assert.assertEquals("# of attempted topologies", 0, rs.getUser("derek").getTopologiesAttempted().size());
-        Assert.assertEquals("# of invalid topologies", 0, rs.getUser("derek").getTopologiesInvalid().size());
+        Assert.assertEquals("# of running topologies", 1, users.get("derek").getTopologiesRunning().size());
+        Assert.assertEquals("# of pending topologies", 0, users.get("derek").getTopologiesPending().size());
+        Assert.assertEquals("# of attempted topologies", 0, users.get("derek").getTopologiesAttempted().size());
+        Assert.assertEquals("# of invalid topologies", 0, users.get("derek").getTopologiesInvalid().size());
 
-        for (TopologyDetails topo : rs.getUser("bobby").getTopologiesRunning()) {
+        for (TopologyDetails topo : users.get("bobby").getTopologiesRunning()) {
             Assert.assertTrue("Assert scheduling topology success", TestUtilsForResourceAwareScheduler.assertStatusSuccess(cluster.getStatusMap().get(topo.getId())));
         }
-        Assert.assertEquals("# of running topologies", 1, rs.getUser("bobby").getTopologiesRunning().size());
-        Assert.assertEquals("# of pending topologies", 0, rs.getUser("bobby").getTopologiesPending().size());
-        Assert.assertEquals("# of invalid topologies", 0, rs.getUser("bobby").getTopologiesInvalid().size());
-        Assert.assertEquals("# of attempted topologies", 0, rs.getUser("bobby").getTopologiesAttempted().size());
+        Assert.assertEquals("# of running topologies", 1, users.get("bobby").getTopologiesRunning().size());
+        Assert.assertEquals("# of pending topologies", 0, users.get("bobby").getTopologiesPending().size());
+        Assert.assertEquals("# of invalid topologies", 0, users.get("bobby").getTopologiesInvalid().size());
+        Assert.assertEquals("# of attempted topologies", 0, users.get("bobby").getTopologiesAttempted().size());
 
         //user jerry submits another topology into a full cluster
         // topo3 should not be able to scheduled
         topoMap.put(topo3.getId(), topo3);
         topologies = new Topologies(topoMap);
         rs.schedule(topologies, cluster);
+        users = rs.getUserMap(rs.getLastSchedulingState());
 
-        for (TopologyDetails topo : rs.getUser("jerry").getTopologiesRunning()) {
+        for (TopologyDetails topo : users.get("jerry").getTopologiesRunning()) {
             Assert.assertTrue("Assert scheduling topology success", TestUtilsForResourceAwareScheduler.assertStatusSuccess(cluster.getStatusMap().get(topo.getId())));
         }
-        Assert.assertEquals("# of running topologies", 2, rs.getUser("jerry").getTopologiesRunning().size());
-        Assert.assertEquals("# of pending topologies", 0, rs.getUser("jerry").getTopologiesPending().size());
-        Assert.assertEquals("# of attempted topologies", 1, rs.getUser("jerry").getTopologiesAttempted().size());
-        Assert.assertEquals("# of invalid topologies", 0, rs.getUser("jerry").getTopologiesInvalid().size());
+        Assert.assertEquals("# of running topologies", 2, users.get("jerry").getTopologiesRunning().size());
+        Assert.assertEquals("# of pending topologies", 0, users.get("jerry").getTopologiesPending().size());
+        Assert.assertEquals("# of attempted topologies", 1, users.get("jerry").getTopologiesAttempted().size());
+        Assert.assertEquals("# of invalid topologies", 0, users.get("jerry").getTopologiesInvalid().size());
         //make sure that topo-3 didn't get scheduled.
-        Assert.assertEquals("correct topology in attempted queue", rs.getUser("jerry").getTopologiesAttempted().iterator().next().getName(), "topo-3");
+        Assert.assertEquals("correct topology in attempted queue", users.get("jerry").getTopologiesAttempted().iterator().next().getName(), "topo-3");
 
 
-        for (TopologyDetails topo : rs.getUser("derek").getTopologiesRunning()) {
+        for (TopologyDetails topo : users.get("derek").getTopologiesRunning()) {
             Assert.assertTrue("Assert scheduling topology success", TestUtilsForResourceAwareScheduler.assertStatusSuccess(cluster.getStatusMap().get(topo.getId())));
         }
-        Assert.assertEquals("# of running topologies", 1, rs.getUser("derek").getTopologiesRunning().size());
-        Assert.assertEquals("# of pending topologies", 0, rs.getUser("derek").getTopologiesPending().size());
-        Assert.assertEquals("# of attempted topologies", 0, rs.getUser("derek").getTopologiesAttempted().size());
-        Assert.assertEquals("# of invalid topologies", 0, rs.getUser("derek").getTopologiesInvalid().size());
+        Assert.assertEquals("# of running topologies", 1, users.get("derek").getTopologiesRunning().size());
+        Assert.assertEquals("# of pending topologies", 0, users.get("derek").getTopologiesPending().size());
+        Assert.assertEquals("# of attempted topologies", 0, users.get("derek").getTopologiesAttempted().size());
+        Assert.assertEquals("# of invalid topologies", 0, users.get("derek").getTopologiesInvalid().size());
 
-        for (TopologyDetails topo : rs.getUser("bobby").getTopologiesRunning()) {
+        for (TopologyDetails topo : users.get("bobby").getTopologiesRunning()) {
             Assert.assertTrue("Assert scheduling topology success", TestUtilsForResourceAwareScheduler.assertStatusSuccess(cluster.getStatusMap().get(topo.getId())));
         }
-        Assert.assertEquals("# of running topologies", 1, rs.getUser("bobby").getTopologiesRunning().size());
-        Assert.assertEquals("# of pending topologies", 0, rs.getUser("bobby").getTopologiesPending().size());
-        Assert.assertEquals("# of attempted topologies", 0, rs.getUser("bobby").getTopologiesAttempted().size());
-        Assert.assertEquals("# of invalid topologies", 0, rs.getUser("bobby").getTopologiesInvalid().size());
+        Assert.assertEquals("# of running topologies", 1, users.get("bobby").getTopologiesRunning().size());
+        Assert.assertEquals("# of pending topologies", 0, users.get("bobby").getTopologiesPending().size());
+        Assert.assertEquals("# of attempted topologies", 0, users.get("bobby").getTopologiesAttempted().size());
+        Assert.assertEquals("# of invalid topologies", 0, users.get("bobby").getTopologiesInvalid().size());
 
         //user jerry submits another topology but this one should be scheduled since it has higher priority than than the
         //rest of jerry's running topologies
@@ -929,36 +940,37 @@ public class TestResourceAwareScheduler {
         topologies = new Topologies(topoMap);
         cluster = new Cluster(iNimbus, supMap, new HashMap<String, SchedulerAssignmentImpl>(), topologies, config);
         rs.schedule(topologies, cluster);
+        users = rs.getUserMap(rs.getLastSchedulingState());
 
-        for (TopologyDetails topo : rs.getUser("jerry").getTopologiesRunning()) {
+        for (TopologyDetails topo : users.get("jerry").getTopologiesRunning()) {
             Assert.assertTrue("Assert scheduling topology success", TestUtilsForResourceAwareScheduler.assertStatusSuccess(cluster.getStatusMap().get(topo.getId())));
         }
-        Assert.assertEquals("# of running topologies", 2, rs.getUser("jerry").getTopologiesRunning().size());
-        Assert.assertEquals("# of pending topologies", 0, rs.getUser("jerry").getTopologiesPending().size());
-        Assert.assertEquals("# of attempted topologies", 2, rs.getUser("jerry").getTopologiesAttempted().size());
-        Assert.assertEquals("# of invalid topologies", 0, rs.getUser("jerry").getTopologiesInvalid().size());
-        Assert.assertTrue("correct topology in attempted queue", TestUtilsForResourceAwareScheduler.findTopologyInSetFromName("topo-3", rs.getUser("jerry").getTopologiesAttempted()) != null);
+        Assert.assertEquals("# of running topologies", 2, users.get("jerry").getTopologiesRunning().size());
+        Assert.assertEquals("# of pending topologies", 0, users.get("jerry").getTopologiesPending().size());
+        Assert.assertEquals("# of attempted topologies", 2, users.get("jerry").getTopologiesAttempted().size());
+        Assert.assertEquals("# of invalid topologies", 0, users.get("jerry").getTopologiesInvalid().size());
+        Assert.assertTrue("correct topology in attempted queue", TestUtilsForResourceAwareScheduler.findTopologyInSetFromName("topo-3", users.get("jerry").getTopologiesAttempted()) != null);
         //Either topo-1 or topo-2 should have gotten evicted
-        Assert.assertTrue("correct topology in attempted queue", ((TestUtilsForResourceAwareScheduler.findTopologyInSetFromName("topo-1", rs.getUser("jerry").getTopologiesAttempted())) != null)
-                || (TestUtilsForResourceAwareScheduler.findTopologyInSetFromName("topo-2", rs.getUser("jerry").getTopologiesAttempted()) != null));
+        Assert.assertTrue("correct topology in attempted queue", ((TestUtilsForResourceAwareScheduler.findTopologyInSetFromName("topo-1", users.get("jerry").getTopologiesAttempted())) != null)
+                          || (TestUtilsForResourceAwareScheduler.findTopologyInSetFromName("topo-2", users.get("jerry").getTopologiesAttempted()) != null));
         //assert that topo-4 got scheduled
-        Assert.assertTrue("correct topology in running queue", TestUtilsForResourceAwareScheduler.findTopologyInSetFromName("topo-4", rs.getUser("jerry").getTopologiesRunning()) != null);
+        Assert.assertTrue("correct topology in running queue", TestUtilsForResourceAwareScheduler.findTopologyInSetFromName("topo-4", users.get("jerry").getTopologiesRunning()) != null);
 
-        for (TopologyDetails topo : rs.getUser("derek").getTopologiesRunning()) {
+        for (TopologyDetails topo : users.get("derek").getTopologiesRunning()) {
             Assert.assertTrue("Assert scheduling topology success", TestUtilsForResourceAwareScheduler.assertStatusSuccess(cluster.getStatusMap().get(topo.getId())));
         }
-        Assert.assertEquals("# of running topologies", 1, rs.getUser("derek").getTopologiesRunning().size());
-        Assert.assertEquals("# of pending topologies", 0, rs.getUser("derek").getTopologiesPending().size());
-        Assert.assertEquals("# of attempted topologies", 0, rs.getUser("derek").getTopologiesAttempted().size());
-        Assert.assertEquals("# of invalid topologies", 0, rs.getUser("derek").getTopologiesInvalid().size());
+        Assert.assertEquals("# of running topologies", 1, users.get("derek").getTopologiesRunning().size());
+        Assert.assertEquals("# of pending topologies", 0, users.get("derek").getTopologiesPending().size());
+        Assert.assertEquals("# of attempted topologies", 0, users.get("derek").getTopologiesAttempted().size());
+        Assert.assertEquals("# of invalid topologies", 0, users.get("derek").getTopologiesInvalid().size());
 
-        for (TopologyDetails topo : rs.getUser("bobby").getTopologiesRunning()) {
+        for (TopologyDetails topo : users.get("bobby").getTopologiesRunning()) {
             Assert.assertTrue("Assert scheduling topology success", TestUtilsForResourceAwareScheduler.assertStatusSuccess(cluster.getStatusMap().get(topo.getId())));
         }
-        Assert.assertEquals("# of running topologies", 1, rs.getUser("bobby").getTopologiesRunning().size());
-        Assert.assertEquals("# of pending topologies", 0, rs.getUser("bobby").getTopologiesPending().size());
-        Assert.assertEquals("# of attempted topologies", 0, rs.getUser("bobby").getTopologiesAttempted().size());
-        Assert.assertEquals("# of invalid topologies", 0, rs.getUser("bobby").getTopologiesInvalid().size());
+        Assert.assertEquals("# of running topologies", 1, users.get("bobby").getTopologiesRunning().size());
+        Assert.assertEquals("# of pending topologies", 0, users.get("bobby").getTopologiesPending().size());
+        Assert.assertEquals("# of attempted topologies", 0, users.get("bobby").getTopologiesAttempted().size());
+        Assert.assertEquals("# of invalid topologies", 0, users.get("bobby").getTopologiesInvalid().size());
     }
 
     /**
@@ -1018,33 +1030,33 @@ public class TestResourceAwareScheduler {
         Topologies topologies = new Topologies(topoMap);
         Cluster cluster = new Cluster(iNimbus, supMap, new HashMap<String, SchedulerAssignmentImpl>(), topologies, config);
         ResourceAwareScheduler rs = new ResourceAwareScheduler();
-
         rs.prepare(config);
         rs.schedule(topologies, cluster);
+        Map<String, User> users = rs.getUserMap(rs.getLastSchedulingState());
 
-        for (TopologyDetails topo : rs.getUser("jerry").getTopologiesRunning()) {
+        for (TopologyDetails topo : users.get("jerry").getTopologiesRunning()) {
             Assert.assertTrue("Assert scheduling topology success", TestUtilsForResourceAwareScheduler.assertStatusSuccess(cluster.getStatusMap().get(topo.getId())));
         }
-        Assert.assertEquals("# of running topologies", 1, rs.getUser("jerry").getTopologiesRunning().size());
-        Assert.assertEquals("# of pending topologies", 0, rs.getUser("jerry").getTopologiesPending().size());
-        Assert.assertEquals("# of attempted topologies", 0, rs.getUser("jerry").getTopologiesAttempted().size());
-        Assert.assertEquals("# of invalid topologies", 0, rs.getUser("jerry").getTopologiesInvalid().size());
+        Assert.assertEquals("# of running topologies", 1, users.get("jerry").getTopologiesRunning().size());
+        Assert.assertEquals("# of pending topologies", 0, users.get("jerry").getTopologiesPending().size());
+        Assert.assertEquals("# of attempted topologies", 0, users.get("jerry").getTopologiesAttempted().size());
+        Assert.assertEquals("# of invalid topologies", 0, users.get("jerry").getTopologiesInvalid().size());
 
-        for (TopologyDetails topo : rs.getUser("derek").getTopologiesRunning()) {
+        for (TopologyDetails topo : users.get("derek").getTopologiesRunning()) {
             Assert.assertTrue("Assert scheduling topology success", TestUtilsForResourceAwareScheduler.assertStatusSuccess(cluster.getStatusMap().get(topo.getId())));
         }
-        Assert.assertEquals("# of running topologies", 1, rs.getUser("derek").getTopologiesRunning().size());
-        Assert.assertEquals("# of pending topologies", 0, rs.getUser("derek").getTopologiesPending().size());
-        Assert.assertEquals("# of attempted topologies", 0, rs.getUser("derek").getTopologiesAttempted().size());
-        Assert.assertEquals("# of invalid topologies", 0, rs.getUser("derek").getTopologiesInvalid().size());
+        Assert.assertEquals("# of running topologies", 1, users.get("derek").getTopologiesRunning().size());
+        Assert.assertEquals("# of pending topologies", 0, users.get("derek").getTopologiesPending().size());
+        Assert.assertEquals("# of attempted topologies", 0, users.get("derek").getTopologiesAttempted().size());
+        Assert.assertEquals("# of invalid topologies", 0, users.get("derek").getTopologiesInvalid().size());
 
-        for (TopologyDetails topo : rs.getUser("bobby").getTopologiesRunning()) {
+        for (TopologyDetails topo : users.get("bobby").getTopologiesRunning()) {
             Assert.assertTrue("Assert scheduling topology success", TestUtilsForResourceAwareScheduler.assertStatusSuccess(cluster.getStatusMap().get(topo.getId())));
         }
-        Assert.assertEquals("# of running topologies", 2, rs.getUser("bobby").getTopologiesRunning().size());
-        Assert.assertEquals("# of pending topologies", 0, rs.getUser("bobby").getTopologiesPending().size());
-        Assert.assertEquals("# of invalid topologies", 0, rs.getUser("bobby").getTopologiesInvalid().size());
-        Assert.assertEquals("# of attempted topologies", 0, rs.getUser("bobby").getTopologiesAttempted().size());
+        Assert.assertEquals("# of running topologies", 2, users.get("bobby").getTopologiesRunning().size());
+        Assert.assertEquals("# of pending topologies", 0, users.get("bobby").getTopologiesPending().size());
+        Assert.assertEquals("# of invalid topologies", 0, users.get("bobby").getTopologiesInvalid().size());
+        Assert.assertEquals("# of attempted topologies", 0, users.get("bobby").getTopologiesAttempted().size());
 
         //user derek submits another topology into a full cluster
         //topo6 should not be able to scheduled intially, but since topo6 has higher priority than topo5
@@ -1053,63 +1065,65 @@ public class TestResourceAwareScheduler {
         topologies = new Topologies(topoMap);
         cluster = new Cluster(iNimbus, supMap, new HashMap<String, SchedulerAssignmentImpl>(), topologies, config);
         rs.schedule(topologies, cluster);
+        users = rs.getUserMap(rs.getLastSchedulingState());
 
-        for (TopologyDetails topo : rs.getUser("jerry").getTopologiesRunning()) {
+        for (TopologyDetails topo : users.get("jerry").getTopologiesRunning()) {
             Assert.assertTrue("Assert scheduling topology success", TestUtilsForResourceAwareScheduler.assertStatusSuccess(cluster.getStatusMap().get(topo.getId())));
         }
-        Assert.assertEquals("# of running topologies", 1, rs.getUser("jerry").getTopologiesRunning().size());
-        Assert.assertEquals("# of pending topologies", 0, rs.getUser("jerry").getTopologiesPending().size());
-        Assert.assertEquals("# of attempted topologies", 0, rs.getUser("jerry").getTopologiesAttempted().size());
-        Assert.assertEquals("# of invalid topologies", 0, rs.getUser("jerry").getTopologiesInvalid().size());
+        Assert.assertEquals("# of running topologies", 1, users.get("jerry").getTopologiesRunning().size());
+        Assert.assertEquals("# of pending topologies", 0, users.get("jerry").getTopologiesPending().size());
+        Assert.assertEquals("# of attempted topologies", 0, users.get("jerry").getTopologiesAttempted().size());
+        Assert.assertEquals("# of invalid topologies", 0, users.get("jerry").getTopologiesInvalid().size());
 
-        for (TopologyDetails topo : rs.getUser("derek").getTopologiesRunning()) {
+        for (TopologyDetails topo : users.get("derek").getTopologiesRunning()) {
             Assert.assertTrue("Assert scheduling topology success", TestUtilsForResourceAwareScheduler.assertStatusSuccess(cluster.getStatusMap().get(topo.getId())));
         }
-        Assert.assertEquals("# of running topologies", 1, rs.getUser("derek").getTopologiesRunning().size());
-        Assert.assertEquals("# of pending topologies", 0, rs.getUser("derek").getTopologiesPending().size());
-        Assert.assertEquals("# of attempted topologies", 1, rs.getUser("derek").getTopologiesAttempted().size());
-        Assert.assertEquals("# of invalid topologies", 0, rs.getUser("derek").getTopologiesInvalid().size());
+        Assert.assertEquals("# of running topologies", 1, users.get("derek").getTopologiesRunning().size());
+        Assert.assertEquals("# of pending topologies", 0, users.get("derek").getTopologiesPending().size());
+        Assert.assertEquals("# of attempted topologies", 1, users.get("derek").getTopologiesAttempted().size());
+        Assert.assertEquals("# of invalid topologies", 0, users.get("derek").getTopologiesInvalid().size());
         //topo5 will be evicted since topo6 has higher priority
-        Assert.assertEquals("correct topology in attempted queue", "topo-5", rs.getUser("derek").getTopologiesAttempted().iterator().next().getName());
+        Assert.assertEquals("correct topology in attempted queue", "topo-5", users.get("derek").getTopologiesAttempted().iterator().next().getName());
 
-        for (TopologyDetails topo : rs.getUser("bobby").getTopologiesRunning()) {
+        for (TopologyDetails topo : users.get("bobby").getTopologiesRunning()) {
             Assert.assertTrue("Assert scheduling topology success", TestUtilsForResourceAwareScheduler.assertStatusSuccess(cluster.getStatusMap().get(topo.getId())));
         }
-        Assert.assertEquals("# of running topologies", 2, rs.getUser("bobby").getTopologiesRunning().size());
-        Assert.assertEquals("# of pending topologies", 0, rs.getUser("bobby").getTopologiesPending().size());
-        Assert.assertEquals("# of attempted topologies", 0, rs.getUser("bobby").getTopologiesAttempted().size());
-        Assert.assertEquals("# of invalid topologies", 0, rs.getUser("bobby").getTopologiesInvalid().size());
+        Assert.assertEquals("# of running topologies", 2, users.get("bobby").getTopologiesRunning().size());
+        Assert.assertEquals("# of pending topologies", 0, users.get("bobby").getTopologiesPending().size());
+        Assert.assertEquals("# of attempted topologies", 0, users.get("bobby").getTopologiesAttempted().size());
+        Assert.assertEquals("# of invalid topologies", 0, users.get("bobby").getTopologiesInvalid().size());
 
         //user jerry submits topo2
         topoMap.put(topo2.getId(), topo2);
         topologies = new Topologies(topoMap);
         cluster = new Cluster(iNimbus, supMap, new HashMap<String, SchedulerAssignmentImpl>(), topologies, config);
         rs.schedule(topologies, cluster);
+        users = rs.getUserMap(rs.getLastSchedulingState());
 
-        for (TopologyDetails topo : rs.getUser("jerry").getTopologiesRunning()) {
+        for (TopologyDetails topo : users.get("jerry").getTopologiesRunning()) {
             Assert.assertTrue("Assert scheduling topology success", TestUtilsForResourceAwareScheduler.assertStatusSuccess(cluster.getStatusMap().get(topo.getId())));
         }
-        Assert.assertEquals("# of running topologies", 2, rs.getUser("jerry").getTopologiesRunning().size());
-        Assert.assertEquals("# of pending topologies", 0, rs.getUser("jerry").getTopologiesPending().size());
-        Assert.assertEquals("# of attempted topologies", 0, rs.getUser("jerry").getTopologiesAttempted().size());
-        Assert.assertEquals("# of invalid topologies", 0, rs.getUser("jerry").getTopologiesInvalid().size());
+        Assert.assertEquals("# of running topologies", 2, users.get("jerry").getTopologiesRunning().size());
+        Assert.assertEquals("# of pending topologies", 0, users.get("jerry").getTopologiesPending().size());
+        Assert.assertEquals("# of attempted topologies", 0, users.get("jerry").getTopologiesAttempted().size());
+        Assert.assertEquals("# of invalid topologies", 0, users.get("jerry").getTopologiesInvalid().size());
 
-        for (TopologyDetails topo : rs.getUser("derek").getTopologiesRunning()) {
+        for (TopologyDetails topo : users.get("derek").getTopologiesRunning()) {
             Assert.assertTrue("Assert scheduling topology success", TestUtilsForResourceAwareScheduler.assertStatusSuccess(cluster.getStatusMap().get(topo.getId())));
         }
-        Assert.assertEquals("# of running topologies", 0, rs.getUser("derek").getTopologiesRunning().size());
-        Assert.assertEquals("# of pending topologies", 0, rs.getUser("derek").getTopologiesPending().size());
-        Assert.assertEquals("# of attempted topologies", 2, rs.getUser("derek").getTopologiesAttempted().size());
-        Assert.assertEquals("# of invalid topologies", 0, rs.getUser("derek").getTopologiesInvalid().size());
-        Assert.assertEquals("correct topology in attempted queue", "topo-6", rs.getUser("derek").getTopologiesAttempted().iterator().next().getName());
+        Assert.assertEquals("# of running topologies", 0, users.get("derek").getTopologiesRunning().size());
+        Assert.assertEquals("# of pending topologies", 0, users.get("derek").getTopologiesPending().size());
+        Assert.assertEquals("# of attempted topologies", 2, users.get("derek").getTopologiesAttempted().size());
+        Assert.assertEquals("# of invalid topologies", 0, users.get("derek").getTopologiesInvalid().size());
+        Assert.assertEquals("correct topology in attempted queue", "topo-6", users.get("derek").getTopologiesAttempted().iterator().next().getName());
 
-        for (TopologyDetails topo : rs.getUser("bobby").getTopologiesRunning()) {
+        for (TopologyDetails topo : users.get("bobby").getTopologiesRunning()) {
             Assert.assertTrue("Assert scheduling topology success", TestUtilsForResourceAwareScheduler.assertStatusSuccess(cluster.getStatusMap().get(topo.getId())));
         }
-        Assert.assertEquals("# of running topologies", 2, rs.getUser("bobby").getTopologiesRunning().size());
-        Assert.assertEquals("# of pending topologies", 0, rs.getUser("bobby").getTopologiesPending().size());
-        Assert.assertEquals("# of attempted topologies", 0, rs.getUser("bobby").getTopologiesAttempted().size());
-        Assert.assertEquals("# of invalid topologies", 0, rs.getUser("bobby").getTopologiesInvalid().size());
+        Assert.assertEquals("# of running topologies", 2, users.get("bobby").getTopologiesRunning().size());
+        Assert.assertEquals("# of pending topologies", 0, users.get("bobby").getTopologiesPending().size());
+        Assert.assertEquals("# of attempted topologies", 0, users.get("bobby").getTopologiesAttempted().size());
+        Assert.assertEquals("# of invalid topologies", 0, users.get("bobby").getTopologiesInvalid().size());
     }
 
     /**
@@ -1172,33 +1186,33 @@ public class TestResourceAwareScheduler {
         Topologies topologies = new Topologies(topoMap);
         Cluster cluster = new Cluster(iNimbus, supMap, new HashMap<>(), topologies, config);
         ResourceAwareScheduler rs = new ResourceAwareScheduler();
-
         rs.prepare(config);
         rs.schedule(topologies, cluster);
+        Map<String, User> users = rs.getUserMap(rs.getLastSchedulingState());
 
-        for (TopologyDetails topo : rs.getUser("jerry").getTopologiesRunning()) {
+        for (TopologyDetails topo : users.get("jerry").getTopologiesRunning()) {
             Assert.assertTrue("Assert scheduling topology success", TestUtilsForResourceAwareScheduler.assertStatusSuccess(cluster.getStatusMap().get(topo.getId())));
         }
-        Assert.assertEquals("# of running topologies", 2, rs.getUser("jerry").getTopologiesRunning().size());
-        Assert.assertEquals("# of pending topologies", 0, rs.getUser("jerry").getTopologiesPending().size());
-        Assert.assertEquals("# of attempted topologies", 0, rs.getUser("jerry").getTopologiesAttempted().size());
-        Assert.assertEquals("# of invalid topologies", 0, rs.getUser("jerry").getTopologiesInvalid().size());
+        Assert.assertEquals("# of running topologies", 2, users.get("jerry").getTopologiesRunning().size());
+        Assert.assertEquals("# of pending topologies", 0, users.get("jerry").getTopologiesPending().size());
+        Assert.assertEquals("# of attempted topologies", 0, users.get("jerry").getTopologiesAttempted().size());
+        Assert.assertEquals("# of invalid topologies", 0, users.get("jerry").getTopologiesInvalid().size());
 
-        for (TopologyDetails topo : rs.getUser("derek").getTopologiesRunning()) {
+        for (TopologyDetails topo : users.get("derek").getTopologiesRunning()) {
             Assert.assertTrue("Assert scheduling topology success", TestUtilsForResourceAwareScheduler.assertStatusSuccess(cluster.getStatusMap().get(topo.getId())));
         }
-        Assert.assertEquals("# of running topologies", 2, rs.getUser("derek").getTopologiesRunning().size());
-        Assert.assertEquals("# of pending topologies", 0, rs.getUser("derek").getTopologiesPending().size());
-        Assert.assertEquals("# of attempted topologies", 0, rs.getUser("derek").getTopologiesAttempted().size());
-        Assert.assertEquals("# of invalid topologies", 0, rs.getUser("derek").getTopologiesInvalid().size());
+        Assert.assertEquals("# of running topologies", 2, users.get("derek").getTopologiesRunning().size());
+        Assert.assertEquals("# of pending topologies", 0, users.get("derek").getTopologiesPending().size());
+        Assert.assertEquals("# of attempted topologies", 0, users.get("derek").getTopologiesAttempted().size());
+        Assert.assertEquals("# of invalid topologies", 0, users.get("derek").getTopologiesInvalid().size());
 
-        for (TopologyDetails topo : rs.getUser("bobby").getTopologiesRunning()) {
+        for (TopologyDetails topo : users.get("bobby").getTopologiesRunning()) {
             Assert.assertTrue("Assert scheduling topology success", TestUtilsForResourceAwareScheduler.assertStatusSuccess(cluster.getStatusMap().get(topo.getId())));
         }
-        Assert.assertEquals("# of running topologies", 2, rs.getUser("bobby").getTopologiesRunning().size());
-        Assert.assertEquals("# of pending topologies", 0, rs.getUser("bobby").getTopologiesPending().size());
-        Assert.assertEquals("# of invalid topologies", 0, rs.getUser("bobby").getTopologiesInvalid().size());
-        Assert.assertEquals("# of attempted topologies", 0, rs.getUser("bobby").getTopologiesAttempted().size());
+        Assert.assertEquals("# of running topologies", 2, users.get("bobby").getTopologiesRunning().size());
+        Assert.assertEquals("# of pending topologies", 0, users.get("bobby").getTopologiesPending().size());
+        Assert.assertEquals("# of invalid topologies", 0, users.get("bobby").getTopologiesInvalid().size());
+        Assert.assertEquals("# of attempted topologies", 0, users.get("bobby").getTopologiesAttempted().size());
 
         //fail supervisor
         SupervisorDetails supFailed = cluster.getSupervisors().values().iterator().next();
@@ -1219,37 +1233,38 @@ public class TestResourceAwareScheduler {
             newAssignments.put(topoId, new SchedulerAssignmentImpl(topoId, executorToSlots, null, null));
         }
         Map<String, String> statusMap = cluster.getStatusMap();
-        
+
         LOG.warn("Rescheduling with removed Supervisor....");
         cluster = new Cluster(iNimbus, supMap, newAssignments, topologies, config);
         cluster.setStatusMap(statusMap);
         rs.schedule(topologies, cluster);
+        users = rs.getUserMap(rs.getLastSchedulingState());
 
         //Supervisor failed contains a executor from topo-6 of user derek.  Should evict a topology from user jerry since user will be above resource guarantee more so than user derek
-        for (TopologyDetails topo : rs.getUser("jerry").getTopologiesRunning()) {
+        for (TopologyDetails topo : users.get("jerry").getTopologiesRunning()) {
             Assert.assertTrue("Assert scheduling topology success", TestUtilsForResourceAwareScheduler.assertStatusSuccess(cluster.getStatusMap().get(topo.getId())));
         }
-        Assert.assertEquals("# of running topologies", 1, rs.getUser("jerry").getTopologiesRunning().size());
-        Assert.assertEquals("# of pending topologies", 0, rs.getUser("jerry").getTopologiesPending().size());
-        Assert.assertEquals("# of attempted topologies", 1, rs.getUser("jerry").getTopologiesAttempted().size());
-        Assert.assertEquals("# of invalid topologies", 0, rs.getUser("jerry").getTopologiesInvalid().size());
+        Assert.assertEquals("# of running topologies", 1, users.get("jerry").getTopologiesRunning().size());
+        Assert.assertEquals("# of pending topologies", 0, users.get("jerry").getTopologiesPending().size());
+        Assert.assertEquals("# of attempted topologies", 1, users.get("jerry").getTopologiesAttempted().size());
+        Assert.assertEquals("# of invalid topologies", 0, users.get("jerry").getTopologiesInvalid().size());
 
 
-        for (TopologyDetails topo : rs.getUser("derek").getTopologiesRunning()) {
+        for (TopologyDetails topo : users.get("derek").getTopologiesRunning()) {
             Assert.assertTrue("Assert scheduling topology success", TestUtilsForResourceAwareScheduler.assertStatusSuccess(cluster.getStatusMap().get(topo.getId())));
         }
-        Assert.assertEquals("# of running topologies", 2, rs.getUser("derek").getTopologiesRunning().size());
-        Assert.assertEquals("# of pending topologies", 0, rs.getUser("derek").getTopologiesPending().size());
-        Assert.assertEquals("# of attempted topologies", 0, rs.getUser("derek").getTopologiesAttempted().size());
-        Assert.assertEquals("# of invalid topologies", 0, rs.getUser("derek").getTopologiesInvalid().size());
+        Assert.assertEquals("# of running topologies", 2, users.get("derek").getTopologiesRunning().size());
+        Assert.assertEquals("# of pending topologies", 0, users.get("derek").getTopologiesPending().size());
+        Assert.assertEquals("# of attempted topologies", 0, users.get("derek").getTopologiesAttempted().size());
+        Assert.assertEquals("# of invalid topologies", 0, users.get("derek").getTopologiesInvalid().size());
 
-        for (TopologyDetails topo : rs.getUser("bobby").getTopologiesRunning()) {
+        for (TopologyDetails topo : users.get("bobby").getTopologiesRunning()) {
             Assert.assertTrue("Assert scheduling topology success", TestUtilsForResourceAwareScheduler.assertStatusSuccess(cluster.getStatusMap().get(topo.getId())));
         }
-        Assert.assertEquals("# of running topologies", 2, rs.getUser("bobby").getTopologiesRunning().size());
-        Assert.assertEquals("# of pending topologies", 0, rs.getUser("bobby").getTopologiesPending().size());
-        Assert.assertEquals("# of invalid topologies", 0, rs.getUser("bobby").getTopologiesInvalid().size());
-        Assert.assertEquals("# of attempted topologies", 0, rs.getUser("bobby").getTopologiesAttempted().size());
+        Assert.assertEquals("# of running topologies", 2, users.get("bobby").getTopologiesRunning().size());
+        Assert.assertEquals("# of pending topologies", 0, users.get("bobby").getTopologiesPending().size());
+        Assert.assertEquals("# of invalid topologies", 0, users.get("bobby").getTopologiesInvalid().size());
+        Assert.assertEquals("# of attempted topologies", 0, users.get("bobby").getTopologiesAttempted().size());
     }
 
     public static double getMemoryUsedByWorker(Cluster cluster, WorkerSlot ws) {
@@ -1267,7 +1282,7 @@ public class TestResourceAwareScheduler {
         }
         return 0.0;
     }
-    
+
     /**
      * test if free slots on nodes work correctly
      */
@@ -1318,7 +1333,7 @@ public class TestResourceAwareScheduler {
                 double memoryAfter = node.getAvailableMemoryResources();
                 double cpuAfter = node.getAvailableCpuResources();
                 Assert.assertEquals("Check if free correctly frees amount of memory "
-                        + "(before free: " + memoryBefore + ", used by topo:" 
+                        + "(before free: " + memoryBefore + ", used by topo:"
                         + memoryUsedByWorker + ")", memoryBefore + memoryUsedByWorker,  memoryAfter, 0.001);
                 Assert.assertEquals("Check if free correctly frees amount of memory", cpuBefore + cpuUsedByWorker,  cpuAfter, 0.001);
                 Assert.assertFalse("Check if worker was removed from assignments", entry.getSlotToExecutors().containsKey(ws));
