@@ -197,7 +197,7 @@ public class ResourceAwareScheduler implements IScheduler {
         LOG.debug("Attempt {} of {} to schedule topology {}", schedulingAttemptsSoFar, maxSchedulingAttempts, td.getName());
         SchedulingResult result = null;
         String schedulingError = "Unable to schedule the topology due to an unknown error.";
-        Result.FailType failType = failType = Result.FailType.ATTEMPTED;
+        Result.FailType failType = Result.FailType.ATTEMPTED;
         try {
             // Need to re prepare scheduling strategy with cluster and topologies in case scheduling state was restored
             // Pass in a copy of scheduling state since the scheduling strategy should not be able to be able to make modifications to
