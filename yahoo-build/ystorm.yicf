@@ -179,4 +179,4 @@ symlink - - - bin/storm /home/y/lib64/storm/current/bin/storm
 symlink - - - bin/flight.bash /home/y/lib64/storm/current/bin/flight.bash
 
 dir 777 - - logs/storm
-dir 777 - - var/storm
+dir 755 - - var/storm
