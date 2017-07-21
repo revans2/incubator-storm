@@ -83,7 +83,7 @@ public class FluxParser {
 	}
     }
 
-    private static TopologyDef loadYaml(Yaml yaml, InputStream in, String propsFile, boolean envSubstitution) throws IOException {
+    static TopologyDef loadYaml(Yaml yaml, InputStream in, String propsFile, boolean envSubstitution) throws IOException {
         ByteArrayOutputStream bos = new ByteArrayOutputStream();
         LOG.info("loading YAML from input stream...");
         int b = -1;
@@ -123,7 +123,7 @@ public class FluxParser {
         System.out.println("Configuration (interpreted): \n" + yaml.dump(topology));
     }
 
-    private static Yaml yaml(){
+    static Yaml yaml(){
         Constructor constructor = new Constructor(TopologyDef.class);
 
         TypeDescription topologyDescription = new TypeDescription(TopologyDef.class);
