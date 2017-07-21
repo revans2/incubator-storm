@@ -287,6 +287,7 @@ function profiler_selected_worker() {
 }
 
 function start_profiling(id) {
+    if (!confirmAction("start profiling")) return false;
     var topologyId = $.url("?topology_id");
     var timeout = $("#timeout").val();
 
@@ -321,6 +322,7 @@ function start_profiling(id) {
 }
 
 function stop_profiling(id) {
+    if (!confirmAction("stop profiling")) return false;
     var topologyId = $.url("?topology_id");
     var url = "/api/v1/topology/"+topologyId+"/profiling/stop/" + id;
 
@@ -337,6 +339,7 @@ function stop_profiling(id) {
 }
 
 function dump_profile(id) {
+    if (!confirmAction("dump profile")) return false;
     var topologyId = $.url("?topology_id");
     var url = "/api/v1/topology/"+topologyId+"/profiling/dumpprofile/" + id;
 
@@ -352,6 +355,7 @@ function dump_profile(id) {
 }
 
 function dump_jstack(id) {
+    if (!confirmAction("dump jstack")) return false;
     var topologyId = $.url("?topology_id");
     var url = "/api/v1/topology/"+topologyId+"/profiling/dumpjstack/" + id;
 
@@ -367,6 +371,7 @@ function dump_jstack(id) {
 }
 
 function restart_worker_jvm(id) {
+    if (!confirmAction("restart worker")) return false;
     var topologyId = $.url("?topology_id");
     var url = "/api/v1/topology/"+topologyId+"/profiling/restartworker/" + id;
 
@@ -382,6 +387,7 @@ function restart_worker_jvm(id) {
 }
 
 function dump_heap(id) {
+    if (!confirmAction("dump heap")) return false;
     var topologyId = $.url("?topology_id");
     var url = "/api/v1/topology/"+topologyId+"/profiling/dumpheap/" + id;
     var heap = $("#dump_heap_" + id);
@@ -394,6 +400,11 @@ function dump_heap(id) {
     .fail(function(response) {
         alert( "Dumping Heap for " + id + " failed: \n" + JSON.stringify(response));
     });
+}
+
+// Confirm an action
+function confirmAction(actionText){
+    return confirm('Do you really want to ' + actionText + '?');
 }
 
 </script>
