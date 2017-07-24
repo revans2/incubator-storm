@@ -16,37 +16,30 @@
  *   limitations under the License.
  */
 
-package org.apache.storm.kafka.spout.test;
+package org.apache.storm.kafka.spout;
 
-import backtype.storm.task.OutputCollector;
-import backtype.storm.task.TopologyContext;
-import backtype.storm.topology.OutputFieldsDeclarer;
-import backtype.storm.topology.base.BaseRichBolt;
-import backtype.storm.tuple.Tuple;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
 
-import java.util.Map;
+import java.util.List;
 
-public class KafkaTestBolt extends BaseRichBolt {
-    protected static final Logger LOG = LoggerFactory.getLogger(KafkaTestBolt.class);
+import backtype.storm.tuple.Fields;
+import backtype.storm.tuple.Values;
 
-
-    private OutputCollector collector;
-
+public class DefaultRecordTranslator<K, V> implements RecordTranslator<K, V> {
+    private static final long serialVersionUID = -5782462870112305750L;
+    public static final Fields FIELDS = new Fields("topic", "partition", "offset", "key", "value");
+    
     @Override
-    public void prepare(Map stormConf, TopologyContext context, OutputCollector collector) {
-        this.collector = collector;
+    public List<Object> apply(ConsumerRecord<K, V> record) {
+        return new Values(record.topic(),
+                record.partition(),
+                record.offset(),
+                record.key(),
+                record.value());
     }
 
     @Override
-    public void execute(Tuple input) {
-        LOG.debug("input = [" + input + "]");
-        collector.ack(input);
-    }
-
-    @Override
-    public void declareOutputFields(OutputFieldsDeclarer declarer) {
-
+    public Fields getFieldsFor(String stream) {
+        return FIELDS;
     }
 }
