@@ -176,7 +176,8 @@
                         $('#owner-resource-guarantee-summary').hide();
                     }
 
-                    if(response && (response["memoryGuaranteeRemaining"] < 0 || response["cpuGuaranteeRemaining"] < 0
+                    if(response && response["no-guarantee-warning-enabled"] == true
+                        &&  (response["memoryGuaranteeRemaining"] < 0 || response["cpuGuaranteeRemaining"] < 0
                         || response["memoryGuaranteeRemaining"] == "N/A" || response["cpuGuaranteeRemaining"] == "N/A")) {
                         $(".warning").show();
                     } else {

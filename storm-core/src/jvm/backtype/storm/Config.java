@@ -776,6 +776,12 @@ public class Config extends HashMap<String, Object> {
     @isString
     public static final String UI_CENTRAL_LOGGING_URL = "ui.central.logging.url";
 
+   /**
+    * Storm UI Central Logging URL.
+    */
+   @isBoolean
+   public static final String UI_RESOURCES_NO_GUARANTEE_WARNING_ENABLED = "ui.resources.no.guarantee.warning.enabled";
+
     /**
      * HTTP UI port for log viewer
      */
