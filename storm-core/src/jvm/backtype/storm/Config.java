@@ -782,11 +782,11 @@ public class Config extends HashMap<String, Object> {
     @isBoolean
     public static final String UI_RESOURCE_GUARANTEE_WARNING_ENABLED = "ui.resource.guarantee.warning.enabled";
 
-   /**
-    * Storm UI can warn users about the running topologies without any resource guarantees.
-    */
-   @isBoolean
-   public static final String UI_RESOURCE_GUARANTEE_ALL_WARNING_ENABLED = "ui.resource.guarantee.all.warning.enabled";
+    /**
+     * Storm UI can warn users about the running topologies without any resource guarantees.
+     */
+    @isBoolean
+    public static final String UI_RESOURCE_GUARANTEE_ALL_WARNING_ENABLED = "ui.resource.guarantee.all.warning.enabled";
 
     /**
      * HTTP UI port for log viewer
