@@ -777,13 +777,15 @@ public class Config extends HashMap<String, Object> {
     public static final String UI_CENTRAL_LOGGING_URL = "ui.central.logging.url";
 
     /**
-     * Storm UI Resource guarantees warning can be completely turned off using this configuration.
+     * When enabled, a warning banner will be shown for users using RAS, who have resource guarantees
+     * and have gone over their guarantees.
      */
     @isBoolean
     public static final String UI_RESOURCE_GUARANTEE_WARNING_ENABLED = "ui.resource.guarantee.warning.enabled";
 
     /**
-     * Storm UI can warn users about the running topologies without any resource guarantees.
+     * When enabled, a warning banner will be shown for users using RAS, who have no resource guarantees.
+     * This works if {@link Config#UI_RESOURCE_GUARANTEE_WARNING_ENABLED} is enabled.
      */
     @isBoolean
     public static final String UI_RESOURCE_GUARANTEE_ALL_WARNING_ENABLED = "ui.resource.guarantee.all.warning.enabled";
