@@ -776,11 +776,17 @@ public class Config extends HashMap<String, Object> {
     @isString
     public static final String UI_CENTRAL_LOGGING_URL = "ui.central.logging.url";
 
+    /**
+     * Storm UI Resource guarantees warning can be enabled.
+     */
+    @isBoolean
+    public static final String UI_RESOURCE_GUARANTEE_WARNING_ENABLED = "ui.resource.guarantee.warning.enabled";
+
    /**
-    * Storm UI Central Logging URL.
+    * Storm UI Resource guarantees warning can be enabled for all cases.
     */
    @isBoolean
-   public static final String UI_RESOURCES_NO_GUARANTEE_WARNING_ENABLED = "ui.resources.no.guarantee.warning.enabled";
+   public static final String UI_RESOURCE_GUARANTEE_ALL_WARNING_ENABLED = "ui.resource.guarantee.all.warning.enabled";
 
     /**
      * HTTP UI port for log viewer

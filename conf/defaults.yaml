@@ -91,7 +91,6 @@ ui.users: null
 ui.header.buffer.bytes: 4096
 ui.http.creds.plugin: backtype.storm.security.auth.DefaultHttpCredentialsPlugin
 ui.https.port: -1
-ui.resources.no.guarantee.warning.enabled: true
 
 logviewer.port: 8000
 logviewer.childopts: "-Xmx128m"
