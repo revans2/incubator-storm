@@ -777,13 +777,13 @@ public class Config extends HashMap<String, Object> {
     public static final String UI_CENTRAL_LOGGING_URL = "ui.central.logging.url";
 
     /**
-     * Storm UI Resource guarantees warning can be enabled.
+     * Storm UI Resource guarantees warning can be completely turned off using this configuration.
      */
     @isBoolean
     public static final String UI_RESOURCE_GUARANTEE_WARNING_ENABLED = "ui.resource.guarantee.warning.enabled";
 
    /**
-    * Storm UI Resource guarantees warning can be enabled for all cases.
+    * Storm UI can warn users about the running topologies without any resource guarantees.
     */
    @isBoolean
    public static final String UI_RESOURCE_GUARANTEE_ALL_WARNING_ENABLED = "ui.resource.guarantee.all.warning.enabled";
