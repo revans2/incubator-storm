@@ -63,9 +63,9 @@ public class SaslStormServerAuthorizeHandler extends SimpleChannelUpstreamHandle
 		}
 
 		if (!saslNettyServer.isComplete()) {
-			LOG.warn("messageReceived: This client is *NOT* authorized to perform "
+			LOG.warn("messageReceived: This client {} is *NOT* authorized to perform "
 					+ "this action because SASL authentication did not complete: "
-					+ "refusing to perform requested action: " + msg);
+					+ "refusing to perform requested action: {}", channel, msg);
 			// Return now *WITHOUT* sending upstream here, since client
 			// not authorized.
 			return;
@@ -73,7 +73,7 @@ public class SaslStormServerAuthorizeHandler extends SimpleChannelUpstreamHandle
 
 		LOG.debug("messageReceived: authenticated client: "
 				+ saslNettyServer.getUserName()
-				+ " is authorized to do request " + "on server.");
+				+ " is authorized to do request on server.");
 
 		// We call fireMessageReceived since the client is allowed to perform
 		// this request. The client's request will now proceed to the next

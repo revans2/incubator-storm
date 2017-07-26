@@ -18,6 +18,7 @@
 package backtype.storm.messaging.netty;
 
 import backtype.storm.utils.Utils;
+import java.nio.channels.ClosedChannelException;
 import org.jboss.netty.channel.Channel;
 import org.jboss.netty.channel.ChannelHandlerContext;
 import org.jboss.netty.channel.ChannelStateEvent;
@@ -35,7 +36,10 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class StormServerHandler extends SimpleChannelUpstreamHandler  {
     private static final Logger LOG = LoggerFactory.getLogger(StormServerHandler.class);
-    private static final Set<Class> allowedExceptions = new HashSet<>(Arrays.asList(new Class[] {IOException.class}));
+    private static final Set<Class> allowedExceptions = new HashSet<>(
+        Arrays.asList(IOException.class,
+            ClosedChannelException.class));
+
     IServer server;
     private AtomicInteger failure_count; 
     private Channel channel;
@@ -74,14 +78,14 @@ public class StormServerHandler extends SimpleChannelUpstreamHandler  {
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, ExceptionEvent e) {
         try {
-            LOG.error("server errors in handling the request", e.getCause());
+            LOG.error("server errors in handling the request from {} {}", ctx.getName(), ctx.getChannel(), e.getCause());
         } catch (Throwable err) {
             // Doing nothing (probably due to an oom issue) and hoping Utils.handleUncaughtException will handle it
         }
         try {
             Utils.handleUncaughtException(e.getCause(), allowedExceptions);
         } catch (Error error) {
-            LOG.info("Received error in netty thread.. terminating server...");
+            LOG.error("Received error in netty thread from {} {} terminating server...", ctx.getName(), ctx.getChannel());
             Runtime.getRuntime().exit(1);
         }
     }
