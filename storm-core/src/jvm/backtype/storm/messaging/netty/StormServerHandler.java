@@ -18,6 +18,7 @@
 package backtype.storm.messaging.netty;
 
 import backtype.storm.utils.Utils;
+import java.nio.channels.ClosedChannelException;
 import org.jboss.netty.channel.Channel;
 import org.jboss.netty.channel.ChannelHandlerContext;
 import org.jboss.netty.channel.ChannelStateEvent;
@@ -35,7 +36,10 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class StormServerHandler extends SimpleChannelUpstreamHandler  {
     private static final Logger LOG = LoggerFactory.getLogger(StormServerHandler.class);
-    private static final Set<Class> allowedExceptions = new HashSet<>(Arrays.asList(new Class[] {IOException.class}));
+    private static final Set<Class> allowedExceptions = new HashSet<>(
+        Arrays.asList(IOException.class,
+            ClosedChannelException.class));
+
     IServer server;
     private AtomicInteger failure_count; 
     private Channel channel;
