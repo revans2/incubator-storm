@@ -56,6 +56,10 @@ public class BasicOutputCollector implements IBasicOutputCollector {
         return out;
     }
 
+    public void resetTimeout(Tuple tuple) {
+        out.resetTimeout(tuple);
+    }
+
     public void reportError(Throwable t) {
         out.reportError(t);
     }

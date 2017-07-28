@@ -49,6 +49,7 @@
 (def ACKER-INIT-STREAM-ID acker/ACKER-INIT-STREAM-ID)
 (def ACKER-ACK-STREAM-ID acker/ACKER-ACK-STREAM-ID)
 (def ACKER-FAIL-STREAM-ID acker/ACKER-FAIL-STREAM-ID)
+(def ACKER-RESET-TIMEOUT-STREAM-ID acker/ACKER-RESET-TIMEOUT-STREAM-ID)
 
 (def SYSTEM-STREAM-ID "__system")
 
@@ -194,7 +195,8 @@
         bolt-inputs (apply merge
                            (for [id bolt-ids]
                              {[id ACKER-ACK-STREAM-ID] ["id"]
-                              [id ACKER-FAIL-STREAM-ID] ["id"]}
+                              [id ACKER-FAIL-STREAM-ID] ["id"]
+                              [id ACKER-RESET-TIMEOUT-STREAM-ID] ["id"]}
                              ))]
     (merge spout-inputs bolt-inputs)))
 
@@ -212,6 +214,7 @@
                                          (new backtype.storm.daemon.acker)
                                          {ACKER-ACK-STREAM-ID (thrift/direct-output-fields ["id"])
                                           ACKER-FAIL-STREAM-ID (thrift/direct-output-fields ["id"])
+                                          ACKER-RESET-TIMEOUT-STREAM-ID (thrift/direct-output-fields ["id"])
                                           }
                                          :p num-executors
                                          :conf (build-acker-conf storm-conf num-executors))]
@@ -220,6 +223,7 @@
            (do
              (.put_to_streams common ACKER-ACK-STREAM-ID (thrift/output-fields ["id" "ack-val"]))
              (.put_to_streams common ACKER-FAIL-STREAM-ID (thrift/output-fields ["id"]))
+             (.put_to_streams common ACKER-RESET-TIMEOUT-STREAM-ID (thrift/output-fields ["id"]))
              ))
     (dofor [[_ spout] (.get_spouts ret)
             :let [common (.get_common spout)
@@ -235,6 +239,9 @@
                         (thrift/mk-direct-grouping))
         (.put_to_inputs common
                         (GlobalStreamId. ACKER-COMPONENT-ID ACKER-FAIL-STREAM-ID)
+                        (thrift/mk-direct-grouping))
+        (.put_to_inputs common
+                        (GlobalStreamId. ACKER-COMPONENT-ID ACKER-RESET-TIMEOUT-STREAM-ID)
                         (thrift/mk-direct-grouping))
         ))
     (.put_to_bolts ret "__acker" acker-bolt)
