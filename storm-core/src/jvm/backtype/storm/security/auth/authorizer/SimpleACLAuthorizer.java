@@ -51,22 +51,27 @@ public class SimpleACLAuthorizer implements IAuthorizer {
             "getSupervisorPageInfo",
             "getOwnerResourceSummaries"));
     protected Set<String> _supervisorCommands = new HashSet<String>(Arrays.asList("fileDownload"));
-    protected Set<String> _topoCommands = new HashSet<String>(Arrays.asList(
-            "killTopology",
-            "rebalance",
-            "activate",
-            "deactivate",
+    protected Set<String> _topoReadOnlyCommands = new HashSet<>(Arrays.asList(
             "getTopologyConf",
             "getTopology",
             "getUserTopology",
             "getTopologyInfo",
             "getTopologyPageInfo",
             "getComponentPageInfo",
-            "setLogConfig",
             "getLogConfig",
+            "getComponentPendingProfileActions"));
+    protected Set<String> _topoCommands = new HashSet<String>(Arrays.asList(
+            "killTopology",
+            "rebalance",
+            "activate",
+            "deactivate",
+            "setLogConfig",
             "setWorkerProfiler",
-            "getComponentPendingProfileActions",
             "uploadNewCredentials"));
+
+    {
+        _topoCommands.addAll(_topoReadOnlyCommands);
+    }
 
     protected Set<String> _admins;
     protected Set<String> _adminsGroups;
@@ -145,23 +150,36 @@ public class SimpleACLAuthorizer implements IAuthorizer {
         }
 
         if (_topoCommands.contains(operation)) {
-            Set topoUsers = new HashSet<String>();
-            if (topology_conf.containsKey(Config.TOPOLOGY_USERS)) {
-                topoUsers.addAll((Collection<String>)topology_conf.get(Config.TOPOLOGY_USERS));
-            }
-
-            if (topoUsers.contains(principal) || topoUsers.contains(user)) {
+            if (checkTopoPermission(principal, user, userGroups, topology_conf, Config.TOPOLOGY_USERS, Config.TOPOLOGY_GROUPS)) {
                 return true;
             }
 
-            Set<String> topoGroups = new HashSet<String>();
-            if (topology_conf.containsKey(Config.TOPOLOGY_GROUPS) && topology_conf.get(Config.TOPOLOGY_GROUPS) != null) {
-                topoGroups.addAll((Collection<String>)topology_conf.get(Config.TOPOLOGY_GROUPS));
+            if (_topoReadOnlyCommands.contains(operation) && checkTopoPermission(principal, user, userGroups,
+                    topology_conf, Config.TOPOLOGY_READONLY_USERS, Config.TOPOLOGY_READONLY_GROUPS)) {
+                return true;
             }
-
-            if (checkUserGroupAllowed(userGroups, topoGroups)) return true;
         }
         return false;
+    }
+
+    private Boolean checkTopoPermission(String principal, String user, Set<String> userGroups,
+                                        Map<String, Object> topoConf, String userConfigKey, String groupConfigKey){
+        Set<String> configuredUsers = new HashSet<>();
+
+        if (topoConf.containsKey(userConfigKey)) {
+            configuredUsers.addAll((Collection<String>)topoConf.get(userConfigKey));
+        }
+
+        if (configuredUsers.contains(principal) || configuredUsers.contains(user)) {
+            return true;
+        }
+
+        Set<String> configuredGroups = new HashSet<>();
+        if (topoConf.containsKey(groupConfigKey) && topoConf.get(groupConfigKey) != null) {
+            configuredGroups.addAll((Collection<String>)topoConf.get(groupConfigKey));
+        }
+
+        return checkUserGroupAllowed(userGroups, configuredGroups);
     }
 
     private Boolean checkUserGroupAllowed(Set<String> userGroups, Set<String> configuredGroups) {
