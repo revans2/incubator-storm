@@ -49,12 +49,15 @@ public class ThriftNettyClientCodec {
     private AuthMethod authMethod;
     private Map storm_conf;
     private String host;
+    private final int thriftMessageMaxSize;
 
-    public ThriftNettyClientCodec(PacemakerClient pacemaker_client, Map storm_conf, AuthMethod authMethod, String host) {
+    public ThriftNettyClientCodec(PacemakerClient pacemaker_client, Map storm_conf, AuthMethod authMethod,
+                                  String host, int thriftMessageMaxSizeBytes) {
         client = pacemaker_client;
         this.authMethod = authMethod;
         this.storm_conf = storm_conf;
         this.host = host;
+        thriftMessageMaxSize = thriftMessageMaxSizeBytes;
     }
 
     public ChannelPipelineFactory pipelineFactory() {
@@ -62,7 +65,7 @@ public class ThriftNettyClientCodec {
             public ChannelPipeline getPipeline() {
                 ChannelPipeline pipeline = Channels.pipeline();
                 pipeline.addLast("encoder", new ThriftEncoder());
-                pipeline.addLast("decoder", new ThriftDecoder((Integer)storm_conf.get(Config.PACEMAKER_THRIFT_MESSAGE_SIZE_MAX)));
+                pipeline.addLast("decoder", new ThriftDecoder(thriftMessageMaxSize));
 
                 if (authMethod == AuthMethod.KERBEROS) {
                     try {

@@ -92,7 +92,7 @@ public class ThriftEncoder extends OneToOneEncoder {
         }
 
         try {
-            byte serialized[] = Utils.thriftSerialize((TBase)m);
+            byte serialized[] = Utils.thriftSerialize(m);
             ChannelBuffer ret = ChannelBuffers.directBuffer(serialized.length + 4);
 
             ret.writeInt(serialized.length);

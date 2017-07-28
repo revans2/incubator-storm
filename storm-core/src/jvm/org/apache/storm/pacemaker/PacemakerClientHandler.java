@@ -28,12 +28,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import backtype.storm.messaging.netty.ControlMessage;
 
+import java.net.ConnectException;
+
 public class PacemakerClientHandler extends SimpleChannelUpstreamHandler {
     private static final Logger LOG = LoggerFactory.getLogger(PacemakerClientHandler.class);
 
     private PacemakerClient client;
-
-
 
     public PacemakerClientHandler(PacemakerClient client) {
         this.client = client;
@@ -69,7 +69,13 @@ public class PacemakerClientHandler extends SimpleChannelUpstreamHandler {
 
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, ExceptionEvent event) {
-        LOG.error("Connection to pacemaker failed", event.getCause());
+        Throwable t = event.getCause();
+        if(t instanceof ConnectException) {
+            LOG.warn("Connection to pacemaker failed. Trying to reconnect {}", t.getMessage());
+        }
+        else {
+            LOG.error("Exception occurred in Pacemaker.", t);
+        }
         client.reconnect();
     }
 }

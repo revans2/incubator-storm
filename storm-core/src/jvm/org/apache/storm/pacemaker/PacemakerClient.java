@@ -56,13 +56,10 @@ public class PacemakerClient implements ISaslClient {
     private HBMessage messages[];
     private LinkedBlockingQueue<Integer> availableMessageSlots;
     private ThriftNettyClientCodec.AuthMethod authMethod;
-    private static Timer timer;
+
+    private static Timer  timer = new Timer(true);
+
     private String host;
-
-    static {
-        timer = new Timer(true);
-    }
-
     private StormBoundedExponentialBackoffRetry backoff = new StormBoundedExponentialBackoffRetry(100, 5000, 20);
     private int retryTimes = 0;
 
@@ -77,8 +74,9 @@ public class PacemakerClient implements ISaslClient {
         String auth = (String)config.get(Config.PACEMAKER_AUTH_METHOD);
         ThriftNettyClientCodec.AuthMethod authMethod;
 
-        if(auth.equals("DIGEST")) {
+        switch(auth) {
 
+        case "DIGEST":
             Configuration login_conf = AuthUtils.GetConfiguration(config);
             authMethod = ThriftNettyClientCodec.AuthMethod.DIGEST;
             secret = AuthUtils.makeDigestPayload(login_conf, AuthUtils.LOGIN_CONTEXT_PACEMAKER_DIGEST);
@@ -86,17 +84,20 @@ public class PacemakerClient implements ISaslClient {
                 LOG.error("Can't start pacemaker server without digest secret.");
                 throw new RuntimeException("Can't start pacemaker server without digest secret.");
             }
+            break;
 
-        }
-        else if(auth.equals("KERBEROS")) {
+        case "KERBEROS":
             authMethod = ThriftNettyClientCodec.AuthMethod.KERBEROS;
-        }
-        else {
-            if(!auth.equals("NONE")) {
-                LOG.warn("Invalid auth scheme: '{}'. Falling back to 'NONE'", auth);
-            }
+            break;
 
+        case "NONE":
             authMethod = ThriftNettyClientCodec.AuthMethod.NONE;
+            break;
+
+        default:
+            authMethod = ThriftNettyClientCodec.AuthMethod.NONE;
+            LOG.warn("Invalid auth scheme: '{}'. Falling back to 'NONE'", auth);
+            break;
         }
 
         ready = new AtomicBoolean(false);
@@ -115,7 +116,10 @@ public class PacemakerClient implements ISaslClient {
         bootstrap.setOption("keepAlive", true);
 
         remote_addr = new InetSocketAddress(host, port);
-        ChannelPipelineFactory pipelineFactory = new ThriftNettyClientCodec(this, config, authMethod, host).pipelineFactory();
+        int thriftMessageMaxSize = (Integer) config.get(Config.PACEMAKER_THRIFT_MESSAGE_SIZE_MAX);
+        ChannelPipelineFactory pipelineFactory =
+                new ThriftNettyClientCodec(this, config, authMethod, host, thriftMessageMaxSize)
+                .pipelineFactory();
         bootstrap.setPipelineFactory(pipelineFactory);
         bootstrap.connect(remote_addr);
     }

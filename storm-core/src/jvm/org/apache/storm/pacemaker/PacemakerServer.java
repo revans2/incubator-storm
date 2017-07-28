@@ -61,7 +61,9 @@ class PacemakerServer implements ISaslServer {
         this.topo_name = "pacemaker_server";
 
         String auth = (String)config.get(Config.PACEMAKER_AUTH_METHOD);
-        if(auth.equals("DIGEST")) {
+        switch(auth) {
+
+        case "DIGEST":
             Configuration login_conf = AuthUtils.GetConfiguration(config);
             authMethod = ThriftNettyServerCodec.AuthMethod.DIGEST;
             this.secret = AuthUtils.makeDigestPayload(login_conf, AuthUtils.LOGIN_CONTEXT_PACEMAKER_DIGEST);
@@ -69,16 +71,20 @@ class PacemakerServer implements ISaslServer {
                 LOG.error("Can't start pacemaker server without digest secret.");
                 throw new RuntimeException("Can't start pacemaker server without digest secret.");
             }
-        }
-        else if(auth.equals("KERBEROS")) {
+            break;
+
+        case "KERBEROS":
             authMethod = ThriftNettyServerCodec.AuthMethod.KERBEROS;
-        }
-        else if(auth.equals("NONE")) {
+            break;
+
+        case "NONE":
             authMethod = ThriftNettyServerCodec.AuthMethod.NONE;
-        }
-        else {
+            break;
+
+        default:
             LOG.error("Can't start pacemaker server without proper PACEMAKER_AUTH_METHOD.");
             throw new RuntimeException("Can't start pacemaker server without proper PACEMAKER_AUTH_METHOD.");
+
         }
 
         ThreadFactory bossFactory = new NettyRenameThreadFactory("server-boss");
@@ -100,8 +106,10 @@ class PacemakerServer implements ISaslServer {
         bootstrap.setOption("tcpNoDelay", true);
         bootstrap.setOption("sendBufferSize", FIVE_MB_IN_BYTES);
         bootstrap.setOption("keepAlive", true);
-
-        ChannelPipelineFactory pipelineFactory = new ThriftNettyServerCodec(this, config, authMethod).pipelineFactory();
+        int thriftMessageMaxSize = (Integer)config.get(Config.PACEMAKER_THRIFT_MESSAGE_SIZE_MAX);
+        ChannelPipelineFactory pipelineFactory =
+                new ThriftNettyServerCodec(this, config, authMethod, thriftMessageMaxSize)
+                        .pipelineFactory();
         bootstrap.setPipelineFactory(pipelineFactory);
         Channel channel = bootstrap.bind(new InetSocketAddress(port));
         allChannels.add(channel);

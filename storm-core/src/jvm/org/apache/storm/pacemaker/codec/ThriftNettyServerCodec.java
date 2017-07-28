@@ -47,14 +47,16 @@ public class ThriftNettyServerCodec {
     private IServer server;
     private AuthMethod authMethod;
     private Map storm_conf;
+    private final int thriftMessageMaxSize;
     
     private static final Logger LOG = LoggerFactory
         .getLogger(ThriftNettyServerCodec.class);
 
-    public ThriftNettyServerCodec(IServer server, Map storm_conf, AuthMethod authMethod) {
+    public ThriftNettyServerCodec(IServer server, Map storm_conf, AuthMethod authMethod, int thriftMessageMaxSizeBytes) {
         this.server = server;
         this.authMethod = authMethod;
         this.storm_conf = storm_conf;
+        thriftMessageMaxSize = thriftMessageMaxSizeBytes;
     }
 
     public ChannelPipelineFactory pipelineFactory() {
@@ -63,7 +65,7 @@ public class ThriftNettyServerCodec {
 
                 ChannelPipeline pipeline = Channels.pipeline();
                 pipeline.addLast("encoder", new ThriftEncoder());
-                pipeline.addLast("decoder", new ThriftDecoder((Integer)storm_conf.get(Config.PACEMAKER_THRIFT_MESSAGE_SIZE_MAX)));
+                pipeline.addLast("decoder", new ThriftDecoder(thriftMessageMaxSize));
                 if(authMethod == AuthMethod.DIGEST) {
                     try {
                         LOG.debug("Adding SaslStormServerHandler to pacemaker server pipeline.");
