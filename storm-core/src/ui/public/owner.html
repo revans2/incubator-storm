@@ -176,8 +176,16 @@
                         $('#owner-resource-guarantee-summary').hide();
                     }
 
-                    if(response && (response["memoryGuaranteeRemaining"] < 0 || response["cpuGuaranteeRemaining"] < 0
-                        || response["memoryGuaranteeRemaining"] == "N/A" || response["cpuGuaranteeRemaining"] == "N/A")) {
+                    if (response && response["resourceGuaranteeWarningEnabled"] == true &&
+                        (response["memoryGuaranteeRemaining"] < 0 || response["cpuGuaranteeRemaining"] < 0 ||
+                            ( response["resourceGuaranteeAllWarningEnabled"] == true &&
+                                (response["memoryGuaranteeRemaining"] == "N/A" || response["cpuGuaranteeRemaining"] == "N/A")))) {
+                        if (response["memoryGuaranteeRemaining"] == "N/A" || response["cpuGuaranteeRemaining"] == "N/A") {
+                            var h=document.querySelector('.warning p');
+                            var p=document.querySelector('.warning H1');
+                            p.innerHTML="Please note that user has no guarantees. Please request for resources to ensure topologies for this user will continue to run.";
+                            h.innerHTML="This user's topologies are in danger of being unscheduled as the owner has NO resource guarantees.";
+                        }
                         $(".warning").show();
                     } else {
                         $(".warning").hide();

@@ -777,6 +777,20 @@ public class Config extends HashMap<String, Object> {
     public static final String UI_CENTRAL_LOGGING_URL = "ui.central.logging.url";
 
     /**
+     * When enabled, a warning banner will be shown for users using RAS, who have resource guarantees
+     * and have gone over their guarantees.
+     */
+    @isBoolean
+    public static final String UI_RESOURCE_GUARANTEE_WARNING_ENABLED = "ui.resource.guarantee.warning.enabled";
+
+    /**
+     * When enabled, a warning banner will be shown for users using RAS, who have no resource guarantees.
+     * This works if {@link Config#UI_RESOURCE_GUARANTEE_WARNING_ENABLED} is enabled.
+     */
+    @isBoolean
+    public static final String UI_RESOURCE_GUARANTEE_ALL_WARNING_ENABLED = "ui.resource.guarantee.all.warning.enabled";
+
+    /**
      * HTTP UI port for log viewer
      */
     @isInteger

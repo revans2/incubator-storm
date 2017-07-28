@@ -951,7 +951,9 @@
 (defn owner-resource-summary [owner]
   (with-nimbus nimbus
     (let [summaries (.getOwnerResourceSummaries nimbus owner)]
-      (merge {"schedulerDisplayResource" (*STORM-CONF* SCHEDULER-DISPLAY-RESOURCE)}
+      (merge {"schedulerDisplayResource" (*STORM-CONF* SCHEDULER-DISPLAY-RESOURCE)
+              "resourceGuaranteeWarningEnabled" (*STORM-CONF* UI-RESOURCE-GUARANTEE-WARNING-ENABLED)
+              "resourceGuaranteeAllWarningEnabled" (*STORM-CONF* UI-RESOURCE-GUARANTEE-ALL-WARNING-ENABLED)}
              (if (empty? summaries)
                ;; send a default value, we couldn't find topos by that owner
                (unpack-owner-resource-summary (OwnerResourceSummary. owner))
