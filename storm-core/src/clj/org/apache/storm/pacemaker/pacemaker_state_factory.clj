@@ -228,7 +228,7 @@
                                              :error))
                                          (catch Exception e
                                            (do
-                                             (log-error e "Error getting worker heartbeat for host " host client)
+                                             (log-error e "Error getting worker heartbeat for host " client)
                                              :error))))
                                      @pacemaker-client-pool))]
              (if (every? (fn [result] (= :error result)) results)
