@@ -85,7 +85,7 @@ public class StormServerHandler extends SimpleChannelUpstreamHandler  {
         try {
             Utils.handleUncaughtException(e.getCause(), allowedExceptions);
         } catch (Error error) {
-            LOG.error("Received error in netty thread from {} {} terminating server...", ctx.getName(), ctx.getChannel());
+            LOG.error("Received error in netty thread from {} {} terminating server...{}", ctx.getName(), ctx.getChannel(), e.getCause());
             Runtime.getRuntime().exit(1);
         }
     }
