@@ -1087,7 +1087,8 @@
                                   owner
                                   nil
                                   nil
-                                  principal))))
+                                  principal
+                                  (storm-conf TOPOLOGY-VERSION)))))
 
 (defn storm-active? [storm-cluster-state storm-name]
   (not-nil? (get-storm-id storm-cluster-state storm-name)))
@@ -1974,6 +1975,7 @@
                                                             (time-delta (:launch-time-secs base))
                                                             (extract-status-str base))]
                                                (when-let [owner (:owner base)] (.set_owner topo-summ owner))
+                                               (when-let [topology-version (:topology-version base)] (.set_topology_version topo-summ topology-version))
                                                (when-let [sched-status (.get @(:id->sched-status nimbus) id)] (.set_sched_status topo-summ sched-status))
                                                (when-let [resources (get-resources-for-topology nimbus id base)]
                                                  (.set_requested_memonheap topo-summ (.getRequestedMemOnHeap resources))
@@ -2108,6 +2110,8 @@
           (.set_workers topo-page-info worker-summaries)
           (when-let [owner (:owner base)]
             (.set_owner topo-page-info owner))
+          (when-let [topology-version (:topology-version base)]
+            (.set_topology_version topo-page-info topology-version))
           (when-let [sched-status (.get @(:id->sched-status nimbus) storm-id)]
             (.set_sched_status topo-page-info sched-status))
           (when-let [resources (get-resources-for-topology nimbus storm-id base)]

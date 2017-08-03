@@ -2111,6 +2111,7 @@ class TopologySummary:
    - num_workers
    - uptime_secs
    - status
+   - topology_version
    - sched_status
    - owner
    - requested_memonheap
@@ -2131,7 +2132,7 @@ class TopologySummary:
     (6, TType.I32, 'uptime_secs', None, None, ), # 6
     (7, TType.STRING, 'status', None, None, ), # 7
     None, # 8
-    None, # 9
+    (9, TType.STRING, 'topology_version', None, None, ), # 9
     None, # 10
     None, # 11
     None, # 12
@@ -2651,7 +2652,7 @@ class TopologySummary:
     (526, TType.DOUBLE, 'assigned_cpu', None, None, ), # 526
   )
 
-  def __init__(self, id=None, name=None, num_tasks=None, num_executors=None, num_workers=None, uptime_secs=None, status=None, sched_status=None, owner=None, requested_memonheap=None, requested_memoffheap=None, requested_cpu=None, assigned_memonheap=None, assigned_memoffheap=None, assigned_cpu=None,):
+  def __init__(self, id=None, name=None, num_tasks=None, num_executors=None, num_workers=None, uptime_secs=None, status=None, topology_version=None, sched_status=None, owner=None, requested_memonheap=None, requested_memoffheap=None, requested_cpu=None, assigned_memonheap=None, assigned_memoffheap=None, assigned_cpu=None,):
     self.id = id
     self.name = name
     self.num_tasks = num_tasks
@@ -2659,6 +2660,7 @@ class TopologySummary:
     self.num_workers = num_workers
     self.uptime_secs = uptime_secs
     self.status = status
+    self.topology_version = topology_version
     self.sched_status = sched_status
     self.owner = owner
     self.requested_memonheap = requested_memonheap
@@ -2710,6 +2712,11 @@ class TopologySummary:
       elif fid == 7:
         if ftype == TType.STRING:
           self.status = iprot.readString().decode('utf-8')
+        else:
+          iprot.skip(ftype)
+      elif fid == 9:
+        if ftype == TType.STRING:
+          self.topology_version = iprot.readString().decode('utf-8')
         else:
           iprot.skip(ftype)
       elif fid == 513:
@@ -2790,6 +2797,10 @@ class TopologySummary:
       oprot.writeFieldBegin('status', TType.STRING, 7)
       oprot.writeString(self.status.encode('utf-8'))
       oprot.writeFieldEnd()
+    if self.topology_version is not None:
+      oprot.writeFieldBegin('topology_version', TType.STRING, 9)
+      oprot.writeString(self.topology_version.encode('utf-8'))
+      oprot.writeFieldEnd()
     if self.sched_status is not None:
       oprot.writeFieldBegin('sched_status', TType.STRING, 513)
       oprot.writeString(self.sched_status.encode('utf-8'))
@@ -2852,6 +2863,7 @@ class TopologySummary:
     value = (value * 31) ^ hash(self.num_workers)
     value = (value * 31) ^ hash(self.uptime_secs)
     value = (value * 31) ^ hash(self.status)
+    value = (value * 31) ^ hash(self.topology_version)
     value = (value * 31) ^ hash(self.sched_status)
     value = (value * 31) ^ hash(self.owner)
     value = (value * 31) ^ hash(self.requested_memonheap)
@@ -6476,6 +6488,7 @@ class TopologyPageInfo:
    - owner
    - workers
    - errors
+   - topology_version
    - requested_memonheap
    - requested_memoffheap
    - requested_cpu
@@ -6511,7 +6524,7 @@ class TopologyPageInfo:
     (15, TType.LIST, 'errors', (TType.STRUCT,(ErrorInfo, ErrorInfo.thrift_spec)), None, ), # 15
     None, # 16
     None, # 17
-    None, # 18
+    (18, TType.STRING, 'topology_version', None, None, ), # 18
     None, # 19
     None, # 20
     None, # 21
@@ -7030,7 +7043,7 @@ class TopologyPageInfo:
     (534, TType.DOUBLE, 'assigned_shared_off_heap_memory', None, None, ), # 534
   )
 
-  def __init__(self, id=None, name=None, uptime_secs=None, status=None, num_tasks=None, num_workers=None, num_executors=None, topology_conf=None, id_to_spout_agg_stats=None, id_to_bolt_agg_stats=None, sched_status=None, topology_stats=None, owner=None, workers=None, errors=None, requested_memonheap=None, requested_memoffheap=None, requested_cpu=None, assigned_memonheap=None, assigned_memoffheap=None, assigned_cpu=None, requested_regular_on_heap_memory=None, requested_shared_on_heap_memory=None, requested_regular_off_heap_memory=None, requested_shared_off_heap_memory=None, assigned_regular_on_heap_memory=None, assigned_shared_on_heap_memory=None, assigned_regular_off_heap_memory=None, assigned_shared_off_heap_memory=None,):
+  def __init__(self, id=None, name=None, uptime_secs=None, status=None, num_tasks=None, num_workers=None, num_executors=None, topology_conf=None, id_to_spout_agg_stats=None, id_to_bolt_agg_stats=None, sched_status=None, topology_stats=None, owner=None, workers=None, errors=None, topology_version=None, requested_memonheap=None, requested_memoffheap=None, requested_cpu=None, assigned_memonheap=None, assigned_memoffheap=None, assigned_cpu=None, requested_regular_on_heap_memory=None, requested_shared_on_heap_memory=None, requested_regular_off_heap_memory=None, requested_shared_off_heap_memory=None, assigned_regular_on_heap_memory=None, assigned_shared_on_heap_memory=None, assigned_regular_off_heap_memory=None, assigned_shared_off_heap_memory=None,):
     self.id = id
     self.name = name
     self.uptime_secs = uptime_secs
@@ -7046,6 +7059,7 @@ class TopologyPageInfo:
     self.owner = owner
     self.workers = workers
     self.errors = errors
+    self.topology_version = topology_version
     self.requested_memonheap = requested_memonheap
     self.requested_memoffheap = requested_memoffheap
     self.requested_cpu = requested_cpu
@@ -7170,6 +7184,11 @@ class TopologyPageInfo:
             _elem419.read(iprot)
             self.errors.append(_elem419)
           iprot.readListEnd()
+        else:
+          iprot.skip(ftype)
+      elif fid == 18:
+        if ftype == TType.STRING:
+          self.topology_version = iprot.readString().decode('utf-8')
         else:
           iprot.skip(ftype)
       elif fid == 521:
@@ -7326,6 +7345,10 @@ class TopologyPageInfo:
         iter425.write(oprot)
       oprot.writeListEnd()
       oprot.writeFieldEnd()
+    if self.topology_version is not None:
+      oprot.writeFieldBegin('topology_version', TType.STRING, 18)
+      oprot.writeString(self.topology_version.encode('utf-8'))
+      oprot.writeFieldEnd()
     if self.requested_memonheap is not None:
       oprot.writeFieldBegin('requested_memonheap', TType.DOUBLE, 521)
       oprot.writeDouble(self.requested_memonheap)
@@ -7408,6 +7431,7 @@ class TopologyPageInfo:
     value = (value * 31) ^ hash(self.owner)
     value = (value * 31) ^ hash(self.workers)
     value = (value * 31) ^ hash(self.errors)
+    value = (value * 31) ^ hash(self.topology_version)
     value = (value * 31) ^ hash(self.requested_memonheap)
     value = (value * 31) ^ hash(self.requested_memoffheap)
     value = (value * 31) ^ hash(self.requested_cpu)
@@ -9366,6 +9390,7 @@ class StormBase:
    - topology_action_options
    - prev_status
    - principal
+   - topology_version
   """
 
   thrift_spec = (
@@ -9380,9 +9405,10 @@ class StormBase:
     (8, TType.I32, 'prev_status', None, None, ), # 8
     None, # 9
     (10, TType.STRING, 'principal', None, None, ), # 10
+    (11, TType.STRING, 'topology_version', None, None, ), # 11
   )
 
-  def __init__(self, name=None, status=None, num_workers=None, component_executors=None, launch_time_secs=None, owner=None, topology_action_options=None, prev_status=None, principal=None,):
+  def __init__(self, name=None, status=None, num_workers=None, component_executors=None, launch_time_secs=None, owner=None, topology_action_options=None, prev_status=None, principal=None, topology_version=None,):
     self.name = name
     self.status = status
     self.num_workers = num_workers
@@ -9392,6 +9418,7 @@ class StormBase:
     self.topology_action_options = topology_action_options
     self.prev_status = prev_status
     self.principal = principal
+    self.topology_version = topology_version
 
   def read(self, iprot):
     if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
@@ -9454,6 +9481,11 @@ class StormBase:
           self.principal = iprot.readString().decode('utf-8')
         else:
           iprot.skip(ftype)
+      elif fid == 11:
+        if ftype == TType.STRING:
+          self.topology_version = iprot.readString().decode('utf-8')
+        else:
+          iprot.skip(ftype)
       else:
         iprot.skip(ftype)
       iprot.readFieldEnd()
@@ -9504,6 +9536,10 @@ class StormBase:
       oprot.writeFieldBegin('principal', TType.STRING, 10)
       oprot.writeString(self.principal.encode('utf-8'))
       oprot.writeFieldEnd()
+    if self.topology_version is not None:
+      oprot.writeFieldBegin('topology_version', TType.STRING, 11)
+      oprot.writeString(self.topology_version.encode('utf-8'))
+      oprot.writeFieldEnd()
     oprot.writeFieldStop()
     oprot.writeStructEnd()
 
@@ -9528,6 +9564,7 @@ class StormBase:
     value = (value * 31) ^ hash(self.topology_action_options)
     value = (value * 31) ^ hash(self.prev_status)
     value = (value * 31) ^ hash(self.principal)
+    value = (value * 31) ^ hash(self.topology_version)
     return value
 
   def __repr__(self):

@@ -1663,6 +1663,12 @@ public class Config extends HashMap<String, Object> {
     public static final String TOPOLOGY_DEBUG = "topology.debug";
 
     /**
+     * User defined version of this topology
+     */
+    @isString
+    public static final String TOPOLOGY_VERSION = "topology.version";
+
+    /**
      * The serializer for communication between shell components and non-JVM
      * processes
      */
@@ -2586,6 +2592,14 @@ public class Config extends HashMap<String, Object> {
 
     public void setDebug(boolean isOn) {
         setDebug(this, isOn);
+    }
+
+    public static void setTopologyVersion(Map<String, Object> conf, String version) {
+        conf.put(Config.TOPOLOGY_VERSION, version);
+    }
+
+    public void setTopologyVersion(String version) {
+        setTopologyVersion(this, version);
     }
 
     public static void setNumWorkers(Map conf, int workers) {
