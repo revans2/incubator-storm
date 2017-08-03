@@ -186,6 +186,11 @@
     (when http-creds-handler
       (.populateContext http-creds-handler (ReqContext/context) servlet-request)))
 
+(defn handle-drpc-exception [e]
+  {:status 400
+   :body  (str "Caught DRPC exception: " (.get_msg e))}
+  )
+
 (defn webapp [handler http-creds-handler]
   (mark! drpc:num-execute-http-requests)
   (->
@@ -200,13 +205,22 @@
           (.execute handler func args)))
       (GET "/drpc/:func/:args" [:as {:keys [servlet-request]} func args & m]
           (populate-context! http-creds-handler servlet-request)
-          (.execute handler func args))
+          (try
+            (.execute handler func args)
+            (catch DRPCExecutionException e 
+              (handle-drpc-exception e))))
       (GET "/drpc/:func/" [:as {:keys [servlet-request]} func & m]
           (populate-context! http-creds-handler servlet-request)
-          (.execute handler func ""))
+          (try
+            (.execute handler func "")
+            (catch DRPCExecutionException e 
+              (handle-drpc-exception e))))
       (GET "/drpc/:func" [:as {:keys [servlet-request]} func & m]
           (populate-context! http-creds-handler servlet-request)
-          (.execute handler func "")))
+          (try
+            (.execute handler func "")
+            (catch DRPCExecutionException e 
+              (handle-drpc-exception e)))))
     (wrap-reload '[backtype.storm.daemon.drpc])
     handle-request))
 
