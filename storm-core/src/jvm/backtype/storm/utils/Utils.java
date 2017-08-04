@@ -1386,6 +1386,7 @@ public class Utils {
                 return;
             }
             //Running in daemon mode, we would pass Error to calling thread.
+            LOG.info("Bubble up the Error {} {}", t.getClass(), t);
             throw new Error(t);
         }
     }
