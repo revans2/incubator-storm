@@ -129,6 +129,9 @@ public class CoordinatedBolt implements IRichBolt {
             _delegate.reportError(error);
         }
 
+        public void resetTimeout(Tuple tuple) {
+            _delegate.resetTimeout(tuple);
+        }
 
         private void updateTaskCounts(Object id, List<Integer> tasks) {
             synchronized(_tracked) {

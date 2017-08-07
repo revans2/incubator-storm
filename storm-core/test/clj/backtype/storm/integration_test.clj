@@ -22,6 +22,7 @@
   (:import [backtype.storm.testing TestWordCounter TestWordSpout TestGlobalCount
             TestAggregatesCounter TestConfBolt AckFailMapTracker AckTracker TestPlannerSpout])
   (:import [backtype.storm.task WorkerTopologyContext])
+  (:import [backtype.storm.utils Time])
   (:import [backtype.storm.tuple Fields])
   (:import [org.mockito Mockito])
   (:use [backtype.storm testing config clojure util log])
@@ -128,6 +129,41 @@
       (advance-cluster-time cluster 12)
       (assert-failed tracker 2)
       )))
+
+(defbolt extend-timeout-twice {} {:prepare true}
+  [conf context collector]
+  (let [state (atom -1)]
+    (bolt
+      (execute [tuple]
+        (do
+          (Time/sleep (* 8 1000))
+          (reset-timeout! collector tuple)
+          (Time/sleep (* 8 1000))
+          (reset-timeout! collector tuple)
+          (Time/sleep (* 8 1000))
+          (ack! collector tuple)
+          )))))
+
+(deftest test-reset-timeout
+  (with-simulated-time-local-cluster [cluster :daemon-conf {TOPOLOGY-ENABLE-MESSAGE-TIMEOUTS true}]
+    (let [feeder (feeder-spout ["field1"])
+          tracker (AckFailMapTracker.)
+          _ (.setAckFailDelegate feeder tracker)
+          topology (thrift/mk-topology
+                     {"1" (thrift/mk-spout-spec feeder)}
+                     {"2" (thrift/mk-bolt-spec {"1" :global} extend-timeout-twice)})]
+         (submit-local-topology (:nimbus cluster)
+                                "timeout-tester"
+                                {TOPOLOGY-MESSAGE-TIMEOUT-SECS 10}
+                                topology)
+         (advance-cluster-time cluster 11)
+         (.feed feeder ["a"] 1)
+         (advance-cluster-time cluster 21)
+         (is (not (.isFailed tracker 1)))
+         (is (not (.isAcked tracker 1)))
+         (advance-cluster-time cluster 5)
+         (assert-acked tracker 1)
+         )))
 
 (defn mk-validate-topology-1 []
   (thrift/mk-topology
