@@ -42,7 +42,7 @@ public class LoadSpout  extends BaseRichSpout {
             super(stats);
             histogram = new HistogramMetric(3600000000000L, 3);
             //TODO perhaps we can adjust the frequency later...
-            context.registerMetric("comp-lat-histo-"+stats.name, histogram, 60);
+            context.registerMetric("comp-lat-histo-"+stats.name, histogram, 10);
         }
     }
 
