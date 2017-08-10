@@ -16,16 +16,13 @@
  * limitations under the License.
  */
 
-package org.apache.storm.starter;
+package org.apache.storm.starter.loadgen;
 
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicLong;
-
 import org.HdrHistogram.Histogram;
 import org.apache.storm.Config;
 import org.apache.storm.StormSubmitter;
@@ -36,136 +33,19 @@ import org.apache.storm.generated.Nimbus;
 import org.apache.storm.generated.SpoutStats;
 import org.apache.storm.generated.TopologyInfo;
 import org.apache.storm.generated.TopologySummary;
+import org.apache.storm.metric.api.IMetricsConsumer;
 import org.apache.storm.metric.api.IMetricsConsumer.DataPoint;
-import org.apache.storm.metric.api.IMetricsConsumer.TaskInfo;
-import org.apache.storm.metrics.hdrhistogram.HistogramMetric;
 import org.apache.storm.misc.metric.HttpForwardingMetricsServer;
-import org.apache.storm.spout.SpoutOutputCollector;
-import org.apache.storm.task.TopologyContext;
-import org.apache.storm.topology.BasicOutputCollector;
-import org.apache.storm.topology.OutputFieldsDeclarer;
+import org.apache.storm.starter.ThroughputVsLatency;
 import org.apache.storm.topology.TopologyBuilder;
-import org.apache.storm.topology.base.BaseBasicBolt;
-import org.apache.storm.topology.base.BaseRichSpout;
 import org.apache.storm.tuple.Fields;
-import org.apache.storm.tuple.Tuple;
-import org.apache.storm.tuple.Values;
 import org.apache.storm.utils.NimbusClient;
 
 /**
- * WordCount but the spout goes at a predefined rate and we collect
- * proper latency statistics.
+ * Generate a simulated load
  */
-public class ThroughputVsLatency {
-    private static class SentWithTime {
-        public final String sentence;
-        public final long time;
-
-        SentWithTime(String sentence, long time) {
-            this.sentence = sentence;
-            this.time = time;
-        }
-    }
-
-    public static class FastRandomSentenceSpout extends BaseRichSpout {
-        static final String[] SENTENCES = new String[]{ "the cow jumped over the moon", "an apple a day keeps the doctor away",
-                "four score and seven years ago", "snow white and the seven dwarfs", "i am at two with nature" };
-
-        SpoutOutputCollector _collector;
-        long _periodNano;
-        long _emitAmount;
-        Random _rand;
-        long _nextEmitTime;
-        long _emitsLeft;
-        HistogramMetric _histo;
-
-        public FastRandomSentenceSpout(long ratePerSecond) {
-            if (ratePerSecond > 0) {
-                _periodNano = Math.max(1, 1000000000/ratePerSecond);
-                _emitAmount = Math.max(1, (long)((ratePerSecond / 1000000000.0) * _periodNano));
-            } else {
-                _periodNano = Long.MAX_VALUE - 1;
-                _emitAmount = 1;
-            }
-        }
-
-        @Override
-        public void open(Map<String, Object> conf, TopologyContext context, SpoutOutputCollector collector) {
-            _collector = collector;
-            _rand = ThreadLocalRandom.current();
-            _nextEmitTime = System.nanoTime();
-            _emitsLeft = _emitAmount;
-            _histo = new HistogramMetric(3600000000000L, 3);
-            context.registerMetric("comp-lat-histo", _histo, 10); //Update every 10 seconds, so we are not too far behind
-        }
-
-        @Override
-        public void nextTuple() {
-            if (_emitsLeft <= 0 && _nextEmitTime <= System.nanoTime()) {
-                _emitsLeft = _emitAmount;
-                _nextEmitTime = _nextEmitTime + _periodNano;
-            }
-
-            if (_emitsLeft > 0) {
-                String sentence = SENTENCES[_rand.nextInt(SENTENCES.length)];
-                _collector.emit(new Values(sentence), new SentWithTime(sentence, _nextEmitTime - _periodNano));
-                _emitsLeft--;
-            }
-        }
-
-        @Override
-        public void ack(Object id) {
-            long end = System.nanoTime();
-            SentWithTime st = (SentWithTime)id;
-            _histo.recordValue(end-st.time);
-        }
-
-        @Override
-        public void fail(Object id) {
-            SentWithTime st = (SentWithTime)id;
-            _collector.emit(new Values(st.sentence), id);
-        }
-
-        @Override
-        public void declareOutputFields(OutputFieldsDeclarer declarer) {
-            declarer.declare(new Fields("sentence"));
-        }
-    }
-
-    public static class SplitSentence extends BaseBasicBolt {
-        @Override
-        public void execute(Tuple tuple, BasicOutputCollector collector) {
-            String sentence = tuple.getString(0);
-            for (String word: sentence.split("\\s+")) {
-                collector.emit(new Values(word, 1));
-            }
-        }
-
-        @Override
-        public void declareOutputFields(OutputFieldsDeclarer declarer) {
-            declarer.declare(new Fields("word", "count"));
-        }
-    }
-
-    public static class WordCount extends BaseBasicBolt {
-        Map<String, Integer> counts = new HashMap<String, Integer>();
-
-        @Override
-        public void execute(Tuple tuple, BasicOutputCollector collector) {
-            String word = tuple.getString(0);
-            Integer count = counts.get(word);
-            if (count == null)
-                count = 0;
-            count++;
-            counts.put(word, count);
-            collector.emit(new Values(word, count));
-        }
-
-        @Override
-        public void declareOutputFields(OutputFieldsDeclarer declarer) {
-            declarer.declare(new Fields("word", "count"));
-        }
-    }
+public class GenLoad {
+    //TODO lets parse a file and do this for real....
 
     private static class MemMeasure {
         private long _mem = 0;
@@ -190,7 +70,7 @@ public class ThroughputVsLatency {
     private static final AtomicLong _userCPU = new AtomicLong(0);
     private static final AtomicLong _gcCount = new AtomicLong(0);
     private static final AtomicLong _gcMs = new AtomicLong(0);
-    private static final ConcurrentHashMap<String, MemMeasure> _memoryBytes = new ConcurrentHashMap<String, MemMeasure>();
+    private static final ConcurrentHashMap<String, MemMeasure> _memoryBytes = new ConcurrentHashMap<>();
 
     private static long readMemory() {
         long total = 0;
@@ -257,8 +137,8 @@ public class ThroughputVsLatency {
         System.out.printf("uptime: %,4d acked: %,9d acked/sec: %,10.2f failed: %,8d " +
                 "99%%: %,15d 99.9%%: %,15d min: %,15d max: %,15d mean: %,15.2f " +
                 "stddev: %,15.2f user: %,10d sys: %,10d gc: %,10d mem: %,10.2f\n",
-                uptime, ackedThisTime, (((double)ackedThisTime)/thisTime), failed, nnpct, nnnpct,
-                min, max, mean, stddev, user, sys, gc, memMB);
+            uptime, ackedThisTime, (((double)ackedThisTime)/thisTime), failed, nnpct, nnnpct,
+            min, max, mean, stddev, user, sys, gc, memMB);
         _prev_uptime = uptime;
         _prev_acked = acked;
     }
@@ -270,33 +150,15 @@ public class ThroughputVsLatency {
     }
 
     public static void main(String[] args) throws Exception {
-        long ratePerSecond = 500;
-        if (args != null && args.length > 0) {
-            ratePerSecond = Long.valueOf(args[0]);
-        }
-
-        int parallelism = 4;
-        if (args != null && args.length > 1) {
-            parallelism = Integer.valueOf(args[1]);
-        }
-
-        int numMins = 5;
-        if (args != null && args.length > 2) {
-            numMins = Integer.valueOf(args[2]);
-        }
-
-        String name = "wc-test";
-        if (args != null && args.length > 3) {
-            name = args[3];
-        }
-
         Config conf = new Config();
+        //TODO need to do this better
         HttpForwardingMetricsServer metricServer = new HttpForwardingMetricsServer(conf) {
             @Override
-            public void handle(TaskInfo taskInfo, Collection<DataPoint> dataPoints) {
+            public void handle(IMetricsConsumer.TaskInfo taskInfo, Collection<DataPoint> dataPoints) {
+                //crud no simple way to tie this to a given topology :(
                 String worker = taskInfo.srcWorkerHost + ":" + taskInfo.srcWorkerPort;
                 for (DataPoint dp: dataPoints) {
-                    if ("comp-lat-histo".equals(dp.name) && dp.value instanceof Histogram) {
+                    if (dp.name.startsWith("comp-lat-histo") && dp.value instanceof Histogram) {
                         synchronized(_histo) {
                             _histo.add((Histogram)dp.value);
                         }
@@ -328,7 +190,7 @@ public class ThroughputVsLatency {
                             if (mm == null) {
                                 mm = new MemMeasure();
                                 MemMeasure tmp = _memoryBytes.putIfAbsent(worker, mm);
-                                mm = tmp == null ? mm : tmp; 
+                                mm = tmp == null ? mm : tmp;
                             }
                             mm.update(((Number)val).longValue());
                         }
@@ -341,10 +203,11 @@ public class ThroughputVsLatency {
         String url = metricServer.getUrl();
 
         NimbusClient client = NimbusClient.getConfiguredClient(conf);
-        conf.setNumWorkers(parallelism);
+        //TODO need to generate topologies from a file not hard coded...
+        conf.setNumWorkers(1);
         conf.registerMetricsConsumer(org.apache.storm.metric.LoggingMetricsConsumer.class);
         conf.registerMetricsConsumer(org.apache.storm.misc.metric.HttpForwardingMetricsConsumer.class, url, 1);
-        Map<String, String> workerMetrics = new HashMap<String, String>();
+        Map<String, String> workerMetrics = new HashMap<>();
         if (!NimbusClient.isLocalOverride()) {
             //sigar uses JNI and does not work in local mode
             workerMetrics.put("CPU", "org.apache.storm.metrics.sigar.CPUMetric");
@@ -352,25 +215,35 @@ public class ThroughputVsLatency {
         conf.put(Config.TOPOLOGY_WORKER_METRICS, workerMetrics);
         conf.put(Config.TOPOLOGY_BUILTIN_METRICS_BUCKET_SIZE_SECS, 10);
         conf.put(Config.TOPOLOGY_WORKER_GC_CHILDOPTS,
-                "-XX:+UseConcMarkSweepGC -XX:+UseParNewGC -XX:+UseConcMarkSweepGC -XX:NewSize=128m -XX:CMSInitiatingOccupancyFraction=70 -XX:-CMSConcurrentMTEnabled");
+            "-XX:+UseConcMarkSweepGC -XX:+UseParNewGC -XX:+UseConcMarkSweepGC -XX:NewSize=128m -XX:CMSInitiatingOccupancyFraction=70 -XX:-CMSConcurrentMTEnabled");
         conf.put(Config.TOPOLOGY_WORKER_CHILDOPTS, "-Xmx2g");
 
         TopologyBuilder builder = new TopologyBuilder();
 
-        int numEach = parallelism;
-        builder.setSpout("spout", new FastRandomSentenceSpout(ratePerSecond/numEach), numEach);
-        builder.setBolt("split", new SplitSentence(), numEach).shuffleGrouping("spout");
-        builder.setBolt("count", new WordCount(), numEach).fieldsGrouping("split", new Fields("word"));
+        LoadSpout spout = new LoadSpout(new StreamStats("default", new NormalDistStats(1000, 200, 500, 2000), false));
+        builder.setSpout("spout", spout, 1);
+        LoadBolt level1 = new LoadBolt(new StreamStats("default", new NormalDistStats(10000, 2000, 5000, 20000), true));
+        builder.setBolt("level1", level1, 1).shuffleGrouping("spout", "default");
+        LoadBolt level2 = new LoadBolt();
+        builder.setBolt("level2", level2, 10).fieldsGrouping("level1", "default", new Fields("key"));
 
         try {
-            StormSubmitter.submitTopology(name, conf, builder.createTopology());
+            StormSubmitter.submitTopology("TEST", conf, builder.createTopology());
 
-            for (int i = 0; i < numMins * 2; i++) {
+            for (int i = 0; i < 3 * 2; i++) {
                 Thread.sleep(30 * 1000);
-                printMetrics(client.getClient(), name);
+                printMetrics(client.getClient(), "TEST");
             }
+        } catch (Exception e) {
+            System.err.println("Coud not submit or trace TEST");
+            e.printStackTrace();
         } finally {
-            kill(client.getClient(), name);
+            try {
+                kill(client.getClient(), "TEST");
+            } catch (Exception e) {
+                System.err.println("Coud not kill TEST");
+                e.printStackTrace();
+            }
             System.exit(0);
         }
     }
