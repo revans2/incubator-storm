@@ -18,19 +18,17 @@
 
 package org.apache.storm.starter.loadgen;
 
+import java.io.Serializable;
+
 /**
  * A set of measurements about a component (bolt/spout) so we can statistically reproduce it.
  */
-public class CompStats {
-    public final double cpuPercent; // Right now we don't have a good way to measure any kind of a distribution, this is all very approximate
-    public final double memoryMB; //again no good way to get a distribution...
-    public final NormalDistStats execTime;
-    public final NormalDistStats processTime;
+public class CompStats implements Serializable {
+    public final double cpuPercent; // Right now we don't have a good way to measure any kind of a distribution, this is all approximate
+    public final double memoryMb; //again no good way to get a distribution...
 
-    public CompStats(double cpuPercent, double memoryMB, NormalDistStats execTime, NormalDistStats processTime) {
+    public CompStats(double cpuPercent, double memoryMb) {
         this.cpuPercent = cpuPercent;
-        this.memoryMB = memoryMB;
-        this.execTime = execTime;
-        this.processTime = processTime;
+        this.memoryMb = memoryMb;
     }
 }

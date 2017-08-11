@@ -18,7 +18,6 @@
 package org.apache.storm.starter.loadgen;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -38,11 +37,11 @@ public class LoadSpout  extends BaseRichSpout {
     private static class OutputStreamEngineWithHisto extends OutputStreamEngine {
         public final HistogramMetric histogram;
 
-        public OutputStreamEngineWithHisto(StreamStats stats, TopologyContext context) {
+        public OutputStreamEngineWithHisto(OutputStream stats, TopologyContext context) {
             super(stats);
             histogram = new HistogramMetric(3600000000000L, 3);
             //TODO perhaps we can adjust the frequency later...
-            context.registerMetric("comp-lat-histo-"+stats.name, histogram, 10);
+            context.registerMetric("comp-lat-histo-"+stats.id, histogram, 10);
         }
     }
 
@@ -60,29 +59,27 @@ public class LoadSpout  extends BaseRichSpout {
         }
 
         public void done() {
-            histogram.recordValue(System.nanoTime() - time);
+            histogram.recordValue(Math.max(0, System.nanoTime() - time));
         }
     }
 
-    private final List<StreamStats> stats;
+    private final List<OutputStream> streamStats;
     private List<OutputStreamEngineWithHisto> streams;
     private SpoutOutputCollector collector;
     //This is an attempt to give all of the streams an equal opportunity to emit something.
     private long nextStreamCounter = 0;
     private final int numStreams;
+    private final CompStats compStats;
 
-    public LoadSpout(StreamStats ... stats) {
-        this(Arrays.asList(stats));
-    }
-
-    public LoadSpout(List<StreamStats> stats) {
-        this.stats = Collections.unmodifiableList(new ArrayList<>(stats));
-        numStreams = stats.size();
+    public LoadSpout(List<OutputStream> streamStats, CompStats compStats) {
+        this.compStats = compStats;
+        this.streamStats = Collections.unmodifiableList(new ArrayList<>(streamStats));
+        numStreams = streamStats.size();
     }
 
     @Override
     public void open(Map<String, Object> conf, TopologyContext context, SpoutOutputCollector collector) {
-        streams = Collections.unmodifiableList(stats.stream()
+        streams = Collections.unmodifiableList(streamStats.stream()
             .map((ss) -> new OutputStreamEngineWithHisto(ss, context)).collect(Collectors.toList()));
         this.collector = collector;
     }
@@ -105,8 +102,8 @@ public class LoadSpout  extends BaseRichSpout {
 
     @Override
     public void declareOutputFields(OutputFieldsDeclarer declarer) {
-        for (StreamStats s: stats) {
-            declarer.declareStream(s.name, new Fields("key", "value"));
+        for (OutputStream s: streamStats) {
+            declarer.declareStream(s.id, new Fields("key", "value"));
         }
     }
 

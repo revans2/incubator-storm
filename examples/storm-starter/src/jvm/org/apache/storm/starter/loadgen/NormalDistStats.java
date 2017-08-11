@@ -19,7 +19,11 @@
 package org.apache.storm.starter.loadgen;
 
 import java.io.Serializable;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Random;
+import org.apache.storm.utils.ObjectReader;
 
 /**
  * Stats related to something with a normal distribution, and a way to randomly simulate it.
@@ -30,11 +34,46 @@ public class NormalDistStats implements Serializable {
     public final double min;
     public final double max;
 
+    /**
+     * Read the stats from a config.
+     * @param conf the config.
+     * @return the corresponding stats.
+     */
+    public static NormalDistStats fromConf(Map<String, Object> conf) {
+        return fromConf(conf, null);
+    }
+
+    /**
+     * Read the stats from a config.
+     * @param conf the config.
+     * @param def the default mean.
+     * @return the corresponding stats.
+     */
+    public static NormalDistStats fromConf(Map<String, Object> conf, Double def) {
+        if (conf == null) {
+            conf = Collections.emptyMap();
+        }
+        double mean = ObjectReader.getDouble(conf.get("mean"), def);
+        double stddev = ObjectReader.getDouble(conf.get("stddev"), mean/4);
+        double min = ObjectReader.getDouble(conf.get("min"), 0.0);
+        double max = ObjectReader.getDouble(conf.get("max"), Double.MAX_VALUE);
+        return new NormalDistStats(mean, stddev, min, max);
+    }
+
     public NormalDistStats(double mean, double stdev, double min, double max) {
         this.mean = mean;
         this.stdev = stdev;
         this.min = min;
         this.max = max;
+    }
+
+    public Map<String, Object> toConf() {
+        Map<String, Object> ret = new HashMap<>();
+        ret.put("mean", mean);
+        ret.put("stddev", stdev);
+        ret.put("min", min);
+        ret.put("max", max);
+        return ret;
     }
 
     /**

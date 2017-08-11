@@ -28,7 +28,7 @@ import java.util.concurrent.ThreadLocalRandom;
  */
 public class OutputStreamEngine {
     private static final double NANO_PER_SEC = 1_000_000_000.0;
-    private static final long UPDATE_RATE_PERIOD_NS = ((long)NANO_PER_SEC * 30);
+    private static final long UPDATE_RATE_PERIOD_NS = ((long)NANO_PER_SEC * 2);
     private static final String[] KEYS = new String[2048];
     static {
         //We get a new random number and seed it to make sure that runs are consistent where possible.
@@ -43,10 +43,10 @@ public class OutputStreamEngine {
     private long nextEmitTime;
     private long nextRateRandomizeTime;
     private long emitsLeft;
-    private final StreamStats stats;
+    private final OutputStream stats;
     public final String streamName;
 
-    public OutputStreamEngine(StreamStats stats) {
+    public OutputStreamEngine(OutputStream stats) {
         this.stats = stats;
         rand = ThreadLocalRandom.current();
         selectNewRate();
@@ -54,7 +54,7 @@ public class OutputStreamEngine {
         nextEmitTime = System.nanoTime();
         nextRateRandomizeTime = nextEmitTime + UPDATE_RATE_PERIOD_NS;
         emitsLeft = emitAmount;
-        streamName = stats.name;
+        streamName = stats.id;
     }
 
     private void selectNewRate() {
@@ -91,7 +91,7 @@ public class OutputStreamEngine {
     public String nextKey() {
         int keyIndex;
         if (stats.areKeysSkewed) {
-            keyIndex = Math.max(KEYS.length - 1 , Math.abs((int)(rand.nextGaussian() * KEYS.length/5)));
+            keyIndex = Math.min(KEYS.length - 1 , Math.abs((int)(rand.nextGaussian() * KEYS.length/5)));
         } else {
             keyIndex = rand.nextInt(KEYS.length);
         }

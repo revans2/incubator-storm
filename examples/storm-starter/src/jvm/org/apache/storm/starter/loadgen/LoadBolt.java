@@ -15,64 +15,135 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.storm.starter.loadgen;
 
+import io.netty.util.internal.ThreadLocalRandom;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.LockSupport;
 import java.util.stream.Collectors;
-import org.apache.storm.metrics.hdrhistogram.HistogramMetric;
-import org.apache.storm.spout.SpoutOutputCollector;
+import org.apache.storm.generated.GlobalStreamId;
 import org.apache.storm.task.OutputCollector;
 import org.apache.storm.task.TopologyContext;
 import org.apache.storm.topology.OutputFieldsDeclarer;
 import org.apache.storm.topology.base.BaseRichBolt;
-import org.apache.storm.topology.base.BaseRichSpout;
 import org.apache.storm.tuple.Fields;
 import org.apache.storm.tuple.Tuple;
 import org.apache.storm.tuple.Values;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * A bolt that simulates a real world bolt based off of statistics about it.
  */
 public class LoadBolt extends BaseRichBolt {
-    private final List<StreamStats> stats;
-    private List<OutputStreamEngine> streams;
+    private final static Logger LOG = LoggerFactory.getLogger(LoadBolt.class);
+    private final List<OutputStream> outputStreamStats;
+    private final CompStats compStats;
+    private List<OutputStreamEngine> outputStreams;
+    private final Map<GlobalStreamId, InputStream> inputStreams = new HashMap<>();
     private OutputCollector collector;
+    private Random rand;
+    private ScheduledExecutorService timer;
 
-    public LoadBolt(StreamStats ... stats) {
-        this(Arrays.asList(stats));
+
+    public LoadBolt(List<OutputStream> outputStreamStats, CompStats compStats) {
+        this.outputStreamStats = Collections.unmodifiableList(new ArrayList<>(outputStreamStats));
+        this.compStats = compStats;
     }
 
-    public LoadBolt(List<StreamStats> stats) {
-        this.stats = Collections.unmodifiableList(new ArrayList<>(stats));
+    public void add(InputStream inputStream) {
+        GlobalStreamId id = new GlobalStreamId(inputStream.fromComponent, inputStream.id);
+        inputStreams.put(id, inputStream);
     }
 
     @Override
     public void prepare(Map<String, Object> topoConf, TopologyContext context, OutputCollector collector) {
-        streams = Collections.unmodifiableList(stats.stream()
+        outputStreams = Collections.unmodifiableList(outputStreamStats.stream()
             .map((ss) -> new OutputStreamEngine(ss)).collect(Collectors.toList()));
         this.collector = collector;
+        this.rand = ThreadLocalRandom.current();
+        this.timer = Executors.newSingleThreadScheduledExecutor();
     }
 
-    @Override
-    public void execute(Tuple input) {
-        for (OutputStreamEngine se: streams) {
+    private static final long NANO_IN_MS = TimeUnit.NANOSECONDS.convert(1, TimeUnit.MILLISECONDS);
+    private long toNano(double ms) {
+        return (long)(ms * NANO_IN_MS);
+    }
+
+    private final AtomicLong parkOffset = new AtomicLong(0);
+
+    private void mySleep(long endTime) {
+        //There are some different levels of accuracy here, and we want to deal with all of them
+        long start = System.nanoTime();
+        long newEnd = endTime - parkOffset.get();
+        long diff = newEnd - start;
+        if (diff <= 1_000) {
+            //We are done, nothing that short is going to work here
+        } else if (diff < NANO_IN_MS) {
+            //Busy wait...
+            long sum = 0;
+            while (System.nanoTime() < newEnd) {
+                for (long i = 0; i < 1_000_000; i++) {
+                    sum += i;
+                }
+            }
+        } else {
+            //More accurate that thread.sleep, but still not great
+            LockSupport.parkNanos(newEnd - System.nanoTime() - parkOffset.get());
+            // A small control algorithm to adjust the amount of time that we sleep to make it more accurate
+        }
+        parkOffset.addAndGet((System.nanoTime() - endTime)/2);
+    }
+
+    private void emitTuples(Tuple input) {
+        for (OutputStreamEngine se: outputStreams) {
             // we may output many tuples for a given input tuple
             while (se.shouldEmit() != null) {
                 collector.emit(se.streamName, input, new Values(se.nextKey(), "SOME-BOLT-VALUE"));
             }
         }
-        //TODO we need to simulate process latency and execute latency...
-        collector.ack(input);
+    }
+
+    @Override
+    public void execute(final Tuple input) {
+        long startTimeNs = System.nanoTime();
+        InputStream in = inputStreams.get(input.getSourceGlobalStreamId());
+        if (in == null) {
+            emitTuples(input);
+            collector.ack(input);
+        } else {
+            long endExecNs = startTimeNs + toNano(in.execTime.nextRandom(rand));
+            long endProcNs = startTimeNs + toNano(in.processTime.nextRandom(rand));
+
+            if ((endProcNs - 1_000_000) < endExecNs) {
+                mySleep(endProcNs);
+                emitTuples(input);
+                collector.ack(input);
+            } else {
+                timer.schedule(() -> {
+                    emitTuples(input);
+                    collector.ack(input);
+                }, Math.max(0, endProcNs - System.nanoTime()), TimeUnit.NANOSECONDS);
+            }
+
+            mySleep(endExecNs);
+        }
     }
 
     @Override
     public void declareOutputFields(OutputFieldsDeclarer declarer) {
-        for (StreamStats s: stats) {
-            declarer.declareStream(s.name, new Fields("key", "value"));
+        for (OutputStream s: outputStreamStats) {
+            declarer.declareStream(s.id, new Fields("key", "value"));
         }
     }
 }

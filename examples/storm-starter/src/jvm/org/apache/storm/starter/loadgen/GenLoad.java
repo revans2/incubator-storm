@@ -18,6 +18,7 @@
 
 package org.apache.storm.starter.loadgen;
 
+import com.google.gson.internal.Streams;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
@@ -29,7 +30,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 import org.HdrHistogram.Histogram;
@@ -37,6 +37,7 @@ import org.apache.storm.Config;
 import org.apache.storm.StormSubmitter;
 import org.apache.storm.generated.AlreadyAliveException;
 import org.apache.storm.generated.AuthorizationException;
+import org.apache.storm.generated.BoltStats;
 import org.apache.storm.generated.ClusterSummary;
 import org.apache.storm.generated.ExecutorSummary;
 import org.apache.storm.generated.InvalidTopologyException;
@@ -57,34 +58,34 @@ import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.constructor.SafeConstructor;
 
 /**
- * Generate a simulated load
+ * Generate a simulated load.
  */
 public class GenLoad {
     //TODO we should make this configurable some how...
-    static final int NUM_MINS = 3;
+    static final int NUM_MINS = 10;
     //TODO lets parse a file and do this for real....
 
     private static class MemMeasure {
-        private long _mem = 0;
-        private long _time = 0;
+        private long mem = 0;
+        private long time = 0;
 
         public synchronized void update(long mem) {
-            _mem = mem;
-            _time = System.currentTimeMillis();
+            this.mem = mem;
+            time = System.currentTimeMillis();
         }
 
         public synchronized long get() {
-            return isExpired() ? 0l : _mem;
+            return isExpired() ? 0L : mem;
         }
 
         public synchronized boolean isExpired() {
-            return (System.currentTimeMillis() - _time) >= 20000;
+            return (System.currentTimeMillis() - time) >= 20000;
         }
     }
 
     private static final Histogram histo = new Histogram(3600000000000L, 3);
-    private static final AtomicLong systemCPU = new AtomicLong(0);
-    private static final AtomicLong userCPU = new AtomicLong(0);
+    private static final AtomicLong systemCpu = new AtomicLong(0);
+    private static final AtomicLong userCpu = new AtomicLong(0);
     private static final AtomicLong gcCount = new AtomicLong(0);
     private static final AtomicLong gcMs = new AtomicLong(0);
     private static final ConcurrentHashMap<String, MemMeasure> memoryBytes = new ConcurrentHashMap<>();
@@ -100,6 +101,12 @@ public class GenLoad {
     private static long prevAcked = 0;
     private static long prevUptime = 0;
 
+    /**
+     * Print metrics for a list of topologies.
+     * @param client used to get the metrics.
+     * @param names list of topology names to monitor.
+     * @throws Exception on any error.
+     */
     public static void printMetrics(Nimbus.Iface client, List<String> names) throws Exception {
         ClusterSummary summary = client.getClusterInfo();
         Set<String> ids = new HashSet<>();
@@ -109,7 +116,7 @@ public class GenLoad {
             }
         }
         if (ids.size() != names.size()) {
-            throw new Exception("Could not find all topologies: "+names);
+            throw new Exception("Could not find all topologies: " + names);
         }
         int uptime = 0;
         long acked = 0;
@@ -153,8 +160,8 @@ public class GenLoad {
             stddev = histo.getStdDeviation();
             histo.reset();
         }
-        long user = userCPU.getAndSet(0);
-        long sys = systemCPU.getAndSet(0);
+        long user = userCpu.getAndSet(0);
+        long sys = systemCpu.getAndSet(0);
         long gc = gcMs.getAndSet(0);
         double memMB = readMemory() / (1024.0 * 1024.0);
 
@@ -188,11 +195,11 @@ public class GenLoad {
                         Map<Object, Object> m = (Map<Object, Object>)dp.value;
                         Object sys = m.get("sys-ms");
                         if (sys instanceof Number) {
-                            systemCPU.getAndAdd(((Number)sys).longValue());
+                            systemCpu.getAndAdd(((Number)sys).longValue());
                         }
                         Object user = m.get("user-ms");
                         if (user instanceof Number) {
-                            userCPU.getAndAdd(((Number)user).longValue());
+                            userCpu.getAndAdd(((Number)user).longValue());
                         }
                     } else if (dp.name.startsWith("GC/") && dp.value instanceof Map) {
                         Map<Object, Object> m = (Map<Object, Object>)dp.value;
@@ -262,50 +269,12 @@ public class GenLoad {
         File f = new File(topoFile);
         String fileName = f.getName();
         int dot = fileName.lastIndexOf('.');
-        final String topoName = fileName.substring(0, dot) + "-" + uniquifier++;
-
-        //This is a format that is an extension/subset of flux
-        // spouts:
-        //   - id: "spout"
-        //     parallelism: 1
-        //     streams:
-        //       - rate:
-        //           mean: 1000
-        //           stddev: 200
-        //           min: 500
-        //           max: 2000
-        //         areKeysSkewed: false
-        //
-        // # bolt definitions
-        // bolts:
-        //   - id: "level1"
-        //     parallelism: 1
-        //     streams:
-        //       - rate:
-        //           mean: 10000
-        //           stddev: 2000
-        //           min: 5000
-        //           max: 12000
-        //        areKeysSkewed: true
-        //   - id: "level2"
-        //     parallelism: 1
-        //
-        // #stream definitions
-        // streams:
-        //   - name: "spout --> level1"
-        //     from: "spout"
-        //     to: "level1"
-        //     grouping:
-        //       type: SHUFFLE
-        //   - name: "level1 --> level2"
-        //     from: "level1"
-        //     to: "level2"
-        //     grouping:
-        //       type: FIELDS
+        final String baseName = fileName.substring(0, dot);
 
         Yaml yaml = new Yaml(new SafeConstructor());
         @SuppressWarnings("unchecked")
         Map<String, Object> yamlConf = (Map<String, Object>)yaml.load(new FileReader(f));
+        String topoName = yamlConf.getOrDefault("name", baseName) + "-" + uniquifier++;;
 
         //First we need some configs
         Config conf = new Config();
@@ -332,27 +301,22 @@ public class GenLoad {
             }
             //TODO we need a way to scale these up and/or down...
             int parallelism = ObjectReader.getInt(spoutInfo.get("parallelism"), 1);
-            List<StreamStats> streams = new ArrayList<>();
+            List<OutputStream> streams = new ArrayList<>();
             List<Map<String, Object>> streamData = (List<Map<String, Object>>) spoutInfo.get("streams");
             if (streamData != null) {
                 for (Map<String, Object> streamInfo: streamData) {
-                    String streamId = (String)streamInfo.getOrDefault("streamId", "default");
-                    Map<String, Object> rate = (Map<String, Object>) streamInfo.get("rate");
-                    double mean = ObjectReader.getDouble(rate.get("mean"));
-                    double stddev = ObjectReader.getDouble(rate.get("stddev"), mean/4);
-                    double min = ObjectReader.getDouble(rate.get("min"), 0.0);
-                    double max = ObjectReader.getDouble(rate.get("max"), Double.MAX_VALUE);
-                    NormalDistStats dist = new NormalDistStats(mean, stddev, min, max);
-                    boolean areKeysSkewed = ObjectReader.getBoolean(streamInfo.get("areKeysSkewed"), false);
-                    streams.add(new StreamStats(streamId, dist, areKeysSkewed));
+                    streams.add(OutputStream.fromConf(streamInfo));
                 }
             }
+            double cpu = ObjectReader.getDouble(spoutInfo.get("cpuPercent"), 0.0);
+            double memory = ObjectReader.getDouble(spoutInfo.get("memoryMb"), 0.0);
 
             System.out.println("ADDING SPOUT " + id);
-            builder.setSpout(id, new LoadSpout(streams), parallelism);
+            builder.setSpout(id, new LoadSpout(streams, new CompStats(cpu, memory)), parallelism);
         }
 
         Map<String, BoltDeclarer> boltDeclarers = new HashMap<>();
+        Map<String, LoadBolt> bolts = new HashMap<>();
         List<Map<String, Object>> boltInfos = (List<Map<String, Object>>) yamlConf.get("bolts");
         if (boltInfos != null) {
             for (Map<String, Object> boltInfo : boltInfos) {
@@ -362,79 +326,36 @@ public class GenLoad {
                 }
                 //TODO we need a way to scale these up and/or down...
                 int parallelism = ObjectReader.getInt(boltInfo.get("parallelism"), 1);
-                List<StreamStats> streams = new ArrayList<>();
+                List<OutputStream> streams = new ArrayList<>();
                 List<Map<String, Object>> streamData = (List<Map<String, Object>>) boltInfo.get("streams");
                 if (streamData != null) {
-                    //TODO need to make this common instead of copy/paste
                     for (Map<String, Object> streamInfo : streamData) {
-                        String streamId = (String) streamInfo.getOrDefault("streamId", "default");
-                        Map<String, Object> rate = (Map<String, Object>) streamInfo.get("rate");
-                        double mean = ObjectReader.getDouble(rate.get("mean"));
-                        double stddev = ObjectReader.getDouble(rate.get("stddev"), mean / 4);
-                        double min = ObjectReader.getDouble(rate.get("min"), 0.0);
-                        double max = ObjectReader.getDouble(rate.get("max"), Double.MAX_VALUE);
-                        NormalDistStats dist = new NormalDistStats(mean, stddev, min, max);
-                        boolean areKeysSkewed = ObjectReader.getBoolean(streamInfo.get("areKeysSkewed"), false);
-                        streams.add(new StreamStats(streamId, dist, areKeysSkewed));
+                        streams.add(OutputStream.fromConf(streamInfo));
                     }
                 }
+                double cpu = ObjectReader.getDouble(boltInfo.get("cpuPercent"), 0.0);
+                double memory = ObjectReader.getDouble(boltInfo.get("memoryMb"), 0.0);
 
                 System.out.println("ADDING BOLT " + id);
-                boltDeclarers.put(id, builder.setBolt(id, new LoadBolt(streams), parallelism));
+                LoadBolt lb = new LoadBolt(streams, new CompStats(cpu, memory));
+                bolts.put(id, lb);
+                boltDeclarers.put(id, builder.setBolt(id, lb, parallelism));
             }
         }
 
         List<Map<String, Object>> streamInfos = (List<Map<String, Object>>) yamlConf.get("streams");
         if (streamInfos != null) {
             for (Map<String, Object> streamInfo: streamInfos) {
-                String from = (String) streamInfo.get("from");
-                if (from == null) {
-                    throw new IllegalArgumentException("from cannot be null");
-                }
-                String to = (String) streamInfo.get("to");
-                if (to == null) {
-                    throw new IllegalArgumentException("to cannot be null");
-                }
-                BoltDeclarer declarer = boltDeclarers.get(to);
+                InputStream in = InputStream.fromConf(streamInfo);
+                BoltDeclarer declarer = boltDeclarers.get(in.toComponent);
                 if (declarer == null) {
-                    throw new IllegalArgumentException("to bolt " + to + " does not exist");
+                    throw new IllegalArgumentException("to bolt " + in.toComponent + " does not exist");
                 }
-                Map<String, Object> grouping = (Map<String, Object>) streamInfo.get("grouping");
-                String streamId = "default";
-                String type = "SHUFFLE";
-                if (grouping != null) {
-                    type = (String) grouping.getOrDefault("type", "SHUFFLE");
-                    streamId = (String) grouping.getOrDefault("streamId", "default");
-                }
-                type = type.toUpperCase(Locale.ENGLISH);
-                switch (type) {
-                    case "SHUFFLE":
-                        declarer.shuffleGrouping(from, streamId);
-                        break;
-                    case "FIELDS":
-                        declarer.fieldsGrouping(from, streamId, new Fields("key"));
-                        break;
-                    case "ALL":
-                        declarer.allGrouping(from, streamId);
-                        break;
-                    case "GLOBAL":
-                        declarer.globalGrouping(from, streamId);
-                        break;
-                    case "LOCAL_OR_SHUFFLE":
-                        declarer.localOrShuffleGrouping(from, streamId);
-                        break;
-                    case "NONE":
-                        declarer.noneGrouping(from, streamId);
-                        break;
-                    case "PARTIAL_KEY":
-                        declarer.partialKeyGrouping(from, streamId, new Fields("key"));
-                        break;
-                    default:
-                        throw new IllegalArgumentException(type + " is not a supported grouping...");
-                }
+                LoadBolt lb = bolts.get(in.toComponent);
+                lb.add(in);
+                in.groupingType.assign(declarer, in);
             }
         }
-        //TODO is this a YAML???  What are we actually going to do with this???
         StormSubmitter.submitTopology(topoName, conf, builder.createTopology());
         return topoName;
     }
