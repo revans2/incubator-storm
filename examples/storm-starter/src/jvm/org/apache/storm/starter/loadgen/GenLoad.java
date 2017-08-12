@@ -18,7 +18,6 @@
 
 package org.apache.storm.starter.loadgen;
 
-import com.google.gson.internal.Streams;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
@@ -27,7 +26,6 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -37,7 +35,6 @@ import org.apache.storm.Config;
 import org.apache.storm.StormSubmitter;
 import org.apache.storm.generated.AlreadyAliveException;
 import org.apache.storm.generated.AuthorizationException;
-import org.apache.storm.generated.BoltStats;
 import org.apache.storm.generated.ClusterSummary;
 import org.apache.storm.generated.ExecutorSummary;
 import org.apache.storm.generated.InvalidTopologyException;
@@ -51,7 +48,6 @@ import org.apache.storm.metric.api.IMetricsConsumer.DataPoint;
 import org.apache.storm.misc.metric.HttpForwardingMetricsServer;
 import org.apache.storm.topology.BoltDeclarer;
 import org.apache.storm.topology.TopologyBuilder;
-import org.apache.storm.tuple.Fields;
 import org.apache.storm.utils.NimbusClient;
 import org.apache.storm.utils.ObjectReader;
 import org.yaml.snakeyaml.Yaml;
@@ -270,16 +266,15 @@ public class GenLoad {
         String fileName = f.getName();
         int dot = fileName.lastIndexOf('.');
         final String baseName = fileName.substring(0, dot);
-
-        Yaml yaml = new Yaml(new SafeConstructor());
-        @SuppressWarnings("unchecked")
-        Map<String, Object> yamlConf = (Map<String, Object>)yaml.load(new FileReader(f));
-        String topoName = yamlConf.getOrDefault("name", baseName) + "-" + uniquifier++;;
+        
+        //TODO we need a way to scale these up and/or down...
+        TopologyLoadConf tlc = TopologyLoadConf.fromConf(f);
+        String topoName = (tlc.name == null ? baseName : tlc.name) + "-" + uniquifier++;;
 
         //First we need some configs
         Config conf = new Config();
-        if (yamlConf.containsKey("config")) {
-            conf.putAll((Map<String, Object>)yamlConf.get("config"));
+        if (tlc.topoConf != null) {
+            conf.putAll(tlc.topoConf);
         }
         conf.registerMetricsConsumer(org.apache.storm.metric.LoggingMetricsConsumer.class);
         conf.registerMetricsConsumer(org.apache.storm.misc.metric.HttpForwardingMetricsConsumer.class, url, 1);
@@ -291,62 +286,26 @@ public class GenLoad {
         conf.put(Config.TOPOLOGY_WORKER_METRICS, workerMetrics);
         conf.put(Config.TOPOLOGY_BUILTIN_METRICS_BUCKET_SIZE_SECS, 10);
 
-        TopologyBuilder builder = new TopologyBuilder();
         //Lets build a topology.
-        List<Map<String, Object>> spoutInfos = (List<Map<String, Object>>) yamlConf.get("spouts");
-        for (Map<String, Object> spoutInfo: spoutInfos) {
-            String id = (String) spoutInfo.get("id");
-            if (id == null) {
-                throw new IllegalArgumentException("A spout ID cannot be null");
-            }
-            //TODO we need a way to scale these up and/or down...
-            int parallelism = ObjectReader.getInt(spoutInfo.get("parallelism"), 1);
-            List<OutputStream> streams = new ArrayList<>();
-            List<Map<String, Object>> streamData = (List<Map<String, Object>>) spoutInfo.get("streams");
-            if (streamData != null) {
-                for (Map<String, Object> streamInfo: streamData) {
-                    streams.add(OutputStream.fromConf(streamInfo));
-                }
-            }
-            double cpu = ObjectReader.getDouble(spoutInfo.get("cpuPercent"), 0.0);
-            double memory = ObjectReader.getDouble(spoutInfo.get("memoryMb"), 0.0);
-
-            System.out.println("ADDING SPOUT " + id);
-            builder.setSpout(id, new LoadSpout(streams, new CompStats(cpu, memory)), parallelism);
+        TopologyBuilder builder = new TopologyBuilder();
+        for (LoadCompConf spoutConf : tlc.spouts) {
+            System.out.println("ADDING SPOUT " + spoutConf.id);
+            builder.setSpout(spoutConf.id, new LoadSpout(spoutConf.streams, spoutConf.stats), spoutConf.parallelism);
         }
 
         Map<String, BoltDeclarer> boltDeclarers = new HashMap<>();
         Map<String, LoadBolt> bolts = new HashMap<>();
-        List<Map<String, Object>> boltInfos = (List<Map<String, Object>>) yamlConf.get("bolts");
-        if (boltInfos != null) {
-            for (Map<String, Object> boltInfo : boltInfos) {
-                String id = (String) boltInfo.get("id");
-                if (id == null) {
-                    throw new IllegalArgumentException("A bolt ID cannot be null");
-                }
-                //TODO we need a way to scale these up and/or down...
-                int parallelism = ObjectReader.getInt(boltInfo.get("parallelism"), 1);
-                List<OutputStream> streams = new ArrayList<>();
-                List<Map<String, Object>> streamData = (List<Map<String, Object>>) boltInfo.get("streams");
-                if (streamData != null) {
-                    for (Map<String, Object> streamInfo : streamData) {
-                        streams.add(OutputStream.fromConf(streamInfo));
-                    }
-                }
-                double cpu = ObjectReader.getDouble(boltInfo.get("cpuPercent"), 0.0);
-                double memory = ObjectReader.getDouble(boltInfo.get("memoryMb"), 0.0);
-
-                System.out.println("ADDING BOLT " + id);
-                LoadBolt lb = new LoadBolt(streams, new CompStats(cpu, memory));
-                bolts.put(id, lb);
-                boltDeclarers.put(id, builder.setBolt(id, lb, parallelism));
+        if (tlc.bolts != null) {
+            for (LoadCompConf boltConf : tlc.bolts) {
+                System.out.println("ADDING BOLT " + boltConf.id);
+                LoadBolt lb = new LoadBolt(boltConf.streams, boltConf.stats);
+                bolts.put(boltConf.id, lb);
+                boltDeclarers.put(boltConf.id, builder.setBolt(boltConf.id, lb, boltConf.parallelism));
             }
         }
 
-        List<Map<String, Object>> streamInfos = (List<Map<String, Object>>) yamlConf.get("streams");
-        if (streamInfos != null) {
-            for (Map<String, Object> streamInfo: streamInfos) {
-                InputStream in = InputStream.fromConf(streamInfo);
+        if (tlc.streams != null) {
+            for (InputStream in : tlc.streams) {
                 BoltDeclarer declarer = boltDeclarers.get(in.toComponent);
                 if (declarer == null) {
                     throw new IllegalArgumentException("to bolt " + in.toComponent + " does not exist");
