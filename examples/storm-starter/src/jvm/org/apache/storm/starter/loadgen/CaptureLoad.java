@@ -42,7 +42,9 @@ import org.apache.storm.generated.SpoutSpec;
 import org.apache.storm.generated.StormTopology;
 import org.apache.storm.generated.StreamInfo;
 import org.apache.storm.generated.TopologyInfo;
+import org.apache.storm.generated.TopologyPageInfo;
 import org.apache.storm.generated.TopologySummary;
+import org.apache.storm.generated.WorkerSummary;
 import org.apache.storm.utils.NimbusClient;
 import org.json.simple.JSONValue;
 import org.slf4j.Logger;
@@ -85,14 +87,16 @@ public class CaptureLoad {
 
         List<Double> ret = new ArrayList<>();
         for (ExecutorSummary summ: summaries) {
-            Map<String, Map<GlobalStreamId, Double>> data = func.apply(summ.get_stats().get_specific().get_bolt());
-            if (data != null) {
-                List<Double> subvalues = data.values().stream()
-                    .map((subMap) -> subMap.get(id))
-                    .filter((value) -> value != null)
-                    .mapToDouble((value) -> value.doubleValue())
-                    .boxed().collect(Collectors.toList());
-                ret.addAll(subvalues);
+            if (summ.is_set_stats()) {
+                Map<String, Map<GlobalStreamId, Double>> data = func.apply(summ.get_stats().get_specific().get_bolt());
+                if (data != null) {
+                    List<Double> subvalues = data.values().stream()
+                        .map((subMap) -> subMap.get(id))
+                        .filter((value) -> value != null)
+                        .mapToDouble((value) -> value.doubleValue())
+                        .boxed().collect(Collectors.toList());
+                    ret.addAll(subvalues);
+                }
             }
         }
         return ret;
@@ -103,6 +107,7 @@ public class CaptureLoad {
         LOG.info("Capturing {}...", topologyName);
         String topologyId = topologySummary.get_id();
         TopologyInfo info = client.getTopologyInfo(topologyId);
+        TopologyPageInfo tpinfo = client.getTopologyPageInfo(topologyId, ":all-time", false);
         StormTopology topo = client.getUserTopology(topologyId);
         Map<String, Object> topoConf = (Map<String, Object>) JSONValue.parse(client.getTopologyConf(topologyId));
         Map<String, Object> savedTopoConf = new HashMap<>();
@@ -208,6 +213,14 @@ public class CaptureLoad {
             streams.add(builder.build());
         }
 
+        //There is a bug in some versions that returns 0 for the uptime.
+        // To work around it we should get it an alternative (working) way.
+        Map<String, Integer> workerToUptime = new HashMap<>();
+        for (WorkerSummary ws : tpinfo.get_workers()) {
+            workerToUptime.put(ws.get_supervisor_id() + ":" + ws.get_port(), ws.get_uptime_secs());
+        }
+        LOG.debug("WORKER TO UPTIME {}", workerToUptime);
+
         for (Map.Entry<GlobalStreamId, OutputStream.Builder> entry : outStreams.entrySet()) {
             OutputStream.Builder builder = entry.getValue();
             GlobalStreamId id = entry.getKey();
@@ -215,22 +228,26 @@ public class CaptureLoad {
             List<ExecutorSummary> summaries = byComponent.get(id.get_componentId());
             for (ExecutorSummary summary: summaries) {
                 if (summary.is_set_stats()) {
-                    int uptime = summary.get_uptime_secs(); //This number does not appear to be reliable
-                    LOG.info("uptime: {}", uptime);
+                    int uptime = summary.get_uptime_secs();
+                    LOG.debug("UPTIME {}", uptime);
+                    if (uptime <= 0) {
+                        //Likely it is because of a bug, so try to get it another way
+                        String key = summary.get_host() + ":" + summary.get_port();
+                        uptime = workerToUptime.getOrDefault(key, 1);
+                        LOG.debug("Getting uptime for worker {}, {}", key, uptime);
+                    }
                     for (Map.Entry<String, Map<String, Long>> statEntry : summary.get_stats().get_emitted().entrySet()) {
                         String timeWindow = statEntry.getKey();
-                        LOG.info("TimeWindow {}", timeWindow);
                         long timeSecs = uptime;
                         try {
                             timeSecs = Long.valueOf(timeWindow);
-                            LOG.info("Time is {}", timeSecs);
                         } catch (NumberFormatException e) {
                             //Ignored...
                         }
                         timeSecs = Math.min(timeSecs, uptime);
                         Long count = statEntry.getValue().get(id.get_streamId());
                         if (count != null) {
-                            LOG.info("{} emitted {} for {} secs or {} tuples/sec", id, count, timeSecs, count.doubleValue()/timeSecs);
+                            LOG.debug("{} emitted {} for {} secs or {} tuples/sec", id, count, timeSecs, count.doubleValue()/timeSecs);
                             emittedRate.add(count.doubleValue()/timeSecs);
                         }
                     }

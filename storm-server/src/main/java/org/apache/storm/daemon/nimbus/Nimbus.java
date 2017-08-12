@@ -3408,7 +3408,6 @@ public class Nimbus implements Iface, Shutdownable, DaemonCommon {
                     ExecutorInfo execInfo = toExecInfo(entry.getKey());
                     String host = entry.getValue().get_node();
                     Map<String, Object> heartbeat = common.beats.get(StatsUtil.convertExecutor(entry.getKey()));
-                    LOG.warn("Got heart beat for {} {} => {}", topoId, heartbeat);
                     if (heartbeat == null) {
                         heartbeat = Collections.emptyMap();
                     }

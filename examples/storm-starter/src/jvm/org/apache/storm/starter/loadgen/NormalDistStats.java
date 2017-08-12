@@ -97,7 +97,7 @@ public class NormalDistStats implements Serializable {
         this.max = max;
         this.mean = mean;
         this.stddev = stddev;
-        LOG.info("Stats for {} are {}", values, this);
+        LOG.debug("Stats for {} are {}", values, this);
     }
 
     public NormalDistStats(double mean, double stddev, double min, double max) {
