@@ -19,7 +19,6 @@
 package org.apache.storm.starter.loadgen;
 
 import java.io.File;
-import java.io.FileWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -28,23 +27,32 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import org.apache.storm.Config;
+import org.apache.storm.generated.Bolt;
+import org.apache.storm.generated.BoltStats;
 import org.apache.storm.generated.ClusterSummary;
+import org.apache.storm.generated.ComponentCommon;
 import org.apache.storm.generated.ExecutorSummary;
+import org.apache.storm.generated.GlobalStreamId;
+import org.apache.storm.generated.Grouping;
 import org.apache.storm.generated.Nimbus;
 import org.apache.storm.generated.SpoutSpec;
 import org.apache.storm.generated.StormTopology;
+import org.apache.storm.generated.StreamInfo;
 import org.apache.storm.generated.TopologyInfo;
 import org.apache.storm.generated.TopologySummary;
 import org.apache.storm.utils.NimbusClient;
 import org.json.simple.JSONValue;
-import org.yaml.snakeyaml.Yaml;
-import org.yaml.snakeyaml.constructor.SafeConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Capture running topologies for load gen later on.
  */
 public class CaptureLoad {
+    private final static Logger LOG = LoggerFactory.getLogger(CaptureLoad.class);
 
     private static final Set<String> IMPORTANT_CONF_KEYS = Collections.unmodifiableSet(new HashSet(Arrays.asList(
         Config.TOPOLOGY_WORKERS,
@@ -71,49 +79,186 @@ public class CaptureLoad {
         Config.TOPOLOGY_WORKER_SHARED_THREAD_POOL_SIZE
     )));
 
+    private static List<Double> extractBoltValues(List<ExecutorSummary> summaries,
+                                                  GlobalStreamId id,
+                                                  Function<BoltStats, Map<String, Map<GlobalStreamId, Double>>> func) {
+
+        List<Double> ret = new ArrayList<>();
+        for (ExecutorSummary summ: summaries) {
+            Map<String, Map<GlobalStreamId, Double>> data = func.apply(summ.get_stats().get_specific().get_bolt());
+            if (data != null) {
+                List<Double> subvalues = data.values().stream()
+                    .map((subMap) -> subMap.get(id))
+                    .filter((value) -> value != null)
+                    .mapToDouble((value) -> value.doubleValue())
+                    .boxed().collect(Collectors.toList());
+                ret.addAll(subvalues);
+            }
+        }
+        return ret;
+    }
+
     private static void captureTopology(Nimbus.Iface client, TopologySummary topologySummary, File baseOut) throws Exception {
         String topologyName = topologySummary.get_name();
+        LOG.info("Capturing {}...", topologyName);
         String topologyId = topologySummary.get_id();
         TopologyInfo info = client.getTopologyInfo(topologyId);
         StormTopology topo = client.getUserTopology(topologyId);
-
-        Map<String, Object> yamlConf = new HashMap<>();
-
-        yamlConf.put("name", topologyName);
-
         Map<String, Object> topoConf = (Map<String, Object>) JSONValue.parse(client.getTopologyConf(topologyId));
         Map<String, Object> savedTopoConf = new HashMap<>();
         for (String key: IMPORTANT_CONF_KEYS) {
             Object o = topoConf.get(key);
             if (o != null) {
                 savedTopoConf.put(key, o);
+                LOG.info("with config {}: {}", key, o);
             }
         }
-        //We want a Spout with global output streams, and stats for each output stream
-        //We want a Bolt with global input streams/groupings/exec/process latency stats
-        //     and global output streams, and stats for each output stream
-        //We want to compute some stats about spouts and bolts, so we want to get every spout and every bolt
 
-        //First we want the graph of spouts connected to bolts with streams and groupings
-        for (Map.Entry<String, SpoutSpec> spoutSpec : topo.get_spouts().entrySet()) {
-            //From the spout I can get all of the inputs/grouping (should be empty here)
+        Map<String, LoadCompConf.Builder> boltBuilders = new HashMap<>();
+        Map<String, LoadCompConf.Builder> spoutBuilders = new HashMap<>();
+        List<InputStream.Builder> inputStreams = new ArrayList<>();
+        Map<GlobalStreamId, OutputStream.Builder> outStreams = new HashMap<>();
+
+        //Bolts
+        if (topo.get_bolts() != null){
+            for (Map.Entry<String, Bolt> boltSpec : topo.get_bolts().entrySet()) {
+                String boltComp = boltSpec.getKey();
+                LOG.info("Found bolt {}...", boltComp);
+                Bolt bolt = boltSpec.getValue();
+                ComponentCommon common = bolt.get_common();
+                Map<GlobalStreamId, Grouping> inputs = common.get_inputs();
+                if (inputs != null) {
+                    for (Map.Entry<GlobalStreamId, Grouping> input : inputs.entrySet()) {
+                        GlobalStreamId id = input.getKey();
+                        LOG.info("with input {}...", id);
+                        Grouping grouping = input.getValue();
+                        InputStream.Builder builder = new InputStream.Builder()
+                            .withId(id.get_streamId())
+                            .withFromComponent(id.get_componentId())
+                            .withToComponent(boltComp)
+                            .withGroupingType(grouping);
+                        inputStreams.add(builder);
+                    }
+                }
+                Map<String, StreamInfo> outputs = common.get_streams();
+                if (outputs != null) {
+                    for (String name : outputs.keySet()) {
+                        GlobalStreamId id = new GlobalStreamId(boltComp, name);
+                        LOG.info("and output {}...", id);
+                        OutputStream.Builder builder = new OutputStream.Builder()
+                            .withId(name);
+                        outStreams.put(id, builder);
+                    }
+                }
+                LoadCompConf.Builder builder = new LoadCompConf.Builder()
+                    .withParallelism(common.get_parallelism_hint())
+                    .withId(boltComp);
+                boltBuilders.put(boltComp, builder);
+            }
         }
 
-        yamlConf.put("conf", savedTopoConf);
-        for (ExecutorSummary exec : info.get_executors()) {
-            //exec.
+        //Spouts
+        if (topo.get_spouts() != null) {
+            for (Map.Entry<String, SpoutSpec> spoutSpec : topo.get_spouts().entrySet()) {
+                String spoutComp = spoutSpec.getKey();
+                LOG.info("Found Spout {}...", spoutComp);
+                SpoutSpec spout = spoutSpec.getValue();
+                ComponentCommon common = spout.get_common();
+
+                Map<String, StreamInfo> outputs = common.get_streams();
+                if (outputs != null) {
+                    for (String name : outputs.keySet()) {
+                        GlobalStreamId id = new GlobalStreamId(spoutComp, name);
+                        LOG.info("with output {}...", id);
+                        OutputStream.Builder builder = new OutputStream.Builder()
+                            .withId(name);
+                        outStreams.put(id, builder);
+                    }
+                }
+                LoadCompConf.Builder builder = new LoadCompConf.Builder()
+                    .withParallelism(common.get_parallelism_hint())
+                    .withId(spoutComp);
+                spoutBuilders.put(spoutComp, builder);
+            }
         }
 
-        //spouts
-
-
-        //bolts
-        //streams
-
-        Yaml yaml = new Yaml(new SafeConstructor());
-        try (FileWriter writer = new FileWriter(new File(baseOut,  topologyName + ".yaml"))) {
-            yaml.dump(yamlConf, writer);
+        //Stats...
+        Map<String, List<ExecutorSummary>> byComponent = new HashMap<>();
+        for (ExecutorSummary executor: info.get_executors()) {
+            String component = executor.get_component_id();
+            List<ExecutorSummary> list = byComponent.get(component);
+            if (list == null) {
+                list = new ArrayList<>();
+                byComponent.put(component, list);
+            }
+            list.add(executor);
         }
+
+        List<InputStream> streams = new ArrayList<>(inputStreams.size());
+        //Compute the stats for the different input streams
+        for (InputStream.Builder builder : inputStreams) {
+            GlobalStreamId streamId = new GlobalStreamId(builder.getFromComponent(), builder.getId());
+            List<ExecutorSummary> summaries = byComponent.get(builder.getToComponent());
+            //Execute and process latency...
+            builder.withProcessTime(new NormalDistStats(
+                extractBoltValues(summaries, streamId, BoltStats::get_process_ms_avg)));
+            builder.withExecTime(new NormalDistStats(
+                extractBoltValues(summaries, streamId, BoltStats::get_execute_ms_avg)));
+            //InputStream is done
+            streams.add(builder.build());
+        }
+
+        for (Map.Entry<GlobalStreamId, OutputStream.Builder> entry : outStreams.entrySet()) {
+            OutputStream.Builder builder = entry.getValue();
+            GlobalStreamId id = entry.getKey();
+            List<Double> emittedRate = new ArrayList<>();
+            List<ExecutorSummary> summaries = byComponent.get(id.get_componentId());
+            for (ExecutorSummary summary: summaries) {
+                if (summary.is_set_stats()) {
+                    int uptime = summary.get_uptime_secs(); //This number does not appear to be reliable
+                    LOG.info("uptime: {}", uptime);
+                    for (Map.Entry<String, Map<String, Long>> statEntry : summary.get_stats().get_emitted().entrySet()) {
+                        String timeWindow = statEntry.getKey();
+                        LOG.info("TimeWindow {}", timeWindow);
+                        long timeSecs = uptime;
+                        try {
+                            timeSecs = Long.valueOf(timeWindow);
+                            LOG.info("Time is {}", timeSecs);
+                        } catch (NumberFormatException e) {
+                            //Ignored...
+                        }
+                        timeSecs = Math.min(timeSecs, uptime);
+                        Long count = statEntry.getValue().get(id.get_streamId());
+                        if (count != null) {
+                            LOG.info("{} emitted {} for {} secs or {} tuples/sec", id, count, timeSecs, count.doubleValue()/timeSecs);
+                            emittedRate.add(count.doubleValue()/timeSecs);
+                        }
+                    }
+                }
+
+            }
+            builder.withRate(new NormalDistStats(emittedRate));
+            //TODO to know if the output keys are skewed we have to guess by looking
+            // at the down stream executed stats, but for now we are going to ignore it
+
+            //The OutputStream is done
+            LoadCompConf.Builder comp = boltBuilders.get(id.get_componentId());
+            if (comp == null) {
+                comp = spoutBuilders.get(id.get_componentId());
+            }
+            comp.withStream(builder.build());
+        }
+
+        List<LoadCompConf> spouts = spoutBuilders.values().stream()
+            .map((b) -> b.build())
+            .collect(Collectors.toList());
+
+        List<LoadCompConf> bolts = boltBuilders.values().stream()
+            .map((b) -> b.build())
+            .collect(Collectors.toList());
+
+        TopologyLoadConf finalConf = new TopologyLoadConf(topologyName, savedTopoConf, spouts, bolts, streams);
+        finalConf.writeTo(new File(baseOut, topologyName + ".yaml"));
     }
 
     private static void captureTopologies(Nimbus.Iface client, List<String> topologyNames, File baseOut) throws Exception {
@@ -129,15 +274,16 @@ public class CaptureLoad {
         Config conf = new Config();
         int exitStatus = -1;
         String outputDir = "./loadgen/";
-        if (args.length > 1) {
+        if (args.length > 0) {
             outputDir = args[0];
         }
         File baseOut = new File(outputDir);
+        LOG.info("Will save captured topologies to {}", baseOut);
         baseOut.mkdirs();
 
         try (NimbusClient client = NimbusClient.getConfiguredClient(conf)) {
             List<String> topologyNames = new ArrayList<>();
-            if (args.length > 2) {
+            if (args.length > 1) {
                 for (int i = 1; i < args.length; i++) {
                     topologyNames.add(args[i]);
                 }
@@ -145,6 +291,8 @@ public class CaptureLoad {
             captureTopologies(client.getClient(), topologyNames, baseOut);
 
             exitStatus = 0;
+        } catch (Exception e) {
+            LOG.error("Error trying to capture topologies...", e);
         } finally {
             System.exit(exitStatus);
         }

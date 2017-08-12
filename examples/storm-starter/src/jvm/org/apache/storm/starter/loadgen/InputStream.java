@@ -18,14 +18,25 @@
 
 package org.apache.storm.starter.loadgen;
 
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.ObjectInputStream;
 import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
+import org.apache.commons.io.input.ClassLoaderObjectInputStream;
+import org.apache.storm.generated.Grouping;
+import org.apache.storm.grouping.PartialKeyGrouping;
+import org.apache.storm.utils.Utils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import parquet.schema.GroupType;
 
 /**
  * A set of measurements about a stream so we can statistically reproduce it.
  */
 public class InputStream implements Serializable {
+    private final static Logger LOG = LoggerFactory.getLogger(InputStream.class);
     public final String fromComponent;
     public final String toComponent;
     public final String id;
@@ -68,6 +79,119 @@ public class InputStream implements Serializable {
         return ret;
     }
 
+    public static class Builder {
+        private String fromComponent;
+        private String toComponent;
+        private String id;
+        private NormalDistStats execTime;
+        private NormalDistStats processTime;
+        private GroupingType groupingType = GroupingType.SHUFFLE;
+
+        public String getFromComponent() {
+            return fromComponent;
+        }
+
+        public Builder withFromComponent(String fromComponent) {
+            this.fromComponent = fromComponent;
+            return this;
+        }
+
+        public String getToComponent() {
+            return toComponent;
+        }
+
+        public Builder withToComponent(String toComponent) {
+            this.toComponent = toComponent;
+            return this;
+        }
+
+        public String getId() {
+            return id;
+        }
+
+        public Builder withId(String id) {
+            this.id = id;
+            return this;
+        }
+
+        public NormalDistStats getExecTime() {
+            return execTime;
+        }
+
+        public Builder withExecTime(NormalDistStats execTime) {
+            this.execTime = execTime;
+            return this;
+        }
+
+        public NormalDistStats getProcessTime() {
+            return processTime;
+        }
+
+        public Builder withProcessTime(NormalDistStats processTime) {
+            this.processTime = processTime;
+            return this;
+        }
+
+        public GroupingType getGroupingType() {
+            return groupingType;
+        }
+
+        public Builder withGroupingType(GroupingType groupingType) {
+            this.groupingType = groupingType;
+            return this;
+        }
+
+        public InputStream build() {
+            return new InputStream(fromComponent, toComponent, id, execTime, processTime, groupingType);
+        }
+
+        public Builder withGroupingType(Grouping grouping) {
+            GroupingType group = GroupingType.SHUFFLE;
+            Grouping._Fields thriftType = grouping.getSetField();
+
+            switch (thriftType) {
+                case FIELDS:
+                    //Global Grouping is fields with an empty list
+                    if (grouping.get_fields().isEmpty()){
+                        group = GroupingType.GLOBAL;
+                    } else {
+                        group = GroupingType.FIELDS;
+                    }
+                    break;
+                case ALL:
+                    group = GroupingType.ALL;
+                    break;
+                case NONE:
+                    group = GroupingType.NONE;
+                    break;
+                case SHUFFLE:
+                    group = GroupingType.SHUFFLE;
+                    break;
+                case LOCAL_OR_SHUFFLE:
+                    group = GroupingType.LOCAL_OR_SHUFFLE;
+                    break;
+                case CUSTOM_SERIALIZED:
+                    //This might be a partial key grouping..
+                    byte[] data = grouping.get_custom_serialized();
+                    try (ByteArrayInputStream bis = new ByteArrayInputStream(data);
+                         ObjectInputStream ois = new ObjectInputStream(bis);) {
+                        Object cg = ois.readObject();
+                        if (cg instanceof PartialKeyGrouping) {
+                            group = GroupingType.PARTIAL_KEY;
+                            break;
+                        }
+                    } catch (Exception e) {
+                        //ignored
+                    }
+                    //Fall through if not supported
+                default:
+                    LOG.warn("{} is not supported for replay of a topologyusing SHUFFLE", thriftType);
+                    break;
+            }
+            return withGroupingType(group);
+        }
+    }
+
     /**
      * Create a new input stream to a bolt.
      * @param fromComponent the source component of the stream.
@@ -92,5 +216,8 @@ public class InputStream implements Serializable {
         this.execTime = execTime;
         this.processTime = processTime;
         this.groupingType = groupingType;
+        if (groupingType == null) {
+            throw new IllegalArgumentException("grouping type cannot be null");
+        }
     }
 }

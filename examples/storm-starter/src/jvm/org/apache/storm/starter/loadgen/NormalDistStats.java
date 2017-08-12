@@ -21,16 +21,20 @@ package org.apache.storm.starter.loadgen;
 import java.io.Serializable;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import org.apache.storm.utils.ObjectReader;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Stats related to something with a normal distribution, and a way to randomly simulate it.
  */
 public class NormalDistStats implements Serializable {
+    private final static Logger LOG = LoggerFactory.getLogger(NormalDistStats.class);
     public final double mean;
-    public final double stdev;
+    public final double stddev;
     public final double min;
     public final double max;
 
@@ -60,20 +64,47 @@ public class NormalDistStats implements Serializable {
         return new NormalDistStats(mean, stddev, min, max);
     }
 
-    public NormalDistStats(double mean, double stdev, double min, double max) {
-        this.mean = mean;
-        this.stdev = stdev;
-        this.min = min;
-        this.max = max;
-    }
-
     public Map<String, Object> toConf() {
         Map<String, Object> ret = new HashMap<>();
         ret.put("mean", mean);
-        ret.put("stddev", stdev);
+        ret.put("stddev", stddev);
         ret.put("min", min);
         ret.put("max", max);
         return ret;
+    }
+
+    public NormalDistStats(List<Double> values) {
+        //Compute the stats for these and save them
+        double min = Double.MAX_VALUE;
+        double max = Double.MIN_VALUE;
+        double sum = 0.0;
+        long count = values.size();
+        for (Double v: values) {
+            sum += v;
+            min = Math.min(min, v);
+            max = Math.max(max,v);
+        }
+        double mean = sum / Math.max(count, 1);
+        double sdPartial = 0;
+        for (Double v: values) {
+            sdPartial += Math.pow(v - mean, 2);
+        }
+        double stddev = 0.0;
+        if (count >= 2) {
+            stddev = Math.sqrt(sdPartial/(count - 1));
+        }
+        this.min = min;
+        this.max = max;
+        this.mean = mean;
+        this.stddev = stddev;
+        LOG.info("Stats for {} are {}", values, this);
+    }
+
+    public NormalDistStats(double mean, double stddev, double min, double max) {
+        this.mean = mean;
+        this.stddev = stddev;
+        this.min = min;
+        this.max = max;
     }
 
     /**
@@ -82,6 +113,11 @@ public class NormalDistStats implements Serializable {
      * @return the next number that should follow the statistical distribution.
      */
     public double nextRandom(Random rand) {
-        return Math.max(Math.min((rand.nextGaussian() * stdev) + mean, max), min);
+        return Math.max(Math.min((rand.nextGaussian() * stddev) + mean, max), min);
+    }
+
+    @Override
+    public String toString() {
+        return "mean: " + mean + " min: " + min + " max: " + max + " stddev: " + stddev;
     }
 }

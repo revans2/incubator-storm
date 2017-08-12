@@ -21,7 +21,6 @@ package org.apache.storm.starter.loadgen;
 import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
-import org.apache.storm.utils.ObjectReader;
 
 /**
  * A set of measurements about a stream so we can statistically reproduce it.
@@ -54,6 +53,43 @@ public class OutputStream implements Serializable {
         ret.put("rate", rate.toConf());
         ret.put("areKeysSkewed", areKeysSkewed);
         return ret;
+    }
+
+    public static class Builder {
+        private String id;
+        private NormalDistStats rate;
+        private boolean areKeysSkewed;
+
+        public String getId() {
+            return id;
+        }
+
+        public Builder withId(String id) {
+            this.id = id;
+            return this;
+        }
+
+        public NormalDistStats getRate() {
+            return rate;
+        }
+
+        public Builder withRate(NormalDistStats rate) {
+            this.rate = rate;
+            return this;
+        }
+
+        public boolean isAreKeysSkewed() {
+            return areKeysSkewed;
+        }
+
+        public Builder withAreKeysSkewed(boolean areKeysSkewed) {
+            this.areKeysSkewed = areKeysSkewed;
+            return this;
+        }
+
+        public OutputStream build() {
+            return new OutputStream(id, rate, areKeysSkewed);
+        }
     }
 
     /**

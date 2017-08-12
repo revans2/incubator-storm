@@ -20,11 +20,13 @@ package org.apache.storm.starter.loadgen;
 
 import java.io.File;
 import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.constructor.SafeConstructor;
 
@@ -74,6 +76,38 @@ public class TopologyLoadConf {
         }
 
         return new TopologyLoadConf(name, topoConf, spouts, bolts, streams);
+    }
+
+    public void writeTo(File file) throws IOException {
+        Yaml yaml = new Yaml(new SafeConstructor());
+        try (FileWriter writer = new FileWriter(file)) {
+            yaml.dump(toConf(), writer);
+        }
+    }
+
+    public Map<String, Object> toConf() {
+        Map<String, Object> ret = new HashMap<>();
+        if (name != null) {
+            ret.put("name", name);
+        }
+        if (topoConf != null) {
+            ret.put("config", topoConf);
+        }
+        if (spouts != null && !spouts.isEmpty()) {
+            ret.put("spouts", spouts.stream().map(LoadCompConf::toConf)
+                .collect(Collectors.toList()));
+        }
+
+        if (bolts != null && !bolts.isEmpty()) {
+            ret.put("bolts", bolts.stream().map(LoadCompConf::toConf)
+                .collect(Collectors.toList()));
+        }
+
+        if (streams != null && !streams.isEmpty()) {
+            ret.put("streams", streams.stream().map(InputStream::toConf)
+                .collect(Collectors.toList()));
+        }
+        return ret;
     }
 
     public TopologyLoadConf(String name, Map<String, Object> topoConf,

@@ -266,8 +266,8 @@ public class GenLoad {
         String fileName = f.getName();
         int dot = fileName.lastIndexOf('.');
         final String baseName = fileName.substring(0, dot);
-        
-        //TODO we need a way to scale these up and/or down...
+
+        //TODO we need a way to scale these up and/or down parallelism and throughput independently...
         TopologyLoadConf tlc = TopologyLoadConf.fromConf(f);
         String topoName = (tlc.name == null ? baseName : tlc.name) + "-" + uniquifier++;;
 

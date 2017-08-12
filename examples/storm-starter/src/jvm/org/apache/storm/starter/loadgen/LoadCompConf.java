@@ -59,8 +59,65 @@ public class LoadCompConf {
             }
             ret.put("streams", streamData);
         }
-        stats.addToConf(ret);
+        if (stats != null) {
+            stats.addToConf(ret);
+        }
         return ret;
+    }
+
+    public static class Builder {
+        private String id;
+        private int parallelism = 1;
+        private List<OutputStream> streams;
+        private CompStats stats;
+
+        public String getId() {
+            return id;
+        }
+
+        public Builder withId(String id) {
+            this.id = id;
+            return this;
+        }
+
+        public int getParallelism() {
+            return parallelism;
+        }
+
+        public Builder withParallelism(int parallelism) {
+            this.parallelism = parallelism;
+            return this;
+        }
+
+        public List<OutputStream> getStreams() {
+            return streams;
+        }
+
+        public Builder withStream(OutputStream stream) {
+            if (streams == null) {
+                streams = new ArrayList<>();
+            }
+            streams.add(stream);
+            return this;
+        }
+
+        public Builder withStreams(List<OutputStream> streams) {
+            this.streams = streams;
+            return this;
+        }
+
+        public CompStats getStats() {
+            return stats;
+        }
+
+        public Builder withStats(CompStats stats) {
+            this.stats = stats;
+            return this;
+        }
+
+        public LoadCompConf build() {
+            return new LoadCompConf(id, parallelism, streams, stats);
+        }
     }
 
     public LoadCompConf(String id, int parallelism, List<OutputStream> streams, CompStats stats) {
