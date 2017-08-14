@@ -96,6 +96,12 @@ public class CaptureLoad {
                 LOG.info("with config {}: {}", key, o);
             }
         }
+        //Lets use the number of actually scheduled workers as a way to bridge RAS and non-RAS
+        int numWorkers = tpinfo.get_num_workers();
+        if (savedTopoConf.containsKey(Config.TOPOLOGY_WORKERS)) {
+            numWorkers = Math.max(numWorkers, ((Number)savedTopoConf.get(Config.TOPOLOGY_WORKERS)).intValue());
+        }
+        savedTopoConf.put(Config.TOPOLOGY_WORKERS, numWorkers);
 
         Map<String, LoadCompConf.Builder> boltBuilders = new HashMap<>();
         Map<String, LoadCompConf.Builder> spoutBuilders = new HashMap<>();
