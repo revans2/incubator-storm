@@ -24,7 +24,9 @@ import java.io.ObjectInputStream;
 import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
 import org.apache.commons.io.input.ClassLoaderObjectInputStream;
+import org.apache.storm.generated.GlobalStreamId;
 import org.apache.storm.generated.Grouping;
 import org.apache.storm.grouping.PartialKeyGrouping;
 import org.apache.storm.utils.Utils;
@@ -77,6 +79,21 @@ public class InputStream implements Serializable {
         ret.put("grouping", grouping);
 
         return ret;
+    }
+
+    public InputStream remap(Map<String, String> remappedComponents, Map<GlobalStreamId, GlobalStreamId> remappedStreams) {
+        String remapTo = remappedComponents.get(toComponent);
+        String remapFrom = remappedComponents.get(fromComponent);
+        GlobalStreamId remapStreamId = remappedStreams.get(gsid());
+        return new InputStream(remapFrom, remapTo, remapStreamId.get_streamId(), execTime, processTime, groupingType);
+    }
+
+    private GlobalStreamId gsid = null;
+    public synchronized GlobalStreamId gsid() {
+        if (gsid == null) {
+            gsid = new GlobalStreamId(fromComponent, id);
+        }
+        return gsid;
     }
 
     public static class Builder {

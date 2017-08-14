@@ -21,6 +21,8 @@ package org.apache.storm.starter.loadgen;
 import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
+import jdk.nashorn.internal.objects.Global;
+import org.apache.storm.generated.GlobalStreamId;
 
 /**
  * A set of measurements about a stream so we can statistically reproduce it.
@@ -53,6 +55,11 @@ public class OutputStream implements Serializable {
         ret.put("rate", rate.toConf());
         ret.put("areKeysSkewed", areKeysSkewed);
         return ret;
+    }
+
+    public OutputStream remap(String origId, Map<GlobalStreamId, GlobalStreamId> remappedStreams) {
+        GlobalStreamId remapped = remappedStreams.get(new GlobalStreamId(origId, id));
+        return new OutputStream(remapped.get_streamId(), rate, areKeysSkewed);
     }
 
     public static class Builder {

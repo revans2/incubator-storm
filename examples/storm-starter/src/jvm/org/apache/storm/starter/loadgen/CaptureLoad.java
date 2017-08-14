@@ -20,15 +20,18 @@ package org.apache.storm.starter.loadgen;
 
 import java.io.File;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.CommandLineParser;
+import org.apache.commons.cli.DefaultParser;
+import org.apache.commons.cli.HelpFormatter;
+import org.apache.commons.cli.Option;
+import org.apache.commons.cli.Options;
+import org.apache.commons.cli.ParseException;
 import org.apache.storm.Config;
 import org.apache.storm.generated.Bolt;
 import org.apache.storm.generated.BoltStats;
@@ -56,31 +59,6 @@ import org.slf4j.LoggerFactory;
 public class CaptureLoad {
     private final static Logger LOG = LoggerFactory.getLogger(CaptureLoad.class);
 
-    private static final Set<String> IMPORTANT_CONF_KEYS = Collections.unmodifiableSet(new HashSet(Arrays.asList(
-        Config.TOPOLOGY_WORKERS,
-        Config.TOPOLOGY_ACKER_EXECUTORS,
-        Config.TOPOLOGY_COMPONENT_CPU_PCORE_PERCENT,
-        Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB,
-        Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB,
-        Config.TOPOLOGY_DISABLE_LOADAWARE_MESSAGING,
-        Config.TOPOLOGY_DEBUG,
-        Config.TOPOLOGY_EXECUTOR_RECEIVE_BUFFER_SIZE,
-        Config.TOPOLOGY_FLUSH_TUPLE_FREQ_MILLIS,
-        Config.TOPOLOGY_ISOLATED_MACHINES,
-        Config.TOPOLOGY_MAX_SPOUT_PENDING,
-        Config.TOPOLOGY_MAX_TASK_PARALLELISM,
-        Config.TOPOLOGY_MESSAGE_TIMEOUT_SECS,
-        Config.TOPOLOGY_PRIORITY,
-        Config.TOPOLOGY_PRODUCER_BATCH_SIZE,
-        Config.TOPOLOGY_SCHEDULER_STRATEGY,
-        Config.TOPOLOGY_SHELLBOLT_MAX_PENDING,
-        Config.TOPOLOGY_SLEEP_SPOUT_WAIT_STRATEGY_TIME_MS,
-        Config.TOPOLOGY_SPOUT_WAIT_STRATEGY,
-        Config.TOPOLOGY_WORKER_CHILDOPTS,
-        Config.TOPOLOGY_WORKER_GC_CHILDOPTS,
-        Config.TOPOLOGY_WORKER_SHARED_THREAD_POOL_SIZE
-    )));
-
     private static List<Double> extractBoltValues(List<ExecutorSummary> summaries,
                                                   GlobalStreamId id,
                                                   Function<BoltStats, Map<String, Map<GlobalStreamId, Double>>> func) {
@@ -102,7 +80,7 @@ public class CaptureLoad {
         return ret;
     }
 
-    private static void captureTopology(Nimbus.Iface client, TopologySummary topologySummary, File baseOut) throws Exception {
+    private static TopologyLoadConf captureTopology(Nimbus.Iface client, TopologySummary topologySummary) throws Exception {
         String topologyName = topologySummary.get_name();
         LOG.info("Capturing {}...", topologyName);
         String topologyId = topologySummary.get_id();
@@ -111,7 +89,7 @@ public class CaptureLoad {
         StormTopology topo = client.getUserTopology(topologyId);
         Map<String, Object> topoConf = (Map<String, Object>) JSONValue.parse(client.getTopologyConf(topologyId));
         Map<String, Object> savedTopoConf = new HashMap<>();
-        for (String key: IMPORTANT_CONF_KEYS) {
+        for (String key: TopologyLoadConf.IMPORTANT_CONF_KEYS) {
             Object o = topoConf.get(key);
             if (o != null) {
                 savedTopoConf.put(key, o);
@@ -274,38 +252,65 @@ public class CaptureLoad {
             .map((b) -> b.build())
             .collect(Collectors.toList());
 
-        TopologyLoadConf finalConf = new TopologyLoadConf(topologyName, savedTopoConf, spouts, bolts, streams);
-        finalConf.writeTo(new File(baseOut, topologyName + ".yaml"));
+        return new TopologyLoadConf(topologyName, savedTopoConf, spouts, bolts, streams);
     }
 
-    private static void captureTopologies(Nimbus.Iface client, List<String> topologyNames, File baseOut) throws Exception {
-        ClusterSummary clusterSummary = client.getClusterInfo();
-        for (TopologySummary topologySummary: clusterSummary.get_topologies()) {
-            if (topologyNames.isEmpty() || topologyNames.contains(topologySummary.get_name())) {
-                captureTopology(client, topologySummary, baseOut);
-            }
-        }
-    }
-
+    public static final String DEFAULT_OUT_DIR = "./loadgen/";
     public static void main(String[] args) throws Exception {
+        Options options = new Options();
+        options.addOption(Option.builder("a")
+            .longOpt("anonymize")
+            .desc("Strip out any possibly identifiable information")
+            .build());
+        options.addOption(Option.builder("o")
+            .longOpt("output-dir")
+            .argName("<file>")
+            .desc("Where to write (defaults to " + DEFAULT_OUT_DIR + ")")
+            .build());
+        options.addOption(Option.builder("h")
+            .longOpt("help")
+            .desc("Print a help message")
+            .build());
+        CommandLineParser parser = new DefaultParser();
+        CommandLine cmd = null;
+        ParseException pe = null;
+        try {
+            cmd = parser.parse(options, args);
+        } catch (ParseException e) {
+            pe = e;
+        }
+        if (pe != null || cmd.hasOption('h')) {
+            if (pe != null) {
+                System.err.println("ERROR " + pe.getMessage());
+            }
+            new HelpFormatter().printHelp("CaptureLoad [options] [topologyName]*", options);
+            return;
+        }
+
         Config conf = new Config();
         int exitStatus = -1;
-        String outputDir = "./loadgen/";
-        if (args.length > 0) {
-            outputDir = args[0];
+        String outputDir = DEFAULT_OUT_DIR;
+        if (cmd.hasOption('o')) {
+            outputDir = cmd.getOptionValue('o');
         }
         File baseOut = new File(outputDir);
         LOG.info("Will save captured topologies to {}", baseOut);
         baseOut.mkdirs();
 
-        try (NimbusClient client = NimbusClient.getConfiguredClient(conf)) {
-            List<String> topologyNames = new ArrayList<>();
-            if (args.length > 1) {
-                for (int i = 1; i < args.length; i++) {
-                    topologyNames.add(args[i]);
+        try (NimbusClient nc = NimbusClient.getConfiguredClient(conf)) {
+            Nimbus.Iface client = nc.getClient();
+            List<String> topologyNames = cmd.getArgList();
+
+            ClusterSummary clusterSummary = client.getClusterInfo();
+            for (TopologySummary topologySummary: clusterSummary.get_topologies()) {
+                if (topologyNames.isEmpty() || topologyNames.contains(topologySummary.get_name())) {
+                    TopologyLoadConf capturedConf = captureTopology(client, topologySummary);
+                    if (cmd.hasOption('a')) {
+                        capturedConf = capturedConf.anonymize();
+                    }
+                    capturedConf.writeTo(new File(baseOut, capturedConf.name + ".yaml"));
                 }
             }
-            captureTopologies(client.getClient(), topologyNames, baseOut);
 
             exitStatus = 0;
         } catch (Exception e) {

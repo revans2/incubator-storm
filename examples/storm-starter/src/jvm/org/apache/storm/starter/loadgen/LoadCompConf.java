@@ -22,6 +22,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
+import org.apache.storm.generated.GlobalStreamId;
 import org.apache.storm.utils.ObjectReader;
 
 /**
@@ -63,6 +65,15 @@ public class LoadCompConf {
             stats.addToConf(ret);
         }
         return ret;
+    }
+
+    public LoadCompConf remap(Map<String, String> remappedComponents, Map<GlobalStreamId, GlobalStreamId> remappedStreams) {
+        String remappedId = remappedComponents.get(id);
+        List<OutputStream> remappedOutStreams = streams.stream()
+            .map((orig) -> orig.remap(id, remappedStreams))
+            .collect(Collectors.toList());
+
+        return new LoadCompConf(remappedId, parallelism, remappedOutStreams, stats);
     }
 
     public static class Builder {

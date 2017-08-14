@@ -62,7 +62,7 @@ public class LoadBolt extends BaseRichBolt {
     }
 
     public void add(InputStream inputStream) {
-        GlobalStreamId id = new GlobalStreamId(inputStream.fromComponent, inputStream.id);
+        GlobalStreamId id = inputStream.gsid();
         inputStreams.put(id, inputStream);
     }
 
