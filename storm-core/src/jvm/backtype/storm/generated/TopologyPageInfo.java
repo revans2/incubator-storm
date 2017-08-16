@@ -70,6 +70,7 @@ public class TopologyPageInfo implements org.apache.thrift.TBase<TopologyPageInf
   private static final org.apache.thrift.protocol.TField OWNER_FIELD_DESC = new org.apache.thrift.protocol.TField("owner", org.apache.thrift.protocol.TType.STRING, (short)13);
   private static final org.apache.thrift.protocol.TField WORKERS_FIELD_DESC = new org.apache.thrift.protocol.TField("workers", org.apache.thrift.protocol.TType.LIST, (short)14);
   private static final org.apache.thrift.protocol.TField ERRORS_FIELD_DESC = new org.apache.thrift.protocol.TField("errors", org.apache.thrift.protocol.TType.LIST, (short)15);
+  private static final org.apache.thrift.protocol.TField TOPOLOGY_VERSION_FIELD_DESC = new org.apache.thrift.protocol.TField("topology_version", org.apache.thrift.protocol.TType.STRING, (short)18);
   private static final org.apache.thrift.protocol.TField REQUESTED_MEMONHEAP_FIELD_DESC = new org.apache.thrift.protocol.TField("requested_memonheap", org.apache.thrift.protocol.TType.DOUBLE, (short)521);
   private static final org.apache.thrift.protocol.TField REQUESTED_MEMOFFHEAP_FIELD_DESC = new org.apache.thrift.protocol.TField("requested_memoffheap", org.apache.thrift.protocol.TType.DOUBLE, (short)522);
   private static final org.apache.thrift.protocol.TField REQUESTED_CPU_FIELD_DESC = new org.apache.thrift.protocol.TField("requested_cpu", org.apache.thrift.protocol.TType.DOUBLE, (short)523);
@@ -106,6 +107,7 @@ public class TopologyPageInfo implements org.apache.thrift.TBase<TopologyPageInf
   private String owner; // optional
   private List<WorkerSummary> workers; // optional
   private List<ErrorInfo> errors; // optional
+  private String topology_version; // optional
   private double requested_memonheap; // optional
   private double requested_memoffheap; // optional
   private double requested_cpu; // optional
@@ -138,6 +140,7 @@ public class TopologyPageInfo implements org.apache.thrift.TBase<TopologyPageInf
     OWNER((short)13, "owner"),
     WORKERS((short)14, "workers"),
     ERRORS((short)15, "errors"),
+    TOPOLOGY_VERSION((short)18, "topology_version"),
     REQUESTED_MEMONHEAP((short)521, "requested_memonheap"),
     REQUESTED_MEMOFFHEAP((short)522, "requested_memoffheap"),
     REQUESTED_CPU((short)523, "requested_cpu"),
@@ -196,6 +199,8 @@ public class TopologyPageInfo implements org.apache.thrift.TBase<TopologyPageInf
           return WORKERS;
         case 15: // ERRORS
           return ERRORS;
+        case 18: // TOPOLOGY_VERSION
+          return TOPOLOGY_VERSION;
         case 521: // REQUESTED_MEMONHEAP
           return REQUESTED_MEMONHEAP;
         case 522: // REQUESTED_MEMOFFHEAP
@@ -283,7 +288,7 @@ public class TopologyPageInfo implements org.apache.thrift.TBase<TopologyPageInf
   private static final int __ASSIGNED_REGULAR_OFF_HEAP_MEMORY_ISSET_ID = 16;
   private static final int __ASSIGNED_SHARED_OFF_HEAP_MEMORY_ISSET_ID = 17;
   private int __isset_bitfield = 0;
-  private static final _Fields optionals[] = {_Fields.NAME,_Fields.UPTIME_SECS,_Fields.STATUS,_Fields.NUM_TASKS,_Fields.NUM_WORKERS,_Fields.NUM_EXECUTORS,_Fields.TOPOLOGY_CONF,_Fields.ID_TO_SPOUT_AGG_STATS,_Fields.ID_TO_BOLT_AGG_STATS,_Fields.SCHED_STATUS,_Fields.TOPOLOGY_STATS,_Fields.OWNER,_Fields.WORKERS,_Fields.ERRORS,_Fields.REQUESTED_MEMONHEAP,_Fields.REQUESTED_MEMOFFHEAP,_Fields.REQUESTED_CPU,_Fields.ASSIGNED_MEMONHEAP,_Fields.ASSIGNED_MEMOFFHEAP,_Fields.ASSIGNED_CPU,_Fields.REQUESTED_REGULAR_ON_HEAP_MEMORY,_Fields.REQUESTED_SHARED_ON_HEAP_MEMORY,_Fields.REQUESTED_REGULAR_OFF_HEAP_MEMORY,_Fields.REQUESTED_SHARED_OFF_HEAP_MEMORY,_Fields.ASSIGNED_REGULAR_ON_HEAP_MEMORY,_Fields.ASSIGNED_SHARED_ON_HEAP_MEMORY,_Fields.ASSIGNED_REGULAR_OFF_HEAP_MEMORY,_Fields.ASSIGNED_SHARED_OFF_HEAP_MEMORY};
+  private static final _Fields optionals[] = {_Fields.NAME,_Fields.UPTIME_SECS,_Fields.STATUS,_Fields.NUM_TASKS,_Fields.NUM_WORKERS,_Fields.NUM_EXECUTORS,_Fields.TOPOLOGY_CONF,_Fields.ID_TO_SPOUT_AGG_STATS,_Fields.ID_TO_BOLT_AGG_STATS,_Fields.SCHED_STATUS,_Fields.TOPOLOGY_STATS,_Fields.OWNER,_Fields.WORKERS,_Fields.ERRORS,_Fields.TOPOLOGY_VERSION,_Fields.REQUESTED_MEMONHEAP,_Fields.REQUESTED_MEMOFFHEAP,_Fields.REQUESTED_CPU,_Fields.ASSIGNED_MEMONHEAP,_Fields.ASSIGNED_MEMOFFHEAP,_Fields.ASSIGNED_CPU,_Fields.REQUESTED_REGULAR_ON_HEAP_MEMORY,_Fields.REQUESTED_SHARED_ON_HEAP_MEMORY,_Fields.REQUESTED_REGULAR_OFF_HEAP_MEMORY,_Fields.REQUESTED_SHARED_OFF_HEAP_MEMORY,_Fields.ASSIGNED_REGULAR_ON_HEAP_MEMORY,_Fields.ASSIGNED_SHARED_ON_HEAP_MEMORY,_Fields.ASSIGNED_REGULAR_OFF_HEAP_MEMORY,_Fields.ASSIGNED_SHARED_OFF_HEAP_MEMORY};
   public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
   static {
     Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
@@ -323,6 +328,8 @@ public class TopologyPageInfo implements org.apache.thrift.TBase<TopologyPageInf
     tmpMap.put(_Fields.ERRORS, new org.apache.thrift.meta_data.FieldMetaData("errors", org.apache.thrift.TFieldRequirementType.OPTIONAL, 
         new org.apache.thrift.meta_data.ListMetaData(org.apache.thrift.protocol.TType.LIST, 
             new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, ErrorInfo.class))));
+    tmpMap.put(_Fields.TOPOLOGY_VERSION, new org.apache.thrift.meta_data.FieldMetaData("topology_version", org.apache.thrift.TFieldRequirementType.OPTIONAL, 
+        new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
     tmpMap.put(_Fields.REQUESTED_MEMONHEAP, new org.apache.thrift.meta_data.FieldMetaData("requested_memonheap", org.apache.thrift.TFieldRequirementType.OPTIONAL, 
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.DOUBLE)));
     tmpMap.put(_Fields.REQUESTED_MEMOFFHEAP, new org.apache.thrift.meta_data.FieldMetaData("requested_memoffheap", org.apache.thrift.TFieldRequirementType.OPTIONAL, 
@@ -439,6 +446,9 @@ public class TopologyPageInfo implements org.apache.thrift.TBase<TopologyPageInf
       }
       this.errors = __this__errors;
     }
+    if (other.is_set_topology_version()) {
+      this.topology_version = other.topology_version;
+    }
     this.requested_memonheap = other.requested_memonheap;
     this.requested_memoffheap = other.requested_memoffheap;
     this.requested_cpu = other.requested_cpu;
@@ -480,6 +490,7 @@ public class TopologyPageInfo implements org.apache.thrift.TBase<TopologyPageInf
     this.owner = null;
     this.workers = null;
     this.errors = null;
+    this.topology_version = null;
     set_requested_memonheap_isSet(false);
     this.requested_memonheap = 0.0;
     set_requested_memoffheap_isSet(false);
@@ -900,6 +911,29 @@ public class TopologyPageInfo implements org.apache.thrift.TBase<TopologyPageInf
   public void set_errors_isSet(boolean value) {
     if (!value) {
       this.errors = null;
+    }
+  }
+
+  public String get_topology_version() {
+    return this.topology_version;
+  }
+
+  public void set_topology_version(String topology_version) {
+    this.topology_version = topology_version;
+  }
+
+  public void unset_topology_version() {
+    this.topology_version = null;
+  }
+
+  /** Returns true if field topology_version is set (has been assigned a value) and false otherwise */
+  public boolean is_set_topology_version() {
+    return this.topology_version != null;
+  }
+
+  public void set_topology_version_isSet(boolean value) {
+    if (!value) {
+      this.topology_version = null;
     }
   }
 
@@ -1333,6 +1367,14 @@ public class TopologyPageInfo implements org.apache.thrift.TBase<TopologyPageInf
       }
       break;
 
+    case TOPOLOGY_VERSION:
+      if (value == null) {
+        unset_topology_version();
+      } else {
+        set_topology_version((String)value);
+      }
+      break;
+
     case REQUESTED_MEMONHEAP:
       if (value == null) {
         unset_requested_memonheap();
@@ -1495,6 +1537,9 @@ public class TopologyPageInfo implements org.apache.thrift.TBase<TopologyPageInf
     case ERRORS:
       return get_errors();
 
+    case TOPOLOGY_VERSION:
+      return get_topology_version();
+
     case REQUESTED_MEMONHEAP:
       return get_requested_memonheap();
 
@@ -1578,6 +1623,8 @@ public class TopologyPageInfo implements org.apache.thrift.TBase<TopologyPageInf
       return is_set_workers();
     case ERRORS:
       return is_set_errors();
+    case TOPOLOGY_VERSION:
+      return is_set_topology_version();
     case REQUESTED_MEMONHEAP:
       return is_set_requested_memonheap();
     case REQUESTED_MEMOFFHEAP:
@@ -1755,6 +1802,15 @@ public class TopologyPageInfo implements org.apache.thrift.TBase<TopologyPageInf
       if (!(this_present_errors && that_present_errors))
         return false;
       if (!this.errors.equals(that.errors))
+        return false;
+    }
+
+    boolean this_present_topology_version = true && this.is_set_topology_version();
+    boolean that_present_topology_version = true && that.is_set_topology_version();
+    if (this_present_topology_version || that_present_topology_version) {
+      if (!(this_present_topology_version && that_present_topology_version))
+        return false;
+      if (!this.topology_version.equals(that.topology_version))
         return false;
     }
 
@@ -1965,6 +2021,11 @@ public class TopologyPageInfo implements org.apache.thrift.TBase<TopologyPageInf
     list.add(present_errors);
     if (present_errors)
       list.add(errors);
+
+    boolean present_topology_version = true && (is_set_topology_version());
+    list.add(present_topology_version);
+    if (present_topology_version)
+      list.add(topology_version);
 
     boolean present_requested_memonheap = true && (is_set_requested_memonheap());
     list.add(present_requested_memonheap);
@@ -2193,6 +2254,16 @@ public class TopologyPageInfo implements org.apache.thrift.TBase<TopologyPageInf
     }
     if (is_set_errors()) {
       lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.errors, other.errors);
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+    }
+    lastComparison = Boolean.valueOf(is_set_topology_version()).compareTo(other.is_set_topology_version());
+    if (lastComparison != 0) {
+      return lastComparison;
+    }
+    if (is_set_topology_version()) {
+      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.topology_version, other.topology_version);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -2485,6 +2556,16 @@ public class TopologyPageInfo implements org.apache.thrift.TBase<TopologyPageInf
         sb.append("null");
       } else {
         sb.append(this.errors);
+      }
+      first = false;
+    }
+    if (is_set_topology_version()) {
+      if (!first) sb.append(", ");
+      sb.append("topology_version:");
+      if (this.topology_version == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.topology_version);
       }
       first = false;
     }
@@ -2793,6 +2874,14 @@ public class TopologyPageInfo implements org.apache.thrift.TBase<TopologyPageInf
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
             break;
+          case 18: // TOPOLOGY_VERSION
+            if (schemeField.type == org.apache.thrift.protocol.TType.STRING) {
+              struct.topology_version = iprot.readString();
+              struct.set_topology_version_isSet(true);
+            } else { 
+              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+            }
+            break;
           case 521: // REQUESTED_MEMONHEAP
             if (schemeField.type == org.apache.thrift.protocol.TType.DOUBLE) {
               struct.requested_memonheap = iprot.readDouble();
@@ -3043,6 +3132,13 @@ public class TopologyPageInfo implements org.apache.thrift.TBase<TopologyPageInf
           oprot.writeFieldEnd();
         }
       }
+      if (struct.topology_version != null) {
+        if (struct.is_set_topology_version()) {
+          oprot.writeFieldBegin(TOPOLOGY_VERSION_FIELD_DESC);
+          oprot.writeString(struct.topology_version);
+          oprot.writeFieldEnd();
+        }
+      }
       if (struct.is_set_requested_memonheap()) {
         oprot.writeFieldBegin(REQUESTED_MEMONHEAP_FIELD_DESC);
         oprot.writeDouble(struct.requested_memonheap);
@@ -3174,49 +3270,52 @@ public class TopologyPageInfo implements org.apache.thrift.TBase<TopologyPageInf
       if (struct.is_set_errors()) {
         optionals.set(13);
       }
-      if (struct.is_set_requested_memonheap()) {
+      if (struct.is_set_topology_version()) {
         optionals.set(14);
       }
-      if (struct.is_set_requested_memoffheap()) {
+      if (struct.is_set_requested_memonheap()) {
         optionals.set(15);
       }
-      if (struct.is_set_requested_cpu()) {
+      if (struct.is_set_requested_memoffheap()) {
         optionals.set(16);
       }
-      if (struct.is_set_assigned_memonheap()) {
+      if (struct.is_set_requested_cpu()) {
         optionals.set(17);
       }
-      if (struct.is_set_assigned_memoffheap()) {
+      if (struct.is_set_assigned_memonheap()) {
         optionals.set(18);
       }
-      if (struct.is_set_assigned_cpu()) {
+      if (struct.is_set_assigned_memoffheap()) {
         optionals.set(19);
       }
-      if (struct.is_set_requested_regular_on_heap_memory()) {
+      if (struct.is_set_assigned_cpu()) {
         optionals.set(20);
       }
-      if (struct.is_set_requested_shared_on_heap_memory()) {
+      if (struct.is_set_requested_regular_on_heap_memory()) {
         optionals.set(21);
       }
-      if (struct.is_set_requested_regular_off_heap_memory()) {
+      if (struct.is_set_requested_shared_on_heap_memory()) {
         optionals.set(22);
       }
-      if (struct.is_set_requested_shared_off_heap_memory()) {
+      if (struct.is_set_requested_regular_off_heap_memory()) {
         optionals.set(23);
       }
-      if (struct.is_set_assigned_regular_on_heap_memory()) {
+      if (struct.is_set_requested_shared_off_heap_memory()) {
         optionals.set(24);
       }
-      if (struct.is_set_assigned_shared_on_heap_memory()) {
+      if (struct.is_set_assigned_regular_on_heap_memory()) {
         optionals.set(25);
       }
-      if (struct.is_set_assigned_regular_off_heap_memory()) {
+      if (struct.is_set_assigned_shared_on_heap_memory()) {
         optionals.set(26);
       }
-      if (struct.is_set_assigned_shared_off_heap_memory()) {
+      if (struct.is_set_assigned_regular_off_heap_memory()) {
         optionals.set(27);
       }
-      oprot.writeBitSet(optionals, 28);
+      if (struct.is_set_assigned_shared_off_heap_memory()) {
+        optionals.set(28);
+      }
+      oprot.writeBitSet(optionals, 29);
       if (struct.is_set_name()) {
         oprot.writeString(struct.name);
       }
@@ -3285,6 +3384,9 @@ public class TopologyPageInfo implements org.apache.thrift.TBase<TopologyPageInf
           }
         }
       }
+      if (struct.is_set_topology_version()) {
+        oprot.writeString(struct.topology_version);
+      }
       if (struct.is_set_requested_memonheap()) {
         oprot.writeDouble(struct.requested_memonheap);
       }
@@ -3334,7 +3436,7 @@ public class TopologyPageInfo implements org.apache.thrift.TBase<TopologyPageInf
       TTupleProtocol iprot = (TTupleProtocol) prot;
       struct.id = iprot.readString();
       struct.set_id_isSet(true);
-      BitSet incoming = iprot.readBitSet(28);
+      BitSet incoming = iprot.readBitSet(29);
       if (incoming.get(0)) {
         struct.name = iprot.readString();
         struct.set_name_isSet(true);
@@ -3437,58 +3539,62 @@ public class TopologyPageInfo implements org.apache.thrift.TBase<TopologyPageInf
         struct.set_errors_isSet(true);
       }
       if (incoming.get(14)) {
+        struct.topology_version = iprot.readString();
+        struct.set_topology_version_isSet(true);
+      }
+      if (incoming.get(15)) {
         struct.requested_memonheap = iprot.readDouble();
         struct.set_requested_memonheap_isSet(true);
       }
-      if (incoming.get(15)) {
+      if (incoming.get(16)) {
         struct.requested_memoffheap = iprot.readDouble();
         struct.set_requested_memoffheap_isSet(true);
       }
-      if (incoming.get(16)) {
+      if (incoming.get(17)) {
         struct.requested_cpu = iprot.readDouble();
         struct.set_requested_cpu_isSet(true);
       }
-      if (incoming.get(17)) {
+      if (incoming.get(18)) {
         struct.assigned_memonheap = iprot.readDouble();
         struct.set_assigned_memonheap_isSet(true);
       }
-      if (incoming.get(18)) {
+      if (incoming.get(19)) {
         struct.assigned_memoffheap = iprot.readDouble();
         struct.set_assigned_memoffheap_isSet(true);
       }
-      if (incoming.get(19)) {
+      if (incoming.get(20)) {
         struct.assigned_cpu = iprot.readDouble();
         struct.set_assigned_cpu_isSet(true);
       }
-      if (incoming.get(20)) {
+      if (incoming.get(21)) {
         struct.requested_regular_on_heap_memory = iprot.readDouble();
         struct.set_requested_regular_on_heap_memory_isSet(true);
       }
-      if (incoming.get(21)) {
+      if (incoming.get(22)) {
         struct.requested_shared_on_heap_memory = iprot.readDouble();
         struct.set_requested_shared_on_heap_memory_isSet(true);
       }
-      if (incoming.get(22)) {
+      if (incoming.get(23)) {
         struct.requested_regular_off_heap_memory = iprot.readDouble();
         struct.set_requested_regular_off_heap_memory_isSet(true);
       }
-      if (incoming.get(23)) {
+      if (incoming.get(24)) {
         struct.requested_shared_off_heap_memory = iprot.readDouble();
         struct.set_requested_shared_off_heap_memory_isSet(true);
       }
-      if (incoming.get(24)) {
+      if (incoming.get(25)) {
         struct.assigned_regular_on_heap_memory = iprot.readDouble();
         struct.set_assigned_regular_on_heap_memory_isSet(true);
       }
-      if (incoming.get(25)) {
+      if (incoming.get(26)) {
         struct.assigned_shared_on_heap_memory = iprot.readDouble();
         struct.set_assigned_shared_on_heap_memory_isSet(true);
       }
-      if (incoming.get(26)) {
+      if (incoming.get(27)) {
         struct.assigned_regular_off_heap_memory = iprot.readDouble();
         struct.set_assigned_regular_off_heap_memory_isSet(true);
       }
-      if (incoming.get(27)) {
+      if (incoming.get(28)) {
         struct.assigned_shared_off_heap_memory = iprot.readDouble();
         struct.set_assigned_shared_off_heap_memory_isSet(true);
       }

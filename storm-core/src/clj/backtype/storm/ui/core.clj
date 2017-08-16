@@ -493,7 +493,8 @@
                 "assignedMemOnHeap" (.get_assigned_memonheap t)
                 "assignedMemOffHeap" (.get_assigned_memoffheap t)
                 "assignedTotalMem" (+ (.get_assigned_memonheap t) (.get_assigned_memoffheap t))
-                "assignedCpu" (.get_assigned_cpu t)}]
+                "assignedCpu" (.get_assigned_cpu t)
+                "topologyVersion" (.get_topology_version t)}]
       (if (not-nil? keys) (select-keys data keys) data))))
 
 (defn all-topologies-summary
@@ -647,7 +648,8 @@
                      (.get_id_to_spout_agg_stats topo-info))
        "bolts" (map (partial comp-agg-stats-json id)
                     (.get_id_to_bolt_agg_stats topo-info))
-       "configuration" (.get_topology_conf topo-info)}
+       "configuration" (.get_topology_conf topo-info)
+       "topologyVersion" (.get_topology_version topo-info)}
       (topology-errors (.get_errors topo-info) id))))
 
 (defn exec-host-port

@@ -245,6 +245,11 @@
             Scheduler Info
           </span>
         </th>
+        <th>
+          <span data-toggle="tooltip" data-placement="left" title="The version of this topology">
+            Topology Version
+          </span>
+        </th>
       </tr>
     </thead>
     <tbody>
@@ -262,6 +267,7 @@
         <td>{{assignedCpu}}</td>
         {{/schedulerDisplayResource}}
         <td>{{schedulerInfo}}</td>
+        <td>{{topologyVersion}}</td>
       </tr>
       {{/topologies}}
     </tbody>
