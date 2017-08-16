@@ -50,6 +50,8 @@ import org.apache.storm.topology.BoltDeclarer;
 import org.apache.storm.topology.TopologyBuilder;
 import org.apache.storm.utils.NimbusClient;
 import org.apache.storm.utils.ObjectReader;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.constructor.SafeConstructor;
 
@@ -57,8 +59,10 @@ import org.yaml.snakeyaml.constructor.SafeConstructor;
  * Generate a simulated load.
  */
 public class GenLoad {
+
+    private final static Logger LOG = LoggerFactory.getLogger(GenLoad.class);
     //TODO we should make this configurable some how...
-    static final int NUM_MINS = 10;
+    static final int NUM_MINS = 5;
     //TODO lets parse a file and do this for real....
 
     private static class MemMeasure {
@@ -121,7 +125,8 @@ public class GenLoad {
             TopologyInfo info = client.getTopologyInfo(id);
             uptime = Math.max(uptime, info.get_uptime_secs());
             for (ExecutorSummary exec : info.get_executors()) {
-                if ("spout".equals(exec.get_component_id()) && exec.get_stats() != null && exec.get_stats().get_specific() != null) {
+                if (exec.get_stats() != null && exec.get_stats().get_specific() != null &&
+                    exec.get_stats().get_specific().is_set_spout()) {
                     SpoutStats stats = exec.get_stats().get_specific().get_spout();
                     Map<String, Long> failedMap = stats.get_failed().get(":all-time");
                     Map<String, Long> ackedMap = stats.get_acked().get(":all-time");
@@ -254,6 +259,8 @@ public class GenLoad {
                 }
             }
             exitStatus = 0;
+        } catch (Exception e) {
+            LOG.error("Error trying to run topologies...", e);
         } finally {
             System.exit(exitStatus);
         }
@@ -275,6 +282,15 @@ public class GenLoad {
         Config conf = new Config();
         if (tlc.topoConf != null) {
             conf.putAll(tlc.topoConf);
+        }
+        //For some reason on the new code if ackers is null we get 0???
+        Object ackers = conf.get(Config.TOPOLOGY_ACKER_EXECUTORS);
+        Object workers = conf.get(Config.TOPOLOGY_WORKERS);
+        if (ackers == null || ((Number)ackers).intValue() <= 0) {
+            if (workers == null) {
+                workers = 1;
+            }
+            conf.put(Config.TOPOLOGY_ACKER_EXECUTORS, workers);
         }
         conf.registerMetricsConsumer(org.apache.storm.metric.LoggingMetricsConsumer.class);
         conf.registerMetricsConsumer(org.apache.storm.misc.metric.HttpForwardingMetricsConsumer.class, url, 1);

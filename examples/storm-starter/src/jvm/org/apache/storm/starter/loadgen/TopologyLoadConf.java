@@ -161,18 +161,18 @@ public class TopologyLoadConf {
         return "topology_" + asCharString(topoUniquifier.getAndIncrement());
     }
 
-    private static AtomicInteger boltUniquifier = new AtomicInteger(0);
-    private static String getUniqueBoltName() {
+    private AtomicInteger boltUniquifier = new AtomicInteger(0);
+    private String getUniqueBoltName() {
         return "bolt_" + asCharString(boltUniquifier.getAndIncrement());
     }
 
-    private static AtomicInteger spoutUniquifier = new AtomicInteger(0);
-    private static String getUniqueSpoutName() {
+    private AtomicInteger spoutUniquifier = new AtomicInteger(0);
+    private String getUniqueSpoutName() {
         return "spout_" + asCharString(spoutUniquifier.getAndIncrement());
     }
 
-    private static AtomicInteger streamUniquifier = new AtomicInteger(0);
-    private static String getUniqueStreamName() {
+    private AtomicInteger streamUniquifier = new AtomicInteger(0);
+    private String getUniqueStreamName() {
         return "stream_" + asCharString(spoutUniquifier.getAndIncrement());
     }
 
@@ -203,10 +203,12 @@ public class TopologyLoadConf {
         for (LoadCompConf comp: bolts) {
             String newId = getUniqueBoltName();
             remappedComponents.put(comp.id, newId);
-            for (OutputStream out : comp.streams) {
-                GlobalStreamId orig = new GlobalStreamId(comp.id, out.id);
-                GlobalStreamId remapped = new GlobalStreamId(newId, getUniqueStreamName());
-                remappedStreams.put(orig, remapped);
+            if (comp.streams != null) {
+                for (OutputStream out : comp.streams) {
+                    GlobalStreamId orig = new GlobalStreamId(comp.id, out.id);
+                    GlobalStreamId remapped = new GlobalStreamId(newId, getUniqueStreamName());
+                    remappedStreams.put(orig, remapped);
+                }
             }
         }
 
@@ -214,10 +216,12 @@ public class TopologyLoadConf {
             remappedComponents.put(comp.id, getUniqueSpoutName());
             String newId = getUniqueSpoutName();
             remappedComponents.put(comp.id, newId);
-            for (OutputStream out : comp.streams) {
-                GlobalStreamId orig = new GlobalStreamId(comp.id, out.id);
-                GlobalStreamId remapped = new GlobalStreamId(newId, getUniqueStreamName());
-                remappedStreams.put(orig, remapped);
+            if (comp.streams != null) {
+                for (OutputStream out : comp.streams) {
+                    GlobalStreamId orig = new GlobalStreamId(comp.id, out.id);
+                    GlobalStreamId remapped = new GlobalStreamId(newId, getUniqueStreamName());
+                    remappedStreams.put(orig, remapped);
+                }
             }
         }
 

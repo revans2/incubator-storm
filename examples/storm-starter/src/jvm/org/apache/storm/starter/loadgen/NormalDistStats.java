@@ -75,8 +75,8 @@ public class NormalDistStats implements Serializable {
 
     public NormalDistStats(List<Double> values) {
         //Compute the stats for these and save them
-        double min = Double.MAX_VALUE;
-        double max = Double.MIN_VALUE;
+        double min = values.isEmpty() ? 0.0 : values.get(0);
+        double max = values.isEmpty() ? 0.0 : values.get(0);
         double sum = 0.0;
         long count = values.size();
         for (Double v: values) {

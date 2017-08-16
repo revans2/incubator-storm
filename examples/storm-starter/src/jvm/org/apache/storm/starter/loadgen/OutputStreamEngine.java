@@ -63,7 +63,8 @@ public class OutputStreamEngine {
             periodNano = Math.max(1, (long)(NANO_PER_SEC/ratePerSecond));
             emitAmount = Math.max(1, (long)((ratePerSecond / NANO_PER_SEC) * periodNano));
         } else {
-            periodNano = Long.MAX_VALUE - 1;
+            //if it is is 0 or less it really is 1 per 10 seconds.
+            periodNano = (long)NANO_PER_SEC * 10;
             emitAmount = 1;
         }
     }

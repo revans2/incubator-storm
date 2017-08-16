@@ -69,9 +69,10 @@ public class LoadCompConf {
 
     public LoadCompConf remap(Map<String, String> remappedComponents, Map<GlobalStreamId, GlobalStreamId> remappedStreams) {
         String remappedId = remappedComponents.get(id);
-        List<OutputStream> remappedOutStreams = streams.stream()
-            .map((orig) -> orig.remap(id, remappedStreams))
-            .collect(Collectors.toList());
+        List<OutputStream> remappedOutStreams = streams == null? null :
+            streams.stream()
+                .map((orig) -> orig.remap(id, remappedStreams))
+                .collect(Collectors.toList());
 
         return new LoadCompConf(remappedId, parallelism, remappedOutStreams, stats);
     }

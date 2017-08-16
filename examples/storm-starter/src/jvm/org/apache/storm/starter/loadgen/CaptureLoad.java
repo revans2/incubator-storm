@@ -64,16 +64,18 @@ public class CaptureLoad {
                                                   Function<BoltStats, Map<String, Map<GlobalStreamId, Double>>> func) {
 
         List<Double> ret = new ArrayList<>();
-        for (ExecutorSummary summ: summaries) {
-            if (summ.is_set_stats()) {
-                Map<String, Map<GlobalStreamId, Double>> data = func.apply(summ.get_stats().get_specific().get_bolt());
-                if (data != null) {
-                    List<Double> subvalues = data.values().stream()
-                        .map((subMap) -> subMap.get(id))
-                        .filter((value) -> value != null)
-                        .mapToDouble((value) -> value.doubleValue())
-                        .boxed().collect(Collectors.toList());
-                    ret.addAll(subvalues);
+        if (summaries != null) {
+            for (ExecutorSummary summ : summaries) {
+                if (summ != null && summ.is_set_stats()) {
+                    Map<String, Map<GlobalStreamId, Double>> data = func.apply(summ.get_stats().get_specific().get_bolt());
+                    if (data != null) {
+                        List<Double> subvalues = data.values().stream()
+                            .map((subMap) -> subMap.get(id))
+                            .filter((value) -> value != null)
+                            .mapToDouble((value) -> value.doubleValue())
+                            .boxed().collect(Collectors.toList());
+                        ret.addAll(subvalues);
+                    }
                 }
             }
         }
@@ -271,6 +273,7 @@ public class CaptureLoad {
         options.addOption(Option.builder("o")
             .longOpt("output-dir")
             .argName("<file>")
+            .hasArg()
             .desc("Where to write (defaults to " + DEFAULT_OUT_DIR + ")")
             .build());
         options.addOption(Option.builder("h")
