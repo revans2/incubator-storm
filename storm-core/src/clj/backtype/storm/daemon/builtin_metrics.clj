@@ -34,6 +34,7 @@
 (defrecord SpoutThrottlingMetrics [^CountMetric skipped-max-spout
                                    ^CountMetric skipped-throttle
                                    ^CountMetric skipped-inactive])
+(defrecord ErrorReportingMetrics [^CountMetric reported-error-count])
 
 
 (defn make-data [executor-type stats]
@@ -56,9 +57,17 @@
                            (CountMetric.)
                            (CountMetric.)))
 
+(defn make-error-reporting-data []
+  (ErrorReportingMetrics. (CountMetric.)))
+
 (defn register-spout-throttling-metrics [throttling-metrics  storm-conf topology-context]
   (doseq [[kw imetric] throttling-metrics]
     (.registerMetric topology-context (str "__" (name kw)) imetric
+                     (int (get storm-conf Config/TOPOLOGY_BUILTIN_METRICS_BUCKET_SIZE_SECS)))))
+
+(defn register-error-reporting-metrics [error-reporting-metrics storm-conf topology-context]
+  (doseq [[kw imetric] error-reporting-metrics]
+         (.registerMetric topology-context (str "__" (name kw)) imetric
                      (int (get storm-conf Config/TOPOLOGY_BUILTIN_METRICS_BUCKET_SIZE_SECS)))))
 
 (defn register-all [builtin-metrics  storm-conf topology-context]
@@ -96,3 +105,6 @@
 
 (defn skipped-inactive! [^SpoutThrottlingMetrics m stats]
   (-> m .skipped-inactive (.incrBy (stats-rate stats))))
+
+(defn incr-reported-error-count! [^ErrorReportingMetrics m]
+  (-> m .reported-error-count .incr))

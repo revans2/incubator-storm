@@ -264,6 +264,7 @@
      :spout-throttling-metrics (if (= executor-type :spout) 
                                 (builtin-metrics/make-spout-throttling-data)
                                 nil)
+     :error-reporting-metrics (builtin-metrics/make-error-reporting-data)
      ;; TODO: add in the executor-specific stuff in a :specific... or make a spout-data, bolt-data function?
      )))
 
@@ -464,7 +465,7 @@
     ))
 
 (defmethod mk-threads :spout [executor-data task-datas initial-credentials]
-  (let [{:keys [storm-conf component-id executor-id worker-context transfer-fn report-error sampler open-or-prepare-was-called?]} executor-data
+  (let [{:keys [storm-conf component-id executor-id worker-context transfer-fn report-error sampler open-or-prepare-was-called? error-reporting-metrics]} executor-data
         ^ISpoutWaitStrategy spout-wait-strategy (init-spout-wait-strategy storm-conf)
         max-spout-pending (executor-max-spout-pending storm-conf (count task-datas))
         ^Integer max-spout-pending (if max-spout-pending (int max-spout-pending))        
@@ -524,6 +525,7 @@
         
         (log-message "Opening spout " component-id ":" (keys task-datas))
         (builtin-metrics/register-spout-throttling-metrics (:spout-throttling-metrics executor-data) storm-conf (:user-context (first (vals task-datas))))
+        (builtin-metrics/register-error-reporting-metrics (:error-reporting-metrics executor-data) storm-conf (:user-context (first (vals task-datas))))
         (doseq [[task-id task-data] task-datas
                 :let [^ISpout spout-obj (:object task-data)
                      tasks-fn (:tasks-fn task-data)
@@ -581,6 +583,7 @@
                       (send-spout-msg stream-id tuple message-id out-task-id)
                       )
                     (reportError [this error]
+                      (builtin-metrics/incr-reported-error-count! error-reporting-metrics)
                       (report-error error)
                       )))))
         (reset! open-or-prepare-was-called? true) 
@@ -650,7 +653,7 @@
 
 (defmethod mk-threads :bolt [executor-data task-datas initial-credentials]
   (let [{:keys [storm-conf component-id worker-context transfer-fn report-error sampler
-                open-or-prepare-was-called?]} executor-data
+                open-or-prepare-was-called? error-reporting-metrics]} executor-data
         execute-sampler (mk-stats-sampler storm-conf)
         executor-stats (:stats executor-data)
         {:keys [storm-conf component-id executor-id worker-context transfer-fn report-error sampler
@@ -715,6 +718,7 @@
           (Thread/sleep 100))
         
         (log-message "Preparing bolt " component-id ":" (keys task-datas))
+        (builtin-metrics/register-error-reporting-metrics (:error-reporting-metrics executor-data) storm-conf (:user-context (first (vals task-datas))))
         (doseq [[task-id task-data] task-datas
                 :let [^IBolt bolt-obj (:object task-data)
                       tasks-fn (:tasks-fn task-data)
@@ -802,6 +806,7 @@
                                                                ACKER-RESET-TIMEOUT-STREAM-ID
                                                                [root])))
                        (reportError [this error]
+                         (builtin-metrics/incr-reported-error-count! error-reporting-metrics)
                          (report-error error)
                          )))))
         (reset! open-or-prepare-was-called? true)        
