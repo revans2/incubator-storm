@@ -34,6 +34,8 @@ import backtype.storm.utils.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import org.apache.storm.utils.DisallowedStrategyException;
+
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -101,6 +103,12 @@ public class ResourceAwareScheduler implements IScheduler {
         cluster.setStatusMap(schedulingState.cluster.getStatusMap());
     }
 
+    private void handleSchedulingError(TopologyDetails td, User topologySubmitter, Exception e) {
+        LOG.error("failed to create instance of IStrategy: {} with error: {}! Topology {} will not be scheduled.",
+                  td.getConf().get(Config.TOPOLOGY_SCHEDULER_STRATEGY), e.getMessage(), td.getName());
+        topologySubmitter.moveTopoFromPendingToInvalid(td);
+    }
+    
     public SchedulingState scheduleTopology(SchedulingState schedulingState, TopologyDetails td, List<TopologyDetails> orderedTopologies) {
         int schedulingAttemptsSoFar = 0;
         User topologySubmitter = schedulingState.userMap.get(td.getTopologySubmitter());
@@ -117,11 +125,15 @@ public class ResourceAwareScheduler implements IScheduler {
         SchedulingState newSchedulingState = copySchedulingState(schedulingState);
         IStrategy rasStrategy = null;
         try {
-            rasStrategy = (IStrategy) Utils.newInstance((String) td.getConf().get(Config.TOPOLOGY_SCHEDULER_STRATEGY));
+            rasStrategy = (IStrategy) Utils.newSchedulerStrategyInstance((String) td.getConf().get(Config.TOPOLOGY_SCHEDULER_STRATEGY), conf);
+        } catch (DisallowedStrategyException e) {
+            handleSchedulingError(td, topologySubmitter, e);
+            schedulingState.cluster.setStatus(td.getId(), "Unsuccessful in scheduling - " + e.getAttemptedClass()
+                                                   + " is not an allowed strategy. Please make sure your " + Config.TOPOLOGY_SCHEDULER_STRATEGY
+                                                   + " config is one of the allowed strategies: " + e.getAllowedStrategies().toString());
+            return schedulingState;
         } catch (RuntimeException e) {
-            LOG.error("failed to create instance of IStrategy: {} with error: {}! Topology {} will not be scheduled.",
-                      td.getName(), td.getConf().get(Config.TOPOLOGY_SCHEDULER_STRATEGY), e.getMessage());
-            topologySubmitter.moveTopoFromPendingToInvalid(td);
+            handleSchedulingError(td, topologySubmitter, e);
             schedulingState.cluster.setStatus(td.getId(), "Unsuccessful in scheduling - failed to create instance of topology strategy "
                                               + td.getConf().get(Config.TOPOLOGY_SCHEDULER_STRATEGY) + ". Please check logs for details");
             return schedulingState;

@@ -60,6 +60,7 @@ import backtype.storm.security.auth.SingleUserPrincipal;
 import backtype.storm.serialization.DefaultSerializationDelegate;
 import backtype.storm.serialization.SerializationDelegate;
 import org.apache.storm.utils.ConfigUtils;
+import org.apache.storm.utils.DisallowedStrategyException;
 import org.apache.thrift.TBase;
 import org.apache.thrift.TDeserializer;
 import org.apache.thrift.TException;
@@ -220,6 +221,15 @@ public class Utils {
             }
         } catch (Exception e) {
             throw new RuntimeException(e);
+        }
+    }
+
+    public static <T> T newSchedulerStrategyInstance(String klass, Map<String, Object> conf) {
+        List<String> allowedSchedulerStrategies = (List<String>) conf.get(Config.NIMBUS_SCHEDULER_STRATEGY_CLASS_WHITELIST);
+        if(allowedSchedulerStrategies == null || allowedSchedulerStrategies.contains(klass)) {
+            return newInstance(klass);
+        } else {
+            throw new DisallowedStrategyException(klass, allowedSchedulerStrategies);
         }
     }
 

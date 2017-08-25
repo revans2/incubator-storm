@@ -746,6 +746,13 @@ public class Config extends HashMap<String, Object> {
     public static final Object NIMBUS_TOPOLOGY_ACTION_NOTIFIER_PLUGIN_SCHEMA = String.class;
 
     /**
+     * A whitelist of the RAS scheduler strategies allowed by nimbus. Should be a list of fully-qualified class names
+     * or null to allow all.
+     */
+    @isStringList
+    public static final String NIMBUS_SCHEDULER_STRATEGY_CLASS_WHITELIST = "nimbus.scheduler.strategy.class.whitelist";
+
+    /**
      * Storm UI binds to this host/interface.
      */
     @isString
