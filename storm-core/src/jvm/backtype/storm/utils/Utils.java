@@ -1092,7 +1092,12 @@ public class Utils {
         }
     }
 
-    public static boolean canUserReadBlob(ReadableBlobMeta meta, String user) {
+    public static boolean canUserReadBlob(ReadableBlobMeta meta, String user, Map<String, Object> conf) {
+
+        if (!Utils.getBoolean(conf.get(Config.STORM_BLOBSTORE_ACL_VALIDATION_ENABLED), false)) {
+            return true;
+        }
+
         SettableBlobMeta settable = meta.get_settable();
         for (AccessControl acl : settable.get_acl()) {
             if (acl.get_type().equals(AccessControlType.OTHER) && (acl.get_access() & BlobStoreAclHandler.READ) > 0) {

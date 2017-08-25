@@ -526,7 +526,7 @@ public class Localizer {
         out = new FileOutputStream(downloadFile);
         numTries++;
         try {
-          if (!Utils.canUserReadBlob(blobstore.getBlobMeta(key), user)) {
+          if (!Utils.canUserReadBlob(blobstore.getBlobMeta(key), user, conf)) {
             throw new AuthorizationException(user + " does not have READ access to " + key);
           }
           InputStreamWithMeta in = blobstore.getBlob(key);
