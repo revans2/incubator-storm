@@ -17,7 +17,9 @@
  */
 package backtype.storm.utils;
 
+import backtype.storm.blobstore.*;
 import backtype.storm.scheduler.resource.ResourceUtils;
+import backtype.storm.security.auth.ReqContext;
 import clojure.lang.Keyword;
 import com.google.common.annotations.VisibleForTesting;
 
@@ -38,11 +40,6 @@ import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.storm.daemon.supervisor.SupervisorUtils;
 
 import backtype.storm.Config;
-import backtype.storm.blobstore.BlobStore;
-import backtype.storm.blobstore.BlobStoreAclHandler;
-import backtype.storm.blobstore.ClientBlobStore;
-import backtype.storm.blobstore.InputStreamWithMeta;
-import backtype.storm.blobstore.LocalFsBlobStore;
 import backtype.storm.generated.AccessControl;
 import backtype.storm.generated.AccessControlType;
 import backtype.storm.generated.AuthorizationException;
@@ -1391,19 +1388,38 @@ public class Utils {
         }
     }
 
-    public static void validateTopologyBlobStoreMap(Map stormConf, Set<String> blobStoreKeys) throws InvalidTopologyException {
-        boolean containsAllBlobs = true;
-        Map blobStoreMap = (Map) stormConf.get(Config.TOPOLOGY_BLOBSTORE_MAP);
+    /**
+     * Validate topology blobstore map.
+     * @param topoConf Topology configuration
+     * @throws InvalidTopologyException
+     * @throws AuthorizationException
+     */
+    public static void validateTopologyBlobStoreMap(Map<String, Object> topoConf) throws InvalidTopologyException, AuthorizationException {
+        NimbusBlobStore client = new NimbusBlobStore();
+        client.prepare(topoConf);
+        validateTopologyBlobStoreMap(topoConf, client);
+    }
+
+    /**
+     * Validate topology blobstore map.
+     * @param topoConf Topology configuration
+     * @param client The NimbusBlobStore client. It must call prepare() before being used here.
+     * @throws InvalidTopologyException
+     * @throws AuthorizationException
+     */
+    public static void validateTopologyBlobStoreMap(Map<String, Object> topoConf, NimbusBlobStore client)
+            throws InvalidTopologyException, AuthorizationException {
+        Map<String, Object> blobStoreMap = (Map<String, Object>) topoConf.get(Config.TOPOLOGY_BLOBSTORE_MAP);
         if (blobStoreMap != null) {
-            Set<String> mapKeys = blobStoreMap.keySet();
-            Set<String> missingKeys = new HashSet<>();
-
-            for (String key : mapKeys) {
-                if (!blobStoreKeys.contains(key)) {
-                    containsAllBlobs = false;
-                    missingKeys.add(key);
+            for (String key : blobStoreMap.keySet()) {
+                // try to get BlobMeta
+                // This will check if the key exists and if the subject has authorization
+                try {
+                    client.getBlobMeta(key);
+                } catch (KeyNotFoundException keyNotFound) {
+                    // wrap KeyNotFoundException in an InvalidTopologyException
+                    throw new InvalidTopologyException("Key not found: " + keyNotFound.get_msg());
                 }
-
                 Map<String, Object> blobInfo = (Map<String, Object>)blobStoreMap.get(key);
                 SupervisorUtils.shouldUncompressBlob(blobInfo);
                 if (blobInfo != null && blobInfo.containsKey("localname")) {
@@ -1413,13 +1429,40 @@ public class Utils {
                     }
                 }
             }
-            if (!containsAllBlobs) {
-                throw new InvalidTopologyException("The topology blob store map does not " +
-                        "contain the valid keys to launch the topology " + missingKeys);
+        }
+    }
+
+    /**
+     * Validate topology blobstore map.
+     * @param topoConf Topology configuration
+     * @param blobStore The BlobStore
+     * @throws InvalidTopologyException
+     * @throws AuthorizationException
+     */
+    public static void validateTopologyBlobStoreMap(Map<String, Object> topoConf, BlobStore blobStore)
+            throws InvalidTopologyException, AuthorizationException {
+        Map<String, Object> blobStoreMap = (Map<String, Object>) topoConf.get(Config.TOPOLOGY_BLOBSTORE_MAP);
+        if (blobStoreMap != null) {
+            Subject subject = ReqContext.context().subject();
+            for (String key : blobStoreMap.keySet()) {
+                try {
+                    blobStore.getBlobMeta(key, subject);
+                } catch (KeyNotFoundException keyNotFound) {
+                    // wrap KeyNotFoundException in an InvalidTopologyException
+                    throw new InvalidTopologyException("Key not found: " + keyNotFound.get_msg());
+                }
+                Map<String, Object> blobInfo = (Map<String, Object>)blobStoreMap.get(key);
+                SupervisorUtils.shouldUncompressBlob(blobInfo);
+                if (blobInfo != null && blobInfo.containsKey("localname")) {
+                    String symlinkName = (String) blobInfo.get("localname");
+                    if (symlinkName.length() == 0) {
+                        throw new InvalidTopologyException("Blob info for " + key + " has an invalid localname.");
+                    }
+                }
             }
         }
     }
-    
+
     /**
      * Given a File input it will unzip the file in a the unzip directory
      * passed as the second parameter

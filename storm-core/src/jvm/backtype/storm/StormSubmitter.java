@@ -462,12 +462,12 @@ public class StormSubmitter {
         public void onCompleted(String srcFile, String targetFile, long totalBytes);
     }
 
-    private static void validateConfs(Map stormConf, StormTopology topology) throws IllegalArgumentException, InvalidTopologyException {
+    private static void validateConfs(Map stormConf, StormTopology topology) throws IllegalArgumentException, InvalidTopologyException, AuthorizationException {
         LOG.info("Validating storm Confs...");
         validateTopologyWorkerMaxHeapSize(stormConf, topology);
         /* validateTopologyBlobStoreMap written within utils so that it can be used on the server side
          for validation. */
-        Utils.validateTopologyBlobStoreMap(stormConf, getListOfKeysFromBlobStore(stormConf));
+        Utils.validateTopologyBlobStoreMap(stormConf);
     }
 
     private static double getMaxExecutorMemoryUsageForTopo(StormTopology topology, Map topologyConf) {
@@ -487,12 +487,6 @@ public class StormSubmitter {
             }
         }
         return largestMemoryOperator;
-    }
-
-    private static Set<String> getListOfKeysFromBlobStore(Map stormConf) {
-        NimbusBlobStore client = new NimbusBlobStore();
-        client.prepare(stormConf);
-        return Sets.newHashSet(client.listKeys());
     }
 
     private static void validateTopologyWorkerMaxHeapSize(Map stormConf, StormTopology topology) {
