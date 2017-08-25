@@ -24,18 +24,21 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
 
 import backtype.storm.Config;
-import org.apache.storm.cluster.IStormClusterState;
+import backtype.storm.generated.AuthorizationException;
 import backtype.storm.generated.ExecutorInfo;
+import backtype.storm.generated.KeyNotFoundException;
 import backtype.storm.generated.LSWorkerHeartbeat;
 import backtype.storm.generated.LocalAssignment;
 import backtype.storm.generated.ProfileAction;
 import backtype.storm.generated.ProfileRequest;
+import org.apache.storm.cluster.IStormClusterState;
 import org.apache.storm.localizer.ILocalizer;
 import backtype.storm.scheduler.ISupervisor;
 import backtype.storm.utils.LocalState;
@@ -410,6 +413,19 @@ public class Slot extends Thread implements AutoCloseable {
         } catch (TimeoutException e) {
             //We waited for 1 second loop around and try again....
             return dynamicState;
+        } catch (ExecutionException e) {
+            if (e.getCause() instanceof AuthorizationException) {
+                LOG.error("{}", ((AuthorizationException) e.getCause()).get_msg());
+            } else if (e.getCause() instanceof KeyNotFoundException) {
+                LOG.error("{}", ((KeyNotFoundException) e.getCause()).get_msg());
+            } else {
+                LOG.error("{}", e.getCause().getMessage());
+            }
+            // release the reference on all blobs associated with this topology.
+            staticState.localizer.releaseSlotFor(dynamicState.pendingLocalization, staticState.port);
+            // we wait for 3 seconds
+            Time.sleepSecs(3);
+            return dynamicState.withState(MachineState.EMPTY);
         }
     }
     
