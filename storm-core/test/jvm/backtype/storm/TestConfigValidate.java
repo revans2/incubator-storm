@@ -18,7 +18,12 @@
 
 package backtype.storm;
 
+import backtype.storm.blobstore.BlobStore;
+import backtype.storm.blobstore.NimbusBlobStore;
+import backtype.storm.generated.AuthorizationException;
 import backtype.storm.generated.InvalidTopologyException;
+import backtype.storm.generated.KeyNotFoundException;
+import backtype.storm.security.auth.ReqContext;
 import backtype.storm.utils.Utils;
 import backtype.storm.validation.ConfigValidation;
 import backtype.storm.validation.ConfigValidation.ImpersonationAclUserEntryValidator;
@@ -41,6 +46,7 @@ import org.junit.Assert;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.security.auth.Subject;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -49,7 +55,8 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;;
+import java.util.Map;;import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class TestConfigValidate {
 
@@ -78,18 +85,34 @@ public class TestConfigValidate {
     }
 
     @Test(expected = InvalidTopologyException.class)
-    public void testValidateTopologyBlobStoreMap() throws InvalidTopologyException {
-        Map<String,Map> stormConf = new HashMap<>();
+    public void testValidateTopologyBlobStoreMapWithBlobStore() throws InvalidTopologyException, AuthorizationException, KeyNotFoundException {
+        Map<String, Object> topoConf = new HashMap<>();
         Map<String,Map> topologyMap = new HashMap<>();
         topologyMap.put("key1", new HashMap<String,String>());
         topologyMap.put("key2", new HashMap<String,String>());
-        stormConf.put(Config.TOPOLOGY_BLOBSTORE_MAP, topologyMap);
-        HashSet<String> keySet = new HashSet<>();
-        keySet.add("key1");
-        keySet.add("key2");
-        Utils.validateTopologyBlobStoreMap(stormConf, keySet);
-        keySet.remove("key2");
-        Utils.validateTopologyBlobStoreMap(stormConf, keySet);
+        topoConf.put(Config.TOPOLOGY_BLOBSTORE_MAP, topologyMap);
+        Subject subject = ReqContext.context().subject();
+
+        BlobStore blobStoreMock = mock(BlobStore.class);
+        when(blobStoreMock.getBlobMeta("key1", subject)).thenReturn(null);
+        when(blobStoreMock.getBlobMeta("key2", subject)).thenThrow(new KeyNotFoundException());
+
+        Utils.validateTopologyBlobStoreMap(topoConf, blobStoreMock);
+    }
+
+    @Test(expected = InvalidTopologyException.class)
+    public void testValidateTopologyBlobStoreMapWithNimbusBlobStore() throws InvalidTopologyException, AuthorizationException, KeyNotFoundException {
+        Map<String, Object> topoConf = new HashMap<>();
+        Map<String,Map> topologyMap = new HashMap<>();
+        topologyMap.put("key1", new HashMap<String,String>());
+        topologyMap.put("key2", new HashMap<String,String>());
+        topoConf.put(Config.TOPOLOGY_BLOBSTORE_MAP, topologyMap);
+
+        NimbusBlobStore nimbusBlobStoreMock = mock(NimbusBlobStore.class);
+        when(nimbusBlobStoreMock.getBlobMeta("key1")).thenReturn(null);
+        when(nimbusBlobStoreMock.getBlobMeta("key2")).thenThrow(new KeyNotFoundException());
+
+        Utils.validateTopologyBlobStoreMap(topoConf, nimbusBlobStoreMock);
     }
 
     @Test
