@@ -56,6 +56,7 @@ endef
 testpkg: RELEASE BASE_VERSION build
 	$(setup-versions)
 	yinst_create --buildtype test ystorm.yicf && $(revert-versions) || ( $(revert-versions) && false )
+	yinst_create --buildtype test ystorm_compatibility.yicf && $(revert-versions) || ( $(revert-versions) && false )
 
 ignore-pom-changes:
 	cd .. && $(find-tracked-pom-xml) | xargs git update-index --assume-unchanged
@@ -66,6 +67,7 @@ package-sd: RELEASE build
 	$(setup-versions)
 	cd .. && $(find-tracked-pom-xml)| xargs git update-index --assume-unchanged
 	yinst_create --buildtype release ystorm.yicf
+	yinst_create --buildtype release ystorm_compatibility.yicf
 	cd .. && $(find-tracked-pom-xml) | xargs git update-index --no-assume-unchanged
 
 package: package-sd

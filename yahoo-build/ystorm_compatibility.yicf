@@ -1,0 +1,122 @@
+PRODUCT_NAME = ystorm_compatibility
+#YMAVEN_TRANSITIVE_ENABLED
+
+VERSION = `cat RELEASE | sed -e 's|-|_|g'`
+BASE_VERSION = `cat BASE_VERSION`
+
+SHORT_DESC = "Nathan Marz's distributed computation system."
+LONG_DESC = `cat README.yahoo; cat ../README.markdown`
+
+# Work-around for YINSTDIST-1144
+NO_AUTO_REQUIRES = yes
+
+SRCDIRS = ../
+
+CUSTODIAN = yahoo-storm-team@yahoo-inc.com http://twiki.corp.yahoo.com/view/Grid/StormDocumentation
+YINST bug-product jira-ystorm
+
+YINST requires pkg python27              2.7.10.41   2.7.9999.9999
+YINST requires pkg yjava_jdk             1.7.0_11.64 1.8.999999
+YINST requires pkg bouncer_auth_java     0.17.9      *
+YINST requires pkg yjava_servlet_filters 0.78.28    *
+YINST requires pkg yjava_yca             0.23.218    *
+YINST requires pkg bycookieauthkey       1.0.4.1     *
+YINST requires pkg zts_java_client       1.5.35      *
+YINST requires pkg bouncycastle          1.53_13     1.99999999.99999999
+
+YINST set storm_local_dir                 /home/y/var/storm
+YINST set syslog_facility                 LOCAL5
+YINST set syslog_host                     localhost
+YINST set ui_header_buffer_bytes          8192
+YINST set storm_cluster_user              nobody
+YINST set worker_launcher_group           nobody
+YINST set min_user_id                     500
+YINST set storm_messaging_transport       backtype.storm.messaging.netty.Context
+YINST set logviewer_cleanup_interval_secs 1440
+YINST set drpc_http_port                  -1
+YINST set drpc_authorizer_acl_strict      true
+YINST set daemon_max_rolled_logs          9
+
+# Bouncer UI Filter Configuration
+#YINST set ui_filter                yjava.servlet.filter.BouncerFilter
+YINST set ui_filter_params bouncer_cookie_timeout,480,bouncer_url,https://by.bouncer.login.yahoo.com/login/,bouncer.https.redirect.port,4443
+YINST set logviewer_filter_params bouncer_cookie_timeout,480,bouncer_url,https://by.bouncer.login.yahoo.com/login/,bouncer.https.redirect.port,4443
+
+# DRPC HTTP Filter Configuration
+#YINST set drpc_http_filter yjava.servlet.filter.YCAFilter
+YINST set drpc_http_filter_params yca.disabled,false,yca.allowAny,true,yca.optional,true
+#YINST set drpc_http_creds_plugin com.yahoo.storm.security.yca.YcaHttpCredentialsPlugin
+
+PERM = 0444
+OWNER = root
+GROUP = users
+
+dir 3777 - - lib/$(PRODUCT_NAME)
+dir 3777 - - lib64/$(PRODUCT_NAME)/$(BASE_VERSION)/logs
+dir 3777 - - lib64/$(PRODUCT_NAME)/$(BASE_VERSION)/extlib
+dir 3777 - - lib64/$(PRODUCT_NAME)/$(BASE_VERSION)/extlib-daemon
+dir 3777 - - lib64/$(PRODUCT_NAME)/$(BASE_VERSION)/logs/metadata
+find 755 - - lib64/$(PRODUCT_NAME)/$(BASE_VERSION)/bin/ ../bin/ -type f
+file 444 - - lib64/$(PRODUCT_NAME)/$(BASE_VERSION)/lib/asm-4.0.jar ../storm-core/target/dependency/asm-4.0.jar
+file 444 - - lib64/$(PRODUCT_NAME)/$(BASE_VERSION)/lib/clojure-1.6.0.jar ../storm-core/target/dependency/clojure-1.6.0.jar
+file 444 - - lib64/$(PRODUCT_NAME)/$(BASE_VERSION)/lib/disruptor-3.3.2.jar ../storm-core/target/dependency/disruptor-3.3.2.jar
+file 444 - - lib64/$(PRODUCT_NAME)/$(BASE_VERSION)/lib/kryo-2.21.jar ../storm-core/target/dependency/kryo-2.21.jar
+file 444 - - lib64/$(PRODUCT_NAME)/$(BASE_VERSION)/lib/log4j-api-2.1.jar ../storm-core/target/dependency/log4j-api-2.1.jar
+file 444 - - lib64/$(PRODUCT_NAME)/$(BASE_VERSION)/lib/log4j-core-2.1.jar ../storm-core/target/dependency/log4j-core-2.1.jar
+file 444 - - lib64/$(PRODUCT_NAME)/$(BASE_VERSION)/lib/log4j-slf4j-impl-2.1.jar ../storm-core/target/dependency/log4j-slf4j-impl-2.1.jar
+file 444 - - lib64/$(PRODUCT_NAME)/$(BASE_VERSION)/lib/log4j-1.2-api-2.1.jar ../storm-core/target/dependency/log4j-1.2-api-2.1.jar
+file 444 - - lib64/$(PRODUCT_NAME)/$(BASE_VERSION)/lib/servlet-api-2.5.jar ../storm-core/target/dependency/servlet-api-2.5.jar
+file 444 - - lib64/$(PRODUCT_NAME)/$(BASE_VERSION)/lib/slf4j-api-1.7.7.jar ../storm-core/target/dependency/slf4j-api-1.7.7.jar
+
+find 444 - - lib64/$(PRODUCT_NAME)/$(BASE_VERSION)/ ../ -maxdepth 1 -type f -iname '*.md' -or -iname '*.markdown'
+find 444 - - lib64/$(PRODUCT_NAME)/$(BASE_VERSION)/public/css/ ../storm-core/src/ui/public/css/ -maxdepth 1 -type f -iname '*.css'
+find 444 - - lib64/$(PRODUCT_NAME)/$(BASE_VERSION)/public/images/ ../storm-core/src/ui/public/images/ -maxdepth 1 -type f -iname '*.png' -or -iname '*.gif'
+find 444 - - lib64/$(PRODUCT_NAME)/$(BASE_VERSION)/public/js/ ../storm-core/src/ui/public/js/ -maxdepth 1 -type f -iname '*.js'
+find 444 - - lib64/$(PRODUCT_NAME)/$(BASE_VERSION)/public/templates/ ../storm-core/src/ui/public/templates/ -maxdepth 1 -type f -iname '*.html'
+find 444 - - lib64/$(PRODUCT_NAME)/$(BASE_VERSION)/public/ ../storm-core/src/ui/public/ -maxdepth 1 -type f -iname '*.html'
+find 444 - - lib64/$(PRODUCT_NAME)/$(BASE_VERSION)/examples/ ../examples/ -type f -not -path '*/target/*'
+
+# Bouncer UI Filter
+symlink - - - lib64/$(PRODUCT_NAME)/$(BASE_VERSION)/lib/yjava_servlet_filters.jar /home/y/lib/jars/yjava_servlet_filters.jar
+symlink - - - lib64/$(PRODUCT_NAME)/$(BASE_VERSION)/lib/yjava_ysecure.jar         /home/y/lib/jars/yjava_ysecure.jar
+symlink - - - lib64/$(PRODUCT_NAME)/$(BASE_VERSION)/lib/yjava_filter_logic.jar    /home/y/lib/jars/yjava_filter_logic.jar
+symlink - - - lib64/$(PRODUCT_NAME)/$(BASE_VERSION)/lib/yjava_servlet.jar         /home/y/lib/jars/yjava_servlet.jar
+symlink - - - lib64/$(PRODUCT_NAME)/$(BASE_VERSION)/lib/yjava_byauth.jar          /home/y/lib/jars/yjava_byauth.jar
+symlink - - - lib64/$(PRODUCT_NAME)/$(BASE_VERSION)/lib/bouncer_auth_java.jar     /home/y/lib/jars/bouncer_auth_java.jar
+symlink - - - lib64/$(PRODUCT_NAME)/$(BASE_VERSION)/lib/yjava_yca.jar             /home/y/lib/jars/yjava_yca.jar
+#Athens Support
+symlink - - - lib64/$(PRODUCT_NAME)/$(BASE_VERSION)/lib/zts_java_client.jar       /home/y/lib/jars/zts_java_client.jar
+symlink - - - lib64/$(PRODUCT_NAME)/$(BASE_VERSION)/lib/zts_core.jar              /home/y/lib/jars/zts_core.jar
+symlink - - - lib64/$(PRODUCT_NAME)/$(BASE_VERSION)/lib/bcpkix.jar                /home/y/lib/jars/bcpkix.jar
+symlink - - - lib64/$(PRODUCT_NAME)/$(BASE_VERSION)/lib/bcprov.jar                /home/y/lib/jars/bcprov.jar
+symlink - - - lib64/$(PRODUCT_NAME)/$(BASE_VERSION)/lib/sia_java_client.jar       /home/y/lib/jars/sia_java_client.jar
+symlink - - - lib64/$(PRODUCT_NAME)/$(BASE_VERSION)/lib/junixsocket.jar           /home/y/lib/jars/junixsocket.jar
+symlink - - - lib64/$(PRODUCT_NAME)/$(BASE_VERSION)/lib/auth_core.jar             /home/y/lib/jars/auth_core.jar
+symlink - - - lib64/$(PRODUCT_NAME)/$(BASE_VERSION)/lib/data_core.jar             /home/y/lib/jars/data_core.jar
+
+#The actual group of the executable will be set by a pre-activate script
+file 6550 root root lib64/$(PRODUCT_NAME)/$(BASE_VERSION)/bin/worker-launcher ../storm-core/target/native/target/usr/local/bin/worker-launcher
+
+file 444 - - lib64/$(PRODUCT_NAME)/$(BASE_VERSION)/RELEASE ./RELEASE
+file 444 - - lib64/$(PRODUCT_NAME)/$(BASE_VERSION)/LICENSE ../LICENSE
+file 444 - - lib64/$(PRODUCT_NAME)/$(BASE_VERSION)/DISCLAIMER ../DISCLAIMER
+file 444 - - lib64/$(PRODUCT_NAME)/$(BASE_VERSION)/lib/storm-core-$(BASE_VERSION).jar ../storm-core/target/storm-core-$(BASE_VERSION).jar
+file 444 - - lib64/$(PRODUCT_NAME)/$(BASE_VERSION)/lib/storm_yahoo-$(BASE_VERSION).jar ../storm-yahoo/target/storm_yahoo-$(BASE_VERSION).jar
+file 444 - - lib64/$(PRODUCT_NAME)/$(BASE_VERSION)/README.yahoo ./README.yahoo
+file 444 - - lib64/$(PRODUCT_NAME)/$(BASE_VERSION)/conf/simon.xml ../storm-yahoo/resources/conf/simon.xml
+file 444 - - lib64/$(PRODUCT_NAME)/$(BASE_VERSION)/conf/simon.xsd ../storm-yahoo/resources/conf/simon.xsd
+
+configfile 644 - - lib64/$(PRODUCT_NAME)/$(BASE_VERSION)/conf/storm.yaml ./conf/config.py template overwrite
+configfile 644 - - lib64/$(PRODUCT_NAME)/$(BASE_VERSION)/conf/storm-env.sh ./conf/storm-env.py template overwrite
+configfile 644 - - lib64/$(PRODUCT_NAME)/$(BASE_VERSION)/conf/multitenant-scheduler.yaml ./conf/multitenant-scheduler.py template overwrite
+configfile 644 - - lib64/$(PRODUCT_NAME)/$(BASE_VERSION)/conf/user-resource-pools.yaml ./conf/resource-aware-scheduler.py template overwrite
+configfile 644 - - lib64/$(PRODUCT_NAME)/$(BASE_VERSION)/conf/drpc-auth-acl.yaml ./conf/drpc-auth-acl.py template overwrite
+configfile 644 - - lib64/$(PRODUCT_NAME)/$(BASE_VERSION)/log4j2/cluster.xml ./log4j2/cluster.xml.sh template overwrite
+configfile 644 - - lib64/$(PRODUCT_NAME)/$(BASE_VERSION)/log4j2/worker.xml ./log4j2/worker.xml.sh template overwrite
+configfile 644 root root conf/$(PRODUCT_NAME)/worker-launcher.cfg ./conf/worker-launcher.cfg expand overwrite
+
+symlink - - - lib64/$(PRODUCT_NAME)/current $(BASE_VERSION)
+symlink - - - lib/$(PRODUCT_NAME)/current ../../lib64/$(PRODUCT_NAME)/$(BASE_VERSION)
+
+dir 777 - - logs/$(PRODUCT_NAME)
+dir 755 - - var/$(PRODUCT_NAME)
