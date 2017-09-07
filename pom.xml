@@ -244,6 +244,7 @@
         <module>external/storm-metrics</module>
         <module>examples/storm-starter</module>
         <module>external/storm-kafka-client</module>
+	<module>examples/storm-loadgen</module>
     </modules>
 
 
