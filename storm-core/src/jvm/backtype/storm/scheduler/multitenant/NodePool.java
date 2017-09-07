@@ -30,7 +30,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
-import backtype.storm.scheduler.resource.strategies.scheduling.MultitenantStrategy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -321,15 +320,5 @@ public abstract class NodePool {
       }
     }    
     return total;
-  }
-
-  /**
-   * checks if multitenant scheduler scheduler or is reponsibled for scheduling a topology
-   * @param td
-   * @return
-   */
-  public Boolean isTopologyScheduledByMultitenant(TopologyDetails td) {
-      return ((MultitenantStrategy.class.getName().equals(td.getTopologyStrategy()))
-              || (td.getTopologyStrategy() == null));
   }
 }

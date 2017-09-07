@@ -164,16 +164,16 @@
 
 (deftest test-scheduler-strategy-whitelist
   (let [conf {NIMBUS-SCHEDULER-STRATEGY-CLASS-WHITELIST
-              '("backtype.storm.scheduler.resource.strategies.scheduling.MultitenantStrategy")}]
-    (is (.getCanonicalName (class (Utils/newSchedulerStrategyInstance "backtype.storm.scheduler.resource.strategies.scheduling.MultitenantStrategy" conf)))
-        "backtype.storm.scheduler.resource.strategies.scheduling.MultitenantStrategy")
+              '("backtype.storm.scheduler.resource.strategies.scheduling.DefaultResourceAwareStrategy")}]
+    (is (.getCanonicalName (class (Utils/newSchedulerStrategyInstance "backtype.storm.scheduler.resource.strategies.scheduling.DefaultResourceAwareStrategy" conf)))
+        "backtype.storm.scheduler.resource.strategies.scheduling.DefaultResourceAwareStrategy")
 
     (is (thrown? RuntimeException
                  (Utils/newSchedulerStrategyInstance "backtype.storm.scheduler.resource.strategies.scheduling.ConstraintSolverStrategy" conf))))
 
   ;; Empty config should allow all strategies by default.
-  (is (.getCanonicalName (class (Utils/newSchedulerStrategyInstance "backtype.storm.scheduler.resource.strategies.scheduling.MultitenantStrategy" {})))
-      "backtype.storm.scheduler.resource.strategies.scheduling.MultitenantStrategy")
+  (is (.getCanonicalName (class (Utils/newSchedulerStrategyInstance "backtype.storm.scheduler.resource.strategies.scheduling.DefaultResourceAwareStrategy" {})))
+      "backtype.storm.scheduler.resource.strategies.scheduling.DefaultResourceAwareStrategy")
 
   (is (.getCanonicalName (class (Utils/newSchedulerStrategyInstance "backtype.storm.scheduler.resource.strategies.scheduling.ConstraintSolverStrategy" {})))
       "backtype.storm.scheduler.resource.strategies.scheduling.ConstraintSolverStrategy"))

@@ -80,9 +80,6 @@ public class IsolatedPool extends NodePool {
     //Only add topologies that are not sharing nodes with other topologies
     String topId = td.getId();
     SchedulerAssignment assignment = _cluster.getAssignmentById(topId);
-    if (!isTopologyScheduledByMultitenant(td)) {
-      return false;
-    }
     if (assignment != null) {
       for (WorkerSlot ws: assignment.getSlots()) {
         Node n = _nodeIdToNode.get(ws.getNodeId());
@@ -114,8 +111,7 @@ public class IsolatedPool extends NodePool {
       LOG.debug(" effectiveNodesRequested: {}", effectiveNodesRequested);
       if (_cluster.needsScheduling(td) ||
           (effectiveNodesRequested != null &&
-              allNodes.size() != effectiveNodesRequested) &&
-          isTopologyScheduledByMultitenant(td)) {
+              allNodes.size() != effectiveNodesRequested)) {
         int slotsToUse = 0;
         if (effectiveNodesRequested == null) {
           slotsToUse = getNodesForNotIsolatedTop(td, allNodes, lesserPools);

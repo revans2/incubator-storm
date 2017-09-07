@@ -2093,20 +2093,10 @@
 
           (doseq [[spout-id component-aggregate-stats] (.get_id_to_spout_agg_stats topo-page-info)]
             (let [common-stats (.get_common_stats component-aggregate-stats)]
-              ; Temporary conditional check for bridge scheduler
-              (if (= (topology-conf TOPOLOGY-SCHEDULER-STRATEGY) "backtype.storm.scheduler.resource.strategies.scheduling.MultitenantStrategy")
-                (.set_resources_map common-stats {TOPOLOGY-COMPONENT-RESOURCES-ONHEAP-MEMORY-MB 0.0,
-                                         TOPOLOGY-COMPONENT-RESOURCES-OFFHEAP-MEMORY-MB 0.0,
-                                         TOPOLOGY-COMPONENT-CPU-PCORE-PERCENT 0.0})
-                (.set_resources_map common-stats (set-resources-default-if-not-set spout-resources spout-id topology-conf)))))
+              (.set_resources_map common-stats (set-resources-default-if-not-set spout-resources spout-id topology-conf))))
           (doseq [[bolt-id component-aggregate-stats] (.get_id_to_bolt_agg_stats topo-page-info)]
             (let [common-stats (.get_common_stats component-aggregate-stats)]
-              ; Temporary conditional check for bridge scheduler
-              (if (= (topology-conf TOPOLOGY-SCHEDULER-STRATEGY) "backtype.storm.scheduler.resource.strategies.scheduling.MultitenantStrategy")
-                (.set_resources_map common-stats {TOPOLOGY-COMPONENT-RESOURCES-ONHEAP-MEMORY-MB 0.0,
-                                         TOPOLOGY-COMPONENT-RESOURCES-OFFHEAP-MEMORY-MB 0.0,
-                                         TOPOLOGY-COMPONENT-CPU-PCORE-PERCENT 0.0})
-                (.set_resources_map common-stats (set-resources-default-if-not-set bolt-resources bolt-id topology-conf)))))
+              (.set_resources_map common-stats (set-resources-default-if-not-set bolt-resources bolt-id topology-conf))))
           (.set_workers topo-page-info worker-summaries)
           (when-let [owner (:owner base)]
             (.set_owner topo-page-info owner))
@@ -2161,14 +2151,9 @@
                                               topology-id
                                               (:topology info)
                                               component-id)]
-          ; Temporary conditional check for bridge scheduler
-          (if (= (topology-conf TOPOLOGY-SCHEDULER-STRATEGY) "backtype.storm.scheduler.resource.strategies.scheduling.MultitenantStrategy")
-            (.set_resources_map ret {TOPOLOGY-COMPONENT-RESOURCES-ONHEAP-MEMORY-MB 0.0,
-                                     TOPOLOGY-COMPONENT-RESOURCES-OFFHEAP-MEMORY-MB 0.0,
-                                     TOPOLOGY-COMPONENT-CPU-PCORE-PERCENT 0.0})
-            (if (.equals (.get_component_type ret) ComponentType/SPOUT)
-              (.set_resources_map ret (set-resources-default-if-not-set (ResourceUtils/getSpoutsResources topology topology-conf) component-id topology-conf))
-              (.set_resources_map ret (set-resources-default-if-not-set (ResourceUtils/getBoltsResources topology topology-conf) component-id topology-conf))))
+          (if (.equals (.get_component_type ret) ComponentType/SPOUT)
+            (.set_resources_map ret (set-resources-default-if-not-set (ResourceUtils/getSpoutsResources topology topology-conf) component-id topology-conf))
+            (.set_resources_map ret (set-resources-default-if-not-set (ResourceUtils/getBoltsResources topology topology-conf) component-id topology-conf)))
           (doto ret
             (.set_topology_name (:storm-name info))
             (.set_errors (get-errors (:storm-cluster-state info)

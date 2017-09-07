@@ -144,8 +144,7 @@ public class DefaultPool extends NodePool {
   public void scheduleAsNeeded(NodePool... lesserPools) {
     for (TopologyDetails td : _tds.values()) {
       String topId = td.getId();
-      if (_cluster.needsScheduling(td) && 
-              isTopologyScheduledByMultitenant(td) == true) {
+      if (_cluster.needsScheduling(td)) {
         LOG.debug("Scheduling topology {}",topId);
         if (onlyAllowIsolated) {
             _cluster.unassign(topId);
@@ -223,9 +222,7 @@ public class DefaultPool extends NodePool {
           _cluster.setStatus(topId,"Fully Scheduled");
         }
       } else {
-        if (isTopologyScheduledByMultitenant(td)) {
-          _cluster.setStatus(topId, "Fully Scheduled");
-        }
+        _cluster.setStatus(topId, "Fully Scheduled");
       }
     }
   }

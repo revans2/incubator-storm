@@ -137,7 +137,7 @@ public class
         // a user is will decide which topologies are run and which ones are not.
         conf.setTopologyPriority(29);
 
-         //set to use the default resource aware strategy when using the MultitenantResourceAwareBridgeScheduler
+         //set to use the default resource aware strategy
         conf.setTopologyStrategy(backtype.storm.scheduler.resource.strategies.scheduling.DefaultResourceAwareStrategy.class);
 
         if (args != null && args.length > 0) {
