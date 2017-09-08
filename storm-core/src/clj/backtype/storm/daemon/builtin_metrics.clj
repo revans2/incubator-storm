@@ -31,9 +31,9 @@
                                ^MultiLatencyStatAndMetric execute-latency
                                ^MultiCountStatAndMetric emit-count
                                ^MultiCountStatAndMetric transfer-count])
-(defrecord SpoutThrottlingMetrics [^CountMetric skipped-max-spout
-                                   ^CountMetric skipped-throttle
-                                   ^CountMetric skipped-inactive])
+(defrecord SpoutThrottlingMetrics [^CountMetric skipped-max-spout-ms
+                                   ^CountMetric skipped-throttle-ms
+                                   ^CountMetric skipped-inactive-ms])
 (defrecord ErrorReportingMetrics [^CountMetric reported-error-count])
 
 
@@ -97,14 +97,14 @@
     (.registerMetric topology-context (str "__" (name qname)) (StateMetric. q)
                      (int (get storm-conf Config/TOPOLOGY_BUILTIN_METRICS_BUCKET_SIZE_SECS)))))
 
-(defn skipped-max-spout! [^SpoutThrottlingMetrics m stats]
-  (-> m .skipped-max-spout (.incrBy (stats-rate stats))))
+(defn skipped-max-spout-ms! [^SpoutThrottlingMetrics m ms]
+  (-> m .skipped-max-spout-ms (.incrBy ms)))
 
-(defn skipped-throttle! [^SpoutThrottlingMetrics m stats]
-  (-> m .skipped-throttle (.incrBy (stats-rate stats))))
+(defn skipped-throttle-ms! [^SpoutThrottlingMetrics m ms]
+  (-> m .skipped-throttle-ms (.incrBy ms)))
 
-(defn skipped-inactive! [^SpoutThrottlingMetrics m stats]
-  (-> m .skipped-inactive (.incrBy (stats-rate stats))))
+(defn skipped-inactive-ms! [^SpoutThrottlingMetrics m ms]
+  (-> m .skipped-inactive-ms (.incrBy ms)))
 
 (defn incr-reported-error-count! [^ErrorReportingMetrics m]
   (-> m .reported-error-count .incr))

@@ -620,18 +620,20 @@
                     (log-message "Deactivating spout " component-id ":" (keys task-datas))
                     (fast-list-iter [^ISpout spout spouts] (.deactivate spout)))
                   ;; TODO: log that it's getting throttled
-                  (Time/sleep 100)
-                  (builtin-metrics/skipped-inactive! (:spout-throttling-metrics executor-data) (:stats executor-data)))))
+                  (let [start (Time/currentTimeMillis)]
+                    (Time/sleep 100)
+                    (builtin-metrics/skipped-inactive-ms! (:spout-throttling-metrics executor-data) (- (Time/currentTimeMillis) start))))))
             (if (and (= curr-count (.get emitted-count)) active?)
-              (do (.increment empty-emit-streak)
+              (let [start (Time/currentTimeMillis)] 
+                  (.increment empty-emit-streak)
                   (.emptyEmit spout-wait-strategy (.get empty-emit-streak))
                   ;; update the spout throttling metrics
                   (if throttle-on
-                    (builtin-metrics/skipped-throttle! (:spout-throttling-metrics executor-data) (:stats executor-data))
+                    (builtin-metrics/skipped-throttle-ms! (:spout-throttling-metrics executor-data) (- (Time/currentTimeMillis) start))
                     (if reached-max-spout-pending
-                      (builtin-metrics/skipped-max-spout! (:spout-throttling-metrics executor-data) (:stats executor-data)))))
+                      (builtin-metrics/skipped-max-spout-ms! (:spout-throttling-metrics executor-data) (- (Time/currentTimeMillis) start)))))
               (.set empty-emit-streak 0)
-              ))           
+              ))
           0))
       :kill-fn (:report-error-and-die executor-data)
       :factory? true
