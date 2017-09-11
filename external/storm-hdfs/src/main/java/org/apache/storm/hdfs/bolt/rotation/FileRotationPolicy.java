@@ -15,11 +15,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.storm.hdfs.bolt.rotation;
 
-
 import backtype.storm.tuple.Tuple;
-
 import java.io.Serializable;
 
 /**
@@ -48,4 +47,9 @@ public interface FileRotationPolicy extends Serializable {
      *
      */
     void reset();
+
+    /**
+     * Must be able to copy the rotation policy
+     */
+    FileRotationPolicy copy();
 }

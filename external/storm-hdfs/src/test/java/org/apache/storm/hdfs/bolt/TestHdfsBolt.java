@@ -127,8 +127,9 @@ public class TestHdfsBolt {
     @Test
     public void testFailedSync() throws IOException
     {
-        HdfsBolt bolt = makeHdfsBolt(hdfsURI, 1, .00001f);
+        HdfsBolt bolt = makeHdfsBolt(hdfsURI, 2, 10000f);
         bolt.prepare(new Config(), topologyContext, collector);
+        bolt.execute(tuple1);
 
         fs.setSafeMode(SafeModeAction.SAFEMODE_ENTER);
 
@@ -168,7 +169,7 @@ public class TestHdfsBolt {
         }
 
         Assert.assertEquals(1, countNonZeroLengthFiles(testRoot));
-        Assert.assertEquals(1, countZeroLengthFiles(testRoot));
+        Assert.assertEquals(0, countZeroLengthFiles(testRoot));
     }
 
 

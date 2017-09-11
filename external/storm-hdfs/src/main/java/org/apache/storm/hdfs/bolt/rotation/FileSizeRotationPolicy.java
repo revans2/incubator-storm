@@ -15,8 +15,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.storm.hdfs.bolt.rotation;
 
+package org.apache.storm.hdfs.bolt.rotation;
 
 import backtype.storm.tuple.Tuple;
 import org.slf4j.Logger;
@@ -64,6 +64,10 @@ public class FileSizeRotationPolicy implements FileRotationPolicy {
         this.maxBytes = (long)(count * units.getByteCount());
     }
 
+    protected FileSizeRotationPolicy(long maxBytes) {
+        this.maxBytes = maxBytes;
+    }
+
     @Override
     public boolean mark(Tuple tuple, long offset) {
         long diff = offset - this.lastOffset;
@@ -76,6 +80,11 @@ public class FileSizeRotationPolicy implements FileRotationPolicy {
     public void reset() {
         this.currentBytesWritten = 0;
         this.lastOffset = 0;
+    }
+
+    @Override
+    public FileRotationPolicy copy() {
+        return new FileSizeRotationPolicy(this.maxBytes);
     }
 
 }
