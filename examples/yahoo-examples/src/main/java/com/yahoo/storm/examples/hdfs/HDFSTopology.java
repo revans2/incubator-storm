@@ -1,5 +1,7 @@
 package com.yahoo.storm.examples.hdfs;
 
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
@@ -90,8 +92,20 @@ public class HDFSTopology {
         // rotate files every X MB
         FileRotationPolicy rotationPolicy = new FileSizeRotationPolicy(rotate, FileSizeRotationPolicy.Units.MB);
 
+        //Split outputPath to two parts: fsUrl and path.
+        String path = "/";
+        String fsUrl = outputPath;
+        try {
+            URI uri = new URI(outputPath);
+            path = uri.getPath();
+            URI fsURI = new URI(uri.getScheme(), null, uri.getHost(), uri.getPort(), null, null, null);
+            fsUrl = fsURI.toString();
+        } catch (URISyntaxException e) {
+            throw new URISyntaxException(outputPath, "Failed to parse the input");
+        }
+
         FileNameFormat fileNameFormat = new DefaultFileNameFormat()
-                .withPath(outputPath)
+                .withPath(path)
                 .withExtension(".txt");
 
         RecordFormat format = new DelimitedRecordFormat()
@@ -99,7 +113,7 @@ public class HDFSTopology {
 
         HdfsBolt bolt = new HdfsBolt()
                 .withConfigKey("hdfs.config.override")
-                .withFsUrl(outputPath)
+                .withFsUrl(fsUrl)
                 .withFileNameFormat(fileNameFormat)
                 .withRecordFormat(format)
                 .withRotationPolicy(rotationPolicy)
