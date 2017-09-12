@@ -442,14 +442,20 @@
 
       (remove-backpressure!
         [this storm-id]
-        (.delete_node cluster-state (backpressure-storm-root storm-id)))
+        (try-cause
+          (.delete_node cluster-state (backpressure-storm-root storm-id))
+          (catch KeeperException e
+            (log-warn-error e "Could not teardown backpressure for " storm-id))))
 
       (remove-worker-backpressure!
         [this storm-id node port]
         (let [path (backpressure-path storm-id node port)
               existed (.node_exists cluster-state path false)]
           (if existed
-            (.delete_node cluster-state (backpressure-path storm-id node port)))))
+            (try-cause
+              (.delete_node cluster-state (backpressure-path storm-id node port))
+              (catch KeeperException e
+                (log-warn-error e "Could not teardown backpressure for " storm-id))))))
 
       (teardown-topology-errors!
         [this storm-id]
