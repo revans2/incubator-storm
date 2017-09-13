@@ -751,13 +751,8 @@ Note that if anything goes wrong, this will throw an Error and exit."
   [file ^String search-string :is-daemon false :num-matches 10 :start-byte-offset 0]
   {:pre [(not (empty? search-string))
          (<= (count (.getBytes search-string "UTF-8")) grep-max-search-size)]}
+
   (let [zip-file? (.endsWith (.getName file) ".gz")
-        f-input-steam (FileInputStream. file)
-        gzipped-input-stream (if zip-file?
-                               (GZIPInputStream. f-input-steam)
-                               f-input-steam)
-        stream ^BufferedInputStream (BufferedInputStream.
-                                      gzipped-input-stream)
         file-len (if zip-file? (Utils/zipFileSize file) (.length file))
         buf ^ByteBuffer (ByteBuffer/allocate grep-buf-size)
         buf-arr ^bytes (.array buf)
@@ -769,20 +764,23 @@ Note that if anything goes wrong, this will throw an Error and exit."
         start-byte-offset (or start-byte-offset 0)]
     ;; Start at the part of the log file we are interested in.
     ;; Allow searching when start-byte-offset == file-len so it doesn't blow up on 0-length files
-    (if (> start-byte-offset file-len)
-      (throw
-        (InvalidRequestException. "Cannot search past the end of the file")))
-    (when (> start-byte-offset 0)
-      (skip-bytes stream start-byte-offset))
-    (java.util.Arrays/fill buf-arr (byte 0))
-    (let [bytes-read (.read stream buf-arr 0 (min file-len grep-buf-size))]
-      (.limit buf bytes-read)
-      (swap! total-bytes-read + bytes-read))
-    (loop [initial-matches []
-           init-buf-offset 0
-           byte-offset start-byte-offset
-           before-bytes nil]
-      (let [[matches new-byte-offset new-before-bytes]
+    (with-open [stream (BufferedInputStream. (if zip-file?
+                                               (GZIPInputStream. (FileInputStream. file))
+                                               (FileInputStream. file)))]
+      (if (> start-byte-offset file-len)
+        (throw
+         (InvalidRequestException. "Cannot search past the end of the file")))
+      (when (> start-byte-offset 0)
+        (skip-bytes stream start-byte-offset))
+      (java.util.Arrays/fill buf-arr (byte 0))
+      (let [bytes-read (.read stream buf-arr 0 (min file-len grep-buf-size))]
+        (.limit buf bytes-read)
+        (swap! total-bytes-read + bytes-read))
+      (loop [initial-matches []
+             init-buf-offset 0
+             byte-offset start-byte-offset
+             before-bytes nil]
+        (let [[matches new-byte-offset new-before-bytes]
               (buffer-substring-search! is-daemon
                                         file
                                         file-len
@@ -796,32 +794,32 @@ Note that if anything goes wrong, this will throw an Error and exit."
                                         initial-matches
                                         num-matches
                                         before-bytes)]
-        (if (and (< (count matches) num-matches)
-                 (< (+ @total-bytes-read start-byte-offset) file-len))
-          (let [;; The start index is positioned to find any possible
-                ;; occurrence search string that did not quite fit in the
-                ;; buffer on the previous read.
-                new-buf-offset (- (min (.limit ^ByteBuffer buf)
-                                       grep-max-search-size)
-                                  (alength search-bytes))]
-            (rotate-grep-buffer! buf stream total-bytes-read file file-len)
-            (when (< @total-bytes-read 0)
-              (throw (InvalidRequestException. "Cannot search past the end of the file")))
-            (recur matches
-                   new-buf-offset
-                   new-byte-offset
-                   new-before-bytes))
-          (merge {"isDaemon" (if is-daemon "yes" "no")}
-            (mk-grep-response search-bytes
-                              start-byte-offset
-                              matches
-                              (if-not (and (< (count matches) num-matches)
-                                           (>= @total-bytes-read file-len))
-                                (let [next-byte-offset (+ (get (last matches)
-                                                               "byteOffset")
-                                                          (alength search-bytes))]
-                                  (if (> file-len next-byte-offset)
-                                    next-byte-offset))))))))))
+          (if (and (< (count matches) num-matches)
+                   (< (+ @total-bytes-read start-byte-offset) file-len))
+            (let [;; The start index is positioned to find any possible
+                  ;; occurrence search string that did not quite fit in the
+                  ;; buffer on the previous read.
+                  new-buf-offset (- (min (.limit ^ByteBuffer buf)
+                                         grep-max-search-size)
+                                    (alength search-bytes))]
+              (rotate-grep-buffer! buf stream total-bytes-read file file-len)
+              (when (< @total-bytes-read 0)
+                (throw (InvalidRequestException. "Cannot search past the end of the file")))
+              (recur matches
+                     new-buf-offset
+                     new-byte-offset
+                     new-before-bytes))
+            (merge {"isDaemon" (if is-daemon "yes" "no")}
+                   (mk-grep-response search-bytes
+                                     start-byte-offset
+                                     matches
+                                     (if-not (and (< (count matches) num-matches)
+                                                  (>= @total-bytes-read file-len))
+                                       (let [next-byte-offset (+ (get (last matches)
+                                                                      "byteOffset")
+                                                                 (alength search-bytes))]
+                                         (if (> file-len next-byte-offset)
+                                           next-byte-offset)))))))))))
 
 (defn- try-parse-int-param
   [nam value]
