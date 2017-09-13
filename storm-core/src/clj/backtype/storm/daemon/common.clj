@@ -45,11 +45,11 @@
   (doseq [reporter (MetricsUtils/getPreparableReporters conf)]
     (start-metrics-reporter reporter conf)))
 
-(def ACKER-COMPONENT-ID acker/ACKER-COMPONENT-ID)
-(def ACKER-INIT-STREAM-ID acker/ACKER-INIT-STREAM-ID)
-(def ACKER-ACK-STREAM-ID acker/ACKER-ACK-STREAM-ID)
-(def ACKER-FAIL-STREAM-ID acker/ACKER-FAIL-STREAM-ID)
-(def ACKER-RESET-TIMEOUT-STREAM-ID acker/ACKER-RESET-TIMEOUT-STREAM-ID)
+(def ACKER-COMPONENT-ID Constants/ACKER_COMPONENT_ID)
+(def ACKER-INIT-STREAM-ID Constants/ACKER_INIT_STREAM_ID)
+(def ACKER-ACK-STREAM-ID Constants/ACKER_ACK_STREAM_ID)
+(def ACKER-FAIL-STREAM-ID Constants/ACKER_FAIL_STREAM_ID)
+(def ACKER-RESET-TIMEOUT-STREAM-ID Constants/ACKER_RESET_TIMEOUT_STREAM_ID)
 
 (def SYSTEM-STREAM-ID "__system")
 
@@ -203,10 +203,7 @@
 (defn- build-acker-conf [storm-conf num-executors]
   (into {} (filter val
                    {TOPOLOGY-TASKS num-executors
-                    TOPOLOGY-TICK-TUPLE-FREQ-SECS (storm-conf TOPOLOGY-MESSAGE-TIMEOUT-SECS)
-                    TOPOLOGY-COMPONENT-RESOURCES-OFFHEAP-MEMORY-MB (storm-conf TOPOLOGY-ACKER-OFFHEAP-MEMORY-MB)
-                    TOPOLOGY-COMPONENT-RESOURCES-ONHEAP-MEMORY-MB (storm-conf TOPOLOGY-ACKER-ONHEAP-MEMORY-MB)
-                    TOPOLOGY-COMPONENT-CPU-PCORE-PERCENT (storm-conf TOPOLOGY-ACKER-CPU-PCORE-PERCENT)})))
+                    TOPOLOGY-TICK-TUPLE-FREQ-SECS (storm-conf TOPOLOGY-MESSAGE-TIMEOUT-SECS)})))
 
 (defn add-acker! [storm-conf ^StormTopology ret]
   (let [num-executors (if (nil? (storm-conf TOPOLOGY-ACKER-EXECUTORS)) (storm-conf TOPOLOGY-WORKERS) (storm-conf TOPOLOGY-ACKER-EXECUTORS))

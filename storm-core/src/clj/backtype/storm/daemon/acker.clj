@@ -26,11 +26,11 @@
    :constructors {[] []}
    :state state ))
 
-(def ACKER-COMPONENT-ID "__acker")
-(def ACKER-INIT-STREAM-ID "__ack_init")
-(def ACKER-ACK-STREAM-ID "__ack_ack")
-(def ACKER-FAIL-STREAM-ID "__ack_fail")
-(def ACKER-RESET-TIMEOUT-STREAM-ID "__ack_reset_timeout")
+(def ACKER-COMPONENT-ID Constants/ACKER_COMPONENT_ID)
+(def ACKER-INIT-STREAM-ID Constants/ACKER_INIT_STREAM_ID)
+(def ACKER-ACK-STREAM-ID Constants/ACKER_ACK_STREAM_ID)
+(def ACKER-FAIL-STREAM-ID Constants/ACKER_FAIL_STREAM_ID)
+(def ACKER-RESET-TIMEOUT-STREAM-ID Constants/ACKER_RESET_TIMEOUT_STREAM_ID)
 
 (defn- update-ack [curr-entry val]
   (let [old (get curr-entry :val 0)]

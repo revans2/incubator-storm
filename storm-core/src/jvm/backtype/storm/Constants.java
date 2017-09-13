@@ -32,5 +32,11 @@ public class Constants {
     public static final String METRICS_STREAM_ID = "__metrics";
     public static final String METRICS_TICK_STREAM_ID = "__metrics_tick";
     public static final String CREDENTIALS_CHANGED_STREAM_ID = "__credentials";
+
+    public static final String ACKER_COMPONENT_ID = "__acker";
+    public static final String ACKER_INIT_STREAM_ID = "__ack_init";
+    public static final String ACKER_ACK_STREAM_ID = "__ack_ack";
+    public static final String ACKER_FAIL_STREAM_ID = "__ack_fail";
+    public static final String ACKER_RESET_TIMEOUT_STREAM_ID = "__ack_reset_timeout";
 }
     

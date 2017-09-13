@@ -2383,14 +2383,14 @@ public class Config extends HashMap<String, Object> {
      * to allocate slots on machines with enough available memory.  A default value will be set for this config if user does not override
      */
     @isPositiveNumber(includeZero = true)
-    public static final String TOPOLOGY_ACKER_OFFHEAP_MEMORY_MB = "topology.acker.offheap.memory.mb";
+    public static final String TOPOLOGY_ACKER_RESOURCES_OFFHEAP_MEMORY_MB = "topology.acker.resources.offheap.memory.mb";
 
     /**
      * The maximum amount of memory an instance of an acker will take on heap. This enables the scheduler
      * to allocate slots on machines with enough available memory.  A default value will be set for this config if user does not override
      */
     @isPositiveNumber(includeZero = true)
-    public static final String TOPOLOGY_ACKER_ONHEAP_MEMORY_MB = "topology.acker.onheap.memory.mb";
+    public static final String TOPOLOGY_ACKER_RESOURCES_ONHEAP_MEMORY_MB = "topology.acker.resources.onheap.memory.mb";
 
     /**
      * The config indicates the percentage of cpu for a core an instance(executor) of an acker will use.
