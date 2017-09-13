@@ -18,6 +18,7 @@
 
 package backtype.storm.scheduler.resource.strategies.scheduling;
 
+import backtype.storm.Config;
 import backtype.storm.scheduler.Cluster;
 import backtype.storm.scheduler.ExecutorDetails;
 import backtype.storm.scheduler.TopologyDetails;
@@ -52,8 +53,7 @@ public class DefaultResourceAwareStrategy implements IStrategy {
     private Map<String, List<String>> _clusterInfo;
     private RAS_Nodes _nodes;
 
-    private TreeSet<ObjectResources> _sortedRacks = null;
-    private Map<String, TreeSet<ObjectResources>> _rackIdToSortedNodes = new HashMap<String, TreeSet<ObjectResources>>();
+    private List<ObjectResources> sortedNodes = null;
 
     public void prepare(SchedulingState schedulingState) {
         _cluster = schedulingState.cluster;
@@ -82,19 +82,21 @@ public class DefaultResourceAwareStrategy implements IStrategy {
         List<ExecutorDetails> orderedExecutors = orderExecutors(td, unassignedExecutors);
 
         Collection<ExecutorDetails> executorsNotScheduled = new HashSet<>(unassignedExecutors);
+        List<String> favoredNodes = (List<String>) td.getConf().get(Config.TOPOLOGY_SCHEDULER_FAVORED_NODES);
+        List<String> unFavoredNodes = (List<String>) td.getConf().get(Config.TOPOLOGY_SCHEDULER_UNFAVORED_NODES);
 
         for (ExecutorDetails exec : orderedExecutors) {
             LOG.debug("Attempting to schedule: {} of component {}[ REQ {} ]",
                     exec, td.getExecutorToComponent().get(exec),
                     td.getTaskResourceReqList(exec));
-            scheduleExecutor(exec, td, schedulerAssignmentMap, scheduledTasks);
+            scheduleExecutor(exec, td, schedulerAssignmentMap, scheduledTasks, favoredNodes, unFavoredNodes);
         }
 
         executorsNotScheduled.removeAll(scheduledTasks);
         LOG.debug("/* Scheduling left over task (most likely sys tasks) */");
         // schedule left over system tasks
         for (ExecutorDetails exec : executorsNotScheduled) {
-            scheduleExecutor(exec, td, schedulerAssignmentMap, scheduledTasks);
+            scheduleExecutor(exec, td, schedulerAssignmentMap, scheduledTasks, favoredNodes, unFavoredNodes);
         }
 
         SchedulingResult result;
@@ -124,8 +126,9 @@ public class DefaultResourceAwareStrategy implements IStrategy {
      * @param scheduledTasks executors that have been scheduled
      */
     private void scheduleExecutor(ExecutorDetails exec, TopologyDetails td, Map<WorkerSlot,
-            Collection<ExecutorDetails>> schedulerAssignmentMap, Collection<ExecutorDetails> scheduledTasks) {
-        WorkerSlot targetSlot = findWorkerForExec(exec, td, schedulerAssignmentMap);
+            Collection<ExecutorDetails>> schedulerAssignmentMap, Collection<ExecutorDetails> scheduledTasks,
+                                  final List<String> favoredNodes, final List<String> unFavoredNodes) {
+        WorkerSlot targetSlot = findWorkerForExec(exec, td, schedulerAssignmentMap, favoredNodes, unFavoredNodes);
         if (targetSlot != null) {
             RAS_Node targetNode = idToNode(targetSlot.getNodeId());
             if (!schedulerAssignmentMap.containsKey(targetSlot)) {
@@ -152,43 +155,53 @@ public class DefaultResourceAwareStrategy implements IStrategy {
      * @param scheduleAssignmentMap already calculated assignments
      * @return a worker to assign exec on.  Returns null if a worker cannot be successfully found in cluster
      */
-    private WorkerSlot findWorkerForExec(ExecutorDetails exec, TopologyDetails td, Map<WorkerSlot, Collection<ExecutorDetails>> scheduleAssignmentMap) {
-        WorkerSlot ws = null;
-
-        // iterate through an ordered list of all racks available to make sure we cannot schedule the first executor in any rack before we "give up"
-        // the list is ordered in decreasing order of effective resources. With the rack in the front of the list having the most effective resources.
-        if (_sortedRacks == null) {
-            _sortedRacks = sortRacks(td.getId(), scheduleAssignmentMap);
-        }
-
-        for (ObjectResources rack : _sortedRacks) {
-            ws = getBestWorker(exec, td, rack.id, scheduleAssignmentMap);
-            if (ws != null) {
-                LOG.debug("best rack: {}", rack.id);
-                break;
+    private WorkerSlot findWorkerForExec(ExecutorDetails exec, TopologyDetails td, Map<WorkerSlot,
+        Collection<ExecutorDetails>> scheduleAssignmentMap, final List<String> favoredNodes,
+        final List<String> unFavoredNodes) {
+        if (sortedNodes == null) {
+            TreeSet<ObjectResources> sortedRacks = sortRacks(td.getId(), scheduleAssignmentMap);
+            ArrayList<ObjectResources> totallySortedNodes = new ArrayList<>();
+            for (ObjectResources rack : sortedRacks) {
+                final String rackId = rack.id;
+                TreeSet<ObjectResources> sortedNodes =
+                    sortNodes(getAvailableNodesFromRack(rackId), rackId, td.getId(), scheduleAssignmentMap);
+                totallySortedNodes.addAll(sortedNodes);
             }
+            //Now do some post processing to add make some nodes preferred over others.
+            if (favoredNodes != null || unFavoredNodes != null) {
+                HashMap<String, Integer> hostOrder = new HashMap<>();
+                if (favoredNodes != null) {
+                    int size = favoredNodes.size();
+                    for (int i = 0; i < size; i++) {
+                        //First in the list is the most desired so gets the Lowest possible value
+                        hostOrder.put(favoredNodes.get(i), -(size - i));
+                    }
+                }
+
+                if (unFavoredNodes != null) {
+                    int size = unFavoredNodes.size();
+                    for (int i = 0; i < size; i++) {
+                        //First in the list is the least desired so gets the highest value
+                        hostOrder.put(unFavoredNodes.get(i), size - i);
+                    }
+                }
+                //java guarantees a stable sort so we can just return 0 for values we don't want to move.
+                Collections.sort(totallySortedNodes, (o1, o2) -> {
+                    RAS_Node n1 = _nodes.getNodeById(o1.id);
+                    String host1 = n1.getHostname();
+                    int h1Value = hostOrder.getOrDefault(host1, 0);
+
+                    RAS_Node n2 = _nodes.getNodeById(o2.id);
+                    String host2 = n2.getHostname();
+                    int h2Value = hostOrder.getOrDefault(host2, 0);
+
+                    return Integer.compare(h1Value, h2Value);
+                });
+            }
+            sortedNodes = totallySortedNodes;
         }
-        return ws;
-    }
 
-    /**
-     * Get the best worker to assign executor exec on a rack
-     *
-     * @param exec the executor to schedule
-     * @param td the topology that the executor is a part of
-     * @param rackId the rack id of the rack to find a worker on
-     * @param scheduleAssignmentMap already calculated assignments
-     * @return a worker to assign executor exec to. Returns null if a worker cannot be successfully found on rack with rackId
-     */
-    private WorkerSlot getBestWorker(ExecutorDetails exec, TopologyDetails td, String rackId, Map<WorkerSlot, Collection<ExecutorDetails>> scheduleAssignmentMap) {
-
-        if (!_rackIdToSortedNodes.containsKey(rackId)) {
-            _rackIdToSortedNodes.put(rackId, sortNodes(this.getAvailableNodesFromRack(rackId), rackId, td.getId(), scheduleAssignmentMap));
-        }
-
-        TreeSet<ObjectResources> sortedNodes = _rackIdToSortedNodes.get(rackId);
-
-        for (ObjectResources nodeResources : sortedNodes) {
+        for (ObjectResources nodeResources: sortedNodes) {
             RAS_Node n = _nodes.getNodeById(nodeResources.id);
             for (WorkerSlot ws : n.getSlotsAvailbleTo(td)) {
                 if (n.wouldFit(ws, exec, td)) {
