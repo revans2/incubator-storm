@@ -172,6 +172,9 @@
     ))
 
 (defprotocol RunningExecutor
+  (get-task-ids [this])
+  (get-receive-queue [this])
+  (get-send-queue [this])
   (render-stats [this])
   (get-executor-id [this])
   (credentials-changed [this creds])
@@ -218,7 +221,6 @@
                                   (str "executor"  executor-id "-send-queue")
                                   (storm-conf TOPOLOGY-EXECUTOR-SEND-BUFFER-SIZE)
                                   (storm-conf TOPOLOGY-DISRUPTOR-WAIT-TIMEOUT-MILLIS)
-                                  :producer-type :single-threaded
                                   :batch-size (storm-conf TOPOLOGY-DISRUPTOR-BATCH-SIZE)
                                   :batch-timeout (storm-conf TOPOLOGY-DISRUPTOR-BATCH-TIMEOUT-MILLIS))
         ]
@@ -384,6 +386,12 @@
       RunningExecutor
       (render-stats [this]
         (stats/render-stats! (:stats executor-data)))
+      (get-task-ids [this]
+        (:task-ids executor-data))
+      (get-receive-queue [this]
+        (:receive-queue executor-data))
+      (get-send-queue [this]
+        (:batch-transfer-queue executor-data))
       (get-executor-id [this]
         executor-id)
       (credentials-changed [this creds]

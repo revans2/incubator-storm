@@ -30,7 +30,7 @@ public class LoadMapping {
     private final AtomicReference<Map<Integer,Load>> _remote = new AtomicReference<Map<Integer,Load>>(new HashMap<Integer,Load>());
 
     public void setLocal(Map<Integer, Double> local) {
-        Map<Integer, Load> newLocal = new HashMap<Integer, Load>();
+        Map<Integer, Load> newLocal = new HashMap<>();
         if (local != null) {
           for (Map.Entry<Integer, Double> entry: local.entrySet()) {
             newLocal.put(entry.getKey(), new Load(true, entry.getValue(), 0.0));
@@ -41,9 +41,9 @@ public class LoadMapping {
 
     public void setRemote(Map<Integer, Load> remote) {
         if (remote != null) {
-          _remote.set(new HashMap<Integer, Load>(remote));
+          _remote.set(new HashMap<>(remote));
         } else {
-          _remote.set(new HashMap<Integer, Load>());
+          _remote.set(new HashMap<>());
         }
     }
 

@@ -101,6 +101,13 @@ public class GenLoad {
             .desc("replace shuffle grouping with local or shuffle grouping")
             .build());
         options.addOption(Option.builder()
+            .longOpt("imbalance")
+            .argName("MS(:COUNT)?:TOPO:COMP")
+            .hasArg()
+            .desc("The number of ms that the first COUNT of TOPO:COMP will wait before processing.  This creates an imbalance "
+                + "that helps test load aware groupings (defaults to 0)")
+            .build());
+        options.addOption(Option.builder()
             .longOpt("debug")
             .desc("Print debug information about the adjusted topology before submitting it.")
             .build());
@@ -113,6 +120,7 @@ public class GenLoad {
         Map<String, Double> topoSpecificParallel = new HashMap<>();
         double globalThroughput = 1.0;
         Map<String, Double> topoSpecificThroughput = new HashMap<>();
+        Map<String, SlowExecutorPattern> topoSpecificImbalance = new HashMap<>();
         try {
             cmd = parser.parse(options, args);
             if (cmd.hasOption("t")) {
@@ -162,6 +170,20 @@ public class GenLoad {
                     }
                 }
             }
+            if (cmd.hasOption("imbalance")) {
+                for (String stringImbalance : cmd.getOptionValues("imbalance")) {
+                    //We require there to be both a topology and a component in this case, so parse it out as such.
+                    String [] parts = stringImbalance.split(":");
+                    if (parts.length < 3 || parts.length > 4) {
+                        throw new ParseException(stringImbalance + " does not appear to match the expected pattern");
+                    } else if (parts.length == 3) {
+                        topoSpecificImbalance.put(parts[1] + ":" + parts[2], SlowExecutorPattern.fromString(parts[0]));
+                    } else { //== 4
+                        topoSpecificImbalance.put(parts[2] + ":" + parts[3],
+                            SlowExecutorPattern.fromString(parts[0] + ":" + parts[1]));
+                    }
+                }
+            }
         } catch (ParseException | NumberFormatException e) {
             commandLineException = e;
         }
@@ -180,6 +202,8 @@ public class GenLoad {
             .collect(Collectors.toList()));
         metrics.put("topo_throuhgput", topoSpecificThroughput.entrySet().stream().map((entry) -> entry.getValue() + ":" + entry.getKey())
             .collect(Collectors.toList()));
+        metrics.put("slow_execs", topoSpecificImbalance.entrySet().stream().map((entry) -> entry.getValue() + ":" + entry.getKey())
+            .collect(Collectors.toList()));
 
         Map<String, Object> conf = Utils.readStormConfig();
         LoadMetricsServer metricServer = new LoadMetricsServer(conf, cmd, metrics);
@@ -194,6 +218,7 @@ public class GenLoad {
                     TopologyLoadConf tlc = readTopology(topoFile);
                     tlc = tlc.scaleParallel(globalParallel, topoSpecificParallel);
                     tlc = tlc.scaleThroughput(globalThroughput, topoSpecificThroughput);
+                    tlc = tlc.overrideSlowExecs(topoSpecificImbalance);
                     if (cmd.hasOption("local-or-shuffle")) {
                         tlc = tlc.replaceShuffleWithLocalOrShuffle();
                     }

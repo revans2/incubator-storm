@@ -340,7 +340,7 @@
     [node (Integer/valueOf port-str)]
     ))
 
-(defn mk-refresh-load [worker]
+(defn mk-refresh-load [worker executors]
   (let [local-tasks (set (:task-ids worker))
         remote-tasks (set/difference (worker-outbound-tasks worker) local-tasks)
         short-executor-receive-queue-map (:short-executor-receive-queue-map worker)
@@ -348,8 +348,14 @@
     (fn this
       ([] 
         (let [^LoadMapping load-mapping (:load-mapping worker)
-              local-pop (map-val (fn [^DisruptorQueue queue] (/ (double (.population (.getMetrics queue))) (.capacity (.getMetrics queue)))) short-executor-receive-queue-map)
-              local-pop (map-key int local-pop)
+              local-pop (into {} 
+                              (for [ex executors] 
+                                (let [task-ids (.get-task-ids ex)
+                                      recv-queue (.get-receive-queue ex)
+                                      recv-load (/ (double (.population (.getMetrics recv-queue))) (.capacity (.getMetrics recv-queue)))
+                                      send-queue (.get-send-queue ex)
+                                      send-load (/ (double (.population (.getMetrics send-queue))) (.capacity (.getMetrics send-queue)))]
+                                  {(int (first task-ids)), (max recv-load send-load)})))
               remote-load (reduce merge (for [[np conn] @(:cached-node+port->socket worker)] (into {} (.getLoad conn remote-tasks))))
               now (System/currentTimeMillis)]
           (.setLocal load-mapping local-pop)
@@ -630,7 +636,6 @@
         _ (register-callbacks worker)
 
         refresh-connections (mk-refresh-connections worker)
-        refresh-load (mk-refresh-load worker)
         update-blob-versions-for-workers (mk-update-blob-versions-for-worker worker)
 
         _ (refresh-connections nil)
@@ -643,6 +648,7 @@
 
 
         _ (reset! executors (dofor [e (:executors worker)] (executor/mk-executor worker e initial-credentials)))
+        refresh-load (mk-refresh-load worker @executors)
 
         transfer-tuples (mk-transfer-tuples-handler worker)
         

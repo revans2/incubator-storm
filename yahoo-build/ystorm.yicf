@@ -117,6 +117,7 @@ file 444 - - lib64/jars/multilang-ruby.jar ../storm-multilang/ruby/target/multil
 file 444 - - lib64/jars/multilang-ruby-sources.jar ../storm-multilang/ruby/target/multilang-ruby-$(BASE_VERSION)-sources.jar
 file 444 - - lib64/jars/multilang-ruby.pom ../storm-multilang/ruby/pom.xml
 file 444 - - lib64/jars/storm-starter.jar ../examples/storm-starter/target/storm-starter-$(BASE_VERSION).jar
+file 444 - - lib64/jars/storm-loadgen.jar ../examples/storm-loadgen/target/storm-loadgen-$(BASE_VERSION).jar
 file 444 - - lib64/jars/storm-starter-sources.jar ../examples/storm-starter/target/storm-starter-$(BASE_VERSION)-sources.jar
 file 444 - - lib64/jars/storm-starter.pom ../examples/storm-starter/pom.xml
 file 444 - - lib64/jars/yahoo_examples.jar ../examples/yahoo-examples/target/yahoo_examples-$(BASE_VERSION)-jar-with-dependencies.jar

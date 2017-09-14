@@ -35,6 +35,7 @@ public class LoadCompConf {
     public final List<OutputStream> streams;
     public final double cpuLoad;
     public final double memoryLoad;
+    public final SlowExecutorPattern slp;
 
     /**
      * Parse the LoadCompConf from a config Map.
@@ -53,8 +54,11 @@ public class LoadCompConf {
         }
         double memoryMb = Utils.getDouble(conf.get("memoryLoad"), 0.0);
         double cpuPercent = Utils.getDouble(conf.get("cpuLoad"), 0.0);
-
-        return new LoadCompConf(id, parallelism, streams, memoryMb, cpuPercent);
+        SlowExecutorPattern slp = null;
+        if (conf.containsKey("slowExecutorPattern")) {
+            slp = SlowExecutorPattern.fromConf((Map<String, Object>) conf.get("slowExecutorPattern"));
+        }
+        return new LoadCompConf(id, parallelism, streams, memoryMb, cpuPercent, slp);
     }
 
     /**
@@ -79,6 +83,9 @@ public class LoadCompConf {
             }
             ret.put("streams", streamData);
         }
+        if (slp != null) {
+            ret.put("slowExecutorPattern", slp.toConf());
+        }
         return ret;
     }
 
@@ -95,7 +102,7 @@ public class LoadCompConf {
                 .map((orig) -> orig.remap(id, remappedStreams))
                 .collect(Collectors.toList());
 
-        return new LoadCompConf(remappedId, parallelism, remappedOutStreams, cpuLoad, memoryLoad);
+        return new LoadCompConf(remappedId, parallelism, remappedOutStreams, cpuLoad, memoryLoad, slp);
     }
 
     /**
@@ -116,7 +123,7 @@ public class LoadCompConf {
     public LoadCompConf setParallel(int newParallelism) {
         //We need to adjust the throughput accordingly (so that it stays the same in aggregate)
         double throughputAdjustment = ((double)parallelism) / newParallelism;
-        return new LoadCompConf(id, newParallelism, streams, cpuLoad, memoryLoad).scaleThroughput(throughputAdjustment);
+        return new LoadCompConf(id, newParallelism, streams, cpuLoad, memoryLoad, slp).scaleThroughput(throughputAdjustment);
     }
 
     /**
@@ -127,7 +134,15 @@ public class LoadCompConf {
     public LoadCompConf scaleThroughput(double v) {
         if (streams != null) {
             List<OutputStream> newStreams = streams.stream().map((s) -> s.scaleThroughput(v)).collect(Collectors.toList());
-            return new LoadCompConf(id, parallelism, newStreams, cpuLoad, memoryLoad);
+            return new LoadCompConf(id, parallelism, newStreams, cpuLoad, memoryLoad, slp);
+        } else {
+            return this;
+        }
+    }
+
+    public LoadCompConf overrideSlowExecutorPattern(SlowExecutorPattern slp) {
+        if (slp != null) {
+            return new LoadCompConf(id, parallelism, streams, cpuLoad, memoryLoad, slp);
         } else {
             return this;
         }
@@ -155,6 +170,7 @@ public class LoadCompConf {
         private List<OutputStream> streams;
         private double cpuLoad = 0.0;
         private double memoryLoad = 0.0;
+        private SlowExecutorPattern slp = null;
 
         public String getId() {
             return id;
@@ -206,8 +222,13 @@ public class LoadCompConf {
             return this;
         }
 
+        public Builder withSlowExecutorPattern(SlowExecutorPattern slp) {
+            this.slp = slp;
+            return this;
+        }
+
         public LoadCompConf build() {
-            return new LoadCompConf(id, parallelism, streams, cpuLoad, memoryLoad);
+            return new LoadCompConf(id, parallelism, streams, cpuLoad, memoryLoad, slp);
         }
     }
 
@@ -217,7 +238,8 @@ public class LoadCompConf {
      * @param parallelism tha parallelism of the component.
      * @param streams the output streams of the component.
      */
-    public LoadCompConf(String id, int parallelism, List<OutputStream> streams, double cpuLoad, double memoryLoad) {
+    public LoadCompConf(String id, int parallelism, List<OutputStream> streams, double cpuLoad, double memoryLoad,
+                        SlowExecutorPattern slp) {
         this.id = id;
         if (id == null) {
             throw new IllegalArgumentException("A spout ID cannot be null");
@@ -226,5 +248,6 @@ public class LoadCompConf {
         this.streams = streams;
         this.cpuLoad = cpuLoad;
         this.memoryLoad = memoryLoad;
+        this.slp = slp;
     }
 }
