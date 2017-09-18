@@ -147,10 +147,10 @@ The user can set some default configurations for the Resource Aware Scheduler in
     topology.worker.max.heap.size.mb: 768.0
 
     //customize _acker component on heap requirement
-    topology.acker.onheap.memory.mb: 256.0
+    topology.acker.resources.onheap.memory.mb: 256.0
 
     //customize _acker component off heap requirement
-    topology.acker.offheap.memory.mb: 128.0
+    topology.acker.resources.offheap.memory.mb: 128.0
 
     //customize _acker component CPU requirement
     topology.acker.cpu.pcore.percent: 30.0
