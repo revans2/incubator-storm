@@ -2384,39 +2384,9 @@ public class Utils {
         return ret;
     }
 
-    public static boolean isRAS(Map<String, Object> conf, Map<String, Object> topoConf) {
+    public static boolean isRAS(Map<String, Object> conf) {
         String scheduler = (String)conf.get(Config.STORM_SCHEDULER);
-        if (scheduler == null) {
-            scheduler = "backtype.storm.scheduler.DefaultScheduler";
-        }
-
-        String strategy = (String)topoConf.get(Config.TOPOLOGY_SCHEDULER_STRATEGY);
-        if (strategy == null) {
-            strategy = "backtype.storm.scheduler.resource.strategies.scheduling.MultitenantStrategy";
-        }
-
-        return scheduler.equals("backtype.storm.scheduler.resource.ResourceAwareScheduler") ||
-                (scheduler.equals("backtype.storm.scheduler.bridge.MultitenantResourceAwareBridgeScheduler") &&
-                        !strategy.equals("backtype.storm.scheduler.resource.strategies.scheduling.MultitenantStrategy"));
-    }
-
-    public static double getEstimatedTotalHeapMemoryRequiredByTopo(StormTopology topology, Map topologyConf) {
-        double totalMemoryRequired = 0.0;
-        for (Map<String, Double> entry : ResourceUtils.getBoltsResources(topology, topologyConf).values()) {
-            double memoryRequirement = entry.get(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB);
-            totalMemoryRequired += memoryRequirement;
-        }
-        for (Map<String, Double> entry : ResourceUtils.getSpoutsResources(topology, topologyConf).values()) {
-            double memoryRequirement = entry.get(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB);
-            totalMemoryRequired += memoryRequirement;
-        }
-        return totalMemoryRequired;
-    }
-
-    public static double getEstimatedWorkerCountForRASTopo(StormTopology topology, Map topologyConf) {
-        Double temp = Math.ceil(getEstimatedTotalHeapMemoryRequiredByTopo(topology, topologyConf) /
-                Utils.getDouble(topologyConf.get(Config.WORKER_HEAP_MEMORY_MB)));
-        return temp;
+        return (scheduler != null && scheduler.equals("backtype.storm.scheduler.resource.ResourceAwareScheduler"));
     }
 
     public static Map<String, Long> getCurrentBlobVersions(Map topoConf, String topologyId) throws IOException {

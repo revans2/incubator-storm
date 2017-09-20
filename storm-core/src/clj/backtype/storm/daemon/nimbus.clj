@@ -1432,13 +1432,22 @@
     (throw
       (NotAliveException. (str storm-id)))))
 
-(defn num-acker-executors [storm-conf topology nimbus-conf]
+(defn estimated-worker-count-for-ras-topo [storm-conf topology]
+  (let [componet-parallelism-mp (into {} (map #(vector (first %) (component-parallelism storm-conf (second %))) (all-components topology)))
+        bolt-memory-requirement (into {} (map #(vector (first %) (get (second %) TOPOLOGY-COMPONENT-RESOURCES-ONHEAP-MEMORY-MB)) (into {} (ResourceUtils/getBoltsResources topology storm-conf))))
+        spout-memory-requirement (into {} (map #(vector (first %) (get (second %) TOPOLOGY-COMPONENT-RESOURCES-ONHEAP-MEMORY-MB)) (into {} (ResourceUtils/getSpoutsResources topology storm-conf))))
+        component-memory-requirement (merge bolt-memory-requirement spout-memory-requirement)
+        total-memory-required (reduce + (vals (merge-with * component-memory-requirement componet-parallelism-mp)))
+        worker-heap-memory (get storm-conf WORKER-HEAP-MEMORY-MB)
+        ]
+    (/ total-memory-required worker-heap-memory)))
+
+(defn num-acker-executors [storm-conf topology]
   (or
-    (.get storm-conf TOPOLOGY-ACKER-EXECUTORS)
-    (.get storm-conf TOPOLOGY-WORKERS)
-      (if (Utils/isRAS nimbus-conf storm-conf)
-        (Utils/getEstimatedWorkerCountForRASTopo topology storm-conf)
-        (storm-conf TOPOLOGY-WORKERS))))
+    (get storm-conf TOPOLOGY-ACKER-EXECUTORS)
+      (if (Utils/isRAS storm-conf)
+        (estimated-worker-count-for-ras-topo storm-conf topology)
+        (get storm-conf TOPOLOGY-WORKERS))))
 
 (defn sum-topo-resources [^TopologyResources a ^TopologyResources b]
   (.add a b))
@@ -1581,10 +1590,11 @@
                              storm-conf
                              (dissoc storm-conf TOPOLOGY-CLASSPATH-BEGINNING))
                 total-storm-conf (merge conf storm-conf)
-                total-storm-conf (-> total-storm-conf (assoc TOPOLOGY-ACKER-EXECUTORS (num-acker-executors total-storm-conf topology (:conf nimbus))))
+                total-storm-conf (-> total-storm-conf (assoc TOPOLOGY-ACKER-EXECUTORS (num-acker-executors total-storm-conf topology )))
                 topology (normalize-topology total-storm-conf topology)
 
                 storm-cluster-state (:storm-cluster-state nimbus)]
+            (log-message "Config.TOPOLOGY_ACKER_EXECUTORS set to: " (get total-storm-conf TOPOLOGY-ACKER-EXECUTORS))
             (when credentials (doseq [nimbus-autocred-plugin (:nimbus-autocred-plugins nimbus)]
               (.populateCredentials nimbus-autocred-plugin credentials (Collections/unmodifiableMap storm-conf))))
             (if (and (conf SUPERVISOR-RUN-WORKER-AS-USER) (or (nil? submitter-user) (.isEmpty (.trim submitter-user)))) 
@@ -1867,8 +1877,9 @@
                       resources (into {}
                                       (map #(into {} {% (get-resources-for-topology nimbus % (get owner-bases %))})
                                                   (keys topo-confs)))
-                      ras-topos (filter #(Utils/isRAS conf (topo-confs %)) 
-                                        (keys topo-confs))
+                      ras-topos (if (Utils/isRAS conf)
+                                  (keys topo-confs)
+                                  nil)
                       ras-resources (select-keys resources ras-topos)
                       total-aggregates (if (empty? resources)
                                          default-resources
