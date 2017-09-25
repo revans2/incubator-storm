@@ -1060,7 +1060,7 @@
   [conf topo-conf]
   (and
     (conf STORM-RESOURCE-ISOLATION-PLUGIN-ENABLE)
-    (Utils/isRAS conf topo-conf)))
+    (Utils/isRAS conf)))
 
 (defmethod launch-worker
     :distributed [supervisor storm-id port worker-id resources]
