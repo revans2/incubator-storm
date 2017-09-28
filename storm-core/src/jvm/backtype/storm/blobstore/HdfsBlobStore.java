@@ -27,6 +27,7 @@ import java.io.FileNotFoundException;
 import java.io.InputStream;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import javax.security.auth.Subject;
@@ -61,6 +62,8 @@ public class HdfsBlobStore extends BlobStore {
   private HdfsBlobStoreImpl _hbs;
   private Subject _localSubject;
   private Map conf;
+
+  private static final HashSet<String> alreadyLoggedInUsers = new HashSet<>();
 
   /**
    * Get the subject from Hadoop so we can use it to validate the acls. There is no direct
@@ -119,8 +122,15 @@ public class HdfsBlobStore extends BlobStore {
       // logged in already or running insecure HDFS.
       if (conf.get(Config.BLOBSTORE_HDFS_PRINCIPAL) != null &&
           conf.get(Config.BLOBSTORE_HDFS_KEYTAB) != null) {
-        UserGroupInformation.loginUserFromKeytab(Config.getBlobstoreHDFSPrincipal(conf),
-            (String) conf.get(Config.BLOBSTORE_HDFS_KEYTAB));
+          String principal = Config.getBlobstoreHDFSPrincipal(conf);
+          String keytab = (String) conf.get(Config.BLOBSTORE_HDFS_KEYTAB);
+          String combinedKey = principal + " from " + keytab;
+          synchronized (alreadyLoggedInUsers) {
+           if (!alreadyLoggedInUsers.contains(combinedKey)) {
+               UserGroupInformation.loginUserFromKeytab(principal, keytab);
+               alreadyLoggedInUsers.add(combinedKey);
+           }
+          }
       } else {
         if (conf.get(Config.BLOBSTORE_HDFS_PRINCIPAL) == null &&
             conf.get(Config.BLOBSTORE_HDFS_KEYTAB) != null) {
