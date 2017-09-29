@@ -1497,6 +1497,8 @@ class StormTopology:
    - spouts
    - bolts
    - state_spouts
+   - storm_version
+   - jdk_version
    - component_to_shared_memory
    - shared_memory
   """
@@ -1509,16 +1511,18 @@ class StormTopology:
     None, # 4
     None, # 5
     None, # 6
-    None, # 7
-    None, # 8
+    (7, TType.STRING, 'storm_version', None, None, ), # 7
+    (8, TType.STRING, 'jdk_version', None, None, ), # 8
     (9, TType.MAP, 'component_to_shared_memory', (TType.STRING,None,TType.SET,(TType.STRING,None)), None, ), # 9
     (10, TType.MAP, 'shared_memory', (TType.STRING,None,TType.STRUCT,(SharedMemory, SharedMemory.thrift_spec)), None, ), # 10
   )
 
-  def __init__(self, spouts=None, bolts=None, state_spouts=None, component_to_shared_memory=None, shared_memory=None,):
+  def __init__(self, spouts=None, bolts=None, state_spouts=None, storm_version=None, jdk_version=None, component_to_shared_memory=None, shared_memory=None,):
     self.spouts = spouts
     self.bolts = bolts
     self.state_spouts = state_spouts
+    self.storm_version = storm_version
+    self.jdk_version = jdk_version
     self.component_to_shared_memory = component_to_shared_memory
     self.shared_memory = shared_memory
 
@@ -1565,6 +1569,16 @@ class StormTopology:
             _val59.read(iprot)
             self.state_spouts[_key58] = _val59
           iprot.readMapEnd()
+        else:
+          iprot.skip(ftype)
+      elif fid == 7:
+        if ftype == TType.STRING:
+          self.storm_version = iprot.readString().decode('utf-8')
+        else:
+          iprot.skip(ftype)
+      elif fid == 8:
+        if ftype == TType.STRING:
+          self.jdk_version = iprot.readString().decode('utf-8')
         else:
           iprot.skip(ftype)
       elif fid == 9:
@@ -1629,6 +1643,14 @@ class StormTopology:
         viter85.write(oprot)
       oprot.writeMapEnd()
       oprot.writeFieldEnd()
+    if self.storm_version is not None:
+      oprot.writeFieldBegin('storm_version', TType.STRING, 7)
+      oprot.writeString(self.storm_version.encode('utf-8'))
+      oprot.writeFieldEnd()
+    if self.jdk_version is not None:
+      oprot.writeFieldBegin('jdk_version', TType.STRING, 8)
+      oprot.writeString(self.jdk_version.encode('utf-8'))
+      oprot.writeFieldEnd()
     if self.component_to_shared_memory is not None:
       oprot.writeFieldBegin('component_to_shared_memory', TType.MAP, 9)
       oprot.writeMapBegin(TType.STRING, TType.SET, len(self.component_to_shared_memory))
@@ -1666,6 +1688,8 @@ class StormTopology:
     value = (value * 31) ^ hash(self.spouts)
     value = (value * 31) ^ hash(self.bolts)
     value = (value * 31) ^ hash(self.state_spouts)
+    value = (value * 31) ^ hash(self.storm_version)
+    value = (value * 31) ^ hash(self.jdk_version)
     value = (value * 31) ^ hash(self.component_to_shared_memory)
     value = (value * 31) ^ hash(self.shared_memory)
     return value

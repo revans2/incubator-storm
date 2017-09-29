@@ -230,6 +230,9 @@ public class StormSubmitter {
             }
             opts.set_creds(new Credentials(fullCreds));
         }
+
+        topology = Utils.addVersions(topology);
+
         try {
             if(localNimbus!=null) {
                 LOG.info("Submitting topology " + name + " in local mode with conf "+stormConf);

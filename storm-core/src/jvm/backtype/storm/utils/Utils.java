@@ -2412,4 +2412,25 @@ public class Utils {
         return results;
     }
 
+    /**
+     * Add version information to the given topology
+     * @param topology the topology being submitted (MIGHT BE MODIFIED)
+     * @return topology
+     */
+    public static StormTopology addVersions(StormTopology topology) {
+        String stormVersion = VersionInfo.getVersion();
+        if (stormVersion != null &&
+                !"Unknown".equalsIgnoreCase(stormVersion) &&
+                !topology.is_set_storm_version()) {
+            topology.set_storm_version(stormVersion);
+        }
+
+        LOG.info("The storm version of this topology is {}", topology.get_storm_version());
+
+        String jdkVersion = System.getProperty("java.version");
+        if (jdkVersion != null && !topology.is_set_jdk_version()) {
+            topology.set_jdk_version(jdkVersion);
+        }
+        return topology;
+    }
 }
