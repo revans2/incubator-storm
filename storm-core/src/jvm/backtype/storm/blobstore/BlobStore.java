@@ -55,7 +55,7 @@ import backtype.storm.generated.BlobReplication;
  */
 public abstract class BlobStore implements Shutdownable {
   public static final Logger LOG = LoggerFactory.getLogger(BlobStore.class);
-  private static final Pattern KEY_PATTERN = Pattern.compile("^[\\w \\t\\.:_-]+$");
+  private static final Pattern KEY_PATTERN = Pattern.compile("^[\\w \\t\\._-]+$");
   protected static final String BASE_BLOBS_DIR_NAME = "blobs";
 
   public abstract void prepare(Map conf, String baseDir);
@@ -82,10 +82,10 @@ public abstract class BlobStore implements Shutdownable {
     return ret;
   }
 
-  public static final void validateKey(String key) throws AuthorizationException {
+  public static final void validateKey(String key) throws IllegalArgumentException {
     if (key == null || key.isEmpty() || "..".equals(key) || ".".equals(key) || !KEY_PATTERN.matcher(key).matches()) {
-      LOG.error("'{}' does not appear to be valid {}", key, KEY_PATTERN);
-      throw new AuthorizationException(key+" does not appear to be a valid blob key");
+      LOG.error("'{}' does not appear to be valid. It must match {}. And it can't be \".\", \"..\", null or empty string.", key, KEY_PATTERN);
+      throw new IllegalArgumentException(key+" does not appear to be a valid blob key");
     }
   }
 

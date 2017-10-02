@@ -1308,9 +1308,9 @@
 (deftest test-file-bogus-download
   (with-local-cluster [cluster :daemon-conf {SUPERVISOR-ENABLE false TOPOLOGY-ACKER-EXECUTORS 0}]
     (let [nimbus (:nimbus cluster)]
-      (is (thrown-cause? AuthorizationException (.beginFileDownload nimbus nil)))
-      (is (thrown-cause? AuthorizationException (.beginFileDownload nimbus "")))
-      (is (thrown-cause? AuthorizationException (.beginFileDownload nimbus "/bogus-path/foo")))
+      (is (thrown-cause? IllegalArgumentException (.beginFileDownload nimbus nil)))
+      (is (thrown-cause? IllegalArgumentException (.beginFileDownload nimbus "")))
+      (is (thrown-cause? IllegalArgumentException (.beginFileDownload nimbus "/bogus-path/foo")))
       )))
 
 (deftest test-validate-topo-config-on-submit

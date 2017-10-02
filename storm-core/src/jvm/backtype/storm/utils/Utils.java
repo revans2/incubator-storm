@@ -1834,24 +1834,6 @@ public class Utils {
         return m;
     }
 
-    /**
-     * Make sure a given key name is valid for the storm config.
-     * Throw RuntimeException if the key isn't valid.
-     * @param name The name of the config key to check.
-     */
-    private static final Set<String> disallowedKeys = new HashSet<>(Arrays.asList(new String[] {"/", ".", ":", "\\"}));
-    public static void validateKeyName(String name) {
-
-        for(String key : disallowedKeys) {
-            if( name.contains(key) ) {
-                throw new RuntimeException("Key name cannot contain any of the following: " + disallowedKeys.toString());
-            }
-        }
-        if(name.trim().isEmpty()) {
-            throw new RuntimeException("Key name cannot be blank");
-        }
-    }
-
     public static String localHostname () throws UnknownHostException {
         return _instance.localHostnameImpl();
     }

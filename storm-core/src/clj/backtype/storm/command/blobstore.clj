@@ -18,7 +18,7 @@
   (:use [backtype.storm config])
   (:import [backtype.storm.generated SettableBlobMeta AccessControl AuthorizationException
             KeyNotFoundException])
-  (:import [backtype.storm.blobstore BlobStoreAclHandler])
+  (:import [backtype.storm.blobstore BlobStoreAclHandler BlobStore])
   (:use [clojure.string :only [split]])
   (:use [clojure.tools.cli :only [cli]])
   (:use [clojure.java.io :only [copy input-stream output-stream]])
@@ -91,6 +91,7 @@
                                                   ["-r" "--repl-fctr" :default -1 :parse-fn parse-int])
         meta (doto (SettableBlobMeta. acl)
                    (.set_replication_factor repl-fctr))]
+    (BlobStore/validateKey key)
     (log-message "Creating " key " with ACL " (pr-str (map access-control-str acl)))
     (if file
       (with-open [f (input-stream file)]
