@@ -312,4 +312,4 @@
                                               (get_children [this path watch?] '("/foo/bar")))]
               (let [cluster-state (mk-storm-cluster-state {})]
                 (.get_data (mk-distributed-cluster-state) "/foo/bar" false)
-                (topology-backpressure cluster-state "" nil)))))
+                (topology-backpressure cluster-state "" 30 nil)))))

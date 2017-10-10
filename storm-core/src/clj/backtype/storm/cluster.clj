@@ -73,7 +73,7 @@
   (remove-worker-heartbeat! [this storm-id node port])
   (supervisor-heartbeat! [this supervisor-id info])
   (worker-backpressure! [this storm-id node port info])
-  (topology-backpressure [this storm-id callback])
+  (topology-backpressure [this storm-id timeout-ms callback])
   (setup-backpressure! [this storm-id])
   (remove-backpressure! [this storm-id])
   (remove-worker-backpressure! [this storm-id node port])
@@ -138,6 +138,10 @@
 (defn backpressure-path
   [storm-id node port]
   (str (backpressure-storm-root storm-id) "/" node "-" port))
+
+(defn backpressure-full-path
+  [storm-id short-path]
+  (str (backpressure-storm-root storm-id) "/" short-path))
 
 (defn error-storm-root
   [storm-id]
@@ -216,9 +220,9 @@
 (defn max-timestamp
   "Reduces the timestamps (e.g. those set by worker-backpressure!)
   to the most recent timestamp"
-  [cluster-state paths]
+  [cluster-state storm-id paths]
   (reduce (fn [acc path]
-            (let [data (.get_data cluster-state path false)
+            (let [data (.get_data cluster-state (backpressure-full-path storm-id path) false)
                   timestamp (if data
                               (.. (ByteBuffer/wrap data) (getLong))
                               0)]
@@ -412,29 +416,37 @@
 
       (worker-backpressure!
         [this storm-id node port timestamp]
-        "if znode exists and to be not on?, delete; if exists and on?, do nothing;
-        if not exists and to be on?, create; if not exists and not on?, do nothing"
+        "If znode exists and timestamp is non-positive, delete;
+         if exists and timestamp is larger than 0, update the timestamp;
+         if not exists and timestamp is larger than 0, create the znode and set the timestamp;
+         if not exists and timestamp is non-positive, do nothing."
         (let [path (backpressure-path storm-id node port)
               existed (.node_exists cluster-state path false)]
           (if existed
-            (when (not timestamp)
-              (.delete_node cluster-state path))
+            (if (<= timestamp 0)
+              (.delete_node cluster-state path)
+              (let [bytes (.. (ByteBuffer/allocate (Long/BYTES)) (putLong timestamp) (array))]
+                (.set_data cluster-state path bytes acls)))
             (when timestamp
               (let [bytes (.. (ByteBuffer/allocate (Long/BYTES)) (putLong timestamp) (array))]
                 (.set_ephemeral_node cluster-state path bytes acls))))))
     
       (topology-backpressure
-        [this storm-id callback]
+        [this storm-id timeout-ms callback]
         "if the backpresure/storm-id dir is empty, this topology has throttle-off, otherwise throttle-on.
+         But if the backpresure/storm-id dir is not empty and has not been updated for more than timeoutMs, we treat it as throttle-off.
+         This will prevent the spouts from getting stuck indefinitely if something wrong happens.
          The backpressure/storm-id dir may not exist if nimbus has shutdown the topology"
         (when callback
           (swap! backpressure-callback assoc storm-id callback))
         (let [path (backpressure-storm-root storm-id)
               children (if (.node_exists cluster-state path false)
                          (.get_children cluster-state path (not-nil? callback)))
-              most-recent-backpressure (max-timestamp cluster-state children)
-              current-time (System/currentTimeMillis)]
-          (> 30000 (- current-time most-recent-backpressure))))
+              most-recent-backpressure (max-timestamp cluster-state storm-id children)
+              current-time (System/currentTimeMillis)
+              ret (> timeout-ms (- current-time most-recent-backpressure))]
+          (log-debug "topology backpressure is " (if ret "on" "off"))
+          ret))
       
       (setup-backpressure!
         [this storm-id]
