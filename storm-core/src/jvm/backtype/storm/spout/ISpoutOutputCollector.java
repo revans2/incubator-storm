@@ -15,16 +15,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package backtype.storm.spout;
 
+import backtype.storm.task.IErrorReporter;
 import java.util.List;
 
-public interface ISpoutOutputCollector {
+public interface ISpoutOutputCollector extends IErrorReporter {
     /**
         Returns the task ids that received the tuples.
     */
     List<Integer> emit(String streamId, List<Object> tuple, Object messageId);
     void emitDirect(int taskId, String streamId, List<Object> tuple, Object messageId);
-    void reportError(Throwable error);
 }
 
