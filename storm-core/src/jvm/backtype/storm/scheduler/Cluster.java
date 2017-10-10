@@ -69,6 +69,14 @@ public class Cluster {
             return totalCpu;
         }
 
+        public double getAvailableCpu() {
+            return totalCpu - usedCpu;
+        }
+
+        public double getAvailableMem() {
+            return totalMem - usedMem;
+        }
+
         private SupervisorResources add(WorkerResources wr) {
             return new SupervisorResources(totalMem,
                     totalCpu,
@@ -875,7 +883,7 @@ public class Cluster {
     public Map<String, SupervisorResources> getSupervisorsResourcesMap() {
         Map<String, SupervisorResources> ret = new HashMap<>();
         for (SupervisorDetails sd: supervisors.values()) {
-            ret.put(sd.getId(), new SupervisorResources(sd.getTotalMemory(), sd.getTotalMemory(), 0, 0));
+            ret.put(sd.getId(), new SupervisorResources(sd.getTotalMemory(), sd.getTotalCPU(), 0, 0));
         }
         for (SchedulerAssignmentImpl assignment : assignments.values()) {
             for (Entry<WorkerSlot, WorkerResources> entry : assignment.getScheduledResources().entrySet()) {

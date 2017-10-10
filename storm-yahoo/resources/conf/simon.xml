@@ -42,6 +42,12 @@
             <counter name="num_getTopologyHistory_calls"                type="long" />
             <counter name="num_setWorkerProfiler_calls"                 type="long" />
             <gauge   name="num_supervisors"                             type="long"   cf="last" />
+            <gauge   name="fragmented_memory"                           type="long"   cf="last" />
+            <gauge   name="fragmented_cpu"                              type="long"   cf="last" />
+            <gauge   name="available_memory"                            type="long"   cf="last" />
+            <gauge   name="available_cpu"                               type="long"   cf="last" />
+            <gauge   name="total_memory"                                type="long"   cf="last" />
+            <gauge   name="total_cpu"                                   type="long"   cf="last" />
         </blurb>
 
         <blurb name="supervisor">
@@ -158,6 +164,12 @@
             <value name="Avg. setWorkerProfiler">                 num_setWorkerProfiler_calls/period                 </value>
             <value name="Avg. submitTopology">                    num_submitTopology_calls/period                    </value>
             <value name="numSupervisors">                         num_supervisors                                    </value>
+            <value name="Fragmented memory mb">                   fragmented_memory                                  </value>
+            <value name="Fragmented CPU Percentage">              fragmented_cpu                                     </value>
+            <value name="Available memory mb">                    available_memory                                   </value>
+            <value name="Available CPU Percentage">               available_cpu                                      </value>
+            <value name="Total memory mb">                        total_memory                                       </value>
+            <value name="Total CPU Percentage">                   total_cpu                                          </value>
         </reportItem>
 
         <reportItem name="supervisor daemon" blurb="supervisor">

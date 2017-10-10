@@ -30,7 +30,8 @@
   (:import [backtype.storm.security.auth ThriftServer ThriftConnectionType ReqContext AuthUtils])
   (:use [backtype.storm.scheduler.DefaultScheduler])
   (:import [backtype.storm.scheduler INimbus SupervisorDetails WorkerSlot TopologyDetails
-            Cluster TopologyResources Topologies SchedulerAssignment SchedulerAssignmentImpl DefaultScheduler ExecutorDetails])
+            Cluster TopologyResources Topologies SchedulerAssignment SchedulerAssignmentImpl
+            Cluster$SupervisorResources DefaultScheduler ExecutorDetails])
   (:import [backtype.storm.scheduler.resource ResourceUtils])
   (:import [backtype.storm.utils TimeCacheMap TimeCacheMap$ExpiredCallback Utils ThriftTopologyUtils BufferInputStream])
   (:import [backtype.storm.generated AuthorizationException AlreadyAliveException BeginDownloadResult
@@ -846,6 +847,20 @@
 
     new-topology->executor->node+port))
 
+(defn is-fragmented? [conf supervisor-resource]
+  (let [min-memory (+ (Utils/getDouble (conf TOPOLOGY-COMPONENT-RESOURCES-ONHEAP-MEMORY-MB) (double 256))
+                      (Utils/getDouble (conf TOPOLOGY-ACKER-RESOURCES-ONHEAP-MEMORY-MB) (double 128)))
+        min-cpu (+ (Utils/getDouble (conf TOPOLOGY-COMPONENT-CPU-PCORE-PERCENT) (double 50))
+                   (Utils/getDouble (conf TOPOLOGY-ACKER-CPU-PCORE-PERCENT) (double 50)))]
+    (or (> min-cpu (.getAvailableCpu ^Cluster$SupervisorResources supervisor-resource))
+        (> min-memory (.getAvailableMem ^Cluster$SupervisorResources supervisor-resource)))))
+
+(defn fragmented-memory [supervisor-infos conf]
+  (reduce (fn [acc x] (+ acc (if (is-fragmented? conf x) (max (.getAvailableMem x) 0) 0))) 0 (vals supervisor-infos)))
+
+(defn fragmented-cpu [supervisor-infos conf]
+  (reduce (fn [acc x] (+ acc (if (is-fragmented? conf x) (max (.getAvailableCpu x) 0) 0))) 0 (vals supervisor-infos)))
+
 ;; public so it can be mocked out
 (defn compute-new-scheduler-assignments [nimbus existing-assignments topologies scratch-topology-id]
   (let [conf (:conf nimbus)
@@ -896,7 +911,6 @@
     ;;merge with existing statuses
     (reset! (:id->sched-status nimbus) (merge (deref (:id->sched-status nimbus)) (.getStatusMap cluster)))
     (reset! (:node-id->resources nimbus) (.getSupervisorsResourcesMap cluster))
-
     ; Remove both of swaps below at first opportunity. This is a hack for multitenant swags with RAS Bridge Scheduler.
     (swap! (:id->resources nimbus) merge (.getTopologyResourcesMap cluster))
     ; Remove this also at first chance
@@ -951,7 +965,6 @@
                       vals
                       set)]
     (set/difference new-slots old-slots)))
-
 
 (defn basic-supervisor-details-map [storm-cluster-state min-age]
   (let [infos (all-supervisor-info storm-cluster-state nil true min-age)]
@@ -1046,6 +1059,18 @@
 
     (when (not= new-assignments existing-assignments)
       (log-debug "RESETTING id->resources and id->worker-resources cache!")
+      (log-message "Fragmentation after scheduling is: "
+                   (fragmented-memory @(:node-id->resources nimbus) conf) " MB "
+                   (fragmented-cpu @(:node-id->resources nimbus) conf) " CPU %")
+      (doseq [[sup-id item] @(:node-id->resources nimbus)]
+        (log-message "Node Id: " sup-id
+                     " Total Mem: " (.getTotalMem ^Cluster$SupervisorResources item)
+                     " Used Mem: " (.getUsedMem ^Cluster$SupervisorResources item)
+                     " Avialble Mem: " (.getAvailableMem ^Cluster$SupervisorResources item)
+                     " Total CPU: " (.getTotalCpu ^Cluster$SupervisorResources item)
+                     " Used CPU: " (.getUsedCpu ^Cluster$SupervisorResources item)
+                     " Available CPU: " (.getAvailableCpu ^Cluster$SupervisorResources item)
+                     " fragmented: " (is-fragmented? conf item)))
       (reset! (:id->resources nimbus) {})
       (reset! (:id->worker-resources nimbus) {}))
     ;; tasks figure out what tasks to talk to by looking at topology at runtime
@@ -1401,7 +1426,11 @@
       (.set_total_resources sup-sum (map-val double (:resources-map info)))
       (when-let [supervisor-resources (.get @(:node-id->resources nimbus) id)]
         (.set_used_mem sup-sum (.getUsedMem supervisor-resources))
-        (.set_used_cpu sup-sum (.getUsedCpu supervisor-resources)))
+        (.set_used_cpu sup-sum (.getUsedCpu supervisor-resources))
+        (if (is-fragmented? (:conf nimbus) supervisor-resources) 
+          (.set_fragmented_mem sup-sum (max (.getAvailableMem supervisor-resources) 0.0)))
+        (if (is-fragmented? (:conf nimbus) supervisor-resources) 
+          (.set_fragmented_cpu sup-sum (max (.getAvailableCpu supervisor-resources) 0.0))))
       (when-let [version (:version info)] (.set_version sup-sum version))
       sup-sum))
 
@@ -1532,6 +1561,23 @@
                         (fn []
                           (renew-credentials nimbus)))
 
+    (defgauge nimbus:fragmented-memory
+              (fn [] (fragmented-memory @(:node-id->resources nimbus) conf)))
+
+    (defgauge nimbus:fragmented-cpu
+              (fn [] (fragmented-cpu @(:node-id->resources nimbus) conf)))
+
+    (defgauge nimbus:available-memory
+      (fn [] (reduce  + (for [x (vals @(:node-id->resources nimbus))] (.getAvailableMem ^Cluster$SupervisorResources x)))))
+
+    (defgauge nimbus:available-cpu
+      (fn [] (reduce  + (for [x (vals @(:node-id->resources nimbus))] (.getAvailableCpu ^Cluster$SupervisorResources x)))))
+
+    (defgauge nimbus:total-memory
+      (fn [] (reduce  + (for [x (vals @(:node-id->resources nimbus))] (.getTotalMem ^Cluster$SupervisorResources x)))))
+
+    (defgauge nimbus:total-cpu
+      (fn [] (reduce  + (for [x (vals @(:node-id->resources nimbus))] (.getTotalCpu ^Cluster$SupervisorResources x)))))
 
     (defgauge nimbus:num-supervisors
       (fn [] (.size (.supervisors (:storm-cluster-state nimbus) nil))))
