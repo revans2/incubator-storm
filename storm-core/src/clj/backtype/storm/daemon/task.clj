@@ -27,6 +27,9 @@
   (:import [backtype.storm.generated ShellComponent JavaObject])
   (:import [backtype.storm.spout ShellSpout])
   (:import [java.util Collection List ArrayList])
+  (:import [backtype.storm.grouping LoadAwareCustomStreamGrouping])
+  (:import [org.apache.storm.daemon GrouperFactory])
+  (:import [org.apache.storm Thrift])
   (:require [backtype.storm
              [thrift :as thrift]
              [stats :as stats]])
@@ -84,7 +87,7 @@
                 (ShellBolt. obj))
               obj )
         obj (if (instance? JavaObject obj)
-              (thrift/instantiate-java-object obj)
+              (Thrift/instantiateJavaObject obj)
               obj )]
     obj
     ))
@@ -138,7 +141,7 @@
                 component->grouping (get stream->component->grouper stream)
                 grouping (get component->grouping target-component)
                 out-task-id (if grouping out-task-id)]
-            (when (and (not-nil? grouping) (not= :direct grouping))
+            (when (and (not-nil? grouping) (not= GrouperFactory/DIRECT grouping))
               (throw (IllegalArgumentException. "Cannot emitDirect to a task expecting a regular grouping")))                          
             (apply-hooks user-context .emit (EmitInfo. values stream task-id [out-task-id]))
             (when (emit-sampler)
@@ -152,10 +155,10 @@
              (log-message "Emitting: " component-id " " stream " " values))
            (let [out-tasks (ArrayList.)]
              (fast-map-iter [[out-component grouper] (get stream->component->grouper stream)]
-               (when (= :direct grouper)
+               (when (= GrouperFactory/DIRECT grouper)
                   ;;  TODO: this is wrong, need to check how the stream was declared
                   (throw (IllegalArgumentException. "Cannot do regular emit to direct stream")))
-               (let [comp-tasks (grouper task-id values load-mapping)]
+               (let [comp-tasks (.chooseTasks grouper task-id values load-mapping)]
                  (if (or (sequential? comp-tasks) (instance? Collection comp-tasks))
                    (.addAll out-tasks comp-tasks)
                    (.add out-tasks comp-tasks)

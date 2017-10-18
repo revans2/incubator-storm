@@ -23,6 +23,8 @@ import backtype.storm.tuple.Tuple;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 
 public final class TupleUtils {
@@ -36,6 +38,18 @@ public final class TupleUtils {
     return tuple != null
            && Constants.SYSTEM_COMPONENT_ID  .equals(tuple.getSourceComponent())
            && Constants.SYSTEM_TICK_STREAM_ID.equals(tuple.getSourceStreamId());
+  }
+
+  public static <T> int chooseTaskIndex(List<T> keys, int numTasks) {
+    return Math.abs(listHashCode(keys)) % numTasks;
+  }
+
+  private static <T> int listHashCode(List<T> alist) {
+    if (alist == null) {
+      return 1;
+    } else {
+      return Arrays.deepHashCode(alist.toArray());
+    }
   }
 
   public static Map<String, Object> putTickFrequencyIntoComponentConfig(Map<String, Object> conf, int tickFreqSecs) {
