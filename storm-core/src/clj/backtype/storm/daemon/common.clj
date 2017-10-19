@@ -372,6 +372,8 @@
                           (:task-ids worker)
                           (:default-shared-resources worker)
                           (:user-shared-resources worker)
+                          (:cached-task->node+port worker)
+                          (:assignment-id worker)
                           ))
 
 

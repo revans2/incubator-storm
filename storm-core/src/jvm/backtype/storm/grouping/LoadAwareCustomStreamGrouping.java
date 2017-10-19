@@ -15,10 +15,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package backtype.storm.grouping;
 
 import java.util.List;
 
 public interface LoadAwareCustomStreamGrouping extends CustomStreamGrouping {
-   List<Integer> chooseTasks(int taskId, List<Object> values, LoadMapping load); 
+    //Keep this method only for backward compatibility
+    @Deprecated
+    default List<Integer> chooseTasks(int taskId, List<Object> values, LoadMapping load) {
+        throw new RuntimeException("Function not implemented");
+    }
+
+    //Use default method for backward compatibility
+    default void refreshLoad(LoadMapping loadMapping) {
+
+    }
+
 }

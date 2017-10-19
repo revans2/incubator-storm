@@ -33,24 +33,7 @@
        min-prcnt (int (* num-messages 0.49))
        max-prcnt (int (* num-messages 0.51))
        data [1 2]
-       freq (frequencies (for [x (range 0 num-messages)] (.chooseTasks shuffle (int 1) data nil)))
-       load1 (.get freq [(int 1)])
-       load2 (.get freq [(int 2)])]
-    (log-message "FREQ:" freq)
-    (is (>= load1 min-prcnt))
-    (is (<= load1 max-prcnt))
-    (is (>= load2 min-prcnt))
-    (is (<= load2 max-prcnt))))
-
-(deftest test-shuffle-load-even
- (let [shuffle (GrouperFactory/mkGrouper nil "comp" "stream" nil shuffle-grouping [(int 1) (int 2)] {})
-       num-messages 100000
-       min-prcnt (int (* num-messages 0.49))
-       max-prcnt (int (* num-messages 0.51))
-       load (LoadMapping.)
-       _ (.setLocal load {(int 1) 0.0 (int 2) 0.0})
-       data [1 2]
-       freq (frequencies (for [x (range 0 num-messages)] (.chooseTasks shuffle (int 1) data load)))
+       freq (frequencies (for [x (range 0 num-messages)] (.chooseTasks shuffle (int 1) data)))
        load1 (.get freq [(int 1)])
        load2 (.get freq [(int 2)])]
     (log-message "FREQ:" freq)

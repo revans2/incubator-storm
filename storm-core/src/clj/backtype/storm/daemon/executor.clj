@@ -115,7 +115,8 @@
   (render-stats [this])
   (get-executor-id [this])
   (credentials-changed [this creds])
-  (get-backpressure-flag [this]))
+  (get-backpressure-flag [this])
+  (load-changed [this load-mapping]))
 
 (defn throttled-report-error-fn [executor]
   (let [storm-conf (:storm-conf executor)
@@ -186,6 +187,12 @@
      :interval->task->metric-registry (HashMap.)
      :task->component (:task->component worker)
      :stream->component->grouper (outbound-components worker-context component-id storm-conf)
+     :groupers (if (nil? (:stream->component->grouper <>))
+                 nil
+                 (apply concat
+                        (for [component->grouper (vals (:stream->component->grouper <>))
+                              :let [g (vals component->grouper)]]
+                          g)))
      :report-error (throttled-report-error-fn <>)
      :report-error-and-die (fn [error]
                              (try 
@@ -271,6 +278,10 @@
      (when (seq data-points)
        (task/send-unanchored task-data Constants/METRICS_STREAM_ID [task-info data-points]))))
 
+(defn reflect-new-load-mapping [^LoadMapping load-mapping executor-data]
+  (doseq [^LoadAwareCustomStreamGrouping g (:groupers executor-data)]
+    (.refreshLoad g load-mapping)))
+
 (defn setup-ticks! [worker executor-data]
   (let [storm-conf (:storm-conf executor-data)
         tick-time-secs (storm-conf TOPOLOGY-TICK-TUPLE-FREQ-SECS)
@@ -338,6 +349,8 @@
           (disruptor/publish receive-queue val)))
       (get-backpressure-flag [this]
         (.getThrottleOn (:receive-queue executor-data)))
+      (load-changed [this load-mapping]
+        (reflect-new-load-mapping load-mapping executor-data))
       Shutdownable
       (shutdown
         [this]
