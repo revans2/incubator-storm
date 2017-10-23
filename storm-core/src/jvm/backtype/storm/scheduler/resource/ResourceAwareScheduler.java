@@ -89,8 +89,8 @@ public class ResourceAwareScheduler implements IScheduler {
         for(TopologyDetails td : orderedTopologies) {
             schedulingState = scheduleTopology(schedulingState, td, orderedTopologies);
             alreadyScheduled.add(td);
-            LOG.debug("Nodes after scheduling:\n{}", schedulingState.nodes);
         }
+        LOG.debug("Nodes after scheduling:\n{}", schedulingState.nodes);
 
         //update changes to cluster
         updateChanges(cluster, topologies, schedulingState);
