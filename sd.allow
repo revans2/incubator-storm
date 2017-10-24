@@ -1,4 +1,4 @@
 version: 1
 push:
   # Grant Screwdriver Project 145501 access
-  - screwdriver: 145501
+  - screwdriver:145501
