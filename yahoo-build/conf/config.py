@@ -65,9 +65,19 @@ allStringKeys = set(["ui.filter.params", "drpc.http.filter.params", "storm.group
 ignoredKeys = set(["min.user.pid", "storm.zookeeper.auth.payload", "storm.cluster.user", "worker.launcher.group",
  "multitenant.scheduler.user.pools", "resource.aware.scheduler.user.pools"])
 
-config = dict((k[8:].replace("_", "."), v) for k, v in os.environ.items() \
-        if k.startswith("ystorm__") \
-        and not k.startswith("ystorm__drpc_auth_acl"))
+ystorm_prefix="ystorm__"
+config = {k[len(ystorm_prefix):].replace("_", "."): v for k, v in os.environ.items() \
+        if k.startswith(ystorm_prefix) \
+        and not k.startswith(ystorm_prefix + "drpc_auth_acl")}
+
+# if the package is ystorm_compatibility
+if os.environ["YINST_PKGNAME"] == "ystorm_compatibility" :
+    ystorm_compatibility_prefix="ystorm_compatibility__"
+    ystorm_compatibility_config = {k[len(ystorm_compatibility_prefix):].replace("_", "."): v for k, v in os.environ.items() \
+                                  if k.startswith(ystorm_compatibility_prefix) \
+                                  and not k.startswith(ystorm_compatibility_prefix + "drpc_auth_acl")}
+    # override configs with ystorm_compatibility configs
+    config.update(ystorm_compatibility_config)
 
 def toYml(data, indent):
     dt = type(data)
