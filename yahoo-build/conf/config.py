@@ -50,7 +50,7 @@ remappedKeys = {"storm.messaging.netty.buffer.size":"storm.messaging.netty.buffe
 listKeys = set(["storm.auth.simple-white-list.users", "supervisor.slots.ports",
  "storm.zookeeper.servers", "topology.kryo.register", "drpc.servers", "simon.servers",
  "worker.childopts", "ui.users", "ui.groups", "logs.users", "logs.groups", "nimbus.supervisor.users",
- "nimbus.admins", "topology.users", "topology.groups", "nimbus.credential.renewers.classes",
+ "nimbus.admins","nimbus.admins.groups", "topology.users", "topology.groups", "nimbus.credential.renewers.classes",
  "topology.auto-credentials", "pacemaker.kerberos.users", "pacemaker.servers",
  "multitenant.scheduler.user.pools.loaders", "resource.aware.scheduler.user.pools.loaders",
  "storm.daemon.metrics.reporter.plugins"])
