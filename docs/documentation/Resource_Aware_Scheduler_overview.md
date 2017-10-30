@@ -156,10 +156,10 @@ The user can set some default configurations for the Resource Aware Scheduler in
     topology.acker.cpu.pcore.percent: 30.0
 
     //customize metrics consumer component on heap requirement
-    topology.metrics.consumer.onheap.memory.mb: 512.0
+    topology.metrics.consumer.resources.onheap.memory.mb: 512.0
 
     //customize metrics consumer component off heap requirement
-    topology.metrics.consumer.offheap.memory.mb: 32.0
+    topology.metrics.consumer.resources.offheap.memory.mb: 32.0
 
     //customize metrics consumer component CPU requirement
     topology.metrics.consumer.cpu.pcore.percent: 25.0

@@ -525,6 +525,19 @@ public class TopologyDetails {
                 resourceListForExec.put(Config.TOPOLOGY_COMPONENT_CPU_PCORE_PERCENT,
                         Utils.getDouble(topologyConf.get(Config.TOPOLOGY_ACKER_CPU_PCORE_PERCENT)));
             }
+        } else if (component.startsWith(Constants.METRICS_COMPONENT_ID_PREFIX)) {
+            if (topologyConf.containsKey(Config.TOPOLOGY_METRICS_CONSUMER_RESOURCES_ONHEAP_MEMORY_MB)) {
+                resourceListForExec.put(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB,
+                        Utils.getDouble(topologyConf.get(Config.TOPOLOGY_METRICS_CONSUMER_RESOURCES_ONHEAP_MEMORY_MB)));
+            }
+            if (topologyConf.containsKey(Config.TOPOLOGY_METRICS_CONSUMER_RESOURCES_OFFHEAP_MEMORY_MB)) {
+                resourceListForExec.put(Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB,
+                        Utils.getDouble(topologyConf.get(Config.TOPOLOGY_METRICS_CONSUMER_RESOURCES_OFFHEAP_MEMORY_MB)));
+            }
+            if (topologyConf.containsKey(Config.TOPOLOGY_METRICS_CONSUMER_CPU_PCORE_PERCENT)) {
+                resourceListForExec.put(Config.TOPOLOGY_COMPONENT_CPU_PCORE_PERCENT,
+                        Utils.getDouble(topologyConf.get(Config.TOPOLOGY_METRICS_CONSUMER_CPU_PCORE_PERCENT)));
+            }
         }
     }
 

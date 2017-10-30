@@ -279,30 +279,23 @@
        (number-duplicates)
        (map #(str Constants/METRICS_COMPONENT_ID_PREFIX %))))
 
-(defn- build-metrics-consumer-conf [storm-conf]
-  (into {} (filter val
-                   {TOPOLOGY-COMPONENT-RESOURCES-OFFHEAP-MEMORY-MB (storm-conf TOPOLOGY-METRICS-CONSUMER-OFFHEAP-MEMORY-MB)
-                    TOPOLOGY-COMPONENT-RESOURCES-ONHEAP-MEMORY-MB (storm-conf TOPOLOGY-METRICS-CONSUMER-ONHEAP-MEMORY-MB)
-                    TOPOLOGY-COMPONENT-CPU-PCORE-PERCENT (storm-conf TOPOLOGY-METRICS-CONSUMER-CPU-PCORE-PERCENT)})))
-
 (defn metrics-consumer-bolt-specs [storm-conf topology]
   (let [component-ids-that-emit-metrics (cons SYSTEM-COMPONENT-ID (keys (all-components topology)))
         inputs (->> (for [comp-id component-ids-that-emit-metrics]
                       {[comp-id METRICS-STREAM-ID] :shuffle})
                     (into {}))
         
-        mk-bolt-spec (fn [class arg p user-conf-map]
+        mk-bolt-spec (fn [class arg p]
                        (thrift/mk-bolt-spec*
                         inputs
                         (backtype.storm.metric.MetricsConsumerBolt. class arg)
-                        {} :p p :conf (merge {TOPOLOGY-TASKS p} (build-metrics-consumer-conf storm-conf) user-conf-map)))]
+                        {} :p p :conf {TOPOLOGY-TASKS p}))]
     
     (map
      (fn [component-id register]           
        [component-id (mk-bolt-spec (get register "class")
                                    (get register "argument")
-                                   (or (get register "parallelism.hint") 1)
-                                   (or (get register "user.conf") {}))])
+                                   (or (get register "parallelism.hint") 1))])
      
      (metrics-consumer-register-ids storm-conf)
      (get storm-conf TOPOLOGY-METRICS-CONSUMER-REGISTER))))

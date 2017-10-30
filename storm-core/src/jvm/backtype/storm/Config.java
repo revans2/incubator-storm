@@ -2418,18 +2418,18 @@ public class Config extends HashMap<String, Object> {
     public static final String TOPOLOGY_ACKER_CPU_PCORE_PERCENT = "topology.acker.cpu.pcore.percent";
 
     /**
-     * The maximum amount of memory an instance of a metrics consumer will take off heap. This enables the scheduler
-     * to allocate slots on machines with enough available memory.  A default value will be set for this config if user does not override
-     */
-    @isPositiveNumber(includeZero = true)
-    public static final String TOPOLOGY_METRICS_CONSUMER_OFFHEAP_MEMORY_MB = "topology.metrics.consumer.offheap.memory.mb";
-
-    /**
      * The maximum amount of memory an instance of a metrics consumer will take on heap. This enables the scheduler
      * to allocate slots on machines with enough available memory.  A default value will be set for this config if user does not override
      */
     @isPositiveNumber(includeZero = true)
-    public static final String TOPOLOGY_METRICS_CONSUMER_ONHEAP_MEMORY_MB = "topology.metrics.consumer.onheap.memory.mb";
+    public static final String TOPOLOGY_METRICS_CONSUMER_RESOURCES_ONHEAP_MEMORY_MB = "topology.metrics.consumer.resources.onheap.memory.mb";
+
+    /**
+     * The maximum amount of memory an instance of a metrics consumer will take off heap. This enables the scheduler
+     * to allocate slots on machines with enough available memory.  A default value will be set for this config if user does not override
+     */
+    @isPositiveNumber(includeZero = true)
+    public static final String TOPOLOGY_METRICS_CONSUMER_RESOURCES_OFFHEAP_MEMORY_MB = "topology.metrics.consumer.resources.offheap.memory.mb";
 
     /**
      * The config indicates the percentage of cpu for a core an instance(executor) of a metrics consumer will use.
@@ -2691,25 +2691,16 @@ public class Config extends HashMap<String, Object> {
         registerSerialization(this, klass, serializerClass);
     }
 
-    public static void registerMetricsConsumer(Map conf, Class klass, Object argument, long parallelismHint, Map userConf) {
+    public static void registerMetricsConsumer(Map conf, Class klass, Object argument, long parallelismHint) {
         HashMap m = new HashMap();
         m.put("class", klass.getCanonicalName());
         m.put("parallelism.hint", parallelismHint);
         m.put("argument", argument);
-        m.put("user.conf", userConf);
 
         List l = (List)conf.get(TOPOLOGY_METRICS_CONSUMER_REGISTER);
         if (l == null) { l = new ArrayList(); }
         l.add(m);
         conf.put(TOPOLOGY_METRICS_CONSUMER_REGISTER, l);
-    }
-
-    public void registerMetricsConsumer(Class klass, Object argument, long parallelismHint, Map userConf) {
-        registerMetricsConsumer(this, klass, argument, parallelismHint, userConf);
-    }
-
-    public static void registerMetricsConsumer(Map conf, Class klass, Object argument, long parallelismHint) {
-        registerMetricsConsumer(conf, klass, argument, parallelismHint, null);
     }
 
     public void registerMetricsConsumer(Class klass, Object argument, long parallelismHint) {
