@@ -21,9 +21,9 @@ import java.util.Map;
 
 
 public interface IScheduler {
-
-    void prepare(Map conf);
-
+    
+    void prepare(Map<String, Object> conf);
+    
     /**
      * Set assignments for the topologies which needs scheduling. The new assignments is available 
      * through `cluster.getAssignments()`
@@ -39,10 +39,9 @@ public interface IScheduler {
     void schedule(Topologies topologies, Cluster cluster);
 
     /**
-     * This function returns a set of key/values that will be shown to the users on the main storm UI page,
-     * under "Scheduler Configuration"
+     * This function returns the scheduler's configuration.
      *
-     * @return The provided key / values will be displayed on the UI
+     * @return The scheduler's configuration.
      */
     Map<String, Object> config();
 }

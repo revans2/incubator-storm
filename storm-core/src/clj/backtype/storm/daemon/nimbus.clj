@@ -31,7 +31,7 @@
   (:use [backtype.storm.scheduler.DefaultScheduler])
   (:import [backtype.storm.scheduler INimbus SupervisorDetails WorkerSlot TopologyDetails
             Cluster TopologyResources Topologies SchedulerAssignment SchedulerAssignmentImpl
-            Cluster$SupervisorResources DefaultScheduler ExecutorDetails])
+            SupervisorResources DefaultScheduler ExecutorDetails])
   (:import [backtype.storm.scheduler.resource ResourceUtils])
   (:import [backtype.storm.utils TimeCacheMap TimeCacheMap$ExpiredCallback Utils ThriftTopologyUtils BufferInputStream])
   (:import [backtype.storm.generated AuthorizationException AlreadyAliveException BeginDownloadResult
@@ -852,8 +852,8 @@
                       (Utils/getDouble (conf TOPOLOGY-ACKER-RESOURCES-ONHEAP-MEMORY-MB) (double 128)))
         min-cpu (+ (Utils/getDouble (conf TOPOLOGY-COMPONENT-CPU-PCORE-PERCENT) (double 50))
                    (Utils/getDouble (conf TOPOLOGY-ACKER-CPU-PCORE-PERCENT) (double 50)))]
-    (or (> min-cpu (.getAvailableCpu ^Cluster$SupervisorResources supervisor-resource))
-        (> min-memory (.getAvailableMem ^Cluster$SupervisorResources supervisor-resource)))))
+    (or (> min-cpu (.getAvailableCpu ^SupervisorResources supervisor-resource))
+        (> min-memory (.getAvailableMem ^SupervisorResources supervisor-resource)))))
 
 (defn fragmented-memory [supervisor-infos conf]
   (reduce (fn [acc x] (+ acc (if (is-fragmented? conf x) (max (.getAvailableMem x) 0) 0))) 0 (vals supervisor-infos)))
@@ -1046,7 +1046,7 @@
                                               worker->resources (get new-assigned-worker->resources topology-id)
                                               assignment-impl (.get new-scheduler-assignments topology-id)
                                               shared-off-heap (if assignment-impl
-                                                                (.getTotalSharedOffHeapMemory assignment-impl)
+                                                                (.getNodeIdToTotalSharedOffHeapMemory assignment-impl)
                                                                 {})]]
                                    {topology-id (Assignment. ;; construct the record common/Assignment, not the java class
                                                  (conf STORM-LOCAL-DIR)
@@ -1064,12 +1064,12 @@
                    (fragmented-cpu @(:node-id->resources nimbus) conf) " CPU %")
       (doseq [[sup-id item] @(:node-id->resources nimbus)]
         (log-message "Node Id: " sup-id
-                     " Total Mem: " (.getTotalMem ^Cluster$SupervisorResources item)
-                     " Used Mem: " (.getUsedMem ^Cluster$SupervisorResources item)
-                     " Avialble Mem: " (.getAvailableMem ^Cluster$SupervisorResources item)
-                     " Total CPU: " (.getTotalCpu ^Cluster$SupervisorResources item)
-                     " Used CPU: " (.getUsedCpu ^Cluster$SupervisorResources item)
-                     " Available CPU: " (.getAvailableCpu ^Cluster$SupervisorResources item)
+                     " Total Mem: " (.getTotalMem ^SupervisorResources item)
+                     " Used Mem: " (.getUsedMem ^SupervisorResources item)
+                     " Avialble Mem: " (.getAvailableMem ^SupervisorResources item)
+                     " Total CPU: " (.getTotalCpu ^SupervisorResources item)
+                     " Used CPU: " (.getUsedCpu ^SupervisorResources item)
+                     " Available CPU: " (.getAvailableCpu ^SupervisorResources item)
                      " fragmented: " (is-fragmented? conf item)))
       (reset! (:id->resources nimbus) {})
       (reset! (:id->worker-resources nimbus) {}))
@@ -1518,7 +1518,7 @@
         set-resources-default-if-not-set
           (fn [^HashMap component-resources-map component-id topology-conf]
               (let [resource-map (or (.get component-resources-map component-id) (HashMap.))]
-                (ResourceUtils/checkIntialization resource-map component-id topology-conf)
+                (ResourceUtils/checkInitialization resource-map component-id topology-conf)
                 resource-map))
         get-last-error (fn [storm-cluster-state storm-id component-id]
                          (if-let [e (.last-error storm-cluster-state
@@ -1568,16 +1568,16 @@
               (fn [] (fragmented-cpu @(:node-id->resources nimbus) conf)))
 
     (defgauge nimbus:available-memory
-      (fn [] (reduce  + (for [x (vals @(:node-id->resources nimbus))] (.getAvailableMem ^Cluster$SupervisorResources x)))))
+      (fn [] (reduce  + (for [x (vals @(:node-id->resources nimbus))] (.getAvailableMem ^SupervisorResources x)))))
 
     (defgauge nimbus:available-cpu
-      (fn [] (reduce  + (for [x (vals @(:node-id->resources nimbus))] (.getAvailableCpu ^Cluster$SupervisorResources x)))))
+      (fn [] (reduce  + (for [x (vals @(:node-id->resources nimbus))] (.getAvailableCpu ^SupervisorResources x)))))
 
     (defgauge nimbus:total-memory
-      (fn [] (reduce  + (for [x (vals @(:node-id->resources nimbus))] (.getTotalMem ^Cluster$SupervisorResources x)))))
+      (fn [] (reduce  + (for [x (vals @(:node-id->resources nimbus))] (.getTotalMem ^SupervisorResources x)))))
 
     (defgauge nimbus:total-cpu
-      (fn [] (reduce  + (for [x (vals @(:node-id->resources nimbus))] (.getTotalCpu ^Cluster$SupervisorResources x)))))
+      (fn [] (reduce  + (for [x (vals @(:node-id->resources nimbus))] (.getTotalCpu ^SupervisorResources x)))))
 
     (defgauge nimbus:num-supervisors
       (fn [] (.size (.supervisors (:storm-cluster-state nimbus) nil))))

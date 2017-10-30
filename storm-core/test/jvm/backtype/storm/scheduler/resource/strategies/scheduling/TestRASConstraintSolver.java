@@ -29,25 +29,23 @@ import backtype.storm.scheduler.TopologyDetails;
 import backtype.storm.scheduler.WorkerSlot;
 import backtype.storm.scheduler.resource.ResourceAwareScheduler;
 import backtype.storm.scheduler.resource.SchedulingResult;
-import backtype.storm.scheduler.resource.SchedulingState;
-import backtype.storm.scheduler.resource.TestUtilsForResourceAwareScheduler;
-import backtype.storm.scheduler.resource.User;
+import backtype.storm.scheduler.resource.strategies.priority.DefaultSchedulingPriorityStrategy;
 import backtype.storm.utils.Utils;
 
+import java.util.HashSet;
+import java.util.Set;
 import org.junit.Assert;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
+
+import static backtype.storm.scheduler.resource.TestUtilsForResourceAwareScheduler.*;
 
 public class TestRASConstraintSolver {
     private static final Logger LOG = LoggerFactory.getLogger(TestRASConstraintSolver.class);
@@ -58,10 +56,7 @@ public class TestRASConstraintSolver {
     
     @Test
     public void testConstraintSolver() {
-        Map<String, Double> total_resources = new HashMap<String, Double>();
-        total_resources.put(Config.SUPERVISOR_CPU_CAPACITY, 400.0);
-        total_resources.put(Config.SUPERVISOR_MEMORY_CAPACITY_MB, 1024.0 * 4);
-        Map<String, SupervisorDetails> supMap = TestUtilsForResourceAwareScheduler.genSupervisors(30, 16, total_resources);
+        Map<String, SupervisorDetails> supMap = genSupervisors(30, 16, 400, 1024 * 4);
 
         ConstraintSolverStrategy cs = new ConstraintSolverStrategy();
 
@@ -69,7 +64,7 @@ public class TestRASConstraintSolver {
         addContraints("spout-0", "bolt-0", constraints);
         addContraints("bolt-1", "bolt-1", constraints);
         addContraints("bolt-1", "bolt-2", constraints);
-        List<String> spread = new LinkedList<String>();
+        List<String> spread = new LinkedList<>();
         spread.add("spout-0");
 
         Map<String, Object> config = Utils.readDefaultConfig();
@@ -83,31 +78,38 @@ public class TestRASConstraintSolver {
         config.put(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB, 100);
         config.put(Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB, 0.0);
 
-        TopologyDetails topo = TestUtilsForResourceAwareScheduler.getTopology("testTopo", config, 2, 3, 30, 300, 0, 0, "user");
-        Map<String, TopologyDetails> topoMap = new HashMap<String, TopologyDetails>();
+        TopologyDetails topo = genTopology("testTopo", config, 2, 3, 30, 300, 0, 0, "user");
+        Map<String, TopologyDetails> topoMap = new HashMap<>();
         topoMap.put(topo.getId(), topo);
         Topologies topologies = new Topologies(topoMap);
-        Cluster cluster = new Cluster(new TestUtilsForResourceAwareScheduler.INimbusTest(), supMap, new HashMap<String, SchedulerAssignmentImpl>(), topologies, new Config());
-        cs.prepare(new SchedulingState(new HashMap<String, User>(), cluster, topologies, config));
+        Cluster cluster = new Cluster(new INimbusTest(), supMap, new HashMap<>(), topologies, new Config());
+        cs.prepare(config);
 
-        SchedulingResult result = cs.schedule(topo);
+        SchedulingResult result = cs.schedule(cluster, topo);
         
         Assert.assertTrue("Assert scheduling topology success", result.isSuccess());
-        //realize assignments
-        for (Map.Entry<WorkerSlot, Collection<ExecutorDetails>> entry : result.getSchedulingResultMap().entrySet()) {
-            cluster.assign(entry.getKey(), topo.getId(), entry.getValue());
-        }
         Assert.assertEquals("topo all executors scheduled?", 0, cluster.getUnassignedExecutors(topo).size());
-        Assert.assertTrue("Valid Scheduling?", cs.validateSolution(TestUtilsForResourceAwareScheduler.getExecToWorkerResultMapping(result.getSchedulingResultMap())));
-        
+        Assert.assertTrue("Valid Scheduling?", ConstraintSolverStrategy.validateSolution(cluster, topo));
+
         //simulate worker loss
         Map<ExecutorDetails, WorkerSlot> newExecToSlot = new HashMap<>();
-        Map<ExecutorDetails, WorkerSlot> execToSlot = cluster.getAssignmentById(topo.getId()).getExecutorToSlot();
-        Iterator<Map.Entry<ExecutorDetails, WorkerSlot>> it = execToSlot.entrySet().iterator();
-        for (int i = 0; i < execToSlot.size()/2; i++) {
-            ExecutorDetails exec = it.next().getKey();
-            WorkerSlot ws = it.next().getValue();
-            newExecToSlot.put(exec, ws);
+        SchedulerAssignment assignment = cluster.getAssignmentById(topo.getId());
+
+        Set<WorkerSlot> slotsToDelete = new HashSet<>();
+        Set<WorkerSlot> slots = assignment.getSlots();
+        int i = 0;
+        for (WorkerSlot slot: slots) {
+            if (i % 5 == 0) {
+                slotsToDelete.add(slot);
+            }
+            i++;
+        }
+
+        LOG.info("\n\n\t\tKILL WORKER(s) {}", slotsToDelete);
+        for (Map.Entry<ExecutorDetails, WorkerSlot> entry: assignment.getExecutorToSlot().entrySet()) {
+            if (!slotsToDelete.contains(entry.getValue())) {
+                newExecToSlot.put(entry.getKey(), entry.getValue());
+            }
         }
 
         Map<String, SchedulerAssignment> newAssignments = new HashMap<>();
@@ -115,37 +117,30 @@ public class TestRASConstraintSolver {
         cluster.setAssignments(newAssignments, false);
 
         cs = new ConstraintSolverStrategy();
-        cs.prepare(new SchedulingState(new HashMap<>(), cluster, topologies, config));
-        result = cs.schedule(topo);
+        cs.prepare(config);
+        LOG.info("\n\n\t\tScheduling again...");
+        result = cs.schedule(cluster, topo);
+        LOG.info("\n\n\t\tDone scheduling...");
 
         Assert.assertTrue("Assert scheduling topology success", result.isSuccess());
-
-        //realize assignments
-        for (Map.Entry<WorkerSlot, Collection<ExecutorDetails>> entry : result.getSchedulingResultMap().entrySet()) {
-            cluster.assign(entry.getKey(), topo.getId(), entry.getValue());
-        }
         Assert.assertEquals("topo all executors scheduled?", 0, cluster.getUnassignedExecutors(topo).size());
-        Assert.assertTrue("Valid Scheduling?", cs.validateSolution(TestUtilsForResourceAwareScheduler.getExecToWorkerResultMapping(result.getSchedulingResultMap())));
+        Assert.assertTrue("Valid Scheduling?", ConstraintSolverStrategy.validateSolution(cluster, topo));
     }
 
     @Test
     public void testIntegrationWithRAS() {
-        Map<String, Double> total_resources = new HashMap<String, Double>();
-        total_resources.put(Config.SUPERVISOR_CPU_CAPACITY, 400.0);
-        total_resources.put(Config.SUPERVISOR_MEMORY_CAPACITY_MB, 1024.0 * 4);
-        Map<String, SupervisorDetails> supMap = TestUtilsForResourceAwareScheduler.genSupervisors(30, 16, total_resources);
+        Map<String, SupervisorDetails> supMap = genSupervisors(30, 16, 400, 1024 * 4);
 
         List<List<String>> constraints = new LinkedList<>();
         addContraints("spout-0", "bolt-0", constraints);
         addContraints("bolt-1", "bolt-1", constraints);
         addContraints("bolt-1", "bolt-2", constraints);
-        List<String> spread = new LinkedList<String>();
+        List<String> spread = new LinkedList<>();
         spread.add("spout-0");
 
         Map<String, Object> config = Utils.readDefaultConfig();
-        config.put(Config.RESOURCE_AWARE_SCHEDULER_EVICTION_STRATEGY, backtype.storm.scheduler.resource.strategies.eviction.DefaultEvictionStrategy.class.getName());
-        config.put(Config.RESOURCE_AWARE_SCHEDULER_PRIORITY_STRATEGY, backtype.storm.scheduler.resource.strategies.priority.DefaultSchedulingPriorityStrategy.class.getName());
-        config.put(Config.TOPOLOGY_SCHEDULER_STRATEGY, backtype.storm.scheduler.resource.strategies.scheduling.ConstraintSolverStrategy.class.getName());
+        config.put(Config.RESOURCE_AWARE_SCHEDULER_PRIORITY_STRATEGY, DefaultSchedulingPriorityStrategy.class.getName());
+        config.put(Config.TOPOLOGY_SCHEDULER_STRATEGY, ConstraintSolverStrategy.class.getName());
         config.put(Config.TOPOLOGY_SPREAD_COMPONENTS, spread);
         config.put(Config.TOPOLOGY_CONSTRAINTS, constraints);
         config.put(Config.TOPOLOGY_CONSTRAINTS_MAX_DEPTH_TRAVERSAL, MAX_TRAVERSAL_DEPTH);
@@ -156,16 +151,16 @@ public class TestRASConstraintSolver {
         config.put(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB, 100);
         config.put(Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB, 0.0);
 
-        TopologyDetails topo = TestUtilsForResourceAwareScheduler.getTopology("testTopo", config, 2, 3, 30, 300, 0, 0, "user");
+        TopologyDetails topo = genTopology("testTopo", config, 2, 3, 30, 300, 0, 0, "user");
         Map<String, TopologyDetails> topoMap = new HashMap<String, TopologyDetails>();
         topoMap.put(topo.getId(), topo);
         Topologies topologies = new Topologies(topoMap);
-        Cluster cluster = new Cluster(new TestUtilsForResourceAwareScheduler.INimbusTest(), supMap, new HashMap<String, SchedulerAssignmentImpl>(), topologies, config);
+        Cluster cluster = new Cluster(new INimbusTest(), supMap, new HashMap<String, SchedulerAssignmentImpl>(), topologies, config);
         ResourceAwareScheduler rs = new ResourceAwareScheduler();
         rs.prepare(config);
         rs.schedule(topologies, cluster);
 
-        Assert.assertTrue("Assert scheduling topology success", TestUtilsForResourceAwareScheduler.assertStatusSuccess(cluster.getStatusMap().get(topo.getId())));
+        assertStatusSuccess(cluster, topo.getId());
         Assert.assertEquals("topo all executors scheduled?", 0, cluster.getUnassignedExecutors(topo).size());
 
         //simulate worker loss
@@ -184,7 +179,7 @@ public class TestRASConstraintSolver {
         rs.prepare(config);
         rs.schedule(topologies, cluster);
 
-        Assert.assertTrue("Assert scheduling topology success", TestUtilsForResourceAwareScheduler.assertStatusSuccess(cluster.getStatusMap().get(topo.getId())));
+        assertStatusSuccess(cluster, topo.getId());
         Assert.assertEquals("topo all executors scheduled?", 0, cluster.getUnassignedExecutors(topo).size());
     }
 

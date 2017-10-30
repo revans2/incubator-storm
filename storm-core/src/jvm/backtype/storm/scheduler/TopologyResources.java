@@ -97,7 +97,7 @@ public class TopologyResources {
     private static Map<String, Double> getSharedOffHeap(SchedulerAssignment assignment) {
         Map<String, Double> ret = null;
         if (assignment != null) {
-            ret = assignment.getTotalSharedOffHeapMemory();
+            ret = assignment.getNodeIdToTotalSharedOffHeapMemory();
         }
         return ret;
     }

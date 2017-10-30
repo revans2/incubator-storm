@@ -28,19 +28,20 @@ public interface SchedulerAssignment {
     /**
      * Does this slot occupied by this assignment?
      * @param slot
-     * @return true the slot is occupied else false
+     * @return true if the slot is occupied else false
      */
     public boolean isSlotOccupied(WorkerSlot slot);
 
     /**
-     * is the executor assigned?
+     * Is the executor assigned?
      * 
      * @param executor
-     * @return true it is assigned else false
+     * @return true if it is assigned else false
      */
     public boolean isExecutorAssigned(ExecutorDetails executor);
     
     /**
+     * Return the ID of the topology.
      * @return the topology-id this assignment is for.
      */
     public String getTopologyId();
@@ -67,5 +68,5 @@ public interface SchedulerAssignment {
     /**
      * @return host to total shared off heap memory mapping.
      */
-    public Map<String, Double> getTotalSharedOffHeapMemory();
+    public Map<String, Double> getNodeIdToTotalSharedOffHeapMemory();
 }

@@ -313,11 +313,6 @@ struct TopologyStats {
 5: optional map<string, i64> window_to_failed;
 }
 
-struct SupervisorPageInfo {
-  1: optional list<SupervisorSummary> supervisor_summaries;
-  2: optional list<WorkerSummary> worker_summaries;
-}
-
 struct WorkerSummary {
   1: optional string supervisor_id; 
   2: optional string host;
@@ -334,6 +329,11 @@ struct WorkerSummary {
 524: optional double assigned_memonheap;
 525: optional double assigned_memoffheap;
 526: optional double assigned_cpu;
+}
+
+struct SupervisorPageInfo {
+  1: optional list<SupervisorSummary> supervisor_summaries;
+  2: optional list<WorkerSummary> worker_summaries;
 }
 
 struct TopologyPageInfo {
@@ -412,7 +412,7 @@ struct RebalanceOptions {
   3: optional map<string, i32> num_executors;
   4: optional map<string, map<string, double>> topology_resources_overrides;
   5: optional string topology_conf_overrides;
-  //This value is not intended to be explicitly set by end users
+  //This value is not intended to be explicitly set by end users and will be ignored if they do
   6: optional string principal
 }
 

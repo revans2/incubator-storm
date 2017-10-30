@@ -18,6 +18,9 @@
 
 package org.apache.storm.utils;
 
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.stream.Collectors;
 import org.apache.commons.io.FileUtils;
 import backtype.storm.Config;
 import org.apache.storm.daemon.supervisor.AdvancedFSOps;
@@ -444,6 +447,33 @@ public class ConfigUtils {
 
     public static File getWorkerDirFromRoot(String logRoot, String id, Integer port) {
         return new File((logRoot + FILE_SEPARATOR + id + FILE_SEPARATOR + port));
+    }
+
+    /**
+     * Get the given config value as a List &lt;String&gt;, if possible.
+     * @param name - the config key
+     * @param conf - the config map
+     * @return - the config value converted to a List &lt;String&gt; if found, otherwise null.
+     * @throws IllegalArgumentException if conf is null
+     * @throws NullPointerException if name is null and the conf map doesn't support null keys
+     */
+    public static List<String> getValueAsList(String name, Map<String, Object> conf) {
+        if (null == conf) {
+            throw new IllegalArgumentException("Conf is required");
+        }
+        Object value = conf.get(name);
+        List<String> listValue;
+        if (value == null) {
+            listValue = null;
+        } else if (value instanceof Collection) {
+            listValue = ((Collection<?>) value)
+                .stream()
+                .map(Utils::getString)
+                .collect(Collectors.toList());
+        } else {
+            listValue = Arrays.asList(Utils.getString(value).split("\\s+"));
+        }
+        return listValue;
     }
 
     // we use this "weird" wrapper pattern temporarily for mocking in clojure test

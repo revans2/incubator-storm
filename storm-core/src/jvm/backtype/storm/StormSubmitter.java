@@ -473,7 +473,7 @@ public class StormSubmitter {
         Utils.validateTopologyBlobStoreMap(stormConf);
     }
 
-    private static double getMaxExecutorMemoryUsageForTopo(StormTopology topology, Map topologyConf) {
+    private static double getMaxExecutorMemoryUsageForTopo(StormTopology topology, Map<String, Object> topologyConf) {
         double largestMemoryOperator = 0.0;
         for (Map<String, Double> entry : ResourceUtils.getBoltsResources(topology, topologyConf).values()) {
             double memoryRequirement = entry.get(Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB)
