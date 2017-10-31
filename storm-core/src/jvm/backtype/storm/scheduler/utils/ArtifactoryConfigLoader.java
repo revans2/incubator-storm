@@ -339,7 +339,7 @@ import org.slf4j.LoggerFactory;
         // If urs has a file scheme, filePath will be non-null.  We should not
         // be in a state where filePath is non null, while host, port, and location
         // are also non-null
-        if (myScheme.equals("http")) {
+        if (myScheme.equals("http") || myScheme.equals("https")) {
 
             if (!_cacheInitialized) {
                 makeArtifactoryCache(location);
