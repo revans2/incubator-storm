@@ -46,7 +46,7 @@ import org.yaml.snakeyaml.constructor.SafeConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class ArtifactoryConfigLoader implements IConfigLoader {
+    public class ArtifactoryConfigLoader implements IConfigLoader {
     /**
      * Configuration items for this config loader are passed in via confg settings in 
      * each scheduler that has a configurable loader.
@@ -315,7 +315,7 @@ public class ArtifactoryConfigLoader implements IConfigLoader {
             try {
                 uri = new URI(uriString);
                 myScheme = uri.getScheme().toLowerCase();
-                if (myScheme.equals("http")) {
+                if (myScheme.equals("http") || myScheme.equals("https")) {
                     host = uri.getHost();
                     port = uri.getPort();
                     location = uri.getPath();
@@ -339,7 +339,7 @@ public class ArtifactoryConfigLoader implements IConfigLoader {
         // If urs has a file scheme, filePath will be non-null.  We should not
         // be in a state where filePath is non null, while host, port, and location
         // are also non-null
-        if (myScheme.equals("http")) {
+        if (myScheme.equals("http") || myScheme.equals("https")) {
 
             if (!_cacheInitialized) {
                 makeArtifactoryCache(location);
