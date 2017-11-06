@@ -1,5 +1,5 @@
 
-export GIT_REPO = git@git.corp.yahoo.com:storm/storm_tools.git
+export GIT_REPO = git@git.ouroath.com:storm/storm_tools.git
 export GIT_SCRIPTS_BRANCH = storm_tools
 export STORM_LATEST_RELEASE_TAG = ystorm_master_launcher_latest_sd
 export STORM_MASTER_PKGS = ystorm
