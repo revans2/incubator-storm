@@ -18,30 +18,30 @@
 
 package backtype.storm.scheduler.resource.strategies.scheduling;
 
+import backtype.storm.scheduler.Cluster;
 import backtype.storm.scheduler.TopologyDetails;
 import backtype.storm.scheduler.resource.SchedulingResult;
-import backtype.storm.scheduler.resource.SchedulingState;
+import java.util.Map;
 
 /**
- * An interface to for implementing different scheduling strategies for the resource aware scheduling
- * In the future stategies will be pluggable
+ * An interface to for implementing different scheduling strategies for the resource aware scheduling.
+ * In the future strategies will be pluggable
  */
 public interface IStrategy {
-
+    
     /**
-     * initialize prior to scheduling
+     * Prepare the Strategy for scheduling.
+     * @param config the cluster configuration
      */
-    void prepare(SchedulingState schedulingState);
-
+    void prepare(Map<String, Object> config);
+    
     /**
-     * This method is invoked to calcuate a scheduling for topology td
-     * @param td
-     * @return returns a SchedulingResult object containing SchedulingStatus object to indicate whether scheduling is successful
-     * The strategy must calculate a scheduling in the format of Map<WorkerSlot, Collection<ExecutorDetails>> where the key of
-     * this map is the worker slot that the value (collection of executors) should be assigned to.
-     * if a scheduling is calculated successfully, put the scheduling map in the SchedulingResult object.
-     * PLEASE NOTE: Any other operations done on the cluster from a scheduling strategy will NOT persist or be realized.
-     * The data structures passed in can be used in any way necessary to assist in calculating a scheduling, but will NOT actually change the state of the cluster.
+     * This method is invoked to calculate a scheduling for topology td.  Cluster will reject any changes that are
+     * not for the given topology.  Any changes made to the cluster will be committed if the scheduling is successful.
+     * @param schedulingState the current state of the cluster
+     * @param td the topology to schedule for
+     * @return returns a SchedulingResult object containing SchedulingStatus object to indicate whether scheduling is
+     *     successful.
      */
-    SchedulingResult schedule(TopologyDetails td);
+    SchedulingResult schedule(Cluster schedulingState, TopologyDetails td);
 }

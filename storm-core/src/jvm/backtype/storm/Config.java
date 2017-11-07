@@ -18,7 +18,6 @@
 package backtype.storm;
 
 import org.apache.storm.container.ResourceIsolationInterface;
-import backtype.storm.scheduler.resource.strategies.eviction.IEvictionStrategy;
 import backtype.storm.scheduler.resource.strategies.priority.ISchedulingPriorityStrategy;
 import backtype.storm.scheduler.resource.strategies.scheduling.IStrategy;
 import backtype.storm.serialization.IKryoDecorator;
@@ -2329,13 +2328,6 @@ public class Config extends HashMap<String, Object> {
      */
     @isMapEntryType(keyType = String.class, valueType = String.class)
     public static final String RESOURCE_AWARE_SCHEDULER_USER_POOLS_LOADER_PARAMS = "resource.aware.scheduler.user.pools.loader.params";
-
-    /**
-     * The class that specifies the eviction strategy to use in ResourceAwareScheduler
-     */
-    @NotNull
-    @isImplementationOfClass(implementsClass = IEvictionStrategy.class)
-    public static final String RESOURCE_AWARE_SCHEDULER_EVICTION_STRATEGY = "resource.aware.scheduler.eviction.strategy";
 
     /**
      * the class that specifies the scheduling priority strategy to use in ResourceAwareScheduler

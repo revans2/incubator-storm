@@ -18,22 +18,48 @@
 package backtype.storm.scheduler;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Map;
 
-import backtype.storm.scheduler.resource.Component;
-
-public class Topologies {
+public class Topologies implements Iterable<TopologyDetails> {
     Map<String, TopologyDetails> topologies;
     Map<String, String> nameToId;
-    Map<String, Map<String, Component>> _allComponents;
+    Map<String, Map<String, Component>> allComponents;
 
+    private static Map<String, TopologyDetails> mkMap(TopologyDetails[] details) {
+        Map<String, TopologyDetails> ret = new HashMap<>();
+        for (TopologyDetails td : details) {
+            if (ret.put(td.getId(), td) != null) {
+                throw new IllegalArgumentException(
+                    "Cannot have multiple topologies with the id " + td.getId());
+            }
+        }
+        return ret;
+    }
+
+    /**
+     * Create a new Topologies from a list of TopologyDetails.
+     * @param details the list of details to use.
+     * @throws IllegalArgumentException if duplicate topology ids are found.
+     */
+    public Topologies(TopologyDetails... details) {
+        this(mkMap(details));
+    }
+
+    /**
+     * Create a new Topologies from a map of id to topology
+     * @param topologies a map of topology id to topology details.
+     */
     public Topologies(Map<String, TopologyDetails> topologies) {
-        if(topologies==null) topologies = new HashMap<>();
-        this.topologies = new HashMap<>(topologies.size());
-        this.topologies.putAll(topologies);
+        if (topologies == null) {
+            topologies = Collections.emptyMap();
+        }
+        this.topologies = new HashMap<>(topologies);
         this.nameToId = new HashMap<>(topologies.size());
-        
+
         for (Map.Entry<String, TopologyDetails> entry : topologies.entrySet()) {
             TopologyDetails topology = entry.getValue();
             this.nameToId.put(topology.getName(), entry.getKey());
@@ -41,23 +67,34 @@ public class Topologies {
     }
 
     /**
-     * copy constructor
+     * Copy constructor.
      */
     public Topologies(Topologies src) {
         this(src.topologies);
     }
-    
+
     public Collection<String> getAllIds() {
         return topologies.keySet();
     }
-    
+
+    /**
+     * Get a topology given an ID
+     * @param topologyId the id of the topology to get
+     * @return the topology or null if it is not found.
+     */
     public TopologyDetails getById(String topologyId) {
-        return this.topologies.get(topologyId);
+        return topologies.get(topologyId);
     }
-    
+
+    /**
+     * Get a topology given a topology name. Nimbus prevents multiple topologies
+     * from having the same name, so this assumes it is true.
+     * @param topologyName the name of the topology to look for
+     * @return the a topology with the given name.
+     */
     public TopologyDetails getByName(String topologyName) {
         String topologyId = this.nameToId.get(topologyName);
-        
+
         if (topologyId == null) {
             return null;
         } else {
@@ -66,17 +103,22 @@ public class Topologies {
     }
 
     public Collection<TopologyDetails> getTopologies() {
-        return this.topologies.values();
+        return topologies.values();
     }
 
-    public Map<String, Map<String, Component>> getAllComponents() {
-        if (_allComponents == null) {
-            _allComponents = new HashMap<>();
-            for (Map.Entry<String, TopologyDetails> entry : this.topologies.entrySet()) {
-                _allComponents.put(entry.getKey(), entry.getValue().getComponents());
+    /**
+     * Get all topologies submitted/owned by a given user.
+     * @param user the name of the user
+     * @return all of the topologies submitted by this user.
+     */
+    public Collection<TopologyDetails> getTopologiesOwnedBy(String user) {
+        HashSet<TopologyDetails> ret = new HashSet<>();
+        for (TopologyDetails td : this) {
+            if (user.equals(td.getTopologySubmitter())) {
+                ret.add(td);
             }
         }
-        return _allComponents;
+        return ret;
     }
 
     @Override
@@ -87,5 +129,10 @@ public class Topologies {
             ret.append(td.toString()).append("\n");
         }
         return ret.toString();
+    }
+
+    @Override
+    public Iterator<TopologyDetails> iterator() {
+        return topologies.values().iterator();
     }
 }

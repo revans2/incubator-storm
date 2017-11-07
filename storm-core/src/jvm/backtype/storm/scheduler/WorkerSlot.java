@@ -18,12 +18,16 @@
 package backtype.storm.scheduler;
 
 public class WorkerSlot {
-    private String nodeId;
-    private int port;
+    private final String nodeId;
+    private final int port;
 
     public WorkerSlot(String nodeId, Number port) {
-        if (port == null) throw new NullPointerException("port cannot be null");
-        if (nodeId == null) throw new NullPointerException("node id cannot be null");
+        if (port == null) {
+            throw new NullPointerException("port cannot be null");
+        }
+        if (nodeId == null) {
+            throw new NullPointerException("node id cannot be null");
+        }
         this.nodeId = nodeId;
         this.port = port.intValue();
     }
@@ -47,13 +51,15 @@ public class WorkerSlot {
 
     @Override
     public boolean equals(Object o) {
-        if (!(o instanceof WorkerSlot)) return false;
+        if (!(o instanceof WorkerSlot)){
+            return false;
+        }
         WorkerSlot other = (WorkerSlot) o;
         return this.port == other.port && this.nodeId.equals(other.nodeId);
     }    
     
     @Override
     public String toString() {
-        return getId();
+    	return getId();
     }
 }

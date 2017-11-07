@@ -18,21 +18,18 @@
 
 package backtype.storm.scheduler.resource.strategies.priority;
 
+import backtype.storm.scheduler.ISchedulingState;
 import backtype.storm.scheduler.TopologyDetails;
-import backtype.storm.scheduler.resource.SchedulingState;
 
+import backtype.storm.scheduler.resource.User;
 import java.util.List;
+import java.util.Map;
 
 public interface ISchedulingPriorityStrategy {
 
     /**
-     * initializes
+     * Prioritize the list of all topologies in the cluster.
+     * @return ordered list of topologies to schedule.
      */
-    public void prepare(SchedulingState schedulingState);
-
-    /**
-     * Gets the next topology to schedule
-     * @return return ordered list of topologies to schedule.
-     */
-    public List<TopologyDetails> getOrderedTopologies();
+    List<TopologyDetails> getOrderedTopologies(ISchedulingState schedulingState, Map<String, User> userMap);
 }

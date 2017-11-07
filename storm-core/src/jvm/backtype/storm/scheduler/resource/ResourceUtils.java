@@ -37,40 +37,40 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.Map;
-import java.util.Set;
 
 public class ResourceUtils {
     private static final Logger LOG = LoggerFactory.getLogger(ResourceUtils.class);
 
-    public static Map<String, Map<String, Double>> getBoltsResources(StormTopology topology, Map topologyConf) {
-        Map<String, Map<String, Double>> boltResources = new HashMap<String, Map<String, Double>>();
+    public static Map<String, Map<String, Double>> getBoltsResources(StormTopology topology,
+                                                                     Map<String, Object> topologyConf) {
+        Map<String, Map<String, Double>> boltResources = new HashMap<>();
         if (topology.get_bolts() != null) {
             for (Map.Entry<String, Bolt> bolt : topology.get_bolts().entrySet()) {
-                Map<String, Double> topology_resources = parseResources(bolt.getValue().get_common().get_json_conf());
-                checkIntialization(topology_resources, bolt.getKey(), topologyConf);
-                boltResources.put(bolt.getKey(), topology_resources);
+                Map<String, Double> topologyResources = parseResources(bolt.getValue().get_common().get_json_conf());
+                checkInitialization(topologyResources, bolt.getKey(), topologyConf);
+                boltResources.put(bolt.getKey(), topologyResources);
             }
         }
         return boltResources;
     }
 
-    public static Map<String, Map<String, Double>> getSpoutsResources(StormTopology topology, Map topologyConf) {
-        Map<String, Map<String, Double>> spoutResources = new HashMap<String, Map<String, Double>>();
+    public static Map<String, Map<String, Double>> getSpoutsResources(StormTopology topology,
+                                                                      Map<String, Object> topologyConf) {
+        Map<String, Map<String, Double>> spoutResources = new HashMap<>();
         if (topology.get_spouts() != null) {
             for (Map.Entry<String, SpoutSpec> spout : topology.get_spouts().entrySet()) {
-                Map<String, Double> topology_resources = parseResources(spout.getValue().get_common().get_json_conf());
-                checkIntialization(topology_resources, spout.getKey(), topologyConf);
-                spoutResources.put(spout.getKey(), topology_resources);
+                Map<String, Double> topologyResources = parseResources(spout.getValue().get_common().get_json_conf());
+                checkInitialization(topologyResources, spout.getKey(), topologyConf);
+                spoutResources.put(spout.getKey(), topologyResources);
             }
         }
         return spoutResources;
     }
 
     public static void updateStormTopologyResources(StormTopology topology, Map<String, Map<String, Double>> resourceUpdatesMap) {
-        Map<String, Map<String, Double>> componentsUpdated = new HashMap<String, Map<String, Double>>();
+        Map<String, Map<String, Double>> componentsUpdated = new HashMap<>();
         if (topology.get_spouts() != null) {
             for (Map.Entry<String, SpoutSpec> spout : topology.get_spouts().entrySet()) {
                 SpoutSpec spoutSpec = spout.getValue();
@@ -134,134 +134,86 @@ public class ResourceUtils {
         }
     }
 
-    public static void checkIntialization(Map<String, Double> topology_resources, String componentId, Map topologyConf) {
-        StringBuilder msgBuilder = new StringBuilder();
-        msgBuilder.append(checkInitMem(topology_resources, topologyConf));
-        msgBuilder.append(checkInitCPU(topology_resources, topologyConf));
-        if (msgBuilder.length() > 0) {
-            String resourceDefaults = msgBuilder.toString();
-            LOG.debug(
-                    "Unable to extract resource requirement for Component {} \n Resources : {}",
-                    componentId, resourceDefaults);
+    public static void checkInitialization(Map<String, Double> topologyResources, String com,
+                                           Map<String, Object> topologyConf) {
+        checkInitMem(topologyResources, com, topologyConf);
+        checkInitCpu(topologyResources, com, topologyConf);
+    }
+
+    private static void checkInitMem(Map<String, Double> topologyResources, String com,
+                                     Map<String, Object> topologyConf) {
+        if (!topologyResources.containsKey(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB)) {
+            Double onHeap = Utils.getDouble(
+                topologyConf.get(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB), null);
+            if (onHeap != null) {
+                topologyResources.put(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB, onHeap);
+                LOG.debug(
+                    "Unable to extract resource requirement for Component {}\n"
+                        + " Resource : Memory Type : On Heap set to default {}",
+                    com, onHeap);
+            }
+        }
+        if (!topologyResources.containsKey(Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB)) {
+            Double offHeap = Utils.getDouble(
+                topologyConf.get(Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB), null);
+            if (offHeap != null) {
+                topologyResources.put(Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB, offHeap);
+                LOG.debug(
+                    "Unable to extract resource requirement for Component {}\n"
+                        + " Resource : Memory Type : Off Heap set to default {}",
+                    com, offHeap);
+            }
         }
     }
 
-    private static String checkInitMem(Map<String, Double> topology_resources, Map topologyConf) {
-        StringBuilder msgBuilder = new StringBuilder();
-        if (!topology_resources.containsKey(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB)) {
-            Double topoMemOnHeap = Utils.getDouble(
-                    topologyConf.get(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB), null);
-            topology_resources.put(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB, topoMemOnHeap);
-            msgBuilder.append(debugMessage("ONHEAP", topoMemOnHeap));
+    private static void checkInitCpu(Map<String, Double> topologyResources, String com,
+                                     Map<String, Object> topologyConf) {
+        if (!topologyResources.containsKey(Config.TOPOLOGY_COMPONENT_CPU_PCORE_PERCENT)) {
+            Double cpu = Utils.getDouble(topologyConf.get(Config.TOPOLOGY_COMPONENT_CPU_PCORE_PERCENT), null);
+            if (cpu != null) {
+                topologyResources.put(Config.TOPOLOGY_COMPONENT_CPU_PCORE_PERCENT, cpu);
+                LOG.debug(
+                    "Unable to extract resource requirement for Component {}\n"
+                        + " Resource : CPU Pcore Percent set to default {}",
+                    com, cpu);
+            }
         }
-        if (!topology_resources.containsKey(Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB)) {
-            Double topoMemOffHeap = Utils.getDouble(
-                    topologyConf.get(Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB), null);
-            topology_resources.put(Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB, topoMemOffHeap);
-            msgBuilder.append(debugMessage("OFFHEAP", topoMemOffHeap));
-        }
-        return msgBuilder.toString();
-    }
-
-    private static String checkInitCPU(Map<String, Double> topology_resources, Map topologyConf) {
-        StringBuilder msgBuilder = new StringBuilder();
-        if (!topology_resources.containsKey(Config.TOPOLOGY_COMPONENT_CPU_PCORE_PERCENT)) {
-            Double topoCPU = Utils.getDouble(
-                    topologyConf.get(Config.TOPOLOGY_COMPONENT_CPU_PCORE_PERCENT), null);
-            topology_resources.put(Config.TOPOLOGY_COMPONENT_CPU_PCORE_PERCENT, topoCPU);
-            msgBuilder.append(debugMessage("CPU", topoCPU));
-        }
-        return msgBuilder.toString();
     }
 
     public static Map<String, Double> parseResources(String input) {
-        Map<String, Double> topology_resources = new HashMap<String, Double>();
+        Map<String, Double> topologyResources = new HashMap<>();
         JSONParser parser = new JSONParser();
+        LOG.debug("Input to parseResources {}", input);
         try {
             if (input != null) {
                 Object obj = parser.parse(input);
                 JSONObject jsonObject = (JSONObject) obj;
                 if (jsonObject.containsKey(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB)) {
-                    Double topoMemOnHeap = Utils.getDouble(
-                            jsonObject.get(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB), null);
-                    topology_resources.put(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB, topoMemOnHeap);
+                    Double topoMemOnHeap = Utils
+                            .getDouble(jsonObject.get(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB), null);
+                    topologyResources.put(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB, topoMemOnHeap);
                 }
                 if (jsonObject.containsKey(Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB)) {
-                    Double topoMemOffHeap = Utils.getDouble(
-                            jsonObject.get(Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB), null);
-                    topology_resources.put(Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB, topoMemOffHeap);
+                    Double topoMemOffHeap = Utils
+                            .getDouble(jsonObject.get(Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB), null);
+                    topologyResources.put(Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB, topoMemOffHeap);
                 }
                 if (jsonObject.containsKey(Config.TOPOLOGY_COMPONENT_CPU_PCORE_PERCENT)) {
-                    Double topoCPU = Utils.getDouble(jsonObject.get(Config.TOPOLOGY_COMPONENT_CPU_PCORE_PERCENT), null);
-                    topology_resources.put(Config.TOPOLOGY_COMPONENT_CPU_PCORE_PERCENT, topoCPU);
+                    Double topoCpu = Utils.getDouble(jsonObject.get(Config.TOPOLOGY_COMPONENT_CPU_PCORE_PERCENT),
+                        null);
+                    topologyResources.put(Config.TOPOLOGY_COMPONENT_CPU_PCORE_PERCENT, topoCpu);
                 }
+                LOG.debug("Topology Resources {}", topologyResources);
             }
         } catch (ParseException e) {
             LOG.error("Failed to parse component resources is:" + e.toString(), e);
             return null;
         }
-        return topology_resources;
-    }
-
-    private static String debugMessage(String memoryType, Double defaultValue) {
-        if (memoryType.equals("ONHEAP")) {
-            return String.format(
-                    "[Memory Type : On Heap set to default %.1f] ", defaultValue);
-        } else if (memoryType.equals("OFFHEAP")) {
-            return String.format(
-                    "[Memory Type : Off Heap set to default %.1f] ", defaultValue);
-        } else {
-            return String.format(
-                    "[CPU Pcore Percent set to default %.1f] ", defaultValue);
-        }
+        return topologyResources;
     }
 
     /**
-     * print scheduling for debug purposes
-     * @param cluster
-     * @param topologies
-     */
-    public static String printScheduling(Cluster cluster, Topologies topologies) {
-        StringBuilder str = new StringBuilder();
-        Map<String, Map<String, Map<WorkerSlot, Collection<ExecutorDetails>>>> schedulingMap = new HashMap<String, Map<String, Map<WorkerSlot, Collection<ExecutorDetails>>>>();
-        for (TopologyDetails topo : topologies.getTopologies()) {
-            if (cluster.getAssignmentById(topo.getId()) != null) {
-                for (Map.Entry<ExecutorDetails, WorkerSlot> entry : cluster.getAssignmentById(topo.getId()).getExecutorToSlot().entrySet()) {
-                    WorkerSlot slot = entry.getValue();
-                    String nodeId = slot.getNodeId();
-                    ExecutorDetails exec = entry.getKey();
-                    if (!schedulingMap.containsKey(nodeId)) {
-                        schedulingMap.put(nodeId, new HashMap<String, Map<WorkerSlot, Collection<ExecutorDetails>>>());
-                    }
-                    if (schedulingMap.get(nodeId).containsKey(topo.getId()) == false) {
-                        schedulingMap.get(nodeId).put(topo.getId(), new HashMap<WorkerSlot, Collection<ExecutorDetails>>());
-                    }
-                    if (schedulingMap.get(nodeId).get(topo.getId()).containsKey(slot) == false) {
-                        schedulingMap.get(nodeId).get(topo.getId()).put(slot, new LinkedList<ExecutorDetails>());
-                    }
-                    schedulingMap.get(nodeId).get(topo.getId()).get(slot).add(exec);
-                }
-            }
-        }
-
-        for (Map.Entry<String, Map<String, Map<WorkerSlot, Collection<ExecutorDetails>>>> entry : schedulingMap.entrySet()) {
-            if (cluster.getSupervisorById(entry.getKey()) != null) {
-                str.append("/** Node: " + cluster.getSupervisorById(entry.getKey()).getHost() + "-" + entry.getKey() + " **/\n");
-            } else {
-                str.append("/** Node: Unknown may be dead -" + entry.getKey() + " **/\n");
-            }
-            for (Map.Entry<String, Map<WorkerSlot, Collection<ExecutorDetails>>> topo_sched : schedulingMap.get(entry.getKey()).entrySet()) {
-                str.append("\t-->Topology: " + topo_sched.getKey() + "\n");
-                for (Map.Entry<WorkerSlot, Collection<ExecutorDetails>> ws : topo_sched.getValue().entrySet()) {
-                    str.append("\t\t->Slot [" + ws.getKey().getPort() + "] -> " + ws.getValue() + "\n");
-                }
-            }
-        }
-        return str.toString();
-    }
-
-    /**
-     * Calculate the sum of a collection of doubles
+     * Calculate the sum of a collection of doubles.
      * @param list collection of doubles
      * @return the sum of of collection of doubles
      */
@@ -274,7 +226,7 @@ public class ResourceUtils {
     }
 
     /**
-     * Caculate the average of a collection of doubles
+     * Calculate the average of a collection of doubles.
      * @param list a collection of doubles
      * @return the average of collection of doubles
      */

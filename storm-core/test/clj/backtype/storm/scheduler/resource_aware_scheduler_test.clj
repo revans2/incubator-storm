@@ -50,7 +50,6 @@
         (for [at (range start end)]
           {(ed at) name})))))
 (def DEFAULT_PRIORITY_STRATEGY "backtype.storm.scheduler.resource.strategies.priority.DefaultSchedulingPriorityStrategy")
-(def DEFAULT_EVICTION_STRATEGY "backtype.storm.scheduler.resource.strategies.eviction.DefaultEvictionStrategy")
 (def DEFAULT_SCHEDULING_STRATEGY "backtype.storm.scheduler.resource.strategies.scheduling.DefaultResourceAwareStrategy")
 
 ;; get the super->mem HashMap by counting the eds' mem usage of all topos on each super
@@ -114,7 +113,7 @@
         } nil 0 "user")
         topologies (Topologies. (to-top-map [topology1 topology2]))
         cluster (Cluster. (nimbus/standalone-nimbus) supers {} topologies {})
-        node-map (RAS_Nodes/getAllNodesFrom cluster topologies)] 
+        node-map (RAS_Nodes/getAllNodesFrom cluster)] 
     (is (= 5 (.size node-map)))
     (let [node (.get node-map "id0")]
       (is (= "id0" (.getId node)))
@@ -178,10 +177,9 @@
         cluster (Cluster. (nimbus/standalone-nimbus) supers {} topologies
                   {STORM-NETWORK-TOPOGRAPHY-PLUGIN
                    "backtype.storm.networktopography.DefaultRackDNSToSwitchMapping"})
-        node-map (RAS_Nodes/getAllNodesFrom cluster topologies)
+        node-map (RAS_Nodes/getAllNodesFrom cluster)
         scheduler (ResourceAwareScheduler.)]
-    (.prepare scheduler {RESOURCE-AWARE-SCHEDULER-EVICTION-STRATEGY DEFAULT_EVICTION_STRATEGY
-                         RESOURCE-AWARE-SCHEDULER-PRIORITY-STRATEGY DEFAULT_PRIORITY_STRATEGY})
+    (.prepare scheduler {RESOURCE-AWARE-SCHEDULER-PRIORITY-STRATEGY DEFAULT_PRIORITY_STRATEGY})
     (.schedule scheduler topologies cluster)
     (let [assignment (.getAssignmentById cluster "topology1")
           assigned-slots (.getSlots assignment)
@@ -243,8 +241,7 @@
                   {STORM-NETWORK-TOPOGRAPHY-PLUGIN
                    "backtype.storm.networktopography.DefaultRackDNSToSwitchMapping"})
         scheduler (ResourceAwareScheduler.)]
-    (.prepare scheduler {RESOURCE-AWARE-SCHEDULER-EVICTION-STRATEGY DEFAULT_EVICTION_STRATEGY
-                         RESOURCE-AWARE-SCHEDULER-PRIORITY-STRATEGY DEFAULT_PRIORITY_STRATEGY})
+    (.prepare scheduler {RESOURCE-AWARE-SCHEDULER-PRIORITY-STRATEGY DEFAULT_PRIORITY_STRATEGY})
     (.schedule scheduler topologies cluster)
     (let [assignment (.getAssignmentById cluster "topology1")
           assigned-slots (.getSlots assignment)
@@ -288,8 +285,7 @@
                   {STORM-NETWORK-TOPOGRAPHY-PLUGIN
                    "backtype.storm.testing.AlternateRackDNSToSwitchMapping"})
         scheduler (ResourceAwareScheduler.)]
-    (.prepare scheduler {RESOURCE-AWARE-SCHEDULER-EVICTION-STRATEGY DEFAULT_EVICTION_STRATEGY
-                         RESOURCE-AWARE-SCHEDULER-PRIORITY-STRATEGY DEFAULT_PRIORITY_STRATEGY})
+    (.prepare scheduler {RESOURCE-AWARE-SCHEDULER-PRIORITY-STRATEGY DEFAULT_PRIORITY_STRATEGY})
     (.schedule scheduler topologies cluster)
     (let [assignment (.getAssignmentById cluster "topology2")
           assigned-slots (.getSlots assignment)
@@ -328,8 +324,7 @@
                   {STORM-NETWORK-TOPOGRAPHY-PLUGIN
                    "backtype.storm.networktopography.DefaultRackDNSToSwitchMapping"})
         scheduler (ResourceAwareScheduler.)]
-    (.prepare scheduler {RESOURCE-AWARE-SCHEDULER-EVICTION-STRATEGY DEFAULT_EVICTION_STRATEGY
-                         RESOURCE-AWARE-SCHEDULER-PRIORITY-STRATEGY DEFAULT_PRIORITY_STRATEGY})
+    (.prepare scheduler {RESOURCE-AWARE-SCHEDULER-PRIORITY-STRATEGY DEFAULT_PRIORITY_STRATEGY})
     (.schedule scheduler topologies cluster)
     (let [assignment (.getAssignmentById cluster "topology1")
           assigned-slots (.getSlots assignment)
@@ -403,8 +398,7 @@
                               {STORM-NETWORK-TOPOGRAPHY-PLUGIN
                                "backtype.storm.networktopography.DefaultRackDNSToSwitchMapping"})
 
-            _ (.prepare scheduler {RESOURCE-AWARE-SCHEDULER-EVICTION-STRATEGY DEFAULT_EVICTION_STRATEGY
-                                   RESOURCE-AWARE-SCHEDULER-PRIORITY-STRATEGY DEFAULT_PRIORITY_STRATEGY})
+            _ (.prepare scheduler {RESOURCE-AWARE-SCHEDULER-PRIORITY-STRATEGY DEFAULT_PRIORITY_STRATEGY})
             _ (.schedule scheduler topologies cluster)
             assignment (.getAssignmentById cluster "topology2")
             failed-worker (first (vec (.getSlots assignment)))  ;; choose a worker to mock as failed
@@ -413,8 +407,7 @@
             _ (doseq [ed failed-eds] (.remove ed->slot ed))  ;; remove executor details assigned to the worker
             copy-old-mapping (HashMap. ed->slot)
             healthy-eds (.keySet copy-old-mapping)
-            _ (.prepare scheduler {RESOURCE-AWARE-SCHEDULER-EVICTION-STRATEGY DEFAULT_EVICTION_STRATEGY
-                                   RESOURCE-AWARE-SCHEDULER-PRIORITY-STRATEGY DEFAULT_PRIORITY_STRATEGY})
+            _ (.prepare scheduler {RESOURCE-AWARE-SCHEDULER-PRIORITY-STRATEGY DEFAULT_PRIORITY_STRATEGY})
             _ (.schedule scheduler topologies cluster)
             new-assignment (.getAssignmentById cluster "topology2")
             new-ed->slot (.getExecutorToSlot new-assignment)]
@@ -442,8 +435,7 @@
                                   topologies
                                   {STORM-NETWORK-TOPOGRAPHY-PLUGIN
                                    "backtype.storm.networktopography.DefaultRackDNSToSwitchMapping"})
-            _ (.prepare scheduler {RESOURCE-AWARE-SCHEDULER-EVICTION-STRATEGY DEFAULT_EVICTION_STRATEGY
-                                   RESOURCE-AWARE-SCHEDULER-PRIORITY-STRATEGY DEFAULT_PRIORITY_STRATEGY})
+            _ (.prepare scheduler {RESOURCE-AWARE-SCHEDULER-PRIORITY-STRATEGY DEFAULT_PRIORITY_STRATEGY})
             _ (.schedule scheduler topologies new-cluster) ;; the actual schedule for this topo will not run since it is fully assigned
             new-assignment (.getAssignmentById new-cluster "topology1")
             new-ed->slot (.getExecutorToSlot new-assignment)]
@@ -471,8 +463,7 @@
                                   topologies
                                   {STORM-NETWORK-TOPOGRAPHY-PLUGIN
                                    "backtype.storm.networktopography.DefaultRackDNSToSwitchMapping"})
-            _ (.prepare scheduler {RESOURCE-AWARE-SCHEDULER-EVICTION-STRATEGY DEFAULT_EVICTION_STRATEGY
-                                   RESOURCE-AWARE-SCHEDULER-PRIORITY-STRATEGY DEFAULT_PRIORITY_STRATEGY})
+            _ (.prepare scheduler {RESOURCE-AWARE-SCHEDULER-PRIORITY-STRATEGY DEFAULT_PRIORITY_STRATEGY})
             _ (.schedule scheduler topologies new-cluster)
             new-assignment (.getAssignmentById new-cluster "topology1")
             new-ed->slot (.getExecutorToSlot new-assignment)]
@@ -486,8 +477,7 @@
                               {STORM-NETWORK-TOPOGRAPHY-PLUGIN
                                "backtype.storm.networktopography.DefaultRackDNSToSwitchMapping"})
 
-            _ (.prepare scheduler {RESOURCE-AWARE-SCHEDULER-EVICTION-STRATEGY DEFAULT_EVICTION_STRATEGY
-                                   RESOURCE-AWARE-SCHEDULER-PRIORITY-STRATEGY DEFAULT_PRIORITY_STRATEGY})
+            _ (.prepare scheduler {RESOURCE-AWARE-SCHEDULER-PRIORITY-STRATEGY DEFAULT_PRIORITY_STRATEGY})
             _ (.schedule scheduler topologies cluster)
             assignment (.getAssignmentById cluster "topology1")
             ed->slot (.getExecutorToSlot assignment)
@@ -496,8 +486,7 @@
             cluster (Cluster. (nimbus/standalone-nimbus) supers {} new-topologies
                               {STORM-NETWORK-TOPOGRAPHY-PLUGIN
                                "backtype.storm.networktopography.DefaultRackDNSToSwitchMapping"})
-            _ (.prepare scheduler {RESOURCE-AWARE-SCHEDULER-EVICTION-STRATEGY DEFAULT_EVICTION_STRATEGY
-                                   RESOURCE-AWARE-SCHEDULER-PRIORITY-STRATEGY DEFAULT_PRIORITY_STRATEGY})
+            _ (.prepare scheduler {RESOURCE-AWARE-SCHEDULER-PRIORITY-STRATEGY DEFAULT_PRIORITY_STRATEGY})
             _ (.schedule scheduler new-topologies cluster)
             new-assignment (.getAssignmentById cluster "topology1")
             new-ed->slot (.getExecutorToSlot new-assignment)]
@@ -607,8 +596,7 @@
                                "backtype.storm.networktopography.DefaultRackDNSToSwitchMapping"})
 
             scheduler (ResourceAwareScheduler.)
-            _ (.prepare scheduler {RESOURCE-AWARE-SCHEDULER-EVICTION-STRATEGY DEFAULT_EVICTION_STRATEGY
-                                   RESOURCE-AWARE-SCHEDULER-PRIORITY-STRATEGY DEFAULT_PRIORITY_STRATEGY})
+            _ (.prepare scheduler {RESOURCE-AWARE-SCHEDULER-PRIORITY-STRATEGY DEFAULT_PRIORITY_STRATEGY})
             _ (.schedule scheduler topologies cluster)
             super->mem-usage (get-super->mem-usage cluster topologies)
             super->cpu-usage (get-super->cpu-usage cluster topologies)]
@@ -630,8 +618,7 @@
                                "backtype.storm.networktopography.DefaultRackDNSToSwitchMapping"})
 
             scheduler (ResourceAwareScheduler.)
-            _ (.prepare scheduler {RESOURCE-AWARE-SCHEDULER-EVICTION-STRATEGY DEFAULT_EVICTION_STRATEGY
-                                   RESOURCE-AWARE-SCHEDULER-PRIORITY-STRATEGY DEFAULT_PRIORITY_STRATEGY})
+            _ (.prepare scheduler {RESOURCE-AWARE-SCHEDULER-PRIORITY-STRATEGY DEFAULT_PRIORITY_STRATEGY})
             _ (.schedule scheduler topologies cluster)
                 scheduled-topos (if (= "Running - Fully Scheduled by DefaultResourceAwareStrategy" (.get (.getStatusMap cluster) "topology1")) 1 0)
                 scheduled-topos (+ scheduled-topos (if (= "Running - Fully Scheduled by DefaultResourceAwareStrategy" (.get (.getStatusMap cluster) "topology2")) 1 0))
@@ -645,8 +632,7 @@
                                "backtype.storm.networktopography.DefaultRackDNSToSwitchMapping"})
 
             scheduler (ResourceAwareScheduler.)
-            _ (.prepare scheduler {RESOURCE-AWARE-SCHEDULER-EVICTION-STRATEGY DEFAULT_EVICTION_STRATEGY
-                                   RESOURCE-AWARE-SCHEDULER-PRIORITY-STRATEGY DEFAULT_PRIORITY_STRATEGY})
+            _ (.prepare scheduler {RESOURCE-AWARE-SCHEDULER-PRIORITY-STRATEGY DEFAULT_PRIORITY_STRATEGY})
             _ (.schedule scheduler topologies cluster)
             super->mem-usage (get-super->mem-usage cluster topologies)
             super->cpu-usage (get-super->cpu-usage cluster topologies)]
@@ -659,80 +645,4 @@
             (is (and (<= (Math/abs (- mem-avail mem-used)) epsilon)
                     (<= (Math/abs (- cpu-avail cpu-used)) epsilon)))))))))
 
-(deftest test-topology-worker-max-heap-size
-  (let [supers (gen-supervisors 2 2)]
-    (testing "test if RAS will spread executors across mulitple workers based on the set limit for a worker used by the topology")
-    (let [scheduler (ResourceAwareScheduler.)
-          builder1 (TopologyBuilder.)
-          _ (.setSpout builder1 "spout1" (TestWordSpout.) 2)
-          storm-topology1 (.createTopology builder1)
-          topology1 (TopologyDetails. "topology1"
-                      {TOPOLOGY-NAME "topology-name-1"
-                       TOPOLOGY-COMPONENT-RESOURCES-ONHEAP-MEMORY-MB 128.0
-                       TOPOLOGY-COMPONENT-RESOURCES-OFFHEAP-MEMORY-MB 0.0
-                       TOPOLOGY-COMPONENT-CPU-PCORE-PERCENT 10.0
-                       TOPOLOGY-WORKER-MAX-HEAP-SIZE-MB 128.0
-                       TOPOLOGY-PRIORITY 0
-                       TOPOLOGY-SCHEDULER-STRATEGY DEFAULT_SCHEDULING_STRATEGY}
-                      storm-topology1
-                      1
-                      (mk-ed-map [["spout1" 0 4]]) "userA")
-          topologies (Topologies. (to-top-map [topology1]))
-          cluster (Cluster. (nimbus/standalone-nimbus) supers {} topologies
-                              {STORM-NETWORK-TOPOGRAPHY-PLUGIN
-                               "backtype.storm.networktopography.DefaultRackDNSToSwitchMapping"})]
-      (.prepare scheduler {RESOURCE-AWARE-SCHEDULER-EVICTION-STRATEGY DEFAULT_EVICTION_STRATEGY
-                           RESOURCE-AWARE-SCHEDULER-PRIORITY-STRATEGY DEFAULT_PRIORITY_STRATEGY})
-      (.schedule scheduler topologies cluster)
-      (is (= (.get (.getStatusMap cluster) "topology1") "Running - Fully Scheduled by DefaultResourceAwareStrategy"))
-      (is (= (.getAssignedNumWorkers cluster topology1) 4)))
-    (testing "test when no more workers are available due to topology worker max heap size limit but there is memory is still available")
-    (let [scheduler (ResourceAwareScheduler.)
-          builder1 (TopologyBuilder.)
-          _ (.setSpout builder1 "spout1" (TestWordSpout.) 2)
-          storm-topology1 (.createTopology builder1)
-          topology1 (TopologyDetails. "topology1"
-                      {TOPOLOGY-NAME "topology-name-1"
-                       TOPOLOGY-COMPONENT-RESOURCES-ONHEAP-MEMORY-MB 128.0
-                       TOPOLOGY-COMPONENT-RESOURCES-OFFHEAP-MEMORY-MB 0.0
-                       TOPOLOGY-COMPONENT-CPU-PCORE-PERCENT 10.0
-                       TOPOLOGY-WORKER-MAX-HEAP-SIZE-MB 128.0
-                       TOPOLOGY-PRIORITY 0
-                       TOPOLOGY-SCHEDULER-STRATEGY DEFAULT_SCHEDULING_STRATEGY}
-                      storm-topology1
-                      1
-                      (mk-ed-map [["spout1" 0 5]]) "userC")
-          topologies (Topologies. (to-top-map [topology1]))
-          cluster (Cluster. (nimbus/standalone-nimbus) supers {} topologies
-                              {STORM-NETWORK-TOPOGRAPHY-PLUGIN
-                               "backtype.storm.networktopography.DefaultRackDNSToSwitchMapping"})]
-      (.prepare scheduler {RESOURCE-AWARE-SCHEDULER-EVICTION-STRATEGY DEFAULT_EVICTION_STRATEGY
-                           RESOURCE-AWARE-SCHEDULER-PRIORITY-STRATEGY DEFAULT_PRIORITY_STRATEGY})
-      (.schedule scheduler topologies cluster)
-      ;;spout1 is going to contain 5 executors that needs scheduling. Each of those executors has a memory requirement of 128.0 MB
-      ;;The cluster contains 4 free WorkerSlots. For this topolology each worker is limited to a max heap size of 128.0
-      ;;Thus, one executor not going to be able to get scheduled thus failing the scheduling of this topology and no executors of this topology will be scheduleded
-      (is (= (.size (.getUnassignedExecutors cluster topology1)) 5))
-      (is (= (.get (.getStatusMap cluster) "topology1")  "Not enough resources to schedule - 0/5 executors scheduled")))
 
-    (let [cluster (LocalCluster.)
-          builder1 (TopologyBuilder.)
-          _ (.setSpout builder1 "spout1" (TestWordSpout.) 2)
-          storm-topology1 (.createTopology builder1)
-          conf  {TOPOLOGY-NAME "topology-name-1"
-                 TOPOLOGY-COMPONENT-RESOURCES-ONHEAP-MEMORY-MB 129.0
-                 TOPOLOGY-COMPONENT-RESOURCES-OFFHEAP-MEMORY-MB 0.0
-                 TOPOLOGY-COMPONENT-CPU-PCORE-PERCENT 10.0
-                 TOPOLOGY-WORKER-MAX-HEAP-SIZE-MB 128.0
-                 TOPOLOGY-PRIORITY 0
-                 TOPOLOGY-SCHEDULER-STRATEGY DEFAULT_SCHEDULING_STRATEGY}
-          topology1 (TopologyDetails. "topology1"
-                      conf
-                      storm-topology1
-                      1
-                      (mk-ed-map [["spout1" 0 5]]) "userC")
-          topologies (Topologies. (to-top-map [topology1]))]
-      (is (thrown? IllegalArgumentException
-            (StormSubmitter/submitTopologyWithProgressBar "test" conf storm-topology1)))
-
-  )))

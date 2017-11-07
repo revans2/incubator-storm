@@ -27,7 +27,8 @@ public enum SchedulingStatus {
     FAIL_OTHER;
 
     public static EnumSet<SchedulingStatus> success = EnumSet.of(SUCCESS);
-    public static EnumSet<SchedulingStatus> failure = EnumSet.of(FAIL_INVALID_TOPOLOGY, FAIL_NOT_ENOUGH_RESOURCES, FAIL_OTHER);
+    public static EnumSet<SchedulingStatus> failure = EnumSet.of(FAIL_INVALID_TOPOLOGY, FAIL_NOT_ENOUGH_RESOURCES,
+        FAIL_OTHER);
 
     public static boolean isStatusSuccess(SchedulingStatus status) {
         return success.contains(status);

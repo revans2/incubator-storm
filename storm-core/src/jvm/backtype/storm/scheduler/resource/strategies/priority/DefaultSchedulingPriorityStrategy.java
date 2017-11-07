@@ -18,121 +18,127 @@
 
 package backtype.storm.scheduler.resource.strategies.priority;
 
-import backtype.storm.scheduler.Cluster;
+import backtype.storm.scheduler.ISchedulingState;
 import backtype.storm.scheduler.TopologyDetails;
-import backtype.storm.scheduler.resource.SchedulingState;
 import backtype.storm.scheduler.resource.User;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class DefaultSchedulingPriorityStrategy implements ISchedulingPriorityStrategy {
-    private static final Logger LOG = LoggerFactory
-            .getLogger(DefaultSchedulingPriorityStrategy.class);
+    private static final Logger LOG = LoggerFactory.getLogger(DefaultSchedulingPriorityStrategy.class);
 
-    private Cluster cluster;
-    private Map<String, User> userMap;
+    protected static class SimulatedUser {
+        protected final LinkedList<TopologyDetails> tds = new LinkedList<>();
+        private double assignedCpu = 0.0;
+        private double assignedMemory = 0.0;
+        public final double guaranteedCpu;
+        public final double guaranteedMemory;
 
-    @Override
-    public void prepare(SchedulingState schedulingState) {
-        this.cluster = schedulingState.cluster;
-        this.userMap = schedulingState.userMap;
+        public SimulatedUser(User other, ISchedulingState cluster) {
+            tds.addAll(cluster.getTopologies().getTopologiesOwnedBy(other.getId()));
+            Collections.sort(tds, new TopologyByPriorityAndSubmissionTimeComparator());
+            Double guaranteedCpu = other.getCpuResourceGuaranteed();
+            if (guaranteedCpu == null) {
+                guaranteedCpu = 0.0;
+            }
+            this.guaranteedCpu = guaranteedCpu;
+            Double guaranteedMemory = other.getMemoryResourceGuaranteed();
+            if (guaranteedMemory == null) {
+                guaranteedMemory = 0.0;
+            }
+            this.guaranteedMemory = guaranteedMemory;
+        }
+
+        public TopologyDetails getNextHighest() {
+            return tds.peekFirst();
+        }
+
+        public TopologyDetails simScheduleNextHighest() {
+            TopologyDetails td = tds.pop();
+            assignedCpu += td.getTotalRequestedCpu();
+            assignedMemory += td.getTotalRequestedMemOffHeap() + td.getTotalRequestedMemOnHeap();
+            return td;
+        }
+
+        /**
+         * Get a score for the simulated user.  This is used to sort the users, by their highest priority topology.
+         * The only requirement is that if the user is over their guarantees, or there are no available resources the
+         * returned score will be > 0.  If they are under their guarantee it must be negative.
+         * @param availableCpu available CPU on the cluster.
+         * @param availableMemory available memory on the cluster.
+         * @param td the topology we are looking at.
+         * @return the score.
+         */
+        protected double getScore(double availableCpu, double availableMemory, TopologyDetails td) {
+            //(Requested + Assigned - Guaranteed)/Available
+            if (td == null || availableCpu <= 0 || availableMemory <= 0) {
+                return Double.MAX_VALUE;
+            }
+            double wouldBeCpu = assignedCpu + td.getTotalRequestedCpu();
+            double wouldBeMem = assignedMemory + td.getTotalRequestedMemOffHeap() + td.getTotalRequestedMemOnHeap();
+            double cpuScore = (wouldBeCpu - guaranteedCpu)/availableCpu;
+            double memScore = (wouldBeMem - guaranteedMemory)/availableMemory;
+            return Math.max(cpuScore, memScore);
+        }
+
+        public double getScore(double availableCpu, double availableMemory) {
+            TopologyDetails td = getNextHighest();
+            return getScore(availableCpu, availableMemory, td);
+        }
+
+    }
+
+    protected SimulatedUser getSimulatedUserFor(User u, ISchedulingState cluster) {
+        return new SimulatedUser(u, cluster);
     }
 
     @Override
-    public List<TopologyDetails> getOrderedTopologies() {
-        List<TopologyDetails> allUserTopologies = new ArrayList<>();
-        List<User> users = new ArrayList<>(userMap.values());
-        Collections.sort(users, new UserByGuarantees(cluster.getClusterTotalCPUResource(), cluster.getClusterTotalMemoryResource()));
+    public List<TopologyDetails> getOrderedTopologies(ISchedulingState cluster, Map<String, User> userMap) {
+        double cpuAvail = cluster.getClusterTotalCpuResource();
+        double memAvail = cluster.getClusterTotalMemoryResource();
 
-         for (User user : users) {
-            List<TopologyDetails> topologyDetailsList = new ArrayList<>();
-            topologyDetailsList.addAll(user.getTopologiesAttempted());
-            topologyDetailsList.addAll(user.getTopologiesInvalid());
-            topologyDetailsList.addAll(user.getTopologiesPending());
-            topologyDetailsList.addAll(user.getTopologiesRunning());
-            Collections.sort(topologyDetailsList, new TopologyByPriorityAndSubmissionTimeComparator());
-            allUserTopologies.addAll(topologyDetailsList);
+        List<TopologyDetails> allUserTopologies = new ArrayList<>();
+        List<SimulatedUser> users = new ArrayList<>();
+        for (User u : userMap.values()) {
+            users.add(getSimulatedUserFor(u, cluster));
+        }
+        while (!users.isEmpty()) {
+            Collections.sort(users, new SimulatedUserComparator(cpuAvail, memAvail));
+            SimulatedUser u = users.get(0);
+            TopologyDetails td = u.getNextHighest();
+            if (td == null) {
+                users.remove(0);
+            } else {
+                double score = u.getScore(cpuAvail, memAvail);
+                td = u.simScheduleNextHighest();
+                LOG.info("SIM Scheduling {} with score of {}", td.getId(), score);
+                cpuAvail -= td.getTotalRequestedCpu();
+                memAvail -= (td.getTotalRequestedMemOffHeap() + td.getTotalRequestedMemOnHeap());
+                allUserTopologies.add(td);
+            }
         }
         return allUserTopologies;
     }
 
-    class UserByGuarantees implements Comparator<User> {
+    private static class SimulatedUserComparator implements Comparator<SimulatedUser> {
 
-        private final double clusterTotalCPUResource;
-        private final double clusterTotalMemoryResource;
+        private final double cpuAvail;
+        private final double memAvail;
 
-        public UserByGuarantees(double clusterTotalCPUResource, double clusterTotalMemoryResource) {
-            this.clusterTotalCPUResource = clusterTotalCPUResource;
-            this.clusterTotalMemoryResource = clusterTotalMemoryResource;
+        private SimulatedUserComparator(double cpuAvail, double memAvail) {
+            this.cpuAvail = cpuAvail;
+            this.memAvail = memAvail;
         }
 
         @Override
-        public int compare(User user, User otherUser) {
-
-            if(user == otherUser) return 0;
-
-            Double cpuResourceGuaranteed = user.getCPUResourceGuaranteed();
-            Double cpuResourceGuaranteedOther = otherUser.getCPUResourceGuaranteed();
-            Double memoryResourceGuaranteed = user.getMemoryResourceGuaranteed();
-            Double memoryResourceGuaranteedOther = otherUser.getMemoryResourceGuaranteed();
-
-            if ((memoryResourceGuaranteed > 0 && memoryResourceGuaranteedOther == 0)
-                || (cpuResourceGuaranteed > 0 && cpuResourceGuaranteedOther == 0)) {
-                return -1;
-            }
-
-            if ((memoryResourceGuaranteed == 0 && memoryResourceGuaranteedOther > 0)
-                || (cpuResourceGuaranteed == 0 && cpuResourceGuaranteedOther > 0)) {
-                return 1;
-            }
-
-            double memoryRequestedPercentage = getMemoryRequestedPercentage(user);
-            double memoryRequestedPercentageOther = getMemoryRequestedPercentage(otherUser);
-            if(memoryRequestedPercentage != memoryRequestedPercentageOther) {
-                if (memoryRequestedPercentage > 0 && memoryRequestedPercentageOther > 0) {
-                    return Double.compare(memoryRequestedPercentage, memoryRequestedPercentageOther);
-                } else {
-                    return Double.compare(memoryRequestedPercentageOther, memoryRequestedPercentage);
-                }
-            }
-
-            double cpuRequestedPercentage = getCPURequestedPercentage(user);
-            double cpuRequestedPercentageOther = getCPURequestedPercentage(otherUser);
-            if(cpuRequestedPercentage != cpuRequestedPercentageOther) {
-                if (cpuRequestedPercentage > 0 && cpuRequestedPercentageOther > 0) {
-                    return Double.compare(cpuRequestedPercentage, cpuRequestedPercentageOther);
-                } else {
-                    return Double.compare(cpuRequestedPercentageOther, cpuRequestedPercentage);
-                }
-            }
-            //Now that cpu and memory requirements and guarantees match, we compare Ids to sort alphabetically
-            return user.getId().compareTo(otherUser.getId());
-        }
-
-        private double getMemoryRequestedPercentage(User user) {
-            return (user.getMemoryResourceGuaranteed() - user.getMemoryResourceRequest()) / clusterTotalMemoryResource;
-        }
-
-        private double getCPURequestedPercentage(User user) {
-            return (user.getCPUResourceGuaranteed() - user.getCPUResourceRequest()) / clusterTotalCPUResource;
-        }
-
-        private double getAvgResourceGuaranteePercentage(User user) {
-            double userCPUPercentage = user.getCPUResourceGuaranteed() / clusterTotalCPUResource;
-            double userMemoryPercentage = user.getMemoryResourceGuaranteed() / clusterTotalMemoryResource;
-            return (userCPUPercentage + userMemoryPercentage) / 2.0;
-        }
-
-        private double getAvgResourceRequestPercentage(User user) {
-            double userCPUPercentage = user.getCPUResourceRequestUtilization() / clusterTotalCPUResource;
-            double userMemoryPercentage = user.getMemoryResourceRequestUtilzation() / clusterTotalMemoryResource;
-            return (userCPUPercentage + userMemoryPercentage) / 2.0;
+        public int compare(SimulatedUser o1, SimulatedUser o2) {
+            return Double.compare(o1.getScore(cpuAvail, memAvail), o2.getScore(cpuAvail, memAvail));
         }
     }
 
@@ -140,7 +146,7 @@ public class DefaultSchedulingPriorityStrategy implements ISchedulingPriorityStr
      * Comparator that sorts topologies by priority and then by submission time
      * First sort by Topology Priority, if there is a tie for topology priority, topology uptime is used to sort
      */
-    class TopologyByPriorityAndSubmissionTimeComparator implements Comparator<TopologyDetails> {
+    private static class TopologyByPriorityAndSubmissionTimeComparator implements Comparator<TopologyDetails> {
 
         @Override
         public int compare(TopologyDetails topo1, TopologyDetails topo2) {

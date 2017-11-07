@@ -35,19 +35,23 @@ import backtype.storm.generated.WorkerResources;
 
 public class SchedulerAssignmentImpl implements SchedulerAssignment {
     private static final Logger LOG = LoggerFactory.getLogger(SchedulerAssignmentImpl.class);
+
     /**
      * topology-id this assignment is for.
      */
     private final String topologyId;
+
     /**
      * assignment detail, a mapping from executor to <code>WorkerSlot</code>
      */
     private final Map<ExecutorDetails, WorkerSlot> executorToSlot = new HashMap<>();
     private final Map<WorkerSlot, WorkerResources> resources = new HashMap<>();
-    private final Map<String, Double> totalSharedOffHeap = new HashMap<>();
-    
+    private final Map<String, Double> nodeIdToTotalSharedOffHeap = new HashMap<>();
+    //Used to cache the slotToExecutors mapping.
+    private Map<WorkerSlot, Collection<ExecutorDetails>> slotToExecutorsCache = null;
+
     public SchedulerAssignmentImpl(String topologyId, Map<ExecutorDetails, WorkerSlot> executorToSlot,
-            Map<WorkerSlot, WorkerResources> resources, Map<String, Double> totalSharedOffHeap) {
+            Map<WorkerSlot, WorkerResources> resources, Map<String, Double> nodeIdToTotalSharedOffHeap) {
         this.topologyId = topologyId;       
         if (executorToSlot != null) {
             if (executorToSlot.entrySet().stream().anyMatch((entry) -> entry.getKey() == null || entry.getValue() == null)) {
@@ -61,38 +65,71 @@ public class SchedulerAssignmentImpl implements SchedulerAssignment {
             }
             this.resources.putAll(resources);
         }
-        if (totalSharedOffHeap != null) {
-            if (totalSharedOffHeap.entrySet().stream().anyMatch((entry) -> entry.getKey() == null || entry.getValue() == null)) {
-                throw new RuntimeException("Cannot create off heap with a null in it " + totalSharedOffHeap);
+        if (nodeIdToTotalSharedOffHeap != null) {
+            if (nodeIdToTotalSharedOffHeap.entrySet().stream().anyMatch((entry) -> entry.getKey() == null || entry.getValue() == null)) {
+                throw new RuntimeException("Cannot create off heap with a null in it " + nodeIdToTotalSharedOffHeap);
             }
-            this.totalSharedOffHeap.putAll(totalSharedOffHeap);
+            this.nodeIdToTotalSharedOffHeap.putAll(nodeIdToTotalSharedOffHeap);
         }
     }
 
     public SchedulerAssignmentImpl(String topologyId) {
         this(topologyId, null, null, null);
     }
-    
+
     public SchedulerAssignmentImpl(SchedulerAssignment assignment) {
         this(assignment.getTopologyId(), assignment.getExecutorToSlot(), 
-                assignment.getScheduledResources(), assignment.getTotalSharedOffHeapMemory());
+                assignment.getScheduledResources(), assignment.getNodeIdToTotalSharedOffHeapMemory());
     }
 
     @Override
     public String toString() {
-        return "SchedulerAssignmentImpl: RESOURCES: " + resources + " EXECS: " + executorToSlot;
+        return this.getClass().getSimpleName() + " topo: " + topologyId + " execToSlots: " + executorToSlot;
+    }
+
+    public boolean equalsIgnoreResources(Object other) {
+        if (other == this) {
+            return true;
+        }
+        if (!(other instanceof SchedulerAssignmentImpl)) {
+            return false;
+        }
+        SchedulerAssignmentImpl o = (SchedulerAssignmentImpl) other;
+        
+        return this.topologyId.equals(o.topologyId) &&
+                this.executorToSlot.equals(o.executorToSlot);
+    }
+    
+    @Override
+    public int hashCode() {
+        final int prime = 31;
+        int result = 1;
+        result = prime * result + ((topologyId == null) ? 0 : topologyId.hashCode());
+        result = prime * result + ((executorToSlot == null) ? 0 : executorToSlot.hashCode());
+        return result;
+    }
+    
+    @Override
+    public boolean equals(Object other) {
+        if (!equalsIgnoreResources(other)) {
+            return false;
+        }
+        SchedulerAssignmentImpl o = (SchedulerAssignmentImpl) other;
+
+        return this.resources.equals(o.resources) &&
+            this.nodeIdToTotalSharedOffHeap.equals(o.nodeIdToTotalSharedOffHeap);
     }
     
     @Override
     public Set<WorkerSlot> getSlots() {
         return new HashSet<>(executorToSlot.values());
     }    
-    
+
     @Deprecated
     public void assign(WorkerSlot slot, Collection<ExecutorDetails> executors) {
         assign(slot, executors, null);
     }
-    
+
     /**
      * Assign the slot to executors.
      */
@@ -106,14 +143,16 @@ public class SchedulerAssignmentImpl implements SchedulerAssignment {
         } else {
             resources.remove(slot);
         }
-        slotToExecutorsCache.set(null);
+        //Clear the cache scheduling changed
+        slotToExecutorsCache = null;
     }
-    
+
     /**
      * Release the slot occupied by this assignment.
      */
     public void unassignBySlot(WorkerSlot slot) {
-        slotToExecutorsCache.set(null);
+        //Clear the cache scheduling is going to change
+        slotToExecutorsCache = null;
         List<ExecutorDetails> executors = new ArrayList<>();
         for (ExecutorDetails executor : executorToSlot.keySet()) {
             WorkerSlot ws = executorToSlot.get(executor);
@@ -138,7 +177,7 @@ public class SchedulerAssignmentImpl implements SchedulerAssignment {
             }
         }
         if (!isFound) {
-            totalSharedOffHeap.remove(node);
+            nodeIdToTotalSharedOffHeap.remove(node);
         }
     }
 
@@ -169,10 +208,8 @@ public class SchedulerAssignmentImpl implements SchedulerAssignment {
         return this.executorToSlot.keySet();
     }
 
-    private final AtomicReference<Map<WorkerSlot, Collection<ExecutorDetails>>> slotToExecutorsCache = new AtomicReference<>(null);
-
     public Map<WorkerSlot, Collection<ExecutorDetails>> getSlotToExecutors() {
-        Map<WorkerSlot, Collection<ExecutorDetails>> ret = slotToExecutorsCache.get();
+        Map<WorkerSlot, Collection<ExecutorDetails>> ret = slotToExecutorsCache;
         if (ret != null) {
             return ret;
         }
@@ -185,7 +222,7 @@ public class SchedulerAssignmentImpl implements SchedulerAssignment {
             }
             ret.get(ws).add(exec);
         }
-        slotToExecutorsCache.set(ret);
+        slotToExecutorsCache = ret;
         return ret;
     }
 
@@ -195,77 +232,11 @@ public class SchedulerAssignmentImpl implements SchedulerAssignment {
     }
 
     public void setTotalSharedOffHeapMemory(String node, double value) {
-        totalSharedOffHeap.put(node, value);
+        nodeIdToTotalSharedOffHeap.put(node, value);
     }
     
     @Override
-    public Map<String, Double> getTotalSharedOffHeapMemory() {
-        return totalSharedOffHeap;
-    }
-
-    /**
-     * Update the resources for this assignment (This should go aware when the RAS-MT bridge goes away
-     * @param ws
-     * @param onHeap
-     * @param offHeap
-     * @param cpu
-     */
-    @Deprecated
-    public void updateResources(WorkerSlot ws, double onHeap, double offHeap, double cpu) {
-        WorkerResources wr = resources.get(ws);
-        boolean shouldAdd = (wr == null);
-        if (shouldAdd){
-            wr = new WorkerResources();
-        }
-        wr.set_mem_on_heap(onHeap);
-        wr.set_mem_off_heap(offHeap);
-        wr.set_cpu(cpu);
-        wr.set_shared_mem_off_heap(0);
-        wr.set_shared_mem_on_heap(0);
-        if (shouldAdd){
-            resources.put(ws, wr);
-        }
-    }
-    
-    public boolean equalsIgnoreResources(Object other) {
-        if (!(other instanceof SchedulerAssignmentImpl)) {
-            return false;
-        }
-        SchedulerAssignmentImpl o = (SchedulerAssignmentImpl) other;
-        
-        return this.topologyId.equals(o.topologyId) &&
-                this.executorToSlot.equals(o.executorToSlot);
-    }
-    
-    @Override
-    public int hashCode() {
-        final int prime = 31;
-        int result = 1;
-        result = prime * result + ((topologyId == null) ? 0 : topologyId.hashCode());
-        result = prime * result + ((executorToSlot == null) ? 0 : executorToSlot.hashCode());
-        result = prime * result + ((resources == null) ? 0 : resources.hashCode());
-        result = prime * result + ((totalSharedOffHeap == null) ? 0 : totalSharedOffHeap.hashCode());
-        return result;
-    }
-
-    @Override
-    public boolean equals(Object other) {
-        if (!equalsIgnoreResources(other)) {
-            return false;
-        }
-        SchedulerAssignmentImpl o = (SchedulerAssignmentImpl) other;
-        //Normalize some things
-        Map<WorkerSlot, WorkerResources> selfResources = this.resources;
-        if (selfResources == null) selfResources = Collections.emptyMap();
-        Map<WorkerSlot, WorkerResources> otherResources = o.resources;
-        if (otherResources == null) otherResources = Collections.emptyMap();
-
-        Map<String, Double> selfOffHeap = this.totalSharedOffHeap;
-        if (selfOffHeap == null) selfOffHeap = Collections.emptyMap();
-        Map<String, Double> otherOffHeap = o.totalSharedOffHeap;
-        if (otherOffHeap == null) otherOffHeap = Collections.emptyMap();
-
-        return selfResources.equals(otherResources) &&
-                selfOffHeap.equals(otherOffHeap);
+    public Map<String, Double> getNodeIdToTotalSharedOffHeapMemory() {
+        return nodeIdToTotalSharedOffHeap;
     }
 }
