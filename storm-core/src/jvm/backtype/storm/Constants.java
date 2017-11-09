@@ -28,7 +28,7 @@ public class Constants {
     public static final Object SYSTEM_EXECUTOR_ID = RT.readString("[-1 -1]");
     public static final String SYSTEM_COMPONENT_ID = "__system";
     public static final String SYSTEM_TICK_STREAM_ID = "__tick";
-    public static final String METRICS_COMPONENT_ID_PREFIX = "__metrics_";
+    public static final String METRICS_COMPONENT_ID_PREFIX = "__metrics";
     public static final String METRICS_STREAM_ID = "__metrics";
     public static final String METRICS_TICK_STREAM_ID = "__metrics_tick";
     public static final String CREDENTIALS_CHANGED_STREAM_ID = "__credentials";
