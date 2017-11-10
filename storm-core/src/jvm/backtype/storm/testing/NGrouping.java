@@ -28,7 +28,7 @@ public class NGrouping implements CustomStreamGrouping {
     int _n;
     List<Integer> _outTasks;
     
-    public NGrouping(int n) {
+    public NGrouping(Integer n) {
         _n = n;
     }
     

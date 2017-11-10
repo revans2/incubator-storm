@@ -39,6 +39,7 @@
   (:import [backtype.storm.cluster ClusterStateContext DaemonType])
   (:import [javax.security.auth Subject])
   (:import [java.security PrivilegedExceptionAction])
+  (:import [java.util.concurrent.atomic AtomicReference])
   (:import [org.apache.logging.log4j LogManager])
   (:import [org.apache.logging.log4j Level])
   (:import [org.apache.logging.log4j.core.config LoggerConfig])
@@ -311,7 +312,7 @@
       :blobToLastKnownVersion (ConcurrentHashMap.)
       :endpoint-socket-lock (mk-rw-lock)
       :cached-node+port->socket (atom {})
-      :cached-task->node+port (atom {})
+      :cached-task->node+port (AtomicReference.)
       :transfer-queue transfer-queue
       :executor-receive-queue-map executor-receive-queue-map
       :short-executor-receive-queue-map (map-key first executor-receive-queue-map)
@@ -363,7 +364,9 @@
           (.setRemote load-mapping remote-load)
           (when (> now @next-update)
             (.sendLoadMetrics (:receiver worker) local-pop)
-            (reset! next-update (+ 5000 now))))))))
+            (reset! next-update (+ 5000 now)))
+          (doseq [ex executors]
+            (.load-changed ex load-mapping)))))))
 
 (defn suicide-if-local-assignments-changed [worker assignment]
   (let [assigned-worker-executors (set (tasks-for-executor->node+port (:executor->node+port assignment) (:assignment-id worker) (:port worker)))
@@ -423,7 +426,7 @@
                           ]
                          )))
               (write-locked (:endpoint-socket-lock worker)
-                (reset! (:cached-task->node+port worker)
+                (.set (:cached-task->node+port worker)
                         (HashMap. my-assignment)))
               (doseq [endpoint remove-connections]
                 (.close (get @(:cached-node+port->socket worker) endpoint)))
@@ -460,7 +463,7 @@
         (when batch-end?
           (read-locked endpoint-socket-lock
              (let [node+port->socket @node+port->socket
-                   task->node+port @task->node+port]
+                   task->node+port (.get task->node+port)]
                (.send drainer task->node+port node+port->socket)))
           (.clear drainer))))))
 

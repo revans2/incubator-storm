@@ -36,74 +36,11 @@
   (:import [backtype.storm Config Constants])
   (:import [backtype.storm.cluster ClusterStateContext DaemonType])
   (:import [java.util.concurrent ConcurrentLinkedQueue])
-  (:require [backtype.storm [tuple :as tuple] [thrift :as thrift]
-             [cluster :as cluster] [disruptor :as disruptor] [stats :as stats]])
+  (:import [org.apache.storm.daemon GrouperFactory])
+  (:require [backtype.storm [cluster :as cluster] [disruptor :as disruptor] [stats :as stats]])
   (:require [backtype.storm.daemon [task :as task]])
   (:require [backtype.storm.daemon.builtin-metrics :as builtin-metrics])
   (:require [clojure.set :as set]))
-
-(defn- mk-fields-grouper [^Fields out-fields ^Fields group-fields ^List target-tasks]
-  (let [num-tasks (count target-tasks)
-        task-getter (fn [i] (.get target-tasks i))]
-    (fn [task-id ^List values load]
-      (-> (.select out-fields group-fields values)
-          tuple/list-hash-code
-          (mod num-tasks)
-          task-getter))))
-
-(defn- mk-custom-grouper [^CustomStreamGrouping grouping ^WorkerTopologyContext context ^String component-id ^String stream-id target-tasks]
-  (.prepare grouping context (GlobalStreamId. component-id stream-id) target-tasks)
-  (if (instance? LoadAwareCustomStreamGrouping grouping)
-    (fn [task-id ^List values ^LoadMapping load]
-        (.chooseTasks ^LoadAwareCustomStreamGrouping grouping task-id values load))
-    (fn [task-id ^List values ^LoadMapping load]
-      (.chooseTasks grouping task-id values))))
-
-(defn mk-shuffle-grouper [^List target-tasks topo-conf ^WorkerTopologyContext context ^String component-id ^String stream-id]
-  (if (.get topo-conf TOPOLOGY-DISABLE-LOADAWARE-MESSAGING)
-    (mk-custom-grouper (ShuffleGrouping.) context component-id stream-id target-tasks)
-    (mk-custom-grouper (LoadAwareShuffleGrouping.) context component-id stream-id target-tasks)))
-
-(defn- mk-grouper
-  "Returns a function that returns a vector of which task indices to send tuple to, or just a single task index."
-  [^WorkerTopologyContext context component-id stream-id ^Fields out-fields thrift-grouping ^List target-tasks topo-conf]
-  (let [num-tasks (count target-tasks)
-        random (Random.)
-        target-tasks (vec (sort target-tasks))]
-    (condp = (thrift/grouping-type thrift-grouping)
-      :fields
-        (if (thrift/global-grouping? thrift-grouping)
-          (fn [task-id tuple load]
-            ;; It's possible for target to have multiple tasks if it reads multiple sources
-            (first target-tasks))
-          (let [group-fields (Fields. (thrift/field-grouping thrift-grouping))]
-            (mk-fields-grouper out-fields group-fields target-tasks)
-            ))
-      :all
-        (fn [task-id tuple load] target-tasks)
-      :shuffle
-        (mk-shuffle-grouper target-tasks topo-conf context component-id stream-id)
-      :local-or-shuffle
-        (let [same-tasks (set/intersection
-                           (set target-tasks)
-                           (set (.getThisWorkerTasks context)))]
-          (if-not (empty? same-tasks)
-            (mk-shuffle-grouper (vec same-tasks) topo-conf context component-id stream-id)
-            (mk-shuffle-grouper target-tasks topo-conf context component-id stream-id)))
-      :none
-        (fn [task-id tuple load]
-          (let [i (mod (.nextInt random) num-tasks)]
-            (get target-tasks i)
-            ))
-      :custom-object
-        (let [grouping (thrift/instantiate-java-object (.get_custom_object thrift-grouping))]
-          (mk-custom-grouper grouping context component-id stream-id target-tasks))
-      :custom-serialized
-        (let [grouping (Utils/javaDeserialize (.get_custom_serialized thrift-grouping) Serializable)]
-          (mk-custom-grouper grouping context component-id stream-id target-tasks))
-      :direct
-        :direct
-      )))
 
 (defn- outbound-groupings [^WorkerTopologyContext worker-context this-component-id stream-id out-fields component->grouping topo-conf]
   (->> component->grouping
@@ -113,7 +50,7 @@
                         pos?))
        (map (fn [[component tgrouping]]
                [component
-                (mk-grouper worker-context
+                (GrouperFactory/mkGrouper worker-context
                             this-component-id
                             stream-id
                             out-fields
@@ -178,7 +115,8 @@
   (render-stats [this])
   (get-executor-id [this])
   (credentials-changed [this creds])
-  (get-backpressure-flag [this]))
+  (get-backpressure-flag [this])
+  (load-changed [this load-mapping]))
 
 (defn throttled-report-error-fn [executor]
   (let [storm-conf (:storm-conf executor)
@@ -249,6 +187,12 @@
      :interval->task->metric-registry (HashMap.)
      :task->component (:task->component worker)
      :stream->component->grouper (outbound-components worker-context component-id storm-conf)
+     :groupers (if (nil? (:stream->component->grouper <>))
+                 nil
+                 (apply concat
+                        (for [component->grouper (vals (:stream->component->grouper <>))
+                              :let [g (vals component->grouper)]]
+                          g)))
      :report-error (throttled-report-error-fn <>)
      :report-error-and-die (fn [error]
                              (try 
@@ -334,6 +278,10 @@
      (when (seq data-points)
        (task/send-unanchored task-data Constants/METRICS_STREAM_ID [task-info data-points]))))
 
+(defn reflect-new-load-mapping [^LoadMapping load-mapping executor-data]
+  (doseq [^LoadAwareCustomStreamGrouping g (:groupers executor-data)]
+    (.refreshLoad g load-mapping)))
+
 (defn setup-ticks! [worker executor-data]
   (let [storm-conf (:storm-conf executor-data)
         comp-id (:component-id executor-data)
@@ -402,6 +350,8 @@
           (disruptor/publish receive-queue val)))
       (get-backpressure-flag [this]
         (.getThrottleOn (:receive-queue executor-data)))
+      (load-changed [this load-mapping]
+        (reflect-new-load-mapping load-mapping executor-data))
       Shutdownable
       (shutdown
         [this]

@@ -16,36 +16,24 @@
 (ns backtype.storm.grouping-test
   (:use [clojure test])
   (:import [backtype.storm.testing TestWordCounter TestWordSpout TestGlobalCount TestAggregatesCounter TestWordBytesCounter NGrouping]
-           [backtype.storm.generated JavaObject JavaObjectArg])
+           [backtype.storm.generated JavaObject JavaObjectArg Grouping NullStruct])
   (:import [backtype.storm.grouping LoadMapping])
+  (:import [backtype.storm.utils Utils])
+  (:import [org.apache.storm Thrift])
+  (:import [org.apache.storm.daemon GrouperFactory])
   (:use [backtype.storm testing clojure log config])
   (:use [backtype.storm.daemon common executor])
   (:require [backtype.storm [thrift :as thrift]]))
 
-(deftest test-shuffle
- (let [shuffle-fn (mk-shuffle-grouper [(int 1) (int 2)] {TOPOLOGY-DISABLE-LOADAWARE-MESSAGING true} nil "comp" "stream")
-       num-messages 100000
-       min-prcnt (int (* num-messages 0.49))
-       max-prcnt (int (* num-messages 0.51))
-       data [1 2]
-       freq (frequencies (for [x (range 0 num-messages)] (shuffle-fn (int 1) data nil)))
-       load1 (.get freq [(int 1)])
-       load2 (.get freq [(int 2)])]
-    (log-message "FREQ:" freq)
-    (is (>= load1 min-prcnt))
-    (is (<= load1 max-prcnt))
-    (is (>= load2 min-prcnt))
-    (is (<= load2 max-prcnt))))
+(def shuffle-grouping (Grouping/shuffle (NullStruct. )))
 
-(deftest test-shuffle-load-even
- (let [shuffle-fn (mk-shuffle-grouper [(int 1) (int 2)] {} nil "comp" "stream")
+(deftest test-shuffle
+ (let [shuffle (GrouperFactory/mkGrouper nil "comp" "stream" nil shuffle-grouping [(int 1) (int 2)] {TOPOLOGY-DISABLE-LOADAWARE-MESSAGING true})
        num-messages 100000
        min-prcnt (int (* num-messages 0.49))
        max-prcnt (int (* num-messages 0.51))
-       load (LoadMapping.)
-       _ (.setLocal load {(int 1) 0.0 (int 2) 0.0})
        data [1 2]
-       freq (frequencies (for [x (range 0 num-messages)] (shuffle-fn (int 1) data load)))
+       freq (frequencies (for [x (range 0 num-messages)] (.chooseTasks shuffle (int 1) data)))
        load1 (.get freq [(int 1)])
        load2 (.get freq [(int 2)])]
     (log-message "FREQ:" freq)
@@ -58,12 +46,13 @@
   (with-simulated-time-local-cluster [cluster :supervisors 4]
     (let [spout-phint 4
           bolt-phint 6
-          topology (thrift/mk-topology
-                    {"1" (thrift/mk-spout-spec (TestWordSpout. true)
-                                               :parallelism-hint spout-phint)}
-                    {"2" (thrift/mk-bolt-spec {"1" ["word"]}
-                                              (TestWordBytesCounter.)
-                                              :parallelism-hint bolt-phint)
+          topology (Thrift/buildTopology
+                    {"1" (Thrift/prepareSpoutDetails
+                          (TestWordSpout. true) (Integer. spout-phint))}
+                    {"2" (Thrift/prepareBoltDetails
+                          {(Utils/getGlobalStreamId "1" nil)
+                           (Thrift/prepareFieldsGrouping ["word"])}
+                          (TestWordBytesCounter.) (Integer. bolt-phint))
                      })
           results (complete-topology
                     cluster
@@ -82,20 +71,21 @@
   (with-simulated-time-local-cluster [cluster :supervisors 4]
     (let [spout-phint 4
           bolt-phint 6
-          topology (thrift/mk-topology
-                    {"1" (thrift/mk-spout-spec (TestWordSpout. true)
-                                               :parallelism-hint spout-phint)}
-                    {"2" (thrift/mk-bolt-spec {"1" ["word"]}
-                                              (TestWordBytesCounter.)
-                                              :parallelism-hint bolt-phint)
+          topology (Thrift/buildTopology
+                    {"1" (Thrift/prepareSpoutDetails
+                          (TestWordSpout. true) (Integer. spout-phint))}
+                    {"2" (Thrift/prepareBoltDetails
+                          {(Utils/getGlobalStreamId "1" nil)
+                           (Thrift/prepareFieldsGrouping ["word"])}
+                          (TestWordBytesCounter.) (Integer. bolt-phint))
                      })
           results (complete-topology
-                    cluster
-                    topology
-                    :mock-sources {"1" (->> [[(.getBytes "a")]
-                                             [(.getBytes "b")]]
-                                            (repeat (* spout-phint bolt-phint))
-                                            (apply concat))})]
+                   cluster
+                   topology
+                   :mock-sources {"1" (->> [[(.getBytes "a")]
+                                            [(.getBytes "b")]]
+                                           (repeat (* spout-phint bolt-phint))
+                                           (apply concat))})]
       (is (ms= (apply concat
                       (for [value '("a" "b")
                             sum (range 1 (inc (* spout-phint bolt-phint)))]
@@ -108,21 +98,27 @@
 
 (deftest test-custom-groupings
   (with-simulated-time-local-cluster [cluster]
-    (let [topology (topology
-                    {"1" (spout-spec (TestWordSpout. true))}
-                    {"2" (bolt-spec {"1" (NGrouping. 2)}
-                                  id-bolt
-                                  :p 4)
-                     "3" (bolt-spec {"1" (JavaObject. "backtype.storm.testing.NGrouping"
-                                                      [(JavaObjectArg/int_arg 3)])}
-                                  id-bolt
-                                  :p 6)
+    (let [topology (Thrift/buildTopology
+                    {"1" (Thrift/prepareSpoutDetails
+                          (TestWordSpout. true))}
+                    {"2" (Thrift/prepareBoltDetails
+                          {(Utils/getGlobalStreamId "1" nil)
+                           (Thrift/prepareCustomStreamGrouping (NGrouping. (Integer. 2)))}
+                          id-bolt
+                          (Integer. 4))
+                     "3" (Thrift/prepareBoltDetails
+                          {(Utils/getGlobalStreamId "1" nil)
+                           (Thrift/prepareCustomJavaObjectGrouping
+                            (JavaObject. "backtype.storm.testing.NGrouping"
+                                         [(JavaObjectArg/int_arg 3)]))}
+                          id-bolt
+                          (Integer. 6))
                      })
           results (complete-topology cluster
                                      topology
                                      :mock-sources {"1" [["a"]
-                                                        ["b"]
-                                                        ]}
+                                                         ["b"]
+                                                         ]}
                                      )]
       (is (ms= [["a"] ["a"] ["b"] ["b"]]
                (read-tuples results "2")))

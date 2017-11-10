@@ -262,6 +262,8 @@ topology.environment: null
 topology.disruptor.wait.timeout.millis: 1000
 topology.bolts.outgoing.overflow.buffer.enable: false
 topology.disable.loadaware.messaging: false
+topology.localityaware.higher.bound.percent: 0.8
+topology.localityaware.lower.bound.percent: 0.2
 topology.logging.sensitivity: "S3"
 topology.constraints.max.depth.traversal: 1000000
 topology.disruptor.batch.size: 100

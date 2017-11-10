@@ -17,6 +17,7 @@
  */
 package backtype.storm.task;
 
+import backtype.storm.generated.NodeInfo;
 import backtype.storm.generated.StormTopology;
 import backtype.storm.tuple.Fields;
 import java.io.File;
@@ -24,6 +25,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class WorkerTopologyContext extends GeneralTopologyContext {
     public static final String SHARED_EXECUTOR = "executor";
@@ -35,6 +37,9 @@ public class WorkerTopologyContext extends GeneralTopologyContext {
     Map<String, Object> _userResources;
     Map<String, Object> _defaultResources;
     private Map<String, Long> blobToLastKnownVersion;
+    //Every value in the map is in the form of "port/node"
+    private AtomicReference<Map<Integer, String>> taskToPortNodeStr;
+    private String assignmentId;
     
     public WorkerTopologyContext(
             StormTopology topology,
@@ -49,7 +54,9 @@ public class WorkerTopologyContext extends GeneralTopologyContext {
             Integer workerPort,
             List<Integer> workerTasks,
             Map<String, Object> defaultResources,
-            Map<String, Object> userResources
+            Map<String, Object> userResources,
+            AtomicReference<Map<Integer, String>> taskToPortNodeStr,
+            String assignmentId
             ) {
         super(topology, stormConf, taskToComponent, componentToSortedTasks, componentToStreamToFields, stormId);
         _codeDir = codeDir;
@@ -67,6 +74,27 @@ public class WorkerTopologyContext extends GeneralTopologyContext {
         }
         _workerPort = workerPort;
         _workerTasks = workerTasks;
+        this.taskToPortNodeStr = taskToPortNodeStr;
+        this.assignmentId = assignmentId;
+    }
+
+    public WorkerTopologyContext(
+            StormTopology topology,
+            Map stormConf,
+            Map<Integer, String> taskToComponent,
+            Map<String, List<Integer>> componentToSortedTasks,
+            Map<String, Map<String, Fields>> componentToStreamToFields,
+            Map<String, Long> blobToLastKnownVersionShared,
+            String stormId,
+            String codeDir,
+            String pidDir,
+            Integer workerPort,
+            List<Integer> workerTasks,
+            Map<String, Object> defaultResources,
+            Map<String, Object> userResources
+    ) {
+        this(topology, stormConf, taskToComponent, componentToSortedTasks, componentToStreamToFields, blobToLastKnownVersionShared,
+                stormId, codeDir, pidDir, workerPort, workerTasks, defaultResources, userResources, null, null);
     }
 
     /**
@@ -79,6 +107,19 @@ public class WorkerTopologyContext extends GeneralTopologyContext {
     
     public Integer getThisWorkerPort() {
         return _workerPort;
+    }
+
+    public String getThisWorkerHost() {
+        return assignmentId;
+    }
+
+    /**
+     * Get a map from task Id to portNode string.
+     * Every value in the map is in the form of "port/node". This is for interop with the related code in clojure.
+     * @return a map from task To portNode string
+     */
+    public AtomicReference<Map<Integer, String>> getTaskToPortNodeStr() {
+        return taskToPortNodeStr;
     }
 
     /**
