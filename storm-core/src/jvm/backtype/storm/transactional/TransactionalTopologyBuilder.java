@@ -228,10 +228,37 @@ public class TransactionalTopologyBuilder {
         }
 
         @Override
+        public Map getRASConfiguration() {
+            for(Map<String, Object> conf : _spoutConfs) {
+                if (conf.containsKey(Config.TOPOLOGY_COMPONENT_RESOURCES_MAP)) {
+                    return conf;
+                }
+            }
+            Map<String, Object> newConf = new HashMap<>();
+            newConf.put(Config.TOPOLOGY_COMPONENT_RESOURCES_MAP, new HashMap());
+            _spoutConfs.add(newConf);
+            return newConf;
+        }
+
+        @Override
         public SpoutDeclarer addSharedMemory(SharedMemory request) {
             _spoutSharedMemory.add(request);
             return this;
-        }        
+        }
+
+        @SuppressWarnings("unchecked")
+        @Override
+        public SpoutDeclarer addResource(String resourceName, Number resourceValue) {
+            Map<String, Double> resourcesMap = (Map<String, Double>) getRASConfiguration().get(Config.TOPOLOGY_COMPONENT_RESOURCES_MAP);
+
+            if (resourcesMap == null) {
+                resourcesMap = new HashMap<>();
+            }
+            resourcesMap.put(resourceName, resourceValue.doubleValue());
+
+            getRASConfiguration().put(Config.TOPOLOGY_COMPONENT_RESOURCES_MAP, resourcesMap);
+            return this;
+        }
     }
     
     private class BoltDeclarerImpl extends BaseConfigurationDeclarer<BoltDeclarer> implements BoltDeclarer {
@@ -534,8 +561,32 @@ public class TransactionalTopologyBuilder {
         }
 
         @Override
+        public Map getRASConfiguration() {
+            for(Map<String, Object> conf : _component.componentConfs) {
+                if (conf.containsKey(Config.TOPOLOGY_COMPONENT_RESOURCES_MAP)) {
+                    return conf;
+                }
+            }
+            Map<String, Object> newConf = new HashMap<>();
+            newConf.put(Config.TOPOLOGY_COMPONENT_RESOURCES_MAP, new HashMap());
+            _component.componentConfs.add(newConf);
+            return newConf;
+        }
+            
+        @Override
         public BoltDeclarer addSharedMemory(SharedMemory request) {
             _component.sharedMemory.add(request);
+            return this;
+        }
+
+        @SuppressWarnings("unchecked")
+        @Override
+        public BoltDeclarer addResource(String resourceName, Number resourceValue) {
+            Map<String, Double> resourcesMap = (Map<String, Double>) getRASConfiguration().get(Config.TOPOLOGY_COMPONENT_RESOURCES_MAP);
+
+            resourcesMap.put(resourceName, resourceValue.doubleValue());
+
+            getRASConfiguration().put(Config.TOPOLOGY_COMPONENT_RESOURCES_MAP, resourcesMap);
             return this;
         }
     }

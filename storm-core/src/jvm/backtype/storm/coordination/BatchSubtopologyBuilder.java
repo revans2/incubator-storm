@@ -17,6 +17,7 @@
  */
 package backtype.storm.coordination;
 
+import backtype.storm.Config;
 import backtype.storm.Constants;
 import backtype.storm.coordination.CoordinatedBolt.SourceArgs;
 import backtype.storm.generated.GlobalStreamId;
@@ -450,9 +451,34 @@ public class BatchSubtopologyBuilder {
         }
 
         @Override
+        public Map getRASConfiguration() {
+            for (Map<String, Object> conf : _component.componentConfs) {
+                if (conf.containsKey(Config.TOPOLOGY_COMPONENT_RESOURCES_MAP)) {
+                    return conf;
+                }
+            }
+            Map<String, Object> newConf = new HashMap<>();
+            newConf.put(Config.TOPOLOGY_COMPONENT_RESOURCES_MAP, new HashMap());
+            _component.componentConfs.add(newConf);
+            return newConf;
+        }
+
+        @Override
         public BoltDeclarer addSharedMemory(SharedMemory request) {
             _component.sharedMemory.add(request);
             return this;
         }
+
+        @SuppressWarnings("unchecked")
+        @Override
+        public BoltDeclarer addResource(String resourceName, Number resourceValue) {
+            Map<String, Double> resourcesMap = (Map<String, Double>) getRASConfiguration().get(Config.TOPOLOGY_COMPONENT_RESOURCES_MAP);
+
+            resourcesMap.put(resourceName, resourceValue.doubleValue());
+
+            getRASConfiguration().put(Config.TOPOLOGY_COMPONENT_RESOURCES_MAP, resourcesMap);
+            return this;
+        }
+
     }
 }

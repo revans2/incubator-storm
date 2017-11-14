@@ -29,6 +29,13 @@ public interface ComponentConfigurationDeclarer<T extends ComponentConfiguration
     T addConfigurations(Map conf);
 
     /**
+     * return the configuration.
+     *
+     * @return the current configuration.
+     */
+    Map<String, Object> getRASConfiguration();
+
+    /**
      * Add in a single config
      * @param config the key for the config
      * @param value the value of the config
@@ -63,4 +70,14 @@ public interface ComponentConfigurationDeclarer<T extends ComponentConfiguration
      * @return this for chaining.
      */
     T setNumTasks(Number val);
+
+    /**
+     * Add generic resources for this component.
+     */
+    T addResources(Map<String, Double> resources);
+
+    /**
+     * Add generic resource for this component.
+     */
+    T addResource(String resourceName, Number resourceValue);
 }

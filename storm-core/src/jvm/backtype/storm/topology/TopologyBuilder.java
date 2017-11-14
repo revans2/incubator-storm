@@ -277,6 +277,24 @@ public class TopologyBuilder {
             _commons.get(_id).set_json_conf(mergeIntoJson(parseJson(currConf), conf));
             return (T) this;
         }
+        @SuppressWarnings("unchecked")
+        @Override
+        public T addResource(String resourceName, Number resourceValue) {
+            Map<String, Double> resourcesMap = (Map<String, Double>) getRASConfiguration().getOrDefault(
+                    Config.TOPOLOGY_COMPONENT_RESOURCES_MAP, new HashMap());
+
+            resourcesMap.put(resourceName, resourceValue.doubleValue());
+
+            getRASConfiguration().put(Config.TOPOLOGY_COMPONENT_RESOURCES_MAP, resourcesMap);
+            return (T) this;
+        }
+
+        @SuppressWarnings("unchecked")
+        @Override
+        public Map getRASConfiguration() {
+            return parseJson(_commons.get(_id).get_json_conf());
+        }
+
         
         @SuppressWarnings("unchecked")
         @Override

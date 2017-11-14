@@ -23,6 +23,7 @@ import java.util.Set;
 import java.util.Map;
 
 import backtype.storm.Config;
+import backtype.storm.Constants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -125,14 +126,21 @@ public class SupervisorDetails {
     }
 
     public double getTotalMemory() {
-        Double totalMemory = getTotalResource(Config.SUPERVISOR_MEMORY_CAPACITY_MB);
+        Double totalMemory = getTotalResource(Constants.COMMON_TOTAL_MEMORY_RESOURCE_NAME);
         assert totalMemory != null;
         return totalMemory;
     }
 
     public double getTotalCPU() {
-        Double totalCPU = getTotalResource(Config.SUPERVISOR_CPU_CAPACITY);
+        Double totalCPU = getTotalResource(Constants.COMMON_CPU_RESOURCE_NAME);
         assert totalCPU != null;
         return totalCPU;
+    }
+
+    /**
+     * get all resources for this Supervisor.
+     */
+    public Map<String, Double> getTotalResources() {
+        return _total_resources;
     }
 }

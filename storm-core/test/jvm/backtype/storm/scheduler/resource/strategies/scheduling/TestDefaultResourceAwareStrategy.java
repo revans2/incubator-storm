@@ -35,7 +35,7 @@ import backtype.storm.scheduler.WorkerSlot;
 import backtype.storm.scheduler.resource.RAS_Node;
 import backtype.storm.scheduler.resource.ResourceAwareScheduler;
 import backtype.storm.scheduler.resource.SchedulingResult;
-import backtype.storm.scheduler.resource.strategies.scheduling.DefaultResourceAwareStrategy.ObjectResources;
+import backtype.storm.scheduler.resource.strategies.scheduling.BaseResourceAwareStrategy.ObjectResources;
 import backtype.storm.topology.SharedOffHeapWithinNode;
 import backtype.storm.topology.SharedOffHeapWithinWorker;
 import backtype.storm.topology.SharedOnHeap;
@@ -277,7 +277,7 @@ public class TestDefaultResourceAwareStrategy {
         DefaultResourceAwareStrategy rs = new DefaultResourceAwareStrategy();
 
         rs.prepare(cluster);
-        TreeSet<ObjectResources> sortedRacks= rs.sortRacks(topo1.getId());
+        TreeSet<ObjectResources> sortedRacks= rs.sortRacks(null, topo1);
 
         Assert.assertEquals("# of racks sorted", 5, sortedRacks.size());
         Iterator<ObjectResources> it = sortedRacks.iterator();
@@ -418,7 +418,7 @@ public class TestDefaultResourceAwareStrategy {
         DefaultResourceAwareStrategy rs = new DefaultResourceAwareStrategy();
 
         rs.prepare(cluster);
-        TreeSet<ObjectResources> sortedRacks= rs.sortRacks(topo1.getId());
+        TreeSet<ObjectResources> sortedRacks= rs.sortRacks(null, topo1);
 
         Assert.assertEquals("# of racks sorted", 5, sortedRacks.size());
         Iterator<ObjectResources> it = sortedRacks.iterator();

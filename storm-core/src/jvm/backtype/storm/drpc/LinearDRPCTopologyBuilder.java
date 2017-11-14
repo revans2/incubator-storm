@@ -17,6 +17,7 @@
  */
 package backtype.storm.drpc;
 
+import backtype.storm.Config;
 import backtype.storm.Constants;
 import backtype.storm.ILocalDRPC;
 import backtype.storm.coordination.BatchBoltExecutor;
@@ -404,5 +405,30 @@ public class LinearDRPCTopologyBuilder {
             _component.sharedMemory.add(request);
             return null;
         }
+
+        @SuppressWarnings("unchecked")
+        @Override
+        public LinearDRPCInputDeclarer addResource(String resourceName, Number resourceValue) {
+            Map<String, Double> resourcesMap = (Map<String, Double>) getRASConfiguration().get(Config.TOPOLOGY_COMPONENT_RESOURCES_MAP);
+
+            resourcesMap.put(resourceName, resourceValue.doubleValue());
+
+            getRASConfiguration().put(Config.TOPOLOGY_COMPONENT_RESOURCES_MAP, resourcesMap);
+            return this;
+        }
+
+        @Override
+        public Map getRASConfiguration() {
+            for (Map<String, Object> conf : _component.componentConfs) {
+                if (conf.containsKey(Config.TOPOLOGY_COMPONENT_RESOURCES_MAP)) {
+                    return conf;
+                }
+            }
+            Map<String, Object> newConf = new HashMap<>();
+            newConf.put(Config.TOPOLOGY_COMPONENT_RESOURCES_MAP, new HashMap());
+            _component.componentConfs.add(newConf);
+            return newConf;
+        }
+
     }
 }
