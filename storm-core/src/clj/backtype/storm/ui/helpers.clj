@@ -36,7 +36,8 @@
             [ring.util.response :as response])
   (:require [compojure.route :as route]
             [compojure.handler :as handler])
-  (:require [metrics.meters :refer [defmeter mark!]]))
+  (:require [metrics.meters :refer [defmeter mark!]]
+            [ring.util.response :as resp]))
 
 (defn metrics-middleware
   "Coda Hale metric for counting the number of web requests."
@@ -152,7 +153,8 @@
    "errorMessage" (str "User " user " is not authorized.")})
 
 (defn unauthorized-user-html [user]
-  [[:h2 "User '" (escape-html user) "' is not authorized."]])
+  (-> (resp/response (str "User '" (escape-html user) "' is not authorized."))
+      (resp/status 403)))
 
 (defn- mk-ssl-connector [port ks-path ks-password ks-type key-password
                          ts-path ts-password ts-type need-client-auth want-client-auth]
