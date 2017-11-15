@@ -30,7 +30,27 @@
 
     <artifactId>storm-server</artifactId>
 
+    <properties>
+         <hbase.version>0.98.7-hadoop2</hbase.version>
+    </properties>
+
     <dependencies>
+        <dependency>
+            <groupId>org.rocksdb</groupId>
+            <artifactId>rocksdbjni</artifactId>
+            <version>4.11.2</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.hbase</groupId>
+            <artifactId>hbase-server</artifactId>
+            <version>${hbase.version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.slf4j</groupId>
+                    <artifactId>slf4j-log4j12</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
         <dependency>
             <groupId>org.apache.storm</groupId>
             <artifactId>storm-client</artifactId>
@@ -130,7 +150,7 @@
                 <artifactId>maven-checkstyle-plugin</artifactId>
                 <!--Note - the version would be inherited-->
                 <configuration>
-                    <maxAllowedViolations>2699</maxAllowedViolations>
+                    <maxAllowedViolations>3030</maxAllowedViolations>
                 </configuration>
             </plugin>
             <plugin>

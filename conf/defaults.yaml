@@ -298,6 +298,58 @@ pacemaker.thrift.message.size.max: 10485760
 storm.daemon.metrics.reporter.plugins:
      - "org.apache.storm.daemon.metrics.reporters.JmxPreparableReporter"
 
+storm.metrics2.store.class: "org.apache.storm.metrics2.store.RocksDBStore"
+storm.metrics2.store.rocksdb.create_if_missing: true
+storm.metrics2.store.rocksdb.location: "/tmp/storm_rocks"
+storm.metrics2.store.rocksdb.retention: 1
+storm.metrics2.store.rocksdb.retention.units: "MINUTES"
+
+#storm.metrics2.store.class: "org.apache.storm.metrics2.store.HBaseStore"
+storm.metrics2.store.HBaseStore.hbase.schema:
+    type: "compact"
+    metrics:
+        namespace: "storm_dev"
+        name: "metrics"
+        cf: "c"
+        column: "c"
+    metadata:
+        topoMap:
+            namespace: "storm_dev"
+            name: "metrics"
+            cf: "m"
+            column: "t"
+            refcounter: "REFtopo"
+        streamMap:
+            namespace: "storm_dev"
+            name: "metrics"
+            cf: "m"
+            column: "s"
+            refcounter: "REFstream"
+        hostMap:
+            namespace: "storm_dev"
+            name: "metrics"
+            cf: "m"
+            column: "h"
+            refcounter: "REFhost"
+        compMap:
+            namespace: "storm_dev"
+            name: "metrics"
+            cf: "m"
+            column: "c"
+            refcounter: "REFcomp"
+        metricMap:
+            namespace: "storm_dev"
+            name: "metrics"
+            cf: "m"
+            column: "m"
+            refcounter: "REFmetric"
+        executorMap:
+            namespace: "storm_dev"
+            name: "metrics"
+            cf: "m"
+            column: "e"
+            refcounter: "REFexecutor"
+
 # configuration of cluster metrics consumer
 storm.cluster.metrics.consumer.publish.interval.secs: 60
 

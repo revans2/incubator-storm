@@ -33,9 +33,23 @@
         <worker-launcher.conf.dir>/etc/storm</worker-launcher.conf.dir>
         <worker-launcher.additional_cflags></worker-launcher.additional_cflags>
         <argLine></argLine>
+        <hbase.version>0.98.7-hadoop2</hbase.version>
     </properties>
 
     <dependencies>
+        <dependency>
+            <groupId>org.apache.hbase</groupId>
+            <artifactId>hbase-testing-util</artifactId>
+            <version>${hbase.version}</version>
+            <scope>test</scope>
+            <type>test-jar</type>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.slf4j</groupId>
+                    <artifactId>slf4j-log4j12</artifactId>
+                </exclusion>
+            </exclusions>
+	    </dependency>
         <dependency>
             <groupId>org.apache.storm</groupId>
             <artifactId>storm-clojure</artifactId>
@@ -232,6 +246,7 @@
         <dependency>
             <groupId>com.google.guava</groupId>
             <artifactId>guava</artifactId>
+            <version>14.0</version>
             <scope>compile</scope>
         </dependency>
         <dependency>

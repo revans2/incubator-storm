@@ -485,6 +485,27 @@ struct SupervisorInfo {
     9: optional map<string, double> resources_map;
 }
 
+//TODO: not LS?
+struct LSWorkerStats {
+   // TODO: does this need to be a range?
+   1: optional i64 time_stamp;
+   2: optional map<string, double> metrics;
+}
+
+struct WorkerStats {
+    1: optional i64 port;
+    2: optional string storm_id;
+    3: optional map<i64, LSWorkerStats> metrics;
+   // TODO: is this necessary?
+    4: optional list<ExecutorInfo> executor_infos;
+}
+
+struct SupervisorWorkerStats {
+    1: optional string supervisor_host;
+    2: optional string supervisor_id;
+    3: optional map<string, WorkerStats> worker_stats;
+}
+
 struct NodeInfo {
     1: required string node;
     2: required set<i64> port;
@@ -579,6 +600,7 @@ struct LSWorkerHeartbeat {
    4: required i32 port;
 }
 
+
 struct LSTopoHistory {
    1: required string topology_id;
    2: required i64 time_stamp;
@@ -672,6 +694,59 @@ struct OwnerResourceSummary {
   18: optional double assigned_off_heap_memory;
 }
 
+enum StatsStoreOperation {
+  SUM     = 0,
+  AVG     = 1,
+  MIN     = 2,
+  MAX     = 3,
+  SERIES  = 4 // don't aggregate, return timeseries
+}
+
+enum Window {
+  ALL       = 0,
+  TEN_MIN   = 1,
+  THREE_HR  = 2,
+  ONE_DAY   = 3
+}
+
+enum AggLevel {
+  RAW       = 0,
+  ONE_MIN   = 1,
+  TEN_MIN   = 2,
+  HOUR      = 3 
+}
+
+struct StatsSpec {
+  1: optional StatsStoreOperation op = StatsStoreOperation.SUM;
+  2: optional list<Window> windows;
+  3: optional string topology_id;
+  4: optional string component;
+  5: optional string executor_id;
+  6: optional list<string> metrics;
+  7: optional i64 start_time_sec;
+  8: optional i64 end_time_sec;
+  9: optional AggLevel min_agg_level;
+}
+
+struct StormWindowedStats {
+  1: optional Window window;
+  2: optional string topology_id;
+  3: optional string component;
+  4: optional string executor_id;
+  5: optional map<string, double> values;
+}
+
+struct StormSeriesStats {
+  1: optional list<i64> times;
+  2: optional map<string, map<i64, double>> values; 
+}
+
+struct StormStats {
+  1: optional list<StormWindowedStats> windowed_stats;
+  // series name? should the below be a map?
+  2: optional StormSeriesStats series_stats;
+}
+
 service Nimbus {
   void submitTopology(1: string name, 2: string uploadedJarLocation, 3: string jsonConf, 4: StormTopology topology) throws (1: AlreadyAliveException e, 2: InvalidTopologyException ite, 3: AuthorizationException aze);
   void submitTopologyWithOpts(1: string name, 2: string uploadedJarLocation, 3: string jsonConf, 4: StormTopology topology, 5: SubmitOptions options) throws (1: AlreadyAliveException e, 2: InvalidTopologyException ite, 3: AuthorizationException aze);
@@ -680,6 +755,10 @@ service Nimbus {
   void activate(1: string name) throws (1: NotAliveException e, 2: AuthorizationException aze);
   void deactivate(1: string name) throws (1: NotAliveException e, 2: AuthorizationException aze);
   void rebalance(1: string name, 2: RebalanceOptions options) throws (1: NotAliveException e, 2: InvalidTopologyException ite, 3: AuthorizationException aze);
+
+  void consumeWorkerStats(1: SupervisorWorkerStats stats);
+
+  StormStats getStats(1: StatsSpec spec);
 
   // dynamic log levels
   void setLogConfig(1: string name, 2: LogConfig config);
@@ -835,4 +914,16 @@ exception HBAuthorizationException {
 
 exception HBExecutionException {
   1: required string msg;
+}
+
+struct StatsMetadataTopo {
+    1: optional map<string, i32> topo_ids;
+    2: optional map<string, i32> stream_ids;
+    3: optional map<string, i32> host_ids;
+}
+
+struct StatsMetadata {
+    1: optional map<string, i32> comp_ids;
+    2: optional map<string, i32> metric_ids;
+    5: optional map<string, i32> executor_ids;
 }

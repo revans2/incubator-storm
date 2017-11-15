@@ -67,6 +67,9 @@
     <div id="topology-stats" class="col-md-12"></div>
   </div>
   <div class="row">
+    <div id="new-topology-stats" class="col-md-12"></div>
+  </div>
+  <div class="row">
     <div id="topology-spouts-lag" class="col-md-12"></div>
   </div>
   <div class="row">
@@ -283,6 +286,7 @@ $(document).ready(function() {
         var topologySummary = $("#topology-summary");
         var topologyResources = $("#topology-resources");
         var topologyStats = $("#topology-stats");
+        var newTopologyStats = $("#new-topology-stats");
         var topologySpoutsLag = $("#topology-spouts-lag");
         var spoutStats = $("#spout-stats");
         var boltStats = $("#bolt-stats");
@@ -308,6 +312,67 @@ $(document).ready(function() {
             }
             topologyActions.append(Mustache.render($(template).filter("#topology-actions-template").html(),buttonJsonData));
             topologyStats.append(Mustache.render($(template).filter("#topology-stats-template").html(),response));
+
+            //TODO-AB: implement
+            newTopologyStats.append(Mustache.render($(template).filter("#new-topology-stats-template").html(), {}));
+
+            var metrics2Url = "/api/v1/stats/"+topologyId;
+            $.getJSON(metrics2Url,function(newStats,status,jqXHR) {
+                var windows = Object.keys(newStats.stats);
+                var statArray = windows.map(function (window){
+                    //TODO-AB: just add this as paort of response
+                    var stat = newStats.stats[window];
+                    stat.emitted = stat.emitted || 0;
+                    stat.transferred = stat.transferred || 0;
+                    stat["complete-latencies"] = stat["complete-latencies"] || 0;
+                    stat["execute-latencies"] = stat["execute-latencies"] || 0;
+                    stat["process-latencies"] = stat["process-latencies"] || 0;
+                    stat.acked = stat.acked || 0;
+                    stat.failed = stat.failed || 0;
+                    switch (window) {
+                        case "TEN_MIN":
+                            stat.window = 600;
+                            stat.windowPretty = "10m 0s";
+                            break;
+                        case "THREE_HR":
+                            stat.window = 10800;
+                            stat.windowPretty = "3h 0m 0s";
+                            break;
+                        case "ALL":
+                            stat.window = 1000000;
+                            stat.windowPretty = "All time";
+                            break;
+                        case "ONE_DAY":
+                            stat.window = 86400;
+                            stat.windowPretty = "1d 0h 0m 0s";
+                            break;
+                    }
+                    return stat;
+                });
+
+                $("#new-topology-stats-table").DataTable({
+                    paging: false,
+                    info: false,
+                    searching: false,
+                    columnDefs: [
+                      {type: "num", targets: [0, 1, 2, 3, 4, 5]}
+                    ],
+                    data: statArray,
+                    columns: [
+                    { data: 'window', render: function (data, type, row){
+                        return type === 'display' ? row.windowPretty : data;
+                    }},
+                    { data: 'emitted' },
+                    { data: 'transferred' },
+                    { data: 'complete-latencies' },
+                    { data: 'execute-latencies' },
+                    { data: 'process-latencies' },
+                    { data: 'acked' },
+                    { data: 'failed' }
+                    ] 
+                });
+            });
+
             //window, emitted, transferred, complete latency, acked, failed
             $("#topology-stats-table").DataTable({
               paging: false,

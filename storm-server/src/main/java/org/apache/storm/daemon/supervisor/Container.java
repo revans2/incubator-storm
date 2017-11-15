@@ -258,6 +258,13 @@ public abstract class Container implements Killable {
         return hb;
     }
 
+    public void readStats() throws IOException {
+        //LocalState localState = ConfigUtils.workerState(_conf, _workerId);
+        //List<LSWorkerStats> stats = localState.getWorkerStats();
+        //LOG.info("{}: Reading stats {}", _workerId, stats);
+        //_statsPusher.sendWorkerStatsToNimbus(stats);
+    }
+
     /**
      * Is a process alive and running?
      * @param pid the PID of the running process

@@ -92,6 +92,7 @@ import org.apache.storm.generated.KeyAlreadyExistsException;
 import org.apache.storm.generated.KeyNotFoundException;
 import org.apache.storm.generated.KillOptions;
 import org.apache.storm.generated.LSTopoHistory;
+import org.apache.storm.generated.LSWorkerStats;
 import org.apache.storm.generated.ListBlobsResult;
 import org.apache.storm.generated.LogConfig;
 import org.apache.storm.generated.LogLevel;
@@ -108,12 +109,18 @@ import org.apache.storm.generated.ProfileRequest;
 import org.apache.storm.generated.ReadableBlobMeta;
 import org.apache.storm.generated.RebalanceOptions;
 import org.apache.storm.generated.SettableBlobMeta;
+import org.apache.storm.generated.StatsSpec;
+import org.apache.storm.generated.StatsStoreOperation;
 import org.apache.storm.generated.StormBase;
+import org.apache.storm.generated.StormSeriesStats;
+import org.apache.storm.generated.StormStats;
 import org.apache.storm.generated.StormTopology;
+import org.apache.storm.generated.StormWindowedStats;
 import org.apache.storm.generated.SubmitOptions;
 import org.apache.storm.generated.SupervisorInfo;
 import org.apache.storm.generated.SupervisorPageInfo;
 import org.apache.storm.generated.SupervisorSummary;
+import org.apache.storm.generated.SupervisorWorkerStats;
 import org.apache.storm.generated.TopologyActionOptions;
 import org.apache.storm.generated.TopologyHistoryInfo;
 import org.apache.storm.generated.TopologyInfo;
@@ -121,7 +128,9 @@ import org.apache.storm.generated.TopologyInitialStatus;
 import org.apache.storm.generated.TopologyPageInfo;
 import org.apache.storm.generated.TopologyStatus;
 import org.apache.storm.generated.TopologySummary;
+import org.apache.storm.generated.Window;
 import org.apache.storm.generated.WorkerResources;
+import org.apache.storm.generated.WorkerStats;
 import org.apache.storm.generated.WorkerSummary;
 import org.apache.storm.logging.ThriftAccessLogger;
 import org.apache.storm.metric.ClusterMetricsConsumerExecutor;
@@ -129,13 +138,20 @@ import org.apache.storm.metric.StormMetricsRegistry;
 import org.apache.storm.metric.api.DataPoint;
 import org.apache.storm.metric.api.IClusterMetricsConsumer;
 import org.apache.storm.metric.api.IClusterMetricsConsumer.ClusterInfo;
+import org.apache.storm.metrics2.store.AggregatingMetricStore;
+import org.apache.storm.metrics2.store.Aggregation;
+import org.apache.storm.metrics2.store.Metric;
+import org.apache.storm.metrics2.store.MetricException;
+import org.apache.storm.metrics2.store.MetricResult;
+import org.apache.storm.metrics2.store.MetricStore;
+import org.apache.storm.metrics2.store.MetricStoreConfig;
+import org.apache.storm.metrics2.store.TimeRange;
 import org.apache.storm.nimbus.DefaultTopologyValidator;
 import org.apache.storm.nimbus.ILeaderElector;
 import org.apache.storm.nimbus.ITopologyActionNotifierPlugin;
 import org.apache.storm.nimbus.ITopologyValidator;
 import org.apache.storm.nimbus.NimbusInfo;
 import org.apache.storm.scheduler.Cluster;
-import org.apache.storm.scheduler.SupervisorResources;
 import org.apache.storm.scheduler.DefaultScheduler;
 import org.apache.storm.scheduler.ExecutorDetails;
 import org.apache.storm.scheduler.INimbus;
@@ -143,6 +159,7 @@ import org.apache.storm.scheduler.IScheduler;
 import org.apache.storm.scheduler.SchedulerAssignment;
 import org.apache.storm.scheduler.SchedulerAssignmentImpl;
 import org.apache.storm.scheduler.SupervisorDetails;
+import org.apache.storm.scheduler.SupervisorResources;
 import org.apache.storm.scheduler.Topologies;
 import org.apache.storm.scheduler.TopologyDetails;
 import org.apache.storm.scheduler.WorkerSlot;
@@ -1053,7 +1070,9 @@ public class Nimbus implements Iface, Shutdownable, DaemonCommon {
     private final List<ClusterMetricsConsumerExecutor> clusterConsumerExceutors;
     private final IGroupMappingServiceProvider groupMapper;
     private final IPrincipalToLocal principalToLocal;
-    
+    private final MetricStore metricsStore;
+    private final MetricStore aggregatingMetricsStore;
+
     private static IStormClusterState makeStormClusterState(Map<String, Object> conf) throws Exception {
         List<ACL> acls = null;
         if (Utils.isZkAuthenticationConfiguredStormServer(conf)) {
@@ -1075,6 +1094,10 @@ public class Nimbus implements Iface, Shutdownable, DaemonCommon {
             BlobStore blobStore, TopoCache topoCache, ILeaderElector leaderElector, IGroupMappingServiceProvider groupMapper)
         throws Exception {
         this.conf = conf;
+
+        this.metricsStore = MetricStoreConfig.configure(conf);
+        this.aggregatingMetricsStore = new AggregatingMetricStore(this.metricsStore);
+
         if (hostPortInfo == null) {
             hostPortInfo = NimbusInfo.fromConf(conf);
         }
@@ -2536,7 +2559,248 @@ public class Nimbus implements Iface, Shutdownable, DaemonCommon {
     }
     
     //THRIFT SERVER METHODS...
-    
+
+    @Override
+    public void consumeWorkerStats(SupervisorWorkerStats supervisorWorkerStats) {
+        LOG.debug("Consuming worker stats {}", supervisorWorkerStats);
+
+        Map<String, Object> topoConf = null;
+        String lastTopoId = null;
+        if (supervisorWorkerStats.get_worker_stats() == null) {
+            return;
+        }
+
+        String host = supervisorWorkerStats.get_supervisor_host();
+
+        for (Entry<String, WorkerStats> ws : supervisorWorkerStats.get_worker_stats().entrySet()) {
+            WorkerStats workerStats = ws.getValue();
+            long port = workerStats.get_port();
+            String topoId = workerStats.get_storm_id();
+            if (lastTopoId == null || !lastTopoId.equals(topoId)) {
+                try {
+                    topoConf = tryReadTopoConf(topoId, topoCache);
+                    lastTopoId = topoId;
+                } catch (NotAliveException ex) {
+                    // not alive anymore
+                    continue;
+                } catch (Exception ex) {
+                    // not likely
+                    continue;
+                }
+            }
+            String submitter = (String) topoConf.get(Config.TOPOLOGY_SUBMITTER_USER);
+
+            Map<Long, LSWorkerStats> metrics = workerStats.get_metrics();
+            if (metrics == null) {
+                continue;
+            }
+            for (Entry<Long, LSWorkerStats> metric : metrics.entrySet()) {
+                LSWorkerStats lsWorkerStats = metric.getValue();
+                long tstamp = lsWorkerStats.get_time_stamp();
+                Map<String, Double> metricValues = lsWorkerStats.get_metrics();
+                if (metricValues == null) {
+                    continue;
+                }
+                for (Entry<String, Double> metricValue : metricValues.entrySet()) {
+                    //store
+                    String key = metricValue.getKey();
+                    Double value = metricValue.getValue();
+
+                    String[] keyParts = key.split("\\.");
+                    //TODO: this is not good
+                    String execId = keyParts[0];
+                    String stream = keyParts[1];
+                    String compId = keyParts[2];
+                    String metricName = keyParts[3];
+
+                    Metric m = new Metric(metricName, tstamp, execId, compId, stream, topoId, value);
+                    m.setHost(host);
+                    m.setPort(port);
+                    m.setOwner(submitter);
+                    // note: the aggregating store also inserts the raw metric into the
+                    // underlying store
+                    this.aggregatingMetricsStore.insert(m);
+                }
+            }
+        }
+    }
+
+    @Override
+    public StormStats getStats(StatsSpec spec) {
+        LOG.info("Getting stats for spec {}", spec);
+        StormStats result = new StormStats();
+        List<Window> windows = spec.get_windows();
+        windows = windows == null ? new ArrayList<>() : windows;
+        String topologyId = spec.get_topology_id();
+        String component = spec.get_component();
+        String executorId = spec.get_executor_id();
+        List<String> metrics = spec.get_metrics();
+
+        Aggregation agg = new Aggregation();
+        if (topologyId != null) {
+            agg.filterTopo(topologyId);
+        }
+        if (component != null) {
+            agg.filterComponent(component);
+        }
+        if (executorId != null) {
+            agg.filterExecutor(executorId);
+        }
+
+        if (metrics != null) {
+            for (String metric : metrics) {
+                if (metric != null) {
+                    // add to metrics to filter
+                    agg.filterMetric(metric);
+                }
+            }
+        }
+
+        StatsStoreOperation op = spec.get_op();
+        if (op == StatsStoreOperation.SERIES) {
+            long startTime = spec.get_start_time_sec();
+            long endTime = spec.get_end_time_sec();
+
+            //TODO: carry through the AggLevel
+            agg.filterAggLevel(1); //spec.get_min_agg_level() == AggLevel.RAW ? "rt" : "hourly");
+            agg.filterTime(startTime, endTime, Window.ALL /*TODO.. ugly I have to provide a window*/);
+
+            StormSeriesStats seriesStats = new StormSeriesStats();
+            result.set_series_stats(seriesStats);
+
+            List<Long> t = new ArrayList<Long>();
+            Map<String, Map<Long, Double>> d = new HashMap<String, Map<Long, Double>>();
+            // executor ->timeseires
+            try {
+                agg.raw(metricsStore, (metric, timeRanges) -> {
+                    // TODO: instead of an id as a string, maybe we need something else here
+                    // perhaps it can be a tree, because that's what you need at the end
+                    String id = metric.toString();
+                    Map<Long, Double> tseries = null;
+                    if (!d.containsKey(id)) {
+                        tseries = new HashMap<Long, Double>();
+                        d.put(id, tseries);
+                    } else {
+                        tseries = d.get(id);
+                    }
+                    System.out.println(metric.getTimeStamp());
+                    tseries.put(metric.getTimeStamp(), metric.getValue());
+                    long lastTime = t.size() > 0 ? t.get(t.size() - 1) : 0L;
+                    if (metric.getTimeStamp() != lastTime) {
+                        t.add(metric.getTimeStamp());
+                        lastTime = metric.getTimeStamp();
+                    }
+                });
+            } catch (Exception e) {
+                LOG.error("Bad metrics", e);
+            }
+
+            seriesStats.set_times(t);
+            seriesStats.set_values(d);
+
+        } else {
+            if (windows.size() == 0) {
+                // default to all time
+                windows.add(Window.ALL);
+            }
+            // TODO-AB: switch over windows and set start/end time
+            Long all_time = 0L;
+            Long ten_mins_ago = Time.deltaMs(10 * 60 * 1000);
+            Long three_hrs_ago = Time.deltaMs(3 * 3600 * 1000);
+            Long one_day_ago = Time.deltaMs(24 * 3600 * 1000);
+            Long time_now = Time.currentTimeMillis();
+
+            StormWindowedStats allTimeStats = new StormWindowedStats();
+            allTimeStats.set_window(Window.ALL);
+
+            StormWindowedStats tenMinsStats = new StormWindowedStats();
+            tenMinsStats.set_window(Window.TEN_MIN);
+
+            StormWindowedStats threeHrsStats = new StormWindowedStats();
+            threeHrsStats.set_window(Window.THREE_HR);
+
+            StormWindowedStats oneDayStats = new StormWindowedStats();
+            oneDayStats.set_window(Window.ONE_DAY);
+
+            //TODO: make this a single iwndow, not a list of windows
+            Window window = windows.get(0);
+
+            switch (window) {
+                case TEN_MIN:
+                    agg.filterTime(ten_mins_ago, time_now, Window.TEN_MIN);
+                    result.add_to_windowed_stats(tenMinsStats);
+                    break;
+                case THREE_HR:
+                    agg.filterTime(three_hrs_ago, time_now, Window.THREE_HR);
+                    result.add_to_windowed_stats(threeHrsStats);
+                    break;
+                case ONE_DAY:
+                    agg.filterTime(one_day_ago, time_now, Window.ONE_DAY);
+                    result.add_to_windowed_stats(oneDayStats);
+                    break;
+                case ALL:
+                default:
+                    // no time boundaries
+                    agg.filterTime(all_time, time_now, Window.ALL);
+                    agg.filterTime(ten_mins_ago, time_now, Window.TEN_MIN);
+                    agg.filterTime(three_hrs_ago, time_now, Window.THREE_HR);
+                    agg.filterTime(one_day_ago, time_now, Window.ONE_DAY);
+
+                    result.add_to_windowed_stats(allTimeStats);
+                    result.add_to_windowed_stats(tenMinsStats);
+                    result.add_to_windowed_stats(threeHrsStats);
+                    result.add_to_windowed_stats(oneDayStats);
+                    break;
+            }
+
+            try {
+                MetricResult metricResult = null;
+                switch (op) {
+                    case SUM:
+                        metricResult = agg.sum(aggregatingMetricsStore);
+                        break;
+                    case MIN:
+                        metricResult = agg.min(aggregatingMetricsStore);
+                        break;
+                    case MAX:
+                        metricResult = agg.max(aggregatingMetricsStore);
+                        break;
+                    case AVG:
+                    default:
+                        metricResult = agg.mean(aggregatingMetricsStore);
+                        break;
+                }
+
+                for (String metric : metricResult.getMetricNames()) {
+                    for (TimeRange tr : metricResult.getTimeRanges(metric)) {
+
+                        Double value = metricResult.getValueFor(metric, tr);
+                        switch (tr.window) {
+                            case TEN_MIN:
+                                tenMinsStats.put_to_values(metric, value);
+                                break;
+                            case THREE_HR:
+                                threeHrsStats.put_to_values(metric, value);
+                                break;
+                            case ONE_DAY:
+                                oneDayStats.put_to_values(metric, value);
+                                break;
+                            case ALL:
+                            default:
+                                allTimeStats.put_to_values(metric, value);
+                                break;
+                        }
+                    }
+                }
+            } catch (MetricException exp) {
+                LOG.error("Exception computing metrics", exp);
+            }
+        }
+
+        return result;
+    }
+
+
     @Override
     public void submitTopology(String name, String uploadedJarLocation, String jsonConf, StormTopology topology)
             throws AlreadyAliveException, InvalidTopologyException, AuthorizationException, TException {

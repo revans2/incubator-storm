@@ -49,6 +49,8 @@ if len(sys.argv) <= 1 or sys.argv[1] == '--help':
   print('  void activate(string name)')
   print('  void deactivate(string name)')
   print('  void rebalance(string name, RebalanceOptions options)')
+  print('  void consumeWorkerStats(SupervisorWorkerStats stats)')
+  print('  StormStats getStats(StatsSpec spec)')
   print('  void setLogConfig(string name, LogConfig config)')
   print('  LogConfig getLogConfig(string name)')
   print('  void debug(string name, string component, bool enable, double samplingPercentage)')
@@ -185,6 +187,18 @@ elif cmd == 'rebalance':
     print('rebalance requires 2 args')
     sys.exit(1)
   pp.pprint(client.rebalance(args[0],eval(args[1]),))
+
+elif cmd == 'consumeWorkerStats':
+  if len(args) != 1:
+    print('consumeWorkerStats requires 1 args')
+    sys.exit(1)
+  pp.pprint(client.consumeWorkerStats(eval(args[0]),))
+
+elif cmd == 'getStats':
+  if len(args) != 1:
+    print('getStats requires 1 args')
+    sys.exit(1)
+  pp.pprint(client.getStats(eval(args[0]),))
 
 elif cmd == 'setLogConfig':
   if len(args) != 2:

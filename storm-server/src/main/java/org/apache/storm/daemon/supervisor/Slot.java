@@ -41,6 +41,7 @@ import org.apache.storm.generated.AuthorizationException;
 import org.apache.storm.generated.ExecutorInfo;
 import org.apache.storm.generated.KeyNotFoundException;
 import org.apache.storm.generated.LSWorkerHeartbeat;
+import org.apache.storm.generated.LSWorkerStats;
 import org.apache.storm.generated.LocalAssignment;
 import org.apache.storm.generated.ProfileAction;
 import org.apache.storm.generated.ProfileRequest;
@@ -873,6 +874,7 @@ public class Slot extends Thread implements AutoCloseable, BlobChangingCallback 
         }
         
         LSWorkerHeartbeat hb = dynamicState.container.readHeartbeat();
+
         if (hb == null) {
             numWorkersKilledHBNull.mark();
             LOG.warn("SLOT {}: HB returned as null", staticState.port);
@@ -936,6 +938,9 @@ public class Slot extends Thread implements AutoCloseable, BlobChangingCallback 
             }
             dynamicState = dynamicState.withProfileActions(mod, modPending);
         }
+        
+        dynamicState.container.readStats();
+
         Time.sleep(staticState.monitorFreqMs);
         return dynamicState;
     }

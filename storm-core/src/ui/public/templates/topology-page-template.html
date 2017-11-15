@@ -225,6 +225,57 @@
     </tbody>
   </table>
 </script>
+<script id="new-topology-stats-template" type="text/html">
+  <h2>Topology stats (v2)</h2>
+  <table class="table table-striped compact" id="new-topology-stats-table">
+    <thead>
+      <tr>
+        <th>
+          <span data-toggle="tooltip" data-placement="right" title="The past period of time for which the statistics apply. Click on a value to set the window for this page.">
+            Window
+          </span>
+        </th>
+        <th>
+          <span data-toggle="tooltip" data-placement="top" title="The number of Tuples emitted.">
+            Emitted
+          </span>
+        </th>
+        <th>
+          <span data-toggle="tooltip" data-placement="top" title="The number of Tuples emitted that sent to one or more bolts.">
+            Transferred
+          </span>
+        </th>
+        <th>
+          <span data-toggle="tooltip" data-placement="top" title="The average time a Tuple &quot;tree&quot; takes to be completely processed by the Topology. A value of 0 is expected if no acking is done.">
+            Complete latency (ms)
+          </span>
+        </th>
+        <th>
+          <span data-toggle="tooltip" data-placement="top" title="The average time a Tuple &quot;tree&quot; takes to be completely processed by the Topology. A value of 0 is expected if no acking is done.">
+            Execute latency (ms)
+          </span>
+        </th>
+        <th>
+          <span data-toggle="tooltip" data-placement="top" title="The average time a Tuple &quot;tree&quot; takes to be completely processed by the Topology. A value of 0 is expected if no acking is done.">
+            Process latency (ms)
+          </span>
+        </th>
+        <th>
+          <span data-toggle="tooltip" data-placement="top" title="The number of Tuple &quot;trees&quot; successfully processed. A value of 0 is expected if no acking is done.">
+            Acked
+          </span>
+        </th>
+        <th>
+          <span data-toggle="tooltip" data-placement="left" title="The number of Tuple &quot;trees&quot; that were explicitly failed or timed out before acking was completed. A value of 0 is expected if no acking is done.">
+            Failed
+          </span>
+        </th>
+      </tr>
+    </thead>
+    <tbody>
+    </tbody>
+  </table>
+</script>
 
 <script id="topology-kafka-spouts-lag-template" type="text/html">
   <h2>Kafka Spouts Lag</h2>

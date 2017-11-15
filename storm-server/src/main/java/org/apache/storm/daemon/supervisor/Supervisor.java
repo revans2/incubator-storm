@@ -39,6 +39,7 @@ import org.apache.storm.cluster.IStormClusterState;
 import org.apache.storm.daemon.DaemonCommon;
 import org.apache.storm.daemon.supervisor.timer.SupervisorHealthCheck;
 import org.apache.storm.daemon.supervisor.timer.SupervisorHeartbeat;
+import org.apache.storm.daemon.supervisor.timer.WorkerStatsTimer;
 import org.apache.storm.event.EventManager;
 import org.apache.storm.event.EventManagerImp;
 import org.apache.storm.generated.LocalAssignment;
@@ -74,6 +75,7 @@ public class Supervisor implements DaemonCommon, AutoCloseable {
     private final AtomicReference<Map<Long, LocalAssignment>> currAssignment;
     private final StormTimer heartbeatTimer;
     private final StormTimer eventTimer;
+    private final StormTimer statsTimer;
     private final AsyncLocalizer asyncLocalizer;
     private EventManager eventManager;
     private ReadClusterState readState;
@@ -124,6 +126,8 @@ public class Supervisor implements DaemonCommon, AutoCloseable {
         this.heartbeatTimer = new StormTimer(null, new DefaultUncaughtExceptionHandler());
 
         this.eventTimer = new StormTimer(null, new DefaultUncaughtExceptionHandler());
+
+        this.statsTimer = new StormTimer("stats-timer", new DefaultUncaughtExceptionHandler());
     }
     
     public String getId() {
@@ -154,7 +158,7 @@ public class Supervisor implements DaemonCommon, AutoCloseable {
         return stormClusterState;
     }
 
-    LocalState getLocalState() {
+    public LocalState getLocalState() {
         return localState;
     }
 
@@ -202,6 +206,11 @@ public class Supervisor implements DaemonCommon, AutoCloseable {
             // to date even if callbacks don't all work exactly right
             eventTimer.scheduleRecurring(0, 10, new EventManagerPushCallback(readState, eventManager));
 
+            WorkerStatsTimer statsThread = new WorkerStatsTimer(conf, this);
+
+            // do this once a second for now
+            statsTimer.scheduleRecurring(0, 1, new EventManagerPushCallback(statsThread, eventManager));
+
             // supervisor health check
             eventTimer.scheduleRecurring(300, 300, new SupervisorHealthCheck(this));
         }
@@ -245,6 +254,7 @@ public class Supervisor implements DaemonCommon, AutoCloseable {
             this.active = false;
             heartbeatTimer.close();
             eventTimer.close();
+            statsTimer.close();
             if (eventManager != null) {
                 eventManager.close();
             }

@@ -71,9 +71,12 @@ import org.apache.storm.generated.ProfileRequest;
 import org.apache.storm.generated.ReadableBlobMeta;
 import org.apache.storm.generated.RebalanceOptions;
 import org.apache.storm.generated.SettableBlobMeta;
+import org.apache.storm.generated.StatsSpec;
+import org.apache.storm.generated.StormStats;
 import org.apache.storm.generated.StormTopology;
 import org.apache.storm.generated.SubmitOptions;
 import org.apache.storm.generated.SupervisorPageInfo;
+import org.apache.storm.generated.SupervisorWorkerStats;
 import org.apache.storm.generated.TopologyHistoryInfo;
 import org.apache.storm.generated.TopologyInfo;
 import org.apache.storm.generated.TopologyPageInfo;
@@ -623,6 +626,16 @@ public class LocalCluster implements ILocalClusterTrackedTopologyAware, Iface {
     }
 
     @Override
+    public void consumeWorkerStats(SupervisorWorkerStats stats) throws TException {
+        getNimbus().consumeWorkerStats(stats);
+    }
+
+    @Override
+    public StormStats getStats(StatsSpec spec) throws TException {
+        return getNimbus().getStats(spec);
+    }
+
+    @Override
     public void shutdown() {
         try {
             close();
@@ -905,33 +918,28 @@ public class LocalCluster implements ILocalClusterTrackedTopologyAware, Iface {
 
     @Override
     public void setLogConfig(String name, LogConfig config) throws TException {
-        // TODO Auto-generated method stub
         throw new RuntimeException("NOT IMPLEMENTED YET");
     }
 
     @Override
     public LogConfig getLogConfig(String name) throws TException {
-        // TODO Auto-generated method stub
         throw new RuntimeException("NOT IMPLEMENTED YET");
     }
 
     @Override
     public void debug(String name, String component, boolean enable, double samplingPercentage)
             throws NotAliveException, AuthorizationException, TException {
-        // TODO Auto-generated method stub
         throw new RuntimeException("NOT IMPLEMENTED YET");
     }
 
     @Override
     public void setWorkerProfiler(String id, ProfileRequest profileRequest) throws TException {
-        // TODO Auto-generated method stub
         throw new RuntimeException("NOT IMPLEMENTED YET");
     }
 
     @Override
     public List<ProfileRequest> getComponentPendingProfileActions(String id, String componentId, ProfileAction action)
             throws TException {
-        // TODO Auto-generated method stub
         throw new RuntimeException("NOT IMPLEMENTED YET");
     }
 
@@ -1009,7 +1017,6 @@ public class LocalCluster implements ILocalClusterTrackedTopologyAware, Iface {
 
     @Override
     public void createStateInZookeeper(String key) throws TException {
-        // TODO Auto-generated method stub
         throw new RuntimeException("NOT IMPLEMENTED YET");
     }
 
@@ -1041,7 +1048,6 @@ public class LocalCluster implements ILocalClusterTrackedTopologyAware, Iface {
 
     @Override
     public String getNimbusConf() throws AuthorizationException, TException {
-        // TODO Auto-generated method stub
         throw new RuntimeException("NOT IMPLEMENTED YET");
     }
 
@@ -1058,40 +1064,34 @@ public class LocalCluster implements ILocalClusterTrackedTopologyAware, Iface {
     @Override
     public TopologyInfo getTopologyInfoWithOpts(String id, GetInfoOptions options)
             throws NotAliveException, AuthorizationException, TException {
-        // TODO Auto-generated method stub
         throw new RuntimeException("NOT IMPLEMENTED YET");
     }
 
     @Override
     public TopologyPageInfo getTopologyPageInfo(String id, String window, boolean is_include_sys)
             throws NotAliveException, AuthorizationException, TException {
-        // TODO Auto-generated method stub
         throw new RuntimeException("NOT IMPLEMENTED YET");
     }
 
     @Override
     public SupervisorPageInfo getSupervisorPageInfo(String id, String host, boolean is_include_sys)
             throws NotAliveException, AuthorizationException, TException {
-        // TODO Auto-generated method stub
         throw new RuntimeException("NOT IMPLEMENTED YET");
     }
 
     @Override
     public ComponentPageInfo getComponentPageInfo(String topology_id, String component_id, String window,
             boolean is_include_sys) throws NotAliveException, AuthorizationException, TException {
-        // TODO Auto-generated method stub
         throw new RuntimeException("NOT IMPLEMENTED YET");
     }
 
     @Override
     public StormTopology getUserTopology(String id) throws NotAliveException, AuthorizationException, TException {
-        // TODO Auto-generated method stub
         throw new RuntimeException("NOT IMPLEMENTED YET");
     }
 
     @Override
     public TopologyHistoryInfo getTopologyHistory(String user) throws AuthorizationException, TException {
-        // TODO Auto-generated method stub
         throw new RuntimeException("NOT IMPLEMENTED YET");
     }
     
@@ -1120,7 +1120,6 @@ public class LocalCluster implements ILocalClusterTrackedTopologyAware, Iface {
 
     @Override
     public List<OwnerResourceSummary> getOwnerResourceSummaries(String owner) throws AuthorizationException, TException {
-        // TODO Auto-generated method stub
         throw new RuntimeException("NOT IMPLEMENTED YET");
     }
     
