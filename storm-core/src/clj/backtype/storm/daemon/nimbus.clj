@@ -63,7 +63,8 @@
   (:use [org.apache.storm.pacemaker pacemaker-state-factory])
   (:use [backtype.storm.converter])
   (:import [org.apache.zookeeper data.ACL ZooDefs$Ids ZooDefs$Perms])
-  (:import [backtype.storm.utils VersionInfo])
+  (:import [backtype.storm.utils VersionInfo]
+           (backtype.storm Constants))
   (:require [clj-time.core :as time])
   (:require [clj-time.coerce :as coerce])
   (:require [metrics.meters :refer [defmeter mark!]])
@@ -1462,11 +1463,11 @@
       (NotAliveException. (str storm-id)))))
 
 (defn estimated-worker-count-for-ras-topo [storm-conf topology]
-  (let [componet-parallelism-mp (into {} (map #(vector (first %) (component-parallelism storm-conf (second %))) (all-components topology)))
-        bolt-memory-requirement (into {} (map #(vector (first %) (get (second %) TOPOLOGY-COMPONENT-RESOURCES-ONHEAP-MEMORY-MB)) (into {} (ResourceUtils/getBoltsResources topology storm-conf))))
-        spout-memory-requirement (into {} (map #(vector (first %) (get (second %) TOPOLOGY-COMPONENT-RESOURCES-ONHEAP-MEMORY-MB)) (into {} (ResourceUtils/getSpoutsResources topology storm-conf))))
+  (let [component-parallelism-mp (into {} (map #(vector (first %) (component-parallelism storm-conf (second %))) (all-components topology)))
+        bolt-memory-requirement (into {} (map #(vector (first %) (get (second %) Constants/COMMON_ONHEAP_MEMORY_RESOURCE_NAME)) (into {} (ResourceUtils/getBoltsResources topology storm-conf))))
+        spout-memory-requirement (into {} (map #(vector (first %) (get (second %) Constants/COMMON_ONHEAP_MEMORY_RESOURCE_NAME)) (into {} (ResourceUtils/getSpoutsResources topology storm-conf))))
         component-memory-requirement (merge bolt-memory-requirement spout-memory-requirement)
-        total-memory-required (reduce + (vals (merge-with * component-memory-requirement componet-parallelism-mp)))
+        total-memory-required (reduce + (vals (merge-with * component-memory-requirement component-parallelism-mp)))
         worker-heap-memory (get storm-conf WORKER-HEAP-MEMORY-MB)
         ]
     (/ total-memory-required worker-heap-memory)))

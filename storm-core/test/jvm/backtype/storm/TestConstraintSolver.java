@@ -102,6 +102,7 @@ public class TestConstraintSolver {
     LOG.info("constraints: {}", constraints);
 
     backtype.storm.Config config = new backtype.storm.Config();
+    config.putAll(Utils.readDefaultConfig());
 
     config.put(Config.TOPOLOGY_SPREAD_COMPONENTS, spread);
     config.put(Config.TOPOLOGY_CONSTRAINTS, constraints);
@@ -149,6 +150,7 @@ public class TestConstraintSolver {
     LOG.info("constraints: {}", constraints);
 
     backtype.storm.Config config = new backtype.storm.Config();
+    config.putAll(Utils.readDefaultConfig());
 
     config.put(Config.TOPOLOGY_SPREAD_COMPONENTS, spread);
     config.put(Config.TOPOLOGY_CONSTRAINTS, constraints);

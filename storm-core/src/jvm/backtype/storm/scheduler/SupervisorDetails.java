@@ -27,6 +27,8 @@ import backtype.storm.Constants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static backtype.storm.scheduler.resource.ResourceUtils.normalizedResourceMap;
+
 public class SupervisorDetails {
     private static final Logger LOG = LoggerFactory.getLogger(SupervisorDetails.class);
 
@@ -61,7 +63,7 @@ public class SupervisorDetails {
         } else {
             this.allPorts = new HashSet<>();
         }
-        this._total_resources = total_resources;
+        this._total_resources = normalizedResourceMap(total_resources);
         LOG.debug("Creating a new supervisor ({}-{}) with resources: {}", this.host, this.id, total_resources);
     }
 
@@ -122,7 +124,7 @@ public class SupervisorDetails {
     }
 
     private Double getTotalResource(String type) {
-        return this._total_resources.get(type);
+        return this._total_resources.getOrDefault(type, 0.0);
     }
 
     public double getTotalMemory() {
@@ -133,6 +135,7 @@ public class SupervisorDetails {
 
     public double getTotalCPU() {
         Double totalCPU = getTotalResource(Constants.COMMON_CPU_RESOURCE_NAME);
+
         assert totalCPU != null;
         return totalCPU;
     }

@@ -154,7 +154,8 @@ public class TestUtilsForResourceAwareScheduler {
             for (int j = 0; j < numPorts; j++) {
                 ports.add(j);
             }
-            SupervisorDetails sup = new SupervisorDetails("sup-" + i, "host-" + i, null, ports, normalizedResourceMap(resourceMap));
+            SupervisorDetails sup = new SupervisorDetails("sup-" + i, "host-" + i, null, ports, resourceMap);
+            retList.put(sup.getId(), sup);
         }
         return retList;
     }

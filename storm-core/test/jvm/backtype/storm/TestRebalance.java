@@ -28,6 +28,7 @@ import backtype.storm.generated.NotAliveException;
 import backtype.storm.generated.RebalanceOptions;
 import backtype.storm.generated.StormTopology;
 import backtype.storm.generated.TopologySummary;
+import backtype.storm.scheduler.resource.ResourceUtils;
 import backtype.storm.scheduler.resource.TestUtilsForResourceAwareScheduler;
 import backtype.storm.scheduler.resource.strategies.priority.DefaultSchedulingPriorityStrategy;
 import backtype.storm.scheduler.resource.strategies.scheduling.DefaultResourceAwareStrategy;
@@ -92,6 +93,7 @@ public class TestRebalance {
         resources.put("spout-1", new HashMap<String, Double>());
         resources.get("spout-1").put(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB, 120.0);
         resources.get("spout-1").put(Config.TOPOLOGY_COMPONENT_CPU_PCORE_PERCENT, 25.0);
+        resources.put("spout-1", ResourceUtils.normalizedResourceMap(resources.get("spout-1")));
 
         opts.set_topology_resources_overrides(resources);
         opts.set_wait_secs(0);
@@ -118,8 +120,8 @@ public class TestRebalance {
 
         JSONObject readTopologyConf = (JSONObject) parser.parse(componentConfRaw);
 
-        assertEquals("Updated CPU correct", 25.0, (double) readTopologyConf.get(Config.TOPOLOGY_COMPONENT_CPU_PCORE_PERCENT), 0.001);
-        assertEquals("Updated Memory correct", 120.0, (double) readTopologyConf.get(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB), 0.001);
+        assertEquals("Updated CPU correct", 25.0, (double) readTopologyConf.get(Constants.COMMON_CPU_RESOURCE_NAME), 0.001);
+        assertEquals("Updated Memory correct", 120.0, (double) readTopologyConf.get(Constants.COMMON_ONHEAP_MEMORY_RESOURCE_NAME), 0.001);
 
         cluster.shutdown();
     }

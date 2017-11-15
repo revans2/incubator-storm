@@ -83,7 +83,7 @@ public class ResourceUtils {
                 if (resourceUpdatesMap.containsKey(spoutName)) {
                     ComponentCommon spoutCommon = spoutSpec.get_common();
                     Map<String, Double> resourcesUpdate = resourceUpdatesMap.get(spoutName);
-                    String newJsonConf = getJsonWithUpdatedResources(spoutCommon.get_json_conf(), resourcesUpdate);
+                    String newJsonConf = getJsonWithUpdatedResources(spoutCommon.get_json_conf(), normalizedResourceMap(resourcesUpdate));
                     spoutCommon.set_json_conf(newJsonConf);
                     componentsUpdated.put(spoutName, resourcesUpdate);
                 }
@@ -98,7 +98,7 @@ public class ResourceUtils {
                 if(resourceUpdatesMap.containsKey(boltName)) {
                     ComponentCommon boltCommon = boltObj.get_common();
                     Map<String, Double> resourcesUpdate = resourceUpdatesMap.get(boltName);
-                    String newJsonConf = getJsonWithUpdatedResources(boltCommon.get_json_conf(), resourceUpdatesMap.get(boltName));
+                    String newJsonConf = getJsonWithUpdatedResources(boltCommon.get_json_conf(), normalizedResourceMap(resourcesUpdate));
                     boltCommon.set_json_conf(newJsonConf);
                     componentsUpdated.put(boltName, resourcesUpdate);
                 }
@@ -120,17 +120,17 @@ public class ResourceUtils {
             Object obj = parser.parse(jsonConf);
             JSONObject jsonObject = (JSONObject) obj;
 
-            if (resourceUpdates.containsKey(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB)) {
-                Double topoMemOnHeap = resourceUpdates.get(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB);
-                jsonObject.put(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB, topoMemOnHeap);
+            if (resourceUpdates.containsKey(Constants.COMMON_ONHEAP_MEMORY_RESOURCE_NAME)) {
+                Double topoMemOnHeap = resourceUpdates.get(Constants.COMMON_ONHEAP_MEMORY_RESOURCE_NAME);
+                jsonObject.put(Constants.COMMON_ONHEAP_MEMORY_RESOURCE_NAME, topoMemOnHeap);
             }
-            if (resourceUpdates.containsKey(Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB)) {
-                Double topoMemOffHeap = resourceUpdates.get(Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB);
-                jsonObject.put(Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB, topoMemOffHeap);
+            if (resourceUpdates.containsKey(Constants.COMMON_OFFHEAP_MEMORY_RESOURCE_NAME)) {
+                Double topoMemOffHeap = resourceUpdates.get(Constants.COMMON_OFFHEAP_MEMORY_RESOURCE_NAME);
+                jsonObject.put(Constants.COMMON_OFFHEAP_MEMORY_RESOURCE_NAME, topoMemOffHeap);
             }
-            if (resourceUpdates.containsKey(Config.TOPOLOGY_COMPONENT_CPU_PCORE_PERCENT)) {
-                Double topoCPU = resourceUpdates.get(Config.TOPOLOGY_COMPONENT_CPU_PCORE_PERCENT);
-                jsonObject.put(Config.TOPOLOGY_COMPONENT_CPU_PCORE_PERCENT, topoCPU);
+            if (resourceUpdates.containsKey(Constants.COMMON_CPU_RESOURCE_NAME)) {
+                Double topoCPU = resourceUpdates.get(Constants.COMMON_CPU_RESOURCE_NAME);
+                jsonObject.put(Constants.COMMON_CPU_RESOURCE_NAME, topoCPU);
             }
             return jsonObject.toJSONString();
         } catch (ParseException ex) {
@@ -266,6 +266,9 @@ public class ResourceUtils {
     public static Map<String, Double> normalizedResourceMap(Map<String, Double> resourceMap) {
         Map<String, Double> result = new HashMap();
 
+        if(resourceMap == null) {
+            return result;
+        }
         result.putAll(resourceMap);
         for (Map.Entry entry: resourceMap.entrySet()) {
             if (Constants.resourceNameMapping.containsKey(entry.getKey())) {
