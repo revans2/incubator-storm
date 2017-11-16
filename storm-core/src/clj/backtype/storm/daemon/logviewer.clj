@@ -861,7 +861,7 @@ Note that if anything goes wrong, this will throw an Error and exit."
                   (str "Search substring must be between 1 and 1024 UTF-8 "
                        "bytes in size (inclusive)"))))
             (catch Exception ex
-              (json-response (exception->json ex) callback :status 500))))
+              (json-response (exception->json ex 500) callback :status 500))))
         (json-response (unauthorized-user-json user) callback :status 403))
       (json-response {"error" "Not Found"
                       "errorMessage" "The file was not found on this node."}
@@ -1068,7 +1068,7 @@ Note that if anything goes wrong, this will throw an Error and exit."
                             (.getHeader servlet-request "Origin")))
          (catch InvalidRequestException ex
            (log-error ex)
-           (json-response (exception->json ex) (:callback m) :status 400))))
+           (json-response (exception->json ex 400) (:callback m) :status 400))))
     (GET "/dumps/:topo-id/:host-port/:filename"
          [:as {:keys [servlet-request servlet-response log-root]} topo-id host-port filename & m]
          (let [user (.getUserName http-creds-handler servlet-request)
@@ -1157,7 +1157,7 @@ Note that if anything goes wrong, this will throw an Error and exit."
              (.getHeader servlet-request "Origin")))
          (catch InvalidRequestException ex
             (log-error ex)
-            (json-response (exception->json ex) (:callback m) :status 400))))
+            (json-response (exception->json ex 400) (:callback m) :status 400))))
   (GET "/searchLogs" [:as req & m]
     (try
       (let [servlet-request (:servlet-request req)
@@ -1170,7 +1170,7 @@ Note that if anything goes wrong, this will throw an Error and exit."
                         (.getHeader servlet-request "Origin")))
       (catch InvalidRequestException ex
         (log-error ex)
-        (json-response (exception->json ex) (:callback m) :status 400))))
+        (json-response (exception->json ex 400) (:callback m) :status 400))))
   (GET "/listLogs" [:as req & m]
     (try
       (mark! logviewer:num-list-logs-httpRequests)
@@ -1184,7 +1184,7 @@ Note that if anything goes wrong, this will throw an Error and exit."
                         (.getHeader servlet-request "Origin")))
       (catch InvalidRequestException ex
         (log-error ex)
-        (json-response (exception->json ex) (:callback m) :status 400))))
+        (json-response (exception->json ex 400) (:callback m) :status 400))))
   (route/resources "/")
   (route/not-found "Page not found"))
 
