@@ -104,8 +104,8 @@
     <Logger name="backtype.storm.metric.LoggingMetricsConsumer" level="info">
         <AppenderRef ref="METRICS"/>
     </Logger>
-    <Logger name="backtype.storm.scheduler" level="debug" additivity="false">
-        <AppenderRef ref="SCHEDULER" level="debug"/>
+    <Logger name="backtype.storm.scheduler" level="info" additivity="false">
+        <AppenderRef ref="SCHEDULER" level="info"/>
         <AppenderRef ref="A1" level="info"/>
         <AppenderRef ref="syslog" level="info"/>
     </Logger>
