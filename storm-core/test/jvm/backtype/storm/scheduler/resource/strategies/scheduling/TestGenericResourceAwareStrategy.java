@@ -209,7 +209,7 @@ public class TestGenericResourceAwareStrategy {
         // The bolt-1 and spout instances fill in the rest.
 
 
-                                                HashSet<HashSet<ExecutorDetails>> expectedScheduling = new HashSet<>();
+        HashSet<HashSet<ExecutorDetails>> expectedScheduling = new HashSet<>();
         expectedScheduling.add(new HashSet<>(Arrays.asList(new ExecutorDetails(3, 3)))); //bolt-3 - 500 MB, 50% CPU, 2 GPU
         //Total 500 MB, 50% CPU, 2 - GPU -> this node has 1000 MB, 100% cpu, 0 GPU left
         expectedScheduling.add(new HashSet<>(Arrays.asList(

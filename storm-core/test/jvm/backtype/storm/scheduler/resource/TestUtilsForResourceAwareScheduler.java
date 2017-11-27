@@ -64,8 +64,6 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static backtype.storm.scheduler.resource.ResourceUtils.normalizedResourceMap;
-
 public class TestUtilsForResourceAwareScheduler {
     private static final Logger LOG = LoggerFactory.getLogger(TestUtilsForResourceAwareScheduler.class);
 
@@ -148,7 +146,7 @@ public class TestUtilsForResourceAwareScheduler {
       resourceMap.put(Config.SUPERVISOR_CPU_CAPACITY, cpu);
       resourceMap.put(Config.SUPERVISOR_MEMORY_CAPACITY_MB, mem);
       resourceMap.putAll(miscResources);
-        Map<String, SupervisorDetails> retList = new HashMap();
+      Map<String, SupervisorDetails> retList = new HashMap();
         for (int i = start; i < numSup + start; i++) {
             List<Number> ports = new LinkedList<>();
             for (int j = 0; j < numPorts; j++) {

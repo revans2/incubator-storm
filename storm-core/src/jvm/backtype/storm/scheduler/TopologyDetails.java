@@ -345,7 +345,7 @@ public class TopologyDetails {
 
     /**
      * Get the total CPU requirement for executor
-     * @return Double the total about of cpu requirement for executor
+     * @return Double the total amount of cpu requirement for executor
      */
     public Double getTotalCpuReqTask(ExecutorDetails exec) {
         if (hasExecInTopo(exec)) {

@@ -415,10 +415,7 @@ public class Cluster implements ISchedulingState {
     }
 
     private void addResource(Map<String, Double> resourceMap, String resourceName, Double valueToBeAdded) {
-        if (!resourceMap.containsKey(resourceName)) {
-            resourceMap.put(resourceName, 0.0);
-        }
-        Double currentPresent = resourceMap.get(resourceName);
+        Double currentPresent = resourceMap.getOrDefault(resourceName, 0.0);
         resourceMap.put(resourceName, currentPresent + valueToBeAdded);
     }
 
@@ -433,12 +430,9 @@ public class Cluster implements ISchedulingState {
             }
             for (Entry<String, Double> resource : allResources.entrySet()) {
 
-                if (!totalResources.containsKey(resource.getKey())) {
-                    totalResources.put(resource.getKey(), 0.0);
-                }
                 totalResources.put(
                         resource.getKey(),
-                        totalResources.get(resource.getKey()) + resource.getValue());
+                        totalResources.getOrDefault(resource.getKey(), 0.0) + resource.getValue());
             }
         }
 

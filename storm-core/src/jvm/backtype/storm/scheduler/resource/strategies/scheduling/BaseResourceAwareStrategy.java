@@ -139,7 +139,7 @@ public abstract class BaseResourceAwareStrategy implements IStrategy {
         }
 
         public AllResources(AllResources other) {
-            this(   null,
+            this(null,
                     new HashMap<>(other.availableResourcesOverall),
                     new HashMap(other.totalResourcesOverall),
                     other.identifier);
