@@ -566,6 +566,7 @@
   ([nimbus storm-id]
     (read-topology-details nimbus storm-id (.storm-base (:storm-cluster-state nimbus) storm-id nil)))
   ([nimbus storm-id storm-base]
+    (when (nil? storm-base) (throw (KeyNotFoundException. (str "Topology " storm-id " does not appear to be running any more"))))
     (let [conf (:conf nimbus)
           topology-conf (read-storm-conf-as-nimbus conf storm-id nimbus)
           storm-base (if (nil? (:principal storm-base))
