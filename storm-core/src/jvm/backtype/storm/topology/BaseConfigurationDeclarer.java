@@ -96,5 +96,4 @@ public abstract class BaseConfigurationDeclarer<T extends ComponentConfiguration
         }
         return (T) this;
     }
-
 }

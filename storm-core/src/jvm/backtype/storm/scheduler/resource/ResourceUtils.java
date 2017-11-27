@@ -156,7 +156,7 @@ public class ResourceUtils {
 
         Map<String, Double> topologyComponentResourcesMap =
                 (Map<String, Double>) topologyConf.getOrDefault(
-                        Config.TOPOLOGY_COMPONENT_RESOURCES_MAP, Collections.emptyMap());
+                        Config.TOPOLOGY_COMPONENT_RESOURCES_MAP, new HashMap());
 
         resourceNameSet.addAll(topologyResources.keySet());
         resourceNameSet.addAll(topologyComponentResourcesMap.keySet());
@@ -227,8 +227,9 @@ public class ResourceUtils {
                 // If resource is also present in resources map will overwrite the above
                 if (jsonObject.containsKey(Config.TOPOLOGY_COMPONENT_RESOURCES_MAP)) {
                     Map<String, Number> rawResourcesMap =
-                            (Map<String, Number>) jsonObject.getOrDefault(
-                                    Config.TOPOLOGY_COMPONENT_RESOURCES_MAP, Collections.emptyMap());
+                        (Map<String, Number>) jsonObject.computeIfAbsent(
+                                Config.TOPOLOGY_COMPONENT_RESOURCES_MAP, (k) -> new HashMap<>());
+
 
                     for (Map.Entry<String, Number> stringNumberEntry : rawResourcesMap.entrySet()) {
                         topologyResources.put(

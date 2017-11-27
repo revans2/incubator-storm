@@ -333,7 +333,7 @@ public class TopologyDetails {
 
     /**
      * Get the total resource requirement for an executor.
-     * @param exec
+     * @param exec the executor to get the resources for.
      * @return Double the total about of cpu requirement for executor
      */
     public Map<String, Double> getTotalResources(ExecutorDetails exec) {

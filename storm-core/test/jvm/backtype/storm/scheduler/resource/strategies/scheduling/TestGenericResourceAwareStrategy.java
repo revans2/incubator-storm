@@ -56,6 +56,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.TreeSet;
 
 public class TestGenericResourceAwareStrategy {
@@ -64,7 +65,7 @@ public class TestGenericResourceAwareStrategy {
     private static int currentTime = 1450418597;
 
     /**
-     * test if the scheduling logic for the GenericResourceAwareStrategy is correct
+     * test if the scheduling logic for the GenericResourceAwareStrategy is correct.
      */
     @Test
     public void testGenericResourceAwareStrategySharedMemory() {
@@ -120,29 +121,47 @@ public class TestGenericResourceAwareStrategy {
         }
 
         // Everything should fit in a single slot
+        // If we didn't take GPUs into account everything would fit under a single slot
+        // But because there is only 1 GPU per node, and each of the 2 spouts needs a GPU
+        // It has to be scheduled on at least 2 nodes, and hence 2 slots.
+        // Because of this all of the bolts will be scheduled on a single slot with one of
+        // the spouts and the other spout is on its own slot.  So everything that can be shared is
+        // shared.
         int totalNumberOfTasks = (spoutParallelism + (boltParallelism * numBolts));
         double totalExpectedCPU = totalNumberOfTasks * cpuPercent;
         double totalExpectedOnHeap = (totalNumberOfTasks * memoryOnHeap) + sharedOnHeap;
         double totalExpectedWorkerOffHeap = (totalNumberOfTasks * memoryOffHeap) + sharedOffHeapWorker;
 
         SchedulerAssignment assignment = cluster.getAssignmentById(topo.getId());
-        assertEquals(1, assignment.getSlots().size());
-        WorkerSlot ws = assignment.getSlots().iterator().next();
-        String nodeId = ws.getNodeId();
-        assertEquals(1, assignment.getNodeIdToTotalSharedOffHeapMemory().size());
-        assertEquals(sharedOffHeapNode, assignment.getNodeIdToTotalSharedOffHeapMemory().get(nodeId), 0.01);
-        assertEquals(1, assignment.getScheduledResources().size());
-        WorkerResources resources = assignment.getScheduledResources().get(ws);
-        assertEquals(totalExpectedCPU, resources.get_cpu(), 0.01);
-        assertEquals(totalExpectedOnHeap, resources.get_mem_on_heap(), 0.01);
-        assertEquals(totalExpectedWorkerOffHeap, resources.get_mem_off_heap(), 0.01);
-        assertEquals(sharedOnHeap, resources.get_shared_mem_on_heap(), 0.01);
-        assertEquals(sharedOffHeapWorker, resources.get_shared_mem_off_heap(), 0.01);
+        Set<WorkerSlot> slots = assignment.getSlots();
+        Map<String, Double> nodeToTotalShared = assignment.getNodeIdToTotalSharedOffHeapMemory();
+        LOG.info("NODE TO SHARED OFF HEAP {}", nodeToTotalShared);
+        Map<WorkerSlot, WorkerResources> scheduledResources = assignment.getScheduledResources();
+        assertEquals(2, slots.size());
+        assertEquals(2, nodeToTotalShared.size());
+        assertEquals(2, scheduledResources.size());
+        double totalFoundCPU = 0.0;
+        double totalFoundOnHeap = 0.0;
+        double totalFoundWorkerOffHeap = 0.0;
+        for (WorkerSlot ws : slots) {
+            WorkerResources resources = scheduledResources.get(ws);
+            totalFoundCPU += resources.get_cpu();
+            totalFoundOnHeap += resources.get_mem_on_heap();
+            totalFoundWorkerOffHeap += resources.get_mem_off_heap();
+        }
+
+        assertEquals(totalExpectedCPU, totalFoundCPU, 0.01);
+        assertEquals(totalExpectedOnHeap, totalFoundOnHeap, 0.01);
+        assertEquals(totalExpectedWorkerOffHeap, totalFoundWorkerOffHeap, 0.01);
+        assertEquals(sharedOffHeapNode, nodeToTotalShared.values().stream().mapToDouble((d) -> d).sum(), 0.01);
+        assertEquals(sharedOnHeap, scheduledResources.values().stream().mapToDouble(WorkerResources::get_shared_mem_on_heap).sum(), 0.01);
+        assertEquals(sharedOffHeapWorker, scheduledResources.values().stream().mapToDouble(WorkerResources::get_shared_mem_off_heap).sum(),
+            0.01);
     }
 
 
     /**
-     * test if the scheduling logic for the GenericResourceAwareStrategy is correct
+     * test if the scheduling logic for the GenericResourceAwareStrategy is correct.
      */
     @Test
     public void testGenericResourceAwareStrategy() {
@@ -183,17 +202,26 @@ public class TestGenericResourceAwareStrategy {
 
         rs.prepare(conf);
         rs.schedule(topologies, cluster);
+        //We need to have 3 slots on 3 separate hosts. The topology needs 6 GPUs 3500 MB memory and 350% CPU
+        // The bolt-3 instances must be on separate nodes because they each need 2 GPUs.
+        // The bolt-2 instances must be on the same node as they each need 1 GPU
+        // (this assumes that we are packing the components to avoid fragmentation).
+        // The bolt-1 and spout instances fill in the rest.
 
-        HashSet<HashSet<ExecutorDetails>> expectedScheduling = new HashSet<>();
-        expectedScheduling.add(new HashSet<>(Arrays.asList(new ExecutorDetails(0, 0)))); //Spout
+
+                                                HashSet<HashSet<ExecutorDetails>> expectedScheduling = new HashSet<>();
+        expectedScheduling.add(new HashSet<>(Arrays.asList(new ExecutorDetails(3, 3)))); //bolt-3 - 500 MB, 50% CPU, 2 GPU
+        //Total 500 MB, 50% CPU, 2 - GPU -> this node has 1000 MB, 100% cpu, 0 GPU left
         expectedScheduling.add(new HashSet<>(Arrays.asList(
-            new ExecutorDetails(2, 2), //bolt-1
-            new ExecutorDetails(4, 4), //bolt-2
-            new ExecutorDetails(6, 6)))); //bolt-3
+                new ExecutorDetails(2, 2), //bolt-1 - 500 MB, 50% CPU, 0 GPU
+            new ExecutorDetails(5, 5), //bolt-2 - 500 MB, 50% CPU, 1 GPU
+            new ExecutorDetails(6, 6)))); //bolt-2 - 500 MB, 50% CPU, 1 GPU
+        //Total 1500 MB, 150% CPU, 2 GPU -> this node has 0 MB, 0% CPU, 0 GPU left
         expectedScheduling.add(new HashSet<>(Arrays.asList(
-            new ExecutorDetails(1, 1), //bolt-1
-            new ExecutorDetails(3, 3), //bolt-2
-            new ExecutorDetails(5, 5)))); //bolt-3
+                new ExecutorDetails(0, 0), //Spout - 500 MB, 50% CPU, 0 GPU
+            new ExecutorDetails(1, 1), //bolt-1 - 500 MB, 50% CPU, 0 GPU
+            new ExecutorDetails(4, 4)))); //bolt-3 500 MB, 50% cpu, 2 GPU
+        //Total 1500 MB, 150% CPU, 2 GPU -> this node has 0 MB, 0% CPU, 0 GPU left
         HashSet<HashSet<ExecutorDetails>> foundScheduling = new HashSet<>();
         SchedulerAssignment assignment = cluster.getAssignmentById("testTopology-id");
         for (Collection<ExecutorDetails> execs : assignment.getSlotToExecutors().values()) {
