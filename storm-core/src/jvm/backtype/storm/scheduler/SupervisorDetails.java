@@ -23,8 +23,11 @@ import java.util.Set;
 import java.util.Map;
 
 import backtype.storm.Config;
+import backtype.storm.Constants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static backtype.storm.scheduler.resource.ResourceUtils.normalizedResourceMap;
 
 public class SupervisorDetails {
     private static final Logger LOG = LoggerFactory.getLogger(SupervisorDetails.class);
@@ -60,7 +63,7 @@ public class SupervisorDetails {
         } else {
             this.allPorts = new HashSet<>();
         }
-        this._total_resources = total_resources;
+        this._total_resources = normalizedResourceMap(total_resources);
         LOG.debug("Creating a new supervisor ({}-{}) with resources: {}", this.host, this.id, total_resources);
     }
 
@@ -121,18 +124,26 @@ public class SupervisorDetails {
     }
 
     private Double getTotalResource(String type) {
-        return this._total_resources.get(type);
+        return this._total_resources.getOrDefault(type, 0.0);
     }
 
     public double getTotalMemory() {
-        Double totalMemory = getTotalResource(Config.SUPERVISOR_MEMORY_CAPACITY_MB);
+        Double totalMemory = getTotalResource(Constants.COMMON_TOTAL_MEMORY_RESOURCE_NAME);
         assert totalMemory != null;
         return totalMemory;
     }
 
     public double getTotalCPU() {
-        Double totalCPU = getTotalResource(Config.SUPERVISOR_CPU_CAPACITY);
+        Double totalCPU = getTotalResource(Constants.COMMON_CPU_RESOURCE_NAME);
+
         assert totalCPU != null;
         return totalCPU;
+    }
+
+    /**
+     * get all resources for this Supervisor.
+     */
+    public Map<String, Double> getTotalResources() {
+        return _total_resources;
     }
 }

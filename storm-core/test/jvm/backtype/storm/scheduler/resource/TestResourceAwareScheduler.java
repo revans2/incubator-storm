@@ -77,12 +77,15 @@ public class TestResourceAwareScheduler {
 
     @Test
     public void testRASNodeSlotAssign() {
+        Config config = new Config();
+        config.putAll(defaultTopologyConf);
+
         INimbus iNimbus = new INimbusTest();
         Map<String, SupervisorDetails> supMap = genSupervisors(5, 4, 400, 2000);
-        TopologyDetails topology1 = genTopology("topology1", new HashMap<>(), 1, 0, 2, 0, 0, 0, "user");
-        TopologyDetails topology2 = genTopology("topology2", new HashMap<>(), 1, 0, 2, 0, 0, 0, "user");
+        TopologyDetails topology1 = genTopology("topology1", config, 1, 0, 2, 0, 0, 0, "user");
+        TopologyDetails topology2 = genTopology("topology2", config, 1, 0, 2, 0, 0, 0, "user");
         Topologies topologies = new Topologies(topology1, topology2);
-        Cluster cluster = new Cluster(iNimbus, supMap, new HashMap<>(), topologies, new HashMap<>());
+        Cluster cluster = new Cluster(iNimbus, supMap, new HashMap<>(), topologies, config);
         Map<String, RAS_Node> nodes = RAS_Nodes.getAllNodesFrom(cluster);
         assertEquals(5, nodes.size());
         RAS_Node node = nodes.get("sup-0");
@@ -507,8 +510,11 @@ public class TestResourceAwareScheduler {
         Map<String, Double> resourceMap2 = new HashMap<>(); // weak supervisor node
         resourceMap2.put(Config.SUPERVISOR_CPU_CAPACITY, 200.0);
         resourceMap2.put(Config.SUPERVISOR_MEMORY_CAPACITY_MB, 1024.0);
+        resourceMap1 = ResourceUtils.normalizedResourceMap(resourceMap1);
+        resourceMap2 = ResourceUtils.normalizedResourceMap(resourceMap2);
 
-        Map<String, SupervisorDetails> supMap = new HashMap<>();
+        Map<String, SupervisorDetails> supMap = new HashMap<String, SupervisorDetails>();
+
         for (int i = 0; i < 2; i++) {
             List<Number> ports = new LinkedList<>();
             for (int j = 0; j < 4; j++) {

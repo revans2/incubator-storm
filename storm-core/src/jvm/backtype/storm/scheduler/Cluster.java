@@ -27,6 +27,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import backtype.storm.Constants;
 import org.apache.storm.utils.ConfigUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,6 +39,8 @@ import backtype.storm.generated.SharedMemory;
 import backtype.storm.generated.WorkerResources;
 import backtype.storm.networktopography.DNSToSwitchMapping;
 import backtype.storm.utils.Utils;
+
+import static backtype.storm.scheduler.resource.ResourceUtils.normalizedResourceMap;
 
 public class Cluster implements ISchedulingState {
     private static final Logger LOG = LoggerFactory.getLogger(Cluster.class);
@@ -411,41 +414,74 @@ public class Cluster implements ISchedulingState {
         return slots.size();
     }
 
+    private void addResource(Map<String, Double> resourceMap, String resourceName, Double valueToBeAdded) {
+        Double currentPresent = resourceMap.getOrDefault(resourceName, 0.0);
+        resourceMap.put(resourceName, currentPresent + valueToBeAdded);
+    }
+
     private WorkerResources calculateWorkerResources(
         TopologyDetails td, Collection<ExecutorDetails> executors) {
-        double onHeapMem = 0.0;
-        double offHeapMem = 0.0;
-        double cpu = 0.0;
-        double sharedOn = 0.0;
-        double sharedOff = 0.0;
+        Map<String, Double> totalResources = new HashMap<>();
+        Map<String, Double> sharedTotalResources = new HashMap<>();
         for (ExecutorDetails exec : executors) {
-            Double onHeapMemForExec = td.getOnHeapMemoryRequirement(exec);
-            if (onHeapMemForExec != null) {
-                onHeapMem += onHeapMemForExec;
+            Map<String, Double> allResources = td.getTotalResources(exec);
+            if (allResources == null) {
+                continue;
             }
-            Double offHeapMemForExec = td.getOffHeapMemoryRequirement(exec);
-            if (offHeapMemForExec != null) {
-                offHeapMem += offHeapMemForExec;
-            }
-            Double cpuForExec = td.getTotalCpuReqTask(exec);
-            if (cpuForExec != null) {
-                cpu += cpuForExec;
+            for (Entry<String, Double> resource : allResources.entrySet()) {
+
+                totalResources.put(
+                        resource.getKey(),
+                        totalResources.getOrDefault(resource.getKey(), 0.0) + resource.getValue());
             }
         }
 
+        totalResources = normalizedResourceMap(totalResources);
         for (SharedMemory shared : td.getSharedMemoryRequests(executors)) {
-            onHeapMem += shared.get_on_heap();
-            sharedOn += shared.get_on_heap();
-            offHeapMem += shared.get_off_heap_worker();
-            sharedOff += shared.get_off_heap_worker();
+            addResource(
+                    totalResources,
+                    Constants.COMMON_OFFHEAP_MEMORY_RESOURCE_NAME, shared.get_off_heap_worker()
+            );
+            addResource(
+                    totalResources,
+                    Constants.COMMON_ONHEAP_MEMORY_RESOURCE_NAME, shared.get_on_heap()
+            );
+
+            addResource(
+                    sharedTotalResources,
+                    Constants.COMMON_OFFHEAP_MEMORY_RESOURCE_NAME, shared.get_off_heap_worker()
+            );
+            addResource(
+                    sharedTotalResources,
+                    Constants.COMMON_ONHEAP_MEMORY_RESOURCE_NAME, shared.get_on_heap()
+            );
         }
 
+        sharedTotalResources = normalizedResourceMap(sharedTotalResources);
         WorkerResources ret = new WorkerResources();
-        ret.set_cpu(cpu);
-        ret.set_mem_on_heap(onHeapMem);
-        ret.set_mem_off_heap(offHeapMem);
-        ret.set_shared_mem_on_heap(sharedOn);
-        ret.set_shared_mem_off_heap(sharedOff);
+        ret.set_resources(totalResources);
+        ret.set_shared_resources(sharedTotalResources);
+
+        ret.set_cpu(
+                totalResources.getOrDefault(
+                        Constants.COMMON_CPU_RESOURCE_NAME, 0.0)
+        );
+        ret.set_mem_off_heap(
+                totalResources.getOrDefault(
+                        Constants.COMMON_OFFHEAP_MEMORY_RESOURCE_NAME, 0.0)
+        );
+        ret.set_mem_on_heap(
+                totalResources.getOrDefault(
+                        Constants.COMMON_ONHEAP_MEMORY_RESOURCE_NAME, 0.0)
+        );
+        ret.set_shared_mem_off_heap(
+                sharedTotalResources.getOrDefault(
+                        Constants.COMMON_OFFHEAP_MEMORY_RESOURCE_NAME, 0.0)
+        );
+        ret.set_shared_mem_on_heap(
+                sharedTotalResources.getOrDefault(
+                        Constants.COMMON_ONHEAP_MEMORY_RESOURCE_NAME, 0.0)
+        );
         return ret;
     }
 
@@ -454,43 +490,41 @@ public class Cluster implements ISchedulingState {
         WorkerSlot ws,
         ExecutorDetails exec,
         TopologyDetails td,
-        double maxHeap,
-        double memoryAvailable,
-        double cpuAvailable) {
-        //NOTE this is called lots and lots by schedulers, so anything we can do to make it faster is going to help a lot.
-        //CPU is simplest because it does not have odd interactions.
-        double cpuNeeded = td.getTotalCpuReqTask(exec);
-        if (cpuNeeded > cpuAvailable) {
-            if (LOG.isTraceEnabled()) {
-                LOG.trace("Could not schedule {}:{} on {} not enough CPU {} > {}",
-                    td.getName(),
-                    exec,
-                    ws,
-                    cpuNeeded,
-                    cpuAvailable);
-            }
-            //Not enough CPU no need to try any more
-            return false;
-        }
+        Map<String, Double> resourcesAvailable,
+        double maxHeap) {
+        Map<String, Double> requestedResources = td.getTotalResources(exec);
 
-        //Lets see if we can make the Memory one fast too, at least in the failure case.
-        //The totalMemReq is not really that accurate because it does not include shared memory, but if it does not fit we know
-        // Even with shared it will not work
-        double minMemNeeded = td.getTotalMemReqTask(exec);
-        if (minMemNeeded > memoryAvailable) {
-            if (LOG.isTraceEnabled()) {
-                LOG.trace("Could not schedule {}:{} on {} not enough Mem {} > {}", td.getName(), exec, ws, minMemNeeded, memoryAvailable);
+        for (Entry resourceNeededEntry : requestedResources.entrySet()) {
+            String resourceName = resourceNeededEntry.getKey().toString();
+            if (resourceName.equals(Constants.COMMON_OFFHEAP_MEMORY_RESOURCE_NAME) ||
+                    resourceName.equals(Constants.COMMON_ONHEAP_MEMORY_RESOURCE_NAME)) {
+                continue;
             }
-            //Not enough minimum MEM no need to try any more
-            return false;
+            Double resourceNeeded = Utils.getDouble(resourceNeededEntry.getValue());
+            Double resourceAvailable = Utils.getDouble(resourcesAvailable.get(resourceName), 0.0);
+            if (resourceNeeded > resourceAvailable) {
+                if (LOG.isTraceEnabled()) {
+                    LOG.trace("Could not schedule {}:{} on {} not enough {} {} > {}",
+                            td.getName(),
+                            exec,
+                            ws,
+                            resourceName,
+                            resourceNeeded,
+                            resourceAvailable);
+                }
+                //Not enough resources - stop trying
+                return false;
+            }
         }
 
         double currentTotal = 0.0;
         double afterTotal = 0.0;
         double afterOnHeap = 0.0;
+
         Set<ExecutorDetails> wouldBeAssigned = new HashSet<>();
         wouldBeAssigned.add(exec);
         SchedulerAssignmentImpl assignment = assignments.get(td.getId());
+
         if (assignment != null) {
             Collection<ExecutorDetails> currentlyAssigned = assignment.getSlotToExecutors().get(ws);
             if (currentlyAssigned != null) {
@@ -507,6 +541,9 @@ public class Cluster implements ISchedulingState {
         }
 
         double memoryAdded = afterTotal - currentTotal;
+        double memoryAvailable = Utils.getDouble(resourcesAvailable.get(
+                Constants.COMMON_TOTAL_MEMORY_RESOURCE_NAME), 0.0);
+
         if (memoryAdded > memoryAvailable) {
             if (LOG.isTraceEnabled()) {
                 LOG.trace("Could not schedule {}:{} on {} not enough Mem {} > {}",
@@ -531,6 +568,7 @@ public class Cluster implements ISchedulingState {
         }
         return true;
     }
+
 
     /**
      * Assign the slot to the executors for this topology.
@@ -949,6 +987,34 @@ public class Cluster implements ISchedulingState {
         }
         return ret;
     }
+
+    @Override
+    public Map<String, Double> getAllScheduledResourcesForNode(String nodeId) {
+        Map<String, Double> totalScheduledResources = new HashMap<>();
+        for (SchedulerAssignmentImpl assignment : assignments.values()) {
+            for (Entry<WorkerSlot, WorkerResources> entry :
+                    assignment.getScheduledResources().entrySet()) {
+                if (nodeId.equals(entry.getKey().getNodeId())) {
+                    WorkerResources resources = entry.getValue();
+                    for (Map.Entry<String, Double> resourceEntry : resources.get_resources().entrySet()) {
+                        Double currentResourceValue = totalScheduledResources.getOrDefault(resourceEntry.getKey(), 0.0);
+                        totalScheduledResources.put(
+                                resourceEntry.getKey(),
+                                currentResourceValue + Utils.getDouble(resourceEntry.getValue()));
+                    }
+
+                }
+            }
+            Double sharedOffHeap = assignment.getNodeIdToTotalSharedOffHeapMemory().get(nodeId);
+            if (sharedOffHeap != null) {
+                String resourceName = Constants.COMMON_OFFHEAP_MEMORY_RESOURCE_NAME;
+                Double currentResourceValue = totalScheduledResources.getOrDefault(resourceName, 0.0);
+                totalScheduledResources.put(resourceName, currentResourceValue + sharedOffHeap);
+            }
+        }
+        return totalScheduledResources;
+    }
+
 
     @Override
     public double getScheduledMemoryForNode(String nodeId) {

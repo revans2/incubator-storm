@@ -25,9 +25,12 @@ import backtype.storm.utils.Time;
 import backtype.storm.utils.Utils;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import static backtype.storm.scheduler.resource.ResourceUtils.normalizedResourceMap;
 
 public class SupervisorHeartbeat implements Runnable {
 
@@ -72,11 +75,21 @@ public class SupervisorHeartbeat implements Runnable {
 
     private Map<String, Double> mkSupervisorCapacities(Map conf) {
         Map<String, Double> ret = new HashMap<String, Double>();
+        // Put in legacy values
         Number mem = (Number) (conf.get(Config.SUPERVISOR_MEMORY_CAPACITY_MB));
         ret.put(Config.SUPERVISOR_MEMORY_CAPACITY_MB, mem.doubleValue());
         Number cpu = (Number) (conf.get(Config.SUPERVISOR_CPU_CAPACITY));
         ret.put(Config.SUPERVISOR_CPU_CAPACITY, cpu.doubleValue());
-        return ret;
+        // If configs are present in Generic map and legacy - the legacy values will be overwritten
+        Map<String, Number> rawResourcesMap = (Map<String,Number>) conf.getOrDefault(
+                Config.SUPERVISOR_RESOURCES_MAP, Collections.emptyMap()
+        );
+
+        for (Map.Entry<String, Number> stringNumberEntry : rawResourcesMap.entrySet()) {
+            ret.put(stringNumberEntry.getKey(), stringNumberEntry.getValue().doubleValue());
+        }
+
+        return normalizedResourceMap(ret);
     }
 
     @Override

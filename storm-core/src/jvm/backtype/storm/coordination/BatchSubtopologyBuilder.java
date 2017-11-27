@@ -17,6 +17,7 @@
  */
 package backtype.storm.coordination;
 
+import backtype.storm.Config;
 import backtype.storm.Constants;
 import backtype.storm.coordination.CoordinatedBolt.SourceArgs;
 import backtype.storm.generated.GlobalStreamId;
@@ -40,14 +41,14 @@ import java.util.Map;
 import java.util.Set;
 
 public class BatchSubtopologyBuilder {
-    Map<String, Component> _bolts = new HashMap<String, Component>();
-    Component _masterBolt;
-    String _masterId;
+    Map<String, Component> bolts = new HashMap();
+    Component masterBolt;
+    String masterId;
     
     public BatchSubtopologyBuilder(String masterBoltId, IBasicBolt masterBolt, Number boltParallelism) {
         Integer p = boltParallelism == null ? null : boltParallelism.intValue();
-        _masterBolt = new Component(new BasicBoltExecutor(masterBolt), p);
-        _masterId = masterBoltId;
+        this.masterBolt = new Component(new BasicBoltExecutor(masterBolt), p);
+        masterId = masterBoltId;
     }
     
     public BatchSubtopologyBuilder(String masterBoltId, IBasicBolt masterBolt) {
@@ -55,7 +56,7 @@ public class BatchSubtopologyBuilder {
     }
     
     public BoltDeclarer getMasterDeclarer() {
-        return new BoltDeclarerImpl(_masterBolt);
+        return new BoltDeclarerImpl(masterBolt);
     }
         
     public BoltDeclarer setBolt(String id, IBatchBolt bolt) {
@@ -78,24 +79,23 @@ public class BatchSubtopologyBuilder {
         Integer p = null;
         if(parallelism!=null) p = parallelism.intValue();
         Component component = new Component(bolt, p);
-        _bolts.put(id, component);
+        bolts.put(id, component);
         return new BoltDeclarerImpl(component);
     }
     
     public void extendTopology(TopologyBuilder builder) {
-        BoltDeclarer declarer = builder.setBolt(_masterId, new CoordinatedBolt(_masterBolt.bolt), _masterBolt.parallelism);
-        for(InputDeclaration decl: _masterBolt.declarations) {
+        BoltDeclarer declarer = builder.setBolt(masterId, new CoordinatedBolt(masterBolt.bolt), masterBolt.parallelism);
+        for(InputDeclaration decl: masterBolt.declarations) {
             decl.declare(declarer);
         }
-        for(Map conf: _masterBolt.componentConfs) {
-            declarer.addConfigurations(conf);
-        }
-        for(String id: _bolts.keySet()) {
-            Component component = _bolts.get(id);
+        declarer.addConfigurations(masterBolt.componentConf);
+
+        for(String id: bolts.keySet()) {
+            Component component = bolts.get(id);
             Map<String, SourceArgs> coordinatedArgs = new HashMap<String, SourceArgs>();
             for(String c: componentBoltSubscriptions(component)) {
                 SourceArgs source;
-                if(c.equals(_masterId)) {
+                if(c.equals(masterId)) {
                     source = SourceArgs.single();
                 } else {
                     source = SourceArgs.all();
@@ -112,8 +112,8 @@ public class BatchSubtopologyBuilder {
             for (SharedMemory request: component.sharedMemory) {
                 input.addSharedMemory(request);
             }
-            for(Map conf: component.componentConfs) {
-                input.addConfigurations(conf);
+            if (!component.componentConf.isEmpty()) {
+                input.addConfigurations(component.componentConf);
             }
             for(String c: componentBoltSubscriptions(component)) {
                 input.directGrouping(c, Constants.COORDINATED_STREAM_ID);
@@ -125,7 +125,7 @@ public class BatchSubtopologyBuilder {
     }
         
     private Set<String> componentBoltSubscriptions(Component component) {
-        Set<String> ret = new HashSet<String>();
+        Set<String> ret = new HashSet();
         for(InputDeclaration d: component.declarations) {
             ret.add(d.getComponent());
         }
@@ -136,7 +136,7 @@ public class BatchSubtopologyBuilder {
         public final IRichBolt bolt;
         public final Integer parallelism;
         public final List<InputDeclaration> declarations = new ArrayList<InputDeclaration>();
-        public final List<Map> componentConfs = new ArrayList<>();
+        public final Map<String, Object> componentConf = new HashMap<>();
         public final Set<SharedMemory> sharedMemory = new HashSet<>();
         
         public Component(IRichBolt bolt, Integer parallelism) {
@@ -151,10 +151,10 @@ public class BatchSubtopologyBuilder {
     }
         
     private class BoltDeclarerImpl extends BaseConfigurationDeclarer<BoltDeclarer> implements BoltDeclarer {
-        Component _component;
+        Component component;
         
         public BoltDeclarerImpl(Component component) {
-            _component = component;
+            this.component = component;
         }
         
         @Override
@@ -440,19 +440,37 @@ public class BatchSubtopologyBuilder {
         }
         
         private void addDeclaration(InputDeclaration declaration) {
-            _component.declarations.add(declaration);
+            component.declarations.add(declaration);
         }
 
         @Override
         public BoltDeclarer addConfigurations(Map conf) {
-            _component.componentConfs.add(conf);
+            if (conf != null) {
+                component.componentConf.putAll(conf);
+            }
             return this;
+        }
+
+        public Map<String, Object> getRASConfiguration() {
+            return component.componentConf;
         }
 
         @Override
         public BoltDeclarer addSharedMemory(SharedMemory request) {
-            _component.sharedMemory.add(request);
+            component.sharedMemory.add(request);
             return this;
         }
+
+        @SuppressWarnings("unchecked")
+        @Override
+        public BoltDeclarer addResource(String resourceName, Number resourceValue) {
+            Map<String, Double> resourcesMap = (Map<String, Double>) component.componentConf.computeIfAbsent(
+                    Config.TOPOLOGY_COMPONENT_RESOURCES_MAP, (k) -> new HashMap<>());
+
+            resourcesMap.put(resourceName, resourceValue.doubleValue());
+
+            return this;
+        }
+
     }
 }
