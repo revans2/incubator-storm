@@ -30,40 +30,37 @@ import backtype.storm.scheduler.WorkerSlot;
 import backtype.storm.scheduler.resource.ResourceAwareScheduler;
 import backtype.storm.scheduler.resource.SchedulingResult;
 import backtype.storm.scheduler.resource.strategies.priority.DefaultSchedulingPriorityStrategy;
+import backtype.storm.utils.Time;
 import backtype.storm.utils.Utils;
-
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.NavigableMap;
 import java.util.Set;
 import org.junit.Assert;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-
 import static backtype.storm.scheduler.resource.TestUtilsForResourceAwareScheduler.*;
 
-public class TestRASConstraintSolver {
-    private static final Logger LOG = LoggerFactory.getLogger(TestRASConstraintSolver.class);
-    private static final int NUM_SUPS = 20;
-    private static final int NUM_WORKERS_PER_SUP = 4;
+public class TestConstraintSolverStrategy {
+    private static final Logger LOG = LoggerFactory.getLogger(TestConstraintSolverStrategy.class);
     private static final int MAX_TRAVERSAL_DEPTH = 2000;
-    private static final int NUM_WORKERS = NUM_SUPS * NUM_WORKERS_PER_SUP;
-    
-    @Test
-    public void testConstraintSolver() {
-        Map<String, SupervisorDetails> supMap = genSupervisors(30, 16, 400, 1024 * 4);
+    private static final int NORMAL_BOLT_PARALLEL = 11;
+    //Dropping the parallelism of the bolts to 3 instead of 11 so we can find a solution in a reasonable amount of work when backtracking.
+    private static final int BACKTRACK_BOLT_PARALLEL = 3;
 
-        ConstraintSolverStrategy cs = new ConstraintSolverStrategy();
-
+    public Map<String, Object> makeTestTopoConf() {
         List<List<String>> constraints = new LinkedList<>();
         addContraints("spout-0", "bolt-0", constraints);
-        addContraints("bolt-1", "bolt-1", constraints);
+        addContraints("bolt-2", "spout-0", constraints);
         addContraints("bolt-1", "bolt-2", constraints);
+        addContraints("bolt-1", "bolt-0", constraints);
+        addContraints("bolt-1", "spout-0", constraints);
         List<String> spread = new LinkedList<>();
         spread.add("spout-0");
 
@@ -71,60 +68,124 @@ public class TestRASConstraintSolver {
         config.put(Config.TOPOLOGY_SPREAD_COMPONENTS, spread);
         config.put(Config.TOPOLOGY_CONSTRAINTS, constraints);
         config.put(Config.TOPOLOGY_CONSTRAINTS_MAX_DEPTH_TRAVERSAL, MAX_TRAVERSAL_DEPTH);
-        config.put(Config.TOPOLOGY_WORKERS, NUM_WORKERS);
-        config.put(Config.TOPOLOGY_WORKER_MAX_HEAP_SIZE_MB, 100000);
+        config.put(Config.TOPOLOGY_WORKER_MAX_HEAP_SIZE_MB, 100_000);
         config.put(Config.TOPOLOGY_PRIORITY, 1);
         config.put(Config.TOPOLOGY_COMPONENT_CPU_PCORE_PERCENT, 10);
         config.put(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB, 100);
         config.put(Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB, 0.0);
 
-        TopologyDetails topo = genTopology("testTopo", config, 2, 4, 30, 30, 0, 0, "user");
-        Map<String, TopologyDetails> topoMap = new HashMap<>();
-        topoMap.put(topo.getId(), topo);
-        Topologies topologies = new Topologies(topoMap);
-        Cluster cluster = new Cluster(new INimbusTest(), supMap, new HashMap<>(), topologies, new Config());
+        return config;
+    }
+
+    public TopologyDetails makeTopology(Map<String, Object> config, int boltParallel) {
+        return genTopology("testTopo", config, 1, 4, 4, boltParallel, 0, 0, "user");
+    }
+
+    public Cluster makeCluster(TopologyDetails topo) {
+        Topologies topologies = new Topologies(topo);
+        Map<String, SupervisorDetails> supMap = genSupervisors(4, 2, 120, 1200);
+        return new Cluster(new INimbusTest(), supMap, new HashMap<>(), topologies, new Config());
+    }
+
+    public void basicUnitTestWithKillAndRecover(ConstraintSolverStrategy cs, int boltParallel) {
+        Map<String, Object> config = makeTestTopoConf();
         cs.prepare(config);
 
+        TopologyDetails topo = makeTopology(config, boltParallel);
+        Cluster cluster = makeCluster(topo);
+
+        LOG.info("Scheduling...");
         SchedulingResult result = cs.schedule(cluster, topo);
-        
-        Assert.assertTrue("Assert scheduling topology success", result.isSuccess());
-        Assert.assertEquals("topo all executors scheduled?", 0, cluster.getUnassignedExecutors(topo).size());
+        LOG.info("Done scheduling {}...", result);
+
+        Assert.assertTrue("Assert scheduling topology success " + result, result.isSuccess());
+        Assert.assertEquals("topo all executors scheduled? " + cluster.getUnassignedExecutors(topo),
+            0, cluster.getUnassignedExecutors(topo).size());
         Assert.assertTrue("Valid Scheduling?", ConstraintSolverStrategy.validateSolution(cluster, topo));
+        LOG.info("Slots Used {}", cluster.getAssignmentById(topo.getId()).getSlots());
+        LOG.info("Assignment {}", cluster.getAssignmentById(topo.getId()).getSlotToExecutors());
 
         //simulate worker loss
-        Map<ExecutorDetails, WorkerSlot> newExecToSlot = new HashMap<>();
         SchedulerAssignment assignment = cluster.getAssignmentById(topo.getId());
 
         Set<WorkerSlot> slotsToDelete = new HashSet<>();
         Set<WorkerSlot> slots = assignment.getSlots();
         int i = 0;
         for (WorkerSlot slot: slots) {
-            if (i % 5 == 0) {
+            if (i % 2 == 0) {
                 slotsToDelete.add(slot);
             }
             i++;
         }
 
-        LOG.info("\n\n\t\tKILL WORKER(s) {}", slotsToDelete);
-        for (Map.Entry<ExecutorDetails, WorkerSlot> entry: assignment.getExecutorToSlot().entrySet()) {
-            if (!slotsToDelete.contains(entry.getValue())) {
-                newExecToSlot.put(entry.getKey(), entry.getValue());
-            }
+        LOG.info("KILL WORKER(s) {}", slotsToDelete);
+        for (WorkerSlot slot: slotsToDelete) {
+            cluster.freeSlot(slot);
         }
-
-        Map<String, SchedulerAssignment> newAssignments = new HashMap<>();
-        newAssignments.put(topo.getId(), new SchedulerAssignmentImpl(topo.getId(), newExecToSlot, null, null));
-        cluster.setAssignments(newAssignments, false);
 
         cs = new ConstraintSolverStrategy();
         cs.prepare(config);
-        LOG.info("\n\n\t\tScheduling again...");
+        LOG.info("Scheduling again...");
         result = cs.schedule(cluster, topo);
-        LOG.info("\n\n\t\tDone scheduling...");
+        LOG.info("Done scheduling {}...", result);
 
-        Assert.assertTrue("Assert scheduling topology success", result.isSuccess());
+        Assert.assertTrue("Assert scheduling topology success " + result, result.isSuccess());
         Assert.assertEquals("topo all executors scheduled?", 0, cluster.getUnassignedExecutors(topo).size());
         Assert.assertTrue("Valid Scheduling?", ConstraintSolverStrategy.validateSolution(cluster, topo));
+    }
+
+    @Test
+    public void testConstraintSolverForceBacktrack() {
+        //The best way to force backtracking is to change the heuristic so the components are reversed, so it is hard
+        // to find an answer.
+        ConstraintSolverStrategy cs = new ConstraintSolverStrategy() {
+            @Override
+            public <K extends Comparable<K>, V extends Comparable<V>> NavigableMap<K, V> sortByValues(final Map<K, V> map) {
+                return super.sortByValues(map).descendingMap();
+            }
+        };
+        basicUnitTestWithKillAndRecover(cs, BACKTRACK_BOLT_PARALLEL);
+    }
+
+    @Test
+    public void testConstraintSolver() {
+        basicUnitTestWithKillAndRecover(new ConstraintSolverStrategy(), NORMAL_BOLT_PARALLEL);
+    }
+
+    public void basicFailureTest(String confKey, Object confValue, ConstraintSolverStrategy cs) {
+        Map<String, Object> config = makeTestTopoConf();
+        config.put(confKey, confValue);
+        cs.prepare(config);
+
+        TopologyDetails topo = makeTopology(config, NORMAL_BOLT_PARALLEL);
+        Cluster cluster = makeCluster(topo);
+
+        LOG.info("Scheduling...");
+        SchedulingResult result = cs.schedule(cluster, topo);
+        LOG.info("Done scheduling {}...", result);
+
+        Assert.assertTrue("Assert scheduling topology success " + result, !result.isSuccess());
+    }
+
+    @Test
+    public void testTooManyStateTransitions() {
+        basicFailureTest(Config.TOPOLOGY_CONSTRAINTS_MAX_DEPTH_TRAVERSAL, 10, new ConstraintSolverStrategy());
+    }
+
+    @Test
+    public void testTimeout() {
+        try (Time.SimulatedTime simulating = new Time.SimulatedTime()) {
+            ConstraintSolverStrategy cs = new ConstraintSolverStrategy() {
+                @Override
+                protected SolverResult backtrackSearch(SearcherState state) {
+                    //Each time we try to schedule a new component simulate taking 1 second longer
+                    Time.advanceTime(1_000);
+                    return super.backtrackSearch(state);
+
+                }
+            };
+            basicFailureTest(Config.TOPOLOGY_CONSTRAINTS_MAX_TIME_SECS, 2, cs);
+        }
     }
 
     @Test
@@ -144,8 +205,7 @@ public class TestRASConstraintSolver {
         config.put(Config.TOPOLOGY_SPREAD_COMPONENTS, spread);
         config.put(Config.TOPOLOGY_CONSTRAINTS, constraints);
         config.put(Config.TOPOLOGY_CONSTRAINTS_MAX_DEPTH_TRAVERSAL, MAX_TRAVERSAL_DEPTH);
-        config.put(Config.TOPOLOGY_WORKERS, NUM_WORKERS);
-        config.put(Config.TOPOLOGY_WORKER_MAX_HEAP_SIZE_MB, 100000);
+        config.put(Config.TOPOLOGY_WORKER_MAX_HEAP_SIZE_MB, 100_000);
         config.put(Config.TOPOLOGY_PRIORITY, 1);
         config.put(Config.TOPOLOGY_COMPONENT_CPU_PCORE_PERCENT, 10);
         config.put(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB, 100);
@@ -164,7 +224,7 @@ public class TestRASConstraintSolver {
         Assert.assertEquals("topo all executors scheduled?", 0, cluster.getUnassignedExecutors(topo).size());
 
         //simulate worker loss
-        Map<ExecutorDetails, WorkerSlot> newExecToSlot = new HashMap<ExecutorDetails, WorkerSlot>();
+        Map<ExecutorDetails, WorkerSlot> newExecToSlot = new HashMap<>();
         Map<ExecutorDetails, WorkerSlot> execToSlot = cluster.getAssignmentById(topo.getId()).getExecutorToSlot();
         Iterator<Map.Entry<ExecutorDetails, WorkerSlot>> it =execToSlot.entrySet().iterator();
         for (int i = 0; i<execToSlot.size()/2; i++) {
@@ -172,7 +232,7 @@ public class TestRASConstraintSolver {
             WorkerSlot ws = it.next().getValue();
             newExecToSlot.put(exec, ws);
         }
-        Map<String, SchedulerAssignment> newAssignments = new HashMap<String, SchedulerAssignment>();
+        Map<String, SchedulerAssignment> newAssignments = new HashMap<>();
         newAssignments.put(topo.getId(), new SchedulerAssignmentImpl(topo.getId(), newExecToSlot, null, null));
         cluster.setAssignments(newAssignments, false);
         
@@ -184,10 +244,9 @@ public class TestRASConstraintSolver {
     }
 
     public static void addContraints(String comp1, String comp2, List<List<String>> constraints) {
-        LinkedList<String> constraintPair = new LinkedList<String>();
+        LinkedList<String> constraintPair = new LinkedList<>();
         constraintPair.add(comp1);
         constraintPair.add(comp2);
         constraints.add(constraintPair);
     }
-
 }

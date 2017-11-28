@@ -17,6 +17,7 @@
  */
 package backtype.storm.scheduler;
 
+import backtype.storm.networktopography.DefaultRackDNSToSwitchMapping;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -156,21 +157,21 @@ public class Cluster implements ISchedulingState {
         if (networkTopography == null || networkTopography.isEmpty()) {
             //Initialize the network topography
             String clazz = (String) conf.get(Config.STORM_NETWORK_TOPOGRAPHY_PLUGIN);
-            if (clazz != null && !clazz.isEmpty()) {
-                DNSToSwitchMapping topographyMapper =
-                    (DNSToSwitchMapping) Utils.newInstance(clazz);
+            if (clazz == null || clazz.isEmpty()) {
+                clazz = DefaultRackDNSToSwitchMapping.class.getName();
+            }
+            DNSToSwitchMapping topographyMapper = Utils.newInstance(clazz);
 
-                Map<String, String> resolvedSuperVisors = topographyMapper.resolve(supervisorHostNames);
-                for (Map.Entry<String, String> entry : resolvedSuperVisors.entrySet()) {
-                    String hostName = entry.getKey();
-                    String rack = entry.getValue();
-                    List<String> nodesForRack = this.networkTopography.get(rack);
-                    if (nodesForRack == null) {
-                        nodesForRack = new ArrayList<String>();
-                        this.networkTopography.put(rack, nodesForRack);
-                    }
-                    nodesForRack.add(hostName);
+            Map<String, String> resolvedSuperVisors = topographyMapper.resolve(supervisorHostNames);
+            for (Map.Entry<String, String> entry : resolvedSuperVisors.entrySet()) {
+                String hostName = entry.getKey();
+                String rack = entry.getValue();
+                List<String> nodesForRack = this.networkTopography.get(rack);
+                if (nodesForRack == null) {
+                    nodesForRack = new ArrayList<>();
+                    this.networkTopography.put(rack, nodesForRack);
                 }
+                nodesForRack.add(hostName);
             }
         } else {
             this.networkTopography.putAll(networkTopography);

@@ -1786,17 +1786,30 @@ public class Config extends HashMap<String, Object> {
     public static final String TOPOLOGY_SCHEDULER_STRATEGY = "topology.scheduler.strategy";
 
     /**
-     * Declare scheduling constraints for a topology
+     * Declare scheduling constraints for a topology used by the constraint solver strategy.
      */
     @CustomValidator(validatorClass = ListOfListOfStringValidator.class)
     public static final String TOPOLOGY_CONSTRAINTS = "topology.constraints";
 
     /**
-     * Declare max traversal depth for find solutions that satisfy constraints
+     * Array of components that scheduler should try to place on separate hosts when using the constraint solver strategy.
+     */
+    @isStringList
+    public static final String TOPOLOGY_SPREAD_COMPONENTS = "topology.spread.components";
+
+    /**
+     * The maximum number of states that will be searched looking for a solution in the constraint solver strategy.
      */
     @isInteger
     @isPositiveNumber
     public static final String TOPOLOGY_CONSTRAINTS_MAX_DEPTH_TRAVERSAL = "topology.constraints.max.depth.traversal";
+
+    /**
+     * The maximum number of seconds to spend scheduling a topology using the constraint solver.  Null means no limit.
+     */
+    @isInteger
+    @isPositiveNumber
+    public static final String TOPOLOGY_CONSTRAINTS_MAX_TIME_SECS = "topology.constraints.max.time.secs";
 
     /**
      * A list of host names that this topology would prefer to be scheduled on (no guarantee is given though).
@@ -2186,12 +2199,6 @@ public class Config extends HashMap<String, Object> {
      */
     @isString
     public static final String TOPOLOGY_SUBMITTER_USER = "topology.submitter.user";
-
-    /**
-     * Array of components that scheduler should try to place on separate hosts.
-     */
-    @isStringList
-    public static final String TOPOLOGY_SPREAD_COMPONENTS = "topology.spread.components";
 
     /**
      * A list of IAutoCredentials that the topology should load and use.
@@ -2842,18 +2849,18 @@ public class Config extends HashMap<String, Object> {
     }
 
     /**
-     * Declares executors of component1 cannot be on the same worker as executors of component2
-     * Function is additive.
+     * Declares executors of component1 cannot be on the same worker as executors of component2.
+     * This function is additive.
      * Thus a user can setTopologyComponentWorkerConstraints("A", "B")
      * and then setTopologyComponentWorkerConstraints("B", "C")
      * Which means executors form component A cannot be on the same worker with executors of component B
      * and executors of Component B cannot be on workers with executors of component C
-     * @param component1
-     * @param component2
+     * @param component1 a component that should not coexist with component2
+     * @param component2 a component that should not coexist with component1
      */
     public void setTopologyComponentWorkerConstraints(String component1, String component2) {
         if(component1 != null && component2 != null) {
-            List<String> constraintPair = new LinkedList<String>();
+            List<String> constraintPair = new LinkedList<>();
             constraintPair.add(component1);
             constraintPair.add(component2);
             if(!this.containsKey(Config.TOPOLOGY_CONSTRAINTS)) {

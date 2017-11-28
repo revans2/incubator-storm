@@ -131,7 +131,13 @@ public class GenericResourceAwareStrategy extends BaseResourceAwareStrategy impl
     protected TreeSet<ObjectResources> sortObjectResources(
             final AllResources allResources, ExecutorDetails exec, TopologyDetails topologyDetails,
             final ExistingScheduleFunc existingScheduleFunc) {
+        return sortObjectResourcesImpl(allResources, exec, topologyDetails, existingScheduleFunc);
+    }
 
+
+    public static TreeSet<ObjectResources> sortObjectResourcesImpl(
+        final AllResources allResources, ExecutorDetails exec, TopologyDetails topologyDetails,
+        final ExistingScheduleFunc existingScheduleFunc) {
         Map<String, Double> requestedResources = topologyDetails.getTotalResources(exec);
         AllResources affinityBasedAllResources = new AllResources(allResources);
         for (ObjectResources objectResources : affinityBasedAllResources.objectResources) {
