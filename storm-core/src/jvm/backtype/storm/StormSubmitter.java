@@ -476,15 +476,15 @@ public class StormSubmitter {
     private static double getMaxExecutorMemoryUsageForTopo(StormTopology topology, Map<String, Object> topologyConf) {
         double largestMemoryOperator = 0.0;
         for (Map<String, Double> entry : ResourceUtils.getBoltsResources(topology, topologyConf).values()) {
-            double memoryRequirement = entry.get(Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB)
-                    + entry.get(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB);
+            double memoryRequirement = entry.get(Constants.COMMON_OFFHEAP_MEMORY_RESOURCE_NAME)
+                    + entry.get(Constants.COMMON_ONHEAP_MEMORY_RESOURCE_NAME);
             if(memoryRequirement > largestMemoryOperator) {
                 largestMemoryOperator = memoryRequirement;
             }
         }
         for (Map<String, Double> entry : ResourceUtils.getSpoutsResources(topology, topologyConf).values()) {
-            double memoryRequirement = entry.get(Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB)
-                    + entry.get(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB);
+            double memoryRequirement = entry.get(Constants.COMMON_OFFHEAP_MEMORY_RESOURCE_NAME)
+                    + entry.get(Constants.COMMON_ONHEAP_MEMORY_RESOURCE_NAME);
             if(memoryRequirement > largestMemoryOperator) {
                 largestMemoryOperator = memoryRequirement;
             }
