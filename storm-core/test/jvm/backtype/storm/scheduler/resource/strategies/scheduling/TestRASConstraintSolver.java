@@ -51,7 +51,7 @@ public class TestRASConstraintSolver {
     private static final Logger LOG = LoggerFactory.getLogger(TestRASConstraintSolver.class);
     private static final int NUM_SUPS = 20;
     private static final int NUM_WORKERS_PER_SUP = 4;
-    private static final int MAX_TRAVERSAL_DEPTH = 1000000;
+    private static final int MAX_TRAVERSAL_DEPTH = 2000;
     private static final int NUM_WORKERS = NUM_SUPS * NUM_WORKERS_PER_SUP;
     
     @Test
@@ -78,7 +78,7 @@ public class TestRASConstraintSolver {
         config.put(Config.TOPOLOGY_COMPONENT_RESOURCES_ONHEAP_MEMORY_MB, 100);
         config.put(Config.TOPOLOGY_COMPONENT_RESOURCES_OFFHEAP_MEMORY_MB, 0.0);
 
-        TopologyDetails topo = genTopology("testTopo", config, 2, 3, 30, 300, 0, 0, "user");
+        TopologyDetails topo = genTopology("testTopo", config, 2, 4, 30, 30, 0, 0, "user");
         Map<String, TopologyDetails> topoMap = new HashMap<>();
         topoMap.put(topo.getId(), topo);
         Topologies topologies = new Topologies(topoMap);

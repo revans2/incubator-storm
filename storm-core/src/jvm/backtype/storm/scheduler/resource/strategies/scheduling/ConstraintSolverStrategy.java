@@ -183,7 +183,7 @@ public class ConstraintSolverStrategy implements IStrategy{
         compToExecs = getCompToExecs(execToComp);
 
         //get topology constraints
-        constraintMatrix = getConstraintMap(topo);
+        constraintMatrix = getConstraintMap(topo, compToExecs.keySet());
 
         //get spread components
         spreadComps = getSpreadComps(topo);
@@ -328,8 +328,7 @@ public class ConstraintSolverStrategy implements IStrategy{
         return execWorkerAssignment.size() == execToComp.size();
     }
 
-    static Map<String, Map<String, Integer>> getConstraintMap(TopologyDetails topo) {
-        Set<String> comps = topo.getComponents().keySet();
+    static Map<String, Map<String, Integer>> getConstraintMap(TopologyDetails topo, Set<String> comps) {
         Map<String, Map<String, Integer>> matrix = new HashMap<>();
         for (String comp : comps) {
             matrix.put(comp, new HashMap<>());
@@ -387,7 +386,7 @@ public class ConstraintSolverStrategy implements IStrategy{
         Map<ExecutorDetails, WorkerSlot> result = cluster.getAssignmentById(topo.getId()).getExecutorToSlot();
         Map<ExecutorDetails, String> execToComp = topo.getExecutorToComponent();
         //get topology constraints
-        Map<String, Map<String, Integer>> constraintMatrix = getConstraintMap(topo);
+        Map<String, Map<String, Integer>> constraintMatrix = getConstraintMap(topo, new HashSet<>(topo.getExecutorToComponent().values()));
 
         Map<WorkerSlot, List<String>> workerCompMap = new HashMap<>();
         for (Map.Entry<ExecutorDetails, WorkerSlot> entry : result.entrySet()) {
