@@ -36,15 +36,13 @@ import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.NavigableMap;
 import java.util.Set;
-import java.util.Stack;
 import java.util.TreeMap;
 import java.util.TreeSet;
+import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -141,7 +139,7 @@ public class ConstraintSolverStrategy extends BaseResourceAwareStrategy {
         public SearcherState nextExecutor() {
             execIndex++;
             if (execIndex >= execs.size()) {
-                throw new IllegalStateException("Exceeded the exec limit " + execIndex + " >= " + execs.size());
+                throw new IllegalStateException("Internal Error: exceeded the exec limit " + execIndex + " >= " + execs.size());
             }
             return this;
         }
@@ -154,28 +152,32 @@ public class ConstraintSolverStrategy extends BaseResourceAwareStrategy {
             return execs.get(execIndex);
         }
 
-        public void tryToSchedule(String comp, RAS_Node node, WorkerSlot workerSlot) {
+        public void tryToSchedule(Map<ExecutorDetails, String> execToComp, RAS_Node node, WorkerSlot workerSlot) {
             ExecutorDetails exec = currentExec();
+            String comp = execToComp.get(exec);
             LOG.trace("Trying assignment of {} {} to {}", exec, comp, workerSlot);
             //It is possible that this component is already scheduled on this node or worker.  If so when we backtrack we cannot remove it
             okToRemoveFromWorker[execIndex] = workerCompAssignment.computeIfAbsent(workerSlot, (k) -> new HashSet<>()).add(comp);
-            okToRemoveFromNode[execIndex] = nodeCompAssignment.get(node).add(comp);
+            okToRemoveFromNode[execIndex] = nodeCompAssignment.computeIfAbsent(node, (k) -> new HashSet<>()).add(comp);
             node.assignSingleExecutor(workerSlot, exec, td);
         }
 
-        public void backtrack(String comp, RAS_Node node, WorkerSlot workerSlot) {
+        public void backtrack(Map<ExecutorDetails, String> execToComp, RAS_Node node, WorkerSlot workerSlot) {
             execIndex--;
             if (execIndex < 0) {
-                throw new IllegalStateException("Internal Error exec index became negative");
+                throw new IllegalStateException("Internal Error: exec index became negative");
             }
             numBacktrack++;
             ExecutorDetails exec = currentExec();
+            String comp = execToComp.get(exec);
             LOG.trace("Backtracking {} {} from {}", exec, comp, workerSlot);
             if (okToRemoveFromWorker[execIndex]) {
                 workerCompAssignment.get(workerSlot).remove(comp);
+                okToRemoveFromWorker[execIndex] = false;
             }
             if (okToRemoveFromNode[execIndex]) {
                 nodeCompAssignment.get(node).remove(comp);
+                okToRemoveFromNode[execIndex] = false;
             }
             node.freeSingleExecutor(exec, td);
         }
@@ -193,6 +195,7 @@ public class ConstraintSolverStrategy extends BaseResourceAwareStrategy {
 
     //hard coded max number of states to search
     public static final int MAX_STATE_SEARCH = 100_000;
+    public static final int DEFAULT_STATE_SEARCH = 10_000;
 
     @Override
     public SchedulingResult schedule(Cluster cluster, TopologyDetails td) {
@@ -203,7 +206,7 @@ public class ConstraintSolverStrategy extends BaseResourceAwareStrategy {
         Map<RAS_Node, Set<String>> nodeCompAssignment = new HashMap<>();
         //set max number of states to search
         final int maxStateSearch = Math.min(MAX_STATE_SEARCH,
-            Utils.getInt(td.getConf().get(Config.TOPOLOGY_CONSTRAINTS_MAX_DEPTH_TRAVERSAL)));
+            Utils.getInt(td.getConf().get(Config.TOPOLOGY_CONSTRAINTS_MAX_DEPTH_TRAVERSAL), DEFAULT_STATE_SEARCH));
 
         final long maxTimeMs =
             Utils.getInt(td.getConf().get(Config.TOPOLOGY_CONSTRAINTS_MAX_TIME_SECS), -1).intValue() * 1000L;
@@ -222,32 +225,23 @@ public class ConstraintSolverStrategy extends BaseResourceAwareStrategy {
         //get spread components
         spreadComps = getSpreadComps(td);
 
-        ArrayList<ExecutorDetails> sortedExecs = new ArrayList<>();
         //get a sorted list of unassigned executors based on number of constraints
         Set<ExecutorDetails> unassignedExecutors = new HashSet<>(cluster.getUnassignedExecutors(td));
-        for (ExecutorDetails exec1 : getSortedExecs(spreadComps, constraintMatrix, compToExecs)) {
-            if (unassignedExecutors.contains(exec1)) {
-                sortedExecs.add(exec1);
-            }
-        }
+        List<ExecutorDetails> sortedExecs = getSortedExecs(spreadComps, constraintMatrix, compToExecs).stream()
+            .filter(unassignedExecutors::contains)
+            .collect(Collectors.toList());
 
-        //initialize structures
-        for (RAS_Node node : nodes.values()) {
-            nodeCompAssignment.put(node, new HashSet<>());
-        }
         //populate with existing assignments
         SchedulerAssignment existingAssignment = cluster.getAssignmentById(td.getId());
         if (existingAssignment != null) {
-            for (Map.Entry<ExecutorDetails, WorkerSlot> entry1 : existingAssignment.getExecutorToSlot().entrySet()) {
-                ExecutorDetails exec1 = entry1.getKey();
-                String compId = execToComp.get(exec1);
-                WorkerSlot ws = entry1.getValue();
+            existingAssignment.getExecutorToSlot().forEach((exec, ws) -> {
+                String compId = execToComp.get(exec);
                 RAS_Node node = nodes.get(ws.getNodeId());
                 //populate node to component Assignments
-                nodeCompAssignment.get(node).add(compId);
+                nodeCompAssignment.computeIfAbsent(node, (k) -> new HashSet<>()).add(compId);
                 //populate worker to comp assignments
                 workerCompAssignment.computeIfAbsent(ws, (k) -> new HashSet<>()).add(compId);
-            }
+            });
         }
 
         //early detection/early fail
@@ -299,9 +293,7 @@ public class ConstraintSolverStrategy extends BaseResourceAwareStrategy {
             RAS_Node node = nodes.get(nodeResources.id);
             for (WorkerSlot workerSlot : node.getSlotsAvailbleTo(state.td)) {
                 if (isExecAssignmentToWorkerValid(workerSlot, state)) {
-                    String comp = execToComp.get(exec);
-
-                    state.tryToSchedule(comp, node, workerSlot);
+                    state.tryToSchedule(execToComp, node, workerSlot);
 
                     if (state.areAllExecsScheduled()) {
                         //Everything is scheduled correctly, so no need to search any more.
@@ -320,7 +312,7 @@ public class ConstraintSolverStrategy extends BaseResourceAwareStrategy {
                     }
 
                     //backtracking (If we ever get here there really isn't a lot of hope that we will find a scheduling)
-                    state.backtrack(comp, node, workerSlot);
+                    state.backtrack(execToComp, node, workerSlot);
                 }
             }
         }
@@ -345,8 +337,9 @@ public class ConstraintSolverStrategy extends BaseResourceAwareStrategy {
         String execComp = execToComp.get(exec);
         Set<String> components = state.workerCompAssignment.get(worker);
         if (components != null) {
+            Map<String, Integer> subMatrix = constraintMatrix.get(execComp);
             for (String comp : components) {
-                if (constraintMatrix.get(execComp).get(comp) != 0) {
+                if (subMatrix.get(comp) != 0) {
                     LOG.trace("{} found {} constraint violation {} on {}", exec, execComp, comp, worker);
                     return false;
                 }
@@ -355,7 +348,7 @@ public class ConstraintSolverStrategy extends BaseResourceAwareStrategy {
 
         //check if exec satisfy spread
         if (spreadComps.contains(execComp)) {
-            if (state.nodeCompAssignment.get(node).contains(execComp)) {
+            if (state.nodeCompAssignment.computeIfAbsent(node, (k) -> new HashSet<>()).contains(execComp)) {
                 LOG.trace("{} Found spread violation {} on node {}", exec, execComp, node.getId());
                 return false;
             }
@@ -411,23 +404,18 @@ public class ConstraintSolverStrategy extends BaseResourceAwareStrategy {
         //get topology constraints
         Map<String, Map<String, Integer>> constraintMatrix = getConstraintMap(topo, new HashSet<>(topo.getExecutorToComponent().values()));
 
-        Map<WorkerSlot, List<String>> workerCompMap = new HashMap<>();
-        for (Map.Entry<ExecutorDetails, WorkerSlot> entry : result.entrySet()) {
-            WorkerSlot worker = entry.getValue();
-            ExecutorDetails exec = entry.getKey();
+        Map<WorkerSlot, Set<String>> workerCompMap = new HashMap<>();
+        result.forEach((exec, worker) -> {
             String comp = execToComp.get(exec);
-            if (!workerCompMap.containsKey(worker)) {
-                workerCompMap.put(worker, new LinkedList<>());
-            }
-            workerCompMap.get(worker).add(comp);
-        }
-        for (Map.Entry<WorkerSlot, List<String>> entry : workerCompMap.entrySet()) {
-            List<String> comps = entry.getValue();
-            for (int i = 0; i < comps.size(); i++) {
-                for (int j = 0; j < comps.size(); j++) {
-                    if (i != j && constraintMatrix.get(comps.get(i)).get(comps.get(j)) == 1) {
+            workerCompMap.computeIfAbsent(worker, (k) -> new HashSet<>()).add(comp);
+        });
+        for (Map.Entry<WorkerSlot, Set<String>> entry : workerCompMap.entrySet()) {
+            Set<String> comps = entry.getValue();
+            for (String comp1 : comps) {
+                for (String comp2: comps) {
+                    if (!comp1.equals(comp2) && constraintMatrix.get(comp1).get(comp2) != 0) {
                         LOG.error("Incorrect Scheduling: worker exclusion for Component {} and {} not satisfied on WorkerSlot: {}",
-                            comps.get(i), comps.get(j), entry.getKey());
+                            comp1, comp2, entry.getKey());
                         return false;
                     }
                 }
@@ -462,29 +450,21 @@ public class ConstraintSolverStrategy extends BaseResourceAwareStrategy {
             WorkerSlot worker = entry.getValue();
             RAS_Node node = workerToNodes.get(worker);
 
-            if (!workerExecMap.containsKey(worker)) {
-                workerExecMap.put(worker, new HashSet<>());
-                workerCompMap.put(worker, new HashSet<>());
-            }
-
-            if (!nodeCompMap.containsKey(node)) {
-                nodeCompMap.put(node, new HashSet<>());
-            }
-            if (workerExecMap.get(worker).contains(exec)) {
+            if (workerExecMap.computeIfAbsent(worker, (k) -> new HashSet<>()).contains(exec)) {
                 LOG.error("Incorrect Scheduling: Found duplicate in scheduling");
                 return false;
             }
             workerExecMap.get(worker).add(exec);
             String comp = execToComp.get(exec);
-            workerCompMap.get(worker).add(comp);
+            workerCompMap.computeIfAbsent(worker, (k) -> new HashSet<>()).add(comp);
             if (spreadComps.contains(comp)) {
-                if (nodeCompMap.get(node).contains(comp)) {
+                if (nodeCompMap.computeIfAbsent(node, (k) -> new HashSet<>()).contains(comp)) {
                     LOG.error("Incorrect Scheduling: Spread for Component: {} {} on node {} not satisfied {}",
                         comp, exec, node.getId(), nodeCompMap.get(node));
                     ret = false;
                 }
             }
-            nodeCompMap.get(node).add(comp);
+            nodeCompMap.computeIfAbsent(node, (k) -> new HashSet<>()).add(comp);
         }
         return ret;
     }
@@ -514,10 +494,7 @@ public class ConstraintSolverStrategy extends BaseResourceAwareStrategy {
                 LOG.error("Incorrect Scheduling: found node with negative available resources");
                 return false;
             }
-            if (!nodeToExecs.containsKey(node)) {
-                nodeToExecs.put(node, new LinkedList<>());
-            }
-            nodeToExecs.get(node).add(exec);
+            nodeToExecs.computeIfAbsent(node, (k) -> new HashSet<>()).add(exec);
         }
 
         for (Map.Entry<RAS_Node, Collection<ExecutorDetails>> entry : nodeToExecs.entrySet()) {
@@ -547,14 +524,7 @@ public class ConstraintSolverStrategy extends BaseResourceAwareStrategy {
 
     private Map<String, Set<ExecutorDetails>> getCompToExecs(Map<ExecutorDetails, String> executorToComp) {
         Map<String, Set<ExecutorDetails>> retMap = new HashMap<>();
-        for (Map.Entry<ExecutorDetails, String> entry : executorToComp.entrySet()) {
-            ExecutorDetails exec = entry.getKey();
-            String comp = entry.getValue();
-            if (!retMap.containsKey(comp)) {
-                retMap.put(comp, new HashSet<>());
-            }
-            retMap.get(comp).add(exec);
-        }
+        executorToComp.forEach((exec, comp) -> retMap.computeIfAbsent(comp, (k) -> new HashSet<>()).add(exec));
         return retMap;
     }
 
@@ -564,20 +534,14 @@ public class ConstraintSolverStrategy extends BaseResourceAwareStrategy {
         //find number of constraints per component
         //Key->Comp Value-># of constraints
         Map<String, Integer> compConstraintCountMap = new HashMap<>();
-        for (Map.Entry<String, Map<String, Integer>> constraintEntry1 : constraintMatrix.entrySet()) {
-            int count = 0;
-            String comp = constraintEntry1.getKey();
-            for (Map.Entry<String, Integer> constraintEntry2 : constraintEntry1.getValue().entrySet()) {
-                if (constraintEntry2.getValue() == 1) {
-                    count++;
-                }
-            }
+        constraintMatrix.forEach((comp, subMatrix) -> {
+            int count = subMatrix.values().stream().mapToInt(Number::intValue).sum();
             //check component is declared for spreading
-            if (spreadComps.contains(constraintEntry1.getKey())) {
+            if (spreadComps.contains(comp)) {
                 count++;
             }
             compConstraintCountMap.put(comp, count);
-        }
+        });
         //Sort comps by number of constraints
         NavigableMap<String, Integer> sortedCompConstraintCountMap = sortByValues(compConstraintCountMap);
         //sort executors based on component constraints
@@ -616,7 +580,7 @@ public class ConstraintSolverStrategy extends BaseResourceAwareStrategy {
                 return compare;
             }
         };
-        TreeMap<K, V> sortedByValues = new TreeMap<>(valueComparator);
+        NavigableMap<K, V> sortedByValues = new TreeMap<>(valueComparator);
         sortedByValues.putAll(map);
         return sortedByValues;
     }
