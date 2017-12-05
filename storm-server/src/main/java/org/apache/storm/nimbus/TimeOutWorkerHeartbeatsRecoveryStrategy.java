@@ -19,12 +19,15 @@ package org.apache.storm.nimbus;
 
 import org.apache.storm.Config;
 import org.apache.storm.utils.ObjectReader;
+import org.apache.storm.utils.Time;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+
+import static java.util.stream.Collectors.toSet;
 
 /**
  * Wait for a node to report worker heartbeats until a configured timeout. For cases below we have strategies:
@@ -42,45 +45,33 @@ public class TimeOutWorkerHeartbeatsRecoveryStrategy implements IWorkerHeartbeat
 
     private long startTimeSecs;
 
-    private Set<String> reportedIDs;
+    private Set<String> reportedIds;
 
     @Override
     public void prepare(Map conf) {
         NODE_MAX_TIMEOUT_SECS = ObjectReader.getInt(conf.get(Config.SUPERVISOR_WORKER_HEARTBEATS_MAX_TIMEOUT_SECS), 600);
         this.startTimeSecs = System.currentTimeMillis() / 1000L;
-        this.reportedIDs = new HashSet<>();
+        this.reportedIds = new HashSet<>();
     }
 
     @Override
     public boolean isReady(Set<String> nodeIds) {
-        if (isMaxTimeOut()) {
-            HashSet<String> tmp = new HashSet<>();
-            for(String nodeID : nodeIds) {
-                if (!this.reportedIDs.contains(nodeID))
-                tmp.add(nodeID);
-            }
+        if (exceedsMaxTimeOut()) {
+            Set<String> tmp = nodeIds.stream().filter(id -> !this.reportedIds.contains(id)).collect(toSet());
             LOG.warn("Failed to recover heartbeats for nodes: {} with timeout {}s", tmp, NODE_MAX_TIMEOUT_SECS);
             return true;
         }
-        for (String nodeID : nodeIds) {
-            if (this.reportedIDs.contains(nodeID)) {
-                continue;
-            } else {
-                return false;
-            }
 
-        }
-
-        return true;
+        return nodeIds.stream().allMatch(id -> this.reportedIds.contains(id));
     }
 
     @Override
     public void reportNodeId(String nodeId) {
-        this.reportedIDs.add(nodeId);
+        this.reportedIds.add(nodeId);
     }
 
-    private boolean isMaxTimeOut() {
-        return (System.currentTimeMillis() / 1000L - this.startTimeSecs) > NODE_MAX_TIMEOUT_SECS;
+    private boolean exceedsMaxTimeOut() {
+        return (Time.currentTimeMillis() / 1000L - this.startTimeSecs) > NODE_MAX_TIMEOUT_SECS;
     }
 
 }

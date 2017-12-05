@@ -246,7 +246,7 @@ public class Supervisor implements DaemonCommon, AutoCloseable {
                 throw new IllegalArgumentException("Cannot start server in local mode!");
             }
             launch();
-            //must invoke after launch cause some service must be initialized
+            //must invoke after launch cause some services must be initialized
             launchSupervisorThriftServer(conf);
             Utils.addShutdownHookWithForceKillIn1Sec(() -> {this.close();});
             registerWorkerNumGauge("supervisor:num-slots-used-gauge", conf);
@@ -259,11 +259,13 @@ public class Supervisor implements DaemonCommon, AutoCloseable {
 
     private void launchSupervisorThriftServer(Map conf) throws IOException {
         // validate port
+        int port = ObjectReader.getInt(conf.get(Config.SUPERVISOR_THRIFT_PORT));
         try {
-            ServerSocket socket = new ServerSocket(ObjectReader.getInt(conf.get(Config.SUPERVISOR_THRIFT_PORT)));
+
+            ServerSocket socket = new ServerSocket(port);
             socket.close();
         } catch (BindException e) {
-            LOG.error("{} is not available. Check if another process is already listening on {}", conf.get(Config.SUPERVISOR_THRIFT_PORT), conf.get(Config.SUPERVISOR_THRIFT_PORT));
+            LOG.error("{} is not available. Check if another process is already listening on {}", port, port);
             throw new RuntimeException(e);
         }
 

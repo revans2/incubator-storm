@@ -21,7 +21,30 @@ import com.google.common.collect.Lists;
 
 import org.apache.storm.cluster.ExecutorBeat;
 import org.apache.storm.cluster.IStormClusterState;
-import org.apache.storm.generated.*;
+import org.apache.storm.generated.Bolt;
+import org.apache.storm.generated.BoltAggregateStats;
+import org.apache.storm.generated.BoltStats;
+import org.apache.storm.generated.ClusterWorkerHeartbeat;
+import org.apache.storm.generated.CommonAggregateStats;
+import org.apache.storm.generated.ComponentAggregateStats;
+import org.apache.storm.generated.ComponentPageInfo;
+import org.apache.storm.generated.ComponentType;
+import org.apache.storm.generated.ErrorInfo;
+import org.apache.storm.generated.ExecutorAggregateStats;
+import org.apache.storm.generated.ExecutorInfo;
+import org.apache.storm.generated.ExecutorSpecificStats;
+import org.apache.storm.generated.ExecutorStats;
+import org.apache.storm.generated.ExecutorSummary;
+import org.apache.storm.generated.GlobalStreamId;
+import org.apache.storm.generated.SpecificAggregateStats;
+import org.apache.storm.generated.SpoutAggregateStats;
+import org.apache.storm.generated.SpoutStats;
+import org.apache.storm.generated.StormTopology;
+import org.apache.storm.generated.SupervisorWorkerHeartbeat;
+import org.apache.storm.generated.TopologyPageInfo;
+import org.apache.storm.generated.TopologyStats;
+import org.apache.storm.generated.WorkerResources;
+import org.apache.storm.generated.WorkerSummary;
 import org.apache.storm.scheduler.WorkerSlot;
 import org.apache.storm.utils.Utils;
 import org.apache.storm.utils.Time;
@@ -1524,19 +1547,18 @@ public class StatsUtil {
     // =====================================================================================
 
     /**
-     * update all executor heart beats
+     * update all executor heart beats.
      * TODO: should move this method to nimbus when nimbus.clj is translated
      *
      * @param cache         existing heart beats cache
      * @param executorBeats new heart beats
      * @param executors     all executors
      * @param timeout       timeout
-     * @return a HashMap of updated executor heart beats
      */
     public static void updateHeartbeatCache(Map<List<Integer>, Map<String, Object>> cache,
                                                                   Map<List<Integer>, Map<String, Object>> executorBeats,
                                                                   Set<List<Integer>> executors, Integer timeout) {
-        //if not executor beats, refresh is-timed-out of cache which is done by master
+        //if not executor beats, refresh is-timed-out of the cache which is done by master
         if (executorBeats == null) {
             for (Map.Entry<List<Integer>, Map<String, Object>> executorbeat: cache.entrySet()) {
                 Map<String, Object> beat = executorbeat.getValue();
@@ -1995,7 +2017,7 @@ public class StatsUtil {
     }
 
     /**
-     * used for local test
+     * Used for local test.
      * @return
      */
     public static SupervisorWorkerHeartbeat thriftifyRPCWorkerHb(String stormId, List<Long> executorId) {

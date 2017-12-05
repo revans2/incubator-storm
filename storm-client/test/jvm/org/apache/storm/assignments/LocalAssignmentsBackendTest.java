@@ -22,8 +22,15 @@ import org.apache.storm.generated.Assignment;
 import org.apache.storm.generated.NodeInfo;
 import org.apache.storm.utils.ConfigUtils;
 import org.junit.Test;
+import static org.junit.Assert.assertEquals;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.HashMap;
+import java.util.Set;
+import java.util.HashSet;
+
 
 public class LocalAssignmentsBackendTest {
 
@@ -36,16 +43,16 @@ public class LocalAssignmentsBackendTest {
         Assignment ass2 = mockedAssignment(2);
 
         ILocalAssignmentsBackend backend = LocalAssignmentsBackendFactory.getBackend(ConfigUtils.readStormConfig());
-        assert (null == backend.getAssignment(storm1));
+        assertEquals(null, backend.getAssignment(storm1));
         backend.keepOrUpdateAssignment(storm1, ass1);
         backend.keepOrUpdateAssignment(storm2, ass2);
-        assert (ass1.equals(backend.getAssignment(storm1)));
-        assert (ass2.equals(backend.getAssignment(storm2)));
+        assertEquals(ass1, backend.getAssignment(storm1));
+        assertEquals(ass2, backend.getAssignment(storm2));
         backend.clearStateForStorm(storm1);
-        assert (null == backend.getAssignment(storm1));
+        assertEquals(null, backend.getAssignment(storm1));
         backend.keepOrUpdateAssignment(storm1, ass1);
         backend.keepOrUpdateAssignment(storm1, ass2);
-        assert (ass2.equals(backend.getAssignment(storm1)));
+        assertEquals(ass2, backend.getAssignment(storm1));
     }
 
     @Test
@@ -59,18 +66,18 @@ public class LocalAssignmentsBackendTest {
         String id3 = "id3";
 
         ILocalAssignmentsBackend backend = LocalAssignmentsBackendFactory.getBackend(ConfigUtils.readStormConfig());
-        assert (null == backend.getStormId(name3));
+        assertEquals(null, backend.getStormId(name3));
         backend.keepStormId(name1, id1);
         backend.keepStormId(name2, id2);
-        assert (id1.equals(backend.getStormId(name1)));
-        assert (id2.equals(backend.getStormId(name2)));
+        assertEquals(id1, backend.getStormId(name1));
+        assertEquals(id2, backend.getStormId(name2));
         backend.deleteStormId(name1);
-        assert (null == backend.getStormId(name1));
+        assertEquals(null, backend.getStormId(name1));
         backend.clearStateForStorm(id2);
-        assert (null == backend.getStormId(name2));
+        assertEquals(null, backend.getStormId(name2));
         backend.keepStormId(name1, id1);
         backend.keepStormId(name1, id3);
-        assert (id3.equals(backend.getStormId(name1)));
+        assertEquals(id3, backend.getStormId(name1));
     }
 
     private Assignment mockedAssignment(int i) {

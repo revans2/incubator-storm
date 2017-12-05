@@ -56,7 +56,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javax.security.auth.Subject;
 
-import com.google.common.collect.Lists;
 import org.apache.storm.Config;
 import org.apache.storm.Constants;
 import org.apache.storm.DaemonConfig;
@@ -75,17 +74,75 @@ import org.apache.storm.cluster.IStormClusterState;
 import org.apache.storm.daemon.DaemonCommon;
 import org.apache.storm.daemon.Shutdownable;
 import org.apache.storm.daemon.StormCommon;
-import org.apache.storm.daemon.supervisor.*;
-import org.apache.storm.generated.*;
+import org.apache.storm.generated.AlreadyAliveException;
+import org.apache.storm.generated.Assignment;
+import org.apache.storm.generated.AuthorizationException;
+import org.apache.storm.generated.BeginDownloadResult;
+import org.apache.storm.generated.ClusterSummary;
+import org.apache.storm.generated.CommonAggregateStats;
+import org.apache.storm.generated.ComponentAggregateStats;
+import org.apache.storm.generated.ComponentPageInfo;
+import org.apache.storm.generated.ComponentType;
+import org.apache.storm.generated.Credentials;
+import org.apache.storm.generated.DebugOptions;
+import org.apache.storm.generated.ErrorInfo;
+import org.apache.storm.generated.ExecutorInfo;
+import org.apache.storm.generated.ExecutorStats;
+import org.apache.storm.generated.ExecutorSummary;
+import org.apache.storm.generated.GetInfoOptions;
+import org.apache.storm.generated.InvalidTopologyException;
+import org.apache.storm.generated.KeyAlreadyExistsException;
+import org.apache.storm.generated.KeyNotFoundException;
+import org.apache.storm.generated.KillOptions;
+import org.apache.storm.generated.LSTopoHistory;
+import org.apache.storm.generated.ListBlobsResult;
+import org.apache.storm.generated.LogConfig;
+import org.apache.storm.generated.LogLevel;
+import org.apache.storm.generated.LogLevelAction;
 import org.apache.storm.generated.Nimbus.Iface;
 import org.apache.storm.generated.Nimbus.Processor;
+import org.apache.storm.generated.NimbusSummary;
+import org.apache.storm.generated.NodeInfo;
+import org.apache.storm.generated.NotAliveException;
+import org.apache.storm.generated.NumErrorsChoice;
+import org.apache.storm.generated.OwnerResourceSummary;
+import org.apache.storm.generated.ProfileAction;
+import org.apache.storm.generated.ProfileRequest;
+import org.apache.storm.generated.ReadableBlobMeta;
+import org.apache.storm.generated.RebalanceOptions;
+import org.apache.storm.generated.SettableBlobMeta;
+import org.apache.storm.generated.StormBase;
+import org.apache.storm.generated.StormTopology;
+import org.apache.storm.generated.SubmitOptions;
+import org.apache.storm.generated.SupervisorAssignments;
+import org.apache.storm.generated.SupervisorInfo;
+import org.apache.storm.generated.SupervisorPageInfo;
+import org.apache.storm.generated.SupervisorSummary;
+import org.apache.storm.generated.SupervisorWorkerHeartbeats;
+import org.apache.storm.generated.SupervisorWorkerHeartbeat;
+import org.apache.storm.generated.TopologyActionOptions;
+import org.apache.storm.generated.TopologyHistoryInfo;
+import org.apache.storm.generated.TopologyInfo;
+import org.apache.storm.generated.TopologyInitialStatus;
+import org.apache.storm.generated.TopologyPageInfo;
+import org.apache.storm.generated.TopologyStatus;
+import org.apache.storm.generated.TopologySummary;
+import org.apache.storm.generated.WorkerResources;
+import org.apache.storm.generated.WorkerSummary;
 import org.apache.storm.logging.ThriftAccessLogger;
 import org.apache.storm.metric.ClusterMetricsConsumerExecutor;
 import org.apache.storm.metric.StormMetricsRegistry;
 import org.apache.storm.metric.api.DataPoint;
 import org.apache.storm.metric.api.IClusterMetricsConsumer;
 import org.apache.storm.metric.api.IClusterMetricsConsumer.ClusterInfo;
-import org.apache.storm.nimbus.*;
+import org.apache.storm.nimbus.AssignmentDistributionService;
+import org.apache.storm.nimbus.DefaultTopologyValidator;
+import org.apache.storm.nimbus.ILeaderElector;
+import org.apache.storm.nimbus.ITopologyActionNotifierPlugin;
+import org.apache.storm.nimbus.ITopologyValidator;
+import org.apache.storm.nimbus.IWorkerHeartbeatsRecoveryStrategy;
+import org.apache.storm.nimbus.WorkerHeartbeatsRecoveryStrategyFactory;
+import org.apache.storm.nimbus.NimbusInfo;
 import org.apache.storm.scheduler.Cluster;
 import org.apache.storm.scheduler.SupervisorResources;
 import org.apache.storm.scheduler.DefaultScheduler;
@@ -183,7 +240,7 @@ public class Nimbus implements Iface, Shutdownable, DaemonCommon {
 
     @VisibleForTesting
     public static final List<ACL> ZK_ACLS = Arrays.asList(ZooDefs.Ids.CREATOR_ALL_ACL.get(0),
-            new ACL(ZooDefs.Perms.READ ^ ZooDefs.Perms.CREATE, ZooDefs.Ids.ANYONE_ID_UNSAFE));
+            new ACL(ZooDefs.Perms.READ | ZooDefs.Perms.CREATE, ZooDefs.Ids.ANYONE_ID_UNSAFE));
 
     private static List<ACL> getNimbusACLs(Map<String, Object> conf) {
         List<ACL> acls = null;
@@ -1401,8 +1458,8 @@ public class Nimbus implements Iface, Shutdownable, DaemonCommon {
     }
 
     /**
-     * decide if the heartbeats is recovered for a master, will wait for all the assignments nodes to recovery,
-     * every node will take care its node heartbeats reporting
+     * Decide if the heartbeats is recovered for a master, will wait for all the assignments nodes to recovery,
+     * every node will take care its node heartbeats reporting.
      * @return
      */
     private boolean isHeartbeatsRecovered() {
@@ -1419,12 +1476,20 @@ public class Nimbus implements Iface, Shutdownable, DaemonCommon {
         }
         return isReady;
     }
+
+    /**
+     * Decide if the assignments is synchronized
+     * @return
+     */
+    private boolean isAssignmentsRecovered() {
+        return stormClusterState.isAssignmentsBackendSynchronized();
+    }
     
     private Set<List<Integer>> aliveExecutors(TopologyDetails td, Set<List<Integer>> allExecutors, Assignment assignment) {
         String topoId = td.getId();
         Map<List<Integer>, Map<String, Object>> hbCache = heartbeatsCache.get().get(topoId);
         //in case that no workers report any heartbeats yet.
-        if(null == hbCache) {
+        if (null == hbCache) {
             hbCache = new HashMap<>();
         }
         LOG.debug("NEW  Computing alive executors for {}\nExecutors: {}\nAssignment: {}\nHeartbeat cache: {}",
@@ -1826,11 +1891,14 @@ public class Nimbus implements Iface, Shutdownable, DaemonCommon {
     }
 
     private boolean isReadyForMKAssignments() throws Exception {
-        if(isLeader()) {
-            if(isHeartbeatsRecovered()) {
-                return true;
+        if (isLeader()) {
+            if (isHeartbeatsRecovered()) {
+                if (isAssignmentsRecovered()) {
+                    return true;
+                }
+                LOG.warn("waiting for assignments recovery, skipping assignments");
             }
-            LOG.info("waiting for worker heartbeats recovery, skipping assignments");
+            LOG.warn("waiting for worker heartbeats recovery, skipping assignments");
         } else {
             LOG.info("not a leader, skipping assignments");
         }
@@ -2517,8 +2585,8 @@ public class Nimbus implements Iface, Shutdownable, DaemonCommon {
         }
         ret.assignment = state.assignmentInfo(topoId, null);
         //get it from cluster state/zookeeper every time to collect the UI stats, may replace it with other StateStore later
-        ret.beats = Utils.OR(StatsUtil.convertExecutorBeats(state.executorBeats(topoId,
-                ret.assignment.get_executor_node_port())), Collections.emptyMap());
+        ret.beats = ret.assignment != null? StatsUtil.convertExecutorBeats(state.executorBeats(topoId,
+                ret.assignment.get_executor_node_port())) : Collections.emptyMap();
         ret.allComponents = new HashSet<>(ret.taskToComponent.values());
         return ret;
     }
@@ -4239,13 +4307,14 @@ public class Nimbus implements Iface, Shutdownable, DaemonCommon {
     @Override
     public SupervisorAssignments getSupervisorAssignments(String node) throws AuthorizationException, TException {
         try {
-            if(isLeader()) {
+            if (isLeader() && isAssignmentsRecovered()) {
                 SupervisorAssignments supervisorAssignments = new SupervisorAssignments();
                 supervisorAssignments.set_storm_assignment(assignmentsForNode(stormClusterState.assignmentsInfo(), node));
                 return supervisorAssignments;
             }
         } catch (Exception e) {
             //when not leader just return nil which will cause client to get an unknown error
+            LOG.debug("Exception when node {} fetching assignments", node);
         }
         return null;
     }
@@ -4253,22 +4322,24 @@ public class Nimbus implements Iface, Shutdownable, DaemonCommon {
     @Override
     public void sendSupervisorWorkerHeartbeats(SupervisorWorkerHeartbeats heartbeats) throws AuthorizationException, TException {
         try {
-            if(isLeader()) {
+            if (isLeader()) {
                 updateCachedHeartbeatsFromSupervisor(heartbeats);
             }
         } catch (Exception e) {
             //when not leader just return nil which will cause client to get an unknown error
+            LOG.debug("Exception when update heartbeats for node {} heartbeats report.", heartbeats.get_supervisor_id());
         }
     }
 
     @Override
     public void sendSupervisorWorkerHeartbeat(SupervisorWorkerHeartbeat hb) throws AuthorizationException, TException {
         try {
-            if(isLeader()) {
+            if (isLeader()) {
                 updateCachedHeartbeatsFromWorker(hb);
             }
         } catch (Exception e) {
             //when not leader just return nil which will cause client to get an unknown error
+            LOG.debug("Exception when update heartbeats for storm {} worker heartbeat report.", hb.get_storm_id());
         }
     }
 

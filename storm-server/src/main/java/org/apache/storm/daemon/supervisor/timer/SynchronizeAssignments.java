@@ -24,6 +24,7 @@ import org.apache.storm.generated.Assignment;
 import org.apache.storm.generated.SupervisorAssignments;
 import org.apache.storm.utils.ConfigUtils;
 import org.apache.storm.utils.NimbusClient;
+import org.apache.storm.utils.Time;
 import org.apache.storm.utils.Utils;
 import org.apache.thrift.TException;
 import org.slf4j.Logger;
@@ -65,25 +66,18 @@ public class SynchronizeAssignments implements Runnable {
      */
     public void getAssignmentsFromMasterUntilSuccess(Supervisor supervisor) {
         boolean success = false;
-        NimbusClient master;
         while (!success) {
-            try {
-                master = NimbusClient.getConfiguredClient(supervisor.getConf());
+            try (NimbusClient master = NimbusClient.getConfiguredClient(supervisor.getConf())){
                 SupervisorAssignments assignments = master.getClient().getSupervisorAssignments(supervisor.getAssignmentId());
                 assignedAssignmentsToLocal(supervisor.getStormClusterState(), assignments);
                 success = true;
-                try {
-                    master.close();
-                } catch (Throwable t) {
-                    LOG.warn("Close master client exception", t);
-                }
             } catch (Exception t) {
                 // just ignore the exception
             }
             if (!success) {
                 LOG.info("Waiting for a success sync of assignments from master...");
                 try {
-                    Thread.sleep(5000l);
+                    Time.sleep(5000l);
                 } catch (InterruptedException e) {
                     throw new RuntimeException(e);
                 }
@@ -94,7 +88,7 @@ public class SynchronizeAssignments implements Runnable {
     }
 
     public void getAssignmentsFromMaster(Map conf, IStormClusterState clusterState, String node) {
-        if(ConfigUtils.isLocalMode(conf)) {
+        if (ConfigUtils.isLocalMode(conf)) {
             try {
                 SupervisorAssignments assignments = this.supervisor.getLocalNimbus().getSupervisorAssignments(node);
                 assignedAssignmentsToLocal(clusterState, assignments);
@@ -102,17 +96,10 @@ public class SynchronizeAssignments implements Runnable {
                 LOG.error("Get assignments from local master exception", e);
             }
         } else {
-            NimbusClient master;
-            try {
-                master = NimbusClient.getConfiguredClient(conf);
+            try (NimbusClient master = NimbusClient.getConfiguredClient(conf)){
                 SupervisorAssignments assignments = master.getClient().getSupervisorAssignments(node);
                 LOG.debug("Sync an assignments from master, will start to sync with assignments: {}", assignments);
                 assignedAssignmentsToLocal(clusterState, assignments);
-                try {
-                    master.close();
-                } catch (Throwable t) {
-                    LOG.warn("Close master client exception", t);
-                }
             } catch (Exception t) {
                 LOG.error("Get assignments from master exception", t);
             }

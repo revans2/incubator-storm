@@ -29,7 +29,7 @@ import java.util.Map;
  */
 public class LocalAssignmentsBackendFactory {
 
-    public static ILocalAssignmentsBackend getBackend(Map conf) {
+    public static ILocalAssignmentsBackend getBackend(Map<String, Object> conf) {
         if (conf.get(Config.NIMBUS_LOCAL_ASSIGNMENTS_BACKEND_CLASS) != null) {
             Object targetObj = ReflectionUtils.newInstance((String) conf.get(Config.NIMBUS_LOCAL_ASSIGNMENTS_BACKEND_CLASS));
             Preconditions.checkState(targetObj instanceof ILocalAssignmentsBackend, "{} must implements ILocalAssignmentsBackend", Config.NIMBUS_LOCAL_ASSIGNMENTS_BACKEND_CLASS);

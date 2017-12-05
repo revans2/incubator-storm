@@ -51,7 +51,13 @@ import org.apache.storm.serialization.KryoTupleSerializer;
 import org.apache.storm.task.WorkerTopologyContext;
 import org.apache.storm.tuple.AddressedTuple;
 import org.apache.storm.tuple.Fields;
-import org.apache.storm.utils.*;
+import org.apache.storm.utils.ConfigUtils;
+import org.apache.storm.utils.Utils;
+import org.apache.storm.utils.DisruptorQueue;
+import org.apache.storm.utils.ObjectReader;
+import org.apache.storm.utils.SupervisorClient;
+import org.apache.storm.utils.ThriftTopologyUtils;
+import org.apache.storm.utils.TransferDrainer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -66,8 +72,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 
 public class WorkerState {
 
@@ -627,10 +631,8 @@ public class WorkerState {
 
     private Assignment getLocalAssignment(Map<String, Object> conf, IStormClusterState stormClusterState, String topologyId) {
         if (!ConfigUtils.isLocalMode(conf)) {
-            try{
-                SupervisorClient supervisorClient = SupervisorClient.getConfiguredClient(conf, Utils.hostname());
+            try (SupervisorClient supervisorClient = SupervisorClient.getConfiguredClient(conf, Utils.hostname())){
                 Assignment assignment = supervisorClient.getClient().getLocalAssignmentForStorm(topologyId);
-                supervisorClient.close();
                 return assignment;
             } catch (Throwable tr1) {
                 //if any error/exception thrown, fetch it from zookeeper

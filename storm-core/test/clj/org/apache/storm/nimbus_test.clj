@@ -456,7 +456,7 @@
       (is (= 2 (storm-num-workers state "mystorm"))) ;; because only 2 executors
       )))
 
-;;TODO: when translating this function, you should replace the map-val with a proper for loop HERE
+;TODO: when translating this function, you should replace the map-val with a proper for loop HERE
 (deftest test-executor-assignments
   (with-open [cluster (.build (doto (LocalCluster$Builder. )
                                       (.withSimulatedTime)
@@ -522,7 +522,7 @@
       (is (= 10 (count (task-info "4"))))
       (is (= 7 (storm-num-workers state "test")))
     )))
-;
+
 (deftest test-topo-history
   (let [group-mapper (Mockito/mock IGroupMappingServiceProvider)]
     (with-open [cluster (.build (doto (LocalCluster$Builder. )

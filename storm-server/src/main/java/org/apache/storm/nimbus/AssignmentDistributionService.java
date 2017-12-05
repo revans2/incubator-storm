@@ -17,12 +17,13 @@
  */
 package org.apache.storm.nimbus;
 
-import org.apache.storm.Config;
+import org.apache.storm.DaemonConfig;
 import org.apache.storm.daemon.supervisor.Supervisor;
 import org.apache.storm.generated.SupervisorAssignments;
 import org.apache.storm.utils.ConfigUtils;
 import org.apache.storm.utils.ObjectReader;
 import org.apache.storm.utils.SupervisorClient;
+import org.apache.storm.utils.Time;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -95,8 +96,8 @@ public class AssignmentDistributionService implements Closeable {
         this.conf = conf;
         this.random = new Random(47);
 
-        this.threadsNum = ObjectReader.getInt(conf.get(Config.NIMBUS_ASSIGNMENTS_SERVICE_THREADS), 10);
-        this.queueSize = ObjectReader.getInt(conf.get(Config.NIMBUS_ASSIGNMENTS_SERVICE_THREAD_QUEUE_SIZE), 100);
+        this.threadsNum = ObjectReader.getInt(conf.get(DaemonConfig.NIMBUS_ASSIGNMENTS_SERVICE_THREADS), 10);
+        this.queueSize = ObjectReader.getInt(conf.get(DaemonConfig.NIMBUS_ASSIGNMENTS_SERVICE_THREAD_QUEUE_SIZE), 100);
 
         this.assignmentsQueue = new HashMap<>();
         for (int i = 0; i < threadsNum; i++) {
@@ -212,21 +213,12 @@ public class AssignmentDistributionService implements Closeable {
                 }
             } else {
                 // distributed mode
-                try {
-                    SupervisorClient client = SupervisorClient.getConfiguredClient(service.getConf(), assignments.getHost());
+                try (SupervisorClient client = SupervisorClient.getConfiguredClient(service.getConf(), assignments.getHost())){
                     try {
                         client.getClient().sendSupervisorAssignments(assignments.getAssignments());
                     } catch (Exception e) {
                         //just ignore the exception.
                         LOG.error("Exception when trying to send assignments to node {}: {}", assignments.getNode(), e.getMessage());
-                    } finally {
-                        try {
-                            if (client != null) {
-                                client.close();
-                            }
-                        } catch (Exception e) {
-                            LOG.error("Exception closing client for node: {}", assignments.getNode());
-                        }
                     }
                 } catch (Throwable e) {
                     //just ignore any error/exception.
@@ -260,7 +252,7 @@ public class AssignmentDistributionService implements Closeable {
             if (target != null) {
                 return target;
             }
-            Thread.sleep(100L);
+            Time.sleep(100L);
         }
     }
 

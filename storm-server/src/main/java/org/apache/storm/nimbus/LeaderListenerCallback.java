@@ -32,7 +32,6 @@ import org.apache.storm.generated.AuthorizationException;
 import org.apache.storm.generated.KeyNotFoundException;
 import org.apache.storm.generated.StormTopology;
 import org.apache.storm.security.auth.ReqContext;
-import org.apache.storm.utils.ConfigUtils;
 import org.apache.storm.utils.Utils;
 import org.apache.storm.zookeeper.ClientZookeeper;
 import org.apache.zookeeper.CreateMode;
@@ -42,7 +41,11 @@ import org.slf4j.LoggerFactory;
 
 import javax.security.auth.Subject;
 import java.io.IOException;
-import java.util.*;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
 
 /**
  * A callback function when nimbus gains leadership
@@ -78,16 +81,13 @@ public class LeaderListenerCallback {
      * Invoke when gains leadership.
      */
     public void leaderCallBack() {
-        //in local mode, only one leader exist
-        if (ConfigUtils.isLocalMode(conf)) {
-            return;
-        }
         //set up nimbus-info to zk
         setUpNimbusInfo(acls);
         //sync zk assignments/id-info to local
         LOG.info("Sync remote assignments and id-info to local");
         clusterState.syncRemoteAssignments(null);
         clusterState.syncRemoteIds(null);
+        clusterState.setAssignmentsBackendSynchronized();
 
         Set<String> activeTopologyIds = new TreeSet<>(ClientZookeeper.getChildren(zk,
                 conf.get(Config.STORM_ZOOKEEPER_ROOT) + ClusterUtils.STORMS_SUBTREE, false));

@@ -114,8 +114,7 @@ public class ReadClusterState implements Runnable, AutoCloseable {
     @Override
     public synchronized void run() {
         try {
-            Runnable syncCallback = new EventManagerPushCallback(this, syncSupEventManager);
-            List<String> stormIds = stormClusterState.assignments(syncCallback);
+            List<String> stormIds = stormClusterState.assignments(null);
             Map<String, Assignment> assignmentsSnapshot = getAssignmentsSnapshot(stormClusterState);
             
             Map<Integer, LocalAssignment> allAssignments = readAssignments(assignmentsSnapshot);

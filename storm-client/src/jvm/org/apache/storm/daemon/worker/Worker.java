@@ -20,7 +20,6 @@ package org.apache.storm.daemon.worker;
 
 import java.io.File;
 import java.io.IOException;
-import java.net.UnknownHostException;
 import java.nio.charset.Charset;
 import java.security.PrivilegedExceptionAction;
 import java.util.ArrayList;
@@ -51,14 +50,28 @@ import org.apache.storm.executor.Executor;
 import org.apache.storm.executor.ExecutorShutdown;
 import org.apache.storm.executor.IRunningExecutor;
 import org.apache.storm.executor.LocalExecutor;
-import org.apache.storm.generated.*;
+import org.apache.storm.generated.Credentials;
+import org.apache.storm.generated.ExecutorInfo;
+import org.apache.storm.generated.ExecutorStats;
+import org.apache.storm.generated.LSWorkerHeartbeat;
+import org.apache.storm.generated.LogConfig;
+import org.apache.storm.generated.SupervisorWorkerHeartbeat;
 import org.apache.storm.messaging.IConnection;
 import org.apache.storm.messaging.IContext;
 import org.apache.storm.messaging.TaskMessage;
 import org.apache.storm.security.auth.AuthUtils;
 import org.apache.storm.security.auth.IAutoCredentials;
 import org.apache.storm.stats.StatsUtil;
-import org.apache.storm.utils.*;
+import org.apache.storm.utils.ConfigUtils;
+import org.apache.storm.utils.Utils;
+import org.apache.storm.utils.DisruptorBackpressureCallback;
+import org.apache.storm.utils.LocalState;
+import org.apache.storm.utils.NimbusClient;
+import org.apache.storm.utils.ObjectReader;
+import org.apache.storm.utils.SupervisorClient;
+import org.apache.storm.utils.Time;
+import org.apache.storm.utils.WorkerBackpressureCallback;
+import org.apache.storm.utils.WorkerBackpressureThread;
 import org.apache.zookeeper.data.ACL;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -384,17 +397,13 @@ public class Worker implements Shutdownable, DaemonCommon {
         //in distributed mode, send heartbeat directly to master if local supervisor goes down
         SupervisorWorkerHeartbeat workerHeartbeat = new SupervisorWorkerHeartbeat(lsWorkerHeartbeat.get_topology_id(),
                 lsWorkerHeartbeat.get_executors(), lsWorkerHeartbeat.get_time_secs());
-        try{
-            SupervisorClient client = SupervisorClient.getConfiguredClient(conf, Utils.hostname());
+        try (SupervisorClient client = SupervisorClient.getConfiguredClient(conf, Utils.hostname())){
             client.getClient().sendSupervisorWorkerHeartbeat(workerHeartbeat);
-            client.close();
         } catch (Throwable tr1) {
             //if any error/exception thrown, report directly to nimbus.
-            LOG.debug("Exception when send heartbeat to local supervisor", tr1.getMessage());
-            try{
-                NimbusClient nimbusClient = NimbusClient.getConfiguredClient(conf);
+            LOG.warn("Exception when send heartbeat to local supervisor", tr1.getMessage());
+            try (NimbusClient nimbusClient = NimbusClient.getConfiguredClient(conf)){
                 nimbusClient.getClient().sendSupervisorWorkerHeartbeat(workerHeartbeat);
-                nimbusClient.close();
             } catch (Throwable tr2) {
                 //if any error/exception thrown, just ignore.
                 LOG.error("Exception when send heartbeat to master",  tr2.getMessage());

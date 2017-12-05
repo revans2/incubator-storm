@@ -999,24 +999,6 @@ public class Config extends HashMap<String, Object> {
     public static final String NIMBUS_LOCAL_ASSIGNMENTS_BACKEND_CLASS = "nimbus.local.assignments.backend.class";
 
     /**
-     * This controls the number of working threads for distributing master assignments to supervisors.
-     */
-    @isInteger
-    public static final String NIMBUS_ASSIGNMENTS_SERVICE_THREADS = "nimbus.assignments.service.threads";
-
-    /**
-     * This controls the number of working thread queue size of assignment service.
-     */
-    @isInteger
-    public static final String NIMBUS_ASSIGNMENTS_SERVICE_THREAD_QUEUE_SIZE = "nimbus.assignments.service.thread.queue.size";
-
-    /**
-     * class controls heartbeats recovery strategy
-     */
-    @isString
-    public static final String NIMBUS_WORKER_HEARTBEATS_RECOVERY_STRATEGY_CLASS = "nimbus.worker.heartbeats.recovery.strategy.class";
-
-    /**
      * The number of threads that should be used by the nimbus thrift server.
      */
     @isInteger

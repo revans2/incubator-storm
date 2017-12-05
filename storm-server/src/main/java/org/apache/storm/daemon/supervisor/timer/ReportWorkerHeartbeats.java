@@ -70,8 +70,7 @@ public class ReportWorkerHeartbeats implements Runnable {
 
         List<SupervisorWorkerHeartbeat> heartbeatList = new ArrayList<>();
 
-        for (Map.Entry<String, LSWorkerHeartbeat> lsWorkerHeartbeatEntry : localHeartbeats.entrySet()) {
-            LSWorkerHeartbeat lsWorkerHeartbeat = lsWorkerHeartbeatEntry.getValue();
+        for (LSWorkerHeartbeat lsWorkerHeartbeat : localHeartbeats.values()) {
             // local worker heartbeat can be null cause some error/exception
             if (null == lsWorkerHeartbeat) {
                 continue;
@@ -94,23 +93,16 @@ public class ReportWorkerHeartbeats implements Runnable {
             // error/exception thrown, just skip
             return;
         }
-        // if is local mode, just get the local nimbus instance and set the heartbeats
-        if(ConfigUtils.isLocalMode(conf)){
+        // if it is local mode, just get the local nimbus instance and set the heartbeats
+        if (ConfigUtils.isLocalMode(conf)){
             try {
                 this.supervisor.getLocalNimbus().sendSupervisorWorkerHeartbeats(supervisorWorkerHeartbeats);
             } catch (TException tex) {
                 LOG.error("Send local supervisor heartbeats error", tex);
             }
         } else {
-            NimbusClient master;
-            try {
-                master = NimbusClient.getConfiguredClient(conf);
+            try (NimbusClient master = NimbusClient.getConfiguredClient(conf)) {
                 master.getClient().sendSupervisorWorkerHeartbeats(supervisorWorkerHeartbeats);
-                try {
-                    master.close();
-                } catch (Throwable t) {
-                    LOG.warn("Close master client exception", t);
-                }
             } catch (Exception t) {
                 LOG.error("Send worker heartbeats to master exception", t);
             }

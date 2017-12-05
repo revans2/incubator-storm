@@ -18,7 +18,7 @@
 package org.apache.storm.nimbus;
 
 import com.google.common.base.Preconditions;
-import org.apache.storm.Config;
+import org.apache.storm.DaemonConfig;
 import org.apache.storm.utils.ReflectionUtils;
 
 import java.util.Map;
@@ -28,15 +28,16 @@ import java.util.Map;
  */
 public class WorkerHeartbeatsRecoveryStrategyFactory {
 
-    public static IWorkerHeartbeatsRecoveryStrategy getStrategy(Map conf) {
-        if (conf.get(Config.NIMBUS_WORKER_HEARTBEATS_RECOVERY_STRATEGY_CLASS) != null) {
-            Object targetObj = ReflectionUtils.newInstance((String) conf.get(Config.NIMBUS_WORKER_HEARTBEATS_RECOVERY_STRATEGY_CLASS));
-            Preconditions.checkState(targetObj instanceof IWorkerHeartbeatsRecoveryStrategy, "{} must implements IWorkerHeartbeatsRecoveryStrategy", Config.NIMBUS_WORKER_HEARTBEATS_RECOVERY_STRATEGY_CLASS);
-            ((IWorkerHeartbeatsRecoveryStrategy) targetObj).prepare(conf);
-            return (IWorkerHeartbeatsRecoveryStrategy) targetObj;
+    public static IWorkerHeartbeatsRecoveryStrategy getStrategy(Map<String, Object> conf) {
+        IWorkerHeartbeatsRecoveryStrategy strategy;
+        if (conf.get(DaemonConfig.NIMBUS_WORKER_HEARTBEATS_RECOVERY_STRATEGY_CLASS) != null) {
+            Object targetObj = ReflectionUtils.newInstance((String) conf.get(DaemonConfig.NIMBUS_WORKER_HEARTBEATS_RECOVERY_STRATEGY_CLASS));
+            Preconditions.checkState(targetObj instanceof IWorkerHeartbeatsRecoveryStrategy, "{} must implements IWorkerHeartbeatsRecoveryStrategy", DaemonConfig.NIMBUS_WORKER_HEARTBEATS_RECOVERY_STRATEGY_CLASS);
+            strategy = ((IWorkerHeartbeatsRecoveryStrategy) targetObj);
+        } else {
+            strategy = new TimeOutWorkerHeartbeatsRecoveryStrategy();
         }
 
-        IWorkerHeartbeatsRecoveryStrategy strategy = new TimeOutWorkerHeartbeatsRecoveryStrategy();
         strategy.prepare(conf);
         return strategy;
     }

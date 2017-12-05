@@ -44,7 +44,7 @@ public class StormClusterStateImpl implements IStormClusterState {
     private static Logger LOG = LoggerFactory.getLogger(StormClusterStateImpl.class);
 
     private IStateStorage stateStorage;
-    private ILocalAssignmentsBackend backend;
+    private ILocalAssignmentsBackend assignmentsBackend;
 
     private ConcurrentHashMap<String, Runnable> assignmentInfoCallback;
     private ConcurrentHashMap<String, Runnable> assignmentInfoWithVersionCallback;
@@ -63,12 +63,12 @@ public class StormClusterStateImpl implements IStormClusterState {
     private String stateId;
     private boolean solo;
 
-    public StormClusterStateImpl(IStateStorage StateStorage, ILocalAssignmentsBackend backend, List<ACL> acls, ClusterStateContext context, boolean solo) throws Exception {
+    public StormClusterStateImpl(IStateStorage StateStorage, ILocalAssignmentsBackend assignmentsassignmentsBackend, List<ACL> acls, ClusterStateContext context, boolean solo) throws Exception {
 
         this.stateStorage = StateStorage;
         this.solo = solo;
         this.acls = acls;
-        this.backend = backend;
+        this.assignmentsBackend = assignmentsassignmentsBackend;
         assignmentInfoCallback = new ConcurrentHashMap<>();
         assignmentInfoWithVersionCallback = new ConcurrentHashMap<>();
         assignmentVersionCallback = new ConcurrentHashMap<>();
@@ -153,20 +153,18 @@ public class StormClusterStateImpl implements IStormClusterState {
 
     @Override
     public List<String> assignments(Runnable callback) {
-        //deprecated
         if (callback != null) {
             assignmentsCallback.set(callback);
         }
-        return this.backend.assignments();
+        return this.assignmentsBackend.assignments();
     }
 
     @Override
     public Assignment assignmentInfo(String stormId, Runnable callback) {
-        //deprecated
         if (callback != null) {
             assignmentInfoCallback.put(stormId, callback);
         }
-        return this.backend.getAssignment(stormId);
+        return this.assignmentsBackend.getAssignment(stormId);
     }
 
     @Override
@@ -181,22 +179,32 @@ public class StormClusterStateImpl implements IStormClusterState {
 
     @Override
     public Map<String, Assignment> assignmentsInfo() {
-        return this.backend.assignmentsInfo();
+        return this.assignmentsBackend.assignmentsInfo();
     }
 
     @Override
     public void syncRemoteAssignments(Map<String, byte[]> remote) {
         if (null != remote) {
-            this.backend.syncRemoteAssignments(remote);
+            this.assignmentsBackend.syncRemoteAssignments(remote);
         } else {
             Map<String, byte[]> tmp = new HashMap<>();
-            List<String> stormIDS = this.stateStorage.get_children(ClusterUtils.ASSIGNMENTS_SUBTREE, false);
-            for (String stormID : stormIDS) {
-                byte[] assignment = this.stateStorage.get_data(ClusterUtils.assignmentPath(stormID), false);
-                tmp.put(stormID, assignment);
+            List<String> stormIds = this.stateStorage.get_children(ClusterUtils.ASSIGNMENTS_SUBTREE, false);
+            for (String stormId : stormIds) {
+                byte[] assignment = this.stateStorage.get_data(ClusterUtils.assignmentPath(stormId), false);
+                tmp.put(stormId, assignment);
             }
-            this.backend.syncRemoteAssignments(tmp);
+            this.assignmentsBackend.syncRemoteAssignments(tmp);
         }
+    }
+
+    @Override
+    public boolean isAssignmentsBackendSynchronized() {
+        return this.assignmentsBackend.isSynchronized();
+    }
+
+    @Override
+    public void setAssignmentsBackendSynchronized() {
+        this.assignmentsBackend.setSynchronized();
     }
 
     @Override
@@ -282,20 +290,20 @@ public class StormClusterStateImpl implements IStormClusterState {
 
     @Override
     public String stormId(String stormName) {
-        return this.backend.getStormId(stormName);
+        return this.assignmentsBackend.getStormId(stormName);
     }
 
     @Override
     public void syncRemoteIds(Map<String, String> remote) {
         if (null != remote) {
-            this.backend.syncRemoteIDS(remote);
+            this.assignmentsBackend.syncRemoteIds(remote);
         }else {
             Map<String, String> tmp = new HashMap<>();
             List<String> activeStorms = activeStorms();
-            for (String stormID: activeStorms) {
-                tmp.put(stormID, stormBase(stormID, null).get_name());
+            for (String stormId: activeStorms) {
+                tmp.put(stormId, stormBase(stormId, null).get_name());
             }
-            this.backend.syncRemoteIDS(tmp);
+            this.assignmentsBackend.syncRemoteIds(tmp);
         }
     }
 
@@ -579,7 +587,7 @@ public class StormClusterStateImpl implements IStormClusterState {
     public void activateStorm(String stormId, StormBase stormBase) {
         String path = ClusterUtils.stormPath(stormId);
         stateStorage.set_data(path, Utils.serialize(stormBase), acls);
-        this.backend.keepStormId(stormBase.get_name(), stormId);
+        this.assignmentsBackend.keepStormId(stormBase.get_name(), stormId);
     }
 
     @Override
@@ -673,7 +681,7 @@ public class StormClusterStateImpl implements IStormClusterState {
     public void setAssignment(String stormId, Assignment info) {
         byte[] serAssignment = Utils.serialize(info);
         stateStorage.set_data(ClusterUtils.assignmentPath(stormId), serAssignment, acls);
-        this.backend.keepOrUpdateAssignment(stormId, info);
+        this.assignmentsBackend.keepOrUpdateAssignment(stormId, info);
     }
 
     @Override
@@ -704,7 +712,7 @@ public class StormClusterStateImpl implements IStormClusterState {
     @Override
     public void removeStorm(String stormId) {
         stateStorage.delete_node(ClusterUtils.assignmentPath(stormId));
-        this.backend.clearStateForStorm(stormId);
+        this.assignmentsBackend.clearStateForStorm(stormId);
         stateStorage.delete_node(ClusterUtils.credentialsPath(stormId));
         stateStorage.delete_node(ClusterUtils.logConfigPath(stormId));
         stateStorage.delete_node(ClusterUtils.profilerConfigPath(stormId));
@@ -814,7 +822,7 @@ public class StormClusterStateImpl implements IStormClusterState {
         stateStorage.unregister(stateId);
         if (solo)
             stateStorage.close();
-        this.backend.dispose();
+        this.assignmentsBackend.dispose();
     }
 
     private List<String> tokenizePath(String path) {
