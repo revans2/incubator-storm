@@ -2731,10 +2731,10 @@ public class Nimbus implements Iface, Shutdownable, DaemonCommon {
 
     @VisibleForTesting
     static void validateTopologyWorkerMaxHeapSizeConfigs(
-        Map<String, Object> stormConf, StormTopology topology) {
+        Map<String, Object> stormConf, StormTopology topology, double defaultWorkerMaxHeapSizeMB) {
         double largestMemReq = getMaxExecutorMemoryUsageForTopo(topology, stormConf);
         double topologyWorkerMaxHeapSize =
-            ObjectReader.getDouble(stormConf.get(Config.TOPOLOGY_WORKER_MAX_HEAP_SIZE_MB), 768.0);
+            ObjectReader.getDouble(stormConf.get(Config.TOPOLOGY_WORKER_MAX_HEAP_SIZE_MB), defaultWorkerMaxHeapSizeMB);
         if (topologyWorkerMaxHeapSize < largestMemReq) {
             throw new IllegalArgumentException(
                 "Topology will not be able to be successfully scheduled: Config "
@@ -2811,7 +2811,8 @@ public class Nimbus implements Iface, Shutdownable, DaemonCommon {
                   Config.TOPOLOGY_BLOBSTORE_MAP + " = " + blobMap);
                 }
             }
-            validateTopologyWorkerMaxHeapSizeConfigs(topoConf, topology);
+            validateTopologyWorkerMaxHeapSizeConfigs(topoConf, topology,
+                    ObjectReader.getDouble(conf.get(Config.TOPOLOGY_WORKER_MAX_HEAP_SIZE_MB)));
             Utils.validateTopologyBlobStoreMap(topoConf, blobStore);
             long uniqueNum = submittedCount.incrementAndGet();
             String topoId = topoName + "-" + uniqueNum + "-" + Time.currentTimeSecs();
