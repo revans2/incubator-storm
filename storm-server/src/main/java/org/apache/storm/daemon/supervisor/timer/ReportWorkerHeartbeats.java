@@ -15,7 +15,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.storm.daemon.supervisor.timer;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 
 import org.apache.storm.daemon.supervisor.Supervisor;
 import org.apache.storm.daemon.supervisor.SupervisorUtils;
@@ -27,10 +32,6 @@ import org.apache.storm.utils.NimbusClient;
 import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
 
 /**
  * Runnable reporting local worker reported heartbeats to master, supervisor should take care the of the heartbeats
@@ -94,7 +95,7 @@ public class ReportWorkerHeartbeats implements Runnable {
             return;
         }
         // if it is local mode, just get the local nimbus instance and set the heartbeats
-        if (ConfigUtils.isLocalMode(conf)){
+        if (ConfigUtils.isLocalMode(conf)) {
             try {
                 this.supervisor.getLocalNimbus().sendSupervisorWorkerHeartbeats(supervisorWorkerHeartbeats);
             } catch (TException tex) {

@@ -95,7 +95,7 @@ public class BasicContainer extends Container {
     }
     
     /**
-     * Create a new BasicContainer
+     * Create a new BasicContainer.
      * @param type the type of container being made.
      * @param conf the supervisor config
      * @param supervisorId the ID of the supervisor this is a part of.
@@ -112,7 +112,7 @@ public class BasicContainer extends Container {
     }
     
     /**
-     * Create a new BasicContainer
+     * Create a new BasicContainer.
      * @param type the type of container being made.
      * @param conf the supervisor config
      * @param supervisorId the ID of the supervisor this is a part of.
@@ -151,7 +151,7 @@ public class BasicContainer extends Container {
                 LOG.info("Recovered Worker {}", wid);
                 _workerId = wid;
             }
-        } else if (_workerId == null){
+        } else if (_workerId == null) {
             createNewWorkerId();
         }
 
@@ -237,7 +237,7 @@ public class BasicContainer extends Container {
     }
 
     /**
-     * Run the given command for profiling
+     * Run the given command for profiling.
      * 
      * @param command
      *            the command to run
@@ -291,7 +291,7 @@ public class BasicContainer extends Container {
     }
 
     /**
-     * Get the command to run when doing profiling
+     * Get the command to run when doing profiling.
      * @param action the profiling action to perform
      * @param stop if this is meant to stop the profiling or start it
      * @param workerPid the PID of the process to profile
@@ -422,7 +422,7 @@ public class BasicContainer extends Container {
     }
     
     /**
-     * Compute the classpath for the worker process
+     * Compute the classpath for the worker process.
      * @param stormJar the topology jar
      * @param dependencyLocations any dependencies from the topology
      * @param topoVersion the version of the storm framework to use
@@ -485,7 +485,7 @@ public class BasicContainer extends Container {
     }
 
     /**
-     * Launch the worker process (non-blocking)
+     * Launch the worker process (non-blocking).
      * 
      * @param command
      *            the command to run
@@ -624,7 +624,7 @@ public class BasicContainer extends Container {
     
     /**
      * Get parameters for the class path of the worker process.  Also used by the
-     * log Writer
+     * log Writer.
      * @param stormRoot the root dist dir for the topology
      * @return the classpath for the topology as command line arguments.
      * @throws IOException on any error.
@@ -700,7 +700,7 @@ public class BasicContainer extends Container {
     }
     
     /**
-     * Create the command to launch the worker process
+     * Create the command to launch the worker process.
      * @param memOnheap the on heap memory for the worker
      * @param stormRoot the root dist dir for the topology
      * @param jlp java library path for the topology

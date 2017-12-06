@@ -55,10 +55,10 @@ import org.apache.storm.security.auth.ThriftConnectionType;
 import org.apache.storm.security.auth.ThriftServer;
 import org.apache.storm.utils.ConfigUtils;
 import org.apache.storm.utils.ServerConfigUtils;
-import org.apache.storm.utils.Utils;
 import org.apache.storm.utils.ObjectReader;
 import org.apache.storm.utils.LocalState;
 import org.apache.storm.utils.Time;
+import org.apache.storm.utils.Utils;
 import org.apache.storm.utils.VersionInfo;
 import org.apache.thrift.TException;
 import org.apache.thrift.TProcessor;
@@ -94,7 +94,14 @@ public class Supervisor implements DaemonCommon, AutoCloseable {
     private Supervisor(ISupervisor iSupervisor) throws IOException {
         this(Utils.readStormConfig(), null, iSupervisor);
     }
-    
+
+    /**
+     * Constructor for supervisor daemon.
+     * @param conf config
+     * @param sharedContext {@link IContext}
+     * @param iSupervisor {@link ISupervisor}
+     * @throws IOException
+     */
     public Supervisor(Map<String, Object> conf, IContext sharedContext, ISupervisor iSupervisor) throws IOException {
         this.conf = conf;
         this.iSupervisor = iSupervisor;
@@ -111,7 +118,8 @@ public class Supervisor implements DaemonCommon, AutoCloseable {
         }
 
         try {
-            this.stormClusterState = ClusterUtils.mkStormClusterState(conf, acls, new ClusterStateContext(DaemonType.SUPERVISOR));
+            this.stormClusterState = ClusterUtils.mkStormClusterState(conf, acls,
+                    new ClusterStateContext(DaemonType.SUPERVISOR));
         } catch (Exception e) {
             LOG.error("supervisor can't create stormClusterState");
             throw Utils.wrapInRuntime(e);
@@ -169,7 +177,9 @@ public class Supervisor implements DaemonCommon, AutoCloseable {
         return stormClusterState;
     }
 
-    public ReadClusterState getReadClusterState() { return readState; }
+    public ReadClusterState getReadClusterState() {
+        return readState;
+    }
 
     LocalState getLocalState() {
         return localState;
@@ -195,14 +205,20 @@ public class Supervisor implements DaemonCommon, AutoCloseable {
         return eventManager;
     }
 
-    Supervisor getSupervisor() { return this; }
+    Supervisor getSupervisor() {
+        return this;
+    }
 
-    public void setLocalNimbus(Nimbus.Iface nimbus) { this.localNimbus = nimbus; }
+    public void setLocalNimbus(Nimbus.Iface nimbus) {
+        this.localNimbus = nimbus;
+    }
 
-    public Nimbus.Iface getLocalNimbus() { return this.localNimbus; }
+    public Nimbus.Iface getLocalNimbus() {
+        return this.localNimbus;
+    }
     
     /**
-     * Launch the supervisor
+     * Launch the supervisor.
      */
     public void launch() throws Exception {
         LOG.info("Starting Supervisor with conf {}", conf);
@@ -223,7 +239,8 @@ public class Supervisor implements DaemonCommon, AutoCloseable {
         if ((Boolean) conf.get(DaemonConfig.SUPERVISOR_ENABLE)) {
             // This isn't strictly necessary, but it doesn't hurt and ensures that the machine stays up
             // to date even if callbacks don't all work exactly right
-            eventTimer.scheduleRecurring(0, 10, new EventManagerPushCallback(new SynchronizeAssignments(this, null, readState), eventManager));
+            eventTimer.scheduleRecurring(0, 10,
+                    new EventManagerPushCallback(new SynchronizeAssignments(this, null, readState), eventManager));
 
             // supervisor health check
             eventTimer.scheduleRecurring(300, 300, new SupervisorHealthCheck(this));
@@ -236,7 +253,7 @@ public class Supervisor implements DaemonCommon, AutoCloseable {
     }
 
     /**
-     * start distribute supervisor
+     * start distribute supervisor.
      */
     private void launchDaemon() {
         LOG.info("Starting supervisor for storm version '{}'.", VersionInfo.getVersion());
@@ -261,7 +278,6 @@ public class Supervisor implements DaemonCommon, AutoCloseable {
         // validate port
         int port = ObjectReader.getInt(conf.get(Config.SUPERVISOR_THRIFT_PORT));
         try {
-
             ServerSocket socket = new ServerSocket(port);
             socket.close();
         } catch (BindException e) {
@@ -269,34 +285,38 @@ public class Supervisor implements DaemonCommon, AutoCloseable {
             throw new RuntimeException(e);
         }
 
-        TProcessor processor = new org.apache.storm.generated.Supervisor.Processor(new org.apache.storm.generated.Supervisor.Iface() {
-            @Override
-            public void sendSupervisorAssignments(SupervisorAssignments assignments) throws AuthorizationException, TException {
-                LOG.info("Got an assignments from master, will start to sync with assignments: {}", assignments);
-                SynchronizeAssignments syn = new SynchronizeAssignments(getSupervisor(), assignments, getReadClusterState());
-                getEventManger().add(syn);
-            }
+        TProcessor processor = new org.apache.storm.generated.Supervisor.Processor(
+                new org.apache.storm.generated.Supervisor.Iface() {
+                    @Override
+                    public void sendSupervisorAssignments(SupervisorAssignments assignments)
+                            throws AuthorizationException, TException {
+                        LOG.info("Got an assignments from master, will start to sync with assignments: {}", assignments);
+                        SynchronizeAssignments syn = new SynchronizeAssignments(getSupervisor(), assignments, getReadClusterState());
+                        getEventManger().add(syn);
+                    }
 
-            @Override
-            public Assignment getLocalAssignmentForStorm(String id) throws NotAliveException, AuthorizationException, TException {
-                Assignment assignment = getStormClusterState().assignmentInfo(id, null);
-                if (null == assignment) {
-                    throw new NotAliveException("No local assignment assigned for storm: " + id + " for node: " + getHostName());
-                }
-                return assignment;
-            }
+                    @Override
+                    public Assignment getLocalAssignmentForStorm(String id)
+                            throws NotAliveException, AuthorizationException, TException {
+                        Assignment assignment = getStormClusterState().assignmentInfo(id, null);
+                        if (null == assignment) {
+                            throw new NotAliveException("No local assignment assigned for storm: " + id + " for node: " + getHostName());
+                        }
+                        return assignment;
+                    }
 
-            @Override
-            public void sendSupervisorWorkerHeartbeat(SupervisorWorkerHeartbeat heartbeat) throws AuthorizationException, TException {
-                // do nothing now
-            }
-        });
+                    @Override
+                    public void sendSupervisorWorkerHeartbeat(SupervisorWorkerHeartbeat heartbeat)
+                            throws AuthorizationException, TException {
+                        // do nothing now
+                    }
+                });
         this.thriftServer = new ThriftServer(conf, processor, ThriftConnectionType.SUPERVISOR);
         this.thriftServer.serve();
     }
 
     /**
-     * Used for local cluster assignments distribution
+     * Used for local cluster assignments distribution.
      * @param assignments
      */
     public void sendSupervisorAssignments(SupervisorAssignments assignments) {
@@ -405,7 +425,7 @@ public class Supervisor implements DaemonCommon, AutoCloseable {
     }
 
     /**
-     * supervisor daemon enter entrance
+     * supervisor daemon enter entrance.
      *
      * @param args
      */

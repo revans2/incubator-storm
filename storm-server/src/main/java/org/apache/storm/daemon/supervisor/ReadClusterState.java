@@ -59,7 +59,7 @@ public class ReadClusterState implements Runnable, AutoCloseable {
     private final Map<Integer, Slot> slots = new HashMap<>();
     private final AtomicInteger readRetry = new AtomicInteger(0);
     private final String assignmentId;
-    private final ISupervisor iSuper;
+    private final ISupervisor iSupervisor;
     private final AsyncLocalizer localizer;
     private final ContainerLauncher launcher;
     private final String host;
@@ -72,7 +72,7 @@ public class ReadClusterState implements Runnable, AutoCloseable {
         this.syncSupEventManager = supervisor.getEventManger();
         this.assignmentVersions = new AtomicReference<>(new HashMap<>());
         this.assignmentId = supervisor.getAssignmentId();
-        this.iSuper = supervisor.getiSupervisor();
+        this.iSupervisor = supervisor.getiSupervisor();
         this.localizer = supervisor.getAsyncLocalizer();
         this.host = supervisor.getHostName();
         this.localState = supervisor.getLocalState();
@@ -108,7 +108,7 @@ public class ReadClusterState implements Runnable, AutoCloseable {
 
     private Slot mkSlot(int port) throws Exception {
         return new Slot(localizer, superConf, launcher, host, port,
-                localState, stormClusterState, iSuper, cachedAssignments);
+                localState, stormClusterState, iSupervisor, cachedAssignments);
     }
     
     @Override
@@ -129,7 +129,7 @@ public class ReadClusterState implements Runnable, AutoCloseable {
             LOG.debug("All assignment: {}", allAssignments);
             LOG.debug("Topology Ids -> Profiler Actions {}", topoIdToProfilerActions);
             for (Integer port: allAssignments.keySet()) {
-                if (iSuper.confirmAssigned(port)) {
+                if (iSupervisor.confirmAssigned(port)) {
                     assignedPorts.add(port);
                 }
             }
@@ -258,14 +258,15 @@ public class ReadClusterState implements Runnable, AutoCloseable {
                             }
                             if (hasShared) {
                                 localAssignment.set_total_node_shared(amountShared);
-			    }
+			                }
                             if (assignment.is_set_owner()) {
                                 localAssignment.set_owner(assignment.get_owner());
                             }
                             portTasks.put(port.intValue(), localAssignment);
                         }
                         List<ExecutorInfo> executorInfoList = localAssignment.get_executors();
-                        executorInfoList.add(new ExecutorInfo(entry.getKey().get(0).intValue(), entry.getKey().get(entry.getKey().size() - 1).intValue()));
+                        executorInfoList.add(new ExecutorInfo(entry.getKey().get(0).intValue(),
+                                entry.getKey().get(entry.getKey().size() - 1).intValue()));
                     }
                 }
             }

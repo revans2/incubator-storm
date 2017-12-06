@@ -15,10 +15,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.storm.nimbus;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.Sets;
+
+import javax.security.auth.Subject;
+import java.io.IOException;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
+
 import org.apache.commons.io.IOUtils;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.recipes.leader.LeaderLatch;
@@ -39,16 +49,8 @@ import org.apache.zookeeper.data.ACL;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.security.auth.Subject;
-import java.io.IOException;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.TreeSet;
-
 /**
- * A callback function when nimbus gains leadership
+ * A callback function when nimbus gains leadership.
  */
 public class LeaderListenerCallback {
     private static final Logger LOG = LoggerFactory.getLogger(LeaderListenerCallback.class);
@@ -67,7 +69,18 @@ public class LeaderListenerCallback {
     private static final String STORM_CODE_SUFFIX = "-stormcode.ser";
     private static final String STORM_CONF_SUFFIX = "-stormconf.ser";
 
-    public LeaderListenerCallback(Map conf, CuratorFramework zk, LeaderLatch leaderLatch, BlobStore blobStore, TopoCache tc, IStormClusterState clusterState, List<ACL> acls) {
+    /**
+     * Constructor for {@LeaderListenerCallback}.
+     * @param conf config
+     * @param zk zookeeper CuratorFramework client
+     * @param leaderLatch LeaderLatch
+     * @param blobStore BlobStore
+     * @param tc TopoCache
+     * @param clusterState IStormClusterState
+     * @param acls zookeeper acls
+     */
+    public LeaderListenerCallback(Map conf, CuratorFramework zk, LeaderLatch leaderLatch, BlobStore blobStore,
+                                  TopoCache tc, IStormClusterState clusterState, List<ACL> acls) {
         this.blobStore = blobStore;
         this.tc = tc;
         this.clusterState = clusterState;
@@ -160,8 +173,9 @@ public class LeaderListenerCallback {
     private Set<String> filterTopologyBlobKeys(Set<String> blobKeys) {
         Set<String> topologyBlobKeys = new HashSet<>();
         for (String blobKey : blobKeys) {
-            if (blobKey.endsWith(STORM_JAR_SUFFIX) || blobKey.endsWith(STORM_CODE_SUFFIX) ||
-                    blobKey.endsWith(STORM_CONF_SUFFIX)) {
+            if (blobKey.endsWith(STORM_JAR_SUFFIX)
+                    || blobKey.endsWith(STORM_CODE_SUFFIX)
+                    || blobKey.endsWith(STORM_CONF_SUFFIX)) {
                 topologyBlobKeys.add(blobKey);
             }
         }
@@ -194,9 +208,13 @@ public class LeaderListenerCallback {
                     activeTopologyDependencies.addAll(stormCode.get_dependency_artifacts());
                 }
             } catch (AuthorizationException | KeyNotFoundException | IOException e) {
-                LOG.error("Exception occurs while reading blob for key: " + activeTopologyCodeKey + ", exception: " + e, e);
-                throw new RuntimeException("Exception occurs while reading blob for key: " + activeTopologyCodeKey +
-                        ", exception: " + e, e);
+                LOG.error("Exception occurs while reading blob for key: "
+                        + activeTopologyCodeKey
+                        + ", exception: "
+                        + e, e);
+                throw new RuntimeException("Exception occurs while reading blob for key: "
+                        + activeTopologyCodeKey
+                        + ", exception: " + e, e);
             }
         }
         return activeTopologyDependencies;

@@ -15,17 +15,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.storm.nimbus;
 
-import org.apache.storm.DaemonConfig;
-import org.apache.storm.daemon.supervisor.Supervisor;
-import org.apache.storm.generated.SupervisorAssignments;
-import org.apache.storm.utils.ConfigUtils;
-import org.apache.storm.utils.ObjectReader;
-import org.apache.storm.utils.SupervisorClient;
-import org.apache.storm.utils.Time;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+package org.apache.storm.nimbus;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -37,11 +28,25 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.storm.DaemonConfig;
+import org.apache.storm.daemon.supervisor.Supervisor;
+import org.apache.storm.generated.SupervisorAssignments;
+import org.apache.storm.utils.ConfigUtils;
+import org.apache.storm.utils.ObjectReader;
+import org.apache.storm.utils.SupervisorClient;
+import org.apache.storm.utils.Time;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
- * <p>A service for distributing master assignments to supervisors, this service makes the assignments notification asynchronous.
+ * A service for distributing master assignments to supervisors, this service makes the assignments notification
+ * asynchronous.
+ *
  * <p>We support multiple working threads to distribute assignment, every thread has a queue buffer.
- * <p>Master will shuffle its node request to the queues, if the target queue is full, we just discard the request, let the supervisors sync instead.
- * <p/>
+ *
+ * <p>Master will shuffle its node request to the queues, if the target queue is full, we just discard the request,
+ * let the supervisors sync instead.
+ *
  * <pre>{@code
  * Working mode
  *                      +--------+         +-----------------+
@@ -59,7 +64,7 @@ public class AssignmentDistributionService implements Closeable {
     private ExecutorService service;
 
     /**
-     * Flag to indicate if the service is active
+     * Flag to indicate if the service is active.
      */
     private volatile boolean active = false;
 
@@ -79,7 +84,7 @@ public class AssignmentDistributionService implements Closeable {
     private volatile Map<Integer, LinkedBlockingQueue<NodeAssignments>> assignmentsQueue;
 
     /**
-     * local supervisors for local cluster assignments distribution
+     * local supervisors for local cluster assignments distribution.
      */
     private Map<String, Supervisor> localSupervisors;
 
@@ -90,7 +95,7 @@ public class AssignmentDistributionService implements Closeable {
     /**
      * Function for initialization.
      *
-     * @param conf
+     * @param conf config
      */
     public void prepare(Map conf) {
         this.conf = conf;
@@ -122,16 +127,22 @@ public class AssignmentDistributionService implements Closeable {
         this.active = false;
         this.service.shutdownNow();
         try {
-            this.service.awaitTermination(10l, TimeUnit.SECONDS);
+            this.service.awaitTermination(10L, TimeUnit.SECONDS);
         } catch (InterruptedException e) {
             LOG.error("Failed to close assignments distribute service");
         }
         this.assignmentsQueue = null;
     }
 
+    /**
+     * Add an assignments for a node/supervisor for distribution.
+     * @param node node id of supervisor
+     * @param host host name for the node
+     * @param assignments the {@link org.apache.storm.generated.SupervisorAssignments}
+     */
     public void addAssignmentsForNode(String node, String host, SupervisorAssignments assignments) {
         try {
-            boolean success = nextQueue().offer(NodeAssignments.getInstance(node, host, assignments), 5l, TimeUnit.SECONDS);
+            boolean success = nextQueue().offer(NodeAssignments.getInstance(node, host, assignments), 5L, TimeUnit.SECONDS);
             if (!success) {
                 LOG.warn("Discard an assignment distribution for node {} because the target sub queue is full", node);
             }
@@ -233,22 +244,28 @@ public class AssignmentDistributionService implements Closeable {
         this.localSupervisors.put(supervisor.getId(), supervisor);
     }
 
-    private Integer nextQueueID() {
+    private Integer nextQueueId() {
         return this.random.nextInt(threadsNum);
     }
 
     private LinkedBlockingQueue<NodeAssignments> nextQueue() {
-        return this.assignmentsQueue.get(nextQueueID());
+        return this.assignmentsQueue.get(nextQueueId());
     }
 
-    private LinkedBlockingQueue<NodeAssignments> getQueueByID(Integer queueIndex) {
+    private LinkedBlockingQueue<NodeAssignments> getQueueById(Integer queueIndex) {
         return this.assignmentsQueue.get(queueIndex);
     }
 
+    /**
+     * Get an assignments from the target queue with the specific index.
+     * @param queueIndex index of the queue
+     * @return an {@link NodeAssignments}
+     * @throws InterruptedException
+     */
     public NodeAssignments nextAssignments(Integer queueIndex) throws InterruptedException {
         NodeAssignments target = null;
         while (true) {
-            target = getQueueByID(queueIndex).poll();
+            target = getQueueById(queueIndex).poll();
             if (target != null) {
                 return target;
             }
@@ -264,6 +281,11 @@ public class AssignmentDistributionService implements Closeable {
         return this.conf;
     }
 
+    /**
+     * Factory method for initialize a instance.
+     * @param conf config
+     * @return an instance of {@link AssignmentDistributionService}
+     */
     public static AssignmentDistributionService getInstance(Map conf) {
         AssignmentDistributionService service = new AssignmentDistributionService();
         service.prepare(conf);

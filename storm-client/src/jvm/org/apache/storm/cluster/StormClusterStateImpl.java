@@ -17,6 +17,19 @@
  */
 package org.apache.storm.cluster;
 
+import java.nio.ByteBuffer;
+import java.security.NoSuchAlgorithmException;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
 import org.apache.commons.lang.StringUtils;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.state.*;
@@ -25,19 +38,13 @@ import org.apache.storm.assignments.ILocalAssignmentsBackend;
 import org.apache.storm.callback.ZKStateChangedCallback;
 import org.apache.storm.generated.*;
 import org.apache.storm.nimbus.NimbusInfo;
-import org.apache.storm.utils.Utils;
 import org.apache.storm.utils.Time;
+import org.apache.storm.utils.Utils;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.data.ACL;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.nio.ByteBuffer;
-import java.security.NoSuchAlgorithmException;
-import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicReference;
 
 public class StormClusterStateImpl implements IStormClusterState {
 
@@ -63,7 +70,8 @@ public class StormClusterStateImpl implements IStormClusterState {
     private String stateId;
     private boolean solo;
 
-    public StormClusterStateImpl(IStateStorage StateStorage, ILocalAssignmentsBackend assignmentsassignmentsBackend, List<ACL> acls, ClusterStateContext context, boolean solo) throws Exception {
+    public StormClusterStateImpl(IStateStorage StateStorage, ILocalAssignmentsBackend assignmentsassignmentsBackend,
+                                 List<ACL> acls, ClusterStateContext context, boolean solo) throws Exception {
 
         this.stateStorage = StateStorage;
         this.solo = solo;
@@ -141,14 +149,16 @@ public class StormClusterStateImpl implements IStormClusterState {
 
     protected void issueCallback(AtomicReference<Runnable> cb) {
         Runnable callback = cb.getAndSet(null);
-        if (callback != null)
+        if (callback != null) {
             callback.run();
+        }
     }
 
     protected void issueMapCallback(ConcurrentHashMap<String, Runnable> callbackConcurrentHashMap, String key) {
         Runnable callback = callbackConcurrentHashMap.remove(key);
-        if (callback != null)
+        if (callback != null) {
             callback.run();
+        }
     }
 
     @Override
@@ -320,8 +330,9 @@ public class StormClusterStateImpl implements IStormClusterState {
         List<ProfileRequest> profileRequests = getTopologyProfileRequests(stormId);
         for (ProfileRequest profileRequest : profileRequests) {
             NodeInfo nodeInfo1 = profileRequest.get_nodeInfo();
-            if (nodeInfo1.equals(nodeInfo))
+            if (nodeInfo1.equals(nodeInfo)) {
                 requests.add(profileRequest);
+            }
         }
         return requests;
     }
@@ -336,8 +347,9 @@ public class StormClusterStateImpl implements IStormClusterState {
                 String childPath = path + ClusterUtils.ZK_SEPERATOR + str;
                 byte[] raw = stateStorage.get_data(childPath, false);
                 ProfileRequest request = ClusterUtils.maybeDeserialize(raw, ProfileRequest.class);
-                if (request != null)
+                if (request != null) {
                     profileRequests.add(request);
+                }
             }
         }
         return profileRequests;
@@ -362,13 +374,13 @@ public class StormClusterStateImpl implements IStormClusterState {
     }
 
     /**
-     * need to take executor->node+port in explicitly so that we don't run into a situation where a long dead worker with a skewed clock overrides all the
-     * timestamps. By only checking heartbeats with an assigned node+port, and only reading executors from that heartbeat that are actually assigned, we avoid
-     * situations like that
+     * need to take executor->node+port in explicitly so that we don't run into a situation where a long dead worker
+     * with a skewed clock overrides all the timestamps. By only checking heartbeats with an assigned node+port,
+     * and only reading executors from that heartbeat that are actually assigned, we avoid situations like that.
      * 
-     * @param stormId
-     * @param executorNodePort
-     * @return
+     * @param stormId topology id
+     * @param executorNodePort executor id -> node + port
+     * @return mapping of executorInfo -> executor beat
      */
     @Override
     public Map<ExecutorInfo, ExecutorBeat> executorBeats(String stormId, Map<List<Long>, NodeInfo> executorNodePort) {
@@ -385,8 +397,9 @@ public class StormClusterStateImpl implements IStormClusterState {
             for (List<Long> list : entry.getValue()) {
                 executorInfoList.add(new ExecutorInfo(list.get(0).intValue(), list.get(list.size() - 1).intValue()));
             }
-            if (whb != null)
+            if (whb != null) {
                 executorWhbs.putAll(ClusterUtils.convertExecutorBeats(executorInfoList, whb));
+            }
         }
         return executorWhbs;
     }
@@ -607,8 +620,9 @@ public class StormClusterStateImpl implements IStormClusterState {
                     newComponentExecutors.put(entry.getKey(), entry.getValue());
                 }
             }
-            if (newComponentExecutors.size() > 0)
+            if (newComponentExecutors.size() > 0) {
                 newElems.set_component_executors(newComponentExecutors);
+            }
         }
 
         Map<String, DebugOptions> ComponentDebug = new HashMap<>();
@@ -774,8 +788,9 @@ public class StormClusterStateImpl implements IStormClusterState {
             for (String child : childrens) {
                 String childPath = path + ClusterUtils.ZK_SEPERATOR + child;
                 ErrorInfo errorInfo = ClusterUtils.maybeDeserialize(stateStorage.get_data(childPath, false), ErrorInfo.class);
-                if (errorInfo != null)
+                if (errorInfo != null) {
                     errorInfos.add(errorInfo);
+                }
             }
         }
         Collections.sort(errorInfos, new Comparator<ErrorInfo>() {

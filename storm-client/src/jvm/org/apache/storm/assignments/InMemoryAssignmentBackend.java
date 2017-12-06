@@ -15,18 +15,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.storm.assignments;
+
+import java.util.ArrayList;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import org.apache.storm.cluster.ClusterUtils;
 import org.apache.storm.generated.Assignment;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * An assignment backend which will keep all assignments and id-info in memory. Only used if no backend is specified internal.
@@ -60,18 +61,18 @@ public class InMemoryAssignmentBackend implements ILocalAssignmentsBackend {
     }
 
     @Override
-    public void keepOrUpdateAssignment(String stormID, Assignment assignment) {
-        this.idToAssignment.put(stormID, assignment);
+    public void keepOrUpdateAssignment(String stormId, Assignment assignment) {
+        this.idToAssignment.put(stormId, assignment);
     }
 
     @Override
-    public Assignment getAssignment(String stormID) {
-        return this.idToAssignment.get(stormID);
+    public Assignment getAssignment(String stormId) {
+        return this.idToAssignment.get(stormId);
     }
 
     @Override
-    public void removeAssignment(String stormID) {
-        this.idToAssignment.remove(stormID);
+    public void removeAssignment(String stormId) {
+        this.idToAssignment.remove(stormId);
     }
 
     @Override
@@ -133,10 +134,10 @@ public class InMemoryAssignmentBackend implements ILocalAssignmentsBackend {
     }
 
     @Override
-    public void clearStateForStorm(String stormID) {
-        this.idToAssignment.remove(stormID);
+    public void clearStateForStorm(String stormId) {
+        this.idToAssignment.remove(stormId);
 
-        String name = this.idToName.remove(stormID);
+        String name = this.idToName.remove(stormId);
         if (null != name) {
             this.nameToId.remove(name);
         }

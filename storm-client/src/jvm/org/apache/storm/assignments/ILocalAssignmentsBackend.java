@@ -15,12 +15,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.storm.assignments;
 
-import org.apache.storm.generated.Assignment;
+package org.apache.storm.assignments;
 
 import java.util.List;
 import java.util.Map;
+
+import org.apache.storm.generated.Assignment;
 
 /**
  * Interface for storing local assignments.
@@ -38,7 +39,7 @@ public interface ILocalAssignmentsBackend {
 
     /**
      * Initial function for creating backend.
-     * @param conf
+     * @param conf config
      */
     void prepare(Map conf);
 
@@ -52,7 +53,7 @@ public interface ILocalAssignmentsBackend {
     /**
      * Get assignment as {@link Assignment} for a storm.
      * @param stormId storm runtime id
-     * @return
+     * @return assignment
      */
     Assignment getAssignment(String stormId);
 
@@ -78,7 +79,7 @@ public interface ILocalAssignmentsBackend {
 
     /**
      * Keep a mapping storm-name -> storm-id to local state.
-     * @param stormName
+     * @param stormName storm name
      * @param stormId storm runtime id
      */
     void keepStormId(String stormName, String stormId);
@@ -86,26 +87,26 @@ public interface ILocalAssignmentsBackend {
     /**
      * Get storm runtime id from local.
      * @param stormName name of a storm
-     * @return
+     * @return runtime storm id
      */
     String getStormId(String stormName);
 
     /**
      * Sync remote storm ids to local, will just used for nimbus.
-     * @param remote
+     * @param remote remote ids from state store
      */
     void syncRemoteIds(Map<String, String> remote);
 
     void deleteStormId(String stormName);
 
     /**
-     * clear all the state for a storm.
-     * @param stormID
+     * Clear all the state for a storm.
+     * @param stormId storm id
      */
-    void clearStateForStorm(String stormID);
+    void clearStateForStorm(String stormId);
 
     /**
-     * function to release resource.
+     * Function to release resource.
      */
     void dispose();
 

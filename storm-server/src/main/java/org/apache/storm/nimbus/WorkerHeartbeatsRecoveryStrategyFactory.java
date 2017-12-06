@@ -15,24 +15,32 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.storm.nimbus;
 
 import com.google.common.base.Preconditions;
+import java.util.Map;
 import org.apache.storm.DaemonConfig;
 import org.apache.storm.utils.ReflectionUtils;
-
-import java.util.Map;
 
 /**
  * Factory class for recovery strategy.
  */
 public class WorkerHeartbeatsRecoveryStrategyFactory {
 
+    /**
+     * Get instance of {@link IWorkerHeartbeatsRecoveryStrategy} with conf.
+     * @param conf strategy config
+     * @return an instance of {@link IWorkerHeartbeatsRecoveryStrategy}
+     */
     public static IWorkerHeartbeatsRecoveryStrategy getStrategy(Map<String, Object> conf) {
         IWorkerHeartbeatsRecoveryStrategy strategy;
         if (conf.get(DaemonConfig.NIMBUS_WORKER_HEARTBEATS_RECOVERY_STRATEGY_CLASS) != null) {
-            Object targetObj = ReflectionUtils.newInstance((String) conf.get(DaemonConfig.NIMBUS_WORKER_HEARTBEATS_RECOVERY_STRATEGY_CLASS));
-            Preconditions.checkState(targetObj instanceof IWorkerHeartbeatsRecoveryStrategy, "{} must implements IWorkerHeartbeatsRecoveryStrategy", DaemonConfig.NIMBUS_WORKER_HEARTBEATS_RECOVERY_STRATEGY_CLASS);
+            Object targetObj = ReflectionUtils.newInstance((String)
+                    conf.get(DaemonConfig.NIMBUS_WORKER_HEARTBEATS_RECOVERY_STRATEGY_CLASS));
+            Preconditions.checkState(targetObj instanceof IWorkerHeartbeatsRecoveryStrategy,
+                    "{} must implements IWorkerHeartbeatsRecoveryStrategy",
+                    DaemonConfig.NIMBUS_WORKER_HEARTBEATS_RECOVERY_STRATEGY_CLASS);
             strategy = ((IWorkerHeartbeatsRecoveryStrategy) targetObj);
         } else {
             strategy = new TimeOutWorkerHeartbeatsRecoveryStrategy();

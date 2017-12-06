@@ -15,7 +15,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.storm.nimbus;
+
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Random;
 
 import org.apache.storm.Config;
 import org.apache.storm.generated.ExecutorInfo;
@@ -25,11 +36,6 @@ import org.apache.storm.utils.NimbusClient;
 import org.apache.storm.utils.Utils;
 import org.apache.thrift.TException;
 import org.apache.thrift.transport.TTransportException;
-
-import java.util.*;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 
 /**
  * Test for nimbus heartbeats max throughput, This is a client to collect the statistics.
@@ -55,6 +61,10 @@ public class NimbusHeartbeatsPressureTest {
     private static Random rand = new Random(47);
     private static List<double[]> totalCostTimesBook = new ArrayList<>();
 
+    /**
+     * Initialize a fake config.
+     * @return conf
+     */
     private static Config initializedConfig() {
         Config conf = new Config();
         conf.putAll(Utils.readDefaultConfig());
@@ -66,6 +76,9 @@ public class NimbusHeartbeatsPressureTest {
         return conf;
     }
 
+    /**
+     * Test max throughput with the specific config args.
+     */
     public static void testMaxThroughput() {
         ExecutorService service = Executors.newFixedThreadPool(THREADS_NUM);
 
@@ -74,18 +87,20 @@ public class NimbusHeartbeatsPressureTest {
             service.submit(new HeartbeatSendTask(i, THREAD_SUBMIT_NUM));
         }
         long submitEnd = System.currentTimeMillis();
-        println(THREADS_NUM + " tasks, " + THREAD_SUBMIT_NUM * THREADS_NUM + " submit cost " + (submitEnd - submitStart) / 1000D + "seconds");
+        println(THREADS_NUM + " tasks, " + THREAD_SUBMIT_NUM * THREADS_NUM + " submit cost "
+                + (submitEnd - submitStart) / 1000D + "seconds");
         long totalStart = System.currentTimeMillis();
         while (!allTasksReady()) {
             try {
 
-                Thread.sleep(10l);
+                Thread.sleep(10L);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
         }
         long totalEnd = System.currentTimeMillis();
-        println(THREADS_NUM + " tasks, " + THREAD_SUBMIT_NUM * THREADS_NUM + " requests cost " + (totalEnd - totalStart) / 1000D + "seconds");
+        println(THREADS_NUM + " tasks, " + THREAD_SUBMIT_NUM * THREADS_NUM
+                + " requests cost " + (totalEnd - totalStart) / 1000D + "seconds");
         printStatistics(totalCostTimesBook);
         try {
             service.shutdownNow();
@@ -134,12 +149,12 @@ public class NimbusHeartbeatsPressureTest {
         }
 
         private static SupervisorWorkerHeartbeat nextMockedWorkerbeat() {
-            SupervisorWorkerHeartbeat heartbeat = new SupervisorWorkerHeartbeat();
             List<ExecutorInfo> executorInfos = new ArrayList<>();
             executorInfos.add(new ExecutorInfo(1, 1));
             executorInfos.add(new ExecutorInfo(2, 2));
             executorInfos.add(new ExecutorInfo(3, 3));
             executorInfos.add(new ExecutorInfo(4, 4));
+            SupervisorWorkerHeartbeat heartbeat = new SupervisorWorkerHeartbeat();
             heartbeat.set_executors(executorInfos);
             // generate a random storm id
             heartbeat.set_storm_id("storm_name_example_" + rand.nextInt(MOCKED_STORM_NUM));
@@ -204,19 +219,18 @@ public class NimbusHeartbeatsPressureTest {
         }
         Double[] totalPointsArray = new Double[totalPoints.size()];
 
-        int top90Index = (int) (totalPointsArray.length * 0.9);
-        int middleIndex = (int) (totalPointsArray.length * 0.5);
-        double meanVal = total / totalPointsArray.length;
-
         totalPoints.toArray(totalPointsArray);
         Arrays.sort(totalPointsArray);
-//        printTimeCostArray(totalPointsArray);
-
+        // printTimeCostArray(totalPointsArray);
         println("===== statistics ================");
         println("===== min time cost: " + totalPointsArray[0] + " =====");
         println("===== max time cost: " + totalPointsArray[totalPointsArray.length - 2] + " =====");
+
+        double meanVal = total / totalPointsArray.length;
         println("===== mean time cost: " + meanVal + " =====");
+        int middleIndex = (int) (totalPointsArray.length * 0.5);
         println("===== median time cost: " + totalPointsArray[middleIndex] + " =====");
+        int top90Index = (int) (totalPointsArray.length * 0.9);
         println("===== top90 time cost: " + totalPointsArray[top90Index] + " =====");
     }
 
