@@ -1206,8 +1206,8 @@ public class Nimbus implements Iface, Shutdownable, DaemonCommon {
     }
 
     /**
-     * used for local cluster
-     * @param supervisor
+     * Used for local cluster.
+     * @param supervisor {@link org.apache.storm.daemon.supervisor.Supervisor}
      */
     public void addSupervisor(org.apache.storm.daemon.supervisor.Supervisor supervisor) {
         assignmentsDistributer.addLocalSupervisor(supervisor);
@@ -1464,7 +1464,7 @@ public class Nimbus implements Iface, Shutdownable, DaemonCommon {
     /**
      * Decide if the heartbeats is recovered for a master, will wait for all the assignments nodes to recovery,
      * every node will take care its node heartbeats reporting.
-     * @return
+     * @return true if all nodes have reported heartbeats or exceeds max-time-out
      */
     private boolean isHeartbeatsRecovered() {
         if(heartbeatsReadyFlag.get()) {
@@ -1482,8 +1482,8 @@ public class Nimbus implements Iface, Shutdownable, DaemonCommon {
     }
 
     /**
-     * Decide if the assignments is synchronized
-     * @return
+     * Decide if the assignments is synchronized.
+     * @return true if assignments have been synchronized from remote state store
      */
     private boolean isAssignmentsRecovered() {
         return stormClusterState.isAssignmentsBackendSynchronized();
@@ -1572,7 +1572,7 @@ public class Nimbus implements Iface, Shutdownable, DaemonCommon {
     }
     
     /**
-     * compute a topology-id -> alive executors map
+     * compute a topology-id -> alive executors map.
      * @param existingAssignment the current assignments
      * @param topologies the current topologies
      * @param topologyToExecutors the executors for the current topologies
@@ -1670,6 +1670,7 @@ public class Nimbus implements Iface, Shutdownable, DaemonCommon {
     }
     
     /**
+     * Read supervisor details/exclude the dead slots.
      * @param superToDeadPorts dead ports on the supervisor
      * @param topologies all of the topologies
      * @param missingAssignmentTopologies topologies that need assignments
