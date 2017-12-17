@@ -19,6 +19,16 @@ package org.apache.storm.stats;
 
 import com.google.common.collect.Lists;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+
 import org.apache.storm.cluster.ExecutorBeat;
 import org.apache.storm.cluster.IStormClusterState;
 import org.apache.storm.generated.Bolt;
@@ -50,9 +60,6 @@ import org.apache.storm.utils.Utils;
 import org.apache.storm.utils.Time;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.*;
-import java.util.Map.Entry;
 
 @SuppressWarnings("unchecked")
 public class StatsUtil {
@@ -1600,9 +1607,9 @@ public class StatsUtil {
             lastNimbusTime = Time.currentTimeSecs();
         }
 
+        ret.put("is-timed-out", Time.deltaSecs(lastNimbusTime) >= timeout);
         ret.put("nimbus-time", lastNimbusTime);
         ret.put("executor-reported-time", reportedTime);
-        ret.put("is-timed-out", Time.deltaSecs(lastNimbusTime) >= timeout);
 
         return ret;
     }
