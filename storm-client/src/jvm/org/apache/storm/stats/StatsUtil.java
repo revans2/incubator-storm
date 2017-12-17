@@ -1602,6 +1602,7 @@ public class StatsUtil {
 
         ret.put("nimbus-time", lastNimbusTime);
         ret.put("executor-reported-time", reportedTime);
+        ret.put("is-timed-out", Time.deltaSecs(lastNimbusTime) >= timeout);
 
         return ret;
     }
