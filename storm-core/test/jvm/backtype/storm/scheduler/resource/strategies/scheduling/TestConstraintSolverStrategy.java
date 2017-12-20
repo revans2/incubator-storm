@@ -184,7 +184,7 @@ public class TestConstraintSolverStrategy {
 
                 }
             };
-            basicFailureTest(Config.TOPOLOGY_CONSTRAINTS_MAX_TIME_SECS, 2, cs);
+            basicFailureTest(Config.TOPOLOGY_RAS_CONSTRAINT_MAX_TIME_SECS, 2, cs);
         }
     }
 

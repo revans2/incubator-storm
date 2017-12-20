@@ -1809,7 +1809,7 @@ public class Config extends HashMap<String, Object> {
      */
     @isInteger
     @isPositiveNumber
-    public static final String TOPOLOGY_CONSTRAINTS_MAX_TIME_SECS = "topology.constraints.max.time.secs";
+    public static final String TOPOLOGY_RAS_CONSTRAINT_MAX_TIME_SECS = "topology.ras.constraint.max.time.secs";
 
     /**
      * A list of host names that this topology would prefer to be scheduled on (no guarantee is given though).
