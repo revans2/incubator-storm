@@ -248,7 +248,7 @@ public class Supervisor implements DaemonCommon, AutoCloseable {
 
         ReportWorkerHeartbeats reportWorkerHeartbeats = new ReportWorkerHeartbeats(conf, this);
         Integer workerHeartbeatFrequency = ObjectReader.getInt(conf.get(Config.WORKER_HEARTBEAT_FREQUENCY_SECS));
-        workerHeartbeatTimer.scheduleRecurring(workerHeartbeatFrequency, workerHeartbeatFrequency, reportWorkerHeartbeats);
+        workerHeartbeatTimer.scheduleRecurring(0, workerHeartbeatFrequency, reportWorkerHeartbeats);
         LOG.info("Starting supervisor with id {} at host {}.", getId(), getHostName());
     }
 
@@ -317,11 +317,15 @@ public class Supervisor implements DaemonCommon, AutoCloseable {
 
     /**
      * Used for local cluster assignments distribution.
-     * @param assignments
+     * @param assignments {@link SupervisorAssignments}
      */
     public void sendSupervisorAssignments(SupervisorAssignments assignments) {
+        //for local test
+        if (Time.isSimulating()) {
+            return;
+        }
         SynchronizeAssignments syn = new SynchronizeAssignments(this, assignments, readState);
-        this.eventManager.add(syn);
+        syn.run();
     }
 
     private void registerWorkerNumGauge(String name, final Map<String, Object> conf) {
@@ -415,13 +419,10 @@ public class Supervisor implements DaemonCommon, AutoCloseable {
             return true;
         }
 
-        if (heartbeatTimer.isTimerWaiting()
+        return heartbeatTimer.isTimerWaiting()
                 && workerHeartbeatTimer.isTimerWaiting()
                 && eventTimer.isTimerWaiting()
-                && eventManager.waiting()) {
-            return true;
-        }
-        return false;
+                && eventManager.waiting();
     }
 
     /**

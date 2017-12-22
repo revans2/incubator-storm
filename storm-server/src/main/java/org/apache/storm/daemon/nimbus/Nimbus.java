@@ -1401,7 +1401,7 @@ public class Nimbus implements Iface, Shutdownable, DaemonCommon {
             fixupBase(base, topoConf);
             stormClusterState.updateStorm(topoId, base);
         }
-        Map<List<Integer>, String> rawExecToComponent = computeExecutorToComponent(topoId, base);
+        Map<List<Integer>, String> rawExecToComponent = computeExecutorToComponent(topoId, base, topoConf, topo);
         Map<ExecutorDetails, String> executorsToComponent = new HashMap<>();
         for (Entry<List<Integer>, String> entry: rawExecToComponent.entrySet()) {
             List<Integer> execs = entry.getKey();
@@ -1523,12 +1523,12 @@ public class Nimbus implements Iface, Shutdownable, DaemonCommon {
         return ret;
     }
     
-    private List<List<Integer>> computeExecutors(String topoId, StormBase base) throws KeyNotFoundException, AuthorizationException, IOException, InvalidTopologyException {
+    private List<List<Integer>> computeExecutors(String topoId, StormBase base, Map<String, Object> topoConf,
+            StormTopology topology)
+            throws KeyNotFoundException, AuthorizationException, IOException, InvalidTopologyException {
         assert (base != null);
 
         Map<String, Integer> compToExecutors = base.get_component_executors();
-        Map<String, Object> topoConf = readTopoConfAsNimbus(topoId, topoCache);
-        StormTopology topology = readStormTopologyAsNimbus(topoId, topoCache);
         List<List<Integer>> ret = new ArrayList<>();
         if (compToExecutors != null) {
             Map<Integer, String> taskInfo = StormCommon.stormTaskInfo(topology, topoConf);
@@ -1548,10 +1548,10 @@ public class Nimbus implements Iface, Shutdownable, DaemonCommon {
         return ret;
     }
     
-    private Map<List<Integer>, String> computeExecutorToComponent(String topoId, StormBase base) throws KeyNotFoundException, AuthorizationException, InvalidTopologyException, IOException {
-        List<List<Integer>> executors = computeExecutors(topoId, base);
-        StormTopology topology = readStormTopologyAsNimbus(topoId, topoCache);
-        Map<String, Object> topoConf = readTopoConfAsNimbus(topoId, topoCache);
+    private Map<List<Integer>, String> computeExecutorToComponent(String topoId, StormBase base,
+            Map<String, Object> topoConf, StormTopology topology)
+            throws KeyNotFoundException, AuthorizationException, InvalidTopologyException, IOException {
+        List<List<Integer>> executors = computeExecutors(topoId, base, topoConf, topology);
         Map<Integer, String> taskToComponent = StormCommon.stormTaskInfo(topology, topoConf);
         Map<List<Integer>, String> ret = new HashMap<>();
         for (List<Integer> executor: executors) {
@@ -1565,7 +1565,9 @@ public class Nimbus implements Iface, Shutdownable, DaemonCommon {
         if (bases != null) {
             for (Entry<String, StormBase> entry: bases.entrySet()) {
                 String topoId = entry.getKey();
-                ret.put(topoId, new HashSet<>(computeExecutors(topoId, entry.getValue())));
+                Map<String, Object> topoConf = readTopoConfAsNimbus(topoId, topoCache);
+                StormTopology topology = readStormTopologyAsNimbus(topoId, topoCache);
+                ret.put(topoId, new HashSet<>(computeExecutors(topoId, entry.getValue(), topoConf, topology)));
             }
         }
         return ret;
@@ -1798,6 +1800,12 @@ public class Nimbus implements Iface, Shutdownable, DaemonCommon {
         return cluster.getAssignments();
     }
 
+    /**
+     * Diff old/new assignment to find nodes which assigned assignments has changed.
+     * @param oldAss old assigned assignment
+     * @param newAss new assigned assignment
+     * @return nodeId -> host map of assignments changed nodes
+     */
     private static Map<String, String> assignmentChangedNodes(Assignment oldAss, Assignment newAss) {
         Map<List<Long>, NodeInfo> oldExecutorNodePort =  null;
         Map<List<Long>, NodeInfo> newExecutorNodePort =  null;
@@ -1833,6 +1841,12 @@ public class Nimbus implements Iface, Shutdownable, DaemonCommon {
         }
     }
 
+    /**
+     * Pick out assignments for specific node from all assignments.
+     * @param assignmentMap stormId -> assignment map
+     * @param nodeId supervisor/node id
+     * @return stormId -> assignment map for the node
+     */
     private static Map<String, Assignment> assignmentsForNode(Map<String, Assignment> assignmentMap, String nodeId) {
         Map<String, Assignment> ret = new HashMap<>();
         assignmentMap.entrySet().stream().filter(assignmentEntry -> assignmentEntry.getValue().get_node_host().keySet()
@@ -1841,6 +1855,12 @@ public class Nimbus implements Iface, Shutdownable, DaemonCommon {
         return ret;
     }
 
+    /**
+     * Notify supervisors/nodes assigned assignments.
+     * @param assignments assignments map for nodes
+     * @param service {@link AssignmentDistributionService} for distributing assignments asynchronous
+     * @param nodeHost node -> host map
+     */
     private static void notifySupervisorsAssignments(Map<String, Assignment> assignments, AssignmentDistributionService service, Map<String, String> nodeHost) {
         for(Map.Entry<String, String> nodeEntry: nodeHost.entrySet()) {
             try{
