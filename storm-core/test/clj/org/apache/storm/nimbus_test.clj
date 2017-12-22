@@ -795,7 +795,6 @@
       (bind _ (log-message "ass1, t76, pre beat: " (pr-str ass1)))
       (bind _ (log-message "ass2, t76, pre beat: " (pr-str ass2)))
       (is (= ass1 (executor-assignment cluster storm-id executor-id1)))
-      ;TODO: fix local test of worker reports
       (is (not= ass2 (executor-assignment cluster storm-id executor-id2)))
       (bind ass2 (executor-assignment cluster storm-id executor-id2))
       (bind _ (log-message "ass1, t76, post beat: " (pr-str ass1)))
@@ -803,7 +802,6 @@
       (check-consistency cluster "test")
 
       (.advanceClusterTime cluster 31)
-      ;TODO: fix local test of worker reports
       (is (not= ass1 (executor-assignment cluster storm-id executor-id1)))
       (is (= ass2 (executor-assignment cluster storm-id executor-id2)))  ; tests launch timeout
 

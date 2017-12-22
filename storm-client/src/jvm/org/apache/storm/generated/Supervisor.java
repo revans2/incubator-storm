@@ -2318,7 +2318,7 @@ public class Supervisor {
     static {
       Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
       tmpMap.put(_Fields.HEARTBEAT, new org.apache.thrift.meta_data.FieldMetaData("heartbeat", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRUCT          , "SupervisorWorkerHeartbeat")));
+          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, SupervisorWorkerHeartbeat.class)));
       metaDataMap = Collections.unmodifiableMap(tmpMap);
       org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(sendSupervisorWorkerHeartbeat_args.class, metaDataMap);
     }
@@ -2338,7 +2338,7 @@ public class Supervisor {
      */
     public sendSupervisorWorkerHeartbeat_args(sendSupervisorWorkerHeartbeat_args other) {
       if (other.is_set_heartbeat()) {
-        this.heartbeat = other.heartbeat;
+        this.heartbeat = new SupervisorWorkerHeartbeat(other.heartbeat);
       }
     }
 
@@ -2498,6 +2498,9 @@ public class Supervisor {
     public void validate() throws org.apache.thrift.TException {
       // check for required fields
       // check for sub-struct validity
+      if (heartbeat != null) {
+        heartbeat.validate();
+      }
     }
 
     private void writeObject(java.io.ObjectOutputStream out) throws java.io.IOException {

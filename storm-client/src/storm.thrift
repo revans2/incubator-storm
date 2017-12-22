@@ -672,6 +672,21 @@ struct OwnerResourceSummary {
   18: optional double assigned_off_heap_memory;
 }
 
+struct SupervisorWorkerHeartbeat {
+    1: required string storm_id;
+    2: required list<ExecutorInfo> executors
+    3: required i32 time_secs;
+}
+
+struct SupervisorWorkerHeartbeats {
+    1: required string supervisor_id;
+    2: required list<SupervisorWorkerHeartbeat> worker_heartbeats;
+}
+
+struct SupervisorAssignments {
+    1: optional map<string, Assignment> storm_assignment = {}
+}
+
 service Nimbus {
   void submitTopology(1: string name, 2: string uploadedJarLocation, 3: string jsonConf, 4: StormTopology topology) throws (1: AlreadyAliveException e, 2: InvalidTopologyException ite, 3: AuthorizationException aze);
   void submitTopologyWithOpts(1: string name, 2: string uploadedJarLocation, 3: string jsonConf, 4: StormTopology topology, 5: SubmitOptions options) throws (1: AlreadyAliveException e, 2: InvalidTopologyException ite, 3: AuthorizationException aze);
@@ -849,10 +864,6 @@ exception HBExecutionException {
   1: required string msg;
 }
 
-struct SupervisorAssignments {
-    1: optional map<string, Assignment> storm_assignment = {}
-}
-
 service Supervisor {
   /**
    * Send node specific assignments to supervisor
@@ -866,15 +877,4 @@ service Supervisor {
    * Send worker heartbeat to local supervisor
    */
   void sendSupervisorWorkerHeartbeat(1: SupervisorWorkerHeartbeat heartbeat) throws (1: AuthorizationException aze);
-}
-
-struct SupervisorWorkerHeartbeat {
-    1: required string storm_id;
-    2: required list<ExecutorInfo> executors
-    3: required i32 time_secs;
-}
-
-struct SupervisorWorkerHeartbeats {
-    1: required string supervisor_id;
-    2: required list<SupervisorWorkerHeartbeat> worker_heartbeats;
 }

@@ -53,7 +53,7 @@ public class TimeOutWorkerHeartbeatsRecoveryStrategy implements IWorkerHeartbeat
     @Override
     public void prepare(Map conf) {
         NODE_MAX_TIMEOUT_SECS = ObjectReader.getInt(conf.get(Config.SUPERVISOR_WORKER_HEARTBEATS_MAX_TIMEOUT_SECS), 600);
-        this.startTimeSecs = System.currentTimeMillis() / 1000L;
+        this.startTimeSecs = Time.currentTimeMillis() / 1000L;
         this.reportedIds = new HashSet<>();
     }
 

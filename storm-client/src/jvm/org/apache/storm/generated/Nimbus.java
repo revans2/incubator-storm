@@ -49140,7 +49140,7 @@ public class Nimbus {
     static {
       Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
       tmpMap.put(_Fields.SUCCESS, new org.apache.thrift.meta_data.FieldMetaData("success", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRUCT          , "SupervisorAssignments")));
+          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, SupervisorAssignments.class)));
       tmpMap.put(_Fields.AZE, new org.apache.thrift.meta_data.FieldMetaData("aze", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRUCT)));
       metaDataMap = Collections.unmodifiableMap(tmpMap);
@@ -49164,7 +49164,7 @@ public class Nimbus {
      */
     public getSupervisorAssignments_result(getSupervisorAssignments_result other) {
       if (other.is_set_success()) {
-        this.success = other.success;
+        this.success = new SupervisorAssignments(other.success);
       }
       if (other.is_set_aze()) {
         this.aze = new AuthorizationException(other.aze);
@@ -49396,6 +49396,9 @@ public class Nimbus {
     public void validate() throws org.apache.thrift.TException {
       // check for required fields
       // check for sub-struct validity
+      if (success != null) {
+        success.validate();
+      }
     }
 
     private void writeObject(java.io.ObjectOutputStream out) throws java.io.IOException {
@@ -49601,7 +49604,7 @@ public class Nimbus {
     static {
       Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
       tmpMap.put(_Fields.HEARTBEATS, new org.apache.thrift.meta_data.FieldMetaData("heartbeats", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRUCT          , "SupervisorWorkerHeartbeats")));
+          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, SupervisorWorkerHeartbeats.class)));
       metaDataMap = Collections.unmodifiableMap(tmpMap);
       org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(sendSupervisorWorkerHeartbeats_args.class, metaDataMap);
     }
@@ -49621,7 +49624,7 @@ public class Nimbus {
      */
     public sendSupervisorWorkerHeartbeats_args(sendSupervisorWorkerHeartbeats_args other) {
       if (other.is_set_heartbeats()) {
-        this.heartbeats = other.heartbeats;
+        this.heartbeats = new SupervisorWorkerHeartbeats(other.heartbeats);
       }
     }
 
@@ -49781,6 +49784,9 @@ public class Nimbus {
     public void validate() throws org.apache.thrift.TException {
       // check for required fields
       // check for sub-struct validity
+      if (heartbeats != null) {
+        heartbeats.validate();
+      }
     }
 
     private void writeObject(java.io.ObjectOutputStream out) throws java.io.IOException {
@@ -50321,7 +50327,7 @@ public class Nimbus {
     static {
       Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
       tmpMap.put(_Fields.HEATBEAT, new org.apache.thrift.meta_data.FieldMetaData("heatbeat", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRUCT          , "SupervisorWorkerHeartbeat")));
+          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, SupervisorWorkerHeartbeat.class)));
       metaDataMap = Collections.unmodifiableMap(tmpMap);
       org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(sendSupervisorWorkerHeartbeat_args.class, metaDataMap);
     }
@@ -50341,7 +50347,7 @@ public class Nimbus {
      */
     public sendSupervisorWorkerHeartbeat_args(sendSupervisorWorkerHeartbeat_args other) {
       if (other.is_set_heatbeat()) {
-        this.heatbeat = other.heatbeat;
+        this.heatbeat = new SupervisorWorkerHeartbeat(other.heatbeat);
       }
     }
 
@@ -50501,6 +50507,9 @@ public class Nimbus {
     public void validate() throws org.apache.thrift.TException {
       // check for required fields
       // check for sub-struct validity
+      if (heatbeat != null) {
+        heatbeat.validate();
+      }
     }
 
     private void writeObject(java.io.ObjectOutputStream out) throws java.io.IOException {

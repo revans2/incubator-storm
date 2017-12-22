@@ -169,7 +169,7 @@ supervisor.memory.capacity.mb: 4096.0
 supervisor.cpu.capacity: 400.0
 
 #Supervisor thrift config
-supervisor.thrift.port: 6627
+supervisor.thrift.port: 6628
 supervisor.queue.size: 128
 supervisor.thrift.threads: 16
 supervisor.thrift.max_buffer_size: 1048576

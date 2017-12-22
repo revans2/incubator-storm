@@ -549,14 +549,14 @@ public class SupervisorWorkerHeartbeat implements org.apache.thrift.TBase<Superv
           case 2: // EXECUTORS
             if (schemeField.type == org.apache.thrift.protocol.TType.LIST) {
               {
-                org.apache.thrift.protocol.TList _list896 = iprot.readListBegin();
-                struct.executors = new ArrayList<ExecutorInfo>(_list896.size);
-                ExecutorInfo _elem897;
-                for (int _i898 = 0; _i898 < _list896.size; ++_i898)
+                org.apache.thrift.protocol.TList _list870 = iprot.readListBegin();
+                struct.executors = new ArrayList<ExecutorInfo>(_list870.size);
+                ExecutorInfo _elem871;
+                for (int _i872 = 0; _i872 < _list870.size; ++_i872)
                 {
-                  _elem897 = new ExecutorInfo();
-                  _elem897.read(iprot);
-                  struct.executors.add(_elem897);
+                  _elem871 = new ExecutorInfo();
+                  _elem871.read(iprot);
+                  struct.executors.add(_elem871);
                 }
                 iprot.readListEnd();
               }
@@ -595,9 +595,9 @@ public class SupervisorWorkerHeartbeat implements org.apache.thrift.TBase<Superv
         oprot.writeFieldBegin(EXECUTORS_FIELD_DESC);
         {
           oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, struct.executors.size()));
-          for (ExecutorInfo _iter899 : struct.executors)
+          for (ExecutorInfo _iter873 : struct.executors)
           {
-            _iter899.write(oprot);
+            _iter873.write(oprot);
           }
           oprot.writeListEnd();
         }
@@ -626,9 +626,9 @@ public class SupervisorWorkerHeartbeat implements org.apache.thrift.TBase<Superv
       oprot.writeString(struct.storm_id);
       {
         oprot.writeI32(struct.executors.size());
-        for (ExecutorInfo _iter900 : struct.executors)
+        for (ExecutorInfo _iter874 : struct.executors)
         {
-          _iter900.write(oprot);
+          _iter874.write(oprot);
         }
       }
       oprot.writeI32(struct.time_secs);
@@ -640,14 +640,14 @@ public class SupervisorWorkerHeartbeat implements org.apache.thrift.TBase<Superv
       struct.storm_id = iprot.readString();
       struct.set_storm_id_isSet(true);
       {
-        org.apache.thrift.protocol.TList _list901 = new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, iprot.readI32());
-        struct.executors = new ArrayList<ExecutorInfo>(_list901.size);
-        ExecutorInfo _elem902;
-        for (int _i903 = 0; _i903 < _list901.size; ++_i903)
+        org.apache.thrift.protocol.TList _list875 = new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, iprot.readI32());
+        struct.executors = new ArrayList<ExecutorInfo>(_list875.size);
+        ExecutorInfo _elem876;
+        for (int _i877 = 0; _i877 < _list875.size; ++_i877)
         {
-          _elem902 = new ExecutorInfo();
-          _elem902.read(iprot);
-          struct.executors.add(_elem902);
+          _elem876 = new ExecutorInfo();
+          _elem876.read(iprot);
+          struct.executors.add(_elem876);
         }
       }
       struct.set_executors_isSet(true);

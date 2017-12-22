@@ -46,7 +46,13 @@ import org.apache.storm.daemon.supervisor.timer.SupervisorHeartbeat;
 import org.apache.storm.daemon.supervisor.timer.SynchronizeAssignments;
 import org.apache.storm.event.EventManager;
 import org.apache.storm.event.EventManagerImp;
-import org.apache.storm.generated.*;
+import org.apache.storm.generated.Assignment;
+import org.apache.storm.generated.AuthorizationException;
+import org.apache.storm.generated.LocalAssignment;
+import org.apache.storm.generated.Nimbus;
+import org.apache.storm.generated.NotAliveException;
+import org.apache.storm.generated.SupervisorAssignments;
+import org.apache.storm.generated.SupervisorWorkerHeartbeat;
 import org.apache.storm.localizer.AsyncLocalizer;
 import org.apache.storm.messaging.IContext;
 import org.apache.storm.metric.StormMetricsRegistry;
@@ -321,11 +327,11 @@ public class Supervisor implements DaemonCommon, AutoCloseable {
      */
     public void sendSupervisorAssignments(SupervisorAssignments assignments) {
         //for local test
-        if (Time.isSimulating()) {
+        if (Time.isSimulating() && !(Boolean) conf.get(DaemonConfig.SUPERVISOR_ENABLE)) {
             return;
         }
         SynchronizeAssignments syn = new SynchronizeAssignments(this, assignments, readState);
-        syn.run();
+        eventManager.add(syn);
     }
 
     private void registerWorkerNumGauge(String name, final Map<String, Object> conf) {

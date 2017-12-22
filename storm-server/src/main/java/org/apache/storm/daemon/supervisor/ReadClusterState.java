@@ -31,10 +31,8 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.storm.DaemonConfig;
 import org.apache.storm.cluster.IStormClusterState;
-import org.apache.storm.cluster.VersionedData;
 import org.apache.storm.daemon.supervisor.Slot.MachineState;
 import org.apache.storm.daemon.supervisor.Slot.TopoProfileAction;
-import org.apache.storm.event.EventManager;
 import org.apache.storm.generated.Assignment;
 import org.apache.storm.generated.ExecutorInfo;
 import org.apache.storm.generated.LocalAssignment;
@@ -54,12 +52,10 @@ public class ReadClusterState implements Runnable, AutoCloseable {
     
     private final Map<String, Object> superConf;
     private final IStormClusterState stormClusterState;
-    private final EventManager syncSupEventManager;
-    private final AtomicReference<Map<String, VersionedData<Assignment>>> assignmentVersions;
     private final Map<Integer, Slot> slots = new HashMap<>();
     private final AtomicInteger readRetry = new AtomicInteger(0);
     private final String assignmentId;
-    private final ISupervisor iSupervisor;
+    private final ISupervisor iSuper;
     private final AsyncLocalizer localizer;
     private final ContainerLauncher launcher;
     private final String host;
@@ -69,10 +65,8 @@ public class ReadClusterState implements Runnable, AutoCloseable {
     public ReadClusterState(Supervisor supervisor) throws Exception {
         this.superConf = supervisor.getConf();
         this.stormClusterState = supervisor.getStormClusterState();
-        this.syncSupEventManager = supervisor.getEventManger();
-        this.assignmentVersions = new AtomicReference<>(new HashMap<>());
         this.assignmentId = supervisor.getAssignmentId();
-        this.iSupervisor = supervisor.getiSupervisor();
+        this.iSuper = supervisor.getiSupervisor();
         this.localizer = supervisor.getAsyncLocalizer();
         this.host = supervisor.getHostName();
         this.localState = supervisor.getLocalState();
@@ -108,7 +102,7 @@ public class ReadClusterState implements Runnable, AutoCloseable {
 
     private Slot mkSlot(int port) throws Exception {
         return new Slot(localizer, superConf, launcher, host, port,
-                localState, stormClusterState, iSupervisor, cachedAssignments);
+                localState, stormClusterState, iSuper, cachedAssignments);
     }
     
     @Override
@@ -129,7 +123,7 @@ public class ReadClusterState implements Runnable, AutoCloseable {
             LOG.debug("All assignment: {}", allAssignments);
             LOG.debug("Topology Ids -> Profiler Actions {}", topoIdToProfilerActions);
             for (Integer port: allAssignments.keySet()) {
-                if (iSupervisor.confirmAssigned(port)) {
+                if (iSuper.confirmAssigned(port)) {
                     assignedPorts.add(port);
                 }
             }

@@ -179,7 +179,6 @@ public class StormClusterStateImpl implements IStormClusterState {
 
     @Override
     public Assignment remoteAssignmentInfo(String stormId, Runnable callback) {
-        //deprecated
         if (callback != null) {
             assignmentInfoCallback.put(stormId, callback);
         }

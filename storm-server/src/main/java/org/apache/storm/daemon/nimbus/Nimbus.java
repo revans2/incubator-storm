@@ -54,7 +54,6 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.UnaryOperator;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 import javax.security.auth.Subject;
 
 import org.apache.storm.Config;
@@ -4343,7 +4342,9 @@ public class Nimbus implements Iface, Shutdownable, DaemonCommon {
                 return supervisorAssignments;
             }
         } catch (Exception e) {
-            //when not leader just return nil which will cause client to get an unknown error
+            // When this master is not leader and get a sync request from node,
+            // just return nil which will cause client/node to get an unknown error,
+            // the node/supervisor will sync it as a timer task.
             LOG.debug("Exception when node {} fetching assignments", node);
         }
         return null;
@@ -4356,7 +4357,7 @@ public class Nimbus implements Iface, Shutdownable, DaemonCommon {
                 updateCachedHeartbeatsFromSupervisor(heartbeats);
             }
         } catch (Exception e) {
-            //when not leader just return nil which will cause client to get an unknown error
+            // When this master is not leader and get heartbeats report from supervisor/node, just ignore it.
             LOG.debug("Exception when update heartbeats for node {} heartbeats report.", heartbeats.get_supervisor_id());
         }
     }
@@ -4368,7 +4369,7 @@ public class Nimbus implements Iface, Shutdownable, DaemonCommon {
                 updateCachedHeartbeatsFromWorker(hb);
             }
         } catch (Exception e) {
-            //when not leader just return nil which will cause client to get an unknown error
+            // When this master is not leader and get a heartbeat report from worker, just ignore it.
             LOG.debug("Exception when update heartbeats for storm {} worker heartbeat report.", hb.get_storm_id());
         }
     }

@@ -464,14 +464,14 @@ public class SupervisorWorkerHeartbeats implements org.apache.thrift.TBase<Super
           case 2: // WORKER_HEARTBEATS
             if (schemeField.type == org.apache.thrift.protocol.TType.LIST) {
               {
-                org.apache.thrift.protocol.TList _list904 = iprot.readListBegin();
-                struct.worker_heartbeats = new ArrayList<SupervisorWorkerHeartbeat>(_list904.size);
-                SupervisorWorkerHeartbeat _elem905;
-                for (int _i906 = 0; _i906 < _list904.size; ++_i906)
+                org.apache.thrift.protocol.TList _list878 = iprot.readListBegin();
+                struct.worker_heartbeats = new ArrayList<SupervisorWorkerHeartbeat>(_list878.size);
+                SupervisorWorkerHeartbeat _elem879;
+                for (int _i880 = 0; _i880 < _list878.size; ++_i880)
                 {
-                  _elem905 = new SupervisorWorkerHeartbeat();
-                  _elem905.read(iprot);
-                  struct.worker_heartbeats.add(_elem905);
+                  _elem879 = new SupervisorWorkerHeartbeat();
+                  _elem879.read(iprot);
+                  struct.worker_heartbeats.add(_elem879);
                 }
                 iprot.readListEnd();
               }
@@ -502,9 +502,9 @@ public class SupervisorWorkerHeartbeats implements org.apache.thrift.TBase<Super
         oprot.writeFieldBegin(WORKER_HEARTBEATS_FIELD_DESC);
         {
           oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, struct.worker_heartbeats.size()));
-          for (SupervisorWorkerHeartbeat _iter907 : struct.worker_heartbeats)
+          for (SupervisorWorkerHeartbeat _iter881 : struct.worker_heartbeats)
           {
-            _iter907.write(oprot);
+            _iter881.write(oprot);
           }
           oprot.writeListEnd();
         }
@@ -530,9 +530,9 @@ public class SupervisorWorkerHeartbeats implements org.apache.thrift.TBase<Super
       oprot.writeString(struct.supervisor_id);
       {
         oprot.writeI32(struct.worker_heartbeats.size());
-        for (SupervisorWorkerHeartbeat _iter908 : struct.worker_heartbeats)
+        for (SupervisorWorkerHeartbeat _iter882 : struct.worker_heartbeats)
         {
-          _iter908.write(oprot);
+          _iter882.write(oprot);
         }
       }
     }
@@ -543,14 +543,14 @@ public class SupervisorWorkerHeartbeats implements org.apache.thrift.TBase<Super
       struct.supervisor_id = iprot.readString();
       struct.set_supervisor_id_isSet(true);
       {
-        org.apache.thrift.protocol.TList _list909 = new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, iprot.readI32());
-        struct.worker_heartbeats = new ArrayList<SupervisorWorkerHeartbeat>(_list909.size);
-        SupervisorWorkerHeartbeat _elem910;
-        for (int _i911 = 0; _i911 < _list909.size; ++_i911)
+        org.apache.thrift.protocol.TList _list883 = new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, iprot.readI32());
+        struct.worker_heartbeats = new ArrayList<SupervisorWorkerHeartbeat>(_list883.size);
+        SupervisorWorkerHeartbeat _elem884;
+        for (int _i885 = 0; _i885 < _list883.size; ++_i885)
         {
-          _elem910 = new SupervisorWorkerHeartbeat();
-          _elem910.read(iprot);
-          struct.worker_heartbeats.add(_elem910);
+          _elem884 = new SupervisorWorkerHeartbeat();
+          _elem884.read(iprot);
+          struct.worker_heartbeats.add(_elem884);
         }
       }
       struct.set_worker_heartbeats_isSet(true);
