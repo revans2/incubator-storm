@@ -56,12 +56,12 @@ public class BasicContainerTest {
     }
     
     public static class MockBasicContainer extends BasicContainer {
-        public MockBasicContainer(ContainerType type, Map<String, Object> conf, String supervisorId, int port,
-                LocalAssignment assignment, ResourceIsolationInterface resourceIsolationManager, LocalState localState,
-                String workerId, Map<String, Object> topoConf, AdvancedFSOps ops, String profileCmd)
-                throws IOException {
-            super(type, conf, supervisorId, port, assignment, resourceIsolationManager, localState, workerId, topoConf, ops,
-                    profileCmd);
+        public MockBasicContainer(ContainerType type, Map<String, Object> conf, String supervisorId, int supervisorPort,
+                int port, LocalAssignment assignment, ResourceIsolationInterface resourceIsolationManager,
+                LocalState localState, String workerId, Map<String, Object> topoConf, AdvancedFSOps ops,
+                String profileCmd) throws IOException {
+            super(type, conf, supervisorId, supervisorPort, port, assignment, resourceIsolationManager, localState,
+                    workerId, topoConf, ops, profileCmd);
         }
 
         public final List<CommandRun> profileCmds = new ArrayList<>();
@@ -118,6 +118,7 @@ public class BasicContainerTest {
     @Test
     public void testCreateNewWorkerId() throws Exception {
         final String topoId = "test_topology";
+        final int supervisorPort = 6628;
         final int port = 8080;
         LocalAssignment la = new LocalAssignment();
         la.set_topology_id(topoId);
@@ -129,7 +130,7 @@ public class BasicContainerTest {
         LocalState ls = mock(LocalState.class);
         
         MockBasicContainer mc = new MockBasicContainer(ContainerType.LAUNCH, superConf, 
-                "SUPERVISOR", port, la, null, ls, null, new HashMap<>(), ops, "profile");
+                "SUPERVISOR", supervisorPort, port, la, null, ls, null, new HashMap<>(), ops, "profile");
         //null worker id means generate one...
         
         assertNotNull(mc._workerId);
@@ -143,6 +144,7 @@ public class BasicContainerTest {
     public void testRecovery() throws Exception {
         final String topoId = "test_topology";
         final String workerId = "myWorker";
+        final int supervisorPort = 6628;
         final int port = 8080;
         LocalAssignment la = new LocalAssignment();
         la.set_topology_id(topoId);
@@ -158,7 +160,7 @@ public class BasicContainerTest {
         when(ops.doRequiredTopoFilesExist(superConf, topoId)).thenReturn(true);
         
         MockBasicContainer mc = new MockBasicContainer(ContainerType.RECOVER_FULL, superConf, 
-                "SUPERVISOR", port, la, null, ls, null, new HashMap<>(), ops, "profile");
+                "SUPERVISOR", supervisorPort, port, la, null, ls, null, new HashMap<>(), ops, "profile");
         
         assertEquals(workerId, mc._workerId);
     }
@@ -166,6 +168,7 @@ public class BasicContainerTest {
     @Test
     public void testRecoveryMiss() throws Exception {
         final String topoId = "test_topology";
+        final int supervisorPort = 6628;
         final int port = 8080;
         LocalAssignment la = new LocalAssignment();
         la.set_topology_id(topoId);
@@ -178,7 +181,7 @@ public class BasicContainerTest {
         
         try {
             new MockBasicContainer(ContainerType.RECOVER_FULL, new HashMap<String, Object>(), 
-                    "SUPERVISOR", port, la, null, ls, null, new HashMap<>(), null, "profile");
+                    "SUPERVISOR", supervisorPort, port, la, null, ls, null, new HashMap<>(), null, "profile");
             fail("Container recovered worker incorrectly");
         } catch (ContainerRecoveryException e) {
             //Expected
@@ -188,6 +191,7 @@ public class BasicContainerTest {
     @Test
     public void testCleanUp() throws Exception {
         final String topoId = "test_topology";
+        final int supervisorPort = 6628;
         final int port = 8080;
         final String workerId = "worker-id";
         LocalAssignment la = new LocalAssignment();
@@ -204,7 +208,7 @@ public class BasicContainerTest {
         when(ls.getApprovedWorkers()).thenReturn(new HashMap<>(workerState));
         
         MockBasicContainer mc = new MockBasicContainer(ContainerType.LAUNCH, superConf, 
-                "SUPERVISOR", port, la, null, ls, workerId, new HashMap<>(), ops, "profile");
+                "SUPERVISOR", supervisorPort, port, la, null, ls, workerId, new HashMap<>(), ops, "profile");
         
         mc.cleanUp();
         
@@ -218,6 +222,7 @@ public class BasicContainerTest {
     public void testRunProfiling() throws Exception {
         final long pid = 100;
         final String topoId = "test_topology";
+        final int supervisorPort = 6628;
         final int port = 8080;
         final String workerId = "worker-id";
         final String stormLocal = ContainerTest.asAbsPath("tmp", "testing");
@@ -238,7 +243,7 @@ public class BasicContainerTest {
         LocalState ls = mock(LocalState.class);
         
         MockBasicContainer mc = new MockBasicContainer(ContainerType.LAUNCH, superConf, 
-                "SUPERVISOR", port, la, null, ls, workerId, new HashMap<>(), ops, "profile");
+                "SUPERVISOR", supervisorPort, port, la, null, ls, workerId, new HashMap<>(), ops, "profile");
         
         //HEAP DUMP
         ProfileRequest req = new ProfileRequest();
@@ -358,6 +363,7 @@ public class BasicContainerTest {
     @Test
     public void testLaunch() throws Exception {
         final String topoId = "test_topology";
+        final int supervisorPort = 6628;
         final int port = 8080;
         final String stormHome = ContainerTest.asAbsPath("tmp", "storm-home");
         final String stormLogDir = ContainerTest.asFile(".", "target").getCanonicalPath();
@@ -394,7 +400,7 @@ public class BasicContainerTest {
         
         checkpoint(() -> {
             MockBasicContainer mc = new MockBasicContainer(ContainerType.LAUNCH, superConf, 
-                    "SUPERVISOR", port, la, null, ls, workerId, new HashMap<>(), ops, "profile");
+                    "SUPERVISOR", supervisorPort, port, la, null, ls, workerId, new HashMap<>(), ops, "profile");
 
             mc.launch();
 
@@ -442,6 +448,7 @@ public class BasicContainerTest {
                     "org.apache.storm.daemon.worker.Worker",
                     topoId, 
                     "SUPERVISOR",
+                    String.valueOf(supervisorPort),
                     String.valueOf(port),
                     workerId
                     ), cmd.cmd);
@@ -455,6 +462,7 @@ public class BasicContainerTest {
     public void testSubstChildOpts() throws Exception {
         String workerId = "w-01";
         String topoId = "s-01";
+        int supervisorPort = 6628;
         int port = 9999;
         int memOnheap = 512;
         
@@ -469,7 +477,7 @@ public class BasicContainerTest {
         LocalState ls = mock(LocalState.class);
         
         MockBasicContainer mc = new MockBasicContainer(ContainerType.LAUNCH, superConf, 
-                "SUPERVISOR", port, la, null, ls, workerId, new HashMap<>(), ops, "profile");
+                "SUPERVISOR", supervisorPort, port, la, null, ls, workerId, new HashMap<>(), ops, "profile");
         
         assertListEquals(Arrays.asList(
                 "-Xloggc:/tmp/storm/logs/gc.worker-9999-s-01-w-01-9999.log",

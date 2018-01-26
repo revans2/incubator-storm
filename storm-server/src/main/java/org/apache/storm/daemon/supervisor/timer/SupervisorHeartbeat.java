@@ -53,6 +53,7 @@ public class SupervisorHeartbeat implements Runnable {
         supervisorInfo.set_time_secs(Time.currentTimeSecs());
         supervisorInfo.set_hostname(supervisor.getHostName());
         supervisorInfo.set_assignment_id(supervisor.getAssignmentId());
+        supervisorInfo.set_server_port(supervisor.getThriftServerPort());
 
         List<Long> usedPorts = new ArrayList<>();
         usedPorts.addAll(supervisor.getCurrAssignment().get().keySet());

@@ -84,6 +84,7 @@ public class Supervisor implements DaemonCommon, AutoCloseable {
     private final LocalState localState;
     private final String supervisorId;
     private final String assignmentId;
+    private final int supervisorPort;
     private final String hostName;
     // used for reporting used ports when heartbeating
     private final AtomicReference<Map<Long, LocalAssignment>> currAssignment;
@@ -141,6 +142,7 @@ public class Supervisor implements DaemonCommon, AutoCloseable {
         }
         this.supervisorId = iSupervisor.getSupervisorId();
         this.assignmentId = iSupervisor.getAssignmentId();
+        this.supervisorPort = ObjectReader.getInt(conf.get(Config.SUPERVISOR_THRIFT_PORT));
 
         try {
             this.hostName = Utils.hostname();
@@ -193,6 +195,10 @@ public class Supervisor implements DaemonCommon, AutoCloseable {
 
     public String getAssignmentId() {
         return assignmentId;
+    }
+
+    public int getThriftServerPort() {
+        return supervisorPort;
     }
 
     public String getHostName() {
@@ -282,7 +288,7 @@ public class Supervisor implements DaemonCommon, AutoCloseable {
 
     private void launchSupervisorThriftServer(Map conf) throws IOException {
         // validate port
-        int port = ObjectReader.getInt(conf.get(Config.SUPERVISOR_THRIFT_PORT));
+        int port = getThriftServerPort();
         try {
             ServerSocket socket = new ServerSocket(port);
             socket.close();
@@ -411,7 +417,8 @@ public class Supervisor implements DaemonCommon, AutoCloseable {
             readState.shutdownAllWorkers(onWarnTimeout, onErrorTimeout);
         } else {
             try {
-                ContainerLauncher launcher = ContainerLauncher.make(getConf(), getId(), getSharedContext());
+                ContainerLauncher launcher = ContainerLauncher.make(getConf(), getId(), getThriftServerPort(),
+                    getSharedContext());
                 killWorkers(SupervisorUtils.supervisorWorkerIds(conf), launcher);
             } catch (Exception e) {
                 throw Utils.wrapInRuntime(e);

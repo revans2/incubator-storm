@@ -9151,6 +9151,7 @@ class SupervisorInfo:
    - time_secs
    - hostname
    - assignment_id
+   - server_port
    - used_ports
    - meta
    - scheduler_meta
@@ -9164,18 +9165,20 @@ class SupervisorInfo:
     (1, TType.I64, 'time_secs', None, None, ), # 1
     (2, TType.STRING, 'hostname', None, None, ), # 2
     (3, TType.STRING, 'assignment_id', None, None, ), # 3
-    (4, TType.LIST, 'used_ports', (TType.I64,None), None, ), # 4
-    (5, TType.LIST, 'meta', (TType.I64,None), None, ), # 5
-    (6, TType.MAP, 'scheduler_meta', (TType.STRING,None,TType.STRING,None), None, ), # 6
-    (7, TType.I64, 'uptime_secs', None, None, ), # 7
-    (8, TType.STRING, 'version', None, None, ), # 8
-    (9, TType.MAP, 'resources_map', (TType.STRING,None,TType.DOUBLE,None), None, ), # 9
+    (4, TType.I32, 'server_port', None, None, ), # 4
+    (5, TType.LIST, 'used_ports', (TType.I64,None), None, ), # 5
+    (6, TType.LIST, 'meta', (TType.I64,None), None, ), # 6
+    (7, TType.MAP, 'scheduler_meta', (TType.STRING,None,TType.STRING,None), None, ), # 7
+    (8, TType.I64, 'uptime_secs', None, None, ), # 8
+    (9, TType.STRING, 'version', None, None, ), # 9
+    (10, TType.MAP, 'resources_map', (TType.STRING,None,TType.DOUBLE,None), None, ), # 10
   )
 
-  def __init__(self, time_secs=None, hostname=None, assignment_id=None, used_ports=None, meta=None, scheduler_meta=None, uptime_secs=None, version=None, resources_map=None,):
+  def __init__(self, time_secs=None, hostname=None, assignment_id=None, server_port=None, used_ports=None, meta=None, scheduler_meta=None, uptime_secs=None, version=None, resources_map=None,):
     self.time_secs = time_secs
     self.hostname = hostname
     self.assignment_id = assignment_id
+    self.server_port = server_port
     self.used_ports = used_ports
     self.meta = meta
     self.scheduler_meta = scheduler_meta
@@ -9208,6 +9211,11 @@ class SupervisorInfo:
         else:
           iprot.skip(ftype)
       elif fid == 4:
+        if ftype == TType.I32:
+          self.server_port = iprot.readI32()
+        else:
+          iprot.skip(ftype)
+      elif fid == 5:
         if ftype == TType.LIST:
           self.used_ports = []
           (_etype559, _size556) = iprot.readListBegin()
@@ -9217,7 +9225,7 @@ class SupervisorInfo:
           iprot.readListEnd()
         else:
           iprot.skip(ftype)
-      elif fid == 5:
+      elif fid == 6:
         if ftype == TType.LIST:
           self.meta = []
           (_etype565, _size562) = iprot.readListBegin()
@@ -9227,7 +9235,7 @@ class SupervisorInfo:
           iprot.readListEnd()
         else:
           iprot.skip(ftype)
-      elif fid == 6:
+      elif fid == 7:
         if ftype == TType.MAP:
           self.scheduler_meta = {}
           (_ktype569, _vtype570, _size568 ) = iprot.readMapBegin()
@@ -9238,17 +9246,17 @@ class SupervisorInfo:
           iprot.readMapEnd()
         else:
           iprot.skip(ftype)
-      elif fid == 7:
+      elif fid == 8:
         if ftype == TType.I64:
           self.uptime_secs = iprot.readI64()
         else:
           iprot.skip(ftype)
-      elif fid == 8:
+      elif fid == 9:
         if ftype == TType.STRING:
           self.version = iprot.readString().decode('utf-8')
         else:
           iprot.skip(ftype)
-      elif fid == 9:
+      elif fid == 10:
         if ftype == TType.MAP:
           self.resources_map = {}
           (_ktype576, _vtype577, _size575 ) = iprot.readMapBegin()
@@ -9281,22 +9289,26 @@ class SupervisorInfo:
       oprot.writeFieldBegin('assignment_id', TType.STRING, 3)
       oprot.writeString(self.assignment_id.encode('utf-8'))
       oprot.writeFieldEnd()
+    if self.server_port is not None:
+      oprot.writeFieldBegin('server_port', TType.I32, 4)
+      oprot.writeI32(self.server_port)
+      oprot.writeFieldEnd()
     if self.used_ports is not None:
-      oprot.writeFieldBegin('used_ports', TType.LIST, 4)
+      oprot.writeFieldBegin('used_ports', TType.LIST, 5)
       oprot.writeListBegin(TType.I64, len(self.used_ports))
       for iter582 in self.used_ports:
         oprot.writeI64(iter582)
       oprot.writeListEnd()
       oprot.writeFieldEnd()
     if self.meta is not None:
-      oprot.writeFieldBegin('meta', TType.LIST, 5)
+      oprot.writeFieldBegin('meta', TType.LIST, 6)
       oprot.writeListBegin(TType.I64, len(self.meta))
       for iter583 in self.meta:
         oprot.writeI64(iter583)
       oprot.writeListEnd()
       oprot.writeFieldEnd()
     if self.scheduler_meta is not None:
-      oprot.writeFieldBegin('scheduler_meta', TType.MAP, 6)
+      oprot.writeFieldBegin('scheduler_meta', TType.MAP, 7)
       oprot.writeMapBegin(TType.STRING, TType.STRING, len(self.scheduler_meta))
       for kiter584,viter585 in self.scheduler_meta.items():
         oprot.writeString(kiter584.encode('utf-8'))
@@ -9304,15 +9316,15 @@ class SupervisorInfo:
       oprot.writeMapEnd()
       oprot.writeFieldEnd()
     if self.uptime_secs is not None:
-      oprot.writeFieldBegin('uptime_secs', TType.I64, 7)
+      oprot.writeFieldBegin('uptime_secs', TType.I64, 8)
       oprot.writeI64(self.uptime_secs)
       oprot.writeFieldEnd()
     if self.version is not None:
-      oprot.writeFieldBegin('version', TType.STRING, 8)
+      oprot.writeFieldBegin('version', TType.STRING, 9)
       oprot.writeString(self.version.encode('utf-8'))
       oprot.writeFieldEnd()
     if self.resources_map is not None:
-      oprot.writeFieldBegin('resources_map', TType.MAP, 9)
+      oprot.writeFieldBegin('resources_map', TType.MAP, 10)
       oprot.writeMapBegin(TType.STRING, TType.DOUBLE, len(self.resources_map))
       for kiter586,viter587 in self.resources_map.items():
         oprot.writeString(kiter586.encode('utf-8'))
@@ -9335,6 +9347,7 @@ class SupervisorInfo:
     value = (value * 31) ^ hash(self.time_secs)
     value = (value * 31) ^ hash(self.hostname)
     value = (value * 31) ^ hash(self.assignment_id)
+    value = (value * 31) ^ hash(self.server_port)
     value = (value * 31) ^ hash(self.used_ports)
     value = (value * 31) ^ hash(self.meta)
     value = (value * 31) ^ hash(self.scheduler_meta)

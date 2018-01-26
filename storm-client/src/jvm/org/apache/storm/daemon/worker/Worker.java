@@ -89,6 +89,7 @@ public class Worker implements Shutdownable, DaemonCommon {
     private final IContext context;
     private final String topologyId;
     private final String assignmentId;
+    private final int supervisorPort;
     private final int port;
     private final String workerId;
     private final LogConfigManager logConfigManager;
@@ -108,21 +109,24 @@ public class Worker implements Shutdownable, DaemonCommon {
     /**
      * TODO: should worker even take the topologyId as input? this should be
      * deducible from cluster state (by searching through assignments)
-     * what about if there's inconsistency in assignments? -> but nimbus should guarantee this consistency
+     * what about if there's inconsistency in assignments? -> but nimbus should guarantee this consistency.
      *
      * @param conf         - Storm configuration
      * @param context      -
      * @param topologyId   - topology id
      * @param assignmentId - assignment id
+     * @param supervisorPort - parent supervisor thrift server port
      * @param port         - port on which the worker runs
      * @param workerId     - worker id
      */
 
-    public Worker(Map<String, Object> conf, IContext context, String topologyId, String assignmentId, int port, String workerId) {
+    public Worker(Map<String, Object> conf, IContext context, String topologyId, String assignmentId,
+            int supervisorPort, int port, String workerId) {
         this.conf = conf;
         this.context = context;
         this.topologyId = topologyId;
         this.assignmentId = assignmentId;
+        this.supervisorPort = supervisorPort;
         this.port = port;
         this.workerId = workerId;
         this.logConfigManager = new LogConfigManager();
@@ -161,8 +165,8 @@ public class Worker implements Shutdownable, DaemonCommon {
         Subject.doAs(subject, new PrivilegedExceptionAction<Object>() {
             @Override public Object run() throws Exception {
                 workerState =
-                    new WorkerState(conf, context, topologyId, assignmentId, port, workerId, topologyConf, stateStorage,
-                        stormClusterState);
+                    new WorkerState(conf, context, topologyId, assignmentId, supervisorPort, port, workerId,
+                            topologyConf, stateStorage, stormClusterState);
 
                 // Heartbeat here so that worker process dies if this fails
                 // it's important that worker heartbeat to supervisor ASAP so that supervisor knows
@@ -397,7 +401,7 @@ public class Worker implements Shutdownable, DaemonCommon {
         //in distributed mode, send heartbeat directly to master if local supervisor goes down
         SupervisorWorkerHeartbeat workerHeartbeat = new SupervisorWorkerHeartbeat(lsWorkerHeartbeat.get_topology_id(),
                 lsWorkerHeartbeat.get_executors(), lsWorkerHeartbeat.get_time_secs());
-        try (SupervisorClient client = SupervisorClient.getConfiguredClient(conf, Utils.hostname())){
+        try (SupervisorClient client = SupervisorClient.getConfiguredClient(conf, Utils.hostname(), supervisorPort)){
             client.getClient().sendSupervisorWorkerHeartbeat(workerHeartbeat);
         } catch (Throwable tr1) {
             //if any error/exception thrown, report directly to nimbus.
@@ -542,15 +546,17 @@ public class Worker implements Shutdownable, DaemonCommon {
     }
 
     public static void main(String[] args) throws Exception {
-        Preconditions.checkArgument(args.length == 4, "Illegal number of arguments. Expected: 4, Actual: " + args.length);
+        Preconditions.checkArgument(args.length == 5, "Illegal number of arguments. Expected: 5, Actual: " + args.length);
         String stormId = args[0];
         String assignmentId = args[1];
-        String portStr = args[2];
-        String workerId = args[3];
+        String supervisorPort = args[2];
+        String portStr = args[3];
+        String workerId = args[4];
         Map<String, Object> conf = Utils.readStormConfig();
         Utils.setupDefaultUncaughtExceptionHandler();
         StormCommon.validateDistributedMode(conf);
-        Worker worker = new Worker(conf, null, stormId, assignmentId, Integer.parseInt(portStr), workerId);
+        Worker worker = new Worker(conf, null, stormId, assignmentId, Integer.parseInt(supervisorPort),
+                Integer.parseInt(portStr), workerId);
         worker.start();
         Utils.addShutdownHookWithForceKillIn1Sec(worker::shutdown);
     }

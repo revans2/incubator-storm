@@ -55,6 +55,7 @@ public class ReadClusterState implements Runnable, AutoCloseable {
     private final Map<Integer, Slot> slots = new HashMap<>();
     private final AtomicInteger readRetry = new AtomicInteger(0);
     private final String assignmentId;
+    private final int supervisorPort;
     private final ISupervisor iSuper;
     private final AsyncLocalizer localizer;
     private final ContainerLauncher launcher;
@@ -66,13 +67,14 @@ public class ReadClusterState implements Runnable, AutoCloseable {
         this.superConf = supervisor.getConf();
         this.stormClusterState = supervisor.getStormClusterState();
         this.assignmentId = supervisor.getAssignmentId();
+        this.supervisorPort = supervisor.getThriftServerPort();
         this.iSuper = supervisor.getiSupervisor();
         this.localizer = supervisor.getAsyncLocalizer();
         this.host = supervisor.getHostName();
         this.localState = supervisor.getLocalState();
         this.cachedAssignments = supervisor.getCurrAssignment();
         
-        this.launcher = ContainerLauncher.make(superConf, assignmentId, supervisor.getSharedContext());
+        this.launcher = ContainerLauncher.make(superConf, assignmentId, supervisorPort, supervisor.getSharedContext());
         
         @SuppressWarnings("unchecked")
         List<Number> ports = (List<Number>)superConf.get(DaemonConfig.SUPERVISOR_SLOTS_PORTS);

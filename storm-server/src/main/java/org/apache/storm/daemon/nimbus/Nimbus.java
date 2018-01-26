@@ -337,6 +337,7 @@ public class Nimbus implements Iface, Shutdownable, DaemonCommon {
                 state.removeKeyVersion(key);
             }
         }
+        nimbus.getHeartbeatsCache().getAndUpdate(new Dissoc<>(topoId));
         return null;
     };
     
@@ -736,8 +737,8 @@ public class Nimbus implements Iface, Shutdownable, DaemonCommon {
         for (Entry<String, SupervisorInfo> entry: state.allSupervisorInfo().entrySet()) {
             String id = entry.getKey();
             SupervisorInfo info = entry.getValue();
-            ret.put(id, new SupervisorDetails(id, info.get_hostname(), info.get_scheduler_meta(), null,
-                    info.get_resources_map()));
+            ret.put(id, new SupervisorDetails(id, info.get_server_port(), info.get_hostname(),
+                    info.get_scheduler_meta(), null, info.get_resources_map()));
         }
         return ret;
     }
@@ -1717,7 +1718,7 @@ public class Nimbus implements Iface, Shutdownable, DaemonCommon {
             if (deadPorts != null) {
                 allPorts.removeAll(deadPorts);
             }
-            ret.put(superId, new SupervisorDetails(superId, hostname, info.get_scheduler_meta(), 
+            ret.put(superId, new SupervisorDetails(superId, hostname, info.get_scheduler_meta(),
                     allPorts, info.get_resources_map()));
         }
         return ret;
@@ -1859,13 +1860,19 @@ public class Nimbus implements Iface, Shutdownable, DaemonCommon {
      * @param assignments assignments map for nodes
      * @param service {@link AssignmentDistributionService} for distributing assignments asynchronous
      * @param nodeHost node -> host map
+     * @param supervisorDetails nodeId -> {@link SupervisorDetails} map
      */
-    private static void notifySupervisorsAssignments(Map<String, Assignment> assignments, AssignmentDistributionService service, Map<String, String> nodeHost) {
+    private static void notifySupervisorsAssignments(Map<String, Assignment> assignments,
+        AssignmentDistributionService service, Map<String, String> nodeHost,
+        Map<String, SupervisorDetails> supervisorDetails) {
         for(Map.Entry<String, String> nodeEntry: nodeHost.entrySet()) {
             try{
+                String nodeId = nodeEntry.getKey();
                 SupervisorAssignments supervisorAssignments = new SupervisorAssignments();
                 supervisorAssignments.set_storm_assignment(assignmentsForNode(assignments, nodeEntry.getKey()));
-                service.addAssignmentsForNode(nodeEntry.getKey(), nodeEntry.getValue(), supervisorAssignments);
+                SupervisorDetails details = supervisorDetails.get(nodeId);
+                Integer serverPort = details != null ? details.getServerPort() : null;
+                service.addAssignmentsForNode(nodeId, nodeEntry.getValue(), serverPort, supervisorAssignments);
             } catch (Throwable tr1) {
                 //just skip when any error happens wait for next round assignments reassign
                 LOG.error("Exception when add assignments distribution task for node {}", nodeEntry.getKey());
@@ -1875,7 +1882,7 @@ public class Nimbus implements Iface, Shutdownable, DaemonCommon {
 
     private static void notifySupervisorsAsKilled(IStormClusterState clusterState, Assignment oldAss, AssignmentDistributionService service) {
         Map<String, String> nodeHost = assignmentChangedNodes(oldAss, null);
-        notifySupervisorsAssignments(clusterState.assignmentsInfo(), service, nodeHost);
+        notifySupervisorsAssignments(clusterState.assignmentsInfo(), service, nodeHost, basicSupervisorDetailsMap(clusterState));
     }
     
     private TopologyResources getResourcesForTopology(String topoId, StormBase base) throws NotAliveException, AuthorizationException, InvalidTopologyException, IOException {
@@ -2101,7 +2108,8 @@ public class Nimbus implements Iface, Shutdownable, DaemonCommon {
                 Assignment existingAssignment = existingAssignments.get(topoId);
                 totalAssignmentsChangedNodes.putAll(assignmentChangedNodes(existingAssignment, assignment));
             }
-            notifySupervisorsAssignments(newAssignments, assignmentsDistributer, totalAssignmentsChangedNodes);
+            notifySupervisorsAssignments(newAssignments, assignmentsDistributer, totalAssignmentsChangedNodes,
+                basicSupervisorDetailsMap);
 
             Map<String, Collection<WorkerSlot>> addedSlots = new HashMap<>();
             for (Entry<String, Assignment> entry: newAssignments.entrySet()) {
@@ -2972,7 +2980,6 @@ public class Nimbus implements Iface, Shutdownable, DaemonCommon {
                 waitAmount = options.get_wait_secs();
             }
             transitionName(topoName, TopologyActions.KILL, waitAmount, true);
-            heartbeatsCache.getAndUpdate(new Dissoc<>((String)topoConf.get(Config.STORM_ID)));
             notifyTopologyActionListener(topoName, operation);
             addTopoToHistoryLog((String)topoConf.get(Config.STORM_ID), topoConf);
         } catch (Exception e) {

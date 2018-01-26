@@ -173,6 +173,7 @@ public class WorkerState {
     final IConnection receiver;
     final String topologyId;
     final String assignmentId;
+    final int supervisorPort;
     final int port;
     final String workerId;
     final IStateStorage stateStorage;
@@ -267,9 +268,9 @@ public class WorkerState {
 
     private static final long LOAD_REFRESH_INTERVAL_MS = 5000L;
 
-    public WorkerState(Map<String, Object> conf, IContext mqContext, String topologyId, String assignmentId, int port, String workerId,
-        Map<String, Object> topologyConf, IStateStorage stateStorage, IStormClusterState stormClusterState)
-        throws IOException, InvalidTopologyException {
+    public WorkerState(Map<String, Object> conf, IContext mqContext, String topologyId, String assignmentId,
+        int supervisorPort, int port, String workerId, Map<String, Object> topologyConf, IStateStorage stateStorage,
+        IStormClusterState stormClusterState) throws IOException, InvalidTopologyException {
         this.executors = new HashSet<>(readWorkerExecutors(conf, stormClusterState, topologyId, assignmentId, port));
         this.transferQueue = new DisruptorQueue("worker-transfer-queue",
             ObjectReader.getInt(topologyConf.get(Config.TOPOLOGY_TRANSFER_BUFFER_SIZE)),
@@ -282,6 +283,7 @@ public class WorkerState {
         this.receiver = this.mqContext.bind(topologyId, port);
         this.topologyId = topologyId;
         this.assignmentId = assignmentId;
+        this.supervisorPort = supervisorPort;
         this.port = port;
         this.workerId = workerId;
         this.stateStorage = stateStorage;
@@ -631,7 +633,8 @@ public class WorkerState {
 
     private Assignment getLocalAssignment(Map<String, Object> conf, IStormClusterState stormClusterState, String topologyId) {
         if (!ConfigUtils.isLocalMode(conf)) {
-            try (SupervisorClient supervisorClient = SupervisorClient.getConfiguredClient(conf, Utils.hostname())){
+            try (SupervisorClient supervisorClient = SupervisorClient.getConfiguredClient(conf, Utils.hostname(),
+                    supervisorPort)){
                 Assignment assignment = supervisorClient.getClient().getLocalAssignmentForStorm(topologyId);
                 return assignment;
             } catch (Throwable tr1) {

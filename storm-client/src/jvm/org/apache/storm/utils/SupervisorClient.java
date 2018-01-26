@@ -32,10 +32,15 @@ public class SupervisorClient extends ThriftClient {
     private static final Logger LOG = LoggerFactory.getLogger(SupervisorClient.class);
 
     public static SupervisorClient getConfiguredClient(Map conf, String host) {
-        return getConfiguredClientAs(conf, host, null);
+        int port = Integer.parseInt(conf.get(Config.SUPERVISOR_THRIFT_PORT).toString());
+        return getConfiguredClientAs(conf, host, port, null);
     }
 
-    public static SupervisorClient getConfiguredClientAs(Map conf, String host, String asUser) {
+    public static SupervisorClient getConfiguredClient(Map conf, String host, int port) {
+        return getConfiguredClientAs(conf, host, port, null);
+    }
+
+    public static SupervisorClient getConfiguredClientAs(Map conf, String host, int port, String asUser) {
         if (conf.containsKey(Config.STORM_DO_AS_USER)) {
             if (asUser != null && !asUser.isEmpty()) {
                 LOG.warn("You have specified a doAsUser as param {} and a doAsParam as config, config will take precedence."
@@ -43,7 +48,6 @@ public class SupervisorClient extends ThriftClient {
             }
             asUser = (String) conf.get(Config.STORM_DO_AS_USER);
         }
-        int port = Integer.parseInt(conf.get(Config.SUPERVISOR_THRIFT_PORT).toString());
         try {
             return new SupervisorClient(conf, host, port, null, asUser);
         } catch (TTransportException e) {

@@ -31,6 +31,7 @@ import java.util.concurrent.TimeUnit;
 import org.apache.storm.DaemonConfig;
 import org.apache.storm.daemon.supervisor.Supervisor;
 import org.apache.storm.generated.SupervisorAssignments;
+import org.apache.storm.scheduler.SupervisorDetails;
 import org.apache.storm.utils.ConfigUtils;
 import org.apache.storm.utils.ObjectReader;
 import org.apache.storm.utils.SupervisorClient;
@@ -47,6 +48,8 @@ import org.slf4j.LoggerFactory;
  * <p>Master will shuffle its node request to the queues, if the target queue is full, we just discard the request,
  * let the supervisors sync instead.
  *
+ * <p>Caution: this class is not thread safe.
+ *
  * <pre>{@code
  * Working mode
  *                      +--------+         +-----------------+
@@ -62,7 +65,6 @@ import org.slf4j.LoggerFactory;
 public class AssignmentDistributionService implements Closeable {
     private static final Logger LOG = LoggerFactory.getLogger(AssignmentDistributionService.class);
     private ExecutorService service;
-
     /**
      * Flag to indicate if the service is active.
      */
@@ -136,15 +138,23 @@ public class AssignmentDistributionService implements Closeable {
 
     /**
      * Add an assignments for a node/supervisor for distribution.
-     * @param node node id of supervisor
-     * @param host host name for the node
+     * @param node node id of supervisor.
+     * @param host host name for the node.
+     * @param serverPort node thrift server port.
      * @param assignments the {@link org.apache.storm.generated.SupervisorAssignments}
      */
-    public void addAssignmentsForNode(String node, String host, SupervisorAssignments assignments) {
+    public void addAssignmentsForNode(String node, String host, Integer serverPort, SupervisorAssignments assignments) {
         try {
-            boolean success = nextQueue().offer(NodeAssignments.getInstance(node, host, assignments), 5L, TimeUnit.SECONDS);
+            //For some reasons, we can not get supervisor port info, eg: supervisor shutdown,
+            //Just skip for this scheduling round.
+            if (serverPort == null) {
+                LOG.warn("Discard an assignment distribution for node {} because server port info is missing.", node);
+                return;
+            }
+
+            boolean success = nextQueue().offer(NodeAssignments.getInstance(node, host, serverPort, assignments), 5L, TimeUnit.SECONDS);
             if (!success) {
-                LOG.warn("Discard an assignment distribution for node {} because the target sub queue is full", node);
+                LOG.warn("Discard an assignment distribution for node {} because the target sub queue is full.", node);
             }
 
         } catch (InterruptedException e) {
@@ -155,17 +165,20 @@ public class AssignmentDistributionService implements Closeable {
 
     static class NodeAssignments {
         private String node;
-        private SupervisorAssignments assignments;
         private String host;
+        private Integer serverPort;
+        private SupervisorAssignments assignments;
 
-        private NodeAssignments(String node, String host, SupervisorAssignments assignments) {
+        private NodeAssignments(String node, String host, Integer serverPort, SupervisorAssignments assignments) {
             this.node = node;
             this.host = host;
+            this.serverPort = serverPort;
             this.assignments = assignments;
         }
 
-        public static NodeAssignments getInstance(String node, String host, SupervisorAssignments assignments) {
-            return new NodeAssignments(node, host, assignments);
+        public static NodeAssignments getInstance(String node, String host, Integer serverPort,
+            SupervisorAssignments assignments) {
+            return new NodeAssignments(node, host, serverPort, assignments);
         }
 
         //supervisor assignment id/supervisor id
@@ -175,6 +188,10 @@ public class AssignmentDistributionService implements Closeable {
 
         public String getHost() {
             return host;
+        }
+
+        public Integer getServerPort() {
+            return serverPort;
         }
 
         public SupervisorAssignments getAssignments() {
@@ -219,12 +236,13 @@ public class AssignmentDistributionService implements Closeable {
                 if (supervisor != null) {
                     supervisor.sendSupervisorAssignments(assignments.getAssignments());
                 } else {
-                    LOG.error("Can not find node {} for assignments distribution");
-                    throw new RuntimeException("null for node {} supervisor instance");
+                    LOG.error("Can not find node {} for assignments distribution", assignments.getNode());
+                    throw new RuntimeException("null for node " + assignments.getNode() +  " supervisor instance.");
                 }
             } else {
                 // distributed mode
-                try (SupervisorClient client = SupervisorClient.getConfiguredClient(service.getConf(), assignments.getHost())){
+                try (SupervisorClient client = SupervisorClient.getConfiguredClient(service.getConf(),
+                    assignments.getHost(), assignments.getServerPort())){
                     try {
                         client.getClient().sendSupervisorAssignments(assignments.getAssignments());
                     } catch (Exception e) {
@@ -233,7 +251,7 @@ public class AssignmentDistributionService implements Closeable {
                     }
                 } catch (Throwable e) {
                     //just ignore any error/exception.
-                    LOG.error("Exception to create supervisor client for node{}: {}", assignments.getNode(), e.getMessage());
+                    LOG.error("Exception to create supervisor client for node {}: {}", assignments.getNode(), e.getMessage());
                 }
 
             }
@@ -283,7 +301,7 @@ public class AssignmentDistributionService implements Closeable {
 
     /**
      * Factory method for initialize a instance.
-     * @param conf config
+     * @param conf config.
      * @return an instance of {@link AssignmentDistributionService}
      */
     public static AssignmentDistributionService getInstance(Map conf) {
