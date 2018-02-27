@@ -1548,6 +1548,37 @@ public class StatsUtil {
         return ret;
     }
 
+    /**
+     * update all executor heart beats (legacy ZK heartbeat compatibility)
+     *
+     * @param cache         existing heart beats cache
+     * @param executorBeats new heart beats
+     * @param executors     all executors
+     * @param timeout       timeout
+     * @return a HashMap of updated executor heart beats
+     */
+    public static Map<List<Integer>, Map<String, Object>> updateHeartbeatCacheFromZkHeartbeat(Map<List<Integer>, Map<String, Object>> cache,
+                                                                                         Map<List<Integer>, Map<String, Object>> executorBeats,
+                                                                                         Set<List<Integer>> executors, Integer timeout) {
+           Map<List<Integer>, Map<String, Object>> ret = new HashMap<>();
+           if (cache == null && executorBeats == null) {
+               return ret;
+           }
+
+           if (cache == null) {
+               cache = new HashMap<>();
+           }
+           if (executorBeats == null) {
+               executorBeats = new HashMap<>();
+           }
+
+           for (List<Integer> executor : executors) {
+               ret.put(executor, updateExecutorCache(cache.get(executor), executorBeats.get(executor), timeout));
+           }
+
+           return ret;
+    }
+
 
     // =====================================================================================
     // heartbeats related

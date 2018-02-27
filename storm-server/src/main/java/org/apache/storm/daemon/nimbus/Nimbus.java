@@ -54,6 +54,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.UnaryOperator;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import javax.security.auth.Subject;
 
 import org.apache.storm.Config;
@@ -242,6 +243,8 @@ public class Nimbus implements Iface, Shutdownable, DaemonCommon {
     @VisibleForTesting
     public static final List<ACL> ZK_ACLS = Arrays.asList(ZooDefs.Ids.CREATOR_ALL_ACL.get(0),
             new ACL(ZooDefs.Perms.READ | ZooDefs.Perms.CREATE, ZooDefs.Ids.ANYONE_ID_UNSAFE));
+
+    public static final SimpleVersion MIN_VERSION_SUPPORT_RPC_HEARTBEAT = new SimpleVersion("2.0.0");
 
     private static List<ACL> getNimbusAcls(Map<String, Object> conf) {
         List<ACL> acls = null;
@@ -1413,6 +1416,15 @@ public class Nimbus implements Iface, Shutdownable, DaemonCommon {
             base.get_owner());
     }
 
+    private void updateHeartbeatsFromZkHeartbeat(String topoId, Set<List<Integer>> allExecutors, Assignment existingAssignment) {
+        LOG.debug("Updating heartbeats for {} {} (from ZK heartbeat)", topoId, allExecutors);
+        IStormClusterState state = stormClusterState;
+        Map<List<Integer>, Map<String, Object>> executorBeats = StatsUtil.convertExecutorBeats(state.executorBeats(topoId, existingAssignment.get_executor_node_port()));
+        Map<List<Integer>, Map<String, Object>> cache = StatsUtil.updateHeartbeatCacheFromZkHeartbeat(heartbeatsCache.get().get(topoId),
+                executorBeats, allExecutors, ObjectReader.getInt(conf.get(DaemonConfig.NIMBUS_TASK_TIMEOUT_SECS)));
+        heartbeatsCache.getAndUpdate(new Assoc<>(topoId, cache));
+    }
+
     private void updateHeartbeats(String topoId, Set<List<Integer>> allExecutors, Assignment existingAssignment) {
         LOG.debug("Updating heartbeats for {} {}", topoId, allExecutors);
         Map<List<Integer>, Map<String, Object>> cache = heartbeatsCache.get().get(topoId);
@@ -1429,10 +1441,15 @@ public class Nimbus implements Iface, Shutdownable, DaemonCommon {
      * @param existingAssignments current assignments (thrift)
      * @param topologyToExecutors topology ID to executors.
      */
-    private void updateAllHeartbeats(Map<String, Assignment> existingAssignments, Map<String, Set<List<Integer>>> topologyToExecutors) {
+    private void updateAllHeartbeats(Map<String, Assignment> existingAssignments,
+        Map<String, Set<List<Integer>>> topologyToExecutors, Set<String> zkHeartbeatTopologies) {
         for (Entry<String, Assignment> entry: existingAssignments.entrySet()) {
             String topoId = entry.getKey();
-            updateHeartbeats(topoId, topologyToExecutors.get(topoId), entry.getValue());
+            if (zkHeartbeatTopologies.contains(topoId)) {
+                updateHeartbeatsFromZkHeartbeat(topoId, topologyToExecutors.get(topoId), entry.getValue());
+            } else {
+                updateHeartbeats(topoId, topologyToExecutors.get(topoId), entry.getValue());
+            }
         }
     }
 
@@ -1748,7 +1765,12 @@ public class Nimbus implements Iface, Shutdownable, DaemonCommon {
 
         Map<String, Set<List<Integer>>> topoToExec = computeTopologyToExecutors(bases);
 
-        updateAllHeartbeats(existingAssignments, topoToExec);
+        Set<String> zkHeartbeatTopologies = topologies.getTopologies().stream()
+                .filter(topo -> !supportRpcHeartbeat(topo))
+                .map(TopologyDetails::getId)
+                .collect(Collectors.toSet());
+
+        updateAllHeartbeats(existingAssignments, topoToExec, zkHeartbeatTopologies);
 
         Map<String, Set<List<Integer>>> topoToAliveExecutors = computeTopologyToAliveExecutors(existingAssignments, topologies,
                 topoToExec, scratchTopologyId);
@@ -1798,6 +1820,18 @@ public class Nimbus implements Iface, Shutdownable, DaemonCommon {
         idToWorkerResources.getAndAccumulate(workerResources, (orig, update) -> Utils.merge(orig, update));
         
         return cluster.getAssignments();
+    }
+
+    private boolean supportRpcHeartbeat(TopologyDetails topo) {
+        if (!topo.getTopology().is_set_storm_version()) {
+            // current version supports RPC heartbeat
+            return true;
+        }
+
+        String stormVersionStr = topo.getTopology().get_storm_version();
+
+        SimpleVersion stormVersion = new SimpleVersion(stormVersionStr);
+        return stormVersion.compareTo(MIN_VERSION_SUPPORT_RPC_HEARTBEAT) >= 0;
     }
 
     /**
