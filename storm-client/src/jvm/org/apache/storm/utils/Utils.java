@@ -42,6 +42,7 @@ import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Enumeration;
@@ -62,6 +63,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
 
 import com.google.common.collect.Lists;
 import org.apache.commons.io.FileUtils;
@@ -291,12 +294,22 @@ public class Utils {
      * runtime to avoid any zombie process in case cleanup function hangs.
      */
     public static void addShutdownHookWithForceKillIn1Sec (Runnable func) {
+        addShutdownHookWithDelayedForceKill(func, 1);
+    }
+
+    /**
+     * Adds the user supplied function as a shutdown hook for cleanup.
+     * Also adds a function that sleeps for numSecs and then halts the
+     * runtime to avoid any zombie process in case cleanup function hangs.
+     */
+    public static void addShutdownHookWithDelayedForceKill (Runnable func, int numSecs) {
         Runnable sleepKill = new Runnable() {
             @Override
             public void run() {
                 try {
-                    Time.sleepSecs(1);
-                    LOG.warn("Forceing Halt...");
+                    LOG.info("Halting after {} seconds", numSecs);
+                    Time.sleepSecs(numSecs);
+                    LOG.warn("Forcing Halt...");
                     Runtime.getRuntime().halt(20);
                 } catch (Exception e) {
                     LOG.warn("Exception in the ShutDownHook", e);
@@ -329,20 +342,22 @@ public class Utils {
      * @return the newly created thread
      * @see Thread
      */
-    public static SmartThread asyncLoop(final Callable afn,
-            boolean isDaemon, final Thread.UncaughtExceptionHandler eh,
-            int priority, final boolean isFactory, boolean startImmediately,
-            String threadName) {
+    public static SmartThread asyncLoop(final Callable afn, boolean isDaemon, final Thread.UncaughtExceptionHandler eh,
+                                        int priority, final boolean isFactory, boolean startImmediately,
+                                        String threadName) {
         SmartThread thread = new SmartThread(new Runnable() {
             public void run() {
-                Object s;
                 try {
-                    Callable fn = isFactory ? (Callable) afn.call() : afn;
-                    while ((s = fn.call()) instanceof Long) {
-                        Time.sleepSecs((Long) s);
+                    final Callable<Long> fn = isFactory ? (Callable<Long>) afn.call() : afn;
+                    while (true) {
+                        final Long s = fn.call();
+                        if (s==null) // then stop running it
+                            break;
+                        if (s>0)
+                            Time.sleep(s);
                     }
                 } catch (Throwable t) {
-                    if (exceptionCauseIsInstanceOf(
+                    if (Utils.exceptionCauseIsInstanceOf(
                             InterruptedException.class, t)) {
                         LOG.info("Async loop interrupted!");
                         return;
@@ -358,7 +373,7 @@ public class Utils {
             thread.setUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler() {
                 public void uncaughtException(Thread t, Throwable e) {
                     LOG.error("Async loop died!", e);
-                    exitProcess(1, "Async loop died!");
+                    Utils.exitProcess(1, "Async loop died!");
                 }
             });
         }
@@ -514,6 +529,14 @@ public class Utils {
         return ret.toString();
     }
 
+    public static Id parseZkId(String id, String configName) {
+        String[] split = id.split(":", 2);
+        if (split.length != 2) {
+            throw new IllegalArgumentException(configName + " does not appear to be in the form scheme:acl, i.e. sasl:storm-user");
+        }
+        return new Id(split[0], split[1]);
+    }
+
     public static List<ACL> getWorkerACL(Map<String, Object> conf) {
         //This is a work around to an issue with ZK where a sasl super user is not super unless there is an open SASL ACL so we are trying to give the correct perms
         if (!isZkAuthenticationConfiguredTopology(conf)) {
@@ -523,12 +546,8 @@ public class Utils {
         if (stormZKUser == null) {
             throw new IllegalArgumentException("Authentication is enabled but " + Config.STORM_ZOOKEEPER_SUPERACL + " is not set");
         }
-        String[] split = stormZKUser.split(":", 2);
-        if (split.length != 2) {
-            throw new IllegalArgumentException(Config.STORM_ZOOKEEPER_SUPERACL + " does not appear to be in the form scheme:acl, i.e. sasl:storm-user");
-        }
-        ArrayList<ACL> ret = new ArrayList<ACL>(ZooDefs.Ids.CREATOR_ALL_ACL);
-        ret.add(new ACL(ZooDefs.Perms.ALL, new Id(split[0], split[1])));
+        ArrayList<ACL> ret = new ArrayList<>(ZooDefs.Ids.CREATOR_ALL_ACL);
+        ret.add(new ACL(ZooDefs.Perms.ALL, parseZkId(stormZKUser, Config.STORM_ZOOKEEPER_SUPERACL)));
         return ret;
     }
 
@@ -681,6 +700,27 @@ public class Utils {
 
     public static <T> T deserialize(byte[] serialized, Class<T> clazz) {
         return serializationDelegate.deserialize(serialized, clazz);
+    }
+
+    /**
+     * Serialize an object using the configured serialization and then base64 encode it into a string.
+     * @param obj the object to encode
+     * @return a string with the encoded object in it.
+     */
+    public static String serializeToString(Object obj) {
+        return Base64.getEncoder().encodeToString(serializationDelegate.serialize(obj));
+    }
+
+    /**
+     * Deserialize an object stored in a string. The String is assumed to be a base64 encoded string
+     * containing the bytes to actually deserialize.
+     * @param str the encoded string.
+     * @param clazz the thrift class we are expecting.
+     * @param <T> The type of clazz
+     * @return the decoded object
+     */
+    public static <T> T deserializeFromString(String str, Class<T> clazz) {
+        return deserialize(Base64.getDecoder().decode(str), clazz);
     }
 
     public static byte[] toByteArray(ByteBuffer buffer) {
@@ -1465,37 +1505,58 @@ public class Utils {
         Yaml yaml = new Yaml(new SafeConstructor());
         Map<String, Object> defaultsConf = null;
         Map<String, Object> stormConf = null;
+
+        // Based on how Java handles the classpath
+        // https://docs.oracle.com/javase/8/docs/technotes/tools/unix/classpath.html
         for (String part: cp) {
             File f = new File(part);
-            if (f.isDirectory()) {
+
+            if (f.getName().equals("*")) {
+                // wildcard is given in file
+                // in java classpath, '*' is expanded to all jar/JAR files in the directory
+                File dir = f.getParentFile();
+                if (dir == null) {
+                    // it happens when part is just '*' rather than denoting some directory
+                    dir = new File(".");
+                }
+
+                File[] jarFiles = dir.listFiles((dir1, name) -> name.endsWith(".jar") || name.endsWith(".JAR"));
+
+                // Quoting Javadoc in File.listFiles(FilenameFilter filter):
+                // Returns {@code null} if this abstract pathname does not denote a directory, or if an I/O error occurs.
+                // Both things are not expected and should not happen.
+                if (jarFiles == null) {
+                    throw new IOException("Fail to list jar files in directory: " + dir);
+                }
+
+                for (File jarFile : jarFiles) {
+                    JarConfigReader jarConfigReader = new JarConfigReader(yaml, defaultsConf, stormConf, jarFile).readJar();
+                    defaultsConf = jarConfigReader.getDefaultsConf();
+                    stormConf = jarConfigReader.getStormConf();
+                }
+            } else if (f.isDirectory()) {
+                // no wildcard, directory
                 if (defaultsConf == null) {
                     defaultsConf = readConfIgnoreNotFound(yaml, new File(f, "defaults.yaml"));
                 }
-                
+
                 if (stormConf == null) {
                     stormConf = readConfIgnoreNotFound(yaml, new File(f, "storm.yaml"));
                 }
-            } else {
-                //Lets assume it is a jar file
-                try (JarFile jarFile = new JarFile(f)) {
-                    Enumeration<JarEntry> jarEnums = jarFile.entries();
-                    while (jarEnums.hasMoreElements()) {
-                        JarEntry entry = jarEnums.nextElement();
-                        if (!entry.isDirectory()) {
-                            if (defaultsConf == null && entry.getName().equals("defaults.yaml")) {
-                                try (InputStream in = jarFile.getInputStream(entry)) {
-                                    defaultsConf = (Map<String, Object>) yaml.load(new InputStreamReader(in));
-                                }
-                            }
-                            
-                            if (stormConf == null && entry.getName().equals("storm.yaml")) {
-                                try (InputStream in = jarFile.getInputStream(entry)) {
-                                    stormConf = (Map<String, Object>) yaml.load(new InputStreamReader(in));
-                                }
-                            }
-                        }
-                    }
+            } else if (f.isFile()) {
+                // no wildcard, file
+                String fileName = f.getName();
+                if (fileName.endsWith(".zip") || fileName.endsWith(".ZIP")) {
+                    JarConfigReader jarConfigReader = new JarConfigReader(yaml, defaultsConf, stormConf, f).readZip();
+                    defaultsConf = jarConfigReader.getDefaultsConf();
+                    stormConf = jarConfigReader.getStormConf();
+                } else if (fileName.endsWith(".jar") || fileName.endsWith(".JAR")) {
+                    JarConfigReader jarConfigReader = new JarConfigReader(yaml, defaultsConf, stormConf, f).readJar();
+                    defaultsConf = jarConfigReader.getDefaultsConf();
+                    stormConf = jarConfigReader.getStormConf();
                 }
+                // Class path entries that are neither directories nor archives (.zip or JAR files)
+                // nor the asterisk (*) wildcard character are ignored.
             }
         }
         if (stormConf != null) {
@@ -1514,5 +1575,77 @@ public class Utils {
             ret.putAll(other);
         }
         return ret;
+    }
+
+    public static <V> ArrayList<V> convertToArray(Map<Integer, V> srcMap, int start) {
+        Set<Integer> ids = srcMap.keySet();
+        Integer largestId = ids.stream().max(Integer::compareTo).get();
+        int end = largestId - start;
+        ArrayList<V> result = new ArrayList<>(Collections.nCopies(end + 1, null)); // creates array[largestId+1] filled with nulls
+        for (Map.Entry<Integer, V> entry : srcMap.entrySet()) {
+            int id = entry.getKey();
+            if (id < start) {
+                LOG.debug("Entry {} will be skipped it is too small {} ...", id, start);
+            } else {
+                result.set(id - start, entry.getValue());
+            }
+        }
+        return result;
+    }
+
+    private static class JarConfigReader {
+        private Yaml yaml;
+        private Map<String, Object> defaultsConf;
+        private Map<String, Object> stormConf;
+        private File f;
+
+        public JarConfigReader(Yaml yaml, Map<String, Object> defaultsConf, Map<String, Object> stormConf, File f) {
+            this.yaml = yaml;
+            this.defaultsConf = defaultsConf;
+            this.stormConf = stormConf;
+            this.f = f;
+        }
+
+        public Map<String, Object> getDefaultsConf() {
+            return defaultsConf;
+        }
+
+        public Map<String, Object> getStormConf() {
+            return stormConf;
+        }
+
+        public JarConfigReader readZip() throws IOException {
+            try (ZipFile zipFile = new ZipFile(f)) {
+                readArchive(zipFile);
+            }
+            return this;
+        }
+
+        public JarConfigReader readJar() throws IOException {
+            try (JarFile jarFile = new JarFile(f)) {
+                readArchive(jarFile);
+            }
+            return this;
+        }
+
+        private void readArchive(ZipFile zipFile) throws IOException {
+            Enumeration<? extends ZipEntry> zipEnums = zipFile.entries();
+            while (zipEnums.hasMoreElements()) {
+                ZipEntry entry = zipEnums.nextElement();
+                if (!entry.isDirectory()) {
+                    if (defaultsConf == null && entry.getName().equals("defaults.yaml")) {
+                        try (InputStreamReader isr = new InputStreamReader(zipFile.getInputStream(entry))) {
+                            defaultsConf = (Map<String, Object>) yaml.load(isr);
+                        }
+                    }
+
+                    if (stormConf == null && entry.getName().equals("storm.yaml")) {
+                        try (InputStreamReader isr = new InputStreamReader(zipFile.getInputStream(entry))) {
+                            stormConf = (Map<String, Object>) yaml.load(isr);
+                        }
+                    }
+                }
+            }
+        }
     }
 }

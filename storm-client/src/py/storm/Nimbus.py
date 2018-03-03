@@ -410,6 +410,13 @@ class Iface:
     """
     pass
 
+  def processWorkerMetrics(self, metrics):
+    """
+    Parameters:
+     - metrics
+    """
+    pass
+
 
 class Client(Iface):
   def __init__(self, iprot, oprot=None):
@@ -2095,6 +2102,35 @@ class Client(Iface):
       raise result.aze
     return
 
+  def processWorkerMetrics(self, metrics):
+    """
+    Parameters:
+     - metrics
+    """
+    self.send_processWorkerMetrics(metrics)
+    self.recv_processWorkerMetrics()
+
+  def send_processWorkerMetrics(self, metrics):
+    self._oprot.writeMessageBegin('processWorkerMetrics', TMessageType.CALL, self._seqid)
+    args = processWorkerMetrics_args()
+    args.metrics = metrics
+    args.write(self._oprot)
+    self._oprot.writeMessageEnd()
+    self._oprot.trans.flush()
+
+  def recv_processWorkerMetrics(self):
+    iprot = self._iprot
+    (fname, mtype, rseqid) = iprot.readMessageBegin()
+    if mtype == TMessageType.EXCEPTION:
+      x = TApplicationException()
+      x.read(iprot)
+      iprot.readMessageEnd()
+      raise x
+    result = processWorkerMetrics_result()
+    result.read(iprot)
+    iprot.readMessageEnd()
+    return
+
 
 class Processor(Iface, TProcessor):
   def __init__(self, handler):
@@ -2149,6 +2185,7 @@ class Processor(Iface, TProcessor):
     self._processMap["getSupervisorAssignments"] = Processor.process_getSupervisorAssignments
     self._processMap["sendSupervisorWorkerHeartbeats"] = Processor.process_sendSupervisorWorkerHeartbeats
     self._processMap["sendSupervisorWorkerHeartbeat"] = Processor.process_sendSupervisorWorkerHeartbeat
+    self._processMap["processWorkerMetrics"] = Processor.process_processWorkerMetrics
 
   def process(self, iprot, oprot):
     (name, type, seqid) = iprot.readMessageBegin()
@@ -3308,6 +3345,25 @@ class Processor(Iface, TProcessor):
       logging.exception(ex)
       result = TApplicationException(TApplicationException.INTERNAL_ERROR, 'Internal error')
     oprot.writeMessageBegin("sendSupervisorWorkerHeartbeat", msg_type, seqid)
+    result.write(oprot)
+    oprot.writeMessageEnd()
+    oprot.trans.flush()
+
+  def process_processWorkerMetrics(self, seqid, iprot, oprot):
+    args = processWorkerMetrics_args()
+    args.read(iprot)
+    iprot.readMessageEnd()
+    result = processWorkerMetrics_result()
+    try:
+      self._handler.processWorkerMetrics(args.metrics)
+      msg_type = TMessageType.REPLY
+    except (TTransport.TTransportException, KeyboardInterrupt, SystemExit):
+      raise
+    except Exception as ex:
+      msg_type = TMessageType.EXCEPTION
+      logging.exception(ex)
+      result = TApplicationException(TApplicationException.INTERNAL_ERROR, 'Internal error')
+    oprot.writeMessageBegin("processWorkerMetrics", msg_type, seqid)
     result.write(oprot)
     oprot.writeMessageEnd()
     oprot.trans.flush()
@@ -5174,11 +5230,11 @@ class getComponentPendingProfileActions_result:
       if fid == 0:
         if ftype == TType.LIST:
           self.success = []
-          (_etype817, _size814) = iprot.readListBegin()
-          for _i818 in xrange(_size814):
-            _elem819 = ProfileRequest()
-            _elem819.read(iprot)
-            self.success.append(_elem819)
+          (_etype824, _size821) = iprot.readListBegin()
+          for _i825 in xrange(_size821):
+            _elem826 = ProfileRequest()
+            _elem826.read(iprot)
+            self.success.append(_elem826)
           iprot.readListEnd()
         else:
           iprot.skip(ftype)
@@ -5195,8 +5251,8 @@ class getComponentPendingProfileActions_result:
     if self.success is not None:
       oprot.writeFieldBegin('success', TType.LIST, 0)
       oprot.writeListBegin(TType.STRUCT, len(self.success))
-      for iter820 in self.success:
-        iter820.write(oprot)
+      for iter827 in self.success:
+        iter827.write(oprot)
       oprot.writeListEnd()
       oprot.writeFieldEnd()
     oprot.writeFieldStop()
@@ -10267,11 +10323,11 @@ class getOwnerResourceSummaries_result:
       if fid == 0:
         if ftype == TType.LIST:
           self.success = []
-          (_etype824, _size821) = iprot.readListBegin()
-          for _i825 in xrange(_size821):
-            _elem826 = OwnerResourceSummary()
-            _elem826.read(iprot)
-            self.success.append(_elem826)
+          (_etype831, _size828) = iprot.readListBegin()
+          for _i832 in xrange(_size828):
+            _elem833 = OwnerResourceSummary()
+            _elem833.read(iprot)
+            self.success.append(_elem833)
           iprot.readListEnd()
         else:
           iprot.skip(ftype)
@@ -10294,8 +10350,8 @@ class getOwnerResourceSummaries_result:
     if self.success is not None:
       oprot.writeFieldBegin('success', TType.LIST, 0)
       oprot.writeListBegin(TType.STRUCT, len(self.success))
-      for iter827 in self.success:
-        iter827.write(oprot)
+      for iter834 in self.success:
+        iter834.write(oprot)
       oprot.writeListEnd()
       oprot.writeFieldEnd()
     if self.aze is not None:
@@ -10721,6 +10777,118 @@ class sendSupervisorWorkerHeartbeat_result:
   def __hash__(self):
     value = 17
     value = (value * 31) ^ hash(self.aze)
+    return value
+
+  def __repr__(self):
+    L = ['%s=%r' % (key, value)
+      for key, value in self.__dict__.iteritems()]
+    return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+  def __eq__(self, other):
+    return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+  def __ne__(self, other):
+    return not (self == other)
+
+class processWorkerMetrics_args:
+  """
+  Attributes:
+   - metrics
+  """
+
+  thrift_spec = (
+    None, # 0
+    (1, TType.STRUCT, 'metrics', (WorkerMetrics, WorkerMetrics.thrift_spec), None, ), # 1
+  )
+
+  def __init__(self, metrics=None,):
+    self.metrics = metrics
+
+  def read(self, iprot):
+    if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
+      fastbinary.decode_binary(self, iprot.trans, (self.__class__, self.thrift_spec))
+      return
+    iprot.readStructBegin()
+    while True:
+      (fname, ftype, fid) = iprot.readFieldBegin()
+      if ftype == TType.STOP:
+        break
+      if fid == 1:
+        if ftype == TType.STRUCT:
+          self.metrics = WorkerMetrics()
+          self.metrics.read(iprot)
+        else:
+          iprot.skip(ftype)
+      else:
+        iprot.skip(ftype)
+      iprot.readFieldEnd()
+    iprot.readStructEnd()
+
+  def write(self, oprot):
+    if oprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and self.thrift_spec is not None and fastbinary is not None:
+      oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
+      return
+    oprot.writeStructBegin('processWorkerMetrics_args')
+    if self.metrics is not None:
+      oprot.writeFieldBegin('metrics', TType.STRUCT, 1)
+      self.metrics.write(oprot)
+      oprot.writeFieldEnd()
+    oprot.writeFieldStop()
+    oprot.writeStructEnd()
+
+  def validate(self):
+    return
+
+
+  def __hash__(self):
+    value = 17
+    value = (value * 31) ^ hash(self.metrics)
+    return value
+
+  def __repr__(self):
+    L = ['%s=%r' % (key, value)
+      for key, value in self.__dict__.iteritems()]
+    return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+  def __eq__(self, other):
+    return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+  def __ne__(self, other):
+    return not (self == other)
+
+class processWorkerMetrics_result:
+
+  thrift_spec = (
+  )
+
+  def read(self, iprot):
+    if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
+      fastbinary.decode_binary(self, iprot.trans, (self.__class__, self.thrift_spec))
+      return
+    iprot.readStructBegin()
+    while True:
+      (fname, ftype, fid) = iprot.readFieldBegin()
+      if ftype == TType.STOP:
+        break
+      else:
+        iprot.skip(ftype)
+      iprot.readFieldEnd()
+    iprot.readStructEnd()
+
+  def write(self, oprot):
+    if oprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and self.thrift_spec is not None and fastbinary is not None:
+      oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
+      return
+    oprot.writeStructBegin('processWorkerMetrics_result')
+    oprot.writeFieldStop()
+    oprot.writeStructEnd()
+
+  def validate(self):
+    return
+
+
+  def __hash__(self):
+    value = 17
     return value
 
   def __repr__(self):

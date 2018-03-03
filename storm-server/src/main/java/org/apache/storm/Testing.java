@@ -54,10 +54,10 @@ import org.apache.storm.tuple.Fields;
 import org.apache.storm.tuple.Tuple;
 import org.apache.storm.tuple.TupleImpl;
 import org.apache.storm.utils.ConfigUtils;
-import org.apache.storm.utils.Utils;
 import org.apache.storm.utils.RegisteredGlobalState;
 import org.apache.storm.utils.Time;
 import org.apache.storm.utils.Time.SimulatedTime;
+import org.apache.storm.utils.Utils;
 import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -104,7 +104,7 @@ public class Testing {
     /**
      * Continue to execute body repeatedly until condition is true or TEST_TIMEOUT_MS has
      * passed
-     * @param the number of ms to wait before timing out.
+     * @param timeoutMs the number of ms to wait before timing out.
      * @param condition what we are waiting for
      * @param body what to run in the loop
      * @throws AssertionError if teh loop timed out.
@@ -112,9 +112,11 @@ public class Testing {
     public static void whileTimeout(long timeoutMs, Condition condition, Runnable body) {
         long endTime = System.currentTimeMillis() + timeoutMs;
         LOG.debug("Looping until {}", condition);
+        int count = 0;
         while (condition.exec()) {
+            count++;
             if (System.currentTimeMillis() > endTime) {
-                LOG.info("Condition {} not met in {} ms", condition, timeoutMs);
+                LOG.info("Condition {} not met in {} ms after calling {} times", condition, timeoutMs, count);
                 LOG.info(Utils.threadDump());
                 throw new AssertionError("Test timed out (" + timeoutMs + "ms) " + condition);
             }
@@ -516,7 +518,7 @@ public class Testing {
     public static List<List<Object>> readTuples(Map<String, List<FixedTuple>> results, String componentId) {
         return readTuples(results, componentId, Utils.DEFAULT_STREAM_ID);
     }
-    
+
     /**
      * Get all of the tuples from a given component on a given stream
      * @param results the results of running a completed topology
@@ -694,7 +696,7 @@ public class Testing {
         Map<String, Fields> streamToFields = new HashMap<>();
         streamToFields.put(stream, new Fields(fields));
         compToStreamToFields.put(component, streamToFields);
-        
+
         TopologyContext context= new TopologyContext(null,
                 ConfigUtils.readStormConfig(),
                 taskToComp,
@@ -712,6 +714,6 @@ public class Testing {
                 new HashMap<>(),
                 new HashMap<>(),
                 new AtomicBoolean(false));
-        return new TupleImpl(context, values, 1, stream);
+        return new TupleImpl(context, values, component, 1, stream);
     }
 }

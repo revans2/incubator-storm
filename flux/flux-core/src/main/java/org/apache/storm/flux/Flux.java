@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.storm.flux;
 
 import java.io.BufferedReader;
@@ -22,6 +23,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.util.Properties;
 
 import org.apache.commons.cli.BasicParser;
 import org.apache.commons.cli.CommandLine;
@@ -46,7 +48,6 @@ import org.slf4j.LoggerFactory;
 
 /**
  * Flux entry point.
- *
  */
 public class Flux {
     private static final Logger LOG = LoggerFactory.getLogger(Flux.class);
@@ -63,6 +64,11 @@ public class Flux {
     private static final String OPTION_FILTER = "filter";
     private static final String OPTION_ENV_FILTER = "env-filter";
 
+    /**
+     * Flux main entry point.
+     * @param args command line arguments
+     * @throws Exception if parsing/topology creation fails
+     */
     public static void main(String[] args) throws Exception {
         Options options = new Options();
 
@@ -72,11 +78,11 @@ public class Flux {
 
         options.addOption(option(0, "R", OPTION_RESOURCE, "Treat the supplied path as a classpath resource instead of a file."));
 
-        options.addOption(option(1, "s", OPTION_SLEEP, "ms", "When running locally, the amount of time to sleep (in ms.) " +
-                "before killing the topology and shutting down the local cluster."));
+        options.addOption(option(1, "s", OPTION_SLEEP, "ms", "When running locally, the amount of time to sleep (in ms.) "
+                + "before killing the topology and shutting down the local cluster."));
 
-        options.addOption(option(0, "d", OPTION_DRY_RUN, "Do not run or deploy the topology. Just build, validate, " +
-                "and print information about the topology."));
+        options.addOption(option(0, "d", OPTION_DRY_RUN, "Do not run or deploy the topology. Just build, validate, "
+                + "and print information about the topology."));
 
         options.addOption(option(0, "q", OPTION_NO_DETAIL, "Suppress the printing of topology details."));
 
@@ -84,15 +90,15 @@ public class Flux {
 
         options.addOption(option(0, "i", OPTION_INACTIVE, "Deploy the topology, but do not activate it."));
 
-        options.addOption(option(1, "z", OPTION_ZOOKEEPER, "host:port", "When running in local mode, use the ZooKeeper at the " +
-                "specified <host>:<port> instead of the in-process ZooKeeper. (requires Storm 0.9.3 or later)"));
+        options.addOption(option(1, "z", OPTION_ZOOKEEPER, "host:port", "When running in local mode, use the ZooKeeper at the "
+                + "specified <host>:<port> instead of the in-process ZooKeeper. (requires Storm 0.9.3 or later)"));
 
-        options.addOption(option(1, "f", OPTION_FILTER, "file", "Perform property substitution. Use the specified file " +
-                "as a source of properties, and replace keys identified with {$[property name]} with the value defined " +
-                "in the properties file."));
+        options.addOption(option(1, "f", OPTION_FILTER, "file", "Perform property substitution. Use the specified file "
+                + "as a source of properties, and replace keys identified with {$[property name]} with the value defined "
+                + "in the properties file."));
 
-        options.addOption(option(0, "e", OPTION_ENV_FILTER, "Perform environment variable substitution. Replace keys" +
-                "identified with `${ENV-[NAME]}` will be replaced with the corresponding `NAME` environment value"));
+        options.addOption(option(0, "e", OPTION_ENV_FILTER, "Perform environment variable substitution. Replace keys"
+                + "identified with `${ENV-[NAME]}` will be replaced with the corresponding `NAME` environment value"));
 
         CommandLineParser parser = new BasicParser();
         CommandLine cmd = parser.parse(options, args);
@@ -104,11 +110,11 @@ public class Flux {
         runCli(cmd);
     }
 
-    private static Option option(int argCount, String shortName, String longName, String description){
-       return option(argCount, shortName, longName, longName, description);
+    private static Option option(int argCount, String shortName, String longName, String description) {
+        return option(argCount, shortName, longName, longName, description);
     }
 
-    private static Option option(int argCount, String shortName, String longName, String argName, String description){
+    private static Option option(int argCount, String shortName, String longName, String argName, String description) {
         Option option = OptionBuilder.hasArgs(argCount)
                 .withArgName(argName)
                 .withLongOpt(longName)
@@ -119,38 +125,38 @@ public class Flux {
 
     private static void usage(Options options) {
         HelpFormatter formatter = new HelpFormatter();
-        formatter.printHelp("storm jar <my_topology_uber_jar.jar> " +
-                Flux.class.getName() +
-                " [options] <topology-config.yaml>", options);
+        formatter.printHelp("storm jar <my_topology_uber_jar.jar> "
+                + Flux.class.getName()
+                + " [options] <topology-config.yaml>", options);
     }
 
-    private static void runCli(CommandLine cmd)throws Exception {
-        if(!cmd.hasOption(OPTION_NO_SPLASH)) {
+    private static void runCli(CommandLine cmd) throws Exception {
+        if (!cmd.hasOption(OPTION_NO_SPLASH)) {
             printSplash();
         }
 
         boolean dumpYaml = cmd.hasOption("dump-yaml");
 
         TopologyDef topologyDef = null;
-        String filePath = (String)cmd.getArgList().get(0);
+        String filePath = (String) cmd.getArgList().get(0);
 
         // TODO conditionally load properties from a file our resource
         String filterProps = null;
-        if(cmd.hasOption(OPTION_FILTER)){
+        if (cmd.hasOption(OPTION_FILTER)) {
             filterProps = cmd.getOptionValue(OPTION_FILTER);
         }
 
-
+        Properties properties = null;
         boolean envFilter = cmd.hasOption(OPTION_ENV_FILTER);
-        if(cmd.hasOption(OPTION_RESOURCE)){
+        if (cmd.hasOption(OPTION_RESOURCE)) {
             printf("Parsing classpath resource: %s", filePath);
-            topologyDef = FluxParser.parseResource(filePath, dumpYaml, true, filterProps, envFilter);
+            properties = FluxParser.parseProperties(filterProps, true);
+            topologyDef = FluxParser.parseResource(filePath, dumpYaml, true, properties, envFilter);
         } else {
-            printf("Parsing file: %s",
-                    new File(filePath).getAbsolutePath());
-            topologyDef = FluxParser.parseFile(filePath, dumpYaml, true, filterProps, envFilter);
+            printf("Parsing file: %s", new File(filePath).getAbsolutePath());
+            properties = FluxParser.parseProperties(filterProps, false);
+            topologyDef = FluxParser.parseFile(filePath, dumpYaml, true, properties, envFilter);
         }
-
 
         String topologyName = topologyDef.getName();
         // merge contents of `config` into topology config
@@ -158,16 +164,16 @@ public class Flux {
         ExecutionContext context = new ExecutionContext(topologyDef, conf);
         StormTopology topology = FluxBuilder.buildTopology(context);
 
-        if(!cmd.hasOption(OPTION_NO_DETAIL)){
+        if (!cmd.hasOption(OPTION_NO_DETAIL)) {
             printTopologyInfo(context);
         }
 
-        if(!cmd.hasOption(OPTION_DRY_RUN)) {
+        if (!cmd.hasOption(OPTION_DRY_RUN)) {
             if (cmd.hasOption(OPTION_REMOTE)) {
                 LOG.info("Running remotely...");
                 // should the topology be active or inactive
                 SubmitOptions submitOptions = null;
-                if(cmd.hasOption(OPTION_INACTIVE)){
+                if (cmd.hasOption(OPTION_INACTIVE)) {
                     LOG.info("Deploying topology in an INACTIVE state...");
                     submitOptions = new SubmitOptions(TopologyInitialStatus.INACTIVE);
                 } else {
@@ -182,9 +188,9 @@ public class Flux {
         }
     }
 
-    static void printTopologyInfo(ExecutionContext ctx){
+    static void printTopologyInfo(ExecutionContext ctx) {
         TopologyDef t = ctx.getTopologyDef();
-        if(t.isDslTopology()) {
+        if (t.isDslTopology()) {
             print("---------- TOPOLOGY DETAILS ----------");
 
             printf("Topology Name: %s", t.getName());
@@ -206,22 +212,22 @@ public class Flux {
     }
 
     // save a little typing
-    private static void printf(String format, Object... args){
+    private static void printf(String format, Object... args) {
         print(String.format(format, args));
     }
 
-    private static void print(String string){
+    private static void print(String string) {
         System.out.println(string);
     }
 
     private static void printSplash() throws IOException {
         // banner
         InputStream is = Flux.class.getResourceAsStream("/splash.txt");
-        if(is != null){
+        if (is != null) {
             InputStreamReader isr = new InputStreamReader(is, "UTF-8");
             BufferedReader br = new BufferedReader(isr);
             String line = null;
-            while((line = br.readLine()) != null){
+            while ((line = br.readLine()) != null) {
                 System.out.println(line);
             }
         }

@@ -24,9 +24,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
 import javax.security.auth.Subject;
-
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.storm.Config;
@@ -47,7 +45,12 @@ import org.slf4j.LoggerFactory;
 
 public class BlobStoreUtils {
     private static final String BLOBSTORE_SUBTREE="/blobstore";
+
     private static final Logger LOG = LoggerFactory.getLogger(BlobStoreUtils.class);
+
+    public static String getBlobStoreSubtree() {
+        return BLOBSTORE_SUBTREE;
+    }
 
     public static CuratorFramework createZKClient(Map<String, Object> conf) {
         @SuppressWarnings("unchecked")
@@ -196,10 +199,10 @@ public class BlobStoreUtils {
                 // Catching and logging KeyNotFoundException because, if
                 // there is a subsequent update and delete, the non-leader
                 // nimbodes might throw an exception.
-                LOG.info("KeyNotFoundException {}", knf);
+                LOG.info("KeyNotFoundException", knf);
             } catch (Exception exp) {
                 // Logging an exception while client is connecting
-                LOG.error("Exception {}", exp);
+                LOG.error("Exception", exp);
             }
         }
 
@@ -270,6 +273,4 @@ public class BlobStoreUtils {
             throw new RuntimeException(exp);
         }
     }
-
-
 }

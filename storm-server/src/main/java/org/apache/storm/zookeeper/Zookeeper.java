@@ -25,7 +25,6 @@ import org.apache.curator.framework.recipes.leader.LeaderLatchListener;
 import org.apache.curator.framework.recipes.leader.Participant;
 import org.apache.storm.Config;
 import org.apache.storm.blobstore.BlobStore;
-import org.apache.storm.callback.DefaultWatcherCallBack;
 import org.apache.storm.cluster.IStormClusterState;
 import org.apache.storm.daemon.nimbus.TopoCache;
 import org.apache.storm.nimbus.ILeaderElector;
@@ -136,17 +135,26 @@ public class Zookeeper {
         };
     }
 
-    public static ILeaderElector zkLeaderElector(Map<String, Object> conf, BlobStore blobStore, final TopoCache tc, IStormClusterState clusterState, List<ACL> acls)
-        throws UnknownHostException {
-        return _instance.zkLeaderElectorImpl(conf, blobStore, tc, clusterState, acls);
+    /**
+     * Get master leader elector.
+     * @param conf Config.
+     * @param zkClient ZkClient, the client must have a default Config.STORM_ZOOKEEPER_ROOT as root path.
+     * @param blobStore {@link BlobStore}
+     * @param tc {@link TopoCache}
+     * @param clusterState {@link IStormClusterState}
+     * @param acls ACLs
+     * @return Instance of {@link ILeaderElector}
+     * @throws UnknownHostException
+     */
+    public static ILeaderElector zkLeaderElector(Map<String, Object> conf, CuratorFramework zkClient, BlobStore blobStore,
+        final TopoCache tc, IStormClusterState clusterState, List<ACL> acls) throws UnknownHostException {
+        return _instance.zkLeaderElectorImpl(conf, zkClient, blobStore, tc, clusterState, acls);
     }
 
-    protected ILeaderElector zkLeaderElectorImpl(Map<String, Object> conf, BlobStore blobStore, final TopoCache tc, IStormClusterState clusterState, List<ACL> acls)
-        throws UnknownHostException {
+    protected ILeaderElector zkLeaderElectorImpl(Map<String, Object> conf, CuratorFramework zk, BlobStore blobStore,
+        final TopoCache tc, IStormClusterState clusterState, List<ACL> acls) throws UnknownHostException {
         List<String> servers = (List<String>) conf.get(Config.STORM_ZOOKEEPER_SERVERS);
-        Object port = conf.get(Config.STORM_ZOOKEEPER_PORT);
-        CuratorFramework zk = ClientZookeeper.mkClient(conf, servers, port, "", new DefaultWatcherCallBack(), conf);
-        String leaderLockPath = conf.get(Config.STORM_ZOOKEEPER_ROOT) + "/leader-lock";
+        String leaderLockPath = "/leader-lock";
         String id = NimbusInfo.fromConf(conf).toHostPortString();
         AtomicReference<LeaderLatch> leaderLatchAtomicReference = new AtomicReference<>(new LeaderLatch(zk, leaderLockPath, id));
         AtomicReference<LeaderLatchListener> leaderLatchListenerAtomicReference =

@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.storm.daemon.supervisor;
 
 import java.io.BufferedReader;
@@ -39,11 +40,19 @@ import org.apache.storm.container.ResourceIsolationInterface;
 import org.apache.storm.generated.LSWorkerHeartbeat;
 import org.apache.storm.generated.LocalAssignment;
 import org.apache.storm.generated.ProfileRequest;
+import org.apache.storm.generated.WorkerMetricPoint;
+import org.apache.storm.generated.WorkerMetricList;
+import org.apache.storm.generated.WorkerMetrics;
 import org.apache.storm.metric.StormMetricsRegistry;
+import org.apache.storm.metricstore.MetricException;
+import org.apache.storm.metricstore.WorkerMetricsProcessor;
 import org.apache.storm.utils.ConfigUtils;
+import org.apache.storm.utils.LocalState;
+import org.apache.storm.utils.NimbusClient;
 import org.apache.storm.utils.ServerConfigUtils;
 import org.apache.storm.utils.ServerUtils;
-import org.apache.storm.utils.LocalState;
+import org.apache.storm.utils.Utils;
+import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.yaml.snakeyaml.Yaml;
@@ -53,6 +62,11 @@ import org.yaml.snakeyaml.Yaml;
  */
 public abstract class Container implements Killable {
     private static final Logger LOG = LoggerFactory.getLogger(Container.class);
+    private static final String MEMORY_USED_METRIC = "UsedMemory";
+    private static final String SYSTEM_COMPONENT_ID = "System";
+    private static final String INVALID_EXECUTOR_ID = "-1";
+    private static final String INVALID_STREAM_ID = "None";
+
     public static enum ContainerType {
         LAUNCH(false, false),
         RECOVER_FULL(true, false),
@@ -138,6 +152,7 @@ public abstract class Container implements Killable {
     protected final ResourceIsolationInterface _resourceIsolationManager;
     protected ContainerType _type;
     protected final boolean _symlinksDisabled;
+    private long lastMetricProcessTime = 0L;
 
     /**
      * Create a new Container.
@@ -212,7 +227,7 @@ public abstract class Container implements Killable {
     }
     
     /**
-     * Kill a given process
+     * Kill a given process.
      * @param pid the id of the process to kill
      * @throws IOException
      */
@@ -221,7 +236,7 @@ public abstract class Container implements Killable {
     }
     
     /**
-     * Kill a given process
+     * Kill a given process.
      * @param pid the id of the process to kill
      * @throws IOException
      */
@@ -262,7 +277,7 @@ public abstract class Container implements Killable {
     }
 
     /**
-     * Is a process alive and running?
+     * Is a process alive and running?.
      * @param pid the PID of the running process
      * @param user the user that is expected to own that process
      * @return true if it is, else false
@@ -384,7 +399,7 @@ public abstract class Container implements Killable {
     }
     
     /**
-     * Write out the file used by the log viewer to allow/reject log access
+     * Write out the file used by the log viewer to allow/reject log access.
      * @param user the user this is going to run as
      * @throws IOException on any error
      */
@@ -432,7 +447,7 @@ public abstract class Container implements Killable {
     }
     
     /**
-     * Create symlink from the containers directory/artifacts to the artifacts directory
+     * Create symlink from the containers directory/artifacts to the artifacts directory.
      * @throws IOException on any error
      */
     protected void createArtifactsLink() throws IOException {
@@ -695,5 +710,45 @@ public abstract class Container implements Killable {
      */
     public String getWorkerId() {
         return _workerId;
+    }
+
+    /**
+     * Send worker metrics to Nimbus.
+     */
+    void processMetrics(OnlyLatestExecutor<Integer> exec, WorkerMetricsProcessor processor) {
+        try {
+            if (_usedMemory.get(_port) != null) {
+                // Make sure we don't process too frequently.
+                long nextMetricProcessTime = this.lastMetricProcessTime + 60L * 1000L;
+                long currentTimeMsec = System.currentTimeMillis();
+                if (currentTimeMsec < nextMetricProcessTime) {
+                    return;
+                }
+
+                String hostname = Utils.hostname();
+
+                // create metric for memory
+                long timestamp = System.currentTimeMillis();
+                double value = _usedMemory.get(_port).memory;
+                WorkerMetricPoint workerMetric = new WorkerMetricPoint(MEMORY_USED_METRIC, timestamp, value, SYSTEM_COMPONENT_ID,
+                    INVALID_EXECUTOR_ID, INVALID_STREAM_ID);
+
+                WorkerMetricList metricList = new WorkerMetricList();
+                metricList.add_to_metrics(workerMetric);
+                WorkerMetrics metrics = new WorkerMetrics(_topologyId, _port, hostname, metricList);
+
+                exec.execute(_port, () -> {
+                    try {
+                        processor.processWorkerMetrics(_conf, metrics);
+                    } catch (MetricException e) {
+                        LOG.error("Failed to process metrics", e);
+                    }
+                });
+            }
+        } catch (Exception e) {
+            LOG.error("Failed to process metrics", e);
+        } finally {
+            this.lastMetricProcessTime = System.currentTimeMillis();
+        }
     }
 }

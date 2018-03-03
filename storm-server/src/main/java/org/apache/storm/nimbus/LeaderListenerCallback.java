@@ -103,7 +103,7 @@ public class LeaderListenerCallback {
         clusterState.setAssignmentsBackendSynchronized();
 
         Set<String> activeTopologyIds = new TreeSet<>(ClientZookeeper.getChildren(zk,
-                conf.get(Config.STORM_ZOOKEEPER_ROOT) + ClusterUtils.STORMS_SUBTREE, false));
+            ClusterUtils.STORMS_SUBTREE, false));
 
         Set<String> activeTopologyBlobKeys = populateTopologyBlobKeys(activeTopologyIds);
         Set<String> activeTopologyCodeKeys = filterTopologyCodeKeys(activeTopologyBlobKeys);

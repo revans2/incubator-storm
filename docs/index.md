@@ -112,14 +112,15 @@ But small change will not affect the user experience. We will notify the user wh
 
 #### Container, Resource Management System Integration
 
-* [YARN Integration](https://github.com/yahoo/storm-yarn), [YARN Integration via Slider](http://docs.hortonworks.com/HDPDocuments/HDP2/HDP-2.3.2/bk_yarn_resource_mgt/content/ref-7d103a48-7c2e-4b7b-aab5-62c739a32ee0.1.html)
+* [YARN Integration](https://github.com/yahoo/storm-yarn)
 * [Mesos Integration](https://github.com/mesos/storm)
 * [Docker Integration](https://hub.docker.com/_/storm/)
-* [Kubernetes Integration](https://github.com/kubernetes/kubernetes/tree/master/examples/storm)
+* [Kubernetes Integration](https://github.com/kubernetes/examples/tree/master/staging/storm)
 
 ### Advanced
 
 * [Defining a non-JVM language DSL for Storm](Defining-a-non-jvm-language-dsl-for-storm.html)
 * [Multilang protocol](Multilang-protocol.html) (how to provide support for another language)
 * [Implementation docs](Implementation-docs.html)
+* [Storm Metricstore](storm-metricstore.html)
 

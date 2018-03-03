@@ -21,16 +21,13 @@ package org.apache.storm.scheduler.resource.strategies.scheduling;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 import java.util.TreeSet;
 import org.apache.storm.Config;
 import org.apache.storm.scheduler.Cluster;
 import org.apache.storm.scheduler.Component;
 import org.apache.storm.scheduler.ExecutorDetails;
 import org.apache.storm.scheduler.TopologyDetails;
-import org.apache.storm.scheduler.resource.ResourceUtils;
 import org.apache.storm.scheduler.resource.SchedulingResult;
 import org.apache.storm.scheduler.resource.SchedulingStatus;
 import org.slf4j.Logger;
@@ -129,7 +126,15 @@ public class GenericResourceAwareStrategy extends BaseResourceAwareStrategy impl
     protected TreeSet<ObjectResources> sortObjectResources(
             final AllResources allResources, ExecutorDetails exec, TopologyDetails topologyDetails,
             final ExistingScheduleFunc existingScheduleFunc) {
+        return sortObjectResourcesImpl(allResources, exec, topologyDetails, existingScheduleFunc);
+    }
 
+    /**
+     * Implementation of the sortObjectResources method so other strategies can reuse it.
+     */
+    public static TreeSet<ObjectResources> sortObjectResourcesImpl(
+        final AllResources allResources, ExecutorDetails exec, TopologyDetails topologyDetails,
+        final ExistingScheduleFunc existingScheduleFunc) {
         AllResources affinityBasedAllResources = new AllResources(allResources);
 
         TreeSet<ObjectResources> sortedObjectResources =

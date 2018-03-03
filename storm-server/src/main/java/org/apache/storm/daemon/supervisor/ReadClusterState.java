@@ -40,6 +40,8 @@ import org.apache.storm.generated.NodeInfo;
 import org.apache.storm.generated.ProfileRequest;
 import org.apache.storm.generated.WorkerResources;
 import org.apache.storm.localizer.AsyncLocalizer;
+import org.apache.storm.metricstore.MetricStoreConfig;
+import org.apache.storm.metricstore.WorkerMetricsProcessor;
 import org.apache.storm.scheduler.ISupervisor;
 import org.apache.storm.utils.LocalState;
 import org.apache.storm.utils.Time;
@@ -62,7 +64,9 @@ public class ReadClusterState implements Runnable, AutoCloseable {
     private final String host;
     private final LocalState localState;
     private final AtomicReference<Map<Long, LocalAssignment>> cachedAssignments;
-    
+    private final OnlyLatestExecutor<Integer> metricsExec;
+    private WorkerMetricsProcessor metricsProcessor;
+
     public ReadClusterState(Supervisor supervisor) throws Exception {
         this.superConf = supervisor.getConf();
         this.stormClusterState = supervisor.getStormClusterState();
@@ -73,9 +77,18 @@ public class ReadClusterState implements Runnable, AutoCloseable {
         this.host = supervisor.getHostName();
         this.localState = supervisor.getLocalState();
         this.cachedAssignments = supervisor.getCurrAssignment();
-        
+        this.metricsExec = new OnlyLatestExecutor<>(supervisor.getHeartbeatExecutor());
+
         this.launcher = ContainerLauncher.make(superConf, assignmentId, supervisorPort, supervisor.getSharedContext());
-        
+
+        this.metricsProcessor = null;
+        try {
+            this.metricsProcessor = MetricStoreConfig.configureMetricProcessor(superConf);
+        } catch (Exception e) {
+            // the metrics processor is not critical to the operation of the cluster, allow Supervisor to come up
+            LOG.error("Failed to initialize metric processor", e);
+        }
+
         @SuppressWarnings("unchecked")
         List<Number> ports = (List<Number>)superConf.get(DaemonConfig.SUPERVISOR_SLOTS_PORTS);
         for (Number port: ports) {
@@ -104,7 +117,7 @@ public class ReadClusterState implements Runnable, AutoCloseable {
 
     private Slot mkSlot(int port) throws Exception {
         return new Slot(localizer, superConf, launcher, host, port,
-                localState, stormClusterState, iSuper, cachedAssignments);
+                localState, stormClusterState, iSuper, cachedAssignments, metricsExec, metricsProcessor);
     }
     
     @Override
@@ -130,6 +143,7 @@ public class ReadClusterState implements Runnable, AutoCloseable {
                 }
             }
             HashSet<Integer> allPorts = new HashSet<>(assignedPorts);
+            iSuper.assigned(allPorts);
             allPorts.addAll(slots.keySet());
             
             Map<Integer, Set<TopoProfileAction>> filtered = new HashMap<>();

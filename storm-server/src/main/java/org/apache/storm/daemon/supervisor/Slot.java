@@ -49,6 +49,7 @@ import org.apache.storm.localizer.BlobChangingCallback;
 import org.apache.storm.localizer.GoodToGo;
 import org.apache.storm.localizer.LocallyCachedBlob;
 import org.apache.storm.metric.StormMetricsRegistry;
+import org.apache.storm.metricstore.WorkerMetricsProcessor;
 import org.apache.storm.scheduler.ISupervisor;
 import org.apache.storm.utils.LocalState;
 import org.apache.storm.utils.ObjectReader;
@@ -95,12 +96,16 @@ public class Slot extends Thread implements AutoCloseable, BlobChangingCallback 
         public final ISupervisor iSupervisor;
         public final LocalState localState;
         public final BlobChangingCallback changingCallback;
-        
+        public final OnlyLatestExecutor<Integer> metricsExec;
+        public final WorkerMetricsProcessor metricsProcessor;
+
         StaticState(AsyncLocalizer localizer, long hbTimeoutMs, long firstHbTimeoutMs,
-                long killSleepMs, long monitorFreqMs,
-                ContainerLauncher containerLauncher, String host, int port,
-                ISupervisor iSupervisor, LocalState localState,
-                BlobChangingCallback changingCallback) {
+                    long killSleepMs, long monitorFreqMs,
+                    ContainerLauncher containerLauncher, String host, int port,
+                    ISupervisor iSupervisor, LocalState localState,
+                    BlobChangingCallback changingCallback,
+                    OnlyLatestExecutor<Integer> metricsExec,
+                    WorkerMetricsProcessor metricsProcessor) {
             this.localizer = localizer;
             this.hbTimeoutMs = hbTimeoutMs;
             this.firstHbTimeoutMs = firstHbTimeoutMs;
@@ -112,6 +117,8 @@ public class Slot extends Thread implements AutoCloseable, BlobChangingCallback 
             this.iSupervisor = iSupervisor;
             this.localState = localState;
             this.changingCallback = changingCallback;
+            this.metricsExec = metricsExec;
+            this.metricsProcessor = metricsProcessor;
         }
     }
 
@@ -936,6 +943,9 @@ public class Slot extends Thread implements AutoCloseable, BlobChangingCallback 
             }
             dynamicState = dynamicState.withProfileActions(mod, modPending);
         }
+
+        dynamicState.container.processMetrics(staticState.metricsExec, staticState.metricsProcessor);
+
         Time.sleep(staticState.monitorFreqMs);
         return dynamicState;
     }
@@ -968,14 +978,18 @@ public class Slot extends Thread implements AutoCloseable, BlobChangingCallback 
     private volatile boolean done = false;
     private volatile DynamicState dynamicState;
     private final AtomicReference<Map<Long, LocalAssignment>> cachedCurrentAssignments;
-    
+    private final OnlyLatestExecutor<Integer> metricsExec;
+
     public Slot(AsyncLocalizer localizer, Map<String, Object> conf,
-            ContainerLauncher containerLauncher, String host,
-            int port, LocalState localState,
-            IStormClusterState clusterState,
-            ISupervisor iSupervisor,
-            AtomicReference<Map<Long, LocalAssignment>> cachedCurrentAssignments) throws Exception {
+                ContainerLauncher containerLauncher, String host,
+                int port, LocalState localState,
+                IStormClusterState clusterState,
+                ISupervisor iSupervisor,
+                AtomicReference<Map<Long, LocalAssignment>> cachedCurrentAssignments,
+                OnlyLatestExecutor<Integer> metricsExec,
+                WorkerMetricsProcessor metricsProcessor) throws Exception {
         super("SLOT_"+port);
+        this.metricsExec = metricsExec;
 
         this.cachedCurrentAssignments = cachedCurrentAssignments;
         this.clusterState = clusterState;
@@ -987,7 +1001,18 @@ public class Slot extends Thread implements AutoCloseable, BlobChangingCallback 
         Container container = null;
         if (currentAssignment != null) { 
             try {
-                container = containerLauncher.recoverContainer(port, currentAssignment, localState);
+                // For now we do not make a transaction when removing a topology assignment from local, an overdue
+                // assignment may be left on local disk.
+                // So we should check if the local disk assignment is valid when initializing:
+                // if topology files does not exist, the worker[possibly alive] will be reassigned if it is timed-out;
+                // if topology files exist but the topology id is invalid, just let Supervisor make a sync;
+                // if topology files exist and topology files is valid, recover the container.
+                if (ClientSupervisorUtils.doRequiredTopoFilesExist(conf, currentAssignment.get_topology_id())) {
+                    container = containerLauncher.recoverContainer(port, currentAssignment, localState);
+                } else {
+                    // Make the assignment null to let slot clean up the disk assignment.
+                    currentAssignment = null;
+                }
             } catch (ContainerRecoveryException e) {
                 //We could not recover container will be null.
             }
@@ -1010,7 +1035,8 @@ public class Slot extends Thread implements AutoCloseable, BlobChangingCallback 
             port,
             iSupervisor,
             localState,
-            this);
+            this,
+            metricsExec, metricsProcessor);
         this.newAssignment.set(dynamicState.newAssignment);
         if (MachineState.RUNNING == dynamicState.state) {
             //We are running so we should recover the blobs.

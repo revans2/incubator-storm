@@ -17,6 +17,9 @@ Authentication and Authorization. But to do so usually requires
 configuring your Operating System to restrict the operations that can be done.
 This is generally a good idea even if you plan on running your cluster with Auth.
 
+Storm's OS level security relies on running Storm processes using OS accounts that have only the permissions they need. 
+Note that workers run under the same OS account as the Supervisor daemon by default.
+
 The exact detail of how to setup these precautions varies a lot and is beyond
 the scope of this document.
 
@@ -429,7 +432,9 @@ To hide this from them in the common case plugins can be used to populate the cr
 `topology.auto-credentials` is a list of java plugins, all of which must implement the `IAutoCredentials` interface, that populate the credentials on gateway 
 and unpack them on the worker side. On a kerberos secure cluster they should be set by default to point to `org.apache.storm.security.auth.kerberos.AutoTGT`
 
-`nimbus.credential.renewers.classes` should also be set to `org.apache.storm.security.auth.kerberos.AutoTGT` so that nimbus can periodically renew the TGT on behalf of the user.
+`nimbus.credential.renewers.classes` should also be set to `org.apache.storm.security.auth.kerberos.AutoTGT` so that nimbus can periodically renew the TGT on behalf of the user.  
+
+All autocredential classes that desire to implement the IMetricsRegistrant interface can register metrics automatically for each topology.  The AutoTGT class currently implements this interface and adds a metric named TGT-TimeToExpiryMsecs showing the remaining time until the TGT needs to be renewed.
 
 `nimbus.credential.renewers.freq.secs` controls how often the renewer will poll to see if anything needs to be renewed, but the default should be fine.
 

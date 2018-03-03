@@ -18,6 +18,7 @@
 
 package org.apache.storm.scheduler.resource;
 
+import org.apache.storm.scheduler.resource.normalization.NormalizedResources;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -42,6 +43,7 @@ import org.apache.storm.scheduler.Topologies;
 import org.apache.storm.scheduler.TopologyDetails;
 import org.apache.storm.scheduler.WorkerSlot;
 import org.apache.storm.scheduler.resource.strategies.scheduling.DefaultResourceAwareStrategy;
+import org.apache.storm.scheduler.resource.strategies.scheduling.GenericResourceAwareStrategy;
 import org.apache.storm.testing.TestWordCounter;
 import org.apache.storm.testing.TestWordSpout;
 import org.apache.storm.topology.TopologyBuilder;
@@ -499,11 +501,7 @@ public class TestResourceAwareScheduler {
         assertEquals("Running - Fully Scheduled by DefaultResourceAwareStrategy", cluster1.getStatusMap().get(topology2.getId()));
     }
 
-    @Test
-    public void testHeterogeneousCluster() {
-        Map<String, Double> test = new HashMap<>();
-        test.put("gpu.count", 0.0);
-        new NormalizedResourceOffer(test);
+    public void testHeterogeneousCluster(Config topologyConf, String strategyName) {
         LOG.info("\n\n\t\ttestHeterogeneousCluster");
         INimbus iNimbus = new INimbusTest();
         Map<String, Double> resourceMap1 = new HashMap<>(); // strong supervisor node
@@ -513,8 +511,8 @@ public class TestResourceAwareScheduler {
         resourceMap2.put(Config.SUPERVISOR_CPU_CAPACITY, 200.0);
         resourceMap2.put(Config.SUPERVISOR_MEMORY_CAPACITY_MB, 1024.0);
 
-        resourceMap1 = NormalizedResources.normalizedResourceMap(resourceMap1);
-        resourceMap2 = NormalizedResources.normalizedResourceMap(resourceMap2);
+        resourceMap1 = NormalizedResources.RESOURCE_NAME_NORMALIZER.normalizedResourceMap(resourceMap1);
+        resourceMap2 = NormalizedResources.RESOURCE_NAME_NORMALIZER.normalizedResourceMap(resourceMap2);
 
         Map<String, SupervisorDetails> supMap = new HashMap<>();
         for (int i = 0; i < 2; i++) {
@@ -532,7 +530,7 @@ public class TestResourceAwareScheduler {
         builder1.setSpout("wordSpout1", new TestWordSpout(), 1).setCPULoad(300.0).setMemoryLoad(2000.0, 48.0);
         StormTopology stormTopology1 = builder1.createTopology();
         Config config1 = new Config();
-        config1.putAll(defaultTopologyConf);
+        config1.putAll(topologyConf);
         Map<ExecutorDetails, String> executorMap1 = genExecsAndComps(stormTopology1);
         TopologyDetails topology1 = new TopologyDetails("topology1", config1, stormTopology1, 1, executorMap1, 0, "user");
 
@@ -541,7 +539,7 @@ public class TestResourceAwareScheduler {
         builder2.setSpout("wordSpout2", new TestWordSpout(), 4).setCPULoad(100.0).setMemoryLoad(500.0, 12.0);
         StormTopology stormTopology2 = builder2.createTopology();
         Config config2 = new Config();
-        config2.putAll(defaultTopologyConf);
+        config2.putAll(topologyConf);
         Map<ExecutorDetails, String> executorMap2 = genExecsAndComps(stormTopology2);
         TopologyDetails topology2 = new TopologyDetails("topology2", config2, stormTopology2, 1, executorMap2, 0, "user");
 
@@ -550,7 +548,7 @@ public class TestResourceAwareScheduler {
         builder3.setSpout("wordSpout3", new TestWordSpout(), 4).setCPULoad(20.0).setMemoryLoad(200.0, 56.0);
         StormTopology stormTopology3 = builder3.createTopology();
         Config config3 = new Config();
-        config3.putAll(defaultTopologyConf);
+        config3.putAll(topologyConf);
         Map<ExecutorDetails, String> executorMap3 = genExecsAndComps(stormTopology3);
         TopologyDetails topology3 = new TopologyDetails("topology3", config2, stormTopology3, 1, executorMap3, 0, "user");
 
@@ -559,7 +557,7 @@ public class TestResourceAwareScheduler {
         builder4.setSpout("wordSpout4", new TestWordSpout(), 12).setCPULoad(30.0).setMemoryLoad(100.0, 0.0);
         StormTopology stormTopology4 = builder4.createTopology();
         Config config4 = new Config();
-        config4.putAll(defaultTopologyConf);
+        config4.putAll(topologyConf);
         Map<ExecutorDetails, String> executorMap4 = genExecsAndComps(stormTopology4);
         TopologyDetails topology4 = new TopologyDetails("topology4", config4, stormTopology4, 1, executorMap4, 0, "user");
 
@@ -568,7 +566,7 @@ public class TestResourceAwareScheduler {
         builder5.setSpout("wordSpout5", new TestWordSpout(), 40).setCPULoad(25.0).setMemoryLoad(100.0, 28.0);
         StormTopology stormTopology5 = builder5.createTopology();
         Config config5 = new Config();
-        config5.putAll(defaultTopologyConf);
+        config5.putAll(topologyConf);
         Map<ExecutorDetails, String> executorMap5 = genExecsAndComps(stormTopology5);
         TopologyDetails topology5 = new TopologyDetails("topology5", config5, stormTopology5, 1, executorMap5, 0, "user");
 
@@ -580,9 +578,9 @@ public class TestResourceAwareScheduler {
         rs.prepare(config1);
         rs.schedule(topologies, cluster);
 
-        assertEquals("Running - Fully Scheduled by DefaultResourceAwareStrategy", cluster.getStatusMap().get(topology1.getId()));
-        assertEquals("Running - Fully Scheduled by DefaultResourceAwareStrategy", cluster.getStatusMap().get(topology2.getId()));
-        assertEquals("Running - Fully Scheduled by DefaultResourceAwareStrategy", cluster.getStatusMap().get(topology3.getId()));
+        assertEquals("Running - Fully Scheduled by " + strategyName, cluster.getStatusMap().get(topology1.getId()));
+        assertEquals("Running - Fully Scheduled by " + strategyName, cluster.getStatusMap().get(topology2.getId()));
+        assertEquals("Running - Fully Scheduled by " + strategyName, cluster.getStatusMap().get(topology3.getId()));
 
         Map<SupervisorDetails, Double> superToCpu = getSupervisorToCpuUsage(cluster, topologies);
         Map<SupervisorDetails, Double> superToMem = getSupervisorToMemoryUsage(cluster, topologies);
@@ -595,7 +593,7 @@ public class TestResourceAwareScheduler {
             Double memUsed = superToMem.get(supervisor);
 
             assertTrue(supervisor.getId() + " MEM: "+ memAvailable + " == " + memUsed + " OR CPU: " + cpuAvailable + " == " + cpuUsed,
-                (Math.abs(memAvailable - memUsed) < EPSILON) || (Math.abs(cpuAvailable - cpuUsed) < EPSILON));
+                    (Math.abs(memAvailable - memUsed) < EPSILON) || (Math.abs(cpuAvailable - cpuUsed) < EPSILON));
         }
         // end of Test1
 
@@ -606,15 +604,15 @@ public class TestResourceAwareScheduler {
         rs.prepare(config1);
         rs.schedule(topologies, cluster);
         int numTopologiesAssigned = 0;
-        if (cluster.getStatusMap().get(topology1.getId()).equals("Running - Fully Scheduled by DefaultResourceAwareStrategy")) {
+        if (cluster.getStatusMap().get(topology1.getId()).equals("Running - Fully Scheduled by " + strategyName)) {
             LOG.info("TOPO 1 scheduled");
             numTopologiesAssigned++;
         }
-        if (cluster.getStatusMap().get(topology2.getId()).equals("Running - Fully Scheduled by DefaultResourceAwareStrategy")) {
+        if (cluster.getStatusMap().get(topology2.getId()).equals("Running - Fully Scheduled by " + strategyName)) {
             LOG.info("TOPO 2 scheduled");
             numTopologiesAssigned++;
         }
-        if (cluster.getStatusMap().get(topology4.getId()).equals("Running - Fully Scheduled by DefaultResourceAwareStrategy")) {
+        if (cluster.getStatusMap().get(topology4.getId()).equals("Running - Fully Scheduled by " + strategyName)) {
             LOG.info("TOPO 3 scheduled");
             numTopologiesAssigned++;
         }
@@ -638,6 +636,18 @@ public class TestResourceAwareScheduler {
             assertEquals(memAvailable, memUsed, 0.0001);
         }
         //end of Test3
+    }
+
+    @Test
+    public void testHeterogeneousClusterwithDefaultRas() {
+        testHeterogeneousCluster(defaultTopologyConf, DefaultResourceAwareStrategy.class.getSimpleName());
+    }
+
+    @Test
+    public void testHeterogeneousClusterwithGras() {
+        Config grasClusterConfig = (Config) defaultTopologyConf.clone();
+        grasClusterConfig.put(Config.TOPOLOGY_SCHEDULER_STRATEGY, GenericResourceAwareStrategy.class.getName());
+        testHeterogeneousCluster(grasClusterConfig, GenericResourceAwareStrategy.class.getSimpleName());
     }
 
     @Test
