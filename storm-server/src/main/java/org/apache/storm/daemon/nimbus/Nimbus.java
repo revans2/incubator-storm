@@ -3021,6 +3021,10 @@ public class Nimbus implements Iface, Shutdownable, DaemonCommon {
 
             IStormClusterState state = stormClusterState;
 
+            if (creds == null && workerTokenManager != null) {
+                //Make sure we can store the worker tokens even if no creds are provided.
+                creds = new HashMap<>();
+            }
             if (creds != null) {
                 Map<String, Object> finalConf = Collections.unmodifiableMap(topoConf);
                 for (INimbusCredentialPlugin autocred: nimbusAutocredPlugins) {
