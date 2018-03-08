@@ -26,7 +26,7 @@ import org.apache.storm.generated.Assignment;
 /**
  * Interface for storing local assignments.
  */
-public interface ILocalAssignmentsBackend {
+public interface ILocalAssignmentsBackend extends AutoCloseable{
     /**
      * Decide if the assignments is synchronized from remote state-store.
      */
@@ -45,10 +45,10 @@ public interface ILocalAssignmentsBackend {
 
     /**
      * Keep a storm assignment to local state or update old assignment.
-     * @param stormID storm runtime id
+     * @param stormId storm runtime id
      * @param assignment assignment as thrift
      */
-    void keepOrUpdateAssignment(String stormID, Assignment assignment);
+    void keepOrUpdateAssignment(String stormId, Assignment assignment);
 
     /**
      * Get assignment as {@link Assignment} for a storm.
@@ -97,6 +97,10 @@ public interface ILocalAssignmentsBackend {
      */
     void syncRemoteIds(Map<String, String> remote);
 
+    /**
+     * Delete a local cache of stormId which is mapped to a specific storm name.
+     * @param stormName storm name
+     */
     void deleteStormId(String stormName);
 
     /**
@@ -108,6 +112,5 @@ public interface ILocalAssignmentsBackend {
     /**
      * Function to release resource.
      */
-    void dispose();
-
+    void close();
 }

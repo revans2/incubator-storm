@@ -828,7 +828,7 @@ public class StormClusterStateImpl implements IStormClusterState {
         stateStorage.unregister(stateId);
         if (solo) {
             stateStorage.close();
-        this.assignmentsBackend.dispose();
+        this.assignmentsBackend.close();
         }
     }
 

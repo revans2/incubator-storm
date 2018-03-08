@@ -1558,25 +1558,24 @@ public class StatsUtil {
      * @return a HashMap of updated executor heart beats
      */
     public static Map<List<Integer>, Map<String, Object>> updateHeartbeatCacheFromZkHeartbeat(Map<List<Integer>, Map<String, Object>> cache,
-                                                                                         Map<List<Integer>, Map<String, Object>> executorBeats,
-                                                                                         Set<List<Integer>> executors, Integer timeout) {
-           Map<List<Integer>, Map<String, Object>> ret = new HashMap<>();
-           if (cache == null && executorBeats == null) {
-               return ret;
-           }
+        Map<List<Integer>, Map<String, Object>> executorBeats, Set<List<Integer>> executors, Integer timeout) {
+        Map<List<Integer>, Map<String, Object>> ret = new HashMap<>();
+        if (cache == null && executorBeats == null) {
+            return ret;
+        }
 
-           if (cache == null) {
-               cache = new HashMap<>();
-           }
-           if (executorBeats == null) {
-               executorBeats = new HashMap<>();
-           }
+        if (cache == null) {
+            cache = new HashMap<>();
+        }
+        if (executorBeats == null) {
+            executorBeats = new HashMap<>();
+        }
 
-           for (List<Integer> executor : executors) {
-               ret.put(executor, updateExecutorCache(cache.get(executor), executorBeats.get(executor), timeout));
-           }
+        for (List<Integer> executor : executors) {
+            ret.put(executor, updateExecutorCache(cache.get(executor), executorBeats.get(executor), timeout));
+        }
 
-           return ret;
+        return ret;
     }
 
 
@@ -1594,8 +1593,7 @@ public class StatsUtil {
      * @param timeout       timeout
      */
     public static void updateHeartbeatCache(Map<List<Integer>, Map<String, Object>> cache,
-                                                                  Map<List<Integer>, Map<String, Object>> executorBeats,
-                                                                  Set<List<Integer>> executors, Integer timeout) {
+        Map<List<Integer>, Map<String, Object>> executorBeats, Set<List<Integer>> executors, Integer timeout) {
         //if not executor beats, refresh is-timed-out of the cache which is done by master
         if (executorBeats == null) {
             for (Map.Entry<List<Integer>, Map<String, Object>> executorbeat: cache.entrySet()) {

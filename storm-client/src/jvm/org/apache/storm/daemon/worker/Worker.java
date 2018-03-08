@@ -185,7 +185,7 @@ public class Worker implements Shutdownable, DaemonCommon {
             });
 
         workerState.executorHeartbeatTimer
-            .scheduleRecurring(0, (Integer) conf.get(Config.WORKER_HEARTBEAT_FREQUENCY_SECS),
+            .scheduleRecurring(0, (Integer) conf.get(Config.EXECUTOR_METRICS_FREQUENCY_SECS),
                 Worker.this::doExecutorHeartbeats);
 
         workerState.registerCallbacks();

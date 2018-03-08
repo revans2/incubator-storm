@@ -344,9 +344,9 @@ public class Nimbus implements Iface, Shutdownable, DaemonCommon {
     private static final TopologyStateTransition REMOVE_TRANSITION = (args, nimbus, topoId, base) -> {
         LOG.info("Killing topology: {}", topoId);
         IStormClusterState state = nimbus.getStormClusterState();
-        Assignment oldAss = state.assignmentInfo(topoId, null);
+        Assignment oldAssignment = state.assignmentInfo(topoId, null);
         state.removeStorm(topoId);
-        notifySupervisorsAsKilled(state, oldAss, nimbus.getAssignmentsDistributer());
+        notifySupervisorsAsKilled(state, oldAssignment, nimbus.getAssignmentsDistributer());
         BlobStore store = nimbus.getBlobStore();
         if (store instanceof LocalFsBlobStore) {
             for (String key: Nimbus.getKeyListFromId(nimbus.getConf(), topoId)) {
@@ -3021,6 +3021,10 @@ public class Nimbus implements Iface, Shutdownable, DaemonCommon {
 
             IStormClusterState state = stormClusterState;
 
+            if (creds == null && workerTokenManager != null) {
+                //Make sure we can store the worker tokens even if no creds are provided.
+                creds = new HashMap<>();
+            }
             if (creds != null) {
                 Map<String, Object> finalConf = Collections.unmodifiableMap(topoConf);
                 for (INimbusCredentialPlugin autocred: nimbusAutocredPlugins) {

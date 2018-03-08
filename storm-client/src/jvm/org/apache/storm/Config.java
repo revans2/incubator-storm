@@ -1832,8 +1832,17 @@ public class Config extends HashMap<String, Object> {
     public static final String WORKER_HEARTBEAT_FREQUENCY_SECS = "worker.heartbeat.frequency.secs";
 
     /**
-     * How often a task should heartbeat its status to the master.
+     * How often executor metrics should report to master, used for RPC heartbeat mode.
      */
+    @isInteger
+    @isPositiveNumber
+    public static final String EXECUTOR_METRICS_FREQUENCY_SECS = "executor.metrics.frequency.secs";
+
+    /**
+     * How often a task should heartbeat its status to the master,
+     * deprecated for 2.0 RPC heartbeat reporting, see {@code EXECUTOR_METRICS_FREQUENCY_SECS }.
+     */
+    @Deprecated
     @isInteger
     @isPositiveNumber
     public static final String TASK_HEARTBEAT_FREQUENCY_SECS = "task.heartbeat.frequency.secs";

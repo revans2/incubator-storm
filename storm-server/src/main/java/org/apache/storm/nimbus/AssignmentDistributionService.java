@@ -129,7 +129,7 @@ public class AssignmentDistributionService implements Closeable {
         this.active = false;
         this.service.shutdownNow();
         try {
-            this.service.awaitTermination(10L, TimeUnit.SECONDS);
+            this.service.awaitTermination(1L, TimeUnit.SECONDS);
         } catch (InterruptedException e) {
             LOG.error("Failed to close assignments distribute service");
         }
@@ -214,7 +214,7 @@ public class AssignmentDistributionService implements Closeable {
 
         @Override
         public void run() {
-            while (true) {
+            while (service.isActive()) {
                 try {
                     NodeAssignments nodeAssignments = this.service.nextAssignments(queueIndex);
                     sendAssignmentsToNode(nodeAssignments);

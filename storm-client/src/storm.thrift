@@ -477,13 +477,13 @@ struct SupervisorInfo {
     1: required i64 time_secs;
     2: required string hostname;
     3: optional string assignment_id;
-    4: optional i32 server_port;
-    5: optional list<i64> used_ports;
-    6: optional list<i64> meta;
-    7: optional map<string, string> scheduler_meta;
-    8: optional i64 uptime_secs;
-    9: optional string version;
-    10: optional map<string, double> resources_map;
+    4: optional list<i64> used_ports;
+    5: optional list<i64> meta;
+    6: optional map<string, string> scheduler_meta;
+    7: optional i64 uptime_secs;
+    8: optional string version;
+    9: optional map<string, double> resources_map;
+   10: optional i32 server_port;
 }
 
 struct NodeInfo {

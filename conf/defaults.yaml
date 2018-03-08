@@ -195,7 +195,10 @@ worker.log.level.reset.poll.secs: 30
 # control how many worker receiver threads we need per worker
 topology.worker.receiver.thread.count: 1
 
-task.heartbeat.frequency.secs: 60
+# Executor metrics reporting interval.
+executor.metrics.frequency.secs: 60
+
+task.heartbeat.frequency.secs: 3
 task.refresh.poll.secs: 10
 task.credentials.poll.secs: 30
 

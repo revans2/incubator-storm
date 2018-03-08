@@ -27,11 +27,19 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Map;
 
+/**
+ * Client for interacting with Supervisor server, now we use supervisor server mainly for cases below:
+ * <ul>
+ *     <li>worker <- supervisor: get worker local assignment for a storm.</li>
+ *     <li>nimbus -> supervisor: assign assignments for a node.</li>
+ * </ul>
+ */
 public class SupervisorClient extends ThriftClient {
-    private Supervisor.Client _client;
+    private Supervisor.Client client;
     private static final Logger LOG = LoggerFactory.getLogger(SupervisorClient.class);
 
     public static SupervisorClient getConfiguredClient(Map conf, String host) {
+        //use the default server port.
         int port = Integer.parseInt(conf.get(Config.SUPERVISOR_THRIFT_PORT).toString());
         return getConfiguredClientAs(conf, host, port, null);
     }
@@ -61,20 +69,20 @@ public class SupervisorClient extends ThriftClient {
 
     public SupervisorClient(Map conf, String host, int port, Integer timeout) throws TTransportException {
         super(conf, ThriftConnectionType.SUPERVISOR, host, port, timeout, null);
-        _client = new Supervisor.Client(_protocol);
+        client = new Supervisor.Client(_protocol);
     }
 
     public SupervisorClient(Map conf, String host, Integer port, Integer timeout, String asUser) throws TTransportException {
         super(conf, ThriftConnectionType.SUPERVISOR, host, port, timeout, asUser);
-        _client = new Supervisor.Client(_protocol);
+        client = new Supervisor.Client(_protocol);
     }
 
     public SupervisorClient(Map conf, String host) throws TTransportException {
         super(conf, ThriftConnectionType.SUPERVISOR, host, null, null, null);
-        _client = new Supervisor.Client(_protocol);
+        client = new Supervisor.Client(_protocol);
     }
 
     public Supervisor.Client getClient() {
-        return _client;
+        return client;
     }
 }
