@@ -18,31 +18,19 @@
 
 package org.apache.storm;
 
-import static org.apache.storm.validation.ConfigValidationAnnotations.isInteger;
-import static org.apache.storm.validation.ConfigValidationAnnotations.isPositiveNumber;
-import static org.apache.storm.validation.ConfigValidationAnnotations.isString;
-import static org.apache.storm.validation.ConfigValidationAnnotations.isStringList;
-import static org.apache.storm.validation.ConfigValidationAnnotations.isStringOrStringList;
-import static org.apache.storm.validation.ConfigValidationAnnotations.NotNull;
-import static org.apache.storm.validation.ConfigValidationAnnotations.isListEntryCustom;
-import static org.apache.storm.validation.ConfigValidationAnnotations.isBoolean;
-import static org.apache.storm.validation.ConfigValidationAnnotations.isNumber;
-import static org.apache.storm.validation.ConfigValidationAnnotations.isImplementationOfClass;
-import static org.apache.storm.validation.ConfigValidationAnnotations.isMapEntryType;
-import static org.apache.storm.validation.ConfigValidationAnnotations.isNoDuplicateInList;
-import static org.apache.storm.validation.ConfigValidationAnnotations.isMapEntryCustom;
-
+import java.util.ArrayList;
+import java.util.Map;
 import org.apache.storm.container.ResourceIsolationInterface;
 import org.apache.storm.nimbus.ITopologyActionNotifierPlugin;
 import org.apache.storm.scheduler.blacklist.reporters.IReporter;
 import org.apache.storm.scheduler.blacklist.strategies.IBlacklistStrategy;
 import org.apache.storm.scheduler.resource.strategies.priority.ISchedulingPriorityStrategy;
 import org.apache.storm.scheduler.resource.strategies.scheduling.IStrategy;
+import org.apache.storm.security.auth.IAuthorizer;
 import org.apache.storm.validation.ConfigValidation;
 import org.apache.storm.validation.Validated;
 
-import java.util.ArrayList;
-import java.util.Map;
+import static org.apache.storm.validation.ConfigValidationAnnotations.*;
 
 /**
  * Storm configs are specified as a plain old map. This class provides constants for
@@ -262,6 +250,13 @@ public class DaemonConfig implements Validated {
      */
     @isString
     public static final String NIMBUS_AUTHORIZER = "nimbus.authorizer";
+
+    /**
+     * Class name for authorization plugin for supervisor.
+     */
+    @isImplementationOfClass(implementsClass = IAuthorizer.class)
+    @isString
+    public static final String SUPERVISOR_AUTHORIZER = "supervisor.authorizer";
 
     /**
      * Impersonation user ACL config entries.

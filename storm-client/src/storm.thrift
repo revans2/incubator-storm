@@ -898,7 +898,7 @@ service Supervisor {
   /**
    * Send worker heartbeat to local supervisor
    */
-  void sendSupervisorWorkerHeartbeat(1: SupervisorWorkerHeartbeat heartbeat) throws (1: AuthorizationException aze);
+  void sendSupervisorWorkerHeartbeat(1: SupervisorWorkerHeartbeat heartbeat) throws (1: AuthorizationException aze, 2: NotAliveException e);
 }
 
 # WorkerTokens are used as credentials that allow a Worker to authenticate with DRPC, Nimbus, or other storm processes that we add in here.

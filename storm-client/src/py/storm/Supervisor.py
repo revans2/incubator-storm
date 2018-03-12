@@ -173,6 +173,8 @@ class Client(Iface):
     iprot.readMessageEnd()
     if result.aze is not None:
       raise result.aze
+    if result.e is not None:
+      raise result.e
     return
 
 
@@ -259,6 +261,9 @@ class Processor(Iface, TProcessor):
     except AuthorizationException as aze:
       msg_type = TMessageType.REPLY
       result.aze = aze
+    except NotAliveException as e:
+      msg_type = TMessageType.REPLY
+      result.e = e
     except Exception as ex:
       msg_type = TMessageType.EXCEPTION
       logging.exception(ex)
@@ -631,15 +636,18 @@ class sendSupervisorWorkerHeartbeat_result:
   """
   Attributes:
    - aze
+   - e
   """
 
   thrift_spec = (
     None, # 0
     (1, TType.STRUCT, 'aze', (AuthorizationException, AuthorizationException.thrift_spec), None, ), # 1
+    (2, TType.STRUCT, 'e', (NotAliveException, NotAliveException.thrift_spec), None, ), # 2
   )
 
-  def __init__(self, aze=None,):
+  def __init__(self, aze=None, e=None,):
     self.aze = aze
+    self.e = e
 
   def read(self, iprot):
     if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
@@ -656,6 +664,12 @@ class sendSupervisorWorkerHeartbeat_result:
           self.aze.read(iprot)
         else:
           iprot.skip(ftype)
+      elif fid == 2:
+        if ftype == TType.STRUCT:
+          self.e = NotAliveException()
+          self.e.read(iprot)
+        else:
+          iprot.skip(ftype)
       else:
         iprot.skip(ftype)
       iprot.readFieldEnd()
@@ -670,6 +684,10 @@ class sendSupervisorWorkerHeartbeat_result:
       oprot.writeFieldBegin('aze', TType.STRUCT, 1)
       self.aze.write(oprot)
       oprot.writeFieldEnd()
+    if self.e is not None:
+      oprot.writeFieldBegin('e', TType.STRUCT, 2)
+      self.e.write(oprot)
+      oprot.writeFieldEnd()
     oprot.writeFieldStop()
     oprot.writeStructEnd()
 
@@ -680,6 +698,7 @@ class sendSupervisorWorkerHeartbeat_result:
   def __hash__(self):
     value = 17
     value = (value * 31) ^ hash(self.aze)
+    value = (value * 31) ^ hash(self.e)
     return value
 
   def __repr__(self):

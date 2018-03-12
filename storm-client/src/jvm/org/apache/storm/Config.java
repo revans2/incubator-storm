@@ -1629,6 +1629,14 @@ public class Config extends HashMap<String, Object> {
     public static final String NIMBUS_SUPERVISOR_USERS = "nimbus.supervisor.users";
 
     /**
+     * a list of users that nimbus runs as and should be authorized to interact with
+     * the supervisor as nimbus would. To use this set
+     * supervisor.autheorizer to org.apache.storm.security.auth.authorizer.SupervisorSimpleACLAuthorizer
+     */
+    @isStringList
+    public static final String NIMBUS_DAEMON_USERS = "nimbus.daemon.users";
+
+    /**
      * A list of users that are cluster admins and can run any command.  To use this set
      * nimbus.authorizer to org.apache.storm.security.auth.authorizer.SimpleACLAuthorizer
      */

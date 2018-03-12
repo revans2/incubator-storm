@@ -24,14 +24,12 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-
 import org.apache.storm.Config;
-import org.apache.storm.security.auth.IAuthorizer;
-import org.apache.storm.security.auth.ReqContext;
 import org.apache.storm.security.auth.AuthUtils;
-import org.apache.storm.security.auth.IPrincipalToLocal;
+import org.apache.storm.security.auth.IAuthorizer;
 import org.apache.storm.security.auth.IGroupMappingServiceProvider;
-
+import org.apache.storm.security.auth.IPrincipalToLocal;
+import org.apache.storm.security.auth.ReqContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -39,56 +37,18 @@ import org.slf4j.LoggerFactory;
  * An authorization implementation that simply checks if a user is allowed to perform specific
  * operations.
  */
-public class SimpleACLAuthorizer implements IAuthorizer {
-    private static final Logger LOG = LoggerFactory.getLogger(SimpleACLAuthorizer.class);
+public class SupervisorSimpleACLAuthorizer implements IAuthorizer {
+    private static final Logger LOG = LoggerFactory.getLogger(SupervisorSimpleACLAuthorizer.class);
 
-    protected Set<String> userCommands = new HashSet<>(Arrays.asList(
-            "submitTopology",
-            "fileUpload",
-            "getNimbusConf",
-            "getClusterInfo",
-            "getSupervisorPageInfo",
-            "getOwnerResourceSummaries"));
-    protected Set<String> supervisorCommands = new HashSet<>(Arrays.asList(
-            "fileDownload",
-            "processWorkerMetrics",
-            "getSupervisorAssignments",
-            "sendSupervisorWorkerHeartbeats"));
-    protected Set<String> topoReadOnlyCommands = new HashSet<>(Arrays.asList(
-            "getTopologyConf",
-            "getTopology",
-            "getUserTopology",
-            "getTopologyInfo",
-            "getTopologyPageInfo",
-            "getComponentPageInfo",
-            "getWorkerProfileActionExpiry",
-            "getComponentPendingProfileActions",
-            "getLogConfig"));
     protected Set<String> topoCommands = new HashSet<>(Arrays.asList(
-            "killTopology",
-            "rebalance",
-            "activate",
-            "deactivate",
-            "uploadNewCredentials",
-            "setLogConfig",
-            "setWorkerProfiler",
-            "startProfiling",
-            "stopProfiling",
-            "dumpProfile",
-            "dumpJstack",
-            "dumpHeap",
-            "debug",
-            "sendSupervisorWorkerHeartbeat"));
-
-    {
-        topoCommands.addAll(topoReadOnlyCommands);
-    }
+        "getLocalAssignmentForStorm",
+        "sendSupervisorWorkerHeartbeat"));
+    protected Set<String> nimbusCommands = new HashSet<>(Arrays.asList(
+        "sendSupervisorAssignments"));
 
     protected Set<String> admins;
     protected Set<String> adminsGroups;
-    protected Set<String> supervisors;
-    protected Set<String> nimbusUsers;
-    protected Set<String> nimbusGroups;
+    protected Set<String> nimbus;
     protected IPrincipalToLocal ptol;
     protected IGroupMappingServiceProvider groupMappingServiceProvider;
 
@@ -100,9 +60,7 @@ public class SimpleACLAuthorizer implements IAuthorizer {
     public void prepare(Map<String, Object> conf) {
         admins = new HashSet<>();
         adminsGroups = new HashSet<>();
-        supervisors = new HashSet<>();
-        nimbusUsers = new HashSet<>();
-        nimbusGroups = new HashSet<>();
+        nimbus = new HashSet<>();
 
         if (conf.containsKey(Config.NIMBUS_ADMINS)) {
             admins.addAll((Collection<String>)conf.get(Config.NIMBUS_ADMINS));
@@ -112,16 +70,15 @@ public class SimpleACLAuthorizer implements IAuthorizer {
             adminsGroups.addAll((Collection<String>)conf.get(Config.NIMBUS_ADMINS_GROUPS));
         }
 
-        if (conf.containsKey(Config.NIMBUS_SUPERVISOR_USERS)) {
-            supervisors.addAll((Collection<String>)conf.get(Config.NIMBUS_SUPERVISOR_USERS));
-        }
-
-        if (conf.containsKey(Config.NIMBUS_USERS)) {
-            nimbusUsers.addAll((Collection<String>)conf.get(Config.NIMBUS_USERS));
-        }
-
-        if (conf.containsKey(Config.NIMBUS_GROUPS)) {
-            nimbusGroups.addAll((Collection<String>)conf.get(Config.NIMBUS_GROUPS));
+        if (conf.containsKey(Config.NIMBUS_DAEMON_USERS)) {
+            nimbus.addAll((Collection<String>)conf.get(Config.NIMBUS_DAEMON_USERS));
+        } else if (conf.containsKey(Config.NIMBUS_SUPERVISOR_USERS)) {
+            LOG.warn("{} is not set falling back to using {}.", Config.NIMBUS_DAEMON_USERS, Config.NIMBUS_SUPERVISOR_USERS);
+            //In almost all cases these should be the same, but warn the user just in case something goes wrong...
+            nimbus.addAll((Collection<String>)conf.get(Config.NIMBUS_SUPERVISOR_USERS));
+        } else {
+            //If it is not set a lot of things are not really going to work all that well
+            LOG.error("Could not find {} things might now work correctly...", Config.NIMBUS_DAEMON_USERS);
         }
 
         ptol = AuthUtils.GetPrincipalToLocalPlugin(conf);
@@ -153,22 +110,15 @@ public class SimpleACLAuthorizer implements IAuthorizer {
             return true;
         }
 
-        if (supervisors.contains(principal) || supervisors.contains(user)) {
-            return supervisorCommands.contains(operation);
-        }
-
-        if (userCommands.contains(operation)) {
-            return nimbusUsers.size() == 0 || nimbusUsers.contains(user) || checkUserGroupAllowed(userGroups, nimbusGroups);
+        if (nimbus.contains(principal) || nimbus.contains(user)) {
+            return nimbusCommands.contains(operation);
         }
 
         if (topoCommands.contains(operation)) {
-            if (checkTopoPermission(principal, user, userGroups, topoConf, Config.TOPOLOGY_USERS, Config.TOPOLOGY_GROUPS)) {
-                return true;
-            }
-
-            if (topoReadOnlyCommands.contains(operation) && checkTopoPermission(principal, user, userGroups,
-                    topoConf, Config.TOPOLOGY_READONLY_USERS, Config.TOPOLOGY_READONLY_GROUPS)) {
-                return true;
+            if (topoConf != null) {
+                if (checkTopoPermission(principal, user, userGroups, topoConf, Config.TOPOLOGY_USERS, Config.TOPOLOGY_GROUPS)) {
+                    return true;
+                }
             }
         }
         return false;

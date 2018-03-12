@@ -75,7 +75,7 @@ public class Supervisor {
      * 
      * @param heartbeat
      */
-    public void sendSupervisorWorkerHeartbeat(SupervisorWorkerHeartbeat heartbeat) throws AuthorizationException, org.apache.thrift.TException;
+    public void sendSupervisorWorkerHeartbeat(SupervisorWorkerHeartbeat heartbeat) throws AuthorizationException, NotAliveException, org.apache.thrift.TException;
 
   }
 
@@ -161,7 +161,7 @@ public class Supervisor {
       throw new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.MISSING_RESULT, "getLocalAssignmentForStorm failed: unknown result");
     }
 
-    public void sendSupervisorWorkerHeartbeat(SupervisorWorkerHeartbeat heartbeat) throws AuthorizationException, org.apache.thrift.TException
+    public void sendSupervisorWorkerHeartbeat(SupervisorWorkerHeartbeat heartbeat) throws AuthorizationException, NotAliveException, org.apache.thrift.TException
     {
       send_sendSupervisorWorkerHeartbeat(heartbeat);
       recv_sendSupervisorWorkerHeartbeat();
@@ -174,12 +174,15 @@ public class Supervisor {
       sendBase("sendSupervisorWorkerHeartbeat", args);
     }
 
-    public void recv_sendSupervisorWorkerHeartbeat() throws AuthorizationException, org.apache.thrift.TException
+    public void recv_sendSupervisorWorkerHeartbeat() throws AuthorizationException, NotAliveException, org.apache.thrift.TException
     {
       sendSupervisorWorkerHeartbeat_result result = new sendSupervisorWorkerHeartbeat_result();
       receiveBase(result, "sendSupervisorWorkerHeartbeat");
       if (result.aze != null) {
         throw result.aze;
+      }
+      if (result.e != null) {
+        throw result.e;
       }
       return;
     }
@@ -288,7 +291,7 @@ public class Supervisor {
         prot.writeMessageEnd();
       }
 
-      public void getResult() throws AuthorizationException, org.apache.thrift.TException {
+      public void getResult() throws AuthorizationException, NotAliveException, org.apache.thrift.TException {
         if (getState() != org.apache.thrift.async.TAsyncMethodCall.State.RESPONSE_READ) {
           throw new IllegalStateException("Method call not finished!");
         }
@@ -386,6 +389,8 @@ public class Supervisor {
           iface.sendSupervisorWorkerHeartbeat(args.heartbeat);
         } catch (AuthorizationException aze) {
           result.aze = aze;
+        } catch (NotAliveException e) {
+          result.e = e;
         }
         return result;
       }
@@ -557,6 +562,11 @@ public class Supervisor {
             if (e instanceof AuthorizationException) {
                         result.aze = (AuthorizationException) e;
                         result.set_aze_isSet(true);
+                        msg = result;
+            }
+            else             if (e instanceof NotAliveException) {
+                        result.e = (NotAliveException) e;
+                        result.set_e_isSet(true);
                         msg = result;
             }
              else 
@@ -2609,6 +2619,7 @@ public class Supervisor {
     private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("sendSupervisorWorkerHeartbeat_result");
 
     private static final org.apache.thrift.protocol.TField AZE_FIELD_DESC = new org.apache.thrift.protocol.TField("aze", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+    private static final org.apache.thrift.protocol.TField E_FIELD_DESC = new org.apache.thrift.protocol.TField("e", org.apache.thrift.protocol.TType.STRUCT, (short)2);
 
     private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
     static {
@@ -2617,10 +2628,12 @@ public class Supervisor {
     }
 
     private AuthorizationException aze; // required
+    private NotAliveException e; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-      AZE((short)1, "aze");
+      AZE((short)1, "aze"),
+      E((short)2, "e");
 
       private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
 
@@ -2637,6 +2650,8 @@ public class Supervisor {
         switch(fieldId) {
           case 1: // AZE
             return AZE;
+          case 2: // E
+            return E;
           default:
             return null;
         }
@@ -2682,6 +2697,8 @@ public class Supervisor {
       Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
       tmpMap.put(_Fields.AZE, new org.apache.thrift.meta_data.FieldMetaData("aze", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRUCT)));
+      tmpMap.put(_Fields.E, new org.apache.thrift.meta_data.FieldMetaData("e", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRUCT)));
       metaDataMap = Collections.unmodifiableMap(tmpMap);
       org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(sendSupervisorWorkerHeartbeat_result.class, metaDataMap);
     }
@@ -2690,10 +2707,12 @@ public class Supervisor {
     }
 
     public sendSupervisorWorkerHeartbeat_result(
-      AuthorizationException aze)
+      AuthorizationException aze,
+      NotAliveException e)
     {
       this();
       this.aze = aze;
+      this.e = e;
     }
 
     /**
@@ -2702,6 +2721,9 @@ public class Supervisor {
     public sendSupervisorWorkerHeartbeat_result(sendSupervisorWorkerHeartbeat_result other) {
       if (other.is_set_aze()) {
         this.aze = new AuthorizationException(other.aze);
+      }
+      if (other.is_set_e()) {
+        this.e = new NotAliveException(other.e);
       }
     }
 
@@ -2712,6 +2734,7 @@ public class Supervisor {
     @Override
     public void clear() {
       this.aze = null;
+      this.e = null;
     }
 
     public AuthorizationException get_aze() {
@@ -2737,6 +2760,29 @@ public class Supervisor {
       }
     }
 
+    public NotAliveException get_e() {
+      return this.e;
+    }
+
+    public void set_e(NotAliveException e) {
+      this.e = e;
+    }
+
+    public void unset_e() {
+      this.e = null;
+    }
+
+    /** Returns true if field e is set (has been assigned a value) and false otherwise */
+    public boolean is_set_e() {
+      return this.e != null;
+    }
+
+    public void set_e_isSet(boolean value) {
+      if (!value) {
+        this.e = null;
+      }
+    }
+
     public void setFieldValue(_Fields field, Object value) {
       switch (field) {
       case AZE:
@@ -2747,6 +2793,14 @@ public class Supervisor {
         }
         break;
 
+      case E:
+        if (value == null) {
+          unset_e();
+        } else {
+          set_e((NotAliveException)value);
+        }
+        break;
+
       }
     }
 
@@ -2754,6 +2808,9 @@ public class Supervisor {
       switch (field) {
       case AZE:
         return get_aze();
+
+      case E:
+        return get_e();
 
       }
       throw new IllegalStateException();
@@ -2768,6 +2825,8 @@ public class Supervisor {
       switch (field) {
       case AZE:
         return is_set_aze();
+      case E:
+        return is_set_e();
       }
       throw new IllegalStateException();
     }
@@ -2794,6 +2853,15 @@ public class Supervisor {
           return false;
       }
 
+      boolean this_present_e = true && this.is_set_e();
+      boolean that_present_e = true && that.is_set_e();
+      if (this_present_e || that_present_e) {
+        if (!(this_present_e && that_present_e))
+          return false;
+        if (!this.e.equals(that.e))
+          return false;
+      }
+
       return true;
     }
 
@@ -2805,6 +2873,11 @@ public class Supervisor {
       list.add(present_aze);
       if (present_aze)
         list.add(aze);
+
+      boolean present_e = true && (is_set_e());
+      list.add(present_e);
+      if (present_e)
+        list.add(e);
 
       return list.hashCode();
     }
@@ -2823,6 +2896,16 @@ public class Supervisor {
       }
       if (is_set_aze()) {
         lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.aze, other.aze);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      lastComparison = Boolean.valueOf(is_set_e()).compareTo(other.is_set_e());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (is_set_e()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.e, other.e);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -2852,6 +2935,14 @@ public class Supervisor {
         sb.append("null");
       } else {
         sb.append(this.aze);
+      }
+      first = false;
+      if (!first) sb.append(", ");
+      sb.append("e:");
+      if (this.e == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.e);
       }
       first = false;
       sb.append(")");
@@ -2906,6 +2997,15 @@ public class Supervisor {
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
+            case 2: // E
+              if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
+                struct.e = new NotAliveException();
+                struct.e.read(iprot);
+                struct.set_e_isSet(true);
+              } else { 
+                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+              }
+              break;
             default:
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
           }
@@ -2922,6 +3022,11 @@ public class Supervisor {
         if (struct.aze != null) {
           oprot.writeFieldBegin(AZE_FIELD_DESC);
           struct.aze.write(oprot);
+          oprot.writeFieldEnd();
+        }
+        if (struct.e != null) {
+          oprot.writeFieldBegin(E_FIELD_DESC);
+          struct.e.write(oprot);
           oprot.writeFieldEnd();
         }
         oprot.writeFieldStop();
@@ -2945,20 +3050,31 @@ public class Supervisor {
         if (struct.is_set_aze()) {
           optionals.set(0);
         }
-        oprot.writeBitSet(optionals, 1);
+        if (struct.is_set_e()) {
+          optionals.set(1);
+        }
+        oprot.writeBitSet(optionals, 2);
         if (struct.is_set_aze()) {
           struct.aze.write(oprot);
+        }
+        if (struct.is_set_e()) {
+          struct.e.write(oprot);
         }
       }
 
       @Override
       public void read(org.apache.thrift.protocol.TProtocol prot, sendSupervisorWorkerHeartbeat_result struct) throws org.apache.thrift.TException {
         TTupleProtocol iprot = (TTupleProtocol) prot;
-        BitSet incoming = iprot.readBitSet(1);
+        BitSet incoming = iprot.readBitSet(2);
         if (incoming.get(0)) {
           struct.aze = new AuthorizationException();
           struct.aze.read(iprot);
           struct.set_aze_isSet(true);
+        }
+        if (incoming.get(1)) {
+          struct.e = new NotAliveException();
+          struct.e.read(iprot);
+          struct.set_e_isSet(true);
         }
       }
     }

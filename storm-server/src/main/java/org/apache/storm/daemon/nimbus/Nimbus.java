@@ -4477,6 +4477,7 @@ public class Nimbus implements Iface, Shutdownable, DaemonCommon {
 
     @Override
     public SupervisorAssignments getSupervisorAssignments(String node) throws AuthorizationException, TException {
+        checkAuthorization(null, null, "getSupervisorAssignments");
         try {
             if (isLeader() && isAssignmentsRecovered()) {
                 SupervisorAssignments supervisorAssignments = new SupervisorAssignments();
@@ -4484,35 +4485,50 @@ public class Nimbus implements Iface, Shutdownable, DaemonCommon {
                 return supervisorAssignments;
             }
         } catch (Exception e) {
+            LOG.debug("Exception when node {} fetching assignments", node);
+            if (e instanceof TException) {
+                throw (TException)e;
+            }
             // When this master is not leader and get a sync request from node,
             // just return nil which will cause client/node to get an unknown error,
             // the node/supervisor will sync it as a timer task.
-            LOG.debug("Exception when node {} fetching assignments", node);
         }
         return null;
     }
 
     @Override
     public void sendSupervisorWorkerHeartbeats(SupervisorWorkerHeartbeats heartbeats) throws AuthorizationException, TException {
+        checkAuthorization(null, null, "sendSupervisorWorkerHeartbeats");
         try {
             if (isLeader()) {
                 updateCachedHeartbeatsFromSupervisor(heartbeats);
             }
         } catch (Exception e) {
-            // When this master is not leader and get heartbeats report from supervisor/node, just ignore it.
             LOG.debug("Exception when update heartbeats for node {} heartbeats report.", heartbeats.get_supervisor_id());
+            if (e instanceof TException) {
+                throw (TException)e;
+            }
+            // When this master is not leader and get heartbeats report from supervisor/node, just ignore it.
         }
     }
 
     @Override
     public void sendSupervisorWorkerHeartbeat(SupervisorWorkerHeartbeat hb) throws AuthorizationException, TException {
+        String id = hb.get_storm_id();
         try {
+            Map<String, Object> topoConf = tryReadTopoConf(id, topoCache);
+            topoConf = Utils.merge(conf, topoConf);
+            String topoName = (String) topoConf.get(Config.TOPOLOGY_NAME);
+            checkAuthorization(topoName, topoConf, "sendSupervisorWorkerHeartbeat");
             if (isLeader()) {
                 updateCachedHeartbeatsFromWorker(hb);
             }
         } catch (Exception e) {
-            // When this master is not leader and get a heartbeat report from worker, just ignore it.
-            LOG.debug("Exception when update heartbeats for storm {} worker heartbeat report.", hb.get_storm_id());
+            LOG.warn("Send HB exception. (topology id='{}')", id, e);
+            if (e instanceof TException) {
+                throw (TException)e;
+            }
+            throw new RuntimeException(e);
         }
     }
 
